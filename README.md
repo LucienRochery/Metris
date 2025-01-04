@@ -6,8 +6,8 @@ Metris adapts simplex meshes provided an input metric field, and supports high-o
 Only 2D is implemented yet (01/25).
 Relevant publications:
 
-- L. Rochery, M. Chiriac, M. C. Galbraith, D. L. Darmofal, S. Allmaras, "Metris: An Open-Source High-Order Metric-Based Remesher", AIAA SciTech 2025, https://arc.aiaa.org/doi/10.2514/6.2025-0779
-- L. Rochery, M. C. Galbraith, D. L. Darmofal, S. Allmaras, "A Generalized Continuous Mesh Framework for Explicit Mesh Curving", AIAA SciTech 2024, https://doi.org/10.2514/6.2024-0787
+- L. Rochery, M. Chiriac, M. C. Galbraith, D. L. Darmofal, S. Allmaras, "Metris: An Open-Source High-Order Metric-Based Remesher", AIAA SciTech 2025, https://arc.aiaa.org/doi/10.2514/6.2025-0779, [local file](docs/rochery-et-al-2025-metris-an-open-source-high-order-metric-based-remesher.pdf)
+- L. Rochery, M. C. Galbraith, D. L. Darmofal, S. Allmaras, "A Generalized Continuous Mesh Framework for Explicit Mesh Curving", AIAA SciTech 2024, https://doi.org/10.2514/6.2024-0787, [local file](docs/rochery-et-al-2024-a-generalized-continuous-mesh-framework-for-explicit-mesh-curving.pdf)
 
 ## Installing Metris 
 
