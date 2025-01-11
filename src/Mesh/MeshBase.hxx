@@ -24,6 +24,8 @@ class MetricFieldAnalytical;
 class MetrisAPI; 
 struct MetrisParameters; 
 
+
+
 /* N Integer Boundary Information: stride of bpo2ibi */                   
 const int nibi = 4; 
 
@@ -33,6 +35,7 @@ const int nibi = 4;
 const int nrbi = 2; 
 
 enum class MeshClass{MeshBase, MeshMetric, MeshBack, Mesh};
+enum class MetricClass;
 
 
 class MeshBase{
@@ -175,6 +178,7 @@ public:
   intAr2 cfa2tag, ced2tag, cno2tag;
 
   virtual MeshClass meshClass() const { return MeshClass::MeshBase; }
+  virtual MetricClass metricClass() const;
 
 	MeshBase() = delete;
 	MeshBase(int nipwk_=1, int niewk_=1, int nifwk_=1, int nitwk_=1, int nrpwk_=1);

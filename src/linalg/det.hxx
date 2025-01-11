@@ -174,11 +174,24 @@ inline T detsym2(const T met[]){
 //  }
 //}
 
-inline void vecprod(const double*__restrict__ v1, const double*__restrict v2, double*__restrict__ out){
-  out[0] = v1[1]*v2[2] - v1[2]*v2[1];
-  out[1] = v1[2]*v2[0] - v1[0]*v2[2];
-  out[2] = v1[0]*v2[1] - v1[1]*v2[0];
+inline void vecprod(const double*__restrict__ u, const double*__restrict__ v, 
+                    double*__restrict__ out){
+  out[0] = u[1]*v[2] - u[2]*v[1];
+  out[1] = u[2]*v[0] - u[0]*v[2];
+  out[2] = u[0]*v[1] - u[1]*v[0];
 }
+
+// Compute (u1 - u2) x (v1 - v2)
+inline void vecprod_vdif(const double*__restrict__ u1, const double*__restrict__ u2, 
+                         const double*__restrict__ v1, const double*__restrict__ v2, 
+                         double*__restrict__ out){
+  out[0] = (u1[1] - u2[1])*(v1[2] - v2[2]) - (u1[2] - u2[2])*(v1[1] - v2[1]);
+  out[1] = (u1[2] - u2[2])*(v1[0] - v2[0]) - (u1[0] - u2[0])*(v1[2] - v2[2]);
+  out[2] = (u1[0] - u2[0])*(v1[1] - v2[1]) - (u1[1] - u2[1])*(v1[0] - v2[0]);
+}
+
+
+
 
 
 } // End namespace

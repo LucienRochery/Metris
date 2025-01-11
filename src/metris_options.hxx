@@ -51,7 +51,8 @@ struct MetrisOptions{
       ("ratmem" , po::value<double>(), "Maximum memory to use as proportion (0 to 1) of total memory" )
       ("hmin" , po::value<double>(), "Minimum metric size"   )
       ("hmax" , po::value<double>(), "Maximum metric size"   )
-      ("qopt-unif" , "Shape preserving uniformization");
+      ("adp-opt-niter", po::value<int>(), "Flag for smoothing to unstuck adaptation (expensive)")
+      ("opt-unif" , "Shape preserving uniformization");
 
 
     s.add_options()
@@ -66,21 +67,21 @@ struct MetrisOptions{
 
     // ----------------- Optimization options  
     s.add_options()  
-      ("qopt-niter" , po::value<int>(),
+      ("opt-niter" , po::value<int>(),
                     "Apply <x> itertions quality-based optim after of adaptation")
-      ("qopt-pnorm", po::value<int>(),
+      ("opt-pnorm", po::value<int>(),
                     "Optimization pnorm parameter. Compute Q^(opt-power) in norm pnorm")
-      ("qopt-power", po::value<int>(),
+      ("opt-power", po::value<int>(),
                     "Optimization power parameter. If power == -1, Q ~ det / tra. "
                     "Otherwise ~ tra / det.")
-      ("qopt-smoo-niter", po::value<int>(),
+      ("opt-smoo-niter", po::value<int>(),
                     "Inner optimization loop global smoothing iterations")
-      ("qopt-swap-pnorm", po::value<int>(),
+      ("opt-swap-pnorm", po::value<int>(),
                     "Optimization pnorm parameter (default same as smoothing). "
                     "Compute Q^(opt-power) in norm pnorm")
-      ("qopt-swap-thres", po::value<double>(),
+      ("opt-swap-thres", po::value<double>(),
                     "Quality p-norm (over shell) increase threshold for swaps.")
-      ("qopt-swap-niter", po::value<int>(),
+      ("opt-swap-niter", po::value<int>(),
                     "Inner optimization loop global swapping iterations");
 
 

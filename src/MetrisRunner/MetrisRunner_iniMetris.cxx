@@ -75,7 +75,6 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
 
   if(data_front == data_back) data_front = NULL;
 
-
   this->metricFE = !param.anaMet;
   if(!metricFE){
     if(param.iverb >= 2){

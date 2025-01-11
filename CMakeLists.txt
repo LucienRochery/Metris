@@ -19,6 +19,7 @@ execute_process(COMMAND "${GIT_EXECUTABLE}" config --get remote.origin.url
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 if(GITURL MATCHES "github.com")
+  message(WARNING "Disabled codegen!")
   set(REQ_CODEGEN OFF)
   set(CODEGEN_FILES ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.02.cxx
@@ -41,6 +42,12 @@ endif()
 
 
 add_compile_definitions(SURREAL_LAZY)
+
+if(USE_TRACELIBS)
+  message("-- Compiling with Boost stacktrace libraries")
+else()
+  add_compile_definitions(NO_BOOST_EXCEPT)
+endif()
 
 #find_package(MPI REQUIRED)
 #set(CMAKE_CXX_COMPILER mpicxx)
@@ -115,11 +122,7 @@ add_subdirectory(SANS)
 #set(_Boost_STACKTRACE_ADDR2LINE_HEADERS "boost/stacktrace.hpp")
 #set(_Boost_STACKTRACE_NOOP_HEADERS      "boost/stacktrace.hpp")
 
-#find_package(Boost COMPONENTS program_options 
-#	                            stacktrace_basic  
-#	                            #stacktrace_backtrace  
-#	                            stacktrace_addr2line
-#	                            stacktrace_noop REQUIRED)
+
 # https://stackoverflow.com/questions/60039866/build-errors-while-trying-to-add-booststacktrace-to-cmake-project
 
 
@@ -158,6 +161,15 @@ target_link_libraries(metris PUBLIC libMetris
                                     ${PETSC_LIBRARIES}
                                     ${MPI_LIBRARIES}
                                     )
+
+if(USE_TRACELIBS)
+  target_link_libraries(metris PUBLIC ${Boost_STACKTRACE_BASIC_LIBRARY} 
+                                      ${Boost_STACKTRACE_BACKTRACE_LIBRARY} 
+                                      ${Boost_STACKTRACE_ADDR2LINE_LIBRARY} 
+                                      ${Boost_STACKTRACE_NOOP_LIBRARY} 
+                                      dl
+                                      )
+endif()
 #if(USE_PETSC STREQUAL "True")
 #  target_link_libraries(metris PUBLIC PkgConfig::PETSC ${MPI_C_LIBRARIES})
 #  #target_link_libraries(metris PUBLIC PETSc)

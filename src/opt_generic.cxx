@@ -9,6 +9,7 @@
 #include "linalg/matprods.hxx"
 #include "tools/minmax.h"
 #include "types.hxx"
+#include "opt_generic.hxx"
 
 
 namespace Metris{
@@ -94,12 +95,12 @@ void optim_newton_drivertype(int nvar ,
     goto flag999;
   }
 
-  if(iprt > 0)printf(" - enter Newton niter %d fcur = %15.8f isym = %d\n",*niter,*fcur,isym);
+  if(iprt >= 3)printf(" - enter Newton niter %d fcur = %15.8f isym = %d\n",*niter,*fcur,isym);
 
   if(*fcur < *fopt){
     for(int ii = 0; ii < nvar; ii++) xopt[ii] = xcur[ii];
     *fopt = *fcur;
-    if(iprt > 0) printf(" fopt update in newton algo %f \n",*fopt);
+    //if(iprt >= 3) printf(" fopt update in newton algo %f \n",*fopt);
   }
 
 
@@ -107,7 +108,7 @@ void optim_newton_drivertype(int nvar ,
   if(*iflag == 1){
 
     //--- COMPUTE DESCENT DIRECTION
-    if(nvar==1){
+    if(nvar == 1){
       if(abs(hess[0]) > epsilon*(abs(gcur[0]))) {
         rwork[2*nvar+3]  = - gcur[0]/hess[0];
       }else{
@@ -115,13 +116,13 @@ void optim_newton_drivertype(int nvar ,
         goto flag999;
       }
       gnorm = abs(rwork[2*nvar+3]);
-    }else if(nvar==2) {
+    }else if(nvar == 2) {
       invsym<2>(hess);
       rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1]);
       rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1]);
       gnorm = MAX(abs(rwork[2*nvar+3]),
                   abs(rwork[2*nvar+4]));
-    }else if(nvar==3){
+    }else if(nvar == 3){
       if(isym > 0){
         invspd(3,hess);
         rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1] + hess[3]*gcur[2]);
@@ -145,10 +146,10 @@ void optim_newton_drivertype(int nvar ,
     }
 
     if(*niter == 1){
-      if(iprt > 0)printf(" First dir norm %f \n",gnorm);
+      if(iprt >= 3)printf(" First dir norm %f \n",gnorm);
       rwork[10*nvar+4-1] = MAX(gnorm,1.0e-12);
     }else if(gnorm  <  xtol*rwork[10*nvar+4-1]) {
-      if(iprt > 0) printf(" debug gnorm termination \n");
+      if(iprt >= 3) printf(" debug gnorm termination \n");
       *iflag = 0;
       goto flag999;
     } 
@@ -170,7 +171,7 @@ void optim_newton_drivertype(int nvar ,
     }
 
 
-    if(iprt > 0){
+    if(iprt >= 3){
       printf("-- start LS step = %15.7e dir = ",rwork[1]);
       dblAr1(nvar,&rwork[2*nvar+3]).print();
     } 
@@ -221,7 +222,7 @@ void optim_newton_drivertype(int nvar ,
       &&   abs(dot)  <=  wc2*abs(rwork[2])             ) 
       //||  (rwork[0] - *fcur)/rwork[0] > 0.05  
       ) {
-      if(iprt > 0){
+      if(iprt >= 3){
         printf(" ++ strong Wolfe conditions ok at xcur = ");
         dblAr1(nvar,xcur).print();
         printf("  relative decrease = %f\n",(*fcur - rwork[0])/rwork[0]);
@@ -233,8 +234,8 @@ void optim_newton_drivertype(int nvar ,
         goto flag999;
       }else{
         *iflag = 1;
-        if(iprt > 0) printf("++ since user set ihess to 1, it is assumed hessian is computed\n");
-        if(iprt > 0) printf("  -> thus going back to 1\n");
+        if(iprt >= 3) printf("++ since user set ihess to 1, it is assumed hessian is computed\n");
+        if(iprt >= 3) printf("  -> thus going back to 1\n");
         goto flag2000;
       }
       goto flag999;
@@ -247,11 +248,11 @@ void optim_newton_drivertype(int nvar ,
     rwork[1] = rwork[1] * ratnew;
     if(rwork[1] < stpmin) {
       *iflag = 0;
-      if(iprt > 0) printf(" step < stepmin termination \n");
+      if(iprt >= 3) printf(" step < stepmin termination \n");
       goto flag999;
     }
     // xpre + step * desc
-    //if(iprt > 0 && nvar == 3) printf("New iterate from prev %f %f %f d = %f %f %f \n",rwork[3],rwork[4],rwork[5],
+    //if(iprt >= 3 && nvar == 3) printf("New iterate from prev %f %f %f d = %f %f %f \n",rwork[3],rwork[4],rwork[5],
     //                                            rwork[3+2*nvar+0],rwork[3+2*nvar+1],rwork[3+2*nvar+2]);
 
     for(int ii = 0; ii < nvar; ii++){
@@ -265,7 +266,7 @@ void optim_newton_drivertype(int nvar ,
   flag999:
   *niter += 1; 
   if(*niter  >  maxit) {
-    if(iprt > 0) printf(" newton max step exceeded %d \n",maxit);
+    if(iprt >= 3) printf(" newton max step exceeded %d \n",maxit);
     *iflag = 0;
   }
 
@@ -276,7 +277,230 @@ void optim_newton_drivertype(int nvar ,
 
 
 
+template <int nvar>
+int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
+                            double *xcur ,double *fcur ,
+                            double *gcur ,double *hess ,
+                            int *iflag, int *ihess){
 
+  int ierro = 0;
+
+  const double alpha0 = 1.0;
+  //const double c1 = 1.0e-4;
+  const double c2 = 0.9;
+  //const double stprat = 0.6;
+
+
+  double epsilon = std::numeric_limits<double>::epsilon();
+
+  double gnorm;
+
+  int sg = 1; 
+
+
+  if(*iflag == 0){
+    args.niter = 0;   
+    *iflag = 1;
+    args.fopt  = 1.0e30;
+    *ihess = 1;
+    args.iwork[0] = 0;
+    args.iwork[1] = 0;
+    args.iwork[2] = 1;
+    args.rwork[1] = alpha0;
+    args.rwork[10*nvar+3] = -1.0;
+    goto flag999;
+  }
+
+  if(args.iprt >= 3)printf(" - enter Newton niter %d fcur = %15.8f isym = %d\n",args.niter,*fcur,args.isym);
+
+  if(*fcur < args.fopt){
+    for(int ii = 0; ii < nvar; ii++) args.xopt[ii] = xcur[ii];
+    args.fopt = *fcur;
+    if(args.iprt >= 3) printf(" fopt update in newton algo %f \n",args.fopt);
+  }
+
+
+  flag2000:
+  if(*iflag == 1){
+
+    //--- COMPUTE DESCENT DIRECTION
+    if(nvar == 1){
+      if(abs(hess[0]) > epsilon*(abs(gcur[0]))) {
+        args.rwork[2*nvar+3]  = - gcur[0]/hess[0];
+      }else{
+        ierro = 1;
+        goto flag999;
+      }
+      gnorm = abs(args.rwork[2*nvar+3]);
+    }else if(nvar == 2) {
+      invsym<2>(hess);
+      args.rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1]);
+      args.rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1]);
+      gnorm = MAX(abs(args.rwork[2*nvar+3]),
+                  abs(args.rwork[2*nvar+4]));
+    }else if(nvar == 3){
+      if(args.isym > 0){
+        invspd(3,hess);
+        args.rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1] + hess[3]*gcur[2]);
+        args.rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1] + hess[4]*gcur[2]);
+        args.rwork[2*nvar+5] = -(hess[3]*gcur[0] + hess[4]*gcur[1] + hess[5]*gcur[2]);
+      }else{
+        // Actually a Jacobian, so not symmetric 
+        invmat(3,hess);
+        if(args.isym == 0){
+          mat3vec(hess,gcur,&args.rwork[2*nvar+3]);
+        }else{
+          mat3vect(hess,gcur,&args.rwork[2*nvar+3]);
+        }
+        args.rwork[2*nvar+3] = -args.rwork[2*nvar+3];
+        args.rwork[2*nvar+4] = -args.rwork[2*nvar+4];
+        args.rwork[2*nvar+5] = -args.rwork[2*nvar+5];
+      }
+      gnorm = MAX(MAX(abs(args.rwork[2*nvar+3]),
+                      abs(args.rwork[2*nvar+4])),
+                      abs(args.rwork[2*nvar+5]));
+    }
+
+    if(args.niter == 1){
+      if(args.iprt >= 3)printf(" First dir norm %f \n",gnorm);
+      args.rwork[10*nvar+4-1] = MAX(gnorm,1.0e-12);
+    }else if(gnorm < args.xtol*args.rwork[10*nvar+4-1]) {
+      if(args.iprt >= 3) printf(" debug gnorm termination \n");
+      *iflag = 0;
+      goto flag999;
+    } 
+
+  }
+
+  if(*iflag == 1 || *iflag == 4){
+    *ihess = 0;
+    *iflag = 2;
+    // fpre = fcur
+    args.rwork[0] = *fcur;
+    for(int ii = 0; ii < nvar; ii++) args.rwork[3+ii] = xcur[ii];
+
+    // step = alpha0
+    if(args.niter == 1) {
+      args.rwork[1] = alpha0;
+    }else{
+      args.rwork[1] = MIN(args.rwork[1] / args.ratnew, alpha0);
+    }
+
+
+    if(args.iprt >= 3){
+      printf("-- start LS step = %15.7e dir = ",args.rwork[1]);
+      dblAr1(nvar,&args.rwork[2*nvar+3]).print();
+    } 
+
+    args.rwork[2] = 0.0;
+    for(int ii = 0; ii < nvar; ii++){
+      args.rwork[2] += gcur[ii]*args.rwork[2*nvar+3+ii];
+      xcur[ii] += sg*args.rwork[1]*args.rwork[2*nvar+3+ii];
+    }
+    goto flag999;
+
+  }else if(*iflag == 2){
+
+    double dot = args.rwork[2*nvar+3]*gcur[0];
+    for(int ii = 1; ii < nvar; ii++){
+      dot += args.rwork[2*nvar+3+ii]*gcur[ii];
+    }
+
+    double wc1 = args.wlfc1;
+    double wc2 = args.wlfc2;
+    //if(wlfc1  <  epsilon) wc1 = c1;
+    if(args.wlfc2  <  epsilon) wc2 = c2;
+
+    flag200:        
+    if(wc1  >  wc2) {
+      wc1 = MAX(wc1/2.0,wc2-1.0e-12);
+      goto flag200;
+    }
+
+    if(args.iprt > 1) {
+      printf(" (Newton) 1st cdt %15.7e <= %15.7e %d \n",
+        *fcur, args.rwork[0] + wc1*args.rwork[1]*dot, ( *fcur      <=  (args.rwork[0] + wc1*args.rwork[1]*dot)) );
+
+      //printf("dot = %f terms: args.rwork[2*nvar+3+:] = ",dot);
+      //dblAr1(nvar,&args.rwork[2*nvar+3]).print();
+      //printf("gcur = ");
+      //dblAr1(nvar,gcur).print();
+      //printf("\n");
+      //printf("New eval %15.7e old %15.7e \n",*fcur,args.rwork[0]);
+      //wait();
+
+      printf(" (Newton) 2nd cdt %15.7e <= %15.7e %d \n",
+        abs(dot),wc2*abs(args.rwork[2]),(abs(dot)  <=  wc2*abs(args.rwork[2])) );
+      //printf(" (Newton) alt cdt %15.7e <= %15.7e %d \n",
+      //  0.05,(args.rwork[0] - *fcur)/args.rwork[0], ((args.rwork[0] - *fcur)/args.rwork[0] > 0.05  ));
+    }
+    if(  ( *fcur      <=  (args.rwork[0] + wc1*args.rwork[1]*dot)
+      &&   abs(dot)  <=  wc2*abs(args.rwork[2])             ) 
+      //||  (args.rwork[0] - *fcur)/args.rwork[0] > 0.05  
+      ){
+      if(args.iprt >= 3){
+        printf(" ++ strong Wolfe conditions ok at xcur = ");
+        dblAr1(nvar,xcur).print();
+        printf("  relative decrease = %f\n",(*fcur - args.rwork[0])/args.rwork[0]);
+      }
+      ierro = -1;
+      if(*ihess <= 0) {
+        *iflag = 1;
+        *ihess = 1;
+        goto flag999;
+      }else{
+        *iflag = 1;
+        if(args.iprt >= 3) printf("++ since user set ihess to 1, it is assumed hessian is computed\n");
+        if(args.iprt >= 3) printf("  -> thus going back to 1\n");
+        goto flag2000;
+      }
+      goto flag999;
+    }
+
+    // --- Most times, the Wolfe condition is verified right away
+    // -> this avoids having to compute f and grad twice to get hessian
+    //    the second time around
+    if(args.rwork[1] > sqrt(args.ratnew)*alpha0)  *ihess = 0;
+    args.rwork[1] = args.rwork[1] * args.ratnew;
+    if(args.rwork[1] < args.stpmin) {
+      *iflag = 0;
+      if(args.iprt >= 3) printf(" step < stepmin termination \n");
+      goto flag999;
+    }
+    // xpre + step * desc
+    //if(args.iprt >= 3 && nvar == 3) printf("New iterate from prev %f %f %f d = %f %f %f \n",args.rwork[3],args.rwork[4],args.rwork[5],
+    //                                            args.rwork[3+2*nvar+0],args.rwork[3+2*nvar+1],args.rwork[3+2*nvar+2]);
+
+    for(int ii = 0; ii < nvar; ii++)
+      xcur[ii] = args.rwork[3+ii] + args.rwork[1]*args.rwork[3+2*nvar+ii];
+
+  }
+
+
+  flag999:
+  args.niter++; 
+  if(args.niter  >  args.maxit) {
+    if(args.iprt >= 3) printf(" newton max step exceeded %d \n",args.maxit);
+    *iflag = 0;
+  }
+
+  return ierro;
+}
+template
+int optim_newton_drivertype<1>(newton_drivertype_args<1> &args,
+                               double *xcur ,double *fcur ,
+                               double *gcur ,double *hess ,
+                               int *iflag, int *ihess);
+template
+int optim_newton_drivertype<2>(newton_drivertype_args<2> &args,
+                               double *xcur ,double *fcur ,
+                               double *gcur ,double *hess ,
+                               int *iflag, int *ihess);
+template
+int optim_newton_drivertype<3>(newton_drivertype_args<3> &args,
+                               double *xcur ,double *fcur ,
+                               double *gcur ,double *hess ,
+                               int *iflag, int *ihess);
 
 
 
@@ -347,22 +571,22 @@ int optim_newton_drivertype_PETSc(int nvar ,
     //double ksp_tol = MAX(1.0e-3, rwork[1]/100);
     double ksp_tol = MAX(1.0e-2, rwork[1]/100);
 //    double ksp_tol = MAX(1.0e-5, rwork[1]/100);
-    if(iprt > 0) printf("Calling linear solver with tolerance %15.7e\n",ksp_tol);
+    if(iprt >= 3) printf("Calling linear solver with tolerance %15.7e\n",ksp_tol);
     PetscKSPHelper KSOLVER(ksp, PETSC_COMM_SELF, OJ, PETSC_DEFAULT, ksp_tol);
     double t0 = get_wall_time();
     KSOLVER.solve(RHS,DESC);
     double t1 = get_wall_time();
-    if(iprt > 0) printf("KSP time %f \n",t1-t0);
+    if(iprt >= 3) printf("KSP time %f \n",t1-t0);
 
     // Get current descent direction norm for termination condition
     PetscCall(VecNorm(DESC,NORM_2,&gnorm));
     if(iprt > 1) printf("Debug gnorm = %f\n",gnorm);
 
     if(*niter == 1) {
-      if(iprt > 0)printf(" First dir norm %f \n",gnorm);
+      if(iprt >= 3)printf(" First dir norm %f \n",gnorm);
       rwork[3] = gnorm;
     }else if(gnorm  <  xtol*rwork[3]) {
-      if(iprt > 0) printf(" debug gnorm termination \n");
+      if(iprt >= 3) printf(" debug gnorm termination \n");
       *iflag = 0;
       goto flag999;
     }
@@ -370,7 +594,7 @@ int optim_newton_drivertype_PETSc(int nvar ,
 
   if(*iflag == 1 || (*iflag == 4)){
 
-    if(iprt > 0) printf("------> start line search \n");
+    if(iprt >= 3) printf("------> start line search \n");
     *iflag = 2;
     *ijaco = 0;
     // Store current function value
@@ -431,8 +655,8 @@ int optim_newton_drivertype_PETSc(int nvar ,
     if(  ( *fcur      <=  (rwork[0] + wc1*rwork[1]*dot)
       &&   abs(dot)  <=  wc2*abs(rwork[2])             ) 
       ||  (rwork[0] - *fcur)/rwork[0] > 0.15  ) {
-      if(iprt > 0) printf(" -> Step %f satisfies Wolfe conditions\n",rwork[1]);
-      if(iprt > 0) printf("  relative decrease = %f\n",(*fcur - rwork[0])/rwork[0]);
+      if(iprt >= 3) printf(" -> Step %f satisfies Wolfe conditions\n",rwork[1]);
+      if(iprt >= 3) printf("  relative decrease = %f\n",(*fcur - rwork[0])/rwork[0]);
       ierro = -1;
       *iflag = 1;
       if(*ijaco <= 0){
@@ -455,7 +679,7 @@ int optim_newton_drivertype_PETSc(int nvar ,
     rwork[1] = rwork[1] * ratnew;
     if(rwork[1] < stpmin) {
       *iflag = 0;
-      if(iprt > 0) printf(" step < stepmin termination \n");
+      if(iprt >= 3) printf(" step < stepmin termination \n");
       goto flag999;
     }
 
@@ -478,7 +702,7 @@ int optim_newton_drivertype_PETSc(int nvar ,
   flag999:
   *niter += 1; 
   if(*niter  >  maxit) {
-    if(iprt > 0) printf(" newton max step exceeded %d \n",maxit);
+    if(iprt >= 3) printf(" newton max step exceeded %d \n",maxit);
     *iflag = 0;
   }
 

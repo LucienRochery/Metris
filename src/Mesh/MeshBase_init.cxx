@@ -132,10 +132,14 @@ void MeshBase::initialize(MetrisAPI *data,
   iniBdryPoints();
   
   
+  iniCADLink(nbpo0);
+
+
   // Orient edges so interior is to their left (manifold only, of course)
   // This is the same as saying the 1 -> 2 tangent's orthogonal in the 
   // clockwise direction is outgoing  
   if(idim == 2){
+
     for(int iedge = 0; iedge < nedge; iedge++){
       if(isdeadent(iedge,edg2poi)) continue;
       int ipoi1 = edg2poi(iedge,0);
@@ -204,14 +208,101 @@ void MeshBase::initialize(MetrisAPI *data,
       edg2edg(iedge,1) = tmp;
 
     }
-  }else{
-    // Orient faces (and edges?) in surface case 
-    METRIS_THROW_MSG(TODOExcept(), "Implement edge and triangle orientation in 3D")
+
+  }else if(CAD()){
+    // Orient faces in 3D
+    // The "natural" normal getnorfacP1 should be pointing inwards. 
+    // Compute triangle normals, CAD normals, and (if exists) tet "normals"
+
+    double nor_disc[3], nor_CAD[3], nor_tet[3];
+    double dum[3];
+
+    for(int iface = 0; iface < nface; iface++){
+      if(isdeadent(iface,fac2poi)) continue;
+      getnorfacP1(fac2poi[iface], coord, nor_disc);
+
+      if(normalize_vec<3>(nor_disc)) METRIS_THROW_MSG(TODOExcept(), 
+        "Error handling in face orientation disc normals.")
+
+      // To compute the CAD normal, the safest is to average the vertex normals.
+      // This is because taking the average of the (u,v)'s can send us just about
+      // anywhere.
+      bool oneOK = false;
+      for(int ii = 0; ii < 3; ii++) nor_CAD[ii] = 0;
+      for(int iver = 0; iver < 3; iver++){
+        int ipoin = fac2poi(iface,iver);
+        int ibpoi = poi2bpo[ipoin];
+        METRIS_ASSERT(ibpoi >= 0);
+        ibpoi = getent2bpo(*this, ibpoi, iface, 2);
+        METRIS_ASSERT(ibpoi >= 0);
+
+        if(getnorpoiCAD2(*this,ibpoi,dum)){
+          if(iverb >= 2) 
+            printf("ibpoi %d ipoin %d skipped, possible singularity\n",ibpoi,ipoin);
+          continue;
+        }
+
+        oneOK = true;
+        for(int ii = 0; ii < 3; ii++) nor_CAD[ii] += dum[ii];
+      }
+
+      METRIS_ASSERT_MSG(oneOK, "Manage CAD normal errors. Stack elements"
+          " with failures and deal with them in a second time.");
+
+      if(normalize_vec<3>(nor_CAD)) METRIS_THROW_MSG(TODOExcept(), 
+        "Error handling in face orientation CAD normals.")
+
+      double dtprd = getprdl2<3>(nor_CAD, nor_disc);
+
+      METRIS_ASSERT_MSG(abs(dtprd) >= Constants::dtprdMisAlign,
+        "Check meaning of apparently very badly aligned CAD and face normal. "
+        "dtprd = "<<dtprd)
+
+      int iref = fac2ref[iface];
+      printf("Debug iface %d iref %d dtprd = %f \n",
+              iface,iref,dtprd);
+      //printf("nor CAD: ");
+      //dblAr1(3,nor_CAD).print();
+      //printf("nor elt: ");
+      //dblAr1(3,nor_disc).print();
+
+      if(dtprd > 0){
+        printf("debug switch face %d :",iface);
+        intAr1(facnpps[curdeg],fac2poi[iface]).print();
+        // Misaligned, switch d00 and 0d0
+        //int tmp = fac2poi(iface,0);
+        //fac2poi(iface,0) = fac2poi(iface,1);
+        //fac2poi(iface,1) = tmp;
+        // Switch control points
+        for(int i3 = 0; i3 < curdeg; i3++){
+          for(int i2 = 0; i2 <= (curdeg - i3)/2; i2++){
+            int i1   = curdeg - i3 - i2;
+            int irnk1 = mul2nod(i1,i2,i3);
+            int irnk2 = mul2nod(i2,i1,i3);
+            int tmp = fac2poi(iface,irnk1);
+            fac2poi(iface,irnk1) = fac2poi(iface,irnk2);
+            fac2poi(iface,irnk2) = tmp;
+          }
+        }
+
+
+        int tmp = fac2fac(iface,0);
+        fac2fac(iface,0) = fac2fac(iface,1);
+        fac2fac(iface,1) = tmp;
+
+        printf("debug after:");
+        intAr1(facnpps[curdeg],fac2poi[iface]).print();
+
+      }
+
+    }
+
+
+    //METRIS_THROW_MSG(TODOExcept(), "Implement edge and triangle orientation in 3D")
   }
 
 
-
-  iniCADLink(nbpo0);
+  writeMesh("debugsurf",*this);
 
 
 

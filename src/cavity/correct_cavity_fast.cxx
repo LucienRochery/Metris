@@ -169,24 +169,24 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
             int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
             if(ierro != 0) return 100 + ierro;
 
-            double err = geterrl2<gdim>(msh.coord[ipoin],result);
+            //double err = geterrl2<gdim>(msh.coord[ipoin],result);
 
-            // Technically equivalent to an assert, but not really an assert (bound to be removed)
-            if(err > nrm0){
-              // Try inv_evaluate. 
-              ierro = EG_invEvaluate(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
-              if(ierro != 0) return 100 + ierro;
-              err = geterrl2<gdim>(msh.coord[ipoin],result);
-              if(err > nrm0){
-                #ifndef NDEBUG
-                  printf("## DEBUG high CAD gap = %f nrm0 = %f\n",err,nrm0);
-                  wait();
-                #else
-                  return CAV_ERR_CADFAR;
-                #endif
-              }
-              //METRIS_THROW_MSG(GeomExcept(), "Very large geometric gap? Manual check " << err);
-            }
+            //// Technically equivalent to an assert, but not really an assert (bound to be removed)
+            //if(err > nrm0){
+            //  // Try inv_evaluate. 
+            //  ierro = EG_invEvaluate(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
+            //  if(ierro != 0) return 100 + ierro;
+            //  err = geterrl2<gdim>(msh.coord[ipoin],result);
+            //  if(err > nrm0){
+            //    #ifndef NDEBUG
+            //      printf("## DEBUG high CAD gap = %f nrm0 = %f\n",err,nrm0);
+            //      wait();
+            //    #else
+            //      return CAV_ERR_CADFAR;
+            //    #endif
+            //  }
+            //  //METRIS_THROW_MSG(GeomExcept(), "Very large geometric gap? Manual check " << err);
+            //}
 
             for(int ii = 0; ii < gdim; ii++) msh.coord[ipoin][ii] = result[ii];
           }
@@ -200,6 +200,8 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
 
 
     // Interpolate metric at new points 
+    double algnd_[3];
+    double *algnd;
     msh.tag[ithread]++;
     for(int tdim = 1; tdim <= 2; tdim++){
       intAr2 &ent2poi = msh.ent2poi(tdim); 
@@ -216,8 +218,31 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
           if(msh.poi2tag(ithread,ipoin) >= msh.tag[ithread]) continue;
           msh.poi2tag(ithread,ipoin) = msh.tag[ithread];
 
-          if(tdim == 1) METRIS_THROW_MSG(TODOExcept(), "algnd in cav reinterp");
-          msh.interpMetBack(ipoin, tdim, ientt, iref, NULL);
+          //if(tdim == 1) METRIS_THROW_MSG(TODOExcept(), "algnd in cav reinterp");
+
+          if(iverb >= 4) printf("    - update HO pt %d interp seed %d dim %d \n",
+                                ipoin,ientt,tdim);
+          if(tdim < msh.get_tdim() && msh.CAD()){
+            int ibpoi = msh.poi2bpo[ipoin];
+            METRIS_ASSERT(ibpoi >= 0);
+            //intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
+            ibpoi = getent2bpo(msh,ibpoi,ientt,tdim);
+
+            ego obj = tdim == 1 ? msh.CAD.cad2edg[iref] : msh.CAD.cad2fac[iref];
+
+            double result[18];
+            int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
+            if(ierro != 0){
+              algnd = NULL;
+              if(iverb >= 3) printf("    # EG_eval failed\n");
+            }else{
+              for(int ii = 0; ii < msh.idim; ii++) algnd_[ii] = result[3+ii];
+              algnd = algnd_;
+            }
+          }else{
+            algnd = NULL;
+          }
+          msh.interpMetBack(ipoin, tdim, ientt, iref, algnd);
         }
       }// for ientt
     }// for tdim 

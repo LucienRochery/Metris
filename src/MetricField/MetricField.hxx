@@ -30,9 +30,15 @@ class MetricFieldAnalytical;
 
 template<class T> class MeshMetric;
 
+
+enum class MetricClass{None, MetricFieldFE, MetricFieldAnalytical};
+
+
 class MetricFieldFE{
 
+
 public:
+  virtual MetricClass metricClass() const { return MetricClass::MetricFieldFE; }
 	MetricFieldFE() = delete;
 	MetricFieldFE(MeshBase &msh_);
 
@@ -180,6 +186,8 @@ operator[] deals with the FE field in all cases
 class MetricFieldAnalytical : public MetricFieldFE{
 
 public:
+  MetricClass metricClass() const override { return MetricClass::MetricFieldAnalytical; }
+
 	MetricFieldAnalytical() = delete;
 	MetricFieldAnalytical(MeshMetric<MetricFieldAnalytical> &msh_);
 

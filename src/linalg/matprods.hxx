@@ -209,11 +209,21 @@ template <int ndimn>
 inline void matXvec(const double*__restrict__ mat,
                     const double*__restrict__ ve1,
                           double*__restrict__ ve2){
-  static_assert(ndimn == 2 || ndimn == 3);
   for(int ii = 0; ii < ndimn; ii++){
     ve2[ii] = mat[ndimn*ii+0]*ve1[0];
     for(int jj = 1; jj < ndimn; jj++){
       ve2[ii] += mat[ndimn*ii+jj]*ve1[jj];
+    }
+  }
+}
+template <int ndimn>
+inline void tmatXvec(const double*__restrict__ mat,
+                     const double*__restrict__ ve1,
+                           double*__restrict__ ve2){
+  for(int ii = 0; ii < ndimn; ii++){
+    ve2[ii] = mat[ndimn*0+ii]*ve1[0];
+    for(int jj = 1; jj < ndimn; jj++){
+      ve2[ii] += mat[ndimn*jj+ii]*ve1[jj];
     }
   }
 }

@@ -6,6 +6,9 @@
 
 #include "../Mesh/MeshBase.hxx"
 
+#include "../MetricField/MetricField.hxx"
+
+
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../aux_exceptions.hxx"
 #include "../metris_constants.hxx"
@@ -15,6 +18,7 @@
 
 namespace Metris{
 
+MetricClass MeshBase::metricClass() const { return MetricClass::None; }
   
 MeshBase::MeshBase(int nipwk_, int niewk_, int nifwk_, int nitwk_, int nrpwk_) : 
   nipwk(nipwk_),niewk(niewk_),nifwk(nifwk_),nitwk(nitwk_),nrpwk(nrpwk_){

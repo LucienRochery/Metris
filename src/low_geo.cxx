@@ -11,6 +11,7 @@
 #include "low_lenedg.hxx"
 
 #include "Mesh/Mesh.hxx"
+#include "MetrisRunner/MetrisParameters.hxx"
 
 
 namespace Metris{
@@ -410,29 +411,18 @@ template void getmeasentP1grad<3>(const int *ent2pol, const dblAr2& coord, int i
 
 void getnorfacP1(const int *fac2pol, const dblAr2 &coord, double *nrmal){
   METRIS_ASSERT(coord.get_stride() == 3);
-
-  constexpr int gdim = 3;
-  double l1[gdim], l2[gdim];
-
-
-  l1[0] = coord[fac2pol[1]][0] - coord[fac2pol[0]][0];
-  l1[1] = coord[fac2pol[1]][1] - coord[fac2pol[0]][1];
-  l1[2] = coord[fac2pol[1]][2] - coord[fac2pol[0]][2];
-
-  l2[0] = coord[fac2pol[2]][0] - coord[fac2pol[0]][0];
-  l2[1] = coord[fac2pol[2]][1] - coord[fac2pol[0]][1];
-  l2[2] = coord[fac2pol[2]][2] - coord[fac2pol[0]][2];
-
-  vecprod(l1,l2,nrmal);
+  vecprod_vdif(coord[fac2pol[1]],coord[fac2pol[0]],
+               coord[fac2pol[2]],coord[fac2pol[0]],nrmal);
 }
 
 
-// Return outgoing normal 
-int getnorpoiCAD(const MeshBase &msh, int ipoin, std::map<ego,int> &edgorient, 
+// Return outgoing normal of edge (2D only)
+int getnorpoiCAD1(const MeshBase &msh, int ipoin, std::map<ego,int> &edgorient, 
                   double *norpoi){
+  METRIS_ASSERT(msh.idim == 2);
+
   int ibpoi = msh.poi2bpo[ipoin];
   METRIS_ASSERT(ibpoi >= 0);
-  if(msh.idim == 3) METRIS_THROW_MSG(TODOExcept(), "getnorpoiCAD 3D");
 
   int itype = msh.bpo2ibi(ibpoi,1);
   if(itype == 1){
@@ -451,6 +441,7 @@ int getnorpoiCAD(const MeshBase &msh, int ipoin, std::map<ego,int> &edgorient,
     norpoi[0] =  isens*du[1];
     norpoi[1] = -isens*du[0];
   }else{
+    // Else is corner 
     norpoi[0] = 0;
     norpoi[1] = 0;
     do{
@@ -478,6 +469,45 @@ int getnorpoiCAD(const MeshBase &msh, int ipoin, std::map<ego,int> &edgorient,
   METRIS_ENFORCE(nrm >= 1.0e-32);
   nrm = 1.0/sqrt(nrm);
   for(int ii = 0; ii < msh.idim; ii++) norpoi[ii] *= nrm;
+
+  return 0;
+}
+
+
+// Return outgoing normal of face (3D only)
+int getnorpoiCAD2(const MeshBase &msh, int ibpoi, double *norpoi){
+
+  METRIS_ASSERT(msh.bpo2ibi(ibpoi,1) == 2);
+
+  int iface = msh.bpo2ibi(ibpoi,2);
+  METRIS_ASSERT(iface >= 0);
+  int iref  = msh.fac2ref[iface];
+  METRIS_ASSERT(iref >= 0);
+  ego obj   = msh.CAD.cad2fac[iref];
+  METRIS_ASSERT(obj != NULL);
+
+  double result[18];
+  int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
+  if(ierro != 0) return ierro;
+  double *du = &result[3];
+  double *dv = &result[6];
+  
+  vecprod(du,dv,norpoi);
+
+  double nrm = getnrml2<3>(norpoi);
+
+  if(nrm < Constants::vecNrmTol){
+    if(msh.param->iverb >= 3){
+      printf("## CAD normal norm too small %15.7e\n",nrm);
+      printf(" ibpoi = %d print ibi: ",ibpoi);
+      intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
+      printf(" print rbi: ");
+      dblAr1(nrbi,msh.bpo2rbi[ibpoi]).print();
+    }
+    return 1;
+  }
+
+  for(int ii = 0; ii < 3; ii++) norpoi[ii] /= sqrt(nrm);
 
   return 0;
 }

@@ -51,10 +51,10 @@ void MetrisRunner::adaptMesh0(){
 
   // Make it an option 
   const double minstat = 1.0e-12;
-  const int miter = param.adaptIter;
+  const int miter = param.adp_niter;
   const int iverb = param.iverb;
 
-  if(msh.param->adaptIter == 0)  return;  
+  if(msh.param->adp_niter == 0)  return;  
   if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement tetras in cavity and adaptMesh0");
 
   msh.cleanup();
@@ -145,8 +145,8 @@ void MetrisRunner::adaptMesh0(){
   double tinsert = 0, tcollapse = 0, tswap = 0, tsmooth = 0;
   double ttotal = get_wall_time();
 
+  int iopt_niter = 0;
   double stat0 = 1;
-  int noptim_call = 0;
   //for(int niter = 1; niter <= miter || ( miter < 0 && niter <= miter_max
   //                                    && stat0 > 0.1); niter++){
   for(int niter = 1; niter <= miter || (miter < 0 && niter < miter_max); niter++){
@@ -313,12 +313,14 @@ void MetrisRunner::adaptMesh0(){
       if(iverb >= 1) printf("------------------------------------------------------------\n");
       if(iverb >= 1) printf(" - low stat = %e break or optimize\n",stat0);
       if(niter >= miter -1) break;
-      if(msh.param->opt_niter > 0 && !msh.param->opt_unif){
+      if(msh.param->opt_niter > 0 && 
+        (msh.param->adp_opt_niter < iopt_niter || msh.param->adp_opt_niter < 0)
+         && !msh.param->opt_unif){
+        iopt_niter++;
         stat = optimMesh();
         if(iverb >= 2){
-          noptim_call++;
-          writeMesh("v2_optim_adp" + std::to_string(noptim_call), msh);
-          msh.met.writeMetricFile("v2_optim_adp" + std::to_string(noptim_call));
+          writeMesh("v2_optim_adp" + std::to_string(iopt_niter), msh);
+          msh.met.writeMetricFile("v2_optim_adp" + std::to_string(iopt_niter));
           if(iverb >= 2) writeBackLinks("v2_optim_adp_poi2bak" + std::to_string(niter), msh);
         }
         if(stat < minstat){

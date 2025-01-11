@@ -208,6 +208,14 @@ if(NOT(Boost_program_options_FOUND))
   LIST(APPEND FETCH_LIST fetch_program_options)
 endif()
 
+
+if(USE_TRACELIBS)
+  find_package(Boost COMPONENTS stacktrace_basic  
+                                #stacktrace_backtrace  
+                                stacktrace_addr2line
+                                stacktrace_noop REQUIRED)
+endif()
+
 #FetchContent_Declare(
 #  fetch_lapack
 #  GIT_REPOSITORY https://github.com/Reference-LAPACK/lapack.git

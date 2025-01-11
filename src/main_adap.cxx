@@ -31,6 +31,7 @@ int main_metris(int argc, char** argv){
   MetrisParameters param = run.param;
   MetrisOptions opt = run.opt;
 
+
   int iverb = param.iverb;
 
   if(iverb >= 1) run.statMesh();
@@ -38,7 +39,7 @@ int main_metris(int argc, char** argv){
   if(param.dbgfull) check_topo(*run.msh_g);
 
   //if(run.param.opt_unif){
-  //  printf("## EXPERIMENTAL qopt-unif ONLY \n");
+  //  printf("## EXPERIMENTAL opt-unif ONLY \n");
   //  if(run.metricFE){
   //    Mesh<MetricFieldFE        > *msh = (Mesh<MetricFieldFE        > *) run.msh_g;
   //    rebalanceMesh<MetricFieldFE,2>(*msh);

@@ -8,7 +8,6 @@
 #ifndef __METRIS_EXCEPTIONS__
 #define __METRIS_EXCEPTIONS__
 
-#define NO_BOOST_EXCEPT
 
 // Comment BOOST_STACKTRACE_USE_BACKTRACE if libbacktrace not available. 
 // Commenting BOOST_STACKTRACE_LINK 

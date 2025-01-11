@@ -149,7 +149,7 @@ void invmat<2>(double *mat){
 
 template<>
 void invmat<3>(double *mat){
-  METRIS_THROW(TODOExcept());
+  METRIS_THROW_MSG(TODOExcept(),"invmat 3");
 }
 
 template<>

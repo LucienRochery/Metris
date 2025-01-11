@@ -12,7 +12,8 @@
 #include "../low_geo.hxx"
 #include "../io_libmeshb.hxx"
 #include "../aux_EGADSprinterr.hxx"
-
+#include "../opt_generic.hxx"
+#include "../low_eval.hxx"
 
 namespace Metris{
 
@@ -20,66 +21,144 @@ namespace Metris{
    FUNCTION1: P1 edge proj, no CAD
    -----------------------------------------------------------------*/
 
-template <int gdim>
+template <int gdim, int ideg>
 int projptedg(MeshBase &msh, const double*__restrict__ coop, 
               const int*__restrict__ edg2pol, 
               double*__restrict__ bary,
               double*__restrict__ coopr){
-  int ipoi1 = edg2pol[0];
-  int ipoi2 = edg2pol[1];
-  double tan[gdim];
-  for(int ii = 0; ii < gdim; ii++) tan[ii] = msh.coord(ipoi2,ii)
-                                           - msh.coord(ipoi1,ii);
+  int ierro = 0;
+  const int iverb = msh.param->iverb;
 
-  double x0 = getprdl2<gdim>(msh.coord[ipoi1], tan);
-  double x1 = getprdl2<gdim>(msh.coord[ipoi2], tan);
-  double tp = (getprdl2<gdim>(coop, tan) - x0) / (x1 - x0);
+  if constexpr(ideg == 1){
 
-  // Raw, potentially negative barys
-  bary[0] = 1.0 - tp;
-  bary[1] =       tp;
+    int ipoi1 = edg2pol[0];
+    int ipoi2 = edg2pol[1];
+    double tan[gdim];
+    for(int ii = 0; ii < gdim; ii++) tan[ii] = msh.coord(ipoi2,ii)
+                                             - msh.coord(ipoi1,ii);
 
-  int 
-  ierro = bary[0] < -Constants::baryTol || bary[0] > 1 + Constants::baryTol
-        ||bary[1] < -Constants::baryTol || bary[1] > 1 + Constants::baryTol;
+    double x0 = getprdl2<gdim>(msh.coord[ipoi1], tan);
+    double x1 = getprdl2<gdim>(msh.coord[ipoi2], tan);
+    double tp = (getprdl2<gdim>(coop, tan) - x0) / (x1 - x0);
 
-  // Truncate for projection
-  tp = MAX(0.0,MIN(1.0,tp));
-  for(int ii = 0; ii < gdim; ii++) coopr[ii] = (1.0 - tp) * msh.coord(ipoi1,ii)
-                                             +        tp  * msh.coord(ipoi2,ii);
+    // Raw, potentially negative barys
+    bary[0] = 1.0 - tp;
+    bary[1] =       tp;
+
+    ierro = bary[0] < -Constants::baryTol || bary[0] > 1 + Constants::baryTol
+          ||bary[1] < -Constants::baryTol || bary[1] > 1 + Constants::baryTol;
+
+    // Truncate for projection
+    tp = MAX(0.0,MIN(1.0,tp));
+    for(int ii = 0; ii < gdim; ii++) coopr[ii] = (1.0 - tp) * msh.coord(ipoi1,ii)
+                                               +        tp  * msh.coord(ipoi2,ii);
+
+  }else{ // if ideg > 1
+
+    double tol0 = geterrl2<gdim>(msh.coord[edg2pol[0]],msh.coord[edg2pol[1]]);
+    tol0 = sqrt(tol0);
+    newton_drivertype_args<1> args;
+    args.stpmin = 1.0e-12;
+    args.iprt = msh.param->iverb - 1;
+    int iflag = 0, ihess;
+    double xcur, fcur, gcur, hcur;
+
+    double d1F[gdim],d2F[gdim];
+
+    xcur = 0.5;
+    while(true){
+
+      ierro = optim_newton_drivertype<1>(args, &xcur, &fcur, &gcur, &hcur, &iflag, &ihess);
+      
+      if(iverb >= 3) printf("     - newton ret ierro %d iflag %d xcur %f \n",ierro,iflag,xcur);
+
+      if(ierro > 0){
+        if(iverb >= 1) printf("  ## optim_newton_drivertype error %d\n",ierro);
+        return ierro;
+      }
+      if(iflag <= 0) {
+        if(iverb >= 3) printf("   - iflag = 0 termination\n");
+        break;
+      }
+
+      bary[0] = xcur;
+      bary[1] = 1 - xcur;
+
+
+      DifVar d2flag = ihess > 0 ? DifVar::Bary : DifVar::None;
+      eval1<gdim, ideg>(msh.coord, edg2pol, msh.getBasis(), DifVar::Bary, d2flag,
+                        bary, coopr, d1F, d2F);
+      fcur = geterrl2<gdim>(coopr,coop) / 2;
+      gcur = getprdl2<gdim>(d1F, coop)  
+           - getprdl2<gdim>(d1F, coopr);
+      if(abs(gcur) < tol0 * Constants::projedgTol){
+        if(iverb >= 3) printf("    - grad = %15.7e < %15.7e = tol\n",
+                              abs(gcur), tol0*Constants::projedgTol);
+        return 0;
+      }
+      if(ihess > 0) hcur = getprdl2<gdim>(d2F, coopr)
+                         - getprdl2<gdim>(d2F, coop)
+                         + getnrml2<gdim>(d1F);
+      if(iverb >= 3) printf("     - projptedg bary %f dist = %15.7e gcur %f \n",xcur,fcur,gcur);
+
+    }
+
+    bary[0] = args.xopt[0];
+    bary[1] = 1 - args.xopt[0];
+
+    // Projected is outside
+    if(bary[0] <  - Constants::baryTol){
+      for(int ii = 0; ii < gdim; ii++) coopr[ii] = msh.coord(edg2pol[1],ii);
+      return 0;
+    }
+    if(bary[0] > 1 + Constants::baryTol){
+      for(int ii = 0; ii < gdim; ii++) coopr[ii] = msh.coord(edg2pol[0],ii);
+      return 0;
+    }
+
+    eval1<gdim, ideg>(msh.coord, edg2pol, msh.getBasis(), DifVar::None, DifVar::None,
+                      bary, coopr, NULL, NULL);
+  }
+
+
   return ierro;
 }
-template 
-int projptedg<2>(MeshBase &msh, const double*__restrict__ coop, 
-                 const int*__restrict__ edg2pol, 
-                 double*__restrict__ bary,
-                 double*__restrict__ coopr);
-template 
-int projptedg<3>(MeshBase &msh, const double*__restrict__ coop, 
-                 const int*__restrict__ edg2pol, 
-                 double*__restrict__ bary,
-                 double*__restrict__ coopr);
+#define BOOST_PP_LOCAL_MACRO(n)\
+template \
+int projptedg<2,n>(MeshBase &msh, const double*__restrict__ coop, \
+                   const int*__restrict__ edg2pol, \
+                   double*__restrict__ bary,\
+                   double*__restrict__ coopr);\
+template \
+int projptedg<3,n>(MeshBase &msh, const double*__restrict__ coop, \
+                   const int*__restrict__ edg2pol, \
+                   double*__restrict__ bary,\
+                   double*__restrict__ coopr);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
 
 
 
-template <int gdim>
+template <int gdim, int ideg>
 int projptedg(MeshBase &msh, const double*__restrict__ coop, 
               int iedge, 
               double*__restrict__ bary,
               double*__restrict__ coopr){
-  return projptedg<gdim>(msh,coop,msh.edg2poi[iedge],bary,coopr);
+  return projptedg<gdim,ideg>(msh,coop,msh.edg2poi[iedge],bary,coopr);
 }
-template 
-int projptedg<2>(MeshBase &msh, const double*__restrict__ coop, 
-                 int iedge, 
-                 double*__restrict__ bary,
-                 double*__restrict__ coopr);
-template 
-int projptedg<3>(MeshBase &msh, const double*__restrict__ coop, 
-                 int iedge, 
-                 double*__restrict__ bary,
-                 double*__restrict__ coopr);
-
+#define BOOST_PP_LOCAL_MACRO(n)\
+template \
+int projptedg<2,n>(MeshBase &msh, const double*__restrict__ coop, \
+                   int iedge, \
+                   double*__restrict__ bary,\
+                   double*__restrict__ coopr);\
+template \
+int projptedg<3,n>(MeshBase &msh, const double*__restrict__ coop, \
+                   int iedge, \
+                   double*__restrict__ bary,\
+                   double*__restrict__ coopr);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
 
 
 

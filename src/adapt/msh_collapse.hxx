@@ -15,7 +15,7 @@ namespace Metris{
 
 template<class MetricFieldType, int gdim, int ideg>
 double collapseShortEdges(Mesh<MetricFieldType> &msh, double qmax_suf,
-                          int ithread  = 0);
+                          int ithrd1 = 0, int ithrd2 = 1, int ithrd3 = 2);
 
 
 }// end Namespace

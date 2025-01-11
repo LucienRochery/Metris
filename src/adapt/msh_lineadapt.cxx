@@ -524,7 +524,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
             }
 
             double norpoi[3];
-            ierro = getnorpoiCAD(msh, cav.ipins, edgorient, norpoi);
+            ierro = getnorpoiCAD1(msh, cav.ipins, edgorient, norpoi);
 
             if(iverb >= 3){
               printf("   - got CAD = ");

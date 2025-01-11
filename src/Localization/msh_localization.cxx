@@ -93,6 +93,16 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     int iref = -1;
     int iseed = -1;
     double algnd[3];
+
+    // Corner is simply a copy from corresponding corned in backmesh
+    if(pdim == 0){
+      printf("## WATCH OUT THIS IS A HACK Assuming %d front = %d back\n",
+        ipoin,ipoin);
+      int nnmet = (msh.idim * (msh.idim + 1)) / 2;
+      for(int ii = 0; ii < nnmet; ii++) msh.met(ipoin,ii) = bak.met(ipoin,ii);
+      continue;
+    }
+
     if(pdim < msh.idim){
       if(tdim == 2){
         METRIS_THROW_MSG(TODOExcept(), 
@@ -131,7 +141,6 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
       iref = msh.fac2ref[iseed];
       METRIS_ASSERT(iref != -1);
     }
-
 
 
     //if(msh.CAD()){
@@ -323,11 +332,18 @@ int locMesh(MeshBase &msh, int *ientt,
        "Provided ref "<<iref<<" is not seed ref = "<<ent2ref[*ientt]);
 
 
-  double tolcur = MAX(1.0e-2,tol+1.0e-16);
-  if constexpr(ideg == 1) tolcur = tol;
+  //double tolcur = MAX(1.0e-2,tol+1.0e-16);
+  //if constexpr(ideg == 1) tolcur = tol;
+  //// With fast Newton this does not matter, in fact probably faster
+  const double tolcur = tol;
 
 	if(*ientt < 0 || *ientt >= nentt){
 		printf("## locMeshVol inva ini guess %d, use 1\n",*ientt);
+    //if(msh.param->dbgfull){
+      printf("## WAIT HERE\n");
+      wait();
+      METRIS_THROW(GeomExcept());
+    //}
 		*ientt = 0;
 	}
 
@@ -339,16 +355,17 @@ int locMesh(MeshBase &msh, int *ientt,
                        "search coor0 = ",gdim,tdim,ideg,*ientt);
   if(iverb >= 3) dblAr1(gdim,coop).print();
 
-  int ncall;
 
 	if constexpr(ideg > 1){
 
     ierro = locMesh<gdim,tdim,1>(msh,ientt,coop,pdim,uvsrf,iref,algnd_,
                                  coopr,bary,tol,ithrd);
-    if(ierro != 0){
-      if(iverb >= 3) printf("Failed P1 localization. Attempting P%d\n",ideg);
-      return LOC_ERR_FAILP1;
-    }
+
+    //if(ierro != 0){
+    //  if(iverb >= 3) printf("##Failed P1 localization. Attempting P%d\n",ideg);
+    //  return LOC_ERR_FAILP1;
+    //}
+
     if(iverb >= 3){
       double dist = geterrl2<gdim>(coopr,coop);
       printf(" -> P1 loc done ientt = %d bary = ",*ientt);
@@ -356,28 +373,27 @@ int locMesh(MeshBase &msh, int *ientt,
       printf(" dist = %15.7e\n",dist);
     }
 
-    if(gdim == tdim){
-      double tol1 = getepsent<gdim>(msh, tdim, *ientt);
-      ierro = inveval_linesearch<gdim,ideg>(msh,*ientt,coop,coopr,bary, 
-                                            tolcur*tol1,&ncall,false,iverb);
-    }else if(tdim == 2){
-      METRIS_THROW_MSG(TODOExcept(), "Implement projptfac in low_projsurf")
-    }else{
-      ierro = projptedg<gdim>(msh, coop, *ientt, bary, coopr);
-      ierro = 0;
-      if(bary[0] < -Constants::baryTol || bary[0] > 1 + Constants::baryTol)
-        ierro = 1;
-      // redundant but who knows with floating point
-      if(bary[1] < -Constants::baryTol || bary[1] > 1 + Constants::baryTol)
-        ierro = 1;
-      METRIS_THROW_MSG(TODOExcept(), "Implement Pk projptedg");
-      METRIS_THROW_MSG(TODOExcept(), "Implement Pk algnd handling");
-    }
-    if(ierro == 0){
-      return 0;
-    }else{
-      printf(" - Failed Pk localization in P1 element got ierro = %d \n",ierro);
-    }
+    //if(gdim == tdim){
+    //  double tol1 = getepsent<gdim>(msh, tdim, *ientt);
+    //  ierro = inveval<gdim,ideg>(msh,*ientt,coop,coopr,bary,tolcur*tol1);
+    //}else if(tdim == 2){
+    //  METRIS_THROW_MSG(TODOExcept(), "Implement projptfac in low_projsurf")
+    //}else{
+    //  ierro = projptedg<gdim,ideg>(msh, coop, *ientt, bary, coopr);
+    //  ierro = 0;
+    //  if(bary[0] < -Constants::baryTol || bary[0] > 1 + Constants::baryTol)
+    //    ierro = 1;
+    //  // redundant but who knows with floating point
+    //  if(bary[1] < -Constants::baryTol || bary[1] > 1 + Constants::baryTol)
+    //    ierro = 1;
+    //  //METRIS_THROW_MSG(TODOExcept(), "Implement Pk projptedg");
+    //  //METRIS_THROW_MSG(TODOExcept(), "Implement Pk algnd handling");
+    //}
+    //if(ierro == 0){
+    //  return 0;
+    //}else{
+    //  printf(" - Failed Pk localization in P1 element got ierro = %d \n",ierro);
+    //}
     
 	}
 
@@ -399,7 +415,7 @@ int locMesh(MeshBase &msh, int *ientt,
 
   int ifnd;
   // Only for HO elements: localize with successively smaller tolerances 
-  do{
+  //do{
 
     ifnd = 0;
 	  msh.tag[ithrd]++;
@@ -409,6 +425,7 @@ int locMesh(MeshBase &msh, int *ientt,
 	  while(!ifnd){
       ntry++;
       if(ntry > msh.nentt(tdim)){
+        printf("ntry = %d nentt %d \n",ntry, msh.nentt(tdim));
         METRIS_THROW_MSG(AlgoExcept(),"TRIED ALL ELEMENTS !");
       }
       while(lnext.n1_ > 0){
@@ -426,21 +443,19 @@ int locMesh(MeshBase &msh, int *ientt,
 
         #ifndef NDEBUG
         if(iverb >= 3){
-          printf("Try in ientt = %d with tol %f \n",*ientt,tol1*tolcur);
-          printf("Vertices : ");
-          intAr1(nnode,ent2poi[*ientt]).print();
-          for(int ii = 0; ii < nnode; ii++){
-            printf("%d : ",ent2poi(*ientt,ii));
-            dblAr1(gdim,msh.coord[ent2poi(*ientt,ii)]).print();
-          }
+          //printf("   - try in ientt = %d with tol %f \n",*ientt,tol1*tolcur);
+          //printf("Vertices : ");
+          //intAr1(nnode,ent2poi[*ientt]).print();
+          //for(int ii = 0; ii < nnode; ii++){
+          //  printf("%d : ",ent2poi(*ientt,ii));
+          //  dblAr1(gdim,msh.coord[ent2poi(*ientt,ii)]).print();
+          //}
         }
         #endif
 
         if(gdim == tdim){
 
-          ierro = inveval_linesearch<gdim,ideg>(msh,*ientt,coop,
-                                                coopr,bary, 
-                                                tolcur*tol1,&ncall,false,iverb);
+          ierro = inveval<gdim,ideg>(msh,*ientt,coop,coopr,bary,tolcur*tol1);
 
         }else if(tdim == 2){
 
@@ -505,9 +520,9 @@ int locMesh(MeshBase &msh, int *ientt,
             // to get the real bary. 
             if(ierro == 0){
 
-              ierro = projptedg<gdim>(msh, coop, *ientt, bary, coopr);
-              if constexpr (ideg > 1)
-                METRIS_THROW_MSG(TODOExcept(), "Implement Pk projptedg");
+              ierro = projptedg<gdim,ideg>(msh, coop, *ientt, bary, coopr);
+              //if constexpr (ideg > 1)
+              //  METRIS_THROW_MSG(TODOExcept(), "Implement Pk projptedg");
               if(iverb >= 3) printf(" - found t in %d new bary = " 
                 "%15.7e %15.7e ierro = %d\n",*ientt,bary[0],bary[1],ierro);
 
@@ -531,9 +546,9 @@ int locMesh(MeshBase &msh, int *ientt,
 
           }else{
 
-            ierro = projptedg<gdim>(msh, coop, *ientt, bary, coopr);
-            if constexpr (ideg > 1)
-              METRIS_THROW_MSG(TODOExcept(), "Implement Pk projptedg");
+            ierro = projptedg<gdim,ideg>(msh, coop, *ientt, bary, coopr);
+            //if constexpr (ideg > 1)
+            //  METRIS_THROW_MSG(TODOExcept(), "Implement Pk projptedg");
 
             if(ierro == 0 && algnd_ != NULL){
               double dum[gdim], tanedg[gdim];
@@ -564,22 +579,19 @@ int locMesh(MeshBase &msh, int *ientt,
 
         }// if (gdim == tdim) // else
 
+
         if(ierro == 0){
-          #ifndef NDEBUG
           if(iverb >= 3){
-            printf(" niter = %d ierro %d ientt %d tdim %d bary ",niter,ierro,*ientt,tdim);
+            printf("  - END niter = %d ierro %d ientt %d tdim %d bary ",niter,ierro,*ientt,tdim);
             dblAr1(gdim+1,bary).print();
           } 
-          #endif
           ifnd = 1;
           break;
         }
 
 
-        #ifndef NDEBUG
-        if(iverb >= 3) printf(" - not in %d got bary = ",*ientt);
+        if(iverb >= 3) printf("   - not in %d got bary = ",*ientt);
         if(iverb >= 3) dblAr1(tdim + 1,bary).print();
-        #endif
 
         // Initially, we were using minimum barycentric coordinate as the criterion.
         // This is ok for isotropic elements. But highly anisotropic means 
@@ -642,7 +654,7 @@ int locMesh(MeshBase &msh, int *ientt,
           }
           for(int ii = 0 ; ii < tdim + 1 ; ii++){
             int ienei = ent2ent(*ientt,ii);
-            if(iverb >= 3) printf("\ncheck ienei %d bary %15.7e ",ienei,bary[ii]);
+            if(iverb >= 3) printf("\n    - check ienei %d bary %15.7e ",ienei,bary[ii]);
             if(ienei < 0) continue;
             if(iverb >= 3) printf(" iref %d =? %d ",ent2ref[ienei], iref);
             if(iref >= 0 && ent2ref[ienei] != iref) continue;
@@ -676,7 +688,7 @@ int locMesh(MeshBase &msh, int *ientt,
               if(iverb >= 3) printf(" dtprd = %f sg = %d ",dtprd,sg);
             }
 
-            if(sg != 0 && sg*bary[ii] > -Constants::baryTol) continue;
+            if(sg != 0 && sg*bary[ii] > -Constants::baryTol)continue;
 
             if(dir_nei_criterion && tdim > 1){
 
@@ -695,7 +707,7 @@ int locMesh(MeshBase &msh, int *ientt,
                 // Call 1 - that deviation and put that in bmax. 
 
                 double dev = 1 - abs(dtprd) / nrm;
-                if(iverb >= 3) printf(" dev = %15.7e \n",dev);
+                if(iverb >= 3) printf(" dev = %15.7e ",dev);
 
                 if(dev >= bmax){
                   bmax = dev;
@@ -723,7 +735,6 @@ int locMesh(MeshBase &msh, int *ientt,
               }
 
             }
-
           }
           if(iverb >= 3) printf("\n");
         }
@@ -753,23 +764,28 @@ int locMesh(MeshBase &msh, int *ientt,
               }
             }
 
-            if(iverb >= 3) printf(" - restart loc dim %d from %d \n",tdim-1,ientf);
+
             double coopf[gdim], barf[tdim];
-            // We could decrement then increment after but only in ideg = 1
-            // More generally, we keep a max tag and will set in the end 
-            int tag0 = msh.tag[ithrd];
-            int ierr2 = locMesh<gdim, tdim-1, ideg>(msh, &ientf, coop, pdim, NULL,
-                                 -1, NULL, coopf, barf, tol, ithrd, iexpensive);
-            maxtag = MAX(maxtag, msh.tag[ithrd]);
-            msh.tag[ithrd] = tag0;
-            if(ierr2 != LOC_ERR_ALLPOS) ierro = LOC_ERR_PROJ;
-            if(iverb >= 3 && ierr2 != LOC_ERR_ALLPOS) 
-              printf("  - lower dim failed ierro %d \n",ierr2);
-            //if(ierr2 != 0){
-            //  if(iverb >= 3) printf("  - lower dim failed ierro %d \n",ierr2);
-            //  ierro = LOC_ERR_PROJ;
-            //  goto cleanup;
-            //}
+            ierro = 0;
+            if(ientf >= 0){
+              if(iverb >= 3) printf(" - restart loc dim %d from %d \n",tdim-1,ientf);
+              // We could decrement then increment after but only in ideg = 1
+              // More generally, we keep a max tag and will set in the end 
+              int tag0 = msh.tag[ithrd];
+              int ierr2 = locMesh<gdim, tdim-1, ideg>(msh, &ientf, coop, pdim, NULL,
+                                   -1, NULL, coopf, barf, tol, ithrd, iexpensive);
+              maxtag = MAX(maxtag, msh.tag[ithrd]);
+              msh.tag[ithrd] = tag0;
+              if(ierr2 > 0 && ierr2 != LOC_ERR_ALLPOS) ierro = LOC_ERR_PROJ;
+              if(iverb >= 3) printf("  - lower dim tried but failed ierro %d \n",ierr2);
+            }else{
+              if(iverb >= 3) printf("  - lower dim not pertinent \n");
+              ierro = LOC_ERR_PROJ;
+            }
+
+            if(ierro == LOC_ERR_PROJ){
+              goto cleanup;
+            }
 
             for(int ii = 0; ii < gdim; ii++) coopr[ii] = coopf[ii];
 
@@ -784,7 +800,7 @@ int locMesh(MeshBase &msh, int *ientt,
             *ientt = ient2;
 
             // If this entity has been seen before, call it quits. Get bary:
-            if(ent2tag(ithrd,ient2) >= msh.tag[ithrd] || ierr2 != LOC_ERR_ALLPOS){
+            if(ent2tag(ithrd,ient2) >= msh.tag[ithrd] || ierro == 0){
 
               if constexpr(tdim == 2){
                 int ipoi1 = msh.edg2poi(ientf, 0);
@@ -851,9 +867,10 @@ int locMesh(MeshBase &msh, int *ientt,
         //for(int ii = 0; ii < gdim + 1 ; ii++) bary[ii] = 1.0 / (gdim + 1);
       }
 	  }//end while(!ifnd)
-    if constexpr(ideg == 1) break;
-    tolcur /= 10.0;
-  }while(tolcur >= tol); 
+    //if constexpr(ideg == 1) break;
+    //tolcur /= 10.0;
+    //if(iverb >= 3) printf("  - restart loop with tol = %f > %f\n",tolcur,tol);
+  //}while(tolcur >= tol); 
 
   cleanup:
   msh.tag[ithrd] = maxtag;

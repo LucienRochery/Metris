@@ -30,7 +30,7 @@ void eval1(const dblAr2 & __restrict__  rfld,
            double * __restrict__  jmat, 
            double * __restrict__  hmat){
 
-  METRIS_ASSERT(idif2 == DifVar::None);
+  METRIS_ASSERT(idif2 == DifVar::None || idif2 == DifVar::Bary);
   METRIS_ASSERT(idif1 == DifVar::None || idif1 == DifVar::Bary);
   METRIS_ASSERT(ibasis == FEBasis::Bezier || ibasis == FEBasis::Lagrange);
 
@@ -44,12 +44,18 @@ void eval1(const dblAr2 & __restrict__  rfld,
         jmat[0*szfld+i] = rfld[lfld[1]][i] - rfld[lfld[0]][i];
       }
     }
+    if(idif2 == DifVar::Bary){
+      for(int i=0;i<szfld;i++){
+        hmat[0*szfld+i] = 0.0;
+      }
+    }
     return;
   } 
 
   if(ibasis == FEBasis::Bezier){
-    eval1_bezier<szfld,ideg>(rfld, lfld, idif1, bary, eval, jmat);
+    eval1_bezier<szfld,ideg>(rfld, lfld, idif1, idif2, bary, eval, jmat, hmat);
   }else if(ibasis == FEBasis::Lagrange){
+    METRIS_ASSERT(idif2 == DifVar::None);
     eval1_lagrange<szfld,ideg>(rfld, lfld, idif1, bary, eval, jmat);
   }
   return;
@@ -105,7 +111,7 @@ void eval2(const dblAr2 & __restrict__  rfld,
           double * __restrict__  jmat, 
           double * __restrict__  hmat){
 
-  METRIS_ASSERT(idif2 == DifVar::None);
+  METRIS_ASSERT(idif2 == DifVar::None || idif2 == DifVar::Bary);
   METRIS_ASSERT(idif1 == DifVar::None || idif1 == DifVar::Bary);
   METRIS_ASSERT(ibasis == FEBasis::Bezier || ibasis == FEBasis::Lagrange);
 
@@ -121,12 +127,21 @@ void eval2(const dblAr2 & __restrict__  rfld,
         jmat[1*szfld+i] = rfld[lfld[2]][i] - rfld[lfld[0]][i];
       }
     }
+    if(idif2 == DifVar::Bary){
+      for(int i=0;i<szfld;i++){
+        hmat[0*szfld+i] = 0.0;
+        hmat[1*szfld+i] = 0.0;
+        hmat[2*szfld+i] = 0.0;
+      }
+    }
     return;
   } 
 
   if(ibasis == FEBasis::Bezier){
-    eval2_bezier<szfld,ideg>(rfld, lfld, idif1, bary, eval, jmat);
+    eval2_bezier<szfld,ideg>(rfld, lfld, idif1, idif2, bary, eval, jmat, hmat);
   }else if(ibasis == FEBasis::Lagrange){
+    METRIS_ASSERT(idif2 == DifVar::None);
+
     #ifndef NDEBUG
     try{
     #endif

@@ -199,6 +199,7 @@ doproj:
       int iref = ityp == 0 ? ientt 
                : ityp == 1 ? msh.edg2ref[ientt] : msh.fac2ref[ientt];
 
+      // In this case, we produce a guess to the t or (u,v)
       if(ityp0 < ityp){
         if(ityp == 1){
           // Guess using ientt. 
@@ -223,7 +224,38 @@ doproj:
           msh.bpo2rbi(ibpoi,0) = msh.bpo2rbi(ibpo2,0);
 
         }else{
-          METRIS_THROW_MSG(TODOExcept(), "Implement face (u,v) guess");
+          // Trying the other vertices, look for one that can provide a (u,v).
+          bool delayp = true;
+          for(int iver = 0; iver < 3; iver++){
+            int ipoi2 = msh.fac2poi(ientt,iver);
+            if(ipoi2 == ipoin) continue;
+
+            int ibpo2 = msh.poi2bpo[ipoi2];
+            METRIS_ASSERT(ibpo2 >= 0);
+
+            if(iverb >= 3){
+              printf(" - Edge guess ipoin %d ibpo0 %d ibpoi %d ipoi2 %d ibpo2 %d\n",
+                     ipoin,ibpo0,ibpoi,ipoi2,ibpo2);
+              if(ibpo2 >= ibpoi && irep == 0) printf(" -> delay \n");
+              else printf(" - ibpo2 t = %f\n",msh.bpo2rbi(ibpo2,0));
+            }
+
+            if(ibpo2 >= ibpoi && irep == 0){
+              // This point can be revisited on second loop integration, or the 
+              // other non-ipoin vertex might give us what we need. 
+              continue;
+            }
+
+            delayp = false;
+            msh.bpo2rbi(ibpoi,0) = msh.bpo2rbi(ibpo2,0);
+          }
+
+          if(delayp){
+            if(iverb >= 3) printf(" -> delay \n");
+            ndelay++;
+            continue;
+          }
+
         }
       }else{
         // one and done points 
@@ -262,12 +294,12 @@ doproj:
           if(ityp0 == ityp){
             ierro = EG_invEvaluate(obj, coop, msh.bpo2rbi[ibpoi], result);
           }else{
-            if(ipoin == 1){
+            if(ipoin == 1 && iverb >= 3){
               printf("## DEBUG IPOIN 1 projection irep %d guess %15.7e\n",irep,
                 msh.bpo2rbi(ibpoi,0));
             }
             ierro = EG_invEvaluateGuess(obj, coop, msh.bpo2rbi[ibpoi], result);
-            if(ipoin == 1){
+            if(ipoin == 1 && iverb >= 3){
               printf("## DEBUG IPOIN 1 projection t after %15.7e\n",
                 msh.bpo2rbi(ibpoi,0));
             }

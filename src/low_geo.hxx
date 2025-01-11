@@ -9,6 +9,7 @@
 
 #include "types.hxx"
 #include "Mesh/MeshFwd.hxx"
+#include "metris_constants.hxx"
 
 #include "../SANS/Surreal/SurrealS.h"
 
@@ -104,9 +105,11 @@ void getmeasentP1grad(const int *ent2pol, const dblAr2& coord, int idof, double 
 
 void getnorfacP1(const int *fac2pol, const dblAr2 &coord, double *nrmal);
 
-// Return outgoing normal 
-int getnorpoiCAD(const MeshBase &msh, int ipoin, std::map<ego,int> &edgorient, 
-                 double *norpoi);
+// Return outgoing normal of edge (2D only). 
+int getnorpoiCAD1(const MeshBase &msh, int ipoin, std::map<ego,int> &edgorient, 
+                  double *norpoi);
+
+int getnorpoiCAD2(const MeshBase &msh, int ibpoi, double *norpoi);
 
 template <int ideg>
 void getnorpoi(const MeshBase &msh, int ipoin, const intAr1 &lball, double* norpoi);
@@ -222,6 +225,15 @@ inline void getvecprod3(const ftype* x,const ftype* y,ftype* z){
 	z[0] = x[1]*y[2] - x[2]*y[1];
 	z[1] = x[2]*y[0] - x[0]*y[2];
 	z[2] = x[0]*y[1] - x[1]*y[0];
+}
+
+
+template<int n>
+int normalize_vec(double *vec){
+  double nrm = getnrml2<n>(vec);
+  if(nrm < Constants::vecNrmTol) return 1;
+  for(int ii = 0; ii < n; ii++) vec[ii] /= sqrt(nrm);
+  return 0;
 }
 
 

@@ -119,6 +119,17 @@ namespace Constants{
   // And sum between 1 - (idim+1) baryTol and 1 + (idim+1) baryTol
   const double baryTol = 1.0e-9;
 
+  // Norm below which we refuse to divide by the square root. 
+  const double vecNrmTol = 1.0e-16;
+
+  // Norm of distance gradient before stop
+  const double projedgTol = 1.0e-12;
+
+  // Threshold below which dot product between two vectors is indicative
+  // of them not being aligned. Introduced for CAD normals so some 
+  // slack is given. 
+  const double dtprdMisAlign = 0.4;
+
 
   // Expected number of entities per vertex (not ctrl pt)
   // See below for "proofs"

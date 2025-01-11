@@ -32,6 +32,13 @@ docs/log
 docs/Comparison/
 README.old.md
 
+examples/adapt_square
+!examples/adapt_square/test_script.sh
+!examples/adapt_square/test_scriptP2.sh
+!examples/adapt_square/square.meshb
+!examples/adapt_square/square.egads
+!examples/adapt_square/clean.sh
+
 clean.sh
 Release*
 Debug*

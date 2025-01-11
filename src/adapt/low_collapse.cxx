@@ -25,17 +25,17 @@ For prints: level 2 routine (4 spaces)
 */
 template<class MFT>
 int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf, 
-                intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3){
+                intAr1 &lerro, int ithrd1, int ithrd2){
   if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement + tet nelem = "<<msh.nelem)
 
   int iverb = msh.param->iverb;
 
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
-  METRIS_ASSERT(ithrd3 >= 0 && ithrd3 < METRIS_MAXTAGS);
+  //METRIS_ASSERT(ithrd3 >= 0 && ithrd3 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd1 != ithrd2);
-  METRIS_ASSERT(ithrd1 != ithrd3);
-  METRIS_ASSERT(ithrd2 != ithrd3);
+  //METRIS_ASSERT(ithrd1 != ithrd3);
+  //METRIS_ASSERT(ithrd2 != ithrd3);
 
  
 
@@ -234,22 +234,22 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
 }
 
 template int colledgsurf<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
-int iface, int iedl, double qmax_suf, intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
+int iface, int iedl, double qmax_suf, intAr1 &lerro, int ithrd1, int ithrd2);
 template int colledgsurf<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
-int iface, int iedl, double qmax_suf, intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
+int iface, int iedl, double qmax_suf, intAr1 &lerro, int ithrd1, int ithrd2);
 
 
 template<class MFT>
 int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf, 
-                intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3){
+                intAr1 &lerro, int ithrd1, int ithrd2){
   if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement + tet nelem = "<<msh.nelem)
 
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
-  METRIS_ASSERT(ithrd3 >= 0 && ithrd3 < METRIS_MAXTAGS);
+  //METRIS_ASSERT(ithrd3 >= 0 && ithrd3 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd1 != ithrd2);
-  METRIS_ASSERT(ithrd1 != ithrd3);
-  METRIS_ASSERT(ithrd2 != ithrd3);
+  //METRIS_ASSERT(ithrd1 != ithrd3);
+  //METRIS_ASSERT(ithrd2 != ithrd3);
 
   int iverb = msh.param->iverb;
 
@@ -423,10 +423,10 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
 
 template int collversurf<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
                    int iface, int iver, double qmax_suf, 
-                   intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
+                   intAr1 &lerro, int ithrd1, int ithrd2);
 template int collversurf<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
                    int iface, int iver, double qmax_suf, 
-                   intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
+                   intAr1 &lerro, int ithrd1, int ithrd2);
 
 
 } // end namespace

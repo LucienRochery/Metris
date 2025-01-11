@@ -170,10 +170,16 @@ void setFieldLagrange(MeshBase &msh, dblAr2 &rfld){
 
   // Simply replace now
   for(int ipoin=0; ipoin<msh.npoin; ipoin++){
+    // Detached point (neither corner nor attached to anything)
     if(msh.poi2ent(ipoin,0) < 0) continue;
-    for(int j = 0; j < szfld; j++){
-      rfld[ipoin][j] = rwrk[ipoin][j];
+    // Corners can be loose despite >= poi2ent and should also be left alone 
+    // (they are always vertices anyways)
+    int ibpoi = msh.poi2bpo[ipoin];
+    if(ibpoi >= 0){
+      if(msh.bpo2ibi(ibpoi,1) == 0) continue;
     }
+
+    for(int j = 0; j < szfld; j++) rfld[ipoin][j] = rwrk[ipoin][j];
   }
 
 }

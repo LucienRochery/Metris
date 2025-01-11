@@ -117,31 +117,6 @@ struct eval3_bezier{
     eval3_bezier<szfld,ideg-1,di+0,dj+0,dk+1,dl+0>(rfld,lfld,idif2,DifVar::None,bary,eva3,jmat3,NULL);
     eval3_bezier<szfld,ideg-1,di+0,dj+0,dk+0,dl+1>(rfld,lfld,idif2,DifVar::None,bary,eva4,jmat4,NULL);
 
-    //if(idif2 == DifVar::None){
-    //  eval3_bezier<szfld,ideg-1,di+1,dj+0,dk+0,dl+0>(rfld,lfld,DifVar::None         ,DifVar::None,bary,eva1,NULL,NULL);
-    //  eval3_bezier<szfld,ideg-1,di+0,dj+1,dk+0,dl+0>(rfld,lfld,DifVar::None         ,DifVar::None,bary,eva2,NULL,NULL);
-    //  eval3_bezier<szfld,ideg-1,di+0,dj+0,dk+1,dl+0>(rfld,lfld,DifVar::None         ,DifVar::None,bary,eva3,NULL,NULL);
-    //  eval3_bezier<szfld,ideg-1,di+0,dj+0,dk+0,dl+1>(rfld,lfld,DifVar::None         ,DifVar::None,bary,eva4,NULL,NULL);
-    //  //printf("Debug eval3 bez P%d idif2 == 0 eva1, eva2, eva3, eva4:\n",ideg);
-    //  //dblAr1(3,eva1).print();
-    //  //dblAr1(3,eva2).print();
-    //  //dblAr1(3,eva3).print();
-    //  //dblAr1(3,eva4).print();
-    //}else if(idif2 == DifVar::Bary){
-    //  eval3_bezier<szfld,ideg-1,di+1,dj+0,dk+0,dl+0>(rfld,lfld,DifVar::Bary,DifVar::None,bary,eva1,jmat1,NULL);
-    //  eval3_bezier<szfld,ideg-1,di+0,dj+1,dk+0,dl+0>(rfld,lfld,DifVar::Bary,DifVar::None,bary,eva2,jmat2,NULL);
-    //  eval3_bezier<szfld,ideg-1,di+0,dj+0,dk+1,dl+0>(rfld,lfld,DifVar::Bary,DifVar::None,bary,eva3,jmat3,NULL);
-    //  eval3_bezier<szfld,ideg-1,di+0,dj+0,dk+0,dl+1>(rfld,lfld,DifVar::Bary,DifVar::None,bary,eva4,jmat4,NULL);
-    //  //printf("Debug eval3 bez P%d idif2 == 1 eva1, eva2, eva3, eva4:\n",ideg);
-    //  //dblAr1(3,eva1).print();
-    //  //dblAr1(3,eva2).print();
-    //  //dblAr1(3,eva3).print();
-    //  //dblAr1(3,eva4).print();
-    //  //dblAr2(3,3,jmat1).print();
-    //  //dblAr2(3,3,jmat2).print();
-    //  //dblAr2(3,3,jmat3).print();
-    //  //dblAr2(3,3,jmat4).print();
-    //}
 
     for(int i = 0; i < szfld; i++){
       eval[i] = bary[0] * eva1[i]
@@ -149,17 +124,6 @@ struct eval3_bezier{
               + bary[2] * eva3[i]
               + bary[3] * eva4[i];
     }
-
-    //if(eval[0] > 1.0e10){
-    //  printf("## DEBUG EVAL3_BEZIER VERY LARGE VALUE %20.16e\n",eval[0]);
-    //  printf("eva1, 2, 3, 4: %20.16e %20.16e %20.16e %20.16e \n",eva1[0],eva2[0],eva3[0],eva4[0]);
-    //  wait();
-    //}
-
-    //printf("dbg eva1 = %f %f %f \n",eva1[0],eva1[1],eva1[2]);
-    //printf("dbg eva2 = %f %f %f \n",eva2[0],eva2[1],eva2[2]);
-    //printf("dbg eva3 = %f %f %f \n",eva3[0],eva3[1],eva3[2]);
-    //printf("dbg eva4 = %f %f %f \n",eva4[0],eva4[1],eva4[2]);
 
     if(idif1 == DifVar::Bary){
       for(int i = 0; i < szfld; i++){
@@ -171,8 +135,6 @@ struct eval3_bezier{
     }
 
     if(idif2 == DifVar::Bary){
-      //printf("Debug pre hmat P%d comp jmat = \n",ideg);
-      //dblAr2(3,3,jmat).print();
       for(int i=0; i<szfld; i++){
                   // d11 (i.e. (d2-d1)(d2-d1))
         hmat[0*szfld + i] = ideg * (jmat2[0*szfld+i] - jmat1[0*szfld+i]);
@@ -189,8 +151,6 @@ struct eval3_bezier{
                   // d33 
         hmat[5*szfld + i] = ideg * (jmat4[2*szfld+i] - jmat1[2*szfld+i]);
       }
-      //printf("Debug post hmat P%d comp jmat = \n",ideg);
-      //dblAr2(3,3,jmat).print();
     }
   }
 };
@@ -275,29 +235,10 @@ template <int szfld,int di,int dj, int dk, int dl>
       double jmat3[3*szfld];
       double jmat4[3*szfld];
     
-      if(idif2 == DifVar::None){
-        eval3_bezier<szfld,1,di+1,dj+0,dk+0,dl+0>(rfld,lfld,DifVar::None         ,DifVar::None,bary,eva1,NULL,NULL);
-        eval3_bezier<szfld,1,di+0,dj+1,dk+0,dl+0>(rfld,lfld,DifVar::None         ,DifVar::None,bary,eva2,NULL,NULL);
-        eval3_bezier<szfld,1,di+0,dj+0,dk+1,dl+0>(rfld,lfld,DifVar::None         ,DifVar::None,bary,eva3,NULL,NULL);
-        eval3_bezier<szfld,1,di+0,dj+0,dk+0,dl+1>(rfld,lfld,DifVar::None         ,DifVar::None,bary,eva4,NULL,NULL);
-      }else if(idif2 == DifVar::Bary){
-        eval3_bezier<szfld,1,di+1,dj+0,dk+0,dl+0>(rfld,lfld,DifVar::Bary,DifVar::None,bary,eva1,jmat1,NULL);
-        eval3_bezier<szfld,1,di+0,dj+1,dk+0,dl+0>(rfld,lfld,DifVar::Bary,DifVar::None,bary,eva2,jmat2,NULL);
-        eval3_bezier<szfld,1,di+0,dj+0,dk+1,dl+0>(rfld,lfld,DifVar::Bary,DifVar::None,bary,eva3,jmat3,NULL);
-        eval3_bezier<szfld,1,di+0,dj+0,dk+0,dl+1>(rfld,lfld,DifVar::Bary,DifVar::None,bary,eva4,jmat4,NULL);
-        //printf("Debug eval3 bez P%d idif2 == 1 eva1, eva2, eva3, eva4:\n",ideg);
-        //dblAr1(3,eva1).print();
-        //dblAr1(3,eva2).print();
-        //dblAr1(3,eva3).print();
-        //dblAr1(3,eva4).print();
-        //dblAr2(3,3,jmat1).print();
-        //dblAr2(3,3,jmat2).print();
-        //dblAr2(3,3,jmat3).print();
-        //dblAr2(3,3,jmat4).print();
-//        printf("Debug jmat1: \n");
-//        dblAr2(3,3,jmat1).print(3);
-      }
-
+      eval3_bezier<szfld,1,di+1,dj+0,dk+0,dl+0>(rfld,lfld,idif2,DifVar::None,bary,eva1,jmat1,NULL);
+      eval3_bezier<szfld,1,di+0,dj+1,dk+0,dl+0>(rfld,lfld,idif2,DifVar::None,bary,eva2,jmat2,NULL);
+      eval3_bezier<szfld,1,di+0,dj+0,dk+1,dl+0>(rfld,lfld,idif2,DifVar::None,bary,eva3,jmat3,NULL);
+      eval3_bezier<szfld,1,di+0,dj+0,dk+0,dl+1>(rfld,lfld,idif2,DifVar::None,bary,eva4,jmat4,NULL);
 
       for(int i = 0; i < szfld; i++){
         eval[i] = bary[0] * eva1[i]
@@ -306,11 +247,6 @@ template <int szfld,int di,int dj, int dk, int dl>
                 + bary[3] * eva4[i];
       }
 
-      //if(eval[0] > 1.0e10){
-      //  printf("## 2 DEBUG EVAL3_BEZIER VERY LARGE VALUE %20.16e \n",eval[0]);
-      //  printf("eva1, 2, 3, 4: %20.16e %20.16e %20.16e %20.16e \n",eva1[0],eva2[0],eva3[0],eva4[0]);
-      //  wait();
-      //}
 
       for(int i = 0; i < szfld;i++){
         double d1 = eva1[i];
@@ -321,8 +257,6 @@ template <int szfld,int di,int dj, int dk, int dl>
 
 
       if(idif2 == DifVar::Bary){
-        //printf("Debug pre hmat P%d comp jmat = \n",2);
-        //dblAr2(3,3,jmat).print();
         for(int i=0; i<szfld; i++){
                     // d11 (i.e. (d2-d1)(d2-d1))
           hmat[0*szfld + i] = 2 * (jmat2[0*szfld+i] - jmat1[0*szfld+i]);
@@ -339,8 +273,6 @@ template <int szfld,int di,int dj, int dk, int dl>
                     // d33 
           hmat[5*szfld + i] = 2 * (jmat4[2*szfld+i] - jmat1[2*szfld+i]);
         }
-        //printf("Debug post hmat P%d comp jmat = \n",2);
-        //dblAr2(3,3,jmat).print();
       }
 
 
@@ -356,8 +288,6 @@ template <int szfld,int di,int dj, int dk, int dl>
       constexpr int i1001 = mul2nod(1+di,0+dj,0+dk,1+dl);
       constexpr int i0101 = mul2nod(0+di,1+dj,0+dk,1+dl);
       constexpr int i0011 = mul2nod(0+di,0+dj,1+dk,1+dl);
-//              printf("  - ideg = %d with (di,dj,dk,dl) = (%d,%d,%d,%d)\n",ideg,di,dj,dk,dl);
-//              printf("  - Vertex indices %d %d %d %d \n",i1000,i0100,i0010,i0001);
 
       for(int i = 0; i < szfld; i++){
         eval[i] =   bary[0]*bary[0]*rfld[lfld[i2000]][i] 
@@ -372,20 +302,6 @@ template <int szfld,int di,int dj, int dk, int dl>
                 +   bary[3]*bary[3]*rfld[lfld[i0002]][i] ;
       }
 
-      //if(eval[0] > 1.0e10){
-      //  printf("## 2 DEBUG EVAL3_BEZIER VERY LARGE VALUE %20.16e \n",eval[0]);
-      //  printf("rfld[lfld[%d]][i] %20.16e addr %p \n",i2000,rfld[lfld[i2000]][0],(void*)(rfld[lfld[i2000]]));
-      //  printf("rfld[lfld[%d]][i] %20.16e addr %p \n",i1100,rfld[lfld[i1100]][0],(void*)(rfld[lfld[i1100]]));
-      //  printf("rfld[lfld[%d]][i] %20.16e addr %p \n",i1010,rfld[lfld[i1010]][0],(void*)(rfld[lfld[i1010]]));
-      //  printf("rfld[lfld[%d]][i] %20.16e addr %p \n",i1001,rfld[lfld[i1001]][0],(void*)(rfld[lfld[i1001]]));
-      //  printf("rfld[lfld[%d]][i] %20.16e addr %p \n",i0200,rfld[lfld[i0200]][0],(void*)(rfld[lfld[i0200]]));
-      //  printf("rfld[lfld[%d]][i] %20.16e addr %p \n",i0110,rfld[lfld[i0110]][0],(void*)(rfld[lfld[i0110]]));
-      //  printf("rfld[lfld[%d]][i] %20.16e addr %p \n",i0101,rfld[lfld[i0101]][0],(void*)(rfld[lfld[i0101]]));
-      //  printf("rfld[lfld[%d]][i] %20.16e addr %p \n",i0020,rfld[lfld[i0020]][0],(void*)(rfld[lfld[i0020]]));
-      //  printf("rfld[lfld[%d]][i] %20.16e addr %p \n",i0011,rfld[lfld[i0011]][0],(void*)(rfld[lfld[i0011]]));
-      //  printf("rfld[lfld[%d]][i] %20.16e addr %p \n",i0002,rfld[lfld[i0002]][0],(void*)(rfld[lfld[i0002]]));
-      //  wait();
-      //}
 
     }
   }
@@ -402,15 +318,17 @@ template <int szfld, int ideg, int di=0,int dj=0, int dk=0>
 struct eval2_bezier{
   eval2_bezier(const dblAr2 & __restrict__  rfld,  
                const int * __restrict__  lfld,
-               DifVar idif1, 
+               DifVar idif1, DifVar idif2,
                const double  * __restrict__  bary,  
                double * __restrict__  eval,
-               double * __restrict__ jmat){
+               double * __restrict__ jmat,
+               double * __restrict__ hmat){
     double eva1[szfld], eva2[szfld], eva3[szfld];
+    double jmat1[2*szfld], jmat2[2*szfld], jmat3[2*szfld];
 
-    eval2_bezier<szfld,ideg-1,di+1,dj+0,dk+0>(rfld,lfld,DifVar::None,bary,eva1,NULL);
-    eval2_bezier<szfld,ideg-1,di+0,dj+1,dk+0>(rfld,lfld,DifVar::None,bary,eva2,NULL);
-    eval2_bezier<szfld,ideg-1,di+0,dj+0,dk+1>(rfld,lfld,DifVar::None,bary,eva3,NULL);
+    eval2_bezier<szfld,ideg-1,di+1,dj+0,dk+0>(rfld,lfld,idif2,DifVar::None,bary,eva1,jmat1,NULL);
+    eval2_bezier<szfld,ideg-1,di+0,dj+1,dk+0>(rfld,lfld,idif2,DifVar::None,bary,eva2,jmat2,NULL);
+    eval2_bezier<szfld,ideg-1,di+0,dj+0,dk+1>(rfld,lfld,idif2,DifVar::None,bary,eva3,jmat3,NULL);
 
     for(int i = 0; i < szfld; i++){
       eval[i] = bary[0] * eva1[i]
@@ -424,6 +342,18 @@ struct eval2_bezier{
         jmat[1*szfld+i] = ideg * (eva3[i] - d1);
       }
     }
+
+    if(idif2 == DifVar::Bary){
+      for(int i=0; i<szfld; i++){
+                  // d11 (i.e. (d2-d1)(d2-d1))
+        hmat[0*szfld + i] = ideg * (jmat2[0*szfld+i] - jmat1[0*szfld+i]);
+                  // d21 
+        hmat[1*szfld + i] = ideg * (jmat3[0*szfld+i] - jmat1[0*szfld+i]);
+                  // d22 
+        hmat[2*szfld + i] = ideg * (jmat3[1*szfld+i] - jmat1[1*szfld+i]);
+      }
+    }
+
   }
 };
 
@@ -431,10 +361,11 @@ template <int szfld,int di,int dj, int dk>
 struct eval2_bezier<szfld, 1,di,dj,dk>{
   eval2_bezier(const dblAr2 & __restrict__  rfld,  
                const int * __restrict__  lfld,
-               DifVar idif1,
+               DifVar idif1, DifVar idif2,
                const double  * __restrict__  bary,  
                double * __restrict__  eval,
-               double * __restrict__ jmat){
+               double * __restrict__ jmat,
+               double * __restrict__ hmat){
     //constexpr int ideg = 1 + di + dj + dk; // The true degree. 
 
     constexpr int i100 = mul2nod(1+di,0+dj,0+dk);
@@ -455,6 +386,13 @@ struct eval2_bezier<szfld, 1,di,dj,dk>{
       }
     }
 
+    if(idif2 == DifVar::Bary){
+      for(int i = 0; i < szfld; i++){
+        hmat[0*szfld+i] = 0.0;
+        hmat[1*szfld+i] = 0.0;
+        hmat[2*szfld+i] = 0.0;
+      }
+    }
 
   }
 };
@@ -464,10 +402,11 @@ template <int szfld, int di,int dj, int dk>
 struct eval2_bezier<szfld,2,di,dj,dk>{
   eval2_bezier(const dblAr2 & __restrict__  rfld,  
                const int * __restrict__  lfld,
-               DifVar idif1,
+               DifVar idif1, DifVar idif2,
                const double  * __restrict__  bary,  
                double * __restrict__  eval,
-               double * __restrict__ jmat){
+               double * __restrict__ jmat,
+               double * __restrict__ hmat){
     //constexpr int ideg = 2 + di + dj + dk ; // The true degree. 
     
     if(idif1 == DifVar::Bary){
@@ -476,10 +415,11 @@ struct eval2_bezier<szfld,2,di,dj,dk>{
         // evals. 
 
       double eva1[szfld], eva2[szfld], eva3[szfld];
+      double jmat1[2*szfld], jmat2[2*szfld], jmat3[2*szfld];
 
-      eval2_bezier<szfld,1,di+1,dj+0,dk+0>(rfld,lfld,DifVar::None,bary,eva1,NULL);
-      eval2_bezier<szfld,1,di+0,dj+1,dk+0>(rfld,lfld,DifVar::None,bary,eva2,NULL);
-      eval2_bezier<szfld,1,di+0,dj+0,dk+1>(rfld,lfld,DifVar::None,bary,eva3,NULL);
+      eval2_bezier<szfld,1,di+1,dj+0,dk+0>(rfld,lfld,idif2,DifVar::None,bary,eva1,jmat1,NULL);
+      eval2_bezier<szfld,1,di+0,dj+1,dk+0>(rfld,lfld,idif2,DifVar::None,bary,eva2,jmat2,NULL);
+      eval2_bezier<szfld,1,di+0,dj+0,dk+1>(rfld,lfld,idif2,DifVar::None,bary,eva3,jmat3,NULL);
 
       for(int i = 0; i < szfld; i++){
         eval[i] = bary[0] * eva1[i]
@@ -493,6 +433,17 @@ struct eval2_bezier<szfld,2,di,dj,dk>{
         jmat[1*szfld+i] = 2 * (eva3[i] - d1);
       }
 
+      if(idif2 == DifVar::Bary){
+        for(int i=0; i<szfld; i++){
+                    // d11 (i.e. (d2-d1)(d2-d1))
+          hmat[0*szfld + i] = 2 * (jmat2[0*szfld+i] - jmat1[0*szfld+i]);
+                    // d21 
+          hmat[1*szfld + i] = 2 * (jmat3[0*szfld+i] - jmat1[0*szfld+i]);
+                    // d22 
+          hmat[2*szfld + i] = 2 * (jmat3[1*szfld+i] - jmat1[1*szfld+i]);
+        }
+      }
+      
     }else{
 
       constexpr int i200 = mul2nod(2+di,0+dj,0+dk);
@@ -531,14 +482,17 @@ template <int szfld, int ideg, int di=0,int dj=0>
 struct eval1_bezier{
   eval1_bezier(const dblAr2 & __restrict__  rfld,  
                const int * __restrict__  lfld,
-               DifVar idif1, 
+               DifVar idif1, DifVar idif2,
                const double  * __restrict__  bary,  
                double * __restrict__  eval,
-               double * __restrict__ jmat){
+               double * __restrict__ jmat,
+               double * __restrict__ hmat){
     double eva1[szfld], eva2[szfld];
+    double jmat1[szfld];
+    double jmat2[szfld];
 
-    eval1_bezier<szfld,ideg-1,di+1,dj+0>(rfld,lfld,DifVar::None,bary,eva1,NULL);
-    eval1_bezier<szfld,ideg-1,di+0,dj+1>(rfld,lfld,DifVar::None,bary,eva2,NULL);
+    eval1_bezier<szfld,ideg-1,di+1,dj+0>(rfld,lfld,idif2,DifVar::None,bary,eva1,jmat1,NULL);
+    eval1_bezier<szfld,ideg-1,di+0,dj+1>(rfld,lfld,idif2,DifVar::None,bary,eva2,jmat2,NULL);
 
     for(int i = 0; i < szfld; i++){
       eval[i] = bary[0]*eva1[i] + bary[1]*eva2[i];
@@ -549,6 +503,13 @@ struct eval1_bezier{
         jmat[i] = ideg * (eva2[i] - eva1[i]);
       }
     }
+    if(idif2 == DifVar::Bary){
+      for(int i=0; i<szfld; i++){
+                  // d11 (i.e. (d2-d1)(d2-d1))
+        hmat[0*szfld + i] = ideg * (jmat2[0*szfld+i] - jmat1[0*szfld+i]);
+      }
+    }
+
   }
 };
 
@@ -556,10 +517,11 @@ template <int szfld, int di,int dj>
 struct eval1_bezier<szfld,1,di,dj>{
   eval1_bezier(const dblAr2 & __restrict__  rfld,  
                const int * __restrict__  lfld,
-               DifVar idif1, 
+               DifVar idif1, DifVar idif2,
                const double  * __restrict__  bary,  
                double * __restrict__  eval,
-               double * __restrict__ jmat){
+               double * __restrict__ jmat,
+               double * __restrict__ hmat){
 
     constexpr int i10 = mul2nod(1+di,0+dj);
     constexpr int i01 = mul2nod(0+di,1+dj);
@@ -575,6 +537,12 @@ struct eval1_bezier<szfld,1,di,dj>{
       }
     }
 
+    if(idif2 == DifVar::Bary){
+      for(int i = 0; i < szfld; i++){
+        hmat[0*szfld+i] = 0.0;
+      }
+    }
+
   }
 };
 
@@ -583,10 +551,11 @@ template <int szfld, int di,int dj>
 struct eval1_bezier<szfld,2,di,dj>{
   eval1_bezier(const dblAr2 & __restrict__  rfld,  
                const int * __restrict__  lfld,
-               DifVar idif1, 
+               DifVar idif1, DifVar idif2,
                const double  * __restrict__  bary,  
                double * __restrict__  eval,
-               double * __restrict__ jmat){
+               double * __restrict__ jmat,
+               double * __restrict__ hmat){
     constexpr int i20 = mul2nod(2+di,0+dj);
     constexpr int i02 = mul2nod(0+di,2+dj);
     constexpr int i11 = mul2nod(1+di,1+dj);
@@ -595,21 +564,31 @@ struct eval1_bezier<szfld,2,di,dj>{
         // The Jacobian is quicker to compute recursively as it only uses the previous degree
         // evals. 
       double eva1[szfld], eva2[szfld];
+      double jmat1[szfld],jmat2[szfld];
 
-      eval1_bezier<szfld,1,di+1,dj+0>(rfld,lfld,DifVar::None,bary,eva1,NULL);
-      eval1_bezier<szfld,1,di+0,dj+1>(rfld,lfld,DifVar::None,bary,eva2,NULL);
+      eval1_bezier<szfld,1,di+1,dj+0>(rfld,lfld,idif2,DifVar::None,bary,eva1,jmat1,NULL);
+      eval1_bezier<szfld,1,di+0,dj+1>(rfld,lfld,idif2,DifVar::None,bary,eva2,jmat2,NULL);
 
-      for(int i =0; i < szfld; i++){
+      for(int i = 0; i < szfld; i++){
         eval[i] = bary[0]*eva1[i] + bary[1]*eva2[i];
         jmat[i] = 2 * (eva2[i] - eva1[i]);
       }
 
+      if(idif2 == DifVar::Bary){
+        for(int i=0; i<szfld; i++){
+                    // d11 (i.e. (d2-d1)(d2-d1))
+          hmat[0*szfld + i] = 2 * (jmat2[0*szfld+i] - jmat1[0*szfld+i]);
+        }
+      }
+
     }else{
+
       for(int i = 0; i < szfld; i++){
         eval[i] =   bary[0]*bary[0]*rfld[lfld[i20]][i] 
                 + 2*bary[0]*bary[1]*rfld[lfld[i11]][i] 
                 +   bary[1]*bary[1]*rfld[lfld[i02]][i];
       }
+
     }
   }
 };

@@ -46,7 +46,7 @@ void bez2lag1(const int* __restrict__ lfld,
 	for(int i = 0; i < nn; i++){
 		bary[0] = ordedg.s[ideg][i][0]/((double)ideg);
 		bary[1] = ordedg.s[ideg][i][1]/((double)ideg);
-		eval1_bezier<szfld,ideg>(rfld0,lfld,DifVar::None,bary,rfld1[lfld[i]],NULL);
+		eval1_bezier<szfld,ideg>(rfld0,lfld,DifVar::None,DifVar::None,bary,rfld1[lfld[i]],NULL,NULL);
 	}
 }
 template<int ideg, int szfld>
@@ -59,7 +59,7 @@ void bez2lag2(const int* __restrict__ lfld,
 		bary[0] = ordfac.s[ideg][i][0]/((double)ideg);
 		bary[1] = ordfac.s[ideg][i][1]/((double)ideg);
 		bary[2] = ordfac.s[ideg][i][2]/((double)ideg);
-		eval2_bezier<szfld,ideg>(rfld0,lfld,DifVar::None,bary,rfld1[lfld[i]],NULL);
+		eval2_bezier<szfld,ideg>(rfld0,lfld,DifVar::None,DifVar::None,bary,rfld1[lfld[i]],NULL,NULL);
 	}
 }
 template<int ideg, int szfld>

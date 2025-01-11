@@ -258,7 +258,7 @@ void MetricFieldFE::normalize(double coeff){
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
       if(msh.poi2ent(ipoin,0) < 0) continue;
       for(int ii = 0; ii < nnmet; ii++){
-        rfld[ipoin][ii] *= coeff;
+        rfld(ipoin,ii) *= coeff;
       }
     }
   }else{

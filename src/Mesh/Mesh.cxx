@@ -14,6 +14,7 @@
 #include "../aux_topo.hxx"
 #include "../low_lenedg.hxx"
 #include "../low_geo.hxx"
+#include "../low_ccoef.hxx"
 
 #include "../Localization/msh_localization.hxx"
 
@@ -46,7 +47,11 @@ void Mesh<MetricFieldAnalytical>::initialize(MetrisAPI *data, MeshBack &bak,
     METRIS_ASSERT(param.anamet_ptr != NULL);
     met.setAnalyticalMetric(param.anamet_ptr);
   }
-  if(param.scaleMet) met.normalize(param.metScale);
+  if(param.scaleMet){
+    if(param.iverb >= 1) 
+      printf("-- Front scaling metric by %15.7e\n", param.metScale);
+    met.normalize(param.metScale);
+  }
 
   met.forceBasisFlag(FEBasis::Lagrange);
   met.forceSpaceFlag(MetSpace::Exp);
@@ -80,10 +85,11 @@ void Mesh<MetricFieldFE>::initialize(MetrisAPI *data, MeshBack &bak,
     for(int tdim = 1; tdim <= get_tdim(); tdim++){
       int nentt = this->nentt(tdim); 
       const intAr2 &ent2poi = this->ent2poi(tdim);
+      int nnode = this->nnode(tdim);
 
       for(int ii = 0 ; ii < nentt; ii++){
         if(isdeadent(ii,ent2poi)) continue;
-        for(int jj = 0; jj < tdim + 1; jj++){
+        for(int jj = 0; jj < nnode; jj++){
           int ip = ent2poi(ii,jj);
           poi2bak(ip,tdim-1) = ii;
         }
@@ -197,8 +203,9 @@ void Mesh<MFT>::set_nentt(int tdim, int nentt, bool skipallocf){
 template<class MFT>
 int Mesh<MFT>::interpMetBack(int ipoin, int tdim, int iseed, 
                              int iref, const double* algnd){
-  METRIS_ASSERT_MSG(tdim == this->getpoitdim(ipoin),
-    "seed is dim "<<tdim<<" point is "<<this->getpoitdim(ipoin) );
+  METRIS_ASSERT_MSG(tdim == this->getpoitdim(ipoin) || this->getpoitdim(ipoin) == 0,
+    "seed is dim "<<tdim<<" point is "<<this->getpoitdim(ipoin)
+    << " ipoin = "<<ipoin );
   int pdim = this->getpoitdim(ipoin);
 
   if(this->param->iverb >= 3) 
@@ -298,7 +305,7 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
           }
 
           *ieleb = poi2bak(ipoin, tdim-1);
-          METRIS_ASSERT(*ieleb >= 0 && *ieleb < bak->nentt(tdim));
+          METRIS_ASSERT_MSG(*ieleb >= 0 && *ieleb < bak->nentt(tdim),"with tdim = "<<tdim);
 
           if(iverb >= 3){
             printf(" dump ipoin %d poi2bak = ",ipoin);
@@ -366,7 +373,7 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
               }else{
                 dist = geterrl2<2>(this->coord[ipoi0],coopr);
               }
-              if(sqrt(dist) >= 0.1){
+              if(sqrt(dist) >= 1){
                 printf("## LARGE DISTANCE ? %f \n", dist);
                 dbgdist = true;
                 if(iverb >= 3){
@@ -379,6 +386,11 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
                   this->bpo2ibi(ibdbg,0) = -1;
                   this->set_nbpoi(this->nbpoi - 1);
                   this->set_npoin(this->npoin - 1);
+
+                  if(dist > 1000){
+                    printf("## EXIT HERE\n");
+                    exit(1);
+                  }
                 }
 
               }
@@ -389,19 +401,23 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
             }catch(const MetrisExcept &e){
               printf("## EXCEPTION THROWN IN LOCMESH, RERUN WITH PRINTS:\n");
               this->param->iverb = 10;
-              printf("Try to localize coop = ");
-              dblAr1(this->idim,this->coord[ipoi0]).print();
 
               int ipdbg = this->bak->newpoitopo(-1,-1);
               int ibdbg = this->bak->template newbpotopo<0>(ipdbg,ipdbg);
               for(int ii = 0; ii < this->idim; ii++) 
-                this->bak->coord[ipdbg][ii] = this->coord(ipoi0,ii);
+                this->bak->coord(ipdbg,ii) = this->coord(ipoi0,ii);
+
+              printf("Try to localize coop %d = ",ipdbg);
+              dblAr1(this->idim,this->coord[ipoi0]).print();
+              dblAr1(this->idim,this->bak->coord[ipdbg]).print();
               writeMesh("debug-localization.meshb", *(this->bak));
               this->bak->bpo2ibi(ibdbg,0)  = -1;
               this->bak->set_npoin(this->bak->npoin-1);
               this->bak->set_nbpoi(this->bak->nbpoi-1);
 
 
+              printf("WAIT HERE before throw\n");
+              wait();
               if(this->idim == 2){
                 if(tdim == 1){
                   ierro = locMesh<2,1,bdeg>(*(this->bak), ieleb, this->coord[ipoi0],
@@ -423,6 +439,8 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
                 }
               }
 
+              printf("WAIT HERE before throw\n");
+              wait();
               throw(e);
             }
             #endif
@@ -463,7 +481,7 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
             }
 
             bool dowait = false;
-            if(iverb >= 1 && ierro != 0 || iverb >= 2)
+            if(iverb >= 2 && ierro != 0 || iverb >= 3)
               printf("  - localization outside? len = %15.7e\n",len);
             if(iverb >= 2 && ierro != 0 || iverb >= 3){
               int nnmet = (this->idim*(this->idim+1))/2;
@@ -477,7 +495,7 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
               }
             }
             if(len < 0.5){
-              if(iverb >= 1 && ierro != 0 || iverb >= 2){
+              if(iverb >= 2 && ierro != 0 || iverb >= 3){
                 printf("  -> len %15.7e < 0.5 keep w met = ",len);
                 dblAr1( (this->idim*(this->idim+1))/2,this->met[ipoi0]).print();
               } 
@@ -501,6 +519,34 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
 
             if(dowait){
               printf("## WAIT HERE DUE TO POSSIBLE ERROR\n");
+              int nnodb = this->bak->nnode(tdim);
+              const intAr2& ent2pob = this->bak->ent2poi(tdim);
+              printf("Localized in %d : ",*ieleb);
+              intAr1(nnodb,ent2pob[*ieleb]).print();
+              this->bak->setBasis(FEBasis::Lagrange);
+              for(int ii = 0; ii < nnodb; ii++){
+                int ipoib = ent2pob(*ieleb,ii);
+                printf("%d : ",ipoib);
+                for(int jj = 0; jj < this->idim; jj++) printf(" %23.15e ",
+                  this->bak->coord(ipoib,jj));
+                printf("\n");
+              }
+              printf("To loc: ");
+              for(int jj = 0; jj < this->idim; jj++) printf(" %23.15e ",
+                                                        this->coord(ipoi0,jj));
+              printf("In basis ");
+              if(this->bak->getBasis() == FEBasis::Lagrange) printf(" Lagrange \n");
+              else printf(" Bézier \n");
+
+
+              bool iinva;
+              double ccoef[tetnpps[this->idim*(bdeg-1)]];
+              if(this->idim == 2){
+                getsclccoef<2,2,bdeg>(*(this->bak),*ieleb,NULL,ccoef,&iinva);
+              }else{
+                getsclccoef<3,3,bdeg>(*(this->bak),*ieleb,NULL,ccoef,&iinva);
+              }
+              printf("Element invalid ? %d \n",iinva);
               wait();
             }
 

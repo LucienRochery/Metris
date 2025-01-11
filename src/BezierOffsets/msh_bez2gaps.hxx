@@ -7,7 +7,7 @@
 #define __METRIS_MSH_BEZ2GAPS__
 
 
-#include "Mesh/MeshFwd.hxx"
+#include "../Mesh/MeshFwd.hxx"
 
 
 namespace Metris{

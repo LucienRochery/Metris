@@ -16,6 +16,28 @@
 
 namespace Metris{
 
+template<int nvar>
+struct newton_drivertype_args{
+  double xtol, stpmin, wlfc1, wlfc2, ratnew;
+  int niter, maxit, iprt, isym;
+  int iwork[3];
+  double rwork[4 + nvar*10];
+  double xopt[nvar]; 
+  double fopt; 
+
+  newton_drivertype_args(){
+    xtol = -1;
+    stpmin = 1.0e-3;
+    wlfc1 = 0.1;
+    wlfc2 = 10.0;
+    ratnew = 0.5;
+
+    niter = 0;
+    maxit = 50;
+    iprt  = 0;
+    isym  = 1;
+  }
+};
 
 void optim_newton_drivertype(int nvar ,
                              double *xcur ,double *fcur  ,double *gcur   ,double *hess ,
@@ -27,6 +49,11 @@ void optim_newton_drivertype(int nvar ,
                              int niwrk,int *iwork ,
                              double *xopt ,double *fopt ,int *ierro);
 
+template <int nvar>
+int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
+                            double *xcur ,double *fcur ,
+                            double *gcur ,double *hess ,
+                            int *iflag, int *ihess);
 
 #ifdef USE_PETSC
 int optim_newton_drivertype_PETSc(int nvar ,

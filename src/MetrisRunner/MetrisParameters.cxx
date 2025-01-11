@@ -29,7 +29,10 @@ MetrisParameters::MetrisParameters(){
   hmin = 1.0e-30;
   hmax = 1.0e30;
 
-  adaptIter = 0;
+
+  adp_niter     = 0;
+  adp_opt_niter = 1;
+
 
   curveType = 0;
 
@@ -39,11 +42,11 @@ MetrisParameters::MetrisParameters(){
   dbgfull   = false;
   refineConventions = false;
 
-  opt_pnorm = Defaults::qopt_pnorm;
-  opt_power = Defaults::qopt_power;
-  opt_niter = Defaults::qopt_niter;
-  opt_smoo_niter = Defaults::qopt_smoo_niter;
-  opt_swap_pnorm = Defaults::qopt_swap_niter;
+  opt_pnorm = Defaults::opt_pnorm;
+  opt_power = Defaults::opt_power;
+  opt_niter = Defaults::opt_niter;
+  opt_smoo_niter = Defaults::opt_smoo_niter;
+  opt_swap_pnorm = Defaults::opt_swap_niter;
 
 
   opt_coef_det = 1.0;
@@ -79,9 +82,9 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     iverb = 1;
   }
 
-  if(opt.count("qopt-unif")){
+  if(opt.count("opt-unif")){
     opt_unif = true;
-    if(iverb >= 1) std::cout << "-- Set qopt-unif \n";
+    if(iverb >= 1) std::cout << "-- Set opt-unif \n";
   }
 
   if(opt.count("in")){
@@ -147,16 +150,17 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     anaMet  = true;
     ianamet = opt.m["anamet"].template as<int>();
     if(iverb >= 1) printf("Using analytical metric %d \n", ianamet);
-    if(opt.count("sclmet")){
-      scaleMet = true;
-      double scl = opt.m["sclmet"].template as<double>();
-      if(iverb >= 1) printf("Analytical metric scaling by %f \n",scl);
-      metScale = scl;
-    }
+  }
+
+  if(opt.count("sclmet")){
+    setMetricScale(opt.m["sclmet"].template as<double>());
   }
 
   if(opt.count("adapt")){
-    adaptIter = opt.m["adapt"].template as<int>();
+    adp_niter = opt.m["adapt"].template as<int>();
+  }
+  if(opt.count("adp-opt-niter")){
+    adp_opt_niter = opt.m["adp-opt-niter"].as<int>();
   }
 
 
@@ -193,22 +197,23 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     hmax = opt.m["hmax"].as<double>();
   }
 
-  if(opt.count("qopt-niter")){
-    opt_niter = opt.m["qopt-niter"].as<int>();
+  if(opt.count("opt-niter")){
+    opt_niter = opt.m["opt-niter"].as<int>();
   }
-  if(opt.count("qopt-pnorm")){
-    opt_pnorm = opt.m["qopt-pnorm"].as<int>();
+  if(opt.count("opt-pnorm")){
+    opt_pnorm = opt.m["opt-pnorm"].as<int>();
   }
-  if(opt.count("qopt-power")){
-    opt_power = opt.m["qopt-power"].as<int>();
+  if(opt.count("opt-power")){
+    opt_power = opt.m["opt-power"].as<int>();
   }
-  if(opt.count("qopt-smoo-niter")){
-    opt_smoo_niter = opt.m["qopt-smoo-niter"].as<int>();
+  if(opt.count("opt-smoo-niter")){
+    opt_smoo_niter = opt.m["opt-smoo-niter"].as<int>();
   }
 
-  if(opt.count("qopt-swap-pnorm")){
-    opt_swap_pnorm = opt.m["qopt-swap-pnorm"].as<int>();
+  if(opt.count("opt-swap-pnorm")){
+    opt_swap_pnorm = opt.m["opt-swap-pnorm"].as<int>();
   }
+
 
 }
 

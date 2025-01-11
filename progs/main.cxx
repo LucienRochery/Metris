@@ -5,7 +5,6 @@
 
 #include "../src/main_adap.hxx"
 #include "../src/metris_options.hxx"
-
 #ifdef USE_PETSC
   #include <petscsys.h>
 #endif
@@ -16,6 +15,8 @@
 $1[$2][$3]
 */
 
+using namespace Metris;
+
 
 int main(int argc, char** argv){
 
@@ -23,8 +24,8 @@ int main(int argc, char** argv){
 
   //char **argv2 = (char**) malloc(256*sizeof(char*));
   //int argc2;
-  //Metris::gen_argv(&argc2,argv2,"-ksp_monitor -start_in_debugger --with-strict-petscerrorcode");
-  Metris::cargHandler arg2("-ksp_monitor -start_in_debugger --with-strict-petscerrorcode");
+  //gen_argv(&argc2,argv2,"-ksp_monitor -start_in_debugger --with-strict-petscerrorcode");
+  cargHandler arg2("-ksp_monitor -start_in_debugger --with-strict-petscerrorcode");
 
   printf("Call: ");
   for(int ii = 0; ii < argc; ii++){
@@ -49,9 +50,9 @@ int main(int argc, char** argv){
 #endif
     //Mesh msh, bak;
     try{
-      icod = Metris::main_metris(argc, argv);
-      //icod = Metris::main_metris(argc, argv, msh, bak);
-    }catch(const Metris::MetrisExcept &e){
+      icod = main_metris(argc, argv);
+      //icod = main_metris(argc, argv, msh, bak);
+    }catch(const MetrisExcept &e){
       printf("\n\n## MAIN_METRIS THROWS EXCEPTION:\n");
       std::cout<<"## Type: "<<e.what()<<std::endl;
   

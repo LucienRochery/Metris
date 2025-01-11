@@ -557,7 +557,7 @@ void writeMesh(std::string meshName, MeshBase &msh, bool ivolonly){
   if(msh.idim >= 3){
     for(int i =0; i< msh.nelem;i++){
       msh.tet2ref[i] += 1;
-      for(int j =0;j<tetnpps[msh.curdeg];j++)
+      for(int j = 0; j < tetnpps[msh.curdeg]; j++)
         msh.tet2poi(i,j) += 1;
     }
   }

@@ -146,11 +146,19 @@ void MeshBack::initialize(MetrisAPI *data,
     METRIS_THROW_MSG(WArgExcept(), "No metric info for back ?? ");
   }
 
+
   // Correct metric if needed 
   //met.correctMetric();
 
   met.setSpace(MetSpace::Log);
   met.setBasis(FEBasis::Bezier);
+
+  if(param.scaleMet){
+    if(param.iverb >= 1) 
+      printf("-- Back scaling metric by %15.7e\n", param.metScale);
+    met.normalize(param.metScale);
+  }
+
 
   #if 0
   // Compute edg2con 
@@ -216,7 +224,7 @@ void MeshBack::initialize(MetrisAPI *data,
         METRIS_ENFORCE(ierro == 0);
         double *tanCAD = &result[3];
 
-        for(int ii = 0; ii < 18; ii++) printf(" %d : %15.7e \n",ii,result[ii]);
+        //for(int ii = 0; ii < 18; ii++) printf(" %d : %15.7e \n",ii,result[ii]);
 
         if(param.iverb >= 3) printf("iedge %d iref %d ipoin = %d ibpoi = %d : ",
                              iedge,iref,ipoin,ibpoi);

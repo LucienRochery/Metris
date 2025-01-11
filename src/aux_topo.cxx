@@ -378,22 +378,34 @@ template void getbpois< n ,2>(const MeshBase &msh, int ientt, int *lbpoi);
 #include BOOST_PP_LOCAL_ITERATE()
 
 
-// Given ipoin, ientt of topo dim tdim, return the ibpoi attached to ientt, if it exists, -1 otherwise
+// Given ipoin, ientt of topo dim tdim, return the ibpoi attached to ientt, 
+// if it exists, -1 otherwise
+// If the point is same topo dim, we take any ibpoi that points to same ref
 int getent2bpo(const MeshBase &msh, int ibpoi, int ientt, int tdim){
   METRIS_ASSERT(ibpoi >= 0 && ibpoi < msh.nbpoi);
 
-  int ibpo2 = ibpoi;
-  int nn = 0;
-  do{
-    if(nn++ > METRIS_MAX_WHILE) METRIS_THROW_MSG(TopoExcept(), 
-      "ill-formed linked list of bpois");
+  int pdim = msh.bpo2ibi(ibpoi,1);
 
+
+  for(int ibpo2 = ibpoi; ibpo2 >= 0; ibpo2 = msh.bpo2ibi(ibpo2,3)){
     int itype = msh.bpo2ibi[ibpo2][1];
-    if(itype == tdim){
-      if(msh.bpo2ibi[ibpo2][2] == ientt) return ibpo2;
+    if(itype < tdim) continue;
+    if(itype > tdim) return -1;
+
+    if(msh.bpo2ibi[ibpo2][2] == ientt) return ibpo2;
+
+    if(pdim == tdim){
+      #ifndef NDEBUG
+        const intAr1 &ent2ref = msh.ent2ref(tdim);
+        int iref = ent2ref[ientt];
+        METRIS_ASSERT(iref >= 0);
+        METRIS_ASSERT(ent2ref[msh.bpo2ibi[ibpo2][2]] == iref);
+      #endif
+
+      return ibpo2;
     }
-    ibpo2 = msh.bpo2ibi[ibpo2][3];
-  }while(ibpo2 != ibpoi && ibpo2 != -1);
+
+  }
 
   return -1;
 }
@@ -406,7 +418,7 @@ int getref2bpo(const MeshBase &msh, int ibpoi, int iref0, int tdimn){
   METRIS_ASSERT(ibpoi >= 0 && ibpoi < msh.nbpoi); 
   METRIS_ASSERT(iref0 >= 0);
 
-  const intAr1 &ent2ref = tdimn == 1 ? msh.edg2ref : msh.fac2ref;
+  const intAr1 &ent2ref = msh.ent2ref(tdimn);
 
   int ibpo2 = ibpoi;
   int nn = 0;

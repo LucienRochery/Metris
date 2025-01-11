@@ -24,6 +24,7 @@ class MeshMetric : public MeshBase{
  
 
 public: 
+  MetricClass metricClass() const override { return met.metricClass(); }
 
 
  	// // true if back mesh supplied from file, false otherwise

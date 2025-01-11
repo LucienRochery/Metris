@@ -62,7 +62,11 @@ struct MetrisParameters{
   // Absolute tolerance for point to be on CAD edge
   double geo_abstoledg;
 
-  int adaptIter;
+
+  // ----------------- Adaptation options  
+  int adp_opt_niter; // do smoothing/swapping in adaptation loop (expensive)
+  int adp_niter;
+  // ----------------- END Adaptation options  
 
   // Metric min/max size control
   double hmin, hmax;
@@ -101,7 +105,7 @@ struct MetrisParameters{
   int opt_swap_niter; 
   // lp norm to improve: 0 is infinity (max). Governed by option -qswap-norm
   // but only in the optimization module (not adaptation). 
-  // Note quality norm is defined by -qopt-power and such options.
+  // Note quality norm is defined by -opt-power and such options.
   int opt_swap_pnorm;
   // Minimum increase in quality function to go through with a swap. Governed by
   // option -qswap-thres in optimization module (not adaptation). 

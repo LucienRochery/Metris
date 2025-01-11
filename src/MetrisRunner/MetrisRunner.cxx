@@ -86,7 +86,7 @@ MetrisRunner::~MetrisRunner(){
 }
 
 int MetrisRunner::degElevate(){
-  if(param.usrTarDeg == msh_g->curdeg) return 0;
+  if(param.usrTarDeg <= msh_g->curdeg) return 0;
   if(this->metricFE){
     degElevate0<MetricFieldFE>();
   }else{
@@ -138,7 +138,7 @@ void MetrisRunner::degElevate0(){
 
 
   if(iverb >= 1) std::cout<<
-     "-- Back metric interpolation back deg ="<<bak.curdeg<<"\n";
+     "-- Back metric interpolation back deg = "<<bak.curdeg<<"\n";
   CT_FOR0_INC(1,METRIS_MAX_DEG,bdeg){if(bak.curdeg == bdeg){
     // It's Lagrange nodes that should be localized.
     msh.setBasis(FEBasis::Lagrange);

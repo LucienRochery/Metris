@@ -30,14 +30,14 @@ namespace Defaults{
   const double geo_abstoledg = 1.0e-12;
 
   // See MetrisParameters 
-  const int qopt_pnorm = 2;
-  const int qopt_power = -1;
-  const int qopt_niter = 5;
-  const int qopt_smoo_niter = 100;
+  const int opt_pnorm = 2;
+  const int opt_power = -1;
+  const int opt_niter = 5;
+  const int opt_smoo_niter = 100;
 
-  const int qopt_swap_niter = 100;
-  const int qopt_swap_pnorm = qopt_pnorm;
-  const double qopt_swap_thres = 0.0;
+  const int opt_swap_niter = 100;
+  const int opt_swap_pnorm = opt_pnorm;
+  const double opt_swap_thres = 0.0;
 
   // What factor to multiply sizes by when realloc necessary.
   const double mem_growfac = 1.5;

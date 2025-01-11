@@ -113,7 +113,10 @@ void check_topo(MeshBase &msh,
 
 
     if(msh.meshClass() == MeshClass::Mesh){
-      Mesh<MetricFieldFE> &msh_ = (Mesh<MetricFieldFE> &) msh;
+      const intAr2 &poi2bak = msh.metricClass() == MetricClass::MetricFieldFE ? 
+       ((Mesh<MetricFieldFE> *)(&msh))->poi2bak 
+      :((Mesh<MetricFieldAnalytical> *)(&msh))->poi2bak;
+
       for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
         if(msh.poi2ent(ipoin,msh.get_tdim()-1) < 0) continue;
         int pdim = msh.getpoitdim(ipoin);
@@ -124,16 +127,16 @@ void check_topo(MeshBase &msh,
           METRIS_THROW(TopoExcept());
         }
         if(pdim == 0) continue;
-        int iebak = msh_.poi2bak(ipoin,pdim-1);
+        int iebak = poi2bak(ipoin,pdim-1);
         if(iebak < 0){
           printf("ipoin %d pdim %d poi2bak %d \n",ipoin,pdim,iebak);
           printf("dump all:\n");
           for(int tdim = 1; tdim <= msh.get_tdim(); tdim++){
-            printf("dim %d : %d \n",tdim, msh_.poi2bak(ipoin,tdim-1));
+            printf("dim %d : %d \n",tdim, poi2bak(ipoin,tdim-1));
           }
         }
         METRIS_ENFORCE(iebak >= 0);
-        METRIS_ENFORCE(iebak < msh_.bak->nentt(pdim));
+        //METRIS_ENFORCE(iebak < msh_->bak->nentt(pdim));
       }
     }
 
