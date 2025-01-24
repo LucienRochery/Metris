@@ -1,0 +1,527 @@
+//Metris: high-order metric-based non-manifold tetrahedral remesher
+//Copyright (C) 2023-2024, Massachusetts Institute of Technology
+//Licensed under The GNU Lesser General Public License, version 2.1
+//See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
+
+#include <src/codegen_ccoef_d.hxx>
+#include <src/types.hxx>
+
+namespace Metris{
+
+double det3_vdif(const double* x1,const double* x2
+                ,const double* y1,const double* y2
+                ,const double* z1,const double* z2);
+
+double* vdiff(const double* a,const double* b);
+
+double* vproduct(const double* a, const double* b);
+
+template<int ideg, typename T>
+void d_ccoef_genbez3(const intAr2 & __restrict__ tet2poi,
+                     const dblAr2& __restrict__ coord,
+                     int ielem,
+                     int icoor,
+                     T* __restrict__ ccoef,
+                     dblAr2& __restrict__ d_ccoef){
+
+  METRIS_ASSERT(ideg==2);
+
+  ccoef[  0] =  24*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3;
+
+  ccoef[  1] =  24*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3;
+
+  ccoef[  2] =  24*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3;
+
+  ccoef[  3] =  24*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3;
+
+  ccoef[  4] =   8*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3;
+
+  ccoef[  5] =   8*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3;
+
+  ccoef[  6] =   8*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3;
+
+  ccoef[  7] =   8*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3;
+
+  ccoef[  8] =   8*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3;
+
+  ccoef[  9] =   8*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3;
+
+  ccoef[ 10] =   8*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3;
+
+  ccoef[ 11] =   8*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3;
+
+  ccoef[ 12] =   8*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3;
+
+  ccoef[ 13] =   8*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3;
+
+  ccoef[ 14] =   8*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3;
+
+  ccoef[ 15] =   8*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3
+             +   8*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3;
+
+  ccoef[ 16] =   4*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3;
+
+  ccoef[ 17] =   4*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3;
+
+  ccoef[ 18] =   4*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3;
+
+  ccoef[ 19] =   4*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3
+             +   4*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+                            ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3;
+
+  for(int i = 0; i < 20; i++) {
+    for(int j = 0; j < 10; j++) {
+      d_ccoef[i][j] = 0;
+    }
+  }
+    d_ccoef[0][0] =  -  24*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 +  24*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 -  24*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[0][4] =  +  24*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3;
+
+    d_ccoef[0][6] =  -  24*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[0][7] =  +  24*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3;
+
+    d_ccoef[1][1] =  +  24*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3;
+
+    d_ccoef[1][4] =  -  24*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 +  24*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -  24*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3;
+
+    d_ccoef[1][5] =  -  24*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3;
+
+    d_ccoef[1][8] =  +  24*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3;
+
+    d_ccoef[2][2] =  -  24*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3;
+
+    d_ccoef[2][5] =  +  24*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[2][6] =  -  24*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +  24*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -  24*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3;
+
+    d_ccoef[2][9] =  +  24*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[3][3] =  +  24*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[3][7] =  -  24*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3 +  24*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -  24*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3;
+
+    d_ccoef[3][8] =  +  24*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[3][9] =  -  24*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[4][0] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3;
+
+    d_ccoef[4][1] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3;
+
+    d_ccoef[4][4] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[4][5] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[4][6] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3;
+
+    d_ccoef[4][7] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3;
+
+    d_ccoef[4][8] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3;
+
+    d_ccoef[5][0] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3;
+
+    d_ccoef[5][1] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3;
+
+    d_ccoef[5][4] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3;
+
+    d_ccoef[5][5] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3;
+
+    d_ccoef[5][6] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3;
+
+    d_ccoef[5][7] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3;
+
+    d_ccoef[5][8] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3;
+
+    d_ccoef[6][1] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[6][2] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3;
+
+    d_ccoef[6][4] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[6][5] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3;
+
+    d_ccoef[6][6] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3;
+
+    d_ccoef[6][8] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[6][9] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3;
+
+    d_ccoef[7][1] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[7][2] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3;
+
+    d_ccoef[7][4] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3;
+
+    d_ccoef[7][5] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3;
+
+    d_ccoef[7][6] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3;
+
+    d_ccoef[7][8] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[7][9] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[8][0] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3;
+
+    d_ccoef[8][2] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3;
+
+    d_ccoef[8][4] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[8][5] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[8][6] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3;
+
+    d_ccoef[8][7] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[8][9] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[9][0] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[9][2] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[9][4] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[9][5] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3;
+
+    d_ccoef[9][6] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[9][7] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[9][9] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3;
+
+    d_ccoef[10][0] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[10][3] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3;
+
+    d_ccoef[10][4] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[10][6] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[10][7] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[10][8] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3;
+
+    d_ccoef[10][9] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[11][0] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[11][3] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[11][4] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[11][6] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[11][7] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3;
+
+    d_ccoef[11][8] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[11][9] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[12][1] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[12][3] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3;
+
+    d_ccoef[12][4] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[12][5] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[12][7] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3;
+
+    d_ccoef[12][8] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[12][9] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3;
+
+    d_ccoef[13][1] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[13][3] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[13][4] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[13][5] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[13][7] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3;
+
+    d_ccoef[13][8] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[13][9] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[14][2] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[14][3] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[14][5] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[14][6] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[14][7] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3;
+
+    d_ccoef[14][8] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[14][9] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[15][2] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[15][3] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[15][5] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[15][6] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[15][7] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3;
+
+    d_ccoef[15][8] =  +   8*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[15][9] =  -   8*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   8*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   8*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[16][1] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[16][2] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[16][3] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[16][4] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[16][5] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[16][6] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[16][7] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3;
+
+    d_ccoef[16][8] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[16][9] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[17][0] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[17][2] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[17][3] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[17][4] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[17][5] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[17][6] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[17][7] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3;
+
+    d_ccoef[17][8] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[17][9] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[18][0] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[18][1] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[18][3] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3;
+
+    d_ccoef[18][4] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   3]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[18][5] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[18][6] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   8]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   3]]))[icoor] /   3;
+
+    d_ccoef[18][7] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3;
+
+    d_ccoef[18][8] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   7]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   7]]))[icoor] /   3;
+
+    d_ccoef[18][9] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3;
+
+    d_ccoef[19][0] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3;
+
+    d_ccoef[19][1] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[19][2] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3;
+
+    d_ccoef[19][4] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   2]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   9]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[19][5] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3;
+
+    d_ccoef[19][6] =  -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   7]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   5]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   8]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   7]], coord[tet2poi[ielem][   0]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   9]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   1]]), vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   6]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   8]], coord[tet2poi[ielem][   4]]))[icoor] /   3 -   4*vproduct(vdiff(coord[tet2poi[ielem][   0]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   5]]))[icoor] /   3;
+
+    d_ccoef[19][7] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[19][8] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   6]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   2]], coord[tet2poi[ielem][   6]]))[icoor] /   3;
+
+    d_ccoef[19][9] =  +   4*vproduct(vdiff(coord[tet2poi[ielem][   1]], coord[tet2poi[ielem][   4]]), vdiff(coord[tet2poi[ielem][   6]], coord[tet2poi[ielem][   0]]))[icoor] /   3 +   4*vproduct(vdiff(coord[tet2poi[ielem][   4]], coord[tet2poi[ielem][   0]]), vdiff(coord[tet2poi[ielem][   5]], coord[tet2poi[ielem][   4]]))[icoor] /   3;
+}
+template void d_ccoef_genbez3<2,double>(const intAr2 & __restrict__ tet2poi,
+                     const dblAr2& __restrict__ coord,
+                     int ielem,
+                     int icoor,
+                     double* __restrict__ ccoef,
+                     dblAr2& __restrict__ d_ccoef);
+
+
+
+} // End namespace

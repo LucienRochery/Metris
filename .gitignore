@@ -3,7 +3,6 @@ README.txt
 *.lldb
 .lldbinit
 rmetris*
-src/codegen_*
 /*meshb
 /*mesh
 /*solb
