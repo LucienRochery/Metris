@@ -23,6 +23,8 @@ if(REQ_CODEGEN)
                              ${PETSC_INCLUDE}
                              ${GINAC_INCLUDE_DIRS}
                              ${CLN_INCLUDE_DIRS}
+                             ${Boost_INCLUDE_DIRS}
+                             ${Boost_INCLUDE_DIR}
   	                         "/usr/local/include" ".")
   add_custom_command(OUTPUT  ${PROJECT_SOURCE_DIR}/src/codegen_lagrange.hxx
   	                 COMMAND make gen_lageval 
@@ -47,6 +49,8 @@ if(REQ_CODEGEN)
   target_link_libraries(gen_ccoef PUBLIC SANS)
   target_include_directories(gen_ccoef PUBLIC 
   	                         ${PROJECT_SOURCE_DIR} 
+                             ${Boost_INCLUDE_DIRS}
+                             ${Boost_INCLUDE_DIR}
   	                         "/usr/local/include" ".")
   add_custom_command(OUTPUT  ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx ${SRC_CCOEF_OUTPUT}
   	                 COMMAND make gen_ccoef
@@ -72,6 +76,8 @@ target_include_directories(meshBASIC PUBLIC
 	                         ${ESP_ROOT}/include
 	                         ${PETSC_INCLUDE}
                            ${ABSL_INCLUDE_DIRS}
+                           ${Boost_INCLUDE_DIRS}
+                           ${Boost_INCLUDE_DIR}
 	                         ${SRC_INCLUDE_DIRS})
 target_link_libraries(meshBASIC PUBLIC absl::hash absl::flat_hash_map)
 #target_link_libraries(meshBASIC PUBLIC ${Boost_STACKTRACE_BASIC_LIBRARY} 
@@ -98,6 +104,8 @@ if(REQ_CODEGEN)
                              ${PROJECT_BINARY_DIR}
                              ${ABSL_INCLUDE_DIRS}
   					                 ${PROJECT_SOURCE_DIR}
+                            ${Boost_INCLUDE_DIRS}
+                            ${Boost_INCLUDE_DIR}
   					                 "/usr/local/include")
   						   
   target_include_directories(gen_lag2bez PRIVATE ${SRC_INCLUDE_DIRS})
@@ -256,6 +264,8 @@ target_include_directories(libMetris PUBLIC
 	                         ${SRC_INCLUDE_DIRS}
                            ${CLP_INCLUDE_DIRS}
                            ${ABSL_INCLUDE_DIRS}
+                           ${Boost_INCLUDE_DIRS}
+                           ${Boost_INCLUDE_DIR}
 	                         #${LPLIB_INCLUDE_DIR}
 	                         )
 if(CLP_FOUND)
