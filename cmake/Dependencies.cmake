@@ -136,13 +136,13 @@ set_target_properties(libegads     PROPERTIES IMPORTED_LOCATION ${EGADS_LIBRARY}
 set_target_properties(libegadslite PROPERTIES IMPORTED_LOCATION ${EGADSLITE_LIBRARY})
 
 
-find_program(BOOST_STACKTRACE_ADDR2LINE_LOCATION addr2line)
-if(BOOST_STACKTRACE_ADDR2LINE_LOCATION)
-  message("Found addr2line at ${BOOST_STACKTRACE_ADDR2LINE_LOCATION}")
-  add_compile_definitions(BOOST_STACKTRACE_USE_ADDR2LINE)
-else()
-  message("Executable addr2line not found.")
-endif()
+#find_program(BOOST_STACKTRACE_ADDR2LINE_LOCATION addr2line)
+#if(BOOST_STACKTRACE_ADDR2LINE_LOCATION)
+#  message("Found addr2line at ${BOOST_STACKTRACE_ADDR2LINE_LOCATION}")
+#  add_compile_definitions(BOOST_STACKTRACE_USE_ADDR2LINE)
+#else()
+#  message("Executable addr2line not found.")
+#endif()
 
 if(USE_CLP STREQUAL "True" 
 OR USE_CLP STREQUAL "ON")
@@ -195,7 +195,7 @@ message("ABSL_INCLUDE_DIRS = ${ABSL_INCLUDE_DIRS}")
 #)
 #LIST(APPEND FETCH_LIST fetch_nlopt)
 
-find_package(Boost COMPONENTS program_options)
+find_package(Boost COMPONENTS program_options exception)
 if(NOT(Boost_program_options_FOUND))
   FetchContent_Declare(
     fetch_program_options
