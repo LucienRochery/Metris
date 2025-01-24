@@ -11,15 +11,21 @@
 
 // Comment BOOST_STACKTRACE_USE_BACKTRACE if libbacktrace not available. 
 // Commenting BOOST_STACKTRACE_LINK 
-#define BOOST_STACKTRACE_LINK
+// #define BOOST_STACKTRACE_LINK
 //#define BOOST_STACKTRACE_USE_BACKTRACE
+#ifndef NO_BOOST_EXCEPT
+#define NO_BOOST_EXCEPT
+#endif
 
 #include <iostream>
 #include <string>
+#ifndef NO_BOOST_EXCEPT
 #include <boost/exception/all.hpp>
 #include <boost/throw_exception.hpp>
+#endif
 
 #include <exception>
+
 
 /*
 Exceptions powered by Boost. Use with METRIS_THROW for backtrace printing. 
