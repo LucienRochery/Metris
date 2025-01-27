@@ -188,7 +188,7 @@ message("ABSL_INCLUDE_DIRS = ${ABSL_INCLUDE_DIRS}")
 #)
 #LIST(APPEND FETCH_LIST fetch_nlopt)
 
-find_package(Boost COMPONENTS program_options)
+find_package(Boost COMPONENTS program_options exception)
 if(NOT(Boost_program_options_FOUND))
   FetchContent_Declare(
     fetch_program_options

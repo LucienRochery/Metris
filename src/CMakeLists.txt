@@ -23,6 +23,7 @@ if(REQ_CODEGEN)
                              ${PETSC_INCLUDE}
                              ${GINAC_INCLUDE_DIRS}
                              ${CLN_INCLUDE_DIRS}
+                             ${Boost_INCLUDE_DIRS}
   	                         "/usr/local/include" ".")
   add_custom_command(OUTPUT  ${PROJECT_SOURCE_DIR}/src/codegen_lagrange.hxx
   	                 COMMAND make gen_lageval 
@@ -49,6 +50,7 @@ if(REQ_CODEGEN)
   target_link_libraries(gen_ccoef PUBLIC SANS ${BOOST_TRACELIBS})
   target_include_directories(gen_ccoef PUBLIC 
   	                         ${PROJECT_SOURCE_DIR} 
+                             ${Boost_INCLUDE_DIRS}
   	                         "/usr/local/include" ".")
   add_custom_command(OUTPUT  ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx ${PROJECT_SOURCE_DIR}/src/codegen_ccoef_d.hxx ${SRC_CCOEF_OUTPUT}
   	                 COMMAND make gen_ccoef
@@ -75,6 +77,7 @@ target_include_directories(meshBASIC PUBLIC
 	                         ${ESP_ROOT}/include
 	                         ${PETSC_INCLUDE}
                            ${ABSL_INCLUDE_DIRS}
+                           ${Boost_INCLUDE_DIRS}
 	                         ${SRC_INCLUDE_DIRS})
 target_link_libraries(meshBASIC PUBLIC absl::hash 
                                        absl::flat_hash_map
@@ -96,6 +99,7 @@ if(REQ_CODEGEN)
                              ${PROJECT_BINARY_DIR}
                              ${ABSL_INCLUDE_DIRS}
   					                 ${PROJECT_SOURCE_DIR}
+                             ${Boost_INCLUDE_DIRS}
   					                 "/usr/local/include")
   target_include_directories(gen_lag2bez PRIVATE ${SRC_INCLUDE_DIRS})
   target_include_directories(gen_lag2bez PRIVATE ".")
@@ -254,6 +258,7 @@ target_include_directories(libMetris PUBLIC
                            ${CLP_INCLUDE_DIRS}
                            ${ABSL_INCLUDE_DIRS}
                            ${NLOPT_INCLUDE}
+                           ${Boost_INCLUDE_DIRS}
 	                         #${LPLIB_INCLUDE_DIR}
 	                         )
 if(CLP_FOUND)
