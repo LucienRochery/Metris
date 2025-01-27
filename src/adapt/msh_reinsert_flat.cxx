@@ -9,6 +9,7 @@
 
 #include "msh_reinsert_flat.hxx"
 #include "../low_geo.hxx"
+#include "../mprintf.hxx"
 #include "../msh_structs.hxx"
 #include "../cavity/msh_cavity.hxx"
 #include "../io_libmeshb.hxx"
@@ -21,10 +22,10 @@ namespace Metris{
 // Reinsert vertices that create almost flat elements. 
 template<class MFT, int idim, int ideg>
 int reinsertFlat(Mesh<MFT> &msh, bool allow_collapse, int ithread){
+  GETVDEPTH(msh);
   constexpr int gdim = idim;
   constexpr int tdim = idim; 
   constexpr int nnmet = (gdim * (gdim + 1)) / 2;
-  int iverb = msh.param->iverb;
 
   if(tdim != 2) METRIS_THROW_MSG(TODOExcept(), "Implement reinsertFlat dim 3");
 
@@ -66,7 +67,6 @@ int reinsertFlat(Mesh<MFT> &msh, bool allow_collapse, int ithread){
   opts.allow_remove_points = true;
   //opts.dryrun   = true;
   opts.dryrun   = false;
-  opts.iverb    = msh.param->iverb-1;
 
   const int merror = CAV_ERR_NERROR;
   intAr1 lerror(merror);
@@ -83,11 +83,11 @@ int reinsertFlat(Mesh<MFT> &msh, bool allow_collapse, int ithread){
   int nent0 = 0;
   int nent1 = msh.nentt(tdim);
   for(int niter = 0; niter < miter; niter++){
-    if(iverb >= 2) printf("   - niter %d / %d nent0 -> nent1 %d -> %d\n",
-                          niter,miter,nent0,nent1);
+    CPRINTF1(" - niter %d / %d nent0 -> nent1 %d -> %d\n",niter,miter,nent0,nent1);
     int noper  = 0;
     int nerro = 0;
     for(int ientt = nent0; ientt < nent1; ientt++){
+      INCVDEPTH(msh);
       if(isdeadent(ientt,ent2poi)) continue;
 
       //if(ibdryonly){
@@ -106,8 +106,8 @@ int reinsertFlat(Mesh<MFT> &msh, bool allow_collapse, int ithread){
 
       getheightentP1_aniso<gdim>(ent2poi[ientt], msh.coord, metl, height);
 
-      if(iverb >= 3){
-        printf(" - ientt %d heights ",ientt);
+      if(DOPRINTS1()){
+        MPRINTF(" - ientt %d heights ",ientt);
         dblAr1(tdim + 1, height).print();
       }
 
@@ -120,7 +120,7 @@ int reinsertFlat(Mesh<MFT> &msh, bool allow_collapse, int ithread){
         // Low height element: insert itself and neighbour in cavity, as well 
         // as all points in ball of ipoin 
 
-        if(iverb >= 2) printf("  - Collapse point %d \n", ipoin);
+        CPRINTF1(" - Collapse point %d \n", ipoin);
         // Just collapse the point. 
         collversurf(msh,ientt,ifa,msh.param->iverb,lerror);
         break;
@@ -158,8 +158,8 @@ int reinsertFlat(Mesh<MFT> &msh, bool allow_collapse, int ithread){
             msh.met(cav.ipins,ii) = msh.met(ipoin,ii);
           if(tdim == 2){
             double bary[2], coopr[3];
-            ierro = projptedg<idim>(msh, msh.coord[cav.ipins], prjtol, 
-                                    iedge, msh.bpo2rbi[ibins], bary, coopr);
+            ierro = projptedgCAD<idim>(msh, msh.coord[cav.ipins], prjtol, 
+                                       iedge, msh.bpo2rbi[ibins], bary, coopr);
             if(ierro > 0){
               if(iverb >= 2) 
                 printf(" ## msh_reinsert_flat projptedg ierro %d \n",ierro);
@@ -240,22 +240,16 @@ int reinsertFlat(Mesh<MFT> &msh, bool allow_collapse, int ithread){
 
     nent0 = nent1;
     nent1 = msh.nentt(tdim);
-    if(iverb >= 2){
-      printf("   - iter %d noper = %d nerro = %d \n", niter, noper, nerro);
-      writeMesh("debug", msh);
-    }
+    CPRINTF1(" - iter %d noper = %d nerro = %d \n", niter, noper, nerro);
 
   }// for(int niter)
 
-  if(iverb >= 2){
-    printf(" - End noper = %d nerro = %d \n", noper_tot, nerro_tot);
-    writeMesh("debug", msh);
-  }
-  if(iverb >= 2 && nerro_tot > 0){
-    printf("   - ierro list:\n");
+  CPRINTF1(" - End noper = %d nerro = %d \n", noper_tot, nerro_tot);
+  if(DOPRINTS2() && nerro_tot > 0){
+    CPRINTF1(" - ierro list:\n");
     for(int ii = 0; ii < merror; ii++){
       if(lerror[ii] == 0) continue;
-      printf("     ierro = %d : %d \n",ii+1,lerror[ii]);
+      CPRINTF1("   - ierro = %d : %d \n",ii+1,lerror[ii]);
     }
   }
 

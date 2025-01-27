@@ -64,8 +64,8 @@ void eltgapsbezconv(MeshBase &msh, int ielem, int isig, bool confirm){
         int ii2 = ordelt[ideg][inode][lnoed[iedg][1]];
 
         for(int kk = 0; kk < ndimn; kk++){
-          msh.coord[ipoin][kk] = msh.coord[ipoin][kk] + 
-                      isig*( ii1*msh.coord[ip1][kk] + ii2*msh.coord[ip2][kk] ) / (double)ideg;
+          msh.coord(ipoin,kk) = msh.coord(ipoin,kk) + 
+                      isig*( ii1*msh.coord(ip1,kk) + ii2*msh.coord(ip2,kk) ) / (double)ideg;
         }
       }
     }
@@ -93,8 +93,8 @@ void eltgapsbezconv(MeshBase &msh, int ielem, int isig, bool confirm){
         int ii3 = ordelt[ideg][inode][lnofa3[ifac][2]];
   
         for(int kk = 0; kk < ndimn; kk++){
-          msh.coord[ipoin][kk] = msh.coord[ipoin][kk] +
-            isig*( ii1*msh.coord[ip1][kk] + ii2*msh.coord[ip2][kk] + ii3*msh.coord[ip3][kk] ) / (double)ideg;
+          msh.coord(ipoin,kk) = msh.coord(ipoin,kk) +
+            isig*( ii1*msh.coord(ip1,kk) + ii2*msh.coord(ip2,kk) + ii3*msh.coord(ip3,kk) ) / (double)ideg;
         }
       }
     }

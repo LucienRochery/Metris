@@ -1,5 +1,7 @@
 include(FetchContent)
 
+include(MetrisFlags)
+
  
 if(REQ_CODEGEN)
   if(NOT DEFINED GINAC_LIBRARIES)
@@ -136,14 +138,6 @@ set_target_properties(libegads     PROPERTIES IMPORTED_LOCATION ${EGADS_LIBRARY}
 set_target_properties(libegadslite PROPERTIES IMPORTED_LOCATION ${EGADSLITE_LIBRARY})
 
 
-#find_program(BOOST_STACKTRACE_ADDR2LINE_LOCATION addr2line)
-#if(BOOST_STACKTRACE_ADDR2LINE_LOCATION)
-#  message("Found addr2line at ${BOOST_STACKTRACE_ADDR2LINE_LOCATION}")
-#  add_compile_definitions(BOOST_STACKTRACE_USE_ADDR2LINE)
-#else()
-#  message("Executable addr2line not found.")
-#endif()
-
 if(USE_CLP STREQUAL "True" 
 OR USE_CLP STREQUAL "ON")
   include(FindCLP)
@@ -174,7 +168,6 @@ message("CMAKE_BINARY_DIR = ${CMAKE_BINARY_DIR}")
 message("ABSL_INCLUDE_DIRS = ${ABSL_INCLUDE_DIRS}")
 
 
-
 #FetchContent_Declare(
 #  fetch_boost_hana
 #  GIT_REPOSITORY https://github.com/boostorg/hana.git
@@ -195,7 +188,7 @@ message("ABSL_INCLUDE_DIRS = ${ABSL_INCLUDE_DIRS}")
 #)
 #LIST(APPEND FETCH_LIST fetch_nlopt)
 
-find_package(Boost COMPONENTS program_options exception)
+find_package(Boost COMPONENTS program_options)
 if(NOT(Boost_program_options_FOUND))
   FetchContent_Declare(
     fetch_program_options
@@ -209,12 +202,28 @@ if(NOT(Boost_program_options_FOUND))
 endif()
 
 
-if(USE_TRACELIBS)
-  find_package(Boost COMPONENTS stacktrace_basic  
-                                #stacktrace_backtrace  
-                                stacktrace_addr2line
-                                stacktrace_noop REQUIRED)
-endif()
+#if(USE_TRACELIBS)
+#  find_package(Boost COMPONENTS stacktrace_basic  
+#                                #stacktrace_backtrace  
+#                                stacktrace_addr2line
+#                                stacktrace_noop REQUIRED)
+#  set(BOOST_TRACELIBS ${Boost_STACKTRACE_BASIC_LIBRARY} 
+#                      ${Boost_STACKTRACE_BACKTRACE_LIBRARY} 
+#                      ${Boost_STACKTRACE_ADDR2LINE_LIBRARY} 
+#                      ${Boost_STACKTRACE_NOOP_LIBRARY} 
+#                      pthread dl)
+#  
+#  find_program(BOOST_STACKTRACE_ADDR2LINE_LOCATION addr2line)
+#  if(BOOST_STACKTRACE_ADDR2LINE_LOCATION)
+#    message("Found addr2line at ${BOOST_STACKTRACE_ADDR2LINE_LOCATION}")
+#    add_compile_definitions(BOOST_STACKTRACE_USE_ADDR2LINE)
+#  else()
+#    message("Executable addr2line not found.")
+#  endif()
+#
+#else()
+  set(BOOST_TRACELIBS "")
+#endif()
 
 #FetchContent_Declare(
 #  fetch_lapack
@@ -252,6 +261,48 @@ endif()
 
 
 FetchContent_MakeAvailable(${FETCH_LIST})
+# This is necessary to make the sanitizer work correctly. Also we do want to 
+# propagate flags, in general. 
+setMetrisFlags(absl_hash INTERFACE)
+setMetrisFlags(absl_flat_hash_map INTERFACE)
+setMetrisFlags(absl_spinlock_wait INTERFACE)
+setMetrisFlags(absl_int128 INTERFACE)
+setMetrisFlags(absl_exponential_biased INTERFACE)
+setMetrisFlags(absl_log_severity INTERFACE)
+setMetrisFlags(absl_civil_time INTERFACE)
+setMetrisFlags(absl_raw_logging_internal INTERFACE)
+setMetrisFlags(absl_time_zone INTERFACE)
+setMetrisFlags(absl_bad_variant_access INTERFACE)
+setMetrisFlags(absl_debugging_internal INTERFACE)
+setMetrisFlags(absl_cordz_functions INTERFACE)
+setMetrisFlags(absl_bad_optional_access INTERFACE)
+setMetrisFlags(absl_throw_delegate INTERFACE)
+setMetrisFlags(absl_base INTERFACE)
+setMetrisFlags(absl_stacktrace INTERFACE)
+setMetrisFlags(absl_crc_cpu_detect INTERFACE)
+setMetrisFlags(absl_demangle_internal INTERFACE)
+setMetrisFlags(absl_string_view INTERFACE)
+setMetrisFlags(absl_city INTERFACE)
+setMetrisFlags(absl_malloc_internal INTERFACE)
+setMetrisFlags(absl_low_level_hash INTERFACE)
+setMetrisFlags(absl_strings_internal INTERFACE)
+setMetrisFlags(absl_crc_internal INTERFACE)
+setMetrisFlags(absl_graphcycles_internal INTERFACE)
+setMetrisFlags(absl_strings INTERFACE)
+setMetrisFlags(absl_hash INTERFACE)
+setMetrisFlags(absl_symbolize INTERFACE)
+setMetrisFlags(absl_time INTERFACE)
+setMetrisFlags(absl_str_format_internal INTERFACE)
+setMetrisFlags(absl_kernel_timeout_internal INTERFACE)
+setMetrisFlags(absl_crc32c INTERFACE)
+setMetrisFlags(absl_crc_cord_state INTERFACE)
+setMetrisFlags(absl_synchronization INTERFACE)
+setMetrisFlags(absl_cord_internal INTERFACE)
+setMetrisFlags(absl_cordz_handle INTERFACE)
+setMetrisFlags(absl_hashtablez_sampler INTERFACE)
+setMetrisFlags(absl_cordz_info INTERFACE)
+setMetrisFlags(absl_raw_hash_set INTERFACE)
+setMetrisFlags(absl_cord INTERFACE)
 
 
 

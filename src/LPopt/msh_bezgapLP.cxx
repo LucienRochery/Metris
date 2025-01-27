@@ -7,7 +7,7 @@
 #include "msh_maxccoef.hxx"
 #include "LPsolver.hxx"
 
-#include "../codegen_ccoef_d.hxx"
+#include "../low_ccoef.hxx"
 #include "../low_geo.hxx"
 #include "../ho_constants.hxx"
 #include "../io_libmeshb.hxx"
@@ -148,11 +148,7 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
         if (isdeadent(ielem, ent2poi)) continue;
         double vol = getmeasentP1<gdim>(ent2poi[ielem], coord); 
 
-        if constexpr(tdim==2){
-          d_ccoef_genbez2<ideg>(ent2poi, coord, ielem, ccoef, icoor, d_ccoef);
-        }else if(tdim==3){
-          d_ccoef_genbez3<ideg>(ent2poi, coord, ielem, icoor, ccoef, d_ccoef);
-        }else METRIS_THROW_MSG(TODOExcept(), "derivatives not implemented for gdim = "<<gdim);
+        getccoef_dcoord<tdim,ideg>(msh,ielem,icoor,ccoef,d_ccoef);
 
         for(int jj = 0; jj < nnode; jj++){
           

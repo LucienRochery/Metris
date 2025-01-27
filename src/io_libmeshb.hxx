@@ -38,11 +38,15 @@ int64_t MetrisOpenMeshFile(std::string name, int *meshDim);
 //int iniMesh(cxxopts::ParseResult &paropt, int usrMinDeg, int usrMaxDeg, Mesh &msh, Mesh &bak);
 //void iniMesh(MetrisOptions &opt, int usrMinDeg, int usrMaxDeg, Mesh &msh);
 
-void writeMeshCavity(std::string meshName, MeshBase &msh, const MshCavity& cav, int iverb = 1, int ithread = 0);
-void writeMesh(std::string meshName, MeshBase &msh, bool ivolonly = false);
+void writeMeshCavity(std::string meshName, MeshBase &msh, const MshCavity& cav, int ithread = 0);
+void writeMesh(std::string meshName, MeshBase &msh, bool ivolonly = false,
+               int nedg0 = 0, int nfac0 = 0, int nele0 = 0);
 
 template<class MFT>
 void writeBackLinks(std::string solName, Mesh<MFT>& msh);
+
+
+void debugInveval(std::string meshName_, MeshBase &msh, int tdim, int* ent2pol, double *coop);
 
 #if 0
 void writeMesh(std::string meshName, int ideg, int ilag,

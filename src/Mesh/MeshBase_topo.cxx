@@ -10,6 +10,7 @@
 #include "../CT_loop.hxx"
 #include "../aux_utils.hxx"
 #include "../aux_topo.hxx"
+#include "../mprintf.hxx"
 
 
 namespace Metris{
@@ -27,6 +28,42 @@ int MeshBase::tet2fac(int ielem, int ifal){
   return getfacglo(*this, ipoi1, ipoi2, ipoi3);
 }
 
+int MeshBase::poi2ebp(int ipoin, int tdim, int ientt, int iref) const {
+  METRIS_ASSERT(ipoin >= 0);
+  METRIS_ASSERT(tdim >= 1 && tdim <= 3);
+  
+  int ibpoi = poi2bpo[ipoin];
+  if(ibpoi < 0) return -1;
+
+  int pdim = bpo2ibi(ibpoi,1);
+
+  for(int ibpo2 = ibpoi; ibpo2 >= 0; ibpo2 = bpo2ibi(ibpo2,3)){
+    int itype = bpo2ibi(ibpo2,1);
+    if(itype < tdim) continue;
+    if(itype > tdim) return -1;
+
+    // This is the right dimension, now 
+
+    // If nothing specified, return this 
+    if(ientt < 0 && iref < 0) return ibpo2;
+
+    // If the point is same dim, only one entry exists and this one will do.
+    if(pdim == tdim) return ibpo2;
+
+    // Otherwise either we match the entity:
+    int ient2 = bpo2ibi(ibpo2,2);
+    if(ient2 == ientt) return ibpo2;
+
+    // or the reference:
+    int iref2 = tdim == 1 ? edg2ref[ient2] : fac2ref[ient2];
+    if(iref == iref2) return ibpo2;
+
+  }
+
+  return -1;
+}
+
+
 int MeshBase::newpoitopo(int tdimn, int ientt){
   set_npoin(npoin+1);
   for(int ii = 0; ii < METRIS_MAXTAGS; ii++) poi2tag[ii][npoin-1] = 0;
@@ -34,6 +71,15 @@ int MeshBase::newpoitopo(int tdimn, int ientt){
   poi2ent[npoin-1][1] = tdimn;
   poi2bpo[npoin-1]    = -1;
   return npoin-1;
+}
+
+void MeshBase::killpoint(int ipoin){
+  for(int ibpoi = poi2bpo[ipoin]; ibpoi >= 0; ibpoi = bpo2ibi(ibpoi,3)){
+    bpo2ibi(ibpoi,0) = -1;
+  }
+  poi2bpo[ipoin] = -1;
+  poi2ent(ipoin,0) = -1;
+  poi2ent(ipoin,1) = -1;
 }
 
 // Create new face by copying from tetrahedron
@@ -56,15 +102,15 @@ void MeshBase::newfactopo(int ielem, int ifael, int iref, int iele2){
   int ib3 = ip3; 
 
   // Don't overwrite edge/corner links
-  if(ib1 >= 0 && bpo2ibi[ib1][1] > 1){
+  if(ib1 >= 0 && bpo2ibi(ib1,1) > 1){
     poi2ent(ip1,0) = ifacn;
     poi2ent(ip1,1) = 2;
   }
-  if(ib2 >= 0 && bpo2ibi[ib2][1] > 1){
+  if(ib2 >= 0 && bpo2ibi(ib2,1) > 1){
     poi2ent(ip2,0) = ifacn;
     poi2ent(ip2,1) = 2;
   }
-  if(ib3 >= 0 && bpo2ibi[ib3][1] > 1){
+  if(ib3 >= 0 && bpo2ibi(ib3,1) > 1){
     poi2ent(ip3,0) = ifacn;
     poi2ent(ip3,1) = 2;
   }
@@ -138,11 +184,11 @@ void MeshBase::newedgtopo(int iface, int iedfa, int iref){
   int ib2 = poi2bpo[ip2]; 
 
   // End vertices can be corners. Make sure not to overwrite poi2ent. 
-  if(ib1 > 0 && bpo2ibi[ib1][1] > 0){
+  if(ib1 > 0 && bpo2ibi(ib1,1) > 0){
     poi2ent(ip1,0) = iedgn;
     poi2ent(ip1,1) = 1;
   } 
-  if(ib2 > 0 && bpo2ibi[ib2][1] > 0){
+  if(ib2 > 0 && bpo2ibi(ib2,1) > 0){
     poi2ent(ip2,0) = iedgn;
     poi2ent(ip2,1) = 1;
   } 
@@ -151,7 +197,7 @@ void MeshBase::newedgtopo(int iface, int iedfa, int iref){
   if constexpr(ideg > 1){
     int nppe = edgnpps[ideg] - 2;
     int idx0 = 3 + iedfa*nppe;
-    for(int i=0; i < nppe; i++){
+    for(int i = 0; i < nppe; i++){
       int ipoin = fac2poi[iface][idx0 + i];
       edg2poi[iedgn][2+i] = ipoin;
       // Edge interior vertices cannot be corners. 
@@ -234,15 +280,16 @@ int MeshBase::newbpotopo(int ipoin, int ientt){
 
     // Create new ibpoi
     set_nbpoi(nbpoi+1);
-    int tmp = bpo2ibi[ibprv][3];
+    int tmp = bpo2ibi(ibprv,3);
     bpo2ibi(ibprv,3) = ibpon;
     bpo2ibi(ibpon,3) = tmp;
 
   }
+  for(int ii = 0; ii < METRIS_MAXTAGS; ii++) bpo2tag(ii,ibpon) = 0;
   bpo2ibi(ibpon,0) = ipoin; 
   bpo2ibi(ibpon,1) = tdim;  // Type
   bpo2ibi(ibpon,2) = ientt; // Ref
-  //bpo2ibi[ibpon][3] = ibpoi; // Link to next
+  //bpo2ibi(ibpon,3) = ibpoi; // Link to next
 
   for(int i = 0; i < nrbi ;i++) bpo2rbi(ibpon,i) = 0;
   
@@ -251,8 +298,8 @@ int MeshBase::newbpotopo(int ipoin, int ientt){
   //  // There is no particular order here, just put it at the start
   //  int tmp = bpo2ibi(ibpoi,3);
   //  bpo2ibi(ibpoi,3) = ibpon;
-  //  bpo2ibi[ibpon][3] = tmp;
-  //  //if(tmp < 0) bpo2ibi[ibpon][3] = ibpoi; // Not a loop
+  //  bpo2ibi(ibpon,3) = tmp;
+  //  //if(tmp < 0) bpo2ibi(ibpon,3) = ibpoi; // Not a loop
   //}
 
   return ibpon;
@@ -265,6 +312,7 @@ template int MeshBase::newbpotopo< n >(int ipoin, int ientt);
 
 
 void MeshBase::rembpotag(int ipoin, int ithread){
+  METRIS_ASSERT(ithread >= 0 && ithread < METRIS_MAXTAGS)
   METRIS_ASSERT(ipoin >= 0 && ipoin < npoin);
   int ibpoi = poi2bpo[ipoin];
   METRIS_ASSERT(ibpoi >= 0 && ibpoi < nbpoi);
@@ -276,20 +324,29 @@ void MeshBase::rembpotag(int ipoin, int ithread){
   do{
     nn++;
     METRIS_ASSERT(nn <= METRIS_MAX_WHILE);
-    int tdim  = bpo2ibi[ibpoc][1];
-    int ientt = bpo2ibi[ibpoc][2];
-    int ietag = tdim == 1 ? edg2tag(ithread,ientt) :
-                tdim == 2 ? fac2tag(ithread,ientt) : itag-1;
-    int ibpon = bpo2ibi[ibpoc][3]; // next
-    if(ietag >= itag){ // Remove this entry 
+    METRIS_ASSERT(ibpoc >= 0 && ibpoc < nbpoi);
+    int tdim  = bpo2ibi(ibpoc,1);
+    int ientt = bpo2ibi(ibpoc,2);
+
+    bool rement = false;
+
+    if(ientt < 0) rement = true;
+    else{
+      int ietag = tdim == 1 ? edg2tag(ithread,ientt) :
+                  tdim == 2 ? fac2tag(ithread,ientt) : itag-1;
+      if(ietag >= itag) rement = true;
+    }
+    int ibpon = bpo2ibi(ibpoc,3); // next
+    
+    if(rement){ // Remove this entry 
       // Update previous link. If ibpop == -1, this is still poi2bpo. 
       if(ibpop == -1){
         poi2bpo[ipoin] = ibpon;
       }else{
-        bpo2ibi[ibpop][3] = ibpon;
+        bpo2ibi(ibpop,3) = ibpon;
       }
       // Invalidate current ibpoi. Note we could tuck index behind our ear for later
-      for(int ii = 0; ii < nibi; ii++) bpo2ibi[ibpoc][ii] = -1;
+      for(int ii = 0; ii < nibi; ii++) bpo2ibi(ibpoc,ii) = -1;
     }else{
       ibpop = ibpoc;
     }
@@ -375,9 +432,6 @@ int MeshBase::getverent(int ientt, int tdimn, int ipoin){
 template int MeshBase::getverent<n>(int ientt, int tdimn, int ipoin);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
-
-
-
 
 
 

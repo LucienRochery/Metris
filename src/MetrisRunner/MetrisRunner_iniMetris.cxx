@@ -17,15 +17,17 @@ namespace Metris{
 
 MetrisRunner::MetrisRunner(int argc, char** argv, bool isilent) : 
 opt(argc,argv),
-param(opt){
+param_(opt),
+param(&param_){
   METRIS_ENFORCE_MSG(!(opt.count("met") && opt.count("anamet")),"Contradictory options: -back or -met and -anamet");
   constructorCommon(NULL,NULL);
 }
 
 MetrisRunner::MetrisRunner(MetrisAPI *data_front, MetrisAPI *data_back, 
-                           MetrisParameters &param_): 
+                           MetrisParameters &param__): 
 opt(),
-param(param_){
+param_(param__),
+param(&param_){
   constructorCommon(data_front,data_back);
 
 }
@@ -34,7 +36,7 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
 
   //hookedAPI = NULL;
 
-  if(param.iverb >= 1){
+  if(param_.iverb >= 1){
 
     std::cout<<"\n\n"
     "Metris: high-order metric-based non-manifold tetrahedral remesher\n"
@@ -49,13 +51,13 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
     std::cout<<"\n\n";
     
     // Here go Metris prints
-    if(param.dbgfull){
+    if(param_.dbgfull){
       printf("\n\n##################################################\n");
       printf("### FULL DEBUG -> VERY EXPENSIVE ! -dbgfull option\n");
       printf("##################################################\n\n\n");
     }
   }
-  if(param.iverb >= 1){
+  if(param_.iverb >= 1){
     const char *OCCrev;
     int eg_imajor, eg_iminor;
     EG_revision(&eg_imajor, &eg_iminor, &OCCrev);
@@ -63,10 +65,10 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
     printf("              OCC revision: %s\n\n",OCCrev);
   }
   
-  if(data_front == NULL && data_back == NULL && !param.inpBack && !param.inpMesh) METRIS_THROW_MSG(WArgExcept(),
+  if(data_front == NULL && data_back == NULL && !param_.inpBack && !param_.inpMesh) METRIS_THROW_MSG(WArgExcept(),
     "No meshes provided either through data or files");
 
-  if(data_back == NULL && !param.inpBack){
+  if(data_back == NULL && !param_.inpBack){
     if(data_front){
       data_back = data_front; 
       data_front = NULL;
@@ -75,22 +77,22 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
 
   if(data_front == data_back) data_front = NULL;
 
-  this->metricFE = !param.anaMet;
+  this->metricFE = !param_.anaMet;
   if(!metricFE){
-    if(param.iverb >= 2){
+    if(param_.iverb >= 2){
       printf(" - Initialization as MetricFieldAnalytical\n");
     }
     msh_g = (MeshBase *) new Mesh<MetricFieldAnalytical>;
     iniMetris<MetricFieldAnalytical>(data_front,data_back);
   }else{
-    if(param.iverb >= 2){
+    if(param_.iverb >= 2){
       printf(" - Initialization as metricFE\n");
     }
     msh_g = (MeshBase *) new Mesh<MetricFieldFE        >;
     iniMetris<MetricFieldFE        >(data_front,data_back);
   }
 
-  if(param.dbgfull) check_topo(*msh_g, msh_g->nbpoi, msh_g->npoin, msh_g->nedge, msh_g->nface, msh_g->nelem,0);
+  if(param_.dbgfull) check_topo(*msh_g, msh_g->nbpoi, msh_g->npoin, msh_g->nedge, msh_g->nface, msh_g->nelem,0);
 }
 
 
@@ -116,18 +118,18 @@ void MetrisRunner::iniMetris(MetrisAPI *data_front, MetrisAPI *data_back){
   //bak.set_gdim(idim);
   //msh.set_gdim(idim);
 
-  bak.initialize(data_back, param);
+  bak.initialize(data_back, param_);
   bak.setBasis(FEBasis::Bezier);
   bak.met.setSpace(MetSpace::Log);
   bak.met.setBasis(FEBasis::Lagrange);
 
 
-  msh.initialize(data_front, bak, param);
+  msh.initialize(data_front, bak, param_);
   msh.setBasis(FEBasis::Bezier);
   msh.met.setSpace(MetSpace::Exp);
   msh.met.setBasis(FEBasis::Lagrange);
 
-  if(param.dbgfull) check_topo(msh);
+  if(param_.dbgfull) check_topo(msh);
   
 
   //set_array_debugids<MetricFieldType>();

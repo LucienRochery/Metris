@@ -15,6 +15,7 @@
 #include "../aux_topo.hxx"
 #include "../io_libmeshb.hxx"
 #include "../aux_timer.hxx"
+#include "../mprintf.hxx"
 #include "../linalg/det.hxx"
 #include "../cavity/msh_cavity.hxx"
 
@@ -26,8 +27,10 @@ namespace Metris{
 // Exterior to this as may depend on swaps, inserts etc. 
 // Prints level 1 routine 
 template<class MFT, int gdim, int ideg>
-double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, 
+double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
                           int ithrd1, int ithrd2, int ithrd3){
+
+  GETVDEPTH(msh);
 
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
@@ -41,7 +44,6 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf,
   if(msh.get_tdim() != 2) METRIS_THROW_MSG(TODOExcept(), 
     "Implement collapseShortEdges on tdim != 2, got tdim = "<<msh.get_tdim());
 
-  int iverb = msh.param->iverb;
   double stat = 0; 
   int ierro; 
 
@@ -61,12 +63,18 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf,
   const int miter = 10;
   int niter = 0;
 
-  if(iverb >= 1) printf("  -- START collapseShortEdges miter = %d \n",miter);
+  CPRINTF2("-- START collapseShortEdges miter = %d \n",miter);
 
   int ncoll1 = 0, ncoll2 = 0, ncoll3 = 0;
+  *ncoll = 0;
   // Untaged elements are to be considered 
+  #ifndef GLOFRO
   msh.tag[ithrd1]++;
+  #endif
+
+
   do{
+    INCVDEPTH(msh);
 
     double t0 = get_wall_time();
     //double stat_swap = swap2D<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt);
@@ -90,6 +98,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf,
 
 
     for(int iface = 0; iface < nfac0 && ctrl_height; iface++){
+      INCVDEPTH(msh);
       if(msh.fac2tag(ithrd1,iface) >= msh.tag[ithrd1]) continue;
       if(isdeadent(iface,msh.fac2poi)) continue;
 
@@ -144,13 +153,13 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf,
         if(len > sqrt(3)/(2*sqrt(2))) continue;
 
 
-        if(iverb >= 3) printf("   - collapse flat %d height = %f \n",iface,len);
+        CPRINTF1(" - collapse flat %d height = %f \n",iface,len);
         for(int ied2 = 0; ied2 < 3; ied2++){
           int edg2po2[2] = {msh.fac2poi(iface,lnoed2[ied][0]), 
                             msh.fac2poi(iface,lnoed2[ied][1])};
           double dd2s = getlenedg_geosz<MFT,gdim,ideg>(msh,edg2po2,sz);
-          printf(" DEBUG ied = %d %d len = %f \n",msh.fac2poi(iface,lnoed2[ied][0]),
-            msh.fac2poi(iface,lnoed2[ied][1]), dd2s);
+          CPRINTF2(" - DEBUG ied = %d %d len = %f \n",msh.fac2poi(iface,lnoed2[ied][0]),
+                    msh.fac2poi(iface,lnoed2[ied][1]), dd2s);
         }
         try{
           ierro = collversurf(msh, iface, ied, qmax_suf, lerror, ithrd2, ithrd3);
@@ -174,6 +183,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf,
 
     // Collapse small triangles (bad idea)
     for(int iface = 0; iface < nfac0 && ctrl_small_bdry; iface++){
+      INCVDEPTH(msh);
       if(msh.fac2tag(ithrd1,iface) >= msh.tag[ithrd1]) continue;
       if(isdeadent(iface,msh.fac2poi)) continue;
 
@@ -199,8 +209,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf,
       double bary[3] = {1.0/3.0}; 
       double metl[nnmet];
       double detm, volM;
-      double meas0 = getmeasentP1<gdim,tdim>(msh.fac2poi[iface],msh.coord,Defaults::vtol,
-                                                                NULL,&iflat,0);
+      double meas0 = getmeasentP1<gdim,tdim>(msh, msh.fac2poi[iface], NULL, &iflat);
       if(iflat) goto do_collapse;
 
       // If not flat, compute volume 
@@ -214,8 +223,8 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf,
       volM = meas0*sqrt(detm)/2; // factorial tdim
       
       if(volM >= isvolsmall) continue;
-      if(iverb >= 3) printf("   - collapse small triangle %d vol = %f \n",iface,volM);
-      printf("meas0 = %f detm = %f \n",meas0,detm);
+      CPRINTF1(" - collapse small triangle %d vol = %f \n",iface,volM);
+      CPRINTF2(" - meas0 = %f detm = %f \n",meas0,detm);
 
       do_collapse:
 
@@ -246,6 +255,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf,
 
     // Collapse short edges 
     for(int iface = 0; iface < nfac0; iface++){
+      INCVDEPTH(msh);
       if(msh.fac2tag(ithrd1,iface) >= msh.tag[ithrd1]) continue;
       if(isdeadent(iface,msh.fac2poi)) continue;
 
@@ -276,9 +286,10 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf,
 
         nedgt++;
 
-        if(len >= 1.0/sqrt(2)) continue;
+        if(len >= 1.0/sqrt(2)) continue;  
 
-        if(iverb >= 3) printf("   - found short edge %d %d len = %f \n",
+
+        CPRINTF1(" - found short edge %d %d len = %f \n",
           msh.fac2poi(iface,lnoed2[ied][0]),msh.fac2poi(iface,lnoed2[ied][1]),len);
 
         int nent00 = msh.nface;
@@ -312,25 +323,25 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf,
 
     double t1 = get_wall_time();
     int ncallps = 1000*(int)(((ncoll1+ncoll2) / (t1-t0)) / 1000);
-    if(iverb >= 1){
-      printf("   - Loop end t = %f ncoll1 %d = ncoll2 = %d ncoll3 = %d tot =  %d /s; nerro1 %d nerro2 %d nerro3 %d\n",
-        t1-t0,ncoll1,ncoll2,ncoll3,ncallps,nerro1,nerro2,nerro3);
-      printf("  %f < len < %f \n",minl,maxl);
-      if(iverb >= 2){
-        if(nerro1 + nerro2 + nerro3 > 0){
-          printf("   - ierro list:\n");
-          for(int ii = 0; ii < merror; ii++){
-            if(lerror[ii] == 0) continue;
-            printf("     ierro = %d : %d \n",ii+1,lerror[ii]);
-          }
+    CPRINTF1(" - Loop end t = %f ncoll1 %d = ncoll2 = %d ncoll3 = %d tot =  %d /s; nerro1 %d nerro2 %d nerro3 %d\n",
+      t1-t0,ncoll1,ncoll2,ncoll3,ncallps,nerro1,nerro2,nerro3);
+    CPRINTF1(" %f < len < %f \n",minl,maxl);
+    if(DOPRINTS2()){
+      if(nerro1 + nerro2 + nerro3 > 0){
+        CPRINTF2(" - ierro list:\n");
+        for(int ii = 0; ii < merror; ii++){
+          if(lerror[ii] == 0) continue;
+          CPRINTF2(" ierro = %d : %d \n",ii+1,lerror[ii]);
         }
       }
     }
 
-    stat = MAX(stat, (double)(ncoll1 + ncoll2) / (double)nedgt);
+    if(nedgt == 0) stat = 0;
+    else           stat = MAX(stat, (double)(ncoll1 + ncoll2) / (double)nedgt);
 
+    *ncoll = ncoll1 + ncoll2;
 
-    //if(iverb >= 1) printf(" - Warning: disabled collapse looping\n");
+    //CPRINTF1(" - Warning: disabled collapse looping\n");
     //break;
   }while(ncoll1 + ncoll2 > 0 && niter++ < miter);
 
@@ -345,13 +356,13 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf,
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
 template double collapseShortEdges<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
-                           double qmax_suf,int ithrd1, int ithrd2, int ithrd3);\
+                           double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3);\
 template double collapseShortEdges<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,\
-                           double qmax_suf,int ithrd1, int ithrd2, int ithrd3);\
+                           double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3);\
 template double collapseShortEdges<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,\
-                           double qmax_suf,int ithrd1, int ithrd2, int ithrd3);\
+                           double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3);\
 template double collapseShortEdges<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,\
-                           double qmax_suf,int ithrd1, int ithrd2, int ithrd3);
+                           double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

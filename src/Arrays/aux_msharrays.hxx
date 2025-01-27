@@ -59,7 +59,8 @@ public:
     // Set n > 0 to copy first n elements and set n1 = n.
     bool allocate(INT1 m);
     void set_n(INT1 n){
-      METRIS_ASSERT(n >= 0 && n <= m1); 
+      METRIS_ASSERT(n >= 0); 
+      this->allocate(n);
       n1 = n;
     }
     ALWAYS_INLINE INT1 get_n() const {
@@ -181,7 +182,8 @@ public:
 
 
     void set_n(INT1 n){
-      METRIS_ASSERT(n >= 0 && n <= m1); 
+      METRIS_ASSERT(n >= 0); 
+      this->allocate(n,stride);
       n1 = n;
     }
     ALWAYS_INLINE int get_n() const {
@@ -365,16 +367,16 @@ public:
     //}
 
     void allocate(int m,int s1_, int s2_){
-        if(nmemalc > 0) METRIS_THROW(WArgExcept());
-        if(m < 0 || s1_ <= 0 || s2_ <= 0) METRIS_THROW(WArgExcept());
+      if(nmemalc > 0) METRIS_THROW_MSG(TODOExcept(),"More sophisticated 3D array");
+      if(m < 0 || s1_ <= 0 || s2_ <= 0) METRIS_THROW(WArgExcept());
 
-        s1  = s1_;
-        s2  = s2_;
-        nmemalc = m*s1*s2;
-        ialloc = 1;
-        array = new T[nmemalc];
-        //printf("Called new 3[]\n");
-        if(array == NULL) METRIS_THROW(DMemExcept());
+      s1  = s1_;
+      s2  = s2_;
+      nmemalc = m*s1*s2;
+      ialloc = 1;
+      array = new T[nmemalc];
+      //printf("Called new 3[]\n");
+      if(array == NULL) METRIS_THROW(DMemExcept());
     }
 
     void fill(int m, T x){

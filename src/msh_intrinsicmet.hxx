@@ -96,8 +96,8 @@ void getmshedglen_shell(MeshMetric<MetricFieldType> &msh, HshTabDbl2 &rlened, in
 				edg2pol[2+i] = msh.tet2poi[ielem][idx0+i];
 			}
 			for(int j = 0;j < 6; j++){
-				msh.met[ip1][j] = msh.met[msh.tet2poi(ielem,idx0)][j];
-				msh.met[ip2][j] = msh.met[msh.tet2poi(ielem,idx0)][j];
+				msh.met(ip1,j) = msh.met[msh.tet2poi(ielem,idx0)][j];
+				msh.met(ip2,j) = msh.met[msh.tet2poi(ielem,idx0)][j];
 			}
 
 			double len = getlenedg_quad<MetricFieldType,3,ideg>(edg2pol,msh.coord,msh.met,nquad);

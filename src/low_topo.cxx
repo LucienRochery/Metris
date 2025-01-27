@@ -201,7 +201,7 @@ void ball3_full(MeshBase& __restrict__ msh,
   int ibpoi = msh.poi2bpo[ipoin];
 
   if(ibpoi >= 0){
-    int itype = msh.bpo2ibi[ibpoi][1];
+    int itype = msh.bpo2ibi(ibpoi,1);
     if(itype == 0){ // Corner case: we can potentially get all boundary entities
 
     }
@@ -225,8 +225,8 @@ void ball3_full(MeshBase& __restrict__ msh,
     #endif
     int ibpo2 = ibpoi;
     do{
-      int itype = msh.bpo2ibi[ibpo2][1]; 
-      int ientt = msh.bpo2ibi[ibpo2][2];
+      int itype = msh.bpo2ibi(ibpo2,1); 
+      int ientt = msh.bpo2ibi(ibpo2,2);
       METRIS_ASSERT(ientt >= 0);
       if(itype == 1){
         if(*nbedg >= lbedg.n) METRIS_THROW_MSG(DMemExcept(),"Increase lbedg.ne")
@@ -245,7 +245,7 @@ void ball3_full(MeshBase& __restrict__ msh,
         lbfac[*nbfac] = ientt;
         (*nbfac)++;
       }
-      ibpo2 = msh.bpo2ibi[ibpo2][3];
+      ibpo2 = msh.bpo2ibi(ibpo2,3);
     }while(ibpo2 != ibpoi && ibpo2 >= 0);
 
     // Call basic ball3 for tetrahedra
@@ -298,30 +298,30 @@ int ball2(MeshBase& __restrict__ msh,
     // all the triangles it belongs to. We can exploit this to go faster.
     int ibpoi = msh.poi2bpo[ipoin];
     assert(ibpoi >= 0 && ibpoi < msh.nbpoi);
-    int itype = msh.bpo2ibi[ibpoi][1];
+    int itype = msh.bpo2ibi(ibpoi,1);
     //nbfac = 0;
     //nbedg = 0;
     // If the point is only edge, and we want edges, we won't get them this way
     if(itype == 1 && lbedg.size1() == 0 
     || itype == 0){
-      int ibpo2 = msh.bpo2ibi[ibpoi][3];
+      int ibpo2 = msh.bpo2ibi(ibpoi,3);
       while(ibpo2 != -1){
-        if(msh.bpo2ibi[ibpo2][1] == 2){
+        if(msh.bpo2ibi(ibpo2,1) == 2){
 
-          int iface = msh.bpo2ibi[ibpo2][2];
+          int iface = msh.bpo2ibi(ibpo2,2);
           METRIS_ASSERT(iface >= 0 && iface < msh.nface);
 
           lbfac.stack(iface); 
 
-        }if(lbedg.size1() > 0 && msh.bpo2ibi[ibpo2][1] == 1){
+        }if(lbedg.size1() > 0 && msh.bpo2ibi(ibpo2,1) == 1){
 
-          int iedge = msh.bpo2ibi[ibpo2][2];
+          int iedge = msh.bpo2ibi(ibpo2,2);
           METRIS_ASSERT(iedge >= 0 && iedge < msh.nedge);
 
           lbedg.stack(iedge); 
 
         }
-        ibpo2 = msh.bpo2ibi[ibpo2][3];
+        ibpo2 = msh.bpo2ibi(ibpo2,3);
       }
 
       //*nbfac_ = nbfac;

@@ -12,6 +12,7 @@
 #include "low_increasecav.hxx"
 #include "../cavity/msh_cavity.hxx"
 
+#include "../mprintf.hxx"
 #include "../low_geo.hxx"
 #include "../low_topo.hxx"
 #include "../io_libmeshb.hxx"
@@ -23,6 +24,7 @@ namespace Metris{
 // everything on the way 
 template<class MFT>
 void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
+  GETVDEPTH(msh);
   MshCavity cav(0,100,2);
   cav.lcedg.set_n(2);
   // There could be one single face for 2 edges even not corner 
@@ -38,7 +40,6 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
   // Absolute tolerance for whether a point is on the geometry or not 
   // (temporary)
   const double geotol = msh.param->geo_abstoledg;
-  const int iverb = msh.param->iverb;
   const double vtol = msh.param->vtol;
 
   double result[18];
@@ -46,6 +47,7 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
   msh.tag[ithrd1]++;
   for(int iedge = 0; iedge < msh.nedge; iedge++){
+    INCVDEPTH(msh);
     if(isdeadent(iedge,msh.edg2poi)) continue;
 
     int iref = msh.edg2ref[iedge];
@@ -60,9 +62,10 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
 
       int ibpoi = msh.poi2bpo[ipoin];
+      int pdim = msh.bpo2ibi(ibpoi,1);
       // Don't move corners, assumed in position 
-      if(msh.bpo2ibi(ibpoi,1) == 0) continue;
-      METRIS_ASSERT(msh.bpo2ibi(ibpoi,1) == 1);
+      if(pdim == 0) continue;
+      METRIS_ASSERT(pdim == 1);
 
       METRIS_ASSERT_MSG(msh.edg2ref[msh.bpo2ibi(ibpoi,2)] == iref,
        "ipoin="<<ipoin<<" ibpoi = "<<ibpoi<<" bpo2ibi[2] = "
@@ -87,10 +90,16 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
       if(dst < geotol*geotol) continue;
 
       // Not on geometry, reinsert 
-      if(iverb >= 2) printf("   - Point %d not on geometry ref %d, dist = %15.7e > "
-                                  "%15.7e = tol\n", ipoin, iref,sqrt(dst), geotol);
-      if(iverb >= 3){
+      CPRINTF1(" - Point %d not on geom dim %d ref %d, dist = %15.7e > "
+                                  "%15.7e = tol\n", ipoin, pdim, iref,sqrt(dst), geotol);
+      if(DOPRINTS2()){
+
+        int ipdbg = msh.newpoitopo(-1,-1);
+        msh.template newbpotopo<0>(ipdbg,ipdbg);
+        for(int ii = 0; ii < msh.idim; ii++) 
+          msh.coord(ipdbg,ii) = msh.coord(ipoin,ii);
         writeMesh("dbg_geometry_pt"+std::to_string(ipoin),msh);
+        msh.killpoint(ipdbg);
       }
 
       cav.lcfac.set_n(0);
@@ -110,15 +119,15 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
       bool imani;
       int  iopen;
       ball2(msh,ipoin,iface,cav.lcfac,cav.lcedg,&iopen,&imani,ithrd2);
-      METRIS_ASSERT(iopen);
+      //METRIS_ASSERT(iopen);
       METRIS_ASSERT(cav.lcedg.get_n() == 2);
 
       bool ireins = false;
       for(int icfac : cav.lcfac){
         // Dummy normal 
         bool iflat;
-        if(msh.idim == 2) getmeasentP1<2,2>(msh.fac2poi[icfac], msh.coord, vtol, &result[4], &iflat);
-        else              getmeasentP1<3,2>(msh.fac2poi[icfac], msh.coord, vtol, &result[4], &iflat);
+        if(msh.idim == 2) getmeasentP1<2,2>(msh, msh.fac2poi[icfac], NULL, &iflat);
+        else              getmeasentP1<3,2>(msh, msh.fac2poi[icfac], NULL, &iflat);
 
         if(iflat){
           ireins = true;
@@ -128,22 +137,20 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
       if(!ireins) continue;
 
-      ierro = increase_cavity2D(msh,msh.fac2ref[iface],msh.coord[cav.ipins],opts,cav,ithrd2);
-      if(ierro != 0){
-        std::cout<<"increase_cavity2D failed "<< ierro<<"\n";
-        printf("Trying to reinsert ipoin %d iedge = %d iedg1 %d iface %d iref %d \n",
-          cav.ipins, iedge, iedg1, iface, iref);
+      ierro = increase_cavity2D(msh,msh.coord[cav.ipins],opts,cav,ithrd2);
+      if(ierro != 0 && DOPRINTS2()){
+        CPRINTF2(" # increase_cavity2D failed ierro %d \n",ierro);
+        CPRINTF2("Trying to reinsert ipoin %d iedge = %d iedg1 %d iface %d iref %d \n",
+                 cav.ipins, iedge, iedg1, iface, iref);
         writeMesh("increase_fail", msh);
         writeMeshCavity("increase_cav2D_fail", msh, cav);
-        METRIS_THROW(GeomExcept());
       }
-
 
       CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
         ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
       }}CT_FOR1(ideg);
 
-      METRIS_ENFORCE_MSG(ierro == 0, "Cavity failed ierro = "<<ierro);
+      METRIS_ASSERT_MSG(ierro == 0, "Cavity failed ierro = "<<ierro);
 
 
     }

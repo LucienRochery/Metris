@@ -71,9 +71,16 @@ double det3_vdif(const double* x1,const double* x2
 double det2_vdif(const double* x1,const double* x2
 								,const double* y1,const double* y2);
 
-double* vdiff(const double* a, const double* b);
-double* vproduct(const double* a, const double* b);
-double* vdiff_perp(const double* a, const double* b);
+//static double* vdiff(const double* a, const double* b){
+//  METRIS_THROW_MSG(TODOExcept(),"Reimplement ccoef3_d");
+//}
+//static double* vproduct(const double* a, const double* b){
+//  METRIS_THROW_MSG(TODOExcept(),"Reimplement ccoef3_d");
+//}
+
+void vdiff_perp(const double* a, const double* b, int up, int lo, double *res);
+void vdiff_perp_sum(const double* a, const double* b, int up, int lo, double *res);
+
 
 
 bool isintetP1(const double *p1, const double *p2,
@@ -91,10 +98,11 @@ void inventP1(const int*__restrict__ ent2pol, const dblAr2 &coord, const double*
 template <int gdim>
 double getmeasentP1(const int *ent2pol,const dblAr2& coord);
 // Variant that checks tolerance, returns iflat = true if negative or flat
-// nrmal can be NULL if not surface
+// supplied norref is a reference normal, e.g. from CAD 
 template <int gdim, int tdim>
-double getmeasentP1(const int *ent2pol,const dblAr2& coord, double vtol, 
-                    double *nrmal, bool *iflat, int iverb = 0);
+double getmeasentP1(const MeshBase &msh, const int* ent2pol, 
+                    const double *norref, bool *iflat);
+
 template <int idim>
 void getheightentP1_aniso(const int *ent2pol,const dblAr2 &coord, double *metl, double *height);
 
@@ -105,26 +113,30 @@ void getmeasentP1grad(const int *ent2pol, const dblAr2& coord, int idof, double 
 
 void getnorfacP1(const int *fac2pol, const dblAr2 &coord, double *nrmal);
 
+// Average normals at the vertices
+// To compute the CAD normal, the safest is to average the vertex normals.
+// This is because taking the average of the (u,v)'s can send us just about
+// anywhere.
+int getnorfacCAD(const MeshBase &msh, int iface, double *nrmal);
+
 // Return outgoing normal of edge (2D only). 
 int getnorpoiCAD1(const MeshBase &msh, int ipoin, std::map<ego,int> &edgorient, 
                   double *norpoi);
 
 int getnorpoiCAD2(const MeshBase &msh, int ibpoi, double *norpoi);
 
+// iref >= 0 filters, iref < 0 ignored
 template <int ideg>
-void getnorpoi(const MeshBase &msh, int ipoin, const intAr1 &lball, double* norpoi);
+void getnorballref(const MeshBase &msh, const intAr1 &lball, int iref, double* norpoi);
 
 template <int ideg>
-void getnorpoiref(const MeshBase &msh, int ipoin, int iref, const intAr1 &lball, double* norpoi);
+void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi);
 
 
 // -----------------------------------------------------------------------------
 template<int gdim, int tdim, int ideg>
-void getintmetxi(const dblAr2 &coord, const int* __restrict__ tet2pol, FEBasis ibasis,
+int getintmetxi(const dblAr2 &coord, const int* __restrict__ tet2pol, FEBasis ibasis,
 	               const double* bary,double* __restrict__ met);
-//template<int gdim, int tdim, int ideg>
-//void getintmetxi(const dblAr2 &coord, const int* __restrict__ tet2pol, FEBasis ibasis,
-//	               const double* bary,SANS::SurrealS<3,double>* __restrict__ metS);
 
 //// Discrete element quality defined as l^p sum of control polygon qualities
 //template<int ideg>
@@ -213,18 +225,34 @@ template<> inline double getprdl2<1,double>(const double* __restrict__ x,
 #endif
 
 
+
+// (x1-x2) . (y1-y2)
+template<int n, typename ftype = double>
+inline ftype getprdl2(const ftype* __restrict__ x1,const ftype* __restrict__ x2,
+                      const ftype* __restrict__ y1,const ftype* __restrict__ y2){
+  static_assert(n > 0);
+  return (x1[0]-x2[0])*(y1[0]-y2[0]) 
+         + getprdl2<n-1,ftype>(&x1[1],&x2[1],&y1[1],&y2[1]);
+}
+template<> inline double getprdl2<1,double>(
+                   const double* __restrict__ x1,const double* __restrict__ x2,
+                   const double* __restrict__ y1,const double* __restrict__ y2){
+  return (x1[0]-x2[0])*(y1[0]-y2[0]);
+}
+
+#ifdef USE_MULTIPRECISION
+  template<> inline float8 getprdl2<1,float8>(
+                   const float8* __restrict__ x1,const float8* __restrict__ x2,
+                   const float8* __restrict__ y1,const float8* __restrict__ y2){
+    return (x1[0]-x2[0])*(y1[0]-y2[0]);
+  }
+#endif
+
+
 template<int n, typename ftype = double>
 inline ftype getnrml2(const ftype x[]){
   static_assert(n > 0);
   return getprdl2<n,ftype>(x,x);
-}
-
-
-template<typename ftype = double>
-inline void getvecprod3(const ftype* x,const ftype* y,ftype* z){
-	z[0] = x[1]*y[2] - x[2]*y[1];
-	z[1] = x[2]*y[0] - x[0]*y[2];
-	z[2] = x[0]*y[1] - x[1]*y[0];
 }
 
 

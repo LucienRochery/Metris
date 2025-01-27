@@ -25,8 +25,8 @@ int smooballNewton(Mesh<MetricFieldType>& msh, int ipoin, int nball, const int*_
 
   double coor0[idim];
   double met0[nnmet];
-  for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord[ipoin][ii];
-  for(int ii = 0; ii < nnmet; ii++) met0[ii] = msh.met[ipoin][ii];
+  for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
+  for(int ii = 0; ii < nnmet; ii++) met0[ii] = msh.met(ipoin,ii);
  
   *qavg0 = 0;
   *qmax0 = -1.0e30;

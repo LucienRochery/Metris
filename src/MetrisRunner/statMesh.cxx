@@ -11,6 +11,7 @@
 #include "../aux_histogram.hxx"
 #include "../quality/msh_metqua.hxx"
 #include "../low_ccoef.hxx"
+#include "../mprintf.hxx"
 
 
 namespace Metris{
@@ -25,7 +26,9 @@ void MetrisRunner::statMesh(){
 
 template<class MFT>
 void MetrisRunner::statMesh0(){
+  
   Mesh<MFT> &msh = *( (Mesh<MFT>*) msh_g );
+  GETVDEPTH(msh);
   
   msh.cleanup();
 
@@ -35,11 +38,11 @@ void MetrisRunner::statMesh0(){
   dblAr1 rlned;
   dblAr1 lenbds = {1.0/sqrt(2), sqrt(2)};
   getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::Quad);
-  print_histogram(rlned,IntrpTyp::Linear,lenbds,"l","Edge length (quadrature)");
+  print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (quadrature)");
 
-  if(param.iverb >= 2)
+  if(param_.iverb >= 2)
     getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::GeoSiz);
-    print_histogram(rlned,IntrpTyp::Linear,lenbds,"l","Edge length (geometric)");{
+    print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (geometric)");{
   }
 
 
@@ -49,13 +52,13 @@ void MetrisRunner::statMesh0(){
 
   double qmin, qmax, qavg;
   bool iinva;
-  dblAr1 lquae,dum = {0.1, 0.9};
+  dblAr1 lquae,dum = {1.0e-8, 0.1};
   if(msh.idim == 2){
     getmetquamesh<MFT,2,AsDeg::P1>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
   }else{
     getmetquamesh<MFT,3,AsDeg::P1>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
   }
-  print_histogram(lquae,IntrpTyp::Geometric,dum,"q","Element quality (As P1)");
+  print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality (As P1)");
 
   if(msh.curdeg > 1){
     if(msh.idim == 2){
@@ -63,7 +66,7 @@ void MetrisRunner::statMesh0(){
     }else{
       getmetquamesh<MFT,3,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
     }
-    print_histogram(lquae,IntrpTyp::Geometric,dum,"q","Element quality (As Pk)");
+    print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality (As Pk)");
 
     int tdim = msh.get_tdim();
     if(tdim == msh.idim){
@@ -90,7 +93,7 @@ void MetrisRunner::statMesh0(){
       
       dum[0] = msh.param->jtol;
       dum[1] = 1;
-      print_histogram(lquae,IntrpTyp::Geometric,dum,"J","Scaled Jacobian");
+      print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"J","Scaled Jacobian");
 
     }// if tdim 
 

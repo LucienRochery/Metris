@@ -18,7 +18,6 @@
 #include "aux_utils.hxx"
 
 
-#include "codegen_lagrange.hxx"
 #include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
 #include <boost/hana.hpp> 

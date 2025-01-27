@@ -33,12 +33,14 @@ MetrisParameters::MetrisParameters(){
   adp_niter     = 0;
   adp_opt_niter = 1;
 
-
-  curveType = 0;
+  // 3 is offsets followed by smoothing 
+  // 4 is offsets then backtrack and stop there 
+  curveType = 3; 
 
   opt_unif = false;
 
-  iverb     = 1;
+  iverb     = 2;
+  ivdepth   = 0;
   dbgfull   = false;
   refineConventions = false;
 
@@ -64,6 +66,8 @@ MetrisParameters::MetrisParameters(){
   anaMet    = false;
   scaleMet  = false;
   outbasis  = FEBasis::Lagrange;
+
+  iflag1 = iflag2 = iflag3 = 0;
 }
 
 MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
@@ -78,8 +82,9 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   }
   if(opt.count("verb")){
     iverb = opt.m["verb"].template as<int>();
-  }else{
-    iverb = 1;
+  }
+  if(opt.count("vdepth")){
+    ivdepth = opt.m["vdepth"].template as<int>();
   }
 
   if(opt.count("opt-unif")){
@@ -166,7 +171,7 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
 
   if(opt.count("curve")){
     curveType = opt.m["curve"].template as<int>();
-    METRIS_ENFORCE(curveType == 1 || curveType == 2);
+    //METRIS_ENFORCE(curveType == 1 || curveType == 2 || curveType == 3);
   }
 
   if(opt.count("jtol")){
@@ -214,6 +219,15 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     opt_swap_pnorm = opt.m["opt-swap-pnorm"].as<int>();
   }
 
+  if(opt.count("iflag1")){
+    iflag1 = opt.m["iflag1"].as<int>();
+  }
+  if(opt.count("iflag2")){
+    iflag2 = opt.m["iflag2"].as<int>();
+  }
+  if(opt.count("iflag3")){
+    iflag3 = opt.m["iflag3"].as<int>();
+  }
 
 }
 

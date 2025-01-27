@@ -193,9 +193,6 @@ struct CavOprOpt{
 	// How many iterations of cavity extension for geometric reasons are allowed
 	int max_increase_cav_geo;
 
-	// Verbosity level. Level 0: no prints. level i: in i-th level of call stack. 
-	int iverb;
-
   // Geometric deviation tolerance for edges expressed in normalized dotprod
   double geodev1;
 
@@ -240,7 +237,6 @@ struct CavOprOpt{
 	           ,allow_remove_points(true)
 	           ,allow_remove_corners(false)
 	           ,max_increase_cav_geo(0)
-	           ,iverb(0)
              ,geodev1(0.5)
              ,fast_reject(false)
              ,dryrun(false)
@@ -263,31 +259,31 @@ struct CavOprInfo{
 // Don't worry about this, simply declare one and reuse for all cavity calls. 
 // Automatic reallocation is done, this is 10x faster than using boost pool allocators, if less elegant.
 struct CavWrkArrs{
-  int mbad;
   intAr2 lbad;
 
-  int mmeas;
   dblAr2 lmeas;
 
-  int medex;
   intAr1 edtyp;
   intAr1 edent;
 
-  int mfcco;
   intAr1 lfcco;
 
+  // Store normals for each connex component of the cavity.
+  dblAr2 lnorf;
+
+  int tagf0;
+
   CavWrkArrs(){
-    mbad = 100;
-    mmeas = 0;
-    medex = 100;
-    mfcco = 100;
+    lbad.allocate(100,2);
 
-    lbad.allocate(mbad,2);
+    edtyp.allocate(100);
+    edent.allocate(100);
 
-    edtyp.allocate(medex);
-    edent.allocate(medex);
+    lfcco.allocate(100);
 
-    lfcco.allocate(mfcco);
+    lnorf.allocate(10,3);
+
+    tagf0 = -1;
   }
 
   //void set_mmeas(int mmeas_){
@@ -348,7 +344,7 @@ int select_cavity(const Mesh<MetricFieldType> &msh,
 	                MshCavity &cav);
 
 template<class MetricFieldType, int ideg>
-int update_cavity(Mesh<MetricFieldType> &msh, const MshCavity &cav, int iverb, 
+int update_cavity(Mesh<MetricFieldType> &msh, const MshCavity &cav, const CavWrkArrs &work, 
                 	int npoi0, int nedg0, int nfac0, int nele0, int ithread = 0);
 
 

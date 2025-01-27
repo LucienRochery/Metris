@@ -14,6 +14,7 @@
 #include "../aux_topo.hxx"
 #include "../aux_utils.hxx"
 #include "../CT_loop.hxx"
+#include "../mprintf.hxx"
 
 
 namespace Metris{
@@ -45,10 +46,10 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
                          CavWrkArrs &work,
                          int ithread){
   METRIS_ASSERT(lbad.get_stride() == 2);
+  GETVDEPTH(msh);
   
   lbad.set_n(0);
 
-  int iverb = opts.iverb;
 
   //dblAr2 lmeas(2,mmeas,rwrk.allocate(2*mmeas));
   //dblAr2 &lmeas = work.lmeas;
@@ -58,7 +59,6 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
 
   double ccoef[tetnpps[gdim*(ideg-1)]]; // Largest possible
 
-  double nrmal[3];
 
 
 
@@ -73,7 +73,7 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
 
   //    if constexpr(tdim == 2 && gdim == 3){
   //      int iref = msh.fac2ref[ientt];
-  //      getnorpoiref<1>(msh,cav.ipins,iref,ncfac,cav.lcfac,nrmal);
+  //      getnorballref<1>(msh,cav.lcfac,iref,nrmal);
   //    }
 
   //    bool iflat;
@@ -101,10 +101,10 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
   if constexpr(ideg > 1){
 
 
-    if(iverb >= METRIS_CAV_PRTLEV) printf("      -- correct_cavity_fast phase 1 : curve & project\n");
+    CPRINTF1("-- correct_cavity_fast phase 1 : curve & project\n");
     // No HO curvature yet, just CAD projection
     if(!msh.CAD()){
-      if(iverb >= METRIS_CAV_PRTLEV) printf("       - no CAD context, skip\n");
+      CPRINTF1(" - no CAD context, skip\n");
     }else{
       double result[18];
 
@@ -153,17 +153,8 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
             if(msh.poi2tag(ithread,ipoin) >= msh.tag[ithread]) continue;
             msh.poi2tag(ithread,ipoin) = msh.tag[ithread];
 
-            int ibpoi = msh.poi2bpo[ipoin];
-            METRIS_ASSERT(msh.bpo2ibi[ibpoi][1] == tdim); // Actually using mark this should be true. 
-
-            if(msh.bpo2ibi[ibpoi][1] < tdim){ // Lower dim means we need one attached to this specific element
-              // Should not happen
-              METRIS_THROW(TopoExcept());
-              //ibpoi = getent2bpo(msh,ibpoi,ientt,tdim);
-            }else{ // Any from this ref will do (and there should only be one anyways)
-              ibpoi = getref2bpo(msh,ibpoi,iref,tdim);
-            }
-
+            METRIS_ASSERT(msh.bpo2ibi(msh.poi2bpo[ipoin],1) == tdim); // Actually using mark this should be true. 
+            int ibpoi = msh.poi2ebp(ipoin,tdim,ientt,-1);
             METRIS_ASSERT(ibpoi >= 0);
 
             int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
@@ -188,7 +179,7 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
             //  //METRIS_THROW_MSG(GeomExcept(), "Very large geometric gap? Manual check " << err);
             //}
 
-            for(int ii = 0; ii < gdim; ii++) msh.coord[ipoin][ii] = result[ii];
+            for(int ii = 0; ii < gdim; ii++) msh.coord(ipoin,ii) = result[ii];
           }
 
         } // end for ientt
@@ -204,13 +195,15 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
     double *algnd;
     msh.tag[ithread]++;
     for(int tdim = 1; tdim <= 2; tdim++){
-      intAr2 &ent2poi = msh.ent2poi(tdim); 
-      intAr1 &ent2ref = msh.ent2ref(tdim);
+      const intAr2 &ent2poi = msh.ent2poi(tdim); 
+      const intAr1 &ent2ref = msh.ent2ref(tdim);
       int nnode = tdim == 1 ? edgnpps[ideg] : facnpps[ideg];
       int nent0 = tdim == 1 ? nedg0 : nfac0;
       int nentt = msh.nentt(tdim);
 
       for(int ientt = nent0; ientt < nentt; ientt++){
+        INCVDEPTH(msh);
+        METRIS_ASSERT(!isdeadent(ientt,ent2poi));
         int iref = ent2ref[ientt];
         for(int ii = tdim+1; ii < nnode; ii++){
           int ipoin = ent2poi(ientt,ii);
@@ -220,13 +213,11 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
 
           //if(tdim == 1) METRIS_THROW_MSG(TODOExcept(), "algnd in cav reinterp");
 
-          if(iverb >= 4) printf("    - update HO pt %d interp seed %d dim %d \n",
-                                ipoin,ientt,tdim);
+          CPRINTF1("- update HO pt %d interp seed %d dim %d \n",ipoin,ientt,tdim);
+          algnd = NULL;
           if(tdim < msh.get_tdim() && msh.CAD()){
-            int ibpoi = msh.poi2bpo[ipoin];
+            int ibpoi = msh.poi2ebp(ipoin,tdim,ientt,-1);
             METRIS_ASSERT(ibpoi >= 0);
-            //intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
-            ibpoi = getent2bpo(msh,ibpoi,ientt,tdim);
 
             ego obj = tdim == 1 ? msh.CAD.cad2edg[iref] : msh.CAD.cad2fac[iref];
 
@@ -234,13 +225,11 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
             int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
             if(ierro != 0){
               algnd = NULL;
-              if(iverb >= 3) printf("    # EG_eval failed\n");
+              CPRINTF1("# EG_eval failed\n");
             }else{
               for(int ii = 0; ii < msh.idim; ii++) algnd_[ii] = result[3+ii];
               algnd = algnd_;
             }
-          }else{
-            algnd = NULL;
           }
           msh.interpMetBack(ipoin, tdim, ientt, iref, algnd);
         }
@@ -250,26 +239,47 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
 
 
 
-  if(iverb >= METRIS_CAV_PRTLEV) printf("      -- correct_cavity_fast phase %d : verify validity\n",1+ideg>1);
+  CPRINTF1("-- correct_cavity_fast phase %d : verify validity\n",1+ideg>1);
 
   //double quael;
   CT_FOR0_INC(2,gdim,tdim){
-    const intAr2 &ent2poi = tdim == 2 ? msh.fac2poi : msh.tet2poi;
+
+    double nrmal[3];
 
     int nent0 = tdim == 2 ? nfac0 : nele0;
     int nentt = tdim == 2 ? msh.nface : msh.nelem;
 
+    const intAr2& ent2poi = msh.ent2poi(tdim);
+
     for(int ientt = nent0; ientt < nentt; ientt++){
+      INCVDEPTH(msh);
       if constexpr(tdim == 2 && gdim == 3){
-        int iref = msh.fac2ref[ientt];
-        getnorpoiref<1>(msh,cav.ipins,iref,cav.lcfac,nrmal);
+        getnorfacP1(msh.fac2poi[ientt], msh.coord, nrmal);
+        //if(msh.CAD()){
+        //  getnorfacCAD(msh, ientt, nrmal);
+        //}else{
+        //  getnorfacP1(msh.fac2poi[ientt], msh.coord, nrmal);
+        //}
       }
 
       bool iflat;
       if constexpr(ideg == 1){
-        getmeasentP1<gdim,tdim>(ent2poi[ientt], msh.coord, msh.param->vtol, nrmal, &iflat);
+        double meas = getmeasentP1<gdim,tdim>(msh, ent2poi[ientt], nrmal, &iflat);
+        if(DOPRINTS1()){
+          CPRINTF1(" - %d tdim %d ientt %d meas %f iflat %d using normal ",
+                   ientt-nent0,tdim,ientt,meas,iflat);
+          dblAr1(gdim,nrmal).print();
+        }
+        if(DOPRINTS2()){
+          if(iflat || meas < 0){
+            getnorfacP1(msh.fac2poi[ientt], msh.coord, nrmal);
+            normalize_vec<3>(nrmal);
+            CPRINTF2(" - discrete normal = ");
+            dblAr1(gdim,nrmal).print();
+          }
+        }
       }else{
-        getsclccoef<gdim,tdim,ideg>(msh,ientt,cav.nrmal,ccoef,&iflat);
+        getsclccoef<gdim,tdim,ideg>(msh, ientt, nrmal, ccoef, &iflat);
       }
       if(iflat) goto isbad;
 

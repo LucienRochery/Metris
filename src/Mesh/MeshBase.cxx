@@ -287,14 +287,6 @@ MeshBase::hshTab(){
 template HshTabInt2& MeshBase::hshTab<1>();
 template HshTabInt3& MeshBase::hshTab<2>();
 
-double *MeshBase::getrwork(int n){
-  if(poi2rwk.size() >= n) return &poi2rwk[0];
-  if(edg2rwk.size() >= n) return &edg2rwk[0];
-  if(fac2rwk.size() >= n) return &fac2rwk[0];
-  if(tet2rwk.size() >= n) return &tet2rwk[0];
-  return NULL;
-}
-
 
 void MeshBase::setMpoiToMent(){
   int _mbpoi, _medge, _mface, _melem;
@@ -332,23 +324,23 @@ void MeshBase::getEnttMemCosts(int *memCostPpoi, int *memCostPbpo, int *memCostP
                + 1*memCostPint                /* poi2bpo  */
                + METRIS_MAXTAGS*memCostPint   /* poi2tag  */
                + 2*memCostPint                /* poi2ent  */
-               + nipwk*memCostPint            /* poi2iwk  */
-               + 1*memCostPdbl;              /* poi2rwk  */
+               + nipwk*memCostPint            /* iwork  */
+               + 1*memCostPdbl;              /* rwork  */
 
   *memCostPedg = tarEdgeNpp*memCostPint      /* edg2poi */   
                + memCostPint                 /* edg2ref */   
                + 2*memCostPint               /* edg2edg */     
                + METRIS_MAXTAGS*memCostPint  /* edg2tag */                  
                + memCostPint                 /* edg2fac */   
-               + niewk*memCostPint           /* edg2iwk */               
-               + 1*memCostPdbl;              /* edg2rwk */     
+               + niewk*memCostPint           /* iwork */               
+               + 1*memCostPdbl;              /* rwork */     
 
   *memCostPfac = tarFaceNpp*memCostPint       /*fac2poi*/           
                + memCostPint                  /*fac2ref*/
                + 3*memCostPint                /*fac2fac*/  
                + METRIS_MAXTAGS*memCostPint   /*fac2tag*/                
-               + nifwk*memCostPint            /*fac2iwk*/            
-               + 1*memCostPdbl;               /*fac2rwk*/   
+               + nifwk*memCostPint            /*iwork*/            
+               + 1*memCostPdbl;               /*rwork*/   
 
   *memCostPelt = 0;
   if(idim >= 3){
@@ -358,8 +350,8 @@ void MeshBase::getEnttMemCosts(int *memCostPpoi, int *memCostPbpo, int *memCostP
                  + memCostPint                  /*tet2ref*/
                  + 4*memCostPint                /*tet2tet*/  
                  + METRIS_MAXTAGS*memCostPint   /*tet2tag*/               
-                 + 1*memCostPint                /*tet2iwk*/  
-                 + 1*memCostPdbl                /*tet2rwk*/  
+                 + 1*memCostPint                /*iwork*/  
+                 + 1*memCostPdbl                /*rwork*/  
                  + 1*memCostPbol;               /*tet2ftg*/   
   }
 
@@ -457,6 +449,7 @@ MeshBase& MeshBase::operator=(const MeshBase &inp){
   if(ine3) cno2tag.fill(METRIS_MAXTAGS, CAD.ncadno,0);
 
 
+  bpo2tag.fill(METRIS_MAXTAGS,nbpoi,0);
   poi2tag.fill(METRIS_MAXTAGS,npoin,0);
   edg2tag.fill(METRIS_MAXTAGS,nedge,0);
   fac2tag.fill(METRIS_MAXTAGS,nface,0);
@@ -482,6 +475,9 @@ void MeshBase::set_nbpoi(int nbpoi){
 
   bpo2rbi.allocate(mbpoi, nrbi);
   bpo2rbi.set_n(nbpoi);
+
+  bpo2tag.allocate(METRIS_MAXTAGS, mbpoi);
+  bpo2tag.set_n(METRIS_MAXTAGS);
 }
 
 
@@ -494,12 +490,6 @@ void MeshBase::set_npoin(int npoin, bool skipallocf){
 
   poi2ent.allocate(mpoin, 2);
   poi2ent.set_n(npoin);
-
-  poi2iwk.allocate(nipwk*mpoin);
-  poi2iwk.set_n(nipwk*npoin);
-
-  poi2rwk.allocate(nrpwk*mpoin);
-  poi2rwk.set_n(nrpwk*npoin);
 
   poi2bpo.allocate(mpoin);
   poi2bpo.set_n(npoin);
@@ -529,12 +519,6 @@ void MeshBase::set_nedge(int nedge, bool skipallocf){
 
   edg2fac.allocate(medge);
   edg2fac.set_n(nedge);
-
-  edg2iwk.allocate(niewk*medge);
-  edg2iwk.set_n(niewk*nedge);
-
-  edg2rwk.allocate(medge);
-  edg2rwk.set_n(nedge);
   
   edgHshTab.reserve(nedge);
 
@@ -560,12 +544,6 @@ void MeshBase::set_nface(int nface, bool skipallocf){
   fac2fac.allocate(mface, 3);
   fac2fac.set_n(nface);
 
-  fac2iwk.allocate(nifwk*mface);
-  fac2iwk.set_n(nifwk*nface);
-
-  fac2rwk.allocate(mface);
-  fac2rwk.set_n(nface);
-
   if(idim >= 3){
     fac2tet.allocate(mface, 2);
     fac2tet.set_n(nface);
@@ -590,12 +568,6 @@ void MeshBase::set_nelem(int nelem, bool skipallocf){
 
   nelem_ = nelem;
   if(nelem > melem_) melem_ = MAX(nelem, melem_*Defaults::mem_growfac);
-
-  tet2iwk.allocate(nitwk*melem);
-  tet2iwk.set_n(nitwk*nelem);
-
-  tet2rwk.allocate(melem);
-  tet2rwk.set_n(nelem);
 
   tet2ftg.allocate(melem);
   tet2ftg.set_n(nelem);
@@ -657,9 +629,9 @@ void MeshBase::set_nentt(int tdimn, int nentt, bool skipallocf){
 //
 //  int ibpo2 = ibpoi;
 //  do{
-//    int ityp = msh.bpo2ibi[ibpo2][1];
+//    int ityp = msh.bpo2ibi(ibpo2,1);
 //    if(ityp == 2){
-//      int iface = msh.bpo2ibi[ibpo2][2];
+//      int iface = msh.bpo2ibi(ibpo2,2);
 //      int iref2 = msh.fac2ref[iface];
 //      if(iref2 == iref){  
 //        getnorfacP1(fac2poi[iface],coord,norfa);
@@ -667,7 +639,7 @@ void MeshBase::set_nentt(int tdimn, int nentt, bool skipallocf){
 //        nrmtot += sqrt(getnrml2<3>(norfa));
 //      }
 //    }
-//    ibpo2 = msh.bpo2ibi[ibpo2][3];
+//    ibpo2 = msh.bpo2ibi(ibpo2,3);
 //  }while(ibpo2 >= 0 && ibpo2 != ibpoi);
 //
 //  for(int ii = 0; ii < 3; ii++) norpoi[ii] /= nrmtot;

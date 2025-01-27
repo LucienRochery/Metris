@@ -5,6 +5,9 @@
 
 #include "aux_histogram.hxx"
 #include "aux_utils.hxx"
+#include "mprintf.hxx"
+#include "Mesh/MeshBase.hxx"
+#include "MetrisRunner/MetrisParameters.hxx"
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <stdio.h>
@@ -14,8 +17,11 @@
 namespace Metris{
 
 
-void print_histogram(dblAr1 &values, IntrpTyp iinter, dblAr1 &bounds, 
-                     std::string symb, std::string name){
+void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
+                     dblAr1 &bounds, std::string symb, std::string name){
+  GETVDEPTH(msh);
+  if(!DOPRINTS1()) return;
+
   int nval = values.get_n();
   if(nval <= 0) return;
 
@@ -120,16 +126,18 @@ void print_histogram(dblAr1 &values, IntrpTyp iinter, dblAr1 &bounds,
     }
   }
 
-  std::cout<<" -- Histogram: "<<name<<"\n";
-  printf(" -- Summary: %.2f %% within bounds %f %f \n", 
+  CPRINTF1("-- Histogram: %s\n", name.c_str());
+  CPRINTF1("-- Summary: %.2f %% within bounds %f %f \n", 
                            100.0 - 100.0*(nlow + nhig)/(double) nval,vlow, vhig);
-  printf("  - minimum = %f (%d)\n",vmin,imin);
-  printf("  - maximum = %f (%d)\n",vmax,imax);
+  CPRINTF1("  - minimum = %f (%d)\n",vmin,imin);
+  CPRINTF1("  - maximum = %f (%d)\n",vmax,imax);
   if(!nogeom){
-    printf("  - average = %f (geometric) = %f\n",vavgl,vavgg);
+    CPRINTF1("  - average = %f (geometric) = %f\n",vavgl,vavgg);
   }else{
-    printf("  - average = %f \n",vavgl);
+    CPRINTF1("  - average = %f \n",vavgl);
   }
+
+  if(!DOPRINTS2()) return;
 
   // Bucket labels: 
   if(iinter == IntrpTyp::Linear){

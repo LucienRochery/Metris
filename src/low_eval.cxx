@@ -9,6 +9,7 @@
 
 #include "ho_constants.hxx"
 #include "metris_constants.hxx"
+#include "codegen_lagrange.hxx"
 
 #include <boost/preprocessor/iteration/local.hpp>
 
@@ -160,6 +161,13 @@ void eval2(const dblAr2 & __restrict__  rfld,
 
 
 #define BOOST_PP_LOCAL_MACRO(n)\
+template void eval2<1,n>(const dblAr2 & __restrict__  rfld,\
+                         const int * __restrict__  lfld,\
+                         FEBasis ibasis, DifVar idif1, DifVar idif2,\
+                         const double * __restrict__  bary,\
+                         double * __restrict__  eval,\
+                         double * __restrict__  jmat,\
+                         double * __restrict__  hmat);\
 template void eval2<2,n>(const dblAr2 & __restrict__  rfld,\
                          const int * __restrict__  lfld,\
                          FEBasis ibasis, DifVar idif1, DifVar idif2,\
@@ -247,6 +255,13 @@ void eval3(const dblAr2 & __restrict__  rfld,
 
 
 #define BOOST_PP_LOCAL_MACRO(n)\
+template void eval3<1,n>(const dblAr2 & __restrict__  rfld,\
+                         const int * __restrict__  lfld,\
+                         FEBasis ibasis, DifVar idif1, DifVar idif2,\
+                         const double * __restrict__  bary,\
+                         double * __restrict__  eval,\
+                         double * __restrict__  jmat,\
+                         double * __restrict__  hmat);\
 template void eval3<3,n>(const dblAr2 & __restrict__  rfld,\
                          const int * __restrict__  lfld,\
                          FEBasis ibasis, DifVar idif1, DifVar idif2,\

@@ -73,7 +73,7 @@ struct MetrisParameters{
 
   // options: "curve"
   // Defaults to 0 (no curve), 1 for offsets followed by ccoef max, 2 for 
-  // metric-based LP. 
+  // metric-based LP, 3 for offsets followed by smoothing, 4 offsets and backtrack
   int curveType;
 
 
@@ -81,8 +81,14 @@ struct MetrisParameters{
   
   // Verbosity level
   int iverb;
+  // Verboity depth
+  int ivdepth;
+
   // Full debugs (costly)
   bool dbgfull;
+  // Generic integer flags
+  int iflag1, iflag2, iflag3;
+
   bool refineConventions;
   
   // ----------------- Optimization options  

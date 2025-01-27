@@ -288,7 +288,7 @@ OLD IMPLEMENTATIONS
 //      exit(1);
 //    }
 //  }
-//  double jmat[9],djmat[3][9],lmet[6],met[6],dlmet[3][6],dmet[3][6],coopr[3],ddum[9];
+//  double jmat[9],djmat[3][9],lmet[6],met[6],dlmet(3,6),dmet[3][6],coopr[3],ddum[9];
 //
 //  // Get Jacobian matrix and derivatives at xi.
 //  // eval3_d handles whether dpoivar == NULL or not itself. 

@@ -278,7 +278,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
         // Points always point to the corner if it exists
         int ibpoi = msh.poi2bpo[ip];
         if(ibpoi < 0 || (
-          ibpoi > 0 && msh.bpo2ibi[ibpoi][1] > 0)){
+          ibpoi > 0 && msh.bpo2ibi(ibpoi,1) > 0)){
           msh.newbpotopo<0>(ip);
         }
       }
@@ -635,7 +635,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
         // Namely, some corners (boundary) will be created after this loop. 
         // Points always point to the corner if it exists
         int ibpoi = msh.poi2bpo[ip];
-        if(ibpoi < 0 || (ibpoi > 0 && msh.bpo2ibi[ibpoi][1] > 0)){
+        if(ibpoi < 0 || (ibpoi > 0 && msh.bpo2ibi(ibpoi,1) > 0)){
           msh.newbpotopo<0>(ip);
         }
       }

@@ -23,12 +23,17 @@ Bézier coefficients of the Jacobian determinant
 */
 
 
+// Wrappers that may call the codegen routines 
 template<int gdim, int tdim, int ideg>
 void getccoef(const MeshBase &msh, int ientt, double *nrmal, double *ccoef);
 template<int gdim, int tdim, int ideg>
 void getsclccoef(const MeshBase &msh, int ientt, double *nrmal, 
                  double *ccoef, bool *iinva);
 
+template<int idim, int ideg>
+void getccoef_dcoord(const MeshBase &msh, int ientt, int icoor, double *ccoef, dblAr2& d_ccoef);
+
+// Ccoefs if mesh is Lagrange
 template<int gdim, int tdim, int ideg>
 void ccoef_eval(FEBasis ibasis, const intAr2& ent2poi, const dblAr2& coord, int ientt, double *nrmal, double* ccoef);
 
@@ -44,9 +49,6 @@ namespace ccoef_eval_lfld{
   }()};
 }
 
-
-//template<int irnk1_1,int irnk1_2,int irnk2_1,int irnk2_2,int irnk3_1,int irnk3_2>
-//double det3_vdif_poi(int ielem, intAr2& __restrict__ tet2poi, dblAr2& __restrict__ coord);
 
 } // End namespace
 

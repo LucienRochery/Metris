@@ -32,8 +32,7 @@ static int ifactorial_func(int i){
 //template <int i1, int i2, int i3, int i4>
 //void gen_idx_ccoef(char* str);
 void simpfrac(int x, int y, int *xs, int *ys){
-	int z = sqrt( x < y ? x : y );
-	int i = z;
+	int i = ceil(sqrt( x < y ? x : y ));
 	*xs = x;
 	*ys = y;
 	while(i > 1){
@@ -92,24 +91,19 @@ int main(int argc, char** argv){
 
 
   str << "template<int ideg> void d_ccoef_genbez2"
-      << "(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord,\n" 
-      << "                                        int ielem, double*__restrict__ ccoef, \n"
-      << "                                        int icoor, dblAr2& __restrict__ d_ccoef);\n";
+      << "(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord,\n"
+      << "                                        int ielem, int icoor,\n"
+      << "                                        dblAr2& __restrict__ d_ccoef);\n";
 
   str << "template<int ideg> void d_pt_ccoef_genbez2"
   << "(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord,\n" 
-  << "                                        int ielem,\n"
-  << "                                        int icoor,\n"
-  << "                                        int inode,\n"
-  << "                                        double*__restrict__ ccoef,\n"
-  << "                                        double*__restrict__ d_ccoef);\n";
+  << "                                        int ielem, int inode,\n"
+  << "                                        dblAr2& __restrict__ d_ccoef);\n";
 
-  str << "template<int ideg, typename T>\n";
+  str << "template<int ideg>\n";
   str << "void d_ccoef_genbez3(const intAr2 & __restrict__ tet2poi,\n";
   str << "                     const dblAr2& __restrict__ coord,\n";
-  str << "                     int ielem,\n";
-  str << "                     int icoor,\n";
-  str << "                     T* __restrict__ ccoef,\n";
+  str << "                     int ielem, int icoor,\n";
   str << "                     dblAr2& __restrict__ d_ccoef);\n\n";
 
 
@@ -420,6 +414,18 @@ void gen_ccoeff3(){
 }
 
 
+//// Quadratic search of terms to insert i1, i2 st (i1,i2) + (i2, i3) = (i1,i3)
+//void insert_diffterms2(std::vector<std::pair<int,int>> &terms, int i1, int i2){
+//  for(const std::pair<int,int>& pp : terms){
+//    if(pp.second == i1){
+//      pp.second = i2;
+//      return;
+//    }
+//  }
+//  terms.push_back({i1,i2});
+//  return;
+//}
+
 
 
 void gen_ccoeff2(){
@@ -443,8 +449,11 @@ void gen_ccoeff2(){
     str << "double det2_vdif(const double* x1,const double* x2\n";
     str << "                ,const double* y1,const double* y2);\n\n";
 
-                  
+    // Each diff term is of the form (P_{irnk1} - P_{irnk2})^orth
+    // Hence for each index, store those pairs. 
     int npp_c = facnpps[2*(ideg-1)];
+    std::vector<std::vector<std::pair<int,int>>> diff_terms(npp_c);
+    std::vector<std::pair<int,int>> diff_facs(npp_c);
 
     int uuu1 = pow(ifactorial_func(ideg),2);
     int lll1 = ifactorial_func(2*(ideg-1));
@@ -495,7 +504,14 @@ void gen_ccoeff2(){
             str << "\n             + "<<up_s<<"*det2_vdif(coord[fac2poi[ielem]["<<irnk1_1_s<<"]],coord[fac2poi[ielem]["<<irnk1_2_s<<"]]\n";
           }
           str << "                            ,coord[fac2poi[ielem]["<<irnk2_1_s<<"]],coord[fac2poi[ielem]["<<irnk2_2_s<<"]])/"<<lo_s;
-//          str << "                            ,coord[fac2poi[ielem]["<<irnk3_1_s<<"]],coord[fac2poi[ielem]["<<irnk3_2_s<<"]])/"<<lo_s;
+
+          //// Compute derivatives as well: this gives four terms to distribute. 
+          //// |irnk1_1 - irnk1_2 , irnk2_1 - irnk2_2|
+          //insert_diffterms2(diff_terms[irnk1_1], irnk2_1,irnk2_2);
+          //insert_diffterms2(diff_terms[irnk1_2], irnk2_2,irnk2_1);
+          //insert_diffterms2(diff_terms[irnk2_1], irnk1_2,irnk1_1);
+          //insert_diffterms2(diff_terms[irnk2_2], irnk1_1,irnk1_2);
+
           /*-----------------------------------K LOOP-------------------------------------------*/
 
         }
@@ -512,6 +528,45 @@ void gen_ccoeff2(){
     f.open(fname, std::ios::out);
     f << str.str();
     f.close();
+
+
+    //// Derivatives file
+    //str.clear();
+
+    //str << "//Metris: high-order metric-based non-manifold tetrahedral remesher\n";
+    //str << "//Copyright (C) 2023-2024, Massachusetts Institute of Technology\n";
+    //str << "//Licensed under The GNU Lesser General Public License, version 2.1\n";
+    //str << "//See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n\n";
+
+    //str << "#include \"codegen_ccoef_d.hxx\"\n\n";
+    //str << "#include \"types.hxx\"\n\n";
+    ////str << "#include \"low_geo.hxx\"\n\n";
+    //str << "namespace Metris{\n\n";
+
+    //str << "template<int ideg>\nvoid d_ccoef_genbez2(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord, int ielem, double*__restrict__ ccoef, dblAr2& __restrict__ d_ccoef){}\n\n";
+    //str << "double vdiff_perp(const double* a,const double* b);\n\n";
+
+    //for(int irnkcc = 0; irnkcc < npp_c; irnkcc++){
+    //  char irnkcc_s[16]; snprintf(irnkcc_s,4,"%3d",irnkcc);
+
+    //  str << "\n  d_ccoef["<<irnkcc_s<<"] = "
+
+    //  bool ifirst = true;
+    //  // Derivative wrt to icoor of this point is simply 1 - icoor of the pair difference
+    //  for(const std::pair<int,int>& pp : diff_terms[irnkcc]){
+    //    int irnk1 = pp.first;
+    //    int irnk2 = pp.second;
+    //    char irnk1_s[16]; snprintf(irnk1_s,5,"%4d",irnk1);
+    //    char irnk1_s[16]; snprintf(irnk1_s,5,"%4d",irnk1);
+    //    if(!ifirst) str << "\n             + ";
+    //    str << up_s << "( coord(fac2poi(ielem,"<<irnk1_s<<"),1-icoor) "
+    //                  "- coord(fac2poi(ielem,"<<irnk2_s<<"),1-icoor) )" << lo_s;
+    //    ifirst = false;
+    //  }
+    //  str << ";\n";
+    //}
+
+
   }
 
 }

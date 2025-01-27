@@ -27,7 +27,7 @@ namespace Defaults{
   const double ltol = 1.0e-12;
 
   const double geo_lentolfac = 1.01;
-  const double geo_abstoledg = 1.0e-12;
+  const double geo_abstoledg = 1.0e-10;
 
   // See MetrisParameters 
   const int opt_pnorm = 2;

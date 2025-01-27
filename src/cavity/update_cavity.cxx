@@ -11,6 +11,7 @@
 #include "../CT_loop.hxx"
 #include "../linalg/det.hxx"
 #include "../Mesh/Mesh.hxx"
+#include "../MetrisRunner/MetrisParameters.hxx"
 #include "../low_geo.hxx"
 
 namespace Metris{
@@ -25,11 +26,11 @@ namespace Metris{
 // redge has info for the point that is not ipins
 // rface is dblAr3 as 2 nodes, each 2 parameters
 template<class MFT, int ideg>
-int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb, 
+int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
                   int npoi0, int nedg0, int nfac0, int nele0, 
                   int ithread){
 
-
+  const int iverb = msh.param->iverb;
   const int ncedg = cav.lcedg.get_n();
   const int ncfac = cav.lcfac.get_n();
   const int nctet = cav.lctet.get_n();
@@ -42,7 +43,73 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
     }
   }CT_FOR1(tdimn);
 
-  // -- 1 remove old ibpois
+
+  // -- 1 Manage bpois
+
+  // -- 1.0  Get (u,v)s in case of a pdim < 2 point. If point is tdim 2, (u,v) is 
+  // computed by the driver. We need to do this before deleting bpois.
+  int pdim = -1;
+  int ibins = msh.poi2bpo[cav.ipins];
+  if(ibins >= 0) pdim = msh.bpo2ibi(ibins,1);
+  if(pdim < 2 && msh.isboundary_faces()){ 
+    // We could be clever in the case where ipins already belonged to the mesh
+    // and recycle known (u,v)s. But we're not doing that yet, let's keep it 
+    // generic. 
+    // What info do we have? Surface connex components are stored in lfcco, 
+    // which points to seeds in initial cavity. 
+    // We'll use those to do an EG_invEvaluateGuess.
+    // Similarly, we could use EG_getEdgeUV, but then we'd have to deal with 
+    // isens, and with the corner case. So let's remain sane and use EG_invEvaluateGuess. 
+    // This could still be done dumbly by using the seed and computing distance
+    // to obtained (u,v)s, keeping the closest as the correct one. 
+    double result[18];
+    for(ibins = msh.poi2bpo[cav.ipins]; ibins >= 0; ibins = msh.bpo2ibi(ibins,3)){
+      int bdim = msh.bpo2ibi(ibins,1);
+      if(bdim != 2) continue;
+
+      // This can be either an old or a new face as we've got bpois for both 
+      // at this stage. 
+      int iface = msh.bpo2ibi(ibins,2);
+      METRIS_ASSERT(iface >= 0 && iface < msh.nface);
+
+      // If it's an old one, skip.
+      if(iface < nfac0) continue;
+
+      // We can get its connex component:
+      int icoco = msh.fac2tag(ithread,iface); 
+      METRIS_ASSERT(icoco >= 0 && icoco < work.lfcco.get_n());
+
+      // Get a face from before, from this connex component
+      int ifaco = work.lfcco[icoco];
+
+      for(int ii = 0; ii < nrbi; ii++) msh.bpo2rbi(ibins,ii) = 0;
+
+      // Use only the vertices, that'll be enough. 
+      for(int ii = 0; ii < 3; ii++){
+        int ipoin = msh.fac2poi(ifaco, ii);
+        METRIS_ASSERT(ipoin >= 0);
+        int ibpoi = msh.poi2ebp(ipoin, 2, ifaco, -1);
+        METRIS_ASSERT(ibpoi >= 0);
+        for(int ii = 0; ii < nrbi; ii++) 
+          msh.bpo2rbi(ibins,ii) += msh.bpo2rbi(ibpoi,ii) / 3.0;
+      }
+
+      int iref = msh.fac2ref[iface];
+      METRIS_ASSERT(iref >= 0);
+      ego obj = msh.CAD.cad2fac[iref];
+
+      int ierro = EG_invEvaluateGuess(obj, msh.coord[cav.ipins], msh.bpo2rbi[ibins], result);
+      if(ierro != 0){
+        if(iverb >= 1) printf("## EG_invEvaluateGuess ERROR %d \n",ierro);
+        goto cleanup;
+      }
+
+
+    }
+  }
+
+
+  // -- 1.1 remove old ibpois
 
   //bool dowait = false;
   CT_FOR0_INC(1,2,tdimn){
@@ -58,10 +125,6 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
           print_bpolist(msh,msh.poi2bpo[ip]);
         }
         msh.rembpotag(ip,ithread);
-        //if(ip == 2){
-        //  printf("## DEBUG IP = 2 REMBPO\n");
-        //  dowait = true;
-        //}
         if(iverb >= METRIS_CAV_PRTLEV + 1){
           printf("   - bpo post:\n");
           print_bpolist(msh,msh.poi2bpo[ip]);
@@ -150,18 +213,18 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
         // First link and minimum topo dimn
         int ibpo0 = msh.poi2bpo[ip];
         METRIS_ASSERT(ibpo0 >= 0); 
-        int mindi = msh.bpo2ibi[ibpo0][1];
+        int mindi = msh.bpo2ibi(ibpo0,1);
 
         // Init straight at next and current dimn
-        int ibpoi = msh.bpo2ibi[ibpo0][3];
+        int ibpoi = msh.bpo2ibi(ibpo0,3);
         if(ibpoi >= 0){
-          int curdi = msh.bpo2ibi[ibpoi][1];
+          int curdi = msh.bpo2ibi(ibpoi,1);
           while(curdi <= mindi){
-            int ibpon = msh.bpo2ibi[ibpoi][3];
-            msh.bpo2ibi[ibpo0][3] = ibpon;
+            int ibpon = msh.bpo2ibi(ibpoi,3);
+            msh.bpo2ibi(ibpo0,3) = ibpon;
             ibpoi = ibpon;
             if(ibpoi < 0) break; 
-            curdi = msh.bpo2ibi[ibpoi][1];
+            curdi = msh.bpo2ibi(ibpoi,1);
           }
         }//endif(ibpoi >= 0)
 
@@ -242,13 +305,13 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
   //      // NOTE: if the point is a corner, this info has not been lost! thus there is no
   //      // risk of missing to add an edge of a reference not represented. 
   //      if(ib >= 0){
-  //        if(msh.bpo2ibi[ib][0] == -1) msh.poi2bpo[ip] = -1;
-  //        if(msh.bpo2ibi[ib][1] == 0 || msh.bpo2ibi[ib][1] == 2 || msh.bpo2ibi[ib][0] == -1) ib = -1; 
+  //        if(msh.bpo2ibi(ib,0) == -1) msh.poi2bpo[ip] = -1;
+  //        if(msh.bpo2ibi(ib,1) == 0 || msh.bpo2ibi(ib,1) == 2 || msh.bpo2ibi(ib,0) == -1) ib = -1; 
   //      }
   //      if(ib == -1){
   //        ib = msh.template newbpotopo<1>(ip, iedge);
   //        if(ii < 2 && ip != cav.ipins){
-  //          msh.bpo2rbi[ib][0] = redge[iedge-nedg0];
+  //          msh.bpo2rbi(ib,0) = redge[iedge-nedg0];
   //        }
   //      }
   //    }
@@ -266,15 +329,15 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
   //      // Same as previous, triangle goes in only if nothing yet (ib == -1)
   //      // or corner / edge (itype <= 1)
   //      if(ib >= 0){
-  //        if(msh.bpo2ibi[ib][0] == -1) msh.poi2bpo[ip] = -1;
-  //        if(msh.bpo2ibi[ib][1] <= 1 || msh.bpo2ibi[ib][0] == -1) ib = -1; 
+  //        if(msh.bpo2ibi(ib,0) == -1) msh.poi2bpo[ip] = -1;
+  //        if(msh.bpo2ibi(ib,1) <= 1 || msh.bpo2ibi(ib,0) == -1) ib = -1; 
   //      }
   //      if(ib == -1){
   //        ib = msh.template newbpotopo<2>(ip, iface);
-  //        //msh.bpo2rbi[ib][0] = redge[iedge-nedg0];
+  //        //msh.bpo2rbi(ib,0) = redge[iedge-nedg0];
   //        if(ii < 3 && ip != cav.ipins){
-  //          msh.bpo2rbi[ib][0] = rface(iface-nfac0,jj,0);
-  //          msh.bpo2rbi[ib][1] = rface(iface-nfac0,jj,1);
+  //          msh.bpo2rbi(ib,0) = rface(iface-nfac0,jj,0);
+  //          msh.bpo2rbi(ib,1) = rface(iface-nfac0,jj,1);
   //          jj++; // node in rface index
   //        }
   //      }
@@ -451,11 +514,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
   //}
 
   // Tag cavity faces
-  for(int ifacl = 0; ifacl < ncfac; ifacl++){
-    int iface = cav.lcfac[ifacl];
-    msh.fac2tag(ithread,iface) = msh.tag[ithread];
-  }
-
+  for(int iface : cav.lcfac) msh.fac2tag(ithread,iface) = msh.tag[ithread];
 
  
   // Inform cavity neighbours that their neighbours are defunct. 
@@ -534,10 +593,9 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
 
       if(ifaca < 0){ // Either surface boundary or non manifold
         int iedge = msh.facedg2glo(ifanw, ii); 
-        METRIS_ENFORCE(iedge >= 0);
 
         // Check valid AND not a new edge otherwise what happened??
-        METRIS_ASSERT_MSG(iedge >= 0,"ifanw = "<<ifanw<<" ifaca = "<<ifaca<<" iedg = "<<ii);
+        METRIS_ENFORCE_MSG(iedge >= 0,"ifanw = "<<ifanw<<" ifaca = "<<ifaca<<" iedg = "<<ii);
         if(iedge >= nedg0) continue; // New edge -> already handled
         METRIS_ASSERT(!isdeadent(iedge,msh.edg2poi));
 
@@ -656,7 +714,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
         }
       }
       writeMesh("fatal",msh);
-      writeMeshCavity("fatal.cav",msh,cav,5,0);
+      writeMeshCavity("fatal.cav",msh,cav,0);
       METRIS_THROW_MSG(TODOExcept(), 
         "Not the 2 face -> 1 edge case, inspect. msh.nedge = "
         <<msh.nedge<<" nedg0 = "<<nedg0);
@@ -775,8 +833,8 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
         if(msh.poi2ent(ipoin,0) != -1) continue;
         int ibpoi = msh.poi2bpo[ipoin];
         while(ibpoi >= 0){
-          msh.bpo2ibi[ibpoi][0] = -1;
-          ibpoi = msh.bpo2ibi[ibpoi][3];
+          msh.bpo2ibi(ibpoi,0) = -1;
+          ibpoi = msh.bpo2ibi(ibpoi,3);
         }
         msh.poi2bpo[ipoin] = -1;
       }
@@ -791,8 +849,8 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
         if(msh.poi2ent(ipoin,0) != -1) continue;
         int ibpoi = msh.poi2bpo[ipoin];
         while(ibpoi >= 0){
-          msh.bpo2ibi[ibpoi][0] = -1;
-          ibpoi = msh.bpo2ibi[ibpoi][3];
+          msh.bpo2ibi(ibpoi,0) = -1;
+          ibpoi = msh.bpo2ibi(ibpoi,3);
         }
         msh.poi2bpo[ipoin] = -1;
       }
@@ -835,7 +893,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
     for(int ipoin = npoi0; ipoin < msh.npoin; ipoin++){
       // regenerate (u,v)s from t
       int ib = msh.poi2bpo[ipoin];
-      int ityp = msh.bpo2ibi[ib][1];
+      int ityp = msh.bpo2ibi(ib,1);
       if(ityp >= 2) continue;
 
       // Cannot have created a corner. 
@@ -854,9 +912,9 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
       // if (l,h) > 0 triangle is left -> positive
       //          < 0 triangle is right -> negative 
 
-      double t = msh.bpo2rbi[ib][0];
+      double t = msh.bpo2rbi(ib,0);
 
-      int iedge = msh.bpo2ibi[ib][2];
+      int iedge = msh.bpo2ibi(ib,2);
       METRIS_ASSERT(iedge >= 0);
 
       int irefe = msh.edg2ref[iedge];
@@ -891,12 +949,12 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
 
 
 
-      ib = msh.bpo2ibi[ib][3];
+      ib = msh.bpo2ibi(ib,3);
       METRIS_ASSERT(ib >= 0);
       do{
-        if(msh.bpo2ibi[ib][1] == 2){
+        if(msh.bpo2ibi(ib,1) == 2){
           // Found a triangle, now update. 
-          int iface = msh.bpo2ibi[ib][2];
+          int iface = msh.bpo2ibi(ib,2);
           int ireff = msh.fac2ref[iface];
           ego EG_fac  = msh.CAD.cad2fac[ireff];
 
@@ -913,7 +971,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
             int ip = msh.fac2poi(iface,ii);
             if(ip == ipoin) continue;
             for(int jj = 0; jj < 3; jj++) du[jj] = 
-              msh.coord[ip][jj] - msh.coord[ipoin][jj];
+              msh.coord(ip,jj) - msh.coord(ipoin,jj);
             double dtprd = getprdl2<3>(du,vec);
             if(dtprd > dtprM) dtprM = dtprd;
             if(dtprd < dtprm) dtprm = dtprd;
@@ -937,7 +995,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
           if(icode != 0) METRIS_THROW_MSG(GeomExcept(),"EG_getEdgeUV failed !");
 
         }
-        ib = msh.bpo2ibi[ib][3];
+        ib = msh.bpo2ibi(ib,3);
       }while(ib >= 0);
 
 
@@ -976,17 +1034,18 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, int iverb,
   }
 
 
+  cleanup:
   msh.tag[ithread]++; // Because points were tag+1
   return 0;
 }
 
 #define BOOST_PP_LOCAL_MACRO(n)\
 template int update_cavity<MetricFieldAnalytical,n>(Mesh<MetricFieldAnalytical> &msh,\
-                            const MshCavity &cav, int iverb, int npoi0, int nedg0, \
+                            const MshCavity &cav, const CavWrkArrs &work, int npoi0, int nedg0, \
                             int nfac0, int nele0, \
                             int ithread);\
 template int update_cavity<MetricFieldFE        ,n>(Mesh<MetricFieldFE        > &msh, \
-                            const MshCavity &cav, int iverb, int npoi0, int nedg0, \
+                            const MshCavity &cav, const CavWrkArrs &work, int npoi0, int nedg0, \
                             int nfac0, int nele0, \
                             int ithread);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)

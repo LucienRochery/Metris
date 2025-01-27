@@ -7,8 +7,10 @@
 #include "../cavity/msh_cavity.hxx"
 
 #include "../Mesh/Mesh.hxx"
+#include "../MetrisRunner/MetrisParameters.hxx"
 #include "../io_libmeshb.hxx"
 #include "../aux_pp_inc.hxx"
+#include "../mprintf.hxx"
 
 
 namespace Metris{
@@ -45,33 +47,29 @@ int cavity_operator(Mesh<MFT> &msh ,
                     CavWrkArrs &work  ,
                     CavOprInfo &info  ,
                   	int ithread){
+  GETVDEPTH(msh);
   info.done = false;
 
-  #ifndef NDEBUG
-	if(!opts.allow_remove_points){
-		if(opts.iverb >= METRIS_CAV_PRTLEV) printf("## WARNING allow_remove_points NOT ENFORCED\n");
-	}
-  #endif
 
-  int iverb = opts.iverb;
-
-  if(iverb >= METRIS_CAV_PRTLEV) printf("      -- cavity_operator start ncedg = %d ncfac = %d nctet = %d ipins = %d \n",
+  CPRINTF1("-- cavity_operator start ncedg = %d ncfac = %d nctet = %d ipins = %d \n",
     cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),cav.ipins);
-  if(iverb >= METRIS_CAV_PRTLEV){
+  
+  if(DOPRINTS1()){
     if(cav.lcedg.get_n() > 0){
-      printf("       - Edge cavity: ");
+      CPRINTF1(" - Edge cavity: ");
       cav.lcedg.print(cav.lcedg.get_n());
     }
     if(cav.lcfac.get_n() > 0){
-      printf("       - Face cavity: ");
+      CPRINTF1(" - Face cavity: ");
       cav.lcfac.print(cav.lcfac.get_n());
     }
     if(cav.lctet.get_n() > 0){
-      printf("       - Tetra cavity: ");
+      CPRINTF1(" - Tetra cavity: ");
       cav.lctet.print(cav.lctet.get_n());
     }
   }
-  if(iverb >= METRIS_CAV_PRTLEV + 1){
+
+  if(DOPRINTS2()){
     for(int tdimn = 1; tdimn <= 3; tdimn++){
       intAr1 &lcent = cav.lcent(tdimn);
       int ncent = lcent.get_n();
@@ -79,17 +77,17 @@ int cavity_operator(Mesh<MFT> &msh ,
       intAr2 &ent2poi = msh.ent2poi(tdimn);
 
       if(tdimn == 1){
-        printf("       - Edge cavity: \n");
+        CPRINTF2(" - Edge cavity: \n");
       }else if(tdimn == 2){
-        printf("       - Face cavity: \n");
+        CPRINTF2(" - Face cavity: \n");
       }else{
-        printf("       - Tetra cavity: \n");
+        CPRINTF2(" - Tetra cavity: \n");
       }
       int nnode = msh.nnode(tdimn);
       for(int ientt : lcent){
-        printf("%d : ",ientt);
+        CPRINTF2("%d : ",ientt);
         for(int ii = 0; ii < nnode; ii++){
-          printf(" %d ",ent2poi[ientt][ii]);
+          printf(" %d ",ent2poi(ientt,ii));
         }
         printf("\n");
       }
@@ -129,13 +127,13 @@ int cavity_operator(Mesh<MFT> &msh ,
 	if(cav.lcedg.get_n() > 0 && msh.isboundary_edges() || cav.lcfac.get_n() > 0 && msh.isboundary_faces() ){
 		int ibpoi = msh.poi2bpo[cav.ipins];
     if(ibpoi < 0){
-      if(iverb >= METRIS_CAV_PRTLEV) printf("      ## error CAV_ERR_NOBPO\n");
+      CPRINTF1("## ERROR CAV_ERR_NOBPO\n");
       ierro = CAV_ERR_NOBPO;
       goto cleanup;
     }
-    int ityp = msh.bpo2ibi[ibpoi][1];
+    int ityp = msh.bpo2ibi(ibpoi,1);
     if(cav.lcedg.get_n() > 0 && msh.isboundary_edges() && ityp > 1){
-      if(iverb >= METRIS_CAV_PRTLEV) printf("      ## error CAV_ERR_TDIMN\n");
+      CPRINTF1("## ERROR CAV_ERR_TDIMN\n");
       ierro = CAV_ERR_TDIMN;
       goto cleanup;
     }
@@ -173,10 +171,8 @@ int cavity_operator(Mesh<MFT> &msh ,
 			ierro = reconnect_lincav<MFT, ideg>(msh, cav, opts, &qmax, ithread);
 			if(ierro > 0) goto cleanup;
 
-      if(iverb >= METRIS_CAV_PRTLEV){
-        printf("       - reconnect_lincav done nedg0 = %d nedge = %d npoi0 = %d npoin = %d\n",nedg0,msh.nedge,
-          npoi0,msh.npoin);
-      }
+      CPRINTF1("-- reconnect_lincav done nedg0 = %d nedge = %d npoi0 = %d npoin = %d\n",
+               nedg0,msh.nedge,npoi0,msh.npoin);
 
       //printf("## DEBUG: costly call to check_topo after lincav\n");
       //check_topo(msh,nbpo0, npoi0, nedg0, nfac0, nele0);
@@ -187,7 +183,7 @@ int cavity_operator(Mesh<MFT> &msh ,
         bool check_qua = (opts.qmax_nec > 0 && msh.get_tdim() == 2)
                       || (opts.qmax_suf > 0 && msh.get_tdim() == 2)
                       || (opts.qmax_iff > 0 && msh.get_tdim() == 2);
-        if(opts.iverb >= METRIS_CAV_PRTLEV && check_qua) printf("       - after reconnect_faccav qmax = %f \n",qmax);
+        if(check_qua) CPRINTF1(" - after reconnect_faccav qmax = %f \n",qmax);
       }
       if(msh.get_tdim() == 2) info.qmax_end = qmax;
 
@@ -196,7 +192,7 @@ int cavity_operator(Mesh<MFT> &msh ,
 
 			if(ierro > 0) goto cleanup;
 
-      if(iverb >= METRIS_CAV_PRTLEV)printf("       - reconnect_faccav done nfac0 = %d nface = %d \n",nfac0,msh.nface);
+      CPRINTF1("-- reconnect_faccav done nfac0 = %d nface = %d \n",nfac0,msh.nface);
 
 
 			ierro = reconnect_tetcav<MFT, ideg>(msh, cav, opts, &qmax, ithread);
@@ -215,12 +211,12 @@ int cavity_operator(Mesh<MFT> &msh ,
     int nbad = lbad.get_n();
 
 		if(nbad > 0){
-      if(iverb >= METRIS_CAV_PRTLEV){
-        printf("       - debug nbad = %d \n",nbad);
+      if(DOPRINTS1()){
+        CPRINTF1(" - debug nbad = %d \n",nbad);
         lbad.print(nbad);
-        printf("      ## Reject cavity\n");
-        printf("       - debug write mesh:\n");
-        writeMesh("debug.meshb",msh);
+        CPRINTF1("## Reject cavity\n");
+        CPRINTF1(" - debug write mesh:\n");
+        writeMesh("debug_failed_correctcav.meshb",msh, false, nedg0, nfac0, nele0);
       }
       ierro = CAV_ERR_INCORRECTIBLE;
       goto cleanup;
@@ -248,19 +244,23 @@ int cavity_operator(Mesh<MFT> &msh ,
   }
 
 
-	ierro = update_cavity<MFT,ideg>(msh,  cav, opts.iverb, npoi0, nedg0, nfac0, nele0, ithread);
+	ierro = update_cavity<MFT,ideg>(msh, cav, work, npoi0, nedg0, nfac0, nele0, ithread);
 	if(ierro > 0) goto cleanup;
 
   info.done = true;
 
 
-  if(iverb >= METRIS_CAV_PRTLEV) printf("      -- Cavity successful exit\n");
+  CPRINTF1("-- Cavity successful exit\n");
 	return 0;
 
 
   //-------- cleanup (error case)
 	cleanup:
-  if(iverb >= METRIS_CAV_PRTLEV) printf("      -- Cavity error ierro = %d \n",ierro);
+  CPRINTF1("-- Cavity error ierro = %d \n",ierro);
+  if(DOPRINTS2()){
+    // Write out the cavity. 
+    writeMesh("cavenderr",msh,false,nedg0,nfac0,nele0);
+  }
 	//METRIS_THROW_MSG(TODOExcept(), 
   //  "Get rid of bpoi entries of existing points? Do these exist? Check ierro = "<<ierro);
   msh.tag[ithread]++;
@@ -275,7 +275,7 @@ int cavity_operator(Mesh<MFT> &msh ,
     }
   }
   for(int ibpoi = nbpo0; ibpoi < msh.nbpoi; ibpoi++){
-    int ip = msh.bpo2ibi[ibpoi][0];
+    int ip = msh.bpo2ibi(ibpoi,0);
     if( ip < 0 ) continue;
     if(msh.poi2tag(ithread,ip) >= msh.tag[ithread]) continue;
     msh.poi2tag(ithread,ip) = msh.tag[ithread];

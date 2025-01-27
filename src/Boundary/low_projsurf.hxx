@@ -18,27 +18,14 @@ int projptedg(MeshBase &msh, const double*__restrict__ coop,
               double*__restrict__ bary,
               double*__restrict__ coopr);
 
-template <int gdim, int ideg>
-int projptedg(MeshBase &msh, const double*__restrict__ coop, 
-              const int*__restrict__ edg2pol, 
-              double*__restrict__ bary,
-              double*__restrict__ coopr);
-
 
 // Project point coop on edge iedge, return barycentric of proj and CAD param
 // Requires msh to be linked to CAD object. 
 template <int gdim>
-int projptedg(MeshBase &msh, const double*__restrict__ coop, 
-              double tol, int iedge, 
-              double*__restrict__ param, double*__restrict__ bary,
-              double*__restrict__ coopr);
-
-template <int gdim>
-int projptedg(MeshBase &msh, const double*__restrict__ coop, 
-              double tol, int iref,
-              const int*__restrict__ edg2pol, 
-              double*__restrict__ param, double*__restrict__ bary,
-              double*__restrict__ coopr);
+int projptedgCAD(MeshBase &msh, const double*__restrict__ coop, 
+                 double tol, int iedge, 
+                 double*__restrict__ param, double*__restrict__ bary,
+                 double*__restrict__ coopr);
 
 
 }// namespace Metris

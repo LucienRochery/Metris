@@ -7,6 +7,7 @@
 
 #include "common_includes.hxx"
 #include "metris_options.hxx"
+#include "mprintf.hxx"
 
 #include "MetrisRunner/MetrisRunner.hxx"
 #include "msh_checktopo.hxx"
@@ -28,13 +29,11 @@ int main_metris(int argc, char** argv){
   //#endif
 
   MetrisRunner run(argc,argv);
-  MetrisParameters param = run.param;
+  MetrisParameters &param = run.param_;
   MetrisOptions opt = run.opt;
 
 
-  int iverb = param.iverb;
-
-  if(iverb >= 1) run.statMesh();
+  if(param.iverb>=1) run.statMesh();
 
   if(param.dbgfull) check_topo(*run.msh_g);
 
@@ -54,25 +53,23 @@ int main_metris(int argc, char** argv){
 
   run.adaptMesh();
 
+  run.optimMesh();
+
 
   int ielev = run.degElevate();
 
-
   if(param.dbgfull) check_topo(*run.msh_g);
 
-  
   if(param.curveType > 0 && !ielev){ // Not really smoothing, rather metric based curving
     run.curveMesh();
   }
   
-  run.optimMesh();
-
   if(param.dbgfull) check_topo(*run.msh_g);
 
   run.writeOutputs();
 
 
-  if(iverb >= 1) run.statMesh();
+  if(param.iverb>=1) run.statMesh();
 
   //#ifdef USE_PETSC
   //  PetscCall(PetscFinalize());

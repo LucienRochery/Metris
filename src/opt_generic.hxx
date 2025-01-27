@@ -13,6 +13,8 @@
 #endif
 
 #include <functional>
+#include <nlopt.h>
+
 
 namespace Metris{
 
@@ -38,6 +40,17 @@ struct newton_drivertype_args{
     isym  = 1;
   }
 };
+struct truncated_newton_work{
+  // Using a dblAr1 should be safer (throw if undersized)
+  truncated_newton_work(int ndim, dblAr1 &buf):
+  pminor(ndim,&buf[0]), rminor(ndim,&buf[ndim]), dminor(ndim,&buf[2*ndim]),
+  qminor(ndim,&buf[3*ndim]), pmajor(ndim, &buf[4*ndim])
+  {
+    METRIS_ASSERT(buf.get_n() >= 5*ndim);
+  }
+  dblAr1 pminor, rminor, dminor, qminor;
+  dblAr1 pmajor;
+};
 
 void optim_newton_drivertype(int nvar ,
                              double *xcur ,double *fcur  ,double *gcur   ,double *hess ,
@@ -55,6 +68,14 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
                             double *gcur ,double *hess ,
                             int *iflag, int *ihess);
 
+
+template <int nvar>
+int optim_newton_drivertype_TNCG(newton_drivertype_args<nvar> &args,
+                                 truncated_newton_work &work, 
+                                 double *xcur ,double *fcur ,
+                                 double *gcur ,double *hess ,
+                                 int *iflag, int *ihess);
+
 #ifdef USE_PETSC
 int optim_newton_drivertype_PETSc(int nvar ,
                              Vec &XCUR ,double *fcur  ,
@@ -67,7 +88,32 @@ int optim_newton_drivertype_PETSc(int nvar ,
                              Vec &DESC);
 #endif
 
+
+template<int ndim>
+int truncated_newton_iteration(truncated_newton_work &work, 
+                               int outer_iter,
+                               const double *gcur, const double *hcur,
+                               double *desc);
+
 double brutal_samplingsearch(std::function<double(double)> func, double xmin, double xmax, int nsamp, int nrep);
+
+
+#define LUKSAN_PNET_MAXIT 100
+
+// No mallocs in this one
+template<int ndim>
+nlopt_result luksan_pnetS(nlopt_func f, void *f_data,
+                          const double *lb, const double *ub, /* bounds */
+                          double *x, /* in: initial guess, out: minimizer */
+                          double *fopt,
+                          //int mf, /* subspace dimension (0 for default) */
+                          nlopt_algorithm algorithm,
+                          dblAr1 &lwork,
+                          double fstop , double ftol_rel, double ftol_abs);
+
+static int luksan_pnet_worksize(int n){
+  return n * 9 + (n+1)*LUKSAN_PNET_MAXIT*2;
+}
 
 
 } // End namespace

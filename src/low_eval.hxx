@@ -10,7 +10,6 @@
 #include "ho_constants.hxx"
 #include "metris_constants.hxx"
 
-#include "codegen_lagrange.hxx"
 
 
 namespace Metris{

@@ -46,7 +46,7 @@ int main(int argc, char** argv){
   char* stream;
 
   if(param.cadFileName.find(".legads") != std::string::npos){
-    printf(" -- EGADSlite to EGADS \n");
+    printf("-- EGADSlite to EGADS \n");
     printf("  - Only read, load and get topo test \n");
 
     return 0;

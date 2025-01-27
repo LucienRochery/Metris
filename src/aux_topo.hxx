@@ -63,17 +63,17 @@ template <int ideg>
 int getverfac(int iface, const intAr2 &fac2poi, int ip);
 template <int ideg>
 int getveredg(int iedge, const intAr2 &edg2poi, int ip);
-template <int ideg> 
-int getverent(int ientt, const intAr2 &ent2poi, int ip, int tdimn){
-  if(tdimn == 1){
-    return getveredg<ideg>(ientt,ent2poi,ip);
-  }else if(tdimn == 2){
-    return getverfac<ideg>(ientt,ent2poi,ip);
-  }else{
-    return getvertet<ideg>(ientt,ent2poi,ip);
-  }
-  return -2;
-}
+//template <int ideg> 
+//int getverent(int ientt, const intAr2 &ent2poi, int ip, int tdimn){
+//  if(tdimn == 1){
+//    return getveredg<ideg>(ientt,ent2poi,ip);
+//  }else if(tdimn == 2){
+//    return getverfac<ideg>(ientt,ent2poi,ip);
+//  }else{
+//    return getvertet<ideg>(ientt,ent2poi,ip);
+//  }
+//  return -2;
+//}
 
 
 // Debug prints
@@ -84,17 +84,6 @@ void print_bpolist(MeshBase &msh, int ibpoi);
 // dim tdim == 1 (edge) or == 2 (triangle)
 template<int ideg,int tdim>
 void getbpois(const MeshBase &msh, int ientt, int *lbpoi);
-
-// Given ipoin, ientt of topo dim tdim, return the ibpoi attached to ientt, if it exists, -1 otherwise
-int getent2bpo(const MeshBase &msh, int ibpoi, int ientt, int tdim);
-
-// Get any triangle-attached bpoint starting from ibpoi
-int getbpo2facbpo(const MeshBase &msh, int ibpoi);
-
-
-// Give iref topo dim tdim, ibpoi, get ibpoi on that ref
-// Suitable for points of that same topo dim, otherwise could have looping surprises and such
-int getref2bpo(const MeshBase &msh, int ibpoi, int iref0, int tdimn);
 
 
 /*

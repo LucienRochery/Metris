@@ -6,6 +6,8 @@
 
 
 #include "low_ccoef.hxx"
+#include "codegen_ccoef.hxx"
+#include "codegen_ccoef_d.hxx"
 
 #include "types.hxx"
 #include "aux_utils.hxx"
@@ -60,6 +62,7 @@ template void getccoef<3,3,n>(const MeshBase &msh, int ientt, double *nrmal, dou
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 
+
 // Additionally returns whether mesh valid: prefer this over manually looping over
 template<int gdim, int tdim, int ideg>
 void getsclccoef(const MeshBase &msh, int ientt, double *nrmal, 
@@ -69,8 +72,7 @@ void getsclccoef(const MeshBase &msh, int ientt, double *nrmal,
   constexpr int ncoef = tdim == 2 ? facnpps[jdeg] 
                                   : tetnpps[jdeg];
   const intAr2 &ent2poi = msh.ent2poi(tdim);
-  double meas = 
-    getmeasentP1<gdim,tdim>(ent2poi[ientt],msh.coord,msh.param->vtol,NULL,iinva);
+  double meas = getmeasentP1<gdim,tdim>(msh,ent2poi[ientt],nrmal,iinva);
   constexpr int fact = ifact<tdim>();
 
   for(int icoef = 0; icoef < ncoef; icoef++){
@@ -88,6 +90,30 @@ template void getsclccoef<3,3,n>(const MeshBase &msh, int ientt, \
                               double *nrmal, double *ccoef, bool *iinva);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
+
+
+
+template<int idim, int ideg>
+void getccoef_dcoord(const MeshBase &msh, int ientt, int icoor, double *ccoef, dblAr2& d_ccoef){
+  METRIS_ENFORCE_MSG(msh.getBasis() == FEBasis::Bezier, 
+    "control coefficient derivatives not implemented for Lagrange meshes");
+
+  if(ccoef != NULL) getccoef<idim,idim,ideg>(msh,ientt,NULL,ccoef);
+
+  if constexpr(idim == 2){
+    d_ccoef_genbez2<ideg>(msh.fac2poi,msh.coord,ientt,icoor,d_ccoef);
+  }else{
+    d_ccoef_genbez3<ideg>(msh.tet2poi,msh.coord,ientt,icoor,d_ccoef);
+  }
+}
+#define BOOST_PP_LOCAL_MACRO(n)\
+template void getccoef_dcoord<2,n>(const MeshBase &msh, int ientt, int icoor, double *ccoef, dblAr2& d_ccoef);\
+template void getccoef_dcoord<3,n>(const MeshBase &msh, int ientt, int icoor, double *ccoef, dblAr2& d_ccoef);
+#define BOOST_PP_LOCAL_LIMITS     (2, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+
+
 
 
 template<int gdim, int tdim, int ideg>

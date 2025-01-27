@@ -31,5 +31,38 @@ int smooballdiff(Mesh<MetricFieldType>& msh, int ipoin,
 
 
 
+template<class MFT, int gdim, int ideg>
+double smooballdiff_fun(unsigned int nvar, const double *x, 
+                        double *grad, void *f_data);
+
+template<class MFT>
+struct smooballdiff_fun_data{
+  smooballdiff_fun_data(Mesh<MFT> &msh_, const intAr1 &lball_, int ipoin_,
+                        QuaFun iquaf_, double *xopt_) : 
+  msh(&msh_), lball(&lball_), ipoin(ipoin_), iquaf(iquaf_), qnrm0(0), qmax0(-1.0e30),
+  iqset(false), xopt(xopt_), fopt(1.0e30) {}
+
+  Mesh<MFT> *msh;
+  const intAr1 *lball;
+  int ipoin;
+  QuaFun iquaf;
+
+  double qnrm0, qmax0;
+  bool iqset;
+
+  // store best valid iterate
+  double *xopt;
+  double fopt;
+};
+
+// inorm <= infi norm , p > 0 L^p norm (over ball)
+template<class MFT, int idim, int ideg>
+int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin, 
+                        const intAr1 &lball, dblAr1 &qball,
+                        double*__restrict__ qnrm0, double*__restrict__ qmax0, 
+                        double*__restrict__ qnrm1, double*__restrict__ qmax1,
+                        dblAr1 &work,
+                        QuaFun iquaf);
+
 } // end namespace
 #endif

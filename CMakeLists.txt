@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 
-include(${PROJECT_SOURCE_DIR}/cmake/Dependencies.cmake)
+include(MetrisFlags)
 
 execute_process(COMMAND "${GIT_EXECUTABLE}" config --get remote.origin.url
                 WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -37,17 +37,27 @@ if(GITURL MATCHES "github.com")
     endif()
   endforeach()
 else()
+  message("-- Metris with codegen enabled ")
   set(REQ_CODEGEN ON)
+endif()
+
+if(NOT CMAKE_BUILD_TYPE)
+  message(WARNING "No build type defined: defaulting to Release")
+  set(CMAKE_BUILD_TYPE Release)
 endif()
 
 
 add_compile_definitions(SURREAL_LAZY)
 
-if(USE_TRACELIBS)
-  message("-- Compiling with Boost stacktrace libraries")
-else()
-  add_compile_definitions(NO_BOOST_EXCEPT)
-endif()
+add_compile_definitions(NO_BOOST_EXCEPT)
+#if(USE_TRACELIBS)
+#  message("-- Compiling with Boost stacktrace libraries")
+#else()
+#  add_compile_definitions(NO_BOOST_EXCEPT)
+#endif()
+
+include(${PROJECT_SOURCE_DIR}/cmake/Dependencies.cmake)
+
 
 #find_package(MPI REQUIRED)
 #set(CMAKE_CXX_COMPILER mpicxx)
@@ -57,7 +67,6 @@ endif()
 get_filename_component(SHORT_COMPILER_NAME ${CMAKE_C_COMPILER} NAME_WE)
 
 
-include(MetrisFlags)
 
 if(METRIS_MAX_DEG)
   add_compile_definitions(METRIS_MAX_DEG=${METRIS_MAX_DEG})
@@ -117,32 +126,12 @@ add_subdirectory(SANS)
 
 
 
-#set(_Boost_STACKTRACE_BASIC_HEADERS     "boost/stacktrace.hpp")
-#set(_Boost_STACKTRACE_BACKTRACE_HEADERS "boost/stacktrace.hpp")
-#set(_Boost_STACKTRACE_ADDR2LINE_HEADERS "boost/stacktrace.hpp")
-#set(_Boost_STACKTRACE_NOOP_HEADERS      "boost/stacktrace.hpp")
-
-
-# https://stackoverflow.com/questions/60039866/build-errors-while-trying-to-add-booststacktrace-to-cmake-project
-
-
 add_executable(metris "progs/main.cxx")
 add_executable(egads2lite "progs/EGADS2lite.cxx")
 add_executable(scatter_rh "progs/scatter_rh.cxx")
 #add_dependencies(gen_lag2bez codegen2)
 
 #message("MPI_LIBRARIES = ${MPI_LIBRARIES}")
-
-#message("Debug stacktrace_backtrace in directory ${Boost_STACKTRACE_BACKTRACE_LIBRARY} ")
-#message("Debug Boost_STACKTRACE_BASIC_LIBRARY in directory ${Boost_STACKTRACE_BASIC_LIBRARY} ")
-#target_link_libraries(metris PUBLIC ${Boost_PROGRAM_OPTIONS_LIBRARY}
-#														        ${Boost_STACKTRACE_BASIC_LIBRARY} 
-#														        ${Boost_STACKTRACE_BACKTRACE_LIBRARY} 
-#														        ${Boost_STACKTRACE_ADDR2LINE_LIBRARY} 
-#														        ${Boost_STACKTRACE_NOOP_LIBRARY} 
-#														        pthread dl)
-#message("In root Boost_PROGRAM_OPTIONS_LIBRARY : ${Boost_PROGRAM_OPTIONS_LIBRARY} ")
-
 
 target_link_libraries(metris PUBLIC libMetris 
                                     libmeshb
@@ -160,16 +149,9 @@ target_link_libraries(metris PUBLIC libMetris
                                     Boost::program_options
                                     ${PETSC_LIBRARIES}
                                     ${MPI_LIBRARIES}
+                                    ${BOOST_TRACELIBS}
                                     )
 
-if(USE_TRACELIBS)
-  target_link_libraries(metris PUBLIC ${Boost_STACKTRACE_BASIC_LIBRARY} 
-                                      ${Boost_STACKTRACE_BACKTRACE_LIBRARY} 
-                                      ${Boost_STACKTRACE_ADDR2LINE_LIBRARY} 
-                                      ${Boost_STACKTRACE_NOOP_LIBRARY} 
-                                      dl
-                                      )
-endif()
 #if(USE_PETSC STREQUAL "True")
 #  target_link_libraries(metris PUBLIC PkgConfig::PETSC ${MPI_C_LIBRARIES})
 #  #target_link_libraries(metris PUBLIC PETSc)
@@ -201,15 +183,18 @@ target_link_libraries(scatter_rh PUBLIC libMetris
 # Note on includes: the src lib target (libMetris) already includes publicly everything that we need
 # The main.cxx itself only needs main.hxx additionally. 
 target_include_directories(metris PRIVATE "progs/main.hxx" "." "SANS"
-                           PUBLIC ${Boost_INCLUDE_DIRS}
-	                                PUBLIC ${PETSC_INCLUDE}
-                           ${ABSL_INCLUDE_DIRS}
+                                  PUBLIC ${Boost_INCLUDE_DIRS}
+	                                       ${PETSC_INCLUDE}
+                                         ${ABSL_INCLUDE_DIRS}
 #	                                PUBLIC ${LPLIB_INCLUDE_DIR}
 	                                )
+setMetrisFlags(metris PUBLIC)
 target_include_directories(egads2lite PRIVATE  "."
                            ${ESP_ROOT}/include)
+setMetrisFlags(egads2lite PUBLIC)
 target_include_directories(scatter_rh PRIVATE  "."
                            ${ESP_ROOT}/include)
+setMetrisFlags(scatter_rh PUBLIC)
 
 
 # icc having trouble with GTest on my system, figure this out later
@@ -248,19 +233,24 @@ if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME
   
 	# -- Boost/test
 	find_package(Boost COMPONENTS unit_test_framework REQUIRED)
-	foreach (t ${TEST_SOURCES})
+  #find_package(NLopt REQUIRED) 
+  #if(NLopt_FOUND)
+  #  message("NLOP in ${NLopt_INCLUDE_DIRS} ${NLopt_INCLUDE_DIRS}")
+  #else()
+  #  message(FATAL_ERROR "NLOPT NOT FOUND")
+  #endif()
+	
+  foreach (t ${TEST_SOURCES})
 		get_filename_component(d ${t} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
 		add_executable(${d} ${t})
+    setMetrisFlags(${d} PUBLIC)
 		target_link_libraries(${d} PUBLIC libMetris)
 		target_link_libraries(${d} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
 		target_link_libraries(${d} PUBLIC ${Boost_PROGRAM_OPTIONS_LIBRARY}
-																      ${Boost_STACKTRACE_BASIC_LIBRARY} 
-																      ${Boost_STACKTRACE_BACKTRACE_LIBRARY} 
-																      ${Boost_STACKTRACE_ADDR2LINE_LIBRARY} 
-																      ${Boost_STACKTRACE_NOOP_LIBRARY} 
+																      ${BOOST_TRACELIBS}
                                       ${CLP_LIBRARIES}
                                       ${PETSC_LIBRARIES}
-																      pthread dl)
+																      pthread)
     if(CLP_FOUND)
       target_link_libraries(${d} PUBLIC ${CLP_LIBRARIES})
     endif()
@@ -268,7 +258,7 @@ if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME
 		target_link_libraries(${d} PUBLIC 
       absl::hash absl::flat_hash_map #absl::node_hash_map
       )
-		target_link_libraries(${d} PUBLIC lapack libegads libegadslite ) #nlopt
+		target_link_libraries(${d} PUBLIC lapack libegads libegadslite nlopt) #
 		#if(USE_PETSC STREQUAL "True")
     #  target_link_libraries(${d} PUBLIC PkgConfig::PETSC ${MPI_C_LIBRARIES})
 		#	#target_link_libraries(${d} PUBLIC PETSc)
@@ -285,4 +275,8 @@ else()
 	message("Skipping unit test targets (use clang)")
 endif()
 		
+
+
+
+
 

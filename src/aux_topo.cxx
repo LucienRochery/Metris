@@ -41,18 +41,18 @@ int getpoitet(const MeshBase &msh, int ipoin, int iprt){
 	int ibpoi = msh.poi2bpo[ipoin];
   METRIS_ASSERT(ibpoi >= 0); 
 bdry:
-	int itype = msh.bpo2ibi[ibpoi][1];
+	int itype = msh.bpo2ibi(ibpoi,1);
   if(iprt > 0) printf("(re)start ibpoi itype %d %d \n",ibpoi,itype);
 
 	if(itype == 2){
-		int iface = msh.bpo2ibi[ibpoi][2];
+		int iface = msh.bpo2ibi(ibpoi,2);
     if(iprt > 0) printf("Type 2 iface = %d \n",iface);
 		METRIS_ASSERT_MSG(iface >= 0 && iface < msh.nface,
 			"face out of bounds nface = "<<msh.nface<<" iface = "<<iface<<" due to ipoin "<<ipoin);
 		return msh.fac2tet(iface,0);
 	}
 	if(itype == 1){
-		int iedge = msh.bpo2ibi[ibpoi][2];
+		int iedge = msh.bpo2ibi(ibpoi,2);
     if(iprt > 0) printf("Type 1 iedge = %d \n",iedge);
 		METRIS_ASSERT_MSG(iedge >= 0 && iedge < msh.nedge,
 			"Edge out of bounds nedge = "<<msh.nedge<<" iedge = "<<iedge<<" due to ipoin "<<ipoin);
@@ -68,7 +68,7 @@ bdry:
 	// We only need to jump once as there can only be one corner
 	// attached to the point
 
-	ibpoi = msh.bpo2ibi[ibpoi][3];
+	ibpoi = msh.bpo2ibi(ibpoi,3);
   if(iprt > 0) printf("Type 0 next = %d ?\n",ibpoi);
 //	printf("Debug link to next -> %d \n",ibpoi);
 	// There is no entity. 
@@ -92,18 +92,18 @@ int getpoifac(const MeshBase &msh, int ipoin){
   METRIS_ASSERT(ibpoi >= 0);
 
 nocor:
-	int itype = msh.bpo2ibi[ibpoi][1];
+	int itype = msh.bpo2ibi(ibpoi,1);
 
-	// There can be several ibpois per ipoin, linked by bpo2ibi[ibpoi][3].
+	// There can be several ibpois per ipoin, linked by bpo2ibi(ibpoi,3).
 	// The first entry (stored in poi2bpo) is always a lowest-dim :
 
 	// 2. Only triangles attached, and only one at that. 
 	if(itype == 2 && msh.idim == 2) METRIS_THROW_MSG(TopoExcept(), "Triangle flagged as bdry element in 2D");
-	if(itype == 2) return msh.bpo2ibi[ibpoi][2];
+	if(itype == 2) return msh.bpo2ibi(ibpoi,2);
 
 	// 1. Edge case is simple because we can use edg2fac:
 	if(itype == 1){
-		int iedge = msh.bpo2ibi[ibpoi][2];
+		int iedge = msh.bpo2ibi(ibpoi,2);
 		assert(iedge >= 0 && iedge < msh.nedge);
 		return msh.edg2fac[iedge];
 	}
@@ -112,7 +112,7 @@ nocor:
 	// No need to cycle through all of bpo2ibi, it suffice to get one higher-dim
 	// (cannot all be corners) and jump back. 
 	
-	ibpoi = msh.bpo2ibi[ibpoi][3];
+	ibpoi = msh.bpo2ibi(ibpoi,3);
 	if(ibpoi == -1) return -1; // Case where detached corner (shouldn't exist though)
 goto nocor;
 
@@ -131,9 +131,9 @@ int getpoiedg(const MeshBase &msh, int ipoin){
   METRIS_ASSERT(ibpoi >= 0);
 
 nocor:
-	int itype = msh.bpo2ibi[ibpoi][1];
+	int itype = msh.bpo2ibi(ibpoi,1);
 
-	// There can be several ibpois per ipoin, linked by bpo2ibi[ibpoi][3].
+	// There can be several ibpois per ipoin, linked by bpo2ibi(ibpoi,3).
 	// The first entry (stored in poi2bpo) is always a lowest-dim :
 
 	// 2: Lowest dim is a triangle, this is surface interior, no edges. 
@@ -141,7 +141,7 @@ nocor:
 
 	// 1. Edge 
 	if(itype == 1){
-		int iedge = msh.bpo2ibi[ibpoi][2];
+		int iedge = msh.bpo2ibi(ibpoi,2);
 		assert(iedge >= 0 && iedge < msh.nedge);
 		return iedge;
 	}
@@ -149,7 +149,7 @@ nocor:
 	// 0. Finally, corner case. We don't store anything related to corners directly. 
 	// No need to cycle through all of bpo2ibi, it suffice to get one higher-dim
 	// (cannot all be corners) and jump back. 
-	ibpoi = msh.bpo2ibi[ibpoi][3];
+	ibpoi = msh.bpo2ibi(ibpoi,3);
 	if(ibpoi == -1) return -1; // Case where detached corner (shouldn't exist though)
 goto nocor;
 
@@ -267,22 +267,21 @@ int getvertet(int ielem, const intAr2 &tet2poi, int ip){
 	for(int i=0; i<tetnpps[ideg]; i++){
 		if(tet2poi(ielem,i) == ip) return i;
 	}
-  METRIS_THROW_MSG(TopoExcept(),"VERTEX NOT FOUND IN TETRA");
+  return -1;
 }
 template <int ideg>
 int getverfac(int iface, const intAr2 &fac2poi, int ip){
 	for(int i=0; i<facnpps[ideg]; i++){
 		if(fac2poi(iface,i) == ip) return i;
 	}
-	METRIS_THROW_MSG(TopoExcept(),"VERTEX NOT FOUND IN TRIANGLE "
-    " ip = "<<ip<<" iface = "<<iface<<" ideg "<<ideg);
+  return -1;
 }
 template <int ideg>
 int getveredg(int iedge, const intAr2 &edg2poi, int ip){
 	for(int i=0; i<edgnpps[ideg]; i++){
 		if(edg2poi(iedge,i) == ip) return i;
 	}
-	METRIS_THROW_MSG(TopoExcept(),"VERTEX NOT FOUND IN EDGE");
+  return -1;
 }
 #define BOOST_PP_LOCAL_MACRO(n)\
 template int getvertet< n >(int, const intAr2& , int );\
@@ -305,9 +304,9 @@ void print_bpolist(MeshBase &msh, int ibpoi){
 			printf("## LIST > 100\n");
 			return;
 		}
-		printf("%d: %d = (%d %d %d %d)\n",nlist,ibpo2,msh.bpo2ibi[ibpo2][0]
-			,msh.bpo2ibi[ibpo2][1],msh.bpo2ibi[ibpo2][2],msh.bpo2ibi[ibpo2][3]);
-		ibpo2 = msh.bpo2ibi[ibpo2][3];
+		printf("%d: %d = (%d %d %d %d)\n",nlist,ibpo2,msh.bpo2ibi(ibpo2,0)
+			,msh.bpo2ibi(ibpo2,1),msh.bpo2ibi(ibpo2,2),msh.bpo2ibi(ibpo2,3));
+		ibpo2 = msh.bpo2ibi(ibpo2,3);
 	}while(ibpo2 >= 0 && ibpo2 != ibpoi);
 }
 
@@ -326,19 +325,19 @@ void getbpois(const MeshBase &msh, int ientt, int *lbpoi){
 			// If the first pointer is already of type 1, then there is no lower-dim entity
 			// In that case, there is no guarantee there will be an entry for ientt specifically
 			// as there is no ambiguity. 
-			if(msh.bpo2ibi[ibpo0][1] == 1){
+			if(msh.bpo2ibi(ibpo0,1) == 1){
 				lbpoi[irnk] = ibpo0;
 				continue;
 			}
 			int ibpoi = ibpo0;
 			int nloop = 0;
-			while((msh.bpo2ibi[ibpoi][2] != ientt || msh.bpo2ibi[ibpoi][1] != 1) && msh.bpo2ibi[ibpoi][3] != ibpo0){
-				ibpoi = msh.bpo2ibi[ibpoi][3];
+			while((msh.bpo2ibi(ibpoi,2) != ientt || msh.bpo2ibi(ibpoi,1) != 1) && msh.bpo2ibi(ibpoi,3) != ibpo0){
+				ibpoi = msh.bpo2ibi(ibpoi,3);
 				nloop++;
 				if(nloop > 100) METRIS_THROW_MSG(TopoExcept(),
 					"100 BOUNDARY POINTS FOR ONE POINT? INFINITE LOOP");
 			}
-			assert(msh.bpo2ibi[ibpoi][2] == ientt);
+			assert(msh.bpo2ibi(ibpoi,2) == ientt);
 			lbpoi[irnk] = ibpoi;
 		}
 	}else{
@@ -350,21 +349,21 @@ void getbpois(const MeshBase &msh, int ientt, int *lbpoi){
 			// If the first pointer is already of type 2, then there is no lower-dim entity
 			// In that case, there is no guarantee there will be an entry for ientt specifically
 			// as there is no ambiguity. 
-			if(msh.bpo2ibi[ibpo0][1] == 2){
+			if(msh.bpo2ibi(ibpo0,1) == 2){
 				lbpoi[irnk] = ibpo0;
 				continue;
 			}
 			int ibpoi = ibpo0;
 			int nloop = 0;
-			while((msh.bpo2ibi[ibpoi][2] != ientt || msh.bpo2ibi[ibpoi][1] != 2) 
-				  && msh.bpo2ibi[ibpoi][3] != ibpo0){
-				ibpoi = msh.bpo2ibi[ibpoi][3];
+			while((msh.bpo2ibi(ibpoi,2) != ientt || msh.bpo2ibi(ibpoi,1) != 2) 
+				  && msh.bpo2ibi(ibpoi,3) != ibpo0){
+				ibpoi = msh.bpo2ibi(ibpoi,3);
 				assert(ibpoi < msh.nbpoi);
 				nloop++;
 				if(nloop > 100)METRIS_THROW_MSG(TopoExcept(),
 					"100 BOUNDARY POINTS FOR ONE POINT? INFINITE LOOP");
 			}
-			assert(msh.bpo2ibi[ibpoi][2] == ientt);
+			assert(msh.bpo2ibi(ibpoi,2) == ientt);
 			lbpoi[irnk] = ibpoi;
 		}
 	}
@@ -378,90 +377,6 @@ template void getbpois< n ,2>(const MeshBase &msh, int ientt, int *lbpoi);
 #include BOOST_PP_LOCAL_ITERATE()
 
 
-// Given ipoin, ientt of topo dim tdim, return the ibpoi attached to ientt, 
-// if it exists, -1 otherwise
-// If the point is same topo dim, we take any ibpoi that points to same ref
-int getent2bpo(const MeshBase &msh, int ibpoi, int ientt, int tdim){
-  METRIS_ASSERT(ibpoi >= 0 && ibpoi < msh.nbpoi);
-
-  int pdim = msh.bpo2ibi(ibpoi,1);
-
-
-  for(int ibpo2 = ibpoi; ibpo2 >= 0; ibpo2 = msh.bpo2ibi(ibpo2,3)){
-    int itype = msh.bpo2ibi[ibpo2][1];
-    if(itype < tdim) continue;
-    if(itype > tdim) return -1;
-
-    if(msh.bpo2ibi[ibpo2][2] == ientt) return ibpo2;
-
-    if(pdim == tdim){
-      #ifndef NDEBUG
-        const intAr1 &ent2ref = msh.ent2ref(tdim);
-        int iref = ent2ref[ientt];
-        METRIS_ASSERT(iref >= 0);
-        METRIS_ASSERT(ent2ref[msh.bpo2ibi[ibpo2][2]] == iref);
-      #endif
-
-      return ibpo2;
-    }
-
-  }
-
-  return -1;
-}
-
-
-// Give iref topo dim tdim, ibpoi, get ibpoi on that ref
-// Suitable for points of that same topo dim, otherwise could have looping surprises and such
-int getref2bpo(const MeshBase &msh, int ibpoi, int iref0, int tdimn){
-  METRIS_ASSERT(tdimn == 1 || tdimn == 2);
-  METRIS_ASSERT(ibpoi >= 0 && ibpoi < msh.nbpoi); 
-  METRIS_ASSERT(iref0 >= 0);
-
-  const intAr1 &ent2ref = msh.ent2ref(tdimn);
-
-  int ibpo2 = ibpoi;
-  int nn = 0;
-  do{
-    if(nn++ > METRIS_MAX_WHILE) METRIS_THROW_MSG(TopoExcept(), 
-      "ill-formed linked list of bpois");
-
-    int itype = msh.bpo2ibi[ibpo2][1];
-    if(itype == tdimn){
-      int ientt = msh.bpo2ibi[ibpo2][2];
-      int iref  = ent2ref[ientt];
-      if(iref == iref0)return ibpo2;
-    }
-  
-    ibpo2 = msh.bpo2ibi[ibpo2][3];
-  }while(ibpo2 != ibpoi && ibpo2 != -1);
-
-  return -1;
-}
-
-
-
-
-// Find a triangle-attached ibpoi in the linked list 
-// Returns first found, -1 if none. 
-int getbpo2facbpo(const MeshBase &msh, int ipoin){
-	int ibpoi = msh.poi2bpo[ipoin];
-  METRIS_ASSERT(ibpoi < msh.nbpoi);
-  if(ibpoi < 0) return -1;
-
-	int ibpo2 = ibpoi;
-	int nn = 0;
-	do{
-		if(nn++ > METRIS_MAX_WHILE) METRIS_THROW_MSG(TopoExcept(), 
-			"ill-formed linked list of bpois");
-
-		if(msh.bpo2ibi[ibpo2][1] == 2) return ibpo2;
-	
-		ibpo2 = msh.bpo2ibi[ibpo2][3];
-	}while(ibpo2 != ibpoi && ibpo2 != -1);
-
-	return -1;
-}
 
 
 bool getnextfacnm(const MeshBase &msh, int iface, int i1, int i2,
@@ -508,8 +423,8 @@ bool getnextedgnm(const MeshBase &msh, int iedge, int ipoin,
 //
 //	if(ibpoi >= 0){
 //		// If already a bpoi for this ipoin, insert corner in linked list
-//		int tmp = msh.bpo2ibi[ibpoi][3];
-//		msh.bpo2ibi[ibpoi][3] = msh.nbpoi;
+//		int tmp = msh.bpo2ibi(ibpoi,3);
+//		msh.bpo2ibi(ibpoi,3) = msh.nbpoi;
 //		msh.bpo2ibi[msh.nbpoi][3] = tmp;
 //		if(tmp < 0) msh.bpo2ibi[msh.nbpoi][3] = ibpoi;
 //	}
@@ -529,7 +444,7 @@ bool getnextedgnm(const MeshBase &msh, int iedge, int ipoin,
 //
 //
 //	// Only update if new ibpoi is the lowest-dimensional (or unknown yet)
-//	if(ibpoi < 0 || msh.bpo2ibi[ibpoi][1] > 1) msh.poi2bpo[ipoin] = msh.nbpoi;
+//	if(ibpoi < 0 || msh.bpo2ibi(ibpoi,1) > 1) msh.poi2bpo[ipoin] = msh.nbpoi;
 //	msh.bpo2ibi[msh.nbpoi][0] = ipoin; 
 //	msh.bpo2ibi[msh.nbpoi][1] = 1;  // Edge type
 //	msh.bpo2ibi[msh.nbpoi][2] = ientt; // Ref
@@ -541,15 +456,15 @@ bool getnextedgnm(const MeshBase &msh, int iedge, int ipoin,
 //
 //	if(ibpoi >= 0){
 //		// There is no particular order here, just put it at the start
-//		int tmp = msh.bpo2ibi[ibpoi][3];
-//		msh.bpo2ibi[ibpoi][3] = msh.nbpoi;
+//		int tmp = msh.bpo2ibi(ibpoi,3);
+//		msh.bpo2ibi(ibpoi,3) = msh.nbpoi;
 //		msh.bpo2ibi[msh.nbpoi][3] = tmp;
 //		if(tmp < 0) msh.bpo2ibi[msh.nbpoi][3] = ibpoi;
 //	}
 //	
 ////		// Check whether link should be carried out.
 ////		// Only if this is the lowest dim link (or only link) so far
-////		if( lnkent && ientt >= 0 && (ibpoi < 0 || ibpoi >= 0 && msh.bpo2ibi[ibpoi][1] < 1) ){
+////		if( lnkent && ientt >= 0 && (ibpoi < 0 || ibpoi >= 0 && msh.bpo2ibi(ibpoi,1) < 1) ){
 ////			int iver = getveredg<ideg>(ientt,msh.edg2poi,ipoin);
 ////	#ifndef NDEBUG
 ////	//		printf("Dbug link new edge ipoin %d ientt %d \n",ipoin,ientt);
@@ -592,8 +507,8 @@ bool getnextedgnm(const MeshBase &msh, int iedge, int ipoin,
 //	
 //	if(ibpoi >= 0){
 //		// There is no particular order here, just put it at the start
-//		int tmp = msh.bpo2ibi[ibpoi][3];
-//		msh.bpo2ibi[ibpoi][3] = msh.nbpoi;
+//		int tmp = msh.bpo2ibi(ibpoi,3);
+//		msh.bpo2ibi(ibpoi,3) = msh.nbpoi;
 //		msh.bpo2ibi[msh.nbpoi][3] = tmp;
 //		if(tmp < 0) msh.bpo2ibi[msh.nbpoi][3] = ibpoi;
 //	}
@@ -604,7 +519,7 @@ bool getnextedgnm(const MeshBase &msh, int iedge, int ipoin,
 ////		// In both cases, no need to walk linked list to find current min type
 ////		// No need to update poi2bpo either as already done or never to do
 ////		// Update fac2bpo
-////		if( lnkent && ientt >= 0 && (ibpoi < 0 || ibpoi >= 0 && msh.bpo2ibi[ibpoi][1] < 2) ){
+////		if( lnkent && ientt >= 0 && (ibpoi < 0 || ibpoi >= 0 && msh.bpo2ibi(ibpoi,1) < 2) ){
 ////			int iver = getverfac<ideg>(ientt,msh.fac2poi,ipoin);
 ////			#ifndef NDEBUG
 ////			if(iver < 0){

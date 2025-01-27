@@ -10,6 +10,7 @@
 #include "../low_lenedg.hxx"
 #include "../aux_topo.hxx"
 #include "../aux_timer.hxx"
+#include "../mprintf.hxx"
 #include "../cavity/msh_cavity.hxx"
 #include "../adapt/msh_swap2D.hxx"
 #include "../BezierOffsets/low_gaps.hxx"
@@ -24,15 +25,14 @@ namespace Metris{
 // lpins work array sized dynamically by this routine ; it's an argument solely because this will be called several times, save on alloc
 // also: as iterations go, fewer and fewer edges are long, no use allocating more than once to maximum needed size (first iter)
 template<class MFT, int gdim, int ideg>
-double insertLongEdges(Mesh<MFT> &msh, int ithrd1, int ithrd2, int ithrd3){
+double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int ithrd3){
+  GETVDEPTH(msh);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd3 >= 0 && ithrd3 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd1 != ithrd2);
   METRIS_ASSERT(ithrd1 != ithrd3);
   METRIS_ASSERT(ithrd2 != ithrd3);
-
-  const int &iverb = msh.param->iverb;
 
   bool imovmet = true; 
   bool imovavg = true;
@@ -50,9 +50,11 @@ double insertLongEdges(Mesh<MFT> &msh, int ithrd1, int ithrd2, int ithrd3){
 
   if(msh.bak != NULL) msh.bak->met.setSpace(MetSpace::Log);
 
-  if(iverb >= 1) printf("  -- insertLongEdges start \n");
-  if(iverb >= 1) printf("   - Note: improve by generating several points per edge. Generated but not used cf loop nn/2 \n");
-  if(iverb >= 1) printf("   - Note: improve by filtering point propositions \n");
+  CPRINTF2("-- insertLongEdges start \n");
+  #ifndef NDEBUG
+  CPRINTF2(" - Note: improve by generating several points per edge. Generated but not used cf loop nn/2 \n");
+  CPRINTF2(" - Note: improve by filtering point propositions \n");
+  #endif
   int edg2pol[edgnpps[ideg]];
 
 
@@ -98,10 +100,14 @@ double insertLongEdges(Mesh<MFT> &msh, int ithrd1, int ithrd2, int ithrd3){
   int ierro;
   int ninser1 = 0;
   int ninser2 = 0;
+  *ninser = 0;
   int niter1 = 0;
   // Untaged elements are to be considered 
+  #ifndef GLOFRO
   msh.tag[ithrd1]++;
+  #endif
   do{
+    INCVDEPTH(msh);
     ninser1 = 0;
 
     msh.cleanup();
@@ -126,6 +132,8 @@ double insertLongEdges(Mesh<MFT> &msh, int ithrd1, int ithrd2, int ithrd3){
       int nent0 = msh.nentt(tdim);
       t0 = get_wall_time();
       for(int ientt = 0; ientt < nent0; ientt++){
+        INCVDEPTH(msh);
+        
         if(isdeadent(ientt,ent2poi)) continue;
         if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
 
@@ -142,7 +150,7 @@ double insertLongEdges(Mesh<MFT> &msh, int ithrd1, int ithrd2, int ithrd3){
           // Pretty accurate!
           double sz[2];
           double len = getlenedg_geosz<MFT,gdim,ideg>(msh,ientt,tdim,ied,sz);
-          if(iverb >= 4) printf("     - try ientt = %d ied = %d len = %f \n",ientt,ied,len);
+          CPRINTF1(" - try ientt = %d ied = %d len = %f \n",ientt,ied,len);
           if(len < sqrt(2)) continue;
 
           edg2pol[0] = ent2poi(ientt,lnoed[ied][0]);
@@ -154,11 +162,11 @@ double insertLongEdges(Mesh<MFT> &msh, int ithrd1, int ithrd2, int ithrd3){
                            DifVar::None, DifVar::None, 
                            bar1, coop, NULL, NULL);
 
-          if(iverb >= 3){
-            printf("     - enact ins ientt = %d ied = %d len = %f edg %d %d  coord = ",
+          if(DOPRINTS1()){
+            CPRINTF1(" - enact ins ientt = %d ied = %d len = %f edg %d %d  coord = ",
                    ientt,ied,len,edg2pol[0],edg2pol[1]);
             dblAr1(msh.idim,coop).print();
-            printf("     - bary = ");
+            CPRINTF1(" - bary = ");
             dblAr1(3, bar1).print();
           }
 
@@ -205,7 +213,7 @@ double insertLongEdges(Mesh<MFT> &msh, int ithrd1, int ithrd2, int ithrd3){
               int ie2 = getedgent(msh,ineig,edg2pol[0],edg2pol[1]);
               int ipoi2 = ent2poi(ineig,ie2);
               for(int jj = 0; jj < gdim; jj++){
-                coop[jj] = 0.5*msh.coord[ipoi1][jj] + 0.5*msh.coord[ipoi2][jj];
+                coop[jj] = 0.5*msh.coord(ipoi1,jj) + 0.5*msh.coord(ipoi2,jj);
               }
             }
           }
@@ -220,15 +228,15 @@ double insertLongEdges(Mesh<MFT> &msh, int ithrd1, int ithrd2, int ithrd3){
             if(ierro <= 0) break;
             itry++;
             if(itry >= 1 + imovmet + imovavg) break;
-            if(ierro == 0 && iverb >= 2) printf(" - After trying ierro = 0 \n");
+            if(ierro == 0) CPRINTF1(" - After trying ierro = 0 \n");
             if(ierro > 0 && (itry == 0 && imovmet || imovavg)){
-              if(iverb >= 3){
-                printf("     -> insedgesurf fail: try again w/ imovmet %d imovavg %d\n",imovmet,imovavg);
-                printf("     - initial ipins = ");
+              CPRINTF1(" -> insedgesurf fail: try again w/ imovmet %d imovavg %d\n",imovmet,imovavg);
+              if(DOPRINTS1()){
+                CPRINTF1(" - initial ipins = ");
                 dblAr1(gdim,coop).print();
               }
               if(imovmet && itry == 1){
-                if(iverb >= 3) printf("     -> do imovmet\n");
+                CPRINTF1(" -> do imovmet\n");
                 // Do better than this, compute the Bézier offset for the metric and 
                 // place the point here -> follow curvature (even if P1)
                 double offset[gdim];
@@ -269,15 +277,15 @@ double insertLongEdges(Mesh<MFT> &msh, int ithrd1, int ithrd2, int ithrd3){
                   int ipoi1 = ent2poi(ientt,ied);
                   int ie2 = getedgent(msh,ineig,edg2pol[0],edg2pol[1]);
                   int ipoi2 = ent2poi(ineig,ie2);
-                  if(iverb >= 3) printf("     -> do imovavg use ineig %d ip1/2 %d %d\n",
+                  CPRINTF1(" -> do imovavg use ineig %d ip1/2 %d %d\n",
                     ineig,ipoi1,ipoi2);
                   for(int jj = 0; jj < gdim; jj++){
-                    coop[jj] = 0.5*msh.coord[ipoi1][jj] + 0.5*msh.coord[ipoi2][jj];
+                    coop[jj] = 0.5*msh.coord(ipoi1,jj) + 0.5*msh.coord(ipoi2,jj);
                   }
                 }
               }
-              if(iverb >= 3){
-                printf("     - final ipins = ");
+              if(DOPRINTS1()){
+                CPRINTF1(" - final ipins = ");
                 dblAr1(gdim,coop).print();
               }
             }
@@ -296,7 +304,7 @@ double insertLongEdges(Mesh<MFT> &msh, int ithrd1, int ithrd2, int ithrd3){
               }
             }
           }else{
-            if(iverb >= 3) printf("     - insertion failed ierro = %d \n",ierro);
+            CPRINTF1(" - insertion failed ierro = %d \n",ierro);
             linserr[ierro - 1] ++;
             nerro++;
             // If cavity selection error, untag as inert, as neighbours may influence yet
@@ -314,20 +322,18 @@ double insertLongEdges(Mesh<MFT> &msh, int ithrd1, int ithrd2, int ithrd3){
 
       double t1 = get_wall_time();
       int ncallps = 1000*(int)((ninser2 / (t1-t0)) / 1000);
-      if(iverb >= 2){
-        printf("   - Loop 1 end t = %f ninser %d = %d /s; nerro %d coll \n",
-          t1-t0,ninser2,ncallps,nerro);
-        if(nerro > 0){
-          printf("   - cavity ierro list:\n");
-          for(int ii = 0; ii < mcaverr; ii++){
-            if(lcaverr[ii] == 0) continue;
-            printf("     ierro = %d : %d \n",ii+1,lcaverr[ii]);
-          }
-          printf("   - inspoi ierro list:\n");
-          for(int ii = 0; ii < minserr; ii++){
-            if(linserr[ii] == 0) continue;
-            printf("     ierro = %d : %d \n",ii+1,linserr[ii]);
-          }
+      CPRINTF1(" - Loop 1 end t = %f ninser %d = %d /s; nerro %d coll \n",
+                t1-t0,ninser2,ncallps,nerro);
+      if(DOPRINTS2() && nerro > 0){
+        CPRINTF2(" - cavity ierro list:\n");
+        for(int ii = 0; ii < mcaverr; ii++){
+          if(lcaverr[ii] == 0) continue;
+          CPRINTF2("   ierro = %d : %d \n",ii+1,lcaverr[ii]);
+        }
+        CPRINTF2(" - inspoi ierro list:\n");
+        for(int ii = 0; ii < minserr; ii++){
+          if(linserr[ii] == 0) continue;
+          CPRINTF2("   ierro = %d : %d \n",ii+1,linserr[ii]);
         }
       }
 
@@ -405,32 +411,29 @@ double insertLongEdges(Mesh<MFT> &msh, int ithrd1, int ithrd2, int ithrd3){
 
         double t2 = get_wall_time();
         ncallps = 1000*(int)((ninser2 / (t2-t1)) / 1000);
-        if(iverb >= 1){
-          printf("   - Loop 2 end t = %f ninser %d = %d /s; nerro %d coll \n",
-            t2-t1,ninser2,ncallps,nerro);
-          if(iverb >= 2){
-            if(nerro > 0){
-              printf("   - cavity ierro list:\n");
-              for(int ii = 0; ii < mcaverr; ii++){
-                if(lcaverr[ii] == 0) continue;
-                printf("     ierro = %d : %d \n",ii+1,lcaverr[ii]);
-              }
-              printf("   - inspoi ierro list:\n");
-              for(int ii = 0; ii < minserr; ii++){
-                if(linserr[ii] == 0) continue;
-                printf("     ierro = %d : %d \n",ii+1,linserr[ii]);
-              }
-            }
+          CPRINTF1("   - Loop 2 end t = %f ninser %d = %d /s; nerro %d coll \n",
+                   t2-t1,ninser2,ncallps,nerro);
+        if(DOPRINTS2() && nerro > 0){
+          CPRINTF2("   - cavity ierro list:\n");
+          for(int ii = 0; ii < mcaverr; ii++){
+            if(lcaverr[ii] == 0) continue;
+            CPRINTF2("     ierro = %d : %d \n",ii+1,lcaverr[ii]);
+          }
+          CPRINTF2("   - inspoi ierro list:\n");
+          for(int ii = 0; ii < minserr; ii++){
+            if(linserr[ii] == 0) continue;
+            CPRINTF2("     ierro = %d : %d \n",ii+1,linserr[ii]);
           }
         }
       }
 
-
-      stat = MAX(stat, (double)ninser2/(double)nedgt);
+      if(nedgt == 0) stat = 0;
+      else           stat = MAX(stat, (double)ninser2/(double)nedgt);
 
       ninser1 += ninser2;
     }while(ninser2 > 0 && niter2++ < miter2);
 
+    *ninser += ninser1;
   }while(ninser1 > 0 && niter1++ < miter1);
 
 
@@ -460,7 +463,7 @@ double insertLongEdges(Mesh<MFT> &msh, int ithrd1, int ithrd2, int ithrd3){
   //  bool iflat;
   //  double vtol = 1.0e-12;
   //  double meas0 = getmeasentP1<2,2>(msh.fac2poi[iface], msh.coord, 
-  //                                   vtol, nrmal, &iflat, iverb-1);
+  //                                   vtol, &iflat, iverb-1);
 
   //  double det = detsym<2,double>(msh.met[ipnew]);
 
@@ -746,13 +749,13 @@ double insertLongEdges(Mesh<MFT> &msh,   int iverb, int ithrd1 ){
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
 template double insertLongEdges<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
-                                int ithrd1, int ithrd2, int ithrd3);\
+                                int* ninser, int ithrd1, int ithrd2, int ithrd3);\
 template double insertLongEdges<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,\
-                                int ithrd1, int ithrd2, int ithrd3);\
+                                int* ninser, int ithrd1, int ithrd2, int ithrd3);\
 template double insertLongEdges<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,\
-                                int ithrd1, int ithrd2, int ithrd3);\
+                                int* ninser, int ithrd1, int ithrd2, int ithrd3);\
 template double insertLongEdges<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,\
-                                int ithrd1, int ithrd2, int ithrd3);
+                                int* ninser, int ithrd1, int ithrd2, int ithrd3);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

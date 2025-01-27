@@ -130,6 +130,8 @@ namespace Constants{
   // slack is given. 
   const double dtprdMisAlign = 0.4;
 
+  const double detTol = 1.0e-32;
+
 
   // Expected number of entities per vertex (not ctrl pt)
   // See below for "proofs"

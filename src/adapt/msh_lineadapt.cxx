@@ -16,6 +16,7 @@
 #include "../aux_utils.hxx"
 #include "../msh_checktopo.hxx"
 #include "../aux_topo.hxx"
+#include "../mprintf.hxx"
 #include "../io_libmeshb.hxx"
 #include "../adapt/low_increasecav.hxx"
 #include "../cavity/msh_cavity.hxx"
@@ -26,16 +27,24 @@ namespace Metris{
 // Adapt lines "frontally" using CAD
 template<class MFT>
 void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
-  int iverb = msh.param->iverb;
+  GETVDEPTH(msh);
   if(!msh.CAD()) return;
 
-  if(iverb >= 1) printf("-- Start adaptGeoLines.\n");
+
+  //adaptGeoLines2<MFT>(msh,ithrd1,ithrd2);
+  //printf("wait afte adaptGeoLines2\n");
+  //wait();
+  //return;
+
+
+
+  CPRINTF1("-- Start adaptGeoLines.\n");
 
   if(msh.param->dbgfull)  check_topo(msh);
 
   //printf("## DEBUG corner point 2 print all bpois\n");
   //for(int ibpoi = msh.poi2bpo[2]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
-  //  printf("%d = %f : ",ibpoi,msh.bpo2rbi[ibpoi][0]);
+  //  printf("%d = %f : ",ibpoi,msh.bpo2rbi(ibpoi,0));
   //  intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
   //}
 
@@ -77,7 +86,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
     for(int ii = 0; ii < 2; ii++){
       int ip = msh.edg2poi(iedge,ii);
       int ib = msh.poi2bpo[ip];
-      if(msh.bpo2ibi[ib][1] == 0){
+      if(msh.bpo2ibi(ib,1) == 0){
         nseen++;
         ref2cor[iref] = ip;
         icnt = true;
@@ -90,8 +99,9 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
     if(icnt) continue;
   }
 
-  METRIS_ASSERT_MSG(nseen == msh.CAD.ncaded, "nseen = "<<nseen<<" ncaded = "
-    <<msh.CAD.ncaded);
+
+  //METRIS_ASSERT_MSG(nseen == msh.CAD.ncaded, "nseen = "<<nseen<<" ncaded = "
+  //  <<msh.CAD.ncaded);
 
 
   //printf("## DEBUG point 1 ibpoi & stuff\n");
@@ -104,7 +114,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
   // Start by forcing all points on the geometry 
   reinsertLines<MFT>(msh,ithrd1,ithrd2);
-  if(iverb >= 2) writeMesh("lineforce",msh);
+  if(DOPRINTS2()) writeMesh("lineforce",msh);
 
   dblAr1 crv_lens(msh.CAD.ncaded);
   getCADCurveLengths(msh, (lentolfac - 1.0), crv_lens);
@@ -120,7 +130,6 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
   opts.skip_topo_checks = true;
   opts.allow_remove_points = true;
   opts.dryrun = false;
-  opts.iverb  = iverb;
   opts.geodev1 = 1.0; // lax
 
 
@@ -134,6 +143,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
   int nEGrro = 0;
   for(int iloop = 0; iloop < msh.CAD.ncadlp; iloop++){
+    INCVDEPTH(msh);
 
     // Make a map of edge ego orientations 
     ego loop = msh.CAD.cad2lop[iloop], *lchild, geom; 
@@ -156,11 +166,22 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
     int nloop;
     // Loop over CAD edges and remesh each one 
     for(int iCADed = 0; iCADed < nchild; iCADed++){
-      ego obj = lchild[iCADed];
-      int iref = CADedg2ref[obj];
-      if(CADedg2tag[obj] >= CADedgtag) continue;
+      INCVDEPTH(msh)
 
-      if(iverb >= 1) printf("\n   - Loop %d adapt line %d / %d \n", 
+      ego obj = lchild[iCADed];
+      if(CADedg2tag[obj] >= CADedgtag) continue;
+      CADedg2tag[obj] = CADedgtag;
+
+      int iref = CADedg2ref[obj];
+      METRIS_ASSERT(iref >= 0);
+      int icor0 = ref2cor[iref];
+      if(icor0 < 0){
+        CPRINTF1("\n - Loop %d line %d / %d is degenerate -> skip\n",
+                              iloop, iref+1, msh.CAD.ncaded);
+        continue;
+      }
+
+      CPRINTF1("\n - Loop %d adapt line %d / %d \n", 
                             iloop, iref+1, msh.CAD.ncaded);
 
       // Initially we want length one. As we discretize and converge to the curve
@@ -173,11 +194,9 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
       bool doskip = true;
 
       // icor0: seed corner for this CAD edge. 
-      int icor0 = ref2cor[iref];
-      int ibcr0 = msh.poi2bpo[icor0];
+      int ibcr0 = msh.poi2ebp(icor0,1,-1,iref);
       METRIS_ASSERT(ibcr0 >= 0);
-      ibcr0 = getref2bpo(msh,ibcr0,iref,1);
-      int iedc0 = msh.bpo2ibi[ibcr0][2];
+      int iedc0 = msh.bpo2ibi(ibcr0,2);
       METRIS_ASSERT(iedc0 >= 0);
 
       int iedge = iedc0;
@@ -187,10 +206,31 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
       double min_len = 1.0e30, max_len = -1.0, avg_len = 0.0;
       //double crv_len = 0;
       int npavg = 0;
+
+
       while(true){
+
+        INCVDEPTH(msh);
 
         bool ifin = false;
         int iver = getveredg<1>(iedge,msh.edg2poi,ipoi0);
+        if(iver < 0){
+          printf("icor0 = %d not found in edge %d \n",icor0,iedge);
+          printf(" dump bpois corner \n");
+          for(int ibpoi=msh.poi2bpo[icor0]; ibpoi>=0; ibpoi=msh.bpo2ibi(ibpoi,3)){
+            printf("%d: ",ibpoi);
+            intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
+            if(msh.bpo2ibi(ibpoi,1) == 1){
+              printf(" edg : ");
+              intAr1(2,msh.edg2poi[msh.bpo2ibi(ibpoi,2)]).print();
+            }
+            if(msh.bpo2ibi(ibpoi,1) == 2){
+              printf(" fac : ");
+              intAr1(3,msh.fac2poi[msh.bpo2ibi(ibpoi,2)]).print();
+            }
+          }
+        }
+        METRIS_ASSERT(iver >= 0);
         // Next point:
         ipoi0 = msh.edg2poi(iedge,1-iver);
         // Evaluate 
@@ -198,7 +238,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
         if(msh.bpo2ibi(ibpo0,1) == 0){
           ifin = true;
           // If corner, get the bpo for this edge. 
-          ibpo0 = getent2bpo(msh,ibpo0,iedge,1);
+          ibpo0 = msh.poi2ebp(ipoi0,1,iedge,-1);
         }
         ierro = EG_evaluate(obj, msh.bpo2rbi[ibpo0], result);
         double dst; 
@@ -211,7 +251,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
         // If distance is too large, points are not on the geometry, get on with
         // the normal procedure. 
         if(dst > geotol*geotol){
-          if(iverb >= 2) printf("   - Point %d not on geometry, dist = %15.7e > "
+          CPRINTF1(" - Point %d not on geometry, dist = %15.7e > "
                                       "%15.7e = tol\n", ipoi0, sqrt(dst), geotol);
           doskip = false;
           //break;
@@ -223,8 +263,8 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
           len = getlenedg_geosz<MFT,3,1>(msh,msh.edg2poi[iedge],sz);
         }
 
-        if(iverb >= 2) printf("     - initial edge %d (%d,%d) length %15.7e\n",
-          iedge,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1),len);
+        CPRINTF1(" - initial edge %d (%d,%d) length %15.7e\n",
+                 iedge,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1),len);
 
         iedge = msh.edg2edg(iedge, iver);
 
@@ -250,7 +290,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
               && max_len <= tarlen + lentolabs;
         //doskip = min_len >= tarlen / lentolfac  
         //      && max_len <= tarlen * lentolfac;
-        if(iverb >= 2) printf("   - Points on geometry, now check length: min = %f" 
+        CPRINTF1(" - Points on geometry, now check length: min = %f" 
           " avg = %f max = %f new tarlen = %f -> doskip = %d crv_len = %f  \n", 
           min_len, avg_len, max_len, tarlen, doskip, crv_lens[iref]);
       }
@@ -273,10 +313,12 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
         range[1] = tmp;
       }
 
-      if(iverb >= 2) printf("   - range %f , %f \n",range[0],range[1]);
+      CPRINTF1(" - range %f , %f \n",range[0],range[1]);
 
 
       for(int nedgit = 0; nedgit < medgit; nedgit++){
+        INCVDEPTH(msh);
+        int ninser = 0, nerror = 0, nstein = 0;
 
         // We'll adjust the target length depending on the lengths effectively obtained.
         // This is to avoid propagating error until the last point. 
@@ -284,18 +326,16 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
         double lentolabs = tarlen * (lentolfac - 1.0); 
 
         // This stuff has to enter the loop because the ibcr0 changes, also iedc0
-        ibcr0 = msh.poi2bpo[icor0];
         // Get the corresponding ib on the correct tdimn 1 ref 
-        ibcr0 = getref2bpo(msh,ibcr0,iref,1);
-
+        int ibcr0 = msh.poi2ebp(icor0,1,-1,iref);
         METRIS_ASSERT(ibcr0 >= 0);
 
         // Seed edge 
-        iedc0 = msh.bpo2ibi[ibcr0][2];
+        iedc0 = msh.bpo2ibi(ibcr0,2);
         METRIS_ASSERT(iedc0 >= 0);
 
-        if(iverb >= 2) printf("   - iter %d seed corner %d (t = %f) edge = %d (%d, %d) tarlen = %f\n",
-          nedgit,icor0,msh.bpo2rbi[ibcr0][0],iedc0,msh.edg2poi(iedc0,0),msh.edg2poi(iedc0,1),tarlen);
+        CPRINTF1(" - iter %d seed corner %d (t = %f) edge = %d (%d, %d) tarlen = %f\n",
+          nedgit,icor0,msh.bpo2rbi(ibcr0,0),iedc0,msh.edg2poi(iedc0,0),msh.edg2poi(iedc0,1),tarlen);
 
         METRIS_ASSERT_MSG(msh.edg2poi(iedc0,0) == icor0 || msh.edg2poi(iedc0,1) == icor0,
           "Corner not in seed edge ! ib = "<<ibcr0<<" entries = "
@@ -307,15 +347,15 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
         int irnge = -1;
         double drnge = abs(range[1] - range[0]);
         for(int ii = 0; ii < 2; ii++){
-          if(abs(range[ii] - msh.bpo2rbi[ibcr0][0]) < 1.0e-6 * drnge) irnge = ii;
+          if(abs(range[ii] - msh.bpo2rbi(ibcr0,0)) < 1.0e-6 * drnge) irnge = ii;
         }
         METRIS_ENFORCE_MSG(irnge != -1,"## CORNERS IN MESH HAVE WRONG CAD EDGE "
         "PARAMETRIC COORDINATES !\n" <<" icor = "<<icor0<<" range = "<<range
-        [0]<<" - "<<range[1]<<" this t = "<<msh.bpo2rbi[ibcr0][0]);
+        [0]<<" - "<<range[1]<<" this t = "<<msh.bpo2rbi(ibcr0,0));
 
 
-        if(iverb >= 2) printf("   - CAD edge %d inner iteration %d tarlen = %f \n",
-                              iref,nedgit,adjusted_tarlen);
+        //if(iverb >= 2) printf("   - CAD edge %d inner iteration %d tarlen = %f \n",
+        //                      iref,nedgit,adjusted_tarlen);
 
         // Error on existing edge points, used to determine whether re-iteration
         // is needed
@@ -332,6 +372,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
         bool   continue_ref = true;
         int    npins        = 0;
         while(continue_ref){
+          if(msh.param->dbgfull) check_topo(msh);
 
           // Initialize / reset cavity
           cav.lcfac.set_n(0);
@@ -373,24 +414,23 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
             cav.ipins = edg2pol[1];
             continue_ref = false;
-            if(iverb >= 2) printf("   - Terminating edge insertions for iref = %d."
+            CPRINTF1(" - Terminating edge insertions for iref = %d."
                             "Inserted %d points. Last length %f error %15.7e  \n",
                             iref,npins,len, len-tarlen);
-            if(iverb >= 2){
+            if(DOPRINTS1()){
               std::string fname = "debug_lineadapt" + std::to_string(iref) + ".meshb";
               writeMesh(fname,msh);
             }
 
           }
 
-          if(iverb >= 4)
-            writeMeshCavity("debug_lineadap0_cav",msh,cav);
+          if(DOPRINTS2()) writeMeshCavity("debug_lineadap0_cav",msh,cav);
 
           // Proceed to insertion We have our ipins, edge cavity also. Now extend
           // triangle cavity from edg2fac seeds
           nloop = 0;
           do{
-            ierro = increase_cavity2D(msh,msh.fac2ref[iface],msh.coord[cav.ipins],
+            ierro = increase_cavity2D(msh,msh.coord[cav.ipins],
                                       opts,cav,ithrd1);
             nloop++;
             if(nloop > 10) METRIS_THROW_MSG(TopoExcept(), "Too many cavity increases !");
@@ -398,15 +438,14 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
           increase_cavity_Delaunay(msh, cav, cav.ipins, ithrd1);
 
-          if(iverb >= 4)
-            writeMeshCavity("debug_lineadap1_cav",msh,cav);
+          if(DOPRINTS2()) writeMeshCavity("debug_lineadap1_cav",msh,cav);
 
 
-          if(iverb >= 3){
-            printf(" insert ipins = %d (%f,%f) list lcedg, lcfac:\n",cav.ipins,
-              msh.coord(cav.ipins,0), msh.coord(cav.ipins,1));
-            cav.lcedg.print();
-            cav.lcfac.print();
+          if(DOPRINTS1()){
+            CPRINTF1(" - insert ipins = %d (%f,%f) list lcedg, lcfac:\n",cav.ipins,
+                      msh.coord(cav.ipins,0), msh.coord(cav.ipins,1));
+            CPRINTF1(""); cav.lcedg.print(); // indentation
+            CPRINTF1(""); cav.lcfac.print();
           }
 
 
@@ -418,17 +457,17 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
             #if 0
             METRIS_ASSERT(ifin);
             int ib = msh.poi2bpo[cav.ipins];
-            METRIS_ASSERT(msh.bpo2ibi[ib][1] == 0);
-            ib = msh.bpo2ibi[ib][3];
-            METRIS_ASSERT(msh.bpo2ibi[ib][1] == 1);
+            METRIS_ASSERT(msh.bpo2ibi(ib,1) == 0);
+            ib = msh.bpo2ibi(ib,3);
+            METRIS_ASSERT(msh.bpo2ibi(ib,1) == 1);
             // Tag all the refs
             do{
-              if(msh.bpo2ibi[ib][1] == 1){
-                int itmp = msh.bpo2ibi[ib][2];
+              if(msh.bpo2ibi(ib,1) == 1){
+                int itmp = msh.bpo2ibi(ib,2);
                 int iref2 = msh.edg2ref[itmp];
-                if(iref2 != iref) msh.ced2tag[ithrd1][iref2] = msh.tag[ithrd1];
+                if(iref2 != iref) msh.ced2tag(ithrd1,iref2) = msh.tag[ithrd1];
               }
-              ib = msh.bpo2ibi[ib][3];
+              ib = msh.bpo2ibi(ib,3);
             }while(ib >= 0);
 
 
@@ -440,7 +479,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
                 int itmp = getedgglo(msh,ip1,ip2);
                 if(itmp < 0) continue;
                 int iref2 = msh.edg2ref[itmp];
-                if(msh.ced2tag[ithrd1][iref2] >= msh.tag[ithrd1]){
+                if(msh.ced2tag(ithrd1,iref2) >= msh.tag[ithrd1]){
                   cav.lcedg.stack(itmp); 
                   if(iverb >= 3) printf("   - Add edge %d to cavity (ref %d) \n",
                                                                       itmp,iref2);
@@ -455,20 +494,42 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
           if(msh.idim >= 3 && iface >= 0){
             getnorfacP1(msh.fac2poi[iface],msh.coord,nrmal);
             cav.nrmal = nrmal;
+
+            #if 0
+            printf("## DEBUG computed getnorfacP1 ");
+            dblAr1(3,nrmal).print();
+            getnorballref<1>(msh,cav.lcfac,-1,nrmal);
+            printf("## DEBUG computed getnorpoi ");
+            dblAr1(3,nrmal).print();
+
+            if(msh.nface >= 555){
+              int ibpoi = msh.poi2ebp(msh.fac2poi(554,0),2,554,-1);
+              printf("## DEBUG USING IFACE 554 VERTEX %d \n",msh.fac2poi(554,0));
+
+              //for(int ibpoi = msh.poi2bpo[cav.ipins]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+              //  printf(" %d : ");
+              //  intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
+              //}
+              getnorpoiCAD2(msh,ibpoi,nrmal);
+              printf("## DEBUG computed getnorpoiCAD2 ");
+              dblAr1(3,nrmal).print();
+
+              bool iflat;
+              getmeasentP1<3,2>(msh, msh.fac2poi[554], nrmal, &iflat);
+            }
+            #endif
           }
 
           // If insertion fails, try inserting a Steiner point 
           // First insertion is regular. 
           for(int isteiner = 0; isteiner <= 1; isteiner++){
 
-            if(iverb >= 3){
-              printf("   - Starting insert ipins = %d cav ncedg = %d ncfac = %d \n",    
+            CPRINTF1(" - Starting insert ipins = %d cav ncedg = %d ncfac = %d \n",    
                                      cav.ipins,cav.lcedg.get_n(),cav.lcfac.get_n());
-            }
 
-            if(iverb >= 4){
-              int *refold = (int *) malloc(msh.nface*sizeof(int));
-              METRIS_ENFORCE(refold != NULL);
+            if(DOPRINTS2()){
+              intAr1 &refold = msh.iwork;
+              refold.set_n(msh.nface);
               for(int ii = 0; ii < msh.nface; ii++){
                 refold[ii] = msh.fac2ref[ii];
                 msh.fac2ref[ii] = 2;
@@ -481,9 +542,9 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
               int ipoin = msh.newpoitopo(-1,-1);
               int ibpoi = msh.template newbpotopo<0>(ipoin,ipoin);
               for(int ii = 0; ii < msh.idim; ii++) 
-                msh.coord[ipoin][ii] = msh.coord[cav.ipins][ii] ;
+                msh.coord(ipoin,ii) = msh.coord[cav.ipins][ii] ;
               writeMesh("debug_lineadap0.meshb",msh);
-              for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi[ibpoi][ii]  = -1;
+              for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi(ibpoi,ii)  = -1;
               msh.set_npoin(msh.npoin-1);
               msh.set_nbpoi(msh.nbpoi-1);
               //printf("Wait here \n");
@@ -491,16 +552,21 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
               for(int ii = 0; ii < msh.nface; ii++){
                 msh.fac2ref[ii] = refold[ii];
               }
-              free(refold);
 
               writeMeshCavity("debug_lineadap2_cav",msh,cav);
             }
+
 
             CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
               ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd1);
             }}CT_FOR1(ideg);
 
-            if(ierro == 0 && isteiner == 1 && iverb >= 3){
+            if(ierro == 0){
+              ninser++;
+              if(isteiner == 1) nstein++;
+            }
+
+            if(ierro == 0 && isteiner == 1 && DOPRINTS1()){
               printf("   - Steiner reinsertion successful\n");
               //wait();
             }
@@ -508,15 +574,19 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
 
             // Insertion failed. If this is the Steiner try, throw error. 
-            if(isteiner > 0){
-              if(iverb >= 3){
+            if(isteiner > 0 || msh.idim == 3){
+              if(DOPRINTS1()){
                 #ifndef NDEBUG
-                printf("## Steiner insertion cavity error %d wait \n",ierro);
+                if(isteiner > 0){
+                  printf("## Steiner insertion cavity error %d wait \n",ierro);
+                }else if(msh.idim == 3){
+                  printf("## Steiner surf unavailable -> skip\n");
+                }
                 if(msh.param->dbgfull) wait();
                 #endif
               }
               goto cleanup1;
-            }else if(iverb >= 3){
+            }else if(DOPRINTS1()){
               printf("   - going to try Steiner insertion \n");
               #ifndef NDEBUG
               if(msh.param->dbgfull) wait();
@@ -526,7 +596,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
             double norpoi[3];
             ierro = getnorpoiCAD1(msh, cav.ipins, edgorient, norpoi);
 
-            if(iverb >= 3){
+            if(DOPRINTS1()){
               printf("   - got CAD = ");
               dblAr1(msh.idim, norpoi).print();
             }
@@ -537,7 +607,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
             #if 0
             // Otherwise, let's try inserting a point along the normal to the 
             // point. 
-            METRIS_ASSERT(msh.bpo2ibi[ibpnw][1] == 1);
+            METRIS_ASSERT(msh.bpo2ibi(ibpnw,1) == 1);
             ierro = EG_evaluate(obj, msh.bpo2rbi[ibpnw], result);
             METRIS_ASSERT(ierro == EGADS_SUCCESS); 
             if(ierro != 0){
@@ -580,7 +650,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
             }
 
             //int isens = edgorient[obj];
-            if(iverb >= 3) 
+            if(DOPRINTS1()) 
               printf("   - Steiner nor = %f %f len2 = %f orient %d \n",
                                   norpoi[0],norpoi[1],len2,edgorient[obj]);
 
@@ -599,7 +669,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
                                         - step *  norpoi[ii] / len2;  // + isens *
               }
 
-              if(iverb >= 3){
+              if(DOPRINTS1()){
                 printf("   - Steiner insertion attempt step %f coop = ",step);
                 dblAr1(msh.idim,msh.coord[cav.ipins]).print();
               }
@@ -608,7 +678,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
               ierro = msh.interpMetBack(cav.ipins,msh.get_tdim(),iface,-1,NULL);
 
               if(ierro != 0){
-                if(iverb >= 3) printf("## Steiner attempt interpmet error %d \n",ierro);
+                CPRINTF1("## Steiner attempt interpmet error %d \n",ierro);
                 // If this fails, relax down to 0 for a few iterations. Probably
                 // overshot. 
                 // Note: not any more since we're relaxing up for visibility 
@@ -620,13 +690,13 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
               // setting lcedg.Set_n = 0 and restoring.
 
 
-              ierro = increase_cavity2D(msh,msh.fac2ref[iface],msh.coord[cav.ipins],
+              ierro = increase_cavity2D(msh,msh.coord[cav.ipins],
                                         opts,cav,ithrd1);
 
               if(ierro != 0){
                 step *= 1.5;
-                if(iverb >= 3) printf("## Steiner attempt increase_cavity error %d \n",ierro);
-                if(iverb >= 3) writeMeshCavity("debug_lineadap0_cav_Steiner"+
+                CPRINTF1("## Steiner attempt increase_cavity error %d \n",ierro);
+                if(DOPRINTS1()) writeMeshCavity("debug_lineadap0_cav_Steiner"+
                                                std::to_string(iststp),msh,cav);
                 continue;
               }
@@ -638,7 +708,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
               if(ierro != 0){
                 step *= 1.5;
-                if(iverb >= 3) printf("## Steiner attempt cavity error %d \n",ierro);
+                CPRINTF1("## Steiner attempt cavity error %d \n",ierro);
                 continue; 
               }
 
@@ -657,13 +727,13 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
                 cav.lcfac.stack(ifac1);
               }
 
-              if(iverb >= 3) printf("   - Steiner insertion succeeded \n");
-              if(iverb >= 4) writeMesh("debug_Steiner.meshb",msh);
+              CPRINTF1(" - Steiner insertion succeeded \n");
+              if(DOPRINTS2()) writeMesh("debug_Steiner.meshb",msh);
               break;
             }
 
             if(!stsuc){
-              if(iverb >= 3){
+              if(DOPRINTS1()){
                 printf("## Steiner attempt failed error %d \n",ierro);
                 #ifndef NDEBUG
                 wait();
@@ -698,19 +768,13 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
               len2 = getlenedgsq<3>(dv,metl);
             }
             #endif
-
-
-
-
-
+ 
 
           }
 
 
           if(msh.param->dbgfull) check_topo(msh);
-          if(iverb >= 4){
-            writeMesh("debug_lineadap1.meshb",msh);
-          }
+          if(DOPRINTS2()) writeMesh("debug_lineadap1.meshb",msh);
 
           if(!continue_ref) break;
 
@@ -720,19 +784,18 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
           ibpo0 = msh.poi2bpo[ipoi0];
 
           // Should be a line point, if corner we exited already (!continue_ref)
-          METRIS_ASSERT_MSG(msh.bpo2ibi[ibpo0][1] == 1, 
-            "corner despite continue_ref? itype = "<<msh.bpo2ibi[ibpo0][1]<<
+          METRIS_ASSERT_MSG(msh.bpo2ibi(ibpo0,1) == 1, 
+            "corner despite continue_ref? itype = "<<msh.bpo2ibi(ibpo0,1)<<
             " ibpo0 = "<<ibpo0<<" ipoin = "<<msh.bpo2ibi(ibpo0,0));
 
-          if(iverb >= 3) printf("   - Start from ipoi0 = %d ibpo0 = %d \n",
-            ipoi0,ibpo0);
+          CPRINTF1(" - Start from ipoi0 = %d ibpo0 = %d \n", ipoi0,ibpo0);
 
           iedg0 = -1;
           //  - edge seed is whichever of 2 last goes way from icor0
           for(int ii = 0; ii < 2; ii++){
             iedge = msh.nedge - 2 + ii;
-            if(iverb >= 3) printf("    - check iedge %d = (%d,%d)\n",
-              iedge,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
+            CPRINTF1("- check iedge %d = (%d,%d)\n",
+                     iedge,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
             int ip; 
             if(msh.edg2poi(iedge,0) == cav.ipins){
               ip = msh.edg2poi(iedge,1);
@@ -741,18 +804,13 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
             }else{
               METRIS_THROW_MSG(TopoExcept(),"Check again edge indices after insertion");
             }
-            int ib = msh.poi2bpo[ip];
+            int ib = msh.poi2ebp(ip,1,iedge,-1);
             METRIS_ASSERT(ib >= 0);
 
-            if(msh.bpo2ibi[ib][1] == 0){
-              ib = getent2bpo(msh,ib,iedge,1);
-            }
-            METRIS_ASSERT(ib >= 0);
+            double t = msh.bpo2rbi(ib,0);
 
-            double t = msh.bpo2rbi[ib][0];
-
-            if(iverb >= 3) printf("    - Candidate point %d t = %f orig = %f \n",
-                                   ip,t,msh.bpo2rbi(ibpo0,0));
+            CPRINTF1("- Candidate point %d t = %f orig = %f \n",ip,t,
+                                   msh.bpo2rbi(ibpo0,0));
             // Corner is range[irnge]
             // If this point is away from initial corner respective to ipins
             if(irnge == 0 && t > msh.bpo2rbi(ibpo0,0)
@@ -776,16 +834,18 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
           continue;
 
           cleanup1: 
+          nerror++;
           if(cav.ipins >= 0 && !ifin){
             // This removes any debug points that were put here.
             //msh.set_nbpoi(msh.poi2bpo[cav.ipins]-1);
             //msh.set_npoin(cav.ipins-1);
+            msh.killpoint(cav.ipins);
             break;
           }
 
         } // End loop operations
 
-        if(iverb >= 3){
+        if(DOPRINTS1()){
           std::string fname = "geolines_ref" + std::to_string(iref) 
                             + "_iter" + std::to_string(nedgit);
           writeMesh(fname,msh);
@@ -803,22 +863,21 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
         // In that case, there might be an error on the last edge length. 
         // The tarlen is corrected to even that error out. 
         int nedcrv = crv_lens[iref] / tarlen;
-        if(iverb >= 2) printf("   - End len %f correct tarlen %f -> %f \n",
-                              len,tarlen,tarlen+(len-tarlen) / nedcrv);
+        //if(iverb >= 2) printf("   - End len %f correct tarlen %f -> %f \n",
+        //                      len,tarlen,tarlen+(len-tarlen) / nedcrv);
         // Damping -> in the future, we need to be less aimless here 
         tarlen += (len-tarlen) / nedcrv / 10; 
 
         //break;
 
+        CPRINTF1(" - iter %d last len %f, |err| = %f, tol = %f, ninser %d nerro %d nstein %d\n",
+          nedgit,len,len-tarlen,abs(1.0 - lentolfac),ninser,nerror,nstein);
+
         //if(abs(tarlen - tarle0) > abs(1.0 - lentolfac)){
         if(abs(tarlen - len) > abs(1.0 - lentolfac)){
-          if(iverb >= 1) printf("   - iter %d correct tarlen %f -> %f, err = %f" 
-                        " > tol = %f \n",nedgit,tarle0,tarlen,len-tarlen,abs(1.0 - lentolfac));
+          //if(iverb >= 1) printf("   - iter %d last len %f corr tarlen %f -> %f, err = %f" 
+          //      " > tol = %f \n",nedgit,len,tarle0,tarlen,len-tarlen,abs(1.0 - lentolfac));
           continue;
-        }else if(iverb >= 1){
-          if(iverb >= 1) printf("   - iter %d end line: |err| = %f < tol = %f\n",nedgit,
-                                abs(len-tarlen),abs(1.0 - lentolfac));
-
         }
 
         // Restart by default, not if no pt inexact
@@ -848,6 +907,7 @@ template void adaptGeoLines<MetricFieldFE        >(Mesh<MetricFieldFE        > &
 // ref2cor should, for each edge reference, give its two end points. 
 template<class MFT>
 void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
+  GETVDEPTH(msh);
 
   const int nref = msh.CAD.ncaded;
   const int iverb = msh.param->iverb; 
@@ -856,7 +916,7 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
   MetSpace ispac0 = msh.met.getSpace();
   msh.met.setSpace(MetSpace::Log);
 
-  if(iverb >= 1) printf(" - START getCADCurveLengths\n");
+  CPRINTF2(" - START getCADCurveLengths\n");
 
   double result[18];
   const int nnmet = (msh.idim*(msh.idim + 1)) / 2;
@@ -900,14 +960,15 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
     crv_len0[iref] += len;
   }
 
-  if(iverb >= 1){
+  if(DOPRINTS1()){
     for(int iref = 0; iref < nref; iref++)
-      printf("   - line %d len0 = %f\n",iref, crv_len0[iref]);
+      CPRINTF2(" - line %d len0 = %f\n",iref, crv_len0[iref]);
   }
 
 
   // Refine each edge until the successive lengths are close enough 
   for(int iedge = 0; iedge < msh.nedge; iedge++){
+    INCVDEPTH(msh);
     if(isdeadent(iedge,msh.edg2poi)) continue;
     int iref = msh.edg2ref[iedge]; 
     ego obj = msh.CAD.cad2edg[iref];
@@ -915,26 +976,26 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
     int ipoi1 = msh.edg2poi(iedge,0);
     int ipoi2 = msh.edg2poi(iedge,1);
 
-    int ibpo1 = msh.poi2bpo[ipoi1];
-    if(msh.bpo2ibi(ibpo1,1) == 0) ibpo1 = getent2bpo(msh,ibpo1,iedge,1);
-    int ibpo2 = msh.poi2bpo[ipoi2];
-    if(msh.bpo2ibi(ibpo2,1) == 0) ibpo2 = getent2bpo(msh,ibpo2,iedge,1);
+    int ibpo1 = msh.poi2ebp(ipoi1,1,iedge,-1);
+    int ibpo2 = msh.poi2ebp(ipoi2,1,iedge,-1);
+    METRIS_ASSERT(ibpo1 >= 0 && ibpo2 >= 0);
+
 
     double t0_1 = msh.bpo2rbi(ibpo1, 0);
     double t0_2 = msh.bpo2rbi(ibpo2, 0); 
 
-    if(iverb >= 3){
-      printf("  - iedge %d ib1 %d ib2 %d t0_1 %f t0_2 %f \n",
-                          iedge,ibpo1,ibpo2,t0_1,t0_2);
-      printf("ipoi1 = %d ipoi2 = %d \n",ipoi1,ipoi2);
-      printf("ib1 full bpo:\n");
+    CPRINTF2(" - iedge %d ib1 %d ib2 %d t0_1 %f t0_2 %f \n",iedge,ibpo1,ibpo2,t0_1,t0_2);
+
+    if(DOPRINTS2()){
+      CPRINTF2(" - ipoi1 = %d ipoi2 = %d \n",ipoi1,ipoi2);
+      CPRINTF2(" - ib1 full bpo:\n");
       for(int ibpoi = msh.poi2bpo[ipoi1];ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
-        printf(" ibpoi = %d t = %10.3e : ",ibpoi,msh.bpo2rbi(ibpoi,0));
+        CPRINTF2(" - ibpoi = %d t = %10.3e : ",ibpoi,msh.bpo2rbi(ibpoi,0));
         intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
       }
-      printf("ib2 full bpo:\n");
+      CPRINTF2(" - ib2 full bpo:\n");
       for(int ibpoi = msh.poi2bpo[ipoi2];ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
-        printf(" ibpoi = %d t = %10.3e : ",ibpoi,msh.bpo2rbi(ibpoi,0));
+        CPRINTF2(" - ibpoi = %d t = %10.3e : ",ibpoi,msh.bpo2rbi(ibpoi,0));
         intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
       }
     }
@@ -956,6 +1017,7 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
     // if EG_eval proves costly, we can cache the results from the previous iteration. 
     // (as we're doubling samples each iteration) -> it's also a simple idiv%2 == 0 check. 
     while(true){
+      INCVDEPTH(msh);
 
       int iwhich = 0; // which one is the previous in coop
       for(int ii = 0; ii < msh.idim; ii++) 
@@ -963,10 +1025,10 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
       for(int ii = 0; ii < nnmet   ; ii++) 
         msh.met(  ipon[iwhich],ii) = msh.met(ipoi1,ii);
 
-      if(iverb >= 3){
-        printf("       - init ipon[%d] at coord:",iwhich);
+      if(DOPRINTS2()){
+        CPRINTF2(" - init ipon[%d] at coord:",iwhich);
         dblAr1(msh.idim,msh.coord[ipoi1]).print();
-        printf("       - met:");
+        CPRINTF2(" - met:");
         dblAr1(nnmet,msh.met[ipoi1]).print();
       }
 
@@ -976,6 +1038,8 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
       //int ibseed   = msh.poi2bak(ipoi1,msh.idim-1); 
       double edg_len1 = 0;
       for(int idiv = 0; idiv < ndiv; idiv++){
+        INCVDEPTH(msh);
+
         double tnext = tprev + (t0_2 - t0_1)/ndiv; 
 
         if(idiv == ndiv - 1){
@@ -988,8 +1052,8 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
           METRIS_ENFORCE(ierro == EGADS_SUCCESS);
 
 
-          if(iverb >= 4){
-            printf("       - idiv %d / %d t = %f coord = ", idiv, ndiv, tnext);
+          if(DOPRINTS2()){
+            CPRINTF2(" - idiv %d / %d t = %f coord = ", idiv, ndiv, tnext);
             dblAr1(msh.idim, result).print();
           }
 
@@ -1016,11 +1080,11 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
                       =        dtprd  * msh.met(ipoi1,ii) 
                       + (1.0 - dtprd) * msh.met(ipoi2,ii);
 
-          if(iverb >= 3){
-            printf("       - idiv %d / %d dtprd %f param = %f coord: ",
+          if(DOPRINTS2()){
+            CPRINTF2(" - idiv %d / %d dtprd %f param = %f coord: ",
                    idiv,ndiv,dtprd,tnext);
             dblAr1(msh.idim,msh.coord[ipon[1 - iwhich]]).print();
-            printf("       - met:");
+            CPRINTF2(" - met:");
             dblAr1(nnmet,msh.met[ipon[1 - iwhich]]).print();
           }
 
@@ -1111,7 +1175,7 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
           len = getlenedg_geosz<MFT,3,1>(msh,edg2pol,sz);
         }
 
-        if(iverb >= 3) printf("       - len = %15.7e\n",len);
+        CPRINTF2(" - len = %15.7e\n",len);
 
         #ifndef NDEBUG
         if(std::isnan(len)){
@@ -1133,7 +1197,7 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
         iwhich = 1 - iwhich;
         tprev  = tnext; 
       }
-      if(iverb >= 3) printf("     - iref = %d ndiv = %d length = %f\n",
+      CPRINTF2(" - iref = %d ndiv = %d length = %f\n",
                                                             iref,ndiv,edg_len1);
       // Worst case, two successive are both over/undershooting. Then the actual 
       // error is twice that between the two. 
@@ -1142,7 +1206,7 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
       // Also normalize by initial curve length estimate : DO NOT normalize by 
       // this edge's length ! otherwise this'll blow up as mesh is refined. 
       if(abs(edg_len1 - edg_len0) * ref2ned[iref] < tol * crv_len0[iref] / 2){
-        if(iverb >= 3) printf("     -> converged\n");
+        CPRINTF2(" -> converged\n");
         break;
       }
       ndiv *= 2;
@@ -1158,9 +1222,9 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
   } // for int iedge 
 
 
-  if(iverb >= 1){
+  if(DOPRINTS1()){
     for(int iref = 0; iref < nref; iref++)
-      printf("   - END line %d/%d len = %f\n",iref, nref, crv_len[iref]);
+      CPRINTF1(" - END line %d/%d len = %f\n",iref, nref, crv_len[iref]);
   }
 
 
@@ -1203,14 +1267,19 @@ static int aux_walk_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
 
 
 
-    // Add adjacent face. This will seed the cavity extension later on
+    // Add adjacent faces. This will seed the cavity extension later on
     iface = msh.edg2fac[iedge];
     METRIS_ASSERT(iface >= 0 || msh.nface == 0);
     if(iface >= 0 && msh.fac2tag(ithrd1,iface) < msh.tag[ithrd1]){
       msh.fac2tag(ithrd1,iface) = msh.tag[ithrd1];
-      int iedl = getedgfac(msh,iface,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
-      METRIS_ASSERT(iedl >= 0);
       cav.lcfac.stack(iface); 
+    }
+    int iedl = getedgfac(msh,iface,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
+    METRIS_ASSERT(iedl >= 0);
+    int ifac2 = msh.fac2fac(iface,iedl);
+    if(ifac2 >= 0 && msh.fac2tag(ithrd1,ifac2) < msh.tag[ithrd1]){
+      msh.fac2tag(ithrd1,ifac2) = msh.tag[ithrd1];
+      cav.lcfac.stack(ifac2); 
     }
 
 
@@ -1231,13 +1300,13 @@ static int aux_walk_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
     ibpoi = msh.poi2bpo[edg2pol[1]];
     *ifin = false;
     // If it's a corner, this is the end of the line. 
-    if(msh.bpo2ibi[ibpoi][1] < 1){
+    if(msh.bpo2ibi(ibpoi,1) < 1){
       *ifin = true;
       // Still need the length to update tarlen next outer iteration. 
-      ibpoi = getent2bpo(msh,ibpoi,iedge,1);
+      ibpoi = msh.poi2ebp(edg2pol[1],1,iedge,-1);
     }
     METRIS_ASSERT(ibpoi >= 0);
-    METRIS_ASSERT(msh.bpo2ibi[ibpoi][1] == 1);
+    METRIS_ASSERT(msh.bpo2ibi(ibpoi,1) == 1);
 
 
     if(!(*ifin)){ // Corner does not need evaluating, and end is iff corner
@@ -1265,7 +1334,7 @@ static int aux_walk_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
     }else{
       *lenend = getlenedg_geosz<MFT,3,1>(msh,edg2pol,szend);
     }
-    if(iverb >= 2) printf("      - len next %f\n",*lenend);
+    if(iverb >= 3) printf("      - len next %f\n",*lenend);
 
     //// Accumulate curve length for tarlen update 
     //crv_len += len;
@@ -1282,7 +1351,7 @@ static int aux_walk_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
 
 
     ipoiprev = msh.edg2poi[iedge][1-iipo2]; // New previous next point.
-    if(iverb >= 2) printf("      - iedge %d -> %d len %f\n",iedge,msh.edg2edg(iedge,iipo2),*lenend);
+    if(iverb >= 3) printf("      - iedge %d -> %d len %f\n",iedge,msh.edg2edg(iedge,iipo2),*lenend);
     iedge = msh.edg2edg(iedge,iipo2);    // New next edge 
 
   } // End while(true)
@@ -1342,29 +1411,31 @@ static int gen_newp_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
   double coop_best[3], met_best[6];
 
   double len;
-  if(iverb >= 2){
+  if(iverb >= 3){
     printf("   - start bisect from pt %d extrem u %f %f tarlen = %f t ini %f\n",
             edg2pol[0], msh.bpo2rbi(ibpo0,0), msh.bpo2rbi(ibpnw,0), 
             *adjusted_tarlen, t);
-    printf("   - ibpo0 = %d t = %f : ",ibpo0, msh.bpo2rbi(ibpo0,0));
-    intAr1(nibi, msh.bpo2ibi[ibpo0]).print();
-    printf("   - From full list:\n");
-    for(int ii = msh.poi2bpo[msh.bpo2ibi(ibpo0,0)]; ii >= 0; ii = msh.bpo2ibi(ii,3)){
-      printf("%d = %f : ",ii,msh.bpo2rbi[ii][0]);
-      intAr1(nibi,msh.bpo2ibi[ii]).print();
+    if(iverb >= 4){
+      printf("   - ibpo0 = %d t = %f : ",ibpo0, msh.bpo2rbi(ibpo0,0));
+      intAr1(nibi, msh.bpo2ibi[ibpo0]).print();
+      printf("   - From full list:\n");
+      for(int ii = msh.poi2bpo[msh.bpo2ibi(ibpo0,0)]; ii >= 0; ii = msh.bpo2ibi(ii,3)){
+        printf("%d = %f : ",ii,msh.bpo2rbi(ii,0));
+        intAr1(nibi,msh.bpo2ibi[ii]).print();
+      }
+      printf("   - ibpon = %d t = %f: ",ibpnw, msh.bpo2rbi(ibpnw,0));
+      intAr1(nibi, msh.bpo2ibi[ibpnw]).print();
+      printf("   - From full list:\n");
+      for(int ii = msh.poi2bpo[msh.bpo2ibi(ibpnw,0)]; ii >= 0; ii = msh.bpo2ibi(ii,3)){
+        printf("%d = %f : ",ii,msh.bpo2rbi(ii,0));
+        intAr1(nibi,msh.bpo2ibi[ii]).print();
+      }
+      #ifndef NDEBUG
+      if(iverb >= 3) writeMesh("bisec0", msh);
+      #endif
+      printf("   - interpMetBack starts from iedgseed = %d (%d,%d)\n",iedgseed,
+        msh.edg2poi(iedgseed,0),msh.edg2poi(iedgseed,1));
     }
-    printf("   - ibpon = %d t = %f: ",ibpnw, msh.bpo2rbi(ibpnw,0));
-    intAr1(nibi, msh.bpo2ibi[ibpnw]).print();
-    printf("   - From full list:\n");
-    for(int ii = msh.poi2bpo[msh.bpo2ibi(ibpnw,0)]; ii >= 0; ii = msh.bpo2ibi(ii,3)){
-      printf("%d = %f : ",ii,msh.bpo2rbi[ii][0]);
-      intAr1(nibi,msh.bpo2ibi[ii]).print();
-    }
-    #ifndef NDEBUG
-    if(iverb >= 3) writeMesh("bisec0", msh);
-    #endif
-    printf("   - interpMetBack starts from iedgseed = %d (%d,%d)\n",iedgseed,
-      msh.edg2poi(iedgseed,0),msh.edg2poi(iedgseed,1));
   }
   for(int itfnd = 0; itfnd < miter_bisection; itfnd++){
     msh.bpo2rbi(ibins,0) =        t * msh.bpo2rbi(ibpo0,0) 
@@ -1415,7 +1486,7 @@ static int gen_newp_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
     else                       t1 = t;
     
 
-    if(iverb >= 2) printf("     - tried t = %f param %f got len = %f coop = %f %f new t0 %f t1 %f \n",
+    if(iverb >= 3) printf("     - tried t = %f param %f got len = %f coop = %f %f new t0 %f t1 %f \n",
                           t,msh.bpo2rbi(ibins,0),len,result[0],result[1],t0,t1);
     t = (t0 + t1) / 2;
 
@@ -1444,7 +1515,7 @@ static int gen_newp_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
 
     if(len < *adjusted_tarlen + lentolabs 
     && len > *adjusted_tarlen - lentolabs){
-      if(iverb >= 2) printf("   - end bisect: len = target %f +- %f, new "
+      if(iverb >= 3) printf("   - end bisect: len = target %f +- %f, new "
         "tarlen = %f error %15.7e (adj) nedge %d \n", *adjusted_tarlen, lentolabs, 
         tarlen + (*adjusted_tarlen - len), *adjusted_tarlen - len, msh.nedge); 
       *adjusted_tarlen = tarlen + (*adjusted_tarlen - len); 

@@ -9,6 +9,7 @@
 #include "low_geo.hxx"
 #include "linalg/explogmet.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
+#include "io_libmeshb.hxx"
 
 #include "../libs/lplib3.h"
 
@@ -54,8 +55,8 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
   int tdim = msh.get_tdim();
   METRIS_ENFORCE(tdim == 2 || tdim == 3);
 
-  int nentt = tdim == 3 ? msh.nelem : msh.nface;
-  intAr2 &ent2poi = tdim == 3 ? msh.tet2poi : msh.fac2poi;
+  int nentt = msh.nentt(tdim); 
+  const intAr2 &ent2poi = msh.ent2poi(tdim); 
 
 
   int64_t LibIdx = InitParallel(nthread);
@@ -67,36 +68,17 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
   // The others create subset dependencies. 
   BeginDependency(LibIdx, LP_elt, LP_poi);
   for(int ientt = 0; ientt < nentt; ientt++){
+    if(isdeadent(ientt,ent2poi)) continue;
     for(int ii = 0; ii < tdim + 1; ii++) AddDependency(LibIdx, ientt+1, ent2poi(ientt,ii)+1);
   }
   EndDependency(LibIdx, LP_stat);
   //printf("LP stat %f %f \n",LP_stat[0],LP_stat[1]);
 
 
-  //{
-  //  int nnmet = (msh.idim*(msh.idim+1))/2;
-  //  //printf("Debug set metrics to -1 \n");
-  //  for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-  //    for(int ii = 0; ii < nnmet; ii++) msh.met[ipoin][ii] = -1;
-  //  }
-  //}
-
-
-	//int mshell = 512;
-	//int *lshell[METRIS_MAXTAGS]; 
-	//double *vshell[METRIS_MAXTAGS];
-	//RoutineWorkMemory<int>    iwrk(msh.iwrkmem);
-	//RoutineWorkMemory<double> rwrk(msh.rwrkmem);
-	//int *ibuf    = iwrk.allocate(nthread*mshell);
-	//double *rbuf = rwrk.allocate(nthread*mshell);
-
-	//for(int ii = 0; ii < nthread; ii++){
-		//lshell[ii] = &ibuf[ii*mshell];
-		//vshell[ii] = &rbuf[ii*mshell];
-	//}
-
 	// Placeholder
-	for(int ipoin = 0; ipoin < msh.npoin; ipoin++) msh.poi2rwk[ipoin] = 1.0;
+  msh.rwork.allocate(msh.npoin);
+  msh.rwork.set_n(msh.npoin);
+	for(int ipoin = 0; ipoin < msh.npoin; ipoin++) msh.rwork[ipoin] = 1.0;
 	
 
 	msh.tag[0]++;
@@ -108,7 +90,7 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
 		int nnmet = (msh->idim*(msh->idim+1))/2;
 		for(int ipoin = ipoi0 - 1; ipoin < ipoi1; ipoin++){
       if(msh->poi2ent(ipoin,0) < 0) continue;
-			for(int jj = 0; jj < nnmet; jj++) msh->met[ipoin][jj] /= msh->poi2rwk[ipoin];
+			for(int jj = 0; jj < nnmet; jj++) msh->met(ipoin,jj) /= msh->rwork[ipoin];
 		}
 		// Control sizes here if provided (hmin hmax)
 	};
@@ -160,24 +142,25 @@ void getMetMesh0_lplib(int ient0, int ient1,int ithread, MeshMetric<MetricFieldT
 
   constexpr int npps = tdim == 2 ? facnpps[ideg] : tetnpps[ideg];
 
-  double vtol = Defaults::vtol;
   bool iflat;
 
   for(int ientt = ient0 - 1; ientt < ient1; ientt++){
-
     if(isdeadent(ientt,ent2poi)) continue;
 
-    double nrmal[3];
-    if constexpr(gdim == 3 && tdim == 2){
-      getnorfacP1(ent2poi[ientt],msh.coord,nrmal);
-    }
-    meas0 = getmeasentP1<gdim,tdim>(ent2poi[ientt], msh.coord, vtol, nrmal, &iflat);
+    double norfac[3];
+    if constexpr(tdim == 2 && gdim == 3) getnorfacP1(ent2poi[ientt], msh.coord, norfac);
+
+
+    meas0 = getmeasentP1<gdim,tdim>(msh,ent2poi[ientt],norfac,&iflat);
 
     //METRIS_ENFORCE_MSG(!iflat,"Element "<<ientt<<" tdimn = "<<tdim<<" is flat"); // Not a program failure -> not an assert
     if(iflat){
-      printf("Element %d dimn = %d is flat \n",ientt,tdim);
+      printf("Element %d gdim = %d tdim = %d is flat \n",ientt,gdim,tdim);
       printf("vertices: ");
       intAr1(tdim + 1, ent2poi[ientt]).print();
+      writeMesh("debug_flat",msh);
+
+      meas0 = getmeasentP1<gdim,tdim>(msh, ent2poi[ientt], norfac, &iflat);
       METRIS_THROW(GeomExcept());
     }
 
@@ -189,15 +172,17 @@ void getMetMesh0_lplib(int ient0, int ient1,int ithread, MeshMetric<MetricFieldT
 
       if(msh.poi2tag(0,ipoin) < poitag){
         msh.poi2tag(0,ipoin) = poitag;
-        msh.poi2rwk[ipoin]    = meas0;
-        getintmetxi<gdim,tdim,ideg>(msh.coord,ent2poi[ientt],msh.getBasis(),bary,msh.met[ipoin]);
+        msh.rwork[ipoin]    = meas0;
+        METRIS_ENFORCE((!getintmetxi<gdim,tdim,ideg>(msh.coord,ent2poi[ientt],
+                                               msh.getBasis(),bary,msh.met[ipoin])));
         getlogmet_inp<gdim>(msh.met[ipoin]);
-        for(int jj = 0; jj < nnmet; jj++) msh.met[ipoin][jj] *= meas0;
+        for(int jj = 0; jj < nnmet; jj++) msh.met(ipoin,jj) *= meas0;
       }else{
-        msh.poi2rwk[ipoin] += meas0;
-        getintmetxi<gdim,tdim,ideg>(msh.coord,ent2poi[ientt],msh.getBasis(),bary,metl);
+        msh.rwork[ipoin] += meas0;
+        METRIS_ENFORCE((!getintmetxi<gdim,tdim,ideg>(msh.coord,ent2poi[ientt],
+                                                 msh.getBasis(),bary,metl) ));
         getlogmet_inp<gdim>(metl);
-        for(int jj = 0; jj < nnmet ; jj++) msh.met[ipoin][jj] += metl[jj]*meas0;
+        for(int jj = 0; jj < nnmet ; jj++) msh.met(ipoin,jj) += metl[jj]*meas0;
       }
     }
   }
@@ -212,134 +197,6 @@ template void getMetMesh0_lplib< MetricFieldFE         , 3, 2, n>(int ient0, int
 template void getMetMesh0_lplib< MetricFieldFE         , 3, 3, n>(int ient0, int ient1,int ithread, MeshMetric<MetricFieldFE        > *msh_, int poitag);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
-
-
-
-
-
-// Before (if ever) reinstating this, verify handling of logmet flag.
-
-//// This routine is to re-interpolate the metrics at ip1 and ip2 using only the edge shell
-//template<int ideg, int ilag>
-//void get_met_shell(Mesh &msh, int ip1, int ip2, int ielem){
-//
-//	printf("--- Start intr met computation with ideg = %d \n",ideg);
-//
-//	int ierro;
-//	double bary[4],metl[6];
-//	int mshell = 100,nshell,iopen;
-//	int lshell[mshell];
-//	double vshell[mshell],vtot,vol0;
-//
-//	msh.tag[0]++;
-//	int ptag = msh.tag[0];
-//
-//	// Interior points are at the end. This is the offset.
-//	constexpr	int ipint = 4 + 6*(ideg+1) + 4*facnpps[ideg];
-//	constexpr int nppel = tetnpps[ideg];
-//	double r1deg = 1.0/ideg;
-//
-//
-//	shell3(msh, ip1,ip2,ielem ,mshell ,&nshell ,lshell, &iopen);
-//
-//	vol0 = getmeasentP1<3>(msh.tet2poi[ielem],msh.coord);
-//	// Compute volumes and volume average
-//	vtot = vol0;
-//	// Start at 1; 0 is ielem
-//	for(int ishell = 1; ishell < nshell; ishell++){
-//		int iele2 = lshell[ishell];
-//		vshell[ishell] = getmeasentP1<3>(msh.tet2poi[iele2],msh.coord);
-//		assert("All positive volumes" && vshell[ishell] > 1.0e-14);
-//		vtot += vshell[ishell];
-//	}
-//
-//	int ied = getedgtet(msh,ielem,ip1,ip2);
-//	// Unlike previously, we take the extremities here
-//	for(int i = 0; i < 2 ; i++){
-//		int irnk = lnoed3[ied][i]; 
-//
-//		bary[0] = 0.0;
-//		bary[1] = 0.0;
-//		bary[2] = 0.0;
-//		bary[3] = 0.0;
-//		bary[irnk] = 1.0;
-//		int ipoin = msh.tet2poi(ielem,irnk);
-//		
-//		getintmetxi<ideg,ilag>(msh.coord,msh.tet2poi[ielem],bary,msh.met[ipoin]);
-//		getlogmet_inp(msh.met[ipoin]);
-//
-//		if(nshell > 1){
-//	
-//			for(int j = 0; j < 6; j++){
-//				msh.met[ipoin][j] *= vol0/vtot;
-//			}
-//		}
-//	}
-//
-//	if(nshell == 1) return;
-//
-//	// Apply averages over shell
-//	// Start at 1; 0 is ielem
-//	for(int ishell = 1; ishell < nshell; ishell ++){
-//		int iele2 = lshell[ishell];
-//	  int ied2 = getedgtet(msh,iele2,ip1,ip2);
-//	  if(msh.tet2poi(iele2,lnoed3[ied2][0]) == 
-//	  	 msh.tet2poi(ielem,lnoed3[ied][0])){
-//	  	// Same order
-//	  	for(int i = 0; i < 2; i++){
-//				int ipoin = msh.tet2poi(ielem,lnoed3[ied][i]);
-//
-//	  		int irnk2 = lnoed3[ied2][i];
-//	  		bary[0] = 0.0;
-//	  		bary[1] = 0.0;
-//	  		bary[2] = 0.0;
-//	  		bary[3] = 0.0;
-//	  		bary[irnk2] = 1.0;
-//
-//	  		assert("ipoin = ipoi2 " && ipoin == msh.tet2poi(iele2,irnk2));
-//
-//				getintmetxi<ideg,ilag>(msh.coord,msh.tet2poi[iele2],bary,metl);
-//
-//				getlogmet_inp(metl);
-//
-//				for(int j = 0; j < 6; j++){
-//					msh.met[ipoin][j] += metl[j]*vshell[ishell]/vtot;
-//				}
-//	  	}
-//	  }else{
-//	  	// Reverse order
-//	  	for(int i = 0; i < 2; i++){
-//				int ipoin = msh.tet2poi(ielem,lnoed3[ied][i]);
-//
-//	  		int irnk2 = lnoed3[ied2][2-i];
-//	  		bary[0] = 0.0;
-//	  		bary[1] = 0.0;
-//	  		bary[2] = 0.0;
-//	  		bary[3] = 0.0;
-//	  		bary[irnk2] = 1.0;
-//
-//	  		assert("ipoin = ipoi2 " && ipoin == msh.tet2poi(iele2,irnk2));
-//
-//				getintmetxi<ideg,ilag>(msh.coord,msh.tet2poi[iele2],bary,metl);
-//
-//				getlogmet_inp(metl);
-//
-//				for(int j = 0; j < 6; j++){
-//					msh.met[ipoin][j] += metl[j]*vshell[ishell]/vtot;
-//				}
-//	  	}
-//	  }
-//	}
-//
-//	//if(!msh.ilogmet) getexpmet_inp(msh.met[ip1]);
-//}
-//// See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
-//// Section A.4.1.2 Vertical Repetition
-//#define BOOST_PP_LOCAL_MACRO(n)\
-//template void get_met_shell< n ,0>(Mesh &msh, int ip1, int ip2, int iele0);\
-//template void get_met_shell< n ,1>(Mesh &msh, int ip1, int ip2, int iele0);
-//#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
-//#include BOOST_PP_LOCAL_ITERATE()
 
 
 

@@ -18,6 +18,7 @@
 #include "../BezierOffsets/msh_curve_offsets.hxx"
 #include "../aux_utils.hxx"
 #include "../aux_timer.hxx"
+#include "../mprintf.hxx"
 
 #include "../Localization/msh_localization.hxx"
 
@@ -86,7 +87,7 @@ MetrisRunner::~MetrisRunner(){
 }
 
 int MetrisRunner::degElevate(){
-  if(param.usrTarDeg <= msh_g->curdeg) return 0;
+  if(param_.usrTarDeg <= msh_g->curdeg) return 0;
   if(this->metricFE){
     degElevate0<MetricFieldFE>();
   }else{
@@ -97,27 +98,20 @@ int MetrisRunner::degElevate(){
 
 template<class MFT>
 void MetrisRunner::degElevate0(){
+  GETVDEPTH((*this));
 
   int ithread = 0;
-  bool useOptim = true;
+  bool useOptim = param_.curveType == 3;
 
   Mesh<MFT> &msh = *( (Mesh<MFT>*) msh_g );
-  const int iverb = param.iverb;
 
 //  dynamic_cast<Mesh<MFT>&>(*msh_g);
 
-  if(param.inpBack) METRIS_THROW_MSG(TODOExcept(), 
+  if(param_.inpBack) METRIS_THROW_MSG(TODOExcept(), 
     "Degree elevation with input back not implemented");
   
   double t1 = get_wall_time(); 
   
-
-  //MeshBase &msh = this->metricFE? 
-  //  static_cast<MeshBase&>(runnerMetricFE->msh) 
-  //: static_cast<MeshBase&>(runnerMetricAnalytical->msh);
-  //MetricFieldFE &met = this->metricFE? 
-  //  static_cast<MetricFieldFE&>(runnerMetricFE->msh.met)
-  //: static_cast<MetricFieldFE&>(runnerMetricAnalytical->msh.met);
 
   int ideg0 = msh.curdeg; 
   int nbpo0 = msh.nbpoi;
@@ -125,28 +119,24 @@ void MetrisRunner::degElevate0(){
 
   CT_FOR0_EXC(1,METRIS_MAX_DEG,ideg){
     CT_FOR0_INC(ideg+1,METRIS_MAX_DEG,tdeg){
-      if(ideg == ideg0 && tdeg == param.usrTarDeg){
-        printf("-- Degree elevation %d -> %d \n",ideg,tdeg);  
+      if(ideg == ideg0 && tdeg == param_.usrTarDeg){
+        CPRINTF1("-- Degree elevation %d -> %d \n",ideg,tdeg);  
         deg_elevate<MFT,ideg,tdeg>(msh);
       }
     }CT_FOR1(tdeg);
   }CT_FOR1(ideg);
+ 
 
-  //// Update back mesh link
-  //updateBackLinkHO(npoi0); 
-
-
-
-  if(iverb >= 1) std::cout<<
-     "-- Back metric interpolation back deg = "<<bak.curdeg<<"\n";
+  CPRINTF1("-- Back metric interpolation back deg = %d\n",bak.curdeg);
+     
   CT_FOR0_INC(1,METRIS_MAX_DEG,bdeg){if(bak.curdeg == bdeg){
     // It's Lagrange nodes that should be localized.
     msh.setBasis(FEBasis::Lagrange);
     interpFrontBack<MFT,bdeg>(msh,bak,npoi0);
   }}CT_FOR1(bdeg);
 
-  writeMesh("interpBack",msh);
-  msh.met.writeMetricFile("interpBack");
+  if(DOPRINTS2()) writeMesh("interpBack",msh);
+  if(DOPRINTS2()) msh.met.writeMetricFile("interpBack");
 
 
 
@@ -163,7 +153,7 @@ void MetrisRunner::degElevate0(){
 
 
   #if 0
-  if(param.inpBack)  METRIS_THROW_MSG(TODOExcept(),
+  if(param_.inpBack)  METRIS_THROW_MSG(TODOExcept(),
       "Implement back mesh update in case of ext file after degelev");
   if(bak.nelem > 0){
     for(int ipoin = npoi0+1; ipoin < msh.npoin; ipoin++){
@@ -206,7 +196,7 @@ void MetrisRunner::degElevate0(){
 
   const OptDoF idofs = OptDoF::HO;
   dblAr2 coor0;
-  if(msh.CAD() || param.curveType > 0){
+  if(msh.CAD() || param_.curveType > 0){
     if(idofs == OptDoF::HO){
       coor0.allocate(msh.npoin-npoi0,msh.idim);
       coor0.set_n(msh.npoin-npoi0);
@@ -227,8 +217,8 @@ void MetrisRunner::degElevate0(){
   if(msh.CAD()){
     // It's Lagrange nodes that should be projected.
     msh.setBasis(FEBasis::Lagrange);
-    prjMeshPoints(msh,nbpo0,true,1,true);
-    if(iverb >= 2) writeMesh("prjMesh0", msh);
+    prjMeshPoints(msh,nbpo0,true,true);
+    if(DOPRINTS2()) writeMesh("prjMesh0", msh);
   }
 
 
@@ -237,13 +227,15 @@ void MetrisRunner::degElevate0(){
   // Bézier 
   msh.setBasis(FEBasis::Bezier);
 
-  if(param.curveType == 1){
+  if(param_.curveType > 0){
+
     CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
       CT_FOR0_INC(2,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
         curveMeshOffsets<MFT,gdim,ideg>(msh,false);
       }}CT_FOR1(ideg);
     }}CT_FOR1(gdim);
-    if(iverb >= 2){
+
+    if(DOPRINTS2()){
       writeMesh("crv0", msh);
       dblAr1 lminc(nentt);
       lminc.set_n(nentt);
@@ -263,6 +255,7 @@ void MetrisRunner::degElevate0(){
 
       writeField("crv0", msh, SolTyp::P0Elt, lminc, 1);
     }
+
   }
 
   // First: curve as much as possible while retaining validity (backtrack)
@@ -300,7 +293,7 @@ void MetrisRunner::degElevate0(){
       }
     }
 
-    if(iverb >= 2) printf("   - backtrack iter %d ninva = %d\n",niter,nflat);
+    CPRINTF1(" - backtrack iter %d ninva = %d\n",niter,nflat);
 
     if(nflat == 0) break;
 
@@ -330,18 +323,22 @@ void MetrisRunner::degElevate0(){
     }
   }
 
-  if(ifirst){
-    if(iverb >= 1) printf(" - initial curvature valid : return\n");
+  if(ifirst && !useOptim){
+    CPRINTF1(" - initial curvature valid : return\n");
     return;
   }else{
-    if(iverb >= 1) printf(" - backtracked factor %15.7e \n",rcurv);
+    CPRINTF1(" - backtracked factor %15.7e \n",rcurv);
+    if(param_.curveType == 4){
+      printf(" - Exiting here\n");
+      return;
+    }
   }
 
   if(useOptim){
-    int opt_niter0 = param.opt_niter;
-    if(opt_niter0 == 0) param.opt_niter = 20;
+    int opt_niter0 = param_.opt_niter;
+    if(opt_niter0 == 0) param_.opt_niter = 20;
     optimMesh();
-    param.opt_niter = opt_niter0;
+    param_.opt_niter = opt_niter0;
     return;
   }
 
@@ -350,7 +347,7 @@ void MetrisRunner::degElevate0(){
   double tt0 = get_wall_time();
   if(msh.curdeg == 2){
 
-    if(iverb >= 2) writeMesh("prjMesh", msh);
+    if(DOPRINTS2()) writeMesh("prjMesh", msh);
 
     if(idofs == OptDoF::HO){
       for(int ipoin = npoi0; ipoin < msh.npoin; ipoin++){
@@ -371,7 +368,7 @@ void MetrisRunner::degElevate0(){
     }
   }
   double tt1 = get_wall_time();
-  printf(" - Done time = %f\n",tt1-tt0);
+  CPRINTF1(" - Done time = %f\n",tt1-tt0);
 
   if(msh.curdeg == 2){
 
@@ -394,7 +391,7 @@ void MetrisRunner::degElevate0(){
         // Skip corners
         int ibpoi = msh.poi2bpo[ipoin];
         if(ibpoi >= 0){
-          int itype = msh.bpo2ibi[ibpoi][1];
+          int itype = msh.bpo2ibi(ibpoi,1);
           if(itype == 0) continue;
           if(ipoin < npoi0) continue; 
         }
@@ -457,7 +454,7 @@ void MetrisRunner::degElevate0(){
   }
 
   double t2 = get_wall_time(); 
-  if(msh.param->iverb >= 1) std::cout<<"-- Degree elevation time = "<<t2-t1<<"\n";
+  CPRINTF1("-- Degree elevation time = %f\n",t2-t1);
 }
 
 template void MetrisRunner::degElevate0<MetricFieldFE>();
@@ -476,20 +473,21 @@ void MetrisRunner::writeOutputs(){
 
 template<class MFT>
 void MetrisRunner::writeOutputs0(){
+  GETVDEPTH((*this));
 
   Mesh<MFT> &msh = static_cast<Mesh<MFT>&>(*msh_g);
 
-  if(param.wrtMesh){
+  if(param_.wrtMesh){
     std::string baseOutName;
     std::string effMeshFileName, effMetFileName;
-    auto pos = param.outmFileName.find(".mesh");
+    auto pos = param_.outmFileName.find(".mesh");
     if(pos == std::string::npos){
-      baseOutName = param.outmFileName;
-      effMeshFileName = param.outmFileName + ".meshb";
+      baseOutName = param_.outmFileName;
+      effMeshFileName = param_.outmFileName + ".meshb";
       effMetFileName = baseOutName + ".solb";
     }else{
-      effMeshFileName = param.outmFileName;
-      baseOutName = param.outmFileName.substr(0,pos);
+      effMeshFileName = param_.outmFileName;
+      baseOutName = param_.outmFileName.substr(0,pos);
       effMetFileName = baseOutName + ".solb";
     }
     writeMesh(effMeshFileName, msh);

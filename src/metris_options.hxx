@@ -27,6 +27,8 @@ struct MetrisOptions{
       ("help"   , "Print help message") // a bool parameter
       ("verb"   , po::value<int>(), 
         "Verbosity level 0-3. 0: minimal prints. 1: large steps. 2: 1+. 3: full debug.")
+      ("vdepth"   , po::value<int>(), 
+        "Verbosity depth 0+. Call stack / loop depth prints")
       ("in"     , po::value<std::string>(), "Input mesh file "     )
       ("cad"    , po::value<std::string>(), "Input CAD file "      )
       ("met"    , po::value<std::string>(), "Input metric file "   )
@@ -84,7 +86,11 @@ struct MetrisOptions{
       ("opt-swap-niter", po::value<int>(),
                     "Inner optimization loop global swapping iterations");
 
-
+    // ----------------- Generic flags. Used for quick debugging
+    s.add_options()  
+      ("iflag1", po::value<int>(), "Generic integer flag")
+      ("iflag2", po::value<int>(), "Generic integer flag")
+      ("iflag3", po::value<int>(), "Generic integer flag");
   }
 
   MetrisOptions(int argc, char **argv): MetrisOptions() {

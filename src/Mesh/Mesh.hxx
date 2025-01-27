@@ -11,6 +11,7 @@
 #include "../types.hxx"
 #include "../Mesh/MeshBack.hxx"
 
+
 //template<class MetricFieldType> class MetrisRunner<MetricFieldType>;
 namespace Metris{
 
@@ -54,7 +55,8 @@ private:
   int interpMetBack0(int ipoi0, 
                      int tdim, int iseed, 
                      int iref, const double*__restrict__ algnd,
-                     int*__restrict__ ieleb);
+                     int*__restrict__ ieleb,
+                     double*__restrict__ barb);
 
 public:
   // Delete dead elements and minimize array sizes 
@@ -68,27 +70,13 @@ public:
 
   // Called from MetrisRunner
   void initialize(MetrisAPI *data, MeshBack &bak, 
-    #ifdef NDEBUG
-    const 
-    #endif
     MetrisParameters &param);
 
 	void getEnttMemCosts(int *memCostPpoi, int *memCostPbpo, int *memCostPedg, int *memCostPfac, int *memCostPelt) const{
 		Mesh_getEnttMemCosts(*this, memCostPpoi, memCostPbpo, memCostPedg, memCostPfac, memCostPelt);
 	}
 
-  // Allocate to fill memory sysMem
-  void allocate(unsigned long long int sysMem){
-    // Everything should already be done using set_npoin etc
-    //Mesh_allocate(*this, sysMem);
-  }
-
-  // Allocate to minimum target number of entities.
-  void allocate(int melet, int mfact, int mpoit){
-    // Everything should already be done using set_npoin etc
-    //Mesh_allocate(*this,melet, mfact, mpoit);
-  }
-
+  
   void set_npoin(int npoin, bool skipallocf = false) override;
   void set_nentt(int tdimn, int nentt, bool skipallocf = false) override;
 
@@ -111,9 +99,6 @@ public:
 
 protected:
   void initializeCommon(MetrisAPI *data, MeshBack &bak, 
-    #ifdef NDEBUG
-    const 
-    #endif
     MetrisParameters &param);
 };
 

@@ -17,14 +17,12 @@
 if(REQ_CODEGEN)
   add_executable(gen_lageval ${PROJECT_SOURCE_DIR}/tools/gen_lageval.cxx ho_constants.hxx)
   setMetrisFlags(gen_lageval PUBLIC)
-  target_link_libraries(gen_lageval PUBLIC  ${GINAC_LIBRARIES} Boost::headers SANS)
+  target_link_libraries(gen_lageval PUBLIC  ${GINAC_LIBRARIES} Boost::headers SANS ${BOOST_TRACELIBS})
   target_include_directories(gen_lageval PUBLIC 
   	                         ${PROJECT_SOURCE_DIR}
                              ${PETSC_INCLUDE}
                              ${GINAC_INCLUDE_DIRS}
                              ${CLN_INCLUDE_DIRS}
-                             ${Boost_INCLUDE_DIRS}
-                             ${Boost_INCLUDE_DIR}
   	                         "/usr/local/include" ".")
   add_custom_command(OUTPUT  ${PROJECT_SOURCE_DIR}/src/codegen_lagrange.hxx
   	                 COMMAND make gen_lageval 
@@ -38,27 +36,28 @@ set(SRC_CCOEF_OUTPUT "")
 foreach(ideg RANGE 2 ${METRIS_MAX_DEG})
 	list(APPEND SRC_CCOEF_OUTPUT ${PROJECT_SOURCE_DIR}/src/codegen_ccoef3.0${ideg}.cxx)
 	list(APPEND SRC_CCOEF_OUTPUT ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}.cxx)
+  list(APPEND SRC_CCOEF_OUTPUT ${PROJECT_SOURCE_DIR}/src/codegen_ccoef3.0${ideg}_d.cxx)
+  list(APPEND SRC_CCOEF_OUTPUT ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}_d.cxx)
+  list(APPEND SRC_CCOEF_OUTPUT ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}_d_pt.cxx)
 endforeach()
-message("Add this append to foreach when ccoef_d implemented for higher degrees")
-list(APPEND SRC_CCOEF_OUTPUT ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.02_d.cxx ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.02_d_pt.cxx ${PROJECT_SOURCE_DIR}/src/codegen_ccoef3.02_d.cxx)
+
 
 
 if(REQ_CODEGEN)
   add_executable(gen_ccoef ${PROJECT_SOURCE_DIR}/tools/gen_ccoef.cxx ${PROJECT_SOURCE_DIR}/tools/gen_ccoef_d.cxx ho_constants.hxx)
   setMetrisFlags(gen_ccoef PUBLIC)
-  target_link_libraries(gen_ccoef PUBLIC SANS)
+  target_link_libraries(gen_ccoef PUBLIC SANS ${BOOST_TRACELIBS})
   target_include_directories(gen_ccoef PUBLIC 
   	                         ${PROJECT_SOURCE_DIR} 
-                             ${Boost_INCLUDE_DIRS}
-                             ${Boost_INCLUDE_DIR}
   	                         "/usr/local/include" ".")
-  add_custom_command(OUTPUT  ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx ${SRC_CCOEF_OUTPUT}
+  add_custom_command(OUTPUT  ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx ${PROJECT_SOURCE_DIR}/src/codegen_ccoef_d.hxx ${SRC_CCOEF_OUTPUT}
   	                 COMMAND make gen_ccoef
   	                 COMMAND ./gen_ccoef
   	                 COMMAND cp codegen_* ${PROJECT_SOURCE_DIR}/src/)
 
   # 1 - wrapping up: create dependency for later targets
   add_custom_target(codegen1 DEPENDS ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx
+                                     ${PROJECT_SOURCE_DIR}/src/codegen_ccoef_d.hxx
                                      ${PROJECT_SOURCE_DIR}/src/codegen_lagrange.hxx)
 endif()
 
@@ -76,16 +75,11 @@ target_include_directories(meshBASIC PUBLIC
 	                         ${ESP_ROOT}/include
 	                         ${PETSC_INCLUDE}
                            ${ABSL_INCLUDE_DIRS}
-                           ${Boost_INCLUDE_DIRS}
-                           ${Boost_INCLUDE_DIR}
 	                         ${SRC_INCLUDE_DIRS})
-target_link_libraries(meshBASIC PUBLIC absl::hash absl::flat_hash_map)
-#target_link_libraries(meshBASIC PUBLIC ${Boost_STACKTRACE_BASIC_LIBRARY} 
-#														        	   ${Boost_STACKTRACE_BACKTRACE_LIBRARY} 
-#														        	   ${Boost_STACKTRACE_ADDR2LINE_LIBRARY} 
-#														        	   ${Boost_STACKTRACE_NOOP_LIBRARY} 
-#														        	   pthread dl)
-
+target_link_libraries(meshBASIC PUBLIC absl::hash 
+                                       absl::flat_hash_map
+                                       ${BOOST_TRACELIBS}
+                                       ) 
 if(REQ_CODEGEN)
   add_dependencies(meshBASIC codegen1)
 
@@ -94,23 +88,17 @@ if(REQ_CODEGEN)
   # gen_lag2bez: generate Lagrange-to-Bézier conversion routines
   add_executable(gen_lag2bez ${PROJECT_SOURCE_DIR}/tools/gen_lag2bezfuncs.cxx)
   setMetrisFlags(gen_lag2bez PUBLIC)
-  target_link_libraries(gen_lag2bez PUBLIC meshBASIC SANS)
-  target_link_libraries(gen_lag2bez PUBLIC #${Boost_STACKTRACE_BASIC_LIBRARY} 
-  														        	   #${Boost_STACKTRACE_BACKTRACE_LIBRARY} 
-  														        	   #${Boost_STACKTRACE_ADDR2LINE_LIBRARY} 
-  														        	   #${Boost_STACKTRACE_NOOP_LIBRARY} 
-  														        	   absl::hash absl::flat_hash_map pthread dl)
+  target_link_libraries(gen_lag2bez PUBLIC meshBASIC 
+                                           SANS
+                                           ${BOOST_TRACELIBS}
+  														        	   absl::hash absl::flat_hash_map)
   target_include_directories(gen_lag2bez PUBLIC 
                              ${PROJECT_BINARY_DIR}
                              ${ABSL_INCLUDE_DIRS}
   					                 ${PROJECT_SOURCE_DIR}
-                            ${Boost_INCLUDE_DIRS}
-                            ${Boost_INCLUDE_DIR}
   					                 "/usr/local/include")
-  						   
   target_include_directories(gen_lag2bez PRIVATE ${SRC_INCLUDE_DIRS})
   target_include_directories(gen_lag2bez PRIVATE ".")
-  target_link_libraries(gen_lag2bez PUBLIC absl::hash absl::flat_hash_map)
   add_custom_command(OUTPUT  ${PROJECT_SOURCE_DIR}/src/codegen_lag2bez.hxx ${PROJECT_SOURCE_DIR}/src/codegen_lag2bez.cxx
   	                 COMMAND make gen_lag2bez
   	                 COMMAND ./gen_lag2bez
@@ -135,6 +123,7 @@ set(SRC_SOURCES
 	  ${PROJECT_SOURCE_DIR}/src/aux_timer.cxx
 	  ${PROJECT_SOURCE_DIR}/src/aux_topo.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_utils.cxx
+    ${PROJECT_SOURCE_DIR}/src/mprintf.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_histogram.cxx
 	  ${PROJECT_SOURCE_DIR}/src/aux_EGADSprinterr.cxx
 	  ${PROJECT_SOURCE_DIR}/src/io_libmeshb.cxx
@@ -236,7 +225,7 @@ set(SRC_SOURCES
     #${PROJECT_SOURCE_DIR}/src/API/MetrisAPI_vertices.cxx
     #${PROJECT_SOURCE_DIR}/src/API/MetrisAPI_elements.cxx
     #${PROJECT_SOURCE_DIR}/src/API/MetrisAPI_metfield.cxx
-    ${PROJECT_SOURCE_DIR}/src/low_ccoef_d.cxx
+    #${PROJECT_SOURCE_DIR}/src/low_ccoef_d.cxx
     ${PROJECT_SOURCE_DIR}/src/LPopt/msh_maxccoef.cxx
     ${PROJECT_SOURCE_DIR}/src/LPopt/msh_maxmetLP.cxx
     ${PROJECT_SOURCE_DIR}/src/LPopt/msh_bezgapLP.cxx
@@ -250,7 +239,7 @@ set_property(TARGET libMetris PROPERTY CXX_STANDARD 17)
 #get_target_property(DEBUG_METRISFLAGS libMetris COMPILE_OPTIONS)
 #MESSAGE("libMetris compile options: ${DEBUG_METRISFLAGS}")
 
-
+#set(NLOPT_INCLUDE ${PROJECT_BINARY_DIR}/libs/nlopt)
 target_include_directories(libMetris PRIVATE "." "..")
 target_include_directories(libMetris PUBLIC 
                            "../SANS/"
@@ -264,22 +253,18 @@ target_include_directories(libMetris PUBLIC
 	                         ${SRC_INCLUDE_DIRS}
                            ${CLP_INCLUDE_DIRS}
                            ${ABSL_INCLUDE_DIRS}
-                           ${Boost_INCLUDE_DIRS}
-                           ${Boost_INCLUDE_DIR}
+                           ${NLOPT_INCLUDE}
 	                         #${LPLIB_INCLUDE_DIR}
 	                         )
 if(CLP_FOUND)
   target_include_directories(libMetris PUBLIC ${CLP_INCLUDE_DIRS})
 endif()
+message("BOOST_TRACELIBS = ${BOOST_TRACELIBS}")
 target_link_libraries(libMetris PUBLIC libmeshb
                                         SANS 
                                         #nlopt
                                         Boost::program_options
                                         #${Boost_PROGRAM_OPTIONS_LIBRARY}
-														        	  #${Boost_STACKTRACE_BASIC_LIBRARY} 
-														        	  #${Boost_STACKTRACE_BACKTRACE_LIBRARY} 
-														        	  #${Boost_STACKTRACE_ADDR2LINE_LIBRARY} 
-														        	  #${Boost_STACKTRACE_NOOP_LIBRARY} 
 														        	  dl
                                         absl::hash absl::flat_hash_map #absl::node_hash_map
                                         lapack 
@@ -289,6 +274,8 @@ target_link_libraries(libMetris PUBLIC libmeshb
                                         ${PETSC_LIBRARIES}
                                         ${MPI_LIBRARIES}
                                         alglib
+                                        ${BOOST_TRACELIBS}
+                                        nlopt
                                         )
 if(CLP_FOUND)
   target_link_libraries(libMetris PUBLIC ${CLP_LIBRARIES})

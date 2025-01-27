@@ -17,21 +17,21 @@ double det3_vdif(const double* x1,const double* x2
 
 template<> void ccoef_genbez3<2>(const intAr2 & __restrict__ tet2poi, const dblAr2& __restrict__ coord, int ielem, double* __restrict__ ccoef){
 
-  ccoef[  0] =  24*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
+  ccoef[  0] =   8*det3_vdif(coord[tet2poi[ielem][   4]],coord[tet2poi[ielem][   0]]
                             ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]
-                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  3;
+                            ,coord[tet2poi[ielem][   7]],coord[tet2poi[ielem][   0]])/  1;
 
-  ccoef[  1] =  24*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
+  ccoef[  1] =   8*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
                             ,coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   4]]
-                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  3;
+                            ,coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   4]])/  1;
 
-  ccoef[  2] =  24*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
+  ccoef[  2] =   8*det3_vdif(coord[tet2poi[ielem][   5]],coord[tet2poi[ielem][   6]]
                             ,coord[tet2poi[ielem][   2]],coord[tet2poi[ielem][   6]]
-                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  3;
+                            ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   6]])/  1;
 
-  ccoef[  3] =  24*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
+  ccoef[  3] =   8*det3_vdif(coord[tet2poi[ielem][   8]],coord[tet2poi[ielem][   7]]
                             ,coord[tet2poi[ielem][   9]],coord[tet2poi[ielem][   7]]
-                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  3;
+                            ,coord[tet2poi[ielem][   3]],coord[tet2poi[ielem][   7]])/  1;
 
   ccoef[  4] =   8*det3_vdif(coord[tet2poi[ielem][   1]],coord[tet2poi[ielem][   4]]
                             ,coord[tet2poi[ielem][   6]],coord[tet2poi[ielem][   0]]

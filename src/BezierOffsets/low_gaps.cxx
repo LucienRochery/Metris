@@ -63,12 +63,12 @@ void getBezOffsetsEdge(Mesh<MFT> &msh,
   int ipoi1 = ent2pol[lnoed(iedgl,0)];
   int ipoi2 = ent2pol[lnoed(iedgl,1)];
   for(int ii = 0; ii < gdim; ii++){ 
-    dedg0[ii] = msh.coord[ipoi2][ii] - msh.coord[ipoi1][ii];
+    dedg0[ii] = msh.coord(ipoi2,ii) - msh.coord(ipoi1,ii);
   }
 
   #ifndef NDEBUG
   if(msh.param->iverb >= 4){
-    printf(" -- getBezOffsetsEdge debug points:\n");
+    printf("-- getBezOffsetsEdge debug points:\n");
     printf("ipoi1 = %d : ",ipoi1);
     dblAr1(gdim,msh.coord[ipoi1]).print();
     printf("ipoi2 = %d : ",ipoi2);
@@ -141,13 +141,13 @@ void getBezOffsetsEdge(Mesh<MFT> &msh,
     dblAr1(gdim,dedg0).print();
     printf("dedg1 : ");
     dblAr1(gdim,dedg1).print();
-    printf(" -- getBezOffsetsEdge debug print met:\n");
+    printf("-- getBezOffsetsEdge debug print met:\n");
     dblAr1(nnmet,met).print();
-    printf(" -- getBezOffsetsEdge debug print d1met:\n");
+    printf("-- getBezOffsetsEdge debug print d1met:\n");
     dblAr1(nnmet,&dmet[0]).print();
-    printf(" -- getBezOffsetsEdge debug print d2met:\n");
+    printf("-- getBezOffsetsEdge debug print d2met:\n");
     dblAr1(nnmet,&dmet[nnmet]).print();
-    printf(" -- getBezOffsetsEdge debug print met^{1/2}:\n");
+    printf("-- getBezOffsetsEdge debug print met^{1/2}:\n");
     dblAr1(nnmet,met_p12).print();
   }
   #endif
@@ -200,7 +200,7 @@ void getBezOffsetsEdge(Mesh<MFT> &msh,
 
   #ifndef NDEBUG
   if(msh.param->iverb >= 4){
-    printf(" -- getBezOffsetsEdge debug print met^{-1/2}:\n");
+    printf("-- getBezOffsetsEdge debug print met^{-1/2}:\n");
     printf("M^{-1/2}: ");
     for(int ii = 0; ii < nnmet; ii++) printf(" %f ",met_m12[ii].value());
     printf("\n");
@@ -234,7 +234,7 @@ void getBezOffsetsEdge(Mesh<MFT> &msh,
   }
   #ifndef NDEBUG
   if(msh.param->iverb >= 4){
-    printf(" -- getBezOffsetsEdge debug print tensor T^M:\n");
+    printf("-- getBezOffsetsEdge debug print tensor T^M:\n");
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = 0; jj < gdim; jj++){
         for(int kk = jj; kk < gdim; kk++){

@@ -24,6 +24,12 @@ public:
   // geodev = 1 - abs(dtprd) at nodes 
   // dtprd between CAD and discrete tangent 
   dblAr1 edg2dev;
+  // Geometric deviation for faces 
+  dblAr1 fac2dev;
+
+        dblAr1&  ent2dev(int tdimn);
+  const dblAr1&  ent2dev(int tdimn) const;
+
 
   //// Store outgoing normals cone based on CAD for each edge.
   //// This is an upgrade to the geodev because geodev is unsigned, this is 
@@ -41,14 +47,12 @@ public:
   //void initialize(MetrisAPI *data, Mesh<MetricFieldType> *msh, )
 
   void initialize(MetrisAPI *data, 
-    #ifdef NDEBUG
-    const
-    #endif
     MetrisParameters &param);
 
 	void copyConstants(const MeshBase &msh, int MAX_DEG = METRIS_MAX_DEG);
 
   void set_nedge(int nedge, bool skipallocf = false) override; 
+  void set_nface(int nedge, bool skipallocf = false) override; 
 
 public:
   int newpoitopo(int tdimn, int ientt = -1);

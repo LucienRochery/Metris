@@ -8,6 +8,7 @@
 #include "../Mesh/MeshBase.hxx"
 #include "../Boundary/msh_inisurf.hxx"
 #include "../aux_utils.hxx"
+#include "../mprintf.hxx"
 #include "../io_libmeshb.hxx"
 
 namespace Metris{
@@ -25,7 +26,6 @@ void CADInfo::iniEGADSModel(){
   int oclass,mtype,nbody,*dum;
   ego *bodies;
   ierro = EG_getTopology(EGADS_model,&geom,&oclass,&mtype,NULL,&nbody,&bodies,&dum);
-  printf("## DEBUG oclass %d mtype %d \n",oclass,mtype);
   if(ierro != 0){
     print_EGADS_error("EG_getTopology",ierro);
     METRIS_THROW(TopoExcept());
@@ -164,6 +164,7 @@ void CADInfo::setModel(size_t nbyte, char* stream){
 
 
 void CADInfo::iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0){
+  GETVDEPTH(msh);
 
   if(EGADS_model == NULL){
 
@@ -171,21 +172,21 @@ void CADInfo::iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0
     /* -------------- CAD File handling -------------- */
     // Throw out exceptions as these are not fatal. 
     METRIS_TRY0(
-      if(param.iverb >= 1) printf("-- Read CAD file %s and project.\n",param.cadFileName.c_str());
+      CPRINTF1("-- Read CAD file %s and project.\n",param.cadFileName.c_str());
       int ierro = EG_open(&EGADS_context);
       if(ierro != 0){
         print_EGADS_error("EG_open",ierro);
         METRIS_THROW(TopoExcept());
       }
 
-      if(param.iverb >= 1) printf(" - Start reading CAD file.\n");
+      CPRINTF2(" - Start reading CAD file.\n");
       int bitFlag = 0; 
       ierro = EG_loadModel(EGADS_context,bitFlag,param.cadFileName.c_str(),&EGADS_model);
       if(ierro != 0){
         print_EGADS_error("EG_loadModel",ierro);
         METRIS_THROW_MSG(WArgExcept(),"CAD Projection will not be available");
       }
-      if(param.iverb >= 1) printf(" - Done reading CAD file.\n");
+      CPRINTF2(" - Done reading CAD file.\n");
 
       //printf("## Remove this \n");
       //size_t nbyte;
@@ -246,7 +247,7 @@ void CADInfo::iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0
       if(iref > ncaded) ncaded = iref;
     }
     for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
-      int ityp = msh.bpo2ibi[ibpoi][1];
+      int ityp = msh.bpo2ibi(ibpoi,1);
       if(ityp == 0) ncadno++;
     }
 
@@ -259,13 +260,14 @@ void CADInfo::iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0
   }else{
 
     iniEGADSModel();
-    if(param.iverb >= 1) printf(" - Boundary point projection\n");
-    prjMeshPoints(msh, nbpo0, 1);
-    if(param.iverb >= 2) writeMesh("inisurf.meshb",msh);
-    if(param.iverb >= 1) printf("-- Done\n");
+    prjMeshPoints(msh, nbpo0);
+    if(DOPRINTS2()) writeMesh("inisurf.meshb",msh);
 
   }
 }
+
+
+
 
 
 CADInfo::~CADInfo(){

@@ -14,6 +14,7 @@
 #include "../aux_topo.hxx"
 #include "../msh_structs.hxx"
 #include "../low_topo.hxx"
+#include "../mprintf.hxx"
 #include "../low_geo.hxx"
 #include "../io_libmeshb.hxx"
 
@@ -25,11 +26,11 @@ namespace Metris{
 template<class MetricFieldType>
 int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop, 
                double bar1, intAr1 &lerro, int ithrd1, int ithrd2){
+  GETVDEPTH(msh);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd1 != ithrd2);
 
-  int iverb = msh.param->iverb;
   int iret = 0;
 
   bool isellen = true;
@@ -48,13 +49,12 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
   opts.allow_topological_correction = true;
   opts.skip_topo_checks = true;
   opts.dryrun = false;
-  opts.iverb  = iverb-1;
   opts.allow_remove_points = false;
 
   int mcavcorr = 5, ncavcorr;
 
 
-  if(iverb >= 4) printf("     -- START insedgesurf iface = %d ied %d\n",iface,iedl);
+  CPRINTF1("-- START insedgesurf iface = %d ied %d\n",iface,iedl);
 
   int ierro = 0, nprem;
 
@@ -85,7 +85,7 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
   int ibpoi = -1;
 
 
-  if(iverb >= 4) printf("      - Initial npoin = %d \n",msh.npoin);
+  CPRINTF1(" - Initial npoin = %d \n",msh.npoin);
 
   // Create the point, set info for localization 
   int iseed, tdimp, iref;
@@ -113,7 +113,7 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
   METRIS_ASSERT(iref >= 0);
   METRIS_ASSERT(obj != NULL || tdimp == 2 && !msh.isboundary_faces());
 
-  if(iverb >= 3) printf("      - create ipins %d \n",cav.ipins);
+  CPRINTF1(" - create ipins %d \n",cav.ipins);
 
   for(int ii = 0; ii < msh.idim; ii++) msh.coord[cav.ipins][ii] = coop[ii];
 
@@ -123,22 +123,13 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
                msh.fac2poi(iface,lnoed2[iedl][1])};
   if(ibpoi >= 0 && msh.CAD()){
     int ib[2];
+    // Correct ibs : attach to ref or edge/face as needed
     for(int ii = 0; ii < 2; ii++){
-      ib[ii] = msh.poi2bpo[ip[ii]];
+      ib[ii] = msh.poi2ebp(ip[ii],tdimp,iseed,iref);
       METRIS_ASSERT(ib[ii] >= 0);
     }
 
-    // Correct ibs : attach to ref or edge/face as needed
-    for(int ii = 0; ii < 2; ii++){
-      // If corner we need attached to this specific edge
-      if(msh.bpo2ibi[ib[ii]][1] < 1){ 
-        ib[ii] = getent2bpo(msh,ib[ii],iseed,tdimp);
-      }else{ // otherwise ref-bound 
-        ib[ii] = getref2bpo(msh,ib[ii],iref,tdimp);
-      }
-    }
-
-    for(int ii = 0; ii < 2; ii++) msh.bpo2rbi[ibpoi][ii] = 
+    for(int ii = 0; ii < 2; ii++) msh.bpo2rbi(ibpoi,ii) = 
         bar1 * msh.bpo2rbi[ib[0]][ii] + (1.0 - bar1) * msh.bpo2rbi[ib[1]][ii];
 
 
@@ -150,23 +141,25 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
         iret = ierro;
         goto cleanup;
       }
-      if(iverb >= 4){
-        printf("EG_evaluate orig = ");
+      if(DOPRINTS2()){
+        CPRINTF2("EG_evaluate orig = ");
         dblAr1(msh.idim,msh.coord[cav.ipins]).print();
-        printf("new = ");
+        CPRINTF2("new = ");
         dblAr1(msh.idim,result).print();
       }
       for(int ii = 0; ii < msh.idim; ii++) msh.coord[cav.ipins][ii] = result[ii];
       for(int ii = 0; ii < msh.idim; ii++) algnd[ii] = result[3+ii];
+    }else{
+      if(msh.idim == 3) METRIS_THROW_MSG(TODOExcept(), "CAD eval in insert face")
     }
 
     // If the point moved away from the initial cavity, increase it. 
-    ierro = increase_cavity2D(msh,msh.fac2ref[iface],msh.coord[cav.ipins],
+    ierro = increase_cavity2D(msh,msh.coord[cav.ipins],
                               opts,cav,ithrd1);
 
-    if(iverb >= 4){
-      writeMeshCavity("insert_cavity0.meshb", msh, cav, iverb, ithrd2);
-      printf("increase_cavity2D after EGADS failed ipins = %d \n",cav.ipins);
+    if(DOPRINTS2()){
+      writeMeshCavity("insert_cavity0.meshb", msh, cav, ithrd2);
+      CPRINTF2("increase_cavity2D after EGADS failed ipins = %d \n",cav.ipins);
     }
     if(ierro != 0){
       ierro = INS2D_ERR_INCCAV2D2;
@@ -201,37 +194,40 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
     writeMesh("debug_interpMetBack.meshb",msh);
     printf("ipins = %d \n",cav.ipins);
     dblAr1(msh.idim,msh.coord[cav.ipins]).print();
-    if(iverb >= 4)writeMeshCavity("error_insert_cavity."+std::to_string(ncavcorr)+".meshb", 
-                                  msh, cav, iverb, ithrd2);
+    writeMeshCavity("error_insert_cavity."+std::to_string(ncavcorr)+".meshb", 
+                    msh,cav, ithrd2);
     throw(e);
   }
   #endif
 
   ncavcorr = 0;
   do{
-    if(iverb >= 4)writeMeshCavity("insert_cavity0."+std::to_string(ncavcorr), 
-                                  msh, cav, iverb, ithrd2);
-    if(iverb >= 4)printf("      - initial cavity size %d \n",cav.lcfac.get_n()); 
+   
+    if(DOPRINTS2()) writeMeshCavity("insert_cavity0."+std::to_string(ncavcorr), 
+                                  msh,cav, ithrd2);
+    CPRINTF1(" - initial cavity size %d \n",cav.lcfac.get_n()); 
+   
     increase_cavity_Delaunay(msh, cav, cav.ipins, ithrd1);
-    if(iverb >= 4)printf("      - +del cavity size %d \n",cav.lcfac.get_n()); 
+   
+    CPRINTF1(" - +del cavity size %d \n",cav.lcfac.get_n()); 
+
     if(isellen){
       nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2); 
       if(nprem < 0){
         ierro = INS2D_ERR_SHORTEDG;
       }
-      if(iverb >= 4)printf("      - +len cavity size %d nprem = %d\n",
-                           cav.lcfac.get_n(),nprem); 
+      CPRINTF1(" - +len cavity size %d nprem = %d\n", cav.lcfac.get_n(),nprem); 
     }
-    int ierr2 = increase_cavity2D(msh,msh.fac2ref[iface],msh.coord[cav.ipins],
+    int ierr2 = increase_cavity2D(msh,msh.coord[cav.ipins],
                                   opts,cav,ithrd1);
-    if(iverb >= 4) printf("      - +val cavity size %d \n",cav.lcfac.get_n()); 
+    CPRINTF1(" - +val cavity size %d \n",cav.lcfac.get_n()); 
     if(ierr2 > 0 && ierro <= 0) ierro = INS2D_ERR_INCCAV2D;
 
     if(ierro <= 0) break; 
 
     if(tdimp < msh.get_tdim()){
       ierro = INS2D_ERR_BDRYNOCORR; 
-      if(iverb >= 4) printf("   - Cannot correct boundary point in insert2D\n");
+      CPRINTF1(" - Cannot correct boundary point in insert2D\n");
       goto cleanup;
     }
 
@@ -245,14 +241,10 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
       eval2<2,1>(msh.coord,msh.fac2poi[iface],msh.getBasis(),DifVar::None,DifVar::None,
                  bary,eval,NULL,NULL);
       bool iflat;
-      double meas0 = getmeasentP1<2,2>(msh.fac2poi[iface], msh.coord, 
-                                       msh.param->vtol, cav.nrmal, &iflat, iverb-1);
+      double wt = getmeasentP1<2,2>(msh, msh.fac2poi[iface], cav.nrmal, &iflat);
       // For simply barycentre, use meas0
       // To skew towards the largest elements use meas0 * meas0
-      double wt = meas0;
-      for(int ii = 0; ii < msh.idim;ii++){
-        newp[ii] += wt * eval[ii];
-      }
+      for(int ii = 0; ii < msh.idim;ii++) newp[ii] += wt * eval[ii];
       meast += wt;
     }
     for(int ii = 0; ii < msh.idim;ii++){
@@ -260,8 +252,8 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
       msh.coord[cav.ipins][ii] = newp[ii];
     }
 
-    if(iverb >= 4) writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr)+".meshb", 
-                                  msh, cav, iverb, ithrd2);
+    if(DOPRINTS2()) writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr)+".meshb", 
+                                  msh,cav, ithrd2);
 
     // reinterp metric. This is always interior case, no need for ref of bdry dir
     ierr2 = msh.interpMetBack(cav.ipins,tdimp,iseed,-1,NULL);
@@ -283,10 +275,10 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
 
 
 
-  if(iverb >= 4) printf(" insert ipins =  %d \n",cav.ipins);
+  CPRINTF1(" insert ipins =  %d \n",cav.ipins);
 
   #ifndef NDEBUG
-    if(iverb >= 4){
+    if(DOPRINTS2()){
       int *refold = (int *) malloc(msh.nface*sizeof(int));
       METRIS_ENFORCE(refold != NULL);
       for(int ii = 0; ii < msh.nface; ii++){
@@ -301,9 +293,9 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
       // Add a corner at ipoin 
       int ipoin = msh.newpoitopo(-1,-1);
       int ibpoi = msh.template newbpotopo<0>(ipoin,ipoin);
-      for(int ii = 0; ii < msh.idim; ii++) msh.coord[ipoin][ii] = msh.coord[cav.ipins][ii] ;
+      for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipoin,ii) = msh.coord[cav.ipins][ii] ;
       writeMesh("debug_insert0.meshb",msh);
-      for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi[ibpoi][ii]  = -1;
+      for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi(ibpoi,ii)  = -1;
       msh.set_npoin(msh.npoin-1);
       msh.set_nbpoi(msh.nbpoi-1);
 
@@ -326,10 +318,10 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
 
 
   if(info.done){
-    if(iverb >= 4) printf("      -- END insedgesurf ipins = %d  \n",cav.ipins);
+    CPRINTF1("-- END insedgesurf ipins = %d  \n",cav.ipins);
 
     #ifndef NDEBUG
-      if(iverb >= 4) writeMesh("debug_insert1.meshb",msh);
+      if(DOPRINTS2()) writeMesh("debug_insert1.meshb",msh);
     #endif
     return -1; // Return did op
   }
@@ -338,7 +330,7 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
   iret = ierro;
 
   if(ibpoi >= 0){
-    for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi[ibpoi][ii] = -1;
+    for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi(ibpoi,ii) = -1;
     msh.set_nbpoi(msh.nbpoi - 1);
   }
   msh.set_npoin(msh.npoin - 1);
@@ -369,11 +361,11 @@ template int insedgesurf<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh
 template<class MetricFieldType>
 int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop, 
                intAr1 &lerro, int ithrd1, int ithrd2){
+  GETVDEPTH(msh);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd1 != ithrd2);
 
-  int iverb = msh.param->iverb;
   int iret = 0;
 
   bool isellen = true;
@@ -393,7 +385,6 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
   opts.skip_topo_checks = true;
   opts.allow_remove_points = true;
   opts.dryrun = false;
-  opts.iverb  = iverb-1;
   opts.allow_remove_points = false;
 
   int mcavcorr = 5, ncavcorr;
@@ -401,7 +392,7 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
   const int tdim = 2;
 
 
-  if(iverb >= 4) printf("-- START insfacsurf iface = %d \n",iface);
+  CPRINTF1("-- START insfacsurf iface = %d \n",iface);
 
   int ierro = 0, nprem;
 
@@ -426,21 +417,24 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
 
   ncavcorr = 0;
   do{
-    if(iverb >= 4)writeMeshCavity("insert_cavity0."+std::to_string(ncavcorr)+".meshb", 
-                                  msh, cav, iverb, ithrd2);
-    if(iverb >= 4)printf(" - initial cavity size %d \n",cav.lcfac.get_n()); 
+    if(DOPRINTS2())
+      writeMeshCavity("insert_cavity0."+std::to_string(ncavcorr)+".meshb", 
+                                    msh,cav, ithrd2);
+
+    CPRINTF1(" - initial cavity size %d \n",cav.lcfac.get_n()); 
     increase_cavity_Delaunay(msh, cav, cav.ipins, ithrd1);
-    if(iverb >= 4)printf(" - +del cavity size %d \n",cav.lcfac.get_n()); 
+    CPRINTF1(" - +del cavity size %d \n",cav.lcfac.get_n()); 
+
     if(isellen){
       nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2); 
       if(nprem < 0){
         ierro = INS2D_ERR_SHORTEDG;
       }
-      if(iverb >= 4)printf(" - +len cavity size %d nprem = %d\n",cav.lcfac.get_n(),nprem); 
+      CPRINTF1(" - +len cavity size %d nprem = %d\n",cav.lcfac.get_n(),nprem); 
     }
-    int ierr2 = increase_cavity2D(msh,msh.fac2ref[iface],msh.coord[cav.ipins],
+    int ierr2 = increase_cavity2D(msh,msh.coord[cav.ipins],
                                   opts,cav,ithrd1);
-    if(iverb >= 4) printf(" - +val cavity size %d \n",cav.lcfac.get_n()); 
+    CPRINTF1(" - +val cavity size %d \n",cav.lcfac.get_n()); 
     if(ierr2 > 0 && ierro <= 0) ierro = INS2D_ERR_INCCAV2D;
     if(ierro <= 0) break; 
 
@@ -454,8 +448,7 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
     for(int iface : cav.lcfac){
       eval2<2,1>(msh.coord,msh.fac2poi[iface],msh.getBasis(),DifVar::None,DifVar::None,
                  bary,eval,NULL,NULL);
-      double meas0 = getmeasentP1<2,2>(msh.fac2poi[iface], msh.coord, 
-                                       msh.param->vtol, cav.nrmal, &iflat, iverb-1);
+      double meas0 = getmeasentP1<2,2>(msh, msh.fac2poi[iface], cav.nrmal, &iflat);
       // For simply barycentre, use meas0
       // To skew towards the largest elements use meas0 * meas0
       double wt = meas0;
@@ -469,8 +462,8 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
       msh.coord[cav.ipins][ii] = newp[ii];
     }
 
-    if(iverb >= 4)writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr)+".meshb", 
-                                  msh, cav, iverb, ithrd2);
+    if(DOPRINTS2()) writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr)+".meshb", 
+                                  msh,cav, ithrd2);
 
     // reinterp metric 
     ierr2 = msh.interpMetBack(cav.ipins,tdim,iface,-1,NULL);
@@ -492,44 +485,38 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
 
   // CAD link initialization including normal
   if(ibpoi >= 0 && msh.CAD()){
-    int ip[3], ib[3];
-    for(int ii = 0; ii < 3; ii++){
-      ip[ii] = msh.fac2poi(iface,ii);
-      ib[ii] = msh.poi2bpo[ip[ii]];
-      METRIS_ASSERT(ib[ii] >= 0);
-    }
 
     int iref = msh.fac2ref[iface];
     METRIS_ASSERT(iref >= 0);
+
 
     if(msh.isboundary_faces()){
       ego obj = msh.CAD.cad2fac[iref];
       METRIS_ASSERT(obj != NULL);
       // Correct ibs : attach to ref or edge/face as needed
-      for(int ii = 0; ii < 2; ii++){
-        if(msh.bpo2ibi[ib[ii]][1] < 1){ // If corner we need attached to this specific edge..
-          ib[ii] = getent2bpo(msh,ib[ii],iface,2);
-        }else{ // otherwise ref-bound 
-          ib[ii] = getref2bpo(msh,ib[ii],iref,2);
-        }
+      int ib[3];
+      for(int ii = 0; ii < 3; ii++){
+        int ip = msh.fac2poi(iface,ii);
+        ib[ii] = msh.poi2ebp(ip,2,iface,iref);
+        METRIS_ASSERT(ib[ii] >= 0);
       }
 
-      for(int ii = 0; ii < 2; ii++) msh.bpo2rbi[ibpoi][ii] = 
-          msh.bpo2rbi[ib[0]][ii]/3.0 + 
-          msh.bpo2rbi[ib[1]][ii]/3.0 +
-          msh.bpo2rbi[ib[2]][ii]/3.0;
-      double result[18];
+      for(int ii = 0; ii < nrbi; ii++) msh.bpo2rbi(ibpoi,ii) = 
+                                                     msh.bpo2rbi[ib[0]][ii]/3.0  
+                                                   + msh.bpo2rbi[ib[1]][ii]/3.0 
+                                                   + msh.bpo2rbi[ib[2]][ii]/3.0;
 
+      double result[18];
       ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
       if(ierro != 0){
         ierro = INS2D_ERR_EGEVALUATE; 
         iret = ierro;
         goto cleanup;
       }
-      if(iverb >= 4){
-        printf("EG_evaluate orig = ");
+      if(DOPRINTS2()){
+        CPRINTF2("EG_evaluate orig = ");
         dblAr1(msh.idim,msh.coord[cav.ipins]).print();
-        printf("new = ");
+        CPRINTF2("new = ");
         dblAr1(msh.idim,result).print();
       }
       for(int ii = 0; ii < msh.idim; ii++) msh.coord[cav.ipins][ii] = result[ii];
@@ -537,19 +524,18 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
 
     // Use normal
     if(msh.idim == 3){
-      if(msh.param->dbgfull)     METRIS_THROW_MSG(TODOExcept(), "Implement CAD normal")
+      METRIS_THROW_MSG(TODOExcept(), "Implement CAD normal")
     }
 
 
     // If the point moved away from the initial cavity, increase it. 
 
-    ierro = increase_cavity2D(msh,msh.fac2ref[iface],msh.coord[cav.ipins],
+    ierro = increase_cavity2D(msh,msh.coord[cav.ipins],
                               opts,cav,ithrd1);
 
 
-    if(iverb >= 4){
-      writeMeshCavity("insert_cavity0.meshb", msh, cav, 
-                                           iverb, ithrd2);
+    if(DOPRINTS2()){
+      writeMeshCavity("insert_cavity0.meshb", msh, cav, ithrd2);
       printf("increase_cavity2D after EGADS failed ipins = %d \n",cav.ipins);
     }
     if(ierro != 0){
@@ -562,10 +548,10 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
 
 
 
-  if(iverb >= 4) printf(" insert ipins =  %d \n",cav.ipins);
+  CPRINTF1(" insert ipins =  %d \n",cav.ipins);
 
   #ifndef NDEBUG
-    if(iverb >= 4){
+    if(DOPRINTS2()){
       int *refold = (int *) malloc(msh.nface*sizeof(int));
       METRIS_ENFORCE(refold != NULL);
       for(int ii = 0; ii < msh.nface; ii++){
@@ -580,9 +566,9 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
       // Add a corner at ipoin 
       int ipoin = msh.newpoitopo(-1,-1);
       int ibpoi = msh.template newbpotopo<0>(ipoin,ipoin);
-      for(int ii = 0; ii < msh.idim; ii++) msh.coord[ipoin][ii] = msh.coord[cav.ipins][ii] ;
+      for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipoin,ii) = msh.coord[cav.ipins][ii] ;
       writeMesh("debug_insert0.meshb",msh);
-      for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi[ibpoi][ii]  = -1;
+      for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi(ibpoi,ii)  = -1;
       msh.set_npoin(msh.npoin-1);
       msh.set_nbpoi(msh.nbpoi-1);
 
@@ -605,9 +591,9 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
 
 
   if(info.done){
-    if(iverb >= 4) printf("-- END insfacsurf ipins = %d  \n",cav.ipins);
+    CPRINTF1("-- END insfacsurf ipins = %d  \n",cav.ipins);
     #ifndef NDEBUG
-      if(iverb >= 4) writeMesh("debug_insert1.meshb",msh);
+      if(DOPRINTS2()) writeMesh("debug_insert1.meshb",msh);
     #endif
     return -1; // Return did op
   }
@@ -616,7 +602,7 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
   iret = ierro;
 
   if(ibpoi >= 0){
-    for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi[ibpoi][ii] = -1;
+    for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi(ibpoi,ii) = -1;
     msh.set_nbpoi(msh.nbpoi - 1);
   }
   msh.set_npoin(msh.npoin - 1);

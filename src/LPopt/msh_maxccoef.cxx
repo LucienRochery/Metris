@@ -7,7 +7,6 @@
 #include "msh_maxccoef.hxx"
 #include "LPsolver.hxx"
 
-#include "../codegen_ccoef_d.hxx"
 #include "../low_ccoef.hxx"
 #include "../low_geo.hxx"
 #include "../io_libmeshb.hxx"
@@ -150,11 +149,7 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
         int row = ielem;
         int idx_start_row = row * ncoef;
 
-        if constexpr(tdim==2){
-          d_ccoef_genbez2<ideg>(ent2poi, coord, ielem, ccoef, icoor, d_ccoef);
-        }else if(tdim==3){
-          d_ccoef_genbez3<ideg>(ent2poi, coord, ielem, icoor, ccoef, d_ccoef);
-        }else METRIS_THROW_MSG(TODOExcept(), "derivatives not implemented for gdim = "<<gdim);
+        getccoef_dcoord<tdim,ideg>(msh,ielem,icoor,ccoef,d_ccoef); 
 
         for(int ii = 0; ii < ncoef; ii++){
           int row_idx = idx_start_row + ii;
@@ -282,8 +277,7 @@ double getminccoef(MeshBase &msh){
     bool iflat;
     if(!(vol > 0.0)){
       printf("## FATAL vol = %15.7e \n", vol);
-      vol = getmeasentP1<gdim,gdim>(ent2poi[ielem], msh.coord, msh.param->vtol, 
-                         NULL, &iflat);
+      vol = getmeasentP1<gdim,gdim>(msh, ent2poi[ielem], NULL, &iflat);
       printf("Recompute with tol %15.7e iflat %d \n",vol, iflat);
       printf("element is %d = ", ielem);
       intAr1(tdim + 1, ent2poi[ielem]).print();

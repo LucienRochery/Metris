@@ -122,11 +122,13 @@ public:
                   int tdimn,  const double* __restrict__ bary, 
                   double*__restrict__ metl, double*__restrict__ dmet);
 
+  #if 0
 	void getMetPhys(AsDeg metdeg, DifVar idiff, MetSpace tarspac, 
                   int *ieleg, 
 		              const double* __restrict__ coop, 
 		              double*__restrict__ metl, 
                   double*__restrict__ dmet, int ithread = 0) ;
+  #endif
 
 	void getMetFullinfo(AsDeg asdmet,
                       DifVar idiff, MetSpace tarspac, 

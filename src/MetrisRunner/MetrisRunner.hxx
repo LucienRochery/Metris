@@ -64,7 +64,8 @@ public:
 
   // The order of these two MUST NOT be changed ! (construction order)
   MetrisOptions opt;
-  MetrisParameters param;
+  MetrisParameters param_;
+  MetrisParameters * const param; // for INCVDEPTH convenience
 
   MeshBase *msh_g;
   MeshBack bak;

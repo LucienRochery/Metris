@@ -27,17 +27,17 @@ void reoderHilbert(MeshBase &msh){
   bool ialloc = false;
   int fac = sizeof(uint64_t)/sizeof(int);
   int isear = 0;
-  if(msh.poi2iwk.size() >= 2 * msh.npoin * fac){
-    lorder = (uint64_t *)&msh.poi2iwk[0];
+  if(msh.iwork.size() >= 2 * msh.npoin * fac){
+    lorder = (uint64_t *)&msh.iwork[0];
     isear = 1;
-  }else if(msh.edg2iwk.size() >= 2 * msh.npoin * fac){
-    lorder = (uint64_t *)&msh.edg2iwk[0];
+  }else if(msh.iwork.size() >= 2 * msh.npoin * fac){
+    lorder = (uint64_t *)&msh.iwork[0];
     isear = 2;
-  }else if(msh.fac2iwk.size() >= 2 * msh.npoin * fac){
-    lorder = (uint64_t *)&msh.fac2iwk[0];
+  }else if(msh.iwork.size() >= 2 * msh.npoin * fac){
+    lorder = (uint64_t *)&msh.iwork[0];
     isear = 3;
-  }else if(msh.tet2iwk.size() >= 2 * msh.npoin * fac){
-    lorder = (uint64_t *)&msh.tet2iwk[0];
+  }else if(msh.iwork.size() >= 2 * msh.npoin * fac){
+    lorder = (uint64_t *)&msh.iwork[0];
     isear = 4;
   }else{
     lorder = new uint64_t[msh.npoin];
@@ -54,14 +54,14 @@ void reoderHilbert(MeshBase &msh){
 
   int *invord = NULL;
   bool iallo2 = false;
-  if(msh.poi2iwk.size() >= msh.npoin && isear != 1){
-    invord = &msh.poi2iwk[0];
-  }else if(msh.edg2iwk.size() >= msh.npoin && isear != 2){
-    invord = &msh.edg2iwk[0];
-  }else if(msh.fac2iwk.size() >= msh.npoin && isear != 3){
-    invord = &msh.fac2iwk[0];
-  }else if(msh.tet2iwk.size() >= msh.npoin && isear != 4){
-    invord = &msh.tet2iwk[0];
+  if(msh.iwork.size() >= msh.npoin && isear != 1){
+    invord = &msh.iwork[0];
+  }else if(msh.iwork.size() >= msh.npoin && isear != 2){
+    invord = &msh.iwork[0];
+  }else if(msh.iwork.size() >= msh.npoin && isear != 3){
+    invord = &msh.iwork[0];
+  }else if(msh.iwork.size() >= msh.npoin && isear != 4){
+    invord = &msh.iwork[0];
   }else{
     invord = new int[msh.npoin];
     if(invord == NULL) METRIS_THROW(DMemExcept());
@@ -91,11 +91,11 @@ void reoderHilbert(MeshBase &msh){
     if(idx0 == idx1) continue;
 
     double tmp[3]; 
-    for(int kk = 0; kk < 3; kk++) tmp[kk] = msh.coord[idx1][kk]; 
+    for(int kk = 0; kk < 3; kk++) tmp[kk] = msh.coord(idx1,kk); 
     int itmp1 = msh.poi2bpo[idx1];
     int itmp2 = msh.poi2ent[idx1];
 
-    for(int kk = 0; kk < 3; kk++) msh.coord[idx1][kk] = msh.coord[idx0][kk]; 
+    for(int kk = 0; kk < 3; kk++) msh.coord(idx1,kk) = msh.coord(idx0,kk); 
     msh.poi2bpo[idx1] = msh.poi2bpo[idx0];
     msh.poi2ent[idx1] = msh.poi2ent[idx0];
     //if(idx1 == 2) printf(" (beg) Point 2 replaced by %d \n",idx0);
@@ -114,12 +114,12 @@ void reoderHilbert(MeshBase &msh){
       msh.poi2tag(0,jj) = msh.tag[0];
 
       //int idx1_n = (int)lorder[2*jj + 1] - 1;
-      //for(int kk = 0; kk < 3; kk++) msh.coord[idx1][kk] = tmp[idx1_n]; 
+      //for(int kk = 0; kk < 3; kk++) msh.coord(idx1,kk) = tmp[idx1_n]; 
 //
       //idx1 = idx1_n;
       idx0 = (int)lorder[2*jj + io0] - 1;
       idx1 = (int)lorder[2*jj + io1] - 1;
-      for(int kk = 0; kk < 3; kk++) msh.coord[idx1][kk] = msh.coord[idx0][kk]; 
+      for(int kk = 0; kk < 3; kk++) msh.coord(idx1,kk) = msh.coord(idx0,kk); 
       msh.poi2bpo[idx1] = msh.poi2bpo[idx0];
       msh.poi2ent[idx1] = msh.poi2ent[idx0];
       //if(idx1 == 2) printf(" (mid) Point 2 replaced by %d \n",idx0);
@@ -137,7 +137,7 @@ void reoderHilbert(MeshBase &msh){
 
 
     idx1 = (int)lorder[2*jp + io1] - 1;
-    for(int kk = 0; kk < 3; kk++) msh.coord[idx1][kk] = tmp[kk];
+    for(int kk = 0; kk < 3; kk++) msh.coord(idx1,kk) = tmp[kk];
     msh.poi2bpo[idx1] = itmp1;
     msh.poi2ent[idx1] = itmp2;
   }
@@ -205,14 +205,14 @@ void reoderHilbert(MeshBase &msh){
       if(msh->poi2ent[ipoin] < 0) continue;
       int ibpoi = msh->poi2bpo[ipoin];
       if(ibpoi < 0) continue;
-      msh->bpo2ibi[ibpoi][0] = ipoin;
+      msh->bpo2ibi(ibpoi,0) = ipoin;
     }
     //for(int ibpoi = ilo0-1; ibpoi < ilo1; ibpoi++){
-    //  int ipoin = msh->bpo2ibi[ibpoi][0];
+    //  int ipoin = msh->bpo2ibi(ibpoi,0);
     //  if(ipoin < 0 || ipoin >= msh->npoin) continue;
     //  int iidx = invord[ipoin]; 
     //  int idx1 = (int)lorder[2*iidx + io1] - 1;
-    //  msh->bpo2ibi[ibpoi][0] = idx1;
+    //  msh->bpo2ibi(ibpoi,0) = idx1;
     //}
   };
 

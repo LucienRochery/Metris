@@ -50,65 +50,22 @@ double det2_vdif(const double* x1,const double* x2
        - (x1[1] - x2[1])*(y1[0] - y2[0]);
 }
 
-template <typename T>
-T* vdiff(const T* a, const T* b) {
-    T* diff = new T[3];
-    diff[0] = a[0] - b[0]; 
-    diff[1] = a[1] - b[1]; 
-    diff[2] = a[2] - b[2];
-    return diff;
+void vdiff_perp(const double* a, const double* b, int up, int lo, double *res){
+  res[0] = up*(a[1] - b[1])/lo; 
+  res[1] = up*(b[0] - a[0])/lo;
+}
+void vdiff_perp_sum(const double* a, const double* b, int up, int lo, double *res){
+  res[0] += up*(a[1] - b[1])/lo;
+  res[1] += up*(b[0] - a[0])/lo;
 }
 
-
-double* vdiff(const double* a, const double* b) {
-    double* diff = new double[3];
-    diff[0] = a[0] - b[0]; 
-    diff[1] = a[1] - b[1]; 
-    diff[2] = a[2] - b[2];
-    return diff;
-}
-
-template <typename T>
-T* vproduct(const T* a, const T* b){
-  T* prod = new T[3];
-  prod[0] = a[1]*b[2]-a[2]*b[1];
-  prod[1] = a[2]*b[0]-a[0]*b[2];
-  prod[2] = a[0]*b[1]-a[1]*b[0];
-  return prod;
-}
-
-double* vproduct(const double* a, const double* b){
-  double* prod = new double[3];
-  prod[0] = a[1]*b[2]-a[2]*b[1];
-  prod[1] = a[2]*b[0]-a[0]*b[2];
-  prod[2] = a[0]*b[1]-a[1]*b[0];
-  return prod;
-}
-
-template <typename T>
-T* vdiff_perp(const T* a, const T* b) {
-    T* res = new T[2];
-    res[0] = a[1] - b[1]; 
-    res[1] = b[0] - a[0]; 
-    return res;
-}
-
-
-
-double* vdiff_perp(const double* a, const double* b) {
-    double* res = new double[2];
-    res[0] = a[1] - b[1]; 
-    res[1] = b[0] - a[0]; 
-    return res;
-}
-
-double vdiff_perp_x(const double* a, const double* b){
-  return a[1]-b[1]; 
-}
-
-double vdiff_perp_y(const double* a, const double* b){
-  return b[0]-a[0]; 
-}
+//double vdiff_perp_x(const double* a, const double* b){
+//  return a[1]-b[1]; 
+//}
+//
+//double vdiff_perp_y(const double* a, const double* b){
+//  return b[0]-a[0]; 
+//}
 
 
 bool isintetP1(const double *p1, const double *p2,
@@ -176,7 +133,7 @@ void inventP1(const int*__restrict__ ent2pol, const dblAr2 &coord,
     }
   }
   //invmat(gdim,jmat[0]);
-  invmat<gdim>(jmat[0]);
+  METRIS_ENFORCE(!invmat<gdim>(jmat[0]));
 
   matvdft(gdim,jmat[0],pp,coord[ent2pol[0]],&bary[1]);
 //  bary[0] = 1 - bary[1] - bary[2] - bary[3]; 
@@ -207,54 +164,28 @@ double getmeasentP1(const int *ent2pol, const dblAr2& coord){
 
 // This variant returns whether above or below specified tolerance
 // nrmal only required if tdim == 2 and gdim == 3 (surface), can be NULL otherwise
+// norCAD can be computed discretely, it is just a reference normal pointing inwards
 template<int gdim, int tdim>
-double getmeasentP1(const int *ent2pol, const dblAr2& coord, double vtol, 
-                                          double *nrml0, bool *iflat,int iverb){
+double getmeasentP1(const MeshBase &msh, const int* ent2pol, 
+                    const double* norref, bool* iflat){
+
   static_assert(gdim == 2 || gdim == 3);
   static_assert(tdim <= gdim);
-
-  if(gdim == 3 && tdim == 2) METRIS_ASSERT(nrml0 != NULL);
-
-  //double etol = vtol;
-  //if constexpr(tdim == 2 && gdim == 3){
-  //  etol = MIN(vtol * 1.0e3, 0.1);
-  //}
 
   double fac, det;
   if constexpr(tdim == 2){ 
 
-    double l1[gdim], l2[gdim], l3[gdim];
+    double nrm1 = geterrl2<gdim>(msh.coord[ent2pol[0]],msh.coord[ent2pol[1]]);
+    double nrm2 = geterrl2<gdim>(msh.coord[ent2pol[0]],msh.coord[ent2pol[2]]);
+    double nrm3 = geterrl2<gdim>(msh.coord[ent2pol[1]],msh.coord[ent2pol[2]]);
 
-    l1[0] = coord[ent2pol[1]][0] - coord[ent2pol[0]][0];
-    l1[1] = coord[ent2pol[1]][1] - coord[ent2pol[0]][1];
-
-    l2[0] = coord[ent2pol[2]][0] - coord[ent2pol[0]][0];
-    l2[1] = coord[ent2pol[2]][1] - coord[ent2pol[0]][1];
-
-    l3[0] = l2[0] - l1[0];
-    l3[1] = l2[1] - l1[1];
-
-    if constexpr(gdim == 3){
-      l1[2] = coord[ent2pol[1]][2] - coord[ent2pol[0]][2];
-      l2[2] = coord[ent2pol[2]][2] - coord[ent2pol[0]][2];
-      l3[2] = l2[2] - l1[2];
-    }
-
-    double nrm1 = l1[0]*l1[0] + l1[1]*l1[1];
-    double nrm2 = l2[0]*l2[0] + l2[1]*l2[1];
-    double nrm3 = l3[0]*l3[0] + l3[1]*l3[1];
-    if constexpr(gdim == 3){
-      nrm1 += l1[2]*l1[2];
-      nrm2 += l2[2]*l2[2];
-      nrm3 += l3[2]*l3[2];
-    }
-
-    fac = 2*std::cbrt(nrm1*nrm2*nrm3); // cubic root
+    fac = 2*std::cbrt(nrm1*nrm2*nrm3); // cubic root, homo to h^2
 
     if constexpr(gdim == 2){
-      det = (l1[0])*(l2[1]) 
-          - (l1[1])*(l2[0]);
+      det = det2_vdif(msh.coord[ent2pol[1]],msh.coord[ent2pol[0]],
+                      msh.coord[ent2pol[2]],msh.coord[ent2pol[0]]);
     }else{
+      // Measure of the face projected in the plane norCAD ^ orth. Could be zero
       // Notice there exists rotation R st edges l1, l2 verify 
       // l1^(flat) = Rl1 = (0 l1^(2D)), 
       // l2^(flat) = Rl2 = (0 l2^(2D))
@@ -264,50 +195,70 @@ double getmeasentP1(const int *ent2pol, const dblAr2& coord, double vtol,
       // Now the vector product of the "flattened" edges is simply 
       // l1^(flat) x l2^(flat) = (det(l1^(2D) l2^(2D)) 0 0)
       // Thus we simply replace the 2D determinant with the norm of the normal 
-      double nrmal[3];
-      vecprod(l1,l2,nrmal);
-      det = sqrt(getnrml2<3>(nrmal));
-      double sg = getprdl2<3>(nrmal,nrml0);
-      if(sg < 0) det = -det;
+      double norfac[3];
+      //double l1[gdim], l2[gdim];
+      //l1[0] = msh.coord(ent2pol[1],0) - msh.coord(ent2pol[0],0);
+      //l1[1] = msh.coord(ent2pol[1],1) - msh.coord(ent2pol[0],1);
+      //l1[2] = msh.coord(ent2pol[1],2) - msh.coord(ent2pol[0],2);
+
+      //l2[0] = msh.coord(ent2pol[2],0) - msh.coord(ent2pol[0],0);
+      //l2[1] = msh.coord(ent2pol[2],1) - msh.coord(ent2pol[0],1);
+      //l2[2] = msh.coord(ent2pol[2],2) - msh.coord(ent2pol[0],2);
+      //vecprod(l1,l2,norfac);
+
+      getnorfacP1(ent2pol,msh.coord,norfac);
+      //printf("## DEBUG ent2pol ");
+      //intAr1(3,ent2pol).print();
+      //printf("## NORMAL = ");
+      //dblAr1(3,norfac).print();
+
+      //METRIS_ASSERT(norref != NULL);
+
+      if(norref == NULL){
+        det = getnrml2<3>(norfac);
+        det = sqrt(det);
+      }else{
+        double nrm = getnrml2<3>(norref);
+        METRIS_ASSERT(nrm >= Constants::vecNrmTol*Constants::vecNrmTol);
+        nrm = 1.0 / sqrt(nrm);
+
+        // norfac is l1 x l2 is already homo h^2 despite norref O(1)
+        det = getprdl2<3>(norfac,norref)*nrm;
+      }
+
     }
     det /= 2;
 
   }else if(tdim == 3){
-    double l1[3], l2[3], l3[3];
 
-    double nrm1 = 0.0,nrm2 = 0.0,nrm3 = 0.0,
-           nrm4 = 0.0,nrm5 = 0.0,nrm6 = 0.0;
-    for(int ii = 0; ii < 3; ii++){
-      l1[ii] = coord[ent2pol[1]][ii] - coord[ent2pol[0]][ii];
-      l2[ii] = coord[ent2pol[2]][ii] - coord[ent2pol[0]][ii];
-      l3[ii] = coord[ent2pol[3]][ii] - coord[ent2pol[0]][ii];
-      nrm1 += l1[ii]*l1[ii];
-      nrm2 += l2[ii]*l2[ii];
-      nrm3 += l3[ii]*l3[ii];
-      nrm4 += (l2[ii] - l1[ii])*(l2[ii] - l1[ii]);
-      nrm5 += (l3[ii] - l1[ii])*(l3[ii] - l1[ii]);
-      nrm6 += (l3[ii] - l2[ii])*(l3[ii] - l2[ii]);
-    }
-    fac = 6*sqrt(nrm1*nrm2*nrm3*nrm4*nrm5*nrm6);
-    det = (l1[0])*( (l2[1])*(l3[2]) - (l3[1])*(l2[2]))
-        + (l1[1])*( (l2[2])*(l3[0]) - (l3[2])*(l2[0]))
-        + (l1[2])*( (l2[0])*(l3[1]) - (l3[0])*(l2[1]));
-    det /= 6;
-  }
-  if(iverb >= 4) printf("det = %20.15e vtol = %20.15e fac = %20.15e\n",
-                                                                  det,vtol,fac);
-  *iflat = (det < vtol * fac) || fac < 1.0e-16;
+
+    double nrm1 = geterrl2<gdim>(msh.coord[ent2pol[0]],msh.coord[ent2pol[1]]);
+    double nrm2 = geterrl2<gdim>(msh.coord[ent2pol[0]],msh.coord[ent2pol[2]]);
+    double nrm3 = geterrl2<gdim>(msh.coord[ent2pol[0]],msh.coord[ent2pol[3]]);
+    double nrm4 = geterrl2<gdim>(msh.coord[ent2pol[1]],msh.coord[ent2pol[2]]);
+    double nrm5 = geterrl2<gdim>(msh.coord[ent2pol[1]],msh.coord[ent2pol[3]]);
+    double nrm6 = geterrl2<gdim>(msh.coord[ent2pol[2]],msh.coord[ent2pol[3]]);
+    // full prod is homo h^12; det only h^3
+    fac = 6*sqrt(sqrt(nrm1*nrm2*nrm3*nrm4*nrm5*nrm6));
+
+    det = det3_vdif(msh.coord[ent2pol[1]],msh.coord[ent2pol[0]],
+                    msh.coord[ent2pol[2]],msh.coord[ent2pol[0]],
+                    msh.coord[ent2pol[3]],msh.coord[ent2pol[0]]);
+    det /= 6; 
+
+  } 
+  *iflat = (det < msh.param->vtol * fac) || fac < 1.0e-16;
   return det;
 }
 template double getmeasentP1<1>(const int *ent2pol, const dblAr2 &coord);
 template double getmeasentP1<2>(const int *ent2pol, const dblAr2 &coord);
 template double getmeasentP1<3>(const int *ent2pol, const dblAr2 &coord);
-template double getmeasentP1<2,2>(const int *ent2pol, const dblAr2 &coord, 
-                            double vtol, double *nrmal, bool *iflat, int iverb);
-template double getmeasentP1<3,2>(const int *ent2pol, const dblAr2 &coord, 
-                            double vtol, double *nrmal, bool *iflat, int iverb);
-template double getmeasentP1<3,3>(const int *ent2pol, const dblAr2 &coord, 
-                            double vtol, double *nrmal, bool *iflat, int iverb);
+template double getmeasentP1<2,2>(const MeshBase &msh, const int* ent2pol, 
+                                  const double* norref, bool* iflat);
+template double getmeasentP1<3,2>(const MeshBase &msh, const int* ent2pol, 
+                                  const double* norref, bool* iflat);
+template double getmeasentP1<3,3>(const MeshBase &msh, const int* ent2pol, 
+                                  const double* norref, bool* iflat);
 
 
 
@@ -378,7 +329,7 @@ void getheightentP1_aniso<2>(const int *ent2pol,const dblAr2 &coord,
     //double coop[gdim];
     //for(int ii = 0; ii < gdim; ii++) coop[ii] = coord(ipoin,ii) - dtprd * nor[ii]; 
 
-    //double du[2] = {msh.coord[ipoin][0] - coop[0]}
+    //double du[2] = {msh.coord(ipoin,0) - coop[0]}
 
     //height[ied] = abs(dtprd); 
   }
@@ -413,6 +364,39 @@ void getnorfacP1(const int *fac2pol, const dblAr2 &coord, double *nrmal){
   METRIS_ASSERT(coord.get_stride() == 3);
   vecprod_vdif(coord[fac2pol[1]],coord[fac2pol[0]],
                coord[fac2pol[2]],coord[fac2pol[0]],nrmal);
+}
+
+// To compute the CAD normal, the safest is to average the vertex normals.
+// This is because taking the average of the (u,v)'s can send us just about
+// anywhere.
+int getnorfacCAD(const MeshBase &msh, int iface, double *nrmal){
+  bool oneOK = false;
+  for(int ii = 0; ii < 3; ii++) nrmal[ii] = 0;
+  for(int iver = 0; iver < 3; iver++){
+    int ipoin = msh.fac2poi(iface,iver);
+    int ibpoi = msh.poi2ebp(ipoin,2,iface,-1);
+    METRIS_ASSERT(ibpoi >= 0);
+
+    double dum[3];
+    if(getnorpoiCAD2(msh,ibpoi,dum)){
+      if(msh.param->iverb >= 2) 
+        printf("  ## ibpoi %d ipoin %d skipped, possible singularity\n",ibpoi,ipoin);
+      continue;
+    }
+
+    if(msh.param->iverb >= 4){
+      printf("      - ipoin %d ibpoi %d (u,v) = %e %e +nor ",ipoin,ibpoi,
+        msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
+      dblAr1(3,dum).print();
+    }
+    oneOK = true;
+    for(int ii = 0; ii < 3; ii++) nrmal[ii] += dum[ii];
+  }
+
+  METRIS_ASSERT(oneOK);
+
+  if(oneOK) return 0;
+  return 1;
 }
 
 
@@ -477,7 +461,9 @@ int getnorpoiCAD1(const MeshBase &msh, int ipoin, std::map<ego,int> &edgorient,
 // Return outgoing normal of face (3D only)
 int getnorpoiCAD2(const MeshBase &msh, int ibpoi, double *norpoi){
 
+  METRIS_ASSERT(ibpoi >= 0);
   METRIS_ASSERT(msh.bpo2ibi(ibpoi,1) == 2);
+  METRIS_ASSERT(msh.CAD());
 
   int iface = msh.bpo2ibi(ibpoi,2);
   METRIS_ASSERT(iface >= 0);
@@ -485,6 +471,9 @@ int getnorpoiCAD2(const MeshBase &msh, int ibpoi, double *norpoi){
   METRIS_ASSERT(iref >= 0);
   ego obj   = msh.CAD.cad2fac[iref];
   METRIS_ASSERT(obj != NULL);
+
+  int mtype = obj->mtype;
+  METRIS_ASSERT(mtype == 1 || mtype == -1);
 
   double result[18];
   int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
@@ -494,92 +483,31 @@ int getnorpoiCAD2(const MeshBase &msh, int ibpoi, double *norpoi){
   
   vecprod(du,dv,norpoi);
 
-  double nrm = getnrml2<3>(norpoi);
-
-  if(nrm < Constants::vecNrmTol){
-    if(msh.param->iverb >= 3){
-      printf("## CAD normal norm too small %15.7e\n",nrm);
-      printf(" ibpoi = %d print ibi: ",ibpoi);
-      intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
-      printf(" print rbi: ");
-      dblAr1(nrbi,msh.bpo2rbi[ibpoi]).print();
-    }
+  if(normalize_vec<3>(norpoi)){
+    //if(msh.param->iverb >= 3){
+    //  printf("## CAD normal norm too small\n");
+    //  //printf(" ibpoi = %d print ibi: ",ibpoi);
+    //  //intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
+    //  //printf(" print rbi: ");
+    //  //dblAr1(nrbi,msh.bpo2rbi[ibpoi]).print();
+    //}
     return 1;
   }
 
-  for(int ii = 0; ii < 3; ii++) norpoi[ii] /= sqrt(nrm);
+  for(int ii = 0; ii < 3; ii++) norpoi[ii] *= mtype;
 
   return 0;
 }
 
-template <int ideg>
-void getnorpoi(const MeshBase &msh, int ipoin, const intAr1 &lball, double* norpoi){
-  getnorpoiref<ideg>(msh,ipoin,-1,lball,norpoi);
-}
+
 
 template <int ideg>
-void getnorpoiref(const MeshBase &msh, int ipoin, int iref, const intAr1 &lball, double* norpoi){
-  METRIS_ASSERT(msh.idim == 3);
-
-  // Actually it's free when called from some cavity callers
-  //if(msh.CAD()) METRIS_ASSERT(nball == 0); // We don't need this, bpos give us all
-
+void getnorballref(const MeshBase &msh, const intAr1 &lball, int iref, double* norpoi){
+  // Discrete 
   for(int ii = 0; ii < 3; ii++) norpoi[ii] = 0;
   double norfac[3];
 
-
-  // Face point -> ref or not we can get the unique normal 
-  if(msh.CAD()){
-
-    double result[18];
-    ego obj;
-    double *du,*dv;
-    double nrm;
-
-    int ibpoi = msh.poi2bpo[ipoin];
-    METRIS_ASSERT(ibpoi >= 0);
-    int ibpo2 = ibpoi;
-
-    // Whether tdimp 2 or less, we can do this loop, it'll have 1 iter if tdimp == 2 !
-    do{
-      int tdimb = msh.bpo2ibi[ibpo2][1];
-      if(tdimb == 2){
-        int ientt = msh.bpo2ibi[ibpo2][2];
-        int iref = msh.fac2ref[ientt];
-
-        obj = msh.CAD.cad2fac[iref];
-        int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpo2], result);
-        METRIS_ASSERT(ierro == 0);
-
-        du = &result[3];
-        dv = &result[6];
-    
-        vecprod(du,dv,norfac);
-    
-        nrm = sqrt(getnrml2<3>(norfac));
-        METRIS_ASSERT(nrm > 1.0e-16);
-    
-        for(int ii = 0; ii < 3; ii++) norpoi[ii] += norfac[ii] / nrm;
-      }
-      ibpo2 = msh.bpo2ibi[ibpo2][3];
-    }while(ibpo2 >= 0 && ibpo2 != ibpoi);
-    
-
-    nrm = sqrt(getnrml2<3>(norpoi));
-    METRIS_ASSERT(nrm > 1.0e-16);
-    for(int ii = 0; ii < 3; ii++) norpoi[ii] /= nrm;
-
-    return;
-  }
-
-
-
-  // Discrete 
-  double nrmtot = 0;
-
-  const int nball = lball.get_n();
-  for(int iball = 0; iball < nball; iball++){
-    int iface = lball[iball];
+  for(int iface : lball){
     METRIS_ASSERT(!isdeadent(iface,msh.fac2poi));
 
     int iref2 = msh.fac2ref[iface];
@@ -592,16 +520,79 @@ void getnorpoiref(const MeshBase &msh, int ipoin, int iref, const intAr1 &lball,
     }
     // Note the normal is already area weighted.
     for(int ii = 0; ii < 3; ii++) norpoi[ii] += norfac[ii];
-    nrmtot += sqrt(getnrml2<3>(norfac));
+  }
+  
+  METRIS_ENFORCE(normalize_vec<3>(norpoi) == 0);
+}
+
+
+// Compute normal of point ipoin using CAD
+// iref can be provided as a constraint. If < 0, use all faces, otherwise only
+// matching iref.
+template <int ideg>
+void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
+  METRIS_ASSERT(msh.idim == 3);
+
+  METRIS_ASSERT(msh.CAD());
+
+  // Actually it's free when called from some cavity callers
+  //if(msh.CAD()) METRIS_ASSERT(nball == 0); // We don't need this, bpos give us all
+
+  for(int ii = 0; ii < 3; ii++) norpoi[ii] = 0;
+  double norfac[3];
+
+
+  // Face point -> ref or not we can get the unique normal 
+  if(msh.CAD()){
+
+    double result[18];
+    double *du,*dv;
+    double nrm;
+
+
+    // Whether tdimp 2 or less, we can do this loop, it'll have 1 iter if tdimp == 2 !
+    // This is mainly because of periodic surface
+    for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0 ; ibpoi = msh.bpo2ibi(ibpoi,3)){
+      int bdim = msh.bpo2ibi(ibpoi,1);
+      if(bdim != 2) continue;
+
+      int ientt = msh.bpo2ibi(ibpoi,2);
+
+      int iref2 = msh.fac2ref[ientt];
+      METRIS_ASSERT(iref2 >= 0);
+      if(iref2 != iref && iref >= 0) continue;
+
+      ego obj = msh.CAD.cad2fac[iref2];
+
+      int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
+      METRIS_ASSERT(ierro == 0);
+
+      du = &result[3];
+      dv = &result[6];
+  
+      vecprod(du,dv,norfac);
+  
+      nrm = sqrt(getnrml2<3>(norfac));
+      METRIS_ASSERT_MSG(nrm > 1.0e-16, "nrm = "<<nrm);
+  
+      for(int ii = 0; ii < 3; ii++) norpoi[ii] += norfac[ii] / nrm;
+    }
+    
+    nrm = sqrt(getnrml2<3>(norpoi));
+    METRIS_ASSERT_MSG(nrm > 1.0e-16, "(2) nrm = "<<nrm);
+
+    for(int ii = 0; ii < 3; ii++) norpoi[ii] /= nrm;
+
+    return;
   }
 
-  for(int ii = 0; ii < 3; ii++) norpoi[ii] /= nrmtot;
+
 
 }
 
 #define BOOST_PP_LOCAL_MACRO(n)\
-template void getnorpoi<n>(const MeshBase &msh, int ipoin, const intAr1& lball, double* norpoi);\
-template void getnorpoiref<n>(const MeshBase &msh, int ipoin, int iref, const intAr1& lball, double* norpoi);
+template void getnorballref<n>(const MeshBase &msh, const intAr1& lball, int iref, double* norpoi);\
+template void getnorpoiref<n>(const MeshBase &msh, int ipoin, int iref, double* norpoi);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 
@@ -613,10 +604,12 @@ template void getnorpoiref<n>(const MeshBase &msh, int ipoin, int iref, const in
 // * * 6
 // This makes it easier to store 2D metrics if needed
 template<int gdim, int tdim, int ideg>
-void getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis ibasis, 
-                 const double* bary, double* __restrict__ met){
+int getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis ibasis, 
+                const double* bary, double* __restrict__ met){
   static_assert(gdim == 2 || gdim == 3);
   static_assert(tdim <= gdim);
+
+  int ierro = 0;
 
   double eval[gdim], jmat[gdim*tdim];
 
@@ -651,7 +644,7 @@ void getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis i
 
     met[2] = 4*(jmat[2*0+1]*jmat[2*0+1] + jmat[2*1+1]*jmat[2*1+1])/3
            - 4* jmat[2*0+1]*jmat[2*1+1]/3;
-    invspd(gdim,met);
+    ierro = invspd(gdim,met);
   }else if (gdim == 3 && tdim == 3){
     met[0] = 3*(jmat[3*0+0]*jmat[3*0+0] + jmat[3*1+0]*jmat[3*1+0] + jmat[3*2+0]*jmat[3*2+0])/2
            -    jmat[3*0+0]*jmat[3*1+0]
@@ -682,7 +675,7 @@ void getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis i
            -    jmat[3*0+2]*jmat[3*1+2]
            -    jmat[3*0+2]*jmat[3*2+2]
            -    jmat[3*1+2]*jmat[3*2+2];
-    invspd(gdim,met);
+    ierro = invspd(gdim,met);
   }else if(gdim == 3 && tdim == 2){
     // This case is a mess! There must be a more elegant way but this seems to work. 
     // The columns of J are T1, T2 (stored transposed here, don't forget)
@@ -761,6 +754,7 @@ void getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis i
 
   }
 
+  return ierro;
 }
 
 
@@ -830,11 +824,11 @@ void getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis i
 // See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
-template void getintmetxi<2, 2, n>(const dblAr2 &coord, const int* __restrict__ tet2pol,FEBasis ibasis,  \
+template int getintmetxi<2, 2, n>(const dblAr2 &coord, const int* __restrict__ tet2pol,FEBasis ibasis,  \
                                 const double* bary,double* __restrict__ met);\
-template void getintmetxi<3, 2, n>(const dblAr2 &coord, const int* __restrict__ tet2pol,FEBasis ibasis,  \
+template int getintmetxi<3, 2, n>(const dblAr2 &coord, const int* __restrict__ tet2pol,FEBasis ibasis,  \
 	                    			    const double* bary,double* __restrict__ met);\
-template void getintmetxi<3, 3, n>(const dblAr2 &coord, const int* __restrict__ tet2pol,FEBasis ibasis,  \
+template int getintmetxi<3, 3, n>(const dblAr2 &coord, const int* __restrict__ tet2pol,FEBasis ibasis,  \
                                 const double* bary,double* __restrict__ met);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
@@ -845,35 +839,61 @@ template void getintmetxi<3, 3, n>(const dblAr2 &coord, const int* __restrict__ 
 // Characteristic element length for tolerance scaling
 // Minimum edge length for now
 template<int gdim>
-double getepsent(MeshBase &msh, int tdimn, int ientt){
-  double x1,x2;
-  if(tdimn == 3){
-    x1 = geterrl2<gdim>(msh.coord[msh.tet2poi(ientt,0)],msh.coord[msh.tet2poi(ientt,1)]);
-    x2 = geterrl2<gdim>(msh.coord[msh.tet2poi(ientt,0)],msh.coord[msh.tet2poi(ientt,2)]);
-    x1 = x1 < x2 ? x1 : x2;
-    x2 = geterrl2<gdim>(msh.coord[msh.tet2poi(ientt,0)],msh.coord[msh.tet2poi(ientt,3)]);
-    x1 = x1 < x2 ? x1 : x2;
-    x2 = geterrl2<gdim>(msh.coord[msh.tet2poi(ientt,1)],msh.coord[msh.tet2poi(ientt,2)]);
-    x1 = x1 < x2 ? x1 : x2;
-    x2 = geterrl2<gdim>(msh.coord[msh.tet2poi(ientt,1)],msh.coord[msh.tet2poi(ientt,3)]);
-    x1 = x1 < x2 ? x1 : x2;
-    x2 = geterrl2<gdim>(msh.coord[msh.tet2poi(ientt,2)],msh.coord[msh.tet2poi(ientt,3)]);
-    x1 = x1 < x2 ? x1 : x2;
-  }else if(tdimn == 2){
-    x1 = geterrl2<gdim>(msh.coord[msh.fac2poi(ientt,0)],msh.coord[msh.fac2poi(ientt,1)]);
-    x2 = geterrl2<gdim>(msh.coord[msh.fac2poi(ientt,0)],msh.coord[msh.fac2poi(ientt,2)]);
-    x1 = x1 < x2 ? x1 : x2;
-    x2 = geterrl2<gdim>(msh.coord[msh.fac2poi(ientt,1)],msh.coord[msh.fac2poi(ientt,2)]);
-    x1 = x1 < x2 ? x1 : x2;
-  }else{
-    x1 = geterrl2<gdim>(msh.coord[msh.edg2poi(ientt,0)],msh.coord[msh.edg2poi(ientt,1)]);
-  }
-  return sqrt(x1);
+double getepsent(MeshBase &msh, int tdim, int ientt){
+  // Replace with Frobenius of jmat. Controlling this times eps in dx norm
+  // controls dx by eps. 
+  double eps;
+
+  //if(tdim == gdim){ // We can do this even in that case but gotta change matprods
+  //  // And for now this is for localization
+  //  double jmat[gdim*tdim], dum[gdim];
+  //  if(tdim == 3){
+  //    eval3<gdim,1>(msh.coord,msh.tet2poi[ientt],msh.getBasis(),DifVar::Bary,
+  //                  DifVar::None,dum,jmat,NULL);
+
+  //  }else if(tdim == 2){
+  //    eval2<gdim,1>(msh.coord,msh.fac2poi[ientt],msh.getBasis(),DifVar::Bary,
+  //                  DifVar::None,dum,jmat,NULL);
+  //  }else{
+  //    eval1<gdim,1>(msh.coord,msh.edg2poi[ientt],msh.getBasis(),DifVar::Bary,
+  //                  DifVar::None,dum,jmat,NULL);
+  //  }
+  //  double jmat2[tdim][tdim];
+  //  matXtmat<gdim>(jmat,jmat,jmat2[0]);
+  //  eps = 0;
+  //  for(int ii = 0; ii < tdim; ii++) eps += jmat2[ii][ii];
+
+  //}else{
+    double x2;
+    if(tdim == 3){
+      eps = geterrl2<gdim>(msh.coord[msh.tet2poi(ientt,0)],msh.coord[msh.tet2poi(ientt,1)]);
+      x2 = geterrl2<gdim>(msh.coord[msh.tet2poi(ientt,0)],msh.coord[msh.tet2poi(ientt,2)]);
+      eps = eps < x2 ? eps : x2;
+      x2 = geterrl2<gdim>(msh.coord[msh.tet2poi(ientt,0)],msh.coord[msh.tet2poi(ientt,3)]);
+      eps = eps < x2 ? eps : x2;
+      x2 = geterrl2<gdim>(msh.coord[msh.tet2poi(ientt,1)],msh.coord[msh.tet2poi(ientt,2)]);
+      eps = eps < x2 ? eps : x2;
+      x2 = geterrl2<gdim>(msh.coord[msh.tet2poi(ientt,1)],msh.coord[msh.tet2poi(ientt,3)]);
+      eps = eps < x2 ? eps : x2;
+      x2 = geterrl2<gdim>(msh.coord[msh.tet2poi(ientt,2)],msh.coord[msh.tet2poi(ientt,3)]);
+      eps = eps < x2 ? eps : x2;
+    }else if(tdim == 2){
+      eps = geterrl2<gdim>(msh.coord[msh.fac2poi(ientt,0)],msh.coord[msh.fac2poi(ientt,1)]);
+      x2 = geterrl2<gdim>(msh.coord[msh.fac2poi(ientt,0)],msh.coord[msh.fac2poi(ientt,2)]);
+      eps = eps < x2 ? eps : x2;
+      x2 = geterrl2<gdim>(msh.coord[msh.fac2poi(ientt,1)],msh.coord[msh.fac2poi(ientt,2)]);
+      eps = eps < x2 ? eps : x2;
+    }else{
+      eps = geterrl2<gdim>(msh.coord[msh.edg2poi(ientt,0)],msh.coord[msh.edg2poi(ientt,1)]);
+    }
+  //}
+
+  return sqrt(eps); // in both cases
 }
 
-template double getepsent<1>(MeshBase &msh, int tdimn, int ientt);
-template double getepsent<2>(MeshBase &msh, int tdimn, int ientt);
-template double getepsent<3>(MeshBase &msh, int tdimn, int ientt);
+template double getepsent<1>(MeshBase &msh, int tdim, int ientt);
+template double getepsent<2>(MeshBase &msh, int tdim, int ientt);
+template double getepsent<3>(MeshBase &msh, int tdim, int ientt);
 
 
 } // End namespace

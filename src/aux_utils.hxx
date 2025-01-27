@@ -40,8 +40,8 @@
 #endif
 
 
-
 namespace Metris{
+
 
 inline unsigned long long int getSysMem(){
   return sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGE_SIZE);
@@ -62,6 +62,7 @@ inline void stdoutRestore(int stdout_fd){
   close(stdout_fd);
 }
 
+#if 0
 // https://stackoverflow.com/questions/21917529/is-it-possible-to-initialize-stdvector-over-already-allocated-memory
 // To pass pre-allocated memory to std::vector. 
 template <typename T>
@@ -94,6 +95,7 @@ class PreAllocator
 
         size_type max_size() const {return memory_size;}
 };
+#endif
 
 char* itoa(int value, char* result, int base);
 

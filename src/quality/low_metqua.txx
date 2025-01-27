@@ -54,7 +54,7 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
          djmat[gdim][gdim*gdim],
          lmet[nnmet],
          met[nnmet],
-         dlmet[gdim][nnmet],
+         dlmet(gdim,nnmet),
          dmet[gdim][nnmet],
          coopr[gdim],
          ddum[gdim*gdim];

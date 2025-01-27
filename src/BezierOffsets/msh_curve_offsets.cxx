@@ -69,7 +69,7 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
 
 
       for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-        for(int ii = 0; ii < gdim; ii++) coor0(ipoin,ii) = msh.coord[ipoin][ii] ;
+        for(int ii = 0; ii < gdim; ii++) coor0(ipoin,ii) = msh.coord(ipoin,ii) ;
       }
     }
 
@@ -90,7 +90,7 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
 			if(msh.poi2tag(ithread,ipoih) >= msh.tag[ithread]) continue;
 			msh.poi2tag(ithread,ipoih) = msh.tag[ithread];
       getBezOffsetsEdge<MFT, gdim, ideg>(msh,gdim,ent2poi[ientt], ie,offset);
-	  	for(int ii = 0; ii < gdim; ii++) msh.coord[ipoih][ii] = offset[ii];
+	  	for(int ii = 0; ii < gdim; ii++) msh.coord(ipoih,ii) = offset[ii];
       #ifdef BEZGAPS_LP
         if(icorr){
           idx_point[ipoih] = npopt;
@@ -116,7 +116,7 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
       }else{
         getmetquamesh<MFT,3,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
       }
-      print_histogram(lquae,IntrpTyp::Geometric,dum,"q","Element quality");
+      print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality");
     }
     msh.setBasis(FEBasis::Bezier);
   } 
@@ -170,7 +170,7 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
                           msh.getBasis(), DifVar::None, DifVar::None,
                           bary, eval, 
                           NULL, NULL);
-            for(int ii = 0; ii < gdim; ii++) msh.coord[ipoih][ii] = eval[ii];
+            for(int ii = 0; ii < gdim; ii++) msh.coord(ipoih,ii) = eval[ii];
           }
         }else{
           // Check if the neighbour is limiting 
@@ -213,7 +213,7 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
                               msh.getBasis(), DifVar::None, DifVar::None,
                               bary, eval, 
                               NULL, NULL);
-                for(int ii = 0; ii < gdim; ii++) msh.coord[ipoih][ii] = eval[ii];
+                for(int ii = 0; ii < gdim; ii++) msh.coord(ipoih,ii) = eval[ii];
               }
             }
           }

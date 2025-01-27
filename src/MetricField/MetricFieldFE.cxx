@@ -181,7 +181,7 @@ void MetricFieldFE::readMetricFile(int64_t libIdx){
   METRIS_ENFORCE(ltyp[0] == 3);
 
   int nnmet = getnnmet();
-  METRIS_ASSERT(nnmet == 2 || nnmet == 3);
+  METRIS_ASSERT_MSG(nnmet == 3 || nnmet == 6," nnmet = "<<nnmet);
 
   // Possible reallocation
   this->rfld.allocate(msh.mpoin,nnmet);
@@ -307,7 +307,7 @@ void MetricFieldFE::correctMetric(){
 
 
 
-
+#if 0
 // ----
 void MetricFieldFE::getMetPhys(AsDeg asdmet, DifVar idiff, 
                                MetSpace tarspac, int *ieleg, 
@@ -330,6 +330,7 @@ void MetricFieldFE::getMetPhys(AsDeg asdmet, DifVar idiff,
   }}CT_FOR1(gdim);
 
 }
+#endif
 
 
 
@@ -447,7 +448,7 @@ void MetricFieldFE::getMetBary0( DifVar idiff,  MetSpace tarspac,
 
     // Get dM / dX at X (coop)
     // 1. Invert dF_K/dxi
-    invmat(gdim,jmat3[0]);
+    METRIS_ENFORCE(!invmat(gdim,jmat3[0]));
     // 2. Get dM/dxi (dF_K/dxi)^{-1}
     int kk = 0;
     for(int ii = 0; ii < gdim; ii++){
@@ -494,7 +495,7 @@ template void MetricFieldFE::getMetBary0<3, ideg>\
 
 
 
-
+#if 0
 template<int gdim, int ideg>
 void MetricFieldFE::getMetPhys0(DifVar idiff,  MetSpace tarspac, int *ientg, 
                       const double*__restrict__  coop,  double*__restrict__ metl, 
@@ -535,5 +536,6 @@ template void MetricFieldFE::getMetPhys0<3, ideg>\
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 
+#endif
 
 } // End namespace

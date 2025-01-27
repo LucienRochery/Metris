@@ -197,7 +197,7 @@ template <int ndimn>
 inline void symXvec(const double*__restrict__ met,
 	     				      const double*__restrict__ ve1,
 	           				     	double*__restrict__ ve2){
-	static_assert(ndimn == 2 || ndimn == 3);
+	static_assert(ndimn <= 3);
 	for(int ii = 0; ii < ndimn; ii++){
 		ve2[ii] = met[sym3idx(ii,0)]*ve1[0];
 		for(int jj = 1; jj < ndimn; jj++){

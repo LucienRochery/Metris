@@ -121,17 +121,17 @@ void deg_elevate(Mesh<MFT> &msh){
 
         if(ipnew == 1517) printf("## DEBUG 1517 CREATED BY EDGE %d \n",iedge);
 
-        for(int ii = 0; ii < gdim; ii++) msh.coord[ipnew][ii] = newpt[irnk][ii];
+        for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
 
 
         msh.edg2poi(iedge,irnk) = ipnew;
         //newe2poi[iedge][irnk-2] = ipnew;
 
-        msh.bpo2rbi[ibnew][0] = newuv[irnk][0];
-        msh.bpo2rbi[ibnew][1] = newuv[irnk][1];
+        msh.bpo2rbi(ibnew,0) = newuv[irnk][0];
+        msh.bpo2rbi(ibnew,1) = newuv[irnk][1];
 
         // Do not convert to expmet, we will expmet everyone at the end
-        if(hasmet) for(int ii = 0; ii < nnmet; ii++) msh.met[ipnew][ii] = newmtl[irnk][ii];
+        if(hasmet) for(int ii = 0; ii < nnmet; ii++) msh.met(ipnew,ii) = newmtl[irnk][ii];
       }
 
     }
@@ -188,7 +188,7 @@ void deg_elevate(Mesh<MFT> &msh){
 
           if(ipnew == 1517) printf("## DEBUG 1517 CREATED BY FACE %d \n",iface);
 
-          for(int ii = 0; ii < gdim; ii++) msh.coord[ipnew][ii] = newpt[irnk][ii];
+          for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
 
           msh.fac2poi(iface,irnk) = ipnew;
 
@@ -196,8 +196,8 @@ void deg_elevate(Mesh<MFT> &msh){
     
           // Now the metric (if back == front)
           // Do not convert to expmet, we will expmet everyone at the end
-          //if(hasmet) for(int ii = 0; ii < nnmet; ii++) metnew[ipnew][ii] = newmtl[irnk][ii];// msh.met[ipnew][ii] = newmtl[irnk][ii];
-          if(hasmet) for(int ii = 0; ii < nnmet; ii++) msh.met[ipnew][ii] = newmtl[irnk][ii];
+          //if(hasmet) for(int ii = 0; ii < nnmet; ii++) metnew[ipnew][ii] = newmtl[irnk][ii];// msh.met(ipnew,ii) = newmtl[irnk][ii];
+          if(hasmet) for(int ii = 0; ii < nnmet; ii++) msh.met(ipnew,ii) = newmtl[irnk][ii];
         }
       }
     
@@ -255,7 +255,7 @@ void deg_elevate(Mesh<MFT> &msh){
               ibnew = msh.template newbpotopo<2>(ipnew,iface);
             }
 
-            for(int ii = 0; ii < gdim; ii++) msh.coord[ipnew][ii] = newpt[irnk][ii];
+            for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
 
 
             msh.fac2poi(iface,irnk) = ipnew;
@@ -264,8 +264,8 @@ void deg_elevate(Mesh<MFT> &msh){
             lbpon[irnk] = ibnew;
             // Now the metric (if back == front)
             // Do not convert to expmet, we will expmet everyone at the end
-            //if(hasmet) for(int ii = 0; ii < nnmet; ii++) metnew[ipnew][ii] = newmtl[irnk][ii];//msh.met[ipnew][ii] = newmtl[irnk][ii];
-            if(hasmet) for(int ii = 0; ii < nnmet; ii++) msh.met[ipnew][ii] = newmtl[irnk][ii];
+            //if(hasmet) for(int ii = 0; ii < nnmet; ii++) metnew[ipnew][ii] = newmtl[irnk][ii];//msh.met(ipnew,ii) = newmtl[irnk][ii];
+            if(hasmet) for(int ii = 0; ii < nnmet; ii++) msh.met(ipnew,ii) = newmtl[irnk][ii];
           }
         }
       }
@@ -279,9 +279,9 @@ void deg_elevate(Mesh<MFT> &msh){
           int ibpoi = lbpon[irnk];
           if(ibpoi < 0) continue;
           METRIS_ASSERT(ibpoi >= 0 && ibpoi < msh.nbpoi);
-          //METRIS_ASSERT_MSG(msh.bpo2ibi[ibpoi][0] == ipoin, "\nError at irnk = "<<irnk<<" ipoin = "<<ipoin<<" ibpoi "<<ibpoi<<" bpo2ibi = "<<msh.bpo2ibi[ibpoi][0]);
-          msh.bpo2rbi[ibpoi][0] = newuv[irnk][0];
-          msh.bpo2rbi[ibpoi][1] = newuv[irnk][1];
+          //METRIS_ASSERT_MSG(msh.bpo2ibi(ibpoi,0) == ipoin, "\nError at irnk = "<<irnk<<" ipoin = "<<ipoin<<" ibpoi "<<ibpoi<<" bpo2ibi = "<<msh.bpo2ibi(ibpoi,0));
+          msh.bpo2rbi(ibpoi,0) = newuv[irnk][0];
+          msh.bpo2rbi(ibpoi,1) = newuv[irnk][1];
         }
       }
 
@@ -313,7 +313,7 @@ void deg_elevate(Mesh<MFT> &msh){
           for(int irnk = irnk0; irnk < tetnpps[tardeg]; irnk++){
             int ipnew = msh.newpoitopo(3,ielem);
 
-            for(int ii = 0; ii < gdim; ii++) msh.coord[ipnew][ii] = newpt[irnk][ii];
+            for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
             
 
             //newt2poi[ielem][irnk-4] = ipnew;
@@ -324,8 +324,8 @@ void deg_elevate(Mesh<MFT> &msh){
             bary[3] = ordtet.s[tardeg][irnk][3]/(tardeg*1.0);
             // Now the metric (if back == front)
             // Do not convert to expmet, we will expmet everyone at the end
-            //if(hasmet) for(int ii = 0; ii < nnmet; ii++) metnew[ipnew][ii] = newmtl[irnk][ii];//msh.met[ipnew][ii] = newmtl[irnk][ii];
-            if(hasmet) for(int ii = 0; ii < nnmet; ii++) msh.met[ipnew][ii] = newmtl[irnk][ii];
+            //if(hasmet) for(int ii = 0; ii < nnmet; ii++) metnew[ipnew][ii] = newmtl[irnk][ii];//msh.met(ipnew,ii) = newmtl[irnk][ii];
+            if(hasmet) for(int ii = 0; ii < nnmet; ii++) msh.met(ipnew,ii) = newmtl[irnk][ii];
           }
         }
     
@@ -367,13 +367,13 @@ void deg_elevate(Mesh<MFT> &msh){
 
             for(int irnk = irnk0; irnk < irnk1; irnk++){
               int ipnew = msh.newpoitopo(3,ielem);
-              for(int ii = 0; ii < gdim; ii++) msh.coord[ipnew][ii] = newpt[irnk][ii];
+              for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
 
               msh.tet2poi(ielem,irnk) = ipnew;
               // Now the metric (if back == front)
               // Do not convert to expmet, we will expmet everyone at the end
-              //if(hasmet) for(int ii = 0; ii < nnmet; ii++) metnew[ipnew][ii] = newmtl[irnk][ii];//msh.met[ipnew][ii] = newmtl[irnk][ii];
-              if(hasmet) for(int ii = 0; ii < nnmet; ii++) msh.met[ipnew][ii] = newmtl[irnk][ii];
+              //if(hasmet) for(int ii = 0; ii < nnmet; ii++) metnew[ipnew][ii] = newmtl[irnk][ii];//msh.met(ipnew,ii) = newmtl[irnk][ii];
+              if(hasmet) for(int ii = 0; ii < nnmet; ii++) msh.met(ipnew,ii) = newmtl[irnk][ii];
             }
           }
         } 
@@ -446,11 +446,11 @@ void deg_elevate(Mesh<MFT> &msh){
                 int ipnew = msh.newpoitopo(3,ielem);
                 msh.tet2poi(ielem,irnk) = ipnew;
                 //newt2poi[ielem][irnk-4] = ipnew;
-                for(int i = 0; i < gdim; i++) msh.coord[ipnew][i] = newpt[irnk][i];
+                for(int i = 0; i < gdim; i++) msh.coord(ipnew,i) = newpt[irnk][i];
 
                 // Now the metric (if back == front)
                 // Do not convert to expmet, we will expmet everyone at the end
-                if(hasmet) for(int ii = 0; ii < nnmet; ii++) msh.met[ipnew][ii] = newmtl[irnk][ii];
+                if(hasmet) for(int ii = 0; ii < nnmet; ii++) msh.met(ipnew,ii) = newmtl[irnk][ii];
               }
             }
           }

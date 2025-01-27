@@ -12,6 +12,7 @@
 #include "../aux_topo.hxx"
 #include "../low_topo.hxx"
 #include "../low_geo.hxx"
+#include "../mprintf.hxx"
 #include "../msh_structs.hxx"
 #include "../io_libmeshb.hxx"
 #include "../msh_checktopo.hxx"
@@ -28,7 +29,8 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
                 intAr1 &lerro, int ithrd1, int ithrd2){
   if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement + tet nelem = "<<msh.nelem)
 
-  int iverb = msh.param->iverb;
+  GETVDEPTH(msh);
+
 
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
@@ -53,7 +55,6 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
   //opts.dryrun   = true;
   opts.dryrun   = false;
   opts.qmax_suf = qmax_suf;
-  opts.iverb = iverb-1;
 
   int ierro = 0;
 
@@ -61,8 +62,8 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
   int ip2 = msh.fac2poi(iface,lnoed2[iedl][1]);
 
 
-  if(iverb >= 3) printf("    -- START colledgsurf iface = %d iedl = %d = (%d,%d) \n",iface,iedl,ip1,ip2);
-  if(iverb >= 4) writeMesh("debug_collapse0.meshb",msh);
+  CPRINTF1("-- START colledgsurf iface = %d iedl = %d = (%d,%d) \n",iface,iedl,ip1,ip2);
+  if(DOPRINTS2()) writeMesh("debug_collapse0.meshb",msh);
 
   // Track best insertion dry run to run it at the end
   double qmabest = 1.0e30;
@@ -75,14 +76,14 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
   for(int ii = 0; ii < 2 ; ii ++){
     int ipoin = msh.fac2poi(iface,lnoed2[iedl][ii]);
     tdim[ii] = msh.getpoitdim(ipoin);
-    if(iverb >= 3 && tdim[ii] == 0){
-      printf("Topo dim 0 point %d \n",ipoin);
+    if(DOPRINTS2() && tdim[ii] == 0){
+      CPRINTF2("Topo dim 0 point %d \n",ipoin);
       int ib = msh.poi2bpo[ipoin];
-      printf("poi2bpo = %d bpo2ibi = ",ib);
+      CPRINTF2("poi2bpo = %d bpo2ibi = ",ib);
       intAr1(nibi,msh.bpo2ibi[ib]).print();
     }
   }
-  if(iverb >= 3) printf("     - topo dims %d %d \n",tdim[0],tdim[1]);
+  CPRINTF1(" - topo dims %d %d \n",tdim[0],tdim[1]);
 
   tdimc = MAX(tdim[0], tdim[1]);
 
@@ -99,7 +100,7 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
 
     int ibcol = msh.poi2bpo[ipcol];
     if(ibcol >= 0){
-      if(msh.bpo2ibi[ibcol][1] == 0) continue; // Skip corners
+      if(msh.bpo2ibi(ibcol,1) == 0) continue; // Skip corners
     }
 
     ierro = ball2(msh,ipcol,iface,
@@ -111,12 +112,12 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
     if(msh.idim == 3){
       // We'll not use the ipins normal but rather this one as we already have the ball. 
       // Just treat it as P1
-      getnorpoi<1>(msh,ipcol,cav.lcfac,nrmal);
+      getnorballref<1>(msh,cav.lcfac,-1,nrmal);
       cav.nrmal = nrmal;
     }
 
 
-    if(iverb >= 3) printf("     - try collapse poi = %d ball nface = %d nedge = %d \n",
+    CPRINTF1(" - try collapse poi = %d ball nface = %d nedge = %d \n",
                                 ipcol,cav.lcfac.get_n(),cav.lcedg.get_n());
 
     // Try the cavity call with different ipins in neighbours of ipcol
@@ -148,23 +149,21 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
         cav.lctet.set_n(0);
         cav.lcfac.set_n(nbalf); // Revert to simple ball 
         cav.lcedg.set_n(nbale); // Revert 
-        if(iverb >= 3) printf("     - try reinsert point %d tag = %d vs %d \n",
+        CPRINTF1(" - try reinsert point %d tag = %d vs %d \n",
                              ipins,msh.poi2tag(ithrd1,ipins),msh.tag[ithrd1]);
 
 
-        if(iverb >= 4) writeMeshCavity("collapse_cavity0.meshb", msh, cav, 
-                                                            iverb-1, ithrd2);
+        if(DOPRINTS2()) writeMeshCavity("collapse_cavity0.meshb", msh, cav, ithrd2);
 
         // Increase cavity with Delaunay criterion
         increase_cavity_Delaunay(msh, cav, ipins, ithrd2);
         //int nprem = increase_cavity_lenedg(msh,cav,ipins,ithrd2,ithrd3);
-        ierro = increase_cavity2D(msh,iref,msh.coord[ipins],opts,cav,ithrd2);
+        ierro = increase_cavity2D(msh,msh.coord[ipins],opts,cav,ithrd2);
 
 
         if(ierro > 0) continue;
 
-        if(iverb >= 4) writeMeshCavity("collapse_cavity1.meshb", msh, cav, 
-                                                            iverb-1, ithrd2);
+        if(DOPRINTS2()) writeMeshCavity("collapse_cavity1.meshb", msh, cav, ithrd2);
 
 
         CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
@@ -176,8 +175,8 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
         //printf("Debug wait;\n");
         // If operation was done, out
         if(info.done){
-          if(iverb >= 3) printf("    -- END colledgsurf successful using ipcol = %d ipins = %d \n",ipcol,ipins);
-          if(iverb >= 4) writeMesh("debug_collapse1.meshb",msh);
+          CPRINTF1("-- END colledgsurf successful using ipcol = %d ipins = %d \n",ipcol,ipins);
+          if(DOPRINTS2()) writeMesh("debug_collapse1.meshb",msh);
           msh.poi2ent(ipcol,0) = -1;
           msh.poi2ent(ipcol,1) = -1;
         }
@@ -186,9 +185,9 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
         }
         if(info.done) return 0;
 
-        if(iverb >= 3) printf("     - return qmax = %f \n",info.qmax_end);
+        CPRINTF1(" - return qmax = %f \n",info.qmax_end);
         if(info.qmax_end < qmabest && ierro == 0){
-          if(iverb >= 3) printf("     - new best quality !\n");
+          CPRINTF1(" - new best quality !\n");
           qmabest = info.qmax_end;
           ivebest = iver;
           ipibest = ipins;
@@ -213,12 +212,12 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
                   cav.lcedg,
                   &iopen,&imani,ithrd1);
     increase_cavity_Delaunay(msh, cav, cav.ipins, ithrd2);
-    //ierro = increase_cavity2D(msh, iref, msh.coord[cav.ipins],opts,cav,ithrd2);
+    //ierro = increase_cavity2D(msh, msh.coord[cav.ipins],opts,cav,ithrd2);
     METRIS_ASSERT(ierro == 0);
   }
 
 
-  if(iverb >= 3) writeMeshCavity("collapse_cavity0.meshb", msh, cav,  iverb, ithrd2);
+  if(DOPRINTS2()) writeMeshCavity("collapse_cavity0.meshb", msh, cav, ithrd2);
 
   opts.dryrun = false;
 
@@ -243,6 +242,7 @@ template<class MFT>
 int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf, 
                 intAr1 &lerro, int ithrd1, int ithrd2){
   if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement + tet nelem = "<<msh.nelem)
+  GETVDEPTH(msh);
 
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
@@ -251,7 +251,6 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
   //METRIS_ASSERT(ithrd1 != ithrd3);
   //METRIS_ASSERT(ithrd2 != ithrd3);
 
-  int iverb = msh.param->iverb;
 
   int mcfac = 100, mcedg = 2; // more than 2 is a corner collapse: no!
   int nwork = mcfac + mcedg;
@@ -267,7 +266,6 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
   //opts.dryrun   = true;
   opts.dryrun   = false;
   opts.qmax_suf = qmax_suf;
-  opts.iverb = iverb;
 
   int ierro = 0;
 
@@ -285,13 +283,13 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
   // Collapse this one 
   int ipcol = msh.fac2poi(iface,iver);
 
-  if(iverb >= 3) printf("    -- START colledgsurf iface = %d iver = %d ipoin = %d \n",iface,iver,ipcol);
-  if(iverb >= 4) writeMesh("debug_collapse0.meshb",msh);
+  CPRINTF1("-- START colledgsurf iface = %d iver = %d ipoin = %d \n",iface,iver,ipcol);
+  if(DOPRINTS2()) writeMesh("debug_collapse0.meshb",msh);
 
 
   int ibcol = msh.poi2bpo[ipcol];
   if(ibcol >= 0){
-    if(msh.bpo2ibi[ibcol][1] == 0) return 1;
+    if(msh.bpo2ibi(ibcol,1) == 0) return 1;
   }
 
   ierro = ball2(msh,ipcol,iface,
@@ -303,12 +301,12 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
   if(msh.idim == 3){
     // We'll not use the ipins normal but rather this one as we already have the ball. 
     // Just treat it as P1
-    getnorpoi<1>(msh,ipcol,cav.lcfac,nrmal);
+    getnorballref<1>(msh,cav.lcfac,-1,nrmal);
     cav.nrmal = nrmal;
   }
 
 
-  if(iverb >= 3) printf("     - try collapse poi = %d ball nface = %d nedge = %d \n",
+  CPRINTF1(" - try collapse poi = %d ball nface = %d nedge = %d \n",
                               ipcol,cav.lcfac.get_n(),cav.lcedg.get_n());
 
   // Try the cavity call with different ipins in neighbours of ipcol
@@ -340,23 +338,21 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
       cav.lctet.set_n(0);
       cav.lcfac.set_n(nbalf); // Revert to simple ball 
       cav.lcedg.set_n(nbale); // Revert 
-      if(iverb >= 3) printf("     - try reinsert point %d tag = %d vs %d \n",
+      CPRINTF1(" - try reinsert point %d tag = %d vs %d \n",
                            ipins,msh.poi2tag(ithrd1,ipins),msh.tag[ithrd1]);
 
 
-      if(iverb >= 3) writeMeshCavity("collapse_cavity0.meshb", msh, cav, 
-                                                          iverb, ithrd2);
+      if(DOPRINTS2()) writeMeshCavity("collapse_cavity0.meshb", msh, cav, ithrd2);
 
       // Increase cavity with Delaunay criterion
       increase_cavity_Delaunay(msh, cav, ipins, ithrd2);
       //int nprem = increase_cavity_lenedg(msh,cav,ipins,ithrd2,ithrd3);
-      ierro = increase_cavity2D(msh,iref,msh.coord[ipins],opts,cav,ithrd2);
+      ierro = increase_cavity2D(msh,msh.coord[ipins],opts,cav,ithrd2);
 
 
       if(ierro > 0) continue;
 
-      if(iverb >= 3) writeMeshCavity("collapse_cavity1.meshb", msh, cav, 
-                                                          iverb, ithrd2);
+      if(DOPRINTS2()) writeMeshCavity("collapse_cavity1.meshb", msh, cav, ithrd2);
 
 
       CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
@@ -368,8 +364,8 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
       //printf("Debug wait;\n");
       // If operation was done, out
       if(info.done){
-        if(iverb >= 3) printf("    -- END colledgsurf successful using ipcol = %d ipins = %d \n",ipcol,ipins);
-        if(iverb >= 3) writeMesh("debug_collapse1.meshb",msh);
+        CPRINTF1("-- END colledgsurf successful using ipcol = %d ipins = %d \n",ipcol,ipins);
+        if(DOPRINTS2()) writeMesh("debug_collapse1.meshb",msh);
         msh.poi2ent(ipcol,0) = -1;
         msh.poi2ent(ipcol,1) = -1;
       }
@@ -378,9 +374,9 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
       }
       if(info.done) return 0;
 
-      if(iverb >= 3) printf("     - return qmax = %f \n",info.qmax_end);
+      CPRINTF1(" - return qmax = %f \n",info.qmax_end);
       if(info.qmax_end < qmabest && ierro == 0){
-        if(iverb >= 3) printf("     - new best quality !\n");
+        CPRINTF1(" - new best quality !\n");
         qmabest = info.qmax_end;
         ivebest = iver;
       }
@@ -400,11 +396,11 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
                   cav.lcedg,
                   &iopen,&imani,ithrd1);
     increase_cavity_Delaunay(msh, cav, cav.ipins, ithrd2);
-    //ierro = increase_cavity2D(msh, iref, msh.coord[cav.ipins],opts,cav,ithrd2);
+    //ierro = increase_cavity2D(msh, msh.coord[cav.ipins],opts,cav,ithrd2);
     METRIS_ASSERT(ierro == 0);
   }
 
-  if(iverb >= 3) writeMeshCavity("collapse_cavity0.meshb", msh, cav,  iverb, ithrd2);
+  if(DOPRINTS2()) writeMeshCavity("collapse_cavity0.meshb", msh, cav, ithrd2);
 
   opts.dryrun = false;
 

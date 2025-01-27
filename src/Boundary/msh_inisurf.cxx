@@ -11,6 +11,7 @@
 #include "../ho_constants.hxx"
 #include "../aux_topo.hxx"
 #include "../low_geo.hxx"
+#include "../mprintf.hxx"
 #include "../io_libmeshb.hxx"
 
 #include <tuple>
@@ -21,7 +22,7 @@ namespace Metris{
 int getNumCorners(MeshBase &msh){
   int ret = 0;
   for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
-    ret += msh.bpo2ibi[ibpoi][1] == 0;
+    ret += msh.bpo2ibi(ibpoi,1) == 0;
   }
   return ret;
 }
@@ -33,32 +34,29 @@ Points from rank 0 to nbpo0 excluded have been read from file. Their (u,v)s are 
 Those are only verified. 
 Points from nbpo0 included to nbpoi excluded have been re-created. Their (u,v)s will be projected. 
 */
-void prjMeshPoints(MeshBase &msh, int nbpo0, bool onlyproj, int typ_proj, bool updtX){
+void prjMeshPoints(MeshBase &msh, int nbpo0, bool onlyproj, bool updtX){
+  GETVDEPTH(msh);
 	if(!msh.CAD()) METRIS_THROW_MSG(TopoExcept(),
 		"EMPTY EGADS CONTEXT");
 
 	if(msh.CAD.EGADS_model == NULL) METRIS_THROW_MSG(TopoExcept(),
 		"EMPTY EGADS MODEL !");
 
-  const int iverb = msh.param->iverb;
   const int ithrd = 0;
 
-  if(iverb >= 1){
-    if(onlyproj){
-      printf("  prjMeshPoints start: project %d\n",msh.nbpoi-nbpo0);
-    }else{
-      printf("  prjMeshPoints start: verify %d, project %d\n",nbpo0,msh.nbpoi-nbpo0);
-    }
+  if(onlyproj){
+    CPRINTF1("-- prjMeshPoints start: project %d\n",msh.nbpoi-nbpo0);
+  }else{
+    CPRINTF1("-- prjMeshPoints start: verify %d, project %d\n",nbpo0,msh.nbpoi-nbpo0);
   }
 
 
-	double errl2_cor=0.0, errli_cor=-1.0;int imax_cor=0;
-	double errl2_edg=0.0, errli_edg=-1.0;int imax_edg=0;
-	double errl2_fac=0.0, errli_fac=-1.0;int imax_fac=0;
-
-	int n_cor=0, n_edg=0, n_fac=0;
-	int ierro;
-	int nerr_cor=0,nerr_edg=0,nerr_fac=0;
+	double errl2[3] = {0}; 
+	double errli[3] = {-1.0};
+  int imax[3] = {0};
+	int nent[3] = {0};
+  int nerr[3] = {0};
+  int ierro;
 	ego obj;
 	double result[18];
 
@@ -66,348 +64,309 @@ void prjMeshPoints(MeshBase &msh, int nbpo0, bool onlyproj, int typ_proj, bool u
 	if(onlyproj) goto doproj;
 
 
-
 	for(int ibpoi = 0; ibpoi < nbpo0; ibpoi++){
-		int ientt = msh.bpo2ibi[ibpoi][2];
-		int ityp = msh.bpo2ibi[ibpoi][1];
-		assert(ityp >= 0 && ityp <= 2 && "ityp within bounds");
-		int ipoin = msh.bpo2ibi[ibpoi][0];
+    INCVDEPTH(msh);
+		int ientt = msh.bpo2ibi(ibpoi,2);
+		int bdim = msh.bpo2ibi(ibpoi,1);
+		METRIS_ASSERT(bdim >= 0 && bdim <= 2 && "bdim within bounds");
+		int ipoin = msh.bpo2ibi(ibpoi,0);
 
-		if(ityp == 0){
-			// Type Node
-			int iref = ientt;
-			if(iref >= msh.CAD.ncadno) METRIS_THROW_MSG(TopoExcept(),
-				"INVALID NODE REFERENCE ! "<<iref<<" >= "<<msh.CAD.ncadno);
-			obj = msh.CAD.cad2nod[iref];
-			assert(obj!=NULL);
-			
-			ierro = EG_evaluate(obj, NULL, result);
-			if(ierro != 0){
-				nerr_cor++;
-				continue;
-			}
-			double err = geterrl2<3>(msh.coord[ipoin],result);
-			if(err > errli_cor){
-				imax_cor = ipoin;
-				errli_cor = err;
-			}
-			errl2_cor += err;
-			n_cor++;
-		}else if(ityp == 1){
-			// Type Edge
-			int iref = msh.edg2ref[ientt];
-			if(iref >= msh.CAD.ncaded)METRIS_THROW_MSG(TopoExcept(),
-				"INVALID EDGE REFERENCE "<<iref<<" >= "<<msh.CAD.ncaded);
+		int iref = bdim == 0 ? ientt :
+               bdim == 1 ? msh.edg2ref[ientt]
+                         : msh.fac2ref[ientt];
 
-			obj = msh.CAD.cad2edg[iref];
-			assert(obj!=NULL);
-			
-			double t[2];
-			t[0] = msh.bpo2rbi[ibpoi][0];
-			ierro = EG_evaluate(obj, t, result);
-			if(ierro != 0){
-				nerr_edg++;
-				continue;
-			}
-      double err;
-      if(msh.idim == 2){
-        err = geterrl2<2>(msh.coord[ipoin],result);
-      }else{
-        err = geterrl2<3>(msh.coord[ipoin],result);
-      }
-			if(err > errli_edg){
-				imax_edg = ipoin;
-				errli_edg = err;
-			}
-			errl2_edg += err;
-			n_edg++;
-		}else if(ityp == 2 && msh.idim >= 3){
-			int iref = msh.fac2ref[ientt];
-			// Type Face
-			if(iref >= msh.CAD.ncadfa)METRIS_THROW_MSG(TopoExcept(),
-				"INVALID FACE REFERENCE ! "<<iref<<" >= "<<msh.CAD.ncadfa);
-
-			obj = msh.CAD.cad2fac[iref];
-			assert(obj!=NULL);
-			
-			double uv[2] = {msh.bpo2rbi[ibpoi][0],msh.bpo2rbi[ibpoi][1]};
-			ierro = EG_evaluate(obj, uv, result);
-			if(ierro != 0){
-				nerr_fac++;
-				continue;
-			}
-      double err;
-      if(msh.idim == 2){
-        err = geterrl2<2>(msh.coord[ipoin],result);
-      }else{
-        err = geterrl2<3>(msh.coord[ipoin],result);
-      }
-			if(err > errli_fac){
-				imax_fac = ipoin;
-				errli_fac = err;
-			}
-			errl2_fac += err;
-			n_fac++;
+    obj = bdim == 0 ? msh.CAD.cad2nod[iref] :
+          bdim == 1 ? msh.CAD.cad2edg[iref]
+                    : msh.CAD.cad2fac[iref];
+		METRIS_ASSERT(obj!=NULL);
+		
+		if(EG_evaluate(obj, msh.bpo2rbi[ibpoi], result) != 0){
+			nerr[bdim]++;
+			continue;
 		}
-		//EG_evaluate()
+
+    double err;
+    if(msh.idim == 2){
+      err = geterrl2<2>(msh.coord[ipoin],result);
+    }else{
+      err = geterrl2<3>(msh.coord[ipoin],result);
+    }
+		if(err > errli[bdim]){
+			imax[bdim]  = ipoin;
+			errli[bdim] = err;
+		}
+		errl2[bdim] += err;
+		nent[bdim]++;
+		
 	}
 	if(nbpo0 > 0){
-		if(n_cor > 0)errl2_cor = sqrt(errl2_cor)/n_cor;
-		if(n_edg > 0)errl2_edg = sqrt(errl2_edg)/n_edg;
-		if(n_fac > 0)errl2_fac = sqrt(errl2_fac)/n_fac;
-    if(iverb >= 1){
-      printf("Tested %d points. Errors:\n",nbpo0);
-      if(n_cor > 0)printf("%8d Corners: %8.3e max (%d), %8.3e avg L2, %d errs\n",
-                             n_cor,errli_cor,imax_cor,errl2_cor,nerr_cor);
-      if(n_edg > 0)printf("%8d Edges:   %8.3e max (%d), %8.3e avg L2, %d errs\n",
-                             n_edg,errli_edg,imax_edg,errl2_edg,nerr_edg);
-      if(n_fac > 0)printf("%8d Faces:   %8.3e max (%d), %8.3e avg L2, %d errs\n",
-                             n_fac,errli_fac,imax_fac,errl2_fac,nerr_fac);
-    }
+		if(nent[0] > 0)errl2[0] = sqrt(errl2[0])/nent[0];
+		if(nent[1] > 0)errl2[1] = sqrt(errl2[1])/nent[1];
+		if(nent[2] > 0)errl2[2] = sqrt(errl2[2])/nent[2];
+    CPRINTF2(" - Tested %d points. Errors:\n",nbpo0);
+    if(nent[0] > 0)CPRINTF2("%8d Corners: %8.3e max (%d), %8.3e avg L2, %d errs\n",
+                            nent[0],errli[0],imax[0],errl2[0],nerr[0]);
+    if(nent[1] > 0)CPRINTF2("%8d Edges  :   %8.3e max (%d), %8.3e avg L2, %d errs\n",
+                            nent[1],errli[1],imax[1],errl2[1],nerr[1]);
+    if(nent[2] > 0)CPRINTF2("%8d Faces  :   %8.3e max (%d), %8.3e avg L2, %d errs\n",
+                            nent[2],errli[2],imax[2],errl2[2],nerr[2]);
 	}
 
 
 doproj:
 
-	errl2_cor=0.0; errli_cor=-1.0;imax_cor=0;
-	errl2_edg=0.0; errli_edg=-1.0;imax_edg=0;
-	errl2_fac=0.0; errli_fac=-1.0;imax_fac=0;
-	n_cor=0; n_edg=0; n_fac=0;
-	nerr_cor=0;nerr_edg=0;nerr_fac=0;
+	errl2[0]=0.0; errli[0]=-1.0;imax[0]=0;
+	errl2[1]=0.0; errli[1]=-1.0;imax[1]=0;
+	errl2[2]=0.0; errli[2]=-1.0;imax[2]=0;
+	nent[0]=0; nent[1]=0; nent[2]=0;
+	nerr[1]=0;nerr[2]=0;
 
-
-  double coop[3];
-
+  intAr1 lbad(10);
+  lbad.set_n(0);
   msh.tag[ithrd]++;
+  int btag = msh.tag[ithrd]; // So we can move tag later for faces
   // Corners and such may be delayed once 
   // Double full loop is overkill but simplest to write and few involved. 
   int ndelay = 0;
   for(int irep = 0; irep < 2; irep++){
-
   	for(int ibpoi = nbpo0; ibpoi < msh.nbpoi; ibpoi++){
-      int ipoin = msh.bpo2ibi[ibpoi][0];
+      INCVDEPTH(msh);
+      int ipoin = msh.bpo2ibi(ibpoi,0);
       if(msh.poi2ent(ipoin,0) < 0) continue;
-      if(msh.poi2tag(ithrd,ipoin) >= msh.tag[ithrd]) continue;
+      if(msh.bpo2tag(ithrd,ibpoi) >= btag) continue;
 
-  		int ientt = msh.bpo2ibi[ibpoi][2];
-  		int ityp  = msh.bpo2ibi[ibpoi][1];
-  		METRIS_ASSERT(ityp >= 0 && ityp <= 2);
+  		int ientt = msh.bpo2ibi(ibpoi,2);
+  		int bdim  = msh.bpo2ibi(ibpoi,1);
+      // Corners don't need projecting 
+      if(bdim == 0) continue;
+  		METRIS_ASSERT(bdim >= 0 && bdim <= 2);
 
       int ibpo0 = msh.poi2bpo[ipoin]; 
-      int ityp0 = msh.bpo2ibi[ibpo0][1];
+      int pdim  = msh.bpo2ibi(ibpo0,1);
 
-      int iref = ityp == 0 ? ientt 
-               : ityp == 1 ? msh.edg2ref[ientt] : msh.fac2ref[ientt];
+      //if(pdim == 2 && msh.idim == 3 || pdim == 1 && msh.idim == 2){
+      //  // one and done points 
+      //  msh.poi2tag(ithrd,ipoin) = msh.tag[ithrd];
+      //}
+
+      int iref = bdim == 1 ? msh.edg2ref[ientt] : msh.fac2ref[ientt];
+      METRIS_ASSERT(iref >= 0);
 
       // In this case, we produce a guess to the t or (u,v)
-      if(ityp0 < ityp){
-        if(ityp == 1){
-          // Guess using ientt. 
-          int ipoi2 = msh.edg2poi(ientt,0) == ipoin ? 
-                      msh.edg2poi(ientt,1) : msh.edg2poi(ientt,0);
-          int ibpo2 = msh.poi2bpo[ipoi2]; 
+      if(pdim < bdim){
+        const int nnode = msh.nnode(bdim);
+        const intAr2& ent2poi = msh.ent2poi(bdim);
+
+        // Trying the other vertices, look for one that can provide a (u,v).
+        bool delayp = true;
+        for(int iver = 0; iver < nnode; iver++){
+          int ipoi2 = ent2poi(ientt,iver);
+          if(ipoi2 == ipoin) continue;
+
+          int ibpo2 = msh.poi2ebp(ipoi2,bdim,ientt,-1);
           METRIS_ASSERT(ibpo2 >= 0);
 
-          if(iverb >= 3){
-            printf(" - Corner guess ipoin %d ibpo0 %d ibpoi %d ipoi2 %d ibpo2 %d\n",
-                   ipoin,ibpo0,ibpoi,ipoi2,ibpo2);
-            if(ibpo2 >= ibpoi && irep == 0) printf(" -> delay \n");
-            else printf(" - ibpo2 t = %f\n",msh.bpo2rbi(ibpo2,0));
-          }
-
-          if(ibpo2 >= ibpoi && irep == 0){
-            // This point will need to be revisited on second loop iteration 
-            ndelay++;
-            continue;
-          }
-
-          msh.bpo2rbi(ibpoi,0) = msh.bpo2rbi(ibpo2,0);
-
-        }else{
-          // Trying the other vertices, look for one that can provide a (u,v).
-          bool delayp = true;
-          for(int iver = 0; iver < 3; iver++){
-            int ipoi2 = msh.fac2poi(ientt,iver);
-            if(ipoi2 == ipoin) continue;
-
-            int ibpo2 = msh.poi2bpo[ipoi2];
-            METRIS_ASSERT(ibpo2 >= 0);
-
-            if(iverb >= 3){
-              printf(" - Edge guess ipoin %d ibpo0 %d ibpoi %d ipoi2 %d ibpo2 %d\n",
-                     ipoin,ibpo0,ibpoi,ipoi2,ibpo2);
-              if(ibpo2 >= ibpoi && irep == 0) printf(" -> delay \n");
-              else printf(" - ibpo2 t = %f\n",msh.bpo2rbi(ibpo2,0));
-            }
-
+          if(DOPRINTS1()){
+            CPRINTF1(" - %d -> %d guess ipoin %d ibpo0 %d ientt %d ibpoi %d ipoi2 %d ibpo2 %d\n",
+                   pdim,bdim,ipoin,ibpo0,msh.bpo2ibi(ibpoi,2),ibpoi,ipoi2,ibpo2);
+            int pdim2 = msh.bpo2ibi(msh.poi2bpo[ipoi2],1);
             if(ibpo2 >= ibpoi && irep == 0){
-              // This point can be revisited on second loop integration, or the 
-              // other non-ipoin vertex might give us what we need. 
-              continue;
+              CPRINTF1(" -> delay \n");
+            }else{
+              CPRINTF1(" - ibpo2 dim %d (u,v) = %f %f \n",pdim2,
+                        msh.bpo2rbi(ibpo2,0),msh.bpo2rbi(ibpo2,1));
             }
-
-            delayp = false;
-            msh.bpo2rbi(ibpoi,0) = msh.bpo2rbi(ibpo2,0);
           }
 
-          if(delayp){
-            if(iverb >= 3) printf(" -> delay \n");
-            ndelay++;
+          if(msh.bpo2tag(ithrd,ibpo2) < btag){
+            // This point can be revisited on second loop integration, or the 
+            // other non-ipoin vertex might give us what we need. 
             continue;
           }
 
+          delayp = false;
+          for(int ii = 0; ii < nrbi; ii++) 
+            msh.bpo2rbi(ibpoi,ii) = msh.bpo2rbi(ibpo2,ii);
+          
         }
+
+        if(delayp){
+          CPRINTF1(" -> delay \n");
+          if(irep == 1) lbad.stack(ibpoi);
+          ndelay++;
+          continue;
+        }
+      }
+
+      msh.bpo2tag(ithrd,ibpoi) = btag;
+      
+  		double err; 
+
+			obj = bdim == 1 ? msh.CAD.cad2edg[iref] : msh.CAD.cad2fac[iref];
+
+      if(pdim == bdim){
+        ierro = EG_invEvaluate(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
       }else{
-        // one and done points 
-        msh.poi2tag(ithrd,ipoin) = msh.tag[ithrd];
+        ierro = EG_invEvaluateGuess(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
+      }
+
+			if(ierro != 0){
+				nerr[bdim]++;
+				continue;
+			}
+
+      if(msh.idim == 2){
+        err = geterrl2<2>(msh.coord[ipoin],result);
+      }else{
+        err = geterrl2<3>(msh.coord[ipoin],result);
       }
 
 
-      // Only carry out projection if this is the lowest tdim representation of ipoin 
-      // if(ityp2 != ityp) continue;
-   
+			if(err > errli[bdim]){
+				imax[bdim] = ipoin;
+				errli[bdim] = err;
+			}
+			errl2[bdim] += err;
+			nent[bdim]++;
 
-      for(int ii = 0; ii < msh.idim; ii++) coop[ii] = msh.coord[ipoin][ii];
-      for(int ii = msh.idim; ii < 3; ii++) coop[ii] = 0;
-      
-
-
-  		double err; 
-  		if(ityp == 0){
-  			// Type Node
-        continue;
-  		}else if(ityp == 1){
-  			// Type Edge
-  			if(iref < 0) continue;
-
-  			if(iref >= msh.CAD.ncaded){
-  				printf("## INVALID EDGE INDEX ! %d >= %d\n",iref,msh.CAD.ncaded);
-  				exit(1);
-  			}
-  			obj = msh.CAD.cad2edg[iref];
-  			
-  			//if(nprt1 < 10){
-  			//	printf("Debug 10, type 1 bpo2rbi %f \n", msh.bpo2rbi[ibpoi][0]);
-  			//} 
-
-  			if(typ_proj == 1){
-          if(ityp0 == ityp){
-            ierro = EG_invEvaluate(obj, coop, msh.bpo2rbi[ibpoi], result);
-          }else{
-            if(ipoin == 1 && iverb >= 3){
-              printf("## DEBUG IPOIN 1 projection irep %d guess %15.7e\n",irep,
-                msh.bpo2rbi(ibpoi,0));
-            }
-            ierro = EG_invEvaluateGuess(obj, coop, msh.bpo2rbi[ibpoi], result);
-            if(ipoin == 1 && iverb >= 3){
-              printf("## DEBUG IPOIN 1 projection t after %15.7e\n",
-                msh.bpo2rbi(ibpoi,0));
-            }
-          }
-  				//ierro = EG_invEvaluateGuess(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
-  			}else{
-  				ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
-  			}
-  			if(ierro != 0){
-  				nerr_edg++;
-  				continue;
-  			}
-        if(msh.idim == 2){
-          err = geterrl2<2>(msh.coord[ipoin],result);
-        }else{
-          err = geterrl2<3>(msh.coord[ipoin],result);
-        }
-
-
-  			//if(nprt1 < 10){
-  			//	printf("Debug 10, type 1 err %10.3e \n", err);
-  			//	nprt1++;
-  			//}
-  			if(err > errli_edg){
-  				imax_edg = ipoin;
-  				errli_edg = err;
-  			}
-  			errl2_edg += err;
-  			n_edg++;
-
-        //if(ityp2 == ityp){ // Use lowest tdim rep for coord update. We still needed the uvs though.
-        //  for(int i = 0; i < msh.idim; i++)
-        //    msh.coord[ipoin][i] = result[i];
-        //}
-  		}else if(ityp == 2 && msh.idim >= 3){
-  			// Type Face
-  			//if(nprt2 < 10){
-  			//	printf("Debug 10, type 2 bpo2rbi %f %f \n", msh.bpo2rbi[ibpoi][0], msh.bpo2rbi[ibpoi][1]);
-  			//}
-  			if(iref < 0) continue;
-
-  			if(iref >= msh.CAD.ncadfa)METRIS_THROW_MSG(TopoExcept(),
-  				"INVALID FACE INDEX ! "<<iref<<" >= "<<msh.CAD.ncadfa);
-  				
-  			obj = msh.CAD.cad2fac[iref];
-
-  			if(typ_proj == 1){ 
-          if(irep == 0){
-            ierro = EG_invEvaluate(obj, coop, msh.bpo2rbi[ibpoi], result);
-          }else{
-            ierro = EG_invEvaluateGuess(obj, coop, msh.bpo2rbi[ibpoi], result);
-          }
-  				//ierro = EG_invEvaluateGuess(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
-  			}else{
-  				ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
-  			}
-  			if(ierro != 0){
-  				nerr_fac++;
-  				continue;
-  			}
-        if(msh.idim == 2){
-          err = geterrl2<2>(msh.coord[ipoin],result);
-        }else{
-          err = geterrl2<3>(msh.coord[ipoin],result);
-        } 
-  			//if(nprt2 < 10){
-  			//	printf("Debug 10, type 2 err %10.3e \n", err);
-  			//	nprt2++;
-  			//}
-  			if(err > errli_fac){
-  				imax_fac = ipoin;
-  				errli_fac = err;
-  			}
-  			errl2_fac += err;
-  			n_fac++;
-
-        //if(ityp2 == ityp){
-    		//	for(int i = 0; i < msh.idim; i++)
-  			//	  msh.coord[ipoin][i] = result[i];
-        //}
-  		}
 
       if(updtX){
-        for(int i = 0; i < msh.idim; i++) msh.coord[ipoin][i] = result[i];
+        for(int ii = 0; ii < msh.idim && updtX; ii++) 
+          msh.coord(ipoin,ii) = result[ii];
       }
 
   	}
 
     if(ndelay == 0){
-      if(iverb >= 1) printf(" - no delayed points -> break\n");
+      CPRINTF2(" - no delayed points -> break\n");
       break;
     }
 
   }
 
-	if(msh.nbpoi - nbpo0 > 0){
-		if(n_edg > 0)errl2_edg = sqrt(errl2_edg)/n_edg;
-		if(n_fac > 0)errl2_fac = sqrt(errl2_fac)/n_fac;
-    if(iverb >= 1){
-  		if(typ_proj == 1) printf("Projected ");
-  		else              printf("Evaluated ");
-  		printf("%d points. Errors:\n",msh.nbpoi - nbpo0);
-  		if(n_edg > 0)printf("%8d Edges:   %8.3e max (%d), %8.3e avg L2, %d errs\n",
-  			                     n_edg,errli_edg,imax_edg,errl2_edg,nerr_edg);
-  		if(n_fac > 0)printf("%8d Faces:   %8.3e max (%d), %8.3e avg L2, %d errs\n",
-  			                     n_fac,errli_fac,imax_fac,errl2_fac,nerr_fac);
+
+  if(lbad.get_n() > 0) 
+    CPRINTF1("-- End main loop %d bad points to fix \n",lbad.get_n());
+
+  int niter = 0;
+  intAr1 lfacl(100);
+  const int nnod2 = msh.nnode(2);
+  while(lbad.get_n() > 0){
+    INCVDEPTH(msh);
+    if(niter++ > 100) METRIS_THROW_MSG(GeomExcept(), 
+                         "Could not fix "<<lbad.get_n()<<" points in CAD proj")
+
+    int ibpoi = lbad.pop();
+    METRIS_ASSERT(msh.bpo2tag(ithrd,ibpoi) < btag);
+    int ipoin = msh.bpo2ibi(ibpoi,0);
+    METRIS_ASSERT(msh.poi2ent(ipoin,0) >= 0)
+
+    int ifac0 = msh.bpo2ibi(ibpoi,2);
+    int bdim  = msh.bpo2ibi(ibpoi,1);
+    // Corners can't end up here. Edges neither for now (we could change this, but doing irep above)
+    METRIS_ASSERT(bdim == 2);
+
+    int iref = bdim == 1 ? msh.edg2ref[ifac0] : msh.fac2ref[ifac0];
+    METRIS_ASSERT(iref >= 0);
+    obj = msh.CAD.cad2fac[iref];
+
+    // Seeing as this is face only case, we're going to go by the point's ball
+    // seeded by the ifac0 and that is not allowed to cross edges even if same
+    // ref (e.g. periodic)
+    lfacl.set_n(1);
+    lfacl[0] = ifac0;
+    msh.tag[ithrd]++;
+    for(int ii = 0; ii < lfacl.get_n(); ii++){
+      int iface = lfacl[ii];
+
+      int iver = -1;
+      bool solvedpt = false;
+      for(int inode = 0; inode < nnod2; inode++){
+        int ipoi2 = msh.fac2poi(iface,inode);
+        if(ipoi2 == ipoin){
+          iver = inode;
+          continue;
+        }
+
+        int ibpo2 = msh.poi2ebp(ipoi2,2,iface,-1);
+        METRIS_ASSERT(ibpo2 >= 0);
+
+        if(msh.bpo2tag(ithrd,ibpo2) < btag) continue;
+        // Found one ! 
+        CPRINTF1(" - ibpoi %d ipoin %d ifac0 %d using guess face %d ibpo2 %d ipoi2 %d (u,v) = %f %f \n",
+                     ibpoi,ipoin,ifac0,iface,ibpo2,ipoi2,msh.bpo2rbi(ibpo2,0),msh.bpo2rbi(ibpo2,1));
+        
+        for(int ii = 0; ii < nrbi; ii++) 
+          msh.bpo2rbi(ibpoi,ii) = msh.bpo2rbi(ibpo2,ii);
+
+        ierro = EG_invEvaluateGuess(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
+
+        if(ierro == 0){
+          solvedpt = true;
+          msh.bpo2tag(ithrd,ibpoi) = btag;
+          if(updtX){
+            for(int ii = 0; ii < msh.idim && updtX; ii++) 
+              msh.coord(ipoin,ii) = result[ii];
+          }
+          CPRINTF1(" -> got (u,v) = %f %f \n",msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
+          break;
+        }else{
+          CPRINTF1("## EG_invEvaluateGuess error %d \n",ierro);
+        }
+      }
+
+      if(solvedpt) break;
+
+      METRIS_ASSERT(iver >= 0);
+
+      // We failed to find a good guess. Add neighbours that share ipoin 
+
+      for(int ied = 0; ied < 3; ied++){
+        // Only neighbours that contain ipoin
+        if(ied == iver) continue;
+        int ineil = msh.fac2fac(iface,ied);
+
+        // non-manifold
+        if(ineil < 0) continue; 
+
+        // Already seen
+        if(msh.fac2tag(ithrd,ineil) >= msh.tag[ithrd]) continue;
+        msh.fac2tag(ithrd,ineil) = msh.tag[ithrd];
+
+        // Other surf
+        int iref2 = msh.fac2ref[ineil];
+        if(iref2 != iref) continue;
+
+        // Sandwiched edge -> periodic case
+        int iedgl = msh.fac2edg(iface,ied);
+        if(iedgl >= 0) continue;
+
+        // Now ineil is same ref, same left/right neighb of edge if periodic
+        lfacl.stack(ineil);
+      } // for int ied
+
     }
+
+
+  }
+
+
+
+
+
+
+	if(msh.nbpoi - nbpo0 > 0){
+		if(nent[1] > 0)errl2[1] = sqrt(errl2[1])/nent[1];
+		if(nent[2] > 0)errl2[2] = sqrt(errl2[2])/nent[2];
+		CPRINTF1("Projected %d points. Errors:\n",msh.nbpoi - nbpo0);
+		if(nent[1] > 0)CPRINTF1("%8d Edges:   %8.3e max (%d), %8.3e avg L2, %d errs\n",
+			                     nent[1],errli[1],imax[1],errl2[1],nerr[1]);
+		if(nent[2] > 0)CPRINTF1("%8d Faces:   %8.3e max (%d), %8.3e avg L2, %d errs\n",
+			                     nent[2],errli[2],imax[2],errl2[2],nerr[2]);
 	}
+
+
+
 }
 
 
@@ -547,8 +506,8 @@ void iniMeshBdryCorners(MeshBase &msh){
     		int minty = 3;
     		int nloop = 0;
     		do{
-    		  minty = minty < msh.bpo2ibi[ibpo2][1] ? minty : msh.bpo2ibi[ibpo2][1];
-    		  ibpo2 = msh.bpo2ibi[ibpo2][3];
+    		  minty = minty < msh.bpo2ibi(ibpo2,1) ? minty : msh.bpo2ibi(ibpo2,1);
+    		  ibpo2 = msh.bpo2ibi(ibpo2,3);
     		  if(nloop > 100){
     		  	printf("100 times duplicated boundary point = fishy !\n");
     		  	printf("cf iniMeshBdryCorners\n");
@@ -600,10 +559,10 @@ int iniMeshBdryPoints(MeshBase &msh){
 
 
 			// Create new bpo link either if point new bdry or if corner
-			if(ibpoi < 0 || msh.bpo2ibi[ibpoi][1] == 0){
+			if(ibpoi < 0 || msh.bpo2ibi(ibpoi,1) == 0){
 				msh.newbpotopo<1>(ipoin,iedge);
 				ncrea++;
-        if(iverb >= 3) printf(" - new edge bpo ipoin = %d iedge = %d ncrea = %d\n",ipoin,iedge,ncrea);
+        if(iverb >= 4) printf(" - new edge bpo ipoin = %d iedge = %d ncrea = %d\n",ipoin,iedge,ncrea);
 			}
 		}
 	}
@@ -620,10 +579,10 @@ int iniMeshBdryPoints(MeshBase &msh){
 
 
 				// New bpo link if either now or (edge or corner) point. 
-				if(ibpoi < 0 || msh.bpo2ibi[ibpoi][1] < 2){
+				if(ibpoi < 0 || msh.bpo2ibi(ibpoi,1) < 2){
 					msh.newbpotopo<2>(ipoin,iface);
 					ncrea++;
-          if(iverb >= 3) printf(" - new face bpo ipoin = %d iface = %d ncrea = %d\n",ipoin,iface,ncrea);
+          if(iverb >= 4) printf(" - new face bpo ipoin = %d iface = %d ncrea = %d\n",ipoin,iface,ncrea);
 					continue;
 				}
 			}
@@ -652,13 +611,13 @@ template int iniMeshBdryPoints< n >(MeshBase &msh);
 //	int ncorn = 0;
 //
 //	for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
-//		if(msh.bpo2ibi[ibpoi][1] > 0) continue;
+//		if(msh.bpo2ibi(ibpoi,1) > 0) continue;
 //		if(ncorn >= mcorn){
 //			printf("## INCREASE MCORN genCornerList\n");
 //			exit(1);
 //		}
 //		lbpoi[ncorn] = ibpoi + offs;
-//		lpoin[ncorn] = msh.bpo2ibi[ibpoi][0] + offs;
+//		lpoin[ncorn] = msh.bpo2ibi(ibpoi,0) + offs;
 //		ncorn++;
 //	}
 //
@@ -675,8 +634,8 @@ template int iniMeshBdryPoints< n >(MeshBase &msh);
 //		lbpoin[ipoin] = 0;
 //		if(msh.poi2bpo[ipoin] < 0) continue;
 //		int ibpoi = msh.poi2bpo[ipoin];
-//		if(msh.bpo2ibi[ibpoi][1] > 0) continue;
-//		lbpoin[ipoin] = msh.bpo2ibi[ibpoi][2];
+//		if(msh.bpo2ibi(ibpoi,1) > 0) continue;
+//		lbpoin[ipoin] = msh.bpo2ibi(ibpoi,2);
 //	}
 //}
 
@@ -692,7 +651,7 @@ void genOnGeometricEntLists(MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
 	                                         intAr2& lgpof, dblAr2& rgpof,
                                            int incre){
 
-  const int iverb = msh.param->iverb;
+  GETVDEPTH(msh);
 
   METRIS_ASSERT(lgpoe.get_stride() == 2);
   METRIS_ASSERT(lgpof.get_stride() == 2);//not a typo
@@ -709,7 +668,7 @@ void genOnGeometricEntLists(MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
   lgpof.set_n(0); 
   rgpof.set_n(0); 
   
-  if(iverb >= 2) printf(" - genOnGeometricEntListsstart nbpoi = %d\n",msh.nbpoi);
+  CPRINTF2(" - genOnGeometricEntListsstart nbpoi = %d\n",msh.nbpoi);
 
   for(int ipoin = 0; ipoin < msh.npoin ;ipoin++){
     if(msh.poi2ent(ipoin,0) < 0){
@@ -719,23 +678,23 @@ void genOnGeometricEntLists(MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
   	if(do_lpoic) lpoic[ipoin] = 0;
   	int ibpoi = msh.poi2bpo[ipoin];
   	if(ibpoi < 0) continue;
-    METRIS_ASSERT_MSG(msh.bpo2ibi[ibpoi][0] == ipoin, 
+    METRIS_ASSERT_MSG(msh.bpo2ibi(ibpoi,0) == ipoin, 
       "ibpoi mismatch? ipoin = "<<ipoin<<" ibpoi = "<<ibpoi<<" = "<<
-      msh.bpo2ibi[ibpoi][0]<<" "<<msh.bpo2ibi[ibpoi][1]<<" "<<
-      msh.bpo2ibi[ibpoi][2]<<" "<<msh.bpo2ibi[ibpoi][3]<<" "
+      msh.bpo2ibi(ibpoi,0)<<" "<<msh.bpo2ibi(ibpoi,1)<<" "<<
+      msh.bpo2ibi(ibpoi,2)<<" "<<msh.bpo2ibi(ibpoi,3)<<" "
       <<"poi2ent = "<<msh.poi2ent(ipoin,0)<<" "<<msh.poi2ent(ipoin,1));
-  	METRIS_ASSERT(msh.bpo2ibi[ibpoi][0] == ipoin);
-  	if(ibpoi >= 0 && msh.bpo2ibi[ibpoi][1] == 0){
+  	METRIS_ASSERT(msh.bpo2ibi(ibpoi,0) == ipoin);
+  	if(ibpoi >= 0 && msh.bpo2ibi(ibpoi,1) == 0){
   		// Rank of the corner (may not be ncorn)
-  		if(do_lpoic) lpoic[ipoin] = msh.bpo2ibi[ibpoi][2] + incre; 
+  		if(do_lpoic) lpoic[ipoin] = msh.bpo2ibi(ibpoi,2) + incre; 
       lcorn.stack(ipoin + incre); 
   	}
   }
 
-  if(iverb >= 2) printf(" - nbpoi = %d ncorn = %d\n",msh.nbpoi,lcorn.get_n());
+  CPRINTF2(" - nbpoi = %d ncorn = %d\n",msh.nbpoi,lcorn.get_n());
 
   for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
-  	int ipoin = msh.bpo2ibi[ibpoi][0];
+  	int ipoin = msh.bpo2ibi(ibpoi,0);
   	if(ipoin < 0) continue;
     if(msh.poi2ent(ipoin,0) < 0) continue;
     if(ipoin >= msh.npoin){
@@ -747,7 +706,7 @@ void genOnGeometricEntLists(MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
       exit(1);
     }
     METRIS_ASSERT(ipoin < msh.npoin);
-  	int itype = msh.bpo2ibi[ibpoi][1];
+  	int itype = msh.bpo2ibi(ibpoi,1);
   	if(itype == 2){
       //face
       int ngpof = lgpof.get_n(); 
@@ -755,10 +714,10 @@ void genOnGeometricEntLists(MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
       rgpof.inc_n();
 
   		lgpof[ngpof][0] = ipoin + incre;
-  		lgpof[ngpof][1] = msh.bpo2ibi[ibpoi][2] + incre;
+  		lgpof[ngpof][1] = msh.bpo2ibi(ibpoi,2) + incre;
 
-  		rgpof[ngpof][0] = msh.bpo2rbi[ibpoi][0];
-  		rgpof[ngpof][1] = msh.bpo2rbi[ibpoi][1];
+  		rgpof[ngpof][0] = msh.bpo2rbi(ibpoi,0);
+  		rgpof[ngpof][1] = msh.bpo2rbi(ibpoi,1);
   		rgpof[ngpof][2] = 0.0; // Placeholder: should be distance to ent
   	}else if(itype == 1){
       //edge
@@ -767,8 +726,8 @@ void genOnGeometricEntLists(MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
       rgpoe.inc_n();
       
   		lgpoe[ngpoe][0] = ipoin + incre;
-  		lgpoe[ngpoe][1] = msh.bpo2ibi[ibpoi][2] + incre;
-  		rgpoe[ngpoe][0] = msh.bpo2rbi[ibpoi][0];
+  		lgpoe[ngpoe][1] = msh.bpo2ibi(ibpoi,2) + incre;
+  		rgpoe[ngpoe][0] = msh.bpo2rbi(ibpoi,0);
   		rgpoe[ngpoe][1] = 0.0; // Placeholder: should be distance to ent
   	}
   }

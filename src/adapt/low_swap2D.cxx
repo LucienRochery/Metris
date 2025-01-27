@@ -13,6 +13,7 @@
 #include "../aux_topo.hxx"
 #include "../aux_utils.hxx"
 #include "../low_lenedg.hxx"
+#include "../mprintf.hxx"
 #include "../low_geo.hxx"
 #include "../io_libmeshb.hxx"
 #include "../quality/low_metqua.hxx"
@@ -27,6 +28,7 @@ namespace Metris{
 template<class MFT, int gdim, int ideg>
 int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
              double *qnrm0_, double *qnrm1_, int ithread){
+  INCVDEPTH(msh);
 
   double &qnrm0 = *qnrm0_;
   double &qnrm1 = *qnrm1_;
@@ -35,7 +37,6 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   constexpr int tdim = 2;
   constexpr AsDeg asdmet = AsDeg::P1;
 
-  int iverb = msh.param->iverb;
 
   if(isdeadent(iface,msh.fac2poi)) return 0; 
 
@@ -50,7 +51,6 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   opts.skip_topo_checks = true;
   opts.allow_remove_points = false;
   opts.dryrun = false;
-  opts.iverb  = iverb;
 
   double quae1;
 
@@ -61,15 +61,12 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   }
 
 
-  if(iverb >= 4) printf("  -- START swap2D iface = %d",iface);
-  if(iverb >= 4 && pnorm >= 0){
+  CPRINTF1("-- START swap2D iface = %d",iface);
+  if(DOPRINTS1() && pnorm >= 0){
     printf(" initial quality = %f \n",quae1);
-  }else if(iverb >= 4){
+  }else if(DOPRINTS1()){
     printf("\n");
   }
-  #ifndef NDEBUG
-    if(iverb >= 4) writeMesh("debug_swap0.meshb",msh);
-  #endif
 
   // Accept any swap that gives conformity error norm lower than this element's
   double nrmal[3];
@@ -90,9 +87,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     if(ifac2 < 0) continue; // Can't swap across nm edge or bdry 
 
     // Note: manifold but edge in-between is ineig >= 0
-    int ip1 = msh.fac2poi(iface,lnoed2[ied][0]);
-    int ip2 = msh.fac2poi(iface,lnoed2[ied][1]);
-    int iedge = getedgglo(msh,ip1,ip2);
+    int iedge = msh.fac2edg(iface, ied);
     if(iedge >= 0) continue;
 
     if(pnorm >= 0){
@@ -105,8 +100,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       // i.e. q(sqrt2) = q(1/sqrt2). 
       quaol[ied] = len < 1.0 ? 1.0 - len 
                              : 1.0 - 1.0 / len;
-      if(iverb >= 4) printf("   - edge %d length %f quality %15.7e\n",ied,len,
-        quaol[ied]);
+      CPRINTF1(" - edge %d length %f quality %15.7e\n",ied,len, quaol[ied]);
     }
   }
   
@@ -125,8 +119,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     int ied = idx[iix];
     double quae2 = quaol[ied]; 
     if(quae2 < 0) continue;
-    if(iverb >= 4) printf("   - consider swap qface = %f qneigh = %f \n",
-                          quae1,quae2);
+    CPRINTF1(" - consider swap qface = %f qneigh = %f \n", quae1,quae2);
 
     // Quality of previous configuration 
     if(pnorm == 0){
@@ -163,10 +156,9 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       len = getlenedg_geosz<MFT,gdim,ideg>(msh, edg2pol, sz);
       qunw1 = len < 1.0 ? 1.0 - len 
                         : 1.0 - 1.0 / len;
-      if(iverb >= 4) printf("   - new w/ edge %d length %f quality %15.7e\n",ied,len,
-        qunw1);
+      CPRINTF1(" - new w/ edge %d length %f quality %15.7e\n",ied,len, qunw1);
     }
-    if(iverb >= 4) printf("   - new face quality = %f \n",qunw1);
+    CPRINTF1(" - new face quality = %f \n",qunw1);
     // Can skip already if using max
     if(pnorm == 0 && qunw1 + opt.swap_thres > qnrm0) continue; 
 
@@ -189,7 +181,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       #endif
     }
 
-    if(iverb >= 4) printf("   - new face quality = %f \n",qunw2);
+    CPRINTF1(" - new face quality = %f \n",qunw2);
 
     // Quality of new configuration 
     if(pnorm == 0){
@@ -204,14 +196,13 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     cav.lcfac[1] = ifac2;
     cav.ipins = msh.fac2poi(iface,ied);
 
-    if(iverb >= 4) 
-      printf("   - enact swap ||(%f,%f)|| = %f -> ||(%f,%f)|| = %f \n ",
+    CPRINTF1(" - enact swap ||(%f,%f)|| = %f -> ||(%f,%f)|| = %f \n ",
                                            quae1,quae2,qnrm0,qunw1,qunw2,qnrm1);
 
     int ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithread);
 
     if(info.done && ierro == 0){
-      if(iverb >= 4) printf("  -- END swap2D did %d - %d -> %d - %d \n",iface,
+      CPRINTF1("-- END swap2D did %d - %d -> %d - %d \n",iface,
                                                  ifac2,msh.nface-2,msh.nface-1);
       //#ifndef NDEBUG
       //  if(iverb >= 4){
@@ -252,7 +243,6 @@ int swapface(Mesh<MFT>& msh, int iface, int iverb, int ithread){
   opts.skip_topo_checks = true;
   opts.allow_remove_points = false;
   opts.dryrun = true;
-  opts.iverb    = iverb;
 
   const int tdim = 2;
 
@@ -268,7 +258,7 @@ int swapface(Mesh<MFT>& msh, int iface, int iverb, int ithread){
 
   METRIS_ASSERT(quael > 0);
 
-  if(iverb >= 4) printf("-- START swap2D iface = %d initial quality = %f \n",iface,quael);
+  CPRINTF1("-- START swap2D iface = %d initial quality = %f \n",iface,quael);
   #ifndef NDEBUG
     if(iverb >= 4) writeMesh("debug_swap0.meshb",msh);
   #endif
@@ -328,7 +318,7 @@ int swapface(Mesh<MFT>& msh, int iface, int iverb, int ithread){
 
 
     if(info.done){
-      if(iverb >= 4) printf("-- END swap2D did %d - %d -> %d - %d \n",iface,
+      CPRINTF1("-- END swap2D did %d - %d -> %d - %d \n",iface,
                                                   ifac2,msh.nface-2,msh.nface-1);
       #ifndef NDEBUG
         if(iverb >= 4) writeMesh("debug_swap1.meshb",msh);

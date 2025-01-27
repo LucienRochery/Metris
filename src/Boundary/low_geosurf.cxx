@@ -27,15 +27,15 @@ namespace Metris{
 void projptsurf(MeshBase &msh, int ibpoi, double *coop, double tol){
 	assert(ibpoi >=0  && ibpoi < msh.nbpoi);
 
-	int ipoin = msh.bpo2ibi[ibpoi][0];
+	int ipoin = msh.bpo2ibi(ibpoi,0);
 	assert("bpo2ibi valid" && ipoin >= 0 && ipoin < msh.npoin);
 
-	int ityp = msh.bpo2ibi[ibpoi][1];
+	int ityp = msh.bpo2ibi(ibpoi,1);
 	if(ityp == 0){
-		for(int i=0; i<3; i++) coop[i] = msh.coord[ipoin][i];
+		for(int i=0; i<3; i++) coop[i] = msh.coord(ipoin,i);
 		return;
 	}
-	int ientt = msh.bpo2ibi[ibpoi][2];
+	int ientt = msh.bpo2ibi(ibpoi,2);
 	assert(ientt >= 0);
 	assert(ientt < msh.nface && ityp == 2 
     	|| ientt < msh.nedge && ityp == 1  );
@@ -77,9 +77,9 @@ void projptsurf(MeshBase &msh, int ibpoi, double *coop, double tol){
 void bpo2CADnormal(MeshBase &msh, int ibpoi, double *du, double *dv, double *nrmal){
   if(ibpoi < 0 || ibpoi >= msh.nbpoi) METRIS_THROW(WArgExcept());
   if(!msh.CAD()) METRIS_THROW_MSG(TopoExcept(), "CAD not initialized");
-  if(msh.bpo2ibi[ibpoi][1] != 2) METRIS_THROW_MSG(WArgExcept(),"Point not attached to CAD face")
+  if(msh.bpo2ibi(ibpoi,1) != 2) METRIS_THROW_MSG(WArgExcept(),"Point not attached to CAD face")
 
-  int iface = msh.bpo2ibi[ibpoi][2];
+  int iface = msh.bpo2ibi(ibpoi,2);
   if(iface < 0 || iface >= msh.nface) METRIS_THROW(TopoExcept());
   int iref = msh.fac2ref[iface];
   if(iref < 0 || iref >= msh.CAD.ncadfa) METRIS_THROW(TopoExcept());

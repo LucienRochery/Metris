@@ -11,10 +11,12 @@
 #include "../aux_timer.hxx"
 #include "../low_eval.hxx"
 #include "../low_geo.hxx"
+#include "../mprintf.hxx"
 #include "../msh_intrinsicmet.hxx"
 #include "../io_libmeshb.hxx"
 #include "../MetricField/msh_checkmet.hxx"
 #include "../API/MetrisAPI.hxx"
+#include "../linalg/det.hxx"
 
 
 namespace Metris{
@@ -55,6 +57,29 @@ void MeshBack::readConstants(const MetrisAPI &data, int usrMinDeg){
   if(nbpoi == 0) mbpoi_ = mbpo_guess;
 }
 
+dblAr1& MeshBack::ent2dev(int tdimn){
+  switch(tdimn){
+  case(1):
+    return edg2dev;
+  case(2):
+    return fac2dev;
+  default:
+    METRIS_THROW_MSG(WArgExcept(),"tdimn not in range = "<<tdimn);
+  }
+}
+
+const dblAr1& MeshBack::ent2dev(int tdimn) const{
+  switch(tdimn){
+  case(1):
+    return edg2dev;
+  case(2):
+    return fac2dev;
+  default:
+    METRIS_THROW_MSG(WArgExcept(),"tdimn not in range = "<<tdimn);
+  }
+}
+
+
 void MeshBack::set_nedge(int nedge, bool skip_allocf){
   MeshMetric<MetricFieldFE>::set_nedge(nedge, skip_allocf);
 
@@ -66,16 +91,22 @@ void MeshBack::set_nedge(int nedge, bool skip_allocf){
   //edg2con.set_n(nedge);
 }
 
+void MeshBack::set_nface(int nface, bool skip_allocf){
+  MeshMetric<MetricFieldFE>::set_nface(nface, skip_allocf);
+  
+  // Allocate fac2dev
+  fac2dev.allocate(mface);
+  fac2dev.set_n(nface);
+}
 
 void MeshBack::initialize(MetrisAPI *data, 
-  #ifdef NDEBUG 
-  const 
-  #endif
   MetrisParameters &param){
   MeshBase::initialize(data,param);
   setBasis(FEBasis::Bezier);
 
-  if(param.iverb >= 1) writeMesh("mshDATAback", *this);
+  GETVDEPTH((*this));
+
+  if(DOPRINTS2()) writeMesh("mshDATAback", *this);
 
   met.forceBasisFlag(FEBasis::Undefined);
 
@@ -101,17 +132,17 @@ void MeshBack::initialize(MetrisAPI *data,
     // Else intrinsic:
     }else{
       CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == curdeg){
-        if(param.iverb >= 1) std::cout << "(back)  - Compute intrinsic metric field \n";
+        if(DOPRINTS1()) std::cout << "(back)  - Compute intrinsic metric field \n";
         double t0, t1;
 
-        if(param.iverb >= 1) t0 = get_wall_time();
+        if(DOPRINTS1()) t0 = get_wall_time();
         getMetMesh<MetricFieldFE,ideg>(param,*this);
-        if(param.iverb >= 1) t1 = get_wall_time();
-        if(param.iverb >= 1) std::cout << "(back)  - Done time = "<<t1-t0<<std::endl;
+        if(DOPRINTS1()) t1 = get_wall_time();
+        if(DOPRINTS1()) std::cout << "(back)  - Done time = "<<t1-t0<<std::endl;
       }}CT_FOR1(ideg);
     }
 
-    if(param.iverb >= 3) met.writeMetricFile("backmet.solb");
+    if(DOPRINTS2()) met.writeMetricFile("backmet.solb");
     #ifndef NDEBUG
       checkMet(*this);
     #endif
@@ -134,13 +165,13 @@ void MeshBack::initialize(MetrisAPI *data,
     //int nnmet = (idim * (idim + 1)) / 2;
     //for(int ipoin = 0; ipoin < npoin; ipoin++){
     //  for(int ii = 0; ii < nnmet; ii++){
-    //    met[ipoin][ii] = data->metfld[ipoin][ii];
+    //    met(ipoin,ii) = data->metfld[ipoin][ii];
     //  }
     //}
     met.forceBasisFlag(data->metbasis);
     met.forceSpaceFlag(data->metspace);
 
-    if(param.iverb >= 1) met.writeMetricFile("metDATA", MetSpace::Exp);
+    if(DOPRINTS2()) met.writeMetricFile("metDATA", MetSpace::Exp);
 
   }else{
     METRIS_THROW_MSG(WArgExcept(), "No metric info for back ?? ");
@@ -154,8 +185,7 @@ void MeshBack::initialize(MetrisAPI *data,
   met.setBasis(FEBasis::Bezier);
 
   if(param.scaleMet){
-    if(param.iverb >= 1) 
-      printf("-- Back scaling metric by %15.7e\n", param.metScale);
+    CPRINTF1("-- Back scaling metric by %15.7e\n", param.metScale);
     met.normalize(param.metScale);
   }
 
@@ -200,110 +230,168 @@ void MeshBack::initialize(MetrisAPI *data,
   // For edges, the tangent deviation is computed at the vertices. 
   // check edges only belong to one loop
   geodev[0] = -1;
-  int imax = -1;
+  geodev[1] = -1;
+  int imax[2] = {-1};
   if(this->CAD()){
 
-    for(int iedge = 0; iedge < nedge; iedge++){
-      if(isdeadent(iedge,edg2poi)) continue;
-      int iref = edg2ref[iedge];
-      ego obj = CAD.cad2edg[iref];
+    for(int tdim = 1; tdim <= 2; tdim++){
 
-      edg2dev[iedge] = -1;
+      if(tdim == 1 && !isboundary_edges()){
+        CPRINTF1("-- Skipping edges: not linked to CAD\n");
+        continue;
+      }
+      if(tdim == 2 && !isboundary_faces()){
+        CPRINTF1("-- Skipping face: not linked to CAD\n");
+        continue;
+      }
 
-      for(int ii = 0; ii < 2; ii++){
-        int ipoin = edg2poi(iedge,ii);
+      int nentt = this->nentt(tdim);
+      const intAr2& ent2poi = this->ent2poi(tdim);
+      const intAr1& ent2ref = this->ent2ref(tdim);
+      dblAr1& ent2dev = this->ent2dev(tdim);
 
-        // Get CAD tangent 
-        int ibpoi = poi2bpo[ipoin];
-        METRIS_ASSERT(ibpoi >= 0);
+      int nCADsing = 0;
 
-        ibpoi = getref2bpo(*this,ibpoi,iref,1);
-        METRIS_ASSERT(bpo2ibi(ibpoi,0) == ipoin);
-        double result[18];
-        int ierro = EG_evaluate(obj, bpo2rbi[ibpoi], result);
-        METRIS_ENFORCE(ierro == 0);
-        double *tanCAD = &result[3];
+      tag[0]++;
+      for(int ientt = 0; ientt < nentt; ientt++){
+        INCVDEPTH((*this));
+        if(isdeadent(ientt,ent2poi)) continue;
+        int iref = ent2ref[ientt];
+        ego obj = tdim == 1 ? CAD.cad2edg[iref] : CAD.cad2fac[iref];
+        int mtype = obj->mtype;
 
-        //for(int ii = 0; ii < 18; ii++) printf(" %d : %15.7e \n",ii,result[ii]);
 
-        if(param.iverb >= 3) printf("iedge %d iref %d ipoin = %d ibpoi = %d : ",
-                             iedge,iref,ipoin,ibpoi);
-        if(param.iverb >= 3) intAr1(nibi,bpo2ibi[ibpoi]).print();
+        ent2dev[ientt] = -1;
 
-        // Get elt tangent
-        double tanedg[3], dum[3];
-        double bary[2] = {1.0 - ii, (double)ii};
-        CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == curdeg){
-          if(idim == 2){
-            eval1<2,ideg>(coord, edg2poi[iedge],
-                          getBasis(), DifVar::Bary, DifVar::None,
-                          bary, dum, tanedg, NULL);
+        for(int ii = 0; ii < tdim + 1; ii++){
+          int ipoin = ent2poi(ientt,ii);
+
+          // Get CAD tangent 
+          int ibpoi = poi2ebp(ipoin,tdim,-1,iref);
+          METRIS_ASSERT(ibpoi >= 0);
+
+          double result[18];
+          int ierro = EG_evaluate(obj, bpo2rbi[ibpoi], result);
+          METRIS_ENFORCE(ierro == 0);
+          double *dirCAD;
+
+          double buf[3];
+          if(tdim == 1){ 
+            // If edge, simply take the tangent. 
+            dirCAD = &result[3];
           }else{
-            eval1<3,ideg>(coord, edg2poi[iedge],
-                          getBasis(), DifVar::Bary, DifVar::None,
-                          bary, dum, tanedg, NULL);
+            // Otherwise, compute normal
+            vecprod(&result[3], &result[6], buf);
+            dirCAD = buf;
           }
-        }}CT_FOR1(ideg); 
 
-        // Normalize both 
-        double normCAD, normedg; 
-        if(idim == 2){
-          normCAD = getnrml2<2>(tanCAD);
-          normedg = getnrml2<2>(tanedg);
-        }else{
-          normCAD = getnrml2<3>(tanCAD);
-          normedg = getnrml2<3>(tanedg);
-        }
-        METRIS_ENFORCE(normCAD >= 1.0e-32);
-        METRIS_ENFORCE(normedg >= 1.0e-32);
+          CPRINTF1("ientt %d iref %d ipoin = %d ibpoi = %d : ",
+                               ientt,iref,ipoin,ibpoi);
+          if(DOPRINTS1()) intAr1(nibi,bpo2ibi[ibpoi]).print();
 
-        for(int ii = 0; ii < idim; ii++) tanCAD[ii] /= sqrt(normCAD);
-        for(int ii = 0; ii < idim; ii++) tanedg[ii] /= sqrt(normedg);
+          // Get elt direction (tangent if dim = 1, normal otherwise)
+          double dirent[3], dum[3];
+          double bary[3] = {0}; // not typo
+          bary[ii] = 1;
 
-        double dtprd = idim == 2 ? getprdl2<2>(tanCAD,tanedg)
-                                 : getprdl2<3>(tanCAD,tanedg);
+          if(tdim == 1){
+            CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == curdeg){
+              if(idim == 2){
+                eval1<2,ideg>(coord, ent2poi[ientt],
+                              getBasis(), DifVar::Bary, DifVar::None,
+                              bary, dum, dirent, NULL);
+              }else{
+                eval1<3,ideg>(coord, ent2poi[ientt],
+                              getBasis(), DifVar::Bary, DifVar::None,
+                              bary, dum, dirent, NULL);
+              }
+            }}CT_FOR1(ideg); 
+          }else{
+            double jmat[2][3];
+            CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == curdeg){
+              if(idim == 3){
+                eval2<3,ideg>(coord, ent2poi[ientt],
+                              getBasis(), DifVar::Bary, DifVar::None,
+                              bary, dum, jmat[0], NULL);
+              }else{
+                METRIS_THROW_MSG(TODOExcept(),"How are we in idim = "<<idim<<" in face bdry case?")
+              }
+            }}CT_FOR1(ideg); 
+            vecprod(jmat[0], jmat[1], dirent);
+          }
 
-        // Force dtprd to be positive. We can do this because edges have been 
-        // oriented, so there's nothing to check here.
-        dtprd = abs(dtprd);
+          // Normalize both 
+          int iCADsing = 0;
+          if(idim == 2){
+            iCADsing = normalize_vec<2>(dirCAD);
+            METRIS_ENFORCE(normalize_vec<2>(dirent) == 0); 
+          }else{
+            iCADsing = normalize_vec<3>(dirCAD);
+            METRIS_ENFORCE(normalize_vec<3>(dirent) == 0); 
+          }
 
-        if(param.iverb >= 3){
-          printf("  - iedge %d ipoin %d dtprd %f tanCAD = ",ipoin,iedge,dtprd);
-          dblAr1(idim,tanCAD).print();
-          printf("  - tanedg = ");
-          dblAr1(idim,tanedg).print();
-        }
-
-        METRIS_ASSERT_MSG(dtprd >= 1.0e-16,"zero dtprd = "<<dtprd);
-
-        double dev = 1 - abs(dtprd);
-
-        edg2dev[iedge] = MAX(edg2dev[iedge], dev);
+          if(iCADsing){
+            if(poi2tag(0,ipoin) >= tag[0]) continue;
+            poi2tag(0,ipoin) = tag[0];
+            CPRINTF1("## CAD normal singular at point %d \n",ipoin);
+            nCADsing++;
+            continue;
+          }
 
 
-        if(dev >= geodev[0]){
-          imax = iedge;
-          geodev[0] = dev;
-        }
+          double dtprd = idim == 2 ? getprdl2<2>(dirCAD,dirent)
+                                   : getprdl2<3>(dirCAD,dirent);
 
-      }// for int ii 
-      if(param.iverb >= 3) printf(" - iedge %d final dev = %15.7e \n",iedge,edg2dev[iedge]);
+          // Force dtprd to be positive. We can do this because entities have been 
+          // oriented, so there's nothing to check here. 
+          dtprd = abs(dtprd);
+
+          if(DOPRINTS1()){
+            CPRINTF1(" - ientt %d ipoin %d mtype %d dtprd %f dirCAD = ",ientt,ipoin,mtype,dtprd);
+            dblAr1(idim,dirCAD).print();
+            CPRINTF1(" - dirent = ");
+            dblAr1(idim,dirent).print();
+            CPRINTF1(" - (u,v) = ");
+            dblAr1(nrbi,bpo2rbi[ibpoi]).print();
+            if(1 - abs(dtprd) >= 0.9){
+              CPRINTF1("## LARGE GEODEV \n");
+              for(int ibpo0 = poi2bpo[ipoin]; ibpo0 >= 0; ibpo0 = bpo2ibi(ibpo0,3)){
+                CPRINTF1("   - ibpoi %d : ",ibpo0);
+                intAr1(nibi,bpo2ibi[ibpo0]).print();
+                MPRINTF(" (u,v) = %f %f \n",bpo2rbi(ibpo0,0),bpo2rbi(ibpo0,1));
+              }
+            }
+          }
+
+          METRIS_ASSERT_MSG(dtprd >= 1.0e-16,"zero dtprd = "<<dtprd);
+
+
+          double dev = 1 - abs(dtprd);
+
+          ent2dev[ientt] = MAX(ent2dev[ientt], dev);
+
+          if(dev >= geodev[tdim-1]){
+            imax[tdim-1] = ientt;
+            geodev[tdim-1] = dev;
+          }
+
+        }// for int ii 
+        CPRINTF1(" - ientt %d final dev = %15.7e \n",ientt,ent2dev[ientt]);
+
+      }
+      CPRINTF1("-- %d singular CAD normals / tangents at topo dim %d entities\n",nCADsing,tdim);
     }
 
-  }// if msh.CAD()
+  }// if CAD()
   else{
     geodev[0] = 1;
+    geodev[1] = 1;
   }
   
-  if(param.iverb >= 2) printf("-- Computed max tandev edges, got %15.7e at %d\n",
-                               geodev[0], imax);
+  CPRINTF1("-- Computed max geodev, edges: %15.7e at %d faces %15.7e at %d\n",
+                               geodev[0], imax[0], geodev[1], imax[1]);
 
 
-  // Compute maximum normal deviation for localization tolerance 
-  if(isboundary_faces()) METRIS_THROW_MSG(TODOExcept(), 
-                     "Implement geodev for triangles in 3D: \n - Add fac2dev \n" 
-                     " - Don't forget override set_nface()")
-  geodev[1] = -1;
 
 }
 

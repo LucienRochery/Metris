@@ -14,6 +14,7 @@
 #include "../io_libmeshb.hxx"
 #include "../quality/msh_metqua.hxx"
 #include "../BezierOffsets/msh_curve_offsets.hxx"
+#include "../mprintf.hxx"
 
 namespace Metris{
 
@@ -26,12 +27,13 @@ void MetrisRunner::curveMesh(){
 }
 template<class MFT>
 void MetrisRunner::curveMesh0(){
+  GETVDEPTH((*this));
 
   Mesh<MFT> &msh = static_cast<Mesh<MFT>&>(*msh_g);
 
   //int itype = opt.m["smooth"].as<int>();
-  int itype = param.curveType;
-  int iverb = param.iverb;
+  int itype = param_.curveType;
+  int iverb = param_.iverb;
 
   if(iverb >= 1) printf("-- Metric based smoothing requested type = %d \n",itype);
 
@@ -48,7 +50,7 @@ void MetrisRunner::curveMesh0(){
     }else{
       getmetquamesh<MFT,3,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
     }
-    print_histogram(lquae,IntrpTyp::Geometric,dum,"q","Element quality");
+    print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality");
   }
 
 
@@ -97,7 +99,7 @@ void MetrisRunner::curveMesh0(){
     }else{
       getmetquamesh<MFT,3,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
     }
-    print_histogram(lquae,IntrpTyp::Geometric,dum,"q","Element quality");
+    print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality");
   }
 
 

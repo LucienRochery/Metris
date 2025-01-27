@@ -21,18 +21,20 @@ namespace Metris{
    FUNCTION1: P1 edge proj, no CAD
    -----------------------------------------------------------------*/
 
+
 template <int gdim, int ideg>
 int projptedg(MeshBase &msh, const double*__restrict__ coop, 
-              const int*__restrict__ edg2pol, 
+              int iedge, 
               double*__restrict__ bary,
               double*__restrict__ coopr){
   int ierro = 0;
   const int iverb = msh.param->iverb;
 
+  int ipoi1 = msh.edg2poi(iedge,0);
+  int ipoi2 = msh.edg2poi(iedge,1);
+
   if constexpr(ideg == 1){
 
-    int ipoi1 = edg2pol[0];
-    int ipoi2 = edg2pol[1];
     double tan[gdim];
     for(int ii = 0; ii < gdim; ii++) tan[ii] = msh.coord(ipoi2,ii)
                                              - msh.coord(ipoi1,ii);
@@ -55,7 +57,7 @@ int projptedg(MeshBase &msh, const double*__restrict__ coop,
 
   }else{ // if ideg > 1
 
-    double tol0 = geterrl2<gdim>(msh.coord[edg2pol[0]],msh.coord[edg2pol[1]]);
+    double tol0 = geterrl2<gdim>(msh.coord[ipoi1],msh.coord[ipoi2]);
     tol0 = sqrt(tol0);
     newton_drivertype_args<1> args;
     args.stpmin = 1.0e-12;
@@ -86,7 +88,7 @@ int projptedg(MeshBase &msh, const double*__restrict__ coop,
 
 
       DifVar d2flag = ihess > 0 ? DifVar::Bary : DifVar::None;
-      eval1<gdim, ideg>(msh.coord, edg2pol, msh.getBasis(), DifVar::Bary, d2flag,
+      eval1<gdim, ideg>(msh.coord, msh.edg2poi[iedge], msh.getBasis(), DifVar::Bary, d2flag,
                         bary, coopr, d1F, d2F);
       fcur = geterrl2<gdim>(coopr,coop) / 2;
       gcur = getprdl2<gdim>(d1F, coop)  
@@ -108,43 +110,19 @@ int projptedg(MeshBase &msh, const double*__restrict__ coop,
 
     // Projected is outside
     if(bary[0] <  - Constants::baryTol){
-      for(int ii = 0; ii < gdim; ii++) coopr[ii] = msh.coord(edg2pol[1],ii);
+      for(int ii = 0; ii < gdim; ii++) coopr[ii] = msh.coord(ipoi2,ii);
       return 0;
     }
     if(bary[0] > 1 + Constants::baryTol){
-      for(int ii = 0; ii < gdim; ii++) coopr[ii] = msh.coord(edg2pol[0],ii);
+      for(int ii = 0; ii < gdim; ii++) coopr[ii] = msh.coord(ipoi1,ii);
       return 0;
     }
 
-    eval1<gdim, ideg>(msh.coord, edg2pol, msh.getBasis(), DifVar::None, DifVar::None,
+    eval1<gdim, ideg>(msh.coord, msh.edg2poi[iedge], msh.getBasis(), DifVar::None, DifVar::None,
                       bary, coopr, NULL, NULL);
   }
 
-
   return ierro;
-}
-#define BOOST_PP_LOCAL_MACRO(n)\
-template \
-int projptedg<2,n>(MeshBase &msh, const double*__restrict__ coop, \
-                   const int*__restrict__ edg2pol, \
-                   double*__restrict__ bary,\
-                   double*__restrict__ coopr);\
-template \
-int projptedg<3,n>(MeshBase &msh, const double*__restrict__ coop, \
-                   const int*__restrict__ edg2pol, \
-                   double*__restrict__ bary,\
-                   double*__restrict__ coopr);
-#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
-#include BOOST_PP_LOCAL_ITERATE()
-
-
-
-template <int gdim, int ideg>
-int projptedg(MeshBase &msh, const double*__restrict__ coop, 
-              int iedge, 
-              double*__restrict__ bary,
-              double*__restrict__ coopr){
-  return projptedg<gdim,ideg>(msh,coop,msh.edg2poi[iedge],bary,coopr);
 }
 #define BOOST_PP_LOCAL_MACRO(n)\
 template \
@@ -169,26 +147,25 @@ int projptedg<3,n>(MeshBase &msh, const double*__restrict__ coop, \
 FUNCTION2: P1 edge proj, with CAD
    -----------------------------------------------------------------*/
 
+
 // Project point coop on edge iedge, return barycentric of proj and CAD param
 // Requires msh to be linked to CAD object. 
 template <int gdim>
-int projptedg(MeshBase &msh, const double*__restrict__ coop, 
-              double tol, int iref, 
-              const int*__restrict__ edg2pol, 
-              double*__restrict__ param, double*__restrict__ bary,
-              double*__restrict__ coopr){
+int projptedgCAD(MeshBase &msh, const double*__restrict__ coop, double tol, 
+                 int iedge, 
+                 double*__restrict__ param, double*__restrict__ bary,
+                 double*__restrict__ coopr){
+  int iref = msh.edg2ref[iedge];
   // Parameters from above
   const int iverb = msh.param->iverb;
   // Specific parameters
   const int miter = 100;
 
-  int ipoi1 = edg2pol[0];
-  int ipoi2 = edg2pol[1];
+  int ipoi1 = msh.edg2poi(iedge,0);
+  int ipoi2 = msh.edg2poi(iedge,1);
 
-  int ibpo1 = msh.poi2bpo[ipoi1];
-  if(msh.bpo2ibi(ibpo1,1) != 1) ibpo1 = getref2bpo(msh,ibpo1,iref,1);
-  int ibpo2 = msh.poi2bpo[ipoi2];
-  if(msh.bpo2ibi(ibpo2,1) != 1) ibpo2 = getref2bpo(msh,ibpo2,iref,1);
+  int ibpo1 = msh.poi2ebp(ipoi1,1,iedge,-1);
+  int ibpo2 = msh.poi2ebp(ipoi2,1,iedge,-1);
 
   double u1 = msh.bpo2rbi(ibpo1,0);
   double u2 = msh.bpo2rbi(ibpo2,0);
@@ -282,45 +259,20 @@ int projptedg(MeshBase &msh, const double*__restrict__ coop,
   for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipoin,ii) = coop[ii];
   writeMesh("dbg_projptedg.meshb",msh);
 
-  printf("Failed to proj on edge %d %d \n",edg2pol[0],edg2pol[1]);
+  printf("Failed to proj on edge %d %d \n",msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
 
   METRIS_THROW_MSG(AlgoExcept(), "Too many iterations projptedg")
-
-}
-
-template 
-int projptedg<2>(MeshBase &msh, const double*__restrict__ coop, double tol, 
-                 int iref, const int*__restrict__ edg2pol, 
-                 double*__restrict__ param, double*__restrict__ bary,
-                 double*__restrict__ coopr);
-template 
-int projptedg<3>(MeshBase &msh, const double*__restrict__ coop, double tol, 
-                 int iref, const int*__restrict__ edg2pol, 
-                 double*__restrict__ param, double*__restrict__ bary,
-                 double*__restrict__ coopr);
-
-
-
-// Project point coop on edge iedge, return barycentric of proj and CAD param
-// Requires msh to be linked to CAD object. 
-template <int gdim>
-int projptedg(MeshBase &msh, const double*__restrict__ coop, double tol, 
-              int iedge, 
-              double*__restrict__ param, double*__restrict__ bary,
-              double*__restrict__ coopr){
-  int iref = msh.edg2ref[iedge];
-  return projptedg<gdim>(msh,coop,tol,iref,msh.edg2poi[iedge],bary,param,coopr);
 }
 template 
-int projptedg<2>(MeshBase &msh, const double*__restrict__ coop, double tol, 
-                 int iedge, 
-                 double*__restrict__ param, double*__restrict__ bary,
-                 double*__restrict__ coopr);
+int projptedgCAD<2>(MeshBase &msh, const double*__restrict__ coop, double tol, 
+                    int iedge, 
+                    double*__restrict__ param, double*__restrict__ bary,
+                    double*__restrict__ coopr);
 template 
-int projptedg<3>(MeshBase &msh, const double*__restrict__ coop, double tol, 
-                 int iedge, 
-                 double*__restrict__ param, double*__restrict__ bary,
-                 double*__restrict__ coopr);
+int projptedgCAD<3>(MeshBase &msh, const double*__restrict__ coop, double tol, 
+                    int iedge, 
+                    double*__restrict__ param, double*__restrict__ bary,
+                    double*__restrict__ coopr);
 
 
 }

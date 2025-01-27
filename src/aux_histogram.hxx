@@ -8,9 +8,10 @@
 #include "types.hxx"
 
 namespace Metris{
+class MeshBase;
 
 enum class IntrpTyp{Linear, Geometric};
-void print_histogram(dblAr1 &values, IntrpTyp iinter, dblAr1 &bounds,
+void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter, dblAr1 &bounds,
                      std::string symb, std::string name);
 
 }//end namespace

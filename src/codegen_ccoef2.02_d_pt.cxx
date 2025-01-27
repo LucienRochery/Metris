@@ -9,95 +9,58 @@
 
 namespace Metris{
 
-template<int ideg> void d_pt_ccoef_genbez2(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord,
-                                        int ielem,
-                                        int icoor,
-                                        int inode,
-                                        double*__restrict__ ccoef,
-                                        double*__restrict__ d_ccoef){}
+template<int ideg>
+void d_pt_ccoef_genbez2(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord,
+                        int ielem, int inode,
+                        dblAr2&__restrict__ d_ccoef){}
 
-double det2_vdif(const double* x1,const double* x2
-                ,const double* y1,const double* y2);
+void vdiff_perp(const double* a, const double* b, int up, int lo, double *res);
 
-double* vdiff_perp(const double* a,const double* b);
+void vdiff_perp_sum(const double* a, const double* b, int up, int lo, double *res);
 
 template<> void d_pt_ccoef_genbez2<2>(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord,
-                                        int ielem,
-                                        int icoor,
-                                        int inode,
-                                        double*__restrict__ ccoef,
-                                        double*__restrict__ d_ccoef){
+                                        int ielem, int inode,
+                                        dblAr2&__restrict__ d_ccoef){
 
-  ccoef[  0] =   8*det2_vdif(coord[fac2poi[ielem][   5]],coord[fac2poi[ielem][   0]]
-                            ,coord[fac2poi[ielem][   4]],coord[fac2poi[ielem][   0]])/  2;
+  d_ccoef.fill(6,2,0);
 
-  ccoef[  1] =   8*det2_vdif(coord[fac2poi[ielem][   1]],coord[fac2poi[ielem][   5]]
-                            ,coord[fac2poi[ielem][   3]],coord[fac2poi[ielem][   5]])/  2;
+  if(inode ==   0){
+    vdiff_perp(coord[fac2poi(ielem,5)], coord[fac2poi(ielem,4)],4,1,d_ccoef[0]);
+    vdiff_perp(coord[fac2poi(ielem,3)], coord[fac2poi(ielem,2)],2,1,d_ccoef[4]);
+    vdiff_perp(coord[fac2poi(ielem,1)], coord[fac2poi(ielem,3)],2,1,d_ccoef[5]);
+  }
+  else if(inode ==   1){
+    vdiff_perp(coord[fac2poi(ielem,3)], coord[fac2poi(ielem,5)],4,1,d_ccoef[1]);
+    vdiff_perp(coord[fac2poi(ielem,2)], coord[fac2poi(ielem,4)],2,1,d_ccoef[3]);
+    vdiff_perp(coord[fac2poi(ielem,4)], coord[fac2poi(ielem,0)],2,1,d_ccoef[5]);
+  }
+  else if(inode ==   2){
+    vdiff_perp(coord[fac2poi(ielem,4)], coord[fac2poi(ielem,3)],4,1,d_ccoef[2]);
+    vdiff_perp(coord[fac2poi(ielem,5)], coord[fac2poi(ielem,1)],2,1,d_ccoef[3]);
+    vdiff_perp(coord[fac2poi(ielem,0)], coord[fac2poi(ielem,5)],2,1,d_ccoef[4]);
+  }
+  else if(inode ==   3){
+    vdiff_perp(coord[fac2poi(ielem,5)], coord[fac2poi(ielem,1)],4,1,d_ccoef[1]);
+    vdiff_perp(coord[fac2poi(ielem,2)], coord[fac2poi(ielem,4)],4,1,d_ccoef[2]);
+    vdiff_perp(coord[fac2poi(ielem,4)], coord[fac2poi(ielem,5)],2,1,d_ccoef[3]);
+    vdiff_perp(coord[fac2poi(ielem,4)], coord[fac2poi(ielem,0)],2,1,d_ccoef[4]);
+    vdiff_perp(coord[fac2poi(ielem,0)], coord[fac2poi(ielem,5)],2,1,d_ccoef[5]);
+  }
+  else if(inode ==   4){
+    vdiff_perp(coord[fac2poi(ielem,0)], coord[fac2poi(ielem,5)],4,1,d_ccoef[0]);
+    vdiff_perp(coord[fac2poi(ielem,3)], coord[fac2poi(ielem,2)],4,1,d_ccoef[2]);
+    vdiff_perp(coord[fac2poi(ielem,1)], coord[fac2poi(ielem,3)],2,1,d_ccoef[3]);
+    vdiff_perp(coord[fac2poi(ielem,5)], coord[fac2poi(ielem,3)],2,1,d_ccoef[4]);
+    vdiff_perp(coord[fac2poi(ielem,5)], coord[fac2poi(ielem,1)],2,1,d_ccoef[5]);
+  }
+  else if(inode ==   5){
+    vdiff_perp(coord[fac2poi(ielem,4)], coord[fac2poi(ielem,0)],4,1,d_ccoef[0]);
+    vdiff_perp(coord[fac2poi(ielem,1)], coord[fac2poi(ielem,3)],4,1,d_ccoef[1]);
+    vdiff_perp(coord[fac2poi(ielem,3)], coord[fac2poi(ielem,2)],2,1,d_ccoef[3]);
+    vdiff_perp(coord[fac2poi(ielem,2)], coord[fac2poi(ielem,4)],2,1,d_ccoef[4]);
+    vdiff_perp(coord[fac2poi(ielem,3)], coord[fac2poi(ielem,4)],2,1,d_ccoef[5]);
+  }
 
-  ccoef[  2] =   8*det2_vdif(coord[fac2poi[ielem][   3]],coord[fac2poi[ielem][   4]]
-                            ,coord[fac2poi[ielem][   2]],coord[fac2poi[ielem][   4]])/  2;
-
-  ccoef[  3] =   4*det2_vdif(coord[fac2poi[ielem][   3]],coord[fac2poi[ielem][   4]]
-                            ,coord[fac2poi[ielem][   3]],coord[fac2poi[ielem][   5]])/  2
-             +   4*det2_vdif(coord[fac2poi[ielem][   1]],coord[fac2poi[ielem][   5]]
-                            ,coord[fac2poi[ielem][   2]],coord[fac2poi[ielem][   4]])/  2;
-
-  ccoef[  4] =   4*det2_vdif(coord[fac2poi[ielem][   3]],coord[fac2poi[ielem][   4]]
-                            ,coord[fac2poi[ielem][   4]],coord[fac2poi[ielem][   0]])/  2
-             +   4*det2_vdif(coord[fac2poi[ielem][   5]],coord[fac2poi[ielem][   0]]
-                            ,coord[fac2poi[ielem][   2]],coord[fac2poi[ielem][   4]])/  2;
-
-  ccoef[  5] =   4*det2_vdif(coord[fac2poi[ielem][   1]],coord[fac2poi[ielem][   5]]
-                            ,coord[fac2poi[ielem][   4]],coord[fac2poi[ielem][   0]])/  2
-             +   4*det2_vdif(coord[fac2poi[ielem][   5]],coord[fac2poi[ielem][   0]]
-                            ,coord[fac2poi[ielem][   3]],coord[fac2poi[ielem][   5]])/  2;
-
-    for(int i = 0; i < 6; i++) {
-      d_ccoef[i] = 0;
-    }
-    if(inode  ==   0){
-
-      d_ccoef[0] =   8*vdiff_perp(coord[fac2poi[ielem][   0]], coord[fac2poi[ielem][   4]])[icoor] /   2 +   8*vdiff_perp(coord[fac2poi[ielem][   5]], coord[fac2poi[ielem][   0]])[icoor] /   2;
-      d_ccoef[4] =   8*vdiff_perp(coord[fac2poi[ielem][   0]], coord[fac2poi[ielem][   5]])[icoor] /   2;
-      d_ccoef[5] =   8*vdiff_perp(coord[fac2poi[ielem][   4]], coord[fac2poi[ielem][   0]])[icoor] /   2;
-    }
-    else if(inode  ==   1){
-
-      d_ccoef[1] =   8*vdiff_perp(coord[fac2poi[ielem][   3]], coord[fac2poi[ielem][   5]])[icoor] /   2;
-      d_ccoef[3] =   8*vdiff_perp(coord[fac2poi[ielem][   5]], coord[fac2poi[ielem][   1]])[icoor] /   2;
-      d_ccoef[5] =   8*vdiff_perp(coord[fac2poi[ielem][   5]], coord[fac2poi[ielem][   3]])[icoor] /   2 +   8*vdiff_perp(coord[fac2poi[ielem][   1]], coord[fac2poi[ielem][   5]])[icoor] /   2;
-    }
-    else if(inode  ==   2){
-
-      d_ccoef[2] =   8*vdiff_perp(coord[fac2poi[ielem][   4]], coord[fac2poi[ielem][   3]])[icoor] /   2;
-      d_ccoef[3] =   8*vdiff_perp(coord[fac2poi[ielem][   2]], coord[fac2poi[ielem][   4]])[icoor] /   2;
-      d_ccoef[4] =   8*vdiff_perp(coord[fac2poi[ielem][   4]], coord[fac2poi[ielem][   2]])[icoor] /   2 +   8*vdiff_perp(coord[fac2poi[ielem][   3]], coord[fac2poi[ielem][   4]])[icoor] /   2;
-    }
-    else if(inode  ==   3){
-
-      d_ccoef[1] =   4*vdiff_perp(coord[fac2poi[ielem][   2]], coord[fac2poi[ielem][   4]])[icoor] /   2;
-      d_ccoef[2] =   4*vdiff_perp(coord[fac2poi[ielem][   5]], coord[fac2poi[ielem][   1]])[icoor] /   2;
-      d_ccoef[3] =   4*vdiff_perp(coord[fac2poi[ielem][   3]], coord[fac2poi[ielem][   5]])[icoor] /   2 +   4*vdiff_perp(coord[fac2poi[ielem][   4]], coord[fac2poi[ielem][   3]])[icoor] /   2;
-      d_ccoef[4] =   4*vdiff_perp(coord[fac2poi[ielem][   5]], coord[fac2poi[ielem][   3]])[icoor] /   2 +   4*vdiff_perp(coord[fac2poi[ielem][   1]], coord[fac2poi[ielem][   5]])[icoor] /   2;
-      d_ccoef[5] =   4*vdiff_perp(coord[fac2poi[ielem][   3]], coord[fac2poi[ielem][   4]])[icoor] /   2 +   4*vdiff_perp(coord[fac2poi[ielem][   4]], coord[fac2poi[ielem][   2]])[icoor] /   2;
-    }
-    else if(inode  ==   4){
-
-      d_ccoef[0] =   4*vdiff_perp(coord[fac2poi[ielem][   3]], coord[fac2poi[ielem][   4]])[icoor] /   2 +   4*vdiff_perp(coord[fac2poi[ielem][   4]], coord[fac2poi[ielem][   2]])[icoor] /   2;
-      d_ccoef[2] =   4*vdiff_perp(coord[fac2poi[ielem][   0]], coord[fac2poi[ielem][   5]])[icoor] /   2;
-      d_ccoef[3] =   4*vdiff_perp(coord[fac2poi[ielem][   4]], coord[fac2poi[ielem][   0]])[icoor] /   2;
-      d_ccoef[4] =   4*vdiff_perp(coord[fac2poi[ielem][   0]], coord[fac2poi[ielem][   4]])[icoor] /   2 +   4*vdiff_perp(coord[fac2poi[ielem][   4]], coord[fac2poi[ielem][   3]])[icoor] /   2 +   4*vdiff_perp(coord[fac2poi[ielem][   5]], coord[fac2poi[ielem][   0]])[icoor] /   2;
-      d_ccoef[5] =   4*vdiff_perp(coord[fac2poi[ielem][   2]], coord[fac2poi[ielem][   4]])[icoor] /   2;
-    }
-    else if(inode  ==   5){
-
-      d_ccoef[0] =   4*vdiff_perp(coord[fac2poi[ielem][   1]], coord[fac2poi[ielem][   5]])[icoor] /   2 +   4*vdiff_perp(coord[fac2poi[ielem][   5]], coord[fac2poi[ielem][   3]])[icoor] /   2;
-      d_ccoef[1] =   4*vdiff_perp(coord[fac2poi[ielem][   4]], coord[fac2poi[ielem][   0]])[icoor] /   2;
-      d_ccoef[3] =   4*vdiff_perp(coord[fac2poi[ielem][   0]], coord[fac2poi[ielem][   5]])[icoor] /   2;
-      d_ccoef[4] =   4*vdiff_perp(coord[fac2poi[ielem][   5]], coord[fac2poi[ielem][   1]])[icoor] /   2;
-      d_ccoef[5] =   4*vdiff_perp(coord[fac2poi[ielem][   0]], coord[fac2poi[ielem][   4]])[icoor] /   2 +   4*vdiff_perp(coord[fac2poi[ielem][   3]], coord[fac2poi[ielem][   5]])[icoor] /   2 +   4*vdiff_perp(coord[fac2poi[ielem][   5]], coord[fac2poi[ielem][   0]])[icoor] /   2;
-    }
-
-  } 
+} 
  
 } // End namespace

@@ -120,7 +120,8 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
   // 1. Compute rotation and scaling
   double bary[4] = {0.25,0.25,0.25,0.25};
   // a) Get intrinsic metric and physical derivatives
-  getintmetxi<gdim,gdim,ideg>(msh.coord,msh.tet2poi[ielem],msh.getBasis(),bary,intmetS);
+  METRIS_ENFORCE(!getintmetxi<gdim,gdim,ideg>(msh.coord,msh.tet2poi[ielem],
+                                              msh.getBasis(),bary,intmetS));
   if(iprt > 0){
     printf("1. print intmetS and derivatives\n");
     MeshArray1D<SANS::SurrealS<3,double>>(6,intmetS).print();
@@ -170,7 +171,7 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
   // ii) get dF_K^{-1}
 	double invjmat[9];
   for(int i = 0; i < 9; i++) invjmat[i] = jmat[i];
-  invmat(3,invjmat);
+  METRIS_ENFORCE(!invmat(3,invjmat));
   // iii) conclude: tensor product
   mat3X1tens3sym1(dbMm12,invjmat,dpMm12);
 

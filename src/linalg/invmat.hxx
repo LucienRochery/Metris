@@ -13,24 +13,21 @@ namespace Metris{
 */
 // -----------------------------------------------------------------------------
 // met must be positive definite. Otherwise use inv3sym. 
-void invspd(int n, double met[]);
-// -----------------------------------------------------------------------------
-// met must be positive definite. Otherwise use inv3sym. 
-void inv2spd(double met[]);
+int invspd(int n, double met[]);
 
 // 
 template <int n>
-void invsym(double* met);
+int invsym(double* met);
 
 template<typename T>
-void inv3sym(T *met, T *inv);
+int inv3sym(T *met, T *inv);
 
 // Matrix stored line first in C fashion
-void invmat(int n, double mat[]);
+int invmat(int n, double mat[]);
 
 // Ad-hoc one (dims 2 and 3)
 template<int n>
-void invmat(double mat[]);
+int invmat(double mat[]);
 
 
 } // End namespace

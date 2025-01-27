@@ -145,7 +145,6 @@ void MetricFieldAnalytical::
   }
 
 	getMetPhys0<gdim>(idiff,tarspac,coop,metl,dmet);
-
 }
 
 

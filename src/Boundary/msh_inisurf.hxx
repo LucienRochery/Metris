@@ -22,7 +22,7 @@ Points from nbpo0 included to nbpoi excluded have been re-created. Their (u,v)s 
 typ_proj = 1: project
            0: evaluate at uv guesses
 */
-void prjMeshPoints(MeshBase &msh, int nbpo0, bool onlyproj=false, int typ_proj=1, bool updtX=false);
+void prjMeshPoints(MeshBase &msh, int nbpo0, bool onlyproj=false,  bool updtX=false);
 
 /*
 	Helper functions for iniMeshNeighbours. The main routine already initializes certain surface entities

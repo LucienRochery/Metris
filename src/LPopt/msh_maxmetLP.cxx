@@ -8,7 +8,7 @@
 #include "LPsolver.hxx"
 
 #include "../codegen_lag2bez.hxx"
-#include "../codegen_ccoef_d.hxx"
+#include "../low_ccoef.hxx"
 #include "../low_geo.hxx"
 #include "../io_libmeshb.hxx"
 #include "../aux_timer.hxx"
@@ -191,13 +191,7 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
         // at the nodes (from the lagrange coeffs)
         lag2bez2<ideg,1>(lfld, rfld0, rfld1);
         
-
-        if(tdim==2){
-          d_ccoef_genbez2<ideg>(ent2poi, coord, ielem, ccoef, icoor, d_ccoef);
-        }else if(tdim==3){
-          d_ccoef_genbez3<ideg>(ent2poi, coord, ielem, icoor, ccoef, d_ccoef);
-        }else METRIS_THROW_MSG(TODOExcept(), 
-                               "derivatives not implemented for tdim = "<<tdim);
+        getccoef_dcoord<tdim,ideg>(msh,ielem,icoor,ccoef,d_ccoef);
   
         for(int ii = 0; ii < ncoef; ii++){
             int row_idx = idx_start_row + ii;

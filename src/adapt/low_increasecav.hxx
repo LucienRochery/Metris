@@ -15,7 +15,7 @@ class MshCavity;
 struct CavOprOpt;
 
 // Increase cavity based on validity only 
-int increase_cavity2D(MeshBase &msh, int iref, double *coop, 
+int increase_cavity2D(MeshBase &msh, double *coop, 
                       const CavOprOpt &opts, MshCavity &cav, int ithread);
 
 

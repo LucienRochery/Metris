@@ -128,43 +128,6 @@ bool MeshArray2D<T,INT1,INT2>::allocate(INT1 m, INT2 s){
   }
 
   return newarr;
-
-  //INT2 s_old = stride;
-  //INT1 m_old = nmemalc / (s_old > 0 ? s_old : 1); // Only 0 if non init, then not used anyways
-
-  //METRIS_ASSERT(s >= s_old);
-
-  //stride  = s;
-
-  //// If the array was owned by this object
-  //// and it was already of sufficient size, then exit.
-  //if(((int64_t)m)*((int64_t)s) < nmemalc && ialloc) return;
-  //// In both other cases, we'll want to (re)allocate the array
-
-  //if(realloc && array != NULL){ 
-  //  T *array_old = array; 
-  //  INT1 nmem_old = nmemalc; 
-  //  nmemalc  = ((int64_t)m)*((int64_t)stride);
-  //  METRIS_ENFORCE(nmemalc >= nmem_old);
-  //  array = new T[nmemalc];
-  //  if(array == NULL) METRIS_THROW_MSG(DMemExcept(), 
-  //      "MeshArray2D failed new returns NULL for size "<<nmemalc);
-  //  for(INT1 ii = 0; ii < m_old; ii++){
-  //    for(INT2 jj = 0; jj < s_old; jj++){
-  //      array[ii*stride + jj] = array_old[ii*s_old + jj];
-  //    }
-  //  }
-  //  //for(INT1 ii = 0; ii < nmem_old; ii++) array[ii] = array_old[ii];
-  //  if(ialloc > 0)  delete[] array_old; 
-  //}else{ 
-  //  nmemalc = ((int64_t)m)*((int64_t)stride);
-  //  if(ialloc > 0)   delete[] array;
-  //  if(nmemalc == 0) return;
-  //  ialloc = 1;
-  //  array = new T[nmemalc];
-  //  if(array == NULL) METRIS_THROW_MSG(DMemExcept(),
-  //      "MeshArray2D failed new returns NULL for size "<<nmemalc);
-  //}
 }
 
 template<typename T, typename INT1, typename INT2>

@@ -123,7 +123,7 @@ bool MeshArray1D<T,INT1>::allocate(INT1 m){
     if(ialloc0) delete[] array_old;
   }
 
-  m1 = m;
+  m1 = MAX(m,m1);
   return newarr;
   //n1 = n;
 

@@ -59,11 +59,12 @@ void smoo_surfqua_G1(Mesh &msh){
     setMeshBezier<ideg>(msh);
 	}
 
-	int *lbpoi = &msh.poi2iwk[0];
-	if(6*msh.nbpoi > msh.poi2rwk.size())
-		METRIS_THROW_MSG(DMemExcept(),"Increase size of poi2rwk");
-	double *du = &msh.poi2rwk[0];
-	double *dv = &msh.poi2rwk[3*msh.nbpoi];
+  intAr1 &lbpoi = msh.iwork;
+  lbpoi.set_n(msh.nbpoi);
+  msh.iwork.allocate(msh.nbpoi);
+  msh.rwork.allocate(6*msh.nbpoi);
+	double *du = &msh.rwork[0];
+	double *dv = &msh.rwork[3*msh.nbpoi];
 
 
 
@@ -86,9 +87,9 @@ void smoo_surfqua_G1(Mesh &msh){
 				"ill-formed linked list of bpois");
 
 			msh.poi2tag(0,ibpo2) = msh.tag[0];
-			if(msh.bpo2ibi[ibpo2][1] == 2) ibpo1 = ibpo2;
+			if(msh.bpo2ibi(ibpo2,1) == 2) ibpo1 = ibpo2;
 		
-			ibpo2 = msh.bpo2ibi[ibpo2][3];
+			ibpo2 = msh.bpo2ibi(ibpo2,3);
 		}while(ibpo2 != ibpoi && ibpo2 != -1);
 
 		if(ibpo1 < 0)	METRIS_THROW_MSG(TopoExcept(),"LINE MESH?");

@@ -167,7 +167,6 @@ int check_cavity_topo(Mesh<MFT> &msh, MshCavity &cav, CavOprOpt &opts, RoutineWo
 
 	int ierro = 0;
 
-  const int iverb = opts.iverb;
 
   // As some points will be tagged multiple times, we must ensure to properly increase tag in the end.
 	cav.nrempts = 0;
@@ -303,10 +302,10 @@ int check_cavity_topo(Mesh<MFT> &msh, MshCavity &cav, CavOprOpt &opts, RoutineWo
 				int ibpoi = msh.poi2bpo[ipoin];
 				if(ibpoi < 0) continue;
 				METRIS_ASSERT("Valid ibpoi " && ibpoi < msh.nbpoi); 
-				METRIS_ASSERT("ibpoi pts back to ipoin" && msh.bpo2ibi[ibpoi][0] == ipoin);
-				METRIS_ASSERT("Correct poi type" && msh.bpo2ibi[ibpoi][1] <= 1); // Edge or corner
+				METRIS_ASSERT("ibpoi pts back to ipoin" && msh.bpo2ibi(ibpoi,0) == ipoin);
+				METRIS_ASSERT("Correct poi type" && msh.bpo2ibi(ibpoi,1) <= 1); // Edge or corner
 				// If corner:
-				if(msh.bpo2ibi[ibpoi][1] == 0){
+				if(msh.bpo2ibi(ibpoi,1) == 0){
 					ncorn ++;
 					// If this is the second corner we see, return error. 
 					if(ncorn > 1){
@@ -451,7 +450,7 @@ int check_cavity_topo(Mesh<MFT> &msh, MshCavity &cav, CavOprOpt &opts, RoutineWo
 		}
 	}
 
-	if(iverb >= METRIS_CAV_PRTLEV) printf(" -- Cavity to remove %d points \n",cav.nrempts);
+	if(iverb >= METRIS_CAV_PRTLEV) printf("-- Cavity to remove %d points \n",cav.nrempts);
 
 	return 0;
 }

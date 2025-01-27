@@ -63,19 +63,19 @@ public:
 			To obtain the appropriate ibpoi from a triangle, use the hash table fac2bpo. 
 	- Navigating point <-> boundary point links:
   	- poi2bpo[ipoin] = ibpoi attached to lowest-dimensional CAD entity
-	 	- bpo2ibi[ibpoi][0] = ipoin 
-	 	- bpo2ibi[ibpoi][1] = tdimn: 2 face int    -| this may be replaced by an ego** array    
+	 	- bpo2ibi(ibpoi,0) = ipoin 
+	 	- bpo2ibi(ibpoi,1) = tdimn: 2 face int    -| this may be replaced by an ego** array    
 	 	                             1 edge int     | though perhaps the type should be kept 
 	 	                             0 node/corner  | without indirection
-	 	- bpo2ibi[ibpoi][2] = ientt (mesh ent idx) -|  -> CAD ref can be fetched from (edg|fac)2ref
-	 	- bpo2ibi[ibpoi][3] = next ibpoi sharing same ipoin
+	 	- bpo2ibi(ibpoi,2) = ientt (mesh ent idx) -|  -> CAD ref can be fetched from (edg|fac)2ref
+	 	- bpo2ibi(ibpoi,3) = next ibpoi sharing same ipoin
 	- Tetrahedra:
 	 	- tet2poi(ielem,i) = ipoin
 	- Triangles: surface only. 
-		- tri2poi[iface][i] = ipoin
+		- tri2poi(iface,i) = ipoin
 		- When we need the (u,v), get (ibpo1, ibpo2, ibpo3) in hash table fac2bpo
 		- This is better than storing directly the ibpoi because most uses of triangles need to avoid the indirection
-			and are better off with tri2poi[iface][i] than bpo2ibi[tri2bpo[iface][i]][0]
+			and are better off with tri2poi(iface,i) than bpo2ibi[tri2bpo[iface][i]][0]
 		- Only triangle edges that neighbour different ref neighbours or CAD edges need this information
 	- Edges: idem
 
@@ -99,6 +99,7 @@ public:
 	intAr2  fac2poi; 
 	intAr1  fac2ref;
 	intAr2r fac2tag;
+  // Return global edge at face edge if exists, -1 otherwise
   int fac2edg(int iface, int iedl);
 
 	intAr2  edg2poi; 
@@ -111,11 +112,16 @@ public:
   // Boundary link 
   intAr1  poi2bpo; 
   intAr2  bpo2ibi; 
+  intAr2r bpo2tag;
   dblAr2  bpo2rbi;
 
+  // Seek a bpo for ipoin of dim tdim that matches either ientt or, if not, then iref
+  // either can be -1 (or both, then return first dim matching ent)
+  int poi2ebp(int ipoin, int tdim, int ientt, int iref) const;
+
 	// Work arrays: to be freely used by any routine
-	intAr1 poi2iwk, edg2iwk, fac2iwk, tet2iwk;
-	dblAr1 poi2rwk, edg2rwk, fac2rwk, tet2rwk;
+  intAr1 iwork;
+  dblAr1 rwork;
 
 
 
@@ -198,17 +204,6 @@ public:
 
 	/* START INIT */
 
-protected:
-  // Main init routine: pass a NULL data to read from param instead. 
-  // Note this shouldn't be called manually, use a MetrisRunner. 
-  void initialize(MetrisAPI *data, 
-  #ifdef NDEBUG
-  const 
-  #endif
-  MetrisParameters &param);
-  void iniFromFile(std::string fname, int usrTarDeg);
-  void iniFromData(MetrisAPI &data, int usrTarDeg);
-
 public:
 //protected:
   void readConstants(int64_t libIdx, int usrMinDeg);
@@ -232,7 +227,6 @@ public:
 
 
 public:
-	double *getrwork(int n);
 
 	MeshBase &operator=(const MeshBase &msh);
 
@@ -314,6 +308,7 @@ protected:
   // This should only be called from the top levels (Mesh and MeshBack)
   // Otherwise some auxiliary data structs may not be properly set. 
 	int newpoitopo(int tdimn, int ientt = -1);
+  friend void debugInveval(std::string meshName_, MeshBase &msh, int tdim,  int* ent2pol, double *coop);
 
 public:
 	// Create new face by copying from tetrahedron
@@ -329,6 +324,8 @@ public:
 	void newedgtopo(int iface, int iedfa, int iref = -1);
 	template<int tdim>
 	int newbpotopo(int ipoin, int ientt = -1);
+
+  void killpoint(int ipoin);
 
   // Remove all tagged entities from ipoin
   void rembpotag(int ipoin, int ithread = 0);
@@ -347,25 +344,11 @@ public:
   //// bad for periodic but good enough for first approximation
   //void getpoinormal(int ipoin, int iref, double *nrmal);
 
-	
-	protected:
-  int npoin_,nbpoi_,nedge_,nface_,nelem_;
-  int mpoin_,mbpoi_,medge_,mface_,melem_;
 
-  // Store maximum deviation between surface directions and element directions:
-  // 1: edges, tangent 
-  // 2: faces, normal
-  // Deviation is 1 - abs(dtprd) 
-  double geodev[2];
+  MetrisParameters* param;
 
-  public:
-  MetrisParameters 
-  #ifdef NDEBUG 
-  const 
-  #endif
-  * param;
 
-  protected:
+protected:
   FEBasis ibasis;
 
 
@@ -375,6 +358,21 @@ public:
 
 	void setLagrange();
 	void setBezier();
+
+  // Main init routine: pass a NULL data to read from param instead. 
+  // Note this shouldn't be called manually, use a MetrisRunner. 
+  void initialize(MetrisAPI *data, MetrisParameters &param);
+  void iniFromFile(std::string fname, int usrTarDeg);
+  void iniFromData(MetrisAPI &data, int usrTarDeg);
+
+  int npoin_,nbpoi_,nedge_,nface_,nelem_;
+  int mpoin_,mbpoi_,medge_,mface_,melem_;
+
+  // Store maximum deviation between surface directions and element directions:
+  // 1: edges, tangent 
+  // 2: faces, normal
+  // Deviation is 1 - abs(dtprd) 
+  double geodev[2];  // Also in back mesh... 
 };
 
 

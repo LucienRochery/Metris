@@ -8,6 +8,7 @@
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../msh_checktopo.hxx"
 #include "../aux_utils.hxx"
+#include "../mprintf.hxx"
 
 
 namespace Metris{
@@ -15,11 +16,9 @@ namespace Metris{
 template<class MetricFieldType>
 void Mesh<MetricFieldType>::cleanup(int ithread){
 
-  int iverb = this->param->iverb; 
+  GETVDEPTH((*this));
 
-  int mentt = MAX(this->nedge,MAX(this->nface,this->nelem));
-  mentt = MAX(mentt, this->nbpoi);
-  intAr1 lentt(mentt);
+  intAr1& lentt = this->iwork;
 
   intAr1 lpoin(this->npoin);
   lpoin.set_n(this->npoin);
@@ -49,7 +48,7 @@ void Mesh<MetricFieldType>::cleanup(int ithread){
 
   if(nbpon != this->nbpoi){
 
-    if(iverb >= 1) printf(" - cleanup bdry links %d -> %d \n",this->nbpoi,nbpon);
+    CPRINTF2(" - cleanup bdry links %d -> %d \n",this->nbpoi,nbpon);
 
     // Update link to next 
     for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
@@ -91,7 +90,7 @@ void Mesh<MetricFieldType>::cleanup(int ithread){
 
   if(this->npoin == nponn) goto update_tetras; 
 
-  if(iverb >= 1)  printf(" - cleanup vertices %d -> %d \n",this->npoin,nponn);
+  CPRINTF2(" - cleanup vertices %d -> %d \n",this->npoin,nponn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
     int ipoin = this->bpo2ibi(ibpoi,0); 
@@ -131,7 +130,7 @@ void Mesh<MetricFieldType>::cleanup(int ithread){
   
   if(nelen == this->nelem) goto update_faces;
 
-  if(iverb >= 1) printf(" - cleanup tetras %d -> %d \n",this->nelem,nelen);
+  CPRINTF2(" - cleanup tetras %d -> %d \n",this->nelem,nelen);
 
   for(int iface = 0; iface < this->nface; iface++){
     for(int ii = 0; ii < 2; ii++){
@@ -201,7 +200,7 @@ void Mesh<MetricFieldType>::cleanup(int ithread){
 
   if(nfacn == this->nface) goto update_edges;
 
-  if(iverb >= 1) printf(" - cleanup faces %d -> %d \n",this->nface,nfacn);
+  CPRINTF2(" - cleanup faces %d -> %d \n",this->nface,nfacn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
     int ipoin = this->bpo2ibi(ibpoi,0); 
@@ -288,11 +287,12 @@ void Mesh<MetricFieldType>::cleanup(int ithread){
   if(nedgn == this->nedge) goto update_final; 
 
 
-  if(iverb >= 1)  printf(" - cleanup edges %d -> %d \n",this->nedge,nedgn);
+  CPRINTF2(" - cleanup edges %d -> %d \n",this->nedge,nedgn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
     int ipoin = this->bpo2ibi(ibpoi,0); 
     if(ipoin < 0) continue;
+    METRIS_ASSERT(ipoin < this->npoin);
     int ityp = this->bpo2ibi(ibpoi,1); 
 
     // Now edge update proper. 
