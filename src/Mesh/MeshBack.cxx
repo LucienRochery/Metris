@@ -151,13 +151,7 @@ void MeshBack::initialize(MetrisAPI *data,
     
     if(data != NULL)METRIS_ENFORCE_MSG(!data->imet, "Metric specified both in data and file");
 
-    int metdim;
-    int64_t libIdxMet = MetrisOpenMeshFile<GmfRead>(param.metFileName.c_str(), &metdim);
-
-    METRIS_ENFORCE_MSG(idim == metdim, "Back and metric dimensions must agree");
-
-    met.readMetricFile(libIdxMet);
-    GmfCloseMesh(libIdxMet);
+    met.readMetricFile(param.metFileName);
 
   }else if(data != NULL && data->imet){
 

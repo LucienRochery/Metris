@@ -80,7 +80,7 @@
 #include "linalg/explogmet.hxx"
 #include "linalg/invmat.hxx"
 #include "linalg/matprods.hxx"
-#include "linalg/sym3idx.hxx"
+#include "linalg/symidx.hxx"
 #include "linalg/utils.hxx"
 #include "Localization/low_localization.hxx"
 #include "Localization/msh_localization.hxx"

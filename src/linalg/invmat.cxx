@@ -8,7 +8,7 @@
 #include "../linalg/invmat.hxx"
 
 #include "../linalg/det.hxx"
-#include "../linalg/sym3idx.hxx"
+#include "../linalg/symidx.hxx"
 
 #include "../aux_exceptions.hxx"
 #include "../metris_constants.hxx"
@@ -61,14 +61,14 @@ template<typename T>
 int inv3sym(T *met, T *inv){
   T det = detsym<3,T>(met);
   if(abs(det) < Constants::detTol) return 1;
-  inv[sym3idx(0,0)] =   (met[sym3idx(1,1)]*met[sym3idx(2,2)] - met[sym3idx(1,2)]*met[sym3idx(2,1)]) / det;
-  inv[sym3idx(1,0)] = - (met[sym3idx(1,0)]*met[sym3idx(2,2)] - met[sym3idx(1,2)]*met[sym3idx(2,0)]) / det;
-  inv[sym3idx(2,0)] =   (met[sym3idx(1,0)]*met[sym3idx(2,1)] - met[sym3idx(1,1)]*met[sym3idx(2,0)]) / det;
+  inv[sym2idx(0,0)] =   (met[sym2idx(1,1)]*met[sym2idx(2,2)] - met[sym2idx(1,2)]*met[sym2idx(2,1)]) / det;
+  inv[sym2idx(1,0)] = - (met[sym2idx(1,0)]*met[sym2idx(2,2)] - met[sym2idx(1,2)]*met[sym2idx(2,0)]) / det;
+  inv[sym2idx(2,0)] =   (met[sym2idx(1,0)]*met[sym2idx(2,1)] - met[sym2idx(1,1)]*met[sym2idx(2,0)]) / det;
 
-  inv[sym3idx(1,1)] =   (met[sym3idx(0,0)]*met[sym3idx(2,2)] - met[sym3idx(0,2)]*met[sym3idx(2,0)]) / det;
-  inv[sym3idx(2,1)] = - (met[sym3idx(0,0)]*met[sym3idx(2,1)] - met[sym3idx(2,0)]*met[sym3idx(0,1)]) / det;
+  inv[sym2idx(1,1)] =   (met[sym2idx(0,0)]*met[sym2idx(2,2)] - met[sym2idx(0,2)]*met[sym2idx(2,0)]) / det;
+  inv[sym2idx(2,1)] = - (met[sym2idx(0,0)]*met[sym2idx(2,1)] - met[sym2idx(2,0)]*met[sym2idx(0,1)]) / det;
 
-  inv[sym3idx(2,2)] =   (met[sym3idx(0,0)]*met[sym3idx(1,1)] - met[sym3idx(0,1)]*met[sym3idx(1,0)]) / det;
+  inv[sym2idx(2,2)] =   (met[sym2idx(0,0)]*met[sym2idx(1,1)] - met[sym2idx(0,1)]*met[sym2idx(1,0)]) / det;
   return 0;
 }
 template int inv3sym<double>(double *met, double *inv);
@@ -116,6 +116,7 @@ template<>
 int invmat<1>(double *mat){
   if(abs(*mat) < Constants::detTol) return 1; 
   *mat = 1.0 / (*mat);
+  return 0;
 }
 
 } // End namespace

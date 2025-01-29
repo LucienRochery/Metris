@@ -112,7 +112,7 @@ void MetrisRunner::adaptMesh0(){
   const int ithrdfro = 0;
   msh.tag[ithrdfro]++;
 
-  if(msh.CAD()){
+  if(msh.CAD() && msh.param->adp_line_adapt){
 
     t0 = get_wall_time();
     adaptGeoLines<MFT>(msh,0);

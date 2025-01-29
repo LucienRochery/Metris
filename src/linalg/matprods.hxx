@@ -8,7 +8,7 @@
 #ifndef __METRIS_MATPRODS__
 #define __METRIS_MATPRODS__
 
-#include "../linalg/sym3idx.hxx"
+#include "../linalg/symidx.hxx"
 
 
 namespace Metris{
@@ -77,9 +77,9 @@ inline void symXsymsub_fac(const T* mat1, const T* mat2,
                               const double fac, T* mat3){
 	for(int ii = 0; ii < ndimn; ii++){
 		for(int jj  = 0; jj < ndimn; jj++){
-			mat3[sym3idx(ii,jj)] = mat1[sym3idx(ii,0)]*mat2[sym3idx(0,jj)] * fac;
+			mat3[sym2idx(ii,jj)] = mat1[sym2idx(ii,0)]*mat2[sym2idx(0,jj)] * fac;
 			for(int kk = 1; kk < ndimn; kk++){
-				mat3[sym3idx(ii,jj)] += mat1[sym3idx(ii,kk)]*mat2[sym3idx(kk,jj)] * fac;
+				mat3[sym2idx(ii,jj)] += mat1[sym2idx(ii,kk)]*mat2[sym2idx(kk,jj)] * fac;
 			}
 		}
 	}
@@ -88,9 +88,9 @@ template<int ndimn, typename T = double>
 inline void symXsymsub(const T* mat1, const T* mat2, T* mat3){
 	for(int ii = 0; ii < ndimn; ii++){
 		for(int jj  = 0; jj < ndimn; jj++){
-			mat3[sym3idx(ii,jj)] = mat1[sym3idx(ii,0)]*mat2[sym3idx(0,jj)];
+			mat3[sym2idx(ii,jj)] = mat1[sym2idx(ii,0)]*mat2[sym2idx(0,jj)];
 			for(int kk = 1; kk < ndimn; kk++){
-				mat3[sym3idx(ii,jj)] += mat1[sym3idx(ii,kk)]*mat2[sym3idx(kk,jj)];
+				mat3[sym2idx(ii,jj)] += mat1[sym2idx(ii,kk)]*mat2[sym2idx(kk,jj)];
 			}
 		}
 	}
@@ -103,7 +103,7 @@ inline void symXsymadd_fac(const T* mat1, const T* mat2,
 	for(int ii = 0; ii < ndimn; ii++){
 		for(int jj  = 0; jj < ndimn; jj++){
 			for(int kk = 0; kk < ndimn; kk++){
-				mat3[sym3idx(ii,jj)] += mat1[sym3idx(ii,kk)]*mat2[sym3idx(kk,jj)]*fac;
+				mat3[sym2idx(ii,jj)] += mat1[sym2idx(ii,kk)]*mat2[sym2idx(kk,jj)]*fac;
 			}
 		}
 	}
@@ -199,9 +199,9 @@ inline void symXvec(const double*__restrict__ met,
 	           				     	double*__restrict__ ve2){
 	static_assert(ndimn <= 3);
 	for(int ii = 0; ii < ndimn; ii++){
-		ve2[ii] = met[sym3idx(ii,0)]*ve1[0];
+		ve2[ii] = met[sym2idx(ii,0)]*ve1[0];
 		for(int jj = 1; jj < ndimn; jj++){
-			ve2[ii] += met[sym3idx(ii,jj)]*ve1[jj];
+			ve2[ii] += met[sym2idx(ii,jj)]*ve1[jj];
 		}
 	}
 }
@@ -237,9 +237,9 @@ void matXsym(const T1* __restrict__ mat,
 
   for(int ii = 0; ii < ndimn; ii++){
     for(int jj = 0; jj < ndimn; jj++){
-      out[ii*ndimn + jj] = mat[ii*ndimn + 0] * met[sym3idx(0,jj)];
+      out[ii*ndimn + jj] = mat[ii*ndimn + 0] * met[sym2idx(0,jj)];
       for(int kk = 1; kk < ndimn; kk++){
-        out[ii*ndimn + jj] += mat[ii*ndimn + kk] * met[sym3idx(kk,jj)];
+        out[ii*ndimn + jj] += mat[ii*ndimn + kk] * met[sym2idx(kk,jj)];
       }
     }
   }
@@ -381,26 +381,26 @@ inline void matXsymXtmat(const T1* sym, const T2* mat, T3* out){
     // This if constexpr should not be necessary, but it is 
     if constexpr(n1 != n2)    static_assert(n1 == 2 && n2 == 3);
 
-    out[0] =   mat[n2*0+0]*mat[n2*0+0]*sym[sym3idx(0,0)] 
-           +   mat[n2*0+1]*mat[n2*0+1]*sym[sym3idx(1,1)]
-           +   mat[n2*0+2]*mat[n2*0+2]*sym[sym3idx(2,2)]
-           + 2*mat[n2*0+0]*mat[n2*0+1]*sym[sym3idx(0,1)]
-           + 2*mat[n2*0+0]*mat[n2*0+2]*sym[sym3idx(0,2)]
-           + 2*mat[n2*0+1]*mat[n2*0+2]*sym[sym3idx(1,2)];
+    out[0] =   mat[n2*0+0]*mat[n2*0+0]*sym[sym2idx(0,0)] 
+           +   mat[n2*0+1]*mat[n2*0+1]*sym[sym2idx(1,1)]
+           +   mat[n2*0+2]*mat[n2*0+2]*sym[sym2idx(2,2)]
+           + 2*mat[n2*0+0]*mat[n2*0+1]*sym[sym2idx(0,1)]
+           + 2*mat[n2*0+0]*mat[n2*0+2]*sym[sym2idx(0,2)]
+           + 2*mat[n2*0+1]*mat[n2*0+2]*sym[sym2idx(1,2)];
   
-    out[1] =   mat[n2*0+0]*mat[n2*1+0]*sym[sym3idx(0,0)] 
-           +   mat[n2*0+1]*mat[n2*1+1]*sym[sym3idx(1,1)]
-           +   mat[n2*0+2]*mat[n2*1+2]*sym[sym3idx(2,2)]
-           +   (mat[n2*0+0]*mat[n2*1+1] + mat[n2*0+1]*mat[n2*1+0])*sym[sym3idx(0,1)]
-           +   (mat[n2*0+0]*mat[n2*1+2] + mat[n2*0+2]*mat[n2*1+0])*sym[sym3idx(0,2)]
-           +   (mat[n2*0+1]*mat[n2*1+2] + mat[n2*0+2]*mat[n2*1+1])*sym[sym3idx(1,2)];
+    out[1] =   mat[n2*0+0]*mat[n2*1+0]*sym[sym2idx(0,0)] 
+           +   mat[n2*0+1]*mat[n2*1+1]*sym[sym2idx(1,1)]
+           +   mat[n2*0+2]*mat[n2*1+2]*sym[sym2idx(2,2)]
+           +   (mat[n2*0+0]*mat[n2*1+1] + mat[n2*0+1]*mat[n2*1+0])*sym[sym2idx(0,1)]
+           +   (mat[n2*0+0]*mat[n2*1+2] + mat[n2*0+2]*mat[n2*1+0])*sym[sym2idx(0,2)]
+           +   (mat[n2*0+1]*mat[n2*1+2] + mat[n2*0+2]*mat[n2*1+1])*sym[sym2idx(1,2)];
   
-    out[2] =   mat[n2*1+0]*mat[n2*1+0]*sym[sym3idx(0,0)] 
-           +   mat[n2*1+1]*mat[n2*1+1]*sym[sym3idx(1,1)]
-           +   mat[n2*1+2]*mat[n2*1+2]*sym[sym3idx(2,2)]
-           + 2*mat[n2*1+0]*mat[n2*1+1]*sym[sym3idx(0,1)]
-           + 2*mat[n2*1+0]*mat[n2*1+2]*sym[sym3idx(0,2)]
-           + 2*mat[n2*1+1]*mat[n2*1+2]*sym[sym3idx(1,2)];
+    out[2] =   mat[n2*1+0]*mat[n2*1+0]*sym[sym2idx(0,0)] 
+           +   mat[n2*1+1]*mat[n2*1+1]*sym[sym2idx(1,1)]
+           +   mat[n2*1+2]*mat[n2*1+2]*sym[sym2idx(2,2)]
+           + 2*mat[n2*1+0]*mat[n2*1+1]*sym[sym2idx(0,1)]
+           + 2*mat[n2*1+0]*mat[n2*1+2]*sym[sym2idx(0,2)]
+           + 2*mat[n2*1+1]*mat[n2*1+2]*sym[sym2idx(1,2)];
 
   }
 }
@@ -415,60 +415,60 @@ inline T3 tra_matXsymXtmat(const T1* sym, const T2* mat){
   #if 0
   // Previously computed the diagonal:
 	if constexpr(ndimn == 2){
-		out[0] =   mat[ndimn*0+0]*mat[ndimn*0+0]*sym[sym3idx(0,0)] 
-		       +   mat[ndimn*0+1]*mat[ndimn*0+1]*sym[sym3idx(1,1)]
-		       + 2*mat[ndimn*0+0]*mat[ndimn*0+1]*sym[sym3idx(0,1)];
+		out[0] =   mat[ndimn*0+0]*mat[ndimn*0+0]*sym[sym2idx(0,0)] 
+		       +   mat[ndimn*0+1]*mat[ndimn*0+1]*sym[sym2idx(1,1)]
+		       + 2*mat[ndimn*0+0]*mat[ndimn*0+1]*sym[sym2idx(0,1)];
 	
-		out[1] =   mat[ndimn*1+0]*mat[ndimn*1+0]*sym[sym3idx(0,0)] 
-		       +   mat[ndimn*1+1]*mat[ndimn*1+1]*sym[sym3idx(1,1)]
-		       + 2*mat[ndimn*1+0]*mat[ndimn*1+1]*sym[sym3idx(0,1)];
+		out[1] =   mat[ndimn*1+0]*mat[ndimn*1+0]*sym[sym2idx(0,0)] 
+		       +   mat[ndimn*1+1]*mat[ndimn*1+1]*sym[sym2idx(1,1)]
+		       + 2*mat[ndimn*1+0]*mat[ndimn*1+1]*sym[sym2idx(0,1)];
 	}else{
-		out[0] =   mat[ndimn*0+0]*mat[ndimn*0+0]*sym[sym3idx(0,0)] 
-		       +   mat[ndimn*0+1]*mat[ndimn*0+1]*sym[sym3idx(1,1)]
-		       +   mat[ndimn*0+2]*mat[ndimn*0+2]*sym[sym3idx(2,2)]
-		       + 2*mat[ndimn*0+0]*mat[ndimn*0+1]*sym[sym3idx(0,1)]
-		       + 2*mat[ndimn*0+0]*mat[ndimn*0+2]*sym[sym3idx(0,2)]
-		       + 2*mat[ndimn*0+1]*mat[ndimn*0+2]*sym[sym3idx(1,2)];
+		out[0] =   mat[ndimn*0+0]*mat[ndimn*0+0]*sym[sym2idx(0,0)] 
+		       +   mat[ndimn*0+1]*mat[ndimn*0+1]*sym[sym2idx(1,1)]
+		       +   mat[ndimn*0+2]*mat[ndimn*0+2]*sym[sym2idx(2,2)]
+		       + 2*mat[ndimn*0+0]*mat[ndimn*0+1]*sym[sym2idx(0,1)]
+		       + 2*mat[ndimn*0+0]*mat[ndimn*0+2]*sym[sym2idx(0,2)]
+		       + 2*mat[ndimn*0+1]*mat[ndimn*0+2]*sym[sym2idx(1,2)];
 	
-		out[1] =   mat[ndimn*1+0]*mat[ndimn*1+0]*sym[sym3idx(0,0)] 
-		       +   mat[ndimn*1+1]*mat[ndimn*1+1]*sym[sym3idx(1,1)]
-		       +   mat[ndimn*1+2]*mat[ndimn*1+2]*sym[sym3idx(2,2)]
-		       + 2*mat[ndimn*1+0]*mat[ndimn*1+1]*sym[sym3idx(0,1)]
-		       + 2*mat[ndimn*1+0]*mat[ndimn*1+2]*sym[sym3idx(0,2)]
-		       + 2*mat[ndimn*1+1]*mat[ndimn*1+2]*sym[sym3idx(1,2)];
+		out[1] =   mat[ndimn*1+0]*mat[ndimn*1+0]*sym[sym2idx(0,0)] 
+		       +   mat[ndimn*1+1]*mat[ndimn*1+1]*sym[sym2idx(1,1)]
+		       +   mat[ndimn*1+2]*mat[ndimn*1+2]*sym[sym2idx(2,2)]
+		       + 2*mat[ndimn*1+0]*mat[ndimn*1+1]*sym[sym2idx(0,1)]
+		       + 2*mat[ndimn*1+0]*mat[ndimn*1+2]*sym[sym2idx(0,2)]
+		       + 2*mat[ndimn*1+1]*mat[ndimn*1+2]*sym[sym2idx(1,2)];
 	
-		out[2] =   mat[ndimn*2+0]*mat[ndimn*2+0]*sym[sym3idx(0,0)] 
-		       +   mat[ndimn*2+1]*mat[ndimn*2+1]*sym[sym3idx(1,1)]
-		       +   mat[ndimn*2+2]*mat[ndimn*2+2]*sym[sym3idx(2,2)]
-		       + 2*mat[ndimn*2+0]*mat[ndimn*2+1]*sym[sym3idx(0,1)]
-		       + 2*mat[ndimn*2+0]*mat[ndimn*2+2]*sym[sym3idx(0,2)]
-		       + 2*mat[ndimn*2+1]*mat[ndimn*2+2]*sym[sym3idx(1,2)];
+		out[2] =   mat[ndimn*2+0]*mat[ndimn*2+0]*sym[sym2idx(0,0)] 
+		       +   mat[ndimn*2+1]*mat[ndimn*2+1]*sym[sym2idx(1,1)]
+		       +   mat[ndimn*2+2]*mat[ndimn*2+2]*sym[sym2idx(2,2)]
+		       + 2*mat[ndimn*2+0]*mat[ndimn*2+1]*sym[sym2idx(0,1)]
+		       + 2*mat[ndimn*2+0]*mat[ndimn*2+2]*sym[sym2idx(0,2)]
+		       + 2*mat[ndimn*2+1]*mat[ndimn*2+2]*sym[sym2idx(1,2)];
 	}
   #endif
 
   if constexpr(ndimn == 2){
-    out =   (mat[ndimn*0+0]*mat[ndimn*0+0] + mat[ndimn*1+0]*mat[ndimn*1+0])*sym[sym3idx(0,0)] 
-        +   (mat[ndimn*0+1]*mat[ndimn*0+1] + mat[ndimn*1+1]*mat[ndimn*1+1])*sym[sym3idx(1,1)]
-        + 2*(mat[ndimn*0+0]*mat[ndimn*0+1] + mat[ndimn*1+0]*mat[ndimn*1+1])*sym[sym3idx(0,1)];
+    out =   (mat[ndimn*0+0]*mat[ndimn*0+0] + mat[ndimn*1+0]*mat[ndimn*1+0])*sym[sym2idx(0,0)] 
+        +   (mat[ndimn*0+1]*mat[ndimn*0+1] + mat[ndimn*1+1]*mat[ndimn*1+1])*sym[sym2idx(1,1)]
+        + 2*(mat[ndimn*0+0]*mat[ndimn*0+1] + mat[ndimn*1+0]*mat[ndimn*1+1])*sym[sym2idx(0,1)];
   }else{
     out =   (mat[ndimn*0+0]*mat[ndimn*0+0] 
            + mat[ndimn*1+0]*mat[ndimn*1+0] 
-           + mat[ndimn*2+0]*mat[ndimn*2+0])*sym[sym3idx(0,0)] 
+           + mat[ndimn*2+0]*mat[ndimn*2+0])*sym[sym2idx(0,0)] 
         +   (mat[ndimn*0+1]*mat[ndimn*0+1] 
            + mat[ndimn*1+1]*mat[ndimn*1+1] 
-           + mat[ndimn*2+1]*mat[ndimn*2+1])*sym[sym3idx(1,1)]
+           + mat[ndimn*2+1]*mat[ndimn*2+1])*sym[sym2idx(1,1)]
         +   (mat[ndimn*0+2]*mat[ndimn*0+2] 
            + mat[ndimn*1+2]*mat[ndimn*1+2] 
-           + mat[ndimn*2+2]*mat[ndimn*2+2])*sym[sym3idx(2,2)]
+           + mat[ndimn*2+2]*mat[ndimn*2+2])*sym[sym2idx(2,2)]
         + 2*(mat[ndimn*0+0]*mat[ndimn*0+1] 
            + mat[ndimn*1+0]*mat[ndimn*1+1] 
-           + mat[ndimn*2+0]*mat[ndimn*2+1])*sym[sym3idx(0,1)]
+           + mat[ndimn*2+0]*mat[ndimn*2+1])*sym[sym2idx(0,1)]
         + 2*(mat[ndimn*0+0]*mat[ndimn*0+2] 
            + mat[ndimn*1+0]*mat[ndimn*1+2] 
-           + mat[ndimn*2+0]*mat[ndimn*2+2])*sym[sym3idx(0,2)]
+           + mat[ndimn*2+0]*mat[ndimn*2+2])*sym[sym2idx(0,2)]
         + 2*(mat[ndimn*0+1]*mat[ndimn*0+2] 
            + mat[ndimn*1+1]*mat[ndimn*1+2] 
-           + mat[ndimn*2+1]*mat[ndimn*2+2])*sym[sym3idx(1,2)];
+           + mat[ndimn*2+1]*mat[ndimn*2+2])*sym[sym2idx(1,2)];
   }
   return out;
 }
@@ -482,11 +482,11 @@ inline void matXsymXtmat_diag(const T1* sym, const T2* mat, T3* out){
   static_assert(nsym > 0 && nlin > 0);
   static_assert(nsym <= 3 && nlin <= 3); // Not so much that it wouldnt work, but why though? Probably a bug in the caller. 
   for(int ii = 0 ; ii < nlin; ii++){
-    out[ii] = mat[ii*nsym + 0]*mat[ii*nsym + 0]*sym[sym3idx(0,0)]; 
+    out[ii] = mat[ii*nsym + 0]*mat[ii*nsym + 0]*sym[sym2idx(0,0)]; 
     for(int jj = 1; jj < nsym; jj++){
-      out[ii] += mat[ii*nsym + jj]*mat[ii*nsym + jj]*sym[sym3idx(jj,jj)];
+      out[ii] += mat[ii*nsym + jj]*mat[ii*nsym + jj]*sym[sym2idx(jj,jj)];
       for(int kk = 0; kk < jj; kk++){
-        out[ii] += 2*mat[ii*nsym + jj]*mat[ii*nsym + kk]*sym[sym3idx(jj,kk)];
+        out[ii] += 2*mat[ii*nsym + jj]*mat[ii*nsym + kk]*sym[sym2idx(jj,kk)];
       }
     }
   }

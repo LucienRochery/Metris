@@ -29,7 +29,7 @@
 namespace Metris{
 
 // d size 3, e size 2
-// A in sym3idx[] format cf sym3idx
+// A in sym2idx[] format cf sym2idx
 // 1 2 4 
 //   3 5 
 //     6

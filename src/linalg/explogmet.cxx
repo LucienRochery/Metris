@@ -138,7 +138,7 @@ void getexpmet_cpy(const double* met ,double*  __restrict__ expm,
 	//     --- I + iterm
   for(int ii = 0; ii < n; ii++){
     for(int jj = ii ; jj < n; jj++){
-      expm[sym3idx(ii,jj)] = (ii == jj) + iterm[0][sym3idx(ii,jj)];
+      expm[sym2idx(ii,jj)] = (ii == jj) + iterm[0][sym2idx(ii,jj)];
     }
   }
   //expm[0] = 1 + iterm[0][0];

@@ -7,7 +7,7 @@
 #define __METRIS_LINALG_DET__
 
 
-#include "../linalg/sym3idx.hxx"
+#include "../linalg/symidx.hxx"
 #include <lapacke.h>
 
 
@@ -130,7 +130,7 @@ inline T detsym2(const T met[]){
       double A[3][3]; 
       for(int ii = 0; ii < 3 ; ii++){
         for(int jj = 0; jj < 3 ;jj++){
-          A[ii][jj] = met[sym3idx(ii,jj)];
+          A[ii][jj] = met[sym2idx(ii,jj)];
         }
       }
       int ipiv[3] = {-1};

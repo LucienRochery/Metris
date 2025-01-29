@@ -734,11 +734,11 @@ int getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis ib
     double nrsz = 10000; // 1 /  sqrt(nrsz) size, do something more clever some day
 
     double Dm[6] = {0};
-    Dm[sym3idx(0,0)] = d11;
-    Dm[sym3idx(0,1)] = d12;
-    Dm[sym3idx(1,0)] = d12;
-    Dm[sym3idx(1,1)] = d22;
-    Dm[sym3idx(2,2)] = nrsz; // Arbitrarily, size 1 along the normal
+    Dm[sym2idx(0,0)] = d11;
+    Dm[sym2idx(0,1)] = d12;
+    Dm[sym2idx(1,0)] = d12;
+    Dm[sym2idx(1,1)] = d22;
+    Dm[sym2idx(2,2)] = nrsz; // Arbitrarily, size 1 along the normal
 
     double nu[3]; 
     vecprod(t1,t2,nu);

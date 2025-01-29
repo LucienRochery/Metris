@@ -34,10 +34,8 @@ struct MetrisOptions{
       ("met"    , po::value<std::string>(), "Input metric file "   )
       ("back"   , po::value<std::string>(), "Input back mesh file ")
       ("out"    , po::value<std::string>(), "Output mesh file "    )
-      ("prefix", po::value<std::string>(), "Output prefix, default ./"    )
+      ("prefix" , po::value<std::string>(), "Output prefix, default ./"    )
       ("bez"    , "Output format Bézier (default Lagrange)")
-      ("adapt"  , po::value<int>()
-                  ->default_value(0)->implicit_value(-1),"Adapt mesh")
       ("jtol", po::value<double>(), "Scaled Jacobian control coefficient minimum")
       ("vtol", po::value<double>(), "Flatness tolerance")
       ("curve" , po::value<int>(), "Apply metric-based smoothing."
@@ -46,26 +44,37 @@ struct MetrisOptions{
       ("tardeg" , po::value<int>(), "Target mesh degree"   )
       ("nosort" , "Disable Hilbert reordering"   )
       ("dbgfull" , "Enable expensive debugs"   )
-      ("nproc"  , po::value<int>(), "Maximum number of CPU cores for multi-threading"   )
-      ("anamet" , po::value<int>(), "Analytical metric index, see src/anamet.hxx for options" )
-      ("sclmet" , po::value<double>(), "Analytical metric scaling"   ) 
-      ("maxmem" , po::value<double>(), "Maximum memory to use in Mib"   )
-      ("ratmem" , po::value<double>(), "Maximum memory to use as proportion (0 to 1) of total memory" )
-      ("hmin" , po::value<double>(), "Minimum metric size"   )
-      ("hmax" , po::value<double>(), "Maximum metric size"   )
-      ("adp-opt-niter", po::value<int>(), "Flag for smoothing to unstuck adaptation (expensive)")
-      ("opt-unif" , "Shape preserving uniformization");
+      ("nproc"  , po::value<int>(), "Maximum number of CPU cores for multi-threading"   );
 
 
     s.add_options()
       ("refine-conventions", "Adopt Refine conventions for VerticesOnGeometricX");
 
+    // ----------------- Metric and solution options 
+    s.add_options()
+      ("anamet" , po::value<int>(), 
+        "Analytical metric index, see src/anamet.hxx for options")
+      ("anasol" , po::value<int>(), 
+        "Analytical solution index, see src/anasol.hxx for options")
+      ("sclmet" , po::value<double>(), 
+        "Analytical metric scaling") 
+      ("hmin" , po::value<double>(), "Minimum metric size"   )
+      ("hmax" , po::value<double>(), "Maximum metric size"   );
+
     // ----------------- Adaptation options  
     s.add_options()
+      ("adapt"  , po::value<int>() ->default_value(0)->implicit_value(-1),
+        "Adaptation iterations")
+      ("adp-opt-niter", po::value<int>(), 
+        "Smoothing in adaptation: -1 unlimited, N > 0 number of iter")
+      ("no-line-adp",
+        "Skip using adaptGeoLines (not very robust if boundary very coarse)")
+      ("opt-unif" , 
+        "Shape preserving uniformization")
       ("geo-lentolfac", po::value<double>()->default_value(Defaults::geo_lentolfac),
         "Tolerance factor for geometric edge length in adaptGeoLines")
-      ("geo-abstoledg", po::value<double>(), "Absolute distance tolerance "
-        "such that point is considered on CAD edge");
+      ("geo-abstoledg", po::value<double>(), 
+        "Absolute distance tolerance such that point is considered on CAD edge");
 
     // ----------------- Optimization options  
     s.add_options()  

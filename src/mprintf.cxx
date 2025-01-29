@@ -8,7 +8,7 @@
 
 namespace Metris{
   
-int DepthCounter::depth = 0;
+int DepthCounter::depth = -1;
 
 #define SPAC4 ' ', ' ', ' ', ' '
 #define SPAC8 SPAC4, SPAC4 

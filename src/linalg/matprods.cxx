@@ -18,9 +18,9 @@ namespace Metris{
 //
 //  for(int ii = 0; ii < ndimn; ii++){
 //    for(int jj = 0; jj < ndimn; jj++){
-//      out[ii*ndimn + jj] = mat[ii*ndimn + 0] * met[sym3idx(0,jj)];
+//      out[ii*ndimn + jj] = mat[ii*ndimn + 0] * met[sym2idx(0,jj)];
 //      for(int kk = 1; kk < ndimn; kk++){
-//        out[ii*ndimn + jj] += mat[ii*ndimn + kk] * met[sym3idx(kk,jj)];
+//        out[ii*ndimn + jj] += mat[ii*ndimn + kk] * met[sym2idx(kk,jj)];
 //      }
 //    }
 //  }
@@ -60,9 +60,9 @@ void tens3sym1X1mat3sym(const double* __restrict__ tenssym1,
   for(int ii = 0; ii < ndimn; ii++){
     for(int jj = 0 ; jj < ndimn; jj++){
       for(int kk = jj; kk < ndimn ; kk++){
-        tenssym2[nnmet*ii + sym3idx(jj,kk)] = tenssym1[nnmet*0 + sym3idx(jj,kk)]*matsym[sym3idx(0,ii)];
+        tenssym2[nnmet*ii + sym2idx(jj,kk)] = tenssym1[nnmet*0 + sym2idx(jj,kk)]*matsym[sym2idx(0,ii)];
         for(int s = 1; s < ndimn; s++){
-          tenssym2[nnmet*ii + sym3idx(jj,kk)] += tenssym1[nnmet*s + sym3idx(jj,kk)]*matsym[sym3idx(s,ii)];
+          tenssym2[nnmet*ii + sym2idx(jj,kk)] += tenssym1[nnmet*s + sym2idx(jj,kk)]*matsym[sym2idx(s,ii)];
         }
       }
     }
@@ -120,7 +120,7 @@ void mat3X2tens3sym1X1tmat3(const double* __restrict__ tens3sym1,
         for(int ss = 0; ss < 3; ss++){
           for(int tt = 0; tt < 3; tt++){  
             tens3[9*ii + 3*jj + kk] += 
-                                 tens3sym1[6*ss + sym3idx(tt,kk)]*mat3[3*jj + ss]*mat3[3*ii + tt];
+                                 tens3sym1[6*ss + sym2idx(tt,kk)]*mat3[3*jj + ss]*mat3[3*ii + tt];
           }
         }
       }
@@ -136,9 +136,9 @@ void mat3X1tens3sym3(const double* __restrict__ tens3sym,
   for(int ii = 0; ii < 3; ii++){
     for(int jj = 0 ; jj < 3; jj++){
       for(int kk = 0; kk < 3 ; kk++){
-        tens3[9*ii + 3*jj + kk] = tens3sym[3*sym3idx(0,jj) + kk] * mat3[3*ii + 0];
+        tens3[9*ii + 3*jj + kk] = tens3sym[3*sym2idx(0,jj) + kk] * mat3[3*ii + 0];
         for(int s = 1; s < 3; s++){
-          tens3[9*ii + 3*jj + kk] += tens3sym[3*sym3idx(s,jj) + kk] * mat3[3*ii + s];
+          tens3[9*ii + 3*jj + kk] += tens3sym[3*sym2idx(s,jj) + kk] * mat3[3*ii + s];
         }
       }
     }
@@ -154,9 +154,9 @@ void mat3X1tens3sym1(const double* __restrict__ tens3sym,
   for(int ii = 0; ii < 3; ii++){
     for(int jj = 0 ; jj < 3; jj++){
       for(int kk = jj; kk < 3 ; kk++){
-        tens3symo[6*ii + sym3idx(jj,kk)] = tens3sym[6*0 + sym3idx(jj,kk)] * mat3[3*ii + 0];
+        tens3symo[6*ii + sym2idx(jj,kk)] = tens3sym[6*0 + sym2idx(jj,kk)] * mat3[3*ii + 0];
         for(int s = 1; s < 3; s++){
-          tens3symo[6*ii + sym3idx(jj,kk)] += tens3sym[6*s + sym3idx(jj,kk)] * mat3[3*ii + s];
+          tens3symo[6*ii + sym2idx(jj,kk)] += tens3sym[6*s + sym2idx(jj,kk)] * mat3[3*ii + s];
         }
       }
     }

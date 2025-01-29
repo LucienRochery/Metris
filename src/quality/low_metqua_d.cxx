@@ -6,7 +6,7 @@
 #include "low_metqua_d.hxx"
 #include "quafun.hxx"
 
-#include "../linalg/sym3idx.hxx"
+#include "../linalg/symidx.hxx"
 #include "../linalg/det.hxx"
 #include "../linalg/matprods.hxx"
 #include "../Mesh/Mesh.hxx"
@@ -108,7 +108,7 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
       for(int ii = 0; ii < gdim; ii++){
         for(int jj = ii; jj < gdim; jj++){
-          hquael[sym3idx(ii,jj)] += sg*pnorm*hqua0[sym3idx(ii,jj)]*powm1;
+          hquael[sym2idx(ii,jj)] += sg*pnorm*hqua0[sym2idx(ii,jj)]*powm1;
         }
       }
 
@@ -118,7 +118,7 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       for(int ii = 0; ii < gdim; ii++){
         for(int jj = ii; jj < gdim; jj++){
           // Only the gradient gets a sign difference
-          hquael[sym3idx(ii,jj)] += 
+          hquael[sym2idx(ii,jj)] += 
             pnorm*(pnorm - 1)*dqua0[ii]*dqua0[jj]*powm2;
         }
       }
@@ -145,7 +145,7 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = ii; jj < gdim; jj++){
-        hquael[sym3idx(ii,jj)] = sg*pnorm*hquael[sym3idx(ii,jj)]*powm1;
+        hquael[sym2idx(ii,jj)] = sg*pnorm*hquael[sym2idx(ii,jj)]*powm1;
       }
     }
     if(pnorm >= 2){
@@ -153,7 +153,7 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       for(int ii = 0; ii < gdim; ii++){
         for(int jj = ii; jj < gdim; jj++){
           // Only the gradient gets a sign difference
-          hquael[sym3idx(ii,jj)] += pnorm*(pnorm - 1)*dquael[ii]*dquael[jj]*powm2;
+          hquael[sym2idx(ii,jj)] += pnorm*(pnorm - 1)*dquael[ii]*dquael[jj]*powm2;
         }
       }
     }
@@ -435,41 +435,41 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
     ftype htra[nhess]; // These are temp 
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = ii; jj < gdim; jj++){
-        htra[sym3idx(ii,jj)] = 2.0*met[sym3idx(ii,jj)]*sumDk2;
+        htra[sym2idx(ii,jj)] = 2.0*met[sym2idx(ii,jj)]*sumDk2;
       }
     }
 
     ftype hdet[nhess] = {0};//, hdet2[nhess2] = {0};
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = ii; jj < gdim; jj++){
-        hdet[sym3idx(ii,jj)] = 2.0*detM*ddetA[inode][ii]*ddetA[inode][jj];
+        hdet[sym2idx(ii,jj)] = 2.0*detM*ddetA[inode][ii]*ddetA[inode][jj];
       }
     }
 
     if(power > 0){
       for(int ii = 0; ii < gdim; ii++){
         for(int jj = ii; jj < gdim; jj++){ 
-          hquael[sym3idx(gdim*inode+ii,gdim*inode+jj)] = 
-            ( tdim*trapowdm2*det*det*( tra*htra[sym3idx(ii,jj)]
+          hquael[sym2idx(gdim*inode+ii,gdim*inode+jj)] = 
+            ( tdim*trapowdm2*det*det*( tra*htra[sym2idx(ii,jj)]
                                      + (tdim - 1)*dtra[inode][ii]*dtra[inode][jj] )
-            - trapowdm1*det*( tra*hdet[sym3idx(ii,jj)]
+            - trapowdm1*det*( tra*hdet[sym2idx(ii,jj)]
                             + tdim*dtra[inode][ii]*ddet[inode][jj]
                             + tdim*dtra[inode][jj]*ddet[inode][ii])
             + 2.0*trapowd*ddet[inode][ii]*ddet[inode][jj]
             )/(det*det*det);
-          hquael[sym3idx(gdim*inode+ii,gdim*inode+jj)] /= dpowd;
+          hquael[sym2idx(gdim*inode+ii,gdim*inode+jj)] /= dpowd;
         }
       }
     }else{
       for(int ii = 0; ii < gdim; ii++){
         for(int jj = ii; jj < gdim; jj++){
-          hquael[sym3idx(gdim*inode+ii,gdim*inode+jj)]  = 
+          hquael[sym2idx(gdim*inode+ii,gdim*inode+jj)]  = 
             (-(tdim+1)*dtra[inode][jj]*(ddet[inode][ii]*tra - tdim*det*dtra[inode][ii])
-            + tra*( hdet[sym3idx(ii,jj)]*tra + ddet[inode][ii]*dtra[inode][jj] 
+            + tra*( hdet[sym2idx(ii,jj)]*tra + ddet[inode][ii]*dtra[inode][jj] 
                   - tdim*ddet[inode][jj]*dtra[inode][ii]
-                  - tdim*det*htra[sym3idx(ii,jj)]) 
+                  - tdim*det*htra[sym2idx(ii,jj)]) 
             )/(trapowd*tra*tra);
-          hquael[sym3idx(gdim*inode+ii,gdim*inode+jj)]  *= dpowd;
+          hquael[sym2idx(gdim*inode+ii,gdim*inode+jj)]  *= dpowd;
         }
       }
     }// if power > 0
@@ -486,7 +486,7 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
       ftype htra[nhess]; // These are temp 
       for(int ii = 0; ii < gdim; ii++){
         for(int jj = ii; jj < gdim; jj++){
-          htra[sym3idx(ii,jj)] = 2.0*met[sym3idx(ii,jj)]*sumDkDk;
+          htra[sym2idx(ii,jj)] = 2.0*met[sym2idx(ii,jj)]*sumDkDk;
         }
       }
 
@@ -495,61 +495,61 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
       const ftype detA = det_invtJ0_tJ; // Just for clarity 
       if constexpr (gdim == 2){
         // The crossed-point terms (also crossed coordinate)
-        hdet[sym3idx(0*gdim+0,1*gdim+1)] = detvec2<ftype>(D_J_invJ0[inod1], D_J_invJ0[inod2])*detA;
-        hdet[sym3idx(0*gdim+1,1*gdim+0)] = - hdet[sym3idx(0*gdim+0,1*gdim+1)];//detvec2<ftype>(D_J_invJ0[inod1], D_J_invJ0[inod2])*detA;
+        hdet[sym2idx(0*gdim+0,1*gdim+1)] = detvec2<ftype>(D_J_invJ0[inod1], D_J_invJ0[inod2])*detA;
+        hdet[sym2idx(0*gdim+1,1*gdim+0)] = - hdet[sym2idx(0*gdim+0,1*gdim+1)];//detvec2<ftype>(D_J_invJ0[inod1], D_J_invJ0[inod2])*detA;
       }else{
-        hdet[sym3idx(0*gdim+0,1*gdim+1)] = 
+        hdet[sym2idx(0*gdim+0,1*gdim+1)] = 
           detvec3<ftype>(D_J_invJ0[inod1], D_J_invJ0[inod2],  J_invJ0[2]      )*detA;
-        hdet[sym3idx(0*gdim+0,1*gdim+2)] = 
+        hdet[sym2idx(0*gdim+0,1*gdim+2)] = 
           detvec3<ftype>(D_J_invJ0[inod1],   J_invJ0[1]    ,  D_J_invJ0[inod2])*detA;
-        hdet[sym3idx(0*gdim+1,1*gdim+2)] = 
+        hdet[sym2idx(0*gdim+1,1*gdim+2)] = 
           detvec3<ftype>(  J_invJ0[0]    , D_J_invJ0[inod1],  D_J_invJ0[inod2])*detA;
 
-        hdet[sym3idx(1*gdim+0,0*gdim+1)] = - hdet[sym3idx(0*gdim+0,1*gdim+1)];
-        hdet[sym3idx(1*gdim+0,0*gdim+2)] = - hdet[sym3idx(0*gdim+0,1*gdim+2)];
-        hdet[sym3idx(1*gdim+1,0*gdim+2)] = - hdet[sym3idx(0*gdim+1,1*gdim+2)];
+        hdet[sym2idx(1*gdim+0,0*gdim+1)] = - hdet[sym2idx(0*gdim+0,1*gdim+1)];
+        hdet[sym2idx(1*gdim+0,0*gdim+2)] = - hdet[sym2idx(0*gdim+0,1*gdim+2)];
+        hdet[sym2idx(1*gdim+1,0*gdim+2)] = - hdet[sym2idx(0*gdim+1,1*gdim+2)];
       }
 
       for(int ii = 0; ii < gdim; ii++){
         for(int jj = 0; jj < gdim; jj++){
-          hdet[sym3idx(0*gdim+ii,1*gdim+jj)] += ddetA[inod1][ii]*ddetA[inod2][jj];
-          hdet[sym3idx(0*gdim+ii,1*gdim+jj)] *= 2.0*detM;
+          hdet[sym2idx(0*gdim+ii,1*gdim+jj)] += ddetA[inod1][ii]*ddetA[inod2][jj];
+          hdet[sym2idx(0*gdim+ii,1*gdim+jj)] *= 2.0*detM;
         }
       }
        
       if(power > 0){
         for(int ii = 0; ii < gdim; ii++){
           for(int jj = 0; jj < gdim; jj++){
-            hquael[sym3idx(gdim*inod1+ii,gdim*inod2+jj)] = 
-              ( tdim*trapowdm2*det*det*( tra*htra[sym3idx(ii,jj)]
+            hquael[sym2idx(gdim*inod1+ii,gdim*inod2+jj)] = 
+              ( tdim*trapowdm2*det*det*( tra*htra[sym2idx(ii,jj)]
                                        + (tdim - 1)*dtra[inod1][ii]*dtra[inod2][jj] )
-              - trapowdm1*det*( tra*hdet[sym3idx(0*gdim+ii,1*gdim+jj)]
+              - trapowdm1*det*( tra*hdet[sym2idx(0*gdim+ii,1*gdim+jj)]
                               + tdim*dtra[inod1][ii]*ddet[inod2][jj]
                               + tdim*dtra[inod2][jj]*ddet[inod1][ii])
               + 2.0*trapowd*ddet[inod1][ii]*ddet[inod2][jj]
               )/(det*det*det);
-            hquael[sym3idx(gdim*inod1+ii,gdim*inod2+jj)] /= dpowd;
+            hquael[sym2idx(gdim*inod1+ii,gdim*inod2+jj)] /= dpowd;
           }
         }
       }else{
         for(int ii = 0; ii < gdim; ii++){
           for(int jj = 0; jj < gdim; jj++){
-            hquael[sym3idx(gdim*inod1+ii,gdim*inod2+jj)] = 
+            hquael[sym2idx(gdim*inod1+ii,gdim*inod2+jj)] = 
               (-(tdim+1)*dtra[inod2][jj]*(ddet[inod1][ii]*tra - tdim*det*dtra[inod1][ii])
-              + tra*( hdet[sym3idx(0*gdim+ii,1*gdim+jj)]*tra 
+              + tra*( hdet[sym2idx(0*gdim+ii,1*gdim+jj)]*tra 
                     + ddet[inod1][ii]*dtra[inod2][jj] 
                     - tdim*ddet[inod2][jj]*dtra[inod1][ii]
-                    - tdim*det*htra[sym3idx(ii,jj)]) 
+                    - tdim*det*htra[sym2idx(ii,jj)]) 
               )/(trapowd*tra*tra);
-            hquael[sym3idx(gdim*inod1+ii,gdim*inod2+jj)] *= dpowd;
+            hquael[sym2idx(gdim*inod1+ii,gdim*inod2+jj)] *= dpowd;
           }
         }
       }
       //if(power > 0){
       //  for(int ii = 0; ii < gdim; ii++){
       //    for(int jj = 0; jj < gdim; jj++){
-      //      hquael[sym3idx(gdim*inod1+ii,gdim*inod2+jj)] =    
-      //        (- hquael[sym3idx(gdim*inod1+ii,gdim*inod2+jj)]*quael
+      //      hquael[sym2idx(gdim*inod1+ii,gdim*inod2+jj)] =    
+      //        (- hquael[sym2idx(gdim*inod1+ii,gdim*inod2+jj)]*quael
       //        + 2.0*dquael[gdim*inod1+ii]*dquael[gdim*inod2+jj]) /(quael*quael*quael);
       //    }
       //  }
@@ -638,7 +638,7 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi, int power,
     if(hquael != NULL){
       for(int ii = 0; ii < gdim*nnode; ii++){
         for(int jj = ii; jj < gdim*nnode; jj++){
-          hquael[sym3idx(ii,jj)] = 0;
+          hquael[sym2idx(ii,jj)] = 0;
         }
       }
     }
@@ -662,8 +662,8 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi, int power,
 
         for(int ii = 0; ii < gdim*nnode; ii++){
           for(int jj = ii; jj < gdim*nnode; jj++){
-            hquael[sym3idx(ii,jj)] += 
-             sg*pnorm*hqua0[sym3idx(ii,jj)]*powm1;
+            hquael[sym2idx(ii,jj)] += 
+             sg*pnorm*hqua0[sym2idx(ii,jj)]*powm1;
           }
         }
 
@@ -671,7 +671,7 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi, int power,
           ftype powm2 = pow(qua0 - difto,pnorm-2);
           for(int ii = 0; ii < gdim*nnode; ii++){
             for(int jj = ii; jj < gdim*nnode; jj++){
-              hquael[sym3idx(ii,jj)] +=
+              hquael[sym2idx(ii,jj)] +=
                 sg*pnorm*(pnorm - 1) 
                *dqua0[ii]*dqua0[jj]*powm2;
             }
@@ -707,15 +707,15 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi, int power,
     if(hquael != NULL){
       for(int ii = 0; ii < gdim*nnode; ii++){
         for(int jj = ii; jj < gdim*nnode; jj++){
-          hquael[sym3idx(ii,jj)] = 
-            sg*pnorm*hquael[sym3idx(ii,jj)]*powm1;
+          hquael[sym2idx(ii,jj)] = 
+            sg*pnorm*hquael[sym2idx(ii,jj)]*powm1;
         }
       }
       if(pnorm >= 2){
         ftype powm2 = pow(qua0 - difto,pnorm-2);
         for(int ii = 0; ii < gdim*nnode; ii++){
           for(int jj = ii; jj < gdim*nnode; jj++){
-            hquael[sym3idx(ii,jj)] +=
+            hquael[sym2idx(ii,jj)] +=
                   sg*pnorm*(pnorm - 1) 
                  *dquael[ii]*dquael[jj]*powm2;
           }

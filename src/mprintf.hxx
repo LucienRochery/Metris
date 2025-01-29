@@ -43,6 +43,7 @@ public:
   DepthCounter() = delete;
 
   DepthCounter(bool inc_) : inc(inc_){
+    if(depth == -1) incDepth(); // initializes
     if(inc) incDepth();
   }
   ~DepthCounter(){

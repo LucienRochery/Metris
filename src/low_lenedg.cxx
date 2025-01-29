@@ -6,7 +6,7 @@
 #include "low_lenedg.hxx"
 
 #include "Mesh/MeshMetric.hxx"
-#include "linalg/sym3idx.hxx"
+#include "linalg/symidx.hxx"
 #include "linalg/matprods.hxx"
 #include "low_geo.hxx"
 
@@ -103,7 +103,7 @@ double getlenedg_log(const double dx[], const double metl[], int miter, double t
   int iwhich = 0;
   for(int ii = 0; ii < gdim; ii++)
     for(int jj = ii; jj < gdim; jj++)
-      metacc[iwhich][sym3idx(ii,jj)] = metl[sym3idx(ii,jj)];
+      metacc[iwhich][sym2idx(ii,jj)] = metl[sym2idx(ii,jj)];
 
   //printf("## DEBUG log: init len %f metl = ",len);
   //dblAr1(nnmet,metl).print();

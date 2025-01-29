@@ -66,6 +66,7 @@ struct MetrisParameters{
   // ----------------- Adaptation options  
   int adp_opt_niter; // do smoothing/swapping in adaptation loop (expensive)
   int adp_niter;
+  bool adp_line_adapt;
   // ----------------- END Adaptation options  
 
   // Metric min/max size control

@@ -39,7 +39,7 @@ namespace Metris{
   - dhmat size nvareff * szfld*(tdim*(tdim+1))/2
 
   - d2eval size neffsym * etc. 
-  neffsym is the size of a symmetric matrix with n = nvareff ; ordered as in sym3idx 
+  neffsym is the size of a symmetric matrix with n = nvareff ; ordered as in sym2idx 
 
   Input (can be NULL):
   - dfld size nvareff * szfld. 

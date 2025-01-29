@@ -9,7 +9,7 @@
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 
-#include "../linalg/sym3idx.hxx"
+#include "../linalg/symidx.hxx"
 
 #include "../metris_constants.hxx"
 #include "../aux_pp_inc.hxx"
@@ -225,10 +225,10 @@ ftype d_quafun_unit(Mesh<MFT> &msh,
 
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = ii; jj < gdim; jj++){
-        hquael[sym3idx(ii,jj)] = 
-            powr_tra*coef_tra*( htra[sym3idx(ii,jj)]*(tra-tdim)
+        hquael[sym2idx(ii,jj)] = 
+            powr_tra*coef_tra*( htra[sym2idx(ii,jj)]*(tra-tdim)
                      + (powr_tra-1)*dtra[jj]*dtra[ii] )*trapowdm2
-          + powr_det*coef_det*( hdet[sym3idx(ii,jj)]*(det-1   )
+          + powr_det*coef_det*( hdet[sym2idx(ii,jj)]*(det-1   )
                      + (powr_det-1)*ddet[jj]*ddet[ii] )*detpowdm2;
       }
     }
@@ -237,29 +237,29 @@ ftype d_quafun_unit(Mesh<MFT> &msh,
     if(tra > tdim){
       for(int ii = 0; ii < gdim; ii++)
         for(int jj = ii; jj < gdim; jj++)
-          hx[sym3idx(ii,jj)] = dtra[ii]*dtra[jj] + htra[sym3idx(ii,jj)];
+          hx[sym2idx(ii,jj)] = dtra[ii]*dtra[jj] + htra[sym2idx(ii,jj)];
     }else{
       for(int ii = 0; ii < gdim; ii++)
         for(int jj = ii; jj < gdim; jj++)
-          hx[sym3idx(ii,jj)] = (  -htra[sym3idx(ii,jj)]
+          hx[sym2idx(ii,jj)] = (  -htra[sym2idx(ii,jj)]
                                 + 2*dtra[ii]*dtra[jj]/tra )/(tra*tra);
     }
     if(det > 1){
       for(int ii = 0; ii < gdim; ii++)
         for(int jj = ii; jj < gdim; jj++)
-          hy[sym3idx(ii,jj)] = ddet[ii]*ddet[jj] + hdet[sym3idx(ii,jj)];
+          hy[sym2idx(ii,jj)] = ddet[ii]*ddet[jj] + hdet[sym2idx(ii,jj)];
     }else{
       for(int ii = 0; ii < gdim; ii++)
         for(int jj = ii; jj < gdim; jj++)
-          hy[sym3idx(ii,jj)] = (  -hdet[sym3idx(ii,jj)]
+          hy[sym2idx(ii,jj)] = (  -hdet[sym2idx(ii,jj)]
                                 + 2*ddet[ii]*ddet[jj]/det)/(det*det);
     }
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = ii; jj < gdim; jj++){
-        hquael[sym3idx(ii,jj)] = 
-          coef_tra*powr_tra*( hx[sym3idx(ii,jj)]
+        hquael[sym2idx(ii,jj)] = 
+          coef_tra*powr_tra*( hx[sym2idx(ii,jj)]
                             + dx[ii]*dx[jj]*powr_tra )*exptra 
-        + coef_det*powr_det*( hy[sym3idx(ii,jj)]
+        + coef_det*powr_det*( hy[sym2idx(ii,jj)]
                             + dy[ii]*dy[jj]*powr_det )*expdet ;
       }
     }

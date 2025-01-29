@@ -221,13 +221,13 @@ void getBezOffsetsEdge(Mesh<MFT> &msh,
   for(int ii = 0; ii < gdim; ii++){
     for(int jj = 0; jj < gdim; jj++){
       for(int kk = jj; kk < gdim; kk++){
-        tens[ii*nnmet + sym3idx(jj,kk)] = 0;
+        tens[ii*nnmet + sym2idx(jj,kk)] = 0;
         for(int tt = 0; tt < gdim; tt++){
-          //tens[ii*nnmet + sym3idx(jj,kk)] += 
-          //  (met_m12[sym3idx(ii,tt)].value()*met_m12[sym3idx(jj,kk)].deriv(tt)
-          //+  met_m12[sym3idx(kk,tt)].value()*met_m12[sym3idx(jj,ii)].deriv(tt))/2;
-          tens[ii*nnmet + sym3idx(jj,kk)] += 
-            met_m12[sym3idx(ii,tt)].value()*met_m12[sym3idx(jj,kk)].deriv(tt);
+          //tens[ii*nnmet + sym2idx(jj,kk)] += 
+          //  (met_m12[sym2idx(ii,tt)].value()*met_m12[sym2idx(jj,kk)].deriv(tt)
+          //+  met_m12[sym2idx(kk,tt)].value()*met_m12[sym2idx(jj,ii)].deriv(tt))/2;
+          tens[ii*nnmet + sym2idx(jj,kk)] += 
+            met_m12[sym2idx(ii,tt)].value()*met_m12[sym2idx(jj,kk)].deriv(tt);
         }
       }
     }
@@ -238,7 +238,7 @@ void getBezOffsetsEdge(Mesh<MFT> &msh,
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = 0; jj < gdim; jj++){
         for(int kk = jj; kk < gdim; kk++){
-          printf("%d%d%d = %f\n",ii,jj,kk,tens[ii*nnmet + sym3idx(jj,kk)]);
+          printf("%d%d%d = %f\n",ii,jj,kk,tens[ii*nnmet + sym2idx(jj,kk)]);
         }
       }
     }
@@ -251,7 +251,7 @@ void getBezOffsetsEdge(Mesh<MFT> &msh,
     offsets[kk] = 0;
     for(int tt = 0; tt < gdim; tt++){
       for(int ss = 0; ss < gdim; ss++){
-        offsets[kk] += -dedg1[ss]*dedg1[tt]*tens[ss*nnmet + sym3idx(kk,tt)]/2;//*scale;
+        offsets[kk] += -dedg1[ss]*dedg1[tt]*tens[ss*nnmet + sym2idx(kk,tt)]/2;//*scale;
       }
     }
   }

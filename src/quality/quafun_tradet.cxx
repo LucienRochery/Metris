@@ -396,9 +396,9 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     //ftype htra[nhess];
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = ii; jj < gdim; jj++){
-        //htra[sym3idx(ii,jj)] = 2.0*met[sym3idx(ii,jj)]*sumDk2;
-        htra[sym3idx(ii,jj)] = 2.0*met[sym3idx(ii,jj)]*sumDk2;
-        //htrapowd[sym3idx(ii,jj)] = trapowdm2*tdim*( htra[sym3idx(ii,jj)]*tra
+        //htra[sym2idx(ii,jj)] = 2.0*met[sym2idx(ii,jj)]*sumDk2;
+        htra[sym2idx(ii,jj)] = 2.0*met[sym2idx(ii,jj)]*sumDk2;
+        //htrapowd[sym2idx(ii,jj)] = trapowdm2*tdim*( htra[sym2idx(ii,jj)]*tra
         //                                          + (tdim-1)*dtra[ii]*dtra[jj]);
       }
     }
@@ -439,7 +439,7 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   if(hdet != NULL){
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = ii; jj < gdim; jj++){
-        hdet[sym3idx(ii,jj)] = 2.0*detM*ddet[ii]*ddet[jj];
+        hdet[sym2idx(ii,jj)] = 2.0*detM*ddet[ii]*ddet[jj];
       }
     }
   }

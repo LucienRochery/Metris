@@ -22,7 +22,7 @@ namespace Metris{
 
 
 
-MetricFieldAnalytical::MetricFieldAnalytical(MeshMetric<MetricFieldAnalytical> &msh) 
+MetricFieldAnalytical::MetricFieldAnalytical(MeshBase &msh) 
 :MetricFieldFE(msh){
 	ianamet = -1;
 	anamet = NULL;

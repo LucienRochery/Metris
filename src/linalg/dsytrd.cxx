@@ -25,7 +25,7 @@
 // ----------------------------------------------------------------------------
 #include <cmath>
 #include "../linalg/dsytrd.hxx"
-#include "../linalg/sym3idx.hxx"
+#include "../linalg/symidx.hxx"
 #include "../SANS/Surreal/SurrealS.h"
 
 
@@ -64,15 +64,15 @@ void dsytrd3(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
 #endif
 
   // Bring first row and column to the desired form 
-  h = SQR(A[sym3idx(0,1)]) + SQR(A[sym3idx(0,2)]);
-  if (A[sym3idx(0,1)] > 0)
+  h = SQR(A[sym2idx(0,1)]) + SQR(A[sym2idx(0,2)]);
+  if (A[sym2idx(0,1)] > 0)
     g = -sqrt(h);
   else
     g = sqrt(h);
   e[0] = g;
-  f    = g * A[sym3idx(0,1)];
-  u[1] = A[sym3idx(0,1)] - g;
-  u[2] = A[sym3idx(0,2)];
+  f    = g * A[sym2idx(0,1)];
+  u[1] = A[sym2idx(0,1)] - g;
+  u[2] = A[sym2idx(0,2)];
   
   omega = h - f;
   if (omega > 0.0)
@@ -81,7 +81,7 @@ void dsytrd3(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
     K     = 0.0;
     for (int i=1; i < n; i++)
     {
-      f    = A[sym3idx(1,i)] * u[1] + A[sym3idx(i,2)] * u[2];
+      f    = A[sym2idx(1,i)] * u[1] + A[sym2idx(i,2)] * u[2];
       q[i] = omega * f;                  // p
       K   += u[i] * f;                   // u* A u
     }
@@ -90,9 +90,9 @@ void dsytrd3(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
     for (int i=1; i < n; i++)
       q[i] = q[i] - K * u[i];
     
-    d[0] = A[sym3idx(0,0)];
-    d[1] = A[sym3idx(1,1)] - 2.0*q[1]*u[1];
-    d[2] = A[sym3idx(2,2)] - 2.0*q[2]*u[2];
+    d[0] = A[sym2idx(0,0)];
+    d[1] = A[sym2idx(1,1)] - 2.0*q[1]*u[1];
+    d[2] = A[sym2idx(2,2)] - 2.0*q[2]*u[2];
 
     //if(d[0] < d[1] && d[0] < d[2]){
     //  idx[0] = 0;
@@ -136,14 +136,14 @@ void dsytrd3(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
         Q[3*i + j] = Q[3*i + j] - f*u[i];
     }
 
-    // Calculate updated A[sym3idx[1][+ ]2] and store it in e[1]
-    e[1] = A[sym3idx(1,2)] - q[1]*u[2] - u[1]*q[2];
+    // Calculate updated A[sym2idx[1][+ ]2] and store it in e[1]
+    e[1] = A[sym2idx(1,2)] - q[1]*u[2] - u[1]*q[2];
   }
   else
   {
     for (int i=0; i < n; i++)
-      d[i] = A[sym3idx(i,i)];
-    e[1] = A[sym3idx(1,2)];
+      d[i] = A[sym2idx(i,i)];
+    e[1] = A[sym2idx(1,2)];
   }
 }
 
@@ -177,41 +177,41 @@ void dsytrd2(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
 #endif
 
   // Bring first row and column to the desired form 
-  h = SQR(A[sym3idx(0,1)]);
-  if (A[sym3idx(0,1)] > 0)
+  h = SQR(A[sym2idx(0,1)]);
+  if (A[sym2idx(0,1)] > 0)
     g = -sqrt(h);
   else
     g = sqrt(h);
   e[0] = g;
-  f    = g * A[sym3idx(0,1)];
-  u[1] = A[sym3idx(0,1)] - g;
+  f    = g * A[sym2idx(0,1)];
+  u[1] = A[sym2idx(0,1)] - g;
   
   omega = h - f;
   if (omega > 0.0)
   {
     omega = 1.0 / omega;
     K     = 0.0;
-    f    = A[sym3idx(1,1)] * u[1];
+    f    = A[sym2idx(1,1)] * u[1];
     q[1] = omega * f;                  // p
     K   += u[1] * f;                   // u* A u
     K *= 0.5 * SQR(omega);
 
     q[1] = q[1] - K * u[1];
     
-    d[0] = A[sym3idx(0,0)];
-    d[1] = A[sym3idx(1,1)] - 2.0*q[1]*u[1];
+    d[0] = A[sym2idx(0,0)];
+    d[1] = A[sym2idx(1,1)] - 2.0*q[1]*u[1];
     
     // Store inverse Householder transformation in Q
     f = omega * u[1];
     Q[2*1 + 1] = Q[2*1 + 1] - f*u[1];
 
-    // Calculate updated A[sym3idx[1][+ ]2] and store it in e[1]
+    // Calculate updated A[sym2idx[1][+ ]2] and store it in e[1]
     e[1] = 0; 
   }
   else
   {
     for (int i=0; i < n; i++)
-      d[i] = A[sym3idx(i,i)];
+      d[i] = A[sym2idx(i,i)];
     e[1] = 0;
   }
 }

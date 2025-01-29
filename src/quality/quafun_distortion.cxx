@@ -10,7 +10,7 @@
 #include "../metris_constants.hxx"
 #include "../aux_utils.hxx"
 
-#include "../linalg/sym3idx.hxx"
+#include "../linalg/symidx.hxx"
 
 #include "../aux_pp_inc.hxx"
 
@@ -211,14 +211,14 @@ ftype d_quafun_distortion(Mesh<MFT> &msh,
     if(hquael != NULL){
       for(int ii = 0; ii < gdim; ii++){
         for(int jj = ii; jj < gdim; jj++){
-          hquael[sym3idx(ii,jj)] = ( tdim*trapowdm2*det*det*( tra*htra[sym3idx(ii,jj)]
+          hquael[sym2idx(ii,jj)] = ( tdim*trapowdm2*det*det*( tra*htra[sym2idx(ii,jj)]
                                                             + (tdim - 1)*dtra[ii]*dtra[jj] )
-                                   - trapowdm1*det*( tra*hdet[sym3idx(ii,jj)]
+                                   - trapowdm1*det*( tra*hdet[sym2idx(ii,jj)]
                                                    + tdim*dtra[ii]*ddet[jj]
                                                    + tdim*dtra[jj]*ddet[ii])
                                    + 2.0*trapowd*ddet[ii]*ddet[jj]
                                    )/(det*det*det);
-          hquael[sym3idx(ii,jj)] /= dpowd;
+          hquael[sym2idx(ii,jj)] /= dpowd;
         }
       }
     }
@@ -231,11 +231,11 @@ ftype d_quafun_distortion(Mesh<MFT> &msh,
     if(hquael != NULL){
       for(int ii = 0; ii < gdim; ii++){
         for(int jj = ii; jj < gdim; jj++){
-          hquael[sym3idx(ii,jj)] = (-(tdim+1)*dtra[jj]*(ddet[ii]*tra - tdim*det*dtra[ii])
-                                   + tra*( hdet[sym3idx(ii,jj)]*tra + ddet[ii]*dtra[jj] - tdim*ddet[jj]*dtra[ii]
-                                         - tdim*det*htra[sym3idx(ii,jj)]) 
+          hquael[sym2idx(ii,jj)] = (-(tdim+1)*dtra[jj]*(ddet[ii]*tra - tdim*det*dtra[ii])
+                                   + tra*( hdet[sym2idx(ii,jj)]*tra + ddet[ii]*dtra[jj] - tdim*ddet[jj]*dtra[ii]
+                                         - tdim*det*htra[sym2idx(ii,jj)]) 
                                    )/(trapowd*tra*tra);
-          hquael[sym3idx(ii,jj)] *= dpowd;
+          hquael[sym2idx(ii,jj)] *= dpowd;
         }
       }
     } 

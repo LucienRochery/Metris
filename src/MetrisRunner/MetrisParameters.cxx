@@ -32,6 +32,7 @@ MetrisParameters::MetrisParameters(){
 
   adp_niter     = 0;
   adp_opt_niter = 1;
+  adp_line_adapt = true;
 
   // 3 is offsets followed by smoothing 
   // 4 is offsets then backtrack and stop there 
@@ -167,6 +168,11 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("adp-opt-niter")){
     adp_opt_niter = opt.m["adp-opt-niter"].as<int>();
   }
+  if(opt.count("no-line-adp")){
+    adp_line_adapt = false; 
+  }
+
+  
 
 
   if(opt.count("curve")){

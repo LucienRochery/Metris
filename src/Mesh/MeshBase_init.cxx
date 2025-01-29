@@ -46,18 +46,6 @@ void MeshBase::initialize(MetrisAPI *data,
 
   this->param = &param;
   const int iverb = param.iverb;
-  
-  #ifndef NDEBUG
-    if(this->meshClass() == MeshClass::MeshBase){
-      printf("## DEBUG MESHCLASS MeshBase type \n");
-    }else if (this->meshClass() == MeshClass::MeshMetric){
-      printf("## DEBUG MESHCLASS MeshMetric type \n");
-    }else if (this->meshClass() == MeshClass::MeshBack){
-      printf("## DEBUG MESHCLASS MeshBack type \n");
-    }else if (this->meshClass() == MeshClass::Mesh){
-      printf("## DEBUG MESHCLASS Mesh type \n");
-    }
-  #endif
 
   int usrTarDeg = -1;
   if(this->meshClass() == MeshClass::Mesh){
@@ -521,7 +509,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   int ilag = 1 - GmfStatKwd(libIdx, GmfBezierBasis);
   if(ilag == 1){
     ibasis = FEBasis::Lagrange;
-    CPRINTF2(" - Mesh in Lagrange format.\n");
+    CPRINTF2(" - Mesh in Lagrange format. depth\n");
   }else if(ilag == 0){
     ibasis = FEBasis::Bezier;
     CPRINTF2(" - Mesh in Bézier format.\n");
@@ -571,8 +559,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
 
 
   int ncorn = GmfStatKwd(libIdx, GmfCorners);
-  CPRINTF2("-- Start reading %10d corners\n",ncorn);
   if(ncorn > 0){
+    CPRINTF2("-- Start reading %10d corners\n",ncorn);
     iwork.allocate(ncorn);
     iwork.set_n(ncorn);
     GmfGetBlock(libIdx, GmfCorners, 1, ncorn, 0, NULL, NULL,
@@ -594,8 +582,43 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       newbpotopo<0>(ipoin,icorn);
       ncor1++;
     }
-    CPRINTF1(" - Added %d corners\n",ncor1);
+    //CPRINTF1(" - Added %d corners\n",ncor1);
   }
+
+  ncorn = GmfStatKwd(libIdx, GmfVerticesOnGeometricVertices);
+  if(ncorn > 0){
+    CPRINTF2("-- Start reading %10d VerticesOnGeometricVertices (corners)\n",ncorn);
+    iwork.allocate(2*ncorn);
+    iwork.set_n(2*ncorn);
+    //GmfGetBlock(libIdx, GmfVerticesOnGeometricVertices, 1, ncorn, 0, NULL, NULL,
+    //            GmfIntVec, &iwork[0] , &iwork[2*ncorn-1]);
+    GmfGotoKwd(libIdx, GmfVerticesOnGeometricVertices);
+    for(int ii = 0; ii < ncorn; ii++){
+      GmfGetLin(libIdx, GmfVerticesOnGeometricVertices, 
+                &iwork[2*ii+0],&iwork[2*ii+1]);
+    }
+
+    int ncor1 = 0; 
+    for(int icor0 = 0; icor0 < ncorn; icor0++){
+      INCVDEPTH((*this));
+      int ipoin = iwork[2*icor0    ] - 1;
+      int icorn = iwork[2*icor0 + 1] - 1;
+      if(ipoin < 0) continue;
+      if(ipoin > npoin){
+        CPRINTF1("## INVALID CORNERS TABLE IN FILE! %d > %d (max)\n",ipoin+1,npoin);
+      }
+      if(poi2bpo[ipoin] >= 0){
+        CPRINTF1("## Warning: point %d already supplied as corner %d. Would have become %d \n",ipoin,
+                 bpo2ibi[poi2bpo[ipoin]][2],icorn);
+        continue;
+      }
+      newbpotopo<0>(ipoin,icorn);
+      ncor1++;
+    }
+    //CPRINTF1(" - Added %d corners\n",ncor1);
+  }
+
+
 
   bool redorefs[3] = {false, false, false};
 
@@ -897,14 +920,17 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       // If in refineConvention, this will be a ref 1-n, otherwise an edge
       int iedge = param->refineConventions ? -lgpoe(igpoe,1) 
                                            : (lgpoe(igpoe,1) - 1);
-      if(ipoin < 0 || iedge < 0){
+      if(ipoin < 0 || iedge < 0 && !param->refineConventions){
         printf("## WARNING invalid entry %d/%d in GmfVerticesOnGeometricEdges: %d %d \n",
           igpoe,ngpoe,ipoin,iedge);
         continue;
       }
-      METRIS_ASSERT_MSG(iedge >= 0 && iedge < nedge,
+      METRIS_ASSERT_MSG(iedge >= 0 && iedge < nedge || param->refineConventions,
         "iedge = "<<iedge<<" refineConventions = "<<param->refineConventions
         << " lgpoe = "<<lgpoe(igpoe,1));
+      METRIS_ASSERT_MSG(iedge >= 0 && iedge < CAD.ncaded || param->refineConventions,
+                        "Invalid edge reference in refine convention")
+
       if(!param->refineConventions && isdeadent(iedge,edg2poi)){
         if(nwarn++ < mwarn) 
           printf("## FILE CONTAINS IBPOS POINTING TO DEAD ENTITIES\n");
@@ -930,11 +956,6 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       // The link created in edg2bpo is temporary: if the point turns out 
       // not to be a corner then there is no need to keep the link. 
       // It will be deleted in iniMeshBdryPoints. 
-      int iver = getverent(iedge,1,ipoin);
-      if(iver < 0){
-        printf("## WARNING: invalid VerticesOnGeometricEdges link\n");
-        continue;
-      }
       int ibpoi = newbpotopo<1>(ipoin,iedge);
       if(ibpoi < 0) continue;
       bpo2rbi(ibpoi,0) = rgpoe(igpoe,0);
@@ -999,11 +1020,6 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
 
 
-      int iver = getverent(iface,2,ipoin);
-      if(iver < 0){
-        printf("## WARNING: invalid VerticesOnGeometricFaces link\n");
-        continue;
-      }
       int ibpoi = newbpotopo<2>(ipoin,iface);
       if(ibpoi < 0) continue;
       // Third value is unused

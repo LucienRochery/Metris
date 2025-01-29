@@ -18,7 +18,7 @@
 #include "../linalg/invmat.hxx"
 #include "../linalg/explogmet.hxx"
 #include "../linalg/utils.hxx"
-#include "../linalg/sym3idx.hxx"
+#include "../linalg/symidx.hxx"
 
 #include "../Localization/msh_localization.hxx"
 
@@ -29,9 +29,7 @@ MetricFieldFE::MetricFieldFE(MeshBase &msh_) : msh(msh_){
   ispace = MetSpace::Exp;
   ibasis = FEBasis::Undefined;
   nspace_miss = 0;
-  #ifdef DEBUG_ARRAYS_FULL
-  rfld.set_narray(&(msh.npoin));
-  #endif
+  rfld.set_n(msh.npoin);
 }
   
 int MetricFieldFE::getnnmet()const{
@@ -143,7 +141,13 @@ void MetricFieldFE::setBezier(){
 
 
 
-void MetricFieldFE::readMetricFile(int64_t libIdx){
+void MetricFieldFE::readMetricFile(std::string inpname){
+
+  int metdim;
+  int64_t libIdx = MetrisOpenMeshFile<GmfRead>(inpname.c_str(), &metdim);
+
+  METRIS_ENFORCE_MSG(metdim == msh.idim, "Metric and mesh dimension must agree");
+
 
   int ilag = 1 - GmfStatKwd(libIdx, GmfBezierBasis);
   if(ilag == 1){
@@ -178,7 +182,7 @@ void MetricFieldFE::readMetricFile(int64_t libIdx){
   METRIS_ENFORCE_MSG(npoif == msh.npoin,"Metric file npoin = "<<npoif<<" does not agree with mesh = "<<msh.npoin);
 
   METRIS_ENFORCE(nsolf == 1);
-  METRIS_ENFORCE(ltyp[0] == 3);
+  METRIS_ENFORCE(ltyp[0] == GmfSymMat);
 
   int nnmet = getnnmet();
   METRIS_ASSERT_MSG(nnmet == 3 || nnmet == 6," nnmet = "<<nnmet);
@@ -192,6 +196,7 @@ void MetricFieldFE::readMetricFile(int64_t libIdx){
   GmfGetBlock(libIdx, GmfSolAtVertices, 1, msh.npoin, 0, NULL, NULL,
     GmfDoubleVec, nnmet, &this->rfld[0][0], &this->rfld[msh.npoin-1][0]);
 
+  GmfCloseMesh(libIdx);
 }
 
 void MetricFieldFE::writeMetricFile(std::string outname, MetSpace outspac){
@@ -269,7 +274,7 @@ void MetricFieldFE::normalize(double coeff){
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
       if(msh.poi2ent(ipoin,0) < 0) continue;
       for(int ii = 0; ii < msh.idim; ii++){
-        rfld[ipoin][sym3idx(ii,ii)] += lcoeff;
+        rfld[ipoin][sym2idx(ii,ii)] += lcoeff;
       }
     }
   }

@@ -15,6 +15,8 @@
 namespace Metris{
 
 
+template <class MFT> class MeshMetric;
+
 template<int idim, int ideg,class MetricFieldType>
 double getDomainVolume0(MeshMetric<MetricFieldType> &msh);
 

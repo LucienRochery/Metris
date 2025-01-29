@@ -18,7 +18,7 @@
 #include "../linalg/eigen.hxx"
 #include "../linalg/matprods.hxx"
 #include "../linalg/invmat.hxx"
-#include "../linalg/sym3idx.hxx"
+#include "../linalg/symidx.hxx"
 #include "../Mesh/MeshBase.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 
@@ -173,8 +173,8 @@ int inveval_badNewton0(const MeshBase &msh,
       if(ihess > 0){
         for(int ii = 0; ii < gdim; ii++){
           for(int jj = ii; jj < gdim; jj++){
-            hcur[sym3idx(ii,jj)] = getprdl2<gdim>(hmat[sym3idx(ii,jj)], coopr)
-                                 - getprdl2<gdim>(hmat[sym3idx(ii,jj)], coor0)
+            hcur[sym2idx(ii,jj)] = getprdl2<gdim>(hmat[sym2idx(ii,jj)], coopr)
+                                 - getprdl2<gdim>(hmat[sym2idx(ii,jj)], coor0)
                                  + getprdl2<gdim>(jmat[ii],jmat[jj]);
           }
         }
@@ -583,8 +583,8 @@ double invevalfun(const MeshBase &msh,
   if(ihess > 0){
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = ii; jj < gdim; jj++){
-        hess[sym3idx(ii,jj)] = getprdl2<gdim>(hmat[sym3idx(ii,jj)], coopr)
-                             - getprdl2<gdim>(hmat[sym3idx(ii,jj)], coor0)
+        hess[sym2idx(ii,jj)] = getprdl2<gdim>(hmat[sym2idx(ii,jj)], coopr)
+                             - getprdl2<gdim>(hmat[sym2idx(ii,jj)], coor0)
                              + getprdl2<gdim>(jmat[ii],jmat[jj]);
       }
     }

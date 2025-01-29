@@ -28,8 +28,6 @@ namespace Metris{
 class MeshBase;
 class MetricFieldAnalytical;
 
-template<class T> class MeshMetric;
-
 
 enum class MetricClass{None, MetricFieldFE, MetricFieldAnalytical};
 
@@ -92,7 +90,7 @@ public:
   // To be used in initialization
   void forceBasisFlag(FEBasis ibasn){ibasis = ibasn;}
 
-	void readMetricFile(int64_t libIdx);
+	void readMetricFile(std::string outname);
 	void writeMetricFile(std::string outname, MetSpace outspac = MetSpace::Exp);
 
 	template<int gdim, int tdim, int mshdeg, int tardeg>
@@ -191,7 +189,7 @@ public:
   MetricClass metricClass() const override { return MetricClass::MetricFieldAnalytical; }
 
 	MetricFieldAnalytical() = delete;
-	MetricFieldAnalytical(MeshMetric<MetricFieldAnalytical> &msh_);
+	MetricFieldAnalytical(MeshBase &msh_);
 
   void setAnalyticalMetric(int ianamet_);
 	void setAnalyticalMetric(anamet_proto fptr);
