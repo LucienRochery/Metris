@@ -479,11 +479,13 @@ void debugInveval(std::string meshName_, MeshBase &msh, int tdim, int* ent2pol, 
 }
 
 
-void writeMesh(std::string meshName, MeshBase &msh, bool ivolonly,
+void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
                int nedg0, int nfac0, int nele0){
   GETVDEPTH(msh);
 
-  std::string eff_meshName = msh.param->outmPrefix + meshName;
+
+  std::string eff_meshName = iprefix ? msh.param->outmPrefix + meshName
+                                     : meshName;
 
   MPRINTF("-- Write file %s \n",eff_meshName.c_str());
 

@@ -259,7 +259,7 @@ int cavity_operator(Mesh<MFT> &msh ,
   CPRINTF1("-- Cavity error ierro = %d \n",ierro);
   if(DOPRINTS2()){
     // Write out the cavity. 
-    writeMesh("cavenderr",msh,false,nedg0,nfac0,nele0);
+    writeMesh("cavenderr",msh,true,nedg0,nfac0,nele0);
   }
 	//METRIS_THROW_MSG(TODOExcept(), 
   //  "Get rid of bpoi entries of existing points? Do these exist? Check ierro = "<<ierro);

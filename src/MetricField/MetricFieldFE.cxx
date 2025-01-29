@@ -199,7 +199,9 @@ void MetricFieldFE::readMetricFile(std::string inpname){
   GmfCloseMesh(libIdx);
 }
 
-void MetricFieldFE::writeMetricFile(std::string outname, MetSpace outspac){
+void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
+
+  const MetSpace outspac = MetSpace::Exp;
 
   if(ibasis == FEBasis::Undefined){
     std::cout<<"## WARNING: Metric field basis not defined, possible surface or line mesh \n";
@@ -218,7 +220,7 @@ void MetricFieldFE::writeMetricFile(std::string outname, MetSpace outspac){
   int idim = msh.idim;
   METRIS_ASSERT(idim == 2 || idim == 3);
 
-  metName = msh.param->outmPrefix + metName;
+  metName = iprefix ? msh.param->outmPrefix + metName : metName;
 
   int nnmet = getnnmet();
 

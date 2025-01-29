@@ -126,8 +126,7 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
     }
   }
 
-  CPRINTF1("-- Histogram: %s\n", name.c_str());
-  CPRINTF1("-- Summary: %.2f %% within bounds %f %f \n", 
+  CPRINTF1("-- %s: %.2f %% within bounds %f %f \n", name.c_str(),
                            100.0 - 100.0*(nlow + nhig)/(double) nval,vlow, vhig);
   CPRINTF1("  - minimum = %f (%d)\n",vmin,imin);
   CPRINTF1("  - maximum = %f (%d)\n",vmax,imax);

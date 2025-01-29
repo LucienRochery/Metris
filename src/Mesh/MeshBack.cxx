@@ -165,7 +165,7 @@ void MeshBack::initialize(MetrisAPI *data,
     met.forceBasisFlag(data->metbasis);
     met.forceSpaceFlag(data->metspace);
 
-    if(DOPRINTS2()) met.writeMetricFile("metDATA", MetSpace::Exp);
+    if(DOPRINTS2()) met.writeMetricFile("metDATA");
 
   }else{
     METRIS_THROW_MSG(WArgExcept(), "No metric info for back ?? ");

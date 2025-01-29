@@ -490,17 +490,8 @@ void MetrisRunner::writeOutputs0(){
       baseOutName = param_.outmFileName.substr(0,pos);
       effMetFileName = baseOutName + ".solb";
     }
-    writeMesh(effMeshFileName, msh);
-
-    //// Recompute the metric if analytical
-    //MetSpace tarspac = msh.met.getSpace();
-    //if constexpr(std::is_same<MFT,MetricFieldAnalytical>::value){
-    //  for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-    //    msh.met.template getMetPhys(AsDeg::P,DifVar::None,tarspac,NULL,msh.coord[ipoin],msh.met[ipoin],NULL);
-    //  }
-    //}
-
-    msh.met.writeMetricFile(effMetFileName);
+    writeMesh(effMeshFileName, msh, false);
+    msh.met.writeMetricFile(effMetFileName, false);
   }// End sequential
 }
 template void MetrisRunner::writeOutputs0<MetricFieldFE>();

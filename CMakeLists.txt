@@ -264,7 +264,7 @@ if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME
 		#	#target_link_libraries(${d} PUBLIC PETSc)
 		#endif()
                           
-		target_include_directories(${d} PUBLIC "."  ${PETSC_INCLUDE}  ${ABSL_INCLUDE_DIRS})
+		target_include_directories(${d} PUBLIC "."  ${PETSC_INCLUDE}  ${ABSL_INCLUDE_DIRS}  ${Boost_INCLUDE_DIRS})
 		#target_include_directories(prog PUBLIC 
 		#                           "${PROJECT_BINARY_DIR}"
 		#					                 "${PROJECT_SOURCE_DIR}/libs"

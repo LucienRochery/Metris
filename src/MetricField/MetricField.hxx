@@ -91,7 +91,7 @@ public:
   void forceBasisFlag(FEBasis ibasn){ibasis = ibasn;}
 
 	void readMetricFile(std::string outname);
-	void writeMetricFile(std::string outname, MetSpace outspac = MetSpace::Exp);
+	void writeMetricFile(std::string outname, bool iprefix = true);
 
 	template<int gdim, int tdim, int mshdeg, int tardeg>
 	void getMetNodes(int ientt, double *metnod) const;

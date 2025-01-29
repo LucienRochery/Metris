@@ -39,7 +39,7 @@ int64_t MetrisOpenMeshFile(std::string name, int *meshDim);
 //void iniMesh(MetrisOptions &opt, int usrMinDeg, int usrMaxDeg, Mesh &msh);
 
 void writeMeshCavity(std::string meshName, MeshBase &msh, const MshCavity& cav, int ithread = 0);
-void writeMesh(std::string meshName, MeshBase &msh, bool ivolonly = false,
+void writeMesh(std::string meshName, MeshBase &msh, bool iprefix = true,
                int nedg0 = 0, int nfac0 = 0, int nele0 = 0);
 
 template<class MFT>
