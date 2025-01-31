@@ -928,8 +928,10 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       METRIS_ASSERT_MSG(iedge >= 0 && iedge < nedge || param->refineConventions,
         "iedge = "<<iedge<<" refineConventions = "<<param->refineConventions
         << " lgpoe = "<<lgpoe(igpoe,1));
-      METRIS_ASSERT_MSG(iedge >= 0 && iedge < CAD.ncaded || param->refineConventions,
-                        "Invalid edge reference in refine convention")
+      //METRIS_ASSERT_MSG(iedge >= 0 && iedge < CAD.ncaded || !param->refineConventions,
+      //                  "Invalid edge reference in refine convention iedge "
+      //                  <<iedge<<" CAD.ncaded "<<CAD.ncaded<< " refine conv "
+      //                  <<param->refineConventions)
 
       if(!param->refineConventions && isdeadent(iedge,edg2poi)){
         if(nwarn++ < mwarn) 
@@ -982,11 +984,15 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
             // In refine convention, the onGeometricEdges entry stores the ref
             // we put here - the entry. 
             int iref = - ientt - 1;
+            //if(ipoin == 7){
+            //  printf("ipoin 7 ibpoi %d type %d ientt %d iref %d edg2ref[iedge] %d\n",
+            //    ibpoi,itype,ientt,iref,edg2ref[iedge]);
+            //}
             if(iref != edg2ref[iedge]) continue;
             bpo2ibi(ibpoi,2) = iedge;
             CPRINTF1(" - create link ipoin %d ibpoi %d -> edge %d\n"
                                          ,ipoin, ibpoi, iedge);
-            break;
+            //break;
           }
         }
       }

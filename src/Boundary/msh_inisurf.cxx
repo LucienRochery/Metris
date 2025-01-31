@@ -66,10 +66,12 @@ void prjMeshPoints(MeshBase &msh, int nbpo0, bool onlyproj, bool updtX){
 
 	for(int ibpoi = 0; ibpoi < nbpo0; ibpoi++){
     INCVDEPTH(msh);
+    int ipoin = msh.bpo2ibi(ibpoi,0);
 		int ientt = msh.bpo2ibi(ibpoi,2);
+    METRIS_ASSERT_MSG(ientt >= 0,"ipoin = "<<ipoin<<" ientt "<<ientt
+      <<" ibpoi "<<ibpoi);
 		int bdim = msh.bpo2ibi(ibpoi,1);
 		METRIS_ASSERT(bdim >= 0 && bdim <= 2 && "bdim within bounds");
-		int ipoin = msh.bpo2ibi(ibpoi,0);
 
 		int iref = bdim == 0 ? ientt :
                bdim == 1 ? msh.edg2ref[ientt]
