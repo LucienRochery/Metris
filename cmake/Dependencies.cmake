@@ -46,12 +46,19 @@ if(REQ_CODEGEN)
 endif()
 
 
-
-if(NOT(DEFINED ENV{LAPACK_INCLUDE_DIR}))
-  message(FATAL_ERROR "Set the environment variable LAPACK_INCLUDE_DIR to the folder containing lapacke.h")
+if(EXISTS "/usr/include/lapacke.h")
+  message("Found lapacke.h: /usr/include/lapacke.h")
+  set(LAPACK_INCLUDE_DIR /usr/include/)
+elseif(EXISTS "/usr/local/include/lapacke.h")
+  message("Found lapacke.h: /usr/local/include/lapacke.h")
+  set(LAPACK_INCLUDE_DIR /usr/local/include/)
 else()
-  set(LAPACK_INCLUDE_DIR $ENV{LAPACK_INCLUDE_DIR})
-  message("Found LAPACK_INCLUDE_DIR = ${LAPACK_INCLUDE_DIR}")
+  if(NOT(DEFINED ENV{LAPACK_INCLUDE_DIR}))
+    message(FATAL_ERROR "Set the environment variable LAPACK_INCLUDE_DIR to the folder containing lapacke.h")
+  else()
+    set(LAPACK_INCLUDE_DIR $ENV{LAPACK_INCLUDE_DIR})
+    message("Found LAPACK_INCLUDE_DIR = ${LAPACK_INCLUDE_DIR}")
+  endif()
 endif()
 
 
