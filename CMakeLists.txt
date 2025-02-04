@@ -21,6 +21,7 @@ execute_process(COMMAND "${GIT_EXECUTABLE}" config --get remote.origin.url
 if(GITURL MATCHES "github.com" OR REQ_CODEGEN EQUAL OFF)
   message(WARNING "Disabled codegen!")
   set(REQ_CODEGEN OFF)
+  set(DO_UNITTESTS OFF)
   set(CODEGEN_FILES ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.02.cxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.02_d.cxx
@@ -39,6 +40,7 @@ if(GITURL MATCHES "github.com" OR REQ_CODEGEN EQUAL OFF)
 else()
   message("-- Metris with codegen enabled ")
   set(REQ_CODEGEN ON)
+  set(DO_UNITTESTS ON)
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -199,7 +201,7 @@ setMetrisFlags(scatter_rh PUBLIC)
 
 # icc having trouble with GTest on my system, figure this out later
 #if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME) AND "Debug" IN_LIST CMAKE_BUILD_TYPE)
-if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME))
+if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME)  AND  DO_UNITTESTS)
 
 	#include(FetchContent)
 	#FetchContent_Declare(
