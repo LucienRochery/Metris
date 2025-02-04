@@ -9,7 +9,6 @@
 
 #include "../Mesh/MeshFwd.hxx"
 #include "../msh_anamet.hxx"
-#include "../msh_anafun.hxx"
 #include <string>
 
 
@@ -133,7 +132,6 @@ struct MetrisParameters{
   friend class CADInfo;
 public:  
   bool anaMet;
-  bool anaFun;
   bool inpMet;
   bool inpBack;
   bool inpCAD;
@@ -151,10 +149,6 @@ public:
   // To use defaults, see anamet_2D and anamet_3D.cxx 
   int ianamet; 
 
-  // See anafun.hxx. Can implement your own with same prototype
-  anafun_proto anafun_ptr;
-  // To use defaults, see anafun_2D and anafun_3D.cxx 
-  int ianafun; 
 
 };
 
