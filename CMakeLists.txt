@@ -11,14 +11,14 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 
 include(MetrisFlags)
 
+find_package(Git)
 execute_process(COMMAND "${GIT_EXECUTABLE}" config --get remote.origin.url
                 WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
                 RESULT_VARIABLE dum
                 OUTPUT_VARIABLE GITURL
                 ERROR_QUIET
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-if(GITURL MATCHES "github.com")
+if(GITURL MATCHES "github.com" OR REQ_CODEGEN EQUAL OFF)
   message(WARNING "Disabled codegen!")
   set(REQ_CODEGEN OFF)
   set(CODEGEN_FILES ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx
