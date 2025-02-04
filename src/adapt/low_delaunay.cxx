@@ -55,7 +55,12 @@ bool indelsphere(const double *coop, const double *metl,
 
   // C is solution of mat*C = rhs
   //invmat(gdim, mat[0]);
-  METRIS_ENFORCE(!invmat<gdim>(mat[0]));
+  if(invmat<gdim>(mat[0])){
+    #ifndef NDEBUG
+    METRIS_THROW_MSG(GeomExcept(), "Invmat failed Delaunay")
+    #endif
+    return false;
+  }
   matXvec<gdim>(mat[0], rhs, centr);
 
   for(int jj = 0; jj < gdim; jj++) buf[jj] = coord[ent2pol[0]][jj] - centr[jj];
