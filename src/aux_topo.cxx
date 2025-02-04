@@ -381,22 +381,22 @@ template void getbpois< n ,2>(const MeshBase &msh, int ientt, int *lbpoi);
 
 bool getnextfacnm(const MeshBase &msh, int iface, int i1, int i2,
 	                      int* ifac2, int* ied){
-  *ifac2 = - msh.fac2fac[*ifac2][*ied] - 2;
+  *ifac2 = - msh.fac2fac(*ifac2,*ied) - 2;
   METRIS_ASSERT_MSG(*ifac2 >= 0 && *ifac2 < msh.nface, "Invalid next face ifac2 = "<<*ifac2);
   *ied  = getedgfac(msh,*ifac2,i1,i2);
 	return *ifac2 != iface;
 }
 
 
-bool getnextedgnm(const MeshBase &msh, int iedge, int ipoin, 
+bool getnextedgnm(const MeshBase &msh, int iedg0, int ipoin, 
                         int* iedg2, int* inei){
-  *iedg2 = - msh.edg2edg[*iedg2][*inei] - 2;
+  *iedg2 = - msh.edg2edg(*iedg2,*inei) - 2;
   METRIS_ASSERT_MSG(*iedg2 >= 0 && *iedg2 < msh.nedge, "Invalid next nm edge = "<<*iedg2);
   *inei = -1;
   for(int ii = 0; ii < 2; ii++){
-    if(msh.edg2poi[*iedg2][1-ii] == ipoin) *inei = ii;
+    if(msh.edg2poi(*iedg2,1-ii) == ipoin) *inei = ii;
   }
-  return *iedg2 != iedge;
+  return *iedg2 != iedg0;
 }
 
 

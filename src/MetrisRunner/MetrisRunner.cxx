@@ -477,6 +477,7 @@ void MetrisRunner::writeOutputs0(){
 
   Mesh<MFT> &msh = static_cast<Mesh<MFT>&>(*msh_g);
 
+
   if(param_.wrtMesh){
     std::string baseOutName;
     std::string effMeshFileName, effMetFileName;

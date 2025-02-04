@@ -48,7 +48,9 @@ struct MetrisOptions{
 
 
     s.add_options()
-      ("refine-conventions", "Adopt Refine conventions for VerticesOnGeometricX");
+      ("refine-conventions-inp", "Adopt Refine conventions for VerticesOnGeometricX");
+    s.add_options()
+      ("refine-conventions-out", "Adopt Refine conventions for VerticesOnGeometricX");
 
     // ----------------- Metric and solution options 
     s.add_options()

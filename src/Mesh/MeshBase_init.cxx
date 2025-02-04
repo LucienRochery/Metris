@@ -115,6 +115,8 @@ void MeshBase::initialize(MetrisAPI *data,
   int nbpo0 = nbpoi; // Those before creation by neighbours, reconst
 
   iniNeighbours();
+
+
   iniBdryPoints();
   
   
@@ -678,7 +680,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
     }
     
-    if(param->refineConventions){
+    #if 0
+    if(param->refineConventionsInp){
       int nseen = 0;
       bool ineg = false;
       for(int ielem = 0; ielem < nelem; ielem++){
@@ -700,6 +703,13 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
       if(ineg) CPRINTF1("## FLIPPED ELEMENT SIGNS !\n");
     }
+    #else
+
+      if(isboundary_faces() && param->refineConventionsInp)
+        METRIS_THROW_MSG(TODOExcept(), "Surface bpois not handled MeshBase_init "
+          "with refineConventionsInp == true. Modify iniMeshBdryPoints.");
+
+    #endif
 
     CPRINTF2("-- Done reading %10d tetrahedra\n",nelem);
   }
@@ -757,7 +767,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
     }
 
-    if(param->refineConventions){
+    if(param->refineConventionsInp){
       int nseen = 0;
       bool ineg = false;
       for(int iface = 0; iface < nface; iface++){
@@ -899,7 +909,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   int ngpoe = GmfStatKwd(libIdx, GmfVerticesOnGeometricEdges);
   if(ngpoe > 0){
     CPRINTF2(" - File has %d bdry pts -> edge links\n",ngpoe);
-    if(param->refineConventions) CPRINTF1(" - Using refine convention\n");
+    if(param->refineConventionsInp) CPRINTF1(" - Using refine convention\n");
     intAr2 lgpoe(ngpoe,2);
     dblAr2 rgpoe(ngpoe,2); 
     lgpoe.set_n(ngpoe);
@@ -918,29 +928,29 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
     for(int igpoe = 0; igpoe < ngpoe; igpoe++){
       int ipoin = lgpoe(igpoe,0) - 1;
       // If in refineConvention, this will be a ref 1-n, otherwise an edge
-      int iedge = param->refineConventions ? -lgpoe(igpoe,1) 
+      int iedge = param->refineConventionsInp ? -lgpoe(igpoe,1) 
                                            : (lgpoe(igpoe,1) - 1);
-      if(ipoin < 0 || iedge < 0 && !param->refineConventions){
+      if(ipoin < 0 || iedge < 0 && !param->refineConventionsInp){
         printf("## WARNING invalid entry %d/%d in GmfVerticesOnGeometricEdges: %d %d \n",
           igpoe,ngpoe,ipoin,iedge);
         continue;
       }
-      METRIS_ASSERT_MSG(iedge >= 0 && iedge < nedge || param->refineConventions,
-        "iedge = "<<iedge<<" refineConventions = "<<param->refineConventions
+      METRIS_ASSERT_MSG(iedge >= 0 && iedge < nedge || param->refineConventionsInp,
+        "iedge = "<<iedge<<" refineConventionsInp = "<<param->refineConventionsInp
         << " lgpoe = "<<lgpoe(igpoe,1));
-      //METRIS_ASSERT_MSG(iedge >= 0 && iedge < CAD.ncaded || !param->refineConventions,
+      //METRIS_ASSERT_MSG(iedge >= 0 && iedge < CAD.ncaded || !param->refineConventionsInp,
       //                  "Invalid edge reference in refine convention iedge "
       //                  <<iedge<<" CAD.ncaded "<<CAD.ncaded<< " refine conv "
-      //                  <<param->refineConventions)
+      //                  <<param->refineConventionsInp)
 
-      if(!param->refineConventions && isdeadent(iedge,edg2poi)){
+      if(!param->refineConventionsInp && isdeadent(iedge,edg2poi)){
         if(nwarn++ < mwarn) 
           printf("## FILE CONTAINS IBPOS POINTING TO DEAD ENTITIES\n");
         continue;
       }
 
 
-      if(!param->refineConventions){
+      if(!param->refineConventionsInp){
         if(edg2tag(0,iedge) < tag[0]) 
           edg2tag(0,iedge) = tag[0];
         else{
@@ -966,7 +976,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
     }
     tag[0] = maxtag;
 
-    if(param->refineConventions){
+    // We no longer update here but in iniMeshBdryPoints
+    #if 0
+    if(param->refineConventionsInp){
       for(int iedge = 0; iedge < nedge; iedge++){
         INCVDEPTH((*this));
         if(isdeadent(iedge,edg2poi)) continue;
@@ -984,10 +996,6 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
             // In refine convention, the onGeometricEdges entry stores the ref
             // we put here - the entry. 
             int iref = - ientt - 1;
-            //if(ipoin == 7){
-            //  printf("ipoin 7 ibpoi %d type %d ientt %d iref %d edg2ref[iedge] %d\n",
-            //    ibpoi,itype,ientt,iref,edg2ref[iedge]);
-            //}
             if(iref != edg2ref[iedge]) continue;
             bpo2ibi(ibpoi,2) = iedge;
             CPRINTF1(" - create link ipoin %d ibpoi %d -> edge %d\n"
@@ -997,6 +1005,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
         }
       }
     }
+    #endif 
 
   }
 
@@ -1018,9 +1027,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
 
     for(int igpof = 0; igpof < ngpof; igpof++){
       int ipoin = lgpof(igpof,0) - 1;
-      int iface = param->refineConventions ? -lgpof(igpof,1) 
-                                           : (lgpof(igpof,1) - 1);
-      if(!param->refineConventions && isdeadent(iface,fac2poi)){
+      int iface = param->refineConventionsInp ? -lgpof(igpof,1) 
+                                              : (lgpof(igpof,1) - 1);
+      if(!param->refineConventionsInp && isdeadent(iface,fac2poi)){
         if(nwarn++ < mwarn) printf("## FILE CONTAINS IBPOS POINTING TO DEAD ENTITIES\n");
         continue;
       }
@@ -1033,7 +1042,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       bpo2rbi(ibpoi,1) = rgpof(igpof,1);
     }
 
-    if(param->refineConventions && idim >= 3){
+    if(param->refineConventionsInp && idim >= 3){
       for(int iface = 0; iface < nface; iface++){
         if(isdeadent(iface,fac2poi)) continue;
         for(int ii = 0; ii < 3; ii++){

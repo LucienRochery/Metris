@@ -43,7 +43,8 @@ MetrisParameters::MetrisParameters(){
   iverb     = 2;
   ivdepth   = 0;
   dbgfull   = false;
-  refineConventions = false;
+  refineConventionsInp = false;
+  refineConventionsOut = false;
 
   opt_pnorm = Defaults::opt_pnorm;
   opt_power = Defaults::opt_power;
@@ -73,8 +74,11 @@ MetrisParameters::MetrisParameters(){
 
 MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
 
-  if(opt.count("refine-conventions")){
-    refineConventions = true;
+  if(opt.count("refine-conventions-inp")){
+    refineConventionsInp = true;
+  }
+  if(opt.count("refine-conventions-out")){
+    refineConventionsOut = true;
   }
   
   if(opt.count("help")) { 

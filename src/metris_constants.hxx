@@ -132,6 +132,9 @@ namespace Constants{
 
   const double detTol = 1.0e-32;
 
+  // Threshold for t or (u,v) coordinates to be considered different at a scale of 1
+  const double CADparamTol = 1.0e-10;
+
 
   // Expected number of entities per vertex (not ctrl pt)
   // See below for "proofs"

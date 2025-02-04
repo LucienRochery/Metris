@@ -49,9 +49,9 @@ int iniMeshBdryPoints(MeshBase &msh);
 Generate lists for VerticesOnGeometric(Vertices|Edges|Faces)
 incre = increment ( +1 for file IO )
 */
-void genOnGeometricEntLists(MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
-                                           intAr2& lgpoe, dblAr2& rgpoe,
-                                           intAr2& lgpof, dblAr2& rgpof,
+void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
+                                                 intAr2& lgpoe, dblAr2& rgpoe,
+                                                 intAr2& lgpof, dblAr2& rgpof,
                             int incre = 0);
 
 int getNumCorners(MeshBase &msh); 
