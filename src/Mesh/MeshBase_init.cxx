@@ -527,8 +527,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   CPRINTF2("-- Start reading %10d points\n",npoin);
   GmfGotoKwd( libIdx, GmfVertices );
   GmfGetBlock(libIdx, GmfVertices, 1, npoin, 0, NULL, NULL,
-    GmfDoubleVec, idim, &coord(0,0), &coord(npoin-1,0),
-    GmfInt            , &poi2bpo[0] , &poi2bpo[npoin-1]);
+              GmfDoubleVec, idim, &coord(0,0), &coord(npoin-1,0),
+              GmfInt            , &poi2bpo[0] , &poi2bpo[npoin-1]);
   CPRINTF2("-- Done reading %10d points\n",npoin);
 
   /* --------------------------------- Corners
@@ -926,7 +926,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       int ipoin = lgpoe(igpoe,0) - 1;
       // If in refineConvention, this will be a ref 1-n, otherwise an edge
       int iedge = param->refineConventionsInp ? -lgpoe(igpoe,1) 
-                                           : (lgpoe(igpoe,1) - 1);
+                                              : (lgpoe(igpoe,1) - 1);
       if(ipoin < 0 || iedge < 0 && !param->refineConventionsInp){
         printf("## WARNING invalid entry %d/%d in GmfVerticesOnGeometricEdges: %d %d \n",
           igpoe,ngpoe,ipoin,iedge);
@@ -969,7 +969,6 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       if(ibpoi < 0) continue;
       bpo2rbi(ibpoi,0) = rgpoe(igpoe,0);
       bpo2rbi(ibpoi,1) = 0.0;
-
     }
     tag[0] = maxtag;
 

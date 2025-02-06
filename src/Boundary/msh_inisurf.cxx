@@ -594,6 +594,14 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 
         int pdim = msh.bpo2ibi(ibpo0,1);
 
+        if(ipoin == 2){
+          printf("## DEBUG ipoin 2\n");
+          for(int ibpoi = ibpo0; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+            printf("ibpoi %d :",ibpoi);
+            intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
+          }// for ibpoi
+        }
+
         lrbpo.set_n(0);
         for(int ibpoi = ibpo0; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
           int itype = msh.bpo2ibi(ibpoi,1);
@@ -610,7 +618,12 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
         }// for ibpoi
 
 
+
         if(lrbpo.get_n() == 0) continue;
+
+        CPRINTF1(" - tdim %d ientt %d ipoin %d nrbpo = %d \n",
+                 tdim,ientt,ipoin,lrbpo.get_n());
+
         if(lrbpo.get_n() == 1){
           int ibpoi = lrbpo.pop();
           msh.bpo2ibi(ibpoi,2) = ientt;
@@ -637,7 +650,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 
         if(tdim == 1){
           // Get the other edge, find which gets which.
-          int iedg2 = msh.edg2edg(ientt,iver);
+          int iedg2 = msh.edg2edg(ientt,1-iver);
           if(iedg2 < 0){
             int inei;
             bool ifnd = false;
@@ -672,9 +685,11 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
             METRIS_ENFORCE_MSG(msh.bpo2ibi(ibpo1,1) == 1,
               "TODO: handle CAD edges with no interior nodes in iniMeshBdryPoints");
 
+            CPRINTF2(" - using ipoi3 = %d ibpo1 = %f \n",ipoi3,ibpo1);
+
             int ibpoi; 
             bool ifnd = false;
-            for(ibpoi = ibpo0; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+            for(ibpoi = ibpo1; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
               int itype = msh.bpo2ibi(ibpoi,1);
               if(itype != 1) continue;
               int ientt = msh.bpo2ibi(ibpoi,2);
@@ -701,6 +716,9 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
             ibpos[iipoi] = ibpoi;
           }
 
+          CPRINTF2(" - neighbour ibpois: %d, t = %f ; %d, t = %f\n",
+                   ibpos[0],msh.bpo2rbi(ibpos[0],0),ibpos[1],msh.bpo2rbi(ibpos[0],0));
+
           // Now we have the ibpois for ipoi1, ipoi2, corrected.
           // Start by updating for ientt:
           int iused = -1;
@@ -708,12 +726,12 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
             double dst1 = abs(msh.bpo2rbi(lrbpo[0],0) - msh.bpo2rbi(ibpos[ied],0));
             double dst2 = abs(msh.bpo2rbi(lrbpo[1],0) - msh.bpo2rbi(ibpos[ied],0));
             if(dst1 < dst2){
-              CPRINTF2(" - t coordinate distances %10.3e < %10.3e -> update %d",
+              CPRINTF2(" - t coordinate distances %10.3e < %10.3e -> update %d\n",
                        dst1,dst2,lrbpo[0]);
               METRIS_ENFORCE_MSG(iused != 0, "t coordinte already used, distances too close?")
               iused = 0;
             }else{
-              CPRINTF2(" - t coordinate distances %10.3e > %10.3e -> update %d",
+              CPRINTF2(" - t coordinate distances %10.3e > %10.3e -> update %d\n",
                        dst1,dst2,lrbpo[1]);
               METRIS_ENFORCE_MSG(iused != 1, "t coordinte already used, distances too close?")
               iused = 1;
@@ -834,10 +852,16 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 
       } // for iver
     }// for ientt
-  }
 
-  CPRINTF1(" - VerticesOnGeometricEdges w/ refine convention: " 
-           "translated %d open, %d loop bpois \n",ncor1,ncor0);
+    if(tdim == 1){
+      CPRINTF1(" - VerticesOnGeometricEdges w/ refine convention: " 
+               "translated %d open, %d loop bpois \n",ncor1,ncor0);
+    }else{
+      CPRINTF1(" - VerticesOnGeometricFaces w/ refine convention: " 
+               "translated %d bpois \n",ncor1);
+    }
+  }// for tdim
+
 
 
 

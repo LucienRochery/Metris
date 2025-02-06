@@ -267,7 +267,9 @@ int MeshBase::newbpotopo(int ipoin, int ientt){
       // This case same dim 
       int ient0 = bpo2ibi(ibpoi,2); 
       // If same entity, return this ibpoi and do not create a new one. 
-      if(ient0 == ientt) return ibpoi;
+      // Negative entry is specific to initialization to store a ref. These 
+      // can be duplicated. 
+      if(ient0 == ientt && ient0 >= 0) return ibpoi;
     }
 
     //int ibpo2 = ibpoi;
