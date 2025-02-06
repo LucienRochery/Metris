@@ -528,7 +528,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   GmfGotoKwd( libIdx, GmfVertices );
   GmfGetBlock(libIdx, GmfVertices, 1, npoin, 0, NULL, NULL,
     GmfDoubleVec, idim, &coord(0,0), &coord(npoin-1,0),
-    GmfInt            , &poi2bpo[0] , &poi2bpo[npoin-1];
+    GmfInt            , &poi2bpo[0] , &poi2bpo[npoin-1]);
   CPRINTF2("-- Done reading %10d points\n",npoin);
 
   /* --------------------------------- Corners
