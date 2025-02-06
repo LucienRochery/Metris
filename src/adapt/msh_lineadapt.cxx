@@ -527,7 +527,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
             CPRINTF1(" - Starting insert ipins = %d cav ncedg = %d ncfac = %d \n",    
                                      cav.ipins,cav.lcedg.get_n(),cav.lcfac.get_n());
 
-            if(DOPRINTS2()){
+            if(DOPRINTS2() && msh.param->dbgfull){
               intAr1 &refold = msh.iwork;
               refold.set_n(msh.nface);
               for(int ii = 0; ii < msh.nface; ii++){
@@ -542,18 +542,16 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
               int ipoin = msh.newpoitopo(-1,-1);
               int ibpoi = msh.template newbpotopo<0>(ipoin,ipoin);
               for(int ii = 0; ii < msh.idim; ii++) 
-                msh.coord(ipoin,ii) = msh.coord[cav.ipins][ii] ;
+                msh.coord(ipoin,ii) = msh.coord[cav.ipins][ii];
               writeMesh("debug_lineadap0.meshb",msh);
               for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi(ibpoi,ii)  = -1;
-              msh.set_npoin(msh.npoin-1);
-              msh.set_nbpoi(msh.nbpoi-1);
               //printf("Wait here \n");
               //wait();
               for(int ii = 0; ii < msh.nface; ii++){
                 msh.fac2ref[ii] = refold[ii];
               }
-
-              writeMeshCavity("debug_lineadap2_cav",msh,cav);
+              // Cavity handles its ipins corner
+              msh.killpoint(ipoin);
             }
 
 

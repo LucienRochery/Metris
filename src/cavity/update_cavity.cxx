@@ -9,6 +9,7 @@
 #include "../ho_constants.hxx"
 #include "../io_libmeshb.hxx"
 #include "../CT_loop.hxx"
+#include "../mprintf.hxx"
 #include "../linalg/det.hxx"
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -30,10 +31,20 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
                   int npoi0, int nedg0, int nfac0, int nele0, 
                   int ithread){
 
-  const int iverb = msh.param->iverb;
+  GETVDEPTH(msh);
+
   const int ncedg = cav.lcedg.get_n();
   const int ncfac = cav.lcfac.get_n();
   const int nctet = cav.lctet.get_n();
+
+  if(DOPRINTS2()){
+    MshCavity cav2(msh.nelem-nele0,msh.nedge-nedg0,msh.nface-nfac0);
+    for(int ii = nele0; ii < msh.nelem; ii++) cav2.lctet.stack(ii);
+    for(int ii = nfac0; ii < msh.nface; ii++) cav2.lcfac.stack(ii);
+    for(int ii = nedg0; ii < msh.nedge; ii++) cav2.lcedg.stack(ii);
+    cav2.ipins = cav.ipins;
+    writeMeshCavity("cavity1",msh,cav2);
+  }
 
   // Tag cavity entities 
   msh.tag[ithread]++;
@@ -100,7 +111,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
 
       int ierro = EG_invEvaluateGuess(obj, msh.coord[cav.ipins], msh.bpo2rbi[ibins], result);
       if(ierro != 0){
-        if(iverb >= 1) printf("## EG_invEvaluateGuess ERROR %d \n",ierro);
+        CPRINTF1("## EG_invEvaluateGuess ERROR %d \n",ierro);
         goto cleanup;
       }
 
@@ -116,17 +127,18 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
     if (msh.isboundary_tdimn(tdimn)){
     int nnode = msh.nnode(tdimn);
     for(int ientt : cav.lcent<tdimn>()){
+      INCVDEPTH(msh);
       for(int ii = 0; ii < nnode; ii++){
         int ip = msh.template ent2poi<tdimn>()[ientt][ii];
         if(msh.poi2tag(ithread,ip) >= msh.tag[ithread]) continue;
         msh.poi2tag(ithread,ip) = msh.tag[ithread];
-        if(iverb >= METRIS_CAV_PRTLEV + 1){
-          printf("   - ip = %d clean bpo pre:\n",ip);
+        if(DOPRINTS1()){
+          CPRINTF1(" - ip = %d clean bpo pre:\n",ip);
           print_bpolist(msh,msh.poi2bpo[ip]);
         }
         msh.rembpotag(ip,ithread);
-        if(iverb >= METRIS_CAV_PRTLEV + 1){
-          printf("   - bpo post:\n");
+        if(DOPRINTS1()){
+          CPRINTF1(" - bpo post:\n");
           print_bpolist(msh,msh.poi2bpo[ip]);
         }
       }
@@ -420,11 +432,6 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
   }
 
 
-  #ifndef NDEBUG
-    if(iverb >= METRIS_CAV_PRTLEV) writeMesh("debug_cavity.meshb",msh);
-
-    //if(iverb >= METRIS_CAV_PRTLEV) printf("      -- Step 2. update neighbours\n");
-  #endif
   // Internal neighbours are updated directly in reconnect_lincav. 
   // External neighbours
   for(int iedge = nedg0; iedge < msh.nedge; iedge++){
@@ -541,14 +548,15 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
     }
   }
 
-  if(msh.nelem > 0)METRIS_THROW_MSG(TODOExcept(),"See dead triangle neighbour update -> tets nelem = "<<msh.nelem)
-
+  if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(),
+    "See dead triangle neighbour update -> tets nelem = "<<msh.nelem)
 
 
 
 
   // New face updates, namely neighbours 
   for(int ifanw = nfac0; ifanw < msh.nface; ifanw++){
+    INCVDEPTH(msh);
     // poi2ent update
     int ip[3]; 
     for(int ii = 0; ii < 3; ii++){
@@ -579,7 +587,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
       // and see if new (update ok) or old
       int ifaca = msh.fac2fac(ifanw,ii);
       
-      if(iverb >= METRIS_CAV_PRTLEV) printf("       - ifanw = %d ii = %d ineigh = %d \n",ifanw,ii,ifaca);
+      CPRINTF1(" - ifanw = %d ii = %d ineigh = %d \n",ifanw,ii,ifaca);
 
       if(ifaca >= nfac0) METRIS_ASSERT(!isdeadent(ifaca,msh.fac2poi));
       if(ifaca >= nfac0) continue; // Internal neighbours are known.
@@ -594,19 +602,29 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
       if(ifaca < 0){ // Either surface boundary or non manifold
         int iedge = msh.facedg2glo(ifanw, ii); 
 
+        CPRINTF1(" - edge neighbour = %d <? %d = nedg0 \n",iedge,nedg0);
+
         // Check valid AND not a new edge otherwise what happened??
         METRIS_ENFORCE_MSG(iedge >= 0,"ifanw = "<<ifanw<<" ifaca = "<<ifaca<<" iedg = "<<ii);
+
         if(iedge >= nedg0) continue; // New edge -> already handled
+
         METRIS_ASSERT(!isdeadent(iedge,msh.edg2poi));
 
         // Figure out if surface bdry or non manifold. 
         // Start by getting face attached to edge. 
         int ifaed = msh.edg2fac[iedge];
         METRIS_ASSERT(ifaed >= 0);
-        if(isdeadent(ifaed,msh.fac2poi) || 
-          msh.fac2tag(ithread,ifaed) >= msh.tag[ithread]){
-          if(iverb >= METRIS_CAV_PRTLEV + 1) printf(" edg2fac link update iedge = %d : %d <- %d (new <- old)\n",
-            iedge,ifanw,msh.edg2fac[iedge]);
+        CPRINTF1(" - ifaed = %d dead ? %d \n",ifaed,isdeadent(ifaed,msh.fac2poi));
+        if(!isdeadent(ifaed,msh.fac2poi) && DOPRINTS1()){
+          CPRINTF1(" - ifaed vertices: ");
+          intAr1(facnpps[msh.curdeg],msh.fac2poi[ifaed]).print();
+        }
+
+        if(isdeadent(ifaed,msh.fac2poi)
+        || msh.fac2tag(ithread,ifaed) >= msh.tag[ithread]){
+          CPRINTF1(" - edg2fac link update iedge = %d : %d <- %d (new <- old)\n",
+                    iedge,ifanw,msh.edg2fac[iedge]);
           msh.edg2fac[iedge] = ifanw;
           continue;
         }
@@ -639,8 +657,8 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
           if(msh.fac2tag(ithread,ifaed) >= msh.tag[ithread]){
             msh.fac2fac(ifanw,ii) = -1; // Actually nothing to do here, for clarity and robustness. 
             msh.edg2fac[iedge] = ifanw;  // Update edge to face link. 
-            if(iverb >= METRIS_CAV_PRTLEV + 1) printf(" edg2fac link update iedge = %d : %d <- %d (new <- old)\n",
-              iedge,ifanw,msh.edg2fac[iedge]);
+            CPRINTF1(" - edg2fac link update iedge = %d : %d <- %d (new <- old)\n",
+                     iedge,ifanw,msh.edg2fac[iedge]);
           }else{
             // Edge was pointed to by a single face, but this face was (and still is!!) outside the cavity... 
             // the topology has changed, no no
@@ -648,8 +666,8 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
           }
           // Only one to link to, no further info needed from previous face, do update now
           msh.edg2fac[iedge] = ifanw;
-          if(iverb >= METRIS_CAV_PRTLEV + 1) printf(" edg2fac link update iedge = %d : %d <- %d (new <- old)\n",
-            iedge,ifanw,msh.edg2fac[iedge]);
+          CPRINTF1(" - edg2fac link update iedge = %d : %d <- %d (new <- old)\n",
+                   iedge,ifanw,msh.edg2fac[iedge]);
         }else{ // Non manifold edge, leave to future self
           METRIS_THROW_MSG(TODOExcept(),"Implement non manifold neighbour update cavity")
         }
@@ -796,7 +814,8 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
     }
   }
 
-  if(msh.nelem > 0)METRIS_THROW_MSG(TODOExcept(),"See dead triangle neighbour update -> tets nelem = "<<msh.nelem)
+  if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(),
+        "See dead triangle neighbour update -> tets nelem = "<<msh.nelem)
 
 
 

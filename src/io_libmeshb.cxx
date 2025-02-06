@@ -340,7 +340,7 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav,
       int ib = msh.poi2bpo[ip];
       METRIS_ASSERT(ib >= 0);
       if(msh.bpo2ibi(ib,1) == 0){
-        lcorn.stack(ip);
+        lcorn.stack(ip + 1);
         if(ip == cav.ipins) iipns = true;
       }
     }
@@ -366,6 +366,7 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav,
   if(!iipns){
     lcorn.stack(cav.ipins + 1);
   }
+
 
   int ncorn = lcorn.get_n();
   METRIS_ASSERT(ncorn >= 1);
@@ -534,10 +535,10 @@ void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
 
   if(msh.getBasis() == FEBasis::Bezier) GmfSetKwd( libIdx, GmfBezierBasis, 1);
 
-  if(msh.nedge > 0){
+  if(msh.nedge - nedg0 > 0){
   //   Note on edges: for some reason, libmeshb uses 1 index for edges
   // but the usual 3 for triangles, 4 for tets, etc.     
-    CPRINTF2(" - START writing edges: %d \n",msh.nedge);
+    CPRINTF2(" - START writing edges: %d -> %d \n",nedg0, msh.nedge);
     constexpr int mppe = edgnpps[METRIS_MAX_DEG];
 
     int fKwd = libmeshb::edgeKwds[msh.curdeg];
@@ -566,7 +567,7 @@ void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
 
 
 
-  if(msh.nface > 0){
+  if(msh.nface - nfac0 > 0){
     CPRINTF2(" - START writing triangles: %d \n",msh.nface);
     constexpr int mppf = facnpps[METRIS_MAX_DEG];
 
@@ -596,7 +597,7 @@ void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
   }
 
   // Redundant but safer
-  if(msh.nelem > 0 && msh.idim >= 3){
+  if(msh.nelem - nele0 > 0 && msh.idim >= 3){
     CPRINTF2(" - START writing tetrahedra: %d \n",msh.nelem);
     constexpr int mppt = tetnpps[METRIS_MAX_DEG];
 

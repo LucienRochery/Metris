@@ -92,6 +92,7 @@ int cavity_operator(Mesh<MFT> &msh ,
         printf("\n");
       }
     }
+    writeMeshCavity("cavity0",msh,cav);
   }
 
 	if(cav.ipins < 0 || cav.ipins >= msh.npoin) 

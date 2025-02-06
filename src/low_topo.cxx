@@ -265,7 +265,7 @@ void ball3_full(MeshBase& __restrict__ msh,
 
 
 
-// Same as bfac3 but using triangle as seed. Can handle non manifold meshes. 
+// Can handle non manifold meshes. 
 // imani returns wheter manifold (true) or non-manifold (false)
 // 
 // lbfac only stores iface, not the index. Just call getverfac if needed. 
@@ -273,9 +273,7 @@ void ball3_full(MeshBase& __restrict__ msh,
 // If lbedg.n > 0, gather internal edges + bdry if iopen 
 int ball2(MeshBase& __restrict__ msh,
           int ipoin  ,int ifac0, 
-          //int* __restrict__ nbfac_,
           intAr1&           lbfac,
-          //int* __restrict__ nbedg_,
           intAr1&           lbedg,
           int* __restrict__ iopen,
           bool* __restrict__ imani,

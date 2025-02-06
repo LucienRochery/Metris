@@ -20,6 +20,7 @@
 #include "../mprintf.hxx"
 #include "../low_geo.hxx"
 #include "../msh_inineigh.hxx"
+#include "../msh_checktopo.hxx"
 #include "../ho_constants.hxx"
 #include "../Boundary/msh_inisurf.hxx"
 #include "../API/MetrisAPI.hxx"
@@ -118,7 +119,8 @@ void MeshBase::initialize(MetrisAPI *data,
 
 
   iniBdryPoints();
-  
+  if(param.dbgfull) check_topo(*this);
+
   
   iniCADLink(nbpo0);
 
@@ -381,16 +383,11 @@ void MeshBase::iniNeighbours(){
 }
 
 
-void MeshBase::iniBdryPoints(){
-  hana::while_(hana::less_equal.than(hana::int_c<METRIS_MAX_DEG>), 1_c, [&](auto ideg_c){
-    constexpr int ideg = ideg_c;
-    if(ideg == this->curdeg){
-
-      if(param->iverb >= 1) printf("-- Update bdry point link to entities\n");
-      int ncrea = iniMeshBdryPoints<ideg>(*this); 
-      if(param->iverb >= 1) printf("   %d boundary points created\n",ncrea);
-    }
-  return ideg_c+1_c;});
+void MeshBase::iniBdryPoints(int ithread){
+  GETVDEPTH((*this));
+  CPRINTF1("-- Update bdry point link to entities\n");
+  int ncrea = iniMeshBdryPoints(*this, ithread); 
+  CPRINTF1("   %d boundary points created\n",ncrea);
 }
 
 void MeshBase::iniCADLink(int nbpo0){
@@ -530,8 +527,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   CPRINTF2("-- Start reading %10d points\n",npoin);
   GmfGotoKwd( libIdx, GmfVertices );
   GmfGetBlock(libIdx, GmfVertices, 1, npoin, 0, NULL, NULL,
-    GmfDoubleVec, idim, &coord(0,0), &coord[npoin-1][0],
-    GmfInt            , &poi2bpo[0] , &poi2bpo[npoin-1]);
+    GmfDoubleVec, idim, &coord(0,0), &coord(npoin-1,0),
+    GmfInt            , &poi2bpo[0] , &poi2bpo(npoin-1);
   CPRINTF2("-- Done reading %10d points\n",npoin);
 
   /* --------------------------------- Corners

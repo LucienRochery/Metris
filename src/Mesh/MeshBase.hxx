@@ -220,7 +220,7 @@ public:
   void readMeshData(MetrisAPI &data);
 
 	void iniNeighbours();
-	void iniBdryPoints();
+	void iniBdryPoints(int ithread = 0);
   void iniCADLink(int nbpo0);
 
   /* END INIT */

@@ -28,6 +28,16 @@ When choosing install prefix, be wary that LAPACK already has an `INSTALL` direc
 
 Set `LAPACK_INCLUDE_DIR` environment variable to directory containing `lapacke.h` and `lapacke_mangling.h`. 
 If compiled from source, this is the `<install dir>/include/` directory. 
+If in `/usr/include` or `/usr/local/include`, this is not necessary. 
+
+---
+
+Install Boost libraries. 
+On Ubuntu:
+
+```
+sudo apt install libboost-all-dev
+```
 
 --- 
 
