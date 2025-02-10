@@ -54,27 +54,6 @@ inline void killent(int ient, intAr2 &lent){
 int isedgtet(const intAr2 &tet2poi,int ielem, int ied,int i1,int i2);
 
 
-// Get vertex rank in entity
-// Set truedeg to false to suppress exception when not found; this 
-// is for calling these with ideg < real degree while looping on points. 
-template <int ideg>
-int getvertet(int ielem, const intAr2 &tet2poi, int ip);
-template <int ideg>
-int getverfac(int iface, const intAr2 &fac2poi, int ip);
-template <int ideg>
-int getveredg(int iedge, const intAr2 &edg2poi, int ip);
-//template <int ideg> 
-//int getverent(int ientt, const intAr2 &ent2poi, int ip, int tdimn){
-//  if(tdimn == 1){
-//    return getveredg<ideg>(ientt,ent2poi,ip);
-//  }else if(tdimn == 2){
-//    return getverfac<ideg>(ientt,ent2poi,ip);
-//  }else{
-//    return getvertet<ideg>(ientt,ent2poi,ip);
-//  }
-//  return -2;
-//}
-
 
 // Debug prints
 void print_bpolist(MeshBase &msh, int ibpoi);

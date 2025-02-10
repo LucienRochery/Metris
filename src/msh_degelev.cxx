@@ -116,7 +116,7 @@ void deg_elevate(Mesh<MFT> &msh){
           ibnew = msh.poi2bpo[ipnew];
         }else{
           ipnew = msh.newpoitopo(1,iedge);
-          ibnew = msh.template newbpotopo<1>(ipnew,iedge);
+          ibnew = msh.newbpotopo(ipnew,1,iedge);
         }
 
         if(ipnew == 1517) printf("## DEBUG 1517 CREATED BY EDGE %d \n",iedge);
@@ -183,7 +183,7 @@ void deg_elevate(Mesh<MFT> &msh){
             ibnew = msh.poi2bpo[ipnew];
           }else{
             ipnew = msh.newpoitopo(2,iface);
-            ibnew = msh.template newbpotopo<2>(ipnew,iface);
+            ibnew = msh.newbpotopo(ipnew,2,iface);
           }
 
           if(ipnew == 1517) printf("## DEBUG 1517 CREATED BY FACE %d \n",iface);
@@ -229,7 +229,7 @@ void deg_elevate(Mesh<MFT> &msh){
                 lbpon[irnk] = lbpoi[irn0_prv + irnk - irn0];
                 msh.bpo2ibi[lbpon[irnk]][0] = msh.fac2poi(iface,irnk);
               }else{
-                msh.template newbpotopo<2>(msh.fac2poi(iface,irnk),iface);
+                msh.newbpotopo(msh.fac2poi(iface,irnk),2,iface);
                 lbpon[irnk] = msh.nbpoi - 1;
               }
             }
@@ -252,7 +252,7 @@ void deg_elevate(Mesh<MFT> &msh){
               ibnew = msh.poi2bpo[ipnew];
             }else{
               ipnew = msh.newpoitopo(2,iface);
-              ibnew = msh.template newbpotopo<2>(ipnew,iface);
+              ibnew = msh.newbpotopo(ipnew,2,iface);
             }
 
             for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];

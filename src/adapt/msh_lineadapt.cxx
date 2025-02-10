@@ -32,8 +32,6 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
 
   //adaptGeoLines2<MFT>(msh,ithrd1,ithrd2);
-  //printf("wait afte adaptGeoLines2\n");
-  //wait();
   //return;
 
 
@@ -213,7 +211,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
         INCVDEPTH(msh);
 
         bool ifin = false;
-        int iver = getveredg<1>(iedge,msh.edg2poi,ipoi0);
+        int iver = msh.template getveredg<1>(iedge,ipoi0);
         if(iver < 0){
           printf("icor0 = %d not found in edge %d \n",icor0,iedge);
           printf(" dump bpois corner \n");
@@ -540,7 +538,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
               }
               // Add a corner at ipoin 
               int ipoin = msh.newpoitopo(-1,-1);
-              int ibpoi = msh.template newbpotopo<0>(ipoin,ipoin);
+              int ibpoi = msh.newbpotopo(ipoin,0,ipoin);
               for(int ii = 0; ii < msh.idim; ii++) 
                 msh.coord(ipoin,ii) = msh.coord[cav.ipins][ii];
               writeMesh("debug_lineadap0.meshb",msh);
@@ -1089,8 +1087,8 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
 
           #ifndef NDEBUG
           if(dtprd < -10){
-            msh.template newbpotopo<0>(ipon[1-iwhich],-1);
-            msh.template newbpotopo<0>(ipon[  iwhich],-1);
+            msh.newbpotopo(ipon[1-iwhich],0,-1);
+            msh.newbpotopo(ipon[  iwhich],0,-1);
 
             printf("## FAILURE idiv = %d / %d dtprd = %f iedge = %d\n",
               idiv, ndiv, dtprd, iedge);
@@ -1385,7 +1383,7 @@ static int gen_newp_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
   const int nnmet = (msh.idim*(msh.idim+1))/2;
 
   cav.ipins = msh.newpoitopo(1,iedgseed);
-  int ibins = msh.template newbpotopo<1>(cav.ipins,iedgseed);
+  int ibins = msh.newbpotopo(cav.ipins,1,iedgseed);
 
 
   // Get optimal location. First guess, t. Then bisection 
@@ -1458,7 +1456,7 @@ static int gen_newp_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
         dblAr1(nnmet,msh.met[cav.ipins]).print();
       }
       if(ierro != 0){
-        msh.template newbpotopo<0>(cav.ipins);
+        msh.newbpotopo(cav.ipins,0);
         writeMesh("debug_interpMetBack"+std::to_string(cav.ipins),msh);
       }
       METRIS_ASSERT_MSG(ierro == 0, "interpMetBack failed");

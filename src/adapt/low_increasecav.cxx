@@ -161,7 +161,8 @@ int increase_cavity2D(MeshBase &msh, double *coop,
         //if(ifnei == -1) return 1;
         // Cannot be corrected 
         if(ifnei < 0){
-          CPRINTF1(" # abort iflat %d meas0 %f \n",iflat,meas0);
+          CPRINTF1(" # abort vertices %d %d %d flat no neighbour: meas %23.15e no neighbour\n",
+                    fac2pol[0],fac2pol[1],fac2pol[2],meas0);
           return 1;
         }
         cav.lcfac.stack(ifnei);

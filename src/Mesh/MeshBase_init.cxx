@@ -552,7 +552,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
     //if(poi2bpo[ipoin] < 0) continue;
     //int icorn = poi2bpo[ipoin];
     //poi2bpo[ipoin] = -1;
-    //newbpotopo<0>(ipoin,icorn);
+    //newbpotopo(ipoin,0,icorn);
   }
 
 
@@ -578,7 +578,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
                  bpo2ibi[poi2bpo[ipoin]][2],icorn);
         continue;
       }
-      newbpotopo<0>(ipoin,icorn);
+      newbpotopo(ipoin,0,icorn);
       ncor1++;
     }
     //CPRINTF1(" - Added %d corners\n",ncor1);
@@ -611,7 +611,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
                  bpo2ibi[poi2bpo[ipoin]][2],icorn);
         continue;
       }
-      newbpotopo<0>(ipoin,icorn);
+      newbpotopo(ipoin,0,icorn);
       ncor1++;
     }
     //CPRINTF1(" - Added %d corners\n",ncor1);
@@ -965,7 +965,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       // The link created in edg2bpo is temporary: if the point turns out 
       // not to be a corner then there is no need to keep the link. 
       // It will be deleted in iniMeshBdryPoints. 
-      int ibpoi = newbpotopo<1>(ipoin,iedge);
+      int ibpoi = newbpotopo(ipoin,1,iedge);
       if(ibpoi < 0) continue;
       bpo2rbi(ibpoi,0) = rgpoe(igpoe,0);
       bpo2rbi(ibpoi,1) = 0.0;
@@ -1031,7 +1031,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
 
 
-      int ibpoi = newbpotopo<2>(ipoin,iface);
+      int ibpoi = newbpotopo(ipoin,2,iface);
       if(ibpoi < 0) continue;
       // Third value is unused
       bpo2rbi(ibpoi,0) = rgpof(igpof,0);
@@ -1090,7 +1090,7 @@ void MeshBase::readMeshData(MetrisAPI &data){
     int ipoin = data.lcorn[icorn];
     // even metrisAPI deg change can't remove a corner
     METRIS_ASSERT(ipoin >= 0 && ipoin < npoin);
-    newbpotopo<0>(ipoin,icorn);
+    newbpotopo(ipoin,0,icorn);
   }
   data.lcorn.free();
 
@@ -1124,7 +1124,7 @@ void MeshBase::readMeshData(MetrisAPI &data){
       if(nwarn++ < mwarn) printf("## FILE CONTAINS IBPOS POINTING TO DEAD EDGES");
       continue;
     }
-    int ibpon = newbpotopo<1>(ipoin,iedge);
+    int ibpon = newbpotopo(ipoin,1,iedge);
     bpo2rbi(ibpon,0) = data.rgpoe[igpoe][0];
     bpo2rbi(ibpon,1) = 0.0;
   }
@@ -1141,7 +1141,7 @@ void MeshBase::readMeshData(MetrisAPI &data){
       if(nwarn++ < mwarn) printf("## FILE CONTAINS IBPOS POINTING TO DEAD TRIANGLES");
       continue;
     }
-    int ibpon = newbpotopo<2>(ipoin,iface);
+    int ibpon = newbpotopo(ipoin,2,iface);
     bpo2rbi(ibpon,0) = data.rgpof[igpof][0];
     bpo2rbi(ibpon,1) = data.rgpof[igpof][1];
   }

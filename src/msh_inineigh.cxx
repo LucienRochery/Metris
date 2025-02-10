@@ -19,8 +19,10 @@
 
 
 #include "msh_inineigh.hxx"
+#ifdef USE_ABSL
 #include <absl/container/flat_hash_map.h>          // for FlatHashMapPolicy
 #include <absl/hash/hash.h>                        // for Hash
+#endif
 #include <assert.h>                                // for assert
 #include <stdio.h>                                 // for printf, fflush
 #include <boost/preprocessor/iteration/local.hpp>  // for BOOST_PP_LOCAL_ITE...
@@ -279,7 +281,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
         int ibpoi = msh.poi2bpo[ip];
         if(ibpoi < 0 || (
           ibpoi > 0 && msh.bpo2ibi(ibpoi,1) > 0)){
-          msh.newbpotopo<0>(ip);
+          msh.newbpotopo(ip,0);
         }
       }
     }
@@ -636,7 +638,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
         // Points always point to the corner if it exists
         int ibpoi = msh.poi2bpo[ip];
         if(ibpoi < 0 || (ibpoi > 0 && msh.bpo2ibi(ibpoi,1) > 0)){
-          msh.newbpotopo<0>(ip);
+          msh.newbpotopo(ip,0);
         }
       }
     }

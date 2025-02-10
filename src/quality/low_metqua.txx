@@ -62,11 +62,11 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
   // Get Jacobian matrix and derivatives at xi.
   // eval3_d handles whether dpoivar == NULL or not itself. 
   if constexpr(gdim == 2){
-  	eval2_d<2,ideg,ivar,nvar>(msh.coord,ent2poi,msh.getBasis(),DifVar::Bary,0,bary,coopr,jmat,NULL,
-  	                          ddum,djmat[0],NULL,dpoivar);
+   eval2_d<2,ideg,ivar,nvar>(msh.coord,ent2poi,msh.getBasis(),DifVar::Bary,0,bary,coopr,jmat,NULL,
+                             ddum,djmat[0],NULL,dpoivar);
   }else{
-  	eval3_d<3,ideg,ivar,nvar>(msh.coord,ent2poi,msh.getBasis(),DifVar::Bary,0,bary,coopr,jmat,NULL,
-  	                          ddum,djmat[0],NULL,dpoivar);
+   eval3_d<3,ideg,ivar,nvar>(msh.coord,ent2poi,msh.getBasis(),DifVar::Bary,0,bary,coopr,jmat,NULL,
+                             ddum,djmat[0],NULL,dpoivar);
   }
 
   SANS::SurrealS<nvar,ftype> jmat_S[gdim*gdim];
@@ -143,8 +143,8 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
   //                                + J0tJtMJJ0[5];
   SANS::SurrealS<nvar,ftype> J0tJtMJJ0_diag[gdim];
   matXsymXtmat_diag<gdim,SANS::SurrealS<nvar,ftype>,
-            					   SANS::SurrealS<nvar,ftype>,
-            					   SANS::SurrealS<nvar,ftype>>(met_S, invtJ_0tJ_K, J0tJtMJJ0_diag);
+             				   SANS::SurrealS<nvar,ftype>,
+             				   SANS::SurrealS<nvar,ftype>>(met_S, invtJ_0tJ_K, J0tJtMJJ0_diag);
 
   SANS::SurrealS<nvar,ftype> tra = J0tJtMJJ0_diag[0]
                                  + J0tJtMJJ0_diag[1];
@@ -237,7 +237,7 @@ metqua_shell_d<ideg,ilag,nvar>
   int ierro;
   if(*nshell <= 0){
     int iopen;
-    int iver = getvertet<ideg>(iele0, msh.tet2poi, ipoin);
+    int iver = msh.getvertet<ideg>(iele0, ipoin);
     if(iver < 4 || iver >= 4 + 6*(edgnpps[ideg]-2))
       METRIS_THROW_MSG(TopoExcept(),"VERTEX NOT ON EDGE")
   

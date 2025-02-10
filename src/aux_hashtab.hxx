@@ -9,6 +9,9 @@
 #define __SRC_AUX_HASHTAB__
 #include <cstdlib>
 
+#ifndef USE_ABSL
+  #include <boost/functional/hash.hpp>
+#endif
 /*
 Neighbour initialization takes 46s with -O3 using stl std::unordered_map on a 19.3M elt mesh
 Let's see if we can speed it up by ditching pointers and tailoring to our case
@@ -56,60 +59,33 @@ private:
 	int wdth;
 };
 
+#ifndef USE_ABSL
+namespace tup2_hash{
+  struct hash
+  {
+    std::size_t operator()(const std::tuple<int,int>& key) const {
+      std::size_t seed = 0;
+      boost::hash_combine(seed, std::get<0>(key));
+      boost::hash_combine(seed, std::get<1>(key));
+      return seed;
+    }
+  };
+}
+namespace tup3_hash{
+  struct hash
+  {
+    std::size_t operator()(const std::tuple<int,int,int>& key) const {
+      std::size_t seed = 0;
+      boost::hash_combine(seed, std::get<0>(key));
+      boost::hash_combine(seed, std::get<1>(key));
+      boost::hash_combine(seed, std::get<2>(key));
+      return seed;
+    }
+  };
+}
+#endif
 
-//namespace std {
-//
-//	template <>
-//	struct  hash<std::array<int, 2>>
-//	{
-//	  std::size_t operator()(const std::array<int, 2>& k) const
-//	  {
-//	    using std::size_t;
-//     	using std::hash;
-//	
-//	    return ((k[0] ^ (k[1] << 1)) >> 1);
-//	  }
-//	};
-//	
-//	template <>
-//	struct hash<std::array<int, 3>>
-//	{
-//	  std::size_t operator()(const std::array<int, 3>& k) const
-//	  {
-//	    using std::size_t;
-//	    using std::hash;
-//	
-//	    return ((k[0] ^ (k[1] << 1)) >> 1) ^ (k[2] << 1);
-//	  }
-//	};
-//
-//
-//	template <>
-//	struct  hash<std::tuple<int, int>>
-//	{
-//	  std::size_t operator()(const std::tuple<int, int>& k) const
-//	  {
-//	    using std::size_t;
-//     	using std::hash;
-//	
-//	    return ((std::get<0>(k) ^ (std::get<1>(k) << 1)) >> 1);
-//	  }
-//	};
-//	
-//	template <>
-//	struct hash< std::tuple<int, int, int>>
-//	{
-//	  std::size_t operator()(const std::tuple<int, int, int>& k) const
-//	  {
-//	    using std::size_t;
-//	    using std::hash;
-//	
-//	    return ((std::get<0>(k) ^ (std::get<1>(k) << 1)) >> 1) ^ (std::get<2>(k) << 1);
-//	  }
-//	};
-//
-//
-//}
+
 } // End namespace
 
 

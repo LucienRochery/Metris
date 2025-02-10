@@ -95,7 +95,7 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
       if(DOPRINTS2()){
 
         int ipdbg = msh.newpoitopo(-1,-1);
-        msh.template newbpotopo<0>(ipdbg,ipdbg);
+        msh.newbpotopo(ipdbg,0,ipdbg);
         for(int ii = 0; ii < msh.idim; ii++) 
           msh.coord(ipdbg,ii) = msh.coord(ipoin,ii);
         writeMesh("dbg_geometry_pt"+std::to_string(ipoin),msh);

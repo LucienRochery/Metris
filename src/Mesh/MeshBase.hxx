@@ -62,15 +62,15 @@ public:
 			CAD faces meeting at an edge (and we also need the edge (u,1-u)). 
 			To obtain the appropriate ibpoi from a triangle, use the hash table fac2bpo. 
 	- Navigating point <-> boundary point links:
-  	- poi2bpo[ipoin] = ibpoi attached to lowest-dimensional CAD entity
-	 	- bpo2ibi(ibpoi,0) = ipoin 
-	 	- bpo2ibi(ibpoi,1) = tdimn: 2 face int    -| this may be replaced by an ego** array    
-	 	                             1 edge int     | though perhaps the type should be kept 
-	 	                             0 node/corner  | without indirection
-	 	- bpo2ibi(ibpoi,2) = ientt (mesh ent idx) -|  -> CAD ref can be fetched from (edg|fac)2ref
-	 	- bpo2ibi(ibpoi,3) = next ibpoi sharing same ipoin
+   - poi2bpo[ipoin] = ibpoi attached to lowest-dimensional CAD entity
+	  - bpo2ibi(ibpoi,0) = ipoin 
+	  - bpo2ibi(ibpoi,1) = tdimn: 2 face int    -| this may be replaced by an ego** array    
+	                               1 edge int     | though perhaps the type should be kept 
+	                               0 node/corner  | without indirection
+	  - bpo2ibi(ibpoi,2) = ientt (mesh ent idx) -|  -> CAD ref can be fetched from (edg|fac)2ref
+	  - bpo2ibi(ibpoi,3) = next ibpoi sharing same ipoin
 	- Tetrahedra:
-	 	- tet2poi(ielem,i) = ipoin
+	  - tet2poi(ielem,i) = ipoin
 	- Triangles: surface only. 
 		- tri2poi(iface,i) = ipoin
 		- When we need the (u,v), get (ibpo1, ibpo2, ibpo3) in hash table fac2bpo
@@ -290,6 +290,13 @@ public:
   int getverent(int ientt, int tdimn, int ipoin);
   int getverent(int ientt, int tdimn, int ipoin);
 
+  template<int ideg> 
+  int getveredg(int ientt, int ipoin);
+  template<int ideg> 
+  int getverfac(int ientt, int ipoin);
+  template<int ideg> 
+  int getvertet(int ientt, int ipoin);
+
 
   // Whenever some nbpoi, npoin, nedge, nface, nelem is incremented, call these guys beforehand
   // They will reallocate if needed, and throw an exception if impossible. 
@@ -322,9 +329,7 @@ public:
 
 	template <int ideg>
 	void newedgtopo(int iface, int iedfa, int iref = -1);
-	template<int tdim>
-	int newbpotopo(int ipoin, int ientt = -1);
-
+	int newbpotopo(int ipoin, int tdim, int ientt = -1);
   void killpoint(int ipoin);
 
   // Remove all tagged entities from ipoin

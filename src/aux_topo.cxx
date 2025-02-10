@@ -14,9 +14,8 @@
 #include "Mesh/MeshBase.hxx"
 
 #include "types.hxx"
+#include "mprintf.hxx"
 
-#include <absl/hash/hash.h>
-#include <absl/container/flat_hash_map.h>
 #include <boost/preprocessor/iteration/local.hpp>
 
 #include <tuple>
@@ -262,39 +261,12 @@ int isedgtet(const intAr2 &tet2poi,int ielem, int ied,int i1,int i2){
 			   ||(j1 == i2 && j2 == i1));
 }
 
-template <int ideg>
-int getvertet(int ielem, const intAr2 &tet2poi, int ip){
-	for(int i=0; i<tetnpps[ideg]; i++){
-		if(tet2poi(ielem,i) == ip) return i;
-	}
-  return -1;
-}
-template <int ideg>
-int getverfac(int iface, const intAr2 &fac2poi, int ip){
-	for(int i=0; i<facnpps[ideg]; i++){
-		if(fac2poi(iface,i) == ip) return i;
-	}
-  return -1;
-}
-template <int ideg>
-int getveredg(int iedge, const intAr2 &edg2poi, int ip){
-	for(int i=0; i<edgnpps[ideg]; i++){
-		if(edg2poi(iedge,i) == ip) return i;
-	}
-  return -1;
-}
-#define BOOST_PP_LOCAL_MACRO(n)\
-template int getvertet< n >(int, const intAr2& , int );\
-template int getverfac< n >(int, const intAr2& , int );\
-template int getveredg< n >(int, const intAr2& , int );
-#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
-#include BOOST_PP_LOCAL_ITERATE()
-
-
 
 void print_bpolist(MeshBase &msh, int ibpoi){
 	if(ibpoi < 0) return;
-	printf("Start printing list for ibpoi = %d \n",ibpoi);
+
+  GETVDEPTH(msh);
+	MPRINTF("-- START printing list for ibpoi = %d \n",ibpoi);
 
 	int ibpo2 = ibpoi;
 	int nlist = 0;
@@ -304,8 +276,8 @@ void print_bpolist(MeshBase &msh, int ibpoi){
 			printf("## LIST > 100\n");
 			return;
 		}
-		printf("%d: %d = (%d %d %d %d)\n",nlist,ibpo2,msh.bpo2ibi(ibpo2,0)
-			,msh.bpo2ibi(ibpo2,1),msh.bpo2ibi(ibpo2,2),msh.bpo2ibi(ibpo2,3));
+		MPRINTF("   - %d: %d = (%d %d %d %d)\n",nlist,ibpo2,msh.bpo2ibi(ibpo2,0)
+			      ,msh.bpo2ibi(ibpo2,1),msh.bpo2ibi(ibpo2,2),msh.bpo2ibi(ibpo2,3));
 		ibpo2 = msh.bpo2ibi(ibpo2,3);
 	}while(ibpo2 >= 0 && ibpo2 != ibpoi);
 }
@@ -748,12 +720,12 @@ void cpy_glofac2tetfac(MeshBase &msh, int iface, int ielem, int ifael){
 
 	int idx_tet[4];
   for(int irnk1 = 0;irnk1 < facnpps[ideg]; irnk1++){
-  	idx_tet[ifael] = 0; // The opposite vertex gets 0
-  	idx_tet[lnofa3[ifael][perm[0]]] = ordfac.s[ideg][irnk1][0];
-  	idx_tet[lnofa3[ifael][perm[1]]] = ordfac.s[ideg][irnk1][1];
-  	idx_tet[lnofa3[ifael][perm[2]]] = ordfac.s[ideg][irnk1][2];
-  	int irnkt = mul2nod(idx_tet[0],idx_tet[1],idx_tet[2],idx_tet[3]);
-  	msh.tet2poi(ielem,irnkt) = msh.fac2poi(iface,irnk1);
+   idx_tet[ifael] = 0; // The opposite vertex gets 0
+   idx_tet[lnofa3[ifael][perm[0]]] = ordfac.s[ideg][irnk1][0];
+   idx_tet[lnofa3[ifael][perm[1]]] = ordfac.s[ideg][irnk1][1];
+   idx_tet[lnofa3[ifael][perm[2]]] = ordfac.s[ideg][irnk1][2];
+   int irnkt = mul2nod(idx_tet[0],idx_tet[1],idx_tet[2],idx_tet[3]);
+   msh.tet2poi(ielem,irnkt) = msh.fac2poi(iface,irnk1);
   }
 }
 
@@ -799,18 +771,18 @@ void cpy_tetfac2tetfac(MeshBase &msh, int iele1, int ifae1, int iele2, int ifae2
 	int idx_tet1[4];
 	int idx_tet2[4];
   for(int irnk1 = 0;irnk1 < facnpps[ideg]; irnk1++){
-  	idx_tet1[ifae1] = 0; // The opposite vertex gets 0
-  	idx_tet2[ifae2] = 0; // The opposite vertex gets 0
-  	for(int i = 0; i<3 ;i++){
-	  	idx_tet1[lnofa3[ifae1][     i ]] = ordfac.s[ideg][irnk1][i];
-	  	idx_tet2[lnofa3[ifae2][perm[i]]] = ordfac.s[ideg][irnk1][i];
-  	}
-  	assert(idx_tet1[0] + idx_tet1[1] + idx_tet1[2] + idx_tet1[3] == ideg);
-  	assert(idx_tet2[0] + idx_tet2[1] + idx_tet2[2] + idx_tet2[3] == ideg);
+   idx_tet1[ifae1] = 0; // The opposite vertex gets 0
+   idx_tet2[ifae2] = 0; // The opposite vertex gets 0
+   for(int i = 0; i<3 ;i++){
+	   idx_tet1[lnofa3[ifae1][     i ]] = ordfac.s[ideg][irnk1][i];
+	   idx_tet2[lnofa3[ifae2][perm[i]]] = ordfac.s[ideg][irnk1][i];
+   }
+   assert(idx_tet1[0] + idx_tet1[1] + idx_tet1[2] + idx_tet1[3] == ideg);
+   assert(idx_tet2[0] + idx_tet2[1] + idx_tet2[2] + idx_tet2[3] == ideg);
 
-  	int irnkt1 = mul2nod(idx_tet1[0],idx_tet1[1],idx_tet1[2],idx_tet1[3]);
-  	int irnkt2 = mul2nod(idx_tet2[0],idx_tet2[1],idx_tet2[2],idx_tet2[3]);
-  	msh.tet2poi(iele2,irnkt2) = msh.tet2poi(iele1,irnkt1);
+   int irnkt1 = mul2nod(idx_tet1[0],idx_tet1[1],idx_tet1[2],idx_tet1[3]);
+   int irnkt2 = mul2nod(idx_tet2[0],idx_tet2[1],idx_tet2[2],idx_tet2[3]);
+   msh.tet2poi(iele2,irnkt2) = msh.tet2poi(iele1,irnkt1);
   }
 
 }

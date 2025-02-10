@@ -168,7 +168,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
       dblAr1(msh.idim,msh.coord[ipoin]).print();
 
       int ipdbg = msh.bak->newpoitopo(-1,-1);
-      msh.bak->template newbpotopo<0>(ipdbg,ipdbg);
+      msh.bak->newbpotopo(ipdbg,0,ipdbg);
       for(int ii = 0; ii < msh.idim; ii++) 
         msh.bak->coord(ipdbg,ii) = msh.coord(ipoin,ii);
       writeMesh("interpMetDebug.back",*(msh.bak));
@@ -440,12 +440,12 @@ int locMesh(MeshBase &msh, int *ientt,
       }
       while(lnext.n1_ > 0){
         *ientt = lnext.pop(); 
-  	  	METRIS_ASSERT(*ientt >= 0 && *ientt < nentt);
+      METRIS_ASSERT(*ientt >= 0 && *ientt < nentt);
         METRIS_ASSERT(!isdeadent(*ientt,ent2poi));
-  	  	ent2tag(ithrd,*ientt) = msh.tag[ithrd];
-  	  	niter++;
+      ent2tag(ithrd,*ientt) = msh.tag[ithrd];
+      niter++;
 
-  	  	tol1 = getepsent<gdim>(msh, tdim, *ientt);
+      tol1 = getepsent<gdim>(msh, tdim, *ientt);
 
         if constexpr(ideg > 1){
           for(int ii = 0; ii < gdim + 1 ; ii++) bary[ii] = 1.0 / (gdim + 1);
@@ -500,7 +500,8 @@ int locMesh(MeshBase &msh, int *ientt,
             bary[0] = (t2 - tp) / (t2 - t1);
             bary[1] = (tp - t1) / (t2 - t1);
 
-            CPRINTF1("tdim 1/pdim 1: bary = %15.7e %15.7e\n", bary[0],bary[1]);
+            CPRINTF1(" - t1 = %f t2 = %f tp = %f bary = %f %f \n",
+                     t1,t2,tp, bary[0],bary[1]);
 
             for(int ii = 0; ii < 2; ii++){
               if( bary[ii] >   - Constants::baryTol 
@@ -600,7 +601,7 @@ int locMesh(MeshBase &msh, int *ientt,
         // This is ok for isotropic elements. But highly anisotropic means 
         // a closer to 0 bary can in fact 
         double bmin = 1.0e30;
-  	  	int    imin = -1;
+      int    imin = -1;
         // imax is probably a better strategy...
         double bmax = -1.0e30;
         int    imax = -1;
@@ -865,7 +866,7 @@ int locMesh(MeshBase &msh, int *ientt,
           //lnext.stack(ent2ent[*ientt][imin]);
           lnext.stack(ent2ent[*ientt][imax]);
         }
-  	  	//*ientt = ent2ent[*ientt][imin];
+      //*ientt = ent2ent[*ientt][imin];
         
         //for(int ii = 0; ii < gdim + 1 ; ii++) bary[ii] = 1.0 / (gdim + 1);
       }

@@ -9,6 +9,7 @@
 #include <string>
 #include "aux_exceptions.hxx"
 #include "aux_utils.hxx"
+#include "MetrisRunner/MetrisParameters.hxx"
 
 #define INCVDEPTH(has_param)  DepthCounter dc__(true);\
 const char* spaces_string__ = dc__.getSpaces();\

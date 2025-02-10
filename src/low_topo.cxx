@@ -53,7 +53,7 @@ int ball3(MeshBase& __restrict__ msh,
 	iball = 0;
 	while(iball < lball.get_n()){
 		ielem = lball[iball];
-    int iver = getvertet<1>(ielem, msh.tet2poi, ipoin); 
+    int iver = msh.getvertet<1>(ielem, ipoin); 
 
 		assert("Ball element is alive " && !isdeadent(ielem,msh.tet2poi));
 
@@ -91,12 +91,12 @@ int ball3(MeshBase& __restrict__ msh,
 // This version also gathers internal faces to the ball (including boundary if open)
 // Does not gather edges. 
 void ball3_nm(MeshBase& __restrict__ msh,
-           	  int ipoin  ,int iele0, 
-           	  int* __restrict__ nball_,
-           	  int* __restrict__ nbfac_,
-           	  intAr1&           lball,
-           	  intAr1&           lbfac, 
-           	  int* __restrict__ iopen,
+              int ipoin  ,int iele0, 
+              int* __restrict__ nball_,
+              int* __restrict__ nbfac_,
+              intAr1&           lball,
+              intAr1&           lbfac, 
+              int* __restrict__ iopen,
               int ithread){
 	int iball,ielem,i,iele2,nball,nbfac;
 
@@ -124,7 +124,7 @@ void ball3_nm(MeshBase& __restrict__ msh,
 	iball = 0;
 	while(iball < nball){
 		ielem = lball[iball];
-    int iver = getvertet<1>(ielem, msh.tet2poi, ipoin); 
+    int iver = msh.getvertet<1>(ielem, ipoin); 
 
 		assert("Ball element is alive " && !isdeadent(ielem,msh.tet2poi));
 
@@ -138,7 +138,7 @@ void ball3_nm(MeshBase& __restrict__ msh,
 				int iface = msh.tetfac2glo(ielem,i);
 				if(iface < 0 || iface >= msh.nface) 
 					METRIS_THROW_MSG(TopoExcept(),"Face missing or invalid in hash tab "<<iface<<"\n");
-      	nbfac++; 
+       nbfac++; 
 				if(nbfac > lbfac.size1()) METRIS_THROW(SMemExcept());
 				lbfac[nbfac-1] = iface; 
 			}
@@ -518,9 +518,9 @@ int ball2(MeshBase& __restrict__ msh,
 // = boundary shell element otherwise
 void shell3(const MeshBase& msh,
 	          int ipoi1, int ipoi2, int iele0, 
-       		  int* __restrict__ nshell,
-       		  intAr1&           lshell,
-       		  int* __restrict__ iopen){
+        	  int* __restrict__ nshell,
+        	  intAr1&           lshell,
+        	  int* __restrict__ iopen){
 
 	assert("Input iele0 within bounds" && iele0 >= 0 && iele0 < msh.nelem);
 
@@ -580,8 +580,8 @@ void shell3(const MeshBase& msh,
 // between two tets. 
 // shell2 cannot be open or closed. 
 void shell2_nm(const MeshBase& msh,
-	          	 int iedge, 
-       		  	 intAr1&           lshell){
+	            int iedge, 
+        	    intAr1&           lshell){
   METRIS_ASSERT(iedge >= 0 && iedge < msh.nedge);
 
 

@@ -387,7 +387,7 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh,
     if(msh.fac2tag(ithread,ifa) >= msh.tag[ithread] // if face about to get deleted
     && msh.bpo2ibi(ib,3) == -1){ // and have not yet done what we're about to do  || note unlike edges there is no higher tdim
       // then create new bpo and copy the old uvs here
-      int ibn = msh.template newbpotopo<2>(ip,ifacn);
+      int ibn = msh.newbpotopo(ip,2,ifacn);
       for(int jj = 0; jj < nrbi; jj++) msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ib,jj);
     }
     return;
@@ -395,7 +395,7 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh,
 
   // Edge or corner 
   // Depends whether new, or old edge. 
-  int ibn = msh.template newbpotopo<2>(ip,ifacn);
+  int ibn = msh.newbpotopo(ip,2,ifacn);
 
   for(int jj = 0; jj < nrbi; jj++) msh.bpo2rbi(ibn,jj) = 0.0;
 
@@ -656,7 +656,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
             // For now just create ibpoi. 
             for(int ii = 0; ii < edgnpps[ideg] - 2; ii++){
               int ip = msh.fac2poi[ifacn][idx0 + ii];
-              msh.template newbpotopo<2>(ip,ifacn);
+              msh.newbpotopo(ip,2,ifacn);
             }
           }
         }
@@ -758,7 +758,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
           msh.coord(ipnew,jj) = u1*msh.coord(jp1,jj) + u2*msh.coord(jp2,jj);
         }
         if(msh.isboundary_faces()){
-          int ibnew = msh.template newbpotopo<2>(ipnew,ifacn);
+          int ibnew = msh.newbpotopo(ipnew,2,ifacn);
           for(int jj = 0; jj < nrbi; jj++){
             msh.bpo2rbi(ibnew,jj) = u1*msh.bpo2rbi(jb1,jj) + u2*msh.bpo2rbi(jb2,jj);
           }
@@ -832,7 +832,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
                                  + bary[2]*msh.coord(ipn3,jj);
       }
       if(msh.isboundary_faces()){
-        msh.template newbpotopo<2>(ipnew,ifacn);
+        msh.newbpotopo(ipnew,2,ifacn);
         for(int jj = 0; jj < nrbi; jj++){
           msh.bpo2rbi[msh.nbpoi - 1][jj] = bary[0]*msh.bpo2rbi(ibn1,jj) 
                                          + bary[1]*msh.bpo2rbi(ibn2,jj)

@@ -9,7 +9,12 @@
 #define __SRC__MESH_TYPES__
 
 #include "Arrays/aux_msharrays.hxx"
-#include <absl/container/flat_hash_map.h>
+#ifdef USE_ABSL
+  #include <absl/container/flat_hash_map.h>
+#else
+  #include "aux_hashtab.hxx"
+  #include <unordered_map>
+#endif
 #include <boost/multiprecision/cpp_bin_float.hpp>
 #include <egads.h>
 
@@ -77,10 +82,15 @@ using dblAr2  = MeshArray2D<double,INT1,INT2>;
 typedef MeshArray3D<int   > intAr3;
 typedef MeshArray3D<double> dblAr3;
 
+#ifdef USE_ABSL
 typedef absl::flat_hash_map<std::tuple<int, int>, int>      HshTabInt2;
 typedef absl::flat_hash_map<std::tuple<int, int>, double>   HshTabDbl2;
 typedef absl::flat_hash_map<std::tuple<int, int, int>, int> HshTabInt3;
-
+#else
+typedef std::unordered_map<std::tuple<int, int>, int,      tup2_hash::hash>      HshTabInt2;
+typedef std::unordered_map<std::tuple<int, int>, double,   tup2_hash::hash>   HshTabDbl2;
+typedef std::unordered_map<std::tuple<int, int, int>, int, tup3_hash::hash> HshTabInt3;
+#endif
 
 } // End namespace
 

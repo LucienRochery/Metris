@@ -166,33 +166,11 @@ double getLengthEdges_Bdry0(MeshMetric<MFT> &msh, intAr2 &ilned, dblAr1 &rlned,
     }else{
       METRIS_THROW_MSG(TODOExcept(),"Size interp scheme not implemented");
     }
-    #ifndef NDEBUG 
-    //if(len < 1.0 / msh.param->geo_lentolfac / msh.param->geo_lentolfac / 10){
-    //  printf("## DEBUG len = %f iedge = %d (%d,%d) ref = %d \n",len,iedge,
-    //    msh.edg2poi(iedge,0),msh.edg2poi(iedge,1),msh.edg2ref[iedge]);
-    //  printf("## DEBUG pts:\n");
-    //  printf(" %d : ",ip1);
-    //  dblAr1(msh.idim,msh.coord[ip1]).print();
-    //  printf(" %d : ",ip2);
-    //  dblAr1(msh.idim,msh.coord[ip2]).print();
-    //  printf(" Metrics \n");
-    //  printf(" %d : ",ip1);
-    //  dblAr1((msh.idim*(msh.idim+1))/2,msh.met[ip1]).print();
-    //  printf(" %d : ",ip2);
-    //  dblAr1((msh.idim*(msh.idim+1))/2,msh.met[ip2]).print();
-    //  msh.param->iverb = 10;
-    //  if(itype == LenTyp::GeoSiz){
-    //    len = getlenedg_geosz<MFT,gdim,ideg>(msh,iedge,tdimn,0,ExpTyp::Decomp);
-    //  }else if(itype == LenTyp::Quad){
-    //    len = getlenedg_quad<MFT,gdim,ideg>(msh,iedge,tdimn,0,nquad);
-    //  }
-    //  wait();
-    //}
-    #endif
     int iedgg = ilned.get_n();
     ilned.inc_n();
     ilned(iedgg,0) = ip1;
     ilned(iedgg,1) = ip2;
+
 
     if(len >= 1.0/sqrt(2) && len <= sqrt(2)) ned_unit++;
     ned_totl++;

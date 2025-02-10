@@ -133,17 +133,17 @@ doproj:
   // Double full loop is overkill but simplest to write and few involved. 
   int ndelay = 0;
   for(int irep = 0; irep < 2; irep++){
-  	for(int ibpoi = nbpo0; ibpoi < msh.nbpoi; ibpoi++){
+   for(int ibpoi = nbpo0; ibpoi < msh.nbpoi; ibpoi++){
       INCVDEPTH(msh);
       int ipoin = msh.bpo2ibi(ibpoi,0);
       if(msh.poi2ent(ipoin,0) < 0) continue;
       if(msh.bpo2tag(ithrd,ibpoi) >= btag) continue;
 
-  		int ientt = msh.bpo2ibi(ibpoi,2);
-  		int bdim  = msh.bpo2ibi(ibpoi,1);
+   	int ientt = msh.bpo2ibi(ibpoi,2);
+   	int bdim  = msh.bpo2ibi(ibpoi,1);
       // Corners don't need projecting 
       if(bdim == 0) continue;
-  		METRIS_ASSERT(bdim >= 0 && bdim <= 2);
+   	METRIS_ASSERT(bdim >= 0 && bdim <= 2);
 
       int ibpo0 = msh.poi2bpo[ipoin]; 
       int pdim  = msh.bpo2ibi(ibpo0,1);
@@ -204,7 +204,7 @@ doproj:
 
       msh.bpo2tag(ithrd,ibpoi) = btag;
       
-  		double err; 
+   	double err; 
 
 			obj = bdim == 1 ? msh.CAD.cad2edg[iref] : msh.CAD.cad2fac[iref];
 
@@ -239,7 +239,7 @@ doproj:
           msh.coord(ipoin,ii) = result[ii];
       }
 
-  	}
+   }
 
     if(ndelay == 0){
       CPRINTF2(" - no delayed points -> break\n");
@@ -418,9 +418,9 @@ void iniMeshBdryTriangles(MeshBase &msh, HshTabInt3 &intfHshTab){
   // not provided but have been reconstructed already. 
 
   for(auto t : intfHshTab){
-  	// Check if already exists, then skip
-  	auto s = msh.facHshTab.find(t.first);
-  	if(s != msh.facHshTab.end()) continue;
+   // Check if already exists, then skip
+   auto s = msh.facHshTab.find(t.first);
+   if(s != msh.facHshTab.end()) continue;
 
     int ielem = t.second;
     msh.fac2tet[msh.nface][0] = ielem;
@@ -507,21 +507,21 @@ void iniMeshBdryCorners(MeshBase &msh){
 			if(ibpoi >= 0){
 				// Does this already exist as a corner? 
 				int ibpo2 = ibpoi;
-    		int minty = 3;
-    		int nloop = 0;
-    		do{
-    		  minty = minty < msh.bpo2ibi(ibpo2,1) ? minty : msh.bpo2ibi(ibpo2,1);
-    		  ibpo2 = msh.bpo2ibi(ibpo2,3);
-    		  if(nloop > 100){
-    		  	printf("100 times duplicated boundary point = fishy !\n");
-    		  	printf("cf iniMeshBdryCorners\n");
-    		  	exit(1);
-    		  }
-    		}while(ibpo2 >= 0 && ibpo2 != ibpoi);
-    		if(minty == 0) continue;
+     	int minty = 3;
+     	int nloop = 0;
+     	do{
+     	  minty = minty < msh.bpo2ibi(ibpo2,1) ? minty : msh.bpo2ibi(ibpo2,1);
+     	  ibpo2 = msh.bpo2ibi(ibpo2,3);
+     	  if(nloop > 100){
+     	   printf("100 times duplicated boundary point = fishy !\n");
+     	   printf("cf iniMeshBdryCorners\n");
+     	   exit(1);
+     	  }
+     	}while(ibpo2 >= 0 && ibpo2 != ibpoi);
+     	if(minty == 0) continue;
 			}
 			// Create corner
-			msh.newbpotopo<0>(ipoin);
+			msh.newbpotopo(ipoin,0);
 			ncrec ++;
 		}
 	}
@@ -666,7 +666,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 
           // Now ientt has another vertex, as does iedg2, each with a t coordinate
           int ipoi1 = ent2poi(ientt,1-iver);
-          int iver2 = getveredg<1>(iedg2,ent2poi,ipoin);
+          int iver2 = msh.getveredg<1>(iedg2,ipoin);
           METRIS_ASSERT_MSG(iver2 >= 0, "Neighbour does not share vertex");
           int ipoi2 = ent2poi(iedg2,1-iver2);
 
@@ -843,7 +843,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
             int nneg = 0;
             for(int iface : lcofa){
               if(iface == ientt) continue;
-              msh.newbpotopo<2>(ipoin, iface);
+              msh.newbpotopo(ipoin,2,iface);
             }// for iface 
 
           }// for icoco
@@ -883,7 +883,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 
 			// Create new bpo link either if point new bdry or if corner
 			if(ibpoi < 0 || msh.bpo2ibi(ibpoi,1) == 0){
-				msh.newbpotopo<1>(ipoin,iedge);
+				msh.newbpotopo(ipoin,1,iedge);
 				ncre1++;
         CPRINTF2(" - new edge bpo ipoin = %d iedge = %d ncre1 = %d\n",ipoin,iedge,ncre1);
 			}
@@ -905,7 +905,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 
 				// New bpo link if either new or (edge or corner) point. 
 				if(ibpoi < 0 || msh.bpo2ibi(ibpoi,1) < 2){
-					msh.newbpotopo<2>(ipoin,iface);
+					msh.newbpotopo(ipoin,2,iface);
 					ncre2++;
           CPRINTF2(" - new face bpo ipoin = %d iface = %d ncre2 = %d\n",ipoin,iface,ncre2);
 					continue;
@@ -995,20 +995,20 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
       if(do_lpoic) lpoic[ipoin] = 0;
       continue;
     }
-  	if(do_lpoic) lpoic[ipoin] = 0;
-  	int ibpoi = msh.poi2bpo[ipoin];
-  	if(ibpoi < 0) continue;
+   if(do_lpoic) lpoic[ipoin] = 0;
+   int ibpoi = msh.poi2bpo[ipoin];
+   if(ibpoi < 0) continue;
     METRIS_ASSERT_MSG(msh.bpo2ibi(ibpoi,0) == ipoin, 
       "ibpoi mismatch? ipoin = "<<ipoin<<" ibpoi = "<<ibpoi<<" = "<<
       msh.bpo2ibi(ibpoi,0)<<" "<<msh.bpo2ibi(ibpoi,1)<<" "<<
       msh.bpo2ibi(ibpoi,2)<<" "<<msh.bpo2ibi(ibpoi,3)<<" "
       <<"poi2ent = "<<msh.poi2ent(ipoin,0)<<" "<<msh.poi2ent(ipoin,1));
-  	METRIS_ASSERT(msh.bpo2ibi(ibpoi,0) == ipoin);
-  	if(ibpoi >= 0 && msh.bpo2ibi(ibpoi,1) == 0){
-  		// Rank of the corner (may not be ncorn)
-  		if(do_lpoic) lpoic[ipoin] = msh.bpo2ibi(ibpoi,2) + incre; 
+   METRIS_ASSERT(msh.bpo2ibi(ibpoi,0) == ipoin);
+   if(ibpoi >= 0 && msh.bpo2ibi(ibpoi,1) == 0){
+   	// Rank of the corner (may not be ncorn)
+   	if(do_lpoic) lpoic[ipoin] = msh.bpo2ibi(ibpoi,2) + incre; 
       lcorn.stack(ipoin + incre); 
-  	}
+   }
   }
 
   CPRINTF2(" - nbpoi = %d ncorn = %d\n",msh.nbpoi,lcorn.get_n());
@@ -1016,8 +1016,8 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
 
   for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
     INCVDEPTH(msh);
-  	int ipoin = msh.bpo2ibi(ibpoi,0);
-  	if(ipoin < 0) continue;
+   int ipoin = msh.bpo2ibi(ibpoi,0);
+   if(ipoin < 0) continue;
     if(msh.poi2ent(ipoin,0) < 0) continue;
     if(ipoin >= msh.npoin){
       printf("ipoin = %d >= npoin = %d \n",ipoin,msh.npoin);
@@ -1028,31 +1028,31 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
       METRIS_THROW(TopoExcept());
     }
     METRIS_ASSERT(ipoin < msh.npoin);
-  	int itype = msh.bpo2ibi(ibpoi,1);
-  	if(itype == 2){
+   int itype = msh.bpo2ibi(ibpoi,1);
+   if(itype == 2){
       //face
       int ngpof = lgpof.get_n(); 
       lgpof.inc_n();
       rgpof.inc_n();
 
-  		lgpof[ngpof][0] = ipoin + incre;
+   	lgpof[ngpof][0] = ipoin + incre;
       lgpof[ngpof][1] = msh.bpo2ibi(ibpoi,2) + incre;
 
-  		rgpof[ngpof][0] = msh.bpo2rbi(ibpoi,0);
-  		rgpof[ngpof][1] = msh.bpo2rbi(ibpoi,1);
-  		rgpof[ngpof][2] = 0.0; // Placeholder: should be distance to ent
-  	}else if(itype == 1){
+   	rgpof[ngpof][0] = msh.bpo2rbi(ibpoi,0);
+   	rgpof[ngpof][1] = msh.bpo2rbi(ibpoi,1);
+   	rgpof[ngpof][2] = 0.0; // Placeholder: should be distance to ent
+   }else if(itype == 1){
       //edge
       int ngpoe = lgpoe.get_n(); 
       lgpoe.inc_n();
       rgpoe.inc_n();
       
-  		lgpoe[ngpoe][0] = ipoin + incre;
+   	lgpoe[ngpoe][0] = ipoin + incre;
       lgpoe[ngpoe][1] = msh.bpo2ibi(ibpoi,2) + incre;
 
-  		rgpoe[ngpoe][0] = msh.bpo2rbi(ibpoi,0);
-  		rgpoe[ngpoe][1] = 0.0; // Placeholder: should be distance to ent
-  	}
+   	rgpoe[ngpoe][0] = msh.bpo2rbi(ibpoi,0);
+   	rgpoe[ngpoe][1] = 0.0; // Placeholder: should be distance to ent
+   }
   }
   return;
 

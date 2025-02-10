@@ -17,7 +17,7 @@ int smooballNewton(Mesh<MetricFieldType>& msh, int ipoin, int nball, const int*_
                    double qpower, int qpnorm, double difto, double maxwt, int inorm, int iverb, int ithread){
 
   constexpr int nnmet = (idim*(idim+1))/2;
-  constexpr auto getverent = idim == 2 ? getverfac<1> : getvertet<1>;
+  //constexpr auto getverent = idim == 2 ? msh.getverfac<1> : msh.getvertet<1>;
   const double vtol = Defaults::vtol;
   const int ipower = MAX(inorm, 1);
   intAr2& ent2poi = idim == 2 ? msh.fac2poi : msh.tet2poi;

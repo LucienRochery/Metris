@@ -321,7 +321,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
   //        if(msh.bpo2ibi(ib,1) == 0 || msh.bpo2ibi(ib,1) == 2 || msh.bpo2ibi(ib,0) == -1) ib = -1; 
   //      }
   //      if(ib == -1){
-  //        ib = msh.template newbpotopo<1>(ip, iedge);
+  //        ib = msh.newbpotopo(ip,1,iedge);
   //        if(ii < 2 && ip != cav.ipins){
   //          msh.bpo2rbi(ib,0) = redge[iedge-nedg0];
   //        }
@@ -345,7 +345,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
   //        if(msh.bpo2ibi(ib,1) <= 1 || msh.bpo2ibi(ib,0) == -1) ib = -1; 
   //      }
   //      if(ib == -1){
-  //        ib = msh.template newbpotopo<2>(ip, iface);
+  //        ib = msh.newbpotopo(ip,2,iface);
   //        //msh.bpo2rbi(ib,0) = redge[iedge-nedg0];
   //        if(ii < 3 && ip != cav.ipins){
   //          msh.bpo2rbi(ib,0) = rface(iface-nfac0,jj,0);

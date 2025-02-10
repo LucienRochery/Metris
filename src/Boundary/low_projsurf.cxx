@@ -255,7 +255,7 @@ int projptedgCAD(MeshBase &msh, const double*__restrict__ coop, double tol,
   // Since this is suicide, just add a point (forbidden on MeshBase otherwise)
   int ipoin = msh.npoin;
   msh.set_npoin(msh.npoin + 1);
-  msh.template newbpotopo<0>(ipoin,ipoin);
+  msh.newbpotopo(ipoin,0,ipoin);
   for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipoin,ii) = coop[ii];
   writeMesh("dbg_projptedg.meshb",msh);
 

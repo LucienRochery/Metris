@@ -8,7 +8,9 @@
 #include "aux_hashtab.hxx"
 
 #include <tuple>
+#ifdef USE_ABSL
 #include <absl/hash/hash.h>
+#endif
 
 namespace Metris{
 
@@ -111,8 +113,12 @@ int FaceHashTable::find_and_rem(int i1, int i2, int i3, int *ilist){
 
 
 int FaceHashTable::hashkey(int i1,int i2,int i3){
-//	int key = ((i1 ^ (i2 << 1)) >> 1) ^ (i3 << 1);
-	int key = absl::Hash<std::tuple<int,int,int>>{} ({i1,i2,i3});
+  //	int key = ((i1 ^ (i2 << 1)) >> 1) ^ (i3 << 1);
+  #ifdef USE_ABSL
+	 int key = absl::Hash<std::tuple<int,int,int>>{} ({i1,i2,i3});
+  #else
+    int key = ((i1 ^ (i2 << 1)) >> 1) ^ (i3 << 1);
+  #endif
 	return key%mhead;
 }
 

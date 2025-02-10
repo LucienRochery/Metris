@@ -120,15 +120,16 @@ void MetrisRunner::adaptMesh0(){
     CPRINTF1(" - adaptGeoLines time = %fs \n",t1-t0);
     if(DOPRINTS2()) writeMesh("v2_geolines_adp",msh);
     if(DOPRINTS2()) msh.met.writeMetricFile("v2_geolines_adp");
-    //wait();
-
-    //printf("wait after geolines\n");
-    //wait();
 
     if(DOPRINTS1()){
       pct_unit = getLengthEdges_Bdry<MFT>(msh,ilned,rlned);
       print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (bdry)");
     }
+
+    //#ifndef NDEBUG
+    //  printf("wait after geolines\n");
+    //  wait();
+    //#endif
 
     //wait();
     //pct_unit = getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::Quad);

@@ -18,7 +18,9 @@ execute_process(COMMAND "${GIT_EXECUTABLE}" config --get remote.origin.url
                 OUTPUT_VARIABLE GITURL
                 ERROR_QUIET
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
-if(GITURL MATCHES "github.com" OR REQ_CODEGEN EQUAL OFF)
+
+if(GITURL MATCHES "github.com")
+  set(LIGHT_BUILD ON)
   message(WARNING "Disabled codegen!")
   set(REQ_CODEGEN OFF)
   set(DO_UNITTESTS OFF)
@@ -39,6 +41,7 @@ if(GITURL MATCHES "github.com" OR REQ_CODEGEN EQUAL OFF)
   endforeach()
 else()
   message("-- Metris with codegen enabled ")
+  set(LIGHT_BUILD OFF)
   set(REQ_CODEGEN ON)
   set(DO_UNITTESTS ON)
 endif()
@@ -83,9 +86,12 @@ if(ARRAY2D_EXPENSIVE)
   add_compile_definitions(ARRAY2D_EXPENSIVE)
 endif()
 
-
 if(USE_MULTIPRECISION)
-  add_compile_definitions(USE_MULTIPRECISION=1)
+  add_compile_definitions(USE_MULTIPRECISION)
+endif()
+
+if(USE_ABSL)
+  add_compile_definitions(USE_ABSL)
 endif()
 
 
@@ -97,23 +103,11 @@ endif()
 
 #set (SRC_INCLUDE_DIRS "")
 #foreach (h ${SRC_HEADERS})
-#	get_filename_component(d ${h} PATH)
-#	list (APPEND SRC_INCLUDE_DIRS ${d})
+#  get_filename_component(d ${h} PATH)
+#  list (APPEND SRC_INCLUDE_DIRS ${d})
 #endforeach()
 #list(REMOVE_DUPLICATES SRC_INCLUDE_DIRS)
 
-
-# This needs to be added to the absl CMakeLists...
-#message("CXX = ${CMAKE_CXX_COMPILER}")
-#message("Path = $ENV{PATH}")
-#execute_process(COMMAND zsh "-c" "which mpicxx" OUTPUT_VARIABLE TOTO) 
-#message("Toto = ${TOTO}")
-#string(STRIP ${TOTO} CMAKE_CXX_COMPILER)
-#project(absl LANGUAGES CXX)
-
-
-
-#find_package(absl)
 find_package(LAPACK REQUIRED)
 find_package(PkgConfig REQUIRED)
 #find_package(NLopt REQUIRED)
@@ -135,16 +129,13 @@ add_executable(egads2lite "progs/EGADS2lite.cxx")
 
 set_target_properties(metris PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-#add_dependencies(gen_lag2bez codegen2)
 
 #message("MPI_LIBRARIES = ${MPI_LIBRARIES}")
 
 target_link_libraries(metris PUBLIC libMetris 
                                     libmeshb
                                     SANS 
-                                    absl::hash 
-                                    absl::flat_hash_map 
-                                    #absl::node_hash_map 
+                                    ${ABSL_LIBRARIES}
                                     lapack
                                     ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY}
                                     #nlopt
@@ -152,7 +143,7 @@ target_link_libraries(metris PUBLIC libMetris
                                     lplib3
                                     Boost::headers # yes this is weird
                                     ${Boost_LIBRARIES}
-                                    Boost::program_options
+                                    ${Boost_PROGRAM_OPTIONS_LIBRARY}
                                     ${PETSC_LIBRARIES}
                                     ${MPI_LIBRARIES}
                                     ${BOOST_TRACELIBS}
@@ -168,110 +159,109 @@ target_link_libraries(egads2lite PUBLIC libMetris
                                         ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY}
                                         Boost::headers # yes this is weird
                                         ${Boost_LIBRARIES}
-                                        Boost::program_options)
+                                        ${Boost_PROGRAM_OPTIONS_LIBRARY})
 
-#target_link_libraries(metris PUBLIC 
-#                                    #${Boost_PROGRAM_OPTIONS_LIBRARY}
-#                                    #${Boost_STACKTRACE_BASIC_LIBRARY} 
-#                                    #${Boost_STACKTRACE_BACKTRACE_LIBRARY} 
-#                                    #${Boost_STACKTRACE_ADDR2LINE_LIBRARY} 
-#                                    #${Boost_STACKTRACE_NOOP_LIBRARY} 
-#                                    dl
-#                                    )
-# or  ${ESP_ROOT}/lib/libegads.dylib but this is probably MacOS specific
+#For some reason, not specifying the full path does not work for EXISTS
+if(EXISTS ${CMAKE_SOURCE_DIR}/progs/scatter_rh.cxx)
+  add_executable(scatter_rh "progs/scatter_rh.cxx")
+  target_link_libraries(scatter_rh PUBLIC libMetris 
+                                          libmeshb 
+                                          #libegads libegadslite
+                                          #egads egadslite
+                                          ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY}
+                                          Boost::headers # yes this is weird
+                                          ${Boost_LIBRARIES}
+                                          ${Boost_PROGRAM_OPTIONS_LIBRARY})
+  target_include_directories(scatter_rh PRIVATE  "."
+                             ${ESP_ROOT}/include)
+  setMetrisFlags(scatter_rh PUBLIC)
+endif()
 
 # Note on includes: the src lib target (libMetris) already includes publicly everything that we need
 # The main.cxx itself only needs main.hxx additionally. 
 target_include_directories(metris PRIVATE "progs/main.hxx" "." "SANS"
                                   PUBLIC ${Boost_INCLUDE_DIRS}
-	                                       ${PETSC_INCLUDE}
+                                         ${PETSC_INCLUDE}
                                          ${ABSL_INCLUDE_DIRS}
-#	                                PUBLIC ${LPLIB_INCLUDE_DIR}
-	                                )
+#                                  PUBLIC ${LPLIB_INCLUDE_DIR}
+                                  )
 setMetrisFlags(metris PUBLIC)
 target_include_directories(egads2lite PRIVATE  "."
                            ${ESP_ROOT}/include)
 setMetrisFlags(egads2lite PUBLIC)
 
+
 # icc having trouble with GTest on my system, figure this out later
 #if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME) AND "Debug" IN_LIST CMAKE_BUILD_TYPE)
 if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME)  AND  DO_UNITTESTS)
 
-	#include(FetchContent)
-	#FetchContent_Declare(
-	#  googletest
-	#  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
-	#)
-	#FetchContent_MakeAvailable(googletest)
+  #include(FetchContent)
+  #FetchContent_Declare(
+  #  googletest
+  #  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+  #)
+  #FetchContent_MakeAvailable(googletest)
 
-	## --- Testing
-	enable_testing()
-	#
-	## -- Google tests
-	#include(FetchContent)
-	#FetchContent_Declare(
-	#  googletest
-	#  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
-	#)
-	#FetchContent_MakeAvailable(googletest)
-	#
-	## - Generate a different test target from each cxx file found in gunit
-	#include(GoogleTest)
-	#foreach (t ${TEST_SOURCES1})
-	#	get_filename_component(d ${t} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
-	#	add_executable(${d} ${t})
-	#	target_link_libraries(${d} PUBLIC GTest::gtest_main)
-	#	target_include_directories(${d} PRIVATE ${googletest_SOURCE_DIR}/googletest/include)
-	#	gtest_discover_tests(${d})
-	#endforeach()
-	
+  ## --- Testing
+  enable_testing()
+  #
+  ## -- Google tests
+  #include(FetchContent)
+  #FetchContent_Declare(
+  #  googletest
+  #  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+  #)
+  #FetchContent_MakeAvailable(googletest)
+  #
+  ## - Generate a different test target from each cxx file found in gunit
+  #include(GoogleTest)
+  #foreach (t ${TEST_SOURCES1})
+  #  get_filename_component(d ${t} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
+  #  add_executable(${d} ${t})
+  #  target_link_libraries(${d} PUBLIC GTest::gtest_main)
+  #  target_include_directories(${d} PRIVATE ${googletest_SOURCE_DIR}/googletest/include)
+  #  gtest_discover_tests(${d})
+  #endforeach()
+  
   file (GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "bunit/*.cxx")
   
-	# -- Boost/test
-	find_package(Boost COMPONENTS unit_test_framework REQUIRED)
+  # -- Boost/test
+  find_package(Boost COMPONENTS unit_test_framework REQUIRED)
   #find_package(NLopt REQUIRED) 
   #if(NLopt_FOUND)
   #  message("NLOP in ${NLopt_INCLUDE_DIRS} ${NLopt_INCLUDE_DIRS}")
   #else()
   #  message(FATAL_ERROR "NLOPT NOT FOUND")
   #endif()
-	
+  
   foreach (t ${TEST_SOURCES})
-		get_filename_component(d ${t} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
-		add_executable(${d} ${t})
+    get_filename_component(d ${t} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
+    add_executable(${d} ${t})
     setMetrisFlags(${d} PUBLIC)
-		target_link_libraries(${d} PUBLIC libMetris)
-		target_link_libraries(${d} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-		target_link_libraries(${d} PUBLIC ${Boost_PROGRAM_OPTIONS_LIBRARY}
-																      ${BOOST_TRACELIBS}
+    target_link_libraries(${d} PUBLIC libMetris)
+    target_link_libraries(${d} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+    target_link_libraries(${d} PUBLIC ${Boost_PROGRAM_OPTIONS_LIBRARY}
+                                      ${BOOST_TRACELIBS}
                                       ${CLP_LIBRARIES}
                                       ${PETSC_LIBRARIES}
-																      pthread)
+                                      ${ABSL_LIBRARIES}
+                                      lapack 
+                                      #libegads libegadslite 
+                                      #egads egadslite
+                                      ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY} 
+                                      nlopt
+                                      libmeshb
+                                      pthread)
     if(CLP_FOUND)
       target_link_libraries(${d} PUBLIC ${CLP_LIBRARIES})
     endif()
-		target_link_libraries(${d} PUBLIC libmeshb)
-		target_link_libraries(${d} PUBLIC 
-      absl::hash absl::flat_hash_map #absl::node_hash_map
-      )
-		target_link_libraries(${d} PUBLIC lapack ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY} nlopt) #
-		#if(USE_PETSC STREQUAL "True")
-    #  target_link_libraries(${d} PUBLIC PkgConfig::PETSC ${MPI_C_LIBRARIES})
-		#	#target_link_libraries(${d} PUBLIC PETSc)
-		#endif()
                           
-		target_include_directories(${d} PUBLIC "."  ${PETSC_INCLUDE}  ${ABSL_INCLUDE_DIRS}  ${Boost_INCLUDE_DIRS})
-		#target_include_directories(prog PUBLIC 
-		#                           "${PROJECT_BINARY_DIR}"
-		#					                 "${PROJECT_SOURCE_DIR}/libs"
-		#					                 "/usr/local/include"
-		#					                 "/usr/local/opt/lapack/include")
-	endforeach()
+    target_include_directories(${d} PUBLIC "."  ${PETSC_INCLUDE}  ${ABSL_INCLUDE_DIRS})
+  endforeach()
 else()
-	message("Skipping unit test targets (use clang)")
+  message("Skipping unit test targets (use clang)")
 endif()
-		
+    
 
-
-
+install(TARGETS metris DESTINATION ${CMAKE_BINARY_DIR})
 

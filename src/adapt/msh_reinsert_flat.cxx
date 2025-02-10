@@ -145,11 +145,11 @@ int reinsertFlat(Mesh<MFT> &msh, bool allow_collapse, int ithread){
             iedge = msh.facedg2glo(ientt, ifa);
             cav.lcedg.stack(iedge);
             cav.ipins = msh.newpoitopo(1, iedge);
-            ibins = msh.template newbpotopo<1>(cav.ipins, iedge);
+            ibins = msh.newbpotopo(cav.ipins,1,iedge);
           }else if(tdim == 3){
             iface = msh.tetfac2glo(ientt, ifa);
             cav.ipins = msh.newpoitopo(2, iface);
-            ibins = msh.template newbpotopo<2>(cav.ipins, iface);
+            ibins = msh.newbpotopo(cav.ipins,2,iface);
             METRIS_THROW_MSG(TODOExcept(), "Implement projpoifac (get (u,v))");
           }
           for(int ii = 0; ii < gdim; ii++) 
@@ -181,12 +181,12 @@ int reinsertFlat(Mesh<MFT> &msh, bool allow_collapse, int ithread){
               printf("\n");
 
               ipoin = msh.newpoitopo(-1,-1);
-              int ibpoi = msh.template newbpotopo<0>(ipoin,ipoin);
+              int ibpoi = msh.newbpotopo(ipoin,0,ipoin);
               for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipoin,ii) = coopr[ii];
 
 
               ipoin = msh.newpoitopo(-1,-1);
-              ibpoi = msh.template newbpotopo<0>(ipoin,ipoin);
+              ibpoi = msh.newbpotopo(ipoin,0,ipoin);
               for(int ii = 0; ii < msh.idim; ii++) 
                 msh.coord(ipoin,ii) = msh.coord(cav.ipins,ii);
               writeMesh("dbg_projptedg.meshb",msh);

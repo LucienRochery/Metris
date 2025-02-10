@@ -321,8 +321,8 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
       if(ib >= 0) continue;
 
       int ientt = getpoient(msh, ipoin, tdim);  
-      int iver = tdim == 2 ? getverfac<ideg>(ientt, ent2poi, ipoin)
-                           : getvertet<ideg>(ientt, ent2poi, ipoin);
+      int iver = tdim == 2 ? msh.template getverfac<ideg>(ientt, ipoin)
+                           : msh.template getvertet<ideg>(ientt, ipoin);
 
       METRIS_ASSERT(iver >= 0);
 

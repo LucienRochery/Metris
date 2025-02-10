@@ -120,6 +120,7 @@ void check_topo(MeshBase &msh,
 
       for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
         if(msh.poi2ent(ipoin,msh.get_tdim()-1) < 0) continue;
+
         int pdim = msh.getpoitdim(ipoin);
         if(pdim < 0 || pdim > msh.get_tdim()){
           printf(" ## INVLIAD pdim %d \n",pdim);
@@ -137,6 +138,15 @@ void check_topo(MeshBase &msh,
           }
         }
         METRIS_ENFORCE(iebak >= 0);
+        const intAr2& ent2pob = msh.metricClass() == MetricClass::MetricFieldFE ?  
+        ((Mesh<MetricFieldFE> *)(&msh))->bak->ent2poi(pdim):
+        ((Mesh<MetricFieldAnalytical> *)(&msh))->bak->ent2poi(pdim);
+        if(isdeadent(iebak,ent2pob)){
+          printf("Point %d tdim %d has dead back seed %d \n",ipoin,pdim,iebak);
+        }
+        METRIS_ENFORCE_MSG(!isdeadent(iebak,ent2pob),
+          "Point "<<ipoin<<" tdim "<<pdim<<" has back seed "<<iebak<<" which is dead");
+
         //METRIS_ENFORCE(iebak < msh_->bak->nentt(pdim));
       }
     }
@@ -602,7 +612,7 @@ void check_topo(MeshBase &msh,
             // this should throw, but just in case of future changes
             CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
               try{
-                int iver = getveredg<ideg>(iedg2, msh.edg2poi, ip);
+                int iver = msh.getveredg<ideg>(iedg2, ip);
                 METRIS_ENFORCE(iver >= 0);
               }catch(const MetrisExcept& e){
                 printf("ip = %d ib = %d not in edge %d = (%d,%d) from iedge = %d \n",

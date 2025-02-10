@@ -12,7 +12,9 @@
 #include "metris_constants.hxx"
 
 #include <boost/pool/poolfwd.hpp>
+#ifdef USE_ABSL
 #include <absl/container/flat_hash_map.h>
+#endif
 #include <boost/pool/pool.hpp>
 #include <boost/pool/pool_alloc.hpp>
 

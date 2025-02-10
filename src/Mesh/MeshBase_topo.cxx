@@ -227,9 +227,8 @@ template void MeshBase::newedgtopo< n >(int iface, int iedfa, int iref);
 
 
 // Note: this is a stack more than a linked list, really.  
-template<int tdim>
-int MeshBase::newbpotopo(int ipoin, int ientt){
-  static_assert(tdim >= 0 && tdim < 3);
+int MeshBase::newbpotopo(int ipoin, int tdim, int ientt){
+  METRIS_ASSERT(tdim >= 0 && tdim < 3);
   
   if(tdim == 2 && !isboundary_faces()) return -1;
   if(tdim == 1 && !isboundary_edges()) return -1;
@@ -307,11 +306,6 @@ int MeshBase::newbpotopo(int ipoin, int ientt){
   return ibpon;
 }
 
-#define BOOST_PP_LOCAL_MACRO(n)\
-template int MeshBase::newbpotopo< n >(int ipoin, int ientt);
-#define BOOST_PP_LOCAL_LIMITS     (0,2)
-#include BOOST_PP_LOCAL_ITERATE()
-
 
 void MeshBase::rembpotag(int ipoin, int ithread){
   METRIS_ASSERT(ithread >= 0 && ithread < METRIS_MAXTAGS)
@@ -361,12 +355,13 @@ void MeshBase::rembpotag(int ipoin, int ithread){
 
 int MeshBase::getpoitdim(int ipoin) const{
   int ibpoi = poi2bpo[ipoin]; 
-  if(ibpoi < 0){
-    if(idim >= 3) return 3; 
-    else if(!isboundary_faces()) return 2;
-    else if(!isboundary_edges()) return 1;
-    else return 0;
-  }
+  if(ibpoi < 0) return this->get_tdim();
+  //if(ibpoi < 0){
+  //  if(idim >= 3) return 3; 
+  //  else if(!isboundary_faces()) return 2;
+  //  else if(!isboundary_edges()) return 1;
+  //  else return 0;
+  //}
 
   return bpo2ibi(ibpoi,1);
 }
@@ -403,15 +398,47 @@ int MeshBase::tetedg2glo(int ielem, int iedl) const{
 
 
 
+
+template <int ideg>
+int MeshBase::getveredg(int iedge, int ipoin){
+  for(int ii = 0 ; ii < edgnpps[ideg]; ii++){
+    if(edg2poi(iedge,ii) == ipoin) return ii;
+  }
+  return -1;
+}
+template <int ideg>
+int MeshBase::getverfac(int iface, int ipoin){
+  for(int ii = 0 ; ii < facnpps[ideg]; ii++){
+    if(fac2poi(iface,ii) == ipoin) return ii;
+  }
+  return -1;
+}
+template <int ideg>
+int MeshBase::getvertet(int ielem, int ipoin){
+  for(int ii = 0 ; ii < tetnpps[ideg]; ii++){
+    if(tet2poi(ielem,ii) == ipoin) return ii;
+  }
+  return -1;
+}
+#define BOOST_PP_LOCAL_MACRO(n)\
+template int MeshBase::getveredg<n>(int ientt, int ipoin);\
+template int MeshBase::getverfac<n>(int ientt, int ipoin);\
+template int MeshBase::getvertet<n>(int ientt, int ipoin);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+
+
+
 int MeshBase::getverent(int ientt, int tdimn, int ipoin){
   int iver;
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == curdeg){
     if(tdimn == 1){
-      iver = getveredg<ideg>(ientt,edg2poi,ipoin);
+      iver = getveredg<ideg>(ientt,ipoin);
     }else if(tdimn == 2){
-      iver = getverfac<ideg>(ientt,fac2poi,ipoin);
+      iver = getverfac<ideg>(ientt,ipoin);
     }else{
-      iver = getvertet<ideg>(ientt,tet2poi,ipoin);
+      iver = getvertet<ideg>(ientt,ipoin);
     }
   }}CT_FOR1(ideg);
   return iver;
@@ -420,22 +447,18 @@ int MeshBase::getverent(int ientt, int tdimn, int ipoin){
 template <int ideg>
 int MeshBase::getverent(int ientt, int tdimn, int ipoin){
   if(tdimn == 1){
-    return getveredg<ideg>(ientt,edg2poi,ipoin);
+    return getveredg<ideg>(ientt,ipoin);
   }else if(tdimn == 2){
-    return getverfac<ideg>(ientt,fac2poi,ipoin);
+    return getverfac<ideg>(ientt,ipoin);
   }else{
-    return getvertet<ideg>(ientt,tet2poi,ipoin);
+    return getvertet<ideg>(ientt,ipoin);
   }
   return -2;
 }
-
-
 #define BOOST_PP_LOCAL_MACRO(n)\
 template int MeshBase::getverent<n>(int ientt, int tdimn, int ipoin);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
-
-
 
 
 

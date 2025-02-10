@@ -43,7 +43,6 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
   constexpr int nnmet = (idim*(idim+1))/2;
   constexpr int nhess = nnmet;
-  constexpr auto getverent = idim == 2 ? getverfac<ideg> : getvertet<ideg>;
 
   const intAr2& ent2poi = msh.ent2poi(idim); 
   const int qpower  = msh.param->opt_power;
@@ -160,7 +159,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
           break;
         }
 
-        int ivar  = getverent(ient2,ent2poi,ipoin);
+        int ivar  = msh.template getverent<ideg>(ient2,idim,ipoin);
         double quael;
         if(ihess){
           quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
@@ -379,7 +378,6 @@ double smooballdiff_fun(unsigned int nvar, const double *xcur,
 
   const int qpower  = msh.param->opt_power;
   const int qpnorm  = msh.param->opt_pnorm;
-  constexpr auto getverent = idim == 2 ? getverfac<ideg> : getvertet<ideg>;
   double fcur = 0;
   for(int ii = 0; ii < idim && grad != NULL; ii++) grad[ii] = 0;
   for(int ientt : lball){
@@ -389,7 +387,7 @@ double smooballdiff_fun(unsigned int nvar, const double *xcur,
     if(iflat) METRIS_THROW_MSG(GeomExcept(), "Flat after check??");
 
     int ivar = -1;
-    if(grad != NULL) ivar = getverent(ientt,ent2poi,ipoin);
+    if(grad != NULL) ivar = msh.template getverent<ideg>(ientt,idim,ipoin);
     double dqelt[idim];
     double quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
                             ientt,qpower,ivar,

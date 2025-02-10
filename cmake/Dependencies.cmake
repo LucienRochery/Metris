@@ -62,21 +62,19 @@ else()
 endif()
 
 
-if(USE_PETSC STREQUAL "True" 
-OR USE_PETSC STREQUAL "ON"
-OR USE_PETSC STREQUAL "Yes")
-  message(STATUS "PETSC enabled")
+if(USE_PETSC)
+  message("PETSC enabled")
 
   if(PETSC_FOUND AND NOT PETSC_PKGCONFIG)
 
     message(STATUS "PETSC_FOUND = ${PETSC_FOUND}")
-    message("PETSC_LIBRARIES = ${PETSC_LIBRARIES}")
+    message(STATUS "PETSC_LIBRARIES = ${PETSC_LIBRARIES}")
 
   else()
 
     if(DEFINED PETSC_DIR AND DEFINED PETSC_ARCH)
 
-      message("PETSC_DIR = ${PETSC_DIR} and PETSC_ARCH = ${PETSC_ARCH} already set: assuming PETSc target already defined")
+      message(STATUS "PETSC_DIR = ${PETSC_DIR} and PETSC_ARCH = ${PETSC_ARCH} already set: assuming PETSc target already defined")
       #find_package(MPI)
       set(PETSC ${PETSC_DIR}/${PETSC_ARCH})
       set(PETSC_INCLUDE ${PETSC_DIR}/include)
@@ -143,17 +141,12 @@ find_file(EGADS_LIBRARY NAMES libegads.dylib libegads.so PATHS ${ESP_ROOT}/lib/)
 find_file(EGADSLITE_LIBRARY NAMES libegadslite.dylib libegadslite.so PATHS ${ESP_ROOT}/lib/)
 list(APPEND CMAKE_BUILD_RPATH   ${ESP_ROOT}/lib/)
 list(APPEND CMAKE_INSTALL_RPATH ${ESP_ROOT}/lib/)
-
-#find_file(EGADS_LIBRARY NAMES libegads.dylib libegads.so PATHS ${ESP_ROOT}/lib/)
-#find_file(EGADSLITE_LIBRARY NAMES libegadslite.dylib libegadslite.so PATHS ${ESP_ROOT}/lib/)
 list(APPEND CMAKE_BUILD_RPATH   ${CAS_ROOT}/lib/)
 list(APPEND CMAKE_INSTALL_RPATH ${CAS_ROOT}/lib/)
 
 
-
-
-if(USE_CLP STREQUAL "True" 
-OR USE_CLP STREQUAL "ON")
+if(USE_CLP)
+  message("Using CLP")
   include(FindCLP)
   if(NOT(CLP_FOUND))
     message(WARNING "CLP was not found on this system.")
@@ -167,20 +160,24 @@ endif()
 # External libraries to be fetched
 
 
-FetchContent_Declare(
-  fetch_absl
-  #URL https://github.com/abseil/abseil-cpp/archive/e7fe9ec9ebfc6607765d489b76c9954e0a88c5d4.zip
-  GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-  GIT_TAG e7fe9ec9ebfc6607765d489b76c9954e0a88c5d4  
-  #GIT_TAG master
-  #FIND_PACKAGE_ARGS NAMES absl
-  EXCLUDE_FROM_ALL
-)
-LIST(APPEND FETCH_LIST fetch_absl)
-set(ABSL_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/fetch_absl-src/")
-message("CMAKE_BINARY_DIR = ${CMAKE_BINARY_DIR}")
-message("ABSL_INCLUDE_DIRS = ${ABSL_INCLUDE_DIRS}")
-
+if(USE_ABSL)
+  message("Enabled absl")
+  FetchContent_Declare(
+    fetch_absl
+    #URL https://github.com/abseil/abseil-cpp/archive/e7fe9ec9ebfc6607765d489b76c9954e0a88c5d4.zip
+    GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
+    GIT_TAG e7fe9ec9ebfc6607765d489b76c9954e0a88c5d4  
+    #GIT_TAG master
+    #FIND_PACKAGE_ARGS NAMES absl
+    EXCLUDE_FROM_ALL
+  )
+  LIST(APPEND FETCH_LIST fetch_absl)
+  set(ABSL_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/fetch_absl-src/")
+  set(ABSL_LIBRARIES absl::hash absl::flat_hash_map)
+else()
+  set(ABSL_INCLUDE_DIRS "")
+  set(ABSL_LIBRARIES "")
+endif()
 
 #FetchContent_Declare(
 #  fetch_boost_hana
@@ -277,48 +274,47 @@ endif()
 FetchContent_MakeAvailable(${FETCH_LIST})
 # This is necessary to make the sanitizer work correctly. Also we do want to 
 # propagate flags, in general. 
-setMetrisFlags(absl_hash INTERFACE)
-setMetrisFlags(absl_flat_hash_map INTERFACE)
-setMetrisFlags(absl_spinlock_wait INTERFACE)
-setMetrisFlags(absl_int128 INTERFACE)
-setMetrisFlags(absl_exponential_biased INTERFACE)
-setMetrisFlags(absl_log_severity INTERFACE)
-setMetrisFlags(absl_civil_time INTERFACE)
-setMetrisFlags(absl_raw_logging_internal INTERFACE)
-setMetrisFlags(absl_time_zone INTERFACE)
-setMetrisFlags(absl_bad_variant_access INTERFACE)
-setMetrisFlags(absl_debugging_internal INTERFACE)
-setMetrisFlags(absl_cordz_functions INTERFACE)
-setMetrisFlags(absl_bad_optional_access INTERFACE)
-setMetrisFlags(absl_throw_delegate INTERFACE)
-setMetrisFlags(absl_base INTERFACE)
-setMetrisFlags(absl_stacktrace INTERFACE)
-setMetrisFlags(absl_crc_cpu_detect INTERFACE)
-setMetrisFlags(absl_demangle_internal INTERFACE)
-setMetrisFlags(absl_string_view INTERFACE)
-setMetrisFlags(absl_city INTERFACE)
-setMetrisFlags(absl_malloc_internal INTERFACE)
-setMetrisFlags(absl_low_level_hash INTERFACE)
-setMetrisFlags(absl_strings_internal INTERFACE)
-setMetrisFlags(absl_crc_internal INTERFACE)
-setMetrisFlags(absl_graphcycles_internal INTERFACE)
-setMetrisFlags(absl_strings INTERFACE)
-setMetrisFlags(absl_hash INTERFACE)
-setMetrisFlags(absl_symbolize INTERFACE)
-setMetrisFlags(absl_time INTERFACE)
-setMetrisFlags(absl_str_format_internal INTERFACE)
-setMetrisFlags(absl_kernel_timeout_internal INTERFACE)
-setMetrisFlags(absl_crc32c INTERFACE)
-setMetrisFlags(absl_crc_cord_state INTERFACE)
-setMetrisFlags(absl_synchronization INTERFACE)
-setMetrisFlags(absl_cord_internal INTERFACE)
-setMetrisFlags(absl_cordz_handle INTERFACE)
-setMetrisFlags(absl_hashtablez_sampler INTERFACE)
-setMetrisFlags(absl_cordz_info INTERFACE)
-setMetrisFlags(absl_raw_hash_set INTERFACE)
-setMetrisFlags(absl_cord INTERFACE)
-
-
-
+if(USE_ABSL)
+  setMetrisFlags(absl_hash INTERFACE)
+  setMetrisFlags(absl_flat_hash_map INTERFACE)
+  setMetrisFlags(absl_spinlock_wait INTERFACE)
+  setMetrisFlags(absl_int128 INTERFACE)
+  setMetrisFlags(absl_exponential_biased INTERFACE)
+  setMetrisFlags(absl_log_severity INTERFACE)
+  setMetrisFlags(absl_civil_time INTERFACE)
+  setMetrisFlags(absl_raw_logging_internal INTERFACE)
+  setMetrisFlags(absl_time_zone INTERFACE)
+  setMetrisFlags(absl_bad_variant_access INTERFACE)
+  setMetrisFlags(absl_debugging_internal INTERFACE)
+  setMetrisFlags(absl_cordz_functions INTERFACE)
+  setMetrisFlags(absl_bad_optional_access INTERFACE)
+  setMetrisFlags(absl_throw_delegate INTERFACE)
+  setMetrisFlags(absl_base INTERFACE)
+  setMetrisFlags(absl_stacktrace INTERFACE)
+  setMetrisFlags(absl_crc_cpu_detect INTERFACE)
+  setMetrisFlags(absl_demangle_internal INTERFACE)
+  setMetrisFlags(absl_string_view INTERFACE)
+  setMetrisFlags(absl_city INTERFACE)
+  setMetrisFlags(absl_malloc_internal INTERFACE)
+  setMetrisFlags(absl_low_level_hash INTERFACE)
+  setMetrisFlags(absl_strings_internal INTERFACE)
+  setMetrisFlags(absl_crc_internal INTERFACE)
+  setMetrisFlags(absl_graphcycles_internal INTERFACE)
+  setMetrisFlags(absl_strings INTERFACE)
+  setMetrisFlags(absl_hash INTERFACE)
+  setMetrisFlags(absl_symbolize INTERFACE)
+  setMetrisFlags(absl_time INTERFACE)
+  setMetrisFlags(absl_str_format_internal INTERFACE)
+  setMetrisFlags(absl_kernel_timeout_internal INTERFACE)
+  setMetrisFlags(absl_crc32c INTERFACE)
+  setMetrisFlags(absl_crc_cord_state INTERFACE)
+  setMetrisFlags(absl_synchronization INTERFACE)
+  setMetrisFlags(absl_cord_internal INTERFACE)
+  setMetrisFlags(absl_cordz_handle INTERFACE)
+  setMetrisFlags(absl_hashtablez_sampler INTERFACE)
+  setMetrisFlags(absl_cordz_info INTERFACE)
+  setMetrisFlags(absl_raw_hash_set INTERFACE)
+  setMetrisFlags(absl_cord INTERFACE)
+endif()
 
 

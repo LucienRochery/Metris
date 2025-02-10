@@ -93,7 +93,7 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
   double algnd[2];
   if(iedge >= 0){
     cav.ipins = msh.newpoitopo(1,iedge);
-    ibpoi = msh.template newbpotopo<1>(cav.ipins,iedge);
+    ibpoi = msh.newbpotopo(cav.ipins,1,iedge);
     iseed = iedge;
     tdimp = 1;
     iref = msh.edg2ref[iedge];
@@ -102,7 +102,7 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
   }else{
     cav.ipins = msh.newpoitopo(2,iface);
     if(msh.isboundary_faces()){
-      ibpoi = msh.template newbpotopo<2>(cav.ipins,iface);
+      ibpoi = msh.newbpotopo(cav.ipins,2,iface);
     }
     iseed = iface;
     tdimp = 2;
@@ -292,7 +292,7 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
       }
       // Add a corner at ipoin 
       int ipoin = msh.newpoitopo(-1,-1);
-      int ibpoi = msh.template newbpotopo<0>(ipoin,ipoin);
+      int ibpoi = msh.newbpotopo(ipoin,0,ipoin);
       for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipoin,ii) = msh.coord[cav.ipins][ii] ;
       writeMesh("debug_insert0.meshb",msh);
       for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi(ibpoi,ii)  = -1;
@@ -401,7 +401,7 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
   cav.ipins = msh.newpoitopo(2,iface);
   int ibpoi = -1;
   if(msh.isboundary_faces()){
-    ibpoi = msh.template newbpotopo<2>(cav.ipins,iface);
+    ibpoi = msh.newbpotopo(cav.ipins,2,iface);
   }
 
   if(msh.idim == 3) METRIS_THROW_MSG(TODOExcept(), 
@@ -565,7 +565,7 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
       }
       // Add a corner at ipoin 
       int ipoin = msh.newpoitopo(-1,-1);
-      int ibpoi = msh.template newbpotopo<0>(ipoin,ipoin);
+      int ibpoi = msh.newbpotopo(ipoin,0,ipoin);
       for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipoin,ii) = msh.coord[cav.ipins][ii] ;
       writeMesh("debug_insert0.meshb",msh);
       for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi(ibpoi,ii)  = -1;

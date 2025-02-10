@@ -417,7 +417,7 @@ void debugInveval(std::string meshName_, MeshBase &msh, int tdim, int* ent2pol, 
   for(int ii = 0; ii < nnode; ii++) ent2pol[ii] += 1;
 
   int ipnew = msh.newpoitopo(0,-1);
-  int ibnew = msh.template newbpotopo<0>(ipnew,-1);
+  int ibnew = msh.newbpotopo(ipnew,0,-1);
 
   for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipnew,ii) = coop[ii];
 
@@ -872,12 +872,17 @@ void writeField(std::string outname, const MeshBase &msh, SolTyp stype, dblAr1 &
 
 template<class MFT>
 void writeBackLinks(std::string solName, Mesh<MFT>& msh){
+  GETVDEPTH(msh);
+
+  if(msh.met.metricClass() != MetricClass::MetricFieldFE){
+    CPRINTF1("## writeBackLinks disabled in analytical metric mode\n");
+    return;
+  }
 
   dblAr2 field(msh.npoin,msh.idim);
   field.set_n(msh.npoin);
 
   double bary[4], coom[3];
-
 
   for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
     if(msh.poi2ent(ipoin,msh.get_tdim()-1) < 0){
@@ -886,51 +891,54 @@ void writeBackLinks(std::string solName, Mesh<MFT>& msh){
     } 
 
     // Get centroid of back element 
-    for(int tdim = 1; tdim <= msh.get_tdim(); tdim++){
-      int ientt = msh.poi2bak(ipoin,tdim-1);
-      if(ientt < 0) continue;
+    int pdim = msh.getpoitdim(ipoin);
+    if(pdim == 0) continue;
 
-      const intAr2& ent2poi = msh.bak->ent2poi(tdim);
+    //for(int tdim = 1; tdim <= msh.get_tdim(); tdim++){
+    int ientt = msh.poi2bak(ipoin,pdim-1);
+    if(ientt < 0) continue;
 
-      //int nentb = msh.bak->nentt(tdim);
-      //if(ientt >= nentb){
-      //  printf("## IENTT >= NENTB tdim = %d \n",tdim);
-      //  for(int ii = 1; ii <= 3; ii++){
-      //    printf("%d : %d %d \n", ii, msh.poi2bak(ientt,))
-      //  }
-      //  wait();
-      //}
+    const intAr2& ent2poi = msh.bak->ent2poi(pdim);
 
-      for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim + 1);
+    //int nentb = msh.bak->nentt(tdim);
+    //if(ientt >= nentb){
+    //  printf("## IENTT >= NENTB tdim = %d \n",tdim);
+    //  for(int ii = 1; ii <= 3; ii++){
+    //    printf("%d : %d %d \n", ii, msh.poi2bak(ientt,))
+    //  }
+    //  wait();
+    //}
 
-      if(msh.idim == 2){
-        if(tdim == 1){
-          eval1<2,1>(msh.bak->coord, ent2poi[ientt], msh.bak->getBasis(), 
-            DifVar::None, DifVar::None, bary, coom, NULL, NULL);
-        }else if(tdim == 2){
-          eval2<2,1>(msh.bak->coord, ent2poi[ientt], msh.bak->getBasis(), 
-            DifVar::None, DifVar::None, bary, coom, NULL, NULL);
-        }else{
-          METRIS_THROW_MSG(WArgExcept(), "Tdim 3 but gdim 2");
-        }
+    for(int ii = 0; ii < pdim + 1; ii++) bary[ii] = 1.0 / (pdim + 1);
+
+    if(msh.idim == 2){
+      if(pdim == 1){
+        eval1<2,1>(msh.bak->coord, ent2poi[ientt], msh.bak->getBasis(), 
+          DifVar::None, DifVar::None, bary, coom, NULL, NULL);
+      }else if(pdim == 2){
+        eval2<2,1>(msh.bak->coord, ent2poi[ientt], msh.bak->getBasis(), 
+          DifVar::None, DifVar::None, bary, coom, NULL, NULL);
       }else{
-        if(tdim == 1){
-          eval1<3,1>(msh.bak->coord, ent2poi[ientt], msh.bak->getBasis(), 
-            DifVar::None, DifVar::None, bary, coom, NULL, NULL);
-        }else if(tdim == 2){
-          eval2<3,1>(msh.bak->coord, ent2poi[ientt], msh.bak->getBasis(), 
-            DifVar::None, DifVar::None, bary, coom, NULL, NULL);
-        }else{
-          eval3<3,1>(msh.bak->coord, ent2poi[ientt], msh.bak->getBasis(), 
-            DifVar::None, DifVar::None, bary, coom, NULL, NULL);
-        }
+        METRIS_THROW_MSG(WArgExcept(), "pdim 3 but gdim 2");
       }
-
-      for(int ii = 0; ii < msh.idim; ii++) 
-        field(ipoin,ii) = coom[ii] - msh.coord(ipoin,ii);
-
-      break;  
+    }else{
+      if(pdim == 1){
+        eval1<3,1>(msh.bak->coord, ent2poi[ientt], msh.bak->getBasis(), 
+          DifVar::None, DifVar::None, bary, coom, NULL, NULL);
+      }else if(pdim == 2){
+        eval2<3,1>(msh.bak->coord, ent2poi[ientt], msh.bak->getBasis(), 
+          DifVar::None, DifVar::None, bary, coom, NULL, NULL);
+      }else{
+        eval3<3,1>(msh.bak->coord, ent2poi[ientt], msh.bak->getBasis(), 
+          DifVar::None, DifVar::None, bary, coom, NULL, NULL);
+      }
     }
+
+    for(int ii = 0; ii < msh.idim; ii++) 
+      field(ipoin,ii) = coom[ii] - msh.coord(ipoin,ii);
+
+    break;  
+    //}
 
   }
 
