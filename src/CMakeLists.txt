@@ -66,9 +66,9 @@ endif()
 
 # 2 --- meshBASIC (low_eval.cxx)
 # Files needed by stage 2 codegen which don't need stage 2 codegen themselves...
-add_library(meshBASIC low_eval.cxx ho_constants.hxx
-                      Arrays/aux_msharrays1D.cxx 
-                      Arrays/aux_msharrays2D.cxx )
+add_library(meshBASIC STATIC low_eval.cxx ho_constants.hxx
+                             Arrays/aux_msharrays1D.cxx 
+                             Arrays/aux_msharrays2D.cxx )
 target_include_directories(meshBASIC PRIVATE "." ".." )
 target_include_directories(meshBASIC PUBLIC 
                            "libs"
@@ -238,7 +238,7 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/src/adapt/msh_lineadapt2.cxx)
       ${PROJECT_SOURCE_DIR}/src/adapt/msh_insPointsCurve.cxx
   )
 endif()
-add_library(libMetris ${SRC_SOURCES})
+add_library(libMetris STATIC ${SRC_SOURCES})
 setMetrisFlags(libMetris PUBLIC)
 set_property(TARGET libMetris PROPERTY CXX_STANDARD 17)
 
