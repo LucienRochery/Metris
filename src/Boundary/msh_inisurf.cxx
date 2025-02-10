@@ -685,7 +685,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
             METRIS_ENFORCE_MSG(msh.bpo2ibi(ibpo1,1) == 1,
               "TODO: handle CAD edges with no interior nodes in iniMeshBdryPoints");
 
-            CPRINTF2(" - using ipoi3 = %d ibpo1 = %f \n",ipoi3,ibpo1);
+            CPRINTF2(" - using ipoi3 = %d ibpo1 = %d\n",ipoi3,ibpo1);
 
             int ibpoi; 
             bool ifnd = false;
