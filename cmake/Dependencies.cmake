@@ -129,20 +129,19 @@ endif()
 
 
  
+ 
 if(NOT(DEFINED ENV{ESP_ROOT}))
   message(FATAL_ERROR "Set the environment variable ESP_ROOT to the folder containing include/egads.h")
 else()
   set(ESP_ROOT $ENV{ESP_ROOT})
   message("Found ESP_ROOT = ${ESP_ROOT}")
 endif()
-add_library(libegads SHARED IMPORTED GLOBAL)
-add_library(libegadslite SHARED IMPORTED GLOBAL)
+# Linker still needs path to lib files at compile time
 find_file(EGADS_LIBRARY NAMES libegads.dylib libegads.so PATHS ${ESP_ROOT}/lib/)
 find_file(EGADSLITE_LIBRARY NAMES libegadslite.dylib libegadslite.so PATHS ${ESP_ROOT}/lib/)
-message("Using EGADS_LIBRARY = ${EGADS_LIBRARY}")
-message("Using EGADSLITE_LIBRARY = ${EGADSLITE_LIBRARY}")
-set_target_properties(libegads     PROPERTIES IMPORTED_LOCATION ${EGADS_LIBRARY})
-set_target_properties(libegadslite PROPERTIES IMPORTED_LOCATION ${EGADSLITE_LIBRARY})
+list(APPEND CMAKE_BUILD_RPATH   ${ESP_ROOT}/lib/)
+list(APPEND CMAKE_INSTALL_RPATH ${ESP_ROOT}/lib/)
+
 
 
 if(USE_CLP STREQUAL "True" 

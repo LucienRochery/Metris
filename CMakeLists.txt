@@ -58,6 +58,8 @@ add_compile_definitions(NO_BOOST_EXCEPT)
 #  add_compile_definitions(NO_BOOST_EXCEPT)
 #endif()
 
+set(CMAKE_MACOSX_RPATH 1)
+
 include(${PROJECT_SOURCE_DIR}/cmake/Dependencies.cmake)
 
 
@@ -130,7 +132,9 @@ add_subdirectory(SANS)
 
 add_executable(metris "progs/main.cxx")
 add_executable(egads2lite "progs/EGADS2lite.cxx")
-add_executable(scatter_rh "progs/scatter_rh.cxx")
+
+set_target_properties(metris PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 #add_dependencies(gen_lag2bez codegen2)
 
 #message("MPI_LIBRARIES = ${MPI_LIBRARIES}")
@@ -142,7 +146,7 @@ target_link_libraries(metris PUBLIC libMetris
                                     absl::flat_hash_map 
                                     #absl::node_hash_map 
                                     lapack
-                                    libegads libegadslite
+                                    ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY}
                                     #nlopt
 #                                   LP.3
                                     lplib3
@@ -161,17 +165,11 @@ target_link_libraries(metris PUBLIC libMetris
 
 target_link_libraries(egads2lite PUBLIC libMetris 
                                         libmeshb 
-                                        libegads libegadslite
+                                        ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY}
                                         Boost::headers # yes this is weird
                                         ${Boost_LIBRARIES}
                                         Boost::program_options)
 
-target_link_libraries(scatter_rh PUBLIC libMetris 
-                                        libmeshb 
-                                        libegads libegadslite
-                                        Boost::headers # yes this is weird
-                                        ${Boost_LIBRARIES}
-                                        Boost::program_options)
 #target_link_libraries(metris PUBLIC 
 #                                    #${Boost_PROGRAM_OPTIONS_LIBRARY}
 #                                    #${Boost_STACKTRACE_BASIC_LIBRARY} 
@@ -194,10 +192,6 @@ setMetrisFlags(metris PUBLIC)
 target_include_directories(egads2lite PRIVATE  "."
                            ${ESP_ROOT}/include)
 setMetrisFlags(egads2lite PUBLIC)
-target_include_directories(scatter_rh PRIVATE  "."
-                           ${ESP_ROOT}/include)
-setMetrisFlags(scatter_rh PUBLIC)
-
 
 # icc having trouble with GTest on my system, figure this out later
 #if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME) AND "Debug" IN_LIST CMAKE_BUILD_TYPE)
@@ -260,7 +254,7 @@ if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME
 		target_link_libraries(${d} PUBLIC 
       absl::hash absl::flat_hash_map #absl::node_hash_map
       )
-		target_link_libraries(${d} PUBLIC lapack libegads libegadslite nlopt) #
+		target_link_libraries(${d} PUBLIC lapack ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY} nlopt) #
 		#if(USE_PETSC STREQUAL "True")
     #  target_link_libraries(${d} PUBLIC PkgConfig::PETSC ${MPI_C_LIBRARIES})
 		#	#target_link_libraries(${d} PUBLIC PETSc)

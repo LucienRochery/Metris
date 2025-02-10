@@ -273,7 +273,7 @@ target_link_libraries(libMetris PUBLIC libmeshb
 														        	  dl
                                         absl::hash absl::flat_hash_map #absl::node_hash_map
                                         lapack 
-                                        libegads libegadslite
+                                        ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY}
                                         #LP.3
                                         lplib3
                                         ${PETSC_LIBRARIES}
@@ -289,4 +289,8 @@ endif()
 if(REQ_CODEGEN)
   add_dependencies(libMetris codegen2)
 endif()
+   
+SET_TARGET_PROPERTIES(libMetris PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
+list(APPEND CMAKE_BUILD_RPATH ${CMAKE_BINARY_DIR}/src/)
+list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_BINARY_DIR}/src/)
    
