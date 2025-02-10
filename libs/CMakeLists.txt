@@ -1,11 +1,12 @@
 if(NOT TARGET libmeshb)
-  add_library(libmeshb libmeshb7.c)
+  add_library(libmeshb STATIC libmeshb7.c)
 endif()
-add_library(lplib3   lplib3.c)
+add_library(lplib3  STATIC lplib3.c)
+
 add_library(libkdtree INTERFACE)
 target_include_directories(libkdtree INTERFACE "${PROJECT_SOURCE_DIR}/libs/libkdtree")
 file (GLOB_RECURSE ALGLIB_SRC CONFIGURE_DEPENDS "alglib-cpp/src/*.cpp")
-add_library(alglib ${ALGLIB_SRC})
+add_library(alglib STATIC ${ALGLIB_SRC})
 target_include_directories(alglib INTERFACE "${PROJECT_SOURCE_DIR}/libs/alglib-cpp/src")
 
 #add_library(nlopt INTERFACE)
