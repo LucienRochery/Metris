@@ -16,7 +16,9 @@
 
 namespace Metris{
 
-void anamet2D_1(void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet2D_1([[maybe_unused]] void *ctx, 
+                [[maybe_unused]] const double*__restrict__ crd, 
+                double scale, int idif1, double *met, double *dmet){
   met[0] = 1.0/(scale*scale);
   met[1] = 0.0;
   met[2] = 1.0/(scale*scale);
@@ -31,7 +33,7 @@ void anamet2D_1(void *ctx, const double*__restrict__ crd, double scale, int idif
 }
 
 // circle
-void anamet2D_2(void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet2D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   const double pi = 3.141592653589793238462643383279502884;
   SANS::SurrealS<2,double> X[2];
   X[0] = crd[0] - 0.5;
@@ -73,12 +75,11 @@ void anamet2D_2(void *ctx, const double*__restrict__ crd, double scale, int idif
 
   SANS::SurrealS<2,double> metS[3];
   eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
-
-  getmet_SurS2dbl<2>(metS,met,dmet);
+  if(idif1 > 0) getmet_SurS2dbl<2>(metS,met,dmet);
 }
 
 // Boundary-layer mesh 
-void anamet2D_3(void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet2D_3([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
   SANS::SurrealS<2,double> X[2];
   X[0] = crd[0];
@@ -106,12 +107,12 @@ void anamet2D_3(void *ctx, const double*__restrict__ crd, double scale, int idif
 
   SANS::SurrealS<2,double> metS[3];
   eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
-  getmet_SurS2dbl<2>(metS,met,dmet);
+  if(idif1 > 0) getmet_SurS2dbl<2>(metS,met,dmet);
 }
 
 
 // Boundary-layer mesh, slanted, wall = { x + y - 0.5 = 0 }
-void anamet2D_4(void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet2D_4([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
   SANS::SurrealS<2,double> X;
   X = crd[0] + crd[1] - 0.5;
@@ -139,14 +140,14 @@ void anamet2D_4(void *ctx, const double*__restrict__ crd, double scale, int idif
 
   SANS::SurrealS<2,double> metS[3];
   eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
-  getmet_SurS2dbl<2>(metS,met,dmet);
+  if(idif1 > 0) getmet_SurS2dbl<2>(metS,met,dmet);
 }
 
 
 
 
 // circle BL
-void anamet2D_5(void *ctx, const double*__restrict__ crd, double scale, int idif1, 
+void anamet2D_5([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, 
   double *met, double *dmet){
   const double pi = 3.141592653589793238462643383279502884;
   double x0 = 0.01;
@@ -196,7 +197,7 @@ void anamet2D_5(void *ctx, const double*__restrict__ crd, double scale, int idif
   getmet_SurS2dbl<2>(metS,met,dmet);
 
   #ifndef NDEBUG
-  if(dmet != NULL){
+  if(idif1 > 0){
     //printf("debug r = %15.7e theta = %15.7e print met = %15.7e %15.7e %15.7e \n",
     //  r.value(), theta.value(), met[0],met[1],met[2]);
     for(int ii = 0; ii < 6; ii++){
@@ -221,7 +222,7 @@ void anamet2D_5(void *ctx, const double*__restrict__ crd, double scale, int idif
 
 
 // circle centered on 0 
-void anamet2D_6(void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet2D_6([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   const double pi = 3.141592653589793238462643383279502884;
   SANS::SurrealS<2,double> X[2];
   X[0] = crd[0] + 0.01;
@@ -266,7 +267,7 @@ void anamet2D_6(void *ctx, const double*__restrict__ crd, double scale, int idif
   SANS::SurrealS<2,double> metS[3];
   eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
 
-  getmet_SurS2dbl<2>(metS,met,dmet);
+  if(idif1 > 0) getmet_SurS2dbl<2>(metS,met,dmet);
 }
 
 

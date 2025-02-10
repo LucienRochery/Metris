@@ -13,18 +13,19 @@ double det3_vdif(const double* x1,const double* x2
                 ,const double* z1,const double* z2);
 
 static double* vdiff(const double* a, const double* b){  METRIS_THROW_MSG(TODOExcept(),"Reimplement ccoef3_d");}static double* vproduct(const double* a, const double* b){  METRIS_THROW_MSG(TODOExcept(),"Reimplement ccoef3_d");}template<int ideg>
-void d_ccoef_genbez3(const intAr2 & __restrict__ tet2poi,
-                     const dblAr2& __restrict__ coord,
-                     int ielem,
-                     int icoor,
-                     dblAr2& __restrict__ d_ccoef){}
+
+void d_ccoef_genbez3([[maybe_unused]] const intAr2&__restrict__ tet2poi,
+                     [[maybe_unused]] const dblAr2&__restrict__ coord,
+                     [[maybe_unused]] int ielem,
+                     [[maybe_unused]] int icoor,
+                     [[maybe_unused]] dblAr2&__restrict__ d_ccoef){}
 
 template<>
-void d_ccoef_genbez3<2>(const intAr2 & __restrict__ tet2poi,
-                     const dblAr2& __restrict__ coord,
+void d_ccoef_genbez3<2>(const intAr2&__restrict__ tet2poi,
+                     const dblAr2&__restrict__ coord,
                      int ielem,
                      int icoor,
-                     dblAr2& __restrict__ d_ccoef){
+                     dblAr2&__restrict__ d_ccoef){
 
 
   for(int i = 0; i < 20; i++) {

@@ -148,8 +148,8 @@ inline void mat3vect(const double mat[], const double inp[], double out[]){
 // Mat stored line first (C)
 inline void matvdft(int n, const double mat[], const double in1[], const double in2[], double out[]){
   if(n == 3){
-  	out[0] = mat[0]*(in1[0]-in2[0]) + mat[3]*(in1[1]-in2[1]) + mat[6]*(in1[2]-in2[2]);
-  	out[1] = mat[1]*(in1[0]-in2[0]) + mat[4]*(in1[1]-in2[1]) + mat[7]*(in1[2]-in2[2]);
+   out[0] = mat[0]*(in1[0]-in2[0]) + mat[3]*(in1[1]-in2[1]) + mat[6]*(in1[2]-in2[2]);
+   out[1] = mat[1]*(in1[0]-in2[0]) + mat[4]*(in1[1]-in2[1]) + mat[7]*(in1[2]-in2[2]);
     out[2] = mat[2]*(in1[0]-in2[0]) + mat[5]*(in1[1]-in2[1]) + mat[8]*(in1[2]-in2[2]);
   }else if(n == 2){
     out[0] = mat[0]*(in1[0]-in2[0]) + mat[2]*(in1[1]-in2[1]);
@@ -195,8 +195,8 @@ inline void sym3mat(const double met[], const double mat[], double out[]){
 
 template <int ndimn>
 inline void symXvec(const double*__restrict__ met,
-	     				      const double*__restrict__ ve1,
-	           				     	double*__restrict__ ve2){
+	      			      const double*__restrict__ ve1,
+	            			      double*__restrict__ ve2){
 	static_assert(ndimn <= 3);
 	for(int ii = 0; ii < ndimn; ii++){
 		ve2[ii] = met[sym2idx(ii,0)]*ve1[0];

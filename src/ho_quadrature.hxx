@@ -645,8 +645,8 @@ eval3 refers to tetrahedra
 //			for(int inode = 0;inode < tetnpps[ideg]; inode++){
 //				double bary[4] = {ordtet.s[ideg][inode]/(1.0*ideg),
 //													ordtet.s[ideg][inode]/(1.0*ideg),
-//   												ordtet.s[ideg][inode]/(1.0*ideg),
-//   												ordtet.s[ideg][inode]/(1.0*ideg)}
+//    											ordtet.s[ideg][inode]/(1.0*ideg),
+//    											ordtet.s[ideg][inode]/(1.0*ideg)}
 //				eval[ideg][inode] = 
 //				   eval_bezier<ideg,3>(ordtet.s[ideg][inode],bary,0,jmat[ideg][inode])
 //

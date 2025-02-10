@@ -40,7 +40,6 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
   // Absolute tolerance for whether a point is on the geometry or not 
   // (temporary)
   const double geotol = msh.param->geo_abstoledg;
-  const double vtol = msh.param->vtol;
 
   double result[18];
 
@@ -137,7 +136,7 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
       if(!ireins) continue;
 
-      ierro = increase_cavity2D(msh,msh.coord[cav.ipins],opts,cav,ithrd2);
+      ierro = increase_cavity2D(msh,cav,ithrd2);
       if(ierro != 0 && DOPRINTS2()){
         CPRINTF2(" # increase_cavity2D failed ierro %d \n",ierro);
         CPRINTF2("Trying to reinsert ipoin %d iedge = %d iedg1 %d iface %d iref %d \n",

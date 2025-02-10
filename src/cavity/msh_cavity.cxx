@@ -21,7 +21,12 @@ namespace Metris{
 // and the result is in lnewed
 // Triangles, likewise. 
 template <class MFT, int ideg>
-int reconnect_tetcav(Mesh<MFT> &msh, const MshCavity& cav, CavOprOpt &opts, double *qmax, int ithread){
+int reconnect_tetcav([[maybe_unused]]Mesh<MFT> &msh, 
+                     [[maybe_unused]] const MshCavity& cav, 
+                     [[maybe_unused]] CavOprOpt &opts, 
+                     [[maybe_unused]] double *qmax, 
+                     [[maybe_unused]] int ithread){
+  METRIS_THROW_MSG(TODOExcept(), "Implement reconnect_tetcav");
 	return 0;
 }
 
@@ -42,14 +47,16 @@ template int reconnect_tetcav<MetricFieldFE        , n >(Mesh<MetricFieldFE     
 // 2 spaces per level 
 template <class MFT, int ideg>
 int cavity_operator(Mesh<MFT> &msh , 
-                  	MshCavity  &cav,
-                  	CavOprOpt  &opts  ,
+                   MshCavity  &cav,
+                   CavOprOpt  &opts  ,
                     CavWrkArrs &work  ,
                     CavOprInfo &info  ,
-                  	int ithread){
+                   int ithread){
   GETVDEPTH(msh);
   info.done = false;
 
+  METRIS_ENFORCE_MSG(opts.max_increase_cav_geo <= 1, 
+                     "Implement cavity correction")
 
   CPRINTF1("-- cavity_operator start ncedg = %d ncfac = %d nctet = %d ipins = %d \n",
     cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),cav.ipins);
@@ -117,10 +124,10 @@ int cavity_operator(Mesh<MFT> &msh ,
 
 
 	int nbpo0 = msh.nbpoi,
-	 	  npoi0 = msh.npoin,
-	 	  nedg0 = msh.nedge,
-	 	  nfac0 = msh.nface,
-	 	  nele0 = msh.nelem;
+	    npoi0 = msh.npoin,
+	    nedg0 = msh.nedge,
+	    nfac0 = msh.nface,
+	    nele0 = msh.nelem;
 
   double qmax;
 
@@ -163,13 +170,13 @@ int cavity_operator(Mesh<MFT> &msh ,
 	iinva = 0;
 	niter_incr = 0;
 	do{
-  	/*  -------------- Generate final cavity -------------------- 
-  			------- For typent in (line|face|tetra) do 
-  	    -------  	Generate typent cavity + new typent-1 elements boundary
-  	    -------  	Reconnect bdry to ipins
-  	*/
+   /*  -------------- Generate final cavity -------------------- 
+   		------- For typent in (line|face|tetra) do 
+       -------   Generate typent cavity + new typent-1 elements boundary
+       -------   Reconnect bdry to ipins
+   */
 
-			ierro = reconnect_lincav<MFT, ideg>(msh, cav, opts, &qmax, ithread);
+			ierro = reconnect_lincav<MFT, ideg>(msh, cav, opts, ithread);
 			if(ierro > 0) goto cleanup;
 
       CPRINTF1("-- reconnect_lincav done nedg0 = %d nedge = %d npoi0 = %d npoin = %d\n",
@@ -200,7 +207,7 @@ int cavity_operator(Mesh<MFT> &msh ,
       if(ierro > 0) goto cleanup; 
 	
 	/*  -------------- Fast validity correction --------------------
-	 	If this doesn't pass, don't invest on expensive optimization 
+	  If this doesn't pass, don't invest on expensive optimization 
 		Instead, increase cavity and restart.
 	*/
 
@@ -297,34 +304,6 @@ template int cavity_operator<MetricFieldAnalytical, n >(Mesh<MetricFieldAnalytic
 template int cavity_operator<MetricFieldFE        , n >(Mesh<MetricFieldFE        >&,MshCavity&,CavOprOpt&,CavWrkArrs&,CavOprInfo&,int);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
-
-
-
-// From point ipoin, generate Delaunay cavity
-// Initial cavity can be partially filled, e.g. with edge shell if ipoin on edge
-// If a triangle is supplied, start from adjacent tetra
-template<class MFT>
-int select_cavity(const Mesh<MFT> &msh, MshCavity &cav){return 0;}
-
-template int select_cavity<MetricFieldAnalytical>(const Mesh<MetricFieldAnalytical> &msh, MshCavity &cav);
-template int select_cavity<MetricFieldFE        >(const Mesh<MetricFieldFE        > &msh, MshCavity &cav);
-
-
-// Increase cavity based on bad (geometricalle) elements. This is different from check_cavity_topo
-// which increases based on purely topological criteria and should be done once at most. 
-template<class MFT>
-int increase_cavity_geo(const Mesh<MFT> &msh, MshCavity& cav, int nbad, intAr2 &lbad){return 0;}
-
-template int increase_cavity_geo<MetricFieldAnalytical>(const Mesh<MetricFieldAnalytical> &msh, MshCavity& cav, int nbad, intAr2 &lbad);
-template int increase_cavity_geo<MetricFieldFE        >(const Mesh<MetricFieldFE        > &msh, MshCavity& cav, int nbad, intAr2 &lbad);
-
-
-// Apply expensive optimization/ heuristics
-template<class MFT>
-int make_cavity_unit(Mesh<MFT> &msh, MshCavity& outcav, CavOprOpt &opts){return 0;}
-
-template int make_cavity_unit<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, MshCavity& outcav, CavOprOpt &opts);
-template int make_cavity_unit<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, MshCavity& outcav, CavOprOpt &opts);
 
 
 }// End namespace

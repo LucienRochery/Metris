@@ -11,16 +11,16 @@
 #include "aux_utils.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 
-#define INCVDEPTH(has_param)  DepthCounter dc__(true);\
-const char* spaces_string__ = dc__.getSpaces();\
-const int iverb__ = has_param.param->iverb;\
-const int ivdepth__ = has_param.param->ivdepth;
+#define INCVDEPTH(has_param) [[maybe_unused]] DepthCounter dc__(true);\
+[[maybe_unused]] const char* spaces_string__ = dc__.getSpaces();\
+[[maybe_unused]] const int iverb__ = has_param.param->iverb;\
+[[maybe_unused]] const int ivdepth__ = has_param.param->ivdepth;
 
 
-#define GETVDEPTH(has_param) DepthCounter dc__(false);\
-const char* spaces_string__ = dc__.getSpaces();\
-const int iverb__ = has_param.param->iverb;\
-const int ivdepth__ = has_param.param->ivdepth;
+#define GETVDEPTH(has_param) [[maybe_unused]] DepthCounter dc__(false);\
+[[maybe_unused]] const char* spaces_string__ = dc__.getSpaces();\
+[[maybe_unused]] const int iverb__ = has_param.param->iverb;\
+[[maybe_unused]] const int ivdepth__ = has_param.param->ivdepth;
 
 //std::string spaces_string__ = dc__.getSpaces();\
 

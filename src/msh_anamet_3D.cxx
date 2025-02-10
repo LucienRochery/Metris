@@ -18,7 +18,7 @@
 namespace Metris{
 
 
-void anamet3D_1(void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet3D_1([[maybe_unused]] void *ctx, [[maybe_unused]] const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   met[0] = 1.0/(scale*scale);
   met[1] = 0.0;
   met[2] = 1.0/(scale*scale);
@@ -41,7 +41,7 @@ void anamet3D_1(void *ctx, const double*__restrict__ crd, double scale, int idif
 Sinusoidal BL cf "HIGH-ORDER METRIC INTERPOLATION FOR CURVED R-ADAPTION BY DISTORTION MINIMIZATION" 
 Guillermo Aparicio-Estrems Abel Gargallo-Peiro Xevi Roca
 */
-void anamet3D_2(void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet3D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   double x0 = 0;
   double y0 = 0;
   double z0 = 0;
@@ -116,7 +116,7 @@ void anamet3D_2(void *ctx, const double*__restrict__ crd, double scale, int idif
   SANS::SurrealS<3,double> metS[6];
   eig2met<3,SANS::SurrealS<3,double>>(eigval,eigvec[0],metS);
 
-  getmet_SurS2dbl<3>(metS,met,dmet);
+  if(idif1 > 0) getmet_SurS2dbl<3>(metS,met,dmet);
 
   //for(int jj = 0; jj < 6; jj++){
   //  met[jj] = metS[jj].value();
@@ -186,7 +186,7 @@ void anamet3D_2(void *ctx, const double*__restrict__ crd, double scale, int idif
 Cylindrical around axis z 
 Centered around -1, -1, -1 to avoid singularity on common cube cases 
 */
-void anamet3D_3(void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet3D_3([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   double x0 = -0.6;
   double y0 = -0.6;
 
@@ -228,23 +228,8 @@ void anamet3D_3(void *ctx, const double*__restrict__ crd, double scale, int idif
   eig2met<3,SANS::SurrealS<2,double>>(eigval,rot[0],metS);
 
 
+  if(idif1 > 0) getmet_SurS2dbl<3>(metS,met,dmet);
 
-  for(int jj = 0; jj < 6; jj++){ 
-    met[jj] = metS[jj].value();
-  }
-
-
-  if(idif1 > 0){
-    for(int ii = 0; ii < 2; ii++){
-      for(int jj = 0; jj < 6; jj++){
-        dmet[6*ii + jj] = metS[jj].deriv(ii);
-      }
-    }
-
-    for(int jj = 0; jj < 6; jj++){
-      dmet[6*2 + jj] = 0;
-    }
-  }
 }
 
 
@@ -252,7 +237,7 @@ void anamet3D_3(void *ctx, const double*__restrict__ crd, double scale, int idif
 Cylindrical around axis z 
 Centered around -1, -1, -1 to avoid singularity on common cube cases 
 */
-void anamet3D_4(void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet3D_4([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   double x0 = 0;
   double y0 = 0;
   double z0 = 0;
@@ -279,86 +264,11 @@ void anamet3D_4(void *ctx, const double*__restrict__ crd, double scale, int idif
   // SANS::SurrealS<3,double> metS[6] = {1/(scal*scal), 0, 1/(scal*scal), 0, 0, 1/(scal*scal)};
 
 
-  getmet_SurS2dbl<3>(metS,met,dmet);
+  if(idif1 > 0) getmet_SurS2dbl<3>(metS,met,dmet);
 
-  //for(int jj = 0; jj < 6; jj++){
-  //  met[jj] = metS[jj].value();
-  //}
-
-  //if(idif1 > 0){
-  //  for(int ii = 0; ii < 3; ii++){
-  //    for(int jj = 0; jj < 6; jj++){
-  //      dmet[6*ii + jj] = metS[jj].deriv(ii);
-  //    }
-  //  }
-  //}
 }
 
 
-
-// circle BL
-void anamet3D_5(void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
-  const double pi = 3.141592653589793238462643383279502884;
-  SANS::SurrealS<2,double> X[2];
-  X[0] = crd[0];
-  X[0].deriv(0) = 1;
-  X[0].deriv(1) = 0;
-
-  X[1] = crd[1];
-  X[1].deriv(0) = 0;
-  X[1].deriv(1) = 1;
-
-  ///const double r0 = 0.5;
-
-  SANS::SurrealS<2,double> r = sqrt(X[0]*X[0] + X[1]*X[1]) + 0.01;// - r0 + 1.0e-2;
-
-  double hy_min = 0.01;
-  double hy_max = 0.1;
-  double hx = scale*0.5;
-  SANS::SurrealS<2,double> hy = scale * (r * hy_max + (1.0 - r) * hy_min);
-  double hz = scale * 0.02;
-
-  SANS::SurrealS<2,double> eigval[3] = {1.0/(hy*hy), 1.0/(hx*hx), 1.0/(hz*hz)};
-  SANS::SurrealS<2,double> eigvec[9];
-
-  SANS::SurrealS<2,double> y[2] = {X[0] / r, X[1] / r};
-  SANS::SurrealS<2,double> theta;
-  if(y[0].value() > 0){
-    theta = atan(y[1]/y[0]);
-  }else{
-    theta = pi + atan(y[1]/y[0]);
-  }
-
-  if(ctx != NULL){
-    printf("anamet2D_2 debug r = %.6f theta = %.6f\n", r.value(), theta.value());
-  }
-
-  // eig2met is in R^T D R format. Worst case we are using -theta. 
-  eigvec[0] =  cos(theta);
-  eigvec[1] =  sin(theta); 
-  eigvec[2] =  0; 
-  eigvec[3] = -sin(theta);
-  eigvec[4] =  cos(theta);
-  eigvec[5] =  0; 
-  eigvec[6] = 0;
-  eigvec[7] = 0;
-  eigvec[8] = 1;
-
-  SANS::SurrealS<2,double> metS[3];
-  eig2met<3,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
-
-  getmet_SurS2dbl<3,2>(metS,met,dmet);
-
-  //for(int ii = 0; ii < 3; ii ++) met[ii] = metS[ii].value();
-
- //if(idif1 > 0){
- //  for(int ii = 0; ii < 2; ii++){
- //    for(int jj = 0; jj < 3; jj++){
- //      dmet[3*ii + jj] = metS[jj].deriv(ii);
- //    }
- //  }
- //}
-}
 
 
 

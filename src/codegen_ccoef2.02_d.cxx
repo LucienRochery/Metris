@@ -10,12 +10,12 @@
 namespace Metris{
 
 
-template<int ideg> void d_ccoef_genbez2(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord,
-                                        int ielem, int icoor,
-                                        dblAr2& __restrict__ d_ccoef){}
-template<> void d_ccoef_genbez2<2>(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord,
+template<int ideg> void d_ccoef_genbez2([[maybe_unused]]const intAr2&__restrict__ fac2poi, [[maybe_unused]] const dblAr2&__restrict__ coord,
+                                        [[maybe_unused]] int ielem, [[maybe_unused]] int icoor,
+                                        [[maybe_unused]] dblAr2&__restrict__ d_ccoef){}
+template<> void d_ccoef_genbez2<2>(const intAr2&__restrict__ fac2poi, const dblAr2&__restrict__ coord,
                                    int ielem, int icoor,
-                                   dblAr2& __restrict__ d_ccoef){
+                                   dblAr2&__restrict__ d_ccoef){
   METRIS_ASSERT(icoor == 0 || icoor == 1);
   const int sg = 1 - 2*(icoor%2);
 

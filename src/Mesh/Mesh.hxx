@@ -60,7 +60,7 @@ private:
 
 public:
   // Delete dead elements and minimize array sizes 
-  void cleanup(int ithread = 0);
+  void cleanup();
 
 
   // -- Internal or deprecated: 

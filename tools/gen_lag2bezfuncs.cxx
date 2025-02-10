@@ -74,9 +74,9 @@ void gen_lag2bez(std::ostringstream &str){
 
     if constexpr(ideg == 0){
       str << "template<> void lag2bez"<<tdim<<"<"<<0<<","<<1<<">"<<
-                               "(const int* __restrict__ lfld,\n\
-                                const dblAr2& __restrict__ rfld0,\n\
-                                dblAr2& __restrict__ rfld1){}\n\n";
+                               "([[maybe_unused]] const int*__restrict__ lfld,\n\
+                                [[maybe_unused]] const dblAr2&__restrict__ rfld0,\n\
+                                [[maybe_unused]] dblAr2&__restrict__ rfld1){}\n\n";
       return c_ideg+1_c; // equivalent of a continue statement
     }
 
@@ -219,9 +219,9 @@ void gen_lag2bez(std::ostringstream &str){
       int szfld = szflds[isz];
 
       str << "template<> void lag2bez"<<tdim<<"<"<<ideg<<","<<szfld<<">"<<
-                               "(const int* __restrict__ lfld,\n\
-                                const dblAr2& __restrict__ rfld0,\n\
-                                dblAr2& __restrict__ rfld1){\n";
+                               "(const int*__restrict__ lfld,\n\
+                                const dblAr2&__restrict__ rfld0,\n\
+                                dblAr2&__restrict__ rfld1){\n";
 
       if(szfld > 1){
         str << "  for(int i=0; i< "<<szfld<<"; i++){\n";
@@ -307,7 +307,7 @@ template void gen_lag2bez<1>(std::ostringstream &str);
 template void gen_lag2bez<2>(std::ostringstream &str);
 template void gen_lag2bez<3>(std::ostringstream &str);
 
-int main(int argc, char **argv){
+int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv){
 	char fname[64];
   std::ofstream f;
 
@@ -328,9 +328,9 @@ int main(int argc, char **argv){
   for(int tdim = 1; tdim <= 3; tdim++){
   	strh << "template<int ideg, int szfld>\n";
   	strh << "void lag2bez"<<tdim<<
-  	          "(const int* __restrict__ lfld,\n\
- 								const dblAr2& __restrict__ rfld0,\n\
- 								dblAr2& __restrict__ rfld1);\n";
+  	          "(const int*__restrict__ lfld,\n\
+ 								const dblAr2&__restrict__ rfld0,\n\
+ 								dblAr2&__restrict__ rfld1);\n";
   }
   strh<<"\n} // End namespace\n\n";
   strh<<"\n#endif\n";

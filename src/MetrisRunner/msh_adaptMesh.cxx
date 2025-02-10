@@ -159,7 +159,7 @@ void MetrisRunner::adaptMesh0(){
   double stat0 = 1;
   //for(int niter = 1; niter <= miter || ( miter < 0 && niter <= miter_max
   //                                    && stat0 > 0.1); niter++){
-  double stat_prev = stat0;
+  //double stat_prev = stat0;
   msh.tag[ithrdfro]++;
   for(int niter = 1; niter <= miter || (miter < 0 && niter < miter_max); niter++){
     stat0 = 0;
@@ -337,7 +337,7 @@ void MetrisRunner::adaptMesh0(){
               || stat0 < minstat;
              // || abs(stat0 - stat_prev) < 1.0e-6 ;// This last criterion just catches cycles
 
-    stat_prev = stat0;
+    //stat_prev = stat0;
 
     if(stagn){
       CPRINTF1(" - low stat = %e break or optimize\n",stat0);

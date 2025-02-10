@@ -114,9 +114,9 @@ void getccoef2_map_coord(int ideg){
   str << "namespace Metris{\n\n\n";
 
   str << "template<int ideg> void d_ccoef_genbez2"
-      << "(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord,\n" 
-      << "                                        int ielem, int icoor,\n"
-      << "                                        dblAr2& __restrict__ d_ccoef){}\n";
+      << "([[maybe_unused]]const intAr2&__restrict__ fac2poi, [[maybe_unused]] const dblAr2&__restrict__ coord,\n" 
+      << "                                        [[maybe_unused]] int ielem, [[maybe_unused]] int icoor,\n"
+      << "                                        [[maybe_unused]] dblAr2&__restrict__ d_ccoef){}\n";
 
 
   //std::map<std::pair<int, int>, std::string> d_ccoef_map_x; // Declare d_ccoef_map_x
@@ -132,13 +132,12 @@ void getccoef2_map_coord(int ideg){
   int lll1 = ifactorial_func(2*(ideg-1));
 
   str << "template<> void d_ccoef_genbez2<"<<ideg<<">"
-      << "(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord,\n" 
+      << "(const intAr2&__restrict__ fac2poi, const dblAr2&__restrict__ coord,\n" 
       << "                                   int ielem, int icoor,\n"
-      << "                                   dblAr2& __restrict__ d_ccoef){\n";
+      << "                                   dblAr2&__restrict__ d_ccoef){\n";
   str << "  METRIS_ASSERT(icoor == 0 || icoor == 1);\n";
   str << "  const int sg = 1 - 2*(icoor%2);\n";
   for(int irnkcc = 0; irnkcc < npp_c; irnkcc++){
-    int ifirst = 1;
     int i1 = ordfac.s[2*(ideg-1)][irnkcc][0]; // constexpr
     int i2 = ordfac.s[2*(ideg-1)][irnkcc][1]; // constexpr
     int i3 = ordfac.s[2*(ideg-1)][irnkcc][2]; // constexpr
@@ -306,9 +305,9 @@ void get_point_derivatives(int ideg){
   str << "namespace Metris{\n\n";
 
   str << "template<int ideg>\n"
-      << "void d_pt_ccoef_genbez2(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord,\n" 
-      << "                        int ielem, int inode,\n"
-      << "                        dblAr2&__restrict__ d_ccoef){}\n\n";
+      << "void d_pt_ccoef_genbez2([[maybe_unused]] const intAr2&__restrict__ fac2poi, [[maybe_unused]] const dblAr2&__restrict__ coord,\n" 
+      << "                        [[maybe_unused]] int ielem, [[maybe_unused]] int inode,\n"
+      << "                        [[maybe_unused]] dblAr2&__restrict__ d_ccoef){}\n\n";
 
   str << "void vdiff_perp(const double* a, const double* b, int up, int lo, double *res);\n\n";
   str << "void vdiff_perp_sum(const double* a, const double* b, int up, int lo, double *res);\n\n";
@@ -324,12 +323,11 @@ void get_point_derivatives(int ideg){
   int lll1 = ifactorial_func(2*(ideg-1));
 
   str << "template<> void d_pt_ccoef_genbez2<"<<ideg<<">"
-      << "(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord,\n" 
+      << "(const intAr2&__restrict__ fac2poi, const dblAr2&__restrict__ coord,\n" 
       << "                                        int ielem, int inode,\n"
       << "                                        dblAr2&__restrict__ d_ccoef){\n";
 
   for(int irnkcc = 0; irnkcc < nnodj; irnkcc++){
-    int ifirst = 1;
     int i1 = ordfac.s[2*(ideg-1)][irnkcc][0]; // constexpr
     int i2 = ordfac.s[2*(ideg-1)][irnkcc][1]; // constexpr
     int i3 = ordfac.s[2*(ideg-1)][irnkcc][2]; // constexpr
@@ -417,7 +415,8 @@ void get_point_derivatives(int ideg){
 
   //str<<"\n\n\n";
 
-  std::ostringstream str_nodes[nnode];
+  constexpr int mnode = facnpps[METRIS_MAX_DEG];
+  std::ostringstream str_nodes[mnode];
   std::string funnames[2] = {"    vdiff_perp", "vdiff_perp_sum"};
 
   for (const auto& entry : d_ccoef_map) {
@@ -520,11 +519,11 @@ void get_ccoeff3d(int ideg){
     str << "}";
 
     str << "template<int ideg>\n";
-    str << "void d_ccoef_genbez3(const intAr2 & __restrict__ tet2poi,\n";
-    str << "                     const dblAr2& __restrict__ coord,\n";
-    str << "                     int ielem,\n";
-    str << "                     int icoor,\n";
-    str << "                     dblAr2& __restrict__ d_ccoef){}\n\n";
+    str << "void d_ccoef_genbez3([[maybe_unused]] const intAr2&__restrict__ tet2poi,\n";
+    str << "                     [[maybe_unused]] const dblAr2&__restrict__ coord,\n";
+    str << "                     [[maybe_unused]] int ielem,\n";
+    str << "                     [[maybe_unused]] int icoor,\n";
+    str << "                     [[maybe_unused]] dblAr2&__restrict__ d_ccoef){}\n\n";
 
 
     std::map<std::pair<int, int>, std::string> d_ccoef_map; // Declare d_ccoef_map_x
@@ -533,15 +532,14 @@ void get_ccoeff3d(int ideg){
     int lll1 = ifactorial_func(3*(ideg-1));
 
     str << "template<>\n";
-    str << "void d_ccoef_genbez3<"<<ideg<<">(const intAr2 & __restrict__ tet2poi,\n";
-    str << "                     const dblAr2& __restrict__ coord,\n";
+    str << "void d_ccoef_genbez3<"<<ideg<<">(const intAr2&__restrict__ tet2poi,\n";
+    str << "                     const dblAr2&__restrict__ coord,\n";
     str << "                     int ielem,\n";
     str << "                     int icoor,\n";
-    str << "                     dblAr2& __restrict__ d_ccoef){\n\n";
+    str << "                     dblAr2&__restrict__ d_ccoef){\n\n";
 
     
     for(int irnkcc = 0; irnkcc < npp_c; irnkcc++){
-      int ifirst = 1;
       int i1 = ordtet.s[3*(ideg-1)][irnkcc][0]; // constexpr
       int i2 = ordtet.s[3*(ideg-1)][irnkcc][1]; // constexpr
       int i3 = ordtet.s[3*(ideg-1)][irnkcc][2]; // constexpr
@@ -642,20 +640,20 @@ void get_ccoeff3d(int ideg){
     str << "}\n";
 
     //str << "template ";
-    //str << "void d_ccoef_genbez3<2,double>(const intAr2 & __restrict__ tet2poi,\n";
-    //str << "                     const dblAr2& __restrict__ coord,\n";
+    //str << "void d_ccoef_genbez3<2,double>(const intAr2&__restrict__ tet2poi,\n";
+    //str << "                     const dblAr2&__restrict__ coord,\n";
     //str << "                     int ielem,\n";
     //str << "                     int icoor,\n";
     //str << "                     double* __restrict__ ccoef,\n";
-    //str << "                     dblAr2& __restrict__ d_ccoef);\n\n";
+    //str << "                     dblAr2&__restrict__ d_ccoef);\n\n";
 
     //str << "template ";
-    //str << "void d_ccoef_genbez3<2,float8>(const intAr2 & __restrict__ tet2poi,\n";
-    //str << "                     const dblAr2& __restrict__ coord,\n";
+    //str << "void d_ccoef_genbez3<2,float8>(const intAr2&__restrict__ tet2poi,\n";
+    //str << "                     const dblAr2&__restrict__ coord,\n";
     //str << "                     int ielem,\n";
     //str << "                     int icoor,\n";
     //str << "                     float8* __restrict__ ccoef,\n";
-    //str << "                     dblAr2& __restrict__ d_ccoef);\n\n";
+    //str << "                     dblAr2&__restrict__ d_ccoef);\n\n";
 
 
     str << "\n\n";

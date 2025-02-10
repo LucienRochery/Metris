@@ -26,8 +26,8 @@ int MeshBack::newpoitopo(int tdimn, int ientt){
   return MeshBase::newpoitopo(tdimn, ientt);
 }
 
-void MeshBack::copyConstants(const MeshBase &msh, int MAX_DEG){
-  MeshMetric<MetricFieldFE>::copyConstants(msh,MAX_DEG);
+void MeshBack::copyConstants(const MeshBase &msh){
+  MeshMetric<MetricFieldFE>::copyConstants(msh);
   mpoin_ = npoin;
   mbpoi_ = nbpoi;
   medge_ = nedge;

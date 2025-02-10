@@ -322,11 +322,11 @@ struct CavWrkArrs{
 
 template<class MetricFieldType, int ideg>
 int cavity_operator(Mesh<MetricFieldType> &msh ,
-                  	MshCavity &cav,
-                  	CavOprOpt &opts,
+                   MshCavity &cav,
+                   CavOprOpt &opts,
                     CavWrkArrs &work,
                     CavOprInfo &info,
-                  	int ithread = 0);
+                   int ithread = 0);
 
 // Check at most one corner
 // Check edges attached to faces attached to tets
@@ -336,16 +336,9 @@ int check_cavity_topo(Mesh<MetricFieldType> &msh, MshCavity &cav,
                       CavOprOpt &opts,//RoutineWorkMemory<int> &iwrk,
                       int ithread = 0);
 
-// From point ipoin, generate Delaunay cavity
-// Initial cavity can be partially filled, e.g. with edge shell if ipoin on edge
-// If a triangle is supplied, start from adjacent tetra
-template<class MetricFieldType>
-int select_cavity(const Mesh<MetricFieldType> &msh, 
-	                MshCavity &cav);
-
 template<class MetricFieldType, int ideg>
 int update_cavity(Mesh<MetricFieldType> &msh, const MshCavity &cav, const CavWrkArrs &work, 
-                	int npoi0, int nedg0, int nfac0, int nele0, int ithread = 0);
+                 int npoi0, int nedg0, int nfac0, int nele0, int ithread = 0);
 
 
 // The boundary of the line cavity is simply the set of end points.
@@ -353,7 +346,7 @@ int update_cavity(Mesh<MetricFieldType> &msh, const MshCavity &cav, const CavWrk
 // point is included in the line cavity. 
 template<class MetricFieldType, int ideg>
 int reconnect_lincav(Mesh<MetricFieldType> &msh, const MshCavity& cav, CavOprOpt &opts, 
-                    double* qumin, int ithread = 0);//,int mnwedg, int *nnwedg,int lnwedg[]);
+                     int ithread = 0);//,int mnwedg, int *nnwedg,int lnwedg[]);
 
 
 // The boundary here is a set of edges. They will be reconnected to 
@@ -391,15 +384,6 @@ int correct_cavity_fast0(Mesh<MetricFieldType> &msh,
                          MshCavity &cav, CavOprOpt &opts, 
                          int npoi0, int nedg0, int nfac0, int nele0,
                          intAr2& lbad,CavWrkArrs &work,int ithread);
-
-// Increase cavity based on bad (geometricalle) elements. This is different from check_cavity_topo
-// which increases based on purely topological criteria and should be done once at most. 
-template<class MetricFieldType>
-int increase_cavity_geo(const Mesh<MetricFieldType> &msh, MshCavity& cav, int nbad, intAr2 &lbad);
-
-// Apply expensive optimization/ heuristics
-template<class MetricFieldType>
-int make_cavity_unit(Mesh<MetricFieldType> &msh, MshCavity& outcav, CavOprOpt &opts);
 
 
 

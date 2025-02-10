@@ -8,8 +8,6 @@
 
 namespace Metris{
 
-enum class ExpTyp{Series, Decomp};
-
 template <class MFT> class MeshMetric;
 
 // -----------------------------------------------------------------------------
@@ -33,16 +31,13 @@ double getlenedg_log(const double dx[], const double metl[], int miter = 100, do
 
 template<class MetricFieldType, int gdim, int ideg>
 double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
-                       int ientt, int tdimn, int iedg,
-                       ExpTyp iexptyp = ExpTyp::Series);
+                       int ientt, int tdimn, int iedg);
 template<class MetricFieldType, int gdim, int ideg>
 double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
-                       int ientt, int tdimn, int iedg, double *sz,
-                       ExpTyp iexptyp = ExpTyp::Series);
+                       int ientt, int tdimn, int iedg, double *sz);
 template<class MetricFieldType, int gdim, int ideg>
 double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
-                       int *edg2pol, double *sz,
-                       ExpTyp iexptyp = ExpTyp::Series);
+                       int *edg2pol, double *sz);
 
 // This one assumes lpoi of size ideg + 1
 //template<int gdim, int ideg>

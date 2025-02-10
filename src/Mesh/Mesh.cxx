@@ -84,7 +84,7 @@ void Mesh<MetricFieldAnalytical>::initialize(MetrisAPI *data, MeshBack &bak,
   }
   #endif
   for(int ipoin = 0; ipoin < npoin; ipoin++){
-    met.getMetPhys(AsDeg::Pk,DifVar::None,MetSpace::Exp,NULL,
+    met.getMetPhys(DifVar::None,MetSpace::Exp,
                    coord[ipoin],met[ipoin],NULL);
   }
   this->setBasis(mshbas0);
@@ -288,8 +288,8 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
   GETVDEPTH((*this))
 
   if constexpr(std::is_same<MFT,MetricFieldAnalytical>::value){
-    this->met.getMetPhys(AsDeg::Pk,DifVar::None,this->met.getSpace(),
-                         NULL,this->coord[ipoi0],this->met[ipoi0],NULL); 
+    this->met.getMetPhys(DifVar::None,this->met.getSpace(),
+                         this->coord[ipoi0],this->met[ipoi0],NULL); 
   }else{
 
     //if(this->idim == 3) METRIS_THROW_MSG(TODOExcept(), 
@@ -378,6 +378,8 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
               }else if(tdim == 2){
                 ierro = locMesh<2,2,bdeg>(*(this->bak), ieleb, this->coord[ipoi0],
                                           pdim0, uvsrf, iref1, NULL , coopr, barb);
+              }else{
+                METRIS_THROW(WArgExcept());
               }
             }else{
               if(tdim == 1){
@@ -408,7 +410,7 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
                 this->bak->coord(ipdbg,ii) = this->coord(ipoi0,ii);
 
               int ipdb2 = this->bak->newpoitopo(-1,-1);
-              int ibdb2 = this->bak->newbpotopo(ipdb2,0,ipdb2);
+              this->bak->newbpotopo(ipdb2,0,ipdb2);
               for(int ii = 0; ii < this->idim; ii++) 
                 this->bak->coord(ipdb2,ii) = coopr[ii];
 
@@ -434,7 +436,7 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
                 this->bak->coord(ipdbg,ii) = this->coord(ipoi0,ii);
 
               int ipdb2 = this->bak->newpoitopo(-1,-1);
-              int ibdb2 = this->bak->newbpotopo(ipdb2,0,ipdb2);
+              this->bak->newbpotopo(ipdb2,0,ipdb2);
               for(int ii = 0; ii < this->idim; ii++) 
                 this->bak->coord(ipdb2,ii) = coopr[ii];
 
@@ -520,7 +522,7 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
                 this->bak->coord(ipdbg,ii) = this->coord(ipoi0,ii);
 
               int ipdb2 = this->bak->newpoitopo(-1,-1);
-              int ibdb2 = this->bak->newbpotopo(ipdb2,0,ipdb2);
+              this->bak->newbpotopo(ipdb2,0,ipdb2);
               for(int ii = 0; ii < this->idim; ii++) 
                 this->bak->coord(ipdb2,ii) = coopr[ii];
 
@@ -575,7 +577,7 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
               debugInveval("invevaldbg", *(this->bak), tdim, ent2pob[*ieleb], this->coord[ipoi0]);
 
               bool iinva;
-              double ccoef[tetnpps[this->idim*(bdeg-1)]];
+              double ccoef[tetnpps[METRIS_MAX_DEG]];
               if(this->idim == 2){
                 getsclccoef<2,2,bdeg>(*(this->bak),*ieleb,NULL,ccoef,&iinva);
               }else{

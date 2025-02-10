@@ -18,7 +18,7 @@ namespace Metris{
 
 template <class MetricFieldType, int ideg>
 int reconnect_lincav(Mesh<MetricFieldType> &msh, const MshCavity& cav, CavOprOpt &opts, 
-                     double *qumin, int ithread){
+                     int ithread){
   GETVDEPTH(msh);
 
   const int ncedg = cav.lcedg.get_n();
@@ -431,7 +431,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, const MshCavity& cav, CavOprOpt
 
 // TODO: for corners, get refs of incident edges and replicate on new edges
 template <class MetricFieldType, int ideg>
-int reconnect_lincav(Mesh<MetricFieldType> &msh, const MshCavity& cav, CavOprOpt &opts, double *qumin, int ithread){
+int reconnect_lincav(Mesh<MetricFieldType> &msh, const MshCavity& cav, CavOprOpt &opts, int ithread){
 	if(ncedg <= 0) return 0;
 
   if(msh.get_tdim() == 1) METRIS_THROW_MSG(TODOExcept(), "Add quality checks in reconnect lincav for tdim = 1 meshes");
@@ -672,9 +672,9 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, const MshCavity& cav, CavOprOpt
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
 template int reconnect_lincav<MetricFieldAnalytical, n >(Mesh<MetricFieldAnalytical> &msh,\
-        const MshCavity& cav, CavOprOpt &opts, double * qumin, int ithread);\
+        const MshCavity& cav, CavOprOpt &opts, int ithread);\
 template int reconnect_lincav<MetricFieldFE        , n >(Mesh<MetricFieldFE        > &msh,\
-        const MshCavity& cav, CavOprOpt &opts, double * qumin, int ithread);
+        const MshCavity& cav, CavOprOpt &opts, int ithread);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

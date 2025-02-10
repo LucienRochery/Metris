@@ -90,6 +90,7 @@ void optim_newton_drivertype(int nvar ,
 
   if(*iflag == 0){
     if(nrwrk < 10*nvar+4) METRIS_THROW_MSG(DMemExcept(),"Increase nrwrk");
+    if(niwrk < 3        ) METRIS_THROW_MSG(DMemExcept(),"Increase niwrk");
 
     *niter = 0;   
     *iflag = 1;
@@ -1242,14 +1243,9 @@ nlopt_result luksan_pnetS<3>(nlopt_func f, void *f_data,
                             double fstop , double ftol_rel, double ftol_abs);
 
 
-
-
-
-
-
-
-
-
+int luksan_pnet_worksize(int n){
+  return n * 9 + (n+1)*LUKSAN_PNET_MAXIT*2;
+}
 
 
 

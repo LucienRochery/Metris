@@ -14,7 +14,7 @@
 namespace Metris{
 
 template<class MetricFieldType>
-void Mesh<MetricFieldType>::cleanup(int ithread){
+void Mesh<MetricFieldType>::cleanup(){
 
   GETVDEPTH((*this));
 
@@ -342,8 +342,8 @@ void Mesh<MetricFieldType>::cleanup(int ithread){
 
 
 }
-template void Mesh<MetricFieldFE>::cleanup(int ithread);
-template void Mesh<MetricFieldAnalytical>::cleanup(int ithread);
+template void Mesh<MetricFieldFE>::cleanup();
+template void Mesh<MetricFieldAnalytical>::cleanup();
 
 
 } // End namespace

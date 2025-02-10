@@ -176,15 +176,17 @@ void ball3_nm(MeshBase& __restrict__ msh,
 
 // Gather everything: tetras, triangles, edges
 // Seed can be any: edge, triangle or tetra
-void ball3_full(MeshBase& __restrict__ msh,
-                int ipoin  ,int tdimn, int iseed, 
-                int* __restrict__ nbtet,
-                int* __restrict__ nbfac,
-                int* __restrict__ nbedg,
-                intAr1&           lbtet,
-                intAr1&           lbfac, 
-                intAr1&           lbedg,
-                int ithread){
+void ball3_full([[maybe_unused]] MeshBase& __restrict__ msh,
+                [[maybe_unused]] int ipoin  ,
+                [[maybe_unused]] int tdimn, 
+                [[maybe_unused]] int iseed, 
+                [[maybe_unused]] int* __restrict__ nbtet,
+                [[maybe_unused]] int* __restrict__ nbfac,
+                [[maybe_unused]] int* __restrict__ nbedg,
+                [[maybe_unused]] intAr1&           lbtet,
+                [[maybe_unused]] intAr1&           lbfac, 
+                [[maybe_unused]] intAr1&           lbedg,
+                [[maybe_unused]] int ithread){
 
   METRIS_THROW_MSG(TODOExcept(),"All wrong here, reimplement")
 

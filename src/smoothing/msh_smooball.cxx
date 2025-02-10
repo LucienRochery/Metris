@@ -142,7 +142,6 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
   #ifndef USE_LPLIB_SMOOTHINTERIOR
   const int mball = 100;
   intAr1 lball(mball);
-  dblAr1 qball(mball);
   #endif
 
   msh.tag[ithrd1]++;
@@ -373,10 +372,10 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         //                       &qnrm0,&qmax0,&qnrm1,&qmax1,
         //                       qpower,qpnorm,difto,maxwt,inorm,iverb,ithrd2);
         if(msh.param->iflag2 == 0){
-          ierro = smooballdiff<MFT,idim,ideg>(msh,ipoin,lball,qball,
+          ierro = smooballdiff<MFT,idim,ideg>(msh,ipoin,lball,
                                  &qnrm0,&qmax0,&qnrm1,&qmax1,iquaf);
         }else{
-          ierro = smooballdiff_luksan<MFT,idim,ideg>(msh,ipoin,lball,qball,
+          ierro = smooballdiff_luksan<MFT,idim,ideg>(msh,ipoin,lball,
                                      &qnrm0,&qmax0,&qnrm1,&qmax1,work,iquaf);
         }
         if(qmax1 > qmax){

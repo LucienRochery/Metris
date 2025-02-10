@@ -15,7 +15,7 @@
 namespace Metris{
 
 
-MetrisRunner::MetrisRunner(int argc, char** argv, bool isilent) : 
+MetrisRunner::MetrisRunner(int argc, char** argv) : 
 opt(argc,argv),
 param_(opt),
 param(&param_){

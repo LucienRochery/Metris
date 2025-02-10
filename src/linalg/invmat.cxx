@@ -108,7 +108,7 @@ int invmat<2>(double *mat){
 }
 
 template<>
-int invmat<3>(double *mat){
+int invmat<3>([[maybe_unused]] double *mat){
   METRIS_THROW_MSG(TODOExcept(),"invmat 3");
 }
 

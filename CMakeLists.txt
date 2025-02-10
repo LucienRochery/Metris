@@ -54,12 +54,11 @@ endif()
 
 add_compile_definitions(SURREAL_LAZY)
 
-add_compile_definitions(NO_BOOST_EXCEPT)
-#if(USE_TRACELIBS)
-#  message("-- Compiling with Boost stacktrace libraries")
-#else()
-#  add_compile_definitions(NO_BOOST_EXCEPT)
-#endif()
+if(USE_TRACELIBS)
+  message(FATAL_ERROR "-- Compiling with Boost stacktrace libraries")
+else()
+  add_compile_definitions(NO_BOOST_EXCEPT)
+endif()
 
 set(CMAKE_MACOSX_RPATH 1)
 

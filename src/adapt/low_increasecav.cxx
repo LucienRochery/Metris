@@ -18,8 +18,7 @@
 
 namespace Metris{
 
-int increase_cavity2D(MeshBase &msh, double *coop, 
-                      const CavOprOpt &opts, MshCavity &cav, int ithread){
+int increase_cavity2D(MeshBase &msh, MshCavity &cav, int ithread){
   GETVDEPTH(msh);
 
   METRIS_ASSERT(cav.ipins >= 0 && cav.ipins < msh.npoin);

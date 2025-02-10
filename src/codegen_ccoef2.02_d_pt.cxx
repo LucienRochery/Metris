@@ -10,15 +10,15 @@
 namespace Metris{
 
 template<int ideg>
-void d_pt_ccoef_genbez2(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord,
-                        int ielem, int inode,
-                        dblAr2&__restrict__ d_ccoef){}
+void d_pt_ccoef_genbez2([[maybe_unused]] const intAr2&__restrict__ fac2poi, [[maybe_unused]] const dblAr2&__restrict__ coord,
+                        [[maybe_unused]] int ielem, [[maybe_unused]] int inode,
+                        [[maybe_unused]] dblAr2&__restrict__ d_ccoef){}
 
 void vdiff_perp(const double* a, const double* b, int up, int lo, double *res);
 
 void vdiff_perp_sum(const double* a, const double* b, int up, int lo, double *res);
 
-template<> void d_pt_ccoef_genbez2<2>(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord,
+template<> void d_pt_ccoef_genbez2<2>(const intAr2&__restrict__ fac2poi, const dblAr2&__restrict__ coord,
                                         int ielem, int inode,
                                         dblAr2&__restrict__ d_ccoef){
 

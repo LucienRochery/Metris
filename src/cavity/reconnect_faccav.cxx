@@ -29,7 +29,6 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, const MshCavity& cav,
   GETVDEPTH(msh);
 
   const int ncfac = cav.lcfac.get_n();
-  const int ncedg = cav.lcedg.get_n();
 
   int ierro = CAV_NOERR;
 
@@ -376,7 +375,7 @@ the driver must do the update ! we only do it topo
 */
 template<class MetricFieldType>
 static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, 
-    int nedg0, int ip, int ifacn, int ifac0, int ipins, int ithread){
+    int ip, int ifacn, int ifac0, int ipins, int ithread){
 
   int ib = msh.poi2bpo[ip];
   METRIS_ASSERT(ib >= 0);
@@ -435,18 +434,11 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh,
   METRIS_THROW_MSG(TopoExcept(),"Failed to find ib in old faces");
 }
 
-//int iedge = msh.bpo2ibi(ib,2);
-//// Dead edge is virtual 
-//if(!isdeadent(iedge,msh.edg2poi) && iedge < nedg0){ // Old edge, relevant information available.
-//  ib = getent2bpo(msh, ib, ifac0, 2);
-//  METRIS_ASSERT(ib >= 0);
-//  for(int jj = 0; jj < nrbi; jj++) msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ib,jj);
-//}
 
 template void aux_bpo_update_fac<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, 
-    int nedg0, int ip, int ifacn, int ifac0, int ipins, int ithread);
+   int ip, int ifacn, int ifac0, int ipins, int ithread);
 template void aux_bpo_update_fac<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, 
-    int nedg0, int ip, int ifacn, int ifac0, int ipins, int ithread);
+   int ip, int ifacn, int ifac0, int ipins, int ithread);
 
 
 
@@ -463,12 +455,12 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
 
   constexpr int nnode = facnpps[ideg];
 
-  int ibins = msh.poi2bpo[cav.ipins];
-  int tdimi = -1;
-  if(msh.isboundary_faces()){
-    METRIS_ASSERT(ibins >= 0);
-    tdimi = msh.bpo2ibi(ibins,1);
-  }
+  //int ibins = msh.poi2bpo[cav.ipins];
+  //int tdimi = -1;
+  //if(msh.isboundary_faces()){
+  //  METRIS_ASSERT(ibins >= 0);
+  //  tdimi = msh.bpo2ibi(ibins,1);
+  //}
 
   // Neighbour/attached entity
   int ifac2 = -1;
@@ -579,7 +571,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
     // Is it really 3 ? why no HO nodes?
     for(int ii = 0; ii < nnode; ii++){
       int ip = msh.fac2poi(ifacn,ii);
-      aux_bpo_update_fac(msh,nedg0,ip,ifacn,ifac1,cav.ipins,ithread);
+      aux_bpo_update_fac(msh,ip,ifacn,ifac1,cav.ipins,ithread);
     }
   }
  
@@ -603,7 +595,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
         int idx0 = 3 + iedn * (edgnpps[ideg] - 2);
         for(int ii = 0; ii < edgnpps[ideg] - 2; ii++){
           int ip = msh.fac2poi[ifacn][idx0 + ii];
-          aux_bpo_update_fac(msh,nedg0,ip,ifacn,ifac1,cav.ipins,ithread);
+          aux_bpo_update_fac(msh,ip,ifacn,ifac1,cav.ipins,ithread);
         }
       }
 
@@ -648,7 +640,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
           if(ityp < 0){ // Old edge
             for(int ii = 0; ii < edgnpps[ideg] - 2; ii++){
               int ip = msh.fac2poi[ifacn][idx0 + ii];
-              aux_bpo_update_fac(msh,nedg0,ip,ifacn,ifac1,cav.ipins,ithread);
+              aux_bpo_update_fac(msh,ip,ifacn,ifac1,cav.ipins,ithread);
             }
           }else{
             METRIS_ASSERT(cav.nrmal != NULL || !msh.CAD());
@@ -682,7 +674,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
           int idx0 = 3 + iedn * (edgnpps[ideg] - 2);
           for(int ii = 0; ii < edgnpps[ideg] - 2; ii++){
             int ip = msh.fac2poi[ifacn][idx0 + ii];
-            aux_bpo_update_fac(msh,nedg0,ip,ifacn,ifac1,cav.ipins,ithread);
+            aux_bpo_update_fac(msh,ip,ifacn,ifac1,cav.ipins,ithread);
           }
         }
 

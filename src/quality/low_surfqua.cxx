@@ -139,7 +139,7 @@ void metquaS_xi(const Mesh &msh, int ielem, int power,
     ftype det1 = detmat<3,ftype>(invtJ_0tJ_K);
     printf("Got det = %15.7e as 3x3 = %15.7e",(double)det,(double)detmat<3,ftype>(tmpMat[0]));
     printf(" as product of dets = %15.7e as 3x3 using matXmat<3> %15.7e\n",
-    	(double)(det1*det1*detsym<3>(met)),(double)detmat<3,ftype>(J0tJtMJJ02));
+     (double)(det1*det1*detsym<3>(met)),(double)detmat<3,ftype>(J0tJtMJJ02));
 
     printf("J0tJtMJJ0 original:\n");
     MeshArray2D<ftype>(3,3,tmpMat[0]).print();
@@ -154,13 +154,13 @@ void metquaS_xi(const Mesh &msh, int ielem, int power,
 
     float8 jmat_8[9], invtJ_0_8[9], met_8[6];
     for(int i = 0; i < 3 ; i++){
-    	for(int j = 0; j < 3 ; j++){
-    		jmat_8[3*i+j] = jmat[3*i+j];
-    		invtJ_0_8[3*i+j] = invtJ_0[i][j];
-    		if(3*i+j < 6) met_8[3*i+j] = met[3*i+j];
-    	}
+     for(int j = 0; j < 3 ; j++){
+     	jmat_8[3*i+j] = jmat[3*i+j];
+     	invtJ_0_8[3*i+j] = invtJ_0[i][j];
+     	if(3*i+j < 6) met_8[3*i+j] = met[3*i+j];
+     }
     }
-  	float8 invtJ_0tJ_K_8[9];
+   float8 invtJ_0tJ_K_8[9];
     matXmat<3,float8,float8,float8>(invtJ_0_8,jmat_8,invtJ_0tJ_K_8);
 		float8 J0tJtMJJ0_8[6];
 		matXsymXtmat<3,float8,float8,float8>(met_8, invtJ_0tJ_K_8, J0tJtMJJ0_8);

@@ -47,56 +47,6 @@ inline unsigned long long int getSysMem(){
   return sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGE_SIZE);
 }
 
-inline int stdoutSilence(){
-  fflush(stdout);
-  int stdout_fd = dup(STDOUT_FILENO);
-  int redir_fd = open("/dev/null", O_WRONLY);
-  dup2(redir_fd, STDOUT_FILENO);
-  close(redir_fd);
-  return stdout_fd;
-}
-
-inline void stdoutRestore(int stdout_fd){
-  fflush(stdout);
-  dup2(stdout_fd, STDOUT_FILENO);
-  close(stdout_fd);
-}
-
-#if 0
-// https://stackoverflow.com/questions/21917529/is-it-possible-to-initialize-stdvector-over-already-allocated-memory
-// To pass pre-allocated memory to std::vector. 
-template <typename T>
-class PreAllocator
-{
-    private:
-        T* memory_ptr;
-        std::size_t memory_size;
-
-    public:
-        typedef std::size_t     size_type;
-        typedef T*              pointer;
-        typedef T               value_type;
-
-        PreAllocator(T* memory_ptr, std::size_t memory_size) : memory_ptr(memory_ptr), memory_size(memory_size) {}
-
-        PreAllocator(const PreAllocator& other) throw() : memory_ptr(other.memory_ptr), memory_size(other.memory_size) {}
-
-        template<typename U>
-        PreAllocator(const PreAllocator<U>& other) throw() : memory_ptr(other.memory_ptr), memory_size(other.memory_size) {}
-
-        template<typename U>
-        PreAllocator& operator = (const PreAllocator<U>& other) { return *this; }
-        PreAllocator<T>& operator = (const PreAllocator& other) { return *this; }
-        ~PreAllocator() {}
-
-
-        pointer allocate(size_type , const void* hint = 0) {return memory_ptr;}
-        void deallocate(T* , size_type ) {}
-
-        size_type max_size() const {return memory_size;}
-};
-#endif
-
 char* itoa(int value, char* result, int base);
 
 void wait();
@@ -347,16 +297,6 @@ inline int iipow(int x){
 }
 template<> inline int iipow<0>(int ){return 1;}
 
-//template<int n, typename T>
-//inline int ipow(T x){
-//  return ipow<n-1,T>(x)*x;
-//}
-//template<> inline int ipow<1,double>(double x){return x;}
-//template<> inline int ipow<1,int>(int x){return x;}
-//template<> inline int ipow<1,SurrealS<3,double>>(SurrealS<3,double> x){
-//  return x;
-//}
-//
 
 template<int n> 
 inline constexpr int ifact(){
@@ -366,18 +306,6 @@ template<> inline constexpr int ifact<0>(){return 1;}
 
 template<int ideg, int idim>
 void gen_ordering_Vizir(int *ord);
-
-
-//void gen_argv(int argc, char **argv, std::string s...){
-//  va_list args;
-//  va_start(args, s);
-//  for(int i=0; i < argc; i++){
-//    std::string str = va_arg(args, std::string);
-//    argv[i] = (char *) malloc((str.length()+1)*sizeof(char));
-//    strncpy(argv[i],str.c_str(),str.length()+1);
-//  }
-//  va_end(args);
-//}
 
 
 inline void gen_argv(int *argc, char **argv, std::string cmd){
@@ -401,121 +329,6 @@ double linearRegression(int n, double *x, double *y);
 
 
 
-/*
-// This version is intended to be used with hash tables
-//     iinter = 1 : linear progression between min and max value
-//     iinter = 2 ; geometric
-//     nlist: input size
-//     rlist: values
-//     llist: indices ; for instance, if rlist pertains to edges, perhaps
-//                      min and max should print llist(imin) and llist(imax)
-//                      instead
-//     if llist = NULL, simply index 0 ... nlist - 1
-// T is any hash table type with an iterator that has a ->first and ->second double field
-template<typename T>
-void generic_hist(T &rlist,int *llist,double vlo,double vhi,
-                  const char *vname,const char *title,int iinter){
-  int nslot,r;
-  const int mslot = 20;
-  int cslot[mslot];
-  double vslot[mslot];
-  double vmin,vmax,vavg,dslot,v0;
-  int imin,imax,nval,nlo,nhi;
-
-  auto rlcur = rlist.begin();
-  if(rlcur == rlist.end()){
-    printf("## generic_hist: EMPTY HASH TABLE\n");
-    return;
-  }
-
-  vmin = rlcur->second;
-  vmax = rlcur->second;
-  imin = 0;
-  imax = 0;
-  vavg = 0.0;
-  nval = 0;
-  nlo = 0;
-  nhi = 0;
-  int nlist = 0;
-  int i=0;
-  while(rlcur != rlist.end()){
-    if(rlcur->second < vlo) nlo++;
-    else if(rlcur->second > vhi) nhi++;
-    else nval++;
-    if(rlcur->second < vmin){
-      imin = i;
-      vmin = rlcur->second;
-    }
-    if(rlcur->second > vmax){
-      imax = i;
-      vmax = rlcur->second;
-    }
-    vavg += rlcur->second;
-    nlist++;
-  	rlcur++;
-  	i++;
-  }
-  vavg /= nlist;
-
-  nslot = nval < mslot ? nval : mslot;
-  if(iinter == 1){
-    dslot = ( (vmax < vhi ? vmax : vhi) - (vmin > vlo ? vmin : vlo) ) / nslot;
-  }else{
-    dslot = log( (vmax < vhi ? vmax : vhi) - (vmin > vlo ? vmin : vlo) ) / nslot;
-  }
-
-  for(int i = 0; i < nslot; i++){
-    if(iinter == 1){
-      vslot[i] = (vmin > vlo ? vmin : vlo) + i*dslot;
-    }else{
-      vslot[i] = exp(log((vmin > vlo ? vmin : vlo))+i*dslot);
-    }
-    cslot[i] = 0;
-  }
-  if(nhi > 0) vslot[nslot-1] = vhi;
-  for(rlcur = rlist.begin(); rlcur != rlist.end(); rlcur++){
-    if(rlcur->second < vlo || rlcur->second > vhi) continue;
-    int iskp = 0;
-    for(int j=0;j<nslot;j++){
-      if(rlcur->second > vslot[j]) continue;
-      cslot[j] ++;
-      iskp = 1;
-      break;
-    }
-    if(iskp == 0){
-      cslot[nslot-1] ++; 
-    }
-  }
-  printf("-- %s histogram\n",title);
-  if(llist != NULL){
-    imin = llist[imin];
-    imax = llist[imax];
-  }
-  printf("  - min = %9.2e at %d\n",vmin,imin);
-  printf("  - avg = %9.2e \n",vavg);
-  printf("  - max = %9.2e at %d\n",vmax,imax);
-  if(nval < nlist) printf(" - outside bounds n = %d\n",nlist-nval);
-
-//  if( abs(vhi) > 1.0e6 || abs(vlo) > 1.0e6){
-    if(nlo > 0){
-      printf("                  %s < %9.2e %15d       %6.2f %%\n",vname,vlo,nlo,(100.0*nlo)/nlist);
-    }
-    if(cslot[0] > 0){
-      v0 = vmin;
-      if(nlo > 0) v0 = vlo;
-      printf("      %9.2e < %s < %9.2e %15d       %6.2f %%\n",v0,vname,vslot[0],cslot[0],(100.0*cslot[0])/nlist);
-    }
-    for(int i = 0; i < nslot-2; i++){
-      if(cslot[i+1]>0)
-        printf("      %9.2e < %s < %9.2e %15d       %6.2f %%\n",vslot[i],vname,vslot[i+1],cslot[i+1],(100.0*cslot[i+1])/nlist);
-    }
-    if(nhi > 0){
-      printf("      %9.2e < %s            %d       %6.2f %%\n",vhi,vname,nhi,(100.0*nhi)/nlist);
-    }
-}
-*/
-
-
 //     iinter = 1 : linear progression between min and max value
 //     iinter = 2 ; geometric
 //     nlist: input size
@@ -528,51 +341,7 @@ void generic_hist(T &rlist,int *llist,double vlo,double vhi,
 void generic_hist(double *rlist,int nlist, int *llist,double vlo,double vhi,
                   const char *vname,const char *title,int iinter);
 
-/*
-Credit for replace_at_helper and replate_at_c goes to 
-https://stackoverflow.com/questions/61225367/boosthana-tuple-best-way-to-modify-a-value
-*/
-template <typename Xs, typename X, std::size_t ...before, std::size_t ...after>
-constexpr auto replace_at_helper(Xs&& xs, X&&x, std::index_sequence<before...>,
-                                      std::index_sequence<after...>) {
-  return hana::make_tuple(
-      hana::at_c<before>(std::forward<Xs>(xs))...,
-      std::forward<X>(x),
-      hana::at_c<after + sizeof...(before) + 1>(std::forward<Xs>(xs))...);
-}
-template <int  n>
-constexpr auto replace_at_c = [](auto&& xs, auto&& x) {
-    constexpr auto len = decltype(hana::length(xs))::value;
-    return replace_at_helper(static_cast<decltype(xs)>(xs),
-                             static_cast<decltype(x)>(x),
-                             std::make_index_sequence<n>{},
-                             std::make_index_sequence<len - n - 1>{});
-};
 
-// Convert hana::tuple<stuff> into an std::tuple<stuff>
-// by using C++ template parameter deduction to get "stuff"
-template<typename... Ts>
-auto to_std_tuple(hana::tuple<Ts...> in){
-  return std::tuple<Ts...>{};
-}
-
-template <typename T>
-struct tuple_wrapper{
-  tuple_wrapper(T t):tup(t){};
-
-  // Integral constant, or how to pass a vlue by type
-  // so we can bend template parameter deduction to our will
-  // The lengths we go to to write rfld[i(_c)] !
-  template<typename S>
-  auto& operator[](S v){
-    return std::get<(int)v>(tup);
-  }
-  template<typename S>
-  const auto& operator[](S v) const{
-    return std::get<(int)v>(tup);
-  }
-  T tup;
-};
 
 
 } // End namespace

@@ -14,7 +14,7 @@ namespace Metris{
 
 // Reinsert vertices that create almost flat elements. 
 template<class MFT, int gdim, int ideg>
-int reinsertFlat(Mesh<MFT> &msh, bool allow_collapse, int ithrd1 = 0);
+int reinsertFlat(Mesh<MFT> &msh);
 
 
 }//namespace Metris

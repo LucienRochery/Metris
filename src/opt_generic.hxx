@@ -3,8 +3,6 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-
-
 #ifndef __METRIS_OPT_GENERIC__
 #define __METRIS_OPT_GENERIC__
 
@@ -111,9 +109,7 @@ nlopt_result luksan_pnetS(nlopt_func f, void *f_data,
                           dblAr1 &lwork,
                           double fstop , double ftol_rel, double ftol_abs);
 
-static int luksan_pnet_worksize(int n){
-  return n * 9 + (n+1)*LUKSAN_PNET_MAXIT*2;
-}
+int luksan_pnet_worksize(int n);
 
 
 } // End namespace

@@ -417,7 +417,7 @@ void debugInveval(std::string meshName_, MeshBase &msh, int tdim, int* ent2pol, 
   for(int ii = 0; ii < nnode; ii++) ent2pol[ii] += 1;
 
   int ipnew = msh.newpoitopo(0,-1);
-  int ibnew = msh.newbpotopo(ipnew,0,-1);
+  msh.newbpotopo(ipnew,0,-1);
 
   for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipnew,ii) = coop[ii];
 

@@ -90,7 +90,7 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
 			if(msh.poi2tag(ithread,ipoih) >= msh.tag[ithread]) continue;
 			msh.poi2tag(ithread,ipoih) = msh.tag[ithread];
       getBezOffsetsEdge<MFT, gdim, ideg>(msh,gdim,ent2poi[ientt], ie,offset);
-	  	for(int ii = 0; ii < gdim; ii++) msh.coord(ipoih,ii) = offset[ii];
+	   for(int ii = 0; ii < gdim; ii++) msh.coord(ipoih,ii) = offset[ii];
       #ifdef BEZGAPS_LP
         if(icorr){
           idx_point[ipoih] = npopt;

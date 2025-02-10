@@ -29,7 +29,7 @@ public:
   MetrisRunner();
 
   // Initialize from argc, argv identical to CLI call; see metris_options.hxx
-  MetrisRunner(int argc, char** argv, bool isilent = false); 
+  MetrisRunner(int argc, char** argv); 
 
   // Initialize from API objects. These are destroyed by constructor. 
   MetrisRunner(MetrisAPI *data_front, MetrisAPI *data_back, MetrisParameters &p);

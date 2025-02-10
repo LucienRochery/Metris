@@ -31,7 +31,7 @@ namespace Metris{
 // inorm <= infi norm , p > 0 L^p norm (over ball)
 template<class MFT, int idim, int ideg>
 int smooballdiff(Mesh<MFT>& msh, int ipoin, 
-                   const intAr1 &lball, dblAr1 &qball,
+                   const intAr1 &lball, 
                    double*__restrict__ qnrm0, double*__restrict__ qmax0, 
                    double*__restrict__ qnrm1, double*__restrict__ qmax1,
                    QuaFun iquaf){
@@ -57,7 +57,6 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   const auto d_quafun = get_d_quafun<MFT,gdim,tdim>(iquaf);
 
   int nball = lball.get_n();
-  qball.set_n(nball);
 
   *qnrm0 = 0;
   *qmax0 = -1.0e30;
@@ -71,7 +70,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   double xtol = -1,stpmin = 1.0e-6, 
          wlfc1 = 0.1 , wlfc2 = 10.0,ratnew = 0.5;
   int niter = 0, maxit = 50, iflag = 0, ihess, ierro = 0;
-  int nrwrk = 34, niwrk = 3;
+  const int nrwrk = 34, niwrk = 3;
   int iprt = 0;
   double rwrkN[nrwrk];
   int    iwrkN[niwrk];
@@ -298,22 +297,22 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
 #define BOOST_PP_LOCAL_MACRO(n)\
 template int smooballdiff<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        >& msh,\
- int ipoin, const intAr1 &lball, dblAr1 &qball,\
+ int ipoin, const intAr1 &lball,\
                    double*__restrict__ qnrm0, double*__restrict__ qmax0, \
                    double*__restrict__ qnrm1, double*__restrict__ qmax1,\
                    QuaFun iquaf);\
 template int smooballdiff<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        >& msh,\
- int ipoin, const intAr1 &lball, dblAr1 &qball,\
+ int ipoin, const intAr1 &lball,\
                    double*__restrict__ qnrm0, double*__restrict__ qmax0, \
                    double*__restrict__ qnrm1, double*__restrict__ qmax1,\
                    QuaFun iquaf);\
 template int smooballdiff<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical>& msh,\
- int ipoin, const intAr1 &lball, dblAr1 &qball,\
+ int ipoin, const intAr1 &lball,\
                    double*__restrict__ qnrm0, double*__restrict__ qmax0, \
                    double*__restrict__ qnrm1, double*__restrict__ qmax1,\
                    QuaFun iquaf);\
 template int smooballdiff<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>& msh,\
- int ipoin, const intAr1 &lball, dblAr1 &qball,\
+ int ipoin, const intAr1 &lball,\
                    double*__restrict__ qnrm0, double*__restrict__ qmax0, \
                    double*__restrict__ qnrm1, double*__restrict__ qmax1,\
                    QuaFun iquaf);
@@ -326,13 +325,13 @@ template int smooballdiff<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>
 
 
 template<class MFT, int idim, int ideg>
-double smooballdiff_fun(unsigned int nvar, const double *xcur, 
+double smooballdiff_fun([[maybe_unused]] unsigned int nvar, 
+                        const double *xcur, 
                         double *grad, void *f_data){
   constexpr int gdim = idim;
   constexpr int tdim = idim;
 
   smooballdiff_fun_data<MFT> *mydata = (smooballdiff_fun_data<MFT>*)(f_data);
-  double dum[idim];
 
   int ipoin = mydata->ipoin;
   Mesh<MFT> &msh = *(mydata->msh);
@@ -428,7 +427,7 @@ template double smooballdiff_fun<MetricFieldFE        ,3,n>(unsigned int nvar, \
 // inorm <= infi norm , p > 0 L^p norm (over ball)
 template<class MFT, int idim, int ideg>
 int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin, 
-                        const intAr1 &lball, dblAr1 &qball,
+                        const intAr1 &lball,
                         double*__restrict__ qnrm0, double*__restrict__ qmax0, 
                         double*__restrict__ qnrm1, double*__restrict__ qmax1,
                         dblAr1 &work,
@@ -591,25 +590,25 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
 
 #define BOOST_PP_LOCAL_MACRO(n)\
 template int smooballdiff_luksan<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        >& msh,\
- int ipoin, const intAr1 &lball, dblAr1 &qball,\
+ int ipoin, const intAr1 &lball,\
                    double*__restrict__ qnrm0, double*__restrict__ qmax0, \
                    double*__restrict__ qnrm1, double*__restrict__ qmax1,\
                    dblAr1 &work,\
                    QuaFun iquaf);\
 template int smooballdiff_luksan<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        >& msh,\
- int ipoin, const intAr1 &lball, dblAr1 &qball,\
+ int ipoin, const intAr1 &lball,\
                    double*__restrict__ qnrm0, double*__restrict__ qmax0, \
                    double*__restrict__ qnrm1, double*__restrict__ qmax1,\
                    dblAr1 &work,\
                    QuaFun iquaf);\
 template int smooballdiff_luksan<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical>& msh,\
- int ipoin, const intAr1 &lball, dblAr1 &qball,\
+ int ipoin, const intAr1 &lball,\
                    double*__restrict__ qnrm0, double*__restrict__ qmax0, \
                    double*__restrict__ qnrm1, double*__restrict__ qmax1,\
                    dblAr1 &work,\
                    QuaFun iquaf);\
 template int smooballdiff_luksan<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>& msh,\
- int ipoin, const intAr1 &lball, dblAr1 &qball,\
+ int ipoin, const intAr1 &lball,\
                    double*__restrict__ qnrm0, double*__restrict__ qmax0, \
                    double*__restrict__ qnrm1, double*__restrict__ qmax1,\
                    dblAr1 &work,\

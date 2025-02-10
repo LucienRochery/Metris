@@ -57,11 +57,11 @@ for boost::exception docs.
   #include <boost/stacktrace.hpp>
   #define METRIS_THROW(x) \
    (boost::throw_exception(x << excStackTrace(boost::stacktrace::stacktrace()),\
-   	BOOST_CURRENT_LOCATION));
+    BOOST_CURRENT_LOCATION));
   #define METRIS_THROW_MSG(x,m) \
    (boost::throw_exception(x << excStackTrace(boost::stacktrace::stacktrace())\
-   	                         << excMessage((std::stringstream()<<m<<"\n").str()),\
-                         	 BOOST_CURRENT_LOCATION));
+                             << excMessage((std::stringstream()<<m<<"\n").str()),\
+                           BOOST_CURRENT_LOCATION));
   #define METRIS_TRY0(x) try{x;}catch(const MetrisExcept &__e__){}
   #define METRIS_TRYFULL(x) try{x}catch(const Metris::MetrisExcept &e){\
         printf("\n\n## MAIN_METRIS THROWS EXCEPTION:\n");\

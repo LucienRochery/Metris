@@ -11,17 +11,17 @@
 namespace Metris{
 
 template<int ideg, int szfld>
-void lag2bez1(const int* __restrict__ lfld,
- 								const dblAr2& __restrict__ rfld0,
- 								dblAr2& __restrict__ rfld1);
+void lag2bez1(const int*__restrict__ lfld,
+ 								const dblAr2&__restrict__ rfld0,
+ 								dblAr2&__restrict__ rfld1);
 template<int ideg, int szfld>
-void lag2bez2(const int* __restrict__ lfld,
- 								const dblAr2& __restrict__ rfld0,
- 								dblAr2& __restrict__ rfld1);
+void lag2bez2(const int*__restrict__ lfld,
+ 								const dblAr2&__restrict__ rfld0,
+ 								dblAr2&__restrict__ rfld1);
 template<int ideg, int szfld>
-void lag2bez3(const int* __restrict__ lfld,
- 								const dblAr2& __restrict__ rfld0,
- 								dblAr2& __restrict__ rfld1);
+void lag2bez3(const int*__restrict__ lfld,
+ 								const dblAr2&__restrict__ rfld0,
+ 								dblAr2&__restrict__ rfld1);
 
 } // End namespace
 

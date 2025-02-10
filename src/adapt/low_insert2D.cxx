@@ -154,8 +154,7 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
     }
 
     // If the point moved away from the initial cavity, increase it. 
-    ierro = increase_cavity2D(msh,msh.coord[cav.ipins],
-                              opts,cav,ithrd1);
+    ierro = increase_cavity2D(msh,cav,ithrd1);
 
     if(DOPRINTS2()){
       writeMeshCavity("insert_cavity0.meshb", msh, cav, ithrd2);
@@ -218,8 +217,7 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
       }
       CPRINTF1(" - +len cavity size %d nprem = %d\n", cav.lcfac.get_n(),nprem); 
     }
-    int ierr2 = increase_cavity2D(msh,msh.coord[cav.ipins],
-                                  opts,cav,ithrd1);
+    int ierr2 = increase_cavity2D(msh,cav,ithrd1);
     CPRINTF1(" - +val cavity size %d \n",cav.lcfac.get_n()); 
     if(ierr2 > 0 && ierro <= 0) ierro = INS2D_ERR_INCCAV2D;
 
@@ -432,8 +430,7 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
       }
       CPRINTF1(" - +len cavity size %d nprem = %d\n",cav.lcfac.get_n(),nprem); 
     }
-    int ierr2 = increase_cavity2D(msh,msh.coord[cav.ipins],
-                                  opts,cav,ithrd1);
+    int ierr2 = increase_cavity2D(msh,cav,ithrd1);
     CPRINTF1(" - +val cavity size %d \n",cav.lcfac.get_n()); 
     if(ierr2 > 0 && ierro <= 0) ierro = INS2D_ERR_INCCAV2D;
     if(ierro <= 0) break; 
@@ -530,8 +527,7 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
 
     // If the point moved away from the initial cavity, increase it. 
 
-    ierro = increase_cavity2D(msh,msh.coord[cav.ipins],
-                              opts,cav,ithrd1);
+    ierro = increase_cavity2D(msh,cav,ithrd1);
 
 
     if(DOPRINTS2()){

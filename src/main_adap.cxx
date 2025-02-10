@@ -75,7 +75,7 @@ int main_metris(int argc, char** argv){
   //  PetscCall(PetscFinalize());
   //#endif
 
-	return 0;
+  return 0;
 }
 
 } // End namespace

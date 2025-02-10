@@ -11,7 +11,7 @@
 #include <boost/preprocessor/repetition/enum_params.hpp>
 
 
-#define MAX_ANAMET3D_DEFINED 5
+#define MAX_ANAMET3D_DEFINED 4
 #define MAX_ANAMET2D_DEFINED 6
 
 #define MAX_ANAMET_DEFINED(dim) (dim == 2 ? MAX_ANAMET2D_DEFINED : MAX_ANAMET3D_DEFINED)

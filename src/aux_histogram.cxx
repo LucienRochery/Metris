@@ -26,7 +26,7 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
   if(nval <= 0) return;
 
 
-  int nbucket = 10; 
+  const int nbucket = 10; 
 
   dblAr2 buckval(nbucket,2);
   intAr1 buckcnt(nbucket);
@@ -107,7 +107,8 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
 
   struct winsize w;
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
-  w.ws_col = MIN(MAX(w.ws_col, 40),100);
+  const int mcol = 100;
+  w.ws_col = MIN(MAX(w.ws_col, 40),mcol);
 
   // Expected length to print %8.2e < symb < %8.2e w/ spaces
   int ibuf0  = symb.length() + 6 + 2*8 + 2; 
@@ -117,8 +118,8 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
   // This determines the scaling factor 
   double scal = prtwdt / (double) maxbuckt; 
   
-  int ncol = MAX(w.ws_col, ibuf0 + 15);
-  char buffer[2+nbucket][ncol];
+  int ncol = MIN(mcol,MAX(w.ws_col, ibuf0 + 15));
+  char buffer[2+nbucket][mcol];
 
   for(int ii = 0; ii < nbucket; ii++){
     for(int jj = 0; jj < ncol; jj++){

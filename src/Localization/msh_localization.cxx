@@ -319,8 +319,8 @@ int locMesh(MeshBase &msh, int *ientt,
   //if constexpr(tdim < gdim) METRIS_ASSERT(algnd_ != NULL);
 
   //constexpr int nnode = msh.nnode(tdim);
-  constexpr auto entnpps = ENTNPPS(tdim);
-  constexpr int nnode = entnpps[ideg];
+  //constexpr auto entnpps = ENTNPPS(tdim);
+  //constexpr int nnode = entnpps[ideg];
 
   double algnd[gdim];
   if(algnd_ != NULL){
@@ -600,8 +600,8 @@ int locMesh(MeshBase &msh, int *ientt,
         // Initially, we were using minimum barycentric coordinate as the criterion.
         // This is ok for isotropic elements. But highly anisotropic means 
         // a closer to 0 bary can in fact 
-        double bmin = 1.0e30;
-      int    imin = -1;
+        //double bmin = 1.0e30;
+        //int    imin = -1;
         // imax is probably a better strategy...
         double bmax = -1.0e30;
         int    imax = -1;
@@ -640,10 +640,10 @@ int locMesh(MeshBase &msh, int *ientt,
             if(iref >= 0 && ent2ref[ienei] != iref) continue;
             if(ent2tag(ithrd,ienei) >= msh.tag[ithrd] ) continue;
             lnext.stack(ienei);
-            if(bary[i] < bmin){
-              bmin = bary[i];
-              imin = i;
-            }
+            //if(bary[i] < bmin){
+            //  bmin = bary[i];
+            //  //imin = i;
+            //}
           }
         }else{
           if constexpr(tdim < gdim){
@@ -726,12 +726,12 @@ int locMesh(MeshBase &msh, int *ientt,
 
             }else{
 
-              if(sg == 1 && bary[ii] < bmin
-              || bmin > 1.0e29){
-                if(sg == 1) bmin = bary[ii];
-                else        bmin = 1.0e30;
-                imin = ii;
-              }
+              //if(sg == 1 && bary[ii] < bmin
+              //|| bmin > 1.0e29){
+              //  if(sg == 1) bmin = bary[ii];
+              //  else        bmin = 1.0e30;
+              //  //imin = ii;
+              //}
               if(sg == 1 && bary[ii] > bmax
               || bmax < -1.0e29){
                 if(sg == 1) bmax = bary[ii];

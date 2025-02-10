@@ -205,8 +205,8 @@ void MeshBase::initialize(MetrisAPI *data,
     // The "natural" normal getnorfacP1 should be pointing outwards. 
     // Compute triangle normals, CAD normals, and (if exists) tet "normals"
 
-    double nor_disc[3], norCAD[3], nor_tet[3];
-    double dum[3];
+    double nor_disc[3], norCAD[3];
+    [[maybe_unused]] double nor_tet[3];
 
     for(int iface = 0; iface < nface; iface++){
       if(isdeadent(iface,fac2poi)) continue;
@@ -460,7 +460,7 @@ void MeshBase::readConstants(const MetrisAPI &data, int usrMinDeg){
 }
 
 
-void MeshBase::copyConstants(const MeshBase &msh, int MAX_DEG){
+void MeshBase::copyConstants(const MeshBase &msh){
   idim   = msh.idim;
   curdeg = msh.curdeg;
   strdeg = msh.curdeg; // We don't copy allocation sizes, we copy effective sizes.
@@ -581,7 +581,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       newbpotopo(ipoin,0,icorn);
       ncor1++;
     }
-    //CPRINTF1(" - Added %d corners\n",ncor1);
+    CPRINTF1(" - Added %d corners\n",ncor1);
   }
 
   ncorn = GmfStatKwd(libIdx, GmfVerticesOnGeometricVertices);
@@ -614,7 +614,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       newbpotopo(ipoin,0,icorn);
       ncor1++;
     }
-    //CPRINTF1(" - Added %d corners\n",ncor1);
+    CPRINTF1(" - Added %d corners\n",ncor1);
   }
 
 

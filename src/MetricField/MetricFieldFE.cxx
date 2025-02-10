@@ -312,36 +312,6 @@ void MetricFieldFE::correctMetric(){
 
 
 
-
-
-#if 0
-// ----
-void MetricFieldFE::getMetPhys(AsDeg asdmet, DifVar idiff, 
-                               MetSpace tarspac, int *ieleg, 
-                               const double*__restrict__  coop,  
-                               double*__restrict__ metl, 
-                               double*__restrict__ dmet, 
-                               int ithread) {
-  METRIS_ENFORCE_MSG(ibasis != FEBasis::Undefined, "Metric was not initialized.");
-
-
-  CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
-    if(asdmet == AsDeg::P1){
-      getMetPhys0<gdim,1>(idiff,tarspac,ieleg,coop,metl,dmet,ithread);
-    }else{
-      CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-        getMetPhys0<gdim,ideg>(idiff,tarspac,ieleg,coop,
-                               metl,dmet,ithread);
-      }}CT_FOR1(ideg);
-    }
-  }}CT_FOR1(gdim);
-
-}
-#endif
-
-
-
-
 // ----
 void MetricFieldFE::getMetBary(AsDeg asdmet,
                                DifVar idiff,  MetSpace tarspac, 
@@ -384,7 +354,7 @@ void MetricFieldFE::getMetFullinfo(AsDeg asdmet,
                                    const int*__restrict__ ent2pol, 
                                    int tdimn,
                                    const double*__restrict__  bary,  
-                                   const double*__restrict__  coop,  
+                                   [[maybe_unused]] const double*__restrict__  coop,  
                                    double*__restrict__ metl, 
                                    double*__restrict__ dmet) {
   METRIS_ENFORCE_MSG(ibasis != FEBasis::Undefined, 
@@ -501,48 +471,5 @@ template void MetricFieldFE::getMetBary0<3, ideg>\
 #include BOOST_PP_LOCAL_ITERATE()
 
 
-
-#if 0
-template<int gdim, int ideg>
-void MetricFieldFE::getMetPhys0(DifVar idiff,  MetSpace tarspac, int *ientg, 
-                      const double*__restrict__  coop,  double*__restrict__ metl, 
-                      double*__restrict__ dmet, int ithread) {
-  double bary[gdim + 1],coopr[gdim];
-  //int ieleb = msh.poi2bak[ipoin];
-  double tol = 1.0e-6;
-  CT_FOR0_INC(1,METRIS_MAX_DEG,mshdeg){if(mshdeg == msh.curdeg){
-    // No boundary considered here 
-    int ierro = locMesh<gdim,gdim,mshdeg>(msh,ientg,coop,msh.get_tdim(),NULL,
-                                          -1,NULL,coopr,
-                                          bary,tol,ithread);
-    if(ierro != 0) METRIS_THROW_MSG(GeomExcept(),"getMetPhys0 localization failure\n");
-  }}CT_FOR1(mshdeg);
-
-  int *ent2pol = gdim == 1 ? msh.edg2poi[*ientg] : 
-                 gdim == 2 ? msh.fac2poi[*ientg] : msh.tet2poi[*ientg];
-
-  getMetBary0<gdim,ideg>(idiff,tarspac,ent2pol,gdim,bary,metl,dmet);
-}
-
-
-#define BOOST_PP_LOCAL_MACRO(ideg)\
-template void MetricFieldFE::getMetPhys0<2, ideg>\
-                            (DifVar idiff,  MetSpace tarspac,\
-                            int *ientg,  \
-                             const double*__restrict__ coop,\
-                             double*__restrict__ metl,\
-                             double*__restrict__ dmet,\
-                             int ithread);\
-template void MetricFieldFE::getMetPhys0<3, ideg>\
-                            (DifVar idiff,  MetSpace tarspac,\
-                            int *ientg,  \
-                             const double*__restrict__ coop,\
-                             double*__restrict__ metl,\
-                             double*__restrict__ dmet,\
-                             int ithread);
-#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
-#include BOOST_PP_LOCAL_ITERATE()
-
-#endif
 
 } // End namespace

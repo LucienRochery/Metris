@@ -210,7 +210,7 @@ public:
                   int tdimn,  const double* __restrict__ bary, 
                   double*__restrict__ metl, double*__restrict__ dmet);
 
-  void getMetPhys(AsDeg metdeg, DifVar idiff, MetSpace tarspac, int *ieleg, 
+  void getMetPhys(DifVar idiff, MetSpace tarspac,
                   const double* __restrict__ coop, 
                   double*__restrict__ metl, 
                   double*__restrict__ dmet, int ithread = 0) ;

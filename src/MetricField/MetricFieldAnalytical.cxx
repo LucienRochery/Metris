@@ -37,8 +37,8 @@ void MetricFieldAnalytical::setAnalyticalMetric(int ianamet_){
 	int idim = msh.idim;
 	METRIS_ASSERT(idim == 2 || idim == 3);
 	
- 	if(ianamet_ <= 0 || ianamet_ > MAX_ANAMET_DEFINED(idim ) )
- 	  METRIS_THROW_MSG(WArgExcept(),"Invalid index: 1 - "<<MAX_ANAMET_DEFINED(idim )<<" accepted");
+  if(ianamet_ <= 0 || ianamet_ > MAX_ANAMET_DEFINED(idim ) )
+    METRIS_THROW_MSG(WArgExcept(),"Invalid index: 1 - "<<MAX_ANAMET_DEFINED(idim )<<" accepted");
 	
 	this->ianamet = ianamet_;
   this->anamet  = (idim == 2 ? __ANAMET2D[this->ianamet-1] : __ANAMET3D[this->ianamet-1]);
@@ -68,13 +68,11 @@ void MetricFieldAnalytical::normalize(double coeff){
 
 
 // --- 
-void MetricFieldAnalytical::getMetPhys(AsDeg metdeg,
-                                       DifVar idiff, MetSpace tarspac, 
-                                       int *ieleg, 
+void MetricFieldAnalytical::getMetPhys(DifVar idiff, MetSpace tarspac, 
                                        const double*__restrict__ coop, 
                                        double*__restrict__ metl, 
                                        double*__restrict__ dmet, 
-                                       int ithread) {
+                                       [[maybe_unused]] int ithread) {
     CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
       getMetPhys0<gdim>(idiff,tarspac,coop,metl,dmet);
     }}CT_FOR1(gdim);
@@ -112,13 +110,13 @@ void MetricFieldAnalytical::getMetBary(AsDeg asdmet,
 
 // --- 
 void MetricFieldAnalytical::
-  getMetFullinfo(AsDeg asdmet,DifVar idiff, MetSpace tarspac, 
-                 const int*__restrict__ ent2pol, int tdimn, 
-                 const double*__restrict__  bary,  
-                 const double*__restrict__  coop,  
+  getMetFullinfo([[maybe_unused]] AsDeg asdmet, DifVar idiff, MetSpace tarspac, 
+                 [[maybe_unused]] const int*__restrict__ ent2pol, [[maybe_unused]] int tdimn, 
+                 [[maybe_unused]] const double*__restrict__ bary,  
+                 const double*__restrict__ coop,  
                  double*__restrict__ metl,         
                  double*__restrict__ dmet) {
-  getMetPhys(asdmet,idiff,tarspac,NULL,coop,metl,dmet);
+  getMetPhys(idiff,tarspac,coop,metl,dmet);
 }
 
 

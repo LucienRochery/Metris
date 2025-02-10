@@ -88,7 +88,7 @@ double getLengthEdges0(MeshMetric<MFT> &msh, intAr2 &ilned, dblAr1 &rlned, LenTy
 
       double len;
       if(itype == LenTyp::GeoSiz){
-        len = getlenedg_geosz<MFT,gdim,ideg>(msh,ientt,tdimn,iedgl,ExpTyp::Decomp);
+        len = getlenedg_geosz<MFT,gdim,ideg>(msh,ientt,tdimn,iedgl);
       }else if(itype == LenTyp::Quad){
         len = getlenedg_quad<MFT,gdim,ideg>(msh,ientt,tdimn,iedgl,nquad);
       }else{
@@ -160,7 +160,7 @@ double getLengthEdges_Bdry0(MeshMetric<MFT> &msh, intAr2 &ilned, dblAr1 &rlned,
 
     double len;
     if(itype == LenTyp::GeoSiz){
-      len = getlenedg_geosz<MFT,gdim,ideg>(msh,iedge,tdimn,0,ExpTyp::Decomp);
+      len = getlenedg_geosz<MFT,gdim,ideg>(msh,iedge,tdimn,0);
     }else if(itype == LenTyp::Quad){
       len = getlenedg_quad<MFT,gdim,ideg>(msh,iedge,tdimn,0,nquad);
     }else{

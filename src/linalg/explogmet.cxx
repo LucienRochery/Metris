@@ -200,9 +200,9 @@ void getexpmet_cpy_d(const double* met ,const double* dmet,
   powscal = 0;
   scalfac = 1;
   while(nrm > 0.25 && iscal){
-  	powscal++;
-  	scalfac /= 2;
-  	nrm /= 4;
+   powscal++;
+   scalfac /= 2;
+   nrm /= 4;
   }
   for(inmet = 0; inmet < 6; inmet++){
     iterm[0] [inmet] = met[inmet]*scalfac;
@@ -220,7 +220,7 @@ void getexpmet_cpy_d(const double* met ,const double* dmet,
 
   iwhich = 0;
   while(nrm > tol*tol && niter < 1000){
-  	niter++;
+   niter++;
 
     symXsymsub_fac<3>(iterm[iwhich],met,scalfac/niter,iterm[1-iwhich]);
     for(igrad = 0; igrad < 3; igrad++){
@@ -230,12 +230,12 @@ void getexpmet_cpy_d(const double* met ,const double* dmet,
 
     iwhich = 1-iwhich;
 
-  	for(inmet = 0; inmet < 6; inmet++){
-    	expm    [inmet] += iterm[iwhich]   [inmet];
+   for(inmet = 0; inmet < 6; inmet++){
+     expm    [inmet] += iterm[iwhich]   [inmet];
       dexp[0*6+inmet] += gterm[iwhich][0][inmet];
       dexp[1*6+inmet] += gterm[iwhich][1][inmet];
       dexp[2*6+inmet] += gterm[iwhich][2][inmet];
-  	}
+   }
 
     nrm = geterrl2<6>(iterm[0],iterm[1]);
 
@@ -301,9 +301,9 @@ void getexpmet_cpy_dS(const double* met ,const double* dmet,
   powscal = 0;
   scalfac = 1;
   while(nrm > 0.25 && iscal){
-  	powscal++;
-  	scalfac /= 2;
-  	nrm /= 4;
+   powscal++;
+   scalfac /= 2;
+   nrm /= 4;
   }
   for(inmet = 0; inmet < 6; inmet++){
     iterm[0][inmet] = metS[inmet]*scalfac;
@@ -320,15 +320,15 @@ void getexpmet_cpy_dS(const double* met ,const double* dmet,
 
   iwhich = 0;
   while(nrm > tol*tol && niter < 1000){
-  	niter++;
+   niter++;
 
     symXsymsub_fac<3>(iterm[iwhich],metS,scalfac/niter,iterm[1-iwhich]);
 
     iwhich = 1-iwhich;
 
-  	for(inmet = 0; inmet < 6; inmet++){
-    	expmS[inmet] += iterm[iwhich][inmet];
-  	}
+   for(inmet = 0; inmet < 6; inmet++){
+     expmS[inmet] += iterm[iwhich][inmet];
+   }
 
     nrm = geterrl2<6,3>(iterm[0],iterm[1]);
 
@@ -336,13 +336,13 @@ void getexpmet_cpy_dS(const double* met ,const double* dmet,
   if(nrm > tol*tol) METRIS_THROW(RealExcept());
 
   if(powscal == 0){
-  	for(inmet = 0; inmet < 6; inmet++){
-  	  expm    [inmet] = expmS[inmet].value();
-  	  dexp[0*6+inmet] = expmS[inmet].deriv(0);
-  	  dexp[1*6+inmet] = expmS[inmet].deriv(1);
-  	  dexp[2*6+inmet] = expmS[inmet].deriv(2);
-  	}
-  	return;
+   for(inmet = 0; inmet < 6; inmet++){
+     expm    [inmet] = expmS[inmet].value();
+     dexp[0*6+inmet] = expmS[inmet].deriv(0);
+     dexp[1*6+inmet] = expmS[inmet].deriv(1);
+     dexp[2*6+inmet] = expmS[inmet].deriv(2);
+   }
+   return;
   }
   for(inmet = 0; inmet < 6; inmet++){
     iterm[iwhich][inmet] = expmS[inmet];

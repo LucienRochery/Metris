@@ -7,55 +7,55 @@
 
 namespace Metris{
 
-template<> void lag2bez1<0,1>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){}
+template<> void lag2bez1<0,1>([[maybe_unused]] const int*__restrict__ lfld,
+                                [[maybe_unused]] const dblAr2&__restrict__ rfld0,
+                                [[maybe_unused]] dblAr2&__restrict__ rfld1){}
 
-template<> void lag2bez1<1,1>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez1<1,1>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   rfld1[lfld[  0]][0] = rfld0[lfld[  0]][0];
   rfld1[lfld[  1]][0] = rfld0[lfld[  1]][0];
 }
 
-template<> void lag2bez1<1,2>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez1<1,2>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 2; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
   }
 }
 
-template<> void lag2bez1<1,3>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez1<1,3>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 3; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
   }
 }
 
-template<> void lag2bez1<1,6>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez1<1,6>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 6; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
   }
 }
 
-template<> void lag2bez1<2,1>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez1<2,1>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   rfld1[lfld[  0]][0] = rfld0[lfld[  0]][0];
   rfld1[lfld[  1]][0] = rfld0[lfld[  1]][0];
   rfld1[lfld[  2]][0] = -1*rfld0[lfld[  0]][0]/2 + -1*rfld0[lfld[  1]][0]/2 + 4*rfld0[lfld[  2]][0]/2;
 }
 
-template<> void lag2bez1<2,2>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez1<2,2>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 2; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -63,9 +63,9 @@ template<> void lag2bez1<2,2>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez1<2,3>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez1<2,3>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 3; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -73,9 +73,9 @@ template<> void lag2bez1<2,3>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez1<2,6>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez1<2,6>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 6; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -83,18 +83,18 @@ template<> void lag2bez1<2,6>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez1<3,1>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez1<3,1>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   rfld1[lfld[  0]][0] = rfld0[lfld[  0]][0];
   rfld1[lfld[  1]][0] = rfld0[lfld[  1]][0];
   rfld1[lfld[  2]][0] = -5*rfld0[lfld[  0]][0]/6 + 1*rfld0[lfld[  1]][0]/3 + 6*rfld0[lfld[  2]][0]/2 + -3*rfld0[lfld[  3]][0]/2;
   rfld1[lfld[  3]][0] = 1*rfld0[lfld[  0]][0]/3 + -5*rfld0[lfld[  1]][0]/6 + -3*rfld0[lfld[  2]][0]/2 + 6*rfld0[lfld[  3]][0]/2;
 }
 
-template<> void lag2bez1<3,2>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez1<3,2>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 2; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -103,9 +103,9 @@ template<> void lag2bez1<3,2>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez1<3,3>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez1<3,3>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 3; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -114,9 +114,9 @@ template<> void lag2bez1<3,3>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez1<3,6>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez1<3,6>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 6; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -125,21 +125,21 @@ template<> void lag2bez1<3,6>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez2<0,1>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){}
+template<> void lag2bez2<0,1>([[maybe_unused]] const int*__restrict__ lfld,
+                                [[maybe_unused]] const dblAr2&__restrict__ rfld0,
+                                [[maybe_unused]] dblAr2&__restrict__ rfld1){}
 
-template<> void lag2bez2<1,1>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez2<1,1>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   rfld1[lfld[  0]][0] = rfld0[lfld[  0]][0];
   rfld1[lfld[  1]][0] = rfld0[lfld[  1]][0];
   rfld1[lfld[  2]][0] = rfld0[lfld[  2]][0];
 }
 
-template<> void lag2bez2<1,2>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez2<1,2>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 2; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -147,9 +147,9 @@ template<> void lag2bez2<1,2>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez2<1,3>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez2<1,3>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 3; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -157,9 +157,9 @@ template<> void lag2bez2<1,3>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez2<1,6>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez2<1,6>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 6; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -167,9 +167,9 @@ template<> void lag2bez2<1,6>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez2<2,1>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez2<2,1>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   rfld1[lfld[  0]][0] = rfld0[lfld[  0]][0];
   rfld1[lfld[  1]][0] = rfld0[lfld[  1]][0];
   rfld1[lfld[  2]][0] = rfld0[lfld[  2]][0];
@@ -178,9 +178,9 @@ template<> void lag2bez2<2,1>(const int* __restrict__ lfld,
   rfld1[lfld[  5]][0] = -1*rfld0[lfld[  0]][0]/2 + -1*rfld0[lfld[  1]][0]/2 + 0*rfld0[lfld[  2]][0]/2 + 0*rfld0[lfld[  3]][0]/2 + 0*rfld0[lfld[  4]][0]/2 + 4*rfld0[lfld[  5]][0]/2;
 }
 
-template<> void lag2bez2<2,2>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez2<2,2>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 2; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -191,9 +191,9 @@ template<> void lag2bez2<2,2>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez2<2,3>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez2<2,3>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 3; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -204,9 +204,9 @@ template<> void lag2bez2<2,3>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez2<2,6>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez2<2,6>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 6; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -217,9 +217,9 @@ template<> void lag2bez2<2,6>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez2<3,1>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez2<3,1>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   rfld1[lfld[  0]][0] = rfld0[lfld[  0]][0];
   rfld1[lfld[  1]][0] = rfld0[lfld[  1]][0];
   rfld1[lfld[  2]][0] = rfld0[lfld[  2]][0];
@@ -232,9 +232,9 @@ template<> void lag2bez2<3,1>(const int* __restrict__ lfld,
   rfld1[lfld[  9]][0] = 1*rfld0[lfld[  0]][0]/3 + 1*rfld0[lfld[  1]][0]/3 + 1*rfld0[lfld[  2]][0]/3 + -3*rfld0[lfld[  3]][0]/4 + -3*rfld0[lfld[  4]][0]/4 + -3*rfld0[lfld[  5]][0]/4 + -3*rfld0[lfld[  6]][0]/4 + -3*rfld0[lfld[  7]][0]/4 + -3*rfld0[lfld[  8]][0]/4 + 9*rfld0[lfld[  9]][0]/2;
 }
 
-template<> void lag2bez2<3,2>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez2<3,2>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 2; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -249,9 +249,9 @@ template<> void lag2bez2<3,2>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez2<3,3>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez2<3,3>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 3; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -266,9 +266,9 @@ template<> void lag2bez2<3,3>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez2<3,6>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez2<3,6>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 6; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -283,22 +283,22 @@ template<> void lag2bez2<3,6>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez3<0,1>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){}
+template<> void lag2bez3<0,1>([[maybe_unused]] const int*__restrict__ lfld,
+                                [[maybe_unused]] const dblAr2&__restrict__ rfld0,
+                                [[maybe_unused]] dblAr2&__restrict__ rfld1){}
 
-template<> void lag2bez3<1,1>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez3<1,1>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   rfld1[lfld[  0]][0] = rfld0[lfld[  0]][0];
   rfld1[lfld[  1]][0] = rfld0[lfld[  1]][0];
   rfld1[lfld[  2]][0] = rfld0[lfld[  2]][0];
   rfld1[lfld[  3]][0] = rfld0[lfld[  3]][0];
 }
 
-template<> void lag2bez3<1,2>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez3<1,2>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 2; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -307,9 +307,9 @@ template<> void lag2bez3<1,2>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez3<1,3>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez3<1,3>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 3; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -318,9 +318,9 @@ template<> void lag2bez3<1,3>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez3<1,6>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez3<1,6>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 6; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -329,9 +329,9 @@ template<> void lag2bez3<1,6>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez3<2,1>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez3<2,1>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   rfld1[lfld[  0]][0] = rfld0[lfld[  0]][0];
   rfld1[lfld[  1]][0] = rfld0[lfld[  1]][0];
   rfld1[lfld[  2]][0] = rfld0[lfld[  2]][0];
@@ -344,9 +344,9 @@ template<> void lag2bez3<2,1>(const int* __restrict__ lfld,
   rfld1[lfld[  9]][0] = 0*rfld0[lfld[  0]][0]/2 + 0*rfld0[lfld[  1]][0]/2 + -1*rfld0[lfld[  2]][0]/2 + -1*rfld0[lfld[  3]][0]/2 + 0*rfld0[lfld[  4]][0]/2 + 0*rfld0[lfld[  5]][0]/2 + 0*rfld0[lfld[  6]][0]/2 + 0*rfld0[lfld[  7]][0]/2 + 0*rfld0[lfld[  8]][0]/2 + 4*rfld0[lfld[  9]][0]/2;
 }
 
-template<> void lag2bez3<2,2>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez3<2,2>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 2; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -361,9 +361,9 @@ template<> void lag2bez3<2,2>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez3<2,3>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez3<2,3>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 3; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -378,9 +378,9 @@ template<> void lag2bez3<2,3>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez3<2,6>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez3<2,6>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 6; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -395,9 +395,9 @@ template<> void lag2bez3<2,6>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez3<3,1>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez3<3,1>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   rfld1[lfld[  0]][0] = rfld0[lfld[  0]][0];
   rfld1[lfld[  1]][0] = rfld0[lfld[  1]][0];
   rfld1[lfld[  2]][0] = rfld0[lfld[  2]][0];
@@ -420,9 +420,9 @@ template<> void lag2bez3<3,1>(const int* __restrict__ lfld,
   rfld1[lfld[ 19]][0] = 1*rfld0[lfld[  0]][0]/3 + 1*rfld0[lfld[  1]][0]/3 + 1*rfld0[lfld[  2]][0]/3 + 0*rfld0[lfld[  3]][0]/2 + -3*rfld0[lfld[  4]][0]/4 + -3*rfld0[lfld[  5]][0]/4 + -3*rfld0[lfld[  6]][0]/4 + -3*rfld0[lfld[  7]][0]/4 + -3*rfld0[lfld[  8]][0]/4 + -3*rfld0[lfld[  9]][0]/4 + 0*rfld0[lfld[ 10]][0]/2 + 0*rfld0[lfld[ 11]][0]/2 + 0*rfld0[lfld[ 12]][0]/2 + 0*rfld0[lfld[ 13]][0]/2 + 0*rfld0[lfld[ 14]][0]/2 + 0*rfld0[lfld[ 15]][0]/2 + 0*rfld0[lfld[ 16]][0]/2 + 0*rfld0[lfld[ 17]][0]/2 + 0*rfld0[lfld[ 18]][0]/2 + 9*rfld0[lfld[ 19]][0]/2;
 }
 
-template<> void lag2bez3<3,2>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez3<3,2>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 2; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -447,9 +447,9 @@ template<> void lag2bez3<3,2>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez3<3,3>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez3<3,3>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 3; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];
@@ -474,9 +474,9 @@ template<> void lag2bez3<3,3>(const int* __restrict__ lfld,
   }
 }
 
-template<> void lag2bez3<3,6>(const int* __restrict__ lfld,
-                                const dblAr2& __restrict__ rfld0,
-                                dblAr2& __restrict__ rfld1){
+template<> void lag2bez3<3,6>(const int*__restrict__ lfld,
+                                const dblAr2&__restrict__ rfld0,
+                                dblAr2&__restrict__ rfld1){
   for(int i=0; i< 6; i++){
     rfld1[lfld[  0]][i] = rfld0[lfld[  0]][i];
     rfld1[lfld[  1]][i] = rfld0[lfld[  1]][i];

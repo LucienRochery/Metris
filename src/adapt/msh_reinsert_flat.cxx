@@ -21,7 +21,7 @@ namespace Metris{
 
 // Reinsert vertices that create almost flat elements. 
 template<class MFT, int idim, int ideg>
-int reinsertFlat(Mesh<MFT> &msh, bool allow_collapse, int ithread){
+int reinsertFlat(Mesh<MFT> &msh){
   GETVDEPTH(msh);
   constexpr int gdim = idim;
   constexpr int tdim = idim; 
@@ -260,14 +260,10 @@ int reinsertFlat(Mesh<MFT> &msh, bool allow_collapse, int ithread){
 }
 
 #define BOOST_PP_LOCAL_MACRO(n)\
-template int reinsertFlat<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
-                                       bool,int ithread);\
-template int reinsertFlat<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,\
-                                       bool,int ithread);\
-template int reinsertFlat<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,\
-                                       bool,int ithread);\
-template int reinsertFlat<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,\
-                                       bool,int ithread);
+template int reinsertFlat<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh);\
+template int reinsertFlat<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh);\
+template int reinsertFlat<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh);\
+template int reinsertFlat<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

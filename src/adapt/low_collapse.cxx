@@ -87,8 +87,6 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
 
   tdimc = MAX(tdim[0], tdim[1]);
 
-  int iref = msh.fac2ref[iface];
-
   bool imani;
   int  iopen;
   for(int iver = 0; iver < 2; iver++){
@@ -158,7 +156,7 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
         // Increase cavity with Delaunay criterion
         increase_cavity_Delaunay(msh, cav, ipins, ithrd2);
         //int nprem = increase_cavity_lenedg(msh,cav,ipins,ithrd2,ithrd3);
-        ierro = increase_cavity2D(msh,msh.coord[ipins],opts,cav,ithrd2);
+        ierro = increase_cavity2D(msh,cav,ithrd2);
 
 
         if(ierro > 0) continue;
@@ -212,7 +210,7 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
                   cav.lcedg,
                   &iopen,&imani,ithrd1);
     increase_cavity_Delaunay(msh, cav, cav.ipins, ithrd2);
-    //ierro = increase_cavity2D(msh, msh.coord[cav.ipins],opts,cav,ithrd2);
+    //ierro = increase_cavity2D(msh,cav,ithrd2);
     METRIS_ASSERT(ierro == 0);
   }
 
@@ -275,8 +273,6 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
   //int ipibest = -1; // p insert 
 
   double nrmal[3];
-
-  int iref = msh.fac2ref[iface];
 
   bool imani;
   int  iopen;
@@ -347,7 +343,7 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
       // Increase cavity with Delaunay criterion
       increase_cavity_Delaunay(msh, cav, ipins, ithrd2);
       //int nprem = increase_cavity_lenedg(msh,cav,ipins,ithrd2,ithrd3);
-      ierro = increase_cavity2D(msh,msh.coord[ipins],opts,cav,ithrd2);
+      ierro = increase_cavity2D(msh,cav,ithrd2);
 
 
       if(ierro > 0) continue;
@@ -396,7 +392,7 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
                   cav.lcedg,
                   &iopen,&imani,ithrd1);
     increase_cavity_Delaunay(msh, cav, cav.ipins, ithrd2);
-    //ierro = increase_cavity2D(msh, msh.coord[cav.ipins],opts,cav,ithrd2);
+    //ierro = increase_cavity2D(msh,cav,ithrd2);
     METRIS_ASSERT(ierro == 0);
   }
 

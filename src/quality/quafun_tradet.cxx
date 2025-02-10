@@ -287,7 +287,7 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   // Get metric interpolated at xi
   // The metric field class fetches geometric dimension from the mesh
   double met[nnmet],dmet[gdim][nnmet];
-  msh.met.getMetFullinfo(asdmsh,idifmet,MetSpace::Exp,
+  msh.met.getMetFullinfo(asdmet,idifmet,MetSpace::Exp,
                          ent2pol,tdim,bary,coopr,met,dmet[0]);
 
   // Compute the trace 

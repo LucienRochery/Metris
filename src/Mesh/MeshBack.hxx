@@ -49,7 +49,7 @@ public:
   void initialize(MetrisAPI *data, 
     MetrisParameters &param);
 
-	void copyConstants(const MeshBase &msh, int MAX_DEG = METRIS_MAX_DEG);
+	void copyConstants(const MeshBase &msh);
 
   void set_nedge(int nedge, bool skipallocf = false) override; 
   void set_nface(int nedge, bool skipallocf = false) override; 

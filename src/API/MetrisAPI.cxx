@@ -662,7 +662,8 @@ void MetrisAPI::setElementsOrdering(int tdimn, const int *ordering){
 
 void MetrisAPI::setElementsOrdering(int iordering){
   METRIS_THROW_MSG(TODOExcept(), 
-    "Default orderings not implemented. Either don't call setElementsOrdering, or provide explicitely.");
+    "Default orderings not implemented. "
+    "Either don't call setElementsOrdering, or provide explicitely. Given"<<iordering);
 }
 
 void MetrisAPI::setElement(int tdimn, int ielem, const int *ent2pol, int iref){

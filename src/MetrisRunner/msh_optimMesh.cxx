@@ -188,7 +188,7 @@ double MetrisRunner::optimMesh0(){
 
     if(msh.idim == msh.get_tdim()){
       t0 = get_wall_time();
-      int noper = reinsertFlat<MFT,gdim,ideg>(msh, true);
+      int noper = reinsertFlat<MFT,gdim,ideg>(msh);
       t1 = get_wall_time();
       msh.cleanup();
       stat  = noper / (double) msh.nface; 

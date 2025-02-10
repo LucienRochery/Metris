@@ -30,7 +30,7 @@ void geteigsym<3,double>(const double* met,int nwork,double* rwork,double* eigva
   int three = 3, info;
   LAPACK_dsyev(&c1,&c2,&three,eigvec,&three,eigval,rwork,&nwork,&info);
   if(info != 0) METRIS_THROW_MSG(AlgoExcept(),
-  	"LAPACK_dsyev FAILED INFO = "<<info<<"\n");
+   "LAPACK_dsyev FAILED INFO = "<<info<<"\n");
 
 
 }
@@ -41,7 +41,7 @@ void geteigsym<3,double>(const double* met,int nwork,double* rwork,double* eigva
 //             SANS::SurrealS<3,double>* __restrict__ eigvec){
 //  int ierro = dsyevq3<SANS::SurrealS<3,double>>(met,eigvec,eigval);
 //  if(ierro != 0)METRIS_THROW_MSG(AlgoExcept(),
-//  	"dsyevq3 FAILED INFO = "<<ierro<<"\n");
+//   "dsyevq3 FAILED INFO = "<<ierro<<"\n");
 //}
 
 template<int ndimn, typename T>
@@ -54,7 +54,7 @@ void geteigsym(const T* __restrict__ met,
   //}else{
     int ierro = dsyevq<ndimn,T>(met,eigvec,eigval);
     if(ierro != 0)METRIS_THROW_MSG(AlgoExcept(),
-  	 "dsyevq3 FAILED INFO = "<<ierro<<"inp ="<<met[0]<<" "<<met[1]<<" "<<met[2]<<"\n"
+    "dsyevq3 FAILED INFO = "<<ierro<<"inp ="<<met[0]<<" "<<met[1]<<" "<<met[2]<<"\n"
       );
   //}
 }

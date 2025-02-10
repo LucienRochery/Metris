@@ -86,7 +86,7 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
 
 
 	void (*metcomp2_LPlib)(int,int,int,MeshMetric<MetricFieldType>*,double,double)
-	=[] (int ipoi0, int ipoi1, int ithrd, MeshMetric<MetricFieldType> *msh, double lbdmin, double lbdmax){
+	=[] (int ipoi0, int ipoi1, [[maybe_unused]] int ithrd, MeshMetric<MetricFieldType> *msh, [[maybe_unused]] double lbdmin, [[maybe_unused]] double lbdmax){
 		int nnmet = (msh->idim*(msh->idim+1))/2;
 		for(int ipoin = ipoi0 - 1; ipoin < ipoi1; ipoin++){
       if(msh->poi2ent(ipoin,0) < 0) continue;
@@ -105,8 +105,8 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
   }}CT_FOR1(gdim);
 
   if(param.iverb >= 3) printf("Intrinsic metric accel 1 = %f \n",acc);
- 	acc = LaunchParallelMultiArg(LibIdx, LP_poi, 0, (void*)metcomp2_LPlib, 
-  	                            3, &msh, lbdmin, lbdmax);
+  acc = LaunchParallelMultiArg(LibIdx, LP_poi, 0, (void*)metcomp2_LPlib, 
+                               3, &msh, lbdmin, lbdmax);
   if(param.iverb >= 3) printf("Intrinsic metric accel 2 = %f \n",acc);
 
 	if(ibas0 == FEBasis::Bezier) msh.met.setBasis(FEBasis::Bezier);
@@ -128,7 +128,7 @@ template void getMetMesh< MetricFieldFE         , n>(const MetrisParameters &par
 
 
 template<class MetricFieldType, int gdim, int tdim, int ideg>
-void getMetMesh0_lplib(int ient0, int ient1,int ithread, MeshMetric<MetricFieldType> *msh_, int poitag){
+void getMetMesh0_lplib(int ient0, int ient1, [[maybe_unused]] int ithread, MeshMetric<MetricFieldType> *msh_, int poitag){
   static_assert(gdim == 2 || gdim == 3);
   static_assert(tdim == 2 || tdim == 3);
   static_assert(tdim <= gdim);

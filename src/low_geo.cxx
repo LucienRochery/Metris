@@ -71,34 +71,34 @@ void vdiff_perp_sum(const double* a, const double* b, int up, int lo, double *re
 bool isintetP1(const double *p1, const double *p2,
                const double *p3, const double *p4,
                const double *pp, double tol){
-	double vol0 = det3_vdif(p2,p1
-	                			 ,p3,p1
-	                			 ,p4,p1);
+  double vol0 = det3_vdif(p2,p1
+                         ,p3,p1
+                         ,p4,p1);
   vol0 = abs(vol0);
-	double vol;
+  double vol;
 
-	vol = det3_vdif(p2,pp
-	        			 ,p3,pp
-	        			 ,p4,pp);
+  vol = det3_vdif(p2,pp
+                 ,p3,pp
+                 ,p4,pp);
                  //printf("Debug vol vol0 %15.7e %15.7e (1) \n",vol,vol0);
-	if(vol < -tol*vol0) return false;
-	vol = det3_vdif(pp,p1
-	        			 ,p3,p1
-	        			 ,p4,p1);
+  if(vol < -tol*vol0) return false;
+  vol = det3_vdif(pp,p1
+                 ,p3,p1
+                 ,p4,p1);
                  //printf("Debug vol vol0 %15.7e %15.7e (2) \n",vol,vol0);
-	if(vol < -tol*vol0) return false;
-	vol = det3_vdif(p2,p1
-	        			 ,pp,p1
-	        			 ,p4,p1);
+  if(vol < -tol*vol0) return false;
+  vol = det3_vdif(p2,p1
+                 ,pp,p1
+                 ,p4,p1);
                  //printf("Debug vol vol0 %15.7e %15.7e (3) \n",vol,vol0);
-	if(vol < -tol*vol0) return false;
-	vol = det3_vdif(p2,p1
-	        			 ,p3,p1
-	        			 ,pp,p1);
+  if(vol < -tol*vol0) return false;
+  vol = det3_vdif(p2,p1
+                 ,p3,p1
+                 ,pp,p1);
                  //printf("Debug vol vol0 %15.7e %15.7e (4) \n",vol,vol0);
-	if(vol < -tol*vol0) return false;
+  if(vol < -tol*vol0) return false;
 
-	return true;
+  return true;
 }
 
 bool isinfacP1(const double *p1, const double *p2,
@@ -336,7 +336,10 @@ void getheightentP1_aniso<2>(const int *ent2pol,const dblAr2 &coord,
   #endif
 }
 template<>
-void getheightentP1_aniso<3>(const int *ent2pol,const dblAr2 &coord, double *metl, double *height){
+void getheightentP1_aniso<3>([[maybe_unused]] const int *ent2pol,
+                             [[maybe_unused]] const dblAr2 &coord,
+                             [[maybe_unused]] double *metl, 
+                             [[maybe_unused]] double *height){
   METRIS_THROW_MSG(TODOExcept(),"Implement getheightentP1 idim = 3");
 }
 
@@ -762,9 +765,9 @@ int getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis ib
 //// This one computes physical derivatives of the metric as well (of \circ F_K^{-1}). 
 //template<int ndim, int ideg>
 //void getintmetxi(const dblAr2 &coord, const int* __restrict__ tet2pol, FEBasis ibasis, 
-//	               const double* bary, SANS::SurrealS<3,double>* __restrict__ metS){
+//                 const double* bary, SANS::SurrealS<3,double>* __restrict__ metS){
 //  static_assert(ndim == 3);
-//	double eval[3], jmat[9], hmat[18], djmat[27], invjmat[9];
+//  double eval[3], jmat[9], hmat[18], djmat[27], invjmat[9];
 //
 //  //  eval3_bezier<3,ideg,1,0>(coord,tet2pol,bary,eval, jmat,NULL);
 //  eval3<3,ideg>(coord,tet2pol,ibasis,DifVar::Bary,DifVar::Bary,bary,eval,jmat,hmat);
@@ -787,35 +790,35 @@ int getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis ib
 //  
 //  SANS::SurrealS<3,double> invmetS[6];
 //
-//	invmetS[0] = 3*(jmatS[3*0+0]*jmatS[3*0+0] + jmatS[3*1+0]*jmatS[3*1+0] + jmatS[3*2+0]*jmatS[3*2+0])/2
-//	           -    jmatS[3*0+0]*jmatS[3*1+0]
-//	           -    jmatS[3*0+0]*jmatS[3*2+0]
-//	           -    jmatS[3*1+0]*jmatS[3*2+0];
+//  invmetS[0] = 3*(jmatS[3*0+0]*jmatS[3*0+0] + jmatS[3*1+0]*jmatS[3*1+0] + jmatS[3*2+0]*jmatS[3*2+0])/2
+//             -    jmatS[3*0+0]*jmatS[3*1+0]
+//             -    jmatS[3*0+0]*jmatS[3*2+0]
+//             -    jmatS[3*1+0]*jmatS[3*2+0];
 //  
-//	invmetS[1] = 3*(jmatS[3*0+0]*jmatS[3*0+1] + jmatS[3*1+0]*jmatS[3*1+1] + jmatS[3*2+0]*jmatS[3*2+1])/2
-//	           -   (jmatS[3*0+0]*jmatS[3*1+1] + jmatS[3*0+1]*jmatS[3*1+0])/2
-//	           -   (jmatS[3*0+0]*jmatS[3*2+1] + jmatS[3*0+1]*jmatS[3*2+0])/2
-//	           -   (jmatS[3*1+0]*jmatS[3*2+1] + jmatS[3*1+1]*jmatS[3*2+0])/2;
+//  invmetS[1] = 3*(jmatS[3*0+0]*jmatS[3*0+1] + jmatS[3*1+0]*jmatS[3*1+1] + jmatS[3*2+0]*jmatS[3*2+1])/2
+//             -   (jmatS[3*0+0]*jmatS[3*1+1] + jmatS[3*0+1]*jmatS[3*1+0])/2
+//             -   (jmatS[3*0+0]*jmatS[3*2+1] + jmatS[3*0+1]*jmatS[3*2+0])/2
+//             -   (jmatS[3*1+0]*jmatS[3*2+1] + jmatS[3*1+1]*jmatS[3*2+0])/2;
 //
-//	invmetS[2] = 3*(jmatS[3*0+1]*jmatS[3*0+1] + jmatS[3*1+1]*jmatS[3*1+1] + jmatS[3*2+1]*jmatS[3*2+1])/2
-//	           -    jmatS[3*0+1]*jmatS[3*1+1]
-//	           -    jmatS[3*0+1]*jmatS[3*2+1]
-//	           -    jmatS[3*1+1]*jmatS[3*2+1];
+//  invmetS[2] = 3*(jmatS[3*0+1]*jmatS[3*0+1] + jmatS[3*1+1]*jmatS[3*1+1] + jmatS[3*2+1]*jmatS[3*2+1])/2
+//             -    jmatS[3*0+1]*jmatS[3*1+1]
+//             -    jmatS[3*0+1]*jmatS[3*2+1]
+//             -    jmatS[3*1+1]*jmatS[3*2+1];
 //
-//	invmetS[3] = 3*(jmatS[3*0+0]*jmatS[3*0+2] + jmatS[3*1+0]*jmatS[3*1+2] + jmatS[3*2+0]*jmatS[3*2+2])/2
-//	           -   (jmatS[3*0+0]*jmatS[3*1+2] + jmatS[3*0+2]*jmatS[3*1+0])/2
-//	           -   (jmatS[3*0+0]*jmatS[3*2+2] + jmatS[3*0+2]*jmatS[3*2+0])/2
-//	           -   (jmatS[3*1+0]*jmatS[3*2+2] + jmatS[3*1+2]*jmatS[3*2+0])/2;
+//  invmetS[3] = 3*(jmatS[3*0+0]*jmatS[3*0+2] + jmatS[3*1+0]*jmatS[3*1+2] + jmatS[3*2+0]*jmatS[3*2+2])/2
+//             -   (jmatS[3*0+0]*jmatS[3*1+2] + jmatS[3*0+2]*jmatS[3*1+0])/2
+//             -   (jmatS[3*0+0]*jmatS[3*2+2] + jmatS[3*0+2]*jmatS[3*2+0])/2
+//             -   (jmatS[3*1+0]*jmatS[3*2+2] + jmatS[3*1+2]*jmatS[3*2+0])/2;
 //
-//	invmetS[4] = 3*(jmatS[3*0+1]*jmatS[3*0+2] + jmatS[3*1+1]*jmatS[3*1+2] + jmatS[3*2+1]*jmatS[3*2+2])/2
-//	           -   (jmatS[3*0+1]*jmatS[3*1+2] + jmatS[3*0+2]*jmatS[3*1+1])/2
-//	           -   (jmatS[3*0+1]*jmatS[3*2+2] + jmatS[3*0+2]*jmatS[3*2+1])/2
-//	           -   (jmatS[3*1+1]*jmatS[3*2+2] + jmatS[3*1+2]*jmatS[3*2+1])/2;
+//  invmetS[4] = 3*(jmatS[3*0+1]*jmatS[3*0+2] + jmatS[3*1+1]*jmatS[3*1+2] + jmatS[3*2+1]*jmatS[3*2+2])/2
+//             -   (jmatS[3*0+1]*jmatS[3*1+2] + jmatS[3*0+2]*jmatS[3*1+1])/2
+//             -   (jmatS[3*0+1]*jmatS[3*2+2] + jmatS[3*0+2]*jmatS[3*2+1])/2
+//             -   (jmatS[3*1+1]*jmatS[3*2+2] + jmatS[3*1+2]*jmatS[3*2+1])/2;
 //
-//	invmetS[5] = 3*(jmatS[3*0+2]*jmatS[3*0+2] + jmatS[3*1+2]*jmatS[3*1+2] + jmatS[3*2+2]*jmatS[3*2+2])/2
-//	           -    jmatS[3*0+2]*jmatS[3*1+2]
-//	           -    jmatS[3*0+2]*jmatS[3*2+2]
-//	           -    jmatS[3*1+2]*jmatS[3*2+2];
+//  invmetS[5] = 3*(jmatS[3*0+2]*jmatS[3*0+2] + jmatS[3*1+2]*jmatS[3*1+2] + jmatS[3*2+2]*jmatS[3*2+2])/2
+//             -    jmatS[3*0+2]*jmatS[3*1+2]
+//             -    jmatS[3*0+2]*jmatS[3*2+2]
+//             -    jmatS[3*1+2]*jmatS[3*2+2];
 //
 //  inv3sym<SANS::SurrealS<3,double>>(invmetS, metS);
 //
@@ -827,7 +830,7 @@ int getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis ib
 template int getintmetxi<2, 2, n>(const dblAr2 &coord, const int* __restrict__ tet2pol,FEBasis ibasis,  \
                                 const double* bary,double* __restrict__ met);\
 template int getintmetxi<3, 2, n>(const dblAr2 &coord, const int* __restrict__ tet2pol,FEBasis ibasis,  \
-	                    			    const double* bary,double* __restrict__ met);\
+                                const double* bary,double* __restrict__ met);\
 template int getintmetxi<3, 3, n>(const dblAr2 &coord, const int* __restrict__ tet2pol,FEBasis ibasis,  \
                                 const double* bary,double* __restrict__ met);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)

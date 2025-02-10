@@ -78,7 +78,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
     double t0 = get_wall_time();
     //double stat_swap = swap2D<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt);
-    double t2 = get_wall_time();
+    //double t2 = get_wall_time();
     //if(iverb >= 2){
     //  printf("   - Post collapse swap time %f stat = %f \n",t2-t0,stat_swap);
     //}

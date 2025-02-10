@@ -58,7 +58,7 @@ static int aux_walk_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
 template<class MFT>
 static int gen_newp_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
                          int ibpo0, int ibpnw,
-                         int iedgseed, int ifacseed, const int *edg2pol, 
+                         int iedgseed, const int *edg2pol, 
                          double *sz, int miter_bisection,
                          double tarlen, double lentolabs,
                          double *adjusted_tarlen,  // in/out

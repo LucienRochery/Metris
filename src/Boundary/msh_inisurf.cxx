@@ -712,6 +712,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
               break;
             }// for ibpoi
 
+            METRIS_ASSERT_MSG(ifnd, "Failed to find ibpoi")
             // The ibpoi here points to the correct entry for ipoi1 or ipoi2
             ibpos[iipoi] = ibpoi;
           }
@@ -840,7 +841,6 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
             msh.bpo2ibi(lrbpo[iused],1) = ientt;
 
             // Create new ibpois for the other faces
-            int nneg = 0;
             for(int iface : lcofa){
               if(iface == ientt) continue;
               msh.newbpotopo(ipoin,2,iface);

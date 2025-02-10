@@ -9,7 +9,7 @@
 namespace Metris{
 
 template<int ideg>
-void ccoef_genbez3(const intAr2 & __restrict__ tet2poi, const dblAr2& __restrict__ coord, int ielem, double* __restrict__ ccoef){}
+void ccoef_genbez3([[maybe_unused]] const intAr2&__restrict__ tet2poi,[[maybe_unused]] const dblAr2& __restrict__ coord,[[maybe_unused]] int ielem,[[maybe_unused]] double*__restrict__ ccoef){}
 
 double det3_vdif(const double* x1,const double* x2
                 ,const double* y1,const double* y2

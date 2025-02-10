@@ -209,7 +209,7 @@ public:
   void readConstants(int64_t libIdx, int usrMinDeg);
 	void readConstants(const MetrisAPI &data, int usrMinDeg);
 public:
-  void copyConstants(const MeshBase &msh, int MAX_DEG = METRIS_MAX_DEG);
+  void copyConstants(const MeshBase &msh);
 
 //protected:
 	unsigned long long int  getMemCost(); // in bytes

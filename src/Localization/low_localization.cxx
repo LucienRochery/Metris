@@ -617,7 +617,7 @@ template double invevalfun<3,n>(const MeshBase &msh,\
 #include BOOST_PP_LOCAL_ITERATE()
 
 template<int gdim,int ideg>
-double invevalfun_nlointf(unsigned int nvar, const double *x, 
+double invevalfun_nlointf([[maybe_unused]]unsigned int nvar, const double *x, 
                           double *grad, void *f_data){
   // The Fortran intfc calling this offsets the pointer?
   invevalfun_data *mydata = (invevalfun_data*)(f_data);

@@ -23,7 +23,8 @@ namespace Metris{
 // lbad[i][1] element topo dim
 template<class MFT, int ideg>
 int correct_cavity_fast(Mesh<MFT> &msh,
-                        MshCavity &cav, CavOprOpt &opts, 
+                        MshCavity &cav, 
+                        CavOprOpt &opts, 
                         int npoi0, int nedg0, int nfac0, int nele0,
                         intAr2 &lbad, 
                         CavWrkArrs &work, 
@@ -40,10 +41,11 @@ int correct_cavity_fast(Mesh<MFT> &msh,
 
 template<class MFT, int gdim, int ideg>
 int correct_cavity_fast0(Mesh<MFT> &msh, 
-                         MshCavity &cav, CavOprOpt &opts, 
+                         [[maybe_unused]] MshCavity &cav, 
+                         [[maybe_unused]] CavOprOpt &opts, 
                          int npoi0, int nedg0, int nfac0, int nele0, 
                          intAr2 &lbad, 
-                         CavWrkArrs &work,
+                         [[maybe_unused]] CavWrkArrs &work,
                          int ithread){
   METRIS_ASSERT(lbad.get_stride() == 2);
   GETVDEPTH(msh);
@@ -133,7 +135,7 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
 
           ego obj = cad2ent[iref];
 
-          double nrm0 = getepsent<gdim>(msh,tdim,ientt);
+          //double nrm0 = getepsent<gdim>(msh,tdim,ientt);
 
           //int ip1 = msh.edg2poi(ientt,0);
           //int ip2 = msh.edg2poi(ientt,1);

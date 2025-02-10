@@ -38,7 +38,7 @@ void projptsurf(MeshBase &msh, int ibpoi, double *coop, double tol){
 	int ientt = msh.bpo2ibi(ibpoi,2);
 	assert(ientt >= 0);
 	assert(ientt < msh.nface && ityp == 2 
-    	|| ientt < msh.nedge && ityp == 1  );
+     || ientt < msh.nedge && ityp == 1  );
 
 	int iref;
 	ego obj;
@@ -63,7 +63,7 @@ void projptsurf(MeshBase &msh, int ibpoi, double *coop, double tol){
 	double result[18];
 	int ierro = EG_invEvaluate(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
 	if(ierro != 0){
-  	print_EGADS_error("EG_getBodyTopos (EDGE)",ierro);
+   print_EGADS_error("EG_getBodyTopos (EDGE)",ierro);
 		METRIS_THROW(TopoExcept());
 	}
 	double dist = geterrl2<3>(msh.coord[ipoin],result);
@@ -89,8 +89,8 @@ void bpo2CADnormal(MeshBase &msh, int ibpoi, double *du, double *dv, double *nrm
   double result[18];
   int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
   if(ierro != 0){
-  	print_EGADS_error("EG_getBodyTopos (EDGE)",ierro);
-  	METRIS_THROW(TopoExcept());
+   print_EGADS_error("EG_getBodyTopos (EDGE)",ierro);
+   METRIS_THROW(TopoExcept());
   }
 
   du[0] = result[3];

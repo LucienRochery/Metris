@@ -45,7 +45,7 @@ void simpfrac(int x, int y, int *xs, int *ys){
 }
 
 
-int main(int argc, char** argv){
+int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv){
 
   printf("Maximum degree = %d \n",METRIS_MAX_DEG);
 
@@ -319,7 +319,11 @@ void gen_ccoeff3(){
     str << "#include \"types.hxx\"\n\n";
     str << "namespace Metris{\n\n";
 
-    str << "template<int ideg>\nvoid ccoef_genbez3(const intAr2 & __restrict__ tet2poi, const dblAr2& __restrict__ coord, int ielem, double* __restrict__ ccoef){}\n\n";
+    str << "template<int ideg>\n";
+    str << "void ccoef_genbez3([[maybe_unused]] const intAr2&__restrict__ tet2poi,"
+    "[[maybe_unused]] const dblAr2& __restrict__ coord,"
+    "[[maybe_unused]] int ielem," 
+    "[[maybe_unused]] double*__restrict__ ccoef){}\n\n";
     str << "double det3_vdif(const double* x1,const double* x2\n";
     str << "                ,const double* y1,const double* y2\n";
     str << "                ,const double* z1,const double* z2);\n\n";
@@ -445,7 +449,11 @@ void gen_ccoeff2(){
     str << "#include \"types.hxx\"\n\n";
     str << "namespace Metris{\n\n";
 
-    str << "template<int ideg>\nvoid ccoef_genbez2(const intAr2 & __restrict__ fac2poi, const dblAr2& __restrict__ coord, int ielem, double* __restrict__ ccoef){}\n\n";
+    str << "template<int ideg>\n"
+           "void ccoef_genbez2([[maybe_unused]]const intAr2 & __restrict__ fac2poi,"
+           "[[maybe_unused]]const dblAr2& __restrict__ coord,"
+           "[[maybe_unused]]int ielem,"
+           "[[maybe_unused]]double* __restrict__ ccoef){}\n\n";
     str << "double det2_vdif(const double* x1,const double* x2\n";
     str << "                ,const double* y1,const double* y2);\n\n";
 

@@ -403,7 +403,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
             npins++;
             // Bisection: create new point, put into ipins, return final len and
             // update adjusted_tarlen. 
-            ierro = gen_newp_line(msh,cav,obj,ibpo0,ibpnw,iedge,iface,edg2pol,sz,
+            ierro = gen_newp_line(msh,cav,obj,ibpo0,ibpnw,iedge,edg2pol,sz,
                                   miter_bisection,tarlen,lentolabs,
                                   &adjusted_tarlen,&len,&nEGrro);
             if(ierro != 0) goto cleanup1;
@@ -428,8 +428,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
           // triangle cavity from edg2fac seeds
           nloop = 0;
           do{
-            ierro = increase_cavity2D(msh,msh.coord[cav.ipins],
-                                      opts,cav,ithrd1);
+            ierro = increase_cavity2D(msh,cav,ithrd1);
             nloop++;
             if(nloop > 10) METRIS_THROW_MSG(TopoExcept(), "Too many cavity increases !");
           }while(ierro == 2);
@@ -686,8 +685,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
               // setting lcedg.Set_n = 0 and restoring.
 
 
-              ierro = increase_cavity2D(msh,msh.coord[cav.ipins],
-                                        opts,cav,ithrd1);
+              ierro = increase_cavity2D(msh,cav,ithrd1);
 
               if(ierro != 0){
                 step *= 1.5;
@@ -852,7 +850,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
         // Mesh in excess
         //tarlen = crv_len / round(crv_len);  
 
-        double tarle0 = tarlen;
+        //double tarle0 = tarlen;
 
         // Now that the curve length is known well enough (from getCADCurveLengths)
         // the only source of tarlen correction is that the mesh is coarse
@@ -906,7 +904,6 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
   GETVDEPTH(msh);
 
   const int nref = msh.CAD.ncaded;
-  const int iverb = msh.param->iverb; 
   crv_len.set_n(nref);
 
   MetSpace ispac0 = msh.met.getSpace();
@@ -1370,7 +1367,7 @@ static int aux_walk_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
 template<class MFT>
 static int gen_newp_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
                          int ibpo0, int ibpnw,
-                         int iedgseed, int ifacseed, const int *edg2pol, 
+                         int iedgseed, const int *edg2pol, 
                          double *sz, int miter_bisection,
                          double tarlen, double lentolabs, 
                          double *adjusted_tarlen,  // in/out
@@ -1439,15 +1436,14 @@ static int gen_newp_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
 
     ierro = EG_evaluate(obj, msh.bpo2rbi[ibins], result);
     METRIS_ASSERT(ierro == 0);
-    if(ierro != 0){ // This failed 
+    if(ierro != EGADS_SUCCESS){ // This failed 
       if(iverb >= 2) printf("   - EG_evaluate error %d \n",ierro);
-      nEGrro ++;
+      (*nEGrro)++;
       return 1;
     }
     for(int ii = 0; ii < msh.idim; ii++) msh.coord[cav.ipins][ii] = result[ii];
 
     // -- Interpolate metric at insertion point, only if new
-    //ierro = msh.interpMetBack(msh.coord[cav.ipins],ifacseed,
     ierro = msh.interpMetBack(cav.ipins,1,iedgseed,
                               msh.edg2ref[iedgseed],&result[3]);
     #ifndef NDEBUG

@@ -39,42 +39,42 @@ void setFieldLagrange(MeshBase &msh, dblAr2 &rfld);
 // Low-level routines.
 template<int ideg, int szfld>
 void bez2lag1(const int* __restrict__ lfld,
- 							const dblAr2& __restrict__ rfld0,
- 							dblAr2& __restrict__ rfld1){
-	int nn = edgnpps[ideg];
-	double bary[2];
-	for(int i = 0; i < nn; i++){
-		bary[0] = ordedg.s[ideg][i][0]/((double)ideg);
-		bary[1] = ordedg.s[ideg][i][1]/((double)ideg);
-		eval1_bezier<szfld,ideg>(rfld0,lfld,DifVar::None,DifVar::None,bary,rfld1[lfld[i]],NULL,NULL);
-	}
+              const dblAr2& __restrict__ rfld0,
+              dblAr2& __restrict__ rfld1){
+  int nn = edgnpps[ideg];
+  double bary[2];
+  for(int i = 0; i < nn; i++){
+    bary[0] = ordedg.s[ideg][i][0]/((double)ideg);
+    bary[1] = ordedg.s[ideg][i][1]/((double)ideg);
+    eval1_bezier<szfld,ideg>(rfld0,lfld,DifVar::None,DifVar::None,bary,rfld1[lfld[i]],NULL,NULL);
+  }
 }
 template<int ideg, int szfld>
 void bez2lag2(const int* __restrict__ lfld,
- 								const dblAr2& __restrict__ rfld0,
- 								dblAr2& __restrict__ rfld1){
-	int nn = facnpps[ideg];
-	double bary[3];
-	for(int i = 0; i < nn; i++){
-		bary[0] = ordfac.s[ideg][i][0]/((double)ideg);
-		bary[1] = ordfac.s[ideg][i][1]/((double)ideg);
-		bary[2] = ordfac.s[ideg][i][2]/((double)ideg);
-		eval2_bezier<szfld,ideg>(rfld0,lfld,DifVar::None,DifVar::None,bary,rfld1[lfld[i]],NULL,NULL);
-	}
+              const dblAr2& __restrict__ rfld0,
+              dblAr2& __restrict__ rfld1){
+  int nn = facnpps[ideg];
+  double bary[3];
+  for(int i = 0; i < nn; i++){
+    bary[0] = ordfac.s[ideg][i][0]/((double)ideg);
+    bary[1] = ordfac.s[ideg][i][1]/((double)ideg);
+    bary[2] = ordfac.s[ideg][i][2]/((double)ideg);
+    eval2_bezier<szfld,ideg>(rfld0,lfld,DifVar::None,DifVar::None,bary,rfld1[lfld[i]],NULL,NULL);
+  }
 }
 template<int ideg, int szfld>
 void bez2lag3(const int* __restrict__ lfld,
- 								const dblAr2& __restrict__ rfld0,
- 								dblAr2& __restrict__ rfld1){
-	int nn = tetnpps[ideg];
-	double bary[4];
-	for(int i = 0; i < nn; i++){
-		bary[0] = ordtet.s[ideg][i][0]/((double)ideg);
-		bary[1] = ordtet.s[ideg][i][1]/((double)ideg);
-		bary[2] = ordtet.s[ideg][i][2]/((double)ideg);
-		bary[3] = ordtet.s[ideg][i][3]/((double)ideg);
-		eval3_bezier<szfld,ideg>(rfld0,lfld,DifVar::None,DifVar::None,bary,rfld1[lfld[i]],NULL,NULL);
-	}
+              const dblAr2& __restrict__ rfld0,
+              dblAr2& __restrict__ rfld1){
+  int nn = tetnpps[ideg];
+  double bary[4];
+  for(int i = 0; i < nn; i++){
+    bary[0] = ordtet.s[ideg][i][0]/((double)ideg);
+    bary[1] = ordtet.s[ideg][i][1]/((double)ideg);
+    bary[2] = ordtet.s[ideg][i][2]/((double)ideg);
+    bary[3] = ordtet.s[ideg][i][3]/((double)ideg);
+    eval3_bezier<szfld,ideg>(rfld0,lfld,DifVar::None,DifVar::None,bary,rfld1[lfld[i]],NULL,NULL);
+  }
 }
 
 

@@ -410,7 +410,7 @@ int check_cavity_topo(Mesh<MFT> &msh, MshCavity &cav, CavOprOpt &opts, RoutineWo
 	II. Triangle checks 
 	All tetrahedra attached to cavity triangles must belong to the cavity.
 	A number of these are already accounted for from the previous step:
-	 triangles attached to a cavity edge can be skipped. 	
+	 triangles attached to a cavity edge can be skipped.  
   
 */
 	for(int ielel = 0; ielel < cav.nctet; ielel++){
@@ -442,7 +442,7 @@ int check_cavity_topo(Mesh<MFT> &msh, MshCavity &cav, CavOprOpt &opts, RoutineWo
 			if(msh.tet2tag(ITAG,ielem) < msh.tag[ITAG]){
 				// This face is not in the cavity. 
 				if(!opts.allow_topological_correction) return 3;
-				if(cav.nctet >= cav.lctet.size())  	   return 4;
+				if(cav.nctet >= cav.lctet.size())      return 4;
 				cav.lctet[cav.nctet] = ielem;
 				msh.tet2tag(ITAG,ielem) = msh.tag[ITAG];
 				cav.nctet++;

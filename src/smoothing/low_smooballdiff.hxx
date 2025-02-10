@@ -20,11 +20,10 @@ namespace Metris{
 
 
 
-// qball is work size nball
 // same as smooballdirect but gradient descent 
 template<class MetricFieldType, int idim, int ideg>
 int smooballdiff(Mesh<MetricFieldType>& msh, int ipoin,
-                 const intAr1 &lball, dblAr1 &qball,
+                 const intAr1 &lball,
                  double*__restrict__ qavg0, double*__restrict__ qmax0, 
                  double*__restrict__ qavg1, double*__restrict__ qmax1,
                  QuaFun iquaf = QuaFun::Distortion);
@@ -58,7 +57,7 @@ struct smooballdiff_fun_data{
 // inorm <= infi norm , p > 0 L^p norm (over ball)
 template<class MFT, int idim, int ideg>
 int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin, 
-                        const intAr1 &lball, dblAr1 &qball,
+                        const intAr1 &lball,
                         double*__restrict__ qnrm0, double*__restrict__ qmax0, 
                         double*__restrict__ qnrm1, double*__restrict__ qmax1,
                         dblAr1 &work,
