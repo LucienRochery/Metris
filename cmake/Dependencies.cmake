@@ -130,17 +130,25 @@ endif()
 
  
  
-if(NOT(DEFINED ENV{ESP_ROOT}))
-  message(FATAL_ERROR "Set the environment variable ESP_ROOT to the folder containing include/egads.h")
+if(NOT(DEFINED ENV{ESP_ROOT}) OR NOT(DEFINED ENV{CASROOT}))
+  message(FATAL_ERROR "Set the environment variable ESP_ROOT to the folder containing include/egads.h and CASROOT to the folder containing bin/ include/ lib/ share/ of OpenCascade library to link to.")
 else()
   set(ESP_ROOT $ENV{ESP_ROOT})
   message("Found ESP_ROOT = ${ESP_ROOT}")
+  set(CAS_ROOT $ENV{CASROOT})
+  message("Found CAS_ROOT = ${CAS_ROOT}")
 endif()
 # Linker still needs path to lib files at compile time
 find_file(EGADS_LIBRARY NAMES libegads.dylib libegads.so PATHS ${ESP_ROOT}/lib/)
 find_file(EGADSLITE_LIBRARY NAMES libegadslite.dylib libegadslite.so PATHS ${ESP_ROOT}/lib/)
 list(APPEND CMAKE_BUILD_RPATH   ${ESP_ROOT}/lib/)
 list(APPEND CMAKE_INSTALL_RPATH ${ESP_ROOT}/lib/)
+
+#find_file(EGADS_LIBRARY NAMES libegads.dylib libegads.so PATHS ${ESP_ROOT}/lib/)
+#find_file(EGADSLITE_LIBRARY NAMES libegadslite.dylib libegadslite.so PATHS ${ESP_ROOT}/lib/)
+list(APPEND CMAKE_BUILD_RPATH   ${CAS_ROOT}/lib/)
+list(APPEND CMAKE_INSTALL_RPATH ${CAS_ROOT}/lib/)
+
 
 
 
