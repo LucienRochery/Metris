@@ -27,7 +27,6 @@ However, it can be refilled using MetrisAPI::initialize(MetrisRunner &run).
 
 class MetrisAPI{
 public:
-  friend class MetrisAPI;
   friend class MeshBase;
   friend class MeshBack;
   friend class MetrisRunner;

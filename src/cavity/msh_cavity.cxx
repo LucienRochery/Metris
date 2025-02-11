@@ -26,7 +26,9 @@ int reconnect_tetcav([[maybe_unused]]Mesh<MFT> &msh,
                      [[maybe_unused]] CavOprOpt &opts, 
                      [[maybe_unused]] double *qmax, 
                      [[maybe_unused]] int ithread){
-  METRIS_THROW_MSG(TODOExcept(), "Implement reconnect_tetcav");
+  if(cav.lctet.get_n() > 0){
+    METRIS_THROW_MSG(TODOExcept(), "Implement reconnect_tetcav");
+  }
 	return 0;
 }
 

@@ -5,7 +5,7 @@
 
 
 
-#include "../API/MetrisAPI.hxx"
+#include "MetrisAPI.hxx"
 #include "../MetrisRunner/MetrisRunner.hxx"
 #include "../Mesh/Mesh.hxx"
 #include "../Boundary/msh_inisurf.hxx"
