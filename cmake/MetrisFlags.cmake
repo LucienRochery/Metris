@@ -43,11 +43,10 @@ if(SHORT_COMPILER_NAME STREQUAL icc OR SHORT_COMPILER_NAME STREQUAL icx OR CMAKE
   message(Using Intel compiler ${CMAKE_C_COMPILER} ${SHORT_COMPILER_NAME})
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
   message("Using GNU compiler ${CMAKE_C_COMPILER} ${SHORT_COMPILER_NAME}")
-  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -fconstexpr-ops-limit=10000000 -fPIC)
-  set(METRIS_CXX_FLAGS_RELEASE   -DNDEBUG -O3 )
+  set(METRIS_CXX_FLAGS_RELEASE  -fconstexpr-ops-limit=10000000 -fPIC -DNDEBUG -O3 )
   #set(METRIS_CXX_FLAGS_DEBUG   -Og -ggdb3 -Wall -Wextra -pedantic  -march=native -no-pie -fno-pie  -rdynamic) # -S -fverbose-asm
-  set(METRIS_CXX_FLAGS_DEBUG    -Og -g -Wall -march=native ) #  -rdynamic # -S -fverbose-asm -ggdb3
-  set(METRIS_CXX_FLAGS_MEMCHECK -Os -fsanitize=address -fno-omit-frame-pointer)
+  set(METRIS_CXX_FLAGS_DEBUG  -fconstexpr-ops-limit=10000000 -fPIC  -Og -g -Wall -march=native ) #  -rdynamic # -S -fverbose-asm -ggdb3
+  set(METRIS_CXX_FLAGS_MEMCHECK -fconstexpr-ops-limit=10000000 -fPIC -Os -fsanitize=address -fno-omit-frame-pointer)
 
   set(METRIS_C_FLAGS_RELEASE  ${METRIS_CXX_FLAGS_RELEASE})
   set(METRIS_C_FLAGS_DEBUG ${METRIS_CXX_FLAGS_DEBUG})
@@ -70,6 +69,7 @@ set(METRIS_CXX_FLAGS_RELEASE  ${METRIS_CXX_FLAGS_RELEASE} ${METRIS_CXX_FLAGS} )
 set(METRIS_CXX_FLAGS_DEBUG    ${METRIS_CXX_FLAGS_DEBUG} ${METRIS_CXX_FLAGS} )
 set(METRIS_CXX_FLAGS_MEMCHECK ${METRIS_CXX_FLAGS_MEMCHECK} ${METRIS_CXX_FLAGS} )
 
+message("Flags = ${METRIS_CXX_FLAGS_RELEASE}")
 
 if(PREPRO STREQUAL "True")
   message(WARNING "preprocessor mode")

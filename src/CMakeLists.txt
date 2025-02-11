@@ -24,6 +24,7 @@ if(REQ_CODEGEN)
                              ${GINAC_INCLUDE_DIRS}
                              ${CLN_INCLUDE_DIRS}
                              ${Boost_INCLUDE_DIRS}
+                             ${EIGEN3_INCLUDE_DIR}
                             "/usr/local/include" ".")
   add_custom_command(OUTPUT  ${PROJECT_SOURCE_DIR}/src/codegen_lagrange.hxx
                     COMMAND make gen_lageval 
@@ -49,8 +50,9 @@ if(REQ_CODEGEN)
   setMetrisFlags(gen_ccoef PUBLIC)
   target_link_libraries(gen_ccoef PUBLIC SANS ${BOOST_TRACELIBS})
   target_include_directories(gen_ccoef PUBLIC 
-                            ${PROJECT_SOURCE_DIR} 
+                             ${PROJECT_SOURCE_DIR} 
                              ${Boost_INCLUDE_DIRS}
+                             ${EIGEN3_INCLUDE_DIR}
                             "/usr/local/include" ".")
   add_custom_command(OUTPUT  ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx ${PROJECT_SOURCE_DIR}/src/codegen_ccoef_d.hxx ${SRC_CCOEF_OUTPUT}
                     COMMAND make gen_ccoef
@@ -78,6 +80,7 @@ target_include_directories(meshBASIC PUBLIC
                            ${PETSC_INCLUDE}
                            ${ABSL_INCLUDE_DIRS}
                            ${Boost_INCLUDE_DIRS}
+                           ${EIGEN3_INCLUDE_DIR}
                            ${SRC_INCLUDE_DIRS})
 target_link_libraries(meshBASIC PUBLIC ${ABSL_LIBRARIES}
                                        ${BOOST_TRACELIBS}
@@ -99,6 +102,7 @@ if(REQ_CODEGEN)
                              ${ABSL_INCLUDE_DIRS}
                              ${PROJECT_SOURCE_DIR}
                              ${Boost_INCLUDE_DIRS}
+                             ${EIGEN3_INCLUDE_DIR}
                              "/usr/local/include")
   target_include_directories(gen_lag2bez PRIVATE ${SRC_INCLUDE_DIRS})
   target_include_directories(gen_lag2bez PRIVATE ".")
@@ -257,6 +261,7 @@ target_include_directories(libMetris PUBLIC
                            ${ABSL_INCLUDE_DIRS}
                            ${NLOPT_INCLUDE}
                            ${Boost_INCLUDE_DIRS}
+                           ${EIGEN3_INCLUDE_DIR}
                            #${LPLIB_INCLUDE_DIR}
                            )
 if(CLP_FOUND)
