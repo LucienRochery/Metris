@@ -26,7 +26,8 @@ namespace Metris{
 // Compute using norm specified in opt: if 0, take max. 
 // If norm is -1, use edge length instead. 
 template<class MFT, int gdim, int ideg>
-int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
+int swapface(Mesh<MFT>& msh, int iface, swapOptions opt, 
+             MshCavity &cav, CavWrkArrs &work, 
              double *qnrm0_, double *qnrm1_, int ithread){
   INCVDEPTH(msh);
 
@@ -40,17 +41,15 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
   if(isdeadent(iface,msh.fac2poi)) return 0; 
 
-  int mcfac = 2; // more than 2 is a corner collapse: no!
-  const int nwork = 2;
-  int iwork[nwork];
-  MshCavity cav(0,mcfac,0,nwork,iwork);
   CavOprOpt opts;
   CavOprInfo info;
-  CavWrkArrs work;
   opts.allow_topological_correction = false;
   opts.skip_topo_checks = true;
   opts.allow_remove_points = false;
   opts.dryrun = false;
+  cav.lcedg.set_n(0);
+  cav.lcfac.set_n(0);
+  cav.lctet.set_n(0);
 
   double quae1;
 
@@ -174,7 +173,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       #ifndef NDEBUG
       }catch(const MetrisExcept &e){
         printf(" ## METQUA FAILED DUE TO FAC2POL ? = \n");
-        intAr1(facnpps[ideg],fac2pol).print();
+        fac2pol.print();
         writeMesh("debugExcept",msh);
         METRIS_THROW(e);
       }
@@ -200,7 +199,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
                                            quae1,quae2,qnrm0,qunw1,qunw2,qnrm1);
 
     int ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithread);
-
+  
     if(info.done && ierro == 0){
       CPRINTF1("-- END swap2D did %d - %d -> %d - %d \n",iface,
                                                  ifac2,msh.nface-2,msh.nface-1);
@@ -356,13 +355,21 @@ int swapface(Mesh<MFT>& msh, int iface, int iverb, int ithread){
 
 #define BOOST_PP_LOCAL_MACRO(n)\
 template int swapface<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical>& msh, \
-        int iface, swapOptions opt, double *qumx0, double *qnrm1, int ithread);\
+                                    int iface, swapOptions opt, \
+                                    MshCavity &cav, CavWrkArrs &work, \
+                                    double *qumx0, double *qnrm1, int ithread);\
 template int swapface<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        >& msh, \
-        int iface, swapOptions opt, double *qumx0, double *qnrm1, int ithread);\
+                                    int iface, swapOptions opt, \
+                                    MshCavity &cav, CavWrkArrs &work, \
+                                    double *qumx0, double *qnrm1, int ithread);\
 template int swapface<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>& msh, \
-        int iface, swapOptions opt, double *qumx0, double *qnrm1,int ithread);\
+                                    int iface, swapOptions opt, \
+                                    MshCavity &cav, CavWrkArrs &work, \
+                                    double *qumx0, double *qnrm1,int ithread);\
 template int swapface<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        >& msh, \
-        int iface, swapOptions opt, double *qumx0, double *qnrm1, int ithread);
+                                    int iface, swapOptions opt, \
+                                    MshCavity &cav, CavWrkArrs &work, \
+                                    double *qumx0, double *qnrm1, int ithread);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

@@ -12,11 +12,14 @@
 
 namespace Metris{
 
+class MshCavity;
+struct CavWrkArrs;
 struct swapOptions;
 
 // Collapse edge iedl of triangle iface
 template<class MFT,int gdim,int ideg>
 int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
+             MshCavity &cav, CavWrkArrs &work, 
              double *qumx0, double *qumx1, int ithread = 0);
 
 

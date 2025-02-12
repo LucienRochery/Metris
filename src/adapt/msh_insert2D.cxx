@@ -42,7 +42,8 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
   //swapOptions swapOpt(100, -1, 0.0);
   swapOptions swapOpt(100, 0, 0.005);
 
-  msh.met.setSpace(MetSpace::Log);
+  //msh.met.setSpace(MetSpace::Log);
+  msh.met.setSpace(MetSpace::Exp);
 
 
   if(msh.get_tdim() != 2) METRIS_THROW_MSG(TODOExcept(), 
@@ -106,6 +107,11 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
   #ifndef GLOFRO
   msh.tag[ithrd1]++;
   #endif
+
+  const int mcfac = 100, mcedg = 1; 
+  MshCavity cav(0,mcfac,mcedg);
+  CavWrkArrs work;
+
   do{
     INCVDEPTH(msh);
     ninser1 = 0;
@@ -224,7 +230,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
           int itry = 0;
           do{
             ierro = insedgesurf(msh,ientt,ied,coop,bar1[0],
-                                lcaverr,ithrd2,ithrd3);
+                                cav,work,lcaverr,ithrd2,ithrd3);
             if(ierro <= 0) break;
             itry++;
             if(itry >= 1 + imovmet + imovavg) break;
@@ -390,7 +396,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
           if(oneshort) continue;
 
           int nent00 = msh.nentt(tdim); 
-          ierro = insfacsurf(msh,ientt,coop,lcaverr,ithrd2,ithrd3);
+          ierro = insfacsurf(msh,ientt,coop,cav,work,lcaverr,ithrd2,ithrd3);
           if(ierro <= 0){
             ninser2++;
             int nent11 = msh.nentt(tdim);

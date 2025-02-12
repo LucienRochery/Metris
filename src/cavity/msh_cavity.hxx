@@ -51,6 +51,7 @@ public:
   MshCavity(int mctet_, int mcfac_, int mcedg_) 
     : lctet(mctet_), lcfac(mcfac_), lcedg(mcedg_) {}
   
+  #if 0
 	MshCavity(int mctet_, int mcfac_, int mcedg_, 
 		        int nbuff, int *lbuff){
 
@@ -81,6 +82,8 @@ public:
 
     nrmal  = NULL;
 	}
+  #endif
+    
 	void reset(){
 		//nctet = 0;
 		//ncedg = 0;

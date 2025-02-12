@@ -87,6 +87,10 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, const MshCavity& cav,
 	for(int iface : cav.lcfac){
 		METRIS_ASSERT(iface >= 0);
     // avoid duplicates in cavity 
+    if(msh.fac2tag(ithread,iface) >= msh.tag[ithread]){
+      printf("## DEBUG TAGGED FACE PRINT CAV \n");
+      cav.lcfac.print();
+    }
     METRIS_ASSERT(msh.fac2tag(ithread,iface) < msh.tag[ithread]);
 		msh.fac2tag(ithread,iface) = msh.tag[ithread];
 	}

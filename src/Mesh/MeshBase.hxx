@@ -188,7 +188,11 @@ public:
 
 	MeshBase() = delete;
 	MeshBase(int nipwk_=1, int niewk_=1, int nifwk_=1, int nitwk_=1, int nrpwk_=1);
-	virtual ~MeshBase(){}
+	//virtual ~MeshBase(){
+  //  coord.free();
+  //  edg2poi.free();
+  //  printf("## DEBUG meshbase destructor called\n");
+  //}
 
   const int &nbpoi = nbpoi_;
   const int &npoin = npoin_;

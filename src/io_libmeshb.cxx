@@ -942,7 +942,7 @@ void writeBackLinks(std::string solName, Mesh<MFT>& msh){
 
   }
 
-  dblAr1 dum(msh.npoin*msh.idim, field[0]);
+  dblAr1 dum(field); // flatten to 1d array
   writeField(solName, msh, SolTyp::CG, dum, msh.idim);
 }
 template void writeBackLinks(std::string solNmae, Mesh<MetricFieldFE>& msh);
@@ -969,7 +969,7 @@ void writeEdgesLengths(const MeshBase &msh, std::string outnroot,
 
   intAr1 edg2ref(nedge);
   edg2ref.set_n(nedge);
-  edg2ref.fill(nedge,1);
+  edg2ref.fill(1);
 
   std::cout<<"-- Write file "<<mshName<<std::endl;
 

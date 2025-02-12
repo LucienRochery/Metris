@@ -17,21 +17,23 @@ template<typename T, typename INT1, typename INT2>
 MeshArray2D<T,INT1,INT2>::MeshArray2D(){
   nmemalc = m1 = n1 = 0;
   stride  = 0;
-  array   = NULL;
-  ialloc  = 0;
+  array_sp = NULL;
+  array    = NULL;
+  array_ro = NULL; 
 }
 template<typename T, typename INT1, typename INT2>
 MeshArray2D<T,INT1,INT2>::MeshArray2D(INT1 m, INT2 s){
-  if(m < 0 || s <= 0)METRIS_THROW(WArgExcept());
-
+  METRIS_ENFORCE_MSG(m >= 0 && s > 0, "MeshArray2D initialized with m < 0 or s <= 0")
   stride  = s;
   m1      = m;
   n1      = 0;
-  nmemalc = m1*stride;
-  array   = new T[nmemalc]; 
-  ialloc  = 1;
+  nmemalc = ((INTL)m1)*((INTL)stride);
+  array_sp = cpp17_make_shared<T[]>(nmemalc);
+  array    = array_sp.get();
+  array_ro = array; 
 }
 
+#if 0
 template<typename T, typename INT1, typename INT2>
 MeshArray2D<T,INT1,INT2>::MeshArray2D(INT2 s, const std::initializer_list<T> & list){
   METRIS_ASSERT(s > 0);
@@ -43,32 +45,36 @@ MeshArray2D<T,INT1,INT2>::MeshArray2D(INT2 s, const std::initializer_list<T> & l
   array   = new T[nmemalc];
 
   std::copy_n(list.begin(),list.size(),array);
-  ialloc  = 1;
+  iowner  = true;
 }
+#endif
 
+// Dangerous: unamanaged memory. The caller is responsible. 
 template<typename T, typename INT1, typename INT2>
 MeshArray2D<T,INT1,INT2>::MeshArray2D(INT1 n, INT2 s, const T* ar){
-  METRIS_ASSERT(n >= 0 && s > 0); 
-  stride = s;
   m1 = n1 = n; 
-  nmemalc = n*s;
-  array = new T[n*s];
-  ialloc = 1;
-  for(INT1 ii = 0; ii < nmemalc; ii++) array[ii] = ar[ii];
+  stride   = s;
+  array_sp = NULL;
+  array    = NULL;
+  array_ro = ar; 
+  nmemalc  = ((INTL)s)*((INTL)n);
 }
 
+// Dangerous: unamanaged memory. The caller is responsible. 
 template<typename T, typename INT1, typename INT2>
 MeshArray2D<T,INT1,INT2>::MeshArray2D(INT1 n, INT2 s, T* ar){
-  ialloc = 0;
   m1 = n1 = n; 
-  stride = s;
-  array  = ar;
-  nmemalc = s*n;
+  stride   = s;
+  array_sp = NULL;
+  array    = ar;
+  array_ro = array; 
+  nmemalc  = ((INTL)s)*((INTL)n);
 }
+
 //template<typename T, typename INT1, typename INT2>
 //MeshArray2D<T,INT1,INT2>::MeshArray2D(const MeshArray2D &cpy){
 //  dbgid   = 0; 
-//  ialloc = 0;
+//  iowner = 0;
 //  array  = cpy.array;
 //  nmemalc= cpy.nmemalc;
 //  stride = cpy.stride;
@@ -77,87 +83,83 @@ MeshArray2D<T,INT1,INT2>::MeshArray2D(INT1 n, INT2 s, T* ar){
 //  #endif
 //}
 template<typename T, typename INT1, typename INT2>
-MeshArray2D<T,INT1,INT2>::MeshArray2D( MeshArray2D &&cpy){
-  METRIS_ASSERT(cpy.ialloc == 1); 
-  ialloc     = 1;
-  cpy.ialloc = 0;
-  array   = cpy.array;
-  nmemalc = cpy.nmemalc;
-  m1      = cpy.m1;
-  n1      = cpy.n1;
-  stride  = cpy.stride;
+MeshArray2D<T,INT1,INT2>::MeshArray2D(MeshArray2D &&cpy){
+  *this = std::move(cpy);
 }
 
 
+
+
+
+
+// Reallocates to different major size and stride, copying old info. 
+// If the new stride is smaller, then the old data is truncated 
 template<typename T, typename INT1, typename INT2>
 bool MeshArray2D<T,INT1,INT2>::allocate(INT1 m, INT2 s){
 
-  METRIS_ASSERT(m >= 0); 
+  METRIS_ASSERT_MSG(m >= n1," Trying to allocate size "<<m<<" < n1 = "<<n1); 
   METRIS_ASSERT(s >= 0); 
-  
-  //INT1 m_old = m1;
-  INT2 s_old = stride;
 
-  m1      = m;
-  stride  = s;
+  // No need to reallocate nor copy if the stride hasn't changed and we have enough room.
+  if(m <= m1 && s == stride) return false;
 
   INTL nmemalc_new = ((INTL)m)*((INTL)s);
-  if(nmemalc_new <= nmemalc && stride == s) return false;
+  // No need to reallocate, only to copy, if the overall size hasn't increased
+  bool irealloc = nmemalc_new > nmemalc;
+  std::shared_ptr<T[]> new_array_sp = irealloc ? cpp17_make_shared<T[]>(nmemalc_new)
+                                               : array_sp;
+  T* new_array = irealloc ? new_array_sp.get()
+                          : array;
 
-  
-  bool newarr = false;
-
-  T* array_old = array; 
-  bool ialloc0 = (ialloc > 0);
-  if(array_old == NULL || nmemalc_new > nmemalc){
-    nmemalc = nmemalc_new;
-    array  = new T[nmemalc]; 
-    ialloc = 1;
-    newarr = true;
-  }
-
-  //std::cout<<"m_old = "<<m_old<<" m = "<<m<<" n = "<<n1<<" s_old = "<<s_old<<" s = "<<stride<<"\n";
-  if(array_old != NULL && array != array_old){
+  // Now we copy. 
+  METRIS_ASSERT(array != NULL || n1 <= 0);
+  // If the new stride is smaller, we copy from left to right. 
+  // If is is greater, we copy from right to left, otherwise we overwrite data
+  // to copy.
+  // Note, this is only necessary if we haven't reallocated. But no harm otherwise.
+  if(s <= stride){
+    INT2 scopy = s;
     for(INT1 ii = 0; ii < n1; ii++){
-      for(INT2 jj = 0; jj < s_old; jj++){
-        //printf("ii = %d jj = %d \n",ii,jj);fflush(stdout);
-        array[ii*stride + jj] = array_old[ii*s_old + jj];
+      for(INT2 jj = 0; jj < scopy; jj++){
+        new_array[ii*s + jj] = array[ii*stride + jj];
       }
     }
-    if(ialloc0) delete[] array_old;
+  }else{
+    INT2 scopy = stride;
+    for(INT1 ii = n1-1; ii >= 0; ii--){
+      for(INT2 jj = 0; jj < scopy; jj++){
+        new_array[ii*s + jj] = array[ii*stride + jj];
+      }
+    }
   }
 
-  return newarr;
+  m1       = m;
+  stride   = s;
+  nmemalc  = nmemalc_new;
+  array_sp = new_array_sp;
+  array    = new_array;
+  array_ro = array; 
+
+  return irealloc;
 }
 
 template<typename T, typename INT1, typename INT2>
 void MeshArray2D<T,INT1,INT2>::free(){
+  array_sp.reset();
+  array    = NULL;
+  array_ro = NULL; 
   m1 = n1 = stride = nmemalc = 0;
-  if(array != NULL && ialloc > 0) delete[] array;
-  ialloc = 0;
-  array  = NULL;
 }
 
 
 template<typename T, typename INT1, typename INT2>
 void MeshArray2D<T,INT1,INT2>::inc_n(){
-  //std::cout<<"inc_n pre nmemalc = "<<nmemalc<<" m = "<<m1<<" n = "<<n1<<" stride = "<<stride<<"\n";
   if(n1 >= m1){
-    m1 = MAX(MAX(n1+1,n1 * Defaults::mem_growfac), 
+    INTL m1_new = MAX(MAX(n1+1,n1 * Defaults::mem_growfac), 
                       m1 * Defaults::mem_growfac); 
-    nmemalc = ((INTL)m1) * ((INTL)stride);
-    T *arr_new = new T[nmemalc]; 
-    for(INT1 ii = 0; ii < n1; ii++){
-      for(INT2 jj = 0; jj < stride; jj++){
-        arr_new[ii*stride + jj] = array[ii*stride + jj];
-      }
-    }
-    if(ialloc) delete[] array;
-    ialloc = 1;
-    array = arr_new;
+    this->allocate(m1_new,stride);
   }
   n1++;
-  //std::cout<<"inc_n pst nmemalc = "<<nmemalc<<" m = "<<m1<<" n = "<<n1<<" stride = "<<stride<<"\n";
 }
 
 template<typename T, typename INT1, typename INT2>
@@ -189,7 +191,6 @@ void MeshArray2D<T,INT1,INT2>::copyTo(MeshArray2D<T,INT1,INT2> &out, INT1 ncopy)
       out[ii][jj] = (*this)[ii][jj];
     }
   }
-  //memcpy(out[0],array,ncopy*stride*sizeof(T));
 }
 
 template<typename T, typename INT1, typename INT2>
@@ -198,7 +199,7 @@ void MeshArray2D<T,INT1,INT2>::print(INT1 n) const{
   for(INT1 ii = 0; ii < m; ii++){
       std::cout<<ii<<":";
       for(INT2 jj = 0; jj < stride; jj++){
-          std::cout<<" "<<array[ii*stride+jj]<<" ";
+          std::cout<<" "<<array_ro[ii*stride+jj]<<" ";
       }
       std::cout<<"\n";
   }
@@ -228,7 +229,7 @@ MeshArray2D<T,INT1,INT2>::~MeshArray2D(){
 
 //template<typename T, typename INT1, typename INT2>
 //MeshArray2D<T,INT1,INT2>& MeshArray2D<T,INT1,INT2>::operator=(const MeshArray2D &cpy){
-//  ialloc = 0;
+//  iowner = 0;
 //  array  = cpy.array;
 //  nmemalc= cpy.nmemalc;
 //  stride = cpy.stride;
@@ -238,15 +239,15 @@ MeshArray2D<T,INT1,INT2>::~MeshArray2D(){
 
 template<typename T, typename INT1, typename INT2>
 MeshArray2D<T,INT1,INT2>& MeshArray2D<T,INT1,INT2>::operator=(MeshArray2D &&cpy){
-  METRIS_ENFORCE(ialloc == 0); 
-  METRIS_ENFORCE(cpy.ialloc == 1 || cpy.array == NULL); 
-  ialloc = 1;
-  cpy.ialloc = 0;
-  array  = cpy.array;
-  nmemalc= cpy.nmemalc;
-  m1     = cpy.m1;
-  n1     = cpy.n1;
-  stride = cpy.stride;
+  this->free();
+  array_sp = std::move(cpy.array_sp);
+  array    = array_sp.get();
+  array_ro = array; 
+  m1       = cpy.m1;
+  n1       = cpy.n1;
+  stride   = cpy.stride;
+  nmemalc  = cpy.nmemalc;
+  cpy.free();
   return *this;
 }
 

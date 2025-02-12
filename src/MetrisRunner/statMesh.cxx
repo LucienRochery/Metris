@@ -52,7 +52,8 @@ void MetrisRunner::statMesh0(){
 
   double qmin, qmax, qavg;
   bool iinva;
-  dblAr1 lquae,dum = {1.0e-8, 0.1};
+  dblAr1 lquae;
+  dblAr1 dum = {1.0e-8, 0.1};
   if(msh.idim == 2){
     getmetquamesh<MFT,2,AsDeg::P1>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
   }else{

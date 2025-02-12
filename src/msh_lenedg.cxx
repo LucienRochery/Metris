@@ -70,10 +70,10 @@ double getLengthEdges0(MeshMetric<MFT> &msh, intAr2 &ilned, dblAr1 &rlned, LenTy
   HshTabInt2 hshTab; 
   hshTab.reserve(2*nentt);
 
-  ilned.allocate(nentt,2); 
-  rlned.allocate(nentt);
   ilned.set_n(0);
   rlned.set_n(0);
+  ilned.allocate(nentt,2); 
+  rlned.allocate(nentt);
 
   for(int ientt = 0; ientt < nentt; ientt++){
     if(isdeadent(ientt,ent2poi)) continue;
@@ -148,10 +148,10 @@ double getLengthEdges_Bdry0(MeshMetric<MFT> &msh, intAr2 &ilned, dblAr1 &rlned,
 
   intAr2 &ent2poi = msh.ent2poi(1);
 
-  ilned.allocate(msh.nedge,2); 
-  rlned.allocate(msh.nedge);
   ilned.set_n(0);
   rlned.set_n(0);
+  ilned.allocate(msh.nedge,2); 
+  rlned.allocate(msh.nedge);
 
   for(int iedge = 0; iedge < msh.nedge; iedge++){
     if(isdeadent(iedge,ent2poi)) continue;

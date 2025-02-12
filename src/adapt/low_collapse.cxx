@@ -22,10 +22,11 @@ namespace Metris{
 
 /*
 Collapse a vertex in short edge 
-For prints: level 2 routine (4 spaces)
+Cavity is passed in to reuse allocations
 */
 template<class MFT>
 int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf, 
+                MshCavity &cav, CavWrkArrs &work, 
                 intAr1 &lerro, int ithrd1, int ithrd2){
   if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement + tet nelem = "<<msh.nelem)
 
@@ -40,21 +41,17 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
   //METRIS_ASSERT(ithrd2 != ithrd3);
 
  
-
-  int mcfac = 100, mcedg = 2; // more than 2 is a corner collapse: no!
-  int nwork = mcfac + mcedg;
-  RoutineWorkMemory ipool(msh.iwrkmem);
-  int *iwork = ipool.allocate(nwork);
-  MshCavity cav(0,mcfac,mcedg,nwork,iwork);
   CavOprOpt  opts;
   CavOprInfo info;
-  CavWrkArrs work;
   opts.allow_topological_correction = true; // To fetch missing edges
   opts.skip_topo_checks = false;
   opts.allow_remove_points = true;
   //opts.dryrun   = true;
   opts.dryrun   = false;
   opts.qmax_suf = qmax_suf;
+  cav.lcedg.set_n(0);
+  cav.lcfac.set_n(0);
+  cav.lctet.set_n(0);
 
   int ierro = 0;
 
@@ -167,6 +164,7 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
         CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
           ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
         }}CT_FOR1(ideg);
+
         if(ierro > 0){
           lerro[ierro-1]++;
         }
@@ -231,13 +229,18 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
 }
 
 template int colledgsurf<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
-int iface, int iedl, double qmax_suf, intAr1 &lerro, int ithrd1, int ithrd2);
+                                          int iface, int iedl, double qmax_suf, 
+                                          MshCavity &cav, CavWrkArrs &work, 
+                                          intAr1 &lerro, int ithrd1, int ithrd2);
 template int colledgsurf<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
-int iface, int iedl, double qmax_suf, intAr1 &lerro, int ithrd1, int ithrd2);
+                                          int iface, int iedl, double qmax_suf, 
+                                          MshCavity &cav, CavWrkArrs &work, 
+                                          intAr1 &lerro, int ithrd1, int ithrd2);
 
 
 template<class MFT>
 int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf, 
+                MshCavity &cav, CavWrkArrs &work, 
                 intAr1 &lerro, int ithrd1, int ithrd2){
   if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement + tet nelem = "<<msh.nelem)
   GETVDEPTH(msh);
@@ -249,15 +252,8 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
   //METRIS_ASSERT(ithrd1 != ithrd3);
   //METRIS_ASSERT(ithrd2 != ithrd3);
 
-
-  int mcfac = 100, mcedg = 2; // more than 2 is a corner collapse: no!
-  int nwork = mcfac + mcedg;
-  RoutineWorkMemory ipool(msh.iwrkmem);
-  int *iwork = ipool.allocate(nwork);
-  MshCavity cav(0,mcfac,mcedg,nwork,iwork);
   CavOprOpt  opts;
   CavOprInfo info;
-  CavWrkArrs work;
   opts.allow_topological_correction = true; // To fetch missing edges
   opts.skip_topo_checks = false;
   opts.allow_remove_points = true;
@@ -415,9 +411,11 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
 
 template int collversurf<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
                    int iface, int iver, double qmax_suf, 
+                   MshCavity &cav, CavWrkArrs &work, 
                    intAr1 &lerro, int ithrd1, int ithrd2);
 template int collversurf<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
                    int iface, int iver, double qmax_suf, 
+                   MshCavity &cav, CavWrkArrs &work, 
                    intAr1 &lerro, int ithrd1, int ithrd2);
 
 

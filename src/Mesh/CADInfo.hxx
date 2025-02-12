@@ -21,7 +21,6 @@ public:
     EGADS_context = NULL;
     EGADS_model   = NULL;
     body          = NULL;
-    ialloc        = false;
   }
   //CADInfo(ego EGADS_model_);
 
@@ -49,7 +48,6 @@ public:
   ego body;
   int ncadfa, ncaded, ncadno, ncadlp;
   egoAr1 cad2fac, cad2edg, cad2nod, cad2lop; 
-  bool ialloc; // to manage copies 
 
 protected:
   ego EGADS_context;

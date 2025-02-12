@@ -399,9 +399,9 @@ void MeshBase::iniCADLink(int nbpo0){
   cno2tag.allocate(METRIS_MAXTAGS, CAD.ncadno);
   cno2tag.set_n(METRIS_MAXTAGS); 
 
-  cfa2tag.fill(METRIS_MAXTAGS, CAD.ncadfa, 0);
-  ced2tag.fill(METRIS_MAXTAGS, CAD.ncaded, 0);
-  cno2tag.fill(METRIS_MAXTAGS, CAD.ncadno, 0);
+  cfa2tag.fill(0);
+  ced2tag.fill(0);
+  cno2tag.fill(0);
 }
 
 
@@ -475,16 +475,16 @@ void MeshBase::copyConstants(const MeshBase &msh){
 
 
 void MeshBase::zeroArrays(){
-  poi2ent.fill(npoin,2,-1);
-  edg2fac.fill(nedge,-1);
+  poi2ent.fill(-1);
+  edg2fac.fill(-1);
 
-  if(idim >= 3) fac2tet.fill(nface,2,-1);
+  if(idim >= 3) fac2tet.fill(-1);
 
-  poi2tag.fill(METRIS_MAXTAGS,npoin,0);
-  edg2tag.fill(METRIS_MAXTAGS,nedge,0);
-  fac2tag.fill(METRIS_MAXTAGS,nface,0);
-  if(idim >= 3) tet2tag.fill(METRIS_MAXTAGS,nelem,0);
-  if(idim >= 3) tet2ftg.fill(nelem,false);
+  poi2tag.fill(0);
+  edg2tag.fill(0);
+  fac2tag.fill(0);
+  if(idim >= 3) tet2tag.fill(0);
+  if(idim >= 3) tet2ftg.fill(false);
 
   for(int itag = 0; itag < METRIS_MAXTAGS; itag++) tag[itag] = 0;
 
@@ -1075,7 +1075,7 @@ void MeshBase::readMeshData(MetrisAPI &data){
   if(idim != 2 && idim !=3) METRIS_THROW_MSG(WArgExcept(), "Dimension unsupported "<<idim)
 
   coord = std::move(data.coord);
-  poi2bpo.fill(npoin,-1);
+  poi2bpo.fill(-1);
   //for(int ipoin = 0; ipoin < npoin; ipoin++){
   //  for(int ii = 0; ii < idim; ii++){
   //    coord(ipoin,ii) = data.coord(ipoin,ii);

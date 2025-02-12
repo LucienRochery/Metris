@@ -74,16 +74,13 @@ namespace Metris{
 //}
 
 MetrisRunner::~MetrisRunner(){
-  // Not necessary: the MeshBase destructor is virtual, so the correct destr
-  // is called. 
-  ////moveAPI();  
-  //if(metricFE){
-  //  Mesh<MetricFieldFE        > *msh = (Mesh<MetricFieldFE        > *) msh_g;
-  //  delete msh;
-  //}else{
-  //  Mesh<MetricFieldAnalytical> *msh = (Mesh<MetricFieldAnalytical> *) msh_g;
-  //  delete msh;
-  //}
+  if(metricFE){
+    Mesh<MetricFieldFE        > *msh = (Mesh<MetricFieldFE        > *) msh_g;
+    delete msh;
+  }else{
+    Mesh<MetricFieldAnalytical> *msh = (Mesh<MetricFieldAnalytical> *) msh_g;
+    delete msh;
+  }
 }
 
 int MetrisRunner::degElevate(){

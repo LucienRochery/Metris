@@ -41,7 +41,6 @@ public:
   MeshClass meshClass() const override { return MeshClass::MeshBack; }
 
 	MeshBack() : MeshMetric<MetricFieldFE>(10,10,10,10,10) {};
-	~MeshBack(){}
 
   //template<class MetricFieldType>
   //void initialize(MetrisAPI *data, Mesh<MetricFieldType> *msh, )

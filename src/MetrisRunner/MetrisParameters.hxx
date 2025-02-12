@@ -149,7 +149,6 @@ public:
   // To use defaults, see anamet_2D and anamet_3D.cxx 
   int ianamet; 
 
-
 };
 
 } // End namespace

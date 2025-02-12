@@ -32,7 +32,7 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
   intAr1 buckcnt(nbucket);
   buckval.set_n(nbucket);
   buckcnt.set_n(nbucket);
-  buckcnt.fill(nbucket, 0);
+  buckcnt.fill(0);
   double vlow, vhig;
 
   double vmin = 1.0e30, vmax = -1.0e30, vavgl = 0, vavgg = 0;

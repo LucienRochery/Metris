@@ -24,8 +24,10 @@ namespace Metris{
 // Return 0 if done nothing, 1 if error, -1 if done swap
 // bar1 is t along the edge with 1 if lnoed[iedl][0]
 template<class MetricFieldType>
-int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop, 
-               double bar1, intAr1 &lerro, int ithrd1, int ithrd2){
+int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, 
+               double *coop, double bar1, 
+               MshCavity &cav, CavWrkArrs &work, 
+               intAr1 &lerro, int ithrd1, int ithrd2){
   GETVDEPTH(msh);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
@@ -37,15 +39,8 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
 
   if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement + tet nelem = "<<msh.nelem)
 
-  const int mcfac = 100, mcedg = 1; 
-  const int nwork = mcfac + mcedg;
-  RoutineWorkMemory ipool(msh.iwrkmem);
-  int *iwork = ipool.allocate(nwork);
-  MshCavity cav(0,mcfac,mcedg,nwork,iwork);
-
   CavOprOpt opts;
   CavOprInfo info;
-  CavWrkArrs work;
   opts.allow_topological_correction = true;
   opts.skip_topo_checks = true;
   opts.dryrun = false;
@@ -53,6 +48,9 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
 
   int mcavcorr = 5, ncavcorr;
 
+  cav.lcedg.set_n(0);
+  cav.lcfac.set_n(0);
+  cav.lctet.set_n(0);
 
   CPRINTF1("-- START insedgesurf iface = %d ied %d\n",iface,iedl);
 
@@ -317,7 +315,6 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
 
   if(info.done){
     CPRINTF1("-- END insedgesurf ipins = %d  \n",cav.ipins);
-
     #ifndef NDEBUG
       if(DOPRINTS2()) writeMesh("debug_insert1.meshb",msh);
     #endif
@@ -326,13 +323,7 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
 
   cleanup:
   iret = ierro;
-
-  if(ibpoi >= 0){
-    for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi(ibpoi,ii) = -1;
-    msh.set_nbpoi(msh.nbpoi - 1);
-  }
-  msh.set_npoin(msh.npoin - 1);
-
+  msh.killpoint(cav.ipins);
 
   return iret;
 }
@@ -341,9 +332,11 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double *coop,
 
 template int insedgesurf<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
                          int iface, int iedl, double *coop, double bar1, 
+                         MshCavity &cav, CavWrkArrs &work, 
                          intAr1 &lerro, int ithrd1, int ithrd2);
 template int insedgesurf<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
                          int iface, int iedl, double *coop, double bar1, 
+                         MshCavity &cav, CavWrkArrs &work, 
                          intAr1 &lerro, int ithrd1, int ithrd2);
 
 
@@ -358,6 +351,7 @@ template int insedgesurf<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh
 // bar1 is t along the edge with 1 if lnoed[iedl][0]
 template<class MetricFieldType>
 int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop, 
+               MshCavity &cav, CavWrkArrs &work, 
                intAr1 &lerro, int ithrd1, int ithrd2){
   GETVDEPTH(msh);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
@@ -370,20 +364,17 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
 
   if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement + tet nelem = "<<msh.nelem)
 
-  const int mcfac = 100, mcedg = 1; 
-  const int nwork = mcfac + mcedg;
-  RoutineWorkMemory ipool(msh.iwrkmem);
-  int *iwork = ipool.allocate(nwork);
-  MshCavity cav(0,mcfac,mcedg,nwork,iwork);
 
   CavOprOpt opts;
   CavOprInfo info;
-  CavWrkArrs work;
   opts.allow_topological_correction = true;
   opts.skip_topo_checks = true;
   opts.allow_remove_points = true;
   opts.dryrun = false;
   opts.allow_remove_points = false;
+  cav.lcedg.set_n(0);
+  cav.lcfac.set_n(0);
+  cav.lctet.set_n(0);
 
   int mcavcorr = 5, ncavcorr;
 
@@ -609,9 +600,11 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
 
 template int insfacsurf<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
                          int iface, double *coop, 
+                         MshCavity &cav, CavWrkArrs &work, 
                          intAr1 &lerro, int ithrd1, int ithrd2);
 template int insfacsurf<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
                          int iface, double *coop, 
+                         MshCavity &cav, CavWrkArrs &work, 
                          intAr1 &lerro, int ithrd1, int ithrd2);
 
 

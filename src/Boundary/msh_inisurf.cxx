@@ -82,6 +82,17 @@ void prjMeshPoints(MeshBase &msh, int nbpo0, bool onlyproj, bool updtX){
     obj = bdim == 0 ? msh.CAD.cad2nod[iref] :
           bdim == 1 ? msh.CAD.cad2edg[iref]
                     : msh.CAD.cad2fac[iref];
+    if(obj == NULL){
+      printf("## NULL OBJ bdim = %d iref = %d  \n",bdim,iref);
+      egoAr1& cad2ego =  bdim == 0 ? msh.CAD.cad2nod :
+                         bdim == 1 ? msh.CAD.cad2edg
+                                   : msh.CAD.cad2fac;
+      int ncad = cad2ego.get_n();
+      printf("ncad = %d \n",ncad);
+      for(int ii = 0; ii < ncad; ii++){
+        std::cout<<" ego = "<<cad2ego[ii]<<"\n";
+      }
+    }
 		METRIS_ASSERT(obj!=NULL);
 		
 		if(EG_evaluate(obj, msh.bpo2rbi[ibpoi], result) != 0){

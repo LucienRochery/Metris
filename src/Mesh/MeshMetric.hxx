@@ -49,8 +49,6 @@ public:
 	 MeshBase(nipwk_, niewk_, nifwk_, nitwk_, nrpwk_), met(*this){}
 
 
-	~MeshMetric(){}
-
   void set_npoin(int npoin, bool skipallocf = false) override; 
   void set_nentt(int tdimn, int nentt, bool skipallocf = false) override; 
 

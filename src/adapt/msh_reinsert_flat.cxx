@@ -56,10 +56,7 @@ int reinsertFlat(Mesh<MFT> &msh){
 
   // Can have up to one edge in the cavity
   int mcfac = 100, mcedg = 1; 
-  int nwork = mcfac + mcedg;
-  RoutineWorkMemory ipool(msh.iwrkmem);
-  int *iwork = ipool.allocate(nwork);
-  MshCavity cav(0,mcfac,mcedg,nwork,iwork);
+  MshCavity cav(0,mcfac,mcedg);
   CavOprOpt  opts;
   CavWrkArrs work;
   opts.allow_topological_correction = false;
@@ -122,7 +119,7 @@ int reinsertFlat(Mesh<MFT> &msh){
 
         CPRINTF1(" - Collapse point %d \n", ipoin);
         // Just collapse the point. 
-        collversurf(msh,ientt,ifa,msh.param->iverb,lerror);
+        collversurf(msh,ientt,ifa,msh.param->iverb,cav,work,lerror);
         break;
 
         #if 0

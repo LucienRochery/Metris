@@ -15,11 +15,6 @@ namespace Metris{
 
 
 
-//CADInfo::CADInfo(ego EGADS_model_) : EGADS_model(EGADS_model_) {
-//  // We can leave EGADS_context = NULL
-//  iniEGADSModel();
-//}
-
 void CADInfo::iniEGADSModel(){
   int ierro;
   ego geom;
@@ -46,10 +41,12 @@ void CADInfo::iniEGADSModel(){
   }else{
     //printf("  body has %d faces \n",ncadfa);
   }
-  // Non-owning set (EGADS frees buff?)
-  cad2fac.set_buffer(ncadfa,buff); 
+  // We can define the shared_ptr destructor from outside the array class
+  // then pass it in so the last instance being destroyed calls EG_free. 
+  //std::shared_ptr<ego[]> buff_sp1(buff, [](ego* pp) {EG_free(pp); std::cout<<"called here!1\n"; debug_func();});
+  std::shared_ptr<ego[]> buff_sp1(buff, [](ego* pp) {EG_free(pp);});
+  cad2fac.set_sp(ncadfa,buff_sp1); 
   cad2fac.set_n(ncadfa);
-
 
   ierro = EG_getBodyTopos(body,NULL,EDGE,&ncaded,&buff);
   if(ierro != 0){
@@ -57,12 +54,10 @@ void CADInfo::iniEGADSModel(){
     METRIS_THROW(TopoExcept());
   }
   if(ncaded == 0){
-    printf("WARNING: Body with no edges !\n");
-  }else{
-    //printf("  body has %d edges \n",ncaded);
+    printf("## WARNING: Body with no edges !\n");
   }
-  // Non-owning set (EGADS frees buff?)
-  cad2edg.set_buffer(ncaded,buff); 
+  std::shared_ptr<ego[]> buff_sp2(buff, [](ego* pp) {EG_free(pp);});
+  cad2edg.set_sp(ncaded,buff_sp2);
   cad2edg.set_n(ncaded);
 
 
@@ -72,13 +67,12 @@ void CADInfo::iniEGADSModel(){
     METRIS_THROW(TopoExcept());
   }
   if(ncaded == 0){
-    printf("WARNING: Body with no loops !\n");
-  }else{
-    //printf("  body has %d edges \n",ncaded);
+    printf("## WARNING: Body with no loops !\n");
   }
-  // Non-owning set (EGADS frees buff?)
-  cad2lop.set_buffer(ncadlp,buff); 
+  std::shared_ptr<ego[]> buff_sp3(buff, [](ego* pp) {EG_free(pp);});
+  cad2lop.set_sp(ncadlp,buff_sp3); 
   cad2lop.set_n(ncadlp);
+  printf("Use count pst %ld \n",buff_sp3.use_count());
 
   ierro = EG_getBodyTopos(body,NULL,NODE,&ncadno,&buff);
   if(ierro != 0){
@@ -86,13 +80,12 @@ void CADInfo::iniEGADSModel(){
     METRIS_THROW(TopoExcept());
   }
   if(ncadno == 0){
-    printf("WARNING: Body with no nodes !\n");
-  }else{
-    //printf("  body has %d nodes \n",ncadno);
+    printf("## WARNING: Body with no nodes !\n");
   }
-  cad2nod.set_buffer(ncadno,buff); 
+  std::shared_ptr<ego[]> buff_sp4(buff, [](ego* pp) {EG_free(pp);});
+  cad2nod.set_sp(ncadno,buff_sp4);
   cad2nod.set_n(ncadno);
-  ialloc = true;
+
 }
 
 
@@ -171,59 +164,57 @@ void CADInfo::iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0
     if(param.inpCAD){ 
     /* -------------- CAD File handling -------------- */
     // Throw out exceptions as these are not fatal. 
-    METRIS_TRY0(
-      CPRINTF1("-- Read CAD file %s and project.\n",param.cadFileName.c_str());
-      int ierro = EG_open(&EGADS_context);
-      if(ierro != 0){
-        print_EGADS_error("EG_open",ierro);
-        METRIS_THROW(TopoExcept());
-      }
+    CPRINTF1("-- Read CAD file %s and project.\n",param.cadFileName.c_str());
+    int ierro = EG_open(&EGADS_context);
+    if(ierro != 0){
+      print_EGADS_error("EG_open",ierro);
+      METRIS_THROW(TopoExcept());
+    }
 
-      CPRINTF2(" - Start reading CAD file.\n");
-      int bitFlag = 0; 
-      ierro = EG_loadModel(EGADS_context,bitFlag,param.cadFileName.c_str(),&EGADS_model);
-      if(ierro != 0){
-        print_EGADS_error("EG_loadModel",ierro);
-        METRIS_THROW_MSG(WArgExcept(),"CAD Projection will not be available");
-      }
-      CPRINTF2(" - Done reading CAD file.\n");
+    CPRINTF2(" - Start reading CAD file.\n");
+    int bitFlag = 0; 
+    ierro = EG_loadModel(EGADS_context,bitFlag,param.cadFileName.c_str(),&EGADS_model);
+    if(ierro != 0){
+      print_EGADS_error("EG_loadModel",ierro);
+      METRIS_THROW_MSG(WArgExcept(),"CAD Projection will not be available");
+    }
+    CPRINTF2(" - Done reading CAD file.\n");
 
-      //printf("## Remove this \n");
-      //size_t nbyte;
-      //char* stream;
-      //ierro = EG_exportModel(EGADS_model, &nbyte, &stream);
-      //if(ierro != 0){
-      //  print_EGADS_error("EG_exportModel",ierro);
-      //  METRIS_THROW_MSG(TopoExcept(),"Failed to export model to stream.");
-      //}
-      //printf("Got nbyte %zu \n", nbyte);
-      //ego EGADS_model2;
-      //ierro = EG_importModel(EGADS_context, nbyte, stream, &EGADS_model2);
-      //if(ierro != 0){
-      //  print_EGADS_error("EG_importModel",ierro);
-      //  METRIS_THROW(TopoExcept());
-      //}
+    //printf("## Remove this \n");
+    //size_t nbyte;
+    //char* stream;
+    //ierro = EG_exportModel(EGADS_model, &nbyte, &stream);
+    //if(ierro != 0){
+    //  print_EGADS_error("EG_exportModel",ierro);
+    //  METRIS_THROW_MSG(TopoExcept(),"Failed to export model to stream.");
+    //}
+    //printf("Got nbyte %zu \n", nbyte);
+    //ego EGADS_model2;
+    //ierro = EG_importModel(EGADS_context, nbyte, stream, &EGADS_model2);
+    //if(ierro != 0){
+    //  print_EGADS_error("EG_importModel",ierro);
+    //  METRIS_THROW(TopoExcept());
+    //}
 
-      //ego geom;
-      ////int oclass,mtype,nbody,*dum;
-      //int oclass;
-      //int mtype;
-      //int nbody;
-      //int *dum;
-      //ego *bodies;
-      //ierro = EG_getTopology(EGADS_model,&geom,&oclass,&mtype,NULL,&nbody,&bodies,&dum);
-      //if(ierro != 0){
-      //  print_EGADS_error("EG_getTopology",ierro);
-      //  METRIS_THROW(TopoExcept());
-      //}
-      //if(nbody == 0) METRIS_THROW_MSG(TopoExcept(),"EMPTY EGADS MODEL");
-      //if(nbody  > 1) METRIS_THROW_MSG(TopoExcept(),"> 1 BODIES NOT SUPPORTED YET ");
+    //ego geom;
+    ////int oclass,mtype,nbody,*dum;
+    //int oclass;
+    //int mtype;
+    //int nbody;
+    //int *dum;
+    //ego *bodies;
+    //ierro = EG_getTopology(EGADS_model,&geom,&oclass,&mtype,NULL,&nbody,&bodies,&dum);
+    //if(ierro != 0){
+    //  print_EGADS_error("EG_getTopology",ierro);
+    //  METRIS_THROW(TopoExcept());
+    //}
+    //if(nbody == 0) METRIS_THROW_MSG(TopoExcept(),"EMPTY EGADS MODEL");
+    //if(nbody  > 1) METRIS_THROW_MSG(TopoExcept(),"> 1 BODIES NOT SUPPORTED YET ");
 
-      //wait();
-
+    //wait();
 
 
-    )
+
     }
 
   }
@@ -276,29 +267,22 @@ CADInfo::~CADInfo(){
 
 void CADInfo::free(){
   EGADS_context = NULL;
-  EGADS_model = NULL; 
+  //printf("## DEBUG free EGADS_model\n"); 
+  //fflush(stdout);
+  //if(EGADS_model != NULL) EG_free(EGADS_model);
+  EGADS_model = NULL;
   ncadno = 0;
   ncaded = 0;
   ncadfa = 0;
   ncadlp = 0;
-
-  //// Note these are non-owning, EGADS manages actual allocs. 
-  //if(ialloc){
-  //  EG_free(cad2nod);
-  //  cad2nod.free();
-  //  EG_free(cad2edg);
-  //  cad2edg.free();
-  //  EG_free(cad2fac);
-  //  cad2fac.free();
-  //}
-
-  ialloc = false;
+  cad2fac.free();
+  cad2edg.free();
+  cad2nod.free();
+  cad2lop.free();
 }
 
 CADInfo& CADInfo::operator=(const CADInfo &inp){
   free();
-
-  ialloc = false;
 
   EGADS_context = inp.EGADS_context;
   EGADS_model   = inp.EGADS_model;

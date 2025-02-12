@@ -13,6 +13,9 @@
 
 namespace Metris{
 
+class MshCavity;
+struct CavWrkArrs;
+
 enum insedgesuf_Errors {INS2D_NOERR = 0, 
                         INS2D_ERR_INTERPMETBACK = 1,
                         INS2D_ERR_EGEVALUATE = 2,
@@ -27,14 +30,17 @@ enum insedgesuf_Errors {INS2D_NOERR = 0,
 // Collapse edge iedl of triangle iface
 // bar1 is t along the edge with 1 if lnoed[iedl][0]
 template<class MetricFieldType>
-int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, double* coop, 
-                double bar1, intAr1 &lerro, int ithrd1 = 0, int ithrd2 = 1);
+int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, 
+               double* coop, double bar1, 
+               MshCavity &cav, CavWrkArrs &work, 
+               intAr1 &lerro, int ithrd1 = 0, int ithrd2 = 1);
 
 
 // Collapse edge iedl of triangle iface
 // bar1 is t along the edge with 1 if lnoed[iedl][0]
 template<class MetricFieldType>
 int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double* coop, 
+               MshCavity &cav, CavWrkArrs &work, 
                intAr1 &lerro, int ithrd1 = 0, int ithrd2 = 1);
 
 

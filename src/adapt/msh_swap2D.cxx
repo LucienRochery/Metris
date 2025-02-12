@@ -4,11 +4,12 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#include "../adapt/msh_swap2D.hxx"
-#include "../adapt/low_swap2D.hxx"
+#include "msh_swap2D.hxx"
+#include "low_swap2D.hxx"
 
 #include "../Mesh/Mesh.hxx"
 
+#include "../cavity/msh_cavity.hxx"
 #include "../aux_topo.hxx"
 #include "../io_libmeshb.hxx"
 #include "../aux_timer.hxx"
@@ -37,6 +38,10 @@ double swap2D(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int i
   if(msh.get_tdim() != 2) METRIS_THROW_MSG(TODOExcept(), 
     "Implement collapseShortEdges on tdim != 2, got tdim = "<<msh.get_tdim());
   double stat = 0;
+
+  int mcfac = 2; // more than 2 is a corner collapse: no!
+  MshCavity cav(0,mcfac,0);
+  CavWrkArrs work;
 
   *nswap = 0;
   int miter = 100;
@@ -67,7 +72,7 @@ double swap2D(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int i
       #ifndef NDEBUG
         try{
       #endif
-        info = swapface<MFT,gdim,ideg>(msh, iface, swapOpt, &qumx0, &qumx1, ithrd2);
+        info = swapface<MFT,gdim,ideg>(msh, iface, swapOpt, cav, work, &qumx0, &qumx1, ithrd2);
       #ifndef NDEBUG
         if(msh.param->dbgfull)  check_topo(msh);
         }catch(MetrisExcept &e){

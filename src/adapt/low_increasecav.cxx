@@ -297,6 +297,7 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
 
   for(int ii = 0; ii < lcent.get_n(); ii++){
     int ientt = lcent[ii];
+    METRIS_ASSERT(!isdeadent(ientt, ent2poi));
 
 
     #if 0

@@ -117,7 +117,8 @@ template void getccoef_dcoord<3,n>(const MeshBase &msh, int ientt, int icoor, do
 
 
 template<int gdim, int tdim, int ideg>
-void ccoef_eval(FEBasis ibasis, const intAr2& ent2poi, const dblAr2& coord, int ientt, double *nrmal, double* ccoef){
+void ccoef_eval(FEBasis ibasis, const intAr2& ent2poi, const dblAr2& coord, 
+                int ientt, double *nrmal, double* ccoef){
   static_assert(gdim == 2 || gdim == 3);
 
   // Get control coeffs by evaluating the Jacobian at the nodes

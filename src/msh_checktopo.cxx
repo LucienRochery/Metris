@@ -113,7 +113,7 @@ void check_topo(MeshBase &msh,
     }
 
 
-    if(msh.meshClass() == MeshClass::Mesh){
+    if(msh.meshClass() == MeshClass::Mesh && msh.metricClass() == MetricClass::MetricFieldFE){
       const intAr2 &poi2bak = msh.metricClass() == MetricClass::MetricFieldFE ? 
        ((Mesh<MetricFieldFE> *)(&msh))->poi2bak 
       :((Mesh<MetricFieldAnalytical> *)(&msh))->poi2bak;

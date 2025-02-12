@@ -73,6 +73,10 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
   #endif
 
 
+  int mcfac = 100, mcedg = 2; // more than 2 is a corner collapse: no!
+  MshCavity cav(0,mcfac,mcedg);
+  CavWrkArrs work;
+
   do{
     INCVDEPTH(msh);
 
@@ -162,7 +166,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
                     msh.fac2poi(iface,lnoed2[ied][1]), dd2s);
         }
         try{
-          ierro = collversurf(msh, iface, ied, qmax_suf, lerror, ithrd2, ithrd3);
+          ierro = collversurf(msh, iface, ied, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
         }catch(const MetrisExcept &e){
           printf("## FATAL ERROR IN MSH_COLLAPSE\n");
           writeMesh("error_collapse.meshb",msh);
@@ -230,7 +234,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
       int nent00 = msh.nface;
       try{
-        ierro = collversurf(msh, iface, icol, qmax_suf, lerror, ithrd2, ithrd3);
+        ierro = collversurf(msh, iface, icol, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
       }catch(const MetrisExcept &e){
         printf("## FATAL ERROR IN MSH_COLLAPSE\n");
         writeMesh("error_collapse.meshb",msh);
@@ -294,7 +298,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
         int nent00 = msh.nface;
         try{
-          ierro = colledgsurf(msh, iface, ied, qmax_suf, lerror, ithrd2, ithrd3);
+          ierro = colledgsurf(msh, iface, ied, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
         }catch(const MetrisExcept &e){
           printf("## FATAL ERROR IN MSH_COLLAPSE\n");
           writeMesh("error_collapse.meshb",msh);

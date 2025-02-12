@@ -374,8 +374,6 @@ void MetricFieldFE::getMetBary0( DifVar idiff,  MetSpace tarspac,
                                 const double*__restrict__ bary,  
                                       double*__restrict__ metl, 
                                       double*__restrict__ dmet) {
-  METRIS_ASSERT(this->ispace == MetSpace::Log);
-  
   constexpr int nnmet = (gdim*(gdim+1))/2;
 
   double *dmet0 = dmet;
