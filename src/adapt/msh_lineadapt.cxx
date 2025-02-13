@@ -30,7 +30,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
   GETVDEPTH(msh);
   if(!msh.CAD()) return;
 
-
+  
   //adaptGeoLines2<MFT>(msh,ithrd1,ithrd2);
   //return;
 

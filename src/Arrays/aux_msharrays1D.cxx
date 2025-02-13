@@ -100,6 +100,7 @@ void MeshArray1D<T,INT1>::set_sp(INT1 n, std::shared_ptr<T[]> a){
   this->free();
   array_sp = a;
   array    = array_sp.get();
+  array_ro = array; 
   m1 = n;
   n1 = 0;
 }

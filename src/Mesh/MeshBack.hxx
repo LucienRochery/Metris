@@ -60,8 +60,6 @@ public:
   void readConstants(const MetrisAPI &data, int usrMinDeg);
 
 public:
-	void getEnttMemCosts(int *memCostPpoi, int *memCostPbpo, int *memCostPedg, 
-		                 int *memCostPfac, int *memCostPelt);
 
 	//Estimation of the number of elements in the mesh, as prescribed by the metric
 	double getMetComplexity();

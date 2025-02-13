@@ -20,10 +20,6 @@ class MeshBack;
 template<class T>
 class Mesh;
 
-template<class MetricFieldType>
-void Mesh_getEnttMemCosts(const Mesh<MetricFieldType> &msh, 
-                        int *memCostPpoi, int *memCostPbpo, int *memCostPedg, 
-                        int *memCostPfac, int *memCostPelt);
 
 template<class MetricFieldType>
 class Mesh : public MeshMetric<MetricFieldType>{
@@ -72,30 +68,10 @@ public:
   void initialize(MetrisAPI *data, MeshBack &bak, 
     MetrisParameters &param);
 
-	void getEnttMemCosts(int *memCostPpoi, int *memCostPbpo, int *memCostPedg, int *memCostPfac, int *memCostPelt) const{
-		Mesh_getEnttMemCosts(*this, memCostPpoi, memCostPbpo, memCostPedg, memCostPfac, memCostPelt);
-	}
-
   
   void set_npoin(int npoin, bool skipallocf = false) override;
   void set_nentt(int tdimn, int nentt, bool skipallocf = false) override;
 
-  // Friends i.e. pseudo-members
-  friend void Mesh_getEnttMemCosts<MetricFieldFE>(const Mesh<MetricFieldFE> &msh, 
-                        int *memCostPpoi, int *memCostPbpo, int *memCostPedg, 
-                        int *memCostPfac, int *memCostPelt);
-  //friend void Mesh_allocate<MetricFieldFE>(Mesh<MetricFieldFE> &msh, 
-  //                                          unsigned long long int sysMem);
-  //friend void Mesh_allocate<MetricFieldFE>(Mesh<MetricFieldFE> &msh, 
-  //                                          int melet, int mfact, int mpoit);
-
-  friend void Mesh_getEnttMemCosts<MetricFieldAnalytical>(const Mesh<MetricFieldAnalytical> &msh, 
-                        int *memCostPpoi, int *memCostPbpo, int *memCostPedg, 
-                        int *memCostPfac, int *memCostPelt);
-  //friend void Mesh_allocate<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, 
-  //                                          unsigned long long int sysMem);
-  //friend void Mesh_allocate<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, 
-  //                                          int melet, int mfact, int mpoit);
 
 protected:
   void initializeCommon(MetrisAPI *data, MeshBack &bak, 

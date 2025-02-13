@@ -357,8 +357,6 @@ public:
 protected:
   FEBasis ibasis;
 
-
-	void getEnttMemCosts(int *memCostPpoi, int *memCostPbpo, int *memCostPedg, int *memCostPfac, int *memCostPelt) const;
 	// From maximum point count, deduce maximum other entity count
 	void setMpoiToMent();
 

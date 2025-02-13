@@ -16,6 +16,8 @@ namespace Metris{
 
 
 void CADInfo::iniEGADSModel(){
+
+
   int ierro;
   ego geom;
   int oclass,mtype,nbody,*dum;
@@ -43,9 +45,15 @@ void CADInfo::iniEGADSModel(){
   }
   // We can define the shared_ptr destructor from outside the array class
   // then pass it in so the last instance being destroyed calls EG_free. 
-  //std::shared_ptr<ego[]> buff_sp1(buff, [](ego* pp) {EG_free(pp); std::cout<<"called here!1\n"; debug_func();});
-  std::shared_ptr<ego[]> buff_sp1(buff, [](ego* pp) {EG_free(pp);});
-  cad2fac.set_sp(ncadfa,buff_sp1); 
+  //if(DOPRINTS1()){
+  {
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);printf("-- CAD faces freed\n");});
+    cad2fac.set_sp(ncadfa,buff_sp); 
+  }
+  //}else{
+  //  std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);});
+  //  cad2fac.set_sp(ncadfa,buff_sp); 
+  //}
   cad2fac.set_n(ncadfa);
 
   ierro = EG_getBodyTopos(body,NULL,EDGE,&ncaded,&buff);
@@ -56,8 +64,15 @@ void CADInfo::iniEGADSModel(){
   if(ncaded == 0){
     printf("## WARNING: Body with no edges !\n");
   }
-  std::shared_ptr<ego[]> buff_sp2(buff, [](ego* pp) {EG_free(pp);});
-  cad2edg.set_sp(ncaded,buff_sp2);
+  //if(DOPRINTS1()){
+  {
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);printf("-- CAD edges freed\n");});
+    cad2edg.set_sp(ncaded,buff_sp); 
+  }
+  //}else{
+  //  std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);});
+  //  cad2edg.set_sp(ncaded,buff_sp); 
+  //}
   cad2edg.set_n(ncaded);
 
 
@@ -69,10 +84,16 @@ void CADInfo::iniEGADSModel(){
   if(ncaded == 0){
     printf("## WARNING: Body with no loops !\n");
   }
-  std::shared_ptr<ego[]> buff_sp3(buff, [](ego* pp) {EG_free(pp);});
-  cad2lop.set_sp(ncadlp,buff_sp3); 
+  //if(DOPRINTS1()){
+  {
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);printf("-- CAD loops freed\n");});
+    cad2lop.set_sp(ncadlp,buff_sp); 
+  }
+  //}else{
+  //  std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);});
+  //  cad2lop.set_sp(ncadlp,buff_sp); 
+  //}
   cad2lop.set_n(ncadlp);
-  printf("Use count pst %ld \n",buff_sp3.use_count());
 
   ierro = EG_getBodyTopos(body,NULL,NODE,&ncadno,&buff);
   if(ierro != 0){
@@ -82,8 +103,15 @@ void CADInfo::iniEGADSModel(){
   if(ncadno == 0){
     printf("## WARNING: Body with no nodes !\n");
   }
-  std::shared_ptr<ego[]> buff_sp4(buff, [](ego* pp) {EG_free(pp);});
-  cad2nod.set_sp(ncadno,buff_sp4);
+  //if(DOPRINTS1()){
+  {
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);printf("-- CAD nodes freed\n");});
+    cad2nod.set_sp(ncadno,buff_sp); 
+  }
+  //}else{
+  //  std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);});
+  //  cad2nod.set_sp(ncadno,buff_sp); 
+  //}
   cad2nod.set_n(ncadno);
 
 }

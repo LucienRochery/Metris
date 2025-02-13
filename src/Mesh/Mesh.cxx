@@ -159,30 +159,6 @@ void Mesh<MFT>::initializeCommon(MetrisAPI *data, MeshBack &bak,
 
 }
 
-template<class MFT>
-void Mesh_getEnttMemCosts(const Mesh<MFT> &msh, 
-                        int *memCostPpoi, int *memCostPbpo, int *memCostPedg, 
-                        int *memCostPfac, int *memCostPelt){
-  msh.MeshBase::getEnttMemCosts(memCostPpoi,memCostPbpo,memCostPedg,memCostPfac,memCostPelt);
-
-  int memCostPdbl = sizeof(double);
-  int memCostPint = sizeof(int);
-  
-  int nnmet = (msh.idim*(msh.idim + 1))/2;
-
-  *memCostPpoi += nnmet*memCostPdbl  /* met     */
-                +     1*memCostPint; /* poi2bak */
-}
-
-
-template
-void Mesh_getEnttMemCosts<MetricFieldFE>(const Mesh<MetricFieldFE>&,
-                                      int*,int*,int*,int*,int*);
-template
-void Mesh_getEnttMemCosts<MetricFieldAnalytical>(const Mesh<MetricFieldAnalytical>&,
-                                      int*,int*,int*,int*,int*);
-
-
 
 
 template<class MFT>

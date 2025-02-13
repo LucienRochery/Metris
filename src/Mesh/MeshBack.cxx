@@ -390,19 +390,6 @@ void MeshBack::initialize(MetrisAPI *data,
 }
 
 
-
-void MeshBack::getEnttMemCosts(int *memCostPpoi, int *memCostPbpo, int *memCostPedg, int *memCostPfac, int *memCostPelt){
-  
-	MeshBase::getEnttMemCosts(memCostPpoi,memCostPbpo,memCostPedg,memCostPfac,memCostPelt);
-
-  int memCostPdbl = sizeof(double);
-
-  int nnmet = (this->idim*(this->idim + 1))/2;
-
-  *memCostPpoi += nnmet*memCostPdbl ;/* met     */
-}
-
-
 double MeshBack::getMetComplexity(){
 
   double volM = getDomainVolume();
