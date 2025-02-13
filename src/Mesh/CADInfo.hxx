@@ -44,12 +44,15 @@ public:
   void iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0); 
 
 public:
+  std::shared_ptr<ego> EGADS_model_sp;
+  //std::shared_ptr<ego> body_sp;
   ego EGADS_model;
   ego body;
   int ncadfa, ncaded, ncadno, ncadlp;
   egoAr1 cad2fac, cad2edg, cad2nod, cad2lop; 
 
 protected:
+  std::shared_ptr<ego> EGADS_context_sp;
   ego EGADS_context;
 };
 

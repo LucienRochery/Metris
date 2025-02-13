@@ -29,58 +29,9 @@
 
 namespace Metris{
 
-//void MetrisRunner::moveAPI(){
-//  if(hookedAPI == NULL) return; 
-//
-//  METRIS_ENFORCE_MSG(onhook_npoin == msh_g->npoin
-//                  && onhook_nedge == msh_g->nedge
-//                  && onhook_nface == msh_g->nface
-//                  && onhook_nelem == msh_g->nelem, 
-//  "MetrisRunner cannot change state after being used to initialize a MetrisAPI");
-//  msh_g->setBasis(onhook_mshbasis);
-//  // We don't need to set the constants, as the hooking already did that 
-//  hookedAPI->setCoord(std::move(msh_g->coord));
-//
-//  //hookedAPI->setCoord(0,msh_g->npoin,(double *)msh_g->coord); 
-//  for(int tdimn = 1; tdimn <= 3; tdimn++){
-//    int nentt = msh_g->nentt(tdimn);
-//    intAr2 &ent2poi = msh_g->ent2poi(tdimn); 
-//    intAr1 &ent2ref = msh_g->ent2ref(tdimn); 
-//    //hookedAPI->setElement(tdimn, 0, nentt, (int*) ent2poi, (int*) ent2ref); 
-//    hookedAPI->setElement(tdimn, std::move(ent2poi), std::move(ent2ref)); 
-//  }
-//
-//
-//  if(metricFE){
-//    Mesh<MetricFieldFE        > *msh = (Mesh<MetricFieldFE        > *) msh_g;
-//
-//    msh->met.setBasis(onhook_metbasis);
-//    msh->met.setSpace(onhook_metspace);
-//
-//    hookedAPI->setMetric(std::move(msh->met.rfld)); 
-//    //hookedAPI->setMetric(0,msh_g->npoin,(double *)msh->met.rfld); 
-//  }else{
-//    Mesh<MetricFieldAnalytical> *msh = (Mesh<MetricFieldAnalytical> *) msh_g;
-//
-//    msh->met.setBasis(onhook_metbasis);
-//    msh->met.setSpace(onhook_metspace);
-//
-//    hookedAPI->setMetric(std::move(msh->met.rfld)); 
-//    //hookedAPI->setMetric(0,msh_g->npoin,(double *)msh->met.rfld); 
-//  }
-//
-//  hookedAPI->run = NULL;
-//  hookedAPI = NULL;
-//}
 
 MetrisRunner::~MetrisRunner(){
-  if(metricFE){
-    Mesh<MetricFieldFE        > *msh = (Mesh<MetricFieldFE        > *) msh_g;
-    delete msh;
-  }else{
-    Mesh<MetricFieldAnalytical> *msh = (Mesh<MetricFieldAnalytical> *) msh_g;
-    delete msh;
-  }
+  delete msh_g; // virtual destructor -> calls the appropriate derived one
 }
 
 int MetrisRunner::degElevate(){
@@ -101,8 +52,6 @@ void MetrisRunner::degElevate0(){
   bool useOptim = param_.curveType == 3;
 
   Mesh<MFT> &msh = *( (Mesh<MFT>*) msh_g );
-
-//  dynamic_cast<Mesh<MFT>&>(*msh_g);
 
   if(param_.inpBack) METRIS_THROW_MSG(TODOExcept(), 
     "Degree elevation with input back not implemented");
