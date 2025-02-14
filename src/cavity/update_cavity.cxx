@@ -586,8 +586,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
       // We need to fetch neighbour (which should always be init)
       // and see if new (update ok) or old
       int ifaca = msh.fac2fac(ifanw,ii);
-      
-      CPRINTF1(" - ifanw = %d ii = %d ineigh = %d \n",ifanw,ii,ifaca);
+
 
       if(ifaca >= nfac0) METRIS_ASSERT(!isdeadent(ifaca,msh.fac2poi));
       if(ifaca >= nfac0) continue; // Internal neighbours are known.
@@ -598,6 +597,9 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
       ok = true;
       int jp1   = msh.fac2poi(ifanw,lnoed2[ii][0]);
       int jp2   = msh.fac2poi(ifanw,lnoed2[ii][1]);
+
+      CPRINTF1(" - ifanw = %d ii = %d ineigh = %d jp1 %d jp2 %d \n",
+               ifanw,ii,ifaca,jp1,jp2);
 
       if(ifaca < 0){ // Either surface boundary or non manifold
         int iedge = msh.facedg2glo(ifanw, ii); 
@@ -615,12 +617,14 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
         // Start by getting face attached to edge. 
         int ifaed = msh.edg2fac[iedge];
         METRIS_ASSERT(ifaed >= 0);
-        CPRINTF1(" - ifaed = %d dead ? %d \n",ifaed,isdeadent(ifaed,msh.fac2poi));
+        CPRINTF1(" - already attached ifaed = %d dead ? %d \n",
+                 ifaed,isdeadent(ifaed,msh.fac2poi));
         if(!isdeadent(ifaed,msh.fac2poi) && DOPRINTS1()){
           CPRINTF1(" - ifaed vertices: ");
           intAr1(facnpps[msh.curdeg],msh.fac2poi[ifaed]).print();
         }
 
+        // If an old cavity element, or a new one already updated
         if(isdeadent(ifaed,msh.fac2poi)
         || msh.fac2tag(ithread,ifaed) >= msh.tag[ithread]){
           CPRINTF1(" - edg2fac link update iedge = %d : %d <- %d (new <- old)\n",
@@ -629,6 +633,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
           continue;
         }
 
+        // In this case, ifaed is external to the cavity. 
         int ieed;
         try{
           ieed = getedgfac(msh,ifaed,jp1,jp2);
@@ -652,8 +657,11 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
         METRIS_ASSERT(ieed >= 0);
         // Neighbour to the edge of the face originally attached to edge
         int ifanm = msh.fac2fac(ifaed,ieed);
+        CPRINTF1(" - original edge -> fac neighbour ifanm = %d \n",ifanm);
 
-        if(ifanm == -1){// Edge was pointed to by single face. Rejoyce !
+        // If there was no neighbour, then edge was pointed to by single face. 
+        // This is the easiest case. 
+        if(ifanm == -1){
           if(msh.fac2tag(ithread,ifaed) >= msh.tag[ithread]){
             msh.fac2fac(ifanw,ii) = -1; // Actually nothing to do here, for clarity and robustness. 
             msh.edg2fac[iedge] = ifanw;  // Update edge to face link. 
@@ -668,7 +676,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
           msh.edg2fac[iedge] = ifanw;
           CPRINTF1(" - edg2fac link update iedge = %d : %d <- %d (new <- old)\n",
                    iedge,ifanw,msh.edg2fac[iedge]);
-        }else{ // Non manifold edge, leave to future self
+        }else{ // Non manifold case, leave to future self
           METRIS_THROW_MSG(TODOExcept(),"Implement non manifold neighbour update cavity")
         }
 

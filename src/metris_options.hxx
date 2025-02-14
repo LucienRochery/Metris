@@ -35,6 +35,7 @@ struct MetrisOptions{
       ("back"   , po::value<std::string>(), "Input back mesh file ")
       ("out"    , po::value<std::string>(), "Output mesh file "    )
       ("prefix" , po::value<std::string>(), "Output prefix, default ./"    )
+      ("main-in-prefix", "Prefix applies to main output (default no)")
       ("bez"    , "Output format Bézier (default Lagrange)")
       ("jtol", po::value<double>(), "Scaled Jacobian control coefficient minimum")
       ("vtol", po::value<double>(), "Flatness tolerance")
@@ -43,7 +44,8 @@ struct MetrisOptions{
           " Type 2: metric-based LP.")
       ("tardeg" , po::value<int>(), "Target mesh degree"   )
       ("nosort" , "Disable Hilbert reordering"   )
-      ("dbgfull" , "Enable expensive debugs"   )
+      ("dbgfull"    , "Enable expensive debugs"   )
+      ("interactive", "Enable wait() calls (debug)"   )
       ("nproc"  , po::value<int>(), "Maximum number of CPU cores for multi-threading"   );
 
 

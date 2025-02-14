@@ -219,7 +219,8 @@ double getmeasentP1(const MeshBase &msh, const int* ent2pol,
         det = sqrt(det);
       }else{
         double nrm = getnrml2<3>(norref);
-        METRIS_ASSERT(nrm >= Constants::vecNrmTol*Constants::vecNrmTol);
+        METRIS_ASSERT_MSG(nrm >= Constants::vecNrmTol*Constants::vecNrmTol,
+          "Normal norm under tolerance = "<<nrm);
         nrm = 1.0 / sqrt(nrm);
 
         // norfac is l1 x l2 is already homo h^2 despite norref O(1)

@@ -10,9 +10,10 @@
 
 namespace Metris{
 
-template <int gdim>
+// Normal is only necessary if gdim == 3 and tdim == 2
+template <int gdim, int tdim>
 bool indelsphere(const double *coop, const double *metl, 
-                 const dblAr2 &coord, const int *ent2pol);
+                 const dblAr2 &coord, const int *ent2pol, const double *nrmal = NULL);
 
 }//end namespace
 

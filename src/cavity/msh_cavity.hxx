@@ -33,7 +33,9 @@ enum Cavity_Errors {CAV_NOERR = 0,
                     CAV_ERR_LINETOPO = 15,
                     CAV_ERR_GEODEVLIN = 16,
                     CAV_ERR_FLATEDG = 17,
-                    CAV_ERR_NERROR = 18
+                    CAV_ERR_DUPFAC = 18,
+                    CAV_ERR_LINFAC = 19, // face has 3 vertices on same edge ref
+                    CAV_ERR_NERROR = 20
                     };
 
 

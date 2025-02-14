@@ -29,6 +29,7 @@ MetrisParameters::MetrisParameters(){
   hmin = 1.0e-30;
   hmax = 1.0e30;
 
+  main_in_prefix = false;
 
   adp_niter     = 0;
   adp_opt_niter = 1;
@@ -40,11 +41,12 @@ MetrisParameters::MetrisParameters(){
 
   opt_unif = false;
 
-  iverb     = 2;
+  iverb     = 1;
   ivdepth   = 0;
-  dbgfull   = false;
-  refineConventionsInp = false;
-  refineConventionsOut = false;
+
+  interactive = dbgfull = false;
+
+  refineConventionsInp = refineConventionsOut = false;
 
   opt_pnorm = Defaults::opt_pnorm;
   opt_power = Defaults::opt_power;
@@ -107,6 +109,9 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     outmPrefix = opt.m["prefix"].template as<std::string>();
     if(iverb >= 1) std::cout << "-- File prefix: " << outmPrefix << "\n";
   }
+  if(opt.count("main-in-prefix")){
+    main_in_prefix = true;
+  }
 
   if(opt.count("bez")){
     outbasis = FEBasis::Bezier;
@@ -143,6 +148,10 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("dbgfull")){
     if(iverb >= 1) printf("-- Full debugs activated\n");
     dbgfull = true;
+  }
+  if(opt.count("interactive")){
+    if(iverb >= 1) printf("-- Wait calls activated\n");
+    interactive = true;
   }
 
   if(opt.count("back")){

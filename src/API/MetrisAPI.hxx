@@ -202,13 +202,13 @@ private:
   intAr1 edg2ref, fac2ref, tet2ref; 
 
 public: // Unfortunate 
-  int ncorn, ngpoe, ngpof; 
+  int ncorn, ngpoe, ngpof;
   intAr1 lcorn;
   intAr2 lgpoe, lgpof;
-  dblAr2 rgpoe, rgpof; 
+  dblAr2 rgpoe, rgpof;
 private:
   bool flagsInit;
-  CADInfo CAD_; 
+  CADInfo CAD_;
 public:
   const CADInfo& CAD;
 private:

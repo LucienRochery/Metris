@@ -166,6 +166,23 @@ inline void sym3vec(const double mat[], const double inp[], double out[]){
 	out[2] = mat[3]*inp[0] + mat[4]*inp[1] + mat[5]*inp[2];
 }
 
+template<int n>
+inline double tvecXsymXvec(const double* u, const double* v, const double*__restrict__ met){
+  static_assert(n==2 || n==3);
+  if constexpr(n == 2){
+    return  u[0]*v[0]*met[0]
+          + (u[0]*v[1] + u[1]*v[0])*met[1] 
+          + u[1]*v[1]*met[2];
+  }else{
+    return  u[0]*v[0]*met[0]
+          + (u[0]*v[1] + u[1]*v[0])*met[1] 
+          + u[1]*v[1]*met[2]
+          + (u[0]*v[2] + u[2]*v[0])*met[3]
+          + (u[1]*v[2] + u[2]*v[1])*met[4]
+          + u[2]*v[2]*met[5];
+  }
+}
+
 inline void sym3tmat(const double met[], const double mat[], double out[]){
 	out[0] = met[0]*mat[0] + met[1]*mat[1] + met[3]*mat[2];
 	out[1] = met[0]*mat[3] + met[1]*mat[4] + met[3]*mat[5];

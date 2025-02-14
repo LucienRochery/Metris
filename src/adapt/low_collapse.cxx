@@ -151,11 +151,11 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
         if(DOPRINTS2()) writeMeshCavity("collapse_cavity0.meshb", msh, cav, ithrd2);
 
         // Increase cavity with Delaunay criterion
-        increase_cavity_Delaunay(msh, cav, ipins, ithrd2);
+        ierro = increase_cavity_Delaunay(msh, cav, ithrd2);
+        if(ierro != 0) continue;
+
         //int nprem = increase_cavity_lenedg(msh,cav,ipins,ithrd2,ithrd3);
         ierro = increase_cavity2D(msh,cav,ithrd2);
-
-
         if(ierro > 0) continue;
 
         if(DOPRINTS2()) writeMeshCavity("collapse_cavity1.meshb", msh, cav, ithrd2);
@@ -200,6 +200,7 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
   }
 
   cav.ipins = ipibest;
+  opts.dryrun = false;
 
   if(ivebest == 0){ // Otherwise ball hasn't changed !
     int ipcol = msh.fac2poi(iface,lnoed2[iedl][ivebest]);
@@ -207,15 +208,17 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
                   cav.lcfac,
                   cav.lcedg,
                   &iopen,&imani,ithrd1);
-    increase_cavity_Delaunay(msh, cav, cav.ipins, ithrd2);
-    //ierro = increase_cavity2D(msh,cav,ithrd2);
+    // Increase cavity with Delaunay criterion
+    ierro = increase_cavity_Delaunay(msh, cav, ithrd2);
+    METRIS_ASSERT(ierro == 0);
+
+    //int nprem = increase_cavity_lenedg(msh,cav,ipins,ithrd2,ithrd3);
+    ierro = increase_cavity2D(msh,cav,ithrd2);
     METRIS_ASSERT(ierro == 0);
   }
 
-
   if(DOPRINTS2()) writeMeshCavity("collapse_cavity0.meshb", msh, cav, ithrd2);
 
-  opts.dryrun = false;
 
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
     ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
@@ -337,11 +340,11 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
       if(DOPRINTS2()) writeMeshCavity("collapse_cavity0.meshb", msh, cav, ithrd2);
 
       // Increase cavity with Delaunay criterion
-      increase_cavity_Delaunay(msh, cav, ipins, ithrd2);
+      ierro = increase_cavity_Delaunay(msh, cav, ithrd2);
+      if(ierro > 0) continue;
+
       //int nprem = increase_cavity_lenedg(msh,cav,ipins,ithrd2,ithrd3);
       ierro = increase_cavity2D(msh,cav,ithrd2);
-
-
       if(ierro > 0) continue;
 
       if(DOPRINTS2()) writeMeshCavity("collapse_cavity1.meshb", msh, cav, ithrd2);
@@ -387,8 +390,12 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
                   cav.lcfac,
                   cav.lcedg,
                   &iopen,&imani,ithrd1);
-    increase_cavity_Delaunay(msh, cav, cav.ipins, ithrd2);
-    //ierro = increase_cavity2D(msh,cav,ithrd2);
+    // Increase cavity with Delaunay criterion
+    ierro = increase_cavity_Delaunay(msh, cav, ithrd2);
+    METRIS_ASSERT(ierro == 0);
+      
+    //int nprem = increase_cavity_lenedg(msh,cav,ipins,ithrd2,ithrd3);
+    ierro = increase_cavity2D(msh,cav,ithrd2);
     METRIS_ASSERT(ierro == 0);
   }
 

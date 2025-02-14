@@ -23,7 +23,8 @@ enum insedgesuf_Errors {INS2D_NOERR = 0,
                         INS2D_ERR_INCCAV2D2 = 4,
                         INS2D_ERR_SHORTEDG = 5,
                         INS2D_ERR_BDRYNOCORR = 6,
-                        INS2D_ERR_NERROR = 7
+                        INS2D_ERR_INCCAVDEL = 7,
+                        INS2D_ERR_NERROR = 8
                         };
 
 

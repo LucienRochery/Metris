@@ -20,8 +20,7 @@ int increase_cavity2D(MeshBase &msh, MshCavity &cav, int ithread);
 
 // Increase cavity for Delaunay criterion on ipoin 
 template<class MFT>
-void increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, 
-                              int ipins, int ithread);
+int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int ithread);
 
 // Increase cavity to avoid short edges (add pts to collapse)
 // return nprem ++points to collapse
@@ -31,6 +30,9 @@ int increase_cavity_lenedg(MeshMetric<MFT> &msh, MshCavity &cav, CavOprOpt &opts
 template<class MFT, int gdim>
 int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav, 
                               int ipins, int ithrd1, int ithrd2);
+
+// Tag cav.ipins's surface references if any. Used to filter in the other routines
+void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread);
   
 } // end namespace
 

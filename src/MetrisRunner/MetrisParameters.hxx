@@ -36,6 +36,7 @@ struct MetrisParameters{
 
   std::string outmFileName;
   std::string outmPrefix;
+  bool main_in_prefix; // whether main output goes in prefix (default no)
 
   std::string cadFileName;
 
@@ -85,8 +86,9 @@ struct MetrisParameters{
   // Verboity depth
   int ivdepth;
 
-  // Full debugs (costly)
-  bool dbgfull;
+  // Full debugs (costly), wait at certain errors (debug only)
+  bool dbgfull, interactive;
+
   // Generic integer flags
   int iflag1, iflag2, iflag3;
 

@@ -14,6 +14,7 @@
 #include "../low_geo.hxx"
 #include "../quality/low_metqua.hxx"
 #include "../mprintf.hxx"
+#include "../io_libmeshb.hxx"
 
 
 namespace Metris{
@@ -67,9 +68,6 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, const MshCavity& cav,
 
   int nfac0 = msh.nface;
 
-  int iref0 = -1;
-  //bool multiref = false; // Used later, tag number of face refs
-  
 	msh.tag[ithread]++;
   // Store this so we can still substract the tag even after reconnect_tetcav
   work.tagf0 = msh.tag[ithread];
@@ -300,8 +298,6 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, const MshCavity& cav,
 	for(int iface : cav.lcfac){
 		// If there is a new triangle, its ref will be this triangle's ref.
 		int iref  = msh.fac2ref[iface]; 
-    if(iref0 < 0) iref0 = iref;
-    //if(iref0 != iref) multiref = true;
     #ifndef NDEBUG
       if(msh.fac2tag(ithread,iface) <= msh.tag[ithread]){
         printf("## TAG mismatch %d <= %d \n",msh.fac2tag(ithread,iface),msh.tag[ithread]);
@@ -447,7 +443,7 @@ template void aux_bpo_update_fac<MetricFieldAnalytical>(Mesh<MetricFieldAnalytic
 
 
 
-// ifac1 spawns new element from its edge ied
+// cavity element ifac1 spawns new element from its edge ied
 template<class MetricFieldType, int ideg>
 int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav, 
              CavOprOpt &opts, CavWrkArrs &work,
@@ -492,6 +488,85 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
   if(ip1 == cav.ipins) return 0;
   int ip2 = msh.fac2poi(ifac1,lnoed2[ied][1]);
   if(ip2 == cav.ipins) return 0;
+
+  // Slightly more subtle, if ipins is the third vertex, then we'll end up 
+  // with a duplicate face (surface pinching)
+  int ip3 = msh.fac2poi(ifac1,ied);
+  if(ip3 == cav.ipins) return CAV_ERR_DUPFAC;
+
+  // Last thing to check is that not all three points are edge points of same ref
+  // Most likely is that at least one is not edge at all:
+  int ib1 = msh.poi2bpo[ip1], ib2 = msh.poi2bpo[ip2], ibi = msh.poi2bpo[cav.ipins];
+  if(ib1 >= 0 && ib2 >= 0 && ibi >= 0){
+    int id1 = msh.bpo2ibi(ib1,1), id2 = msh.bpo2ibi(ib2,1), idi = msh.bpo2ibi(ibi,1);
+    if(id1 <= 1 && id2 <= 1 && idi <= 1){
+      // All three points are edge. If one is only edge, there is only one ref to check
+      if(id1 == 0 && id2 == 0 && idi == 0){
+        // In this case, look at checktopo and what is done there using ced2tag. 
+        METRIS_THROW_MSG(TODOExcept(), "Handle case where all three vertices are corners...")
+      }else{
+        // At last one is pure edge, has a single ref. 
+        int iedge = -1;
+        int nc = 0, ne = 0;
+        int le[2], lc[2];
+        if(id1 == 1){
+          iedge = msh.bpo2ibi(ib1,2);
+          if(id2 == 1) le[ne++] = ib2;
+          else         lc[nc++] = ib2;
+          if(idi == 1) le[ne++] = ibi;
+          else         lc[nc++] = ibi;
+        }else if(id2 == 1){
+          iedge = msh.bpo2ibi(ib2,2);
+          if(id1 == 1) le[ne++] = ib1;
+          else         lc[nc++] = ib1;
+          if(idi == 1) le[ne++] = ibi;
+          else         lc[nc++] = ibi;
+        }else{
+          iedge = msh.bpo2ibi(ibi,2);
+          if(id1 == 1) le[ne++] = ib1;
+          else         lc[nc++] = ib1;
+          if(id2 == 1) le[ne++] = ib2;
+          else         lc[nc++] = ib2;
+        }
+        int iref1 = msh.edg2ref[iedge];
+        METRIS_ASSERT(ne + nc == 2);
+
+        int nm = 0;
+        for(int ii = 0; ii < ne; ii++){
+          int ib = le[ii];
+          int iedg2 = msh.bpo2ibi(ib,2);
+          int iref2 = msh.edg2ref[iedg2];
+          if(iref2 == iref1) nm++;
+        }
+        CPRINTF2(" - %d edge - edge ref match %d \n",nm,iref1);
+        for(int ic = 0; ic < nc; ic++){
+          int ib = lc[ic];
+          CPRINTF2(" - test corner ib = %d ip = %d\n",ib,msh.bpo2ibi(ib,0));
+          // Start the loop from the next one as this is a corner
+          for(ib = msh.bpo2ibi(ib,3); ib >= 0; ib = msh.bpo2ibi(ib,3)){
+            int bdim = msh.bpo2ibi(ib,1);
+            if(bdim != 1) continue;
+            int iedg2 = msh.bpo2ibi(ib,2);
+            int iref2 = msh.edg2ref[iedg2];
+            CPRINTF2("   - edge ib = %d ientt = %d iref %d \n",ib,iedg2,iref2);
+            if(iref2 == iref1){
+              nm++;
+              break;
+            }
+          }
+        }
+        CPRINTF2(" - %d w/ corner - edge ref match %d \n",nm,iref1);
+
+        // All match: reject!
+        if(nm == 2){
+          CPRINTF1(" # all three new face vertices on same edge ref %d -> reject\n",iref1);
+          if(msh.param->interactive && DOPRINTS1()) wait();
+          return CAV_ERR_LINFAC;
+        }
+
+      }// if id1 == 1, id2 == 1, idi == 1
+    }
+  }
 
   int ifacn = msh.nface;
 

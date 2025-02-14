@@ -30,7 +30,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
   GETVDEPTH(msh);
   if(!msh.CAD()) return;
 
-  
+
   //adaptGeoLines2<MFT>(msh,ithrd1,ithrd2);
   //return;
 
@@ -161,7 +161,6 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
 
     double result[18],  sz[2], len, nrmal[3];
-    int nloop;
     // Loop over CAD edges and remesh each one 
     for(int iCADed = 0; iCADed < nchild; iCADed++){
       INCVDEPTH(msh)
@@ -426,14 +425,12 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
           // Proceed to insertion We have our ipins, edge cavity also. Now extend
           // triangle cavity from edg2fac seeds
-          nloop = 0;
-          do{
-            ierro = increase_cavity2D(msh,cav,ithrd1);
-            nloop++;
-            if(nloop > 10) METRIS_THROW_MSG(TopoExcept(), "Too many cavity increases !");
-          }while(ierro == 2);
+          ierro = increase_cavity_Delaunay(msh, cav, ithrd1);
+          if(ierro != 0) goto cleanup1;
 
-          increase_cavity_Delaunay(msh, cav, cav.ipins, ithrd1);
+          ierro = increase_cavity2D(msh,cav,ithrd1);
+          if(ierro != 0) goto cleanup1;
+
 
           if(DOPRINTS2()) writeMeshCavity("debug_lineadap1_cav",msh,cav);
 

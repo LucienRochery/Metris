@@ -1,5 +1,6 @@
 if(NOT TARGET libmeshb)
   add_library(libmeshb STATIC libmeshb7.c)
+  setMetrisFlags(libmeshb PUBLIC)
 endif()
 add_library(lplib3  STATIC lplib3.c)
 

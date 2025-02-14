@@ -556,11 +556,11 @@ void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
       GmfSetBlock(libIdx, libmeshb::edgeOrdKwds[msh.curdeg], 1, npp, 0, NULL, NULL,
         GmfIntVec, npp, &myOrd[0], &myOrd[(npp-1)]);
     }
-
+    printf("## DEBUG nedg0 %d nedge %d npp %d \n",nedg0,msh.nedge,npp);
     GmfSetKwd( libIdx, fKwd, msh.nedge - nedg0);
     GmfSetBlock(libIdx, fKwd, 1, msh.nedge - nedg0, 0, NULL, NULL,
-      GmfIntVec, npp, &msh.edg2poi(nedg0,0), &msh.edg2poi[msh.nedge-1][0],
-      GmfInt   ,      &msh.edg2ref[nedg0  ], &msh.edg2ref[msh.nedge-1   ]);
+      GmfIntVec, npp, &msh.edg2poi(nedg0,0), &msh.edg2poi(msh.nedge-1,0),
+      GmfInt   ,      &msh.edg2ref[nedg0  ], &msh.edg2ref[msh.nedge-1  ]);
 
     CPRINTF2(" - DONE writing edges\n");
   }

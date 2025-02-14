@@ -57,7 +57,7 @@ void MetrisRunner::adaptMesh0(){
   msh.cleanup();
 
   CPRINTF1("-- START adaptMesh with miter = %d \n",miter);
-  if(DOPRINTS1()){
+  if(DOPRINTS2()){
     writeMesh("debug_adapt_inp", msh);
     msh.met.writeMetricFile("debug_adapt_inp");
     if(DOPRINTS2()) writeBackLinks("debug_adapt_inp_poi2bak", msh);

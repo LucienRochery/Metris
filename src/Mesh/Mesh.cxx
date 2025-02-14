@@ -212,7 +212,8 @@ int Mesh<MFT>::interpMetBack(int ipoin, int tdim, int iseed,
   CPRINTF1("-- START interpMetBack ipoin = %d iseed = %d tdim %d \n",ipoin,
            iseed,tdim);
 
-  METRIS_ASSERT(tdim == this->idim || (algnd != NULL && iref >= 0));
+  METRIS_ASSERT_MSG(tdim == this->idim || (algnd != NULL && iref >= 0),
+    "Boundary dim "<<tdim<<" but algnd = "<<algnd<<" and iref = "<<iref);
 
   METRIS_ASSERT_MSG(ipoin >= 0 && ipoin < this->npoin, 
     "interpMetBack ipoin out of bounds "<<ipoin<<" < ? "<<this->npoin);

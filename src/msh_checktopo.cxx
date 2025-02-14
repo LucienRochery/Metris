@@ -346,8 +346,58 @@ void check_topo(MeshBase &msh,
     HshTabInt2 hshTab2(1.5*msh.nface + msh.nedge);
 
     msh.tag[ithread]++;
+    msh.ced2tag.fill(0);
     for(int iface = 0; iface < nface; iface++){
       if(isdeadent(iface,msh.fac2poi)) continue;
+
+      // Check not all three vertices on same ref edge. 
+      if(msh.ced2tag.get_n() > 0){
+        // This should only fail if routine called too early (before CAD init)
+
+        int iedg[3] = {0,0,0};
+        for(int ii = 0; ii < 3; ii++){
+          int ipoin = msh.fac2poi(iface,ii);
+
+          // Corners can tag an edge twice
+          for(int jj = 0; jj < msh.ced2tag.get_stride(); jj++) msh.ced2tag(1,jj) = 0;
+
+          for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+            int bdim = msh.bpo2ibi(ibpoi,1);
+            if(bdim != 1) continue;
+            int ientt = msh.bpo2ibi(ibpoi,2);
+            METRIS_ASSERT(ientt >= 0);
+            int iref = msh.edg2ref[ientt];
+            METRIS_ASSERT(iref >= 0);
+            if(msh.ced2tag(1,iref) == 1) continue;
+            msh.ced2tag(1,iref) = 1;
+            msh.ced2tag(0,iref)++;
+            iedg[ii] = 1;
+          }
+        }
+        if(iedg[0] + iedg[1] + iedg[2] == 3){
+          for(int jj = 0; jj < msh.ced2tag.get_stride(); jj++){
+            if(msh.ced2tag(0,jj) == 3){
+              printf("## All triangle vertices on same edge ref %d \n",jj);
+              printf("Triangle %d vertices ",iface);
+              intAr1(3,msh.fac2poi[iface]).print();
+
+              for(int ii = 0; ii < 3; ii++){
+                int ipoin = msh.fac2poi(iface,ii);
+                printf(" ipoin %d : \n",ipoin);
+                for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+                  int bdim = msh.bpo2ibi(ibpoi,1);
+                  if(bdim != 1) continue;
+                  int ientt = msh.bpo2ibi(ibpoi,2);
+                  int iref  = msh.edg2ref[ientt];
+                  printf(" edge bpoi %d ientt %d iref %d \n",ibpoi,ientt,iref);
+                }
+              }
+              METRIS_THROW(TopoExcept());
+            }
+          }
+        }
+        msh.ced2tag.fill(0);
+      }
 
 
       // Need more context or to call EGADS primitives. Leave this for after geo refactoring
@@ -376,6 +426,10 @@ void check_topo(MeshBase &msh,
         auto  t = hshTab2.find(key);
         if(t != hshTab2.end()){
           int ifac2 = t->second;
+          if(msh.fac2fac(iface,ied) != ifac2){
+            printf("iface = %d i1 %d i2 %d found ifac2 = %d but not in mesh neighbour table\n",
+              iface,i1,i2,ifac2);
+          }
           METRIS_ASSERT(msh.fac2fac(iface,ied) == ifac2);
         }else{
           hshTab2[key] = iface;

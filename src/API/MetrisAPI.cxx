@@ -53,8 +53,6 @@ MetrisAPI::MetrisAPI(int idim, int ideg, int ncorn, int ngpoe, int ngpof,
   if(imet) metfld.allocate(npoin,(idim*(idim+1))/2);
   if(imet) metfld.set_n(npoin);
 
-  printf("## DEBUG imet = %d idim = %d\n",imet,idim);
-
 
   edg2poi.allocate(nedge,edgnpps[ideg]);
   edg2poi.set_n(nedge);

@@ -64,9 +64,9 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
   double stat = 0;
 
-  constexpr int tdim = gdim;
+  const int tdim = msh.get_tdim();
 
-  constexpr auto getedgent = tdim == 2 ? getedgfac : getedgtet;
+  auto getedgent = tdim == 2 ? getedgfac : getedgtet;
 
   const int nedgl = (tdim*(tdim+1))/2;
 
@@ -113,7 +113,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
   CavWrkArrs work;
 
   do{
-    INCVDEPTH(msh);
+    GETVDEPTH(msh);
     ninser1 = 0;
 
     msh.cleanup();
@@ -172,8 +172,6 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
             CPRINTF1(" - enact ins ientt = %d ied = %d len = %f edg %d %d  coord = ",
                    ientt,ied,len,edg2pol[0],edg2pol[1]);
             dblAr1(msh.idim,coop).print();
-            CPRINTF1(" - bary = ");
-            dblAr1(3, bar1).print();
           }
 
           #if 0

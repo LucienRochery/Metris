@@ -4,8 +4,8 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#include "../adapt/low_insert2D.hxx"
-#include "../adapt/low_increasecav.hxx"
+#include "low_insert2D.hxx"
+#include "low_increasecav.hxx"
 
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -17,6 +17,7 @@
 #include "../mprintf.hxx"
 #include "../low_geo.hxx"
 #include "../io_libmeshb.hxx"
+#include "../linalg/det.hxx"
 
 
 namespace Metris{
@@ -32,6 +33,8 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl,
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd1 != ithrd2);
+
+  const int tdim = 2;
 
   int iret = 0;
 
@@ -82,13 +85,10 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl,
 
   int ibpoi = -1;
 
-
-  CPRINTF1(" - Initial npoin = %d \n",msh.npoin);
-
   // Create the point, set info for localization 
   int iseed, tdimp, iref;
   ego obj;
-  double algnd[2];
+  double algnd[3];
   if(iedge >= 0){
     cav.ipins = msh.newpoitopo(1,iedge);
     ibpoi = msh.newbpotopo(cav.ipins,1,iedge);
@@ -111,7 +111,7 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl,
   METRIS_ASSERT(iref >= 0);
   METRIS_ASSERT(obj != NULL || tdimp == 2 && !msh.isboundary_faces());
 
-  CPRINTF1(" - create ipins %d \n",cav.ipins);
+  CPRINTF1(" - create ipins %d tdim = %d seed %d ref %d\n",cav.ipins,tdimp,iseed,iref);
 
   for(int ii = 0; ii < msh.idim; ii++) msh.coord[cav.ipins][ii] = coop[ii];
 
@@ -130,25 +130,26 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl,
     for(int ii = 0; ii < 2; ii++) msh.bpo2rbi(ibpoi,ii) = 
         bar1 * msh.bpo2rbi[ib[0]][ii] + (1.0 - bar1) * msh.bpo2rbi[ib[1]][ii];
 
+    double result[18];
+    METRIS_ASSERT(obj != NULL);
+    ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
+    if(ierro != 0){
+      ierro = INS2D_ERR_EGEVALUATE; 
+      iret = ierro;
+      goto cleanup;
+    }
+    if(DOPRINTS2()){
+      CPRINTF2("EG_evaluate orig = ");
+      dblAr1(msh.idim,msh.coord[cav.ipins]).print();
+      CPRINTF2("new = ");
+      dblAr1(msh.idim,result).print();
+    }
+    for(int ii = 0; ii < msh.idim; ii++) msh.coord[cav.ipins][ii] = result[ii];
 
     if(tdimp == 1){
-      double result[18];
-      ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
-      if(ierro != 0){
-        ierro = INS2D_ERR_EGEVALUATE; 
-        iret = ierro;
-        goto cleanup;
-      }
-      if(DOPRINTS2()){
-        CPRINTF2("EG_evaluate orig = ");
-        dblAr1(msh.idim,msh.coord[cav.ipins]).print();
-        CPRINTF2("new = ");
-        dblAr1(msh.idim,result).print();
-      }
-      for(int ii = 0; ii < msh.idim; ii++) msh.coord[cav.ipins][ii] = result[ii];
       for(int ii = 0; ii < msh.idim; ii++) algnd[ii] = result[3+ii];
     }else{
-      if(msh.idim == 3) METRIS_THROW_MSG(TODOExcept(), "CAD eval in insert face")
+      vecprod(&result[3], &result[6], algnd);
     }
 
     // If the point moved away from the initial cavity, increase it. 
@@ -204,9 +205,18 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl,
                                   msh,cav, ithrd2);
     CPRINTF1(" - initial cavity size %d \n",cav.lcfac.get_n()); 
    
-    increase_cavity_Delaunay(msh, cav, cav.ipins, ithrd1);
+    ierro = increase_cavity_Delaunay(msh, cav, ithrd1);
+    if(ierro != 0){
+      CPRINTF1(" - +del error %d\n",ierro);
+      ierro = INS2D_ERR_INCCAVDEL;
+      goto cleanup;
+    }
    
     CPRINTF1(" - +del cavity size %d \n",cav.lcfac.get_n()); 
+    if(DOPRINTS2()){
+      writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr), 
+                                  msh,cav, ithrd2);
+    }
 
     if(isellen){
       nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2); 
@@ -228,16 +238,20 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl,
     }
 
     // Try relocate ipins to cavity barycenter but only if not boundary
-    double bary[3] = {1.0/3,1.0/3,1.0/3}; 
-    METRIS_ASSERT(msh.idim == 2);
-    double newp[2] = {0,0};
-    double eval[2];
+    double bary[4];
+    for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim + 1);
+    double newp[3] = {0,0,0};
+    double eval[3];
     double meast = 0;
     for(int iface : cav.lcfac){
-      eval2<2,1>(msh.coord,msh.fac2poi[iface],msh.getBasis(),DifVar::None,DifVar::None,
-                 bary,eval,NULL,NULL);
+      double wt;
       bool iflat;
-      double wt = getmeasentP1<2,2>(msh, msh.fac2poi[iface], cav.nrmal, &iflat);
+      CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
+        eval2<gdim,1>(msh.coord,msh.fac2poi[iface],msh.getBasis(),DifVar::None,
+                      DifVar::None,bary,eval,NULL,NULL);
+        wt = getmeasentP1<gdim,2>(msh, msh.fac2poi[iface], algnd, &iflat);
+      }}CT_FOR1(gdim);
+      if(iflat) continue;
       // For simply barycentre, use meas0
       // To skew towards the largest elements use meas0 * meas0
       for(int ii = 0; ii < msh.idim;ii++) newp[ii] += wt * eval[ii];
@@ -252,7 +266,7 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl,
                                   msh,cav, ithrd2);
 
     // reinterp metric. This is always interior case, no need for ref of bdry dir
-    ierr2 = msh.interpMetBack(cav.ipins,tdimp,iseed,-1,NULL);
+    ierr2 = msh.interpMetBack(cav.ipins,tdimp,iseed, iref,  algnd);
     if(ierr2 != 0){
       ierro = INS2D_ERR_INTERPMETBACK;
       break; 
@@ -261,14 +275,13 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl,
   if(ierro > 0) goto cleanup;
 
 
-  // In this case let's even just take the face normal
-  double nrmal[3];
-  if(msh.idim == 3 && (!msh.CAD() || !msh.param->dbgfull)){
-    getnorfacP1(msh.fac2poi[iface],msh.coord,nrmal);
-    cav.nrmal = nrmal;
-  }
-
-
+  //// In this case let's even just take the face normal
+  //double nrmal[3];
+  //if(msh.idim == 3 && (!msh.CAD() || !msh.param->dbgfull)){
+  //  getnorfacP1(msh.fac2poi[iface],msh.coord,nrmal);
+  //  cav.nrmal = nrmal;
+  //}
+  cav.nrmal = algnd;
 
 
   CPRINTF1(" insert ipins =  %d \n",cav.ipins);
@@ -411,7 +424,12 @@ int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double *coop,
                                     msh,cav, ithrd2);
 
     CPRINTF1(" - initial cavity size %d \n",cav.lcfac.get_n()); 
-    increase_cavity_Delaunay(msh, cav, cav.ipins, ithrd1);
+    ierro = increase_cavity_Delaunay(msh, cav, ithrd1);
+    if(ierro != 0){
+      CPRINTF1(" - +del error %d \n",ierro);
+      ierro = INS2D_ERR_INCCAVDEL;
+      goto cleanup;
+    }
     CPRINTF1(" - +del cavity size %d \n",cav.lcfac.get_n()); 
 
     if(isellen){

@@ -437,8 +437,8 @@ void MetrisRunner::writeOutputs0(){
       baseOutName = param_.outmFileName.substr(0,pos);
       effMetFileName = baseOutName + ".solb";
     }
-    writeMesh(effMeshFileName, msh, false);
-    msh.met.writeMetricFile(effMetFileName, false);
+    writeMesh(effMeshFileName, msh, param->main_in_prefix);
+    msh.met.writeMetricFile(effMetFileName, param->main_in_prefix);
   }// End sequential
 }
 template void MetrisRunner::writeOutputs0<MetricFieldFE>();
