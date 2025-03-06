@@ -2,8 +2,7 @@ README.txt
 .obj
 *.lldb
 .lldbinit
-rmetris*
-src/codegen_*
+rmetris* 
 /*meshb
 /*mesh
 /*solb

@@ -3,8 +3,8 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#include <src/codegen_ccoef_d.hxx>
-#include <src/types.hxx>
+#include "codegen_ccoef_d.hxx"
+#include "src/types.hxx"
 
 namespace Metris{
 
@@ -13,7 +13,6 @@ double det3_vdif(const double* x1,const double* x2
                 ,const double* z1,const double* z2);
 
 static double* vdiff(const double* a, const double* b){  METRIS_THROW_MSG(TODOExcept(),"Reimplement ccoef3_d");}static double* vproduct(const double* a, const double* b){  METRIS_THROW_MSG(TODOExcept(),"Reimplement ccoef3_d");}template<int ideg>
-
 void d_ccoef_genbez3([[maybe_unused]] const intAr2&__restrict__ tet2poi,
                      [[maybe_unused]] const dblAr2&__restrict__ coord,
                      [[maybe_unused]] int ielem,
