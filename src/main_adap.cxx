@@ -7,7 +7,7 @@
 
 #include "common_includes.hxx"
 #include "metris_options.hxx"
-#include "mprintf.hxx"
+#include "utils/mprintf.hxx"
 
 #include "MetrisRunner/MetrisRunner.hxx"
 #include "msh_checktopo.hxx"
@@ -60,7 +60,7 @@ int main_metris(int argc, char** argv){
 
   if(param.dbgfull) check_topo(*run.msh_g);
 
-  if(param.curveType > 0 && !ielev){ // Not really smoothing, rather metric based curving
+  if(param.curveType > 0 && !ielev || param.curveType == 5){ // Not really smoothing, rather metric based curving
     run.curveMesh();
   }
   

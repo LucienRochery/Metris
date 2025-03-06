@@ -10,15 +10,15 @@
 #include "codegen_ccoef_d.hxx"
 
 #include "types.hxx"
-#include "aux_utils.hxx"
-#include "codegen_ccoef.hxx"
+#include "utils/aux_misc.hxx"
+#include "utils/fact_pow.hxx"
 #include "Mesh/MeshBase.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include "linalg/det.hxx"
 #include "low_eval.hxx"
 #include "low_geo.hxx"
 #include "codegen_lag2bez.hxx"
-//#include "aux_utils.hxx"
+//#include "utils/aux_misc.hxx"
 //#include "msh_structs.hxx"
 //#include "Mesh/Mesh.hxx"
 
@@ -37,7 +37,10 @@ void getccoef(const MeshBase &msh, int ientt, double *nrmal, double *ccoef){
 
   // Constexpr prevents compilation of non-followed branches
   // ccoef_genbez do not exist for ideg == 1 
-  if constexpr(ideg == 1 || ideg >= 4 || gdim != tdim){
+  if constexpr(ideg == 1){
+    bool iflat;
+    ccoef[0] = ifact<tdim>()*getmeasentP1<gdim,tdim>(msh, ent2poi[ientt], nrmal, &iflat);
+  }else if constexpr(ideg >= 4 || gdim != tdim){
     METRIS_ASSERT(nrmal != NULL);
     ccoef_eval<gdim,tdim,ideg>(msh.getBasis(),ent2poi,msh.coord,ientt,nrmal,ccoef);
   }else{
@@ -69,8 +72,8 @@ void getsclccoef(const MeshBase &msh, int ientt, double *nrmal,
                  double *ccoef, bool *iinva){
   getccoef<gdim,tdim,ideg>(msh,ientt,nrmal,ccoef);
   constexpr int jdeg = tdim * (ideg - 1);
-  constexpr int ncoef = tdim == 2 ? facnpps[jdeg] 
-                                  : tetnpps[jdeg];
+  constexpr int ncoef = tdim == 2 ? getnnod2(jdeg) 
+                                  : getnnod3(jdeg);
   const intAr2 &ent2poi = msh.ent2poi(tdim);
   double meas = getmeasentP1<gdim,tdim>(msh,ent2poi[ientt],nrmal,iinva);
   constexpr int fact = ifact<tdim>();
@@ -113,6 +116,41 @@ template void getccoef_dcoord<3,n>(const MeshBase &msh, int ientt, int icoor, do
 #include BOOST_PP_LOCAL_ITERATE()
 
 
+template<int idim, int ideg>
+void getccoef_dpoint(const MeshBase &msh, int ientt, int inode, double *ccoef, dblAr2& d_ccoef){
+  METRIS_ENFORCE_MSG(msh.getBasis() == FEBasis::Bezier, 
+    "control coefficient derivatives not implemented for Lagrange meshes");
+
+
+  if constexpr(ideg == 1){
+    int ifac = ifact<idim>();
+    if(ccoef != NULL){
+      bool iflat;
+      const intAr2& ent2poi = msh.ent2poi(idim);
+      ccoef[0] = ifac*getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iflat);
+    } 
+    if constexpr(idim == 2){
+      // def (x y)^orth = (y -x)
+      vdiff_perp(msh.coord[msh.fac2poi(ientt,(inode+1)%3)], 
+                 msh.coord[msh.fac2poi(ientt,(inode+2)%3)], d_ccoef[0]);
+    }else{
+      METRIS_THROW_MSG(TODOExcept(), "Control coeff derivatives per point not implemented in 3D")
+    }
+  }else{
+    if(ccoef != NULL) getccoef<idim,idim,ideg>(msh,ientt,NULL,ccoef);
+    if constexpr(idim == 2){
+      d_pt_ccoef_genbez2<ideg>(msh.fac2poi,msh.coord,ientt,inode,d_ccoef);
+    }else{
+      METRIS_THROW_MSG(TODOExcept(), "Control coeff derivatives per point not implemented in 3D")
+    }
+  }
+}
+#define BOOST_PP_LOCAL_MACRO(n)\
+template void getccoef_dpoint<2,n>(const MeshBase &msh, int ientt, int inode, double *ccoef, dblAr2& d_ccoef);\
+template void getccoef_dpoint<3,n>(const MeshBase &msh, int ientt, int inode, double *ccoef, dblAr2& d_ccoef);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
 
 
 
@@ -124,23 +162,16 @@ void ccoef_eval(FEBasis ibasis, const intAr2& ent2poi, const dblAr2& coord,
   // Get control coeffs by evaluating the Jacobian at the nodes
   double dum[gdim], jmat[tdim*gdim];
   constexpr int jdeg = tdim*(ideg-1);
-  constexpr int nppj = tdim == 2 ? facnpps[jdeg] : tetnpps[jdeg];
+  constexpr int nppj = getnnode(tdim,jdeg);
   double rwrk[nppj];
-  constexpr auto ordent = ORDELT(gdim);
+  constexpr auto ordent = ORDELT(tdim);
   constexpr auto eval = tdim == 2 ? eval2<gdim,ideg> : eval3<gdim,ideg> ;
 
   double nrloc[3];
-  //if constexpr(tdim == 2 && gdim == 3){
-    // NO !
-    //getnorfacP1(ent2poi[ientt],coord,nrmal);
-    //double nrm = sqrt(getnrml2<3>(nrmal));
-    //if(nrm < 1.0e-16) METRIS_THROW_MSG(GeomExcept(), "0 face P1 normal "<<nrm);
-    //for(int ii = 0; ii < 3 ;ii++) nrmal[ii] /= nrm;
-  //}
 
   for(int irnk = 0; irnk < nppj; irnk++){
     double bary[gdim+1];
-    for(int ii = 0; ii < gdim + 1; ii++) 
+    for(int ii = 0; ii < tdim + 1; ii++) 
       bary[ii] = ordent[jdeg][irnk][ii] / (double) jdeg;
     eval(coord, ent2poi[ientt],ibasis, DifVar::Bary, DifVar::None, bary, dum, jmat, NULL);
 
@@ -150,7 +181,6 @@ void ccoef_eval(FEBasis ibasis, const intAr2& ent2poi, const dblAr2& coord,
       double sg  = getprdl2<3>(nrmal,nrloc);
       if(sg < 0) det = -det;
       rwrk[irnk] = det;
-
     }else{
       rwrk[irnk] = detmat<gdim>(jmat);
     }

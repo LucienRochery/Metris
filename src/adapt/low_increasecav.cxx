@@ -11,7 +11,7 @@
 #include "../aux_topo.hxx"
 #include "../low_lenedg.hxx"
 #include "../low_topo.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 #include "../cavity/msh_cavity.hxx"
 #include "../Mesh/Mesh.hxx"
 
@@ -118,7 +118,11 @@ int increase_cavity2D(MeshBase &msh, MshCavity &cav, int ithread){
     // If dimension 3, get a normal for this face. 
     double norCAD[3];
     if(msh.idim == 3){
-      getnorfacCAD(msh,iface,norCAD);
+      if(msh.CAD()){
+        getnorfacCAD(msh,iface,norCAD);
+      }else{
+        getnorfacP1(msh.fac2poi[iface],msh.coord,norCAD);
+      }
     }
 
     for(int iedl = 0; iedl < 3; iedl ++){
@@ -217,18 +221,28 @@ int increase_cavity2D(MeshBase &msh, MshCavity &cav, int ithread){
 
 
 // Increase cavity for Delaunay criterion on ipoin 
+// Normal only needed in 3D case if cavity has faces
 template<class MFT>
-int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int ithread){
+int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, 
+                             int ithread, double *nrmal){
+
   GETVDEPTH(msh);
 
-  int tdim = msh.get_tdim();
-  if(tdim == 3) METRIS_THROW_MSG(TODOExcept(), "Unit test this for n = 3. Implement gettetfac instead of getfacedg");
-  METRIS_ASSERT(cav.lctet.get_n() == 0);
-  int nnmet = (tdim * (tdim + 1)) / 2;
+  static int nwarn = 0;
 
-  const intAr2 &ent2ent = msh.ent2ent(tdim);
-  const intAr2 &ent2poi = msh.ent2poi(tdim);
-        intAr2 &ent2tag = msh.ent2tag(tdim);
+  // Disable surf
+  if(msh.get_tdim() < msh.idim && msh.param->iflag1 == 0){
+    if(nwarn++ < 10) MPRINTF("## WARNING DELAUNAY SURFACE DISABLED\n");
+    return 0;
+  }
+
+
+  if(msh.get_tdim() == 3) 
+    METRIS_THROW_MSG(TODOExcept(), "Unit test this for n = 3. Implement gettetfac instead of getfacedg");
+  // Simply disable surface Delaunay for now 
+
+  METRIS_ASSERT(cav.lctet.get_n() == 0);
+  int nnmet = (msh.idim * (msh.idim + 1)) / 2;
 
   msh.tag[ithread]++;
 
@@ -239,119 +253,112 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int ithread){
     METRIS_ASSERT(iface >= 0 && iface < msh.nface);
     METRIS_ASSERT(!isdeadent(iface,msh.fac2poi));
     msh.fac2tag(ithread,iface) = msh.tag[ithread];
-    if(!msh.isboundary_faces()) continue;
-
-    int iref = msh.fac2ref[iface];
-    METRIS_ASSERT(iref >= 0);
-    METRIS_ASSERT(msh.cfa2tag(ithread,iref) <= msh.tag[ithread]);
-    if(msh.cfa2tag(ithread,iref) < msh.tag[ithread]){
-      CPRINTF1("## ERROR increase_cavity2D: cavity face ref %d is not a ipins bdry ref\n",iref);
-      return 2;
-    }
   }
 
   for(int iedge : cav.lcedg){
     METRIS_ASSERT(iedge >= 0 && iedge < msh.nedge);
     METRIS_ASSERT(!isdeadent(iedge,msh.edg2poi));
     msh.edg2tag(ithread,iedge) = msh.tag[ithread];
-    if(!msh.isboundary_edges()) continue;
-
-    int iref = msh.edg2ref[iedge];
-    METRIS_ASSERT(msh.ced2tag(ithread,iref) <= msh.tag[ithread]);
-    if(msh.ced2tag(ithread,iref) < msh.tag[ithread]){
-      CPRINTF1("## ERROR increase_cavity2D: cavity edge is not a ipins bdry ref\n");
-      return 2;
-    }
   }
 
-  intAr1 &lcent = cav.lcent(tdim);
-  intAr1 &lcsub = cav.lcent(tdim-1);
+  for(int tdim = 2; tdim <= msh.get_tdim(); tdim++){
+    intAr1 &lcent = cav.lcent(tdim);
+    if(lcent.get_n() == 0) continue;
+    intAr1 &lcsub = cav.lcent(tdim-1);
 
-  intAr2r& sub2tag = msh.ent2tag(tdim-1);
+    CPRINTF1(" - Delaunay dim %d\n",tdim);
+    const intAr2&  ent2ent = msh.ent2ent(tdim);
+    const intAr2&  ent2poi = msh.ent2poi(tdim);
+          intAr2r& ent2tag = msh.ent2tag(tdim);
+          intAr2r& sub2tag = msh.ent2tag(tdim-1);
 
-  double metl[6], lmet[6];
-  double *metl_p; 
-  // If the metric field is log 
-  if(msh.met.getSpace() == MetSpace::Log) metl_p = metl;
 
-  for(int ii = 0; ii < lcent.get_n(); ii++){
-    int ientt = lcent[ii];
-    if(msh.met.getSpace() == MetSpace::Log){
-      for(int ii = 0; ii < nnmet; ii++) lmet[ii] = msh.met(cav.ipins,ii);
-      if(tdim == 2){
-        getexpmet_cpy<2>(lmet, metl);
+    double metl[6], lmet[6];
+    double *metl_p; 
+    // If the metric field is log 
+    if(msh.met.getSpace() == MetSpace::Log) metl_p = metl;
+
+    for(int ii = 0; ii < lcent.get_n(); ii++){
+      int ientt = lcent[ii];
+      if(msh.met.getSpace() == MetSpace::Log){
+        for(int ii = 0; ii < nnmet; ii++) lmet[ii] = msh.met(cav.ipins,ii);
+        if(msh.idim == 2){
+          getexpmet_cpy<2>(lmet, metl);
+        }else{
+          getexpmet_cpy<3>(lmet, metl);
+        }
       }else{
-        getexpmet_cpy<3>(lmet, metl);
+        metl_p = msh.met[cav.ipins];
       }
-    }else{
-      metl_p = msh.met[cav.ipins];
-    }
-    for(int jj = 0; jj < tdim + 1; jj++){
-      int ienei = ent2ent(ientt,jj);
-      if(ienei < 0) continue; // Non manifold skip
+      for(int jj = 0; jj < tdim + 1; jj++){
+        int ienei = ent2ent(ientt,jj);
+        if(ienei < 0) continue; // Non manifold skip
 
-      if(ent2tag(ithread,ienei) >= msh.tag[ithread]){
-        CPRINTF1("   - ienei = %d is tagged %d >= %d\n",
-                           ienei,ent2tag(ithread,ienei),msh.tag[ithread]);
-        continue;
-      }
-
-      int isube = -1;
-      if(tdim == 2){
-        int iref2 = msh.fac2ref[ienei];
-        if(msh.cfa2tag(ithread,iref2) < msh.tag[ithread] && msh.isboundary_faces()){
-          CPRINTF1("   - ienei = %d is wrong bdry ref %d\n",ienei,iref2);
+        if(ent2tag(ithread,ienei) >= msh.tag[ithread]){
+          CPRINTF1("   - ienei = %d is tagged %d >= %d\n",
+                   ienei,ent2tag(ithread,ienei),msh.tag[ithread]);
           continue;
         }
-        int isube = msh.fac2edg(ientt,jj);
-        if(isube >= 0){
-          if(msh.edg2tag(ithread,isube) >= msh.tag[ithread]){
-            CPRINTF1("   - iface %d -> iedge %d is tagged, skip\n",ientt,isube);
+
+        int isube = -1;
+        if(tdim == 2){
+          int iref2 = msh.fac2ref[ienei];
+          if(msh.cfa2tag(ithread,iref2) < msh.tag[ithread] && msh.isboundary_faces()){
+            CPRINTF1("   - ienei = %d is wrong bdry ref %d\n",ienei,iref2);
             continue;
           }
-          int iref1 = msh.edg2ref[isube];
-          if(msh.ced2tag(ithread,iref1) < msh.tag[ithread] && msh.isboundary_edges()){
-            CPRINTF1("   - iface %d -> iedge %d is wrong bdry ref %d\n",ienei,isube,iref1);
-            continue;
+          int isube = msh.fac2edg(ientt,jj);
+          if(isube >= 0){
+            if(msh.edg2tag(ithread,isube) >= msh.tag[ithread]){
+              CPRINTF1("   - iface %d -> iedge %d is tagged, skip\n",ientt,isube);
+              continue;
+            }
+            int iref1 = msh.edg2ref[isube];
+            if(msh.ced2tag(ithread,iref1) < msh.tag[ithread] && msh.isboundary_edges()){
+              CPRINTF1("   - iface %d -> iedge %d is wrong bdry ref %d\n",ienei,isube,iref1);
+              continue;
+            }
           }
-        }
-      }else{
-        METRIS_THROW_MSG(TODOExcept(), "Get sandwiched face. Also tetra domain");
-      }
-
-      ent2tag(ithread,ienei) = msh.tag[ithread];
-
-      // Check if Delaunay 
-      bool isinsph;
-      if(tdim == 2){
-        if(msh.idim == 2){
-          isinsph = indelsphere<2,2>(msh.coord[cav.ipins], metl_p, 
-                                     msh.coord, ent2poi[ienei]);
         }else{
-          isinsph = indelsphere<3,2>(msh.coord[cav.ipins], metl_p, 
-                                     msh.coord, ent2poi[ienei]);
+          METRIS_THROW_MSG(TODOExcept(), "Get sandwiched face. Also tetra domain");
         }
-      }else{
-        isinsph = indelsphere<3,3>(msh.coord[cav.ipins], metl_p, 
-                                   msh.coord, ent2poi[ienei]);
-      }
-      if(isinsph){
-        lcent.stack(ienei);
-        if(isube >= 0){
-          sub2tag(ithread,isube) = msh.tag[ithread];
-          lcsub.stack(isube);
+
+        ent2tag(ithread,ienei) = msh.tag[ithread];
+
+        // Check if Delaunay 
+        bool isinsph;
+        if(tdim == 2){
+          if(msh.idim == 2){
+            isinsph = indelsphere<2,2>(msh, msh.coord[cav.ipins], metl_p, 
+                                       ent2poi[ienei]);
+          }else{
+            isinsph = indelsphere<3,2>(msh, msh.coord[cav.ipins], metl_p, 
+                                       ent2poi[ienei]);
+          }
+        }else{
+          isinsph = indelsphere<3,3>(msh, msh.coord[cav.ipins], metl_p, 
+                                     ent2poi[ienei]);
         }
-      }
-      
+        if(isinsph){
+          lcent.stack(ienei);
+          if(isube >= 0){
+            sub2tag(ithread,isube) = msh.tag[ithread];
+            lcsub.stack(isube);
+          }
+        }
+        
+      }// for j = 0,tdim
     }
+
   }
+
   return 0;
 }
 
 template int increase_cavity_Delaunay(MeshMetric<MetricFieldAnalytical> &msh, 
-                                      MshCavity &cav, int ithread);
+                                      MshCavity &cav, int ithread, double *nrmal);
 template int increase_cavity_Delaunay(MeshMetric<MetricFieldFE        > &msh, 
-                                      MshCavity &cav, int ithread);
+                                      MshCavity &cav, int ithread, double *nrmal);
 
 
 
@@ -559,6 +566,23 @@ template int increase_cavity_lenedg0<MetricFieldFE        ,3>(
 
 void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread){
   GETVDEPTH(msh);
+  for(int iedge : cav.lcedg){
+    int iref = msh.edg2ref[iedge];
+    METRIS_ASSERT(iref >= 0);
+    if(msh.ced2tag(ithread,iref) < msh.tag[ithread]){
+      CPRINTF1(" - ipins has edge ref %d \n",iref);
+    }
+    msh.ced2tag(ithread,iref) = msh.tag[ithread];
+  }
+  for(int iface : cav.lcfac){
+    int iref = msh.fac2ref[iface];
+    METRIS_ASSERT(iref >= 0);
+    if(msh.ced2tag(ithread,iref) < msh.tag[ithread]){
+      CPRINTF1(" - ipins has face ref %d \n",iref);
+    }
+    msh.cfa2tag(ithread,iref) = msh.tag[ithread];
+  }
+  #if 0
   for(int ibpoi = msh.poi2bpo[cav.ipins]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
     int bdim = msh.bpo2ibi(ibpoi,1);
     if(bdim == 0) continue;
@@ -579,6 +603,7 @@ void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread){
       msh.cfa2tag(ithread,iref) = msh.tag[ithread];
     }
   }
+  #endif
 }
 
 

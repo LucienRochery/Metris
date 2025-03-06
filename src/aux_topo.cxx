@@ -7,14 +7,14 @@
 
 #include "aux_topo.hxx"
 
-#include "aux_utils.hxx"
+#include "utils/aux_misc.hxx"
 #include "ho_constants.hxx"
 #include "aux_exceptions.hxx"
 #include "metris_constants.hxx"
 #include "Mesh/MeshBase.hxx"
 
 #include "types.hxx"
-#include "mprintf.hxx"
+#include "utils/mprintf.hxx"
 
 #include <boost/preprocessor/iteration/local.hpp>
 
@@ -288,8 +288,17 @@ void print_bpolist(MeshBase &msh, int ibpoi){
 template<int ideg,int tdim>
 void getbpois(const MeshBase &msh, int ientt, int *lbpoi){
 
+
+  for(int irnk = 0; irnk < getnnod1(ideg); irnk++){
+    int ipoin = tdim == 1 ? msh.edg2poi(ientt,irnk) : msh.fac2poi(ientt,irnk);
+    METRIS_ASSERT(ipoin >= 0 && ipoin < msh.npoin);
+    lbpoi[irnk] = msh.poi2ebp(ipoin, tdim, ientt, -1);
+    METRIS_ASSERT(lbpoi[irnk] >= 0);
+  }
+
+  #if 0
 	if constexpr(tdim == 1){
-		for(int irnk = 0; irnk < edgnpps[ideg]; irnk++){
+		for(int irnk = 0; irnk < getnnod1(ideg); irnk++){
 			int ipoin = msh.edg2poi(ientt,irnk);
 			assert(ipoin >= 0 && ipoin < msh.npoin);
 			int ibpo0 = msh.poi2bpo[ipoin];
@@ -313,7 +322,7 @@ void getbpois(const MeshBase &msh, int ientt, int *lbpoi){
 			lbpoi[irnk] = ibpoi;
 		}
 	}else{
-		for(int irnk = 0; irnk < facnpps[ideg]; irnk++){
+		for(int irnk = 0; irnk < getnnod2(ideg); irnk++){
 			int ipoin = msh.fac2poi(ientt,irnk);
 			assert(ipoin >= 0 && ipoin < msh.npoin);
 			int ibpo0 = msh.poi2bpo[ipoin];
@@ -339,6 +348,7 @@ void getbpois(const MeshBase &msh, int ientt, int *lbpoi){
 			lbpoi[irnk] = ibpoi;
 		}
 	}
+  #endif
 }
 // See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
 // Section A.4.1.2 Vertical Repetition
@@ -496,9 +506,9 @@ bool getnextedgnm(const MeshBase &msh, int iedg0, int ipoin,
 ////			#ifndef NDEBUG
 ////			if(iver < 0){
 ////				printf("## FAILED TO FIND VERTEX %d IN FACE %d =",ipoin,ientt);
-////				for(int ii = 0; ii < facnpps[ideg]; ii++){printf(" %d ",msh.fac2poi(ientt,ii));}
+////				for(int ii = 0; ii < getnnod2(ideg); ii++){printf(" %d ",msh.fac2poi(ientt,ii));}
 ////				printf("\n");
-////				printf("ideg = %d facnpps %d \n",ideg,facnpps[ideg]);
+////				printf("ideg = %d facnpps %d \n",ideg,getnnod2(ideg));
 ////			}
 ////			#endif
 ////			assert(iver >= 0);
@@ -537,16 +547,16 @@ void cpy_gloedg2facedg(MeshBase &msh, int iedge, int iface, int iedfa){
 
 	int ip1 = msh.fac2poi(iface,lnoed2[iedfa][0]);
 	int ip2 = msh.fac2poi(iface,lnoed2[iedfa][1]);
-	int irn0 = 3 + iedfa*(edgnpps[ideg] - 2);
+	int irn0 = 3 + iedfa*(getnnod1(ideg) - 2);
 	assert((ip1 == msh.edg2poi(iedge,0) && ip2 == msh.edg2poi(iedge,1)) 
 		||   (ip2 == msh.edg2poi(iedge,0) && ip1 == msh.edg2poi(iedge,1)) );
 	if(msh.edg2poi(iedge,0) == ip1){
-		for(int ii=0; ii < edgnpps[ideg]-2; ii++){
+		for(int ii=0; ii < getnnod1(ideg)-2; ii++){
 			msh.fac2poi[iface][irn0 + ii] = msh.edg2poi[iedge][2+ii];
 		}
 	}else{
-		for(int ii=0; ii < edgnpps[ideg]-2; ii++){
-			msh.fac2poi[iface][irn0 + ii] = msh.edg2poi[iedge][edgnpps[ideg]-1-ii];
+		for(int ii=0; ii < getnnod1(ideg)-2; ii++){
+			msh.fac2poi[iface][irn0 + ii] = msh.edg2poi[iedge][getnnod1(ideg)-1-ii];
 		}
 	}
 }
@@ -566,15 +576,15 @@ void cpy_facedg2facedg(MeshBase &msh, int ifac1, int iedf1, int ifac2, int iedf2
 	assert((ip1 == jp1 && ip2 == jp2) 
 		||   (ip2 == jp1 && ip1 == jp2) );
 
-	int irn2 = 3 + iedf2*(edgnpps[ideg] - 2);
+	int irn2 = 3 + iedf2*(getnnod1(ideg) - 2);
 	if(ip1 == jp1){
-		int irn1 = 3 + iedf1*(edgnpps[ideg] - 2);
-		for(int ii=0; ii < edgnpps[ideg]-2; ii++){
+		int irn1 = 3 + iedf1*(getnnod1(ideg) - 2);
+		for(int ii=0; ii < getnnod1(ideg)-2; ii++){
 			msh.fac2poi[ifac2][irn2 + ii] = msh.fac2poi[ifac1][irn1 + ii];
 		}
 	}else{
-		int irn1 = 3 + (iedf1+1)*(edgnpps[ideg] - 2) ;
-		for(int ii=0; ii < edgnpps[ideg]-2; ii++){
+		int irn1 = 3 + (iedf1+1)*(getnnod1(ideg) - 2) ;
+		for(int ii=0; ii < getnnod1(ideg)-2; ii++){
 			msh.fac2poi[ifac2][irn2 + ii] = msh.fac2poi[ifac1][irn1 - 1 - ii];
 		}
 	}
@@ -591,16 +601,16 @@ void cpy_gloedg2tetedg(MeshBase &msh, int iedge, int ielem, int iedel){
 
 	int ip1 = msh.tet2poi(ielem,lnoed3[iedel][0]);
 	int ip2 = msh.tet2poi(ielem,lnoed3[iedel][1]);
-	int irn0 = 4 + iedel*(edgnpps[ideg] - 2);
+	int irn0 = 4 + iedel*(getnnod1(ideg) - 2);
 	assert((ip1 == msh.edg2poi(iedge,0) && ip2 == msh.edg2poi(iedge,1)) 
 		||   (ip2 == msh.edg2poi(iedge,0) && ip1 == msh.edg2poi(iedge,1)) );
 	if(msh.edg2poi(iedge,0) == ip1){
-		for(int ii=0; ii < edgnpps[ideg]-2; ii++){
+		for(int ii=0; ii < getnnod1(ideg)-2; ii++){
 			msh.tet2poi[ielem][irn0 + ii] = msh.edg2poi[iedge][2+ii];
 		}
 	}else{
-		for(int ii=0; ii < edgnpps[ideg]-2; ii++){
-			msh.tet2poi[ielem][irn0 + ii] = msh.edg2poi[iedge][edgnpps[ideg]-1-ii];
+		for(int ii=0; ii < getnnod1(ideg)-2; ii++){
+			msh.tet2poi[ielem][irn0 + ii] = msh.edg2poi[iedge][getnnod1(ideg)-1-ii];
 		}
 	}
 }
@@ -619,15 +629,15 @@ void cpy_facedg2tetedg(MeshBase &msh, int iface, int iedfa, int ielem, int iedel
 	assert((ip1 == jp1 && ip2 == jp2) 
 		||   (ip2 == jp1 && ip1 == jp2) );
 
-	int irn2 = 4 + iedel*(edgnpps[ideg] - 2);
+	int irn2 = 4 + iedel*(getnnod1(ideg) - 2);
 	if(ip1 == jp1){
-		int irn1 = 3 + iedfa*(edgnpps[ideg] - 2);
-		for(int ii=0; ii < edgnpps[ideg]-2; ii++){
+		int irn1 = 3 + iedfa*(getnnod1(ideg) - 2);
+		for(int ii=0; ii < getnnod1(ideg)-2; ii++){
 			msh.tet2poi[ielem][irn2 + ii] = msh.fac2poi[iface][irn1 + ii];
 		}
 	}else{
-		int irn1 = 3 + (iedfa+1)*(edgnpps[ideg] - 2) ;
-		for(int ii=0; ii < edgnpps[ideg]-2; ii++){
+		int irn1 = 3 + (iedfa+1)*(getnnod1(ideg) - 2) ;
+		for(int ii=0; ii < getnnod1(ideg)-2; ii++){
 			msh.tet2poi[ielem][irn2 + ii] = msh.fac2poi[iface][irn1 - 1 - ii];
 		}
 	}
@@ -651,15 +661,15 @@ void cpy_tetedg2tetedg(MeshBase &msh, int iele1, int iede1, int iele2, int iede2
 	assert((ip1 == jp1 && ip2 == jp2) 
 		||   (ip2 == jp1 && ip1 == jp2) );
 
-	int irn2 = 4 + iede2*(edgnpps[ideg] - 2);
+	int irn2 = 4 + iede2*(getnnod1(ideg) - 2);
 	if(ip1 == jp1){
-		int irn1 = 4 + iede1*(edgnpps[ideg] - 2);
-		for(int ii=0; ii < edgnpps[ideg]-2; ii++){
+		int irn1 = 4 + iede1*(getnnod1(ideg) - 2);
+		for(int ii=0; ii < getnnod1(ideg)-2; ii++){
 			msh.tet2poi[iele2][irn2 + ii] = msh.tet2poi[iele1][irn1 + ii];
 		}
 	}else{
-		int irn1 = 4 + (iede1+1)*(edgnpps[ideg] - 2) ;
-		for(int ii=0; ii < edgnpps[ideg]-2; ii++){
+		int irn1 = 4 + (iede1+1)*(getnnod1(ideg) - 2) ;
+		for(int ii=0; ii < getnnod1(ideg)-2; ii++){
 			msh.tet2poi[iele2][irn2 + ii] = msh.tet2poi[iele1][irn1 - 1 - ii];
 		}
 	}
@@ -719,7 +729,7 @@ void cpy_glofac2tetfac(MeshBase &msh, int iface, int ielem, int ifael){
 	#endif
 
 	int idx_tet[4];
-  for(int irnk1 = 0;irnk1 < facnpps[ideg]; irnk1++){
+  for(int irnk1 = 0;irnk1 < getnnod2(ideg); irnk1++){
    idx_tet[ifael] = 0; // The opposite vertex gets 0
    idx_tet[lnofa3[ifael][perm[0]]] = ordfac.s[ideg][irnk1][0];
    idx_tet[lnofa3[ifael][perm[1]]] = ordfac.s[ideg][irnk1][1];
@@ -770,7 +780,7 @@ void cpy_tetfac2tetfac(MeshBase &msh, int iele1, int ifae1, int iele2, int ifae2
 
 	int idx_tet1[4];
 	int idx_tet2[4];
-  for(int irnk1 = 0;irnk1 < facnpps[ideg]; irnk1++){
+  for(int irnk1 = 0;irnk1 < getnnod2(ideg); irnk1++){
    idx_tet1[ifae1] = 0; // The opposite vertex gets 0
    idx_tet2[ifae2] = 0; // The opposite vertex gets 0
    for(int i = 0; i<3 ;i++){

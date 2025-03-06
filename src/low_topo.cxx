@@ -520,11 +520,9 @@ int ball2(MeshBase& __restrict__ msh,
 // = boundary shell element otherwise
 void shell3(const MeshBase& msh,
 	          int ipoi1, int ipoi2, int iele0, 
-        	  int* __restrict__ nshell,
-        	  intAr1&           lshell,
-        	  int* __restrict__ iopen){
+        	  intAr1& lshell, int* iopen){
 
-	assert("Input iele0 within bounds" && iele0 >= 0 && iele0 < msh.nelem);
+	METRIS_ASSERT_MSG(iele0 >= 0 && iele0 < msh.nelem, "Input iele0 within bounds");
 
 	*iopen = -1;
 
@@ -533,8 +531,9 @@ void shell3(const MeshBase& msh,
 	getedgtet(msh,iele0,ipoi1,ipoi2);
 	#endif
 
-	lshell[0] = iele0;
-	*nshell = 1;
+  lshell.allocate(10);
+  lshell.set_n(0);
+  lshell.stack(iele0);
 
 //	printf("Ok so far \n");fflush(stdout);
 
@@ -550,9 +549,7 @@ void shell3(const MeshBase& msh,
 		// Unroll shell from either side untill hitting iele0 or boundary.
 		// If iele0 hit, shell finished. Otherwise, repeat with second face. 
 		while(iele2 > -1 && iele2 != iele0){
-			if(*nshell >= lshell.size1()) METRIS_THROW(SMemExcept());
-			lshell[*nshell] = iele2;
-			(*nshell)++; 
+      lshell.stack(iele2);
 
 //			printf("stack %d at %d \n",iele2,(*nshell)-1);fflush(stdout);
 			for(int ifa2 = 0; ifa2 < 4; ifa2++){

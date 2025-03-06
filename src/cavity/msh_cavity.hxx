@@ -51,7 +51,11 @@ public:
 		//lctet = lcfac = lcedg = NULL;
 	}
   MshCavity(int mctet_, int mcfac_, int mcedg_) 
-    : lctet(mctet_), lcfac(mcfac_), lcedg(mcedg_) {}
+    : lctet(mctet_), lcfac(mcfac_), lcedg(mcedg_) {
+      lctet.set_n(0);
+      lcfac.set_n(0);
+      lcedg.set_n(0);
+    }
   
   #if 0
 	MshCavity(int mctet_, int mcfac_, int mcedg_, 

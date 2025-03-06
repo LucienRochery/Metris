@@ -13,7 +13,7 @@
 #include "../aux_exceptions.hxx"
 #include "../metris_constants.hxx"
 #include "../ho_constants.hxx"
-#include "../CT_loop.hxx"
+#include "../utils/CT_loop.hxx"
 #include "../msh_lag2bez.hxx"
 
 namespace Metris{
@@ -68,11 +68,11 @@ int MeshBase::mentt(int tdimn) const {
 int MeshBase::nnode(int tdimn) const {
   switch(tdimn){
   case(1):
-    return edgnpps[curdeg];
+    return getnnod1(curdeg);
   case(2):
-    return facnpps[curdeg];
+    return getnnod2(curdeg);
   case(3):
-    return tetnpps[curdeg];
+    return getnnod3(curdeg);
   default:
     METRIS_THROW_MSG(WArgExcept(),"tdimn not in range = "<<tdimn);
   }
@@ -295,13 +295,13 @@ void MeshBase::setMpoiToMent(){
     _melem = 0;
     _mface = (int) (avgVertPpoi * mpoin * Constants::facpver2);
     _medge = (int) (Constants::memfitCoeff12*pow(mpoin*avgVertPpoi,1.0/2.0));
-    _mbpoi = edgnpps[strdeg]*_medge;
+    _mbpoi = getnnod1(strdeg)*_medge;
   }else if(idim == 3){
     double avgVertPpoi = Constants::verppoi3[strdeg];
     _melem = (int) (avgVertPpoi * mpoin * Constants::tetpver3);
     _mface = (int) (Constants::memfitCoeff23*pow(mpoin*avgVertPpoi,2.0/3.0));
     _medge = (int) (Constants::memfitCoeff13*pow(mpoin*avgVertPpoi,1.0/3.0));
-    _mbpoi = facnpps[strdeg]*_mface; 
+    _mbpoi = getnnod2(strdeg)*_mface; 
   }else{
     METRIS_THROW(WArgExcept());
   }
@@ -346,15 +346,15 @@ MeshBase& MeshBase::operator=(const MeshBase &inp){
   if(inp.nelem > 0) inp.tet2ftg.copyTo(tet2ftg,inp.nelem);
 
   for(int iedge = 0; iedge < inp.nedge; iedge++){
-    for(int i = 0; i < edgnpps[curdeg]; i++)
+    for(int i = 0; i < getnnod1(curdeg); i++)
       edg2poi(iedge,i) = inp.edg2poi(iedge,i);
   }
   for(int iface = 0; iface < inp.nface; iface++){
-    for(int i = 0; i < facnpps[curdeg]; i++)
+    for(int i = 0; i < getnnod2(curdeg); i++)
       fac2poi(iface,i) = inp.fac2poi(iface,i);
   }
   for(int ielem = 0; ielem < inp.nelem; ielem++){
-    for(int i = 0; i < tetnpps[curdeg]; i++)
+    for(int i = 0; i < getnnod3(curdeg); i++)
       tet2poi(ielem,i) = inp.tet2poi(ielem,i);
   }
 
@@ -459,7 +459,7 @@ void MeshBase::set_nedge(int nedge, bool skipallocf){
 
   if(skipallocf) return;
 
-  edg2poi.allocate(medge, edgnpps[strdeg]); 
+  edg2poi.allocate(medge, getnnod1(strdeg)); 
   edg2poi.set_n(nedge); 
 
   edg2ref.allocate(medge);
@@ -487,7 +487,7 @@ void MeshBase::set_nface(int nface, bool skipallocf){
 
   if(skipallocf) return; 
 
-  fac2poi.allocate(mface, facnpps[strdeg]);
+  fac2poi.allocate(mface, getnnod2(strdeg));
   fac2poi.set_n(nface);
 
   fac2ref.allocate(mface);
@@ -515,7 +515,7 @@ void MeshBase::set_nelem(int nelem, bool skipallocf){
 
   if(skipallocf) return;
 
-  tet2poi.allocate(melem, tetnpps[strdeg]);
+  tet2poi.allocate(melem, getnnod3(strdeg));
   tet2poi.set_n(nelem);
 
   tet2ref.allocate(melem);

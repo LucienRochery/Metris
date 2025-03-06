@@ -30,6 +30,8 @@ enum class FEBasis;
 	#endif
 #endif
 
+
+
 // 
 // Symmetric matrix indices: 0 1 3
 //                             2 4
@@ -54,16 +56,6 @@ template<typename T=double>
 T det2_vdif(const T* x1,const T* x2, 
             const T* y1,const T* y2);
 
-template <typename T=double>
-T* vdiff(const T* a, const T* b);
-
-template <typename T=double>
-T* vproduct(const T* a, const T* b);
-
-template <typename T=double>
-T* vdiff_perp(const T* a, const T* b);
-
-
 double det3_vdif(const double* x1,const double* x2
 								,const double* y1,const double* y2
 								,const double* z1,const double* z2);
@@ -78,6 +70,7 @@ double det2_vdif(const double* x1,const double* x2
 //  METRIS_THROW_MSG(TODOExcept(),"Reimplement ccoef3_d");
 //}
 
+void vdiff_perp(const double* a, const double* b, double *res);
 void vdiff_perp(const double* a, const double* b, int up, int lo, double *res);
 void vdiff_perp_sum(const double* a, const double* b, int up, int lo, double *res);
 

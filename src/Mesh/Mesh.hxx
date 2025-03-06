@@ -9,16 +9,13 @@
 #define __METRIS_MESH__
 
 #include "../types.hxx"
-#include "../Mesh/MeshBack.hxx"
+#include "../MetricField/MetricField.hxx"
+#include "MeshMetric.hxx"
+#include "MeshBack.hxx"
 
 
 //template<class MetricFieldType> class MetrisRunner<MetricFieldType>;
 namespace Metris{
-
-class MeshBack;
-
-template<class T>
-class Mesh;
 
 
 template<class MetricFieldType>

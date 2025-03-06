@@ -13,10 +13,10 @@
 #include "../low_lenedg.hxx"
 #include "../msh_structs.hxx"
 #include "../low_geo.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/aux_misc.hxx"
 #include "../msh_checktopo.hxx"
 #include "../aux_topo.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 #include "../io_libmeshb.hxx"
 #include "../adapt/low_increasecav.hxx"
 #include "../cavity/msh_cavity.hxx"
@@ -31,8 +31,15 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
   if(!msh.CAD()) return;
 
 
-  //adaptGeoLines2<MFT>(msh,ithrd1,ithrd2);
-  //return;
+  if(msh.idim == 3){
+    CPRINTF1("~~ EXPERIMENTAL: call to adaptGeoLines2 in 3D\n");
+    adaptGeoLines2<MFT>(msh,ithrd1,ithrd2);
+    if(msh.param->interactive){
+      printf("## DEBUG WAIT HERE \n");
+      wait();
+    }
+    return; 
+  }
 
 
 
@@ -344,6 +351,8 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
         int irnge = -1;
         double drnge = abs(range[1] - range[0]);
         for(int ii = 0; ii < 2; ii++){
+          CPRINTF1("   - corner t %23.16e range[%d] = %23.16e\n",
+                   msh.bpo2rbi(ibcr0,0), ii, range[ii]);
           if(abs(range[ii] - msh.bpo2rbi(ibcr0,0)) < 1.0e-6 * drnge) irnge = ii;
         }
         METRIS_ENFORCE_MSG(irnge != -1,"## CORNERS IN MESH HAVE WRONG CAD EDGE "
@@ -425,9 +434,14 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
           // Proceed to insertion We have our ipins, edge cavity also. Now extend
           // triangle cavity from edg2fac seeds
-          ierro = increase_cavity_Delaunay(msh, cav, ithrd1);
-          if(ierro != 0) goto cleanup1;
 
+          if(msh.idim >= 3 && iface >= 0){
+            getnorfacP1(msh.fac2poi[iface],msh.coord,nrmal);
+            cav.nrmal = nrmal;
+          }
+          ierro = increase_cavity_Delaunay(msh, cav, ithrd1, nrmal);
+          if(ierro != 0) goto cleanup1;
+ 
           ierro = increase_cavity2D(msh,cav,ithrd1);
           if(ierro != 0) goto cleanup1;
 
@@ -484,35 +498,6 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
           }
           
-
-          if(msh.idim >= 3 && iface >= 0){
-            getnorfacP1(msh.fac2poi[iface],msh.coord,nrmal);
-            cav.nrmal = nrmal;
-
-            #if 0
-            printf("## DEBUG computed getnorfacP1 ");
-            dblAr1(3,nrmal).print();
-            getnorballref<1>(msh,cav.lcfac,-1,nrmal);
-            printf("## DEBUG computed getnorpoi ");
-            dblAr1(3,nrmal).print();
-
-            if(msh.nface >= 555){
-              int ibpoi = msh.poi2ebp(msh.fac2poi(554,0),2,554,-1);
-              printf("## DEBUG USING IFACE 554 VERTEX %d \n",msh.fac2poi(554,0));
-
-              //for(int ibpoi = msh.poi2bpo[cav.ipins]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
-              //  printf(" %d : ");
-              //  intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
-              //}
-              getnorpoiCAD2(msh,ibpoi,nrmal);
-              printf("## DEBUG computed getnorpoiCAD2 ");
-              dblAr1(3,nrmal).print();
-
-              bool iflat;
-              getmeasentP1<3,2>(msh, msh.fac2poi[554], nrmal, &iflat);
-            }
-            #endif
-          }
 
           // If insertion fails, try inserting a Steiner point 
           // First insertion is regular. 
@@ -919,7 +904,6 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
   double sz[2];
 
   intAr1 ref2ned(nref);
-  ref2ned.set_n(nref);
   ref2ned.fill(0);
   for(int iedge = 0; iedge < msh.nedge; iedge++){
     int iref = msh.edg2ref[iedge];
@@ -934,7 +918,6 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
   // We also will need a copy, so the normalization doesn't depend on the 
   // tolerance or otherwise execution. 
   dblAr1 crv_len0(nref);
-  crv_len0.set_n(nref);
   crv_len0.fill(0);
   for(int iedge = 0; iedge < msh.nedge; iedge++){
     if(isdeadent(iedge,msh.edg2poi)) continue;

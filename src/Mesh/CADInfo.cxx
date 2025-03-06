@@ -7,8 +7,8 @@
 #include "../MetrisRunner/MetrisParameters.hxx" 
 #include "../Mesh/MeshBase.hxx"
 #include "../Boundary/msh_inisurf.hxx"
-#include "../aux_utils.hxx"
-#include "../mprintf.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../utils/mprintf.hxx"
 #include "../io_libmeshb.hxx"
 
 namespace Metris{

@@ -152,7 +152,7 @@ double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
   intAr2 &ent2poi = tdimn == 1 ? msh.edg2poi : 
                     tdimn == 2 ? msh.fac2poi : msh.tet2poi;
 
-  int edg2pol[edgnpps[ideg]];
+  int edg2pol[getnnod1(ideg)];
 
   edg2pol[0] = ent2poi(ientt,lnoed[iedg][0]);
   edg2pol[1] = ent2poi(ientt,lnoed[iedg][1]);
@@ -292,7 +292,7 @@ double getlenedg_quad(MeshMetric<MetricFieldType> &msh,
   intAr2 &ent2poi = tdimn == 1 ? msh.edg2poi : 
                     tdimn == 2 ? msh.fac2poi : msh.tet2poi;
 
-  int edg2pol[edgnpps[ideg]];
+  int edg2pol[getnnod1(ideg)];
   edg2pol[0] = ent2poi(ientt,lnoed[iedg][0]);
   edg2pol[1] = ent2poi(ientt,lnoed[iedg][1]);
   int idx0 = tdimn + 1 + iedg*(ideg-1);

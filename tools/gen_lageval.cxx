@@ -407,14 +407,14 @@ void gen_lageval_alldim(){
   str2 << GiNaC::csrc;
   str1 << GiNaC::csrc;
 
-  GiNaC::ex eval[tetnpps[max_eval_deg]];
-  GiNaC::ex dlag[tetnpps[max_eval_deg]][3], d2lag[tetnpps[max_eval_deg]][6];
+  GiNaC::ex eval[getnnod3(max_eval_deg)];
+  GiNaC::ex dlag[getnnod3(max_eval_deg)][3], d2lag[getnnod3(max_eval_deg)][6];
   
  	// ---------------------- Tetras
   for(int ideg = 1; ideg <= max_eval_deg; ideg++){
     printf("Tetrahedra degree %d\n",ideg);
 
-    for(int ifunc = 0; ifunc < tetnpps[ideg]; ifunc++){
+    for(int ifunc = 0; ifunc < getnnod3(ideg); ifunc++){
       eval_lagrange3_symb(ordtet.s[ideg][ifunc][0],ordtet.s[ideg][ifunc][1],
                           ordtet.s[ideg][ifunc][2],ordtet.s[ideg][ifunc][3],
                           eval[ifunc], dlag[ifunc], d2lag[ifunc]);	
@@ -432,7 +432,7 @@ void gen_lageval_alldim(){
 
     str3 << "  for(int j=0; j < szfld; j++){\n";
     str3 << "    eval[j] = rfld[lfld[0]][j]*("<<eval[0]<<")";
-    for(int i = 1; i < tetnpps[ideg]; i++){
+    for(int i = 1; i < getnnod3(ideg); i++){
       str3 << "\n            + rfld[lfld["+std::to_string(i)+"]][j]*("<<
       eval[i]<<")";
     }
@@ -445,7 +445,7 @@ void gen_lageval_alldim(){
     for(int ider = 0; ider < 3; ider ++){
       ifirst = 1;
       str3 << "    for(int j=0; j < szfld; j++){\n";
-      for(int i = 0; i < tetnpps[ideg]; i++){
+      for(int i = 0; i < getnnod3(ideg); i++){
         if(dlag[i][ider] != 0){
           if(ifirst == 1){
             ifirst = 0;
@@ -466,7 +466,7 @@ void gen_lageval_alldim(){
       for(int ider = 0; ider < 6; ider ++){
         ifirst = 1;
         str3 << "    for(int j=0; j < szfld; j++){\n";
-        for(int i = 0; i < tetnpps[ideg]; i++){
+        for(int i = 0; i < getnnod3(ideg); i++){
           if(d2lag[i][ider] != 0){
             if(ifirst == 1){
               ifirst = 0;
@@ -499,7 +499,7 @@ void gen_lageval_alldim(){
     printf("Triangles degree %d\n",ideg);
 
 
-    for(int ifunc = 0; ifunc < facnpps[ideg]; ifunc++){
+    for(int ifunc = 0; ifunc < getnnod2(ideg); ifunc++){
       eval_lagrange2_symb(ordfac.s[ideg][ifunc][0],ordfac.s[ideg][ifunc][1],
                           ordfac.s[ideg][ifunc][2],
                           eval[ifunc], dlag[ifunc]);	
@@ -515,7 +515,7 @@ void gen_lageval_alldim(){
 
     str2 << "  for(int j=0; j < szfld; j++){\n";
     str2 << "    eval[j] = rfld[lfld[0]][j]*("<<eval[0]<<")";
-    for(int i = 1; i < facnpps[ideg]; i++){
+    for(int i = 1; i < getnnod2(ideg); i++){
      str2 << "\n            + rfld[lfld["+std::to_string(i)+"]][j]*("<<
            eval[i]<<")";
    }
@@ -530,7 +530,7 @@ void gen_lageval_alldim(){
 
     ifirst = 1;
     str2 << "  for(int j=0; j < szfld; j++){\n";
-    for(int i = 0; i < facnpps[ideg]; i++){
+    for(int i = 0; i < getnnod2(ideg); i++){
       if(dlag[i][ider] != 0){
         if(ifirst == 1){
           ifirst = 0;
@@ -551,7 +551,7 @@ void gen_lageval_alldim(){
     printf("Edges degree %d\n",ideg);
 
 
-    for(int ifunc = 0; ifunc < edgnpps[ideg]; ifunc++){
+    for(int ifunc = 0; ifunc < getnnod1(ideg); ifunc++){
       eval_lagrange1_symb(ordedg.s[ideg][ifunc][0],ordedg.s[ideg][ifunc][1],
                           eval[ifunc], dlag[ifunc]);	
     }
@@ -566,7 +566,7 @@ void gen_lageval_alldim(){
 
     str1 << "  for(int j=0; j < szfld; j++){\n";
     str1 << "    eval[j] = rfld[lfld[0]][j]*("<<eval[0]<<")";
-    for(int i = 1; i < edgnpps[ideg]; i++){
+    for(int i = 1; i < getnnod1(ideg); i++){
       str1 << "\n            + rfld[lfld["+std::to_string(i)+"]][j]*("<<
         eval[i]<<")";
     }
@@ -581,7 +581,7 @@ void gen_lageval_alldim(){
 
       ifirst = 1;
       str1 << "  for(int j=0; j < szfld; j++){\n";
-      for(int i = 0; i < edgnpps[ideg]; i++){
+      for(int i = 0; i < getnnod1(ideg); i++){
         if(dlag[i][ider] != 0){
           if(ifirst == 1){
             ifirst = 0;

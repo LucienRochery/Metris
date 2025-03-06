@@ -8,8 +8,13 @@
 #define __GEN_CCOEF__
 
 #include <string>
+#include <map>
+
+#include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
 void simpfrac(int x, int y, int *xs, int *ys);
+void insert_map2(std::map<std::pair<int, int>, std::vector<SANS::DLA::VectorS<4, int>>> &d_ccoef_map,
+            std::pair<int,int> &key, int up, int lo, int irnk1, int irnk2);
 
 void gen_ccoef();
 //void eval_lag_func(const int* idx,
@@ -17,18 +22,18 @@ void gen_ccoef();
 void gen_lageval();
 void gen_lageval_alldim();
 
-void gen_ccoeff3();
-void gen_ccoeff2();
+void gen_ccoef3();
+void gen_ccoef2();
 
-void gen_ccoeff2_d();
-void getccoef2_map_coord(int ideg);
+void gen_ccoef2_d_coord();
+void gen_ccoef2_d_coord0(int ideg);
 
+void gen_ccoef3_d_coord();
+void gen_ccoef3_d_coord0(int ideg);
 
 void gen_ccoef2_d_pt();
-void get_point_derivatives(int ideg);
+void gen_ccoef2_d_pt0(int ideg);
 
-void gen_ccoef3_d();
-void get_ccoeff3d(int ideg);
 
 
 #endif

@@ -642,7 +642,7 @@ eval3 refers to tetrahedra
 //struct bernstein_eval3_uninodes_constructor{
 //	constexpr bernstein_eval_uninodes_constructor() : s(){
 //		for(int ideg = 0;ideg <= METRIS_MAX_DEG; ideg++){
-//			for(int inode = 0;inode < tetnpps[ideg]; inode++){
+//			for(int inode = 0;inode < getnnod3(ideg); inode++){
 //				double bary[4] = {ordtet.s[ideg][inode]/(1.0*ideg),
 //													ordtet.s[ideg][inode]/(1.0*ideg),
 //    											ordtet.s[ideg][inode]/(1.0*ideg),
@@ -653,8 +653,8 @@ eval3 refers to tetrahedra
 //			}
 //		}
 //	}
-//	double eval[1+METRIS_MAX_DEG][tetnpps[METRIS_MAX_DEG]];
-//	double jmat[1+METRIS_MAX_DEG][tetnpps[METRIS_MAX_DEG]];
+//	double eval[1+METRIS_MAX_DEG][getnnod3(METRIS_MAX_DEG)];
+//	double jmat[1+METRIS_MAX_DEG][getnnod3(METRIS_MAX_DEG)];
 //}
 //
 } // End namespace

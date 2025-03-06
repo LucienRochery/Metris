@@ -13,11 +13,11 @@
 #include "../metris_constants.hxx"
 #include "../ho_constants.hxx"
 #include "../libs/libmeshb.hxx"
-#include "../aux_utils.hxx"
-#include "../CT_loop.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../utils/CT_loop.hxx"
 #include "../aux_topo.hxx"
-#include "../aux_timer.hxx"
-#include "../mprintf.hxx"
+#include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
 #include "../low_geo.hxx"
 #include "../msh_inineigh.hxx"
 #include "../msh_checktopo.hxx"
@@ -421,7 +421,9 @@ void MeshBase::readConstants(int64_t libIdx, int usrMinDeg){
     int i2 = GmfStatKwd(libIdx, libmeshb::faceKwds[iDeg]);
     int i3 = GmfStatKwd(libIdx, libmeshb::elemKwds[iDeg]);
     if(i1 > 0 || i2 > 0 || i3 > 0){
-      METRIS_ENFORCE(iDeg <= METRIS_MAX_DEG);
+      METRIS_ENFORCE_MSG(iDeg <= METRIS_MAX_DEG, 
+        "readConstants iDeg = "<<iDeg<< " > METRIS_MAX_DEG have P3: "<<i1<< " edges " 
+        <<i2<< " faces "<<i3<< " tetras ");
       if(param->iverb >= 1) std::cout<<"-- Mesh of degree "<<iDeg<<std::endl;
 
       // Degree used for storage. User wants usrMinDeg and up to METRIS_MAX_DEG if the mesh file expects more. 
@@ -535,7 +537,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   Point refs in file relate to corners. 
   The following is an upper bound that can never be exceeded:
   */
-  //int nbpo_guess = edgnpps[strdeg]*nedge + facnpps[strdeg]*nface;
+  //int nbpo_guess = getnnod1(strdeg)*nedge + getnnod2(strdeg)*nface;
   for(int i = 0; i < nbpoi; i++){
     bpo2ibi(i,0) = -1;
     bpo2ibi(i,3) = -1;
@@ -635,7 +637,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       int eKwd = libmeshb::elemKwds[ideg];
   
   
-      constexpr int nppe = tetnpps[ideg];
+      constexpr int nppe = getnnod3(ideg);
   
       GmfGotoKwd( libIdx, eKwd );
   
@@ -667,11 +669,11 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   
     for(int i = 0; i< nelem;i++){
       tet2ref[i] -= 1;
-      for(int j = 0; j < tetnpps[curdeg]; j++){
+      for(int j = 0; j < getnnod3(curdeg); j++){
         tet2poi(i,j) -= 1;
       }
       if(isdeadent(i,tet2poi)) continue;
-      for(int j = 0; j < tetnpps[curdeg]; j++){
+      for(int j = 0; j < getnnod3(curdeg); j++){
         poi2ent[tet2poi(i,j)][0] = i ;
         poi2ent[tet2poi(i,j)][1] = 3 ;
       }
@@ -720,7 +722,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       int fKwd = libmeshb::faceKwds[ideg];
   
   
-      constexpr int nppf = facnpps[ideg];
+      constexpr int nppf = getnnod2(ideg);
   
       GmfGotoKwd( libIdx, fKwd );
   
@@ -752,13 +754,13 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
     
     for(int i = 0; i < nface;i++){
       fac2ref[i] -= 1;
-      for(int j = 0; j < facnpps[curdeg]; j++){
+      for(int j = 0; j < getnnod2(curdeg); j++){
         fac2poi(i,j) -= 1;
       }
       if(fac2ref[i] < 0) redorefs[2] = true; 
 
       if(isdeadent(i,fac2poi)) continue;
-      for(int jj = 0; jj < facnpps[curdeg]; jj++){
+      for(int jj = 0; jj < getnnod2(curdeg); jj++){
         poi2ent[fac2poi(i,jj)][0] = i;
         poi2ent[fac2poi(i,jj)][1] = 2;
       }
@@ -799,7 +801,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       int fKwd = libmeshb::edgeKwds[ideg];
   
   
-      constexpr int npp = edgnpps[ideg];
+      constexpr int npp = getnnod1(ideg);
   
       GmfGotoKwd( libIdx, fKwd );
   
@@ -831,12 +833,12 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
 
     for(int i = 0; i < nedge; i++){
       edg2ref[i] -= 1;
-      for(int j = 0; j < edgnpps[curdeg]; j++){
+      for(int j = 0; j < getnnod1(curdeg); j++){
         edg2poi(i,j) -= 1;
       }
       if(edg2ref[i] < 0) redorefs[1] = true; 
       if(isdeadent(i,edg2poi)) continue;
-      for(int j = 0; j < edgnpps[curdeg]; j++){
+      for(int j = 0; j < getnnod1(curdeg); j++){
         poi2ent[edg2poi(i,j)][0] = i;
         poi2ent[edg2poi(i,j)][1] = 1;
       }
@@ -941,8 +943,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       //                  <<param->refineConventionsInp)
 
       if(!param->refineConventionsInp && isdeadent(iedge,edg2poi)){
-        if(nwarn++ < mwarn) 
-          printf("## FILE CONTAINS IBPOS POINTING TO DEAD ENTITIES\n");
+        if(nwarn++ < mwarn){
+          CPRINTF1("## FILE CONTAINS IBPOS POINTING TO DEAD ENTITIES\n");
+        }
         continue;
       }
 
@@ -1026,7 +1029,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       int iface = param->refineConventionsInp ? -lgpof(igpof,1) 
                                               : (lgpof(igpof,1) - 1);
       if(!param->refineConventionsInp && isdeadent(iface,fac2poi)){
-        if(nwarn++ < mwarn) printf("## FILE CONTAINS IBPOS POINTING TO DEAD ENTITIES\n");
+        if(nwarn++ < mwarn){
+          CPRINTF1("## FILE CONTAINS IBPOS POINTING TO DEAD ENTITIES\n");
+        }
         continue;
       }
 
@@ -1069,6 +1074,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
 
 
 void MeshBase::readMeshData(MetrisAPI &data){
+  GETVDEPTH((*this));
+
   ibasis = data.mshbasis;
   METRIS_ASSERT(ibasis == FEBasis::Lagrange || ibasis == FEBasis::Bezier);
 
@@ -1121,7 +1128,9 @@ void MeshBase::readMeshData(MetrisAPI &data){
     if(ipoin < 0 || ipoin >= npoin) continue;
     int iedge = data.lgpoe[igpoe][1];
     if(isdeadent(iedge,edg2poi)){
-      if(nwarn++ < mwarn) printf("## FILE CONTAINS IBPOS POINTING TO DEAD EDGES");
+      if(nwarn++ < mwarn){
+        CPRINTF1("## FILE CONTAINS IBPOS POINTING TO DEAD EDGES");
+      }
       continue;
     }
     int ibpon = newbpotopo(ipoin,1,iedge);
@@ -1138,7 +1147,9 @@ void MeshBase::readMeshData(MetrisAPI &data){
     if(ipoin < 0 || ipoin >= npoin) continue;
     int iface = data.lgpof[igpof][1];
     if(isdeadent(iface,fac2poi)){
-      if(nwarn++ < mwarn) printf("## FILE CONTAINS IBPOS POINTING TO DEAD TRIANGLES");
+      if(nwarn++ < mwarn){
+        CPRINTF1("## FILE CONTAINS IBPOS POINTING TO DEAD TRIANGLES");
+      }
       continue;
     }
     int ibpon = newbpotopo(ipoin,2,iface);
@@ -1152,7 +1163,7 @@ void MeshBase::readMeshData(MetrisAPI &data){
 
 
   int nnode;
-  nnode = tetnpps[curdeg];
+  nnode = getnnod3(curdeg);
   for(int ielem = 0; ielem < nelem; ielem++){
     //for(int ii = 0; ii < nnode; ii++){
     //  tet2poi(ielem,ii) = data.tet2poi(ielem,ii);
@@ -1165,7 +1176,7 @@ void MeshBase::readMeshData(MetrisAPI &data){
     }
   }
 
-  nnode = facnpps[curdeg];
+  nnode = getnnod2(curdeg);
   for(int iface = 0; iface < nface; iface++){
     //for(int ii = 0; ii < nnode; ii++){
     //  fac2poi(iface,ii) = data.fac2poi(iface,ii);
@@ -1178,7 +1189,7 @@ void MeshBase::readMeshData(MetrisAPI &data){
     }
   }
 
-  nnode = edgnpps[curdeg];
+  nnode = getnnod1(curdeg);
   for(int iedge = 0; iedge < nedge; iedge++){
     //for(int ii = 0; ii < nnode; ii++){
     //  edg2poi(iedge,ii) = data.edg2poi(iedge,ii);

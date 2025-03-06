@@ -16,10 +16,11 @@
 #include "../LPopt/msh_maxccoef.hxx"
 #include "../low_ccoef.hxx"
 #include "../BezierOffsets/msh_curve_offsets.hxx"
-#include "../aux_utils.hxx"
-#include "../aux_timer.hxx"
-#include "../mprintf.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
 
+#include "../SolutionField/SolutionField.hxx"
 #include "../Localization/msh_localization.hxx"
 
 #include "../io_libmeshb.hxx"
@@ -84,18 +85,18 @@ void MetrisRunner::degElevate0(){
   if(DOPRINTS2()) writeMesh("interpBack",msh);
   if(DOPRINTS2()) msh.met.writeMetricFile("interpBack");
 
-
+  if(param->curveType == 0) return;
 
 
   int tdim = msh.get_tdim();
   int nentt = msh.nentt(tdim);
   const intAr2& ent2poi = msh.ent2poi(tdim);
   int jdeg = tdim * (msh.curdeg - 1);
-  int ncoef = tdim == 2 ? facnpps[jdeg]
-                        : tetnpps[jdeg];
-  int nnode = tdim == 2 ? facnpps[msh.curdeg]
-                        : tetnpps[msh.curdeg];
-  double ccoef[tetnpps[3*(METRIS_MAX_DEG-1)]];
+  int ncoef = tdim == 2 ? getnnod2(jdeg)
+                        : getnnod3(jdeg);
+  int nnode = tdim == 2 ? getnnod2(msh.curdeg)
+                        : getnnod3(msh.curdeg);
+  double ccoef[getnnod3(3*(METRIS_MAX_DEG-1))];
 
 
   #if 0
@@ -430,16 +431,27 @@ void MetrisRunner::writeOutputs0(){
     auto pos = param_.outmFileName.find(".mesh");
     if(pos == std::string::npos){
       baseOutName = param_.outmFileName;
-      effMeshFileName = param_.outmFileName + ".meshb";
+      effMeshFileName = baseOutName + ".meshb";
       effMetFileName = baseOutName + ".solb";
     }else{
-      effMeshFileName = param_.outmFileName;
       baseOutName = param_.outmFileName.substr(0,pos);
+      effMeshFileName = param_.outmFileName;
       effMetFileName = baseOutName + ".solb";
     }
     writeMesh(effMeshFileName, msh, param->main_in_prefix);
     msh.met.writeMetricFile(effMetFileName, param->main_in_prefix);
-  }// End sequential
+
+    if(param->anaSol){
+      SolutionFieldAnalytical sol(msh);
+      sol.setAnalyticalSolution(param->ianasol);
+      std::string anaSolName = baseOutName + ".fld.solb";
+      dblAr1 rfld(msh.npoin);
+      for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
+        rfld[ipoin] = sol.anasol(NULL, msh.coord[ipoin], {});
+      }
+      writeField(anaSolName, msh, SolTyp::CG, rfld, 1);
+    }
+  }
 }
 template void MetrisRunner::writeOutputs0<MetricFieldFE>();
 template void MetrisRunner::writeOutputs0<MetricFieldAnalytical>();

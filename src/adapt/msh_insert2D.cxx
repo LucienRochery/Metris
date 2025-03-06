@@ -9,8 +9,8 @@
 
 #include "../low_lenedg.hxx"
 #include "../aux_topo.hxx"
-#include "../aux_timer.hxx"
-#include "../mprintf.hxx"
+#include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
 #include "../cavity/msh_cavity.hxx"
 #include "../adapt/msh_swap2D.hxx"
 #include "../BezierOffsets/low_gaps.hxx"
@@ -36,7 +36,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
   bool imovmet = true; 
   bool imovavg = true;
-  bool type2 = false;
+  //bool type2 = false;
 
   // Swap norm -1: length-based. 
   //swapOptions swapOpt(100, -1, 0.0);
@@ -56,7 +56,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
   CPRINTF2(" - Note: improve by generating several points per edge. Generated but not used cf loop nn/2 \n");
   CPRINTF2(" - Note: improve by filtering point propositions \n");
   #endif
-  int edg2pol[edgnpps[ideg]];
+  int edg2pol[getnnod1(ideg)];
 
 
 //  int npins = 0;
@@ -88,11 +88,9 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
   const int mcaverr = CAV_ERR_NERROR;
   intAr1 lcaverr(mcaverr);
-  lcaverr.set_n(mcaverr);
 
   const int minserr = 100;
   intAr1 linserr(minserr);
-  linserr.set_n(minserr);
 
   const int miter1 = 30, miter2 = 30;
 
@@ -113,7 +111,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
   CavWrkArrs work;
 
   do{
-    GETVDEPTH(msh);
+    INCVDEPTH(msh);
     ninser1 = 0;
 
     msh.cleanup();
@@ -153,7 +151,6 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
         for(int ied = 0; ied < nedgl; ied++){
           nedgt++;
 
-          // Pretty accurate!
           double sz[2];
           double len = getlenedg_geosz<MFT,gdim,ideg>(msh,ientt,tdim,ied,sz);
           CPRINTF1(" - try ientt = %d ied = %d len = %f \n",ientt,ied,len);
@@ -161,12 +158,54 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
           edg2pol[0] = ent2poi(ientt,lnoed[ied][0]);
           edg2pol[1] = ent2poi(ientt,lnoed[ied][1]);
-          int idx0 = tdim + 1 + ied*(ideg-1);
-          for(int ii = 0; ii < ideg-1; ii++) edg2pol[2+ii] = ent2poi[ientt][idx0+ii];
 
-          eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), 
-                           DifVar::None, DifVar::None, 
-                           bar1, coop, NULL, NULL);
+          bool iuse_CAD = false;
+          #if 0
+          int bdim = -1;
+          int iCADe= -1;
+          if(msh.CAD()){
+            if(tdim == 2 && msh.idim == 2 && ent2ent(ientt,ied) >= 0){
+              CPRINTF2(" - Internal edge -> no CAD link\n");
+            }else{
+              // In case tdim 2, gdim 3, it is always CAD; but still determine if edge
+              int iedge = getedgglo(msh, edg2pol[0], edg2pol[1]);
+              if(iedge >= 0){
+                iuse_CAD = true;
+                bdim     = 1;
+                iCADe    = iedge;
+              }else{
+                METRIS_ASSERT(msh.idim == 3);
+                if(tdim == 2){
+                  iuse_CAD = true;
+                  bdim     = 2;
+                  iCADe    = ientt;
+                }else{
+                  METRIS_THROW_MSG(TODOExcept(), "Get tetra face CAD link bool here")
+                }
+              }// if iedge >= 0
+            }// if tdim == 2 && msh.idim == 2 ...
+          }
+          #endif
+
+          if(!iuse_CAD){
+            CPRINTF2(" - No CAD link for this edge -> eval at element\n");
+            int idx0 = tdim + 1 + ied*(ideg-1);
+            for(int ii = 0; ii < ideg-1; ii++) edg2pol[2+ii] = ent2poi[ientt][idx0+ii];
+
+            eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), 
+                             DifVar::None, DifVar::None, 
+                             bar1, coop, NULL, NULL);
+          }else{
+            #if 0
+            CPRINTF2(" - CAD link dim %d for this edge\n",bdim);
+            METRIS_ASSERT(bdim == 1 || bdim == 2);
+            //int iref = bdim == 1 ? msh.edg2ref[iCADe] : msh.fac2ref[iCADe];
+            int ibpo1 = msh.poi2ebp(edg2pol[0], bdim, iCADe, -1);
+            METRIS_ASSERT(ibpo1 >= 0);
+            int ibpo2 = msh.poi2ebp(edg2pol[1], bdim, iCADe, -1);
+            METRIS_ASSERT(ibpo2 >= 0);
+            #endif
+          }// if(!iuse_CAD)
 
           if(DOPRINTS1()){
             CPRINTF1(" - enact ins ientt = %d ied = %d len = %f edg %d %d  coord = ",
@@ -351,6 +390,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
       //  msh.param->iverb = 4;
       //}
 
+      #if 0
       // LOOP 2: over elements ; try element barycentres 
       if(type2){
 
@@ -430,6 +470,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
           }
         }
       }
+      #endif
 
       if(nedgt == 0) stat = 0;
       else           stat = MAX(stat, (double)ninser2/(double)nedgt);
@@ -517,7 +558,7 @@ double insertLongEdges(Mesh<MFT> &msh,   int iverb, int ithrd1 ){
   if(iverb >= 1) printf("  -- insertLongEdges start \n");
   if(iverb >= 1) printf("   - Note: improve by generating several points per edge. Generated but not used cf loop nn/2 \n");
   if(iverb >= 1) printf("   - Note: improve by filtering point propositions \n");
-  int edg2pol[edgnpps[ideg]];
+  int edg2pol[getnnod1(ideg)];
 
 //  int npins = 0;
 //  int mpins = lpins.size();
@@ -550,11 +591,9 @@ double insertLongEdges(Mesh<MFT> &msh,   int iverb, int ithrd1 ){
 
   const int mcaverr = CAV_ERR_NERROR;
   intAr1 lcaverr(mcaverr);
-  lcaverr.set_n(mcaverr);
 
   const int minserr = 100;
   intAr1 linserr(minserr);
-  linserr.set_n(minserr);
 
 
   int ierro;

@@ -22,7 +22,7 @@
 //	if(*nsplx + nnew > melem) return 1;
 //
 //	int mpoin = barys.size()/barys.get_stride();
-//	if(*nbary + tetnpps[ideg] > mpoin) return 2;
+//	if(*nbary + getnnod3(ideg) > mpoin) return 2;
 //
 //	double *bary1 = barys[spl2bar[isplx][0]];
 //	double *bary2 = barys[spl2bar[isplx][1]];
@@ -30,7 +30,7 @@
 //	double *bary4 = barys[spl2bar[isplx][3]];
 //	int npoi0 = (*npoin);
 //
-//	for(int ipnew = 0; ipnew < tetnpps[ideg]; ipnew++){
+//	for(int ipnew = 0; ipnew < getnnod3(ideg); ipnew++){
 //		for(int ii = 0; ii < 3; ii++){
 //			barys[*nbary][ii] = ordtet.s[ideg][ipnew][0]*bary1[ii]/ideg
 //												+ ordtet.s[ideg][ipnew][1]*bary2[ii]/ideg

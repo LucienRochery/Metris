@@ -37,15 +37,6 @@ int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl,
                intAr1 &lerro, int ithrd1 = 0, int ithrd2 = 1);
 
 
-// Collapse edge iedl of triangle iface
-// bar1 is t along the edge with 1 if lnoed[iedl][0]
-template<class MetricFieldType>
-int insfacsurf(Mesh<MetricFieldType>& msh, int iface, double* coop, 
-               MshCavity &cav, CavWrkArrs &work, 
-               intAr1 &lerro, int ithrd1 = 0, int ithrd2 = 1);
-
-
-
 } // end namespace
 
 #endif

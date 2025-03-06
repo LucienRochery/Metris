@@ -156,7 +156,7 @@ void reoderHilbert(MeshBase &msh){
 
   void (*tet_loop)(int,int,int,Mesh*,int *, uint64_t *)
   =[] (int ilo0, int ilo1, int , Mesh *msh, int *invord, uint64_t *lorder){
-    int nnt = tetnpps[msh->curdeg];
+    int nnt = getnnod3(msh->curdeg);
     for(int ielem = ilo0-1; ielem < ilo1; ielem++){
       for(int ii = 0; ii < nnt; ii++){
         int ipoin = msh->tet2poi(ielem,ii);
@@ -171,7 +171,7 @@ void reoderHilbert(MeshBase &msh){
 
   void (*fac_loop)(int,int,int,Mesh*,int *, uint64_t *)
   =[] (int ilo0, int ilo1, int , Mesh *msh, int *invord, uint64_t *lorder){
-    int nnf = facnpps[msh->curdeg];
+    int nnf = getnnod2(msh->curdeg);
     for(int iface = ilo0-1; iface < ilo1; iface++){
       for(int ii = 0; ii < nnf; ii++){
         int ipoin = msh->fac2poi(iface,ii);
@@ -186,7 +186,7 @@ void reoderHilbert(MeshBase &msh){
 
   void (*edg_loop)(int,int,int,Mesh*,int *, uint64_t *)
   =[] (int ilo0, int ilo1, int , Mesh *msh, int *invord, uint64_t *lorder){
-    int nne = edgnpps[msh->curdeg];
+    int nne = getnnod1(msh->curdeg);
     for(int iedge = ilo0-1; iedge < ilo1; iedge++){
       for(int ii = 0; ii < nne; ii++){
         int ipoin = msh->edg2poi(iedge,ii);
@@ -247,9 +247,9 @@ void reoderHilbert(MeshBase &msh){
 
 
 
-  //int sztet = tetnpps[ideg]*sizeof(int);
-  //int szfac = facnpps[ideg]*sizeof(int);
-  //int szedg = edgnpps[ideg]*sizeof(int);
+  //int sztet = getnnod3(ideg)*sizeof(int);
+  //int szfac = getnnod2(ideg)*sizeof(int);
+  //int szedg = getnnod1(ideg)*sizeof(int);
 
 
 
@@ -311,9 +311,9 @@ void reoderHilbert(MeshBase &msh){
     intAr1 &ent2ref = (itype == 1 ? msh.edg2ref : itype == 2 ? msh.fac2ref : msh.tet2ref); 
     intAr2 &ent2tag = (itype == 1 ? msh.edg2tag : itype == 2 ? msh.fac2tag : msh.tet2tag);
     intAr2 &ent2poi = (itype == 1 ? msh.edg2poi : itype == 2 ? msh.fac2poi : msh.tet2poi);
-    constexpr int nnode = (itype == 1 ? edgnpps[ideg] :
-                           itype == 2 ? facnpps[ideg] :
-                                        tetnpps[ideg] ); 
+    constexpr int nnode = (itype == 1 ? getnnod1(ideg) :
+                           itype == 2 ? getnnod2(ideg) :
+                                        getnnod3(ideg) ); 
 
     std::iota(vect.begin(), vect.begin() + nentt, 0);
     if(itype == 1){
@@ -382,8 +382,8 @@ void reoderHilbert(MeshBase &msh){
   apply_sort(std::integral_constant<int,3>{});
 
 
-//  int nnode = tetnpps[msh.curdeg];
-//  int lnode[tetnpps[msh.curdeg]];
+//  int nnode = getnnod3(msh.curdeg);
+//  int lnode[getnnod3(msh.curdeg)];
 //  msh.tag[0]++;
 //  for(int iele0 = 0; iele0 < msh.nelem; iele0++){
 //    if(msh.tet2tag(0,iele0) >= msh.tag[0]) continue;

@@ -20,21 +20,21 @@
 
 using namespace Metris;
 
-void gen_ccoeff3_2();
+void gen_ccoef3_2();
 
 
 
-static int ifactorial_func(int i){
+static int ifactorial_func(int i){ 
 	if(i == 0) return 1;
 	return ifactorial_func(i-1)*i;
 }
 
-//template <int i1, int i2, int i3, int i4>
+//template <int i1, int i2, int i3, int i4> 
 //void gen_idx_ccoef(char* str);
 void simpfrac(int x, int y, int *xs, int *ys){
 	int i = ceil(sqrt( x < y ? x : y ));
 	*xs = x;
-	*ys = y;
+	*ys = y; 
 	while(i > 1){
 		if(*xs % i == 0 && *ys % i == 0){
 			*xs /= i;
@@ -50,7 +50,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv){
   printf("Maximum degree = %d \n",METRIS_MAX_DEG);
 
 
-  printf("------- Generate codegen_ccoeff.hxx\n");
+  printf("------- Generate codegen_ccoef.hxx\n");
   std::ostringstream str;
   str << "//Metris: high-order metric-based non-manifold tetrahedral remesher\n";
   str << "//Copyright (C) 2023-2024, Massachusetts Institute of Technology\n";
@@ -77,7 +77,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv){
 
   str.str("");
   str.clear();
-  printf("------- Generate codegen_ccoeff_d.hxx\n");
+  printf("------- Generate codegen_ccoef_d.hxx\n");
   str << "//Metris: high-order metric-based non-manifold tetrahedral remesher\n";
   str << "//Copyright (C) 2023-2024, Massachusetts Institute of Technology\n";
   str << "//Licensed under The GNU Lesser General Public License, version 2.1\n";
@@ -115,29 +115,29 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv){
   f.close();
 
 
-  printf("------- Generate codegen_ccoeff3<d>.cxx\n");
-  gen_ccoeff3();
+  printf("------- Generate codegen_ccoef3<d>.cxx\n");
+  gen_ccoef3();
 
-  printf("------- Generate codegen_ccoeff2<d>.cxx\n");
-  gen_ccoeff2();
+  printf("------- Generate codegen_ccoef2<d>.cxx\n");
+  gen_ccoef2();
 
 
-  printf("------- Generate codegen_ccoeff2<d>_d.cxx\n");
-  gen_ccoeff2_d();
+  printf("------- Generate codegen_ccoef2<d>_d_coord.cxx\n");
+  gen_ccoef2_d_coord();
 
-  printf("------- Generate codegen_ccoeff2<d>_d_pt.cxx\n");
+  printf("------- Generate codegen_ccoef2<d>_d_pt.cxx\n");
   gen_ccoef2_d_pt();
 
 
-  printf("------- Generate codegen_ccoeff3<d>_d_pt.cxx\n");
-  gen_ccoef3_d();
+  printf("------- Generate codegen_ccoef3<d>_d_coord.cxx\n");
+  gen_ccoef3_d_coord();
 
   return 0;
 }
 
 
 
-//void gen_ccoeff3_2(){
+//void gen_ccoef3_2(){
 //
 //  if(METRIS_MAX_DEG > 9){
 //    printf("Welcome to 2050, we hope the flying cars are comfortable and powered by nuclear fusion.\n Change this routine, e.g. adding underscores between indices, as they are no longer single-digit.\n");
@@ -152,7 +152,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv){
 //    std::ostringstream str;
 //
 //
-//    for(int irnk1 = 0; irnk1 < tetnpps[ideg]; irnk1++){
+//    for(int irnk1 = 0; irnk1 < getnnod3(ideg); irnk1++){
 //      int i = ordtet.s[ideg][irnk1][0];
 //      int j = ordtet.s[ideg][irnk1][1];
 //      int k = ordtet.s[ideg][irnk1][2];
@@ -162,7 +162,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv){
 //      char k_s[16]; snprintf(k_s,2,"%1d",k);
 //      char l_s[16]; snprintf(l_s,2,"%1d",l);
 //      funargs<<"double* __restrict__ cpoi"<<i_s<<j_s<<k_s<<l_s;
-//      if(irnk1 < tetnpps[ideg]-1) funargs<<",";
+//      if(irnk1 < getnnod3(ideg)-1) funargs<<",";
 //      if(irnk1 == 2 || irnk1 >  2 && (irnk1-2)%4 == 0) funargs<<"\n";
 //    }
 //
@@ -174,7 +174,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv){
 //                  ,const double* z1,const double* z2);\n\n";
 //
 //
-//    int npp_c = tetnpps[3*(ideg-1)];
+//    int npp_c = getnnod3(3*(ideg-1));
 //
 //    int uuu1 = pow(ifactorial_func(ideg),3);
 //    int lll1 = ifactorial_func(3*(ideg-1));
@@ -300,13 +300,13 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv){
 
 
 
-void gen_ccoeff3(){
+void gen_ccoef3(){
 
   int max_jaco_deg = METRIS_MAX_DEG;
 
   printf("-- Tetrahedra up to degree %d \n",METRIS_MAX_DEG);
   for(int ideg = 2; ideg <= max_jaco_deg; ideg++){
-    int npp_c = tetnpps[3*(ideg-1)];
+    int npp_c = getnnod3(3*(ideg-1));
 
     std::ostringstream str;
 
@@ -432,7 +432,7 @@ void gen_ccoeff3(){
 
 
 
-void gen_ccoeff2(){
+void gen_ccoef2(){
 
   int max_jaco_deg = METRIS_MAX_DEG;
 
@@ -459,7 +459,7 @@ void gen_ccoeff2(){
 
     // Each diff term is of the form (P_{irnk1} - P_{irnk2})^orth
     // Hence for each index, store those pairs. 
-    int npp_c = facnpps[2*(ideg-1)];
+    int npp_c = getnnod2(2*(ideg-1));
     std::vector<std::vector<std::pair<int,int>>> diff_terms(npp_c);
     std::vector<std::pair<int,int>> diff_facs(npp_c);
 
@@ -581,5 +581,70 @@ void gen_ccoeff2(){
 
 
 
+
+// Aux
+void insert_map2(std::map<std::pair<int, int>, std::vector<SANS::DLA::VectorS<4, int>>> &d_ccoef_map,
+            std::pair<int,int> &key, int up, int lo, int irnk1, int irnk2){
+
+  // Might be necessary to call oneself if an entry is modified (could then cancel/combine with new entries)
+  int new_entry[4];
+
+  //printf(" - Insert into key %d %d : %d %d %d %d \n",key.first,key.second,up,lo,irnk1,irnk2);
+
+  for(auto& entry : d_ccoef_map[key]){
+    if(entry[2] < 0) continue;
+
+    int up2 = entry[0];
+    int lo2 = entry[1];
+    if(up*lo2 == up2*lo && up != up2){
+      printf("## ERROR SIMPLIFYING FRACTIONS\n");
+      exit(1);
+    }
+    
+    //if(key.first == 5 && key.second == 5) printf("Debug irnk1 irnk2 %d %d up %d lo %d entry[2] %d entry[3] %d \n",
+    //  irnk1,irnk2,up,lo,entry[2],entry[3]);
+    // Cases where there is simplification    
+    // Recall the terms are irnk1 - irnk2, or entry[2] - entry[3]
+    if(entry[3] == irnk1 && up*lo2 == up2*lo){
+      entry[3] = irnk2;
+      goto makenew;
+    }
+    if(entry[2] == irnk2 && up*lo2 == up2*lo){
+      entry[2] = irnk1;
+      goto makenew;
+    }
+    // Sum the terms
+    if(entry[2] == irnk1 && entry[3] == irnk2){
+      int upn = up*lo2 + up2*lo;
+      int lon = lo2*lo;
+      int upn2, lon2;
+      simpfrac(upn,lon,&upn2,&lon2);
+      entry[0] = upn;
+      entry[1] = lon;
+      goto makenew;
+    }
+    continue;
+
+    makenew:
+    new_entry[0] = entry[0];
+    new_entry[1] = entry[1];
+    new_entry[2] = entry[2];
+    new_entry[3] = entry[3];
+    // Kill this entry 
+    entry[2] = -1;
+    entry[3] = -1;
+    //printf("Debug killed vector is length %zu \n",d_ccoef_map[key].size());
+    //for(int ii = 0; ii < d_ccoef_map[key].size(); ii++){
+    //  printf(" %d : %d %d %d %d \n",ii,d_ccoef_map[key][ii][0],d_ccoef_map[key][ii][1],d_ccoef_map[key][ii][2],d_ccoef_map[key][ii][3]);
+    //}
+    insert_map2(d_ccoef_map,key,new_entry[0],new_entry[1],new_entry[2],new_entry[3]);
+    return;
+  }
+
+
+  d_ccoef_map[key].push_back(SANS::DLA::VectorS<4, int>{up,lo,irnk1,irnk2});
+  return;
+
+}
 
 

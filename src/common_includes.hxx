@@ -33,12 +33,12 @@
 #include "msh_structs.hxx"
 #include "Mesh/Mesh.hxx"
 
-#include "aux_timer.hxx"
+#include "utils/aux_timer.hxx"
 #include "aux_exceptions.hxx"
 #include "../SANS/tools/minmax.h"
 
 
-//#include "aux_utils.hxx"
+//#include "utils/aux_misc.hxx"
 //#include "low_eval.hxx"
 //#include "low_topo.hxx"
 //
@@ -69,9 +69,9 @@
 
 
 //#define METRIS_MAX_DEG 2 defined in mod_hoconstants.f
-//const int edgnpps[1+10] = {1 , 2 , 3  , 4  , 5  , 6  , 7  , 8   , 9   , 10  , 11};
-//const int facnpps[1+10] = {1 , 3 , 6  , 10 , 15 , 21 , 28 , 36  , 45  , 55  , 66};
-//const int tetnpps[1+10] = {1 , 4 , 10 , 20 , 35 , 56 , 84 , 120 , 165 , 220 , 286};
+//const int getnnod1(1+10) = {1 , 2 , 3  , 4  , 5  , 6  , 7  , 8   , 9   , 10  , 11};
+//const int getnnod2(1+10) = {1 , 3 , 6  , 10 , 15 , 21 , 28 , 36  , 45  , 55  , 66};
+//const int getnnod3(1+10) = {1 , 4 , 10 , 20 , 35 , 56 , 84 , 120 , 165 , 220 , 286};
 
 //// Edge to Vertex for FAces
 //// Order : 110 011 101 ; this is a bit stupid but it is consistent with HO numbering

@@ -17,52 +17,63 @@
 if(REQ_CODEGEN)
   add_executable(gen_lageval ${PROJECT_SOURCE_DIR}/tools/gen_lageval.cxx ho_constants.hxx)
   setMetrisFlags(gen_lageval PUBLIC)
-  target_link_libraries(gen_lageval PUBLIC  ${GINAC_LIBRARIES} Boost::headers SANS ${BOOST_TRACELIBS})
+  target_link_libraries(gen_lageval PUBLIC  ${GINAC_LIBRARIES} 
+                                            Boost::headers 
+                                            SANS 
+                                            ${BOOST_TRACELIBS})
   target_include_directories(gen_lageval PUBLIC 
                              ${PROJECT_SOURCE_DIR}
-                             ${PETSC_INCLUDE}
-                             ${GINAC_INCLUDE_DIRS}
                              ${CLN_INCLUDE_DIRS}
-                             ${Boost_INCLUDE_DIRS}
-                             ${EIGEN3_INCLUDE_DIR}
-                            "/usr/local/include" ".")
-  add_custom_command(OUTPUT  ${PROJECT_SOURCE_DIR}/src/codegen_lagrange.hxx
-                    COMMAND make gen_lageval 
-                    COMMAND ./gen_lageval
-                    COMMAND cp codegen_* ${PROJECT_SOURCE_DIR}/src/)
+                             ${GINAC_INCLUDE_DIRS})
+  add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/codegen_lagrange.hxx
+                     DEPENDS gen_lageval
+                     COMMAND make gen_lageval 
+                     COMMAND ./gen_lageval)
 endif()
 
 
 # 1.2 - gen_ccoef: generate Jacobian determinant control coefficients
-set(SRC_CCOEF_OUTPUT "")
+set(CCOEF_OUT_SRC "")
 foreach(ideg RANGE 2 ${METRIS_MAX_DEG})
-  list(APPEND SRC_CCOEF_OUTPUT ${PROJECT_SOURCE_DIR}/src/codegen_ccoef3.0${ideg}.cxx)
-  list(APPEND SRC_CCOEF_OUTPUT ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}.cxx)
-  list(APPEND SRC_CCOEF_OUTPUT ${PROJECT_SOURCE_DIR}/src/codegen_ccoef3.0${ideg}_d.cxx)
-  list(APPEND SRC_CCOEF_OUTPUT ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}_d.cxx)
-  list(APPEND SRC_CCOEF_OUTPUT ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}_d_pt.cxx)
+  if(REQ_CODEGEN)
+    list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef3.0${ideg}.cxx)
+    list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef2.0${ideg}.cxx)
+    list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef3.0${ideg}_d_coord.cxx)
+    list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef2.0${ideg}_d_coord.cxx)
+    list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef2.0${ideg}_d_pt.cxx)
+  else()
+    list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef3.0${ideg}.cxx)
+    list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}.cxx)
+    list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef3.0${ideg}_d_coord.cxx)
+    list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}_d_coord.cxx)
+    list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}_d_pt.cxx)
+  endif()
 endforeach()
 
-
-
 if(REQ_CODEGEN)
-  add_executable(gen_ccoef ${PROJECT_SOURCE_DIR}/tools/gen_ccoef.cxx ${PROJECT_SOURCE_DIR}/tools/gen_ccoef_d.cxx ho_constants.hxx)
+  add_executable(gen_ccoef ${PROJECT_SOURCE_DIR}/tools/gen_ccoef.cxx 
+                           ${PROJECT_SOURCE_DIR}/tools/gen_ccoef_d_pt.cxx 
+                           ${PROJECT_SOURCE_DIR}/tools/gen_ccoef_d_coord.cxx 
+                           ho_constants.hxx)
   setMetrisFlags(gen_ccoef PUBLIC)
   target_link_libraries(gen_ccoef PUBLIC SANS ${BOOST_TRACELIBS})
   target_include_directories(gen_ccoef PUBLIC 
                              ${PROJECT_SOURCE_DIR} 
-                             ${Boost_INCLUDE_DIRS}
-                             ${EIGEN3_INCLUDE_DIR}
-                            "/usr/local/include" ".")
-  add_custom_command(OUTPUT  ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx ${PROJECT_SOURCE_DIR}/src/codegen_ccoef_d.hxx ${SRC_CCOEF_OUTPUT}
+                             ${Boost_INCLUDE_DIRS})
+
+  add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/codegen_ccoef.hxx 
+                            ${PROJECT_BINARY_DIR}/src/codegen_ccoef_d.hxx 
+                            ${CCOEF_OUT_SRC}
+                    DEPENDS gen_ccoef
                     COMMAND make gen_ccoef
-                    COMMAND ./gen_ccoef
-                    COMMAND cp codegen_* ${PROJECT_SOURCE_DIR}/src/)
+                    COMMAND ./gen_ccoef)
+                    #COMMAND cp codegen_* ${PROJECT_SOURCE_DIR}/src/)
 
   # 1 - wrapping up: create dependency for later targets
-  add_custom_target(codegen1 DEPENDS ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx
-                                     ${PROJECT_SOURCE_DIR}/src/codegen_ccoef_d.hxx
-                                     ${PROJECT_SOURCE_DIR}/src/codegen_lagrange.hxx)
+  add_custom_target(codegen1 DEPENDS ${PROJECT_BINARY_DIR}/src/codegen_ccoef.hxx 
+                                     ${PROJECT_BINARY_DIR}/src/codegen_ccoef_d.hxx 
+                                     ${CCOEF_OUT_SRC}
+                                     ${PROJECT_BINARY_DIR}/src/codegen_lagrange.hxx)
 endif()
 
 
@@ -70,7 +81,8 @@ endif()
 # Files needed by stage 2 codegen which don't need stage 2 codegen themselves...
 add_library(meshBASIC STATIC low_eval.cxx ho_constants.hxx
                              Arrays/aux_msharrays1D.cxx 
-                             Arrays/aux_msharrays2D.cxx )
+                             Arrays/aux_msharrays2D.cxx 
+                             utils/aux_timer.cxx )
 target_include_directories(meshBASIC PRIVATE "." ".." )
 target_include_directories(meshBASIC PUBLIC 
                            "libs"
@@ -86,8 +98,7 @@ target_link_libraries(meshBASIC PUBLIC ${ABSL_LIBRARIES}
                                        ${BOOST_TRACELIBS}
                                        ) 
 if(REQ_CODEGEN)
-  add_dependencies(meshBASIC codegen1)
-
+  add_dependencies(meshBASIC codegen1  gen_lageval)
 
   # 3 --- CODEGEN TARGETS 2
   # gen_lag2bez: generate Lagrange-to-Bézier conversion routines
@@ -102,16 +113,26 @@ if(REQ_CODEGEN)
                              ${ABSL_INCLUDE_DIRS}
                              ${PROJECT_SOURCE_DIR}
                              ${Boost_INCLUDE_DIRS}
-                             ${EIGEN3_INCLUDE_DIR}
-                             "/usr/local/include")
-  target_include_directories(gen_lag2bez PRIVATE ${SRC_INCLUDE_DIRS})
-  target_include_directories(gen_lag2bez PRIVATE ".")
-  add_custom_command(OUTPUT ${PROJECT_SOURCE_DIR}/src/codegen_lag2bez.hxx ${PROJECT_SOURCE_DIR}/src/codegen_lag2bez.cxx
+                             ${EIGEN3_INCLUDE_DIR})
+  target_include_directories(gen_lag2bez PRIVATE ${SRC_INCLUDE_DIRS} ".")
+
+  add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/codegen_lag2bez.hxx 
+                            ${PROJECT_BINARY_DIR}/src/codegen_lag2bez.cxx
+                     DEPENDS gen_lag2bez
                      COMMAND make gen_lag2bez
-                     COMMAND ./gen_lag2bez
-                     COMMAND cp codegen_* ${PROJECT_SOURCE_DIR}/src/)
+                     COMMAND ./gen_lag2bez)
+                     #COMMAND cp codegen_* ${PROJECT_SOURCE_DIR}/src/)
+
   add_custom_target(codegen2 DEPENDS codegen1
-                                     ${PROJECT_SOURCE_DIR}/src/codegen_lag2bez.hxx)
+                                     ${PROJECT_BINARY_DIR}/src/codegen_lag2bez.hxx
+                                     ${PROJECT_BINARY_DIR}/src/codegen_lag2bez.cxx)
+endif()
+
+set(CODEGEN_OUT_SRC ${CCOEF_OUT_SRC})
+if(REQ_CODEGEN)
+  list(APPEND CODEGEN_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_lag2bez.cxx)
+else()
+  list(APPEND CODEGEN_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_lag2bez.cxx)
 endif()
 
 
@@ -123,14 +144,17 @@ endif()
 
 #file (GLOB_RECURSE SRC_SOURCES CONFIGURE_DEPENDS "*.cxx")
 
+
 set(SRC_SOURCES 
+    ${PROJECT_SOURCE_DIR}/src/utils/aux_misc.cxx
+    ${PROJECT_SOURCE_DIR}/src/utils/aux_timer.cxx
+    ${PROJECT_SOURCE_DIR}/src/utils/mprintf.cxx
+    ${PROJECT_SOURCE_DIR}/src/utils/binom.cxx
+    ${PROJECT_SOURCE_DIR}/src/utils/bernstein_prod.cxx
     ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays1D.cxx
     ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays2D.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_hashtab.cxx
-    ${PROJECT_SOURCE_DIR}/src/aux_timer.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_topo.cxx
-    ${PROJECT_SOURCE_DIR}/src/aux_utils.cxx
-    ${PROJECT_SOURCE_DIR}/src/mprintf.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_histogram.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_EGADSprinterr.cxx
     ${PROJECT_SOURCE_DIR}/src/io_libmeshb.cxx
@@ -186,7 +210,6 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/cavity/reconnect_lincav.cxx
     ${PROJECT_SOURCE_DIR}/src/cavity/reconnect_faccav.cxx
     ${PROJECT_SOURCE_DIR}/src/cavity/update_cavity.cxx
-    ${PROJECT_SOURCE_DIR}/src/codegen_lag2bez.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/CADInfo.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshBase.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshBase_init.cxx
@@ -200,6 +223,11 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/MetricField/MetricField_getMetNodes.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/msh_explogmet.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/msh_checkmet.cxx
+    ${PROJECT_SOURCE_DIR}/src/SolutionField/interpError.cxx
+    ${PROJECT_SOURCE_DIR}/src/SolutionField/minInterpError.cxx
+    ${PROJECT_SOURCE_DIR}/src/SolutionField/SolutionField.cxx
+    ${PROJECT_SOURCE_DIR}/src/SolutionField/anasol2D.cxx
+    ${PROJECT_SOURCE_DIR}/src/SolutionField/anasol3D.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisParameters.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner_iniMetris.cxx
@@ -232,7 +260,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/LPopt/msh_maxmetLP.cxx
     ${PROJECT_SOURCE_DIR}/src/LPopt/msh_bezgapLP.cxx
     ${PROJECT_SOURCE_DIR}/src/LPopt/LPsolver.cxx
-    ${SRC_CCOEF_OUTPUT}
+    ${CODEGEN_OUT_SRC}
 )
 if(EXISTS ${PROJECT_SOURCE_DIR}/src/adapt/msh_lineadapt2.cxx)
   set(SRC_SOURCES 
@@ -248,6 +276,7 @@ set_property(TARGET libMetris PROPERTY CXX_STANDARD 17)
 
 target_include_directories(libMetris PRIVATE "." "..")
 target_include_directories(libMetris PUBLIC 
+                           ${PROJECT_BINARY_DIR}/src
                            "../SANS/"
                            "../libs"
                            "../libs/libkdtree/"
@@ -288,7 +317,7 @@ if(CLP_FOUND)
 endif()
 
 if(REQ_CODEGEN)
-  add_dependencies(libMetris codegen2)
+  add_dependencies(libMetris codegen1 codegen2)
 endif()
 
 SET_TARGET_PROPERTIES(libMetris PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)

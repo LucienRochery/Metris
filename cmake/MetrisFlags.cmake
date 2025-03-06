@@ -53,10 +53,10 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
   set(METRIS_C_FLAGS_MEMCHECK ${METRIS_CXX_FLAGS_MEMCHECK})
 elseif(CMAKE_CXX_COMPILER_ID MATCHES Clang)
   message("Using Clang ${CMAKE_C_COMPILER} ${SHORT_COMPILER_NAME}")
-  set(METRIS_CXX_FLAGS_RELEASE  -DNDEBUG  -O3 -fPIC)
-  set(METRIS_CXX_FLAGS_DEBUG      -O0 -g  -Wall -Wextra -pedantic  -march=native  -fno-pie  -fPIC) # -S -fverbose-asm -rdynamic -ggdb3
+  set(METRIS_CXX_FLAGS_RELEASE  -DNDEBUG -fconstexpr-steps=1000000000 -O3 -fPIC)
+  set(METRIS_CXX_FLAGS_DEBUG    -fconstexpr-steps=1000000000 -O0 -g  -Wall -Wextra -pedantic  -march=native  -fno-pie  -fPIC) # -S -fverbose-asm -rdynamic -ggdb3
   #set(METRIS_CXX_FLAGS_DEBUG  -fsanitize=address  -fconstexpr-steps=10000000 -O0 -g3  -march=native -fno-pie ) # -S -fverbose-asm
-  set(METRIS_CXX_FLAGS_MEMCHECK    -Wall -fsanitize=address -O0 -g -fPIC) # -S -fverbose-asm
+  set(METRIS_CXX_FLAGS_MEMCHECK   -fconstexpr-steps=1000000000 -Wall -fsanitize=address -O0 -g -fPIC) # -S -fverbose-asm
   #-fno-omit-frame-pointer
   set(METRIS_C_FLAGS_RELEASE  ${METRIS_CXX_FLAGS_RELEASE})
   set(METRIS_C_FLAGS_DEBUG ${METRIS_CXX_FLAGS_DEBUG})

@@ -15,9 +15,9 @@ Simplest possible approach.
 #include "../smoothing/low_smooballdiff.hxx"
 
 #include "../aux_topo.hxx"
-#include "../aux_timer.hxx"
+#include "../utils/aux_timer.hxx"
 #include "../low_topo.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 #include "../quality/low_metqua.hxx"
 #include "../io_libmeshb.hxx"
 
@@ -346,7 +346,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         if constexpr (tdim == 2){
           lball.set_n(0);
           lball.stack(ientt);
-          int nppe = edgnpps[ideg] - 2;
+          int nppe = getnnod1(ideg) - 2;
           int ied = (iver - (tdim + 1)) / nppe;
           METRIS_ASSERT(ied < 4);
 

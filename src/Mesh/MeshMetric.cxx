@@ -7,6 +7,7 @@
 #include "MeshMetric.hxx"
 
 
+#include "../MetricField/MetricField.hxx"
 #include "../linalg/det.hxx"
 #include "../ho_constants.hxx"
 #include "../aux_topo.hxx"
@@ -14,6 +15,12 @@
 
 namespace Metris{
 
+//template<class MFT>
+//MetricClass MeshMetric<MFT>::metricClass() const{ return met.metricClass(); }
+//
+//template<class MFT>
+//MeshMetric<MFT>::MeshMetric(int nipwk_, int niewk_, int nifwk_, int nitwk_, int nrpwk_) :
+//   MeshBase(nipwk_, niewk_, nifwk_, nitwk_, nrpwk_), met(*this){}
 
 template<int gdim, int ideg,class MetricFieldType>
 double getDomainVolume0(MeshMetric<MetricFieldType> &msh){
@@ -28,7 +35,7 @@ double getDomainVolume0(MeshMetric<MetricFieldType> &msh){
 
   // Nothing to do with the Jacobian, this is the highest supported degree.
   constexpr int idegq = METRIS_MAX_DEG_JACOBIAN;
-  constexpr int nnodq = gdim == 3 ? tetnpps[idegq] : facnpps[idegq];
+  constexpr int nnodq = gdim == 3 ? getnnod3(idegq) : getnnod2(idegq);
 
   constexpr auto eval = gdim == 2 ? eval2<gdim,ideg> : eval3<gdim,ideg>;
 

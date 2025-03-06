@@ -10,11 +10,11 @@
 #include "aux_exceptions.hxx"
 #include "aux_topo.hxx"
 #include "low_geo.hxx"
-#include "aux_utils.hxx"
-#include "CT_loop.hxx"
+#include "utils/aux_misc.hxx"
+#include "utils/CT_loop.hxx"
 #include "io_libmeshb.hxx"
 #include "low_ccoef.hxx"
-#include "mprintf.hxx"
+#include "utils/mprintf.hxx"
 
 namespace Metris{
 
@@ -37,10 +37,9 @@ void check_topo(MeshBase &msh,
 
     int tdim = msh.idim;
     const int jdeg = tdim * (msh.curdeg - 1);
-    const int ncoef = tdim == 2 ? facnpps[jdeg]
-                                : tetnpps[jdeg];
+    const int ncoef = tdim == 2 ? getnnod2(jdeg)
+                                : getnnod3(jdeg);
     dblAr1 ccoef(ncoef);
-    ccoef.set_n(ncoef);
 
     if(tdim > msh.get_tdim()) goto aftervalidity;
 
@@ -85,7 +84,9 @@ void check_topo(MeshBase &msh,
         for(int ii = 0; ii < nnode; ii++){
           int ipoin = ent2poi(ientt,ii);
           int ient2 = msh.poi2ent(ipoin,0);
-          METRIS_ENFORCE(ient2 >= 0 && ient2 < nentt);
+          METRIS_ENFORCE_MSG(ient2 >= 0 && ient2 < nentt,
+            "Invalid poin2ent? tdim = "<<tdim<<" ientt "<<ientt<<" ipoin "<<ipoin
+            <<" poi2ent = "<<ient2<<" anounced dim "<<msh.poi2ent(ipoin,1));
           int tdim2 = msh.poi2ent(ipoin,1);
           METRIS_ENFORCE(tdim2 <= tdim);
           int ibpoi = msh.poi2bpo[ipoin];
@@ -222,6 +223,19 @@ void check_topo(MeshBase &msh,
       METRIS_ENFORCE(iedg2 == iedge); 
     }
 
+    // check getfacglo -> exists and no dupes
+    for(int iface = 0; iface < nface; iface++){
+      if(isdeadent(iface,msh.fac2poi)) continue;
+      int ip1 = msh.fac2poi(iface,0);
+      int ip2 = msh.fac2poi(iface,1);
+      int ip3 = msh.fac2poi(iface,2);
+
+      int ifac2 = getfacglo(msh, ip1, ip2, ip3);
+      METRIS_ENFORCE_MSG(ifac2 == iface, 
+        "Face either doesnt exist or is duplicated iface = "<<iface<<" ifac2 = "<<ifac2); 
+    }
+
+
 
 
     for(int ipoin = 0; ipoin < npoin; ipoin++){
@@ -250,7 +264,7 @@ void check_topo(MeshBase &msh,
         printf("nedge = %d nface = %d nelem = %d \n",msh.nedge,msh.nface,msh.nelem);
 
         printf("face nodes: \n");
-        int nnod2 = facnpps[msh.curdeg];
+        int nnod2 = getnnod2(msh.curdeg);
         intAr1(nnod2,msh.fac2poi[ientt]).print();
 
         int ibpo2 = ibpoi;
@@ -531,7 +545,7 @@ void check_topo(MeshBase &msh,
 
       // -- Check all points have bpois if faces are boundary
       if(msh.isboundary_faces()){
-        for(int ii = 0; ii < facnpps[msh.curdeg]; ii++){
+        for(int ii = 0; ii < getnnod2(msh.curdeg); ii++){
           int ip = msh.fac2poi(iface,ii);
           METRIS_ENFORCE(ip >= 0 && ip < msh.npoin);
           int ib = msh.poi2bpo[ip];
@@ -647,7 +661,7 @@ void check_topo(MeshBase &msh,
 
       // -- Check all points have bpois if edges are boundary
       if(msh.isboundary_edges()){
-        for(int ii = 0; ii < edgnpps[msh.curdeg]; ii++){
+        for(int ii = 0; ii < getnnod1(msh.curdeg); ii++){
           int ip = msh.edg2poi(iedge,ii);
           METRIS_ENFORCE(ip >= 0 && ip < msh.npoin);
           int ib = msh.poi2bpo[ip];

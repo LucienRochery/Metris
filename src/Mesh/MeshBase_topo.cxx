@@ -7,10 +7,10 @@
 
 #include "../Mesh/MeshBase.hxx"
 #include "../ho_constants.hxx"
-#include "../CT_loop.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/CT_loop.hxx"
+#include "../utils/aux_misc.hxx"
 #include "../aux_topo.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 
 
 namespace Metris{
@@ -121,8 +121,8 @@ void MeshBase::newfactopo(int ielem, int ifael, int iref, int iele2){
 
 
   if constexpr(ideg > 1){
-    int nppf = facnpps[ideg] - 3;
-    int nppe = edgnpps[ideg] - 2;
+    int nppf = getnnod2(ideg) - 3;
+    int nppe = getnnod1(ideg) - 2;
     int idx0 = 4 + 6*nppe + ifael*nppf;
     for(int i=0; i < nppf; i++){
       int ipoin = tet2poi[ielem][idx0 + i];
@@ -195,7 +195,7 @@ void MeshBase::newedgtopo(int iface, int iedfa, int iref){
 
 
   if constexpr(ideg > 1){
-    int nppe = edgnpps[ideg] - 2;
+    int nppe = getnnod1(ideg) - 2;
     int idx0 = 3 + iedfa*nppe;
     for(int i = 0; i < nppe; i++){
       int ipoin = fac2poi[iface][idx0 + i];
@@ -401,21 +401,21 @@ int MeshBase::tetedg2glo(int ielem, int iedl) const{
 
 template <int ideg>
 int MeshBase::getveredg(int iedge, int ipoin){
-  for(int ii = 0 ; ii < edgnpps[ideg]; ii++){
+  for(int ii = 0 ; ii < getnnod1(ideg); ii++){
     if(edg2poi(iedge,ii) == ipoin) return ii;
   }
   return -1;
 }
 template <int ideg>
 int MeshBase::getverfac(int iface, int ipoin){
-  for(int ii = 0 ; ii < facnpps[ideg]; ii++){
+  for(int ii = 0 ; ii < getnnod2(ideg); ii++){
     if(fac2poi(iface,ii) == ipoin) return ii;
   }
   return -1;
 }
 template <int ideg>
 int MeshBase::getvertet(int ielem, int ipoin){
-  for(int ii = 0 ; ii < tetnpps[ideg]; ii++){
+  for(int ii = 0 ; ii < getnnod3(ideg); ii++){
     if(tet2poi(ielem,ii) == ipoin) return ii;
   }
   return -1;

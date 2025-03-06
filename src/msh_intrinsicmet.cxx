@@ -140,7 +140,7 @@ void getMetMesh0_lplib(int ient0, int ient1, [[maybe_unused]] int ithread, MeshM
   intAr2 &ent2poi = tdim == 2 ? msh.fac2poi : msh.tet2poi;
   constexpr auto ordent = ORDELT(tdim);
 
-  constexpr int npps = tdim == 2 ? facnpps[ideg] : tetnpps[ideg];
+  constexpr int npps = tdim == 2 ? getnnod2(ideg) : getnnod3(ideg);
 
   bool iflat;
 

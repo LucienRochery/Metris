@@ -58,12 +58,18 @@ struct MetrisOptions{
     s.add_options()
       ("anamet" , po::value<int>(), 
         "Analytical metric index, see src/anamet.hxx for options")
-      ("anasol" , po::value<int>(), 
-        "Analytical solution index, see src/anasol.hxx for options")
       ("sclmet" , po::value<double>(), 
         "Analytical metric scaling") 
       ("hmin" , po::value<double>(), "Minimum metric size"   )
       ("hmax" , po::value<double>(), "Maximum metric size"   );
+
+    s.add_options()
+      ("anasol" , po::value<int>(), 
+        "Analytical solution index, see src/anasol.hxx for options")
+      ("intp-pdeg" , po::value<int>(), 
+        "Solution interpolation degree <= mesh degree.")
+      ("intp-pnorm" , po::value<int>(), 
+        "Interpolation error norm 1 or 2.");
 
     // ----------------- Adaptation options  
     s.add_options()

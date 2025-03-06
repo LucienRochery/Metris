@@ -24,6 +24,25 @@ The MetrisAPI class only handles interfacing (data) i.e. gets, sets and file IO
 
 class MetrisAPI;
 
+struct MeshStat{
+  double pctunit, minlen, maxlen, avglen;
+  double minqua, maxqua, avgqua;
+  bool operator==(const MeshStat& rhs){
+    return abs(this->pctunit - rhs.pctunit) < 1.0e-3
+        && abs(this->minlen  - rhs.minlen ) < 1.0e-1
+        && abs(this->maxlen  - rhs.maxlen ) < 1.0e-1
+        && abs(this->avglen  - rhs.avglen ) < 1.0e-2
+        && abs(this->minqua  - rhs.minqua ) < 1.0e-3
+        && abs(this->maxqua  - rhs.maxqua ) < 1.0e-3
+        && abs(this->avgqua  - rhs.avgqua ) < 1.0e-3 ;
+  }
+  void print(std::string name = ""){
+    printf("-- Mesh stat summary %s:\n",name.c_str());
+    printf(" - Length: %f%% unit w/ %f < l ~= %f < %f \n",pctunit,minlen,avglen,maxlen);
+    printf(" - Conf. err. (quality): %f < q ~= %f < %f \n",minqua,avgqua,maxqua);
+  }
+};
+
 class MetrisRunner{
 public:
   MetrisRunner();
@@ -54,7 +73,7 @@ public:
   void curveMesh();
 
   // Print mesh statistics 
-  void statMesh();
+  void statMesh(MeshStat *stat = NULL);
 
   // -out <fname(.mesh(b))>
   void writeOutputs();
@@ -90,7 +109,7 @@ private:
   void curveMesh0();
 
   template<class MetricFieldType>
-  void statMesh0();
+  void statMesh0(MeshStat *stat);
 
   template<class MetricFieldType>
   void writeOutputs0();

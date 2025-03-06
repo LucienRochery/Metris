@@ -10,8 +10,8 @@
 #include "../low_ccoef.hxx"
 #include "../low_geo.hxx"
 #include "../io_libmeshb.hxx"
-#include "../aux_utils.hxx"
-#include "../aux_timer.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../utils/aux_timer.hxx"
 
 #include "../Mesh/MeshBase.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -36,11 +36,11 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
   // METRIS_THROW_MSG(TODOExcept(), "maximizeCcoef not implemented for ideg = "<<ideg);
   msh.setBasis(FEBasis::Bezier); // Vizir assumes Lagrange
   constexpr int jdeg = tdim * (ideg - 1);
-  constexpr int ncoef = tdim == 2 ? facnpps[jdeg] : tetnpps[jdeg];
+  constexpr int ncoef = tdim == 2 ? getnnod2(jdeg) : getnnod3(jdeg);
   // Full node count 
-  constexpr int nnode = tdim == 2 ? facnpps[ideg] : tetnpps[ideg];
+  constexpr int nnode = tdim == 2 ? getnnod2(ideg) : getnnod3(ideg);
   // Only P1 nodes 
-  constexpr int nnod1 = tdim == 2 ? 3 : 4;
+  constexpr int nnop1 = tdim == 2 ? 3 : 4;
   constexpr int vol0 = ifact<tdim>();
   bool use_vol_scale = false;
 
@@ -77,7 +77,6 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
   int nrow = nelems * ncoef;
   
   intAr1 idx_point(msh.npoin);
-  idx_point.set_n(msh.npoin);
   int noptim_points = 0;
 
   /* Selecting the optim variables */
@@ -97,7 +96,7 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
     }
     for(int ielem = 0; ielem < nelems; ielem++){
       // Ordering is always P1 nodes first, then high order (HO). 
-      for(int ii = nnod1; ii < nnode; ii++){
+      for(int ii = nnop1; ii < nnode; ii++){
         int ipoin = ent2poi(ielem, ii);
         if((idx_point[ipoin] >= 0)||(msh.poi2bpo[ipoin] >= 0)) continue;
         idx_point[ipoin] = noptim_points;
@@ -124,7 +123,6 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
   // These (dbl/int)Ar classes entail dynamic alloc so they should be initialized
   // the fewest amount of times (not in loops, ideally)
   dblAr2 d_ccoef(ncoef, nnode);
-  d_ccoef.set_n(ncoef);
 
   const int miter = 30;
   const double dNtol = 1.0e-3;
@@ -257,7 +255,7 @@ template<int gdim, int ideg>
 double getminccoef(MeshBase &msh){
   constexpr int tdim = gdim;
   constexpr int jdeg = tdim * (ideg - 1);
-  constexpr int ncoef = tdim == 2 ? facnpps[jdeg] : tetnpps[jdeg];
+  constexpr int ncoef = tdim == 2 ? getnnod2(jdeg) : getnnod3(jdeg);
   int nelems = gdim == 2 ? msh.nface : msh.nelem; // TODO : tdim instead of gim
   const intAr2 &ent2poi = gdim == 2 ? msh.fac2poi : msh.tet2poi;
   double iret = 1.0e30;

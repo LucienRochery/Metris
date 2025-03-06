@@ -19,9 +19,12 @@ namespace Metris{
 void anamet2D_1([[maybe_unused]] void *ctx, 
                 [[maybe_unused]] const double*__restrict__ crd, 
                 double scale, int idif1, double *met, double *dmet){
-  met[0] = 1.0/(scale*scale);
+  // Not too coarse at the scale of 1  
+  double h0 = 0.05;
+
+  met[0] = 1/(h0*h0*scale*scale);
   met[1] = 0.0;
-  met[2] = 1.0/(scale*scale);
+  met[2] = 1/(h0*h0*scale*scale);
 
   if(idif1 > 0){
     for(int ii = 0; ii < 2; ii++){

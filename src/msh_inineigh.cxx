@@ -8,8 +8,8 @@
 //#include "msh_inineigh.hxx"
 //#include "Arrays/aux_msharrays.hxx"
 //#include "aux_topo.hxx"
-//#include "aux_utils.hxx"
-//#include "aux_timer.hxx"
+//#include "utils/aux_misc.hxx"
+//#include "utils/aux_timer.hxx"
 //#include "aux_hashtab.hxx"
 //
 //#include "Boundary/msh_inisurf.hxx"
@@ -29,7 +29,7 @@
 #include <iostream>                                // for basic_ostream, ope...
 #include <memory>                                  // for allocator
 #include "aux_topo.hxx"                        // for getedgfac, isdeadent
-#include "aux_utils.hxx"                       // for stup2, stup3
+#include "utils/aux_misc.hxx"                       // for stup2, stup3
 #include "Boundary/msh_inisurf.hxx"                     // for iniMeshBdryCorners
 #include <sstream>                                 // for basic_stringstream
 #include <tuple>                                   // for tuple

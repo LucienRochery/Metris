@@ -10,7 +10,7 @@
 
 #include "types.hxx"
 #include "ho_constants.hxx"
-#include "aux_utils.hxx"
+#include "utils/aux_misc.hxx"
 //#include "low_eval_d_SurrealS.hxx"
 
 #include "../SANS/Surreal/SurrealS.h"
@@ -83,7 +83,7 @@ constexpr int sdim3 = 6;
 
 ~~ Inputs:
  - inherited from eval3: rfld,lfld,bary
- - ivar (template param): rank of the DoF in the element, comprised in [[0,tetnpps[ideg]-1]].
+ - ivar (template param): rank of the DoF in the element, comprised in [[0,getnnod3(ideg)-1]].
  - dfld (optional argument): derivatives of rfld[ivar][:] (default Id mat i.e. rfld[ivar] itself)
     dfld(i,j) = d_i rfld(idof,j) 
 
@@ -738,7 +738,7 @@ void eval_d_SurrealS0(const T& __restrict__  rfld,
   } 
 
   //std::cout<<"Debug standard:\n";
-  //constexpr int npps = tdim == 2 ? facnpps[ideg] : tetnpps[ideg];
+  //constexpr int npps = tdim == 2 ? getnnod2(ideg) : getnnod3(ideg);
   //CT_FOR0_INC(0,npps-1,ii){
   //  std::cout<<"rfld["<<ii<<"] = "<<(*rfld[c_ii])<<"\n";
   //}CT_FOR1(ii);
@@ -829,7 +829,7 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
   } 
 
   //std::cout<<"Debug simple:\n";
-  //constexpr int npps = tdim == 2 ? facnpps[ideg] : tetnpps[ideg];
+  //constexpr int npps = tdim == 2 ? getnnod2(ideg) : getnnod3(ideg);
   //CT_FOR0_INC(0,npps-1,ii){
   //  //std::cout<<"rfld["<<ii<<"] = "<<rfld[c_ii]<<"\n";
   //  std::cout<<"rfld["<<ii<<"] = "<<(*rfld[c_ii])<<"\n";
@@ -865,15 +865,14 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
                      double * __restrict__  dhmat,  
                      const double * __restrict__ dfld = NULL){
 
-  constexpr auto entnpps = ENTNPPS(tdim);
 
   // -- For clarity. 
   // Number of (r|l)fld entries
-  constexpr int nrfld = entnpps[ideg];
+  constexpr int nrfld = getnnode(tdim,ideg);
   static_assert(nrfld < 31);
   // -
 
-  static_assert(ivar >= 0 && ivar < entnpps[ideg]);
+  static_assert(ivar >= 0 && ivar < nrfld);
 
   auto rfld_0 = hana::replicate<hana::tuple_tag>((const double *) 1, hana::size_c<nrfld>);
 
@@ -1006,15 +1005,14 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
                      double * __restrict__  dhmat,  
                      const double * __restrict__ dfld = NULL){
 
-  constexpr auto entnpps = ENTNPPS(tdim);
 
   // -- For clarity. 
   // Number of (r|l)fld entries
-  constexpr int nrfld = entnpps[ideg];
+  constexpr int nrfld = getnnode(tdim,ideg);
   static_assert(nrfld < 31);
   // -
 
-  static_assert(ivar >= 0 && ivar < entnpps[ideg]);
+  static_assert(ivar >= 0 && ivar < nrfld);
 
   auto rfld_0 = hana::replicate<hana::tuple_tag>((const double *) 1, hana::size_c<nrfld>);
 
@@ -1174,11 +1172,10 @@ void eval_d_SurrealS_simple(const dblAr2 & __restrict__ rfld,
                             double * __restrict__  dhmat,  
                             const double * __restrict__ dfld = NULL){
 
-  constexpr auto entnpps = ENTNPPS(tdim);
 
   // -- For clarity. 
   // Number of (r|l)fld entries
-  constexpr int nrfld = entnpps[ideg];
+  constexpr int nrfld = getnnode(tdim,ideg);
   // -
 
 

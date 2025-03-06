@@ -29,9 +29,11 @@
 // Two verbosity levels.
 #define DOPRINTS1() (dc__.getDepth() <= ivdepth__  && iverb__ >= 1)
 #define DOPRINTS2() (dc__.getDepth() <= ivdepth__  && iverb__ >= 2)
+#define DOPRINTS3() (dc__.getDepth() <= ivdepth__  && iverb__ >= 3)
 #define MPRINTF(fmt,...) printf("%s" fmt, spaces_string__, ##__VA_ARGS__);
 #define CPRINTF1(fmt,...) if(DOPRINTS1()){printf("%s" fmt, spaces_string__, ##__VA_ARGS__);}
 #define CPRINTF2(fmt,...) if(DOPRINTS2()){printf("%s" fmt, spaces_string__, ##__VA_ARGS__);}
+#define CPRINTF3(fmt,...) if(DOPRINTS3()){printf("%s" fmt, spaces_string__, ##__VA_ARGS__);}
 //#define CPRINTF1(fmt,...) if(DOPRINTS1()){printf("%s" fmt, spaces_string__.c_str(), ##__VA_ARGS__);}
 //#define CPRINTF2(fmt,...) if(DOPRINTS2()){printf("%s" fmt, spaces_string__.c_str(), ##__VA_ARGS__);}
 

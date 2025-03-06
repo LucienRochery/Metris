@@ -7,7 +7,7 @@
 #define __METRIS_MSH_INTRINSICMET__
 
 
-#include "aux_utils.hxx"
+#include "utils/aux_misc.hxx"
 #include "Mesh/MeshMetric.hxx"
 
 #include "types.hxx"

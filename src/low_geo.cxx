@@ -9,6 +9,7 @@
 #include "linalg/det.hxx"
 #include "aux_topo.hxx"
 #include "low_lenedg.hxx"
+#include "utils/mprintf.hxx"
 
 #include "Mesh/Mesh.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
@@ -20,20 +21,18 @@ template <typename T>
 T det3_vdif(const T* x1,const T* x2,
             const T* y1,const T* y2,
             const T* z1,const T* z2){
-  T reval =      (x1[0] - x2[0])*( (y1[1] - y2[1])*(z1[2] - z2[2]) - (z1[1] - z2[1])*(y1[2] - y2[2]))
-               + (x1[1] - x2[1])*( (y1[2] - y2[2])*(z1[0] - z2[0]) - (z1[2] - z2[2])*(y1[0] - y2[0]))
-               + (x1[2] - x2[2])*( (y1[0] - y2[0])*(z1[1] - z2[1]) - (z1[0] - z2[0])*(y1[1] - y2[1]));
-  return reval;
+  return (x1[0] - x2[0])*( (y1[1] - y2[1])*(z1[2] - z2[2]) - (z1[1] - z2[1])*(y1[2] - y2[2]))
+       + (x1[1] - x2[1])*( (y1[2] - y2[2])*(z1[0] - z2[0]) - (z1[2] - z2[2])*(y1[0] - y2[0]))
+       + (x1[2] - x2[2])*( (y1[0] - y2[0])*(z1[1] - z2[1]) - (z1[0] - z2[0])*(y1[1] - y2[1]));
 }
 
 
 double det3_vdif(const double* x1,const double* x2
                 ,const double* y1,const double* y2
                 ,const double* z1,const double* z2){
-  double reval = (x1[0] - x2[0])*( (y1[1] - y2[1])*(z1[2] - z2[2]) - (z1[1] - z2[1])*(y1[2] - y2[2]))
-               + (x1[1] - x2[1])*( (y1[2] - y2[2])*(z1[0] - z2[0]) - (z1[2] - z2[2])*(y1[0] - y2[0]))
-               + (x1[2] - x2[2])*( (y1[0] - y2[0])*(z1[1] - z2[1]) - (z1[0] - z2[0])*(y1[1] - y2[1]));
-  return reval;
+  return (x1[0] - x2[0])*( (y1[1] - y2[1])*(z1[2] - z2[2]) - (z1[1] - z2[1])*(y1[2] - y2[2]))
+       + (x1[1] - x2[1])*( (y1[2] - y2[2])*(z1[0] - z2[0]) - (z1[2] - z2[2])*(y1[0] - y2[0]))
+       + (x1[2] - x2[2])*( (y1[0] - y2[0])*(z1[1] - z2[1]) - (z1[0] - z2[0])*(y1[1] - y2[1]));
 }
 
 template<typename T>
@@ -50,6 +49,10 @@ double det2_vdif(const double* x1,const double* x2
        - (x1[1] - x2[1])*(y1[0] - y2[0]);
 }
 
+void vdiff_perp(const double* a, const double* b, double *res){
+  res[0] = a[1] - b[1];
+  res[1] = b[0] - a[0];
+}
 void vdiff_perp(const double* a, const double* b, int up, int lo, double *res){
   res[0] = up*(a[1] - b[1])/lo; 
   res[1] = up*(b[0] - a[0])/lo;
@@ -370,10 +373,12 @@ void getnorfacP1(const int *fac2pol, const dblAr2 &coord, double *nrmal){
                coord[fac2pol[2]],coord[fac2pol[0]],nrmal);
 }
 
+static int warning_print_CADnor = 0;
 // To compute the CAD normal, the safest is to average the vertex normals.
 // This is because taking the average of the (u,v)'s can send us just about
 // anywhere.
 int getnorfacCAD(const MeshBase &msh, int iface, double *nrmal){
+  GETVDEPTH(msh);
   bool oneOK = false;
   for(int ii = 0; ii < 3; ii++) nrmal[ii] = 0;
   for(int iver = 0; iver < 3; iver++){
@@ -383,14 +388,16 @@ int getnorfacCAD(const MeshBase &msh, int iface, double *nrmal){
 
     double dum[3];
     if(getnorpoiCAD2(msh,ibpoi,dum)){
-      if(msh.param->iverb >= 2) 
-        printf("  ## ibpoi %d ipoin %d skipped, possible singularity\n",ibpoi,ipoin);
+      if(warning_print_CADnor++ < 10){
+        CPRINTF2(" # ibpoi %d ipoin %d skipped, possible singularity\n",ibpoi,ipoin);
+        if(warning_print_CADnor >= 10) CPRINTF2(" # suppressing print\n");
+      }
       continue;
     }
 
-    if(msh.param->iverb >= 4){
-      printf("      - ipoin %d ibpoi %d (u,v) = %e %e +nor ",ipoin,ibpoi,
-        msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
+    if(DOPRINTS2()){
+      CPRINTF2(" - ipoin %d ibpoi %d (u,v) = %e %e +nor ",ipoin,ibpoi,
+               msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
       dblAr1(3,dum).print();
     }
     oneOK = true;
@@ -487,16 +494,7 @@ int getnorpoiCAD2(const MeshBase &msh, int ibpoi, double *norpoi){
   
   vecprod(du,dv,norpoi);
 
-  if(normalize_vec<3>(norpoi)){
-    //if(msh.param->iverb >= 3){
-    //  printf("## CAD normal norm too small\n");
-    //  //printf(" ibpoi = %d print ibi: ",ibpoi);
-    //  //intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
-    //  //printf(" print rbi: ");
-    //  //dblAr1(nrbi,msh.bpo2rbi[ibpoi]).print();
-    //}
-    return 1;
-  }
+  if(normalize_vec<3>(norpoi)) return 1;
 
   for(int ii = 0; ii < 3; ii++) norpoi[ii] *= mtype;
 
@@ -649,7 +647,7 @@ int getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis ib
     met[2] = 4*(jmat[2*0+1]*jmat[2*0+1] + jmat[2*1+1]*jmat[2*1+1])/3
            - 4* jmat[2*0+1]*jmat[2*1+1]/3;
     ierro = invspd(gdim,met);
-  }else if (gdim == 3 && tdim == 3){
+  }else if(gdim == 3 && tdim == 3){
     met[0] = 3*(jmat[3*0+0]*jmat[3*0+0] + jmat[3*1+0]*jmat[3*1+0] + jmat[3*2+0]*jmat[3*2+0])/2
            -    jmat[3*0+0]*jmat[3*1+0]
            -    jmat[3*0+0]*jmat[3*2+0]

@@ -8,7 +8,7 @@
 #include "aux_topo.hxx"
 #include "low_topo.hxx"
 #include "aux_exceptions.hxx"
-#include "aux_utils.hxx"
+#include "utils/aux_misc.hxx"
 
 #include "Mesh/Mesh.hxx"
 
@@ -29,16 +29,15 @@ void deg_elevate(Mesh<MFT> &msh){
   //if constexpr(mshdeg != 1) METRIS_THROW_MSG(TODOExcept(), "Write into temporary arrays and update at the end.")
 
   int tagedl[6];
-  int nshell = 0;
-  intAr1 lshell(256);
+  intAr1 lshell(100);
 
-  msh.edg2poi.set_stride(edgnpps[tardeg]);
-  msh.fac2poi.set_stride(facnpps[tardeg]);
-  msh.tet2poi.set_stride(tetnpps[tardeg]);
+  msh.edg2poi.set_stride(getnnod1(tardeg));
+  msh.fac2poi.set_stride(getnnod2(tardeg));
+  msh.tet2poi.set_stride(getnnod3(tardeg));
 
-  //intAr2 newe2poi(msh.nedge,edgnpps[tardeg-2]);
-  //intAr2 newf2poi(msh.nface,facnpps[tardeg-3]);
-  //intAr2 newt2poi(msh.nelem,tetnpps[tardeg-4]);
+  //intAr2 newe2poi(msh.nedge,getnnod1(tardeg-2));
+  //intAr2 newf2poi(msh.nface,getnnod2(tardeg-3));
+  //intAr2 newt2poi(msh.nelem,getnnod3(tardeg-4));
 
   //dblAr2 metnew(msh.mpoin,msh.met.getnnmet());
 
@@ -71,21 +70,21 @@ void deg_elevate(Mesh<MFT> &msh){
   CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
     
     double bary[4];
-    int lbpoi[facnpps[mshdeg]];
-    double newpt[tetnpps[tardeg]][gdim];
-    double newuv[tetnpps[tardeg]][2];
+    int lbpoi[getnnod2(mshdeg)];
+    double newpt[getnnod3(tardeg)][gdim];
+    double newuv[getnnod3(tardeg)][2];
     constexpr int nnmet = (gdim*(gdim+1))/2;
-    double newmtl[tetnpps[tardeg]][nnmet];
+    double newmtl[getnnod3(tardeg)][nnmet];
     
 
-    int lbpon[facnpps[tardeg]];
+    int lbpon[getnnod2(tardeg)];
     
-    constexpr int nppf0 = (facnpps[tardeg] - 3 - 3*(edgnpps[tardeg]-2));
+    constexpr int nppf0 = (getnnod2(tardeg) - 3 - 3*(getnnod1(tardeg)-2));
     
     /* PHASE 1: EDGES*/
     for(int iedge = 0; iedge < msh.nedge; iedge++){
       if(isdeadent(iedge,msh.edg2poi)){
-        for(int ii = 2; ii < edgnpps[tardeg]; ii++) msh.edg2poi(iedge,ii) = -1;
+        for(int ii = 2; ii < getnnod1(tardeg); ii++) msh.edg2poi(iedge,ii) = -1;
         continue;
       }
     
@@ -105,11 +104,11 @@ void deg_elevate(Mesh<MFT> &msh){
       if(hasmet) msh.met.template getMetNodes<gdim,1,mshdeg,tardeg>(iedge,newmtl[0]);
 
       int irn0 = 2; 
-      for(int irnk = irn0; irnk < edgnpps[tardeg]; irnk++){
+      for(int irnk = irn0; irnk < getnnod1(tardeg); irnk++){
 
         int ipnew;
         int ibnew;
-        if(irnk < edgnpps[mshdeg]){
+        if(irnk < getnnod1(mshdeg)){
           // Inherits poi2ent
           ipnew = msh.edg2poi(iedge,irnk);
           // Inherits attachment to this edge, triangles, etc. Same topological make. 
@@ -141,14 +140,14 @@ void deg_elevate(Mesh<MFT> &msh){
     /* PHASE 2: TRIANGLES */
     for(int iface = 0; iface < msh.nface; iface++){
       if(isdeadent(iface,msh.fac2poi)){
-        for(int ii = 3; ii < facnpps[tardeg]; ii++) msh.fac2poi(iface,ii) = -1;
+        for(int ii = 3; ii < getnnod2(tardeg); ii++) msh.fac2poi(iface,ii) = -1;
         continue;
       } 
       msh.fac2tag(0,iface) = msh.tag[0];
     
       // Some of the boundary points are not correlated to a new point. 
       // Let's simply store them in a facnpps sized array
-      for(int irnk = 0; irnk < facnpps[tardeg]; irnk++)
+      for(int irnk = 0; irnk < getnnod2(tardeg); irnk++)
         lbpon[irnk] = -1;
     
       // Always need to generate the points first because we'll overwrite nodes
@@ -171,13 +170,13 @@ void deg_elevate(Mesh<MFT> &msh){
       
       // Start with interior points if any.
       if constexpr(tardeg >= 3){
-        int irn0     = 3 + 3*(edgnpps[tardeg]-2);
-        int irn0_prv = 3 + 3*(edgnpps[mshdeg]-2);
+        int irn0     = 3 + 3*(getnnod1(tardeg)-2);
+        int irn0_prv = 3 + 3*(getnnod1(mshdeg)-2);
 
-        for(int irnk = irn0; irnk < facnpps[tardeg]; irnk++){
+        for(int irnk = irn0; irnk < getnnod2(tardeg); irnk++){
 
           int ipnew, ibnew;
-          if(irn0_prv + irnk - irn0 < facnpps[mshdeg]){
+          if(irn0_prv + irnk - irn0 < getnnod2(mshdeg)){
             METRIS_ASSERT(tardeg > 3);
             ipnew = msh.fac2poi[iface][irn0_prv + irnk - irn0];
             ibnew = msh.poi2bpo[ipnew];
@@ -214,10 +213,10 @@ void deg_elevate(Mesh<MFT> &msh){
         int ip1 = msh.fac2poi(iface,lnoed2[ied][0]);
         int ip2 = msh.fac2poi(iface,lnoed2[ied][1]);
 
-        int irn0 = 3 +  ied   *(edgnpps[tardeg]-2);
-        int irn1 = 3 + (ied+1)*(edgnpps[tardeg]-2);
-        int irn0_prv = 3 +  ied   *(edgnpps[mshdeg]-2);
-        int irn1_prv = 3 + (ied+1)*(edgnpps[mshdeg]-2);
+        int irn0 = 3 +  ied   *(getnnod1(tardeg)-2);
+        int irn1 = 3 + (ied+1)*(getnnod1(tardeg)-2);
+        int irn0_prv = 3 +  ied   *(getnnod1(mshdeg)-2);
+        int irn1_prv = 3 + (ied+1)*(getnnod1(mshdeg)-2);
 
         int iedge = msh.facedg2glo(iface,ied);
         if(iedge >= 0){
@@ -272,7 +271,7 @@ void deg_elevate(Mesh<MFT> &msh){
     
       if(msh.isboundary_faces()){
         // Update rbpois 
-        for(int irnk = 3; irnk < facnpps[tardeg]; irnk++){
+        for(int irnk = 3; irnk < getnnod2(tardeg); irnk++){
           //int ipoin = msh.fac2poi(iface,irnk);
           //int ipoin = newf2poi[iface][irnk-3];
           // Boundary points were created in the same order as points
@@ -296,7 +295,7 @@ void deg_elevate(Mesh<MFT> &msh){
     if constexpr (gdim >= 3){ // Note: constexpr avoids compilation of invalid template param combinations such as tdim = 3, gdim = 2
       for(int ielem = 0; ielem < msh.nelem; ielem++){
         if(isdeadent(ielem,msh.tet2poi)){
-          for(int ii = 4; ii < tetnpps[tardeg]; ii++) msh.tet2poi(ielem,ii) = -1;
+          for(int ii = 4; ii < getnnod3(tardeg); ii++) msh.tet2poi(ielem,ii) = -1;
           continue;
         } 
         msh.tet2tag(0,ielem) = msh.tag[0];
@@ -307,10 +306,10 @@ void deg_elevate(Mesh<MFT> &msh){
     
         if constexpr(tardeg >= 4){
           // Interior points
-          int irnk0 = 4 + 6 * (edgnpps[tardeg] - 2)
+          int irnk0 = 4 + 6 * (getnnod1(tardeg) - 2)
                         + 4 * nppf0;
 
-          for(int irnk = irnk0; irnk < tetnpps[tardeg]; irnk++){
+          for(int irnk = irnk0; irnk < getnnod3(tardeg); irnk++){
             int ipnew = msh.newpoitopo(3,ielem);
 
             for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
@@ -362,8 +361,8 @@ void deg_elevate(Mesh<MFT> &msh){
               tagedl[ledfa3[ifa][i]] = 1;
           }else{
             // No, create interior points
-            int irnk0 = 4 + 6*(edgnpps[tardeg]-2) + ifa*nppf0;
-            int irnk1 = 4 + 6*(edgnpps[tardeg]-2) + (ifa+1)*nppf0; 
+            int irnk0 = 4 + 6*(getnnod1(tardeg)-2) + ifa*nppf0;
+            int irnk1 = 4 + 6*(getnnod1(tardeg)-2) + (ifa+1)*nppf0; 
 
             for(int irnk = irnk0; irnk < irnk1; irnk++){
               int ipnew = msh.newpoitopo(3,ielem);
@@ -393,7 +392,7 @@ void deg_elevate(Mesh<MFT> &msh){
     
     
           int iopen;
-          shell3(msh, ip1 ,ip2 ,ielem ,&nshell ,lshell, &iopen); // i = dum
+          shell3(msh, ip1 ,ip2 ,ielem ,lshell, &iopen); // i = dum
     
     
           // If the shell is open, that means the edge is on the boundary. 
@@ -420,8 +419,7 @@ void deg_elevate(Mesh<MFT> &msh){
                                 "FAILED TO FIND BOUNDARY FACE WITH THE EDGE")
           }else{
             int ifnd = 0;
-            for(int ishell = 0;ishell < nshell;ishell++){
-              int iele2 = lshell[ishell];
+            for(int iele2 : lshell){
               if(iele2 == ielem) continue;
               if(msh.tet2tag(0,iele2) < msh.tag[0]) continue;
     
@@ -438,9 +436,9 @@ void deg_elevate(Mesh<MFT> &msh){
     
     
             if(ifnd == 0){ // No shell element could help us
-              int irn0 = 4 + (ied  )*(edgnpps[tardeg]-2);
-              int irn1 = 4 + (ied+1)*(edgnpps[tardeg]-2);
-              METRIS_ASSERT(irn1 <= tetnpps[tardeg]);
+              int irn0 = 4 + (ied  )*(getnnod1(tardeg)-2);
+              int irn1 = 4 + (ied+1)*(getnnod1(tardeg)-2);
+              METRIS_ASSERT(irn1 <= getnnod3(tardeg));
     
               for(int irnk = irn0; irnk < irn1;irnk++){
                 int ipnew = msh.newpoitopo(3,ielem);

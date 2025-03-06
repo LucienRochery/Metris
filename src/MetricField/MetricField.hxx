@@ -16,17 +16,10 @@
 #include <boost/pool/pool_alloc.hpp>
 
 
-
-// curiously reoccuring template pattern
-// -> template arg is the base class
-// inherit from classes which implement the 0() 
-// "API class" -> 
-
 namespace Metris{
 
 
 class MeshBase;
-class MetricFieldAnalytical;
 
 
 enum class MetricClass{None, MetricFieldFE, MetricFieldAnalytical};

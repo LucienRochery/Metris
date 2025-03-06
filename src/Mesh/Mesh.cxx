@@ -9,13 +9,13 @@
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../metris_constants.hxx"
 #include "../ho_constants.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/aux_misc.hxx"
 #include "../io_libmeshb.hxx"
 #include "../aux_topo.hxx"
 #include "../low_lenedg.hxx"
 #include "../low_geo.hxx"
 #include "../low_ccoef.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 
 #include "../Localization/msh_localization.hxx"
 
@@ -274,8 +274,8 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
 
     double coopr[3];
     bool ifnd = false;
-    const int nnode = tdim == 1 ? edgnpps[this->curdeg] 
-                    : tdim == 2 ? facnpps[this->curdeg] : tetnpps[this->curdeg];
+    const int nnode = tdim == 1 ? getnnod1(this->curdeg) 
+                    : tdim == 2 ? getnnod2(this->curdeg) : getnnod3(this->curdeg);
 
     const intAr2& ent2poi = this->ent2poi(tdim);
     METRIS_ASSERT_MSG(!isdeadent(iseed,ent2poi),"Dead seed passed to interpMetBack");
@@ -295,12 +295,15 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
       for(int iskiplow = 0; iskiplow <= 1; iskiplow++){
         if(iskiplow == 1 && !iskipped_lowdim) break;
 
+        CPRINTF2(" - interpMetBack pass %d (reject/accept low dim)\n",iskiplow);
+
         for(int ii = 0; ii < nnode; ii++){
           //int ipoin = this->fac2poi(iseed,ii);
           int ipoin = ent2poi(iseed,ii);
           int pdim  = this->getpoitdim(ipoin);
-          if( (pdim > tdim) || (pdim < tdim && !iskipped_lowdim) ){
-            CPRINTF2(" - interpMetBack skip seed pt %d dim = %d > %d\n",
+          //if( (pdim > tdim) || (pdim < tdim && !iskipped_lowdim) ){
+          if( (pdim > tdim) || (pdim < tdim && iskiplow == 0) ){
+            CPRINTF2(" - interpMetBack skip seed pt %d dim = %d != %d\n",
                      ipoin, pdim, tdim);
             if(pdim < tdim) iskipped_lowdim = true;
             continue;
@@ -308,6 +311,31 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
 
           *ieleb = poi2bak(ipoin, tdim-1);
           if(*ieleb < 0) continue; // Happens when called from the cavity operator.
+
+          if(pdim < tdim && iref >= 0){
+            // poi2bak might not cut it as it's not unique. 
+            const intAr1& ent2reb = bak->ent2ref(tdim);
+            const intAr2& ent2enb = bak->ent2ent(tdim);
+            if(ent2reb[*ieleb] != iref){
+              for(int ii = 0; ii < tdim + 1; ii++){
+                int ielb2 = ent2enb(*ieleb, ii);
+                CPRINTF2(" - attempt bak seed correction with %d \n",ielb2);
+                if(ielb2 == -1) continue;
+                if(ielb2 < -1){
+                  #ifndef NDEBUG
+                  METRIS_THROW_MSG(TODOExcept(), "Non-manifold case in bak seed correction")
+                  #endif
+                  continue;
+                }
+                if(ent2reb[ielb2] == iref){
+                  *ieleb = ielb2;
+                  CPRINTF1(" - corrected bak seed to %d \n",ielb2);
+                  break;
+                }
+              }
+            }
+          }
+
           METRIS_ASSERT_MSG(*ieleb >= 0 && *ieleb < bak->nentt(tdim),
             "with tdim = "<<tdim<<" got ieleb = "<<*ieleb<<" ipoin = "<<ipoin<<" as node "<<ii);
 
@@ -433,7 +461,9 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
             // projection on boundary, could be an error if point too far
             // (e.g. loc stuck opposite side of hole)
             METRIS_ASSERT(*ieleb >= 0 && *ieleb < bak->nentt(tdim));
-            METRIS_ASSERT((iref == bak->ent2ref(tdim)[*ieleb]) || iref == -1);
+            METRIS_ASSERT_MSG((iref == bak->ent2ref(tdim)[*ieleb]) || iref == -1,
+              "got iref = "<<iref<<" ieleb = "<<*ieleb<<" tdim "<<tdim<<
+              " ieleb ref "<<bak->ent2ref(tdim)[*ieleb]);
 
             
             const intAr2& bak2poi = bak->ent2poi(tdim);
@@ -471,7 +501,10 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
               dblAr1(nnmet,this->met[ipoi0]).print();
               CPRINTF2(" in iele = %d bary ",*ieleb);
               dblAr1(tdim+1,barb).print();
-              if(abs(barb[0]) + abs(barb[1]) + abs(barb[2]) > 100){
+              double sum = abs(barb[0]) + abs(barb[1]);
+              if(tdim >= 2) sum += abs(barb[2]);
+              if(tdim >= 3) sum += abs(barb[3]);
+              if(sum > 100){
                 CPRINTF2("## VERY LARGE BARYCENTRIC COORDINATES?\n");
                 dowait = true;
               }
@@ -554,7 +587,7 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,
               debugInveval("invevaldbg", *(this->bak), tdim, ent2pob[*ieleb], this->coord[ipoi0]);
 
               bool iinva;
-              double ccoef[tetnpps[METRIS_MAX_DEG]];
+              double ccoef[getnnod3(METRIS_MAX_DEG)];
               if(this->idim == 2){
                 getsclccoef<2,2,bdeg>(*(this->bak),*ieleb,NULL,ccoef,&iinva);
               }else{

@@ -9,6 +9,7 @@
 
 #include "../Mesh/MeshFwd.hxx"
 #include "../msh_anamet.hxx"
+#include "../SolutionField/anasol.hxx"
 #include <string>
 
 
@@ -32,6 +33,8 @@ struct MetrisParameters{
   void setMeshOut(std::string out);
   void setAnalyticalMetric(int ianamet);
   void setAnalyticalMetric(AnaMetFun anamet_ptr); 
+  void setAnalyticalSolution(int ianasol);
+  void setAnalyticalSolution(AnaSolFun anasol_ptr); 
   void setMetricScale(double sclmet);
 
   std::string outmFileName;
@@ -76,6 +79,7 @@ struct MetrisParameters{
   // options: "curve"
   // Defaults to 0 (no curve), 1 for offsets followed by ccoef max, 2 for 
   // metric-based LP, 3 for offsets followed by smoothing, 4 offsets and backtrack
+  // 5 interpolation error minimization
   int curveType;
 
 
@@ -133,7 +137,6 @@ struct MetrisParameters{
   friend class Mesh;
   friend class CADInfo;
 public:  
-  bool anaMet;
   bool inpMet;
   bool inpBack;
   bool inpCAD;
@@ -147,9 +150,19 @@ public:
   double metScale; 
 
   // See anamet.hxx. Can implement your own with same prototype
+  bool anaMet;
   anamet_proto anamet_ptr;
   // To use defaults, see anamet_2D and anamet_3D.cxx 
   int ianamet; 
+
+
+  // See anasol.hxx. Can implement your own with same prototype
+  bool anaSol;
+  anasol_proto anasol_ptr;
+  // To use defaults, see anasol_2D and anasol_3D.cxx 
+  int ianasol; 
+  int intp_pdeg;  // interpolation degree
+  int intp_pnorm; // interp error norm L2 or L1
 
 };
 

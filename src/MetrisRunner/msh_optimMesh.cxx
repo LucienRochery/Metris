@@ -7,20 +7,21 @@
 #include "../Mesh/Mesh.hxx"
 #include "../adapt/msh_swap2D.hxx"
 #include "../adapt/msh_reinsert_flat.hxx"
-#include "../aux_utils.hxx"
-#include "../aux_timer.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../utils/aux_timer.hxx"
 #include "../quality/msh_metqua.hxx"
 #include "../io_libmeshb.hxx"
 #include "../smoothing/msh_smooball.hxx"
 #include "../msh_checktopo.hxx"
 #include "../aux_histogram.hxx"
 #include "../msh_lenedg.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 
 namespace Metris{
 
 
 double MetrisRunner::optimMesh(){
+  if(param_.opt_niter == 0) return 0;
   double stat = 0;
   CT_FOR0_INC(2,3,gdim){if(gdim == msh_g->idim){
     CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh_g->curdeg == ideg){

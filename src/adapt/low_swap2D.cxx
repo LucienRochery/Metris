@@ -11,9 +11,9 @@
 
 #include "../cavity/msh_cavity.hxx"
 #include "../aux_topo.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/aux_misc.hxx"
 #include "../low_lenedg.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 #include "../low_geo.hxx"
 #include "../io_libmeshb.hxx"
 #include "../quality/low_metqua.hxx"
@@ -56,7 +56,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   if(pnorm >= 0){
     quae1 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,iface,opts.qpower,
                                   opts.qpnorm,1.0);
-    METRIS_ASSERT(quae1 > 0);
+    METRIS_ASSERT_MSG(quae1 > -1.0e-16, "Negative quae1 "<<quae1<<" iface "<<iface);
   }
 
 

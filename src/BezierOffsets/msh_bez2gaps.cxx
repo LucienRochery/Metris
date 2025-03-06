@@ -75,10 +75,10 @@ void eltgapsbezconv(MeshBase &msh, int ielem, int isig, bool confirm){
 
     for(int ifac = 0; ifac < nfacl; ifac++){
       int irnk0 = nvert + nedgl * (ideg - 1) 
-                    + ifac * facnpps[ideg-2];
+                    + ifac * getnnod2(ideg-2);
       if(msh.poi2tag(0,irnk0) >= msh.tag[0]) continue;
       int irnk1 = nvert + nedgl * (ideg - 1) 
-                    + (ifac + 1) * facnpps[ideg-2];
+                    + (ifac + 1) * getnnod2(ideg-2);
   
       int ip1 = ent2poi(ielem,lnofa3[ifac][0]);
       int ip2 = ent2poi(ielem,lnofa3[ifac][1]);

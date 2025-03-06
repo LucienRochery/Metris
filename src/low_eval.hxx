@@ -81,9 +81,11 @@ void eval1(const dblAr2& __restrict__ rfld,
 
 // These shouldn't be called directly. For evaluation of a single Lag or Béz function. 
 template <int ideg,int tdim>
-double eval_lagrangefunc(const int*__restrict__ idx, const double*__restrict__ bary,int ider,double*__restrict__ dlag);
+double eval_lagrangefunc(const int*__restrict__ idx, const double*__restrict__ bary,
+                         int idiff, double*__restrict__ dlag);
 template <int ideg,int tdim>
-double eval_bezierfunc(const int*__restrict__ idx, const double*__restrict__ bary,int ider,double*__restrict__ dlag);
+double eval_bezierfunc(const int*__restrict__ idx, const double*__restrict__ bary,
+                       int idiff, double*__restrict__ dbez);
 
 
 
@@ -95,7 +97,7 @@ The Hessian is compressed as column first as usual:
     6
 However, note that each entry is, itself, comprised of szfld values. 
 */
-template <int szfld, int ideg, int di=0,int dj=0, int dk=0, int dl=0>
+template <int szfld, int ideg, int di=0, int dj=0, int dk=0, int dl=0>
 struct eval3_bezier{
   eval3_bezier(const dblAr2 & __restrict__  rfld,  
                const int * __restrict__  lfld,

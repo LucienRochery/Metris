@@ -11,7 +11,7 @@
 #include "../aux_topo.hxx"
 #include "../Mesh/Mesh.hxx"
 
-#include "../aux_pp_inc.hxx"
+#include "../utils/aux_pp_inc.hxx"
 
 namespace Metris{
 
@@ -37,11 +37,7 @@ ftype metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
   ftype qutet; 
 
-  //// Performance impact should be zero
-  //constexpr auto quafun_xi
-  //  = QuaFunList<MFT,gdim,tdim,ideg,AsDeg::Pk,AsDeg::Pk>{}.
-  //    template quafun_xi<iquaf>();
-
+  // Performance impact should be zero
   constexpr auto quafun_xi 
     = get_quafun_xi<MFT,gdim,tdim,iquaf,ftype>();
 
@@ -50,7 +46,7 @@ ftype metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     qutet = 0.0;
 
     const int idegj = SMOO_DEGJ(ideg);
-    const int nnodj = tdim == 2 ? facnpps[idegj] : tetnpps[idegj];
+    const int nnodj = tdim == 2 ? getnnod2(idegj) : getnnod3(idegj);
 
     constexpr auto ordelt = ORDELT(tdim);
 
@@ -80,7 +76,7 @@ ftype metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     #ifndef NDEBUG
       }catch(const MetrisExcept &e){
         printf("## metqua ent2pol \n");
-        intAr1(facnpps[ideg], ent2pol).print();
+        intAr1(getnnod2(ideg), ent2pol).print();
         throw(e);
       }
     #endif

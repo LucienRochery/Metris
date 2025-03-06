@@ -14,8 +14,8 @@
 #include "../low_geo.hxx"
 #include "../aux_topo.hxx"
 #include "../io_libmeshb.hxx"
-#include "../aux_timer.hxx"
-#include "../mprintf.hxx"
+#include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
 #include "../linalg/det.hxx"
 #include "../cavity/msh_cavity.hxx"
 
@@ -54,7 +54,6 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
   const int merror = CAV_ERR_NERROR;
   intAr1 lerror(merror);
-  lerror.set_n(merror);
 
 
   msh.met.setSpace(MetSpace::Log);

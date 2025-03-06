@@ -9,7 +9,7 @@
 
 #include "msh_reinsert_flat.hxx"
 #include "../low_geo.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 #include "../msh_structs.hxx"
 #include "../cavity/msh_cavity.hxx"
 #include "../io_libmeshb.hxx"
@@ -67,7 +67,6 @@ int reinsertFlat(Mesh<MFT> &msh){
 
   const int merror = CAV_ERR_NERROR;
   intAr1 lerror(merror);
-  lerror.set_n(merror);
   lerror.fill(0); 
   int nerro_tot = 0;
   int noper_tot = 0;

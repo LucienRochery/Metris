@@ -39,10 +39,10 @@ int check_cavity_topo(Mesh<MFT> &msh, MshCavity &cav,
     int tdimn = cav.lctet.get_n() > 0 ? 3 
               : cav.lcfac.get_n() > 0 ? 2 
                                       : 1;
-    const intAr1& lcent = cav.lcent(tdimn);
-    const intAr2& ent2ent = msh.ent2ent(tdimn);
-    const intAr2& ent2poi = msh.ent2poi(tdimn);
-    const intAr2& ent2tag = msh.ent2tag(tdimn);
+    const intAr1&  lcent = cav.lcent(tdimn);
+    const intAr2&  ent2ent = msh.ent2ent(tdimn);
+    const intAr2&  ent2poi = msh.ent2poi(tdimn);
+    const intAr2r& ent2tag = msh.ent2tag(tdimn);
 
 
     for(int ientt : lcent){

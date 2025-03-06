@@ -109,7 +109,6 @@ void setFieldBezier(MeshBase &msh, dblAr2 &rfld){
   if constexpr(ideg == 1) return;
 
   dblAr2 rwrk(msh.npoin,szfld);
-  rwrk.set_n(msh.npoin);
 
 
   int nentt = msh.nelem > 0 ? msh.nelem :
@@ -148,7 +147,6 @@ void setFieldLagrange(MeshBase &msh, dblAr2 &rfld){
   if constexpr(ideg == 1) return;
 
   dblAr2 rwrk(msh.npoin,szfld);
-  rwrk.set_n(msh.npoin);
 
   int nentt = msh.nelem > 0 ? msh.nelem :
               msh.nface > 0 ? msh.nface :

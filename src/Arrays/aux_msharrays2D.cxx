@@ -25,8 +25,7 @@ template<typename T, typename INT1, typename INT2>
 MeshArray2D<T,INT1,INT2>::MeshArray2D(INT1 m, INT2 s){
   METRIS_ENFORCE_MSG(m >= 0 && s > 0, "MeshArray2D initialized with m < 0 or s <= 0")
   stride  = s;
-  m1      = m;
-  n1      = 0;
+  m1 = n1 = m;
   nmemalc = ((INTL)m1)*((INTL)stride);
   array_sp = cpp17_make_shared<T[]>(nmemalc);
   array    = array_sp.get();
@@ -71,17 +70,17 @@ MeshArray2D<T,INT1,INT2>::MeshArray2D(INT1 n, INT2 s, T* ar){
   nmemalc  = ((INTL)s)*((INTL)n);
 }
 
-//template<typename T, typename INT1, typename INT2>
-//MeshArray2D<T,INT1,INT2>::MeshArray2D(const MeshArray2D &cpy){
-//  dbgid   = 0; 
-//  iowner = 0;
-//  array  = cpy.array;
-//  nmemalc= cpy.nmemalc;
-//  stride = cpy.stride;
-//  #ifdef DEBUG_ARRAYS_FULL
-//    narray = NULL;
-//  #endif
-//}
+template<typename T, typename INT1, typename INT2>
+MeshArray2D<T,INT1,INT2>::MeshArray2D(const MeshArray2D &cpy){
+  m1       = cpy.m1;
+  n1       = cpy.n1;
+  stride   = cpy.stride;
+  nmemalc  = cpy.nmemalc;
+  array_sp = cpy.array_sp;
+  array    = cpy.array;
+  array_ro = array; 
+}
+
 template<typename T, typename INT1, typename INT2>
 MeshArray2D<T,INT1,INT2>::MeshArray2D(MeshArray2D &&cpy){
   *this = std::move(cpy);
@@ -178,9 +177,8 @@ void MeshArray2D<T,INT1,INT2>::fill(T x){
 
 template<typename T, typename INT1, typename INT2>
 void MeshArray2D<T,INT1,INT2>::copyTo(MeshArray2D<T,INT1,INT2> &out, INT1 ncopy) const{
-  METRIS_ENFORCE(ncopy > 0);
-  
-  if(ncopy < 0) ncopy = nmemalc/stride;
+  if(ncopy < 0) ncopy = n1;
+  METRIS_ASSERT(ncopy <= n1);
   if(out.get_stride() < stride) METRIS_THROW_MSG(WArgExcept(), 
                        "Out stride = " << out.get_stride()<<" this = "<<stride);
   if(out.size()/out.get_stride() < ncopy) METRIS_THROW_MSG(DMemExcept(),
@@ -188,7 +186,7 @@ void MeshArray2D<T,INT1,INT2>::copyTo(MeshArray2D<T,INT1,INT2> &out, INT1 ncopy)
   
   for(INT1 ii = 0; ii < ncopy; ii++){
     for(INT2 jj = 0; jj < stride; jj++){
-      out[ii][jj] = (*this)[ii][jj];
+      out(ii,jj) = (*this)(ii,jj);
     }
   }
 }
@@ -227,14 +225,18 @@ MeshArray2D<T,INT1,INT2>::~MeshArray2D(){
 //  return *this;
 //}
 
-//template<typename T, typename INT1, typename INT2>
-//MeshArray2D<T,INT1,INT2>& MeshArray2D<T,INT1,INT2>::operator=(const MeshArray2D &cpy){
-//  iowner = 0;
-//  array  = cpy.array;
-//  nmemalc= cpy.nmemalc;
-//  stride = cpy.stride;
-//  return *this;
-//}
+template<typename T, typename INT1, typename INT2>
+MeshArray2D<T,INT1,INT2>& MeshArray2D<T,INT1,INT2>::operator=(const MeshArray2D &cpy){
+  this->free();
+  array_sp = cpy.array_sp;
+  array    = array_sp.get();
+  array_ro = array; 
+  m1       = cpy.m1;
+  n1       = cpy.n1;
+  stride   = cpy.stride;
+  nmemalc  = cpy.nmemalc;
+  return *this;
+}
 
 
 template<typename T, typename INT1, typename INT2>

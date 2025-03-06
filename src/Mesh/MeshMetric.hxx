@@ -7,9 +7,9 @@
 #define __METRIS_MESH_METRIC__
 
 #include "MeshBase.hxx"
-#include "../MetricField/MetricField.hxx"
 
-#include "../CT_loop.hxx"
+#include "../MetricField/MetricField.hxx"
+#include "../utils/CT_loop.hxx"
 
 
 namespace Metris{

@@ -12,9 +12,10 @@
 #include "../low_topo.hxx"
 #include "../low_ccoef.hxx"
 #include "../aux_topo.hxx"
-#include "../aux_utils.hxx"
-#include "../CT_loop.hxx"
-#include "../mprintf.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../utils/CT_loop.hxx"
+#include "../utils/mprintf.hxx"
+#include "../linalg/det.hxx"
 
 
 namespace Metris{
@@ -59,7 +60,7 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
   //int mmeas = MAX(msh.nelem - nele0, msh.nface - nfac0);
   //lmeas.allocate(mmeas);
 
-  double ccoef[tetnpps[gdim*(ideg-1)]]; // Largest possible
+  double ccoef[getnnod3(gdim*(ideg-1))]; // Largest possible
 
 
 
@@ -125,7 +126,7 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
 
         egoAr1 &cad2ent = tdim == 1 ? msh.CAD.cad2edg : msh.CAD.cad2fac;
 
-        int nnode = tdim == 1 ? edgnpps[ideg] : facnpps[ideg];
+        int nnode = tdim == 1 ? getnnod1(ideg) : getnnod2(ideg);
 
 
         for(int ientt = nent0; ientt < nentt; ientt++){
@@ -199,7 +200,7 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
     for(int tdim = 1; tdim <= 2; tdim++){
       const intAr2 &ent2poi = msh.ent2poi(tdim); 
       const intAr1 &ent2ref = msh.ent2ref(tdim);
-      int nnode = tdim == 1 ? edgnpps[ideg] : facnpps[ideg];
+      int nnode = tdim == 1 ? getnnod1(ideg) : getnnod2(ideg);
       int nent0 = tdim == 1 ? nedg0 : nfac0;
       int nentt = msh.nentt(tdim);
 
@@ -228,9 +229,23 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
             if(ierro != 0){
               algnd = NULL;
               CPRINTF1("# EG_eval failed\n");
-            }else{
+            }else if(tdim == 1){
               for(int ii = 0; ii < msh.idim; ii++) algnd_[ii] = result[3+ii];
               algnd = algnd_;
+            }else{
+              vecprod(&result[3], &result[6], algnd_);
+              algnd = algnd_;
+            }
+          }
+          // Covers !CAD() as well as EG_eval failure (probably never)
+          if(tdim < msh.get_tdim() && algnd == NULL){
+            algnd = algnd_;
+            if(tdim == 1){ 
+              for(int ii = 0; ii < msh.idim; ii++)
+                algnd[ii] = msh.coord(msh.edg2poi(ientt, 1),ii)
+                          - msh.coord(msh.edg2poi(ientt, 0),ii);
+            }else{
+              getnorfacP1(msh.fac2poi[ientt], msh.coord, algnd_);
             }
           }
           msh.interpMetBack(ipoin, tdim, ientt, iref, algnd);

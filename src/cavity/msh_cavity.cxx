@@ -9,8 +9,8 @@
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../io_libmeshb.hxx"
-#include "../aux_pp_inc.hxx"
-#include "../mprintf.hxx"
+#include "../utils/aux_pp_inc.hxx"
+#include "../utils/mprintf.hxx"
 
 
 namespace Metris{
@@ -49,11 +49,11 @@ template int reconnect_tetcav<MetricFieldFE        , n >(Mesh<MetricFieldFE     
 // 2 spaces per level 
 template <class MFT, int ideg>
 int cavity_operator(Mesh<MFT> &msh , 
-                   MshCavity  &cav,
-                   CavOprOpt  &opts  ,
+                    MshCavity  &cav,
+                    CavOprOpt  &opts  ,
                     CavWrkArrs &work  ,
                     CavOprInfo &info  ,
-                   int ithread){
+                    int ithread){
   GETVDEPTH(msh);
   info.done = false;
 

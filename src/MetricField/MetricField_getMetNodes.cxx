@@ -24,9 +24,9 @@ void MetricFieldFE::getMetNodes(int ientt, double *metnod) const{
   if(this->ibasis != FEBasis::Lagrange) METRIS_THROW_MSG(TODOExcept(), 
     "Implement getMedNodes for Bézier (FE)")
 
-  constexpr int npptar = (tdim == 1) ? edgnpps[tardeg]
-                       :((tdim == 2) ? facnpps[tardeg]
-                                     : tetnpps[tardeg]);
+  constexpr int npptar = (tdim == 1) ? getnnod1(tardeg)
+                       :((tdim == 2) ? getnnod2(tardeg)
+                                     : getnnod3(tardeg));
 
   constexpr auto ordent = ORDELT(tdim);
 
@@ -65,9 +65,9 @@ void MetricFieldAnalytical::getMetNodes(int ientt, double *metnod) const{
   if(this->ibasis != FEBasis::Lagrange) METRIS_THROW_MSG(TODOExcept(), 
     "Implement getMedNodes for Bézier (Analytical)")
     
-  constexpr int npptar = (tdim == 1) ? edgnpps[tardeg]
-                       :((tdim == 2) ? facnpps[tardeg]
-                                     : tetnpps[tardeg]);
+  constexpr int npptar = (tdim == 1) ? getnnod1(tardeg)
+                       :((tdim == 2) ? getnnod2(tardeg)
+                                     : getnnod3(tardeg));
 
 
   constexpr auto ordent = ORDELT(tdim);

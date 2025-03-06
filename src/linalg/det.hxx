@@ -7,7 +7,7 @@
 #define __METRIS_LINALG_DET__
 
 
-#include "../linalg/symidx.hxx"
+#include "symidx.hxx"
 #include <lapacke.h>
 
 

@@ -19,7 +19,7 @@
 #include "../aux_exceptions.hxx"
 #include "../aux_histogram.hxx"
 #include "../aux_topo.hxx"
-#include "../aux_timer.hxx"
+#include "../utils/aux_timer.hxx"
 
 namespace Metris{
 	 
@@ -243,7 +243,6 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
     printf("Curving time %f \n",t1-t0);
 
     dblAr2 pos_ctrlp(npopt,gdim);
-    pos_ctrlp.set_n(npopt);
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
       int irank = idx_point[ipoin];
       if(irank < 0) continue;

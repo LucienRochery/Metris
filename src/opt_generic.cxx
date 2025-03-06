@@ -323,7 +323,7 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
     goto flag999;
   }
 
-  if(args.iprt >= 3)printf(" - enter Newton niter %d fcur = %15.8f isym = %d\n",args.niter,*fcur,args.isym);
+  if(args.iprt >= 3) printf(" - enter Newton niter %d fcur = %15.8f isym = %d\n",args.niter,*fcur,args.isym);
 
   if(*fcur < args.fopt){
     for(int ii = 0; ii < nvar; ii++) args.xopt[ii] = xcur[ii];

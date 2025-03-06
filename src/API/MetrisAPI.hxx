@@ -212,7 +212,7 @@ private:
 public:
   const CADInfo& CAD;
 private:
-  int usrord[3][tetnpps[METRIS_MAX_DEG]];
+  int usrord[3][getnnod3(METRIS_MAX_DEG)];
 
   //MetrisRunner *run;
 };

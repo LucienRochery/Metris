@@ -8,11 +8,11 @@
 
 #include "../Mesh/Mesh.hxx"
 #include "../metris_constants.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/aux_misc.hxx"
 
 #include "../linalg/symidx.hxx"
 
-#include "../aux_pp_inc.hxx"
+#include "../utils/aux_pp_inc.hxx"
 
 namespace Metris{
 
@@ -40,7 +40,7 @@ ftype quafun_distortion(Mesh<MFT> &msh,
   #ifndef NDEBUG
   }catch(const MetrisExcept& e){
     printf("##quafun_distortion excpt ent2pol = \n");
-    intAr1(facnpps[msh.curdeg],ent2pol).print();
+    intAr1(getnnod2(msh.curdeg),ent2pol).print();
     throw(e);
   }
   #endif

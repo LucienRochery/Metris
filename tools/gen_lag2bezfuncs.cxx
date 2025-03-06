@@ -5,8 +5,9 @@
 
 #include "../src/ho_constants.hxx"
 #include "../src/low_eval.hxx"
-#include "../src/aux_utils.hxx"
-#include "../src/CT_loop.hxx"
+#include "../src/utils/aux_misc.hxx"
+#include "../src/utils/aux_timer.hxx"
+#include "../src/utils/CT_loop.hxx"
 
 
 #include <boost/hana.hpp> 
@@ -24,12 +25,17 @@ const int nszfld = 4;
 const int szflds[nszfld] = {1, 2, 3, 6};
 
 
+//#define USE_DBL_COEFS
+
+
 using namespace Metris;
 
 
 /*
-This is as hacky as it gets, and will undoubtedly fail for high METRIS_MAX_DEG_JACOBIAN
+This is as hacky as it gets, and will undoubtedly fail for high METRIS_MAX_DEG_LAG2BEZ
 When that time comes, use proper rational approximation methods
+Or better yet, see if we can get away with doubles, but I seem to recall prior 
+tests showing too high loss of precision. To be verified. 
 Works up until deg 4 included
 */
 int dbl2frac(double tol, double x,  long long *p,  long long *q, bool iverb = false){
@@ -61,7 +67,7 @@ void gen_lag2bez(std::ostringstream &str);
 
 template<int tdim>
 void gen_lag2bez(std::ostringstream &str){
-  printf("-- Gen lag2bez tdim = %d maxdeg = %d \n",tdim,METRIS_MAX_DEG_JACOBIAN);
+  printf("-- Gen lag2bez tdim = %d maxdeg = %d \n",tdim,METRIS_MAX_DEG_LAG2BEZ);
   double bary[tdim+1];
   char i_s[16]; 
   char j_s[16]; 
@@ -70,7 +76,10 @@ void gen_lag2bez(std::ostringstream &str){
   //char q_s[64];
   char ideg_s[64];
 
-  CT_FOR0_INC(0,METRIS_MAX_DEG_JACOBIAN,ideg){
+  CT_FOR0_INC(0,METRIS_MAX_DEG_LAG2BEZ,ideg){
+
+
+    double t0 = get_wall_time();
 
     if constexpr(ideg == 0){
       str << "template<> void lag2bez"<<tdim<<"<"<<0<<","<<1<<">"<<
@@ -84,11 +93,11 @@ void gen_lag2bez(std::ostringstream &str){
     snprintf(ideg_s,4,"%3d",ideg);
     int npp;
     if(tdim == 1){
-    	npp = edgnpps[ideg];
+    	npp = getnnod1(ideg);
     }else if(tdim == 2){
-    	npp = facnpps[ideg];
+    	npp = getnnod2(ideg);
     }else{
-    	npp = tetnpps[ideg];
+    	npp = getnnod3(ideg);
     }
     
     printf("-- Lag2bez deg = %d \n",ideg);
@@ -178,7 +187,7 @@ void gen_lag2bez(std::ostringstream &str){
         long long int p,q;
         if(dbl2frac(1.0e-12,v,&p,&q)){
           printf("## THE TIME AS COME TO REPLACE DBL2FRAC CF tools/gen_lag2bezfuncs.cxx\n");
-          printf("Lowering METRIS_MAX_DEG_JACOBIAN will work if %d is not necessary\n",METRIS_MAX_DEG_JACOBIAN);
+          printf("Lowering METRIS_MAX_DEG_LAG2BEZ will work if %d is not necessary\n",METRIS_MAX_DEG_LAG2BEZ);
           printf("Failure at deg  %d on coeff = %30.23f \n",ideg,v);
           printf("Call dbgl2frac verbose:\n");
           dbl2frac(1.0e-12,v,&p,&q,true);
@@ -199,7 +208,7 @@ void gen_lag2bez(std::ostringstream &str){
         long long int p,q;
         if(dbl2frac(1.0e-12,v,&p,&q)){
           printf("## THE TIME AS COME TO REPLACE DBL2FRAC CF tools/gen_lag2bezfuncs.cxx\n");
-          printf("Lowering METRIS_MAX_DEG_JACOBIAN will work if %d is not necessary\n",METRIS_MAX_DEG_JACOBIAN);
+          printf("Lowering METRIS_MAX_DEG_LAG2BEZ will work if %d is not necessary\n",METRIS_MAX_DEG_LAG2BEZ);
           printf("Failure at deg  %d on coeff = %30.23f \n",ideg,v);
           printf("Call dbgl2frac verbose:\n");
           dbl2frac(1.0e-12,v,&p,&q,true);
@@ -236,45 +245,44 @@ void gen_lag2bez(std::ostringstream &str){
       }
   
       for(int i = tdim + 1; i < npp; i++){
-        snprintf(i_s,4,"%3d",i);
-          //      double v = coeffs[i][0];
         int j = idxs[i][0];
-        long long int p = pcoefs[i][0];
-        long long int q = qcoefs[i][0];
-          //      snprintf(v_s,64,"%22.16f",v);
-          //      snprintf(p_s,64,"%22.16f",p);
-          //      snprintf(q_s,64,"%22.16f",q);
+        snprintf(i_s,4,"%3d",i);
         snprintf(j_s,4,"%3d",j);
-  
+
+        #ifndef USE_DBL_COEFS
+          long long int p = pcoefs[i][0];
+          long long int q = qcoefs[i][0];
+        #else
+          double p = pcoefs[i][0] / (double) qcoefs[i][0];
+          double q = 1.0;
+          str << std::setprecision(17);
+        #endif
+ 
+    
         if(szfld > 1){
-          //        str << "    rfld1[lfld["<<i_s<<"]][i] = "<<v_s<<"*rfld0[lfld["<<j_s<<"]][i]";
           str << "    rfld1[lfld["<<i_s<<"]][i] = "<<p<<"*rfld0[lfld["<<j_s<<"]][i]/"<<q;
           for(int j = 1; j < pcoefs[i].size(); j++){
-          //          v = coeffs[i][j];
-          //          snprintf(v_s,64,"%22.16f",v);
-          //          snprintf(p_s,64,"%22.16f",v);
-          //          snprintf(q_s,64,"%22.16f",v);
-            p = pcoefs[i][j];
-            q = qcoefs[i][j];
+            #ifndef USE_DBL_COEFS
+              p = pcoefs[i][j];
+              q = qcoefs[i][j];
+            #else
+              p = pcoefs[i][j] / (double) qcoefs[i][j];
+            #endif
             int jj = idxs[i][j];
             snprintf(j_s,4,"%3d",jj);
-          //          str<<" + "<<v_s<<"*rfld0[lfld["<<j_s<<"]][i]";
             str<<" + "<<p<<"*rfld0[lfld["<<j_s<<"]][i]/"<<q;
           }
         }else{
-          //        str << "  rfld1[lfld["<<i_s<<"]][0] = "<<v_s<<"*rfld0[lfld["<<j_s<<"]][0]";
           str << "  rfld1[lfld["<<i_s<<"]][0] = "<<p<<"*rfld0[lfld["<<j_s<<"]][0]/"<<q;
-          //        if(iprt> 0)printf("Debug within loop i = %d size %d \n",i,(int)coeffs[i].size());
           for(int j = 1; j < pcoefs[i].size(); j++){
-          //          if(iprt > 0)printf("%d / %d \n",j,(int)(coeffs[i].size()-1));
-          //          v = coeffs[i][j];
-          //          snprintf(v_s,64,"%22.16f",v);
-            p = pcoefs[i][j];
-            q = qcoefs[i][j];
+            #ifndef USE_DBL_COEFS
+              p = pcoefs[i][j];
+              q = qcoefs[i][j];
+            #else
+              p = pcoefs[i][j] / (double) qcoefs[i][j];
+            #endif
             int jj = idxs[i][j];
             snprintf(j_s,4,"%3d",jj);
-          //          if(iprt> 0)printf("idx %d \n",idxs[i][j]);
-          //          str<<" + "<<v_s<<"*rfld0[lfld["<<j_s<<"]][0]";
             str<<" + "<<p<<"*rfld0[lfld["<<j_s<<"]][0]/"<<q;
           }
         }
@@ -285,12 +293,14 @@ void gen_lag2bez(std::ostringstream &str){
       }
       str<<"}\n\n";
     }
+    double t1 = get_wall_time();
+    printf(" -- Degree %d took %f s\n",ideg,t1-t0);
   }CT_FOR1(ideg);
   //  str << "  }\n"; // close constructor
   //  str << "  ALWAYS_INLINE double* operator[](int i)const {\n";
   //  str << "    return arr[i];\n";
   //  str << "  }\n";
-  ////  str << "  const double arr[tetnpps[ideg]][tetnpps[ideg]];";
+  ////  str << "  const double arr[getnnod3(ideg)][getnnod3(ideg)];";
   //  str << "  dblAr2 arr;\n";
   //  str<<"};\n"; // close struct
   //  str << "#endif";

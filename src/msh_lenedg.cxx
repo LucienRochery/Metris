@@ -7,8 +7,8 @@
 #include "low_lenedg.hxx"
 
 #include "aux_topo.hxx"
-#include "aux_utils.hxx"
-#include "CT_loop.hxx"
+#include "utils/aux_misc.hxx"
+#include "utils/CT_loop.hxx"
 #include "Mesh/MeshMetric.hxx"
 
 namespace Metris{

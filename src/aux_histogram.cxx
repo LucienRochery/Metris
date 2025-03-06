@@ -4,8 +4,8 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 #include "aux_histogram.hxx"
-#include "aux_utils.hxx"
-#include "mprintf.hxx"
+#include "utils/aux_misc.hxx"
+#include "utils/mprintf.hxx"
 #include "Mesh/MeshBase.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include <unistd.h>
@@ -30,8 +30,6 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
 
   dblAr2 buckval(nbucket,2);
   intAr1 buckcnt(nbucket);
-  buckval.set_n(nbucket);
-  buckcnt.set_n(nbucket);
   buckcnt.fill(0);
   double vlow, vhig;
 

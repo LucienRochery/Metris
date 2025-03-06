@@ -62,6 +62,27 @@ constexpr void ini_cbztet();
 #ifndef METRIS_MAX_DEG_JACOBIAN
 #define METRIS_MAX_DEG_JACOBIAN (3*(METRIS_MAX_DEG - 1))
 #endif
+
+// Degree of the maximum pnorm (<= 2) interpolation error integrand
+#ifndef METRIS_MAX_DEG_INTPINTGD
+#define METRIS_MAX_DEG_INTPINTGD METRIS_MAX_DEG_JACOBIAN + 2*(METRIS_MAX_DEG+1)*METRIS_MAX_DEG
+#endif
+
+#ifndef METRIS_MAX_DEG_ORDERING
+#define METRIS_MAX_DEG_ORDERING METRIS_MAX_DEG_INTPINTGD
+#endif 
+
+// Maximum we need is to support pointwise error of degree (MAX_DEG + 1)*MAX_DEG
+// Squaring (or any power) is handled using Bernstein multiplication, no Lag2Bez
+// This is for debugging purposes (exact error). Hopefully we can cut it closer 
+// to the bone at MAX_DEG + 1.
+#ifndef METRIS_MAX_DEG_LAG2BEZ
+#define METRIS_MAX_DEG_LAG2BEZ (METRIS_MAX_DEG+1)*METRIS_MAX_DEG
+#endif
+
+#ifndef METRIS_MAX_DEG_EVAL
+#define METRIS_MAX_DEG_EVAL MAX(METRIS_MAX_DEG_LAG2BEZ, METRIS_MAX_DEG_JACOBIAN)
+#endif
 //constexpr int METRIS_MAX_DEG = 4;
 
 #define SMOO_DEGJ(x) x - 1
@@ -72,68 +93,35 @@ constexpr void ini_cbztet();
     else                     {return ordtet.s;}\
   }();
 
-// Array not an integral type in C++17 (ok in 20)
-//#define ORDELT_ARRAY(n) []() -> auto {\
-//         if constexpr(n == 1){return ordedg.t;}\
-//    else if constexpr(n == 2){return ordfac.t;}\
-//    else                     {return ordtet.t;}\
-//  }();
 
 
-#define ENTNPPS(n) []() -> auto {\
-         if constexpr(n == 1){return edgnpps;}\
-    else if constexpr(n == 2){return facnpps;}\
-    else                     {return tetnpps;}\
-  }();
+constexpr int getnnod1(int i){
+  return i+1;
+}
 
-// edgnpps[1+METRIS_MAX_DEG] : node count (edge) 
-// facnpps[1+METRIS_MAX_DEG] : node count (face) 
-// tetnpps[1+METRIS_MAX_DEG] : node count (elem) 
+constexpr int getnnod2(int i){
+  return ((i+2)*(i+1))/2;
+}
 
+constexpr int getnnod3(int i){
+  return ((i+3)*(i+2)*(i+1))/6;
+}
 
-
-constexpr std::array<int,METRIS_MAX_DEG_JACOBIAN+1> edgnpps{[]() constexpr{
-  std::array<int,METRIS_MAX_DEG_JACOBIAN+1> ret{};
-  for(int i=0;i<METRIS_MAX_DEG_JACOBIAN+1;i++){
-    ret[i] = i+1;
+constexpr int getnnode(int idim, int i){
+  switch(idim){
+    case 1:
+      return getnnod1(i);
+    case 2:
+      return getnnod2(i);
+    case 3:
+      return getnnod3(i);
   }
-  return ret;
-}()};
-constexpr std::array<int,METRIS_MAX_DEG_JACOBIAN+1> facnpps{[]() constexpr{
-  std::array<int,METRIS_MAX_DEG_JACOBIAN+1> ret{};
-  for(int i=0;i<METRIS_MAX_DEG_JACOBIAN+1;i++){
-    ret[i] = ((i+2)*(i+1))/2;
-  }
-  return ret;
-}()};
-constexpr std::array<int,METRIS_MAX_DEG_JACOBIAN+1> tetnpps{[]() constexpr{
-  std::array<int,METRIS_MAX_DEG_JACOBIAN+1> ret{};
-  for(int i=0;i<METRIS_MAX_DEG_JACOBIAN+1;i++){
-    ret[i] = ((i+3)*(i+2)*(i+1))/6;
-  }
-  return ret;
-}()};
-//constexpr const int edgnpps[METRIS_MAX_DEG_JACOBIAN + 1] = {1 , 2 , 3  , 4  , 5  , 6  , 7  , 8   , 9  };// , 10  , 11 };
-//constexpr const int facnpps[METRIS_MAX_DEG_JACOBIAN + 1] = {1 , 3 , 6  , 10 , 15 , 21 , 28 , 36  , 45 };// , 55  , 66 };
-//constexpr const int tetnpps[METRIS_MAX_DEG_JACOBIAN + 1] = {1 , 4 , 10 , 20 , 35 , 56 , 84 , 120 , 165};// , 220 , 286};
-
-
-//#include "codegen_lag2bez1.hxx" // Compile and run gen_lag2bezcoeff in tools/ to obtain this file
-//#include "codegen_lag2bez2.hxx" // Compile and run gen_lag2bezcoeff in tools/ to obtain this file
-//#include "codegen_lag2bez3.hxx" // Compile and run gen_lag2bezcoeff in tools/ to obtain this file
-//#define BOOST_PP_LOCAL_LIMITS     (2, METRIS_MAX_DEG)
-//#include BOOST_PP_LOCAL_ITERATE()
-
-
-//const Lag2bez3<1> toto();
-//const Lag2bez3 lag2bez3[METRIS_MAX_DEG] = {Lag2bez3<1>(){},Lag2bez3<2>(){},Lag2bez3<3>(){}};
-
-
+  return -1;
+}
 
 
 
 // ord(edg|fac|tet).s[ideg][inode][0:tdim+1]
-
 
 // replace ord(edg|fac|tet) by ord(edg|fac|tet).s
 // array is not constexpr compatible in C++17
@@ -143,7 +131,7 @@ struct ordedg_constructor{
     s[0][0][0] = 0;
     s[0][0][1] = 0;
 
-    for(int ideg = 1; ideg <= METRIS_MAX_DEG_JACOBIAN; ideg++){
+    for(int ideg = 1; ideg <= METRIS_MAX_DEG_ORDERING; ideg++){
       s[ideg][0][0] = ideg;
       s[ideg][0][1] = 0;
 
@@ -157,21 +145,35 @@ struct ordedg_constructor{
         n = n + 1;
         s[ideg][n-1][0] = ideg - i;
         s[ideg][n-1][1] =        i;
+
       }
     }  
 
-    //for(int ideg = 0; ideg <= METRIS_MAX_DEG_JACOBIAN; ideg++){
-    //  for(int ii = 0; ii < edgnpps[METRIS_MAX_DEG_JACOBIAN]; ii++){
-    //    for(int jj = 0; jj < 2; jj++){
-    //      t[ideg][ii][jj] = s[ideg][ii][jj];
-    //    }
-    //  }
-    //}
   }
-  int s[1+METRIS_MAX_DEG_JACOBIAN][edgnpps[METRIS_MAX_DEG_JACOBIAN]][2];
-  //std::array<std::array<std::array<int,2>,
-  //                                 edgnpps[METRIS_MAX_DEG_JACOBIAN]>,
-  //                                 1+METRIS_MAX_DEG_JACOBIAN> t;
+  int s[1+METRIS_MAX_DEG_ORDERING][getnnod1(METRIS_MAX_DEG_ORDERING)][2];
+
+  // These guys do not work.
+  template<int ideg>
+  constexpr std::array<std::array<int,2>,getnnod1(ideg)> get() const{
+    std::array<std::array<int,2>,getnnod1(ideg)> arr = 0;
+
+    arr[0][0] = ideg;
+    arr[0][1] = 0;
+
+    arr[1][0] = 0;
+    arr[1][1] = ideg;
+
+    if(ideg == 1) return arr;
+
+    int n = 2;
+    for(int i = 1; i <= ideg-1; i++){
+      n = n + 1;
+      arr[n-1][0] = ideg - i;
+      arr[n-1][1] =        i;
+    }
+
+    return arr;
+  }
 };
 
 constexpr const ordedg_constructor ordedg;
@@ -183,7 +185,7 @@ struct ordfac_constructor{
     s[0][0][1] = 0;
     s[0][0][2] = 0;
 
-    for(int ideg = 1; ideg <= METRIS_MAX_DEG_JACOBIAN; ideg++){
+    for(int ideg = 1; ideg <= METRIS_MAX_DEG_ORDERING; ideg++){
       s[ideg][0][0] = ideg;
       s[ideg][0][1] = 0;
       s[ideg][0][2] = 0;
@@ -220,25 +222,65 @@ struct ordfac_constructor{
 
       if(ideg == 2) continue;
 
-      for(int i=0;i<facnpps[ideg-3];i++){ 
+      for(int i=0;i<getnnod2(ideg-3);i++){ 
         n = n + 1;
         s[ideg][n-1][0] = 1 + s[ideg-3][i][0];
         s[ideg][n-1][1] = 1 + s[ideg-3][i][1];
         s[ideg][n-1][2] = 1 + s[ideg-3][i][2];
       }
     }  
-    //for(int ideg = 0; ideg <= METRIS_MAX_DEG_JACOBIAN; ideg++){
-    //  for(int ii = 0; ii < facnpps[METRIS_MAX_DEG_JACOBIAN]; ii++){
-    //    for(int jj = 0; jj < 3; jj++){
-    //      t[ideg][ii][jj] = s[ideg][ii][jj];
-    //    }
-    //  }
-    //}
   }
-  int s[1+METRIS_MAX_DEG_JACOBIAN][facnpps[METRIS_MAX_DEG_JACOBIAN]][3];
-  //std::array<std::array<std::array<int,3>,
-  //                                 facnpps[METRIS_MAX_DEG_JACOBIAN]>,
-  //                                 1+METRIS_MAX_DEG_JACOBIAN> t;
+  int s[1+METRIS_MAX_DEG_ORDERING][getnnod2(METRIS_MAX_DEG_ORDERING)][3];
+
+
+  template<int ideg>
+  constexpr std::array<std::array<int,3>,getnnod2(ideg)> get() const{
+    std::array<std::array<int,3>,getnnod2(ideg)> arr;
+
+    arr[0][0] = ideg;
+    arr[0][1] = 0;
+    arr[0][2] = 0;
+
+    arr[1][0] = 0;
+    arr[1][1] = ideg;
+    arr[1][2] = 0;
+
+    arr[2][0] = 0;
+    arr[2][1] = 0;
+    arr[2][2] = ideg;
+    
+    if(ideg == 1) return arr;
+
+    int n = 3;
+    for(int i = 1; i <= ideg-1; i++){
+      n = n + 1;
+      arr[n-1][0] = 0;
+      arr[n-1][1] = ideg - i;
+      arr[n-1][2] =        i;
+    }
+    for(int i = 1; i <= ideg-1; i++){
+      n = n + 1;
+      arr[n-1][0] =        i;
+      arr[n-1][1] = 0;
+      arr[n-1][2] = ideg - i;
+    } 
+    for(int i = 1; i <= ideg-1; i++){
+      n = n + 1;
+      arr[n-1][0] = ideg - i;
+      arr[n-1][1] =        i;
+      arr[n-1][2] = 0;
+    }
+
+    if(ideg == 2) return arr;
+
+    for(int i=0;i<getnnod2(ideg-3);i++){ 
+      n = n + 1;
+      arr[n-1][0] = 1 + s[ideg-3][i][0];
+      arr[n-1][1] = 1 + s[ideg-3][i][1];
+      arr[n-1][2] = 1 + s[ideg-3][i][2];
+    }
+    return arr;
+  }
 };
 
 constexpr const ordfac_constructor ordfac;
@@ -252,7 +294,7 @@ struct ordtet_constructor{
     s[0][0][2] = 0;
     s[0][0][3] = 0;
 
-    for(int ideg = 1; ideg <= METRIS_MAX_DEG_JACOBIAN; ideg++){
+    for(int ideg = 1; ideg <= METRIS_MAX_DEG_ORDERING; ideg++){
       // Start with vertices: always the first 4 
       s[ideg][0][0] = ideg;
       s[ideg][0][1] = 0;
@@ -331,7 +373,7 @@ struct ordtet_constructor{
       if(ideg <= 2) continue;
 
       // Faces: inherited from deg - 3 faces. 
-      for(int i=0;i<facnpps[ideg-3];i++){
+      for(int i=0;i<getnnod2(ideg-3);i++){
         n = n + 1;
         s[ideg][n-1][0] = 0              ;
         s[ideg][n-1][1] = 1+ordfac.s[ideg-3][i][0] ;
@@ -339,7 +381,7 @@ struct ordtet_constructor{
         s[ideg][n-1][3] = 1+ordfac.s[ideg-3][i][2];
       }
 
-      for(int i=0;i<facnpps[ideg-3];i++){
+      for(int i=0;i<getnnod2(ideg-3);i++){
         n = n + 1;
         s[ideg][n-1][0] = 1+ordfac.s[ideg-3][i][1];
         s[ideg][n-1][1] = 0      ;
@@ -347,7 +389,7 @@ struct ordtet_constructor{
         s[ideg][n-1][3] = 1+ordfac.s[ideg-3][i][2];
       }
 
-      for(int i=0;i<facnpps[ideg-3];i++){
+      for(int i=0;i<getnnod2(ideg-3);i++){
         n = n + 1;
         s[ideg][n-1][0] = 1+ordfac.s[ideg-3][i][0];
         s[ideg][n-1][1] = 1+ordfac.s[ideg-3][i][1] ;
@@ -355,7 +397,7 @@ struct ordtet_constructor{
         s[ideg][n-1][3] = 1+ordfac.s[ideg-3][i][2];
       }
 
-      for(int i=0;i<facnpps[ideg-3];i++){
+      for(int i=0;i<getnnod2(ideg-3);i++){
         n = n + 1;
         s[ideg][n-1][0] = 1+ordfac.s[ideg-3][i][0];
         s[ideg][n-1][1] = 1+ordfac.s[ideg-3][i][1] ;
@@ -365,7 +407,7 @@ struct ordtet_constructor{
 
       if(ideg <= 3) continue; 
 
-      for(int i=0;i<tetnpps[ideg-4];i++){
+      for(int i=0;i<getnnod3(ideg-4);i++){
         n = n + 1;
         s[ideg][n-1][0] = 1+s[ideg-4][i][0];
         s[ideg][n-1][1] = 1+s[ideg-4][i][1];
@@ -375,8 +417,8 @@ struct ordtet_constructor{
     }
 
     mask[0][0] = 0b1111;
-    for(int ideg = 1; ideg <= METRIS_MAX_DEG_JACOBIAN; ideg++){
-      for(int i = 0; i < tetnpps[ideg]; i++){
+    for(int ideg = 1; ideg <= METRIS_MAX_DEG_ORDERING; ideg++){
+      for(int i = 0; i < getnnod3(ideg); i++){
         mask[ideg][i] = (1 << 3)*(s[ideg][i][0] > 0)
                       + (1 << 2)*(s[ideg][i][1] > 0)
                       + (1 << 1)*(s[ideg][i][2] > 0)
@@ -384,20 +426,136 @@ struct ordtet_constructor{
       }
     }
 
-    //for(int ideg = 0; ideg <= METRIS_MAX_DEG_JACOBIAN; ideg++){
-    //  for(int ii = 0; ii < tetnpps[METRIS_MAX_DEG_JACOBIAN]; ii++){
-    //    for(int jj = 0; jj < 4; jj++){
-    //      t[ideg][ii][jj] = s[ideg][ii][jj];
-    //    }
-    //  }
-    //}
   }
 
-  int s[1+METRIS_MAX_DEG_JACOBIAN][tetnpps[METRIS_MAX_DEG_JACOBIAN]][4];
-  unsigned char mask[1+METRIS_MAX_DEG_JACOBIAN][tetnpps[METRIS_MAX_DEG_JACOBIAN]];
-  //std::array<std::array<std::array<int,4>,
-  //                                 tetnpps[METRIS_MAX_DEG_JACOBIAN]>,
-  //                                 1+METRIS_MAX_DEG_JACOBIAN> t;
+  int s[1+METRIS_MAX_DEG_ORDERING][getnnod3(METRIS_MAX_DEG_ORDERING)][4];
+  unsigned char mask[1+METRIS_MAX_DEG_ORDERING][getnnod3(METRIS_MAX_DEG_ORDERING)];
+
+  template<int ideg>
+  constexpr std::array<std::array<int,4>,getnnod3(ideg)> get() const{
+    std::array<std::array<int,4>,getnnod3(ideg)> arr;
+
+    // Start with vertices: always the first 4 
+    arr[0][0] = ideg;
+    arr[0][1] = 0;
+    arr[0][2] = 0;
+    arr[0][3] = 0;
+
+    arr[1][0] = 0;
+    arr[1][1] = ideg;
+    arr[1][2] = 0;
+    arr[1][3] = 0;
+
+    arr[2][0] = 0;
+    arr[2][1] = 0;
+    arr[2][2] = ideg;
+    arr[2][3] = 0;
+
+    arr[3][0] = 0;
+    arr[3][1] = 0;
+    arr[3][2] = 0;
+    arr[3][3] = ideg;
+
+    if(ideg == 1) return arr;
+
+    // Edges 
+    // Current writable index
+    int n = 4;
+    for(int i = 1; i <= ideg-1; i++){
+      n = n + 1;
+      arr[n-1][0] = ideg - i;
+      arr[n-1][1] =        i;
+      arr[n-1][2] = 0;
+      arr[n-1][3] = 0;
+    }
+
+    for(int i = 1; i <= ideg-1; i++){
+      n = n + 1;
+      arr[n-1][0] = 0;
+      arr[n-1][1] = ideg - i;
+      arr[n-1][2] =        i;
+      arr[n-1][3] = 0;
+    }
+
+    for(int i = 1; i <= ideg-1; i++){
+      n = n + 1;
+      arr[n-1][0] =        i;
+      arr[n-1][1] = 0;
+      arr[n-1][2] = ideg - i;
+      arr[n-1][3] = 0;
+    } 
+
+    for(int i = 1; i <= ideg-1; i++){
+      n = n + 1;
+      arr[n-1][0] = ideg - i;
+      arr[n-1][1] = 0;
+      arr[n-1][2] = 0;
+      arr[n-1][3] = i;
+    } 
+
+    for(int i = 1; i <= ideg-1; i++){
+      n = n + 1;
+      arr[n-1][0] = 0;
+      arr[n-1][1] = ideg - i;
+      arr[n-1][2] = 0;
+      arr[n-1][3] = i;
+    } 
+
+    for(int i = 1; i <= ideg-1; i++){
+      n = n + 1;
+      arr[n-1][0] = 0;
+      arr[n-1][1] = 0;
+      arr[n-1][2] = ideg - i;
+      arr[n-1][3] = i;
+    } 
+
+
+    if(ideg <= 2) return arr;
+
+    // Faces: inherited from deg - 3 faces. 
+    for(int i=0;i<getnnod2(ideg-3);i++){
+      n = n + 1;
+      arr[n-1][0] = 0              ;
+      arr[n-1][1] = 1+ordfac.s[ideg-3][i][0] ;
+      arr[n-1][2] = 1+ordfac.s[ideg-3][i][1] ;
+      arr[n-1][3] = 1+ordfac.s[ideg-3][i][2];
+    }
+
+    for(int i=0;i<getnnod2(ideg-3);i++){
+      n = n + 1;
+      arr[n-1][0] = 1+ordfac.s[ideg-3][i][1];
+      arr[n-1][1] = 0      ;
+      arr[n-1][2] = 1+ordfac.s[ideg-3][i][0] ;
+      arr[n-1][3] = 1+ordfac.s[ideg-3][i][2];
+    }
+
+    for(int i=0;i<getnnod2(ideg-3);i++){
+      n = n + 1;
+      arr[n-1][0] = 1+ordfac.s[ideg-3][i][0];
+      arr[n-1][1] = 1+ordfac.s[ideg-3][i][1] ;
+      arr[n-1][2] = 0      ;
+      arr[n-1][3] = 1+ordfac.s[ideg-3][i][2];
+    }
+
+    for(int i=0;i<getnnod2(ideg-3);i++){
+      n = n + 1;
+      arr[n-1][0] = 1+ordfac.s[ideg-3][i][0];
+      arr[n-1][1] = 1+ordfac.s[ideg-3][i][1] ;
+      arr[n-1][2] = 1+ordfac.s[ideg-3][i][2] ;
+      arr[n-1][3] = 0;
+    }
+
+    if(ideg <= 3) return arr; 
+
+    for(int i=0;i<getnnod3(ideg-4);i++){
+      n = n + 1;
+      arr[n-1][0] = 1+s[ideg-4][i][0];
+      arr[n-1][1] = 1+s[ideg-4][i][1];
+      arr[n-1][2] = 1+s[ideg-4][i][2];
+      arr[n-1][3] = 1+s[ideg-4][i][3];
+    }
+    return arr;
+  }
 };
 
 
@@ -412,7 +570,7 @@ constexpr  int idx_invord_tab_fac(int i,int j,int k){
     return 0;
   }
   else{
-    return j + facnpps[j+k-1];
+    return j + getnnod2(j+k-1);
   }
 }
 constexpr  int idx_invord_tab_tet(int i,int j,int k,int l){
@@ -421,7 +579,7 @@ constexpr  int idx_invord_tab_tet(int i,int j,int k,int l){
   }
   else{
 //        printf("Debug d-i=%d j = %d k = %d l = %d fac = %d \n",d-i,j,k,l,idx_invord_tab_fac(d-i,j,k,l));
-    return idx_invord_tab_fac(j,k,l) + tetnpps[j+k+l-1];
+    return idx_invord_tab_fac(j,k,l) + getnnod3(j+k+l-1);
   }
 
 }
@@ -429,8 +587,8 @@ constexpr  int idx_invord_tab_tet(int i,int j,int k,int l){
 struct invordedg_constructor{
   constexpr invordedg_constructor() : s(){
     s[0][0] = 0;
-    for (int ideg = 1;ideg <= METRIS_MAX_DEG_JACOBIAN; ideg++){
-      int npp = edgnpps[ideg];
+    for (int ideg = 1;ideg <= METRIS_MAX_DEG_ORDERING; ideg++){
+      int npp = getnnod1(ideg);
       for(int ip = 0; ip <npp; ip++){
         int i = ordedg.s[ideg][ip][0];
         //int j = ordedg.s[ideg][ip][1];
@@ -438,7 +596,7 @@ struct invordedg_constructor{
       }
     }
   }
-  int s[1+METRIS_MAX_DEG_JACOBIAN][edgnpps[METRIS_MAX_DEG_JACOBIAN]];
+  int s[1+METRIS_MAX_DEG_ORDERING][getnnod1(METRIS_MAX_DEG_ORDERING)];
 };
 
 constexpr const invordedg_constructor invordedg;
@@ -447,8 +605,8 @@ constexpr int idx_invord_tab_edg(int d,int i,int j);
 struct invordfac_constructor{
   constexpr invordfac_constructor() : s(){
     s[0][0] = 0;
-    for (int ideg = 1;ideg <= METRIS_MAX_DEG_JACOBIAN; ideg++){
-      int npp = facnpps[ideg];
+    for (int ideg = 1;ideg <= METRIS_MAX_DEG_ORDERING; ideg++){
+      int npp = getnnod2(ideg);
       for(int ip = 0; ip <npp; ip++){
         int i = ordfac.s[ideg][ip][0];
         int j = ordfac.s[ideg][ip][1];
@@ -457,7 +615,7 @@ struct invordfac_constructor{
       }
     }
   }
-  int s[1+METRIS_MAX_DEG_JACOBIAN][facnpps[METRIS_MAX_DEG_JACOBIAN]] = {};
+  int s[1+METRIS_MAX_DEG_ORDERING][getnnod2(METRIS_MAX_DEG_ORDERING)] = {};
 };
 
 constexpr const invordfac_constructor invordfac;
@@ -465,8 +623,8 @@ constexpr const invordfac_constructor invordfac;
 struct invordtet_constructor{
   constexpr invordtet_constructor() : s(){
     s[0][0] = 0;
-    for (int ideg = 1;ideg <= METRIS_MAX_DEG_JACOBIAN; ideg++){
-      int npp = tetnpps[ideg];
+    for (int ideg = 1;ideg <= METRIS_MAX_DEG_ORDERING; ideg++){
+      int npp = getnnod3(ideg);
       for(int ip = 0; ip < npp; ip++){
         int i = ordtet.s[ideg][ip][0];
         int j = ordtet.s[ideg][ip][1];
@@ -477,18 +635,18 @@ struct invordtet_constructor{
       }
     }
   }
-  int s[1+METRIS_MAX_DEG_JACOBIAN][tetnpps[METRIS_MAX_DEG_JACOBIAN]];
+  int s[1+METRIS_MAX_DEG_ORDERING][getnnod3(METRIS_MAX_DEG_ORDERING)];
 };
 constexpr const invordtet_constructor invordtet;
 
-//constexpr const int ordedg[1+METRIS_MAX_DEG_JACOBIAN][edgnpps[METRIS_MAX_DEG_JACOBIAN]][2];
-//constexpr const int ordfac[1+METRIS_MAX_DEG_JACOBIAN][facnpps[METRIS_MAX_DEG_JACOBIAN]][3] = {};
-//constexpr const int ordtet[1+METRIS_MAX_DEG_JACOBIAN][tetnpps[METRIS_MAX_DEG_JACOBIAN]][4] = {};
+//constexpr const int ordedg[1+METRIS_MAX_DEG_JACOBIAN][getnnod1(METRIS_MAX_DEG_JACOBIAN)][2];
+//constexpr const int ordfac[1+METRIS_MAX_DEG_JACOBIAN][getnnod2(METRIS_MAX_DEG_JACOBIAN)][3] = {};
+//constexpr const int ordtet[1+METRIS_MAX_DEG_JACOBIAN][getnnod3(METRIS_MAX_DEG_JACOBIAN)][4] = {};
 
 // These are not accessed directly. Call instead mul2nod, mul2nod and mul2nod.
-//const int invordedg[METRIS_MAX_DEG_JACOBIAN][edgnpps[METRIS_MAX_DEG_JACOBIAN]] = {};
-//const int invordfac[METRIS_MAX_DEG_JACOBIAN][facnpps[METRIS_MAX_DEG_JACOBIAN]] = {};
-//const int invordtet[METRIS_MAX_DEG_JACOBIAN][tetnpps[METRIS_MAX_DEG_JACOBIAN]] = {};
+//const int invordedg[METRIS_MAX_DEG_JACOBIAN][getnnod1(METRIS_MAX_DEG_JACOBIAN)] = {};
+//const int invordfac[METRIS_MAX_DEG_JACOBIAN][getnnod2(METRIS_MAX_DEG_JACOBIAN)] = {};
+//const int invordtet[METRIS_MAX_DEG_JACOBIAN][getnnod3(METRIS_MAX_DEG_JACOBIAN)] = {};
 
 // Bézier coefficients to evaluate isolated Bernstein polynomials.
 // These are mathematically speaking integers, but they are destined to be multiplied to other doubles.
@@ -514,8 +672,8 @@ inline int mul2nod(int n, const int* i){
 struct cbzedg_constructor{
   constexpr cbzedg_constructor() : s() {
     s[0][0] = 1;
-    for(int ideg = 1; ideg <= METRIS_MAX_DEG_JACOBIAN; ideg++){
-      int npp = edgnpps[ideg-1];
+    for(int ideg = 1; ideg <= METRIS_MAX_DEG_EVAL; ideg++){
+      int npp = getnnod1(ideg-1);
       // Loop over previous degree multiply each by B_{e_1}+ .. and accumulate
 //      printf("\nDebug ideg = %d \n",ideg);
       for(int i=0;i<npp;i++){
@@ -532,13 +690,13 @@ struct cbzedg_constructor{
       }
     }
   }
-  double s[1+METRIS_MAX_DEG_JACOBIAN][edgnpps[METRIS_MAX_DEG_JACOBIAN]];
+  double s[1+METRIS_MAX_DEG_EVAL][getnnod1(METRIS_MAX_DEG_EVAL)];
 };
 struct cbzfac_constructor{
   constexpr cbzfac_constructor() : s() {
     s[0][0] = 1;
-    for(int ideg = 1; ideg <= METRIS_MAX_DEG_JACOBIAN; ideg++){
-      int npp = facnpps[ideg-1];
+    for(int ideg = 1; ideg <= METRIS_MAX_DEG_EVAL; ideg++){
+      int npp = getnnod2(ideg-1);
       // Loop over previous degree multiply each by B_{e_1}+ .. and accumulate
       for(int i=0;i<npp;i++){
         int i1 = ordfac.s[ideg-1][i][0];
@@ -556,14 +714,14 @@ struct cbzfac_constructor{
       }
     }
   }
-  double s[1+METRIS_MAX_DEG_JACOBIAN][facnpps[METRIS_MAX_DEG_JACOBIAN]];
+  double s[1+METRIS_MAX_DEG_EVAL][getnnod2(METRIS_MAX_DEG_EVAL)];
 };
 struct cbztet_constructor{
   constexpr cbztet_constructor() : s() {
 
     s[0][0] = 1;
-    for(int ideg = 1; ideg <= METRIS_MAX_DEG_JACOBIAN; ideg++){
-      int npp = tetnpps[ideg-1];
+    for(int ideg = 1; ideg <= METRIS_MAX_DEG_EVAL; ideg++){
+      int npp = getnnod3(ideg-1);
       // Loop over previous degree multiply each by B_{e_1}+ .. and accumulate
       for(int i=0;i<npp;i++){
         int i1 = ordtet.s[ideg-1][i][0];
@@ -586,17 +744,17 @@ struct cbztet_constructor{
     }
 
   }
-  double s[1+METRIS_MAX_DEG_JACOBIAN][tetnpps[METRIS_MAX_DEG_JACOBIAN]];
+  double s[1+METRIS_MAX_DEG_EVAL][getnnod3(METRIS_MAX_DEG_EVAL)];
 };
 
 
-constexpr const cbzedg_constructor cbzedg;//[1+METRIS_MAX_DEG_JACOBIAN][edgnpps[METRIS_MAX_DEG_JACOBIAN]] = {};
-constexpr const cbzfac_constructor cbzfac;//[1+METRIS_MAX_DEG_JACOBIAN][facnpps[METRIS_MAX_DEG_JACOBIAN]] = {};
-constexpr const cbztet_constructor cbztet;//[1+METRIS_MAX_DEG_JACOBIAN][tetnpps[METRIS_MAX_DEG_JACOBIAN]] = {};
+constexpr const cbzedg_constructor cbzedg;//[1+METRIS_MAX_DEG_JACOBIAN][getnnod1(METRIS_MAX_DEG_JACOBIAN)] = {};
+constexpr const cbzfac_constructor cbzfac;//[1+METRIS_MAX_DEG_JACOBIAN][getnnod2(METRIS_MAX_DEG_JACOBIAN)] = {};
+constexpr const cbztet_constructor cbztet;//[1+METRIS_MAX_DEG_JACOBIAN][getnnod3(METRIS_MAX_DEG_JACOBIAN)] = {};
 
-//const double cbzedg[1+METRIS_MAX_DEG_JACOBIAN][edgnpps[METRIS_MAX_DEG_JACOBIAN]] = {};
-//const double cbzfac[1+METRIS_MAX_DEG_JACOBIAN][facnpps[METRIS_MAX_DEG_JACOBIAN]] = {};
-//const double cbztet[1+METRIS_MAX_DEG_JACOBIAN][tetnpps[METRIS_MAX_DEG_JACOBIAN]] = {};
+//const double cbzedg[1+METRIS_MAX_DEG_JACOBIAN][getnnod1(METRIS_MAX_DEG_JACOBIAN)] = {};
+//const double cbzfac[1+METRIS_MAX_DEG_JACOBIAN][getnnod2(METRIS_MAX_DEG_JACOBIAN)] = {};
+//const double cbztet[1+METRIS_MAX_DEG_JACOBIAN][getnnod3(METRIS_MAX_DEG_JACOBIAN)] = {};
 
 // Give it a multi-index, get rank in connectivity arrays. 
 // This is necessary because inverse ordering goes through composition by a "trivial inverse order"

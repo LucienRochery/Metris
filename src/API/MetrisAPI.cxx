@@ -54,17 +54,17 @@ MetrisAPI::MetrisAPI(int idim, int ideg, int ncorn, int ngpoe, int ngpof,
   if(imet) metfld.set_n(npoin);
 
 
-  edg2poi.allocate(nedge,edgnpps[ideg]);
+  edg2poi.allocate(nedge,getnnod1(ideg));
   edg2poi.set_n(nedge);
   edg2ref.allocate(nedge);
   edg2ref.set_n(nedge);
 
-  fac2poi.allocate(nface,facnpps[ideg]);
+  fac2poi.allocate(nface,getnnod2(ideg));
   fac2poi.set_n(nface);
   fac2ref.allocate(nface);
   fac2ref.set_n(nface);
 
-  tet2poi.allocate(nelem,tetnpps[ideg]);
+  tet2poi.allocate(nelem,getnnod3(ideg));
   tet2poi.set_n(nelem);
   tet2ref.allocate(nelem);
   tet2ref.set_n(nelem);
@@ -273,9 +273,9 @@ void MetrisAPI::setDegree(int tardeg){
     intAr2 &ent2poi = tdim == 1 ? edg2poi :
                       tdim == 2 ? fac2poi : 
                                   tet2poi;
-    int nnode = tdim == 1 ? edgnpps[tardeg] :
-                tdim == 2 ? facnpps[tardeg] : 
-                            tetnpps[tardeg];
+    int nnode = tdim == 1 ? getnnod1(tardeg) :
+                tdim == 2 ? getnnod2(tardeg) : 
+                            getnnod3(tardeg);
 
 
     if(tardeg < ideg){
@@ -344,9 +344,9 @@ void MetrisAPI::setDegree(int tardeg){
       intAr2 &ent2poi = tdim == 1 ? edg2poi :
                         tdim == 2 ? fac2poi : 
                                     tet2poi;
-      //int nnode = tdim == 1 ? edgnpps[ideg] :
-      //            tdim == 2 ? facnpps[ideg] : 
-      //                        tetnpps[ideg];
+      //int nnode = tdim == 1 ? getnnod1(ideg) :
+      //            tdim == 2 ? getnnod2(ideg) : 
+      //                        getnnod3(ideg);
 
       for(int ientt = 0; ientt < nentt; ientt++){
         for(int ii = 0; ii < tdim + 1; ii++){
@@ -423,7 +423,7 @@ void MetrisAPI::setNEdges(int nedge_){
   METRIS_ENFORCE(nedge_ >= 0);
 
   nedge = nedge_;
-  edg2poi.allocate(nedge,edgnpps[ideg]);
+  edg2poi.allocate(nedge,getnnod1(ideg));
   edg2poi.set_n(nedge);
   edg2ref.allocate(nedge);
   edg2ref.set_n(nedge);
@@ -435,7 +435,7 @@ void MetrisAPI::setNFaces(int nface_){
   METRIS_ENFORCE(nface_ >= 0);
 
   nface = nface_;
-  fac2poi.allocate(nface,facnpps[ideg]);
+  fac2poi.allocate(nface,getnnod2(ideg));
   fac2poi.set_n(nface);
   fac2ref.allocate(nface);
   fac2ref.set_n(nface);
@@ -447,7 +447,7 @@ void MetrisAPI::setNTetrahedra(int nelem_){
   METRIS_ENFORCE(nelem_ >= 0);
 
   nelem = nelem_;
-  tet2poi.allocate(nelem,tetnpps[ideg]);
+  tet2poi.allocate(nelem,getnnod3(ideg));
   tet2poi.set_n(nelem);
   tet2ref.allocate(nelem);
   tet2ref.set_n(nelem);
@@ -647,8 +647,8 @@ void MetrisAPI::getMetric(int ipoi1, int ipoi2, double *metfld) const {
 void MetrisAPI::setElementsOrdering(int tdimn, const int *ordering){
   METRIS_ASSERT(ordering != NULL);
 
-  int nnode = tdimn == 1 ? edgnpps[ideg] : 
-              tdimn == 2 ? facnpps[ideg] : tetnpps[ideg];
+  int nnode = tdimn == 1 ? getnnod1(ideg) : 
+              tdimn == 2 ? getnnod2(ideg) : getnnod3(ideg);
 
   for(int ii = 0; ii < nnode; ii++){
     int inode = mul2nod(tdimn,&ordering[(tdimn+1) * ii]);
@@ -670,8 +670,8 @@ void MetrisAPI::setElement(int tdimn, int ielem, const int *ent2pol, int iref){
                     tdimn == 2 ? fac2poi : tet2poi;
   intAr1 &ent2ref = tdimn == 1 ? edg2ref : 
                     tdimn == 2 ? fac2ref : tet2ref;
-  int nnode = tdimn == 1 ? edgnpps[ideg] : 
-              tdimn == 2 ? facnpps[ideg] : tetnpps[ideg];
+  int nnode = tdimn == 1 ? getnnod1(ideg) : 
+              tdimn == 2 ? getnnod2(ideg) : getnnod3(ideg);
 
   if(usrord[tdimn-1][0] == -1){
     for(int ii = 0; ii < nnode; ii++) ent2poi(ielem,ii) = ent2pol[ii];
@@ -688,8 +688,8 @@ void MetrisAPI::setElement(int tdimn, int iele1, int iele2, const int *ent2pol, 
                     tdimn == 2 ? fac2poi : tet2poi;
   intAr1 &ent2ref = tdimn == 1 ? edg2ref : 
                     tdimn == 2 ? fac2ref : tet2ref;
-  int nnode = tdimn == 1 ? edgnpps[ideg] : 
-              tdimn == 2 ? facnpps[ideg] : tetnpps[ideg];
+  int nnode = tdimn == 1 ? getnnod1(ideg) : 
+              tdimn == 2 ? getnnod2(ideg) : getnnod3(ideg);
 
   if(usrord[tdimn-1][0] == -1){
     for(int ielem = iele1; ielem < iele2; ielem++){
@@ -720,8 +720,8 @@ void MetrisAPI::getElement(int tdimn, int ielem, int *ent2pol, int *iref) const 
                           tdimn == 2 ? fac2poi : tet2poi;
   const intAr1 &ent2ref = tdimn == 1 ? edg2ref : 
                           tdimn == 2 ? fac2ref : tet2ref;
-  int nnode = tdimn == 1 ? edgnpps[ideg] : 
-              tdimn == 2 ? facnpps[ideg] : tetnpps[ideg];
+  int nnode = tdimn == 1 ? getnnod1(ideg) : 
+              tdimn == 2 ? getnnod2(ideg) : getnnod3(ideg);
 
   *iref = ent2ref[ielem];
 
@@ -740,8 +740,8 @@ void MetrisAPI::getElement(int tdimn, int iele1, int iele2, int *ent2pol, int *l
                           tdimn == 2 ? fac2poi : tet2poi;
   const intAr1 &ent2ref = tdimn == 1 ? edg2ref : 
                           tdimn == 2 ? fac2ref : tet2ref;
-  int nnode = tdimn == 1 ? edgnpps[ideg] : 
-              tdimn == 2 ? facnpps[ideg] : tetnpps[ideg];
+  int nnode = tdimn == 1 ? getnnod1(ideg) : 
+              tdimn == 2 ? getnnod2(ideg) : getnnod3(ideg);
 
   for(int ielem = iele1; ielem < iele2; ielem++){
     lref[ielem-iele1] = ent2ref[ielem];

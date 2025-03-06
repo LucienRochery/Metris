@@ -55,9 +55,8 @@ int ball2(MeshBase& __restrict__ msh,
 // = boundary shell element otherwise
 void shell3(const MeshBase& msh,
 	          int ipoi1, int ipoi2, int iele0, 
-            int* __restrict__ nshell,
-            intAr1&           lshell,
-            int* __restrict__ iopen);
+            intAr1& lshell,
+            int* iopen);
 
 
 // Gather triangles surrounding non-manifold edge. 

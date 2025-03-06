@@ -10,9 +10,9 @@
 #include "../linalg/det.hxx"
 #include "../linalg/matprods.hxx"
 #include "../Mesh/Mesh.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/aux_misc.hxx"
 
-#include "../aux_pp_inc.hxx"
+#include "../utils/aux_pp_inc.hxx"
 
 namespace Metris{
 
@@ -63,7 +63,7 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   if(asdmet == AsDeg::Pk && ideg > 1){
 
     const int idegj = SMOO_DEGJ(ideg);
-    const int nnodj = tdim == 2 ? facnpps[idegj] : tetnpps[idegj];
+    const int nnodj = tdim == 2 ? getnnod2(idegj) : getnnod3(idegj);
 
     const auto ordelt = ORDELT(tdim);
 
@@ -334,8 +334,8 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
   //if(idiff == DifVar::None) return quael;
   //// See docs/quality/qualityiff.pdf for details 
 
-  constexpr int nnode = tdim == 1 ? edgnpps[ideg] : 
-                        tdim == 2 ? facnpps[ideg] : tetnpps[ideg] ;
+  constexpr int nnode = tdim == 1 ? getnnod1(ideg) : 
+                        tdim == 2 ? getnnod2(ideg) : getnnod3(ideg) ;
   constexpr auto ordent = ORDELT(tdim);
 
 
@@ -625,10 +625,10 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi, int power,
   if constexpr(asdmet == AsDeg::Pk && ideg > 1){
 
     constexpr int idegj = SMOO_DEGJ(ideg);
-    constexpr int nnodj = tdim == 2 ? facnpps[idegj] : tetnpps[idegj];
+    constexpr int nnodj = tdim == 2 ? getnnod2(idegj) : getnnod3(idegj);
 
-    constexpr int nnode = tdim == 1 ? edgnpps[ideg] : 
-                          tdim == 2 ? facnpps[ideg] : tetnpps[ideg] ;
+    constexpr int nnode = tdim == 1 ? getnnod1(ideg) : 
+                          tdim == 2 ? getnnod2(ideg) : getnnod3(ideg) ;
 
     constexpr auto ordelt = ORDELT(tdim);
 

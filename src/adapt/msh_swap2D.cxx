@@ -12,9 +12,9 @@
 #include "../cavity/msh_cavity.hxx"
 #include "../aux_topo.hxx"
 #include "../io_libmeshb.hxx"
-#include "../aux_timer.hxx"
-#include "../mprintf.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/aux_misc.hxx"
 #include "../msh_checktopo.hxx"
 
 

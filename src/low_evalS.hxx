@@ -15,7 +15,7 @@
 
 #include "types.hxx"
 #include "ho_constants.hxx"
-#include "aux_utils.hxx"
+#include "utils/aux_misc.hxx"
 
 
 #include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
@@ -32,7 +32,7 @@ namespace Metris{
 // eval1: edges
 template <int szfld, int ideg, int ilag, int idif1, int idif2>
 void eval3S(const dblAr2  &rfld, 
-            const SANS::DLA::VectorS<tetnpps[ideg],int> &lfld, 
+            const SANS::DLA::VectorS<getnnod3(ideg),int> &lfld, 
             const SANS::DLA::VectorS<4,double> &bary, 
             SANS::DLA::VectorS<  szfld,double> &eval, 
             SANS::DLA::VectorS<3*szfld,double> &jmat,  
@@ -50,7 +50,7 @@ However, note that each entry is, itself, comprised of szfld values.
 template <int szfld, int ideg, int idif1, int idif2, int di=0,int dj=0, int dk=0, int dl=0>
 struct eval3S_bezier{
   eval3S_bezier(const dblAr2 & __restrict__  rfld,  
-               const SANS::DLA::VectorS<tetnpps[ideg],int> &lfld,
+               const SANS::DLA::VectorS<getnnod3(ideg),int> &lfld,
                const SANS::DLA::VectorS<4,double> &bary,  
                SANS::DLA::VectorS<  szfld,double> &eval,
                SANS::DLA::VectorS<3*szfld,double> &jmat,
@@ -113,7 +113,7 @@ struct eval3S_bezier{
 template <int szfld, int idif1, int idif2, int di,int dj, int dk, int dl>
 struct eval3S_bezier<szfld,1,idif1,idif2,di,dj,dk,dl>{
   eval3S_bezier(const dblAr2 & __restrict__  rfld,  
-                const SANS::DLA::VectorS<tetnpps[1 + di + dj + dk + dl],int> &lfld,
+                const SANS::DLA::VectorS<getnnod3(1 + di + dj + dk + dl),int> &lfld,
                 const SANS::DLA::VectorS<4,double> &bary,  
                 SANS::DLA::VectorS<  szfld,double> &eval,
                 SANS::DLA::VectorS<3*szfld,double> &jmat,
@@ -162,7 +162,7 @@ struct eval3S_bezier<szfld,1,idif1,idif2,di,dj,dk,dl>{
 template <int szfld, int idif1,int idif2,int di,int dj, int dk, int dl>
   struct eval3S_bezier<szfld,2,idif1,idif2,di,dj,dk,dl>{
     eval3S_bezier(const dblAr2 & __restrict__  rfld,  
-                 const SANS::DLA::VectorS<tetnpps[2 + di + dj + dk + dl],int> &lfld,
+                 const SANS::DLA::VectorS<getnnod3(2 + di + dj + dk + dl),int> &lfld,
                  const SANS::DLA::VectorS<4,double> &bary,
                  SANS::DLA::VectorS<  szfld,double> &eval,
                  SANS::DLA::VectorS<3*szfld,double> &jmat,
@@ -261,7 +261,7 @@ template <int szfld, int idif1,int idif2,int di,int dj, int dk, int dl>
 };
 template <int szfld, int ideg, int ilag, int idif1, int idif2>
 void eval3S(const dblAr2 & __restrict__  rfld,  
-           const SANS::DLA::VectorS<tetnpps[ideg],int> &lfld,
+           const SANS::DLA::VectorS<getnnod3(ideg),int> &lfld,
            const SANS::DLA::VectorS<4,double> &bary, 
            SANS::DLA::VectorS<  szfld,double> &eval, 
            SANS::DLA::VectorS<3*szfld,double> &jmat, 

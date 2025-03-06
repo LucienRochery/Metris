@@ -10,18 +10,18 @@
 #include "../adapt/msh_insert2D.hxx"
 
 #include "../Mesh/Mesh.hxx"
-#include "../aux_utils.hxx"
-#include "../aux_timer.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../utils/aux_timer.hxx"
 #include "../quality/msh_metqua.hxx"
 #include "../io_libmeshb.hxx"
 #include "../adapt/msh_lineadapt.hxx"
 #include "../smoothing/msh_smooball.hxx"
 #include "../msh_checktopo.hxx"
 #include "../aux_histogram.hxx"
-#include "../CT_loop.hxx"
+#include "../utils/CT_loop.hxx"
 #include "../msh_lenedg.hxx"
 #include "../linalg/det.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 
 
 namespace Metris{
@@ -57,9 +57,11 @@ void MetrisRunner::adaptMesh0(){
   msh.cleanup();
 
   CPRINTF1("-- START adaptMesh with miter = %d \n",miter);
-  if(DOPRINTS2()){
+  if(DOPRINTS1()){
     writeMesh("debug_adapt_inp", msh);
     msh.met.writeMetricFile("debug_adapt_inp");
+  }
+  if(DOPRINTS2()){
     if(DOPRINTS2()) writeBackLinks("debug_adapt_inp_poi2bak", msh);
     double rat = msh.npoin / (double) msh.nface;
     dblAr1 pdens(msh.npoin);
@@ -77,7 +79,6 @@ void MetrisRunner::adaptMesh0(){
     //  }
 
     //}
-    pdens.set_n(msh.npoin);
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
       double det = detsym<2>(msh.met[ipoin]);
       pdens[ipoin] = sqrt(det) / sqrt(3) * 2 * rat;

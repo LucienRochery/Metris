@@ -12,8 +12,8 @@
 #include "../ho_constants.hxx"
 #include "../io_libmeshb.hxx"
 
-#include "../aux_timer.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/aux_timer.hxx"
+#include "../utils/aux_misc.hxx"
 
 #include "../Mesh/MeshBase.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -55,9 +55,9 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
   METRIS_ENFORCE(msh.getBasis() == FEBasis::Bezier);
 
   constexpr int jdeg = tdim * (ideg - 1);
-  constexpr int ncoef = tdim == 2 ? facnpps[jdeg] : tetnpps[jdeg];
+  constexpr int ncoef = tdim == 2 ? getnnod2(jdeg) : getnnod3(jdeg);
   // Full node count 
-  constexpr int nnode = tdim == 2 ? facnpps[ideg] : tetnpps[ideg];
+  constexpr int nnode = tdim == 2 ? getnnod2(ideg) : getnnod3(ideg);
   // Only P1 nodes 
   constexpr int vol0 = ifact<tdim>();
 
@@ -118,7 +118,6 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
   // These (dbl/int)Ar classes entail dynamic alloc so they should be initialized
   // the fewest amount of times (not in loops, ideally)
   dblAr2 d_ccoef(ncoef, nnode);
-  d_ccoef.set_n(ncoef);
 
   constexpr int vfact = ifact<tdim>();
 

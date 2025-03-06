@@ -278,7 +278,7 @@ struct subref_constructor{
       for(int ii = 0; ii < mlist; ii++) list[ii][3] = -1;
 
       // Loop over possible multi-indices. 
-      for(int irnk = 0; irnk < tetnpps[ideg]; irnk++){
+      for(int irnk = 0; irnk < getnnod3(ideg); irnk++){
 
             //if(iprt > 0) printf("Start loop ideg %d irnk %d \n",ideg,irnk);
             int i = ordtet.s[ideg][irnk][0];

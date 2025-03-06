@@ -10,7 +10,7 @@
 #include "../msh_structs.hxx"
 #include "../Mesh/Mesh.hxx"
 
-#include "../aux_utils.hxx"
+#include "../utils/aux_misc.hxx"
 #include "../aux_exceptions.hxx"
 #include "../low_geo.hxx"
 

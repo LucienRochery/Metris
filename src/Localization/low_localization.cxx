@@ -10,7 +10,7 @@
 //#include <nlopt.h>
 
 #include "../low_geo.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/aux_misc.hxx"
 #include "../opt_generic.hxx"
 #include "../ho_constants.hxx"
 #include "../low_eval.hxx"
@@ -22,7 +22,7 @@
 #include "../Mesh/MeshBase.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 
-#include "../aux_pp_inc.hxx"
+#include "../utils/aux_pp_inc.hxx"
 
 #include <nlopt.hpp>
 
@@ -247,8 +247,8 @@ int inveval_badNewton(MeshBase &msh, int ientt,
 
 
   double jmatP1[tdim][gdim];
-  constexpr int nnode = tdim == 1 ? edgnpps[ideg] :
-                        tdim == 2 ? facnpps[ideg] : tetnpps[ideg];
+  constexpr int nnode = tdim == 1 ? getnnod1(ideg) :
+                        tdim == 2 ? getnnod2(ideg) : getnnod3(ideg);
   int ent2pol[nnode];
   for(int ii = 0; ii < nnode; ii++) ent2pol[ii] = ii;
 
@@ -483,8 +483,8 @@ int inveval(MeshBase &msh, int ientt,
 
 
   double jmatP1[tdim][gdim];
-  constexpr int nnode = tdim == 1 ? edgnpps[ideg] :
-                        tdim == 2 ? facnpps[ideg] : tetnpps[ideg];
+  constexpr int nnode = tdim == 1 ? getnnod1(ideg) :
+                        tdim == 2 ? getnnod2(ideg) : getnnod3(ideg);
   int ent2pol[nnode];
   for(int ii = 0; ii < nnode; ii++) ent2pol[ii] = ii;
 

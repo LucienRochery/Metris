@@ -11,6 +11,13 @@ namespace Metris{
 
 class MeshBase;
 
+template <int ideg>
+int projptfac(MeshBase &msh, 
+              const double*__restrict__ coop, int iface, 
+              double*__restrict__ bary,
+              double*__restrict__ coopr);
+
+
 // Project on P1 edge: no CAD used. 
 template <int gdim, int ideg>
 int projptedg(MeshBase &msh, const double*__restrict__ coop, 

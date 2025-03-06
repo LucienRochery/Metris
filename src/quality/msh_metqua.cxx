@@ -7,7 +7,7 @@
 #include "../quality/low_metqua.hxx"
 #include "../quality/msh_metqua.hxx"
 #include "../Mesh/Mesh.hxx"
-#include "../CT_loop.hxx"
+#include "../utils/CT_loop.hxx"
 
 
 namespace Metris{

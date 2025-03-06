@@ -27,7 +27,7 @@
 #include "../linalg/dsytrd.hxx"
 #include "../linalg/dsyevq.hxx"
 #include "../SANS/Surreal/SurrealS.h"
-#include "../aux_utils.hxx"
+#include "../utils/aux_misc.hxx"
 
 // Macros
 #define SQR(x)      ((x)*(x))                        // x^2 

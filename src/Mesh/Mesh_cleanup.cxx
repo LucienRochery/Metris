@@ -7,8 +7,8 @@
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../msh_checktopo.hxx"
-#include "../aux_utils.hxx"
-#include "../mprintf.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../utils/mprintf.hxx"
 
 
 namespace Metris{
@@ -48,7 +48,7 @@ void Mesh<MetricFieldType>::cleanup(){
 
   if(nbpon != this->nbpoi){
 
-    CPRINTF2(" - cleanup bdry links %d -> %d \n",this->nbpoi,nbpon);
+    CPRINTF3(" - cleanup bdry links %d -> %d \n",this->nbpoi,nbpon);
 
     // Update link to next 
     for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
@@ -90,7 +90,7 @@ void Mesh<MetricFieldType>::cleanup(){
 
   if(this->npoin == nponn) goto update_tetras; 
 
-  CPRINTF2(" - cleanup vertices %d -> %d \n",this->npoin,nponn);
+  CPRINTF3(" - cleanup vertices %d -> %d \n",this->npoin,nponn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
     int ipoin = this->bpo2ibi(ibpoi,0); 
@@ -114,7 +114,7 @@ void Mesh<MetricFieldType>::cleanup(){
     lentt[ielem] = ielen; 
     nelen++; 
 
-    int nnode = tetnpps[this->curdeg]; 
+    int nnode = getnnod3(this->curdeg); 
     // Not just copy but also translation using lpoin 
     for(int ii = 0; ii < nnode; ii++) 
       this->tet2poi(ielen,ii) = lpoin[this->tet2poi(ielem,ii)]; 
@@ -130,7 +130,7 @@ void Mesh<MetricFieldType>::cleanup(){
   
   if(nelen == this->nelem) goto update_faces;
 
-  CPRINTF2(" - cleanup tetras %d -> %d \n",this->nelem,nelen);
+  CPRINTF3(" - cleanup tetras %d -> %d \n",this->nelem,nelen);
 
   for(int iface = 0; iface < this->nface; iface++){
     for(int ii = 0; ii < 2; ii++){
@@ -168,7 +168,7 @@ void Mesh<MetricFieldType>::cleanup(){
     lentt[iface] = ifacn; 
     nfacn++; 
 
-    int nnode = facnpps[this->curdeg]; 
+    int nnode = getnnod2(this->curdeg); 
     // Not just copy but also translation using lpoin 
     for(int ii = 0; ii < nnode; ii++) 
       this->fac2poi(ifacn,ii) = lpoin[this->fac2poi(iface,ii)]; 
@@ -200,7 +200,7 @@ void Mesh<MetricFieldType>::cleanup(){
 
   if(nfacn == this->nface) goto update_edges;
 
-  CPRINTF2(" - cleanup faces %d -> %d \n",this->nface,nfacn);
+  CPRINTF3(" - cleanup faces %d -> %d \n",this->nface,nfacn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
     int ipoin = this->bpo2ibi(ibpoi,0); 
@@ -253,7 +253,7 @@ void Mesh<MetricFieldType>::cleanup(){
     lentt[iedge] = iedgn; 
     nedgn++; 
 
-    int nnode = edgnpps[this->curdeg]; 
+    int nnode = getnnod1(this->curdeg); 
     // Not just copy but also translation using lpoin 
     for(int ii = 0; ii < nnode; ii++){
       METRIS_ASSERT(lpoin[this->edg2poi(iedge,ii)] >= 0 
@@ -287,7 +287,7 @@ void Mesh<MetricFieldType>::cleanup(){
   if(nedgn == this->nedge) goto update_final; 
 
 
-  CPRINTF2(" - cleanup edges %d -> %d \n",this->nedge,nedgn);
+  CPRINTF3(" - cleanup edges %d -> %d \n",this->nedge,nedgn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
     int ipoin = this->bpo2ibi(ibpoi,0); 

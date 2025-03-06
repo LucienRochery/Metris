@@ -9,12 +9,13 @@
 #include "low_localization.hxx"
 
 #include "../msh_lag2bez.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../linalg/det.hxx"
 #include "../low_topo.hxx"
 #include "../low_geo.hxx"
-#include "../mprintf.hxx"
-#include "../aux_timer.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
 //#include "msh_metric.hxx"
 #include "../io_libmeshb.hxx"
 #include "../Boundary/low_projsurf.hxx"
@@ -108,17 +109,19 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     }
 
     if(pdim < msh.idim){
-      if(tdim == 2){
-        METRIS_THROW_MSG(TODOExcept(), 
-                                "Implement get face dir interpFrontBack in 3D")
-      }
+      //if(tdim == 2){
+      //  METRIS_THROW_MSG(TODOExcept(), 
+      //                   "Implement get face dir interpFrontBack in 3D")
+      //}
+
       int ibpoi = msh.poi2bpo[ipoin];
       METRIS_ASSERT(ibpoi >= 0);
       for(;ibpoi != -1; ibpoi = msh.bpo2ibi(ibpoi,3)){
         int itype = msh.bpo2ibi(ibpoi,1);
         if(itype == tdim){
           iseed = msh.bpo2ibi(ibpoi,2);
-          iref  = msh.edg2ref[iseed];
+          iref  = tdim == 1 ? msh.edg2ref[iseed]
+                            : msh.fac2ref[iseed];
 
           if(msh.CAD()){
             // Also compute the tangent at
@@ -126,18 +129,32 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
             ego obj = msh.CAD.cad2edg[iref];
             ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
             METRIS_ENFORCE(ierro == 0);
-            for(int ii = 0; ii < msh.idim; ii++) algnd[ii] = result[3+ii];
+            if(tdim == 1){
+              for(int ii = 0; ii < msh.idim; ii++) algnd[ii] = result[3+ii];
+            }else{
+              vecprod(&result[3],&result[6],algnd);
+              if(normalize_vec<3>(algnd)){
+                CPRINTF1("# ZERO NORMAL IN interpMetBack")
+                iseed = -1;
+                iref = -1;
+                continue;
+              }
+            }
           }else{
-            int ipoi1 = msh.edg2poi(iseed,0);
-            int ipoi2 = msh.edg2poi(iseed,1);
-            for(int ii = 0; ii < msh.idim; ii++){
-              algnd[ii] = msh.coord(ipoi1,ii) - msh.coord(ipoi2,ii);
+            if(tdim == 1){
+              int ipoi1 = msh.edg2poi(iseed,0);
+              int ipoi2 = msh.edg2poi(iseed,1);
+              for(int ii = 0; ii < msh.idim; ii++)
+                algnd[ii] = msh.coord(ipoi1,ii) - msh.coord(ipoi2,ii);
+            }else{
+              getnorfacP1(msh.fac2poi[iseed],msh.coord,algnd);
             }
           }
         }
       }
       METRIS_ASSERT(iref != -1);
       METRIS_ASSERT(iseed != -1);
+
     }else{
       // Get seed, ref
       iseed = getpoifac(msh,ipoin);
@@ -458,11 +475,36 @@ int locMesh(MeshBase &msh, int *ientt,
 
         }else if(tdim == 2){
 
-          METRIS_THROW_MSG(TODOExcept(), "Implement projptfac in low_projsurf")
+          // Unlike tdim 1, we're not doing (u,v)-space localization
 
+          ierro = projptfac<ideg>(msh, coop, *ientt, bary, coopr);
+
+          if(ierro == 0 && algnd_ != NULL){
+            double dum[gdim], jmat[2][gdim];
+            eval2<gdim,ideg>(msh.coord, ent2poi[*ientt],
+                             msh.getBasis(), DifVar::Bary, DifVar::None,
+                             bary, dum, jmat[0], NULL);
+            double norfac[3];
+            vecprod(jmat[0], jmat[1], norfac);
+            if(normalize_vec<3>(norfac))METRIS_THROW_MSG(GeomExcept(),"Singular norfac");
+
+            double dtprd = getprdl2<gdim>(norfac, algnd);
+            double dev = 1 - abs(dtprd);
+
+            double maxdev = msh.get_geodev(2);
+            // If the mesh is a MeshBack, we have geodev for each edge. 
+            if(msh.meshClass() == MeshClass::MeshBack){
+              maxdev = ((MeshBack &) msh).fac2dev[*ientt];
+            }
+
+            CPRINTF1(" - bdry 2: dtprd %15.7e dev %15.7e <?= %15.7e algnd = %f %f %f" 
+              " norfac = %f %f %f\n",dtprd,dev,maxdev,algnd[0],algnd[1],algnd[2],
+               norfac[0],norfac[1],norfac[2]);
+            if(dev > maxdev) ierro = 2;
+          }
         }else{ // tdim == 1
 
-          if(pdim == 1){ 
+          if(pdim == 1 && msh.CAD()){
             // If point is line then use t coordinate
             int ipoi1 = ent2poi(*ientt,0);
             int ipoi2 = ent2poi(*ientt,1);
@@ -608,18 +650,20 @@ int locMesh(MeshBase &msh, int *ientt,
 
         // If using direction crit compute P1 centroid 
         if(dir_nei_criterion && tdim > 1){
-          double coom[gdim];
-          for(int jj = 0; jj < gdim; jj++){
-            coom[jj] = 0.0;
-            for(int ii = 0; ii < tdim + 1; ii++){
+          double coom[gdim] = {}; // value-init to 0
+
+          for(int ii = 0; ii < tdim + 1; ii++){
+            for(int jj = 0; jj < gdim; jj++){
               coom[jj] += msh.coord(ent2poi(*ientt,ii), jj) / (tdim + 1);
+              edg2[jj] = coom[jj] - coopr[jj];
             }
-            edg2[jj] = coom[jj] - coopr[jj];
           }
-          double nrm = getnrml2<gdim>(edg2);
-          nrm = sqrt(nrm);
-          if(nrm < 1.0e-16) METRIS_THROW_MSG(GeomExcept(),"Zero length displ "<< nrm);
-          for(int jj = 0; jj < gdim; jj++) edg2[jj] /= nrm;
+
+          if(DOPRINTS1()){
+            printf(" dbg edg2 nrm %e = ",getnrml2<gdim>(edg2));
+            dblAr1(gdim,edg2).print();
+          }
+          METRIS_ENFORCE(!normalize_vec<gdim>(edg2));
         }
 
         if(iexpensive){
@@ -652,8 +696,13 @@ int locMesh(MeshBase &msh, int *ientt,
               for(int ii = 0; ii < gdim; ii++) 
                 nrm1[ii] = msh.coord(ent2poi(*ientt,1),ii) 
                          - msh.coord(ent2poi(*ientt,0),ii);
+              if(DOPRINTS2()){
+                CPRINTF2(" - using nrm1 = ");
+                dblAr1(gdim,nrm1).print();
+              }
             }else{
-              METRIS_THROW_MSG(TODOExcept(), "tdim < gdim case tdim != 1");
+              getnorfacP1(msh.fac2poi[*ientt], msh.coord, nrm1);
+              METRIS_ENFORCE(!normalize_vec<3>(nrm1));
             }
           }
           for(int ii = 0 ; ii < tdim + 1 ; ii++){
@@ -661,39 +710,58 @@ int locMesh(MeshBase &msh, int *ientt,
             if(DOPRINTS1() && ii > 0) MPRINTF("\n");
             CPRINTF1(" - check ienei %d bary %15.7e ",ienei,bary[ii]);
             if(ienei < 0) continue;
-            if(DOPRINTS1()) printf (" iref %d =? %d ",ent2ref[ienei], iref);
+            CPRINTF1(" iref %d =? %d ",ent2ref[ienei], iref);
             if(iref >= 0 && ent2ref[ienei] != iref) continue;
-            if(DOPRINTS1()) printf (" nei tag? %d ",ent2tag(ithrd,ienei) >= msh.tag[ithrd]);
+            CPRINTF1(" nei tag? %d ",ent2tag(ithrd,ienei) >= msh.tag[ithrd]);
             if(ent2tag(ithrd,ienei) >= msh.tag[ithrd] ) continue;
+            if(DOPRINTS1()) printf("\n");
 
             // if sg = 1, apply normal computation
             // if -1, opposite sign
             // sg = 0 if "more or less orthogonal", in which case
             // check the neighbour in doubt.
             int sg = 1;
-            if(tdim < gdim && tdim < pdim){
+            if(tdim < gdim){ //  && tdim < pdim
               // In this case, the ii-th neighbour is not guaranteed 
               // to be in the half-space bary[ii] < 0
               // We need to check the scalar product of normal with current
               if constexpr(tdim == 1){
                 for(int ii = 0; ii < gdim; ii++) 
-                  nrm2[ii] = msh.coord(ent2poi(ienei,1),ii) 
-                           - msh.coord(ent2poi(ienei,0),ii);
+                  nrm2[ii] = msh.coord(ent2poi(ienei,0),ii) 
+                           - msh.coord(ent2poi(ienei,1),ii);
+                if(DOPRINTS2()){
+                  CPRINTF2(" - using nrm2 = ");
+                  dblAr1(gdim,nrm2).print();
+                }
               }else{
-                METRIS_THROW_MSG(TODOExcept(),
-                               "Surface half-space determination neighbour loc")
+                getnorfacP1(msh.fac2poi[*ientt], msh.coord, nrm2);
+                METRIS_ENFORCE(!normalize_vec<3>(nrm2));
               }
               double dtprd = getprdl2<gdim>(nrm1,nrm2);
+              // lines are not oriented
+              if(tdim == 1){
+                // - If this is first neighbour (ii == 0)
+                //   - If ent2poi(ientt,1-ii) == ent2poi(ienei,0): +
+                //   -                                         1 : -
+                // - If second neighbour (ii == 1)
+                //   - If ent2poi(ientt,1-ii) == ent2poi(ienei,0): -
+                //   -                                         1 : +
+                // Hence if ent2poi(ientt,1-ii) == ent2poi(ienei,ii)  : +
+                //       if ent2poi(ientt,1-ii) == ent2poi(ienei,1-ii): -
+                if(ent2poi(ienei,ii) == ent2poi(*ientt,1-ii)){
+                  dtprd *= -1;
+                }
+              }
               if(abs(dtprd) < Constants::baryTol)  sg = 0;
-              else if(dtprd < -Constants::baryTol) sg = 0;
+              else if(dtprd < -Constants::baryTol) sg = -1;
               //else if(dtprd < -Constants::baryTol) sg = -1;
               // We can have a pertinent "fold back" (i.e. negative sg per the
               // previous law), but the barycentric is also negative. 
               // Since sg = 0 lead to never skip, simply put sg = 0 if not > 0
-              if(DOPRINTS1()) printf(" - dtprd = %f sg = %d ",dtprd,sg);
+              CPRINTF1(" - dtprd = %f sg = %d ",dtprd,sg);
             }
 
-            if(sg != 0 && sg*bary[ii] > -Constants::baryTol)continue;
+            if(sg != 0 && sg*bary[ii] > -Constants::baryTol) continue;
 
             if(dir_nei_criterion && tdim > 1){
 
@@ -712,7 +780,7 @@ int locMesh(MeshBase &msh, int *ientt,
                 // Call 1 - that deviation and put that in bmax. 
 
                 double dev = 1 - abs(dtprd) / nrm;
-                if(DOPRINTS1()) printf(" dev = %15.7e ",dev);
+                CPRINTF1(" dev = %15.7e ",dev);
 
                 if(dev >= bmax){
                   bmax = dev;
@@ -732,16 +800,16 @@ int locMesh(MeshBase &msh, int *ientt,
               //  else        bmin = 1.0e30;
               //  //imin = ii;
               //}
-              if(sg == 1 && bary[ii] > bmax
+              if(sg != 0 && sg*bary[ii] > bmax
               || bmax < -1.0e29){
-                if(sg == 1) bmax = bary[ii];
-                else        bmax = -1.0e30;
+                if(sg == 0) bmax = -1.0e30;
+                else        bmax = sg*bary[ii];
                 imax = ii;
               }
 
             }
           }
-          if(DOPRINTS1()) printf("\n");
+          CPRINTF1("\n");
         }
 
         //METRIS_ASSERT_MSG(imin != -1,"NO ELIGIBLE NEXT ELEMENT ideg = " << ideg)

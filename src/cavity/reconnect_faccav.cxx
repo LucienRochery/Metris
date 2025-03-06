@@ -13,7 +13,7 @@
 #include "../ho_constants.hxx"
 #include "../low_geo.hxx"
 #include "../quality/low_metqua.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 #include "../io_libmeshb.hxx"
 
 
@@ -453,7 +453,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
   GETVDEPTH(msh);
   METRIS_ASSERT(ithread >= 0 && ithread < METRIS_MAXTAGS);
 
-  constexpr int nnode = facnpps[ideg];
+  constexpr int nnode = getnnod2(ideg);
 
   //int ibins = msh.poi2bpo[cav.ipins];
   //int tdimi = -1;
@@ -494,6 +494,11 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
   int ip3 = msh.fac2poi(ifac1,ied);
   if(ip3 == cav.ipins) return CAV_ERR_DUPFAC;
 
+  // There are other dupfac cases, simply check the hash table
+  if(msh.idim >= 3 && getfacglo(msh, ip1, ip2, cav.ipins) >= 0){
+    return CAV_ERR_DUPFAC;
+  }
+
   // Last thing to check is that not all three points are edge points of same ref
   // Most likely is that at least one is not edge at all:
   int ib1 = msh.poi2bpo[ip1], ib2 = msh.poi2bpo[ip2], ibi = msh.poi2bpo[cav.ipins];
@@ -503,6 +508,8 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
       // All three points are edge. If one is only edge, there is only one ref to check
       if(id1 == 0 && id2 == 0 && idi == 0){
         // In this case, look at checktopo and what is done there using ced2tag. 
+        printf("Trying to create face with vertices %d %d %d \n",ip1,ip2,cav.ipins);
+        writeMesh("TODO",msh);
         METRIS_THROW_MSG(TODOExcept(), "Handle case where all three vertices are corners...")
       }else{
         // At last one is pure edge, has a single ref. 
@@ -671,8 +678,8 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
       // The following two edges will use iedex
 
       if(msh.isboundary_faces()){ // Don't duplicate the work done if edge
-        int idx0 = 3 + iedn * (edgnpps[ideg] - 2);
-        for(int ii = 0; ii < edgnpps[ideg] - 2; ii++){
+        int idx0 = 3 + iedn * (getnnod1(ideg) - 2);
+        for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
           int ip = msh.fac2poi[ifacn][idx0 + ii];
           aux_bpo_update_fac(msh,ip,ifacn,ifac1,cav.ipins,ithread);
         }
@@ -715,9 +722,9 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
         }
 
         if(msh.isboundary_faces()){
-          int idx0 = 3 + iedn * (edgnpps[ideg] - 2);
+          int idx0 = 3 + iedn * (getnnod1(ideg) - 2);
           if(ityp < 0){ // Old edge
-            for(int ii = 0; ii < edgnpps[ideg] - 2; ii++){
+            for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
               int ip = msh.fac2poi[ifacn][idx0 + ii];
               aux_bpo_update_fac(msh,ip,ifacn,ifac1,cav.ipins,ithread);
             }
@@ -725,7 +732,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
             METRIS_ASSERT(cav.nrmal != NULL || !msh.CAD());
             // We don't do it now. But later, we will need to regenerate (u,v) from t. 
             // For now just create ibpoi. 
-            for(int ii = 0; ii < edgnpps[ideg] - 2; ii++){
+            for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
               int ip = msh.fac2poi[ifacn][idx0 + ii];
               msh.newbpotopo(ip,2,ifacn);
             }
@@ -750,8 +757,8 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
 
         // Don't duplicate the work done if edge
         if(msh.isboundary_faces() && abs(ityp) == 2){ 
-          int idx0 = 3 + iedn * (edgnpps[ideg] - 2);
-          for(int ii = 0; ii < edgnpps[ideg] - 2; ii++){
+          int idx0 = 3 + iedn * (getnnod1(ideg) - 2);
+          for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
             int ip = msh.fac2poi[ifacn][idx0 + ii];
             aux_bpo_update_fac(msh,ip,ifacn,ifac1,cav.ipins,ithread);
           }

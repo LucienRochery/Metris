@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#include "../MetrisRunner/MetrisRunner.hxx"
+#include "MetrisRunner.hxx"
 
 #include "../Mesh/Mesh.hxx"
 
@@ -11,38 +11,59 @@
 #include "../aux_histogram.hxx"
 #include "../quality/msh_metqua.hxx"
 #include "../low_ccoef.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 
 
 namespace Metris{
 
-void MetrisRunner::statMesh(){
+void MetrisRunner::statMesh(MeshStat* stat){
   if(this->metricFE){
-    statMesh0<MetricFieldFE>();
+    statMesh0<MetricFieldFE>(stat);
   }else{
-    statMesh0<MetricFieldAnalytical>();
+    statMesh0<MetricFieldAnalytical>(stat);
   }
 }
 
 template<class MFT>
-void MetrisRunner::statMesh0(){
-  
+void MetrisRunner::statMesh0(MeshStat* stat){
+
+
   Mesh<MFT> &msh = *( (Mesh<MFT>*) msh_g );
   GETVDEPTH(msh);
+
+  if(!DOPRINTS1() && stat == NULL) return;
   
   msh.cleanup();
-
 
   intAr2 ilned;
   ilned.set_n(0);
   dblAr1 rlned;
   dblAr1 lenbds = {1.0/sqrt(2), sqrt(2)};
   getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::Quad);
-  print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (quadrature)");
 
-  if(param_.iverb >= 2)
-    getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::GeoSiz);
-    print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (geometric)");{
+  if(stat != NULL){
+    stat->minlen = 1.0e30;
+    stat->maxlen = -1.0e30;
+    stat->avglen = 0.0;
+    int nunit = 0;
+    for(int ii = 0; ii < ilned.get_n(); ii++){
+      double len = rlned[ii];
+      if(len >= 1.0/sqrt(2) && len <= sqrt(2)) nunit++;
+      stat->avglen += len;
+      stat->minlen = MIN(len, stat->minlen);
+      stat->maxlen = MAX(len, stat->maxlen);
+    }
+    stat->avglen /= ilned.get_n();
+    stat->pctunit = 100*((double)nunit) / ilned.get_n();
+  }
+
+  if(DOPRINTS1()){
+    print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (quadrature)");
+  
+    if(DOPRINTS2())
+      getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::GeoSiz);
+      print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (geometric)");{
+    }
   }
 
 
@@ -59,6 +80,11 @@ void MetrisRunner::statMesh0(){
   }else{
     getmetquamesh<MFT,3,AsDeg::P1>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
   }
+  if(stat != NULL){
+    stat->minqua = qmin;
+    stat->maxqua = qmax;
+    stat->avgqua = qavg;
+  }
   print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality (As P1)");
 
   if(msh.curdeg > 1){
@@ -66,6 +92,11 @@ void MetrisRunner::statMesh0(){
       getmetquamesh<MFT,2,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
     }else{
       getmetquamesh<MFT,3,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
+    }
+    if(stat != NULL){//overwrite
+      stat->minqua = qmin;
+      stat->maxqua = qmax;
+      stat->avgqua = qavg;
     }
     print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality (As Pk)");
 
@@ -75,7 +106,7 @@ void MetrisRunner::statMesh0(){
       intAr2 &ent2poi = msh.ent2poi(tdim);
 
       int jdeg = msh.idim * (msh.curdeg - 1);
-      int ncoef = tdim == 2 ? facnpps[jdeg] : tetnpps[jdeg];
+      int ncoef = tdim == 2 ? getnnod2(jdeg) : getnnod3(jdeg);
       //dblAr1 ccoef(ncoef);
       //ccoef.set_n(ncoef);
 
@@ -102,8 +133,8 @@ void MetrisRunner::statMesh0(){
 }
 
 //#define BOOST_PP_LOCAL_MACRO(n)
-template void MetrisRunner::statMesh0<MetricFieldAnalytical>();
-template void MetrisRunner::statMesh0<MetricFieldFE        >();
+template void MetrisRunner::statMesh0<MetricFieldAnalytical>(MeshStat *stat);
+template void MetrisRunner::statMesh0<MetricFieldFE        >(MeshStat *stat);
 //#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 //#include BOOST_PP_LOCAL_ITERATE()
 

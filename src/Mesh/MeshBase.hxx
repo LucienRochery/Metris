@@ -11,6 +11,7 @@
 #include "../metris_constants.hxx"
 #include "../Mesh/CADInfo.hxx"
 #include "../aux_topo.hxx"
+#include "../MetrisRunner/MetrisParameters.hxx"
 
 #include <boost/pool/poolfwd.hpp>
 #include <boost/pool/pool.hpp>
@@ -22,7 +23,6 @@ namespace Metris{
 class MetricFieldFE;
 class MetricFieldAnalytical;
 class MetrisAPI; 
-struct MetrisParameters; 
 
 
 
@@ -263,8 +263,8 @@ public:
   const intAr1&  ent2ref(int tdimn) const;
         intAr2r& ent2tag(int tdimn);
   const intAr2r& ent2tag(int tdimn) const;
-  template<int tdimn>       intAr2& ent2tag();
-  template<int tdimn> const intAr2& ent2tag() const;
+  template<int tdimn>       intAr2r& ent2tag();
+  template<int tdimn> const intAr2r& ent2tag() const;
         intAr2&  ent2ent(int tdimn);
   const intAr2&  ent2ent(int tdimn) const;
   template<int tdimn>       intAr2& ent2ent();
@@ -278,8 +278,8 @@ public:
 	// Flag whether being on an edge or triangle makes us an ibpoi
 	// Instead of checking everywhere if msh.nface > 0 || msh.nelem > 0
 	// And in case we want to change this, keep it in one place. 
-	bool isboundary_edges()const{return nface > 0 || nelem > 0 || idim > 1;}
-	bool isboundary_faces()const{return nelem > 0 || idim > 2;}
+	bool isboundary_edges()const{return idim >= 2;}
+	bool isboundary_faces()const{return idim >= 3;}
   bool isboundary_tdimn(int tdimn)const{return tdimn == 0 ? true : 
                                                tdimn == 1 ? isboundary_edges() :
                                                tdimn == 2 ? isboundary_faces() : false;}

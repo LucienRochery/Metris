@@ -414,7 +414,7 @@ OLD IMPLEMENTATIONS
 //  
 //  
 //    SANS::SurrealS<gdim,ftype> qua0;
-//    int nquad = tetnpps[ideg - 1];
+//    int nquad = getnnod3(ideg - 1);
 //    for(int iquad = 0; iquad < nquad; iquad++){
 //      bary[0] = ordtet.s[ideg-1][iquad][0]/((double) (ideg - 1));
 //      bary[1] = ordtet.s[ideg-1][iquad][1]/((double) (ideg - 1));
@@ -456,10 +456,10 @@ OLD IMPLEMENTATIONS
 //  if(*nshell <= 0){
 //    int iopen;
 //    int iver = getvertet<ideg>(iele0, msh.tet2poi, ipoin);
-//    if(iver < 4 || iver >= 4 + 6*(edgnpps[ideg]-2))
+//    if(iver < 4 || iver >= 4 + 6*(getnnod1(ideg)-2))
 //      METRIS_THROW_MSG(TopoExcept(),"VERTEX NOT ON EDGE")
 //  
-//    int ied = (iver - 4) / (edgnpps[ideg] - 2);
+//    int ied = (iver - 4) / (getnnod1(ideg) - 2);
 //  
 //    int ipoi1 = msh.tet2poi(iele0,lnoed3[ied][0]);
 //    int ipoi2 = msh.tet2poi(iele0,lnoed3[ied][1]);
@@ -467,7 +467,7 @@ OLD IMPLEMENTATIONS
 //    if(iopen >= 0) METRIS_THROW_MSG(TopoExcept(),"SHELL IS OPEN IN OPTIM")
 //  }
 //  
-//  constexpr int nrfld = tetnpps[ideg];
+//  constexpr int nrfld = getnnod3(ideg);
 //  auto nrfld_c = hana::int_c<nrfld>;
 //
 //  *qushe = 0.0;

@@ -7,12 +7,12 @@
 #include "msh_maxccoef.hxx"
 #include "LPsolver.hxx"
 
-#include "../codegen_lag2bez.hxx"
+#include "codegen_lag2bez.hxx"
 #include "../low_ccoef.hxx"
 #include "../low_geo.hxx"
 #include "../io_libmeshb.hxx"
-#include "../aux_timer.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/aux_timer.hxx"
+#include "../utils/aux_misc.hxx"
 #include "../linalg/det.hxx"
 
 #include "../Mesh/Mesh.hxx"
@@ -42,9 +42,9 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
   const bool MAE = false;
   const bool metOn = true;
   constexpr int jdeg = tdim * (ideg - 1);
-  constexpr int ncoef = tdim == 2 ? facnpps[jdeg] : tetnpps[jdeg];
-  constexpr int nnode = tdim == 2 ? facnpps[ideg] : tetnpps[ideg];
-  constexpr int nnod1 = tdim + 1;
+  constexpr int ncoef = tdim == 2 ? getnnod2(jdeg) : getnnod3(jdeg);
+  constexpr int nnode = tdim == 2 ? getnnod2(ideg) : getnnod3(ideg);
+  constexpr int nnop1 = tdim + 1;
   constexpr int vol0 = ifact<tdim>();
   const intAr2 &ent2poi = tdim == 2 ? msh.fac2poi : msh.tet2poi;
         dblAr2 &coord   = msh.coord;
@@ -81,7 +81,6 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
   int ncoefglob = nelems * ncoef;
 
   intAr1 idx_point(msh.npoin);
-  idx_point.set_n(msh.npoin);
   int noptim_points = 0;
 
   /* Selecting the optim variables */
@@ -100,7 +99,7 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
     }
     for(int ientt = 0; ientt < nelems; ientt++){
       // Ordering is always P1 nodes first, then high order (HO). 
-      for(int ii = nnod1; ii < nnode; ii++){
+      for(int ii = nnop1; ii < nnode; ii++){
         int ipoin = ent2poi(ientt, ii);
         if((idx_point[ipoin] >= 0)||(msh.poi2bpo[ipoin] >= 0)) continue;
         idx_point[ipoin] = noptim_points;
@@ -143,7 +142,6 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
   // These (dbl/int)Ar classes entail dynamic alloc so they should be initialized
   // the fewest amount of times (not in loops, ideally)
   dblAr2 d_ccoef(ncoef, nnode);
-  d_ccoef.set_n(ncoef);
 
   double detm, detJ0;
 
@@ -152,8 +150,6 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
   for(int ii = 0; ii < ncoef; ii++) lfld[ii] = ii;
   dblAr2 rfld0(ncoef, 1);
   dblAr2 rfld1(ncoef, 1);
-  rfld0.set_n(ncoef);
-  rfld1.set_n(ncoef);
   
   const int miter = 100;
   const double obj_change_tol = 1.0e-5;

@@ -12,8 +12,8 @@
 #include "../aux_topo.hxx"
 #include "../low_topo.hxx"
 #include "../low_geo.hxx"
-#include "../mprintf.hxx"
-#include "../CT_loop.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/CT_loop.hxx"
 #include "../io_libmeshb.hxx"
 
 #include <tuple>
@@ -589,7 +589,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
     int nentt = msh.nentt(tdim);
     const intAr2& ent2poi = msh.ent2poi(tdim);
     const intAr1& ent2ref = msh.ent2ref(tdim);
-    const int nnode = tdim == 1 ? edgnpps[ideg] : facnpps[ideg];
+    const int nnode = tdim == 1 ? getnnod1(ideg) : getnnod2(ideg);
 
     for(int ientt = 0; ientt < nentt; ientt++){
       INCVDEPTH(msh);
@@ -886,7 +886,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 	for(int iedge = 0; iedge < msh.nedge; iedge++){
     INCVDEPTH(msh);
 		if(isdeadent(iedge,msh.edg2poi)) continue;
-		for(int iver = 0; iver < edgnpps[ideg]; iver++){
+		for(int iver = 0; iver < getnnod1(ideg); iver++){
 			int ipoin = msh.edg2poi(iedge,iver);
 			METRIS_ASSERT(ipoin >= 0 && ipoin < msh.npoin);
 			int ibpoi = msh.poi2bpo[ipoin];
@@ -908,7 +908,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 		for(int iface = 0; iface < msh.nface; iface++){
       INCVDEPTH(msh);
 			if(isdeadent(iface,msh.fac2poi)) continue;
-			for(int iver = 0; iver < facnpps[ideg]; iver++){
+			for(int iver = 0; iver < getnnod2(ideg); iver++){
 				int ipoin = msh.fac2poi(iface,iver);
 				METRIS_ASSERT(ipoin >= 0 && ipoin < msh.npoin);
 				int ibpoi = msh.poi2bpo[ipoin];
@@ -998,7 +998,7 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
   rgpof.set_n(0); 
   
 
-  CPRINTF2("-- START genOnGeometricEntLists nbpoi = %d\n",msh.nbpoi);
+  CPRINTF3("-- START genOnGeometricEntLists nbpoi = %d\n",msh.nbpoi);
 
   for(int ipoin = 0; ipoin < msh.npoin ;ipoin++){
     INCVDEPTH(msh);
@@ -1022,7 +1022,7 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
    }
   }
 
-  CPRINTF2(" - nbpoi = %d ncorn = %d\n",msh.nbpoi,lcorn.get_n());
+  CPRINTF3(" - nbpoi = %d ncorn = %d\n",msh.nbpoi,lcorn.get_n());
   if(msh.param->refineConventionsOut) goto refineConvention;
 
   for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
@@ -1102,7 +1102,7 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
           double dist = abs(msh.bpo2rbi(ibpo2,0) - msh.bpo2rbi(ibpoi,0));
           if(itype == 2) dist += abs(msh.bpo2rbi(ibpo2,1) - msh.bpo2rbi(ibpoi,1));
           if(dist < Constants::CADparamTol){
-            CPRINTF2(" - skip ibpoi %d t = %f\n",ibpo2,msh.bpo2rbi(ibpo2,1));
+            CPRINTF3(" - skip ibpoi %d t = %f\n",ibpo2,msh.bpo2rbi(ibpo2,1));
             iskip = true;
             break;
           }
@@ -1111,7 +1111,7 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
 
       if(iskip) continue;
 
-      CPRINTF2(" - stack ibpoi %d iref %d \n",ibpoi,iref);
+      CPRINTF3(" - stack ibpoi %d iref %d \n",ibpoi,iref);
       lref.stack(iref);
       lbpo.stack(ibpoi);
 

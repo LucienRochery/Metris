@@ -12,7 +12,7 @@
 #include "low_increasecav.hxx"
 #include "../cavity/msh_cavity.hxx"
 
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 #include "../low_geo.hxx"
 #include "../low_topo.hxx"
 #include "../io_libmeshb.hxx"

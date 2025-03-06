@@ -12,7 +12,7 @@
 #include "../SANS/Surreal/SurrealS.h"
 #include "../aux_exceptions.hxx"
 #include "../ho_constants.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/aux_misc.hxx"
 
 #include "../linalg/eigen.hxx"
 #include "../linalg/det.hxx"
@@ -80,7 +80,7 @@ void getBezOffsetsEdge(Mesh<MFT> &msh,
   // Otherwise, need the same dim element. 
   double bary[gdim+1] = {0};
   if constexpr (std::is_same<MFT,MetricFieldAnalytical>::value){
-    int edg2pol[edgnpps[ideg]];
+    int edg2pol[getnnod1(ideg)];
     edg2pol[0] = ipoi1; 
     edg2pol[1] = ipoi2; 
     int idx0 = tdim + 1 + iedgl*(ideg-1);
@@ -164,7 +164,7 @@ void getBezOffsetsEdge(Mesh<MFT> &msh,
   //  if(havenan){
   //    printf("## NAN METRICS IN getBezOffsetsEdge\n");
   //    printf("gdim = %d ideg = %d tdim = %d iedgl = %d edg2pol:",gdim,ideg,tdim,iedgl);
-  //    intAr1(edgnpps[ideg],edg2pol).print();
+  //    intAr1(getnnod1(ideg),edg2pol).print();
   //    printf("met = ");
   //    dblAr1(nnmet,met).print();
   //    printf("dmet = ");

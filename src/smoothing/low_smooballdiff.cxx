@@ -16,9 +16,9 @@ Simplest possible approach.
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../quality/low_metqua.hxx"
 #include "../aux_topo.hxx"
-#include "../aux_timer.hxx"
+#include "../utils/aux_timer.hxx"
 #include "../io_libmeshb.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 
 #include "../opt_generic.hxx"
 #include "../quality/low_metqua_d.hxx"
@@ -128,8 +128,8 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
         }
       }else{
         constexpr int jdeg = tdim*(ideg - 1);
-        constexpr int ncoef = tdim == 2 ? facnpps[jdeg]
-                                        : tetnpps[jdeg];
+        constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
+                                        : getnnod3(jdeg);
         double ccoef[ncoef];
         for(int ientt : lball){
           getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva); 
@@ -242,8 +242,8 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
         METRIS_ENFORCE(!iinva);
       }else{
         constexpr int jdeg = tdim*(ideg - 1);
-        constexpr int ncoef = tdim == 2 ? facnpps[jdeg]
-                                        : tetnpps[jdeg];
+        constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
+                                        : getnnod3(jdeg);
         double ccoef[ncoef];
         for(int ientt : lball){
           getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva); 
@@ -264,8 +264,8 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   if(msh.param->dbgfull){
     if constexpr (ideg >= 2){
       constexpr int jdeg = tdim*(ideg - 1);
-      constexpr int ncoef = tdim == 2 ? facnpps[jdeg]
-                                      : tetnpps[jdeg];
+      constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
+                                      : getnnod3(jdeg);
       const double jtol = msh.param->jtol;
       double ccoef[ncoef];
       for(int ientt : lball){
@@ -356,8 +356,8 @@ double smooballdiff_fun([[maybe_unused]] unsigned int nvar,
     }
   }else{
     constexpr int jdeg = tdim*(ideg - 1);
-    constexpr int ncoef = tdim == 2 ? facnpps[jdeg]
-                                    : tetnpps[jdeg];
+    constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
+                                    : getnnod3(jdeg);
     double ccoef[ncoef];
     for(int ientt : lball){
       getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva); 
@@ -557,8 +557,8 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
   if(msh.param->dbgfull){
     if constexpr (ideg >= 2){
       constexpr int jdeg = tdim*(ideg - 1);
-      constexpr int ncoef = tdim == 2 ? facnpps[jdeg]
-                                      : tetnpps[jdeg];
+      constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
+                                      : getnnod3(jdeg);
       const double jtol = msh.param->jtol;
       double ccoef[ncoef];
       for(int ientt : lball){

@@ -12,7 +12,7 @@
 #include "../linalg/symidx.hxx"
 
 #include "../metris_constants.hxx"
-#include "../aux_pp_inc.hxx"
+#include "../utils/aux_pp_inc.hxx"
 
 namespace Metris{
 

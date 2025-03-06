@@ -25,8 +25,7 @@ MeshArray1D<T,INT1>::MeshArray1D(){
 template<typename T,typename INT1>
 MeshArray1D<T,INT1>::MeshArray1D(INT1 m){
   METRIS_ENFORCE_MSG(m >= 0, "Negative size passed to MeshArray1D");
-  m1 = m;
-  n1 = 0;
+  n1 = m1 = m;
   // Unfortunately, make_shared for array types is only a c++20+ feature
   array_sp = cpp17_make_shared<T[]>(m);
   array    = array_sp.get();
@@ -173,7 +172,7 @@ void MeshArray1D<T,INT1>::fill(T x){
 
 template<typename T,typename INT1>
 void MeshArray1D<T,INT1>::copyTo(MeshArray1D<T,INT1> &out, INT1 ncopy) const{
-  if(ncopy < 0) ncopy = m1;
+  if(ncopy < 0) ncopy = n1;
   if(out.size() < ncopy) 
     METRIS_THROW_MSG(DMemExcept(),"Increase out size or decrease ncopy");
   memcpy(&out[0],array,ncopy*sizeof(T));
@@ -218,7 +217,7 @@ T MeshArray1D<T,INT1>::pop(){
 }
 
 
-#include "../aux_pp_inc.hxx"
+#include "../utils/aux_pp_inc.hxx"
 #define T_SEQ (bool)(ego)(int)(double)(float4)(float8)(SurrealS2)(SurrealS3)
 #define INT1_SEQ (int32_t)(int64_t)
 #define INSTANTIATE(T,INT1) template class MeshArray1D<T,INT1>;

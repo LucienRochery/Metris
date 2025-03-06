@@ -11,6 +11,7 @@
 #include "../linalg/symidx.hxx"
 
 #include "../aux_exceptions.hxx"
+#include "../low_geo.hxx"
 #include "../metris_constants.hxx"
 
 #include "../SANS/Surreal/SurrealS.h"
@@ -45,6 +46,9 @@ int invsym(double* met){
 	int ipiv[n];
 	double work[n];
   int nmat = n;
+
+  double nrm = getnrml2<(n*(n+1))/2>(met);
+  if(nrm < 1.0e-300) return 1;
 
 	LAPACK_dsptrf(&c,&nmat,met,ipiv,&info);
   if(info != 0) return(abs(info));

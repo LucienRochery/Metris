@@ -150,7 +150,7 @@ void eval2(const dblAr2 & __restrict__  rfld,
     #ifndef NDEBUG
     }catch(const MetrisExcept& e){
       printf("eval2_lagrange exception szfld %d ideg %d \n",szfld,ideg);
-      intAr1(facnpps[ideg],lfld).print();
+      intAr1(getnnod2(ideg),lfld).print();
       throw(e);
     }
     #endif
@@ -377,7 +377,7 @@ template double eval_bezierfunc< n ,2>(const int * __restrict__ idx, \
    const double  * __restrict__  bary, int ider, double * __restrict__  dbez);\
 template double eval_bezierfunc< n ,3>(const int * __restrict__ idx, \
    const double  * __restrict__  bary, int ider, double * __restrict__  dbez);
-#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG_JACOBIAN)
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG_EVAL)
 #include BOOST_PP_LOCAL_ITERATE()
 
 
@@ -493,7 +493,7 @@ template double eval_lagrangefunc< n ,2>(const int * __restrict__ idx, \
     const double * __restrict__ bary,int ider,double * __restrict__ dlag);\
 template double eval_lagrangefunc< n ,3>(const int * __restrict__ idx, \
     const double * __restrict__ bary,int ider,double * __restrict__ dlag);
-#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG_JACOBIAN)
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG_EVAL)
 #include BOOST_PP_LOCAL_ITERATE()
 
 

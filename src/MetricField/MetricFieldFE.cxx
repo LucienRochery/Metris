@@ -10,10 +10,10 @@
 #include "../MetricField/msh_explogmet.hxx"
 #include "../Mesh/MeshBase.hxx"
 #include "../msh_lag2bez.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/aux_misc.hxx"
 #include "../low_eval.hxx"
 #include "../io_libmeshb.hxx"
-#include "../CT_loop.hxx"
+#include "../utils/CT_loop.hxx"
 #include "../msh_structs.hxx"
 #include "../linalg/invmat.hxx"
 #include "../linalg/explogmet.hxx"
@@ -245,7 +245,7 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
     GmfDoubleVec, nnmet, &this->rfld[0][0], &this->rfld[msh.npoin-1][0]);
  //               GmfDoubleVec, 3, &coord[0], &coord[npoin-1],
 //                GmfInt         , &poi2bpo[0], &poi2bpo[npoin-1]);
-  if(iverb >= 1) std::cout<<"-- Done  writing metric"<<std::endl;
+  if(iverb >= 3) std::cout<<"-- Done  writing metric"<<std::endl;
 
 
   GmfCloseMesh( libIdx );

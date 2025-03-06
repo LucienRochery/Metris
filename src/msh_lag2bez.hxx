@@ -41,7 +41,7 @@ template<int ideg, int szfld>
 void bez2lag1(const int* __restrict__ lfld,
               const dblAr2& __restrict__ rfld0,
               dblAr2& __restrict__ rfld1){
-  int nn = edgnpps[ideg];
+  int nn = getnnod1(ideg);
   double bary[2];
   for(int i = 0; i < nn; i++){
     bary[0] = ordedg.s[ideg][i][0]/((double)ideg);
@@ -53,7 +53,7 @@ template<int ideg, int szfld>
 void bez2lag2(const int* __restrict__ lfld,
               const dblAr2& __restrict__ rfld0,
               dblAr2& __restrict__ rfld1){
-  int nn = facnpps[ideg];
+  int nn = getnnod2(ideg);
   double bary[3];
   for(int i = 0; i < nn; i++){
     bary[0] = ordfac.s[ideg][i][0]/((double)ideg);
@@ -66,7 +66,7 @@ template<int ideg, int szfld>
 void bez2lag3(const int* __restrict__ lfld,
               const dblAr2& __restrict__ rfld0,
               dblAr2& __restrict__ rfld1){
-  int nn = tetnpps[ideg];
+  int nn = getnnod3(ideg);
   double bary[4];
   for(int i = 0; i < nn; i++){
     bary[0] = ordtet.s[ideg][i][0]/((double)ideg);

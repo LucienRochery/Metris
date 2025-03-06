@@ -12,7 +12,7 @@
 #include "../aux_topo.hxx"
 #include "../low_topo.hxx"
 #include "../low_geo.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 #include "../msh_structs.hxx"
 #include "../io_libmeshb.hxx"
 #include "../msh_checktopo.hxx"
@@ -151,7 +151,7 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
         if(DOPRINTS2()) writeMeshCavity("collapse_cavity0.meshb", msh, cav, ithrd2);
 
         // Increase cavity with Delaunay criterion
-        ierro = increase_cavity_Delaunay(msh, cav, ithrd2);
+        ierro = increase_cavity_Delaunay(msh, cav, ithrd2, nrmal);
         if(ierro != 0) continue;
 
         //int nprem = increase_cavity_lenedg(msh,cav,ipins,ithrd2,ithrd3);
@@ -208,8 +208,14 @@ int colledgsurf(Mesh<MFT>& msh, int iface, int iedl, double qmax_suf,
                   cav.lcfac,
                   cav.lcedg,
                   &iopen,&imani,ithrd1);
+    if(msh.idim == 3){
+      // We'll not use the ipins normal but rather this one as we already have the ball. 
+      // Just treat it as P1
+      getnorballref<1>(msh,cav.lcfac,-1,nrmal);
+      cav.nrmal = nrmal;
+    }
     // Increase cavity with Delaunay criterion
-    ierro = increase_cavity_Delaunay(msh, cav, ithrd2);
+    ierro = increase_cavity_Delaunay(msh, cav, ithrd2, nrmal);
     METRIS_ASSERT(ierro == 0);
 
     //int nprem = increase_cavity_lenedg(msh,cav,ipins,ithrd2,ithrd3);
@@ -340,7 +346,7 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
       if(DOPRINTS2()) writeMeshCavity("collapse_cavity0.meshb", msh, cav, ithrd2);
 
       // Increase cavity with Delaunay criterion
-      ierro = increase_cavity_Delaunay(msh, cav, ithrd2);
+      ierro = increase_cavity_Delaunay(msh, cav, ithrd2, nrmal);
       if(ierro > 0) continue;
 
       //int nprem = increase_cavity_lenedg(msh,cav,ipins,ithrd2,ithrd3);
@@ -390,6 +396,12 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
                   cav.lcfac,
                   cav.lcedg,
                   &iopen,&imani,ithrd1);
+    if(msh.idim == 3){
+      // We'll not use the ipins normal but rather this one as we already have the ball. 
+      // Just treat it as P1
+      getnorballref<1>(msh,cav.lcfac,-1,nrmal);
+      cav.nrmal = nrmal;
+    }
     // Increase cavity with Delaunay criterion
     ierro = increase_cavity_Delaunay(msh, cav, ithrd2);
     METRIS_ASSERT(ierro == 0);

@@ -62,15 +62,14 @@ void eval_d2_SurrealS(const dblAr2 & __restrict__ rfld,
                       double * __restrict__  d2hmat,  
                       const double * __restrict__ dfld){
 
-  constexpr auto entnpps = ENTNPPS(tdim);
 
   // -- For clarity. 
   // Number of (r|l)fld entries
-  constexpr int nrfld = entnpps[ideg];
+  constexpr int nrfld = getnnode(tdim,ideg);
   static_assert(nrfld < 31);
   // -
-  static_assert(ivar1 >= 0 && ivar1 < entnpps[ideg]);
-  static_assert(ivar2 >= 0 && ivar2 < entnpps[ideg]);
+  static_assert(ivar1 >= 0 && ivar1 < nrfld);
+  static_assert(ivar2 >= 0 && ivar2 < nrfld);
 
   auto rfld_0 = hana::replicate<hana::tuple_tag>((const double *) 1, hana::size_c<nrfld>);
 

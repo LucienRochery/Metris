@@ -216,7 +216,7 @@ public:
   MeshArray2D(INT1 n, INT2 s, const T* ar); 
   MeshArray2D(INT1 n, INT2 s, T* ar);
 
-  //MeshArray2D(const MeshArray2D &cpy);
+  MeshArray2D(const MeshArray2D &cpy);
   MeshArray2D(MeshArray2D &&cpy);
 
   // Reallocates to different major size and stride, copying old info. 
@@ -283,9 +283,7 @@ public:
   inline INT2 get_stride() const {return stride;}
 
   void set_stride(INT2 s){
-    stride = s;
-    // Force reallocation if necessary
-    set_n(n1);
+    allocate(m1,s);
   }
   inline INTL size()  const {return nmemalc;}
   inline INT1 size1() const {return m1;}

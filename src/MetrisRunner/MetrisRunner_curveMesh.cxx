@@ -10,11 +10,13 @@
 #include "../Mesh/Mesh.hxx"
 
 #include "../aux_histogram.hxx"
-#include "../aux_timer.hxx"
+#include "../utils/aux_timer.hxx"
 #include "../io_libmeshb.hxx"
 #include "../quality/msh_metqua.hxx"
 #include "../BezierOffsets/msh_curve_offsets.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
+#include "../SolutionField/SolutionField.hxx"
+#include "../SolutionField/minInterpError.hxx"
 
 namespace Metris{
 
@@ -74,6 +76,14 @@ void MetrisRunner::curveMesh0(){
           }else{
             maximizeMetCcoef<MFT,3,3,ideg>(msh, OptDoF::HO, LPMethod::IPM, LPLib::alglib);
           }
+        }
+      }else if(itype == 5){
+        if(!param->anaSol){
+          printf("## SPECIFY ANALYTICAL SOLUTION\n");
+        }else{
+          SolutionFieldAnalytical sol(msh);
+          sol.setAnalyticalSolution(param->ianasol);
+          minimizeInterpErrglo(msh, sol, param->intp_pdeg, param->intp_pnorm);
         }
       }
     }

@@ -7,11 +7,11 @@
 
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../ho_constants.hxx"
-#include "../aux_utils.hxx"
-#include "../aux_timer.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../utils/aux_timer.hxx"
 #include "../low_eval.hxx"
 #include "../low_geo.hxx"
-#include "../mprintf.hxx"
+#include "../utils/mprintf.hxx"
 #include "../msh_intrinsicmet.hxx"
 #include "../io_libmeshb.hxx"
 #include "../MetricField/msh_checkmet.hxx"
@@ -33,7 +33,7 @@ void MeshBack::copyConstants(const MeshBase &msh){
   medge_ = nedge;
   mface_ = nface;
   melem_ = nelem;
-  int mbpo_guess = edgnpps[strdeg]*nedge + facnpps[strdeg]*nface;
+  int mbpo_guess = getnnod1(strdeg)*nedge + getnnod2(strdeg)*nface;
   if(nbpoi == 0) mbpoi_ = mbpo_guess;
 }
 void MeshBack::readConstants(int64_t libIdx, int usrMinDeg){
@@ -43,7 +43,7 @@ void MeshBack::readConstants(int64_t libIdx, int usrMinDeg){
   medge_ = nedge;
   mface_ = nface;
   melem_ = nelem;
-  int mbpo_guess = edgnpps[strdeg]*nedge + facnpps[strdeg]*nface;
+  int mbpo_guess = getnnod1(strdeg)*nedge + getnnod2(strdeg)*nface;
   if(nbpoi == 0) mbpoi_ = mbpo_guess;
 }
 void MeshBack::readConstants(const MetrisAPI &data, int usrMinDeg){
@@ -53,7 +53,7 @@ void MeshBack::readConstants(const MetrisAPI &data, int usrMinDeg){
   medge_ = nedge;
   mface_ = nface;
   melem_ = nelem;
-  int mbpo_guess = edgnpps[strdeg]*nedge + facnpps[strdeg]*nface;
+  int mbpo_guess = getnnod1(strdeg)*nedge + getnnod2(strdeg)*nface;
   if(nbpoi == 0) mbpoi_ = mbpo_guess;
 }
 

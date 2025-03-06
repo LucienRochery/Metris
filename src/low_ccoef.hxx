@@ -32,6 +32,12 @@ void getsclccoef(const MeshBase &msh, int ientt, double *nrmal,
 
 template<int idim, int ideg>
 void getccoef_dcoord(const MeshBase &msh, int ientt, int icoor, double *ccoef, dblAr2& d_ccoef);
+template<int idim, int ideg>
+void getccoef_dpoint(const MeshBase &msh, int ientt, int inode, double *ccoef, dblAr2& d_ccoef);
+
+
+
+// ------- Auxiliary
 
 // Ccoefs if mesh is Lagrange
 template<int gdim, int tdim, int ideg>
@@ -40,9 +46,9 @@ void ccoef_eval(FEBasis ibasis, const intAr2& ent2poi, const dblAr2& coord, int 
 
 // Sized for highest (tet) so applicable to all
 namespace ccoef_eval_lfld{
-  constexpr std::array<int,tetnpps[METRIS_MAX_DEG_JACOBIAN]> lfld{[]() constexpr{
-    std::array<int,tetnpps[METRIS_MAX_DEG_JACOBIAN]> ret{};
-    for(int i=0;i<tetnpps[METRIS_MAX_DEG_JACOBIAN];i++){
+  constexpr std::array<int,getnnod3(METRIS_MAX_DEG_JACOBIAN)> lfld{[]() constexpr{
+    std::array<int,getnnod3(METRIS_MAX_DEG_JACOBIAN)> ret{};
+    for(int i=0;i<getnnod3(METRIS_MAX_DEG_JACOBIAN);i++){
       ret[i] = i;
     }
     return ret;

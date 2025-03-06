@@ -29,15 +29,19 @@ MetrisParameters::MetrisParameters(){
   hmin = 1.0e-30;
   hmax = 1.0e30;
 
+  anasol_ptr= NULL;
+  ianasol   = -1;
+
   main_in_prefix = false;
 
   adp_niter     = 0;
   adp_opt_niter = 1;
   adp_line_adapt = true;
 
+  // 0 is none, default
   // 3 is offsets followed by smoothing 
   // 4 is offsets then backtrack and stop there 
-  curveType = 3; 
+  curveType = 0; 
 
   opt_unif = false;
 
@@ -166,9 +170,20 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   }
 
   if(opt.count("anamet")){
-    anaMet  = true;
-    ianamet = opt.m["anamet"].template as<int>();
+    setAnalyticalMetric(opt.m["anamet"].template as<int>());
     if(iverb >= 1) printf("Using analytical metric %d \n", ianamet);
+  }
+
+  if(opt.count("anasol")){
+    setAnalyticalSolution(opt.m["anasol"].template as<int>());
+    if(iverb >= 1) printf("Using analytical metric %d \n", ianamet);
+  }
+
+  if(opt.count("intp-pdeg")){
+    intp_pdeg = opt.m["intp-pdeg"].template as<int>();
+  }
+  if(opt.count("intp-pnorm")){
+    intp_pnorm = opt.m["intp-pnorm"].template as<int>();
   }
 
   if(opt.count("sclmet")){
@@ -265,6 +280,16 @@ void MetrisParameters::setAnalyticalMetric(int ianamet){
 void MetrisParameters::setAnalyticalMetric(AnaMetFun anamet_ptr){
   anaMet = true;
   this->anamet_ptr = (anamet_proto) anamet_ptr;
+}
+
+void MetrisParameters::setAnalyticalSolution(int ianasol){
+  anaSol = true;
+  this->ianasol = ianasol;
+}
+
+void MetrisParameters::setAnalyticalSolution(AnaSolFun anasol_ptr){
+  anaSol = true;
+  this->anasol_ptr = (anasol_proto) anasol_ptr;
 }
 
 

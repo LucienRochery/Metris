@@ -24,10 +24,9 @@ struct gen_nodes_degelev{
 
     static_assert((tdim <= 3 && "## gen_nodes_degelev TOPO DIM > 3 NOT IMPLEMENTED \n"));
 
-    constexpr auto entnpps = ENTNPPS(tdim);
     constexpr auto ordent  = ORDELT(tdim);
-    constexpr int npptar = entnpps[tardeg];
-    constexpr int nppsrc = entnpps[mshdeg];
+    constexpr int npptar = getnnode(tdim,tardeg);
+    constexpr int nppsrc = getnnode(tdim,mshdeg);
 
     constexpr auto eval = tdim == 1 ? eval1<gdim,mshdeg> 
                         : tdim == 2 ? eval2<gdim,mshdeg> 
@@ -38,7 +37,7 @@ struct gen_nodes_degelev{
 
     if (msh.getBasis() == FEBasis::Lagrange){
       const intAr2 &ent2poi = msh.ent2poi(tdim);
-      // const int ntmp = tetnpps[tardeg];
+      // const int ntmp = getnnod3(tardeg);
       for(int irnk = 0; irnk < npptar; irnk++){
         for(int i = 0; i < tdim+1 ;i++) {
           bary[i] = ordent[tardeg][irnk][i] / (1.0*tardeg);
@@ -75,7 +74,7 @@ struct gen_nodes_degelev{
         //}
         // -- Multiply by the sum of all degree tardeg - msh.curdeg Bernsteins
         // -- Distribute to a + b with coeff, this is in factor of P_a
-        for(int irnk2 = 0; irnk2<entnpps[tardeg-msh.curdeg];irnk2++){
+        for(int irnk2 = 0; irnk2<getnnode(tdim,tardeg-msh.curdeg);irnk2++){
           int irnk3;
           double coef;
 
@@ -138,7 +137,7 @@ struct gen_uvs_degelev{
 
     static_assert((tdim <= 2 && "gen_uvs_degelev TOPO DIM > 2 NOT IMPLEMENTED"));
 
-    constexpr int npptar = (tdim == 1) ? edgnpps[tardeg] : facnpps[tardeg];
+    constexpr int npptar = getnnode(tdim,tardeg);
 
     double bary[tdim+1];
     for(int irnk = 0; irnk < npptar; irnk++){
@@ -169,12 +168,12 @@ struct gen_met_degelev{
 
     METRIS_ENFORCE_MSG(met.getBasis() == FEBasis::Lagrange, "Add lag2bez if intending to use this with Bézier metric");
 
-    constexpr int npptar = (tdim == 1) ? edgnpps[tardeg]
-                         :((tdim == 2) ? facnpps[tardeg]
-                                       : tetnpps[tardeg]);
-    constexpr int nppsrc = (tdim == 1) ? edgnpps[mshdeg]
-                         :((tdim == 2) ? facnpps[mshdeg]
-                                       : tetnpps[mshdeg]);
+    constexpr int npptar = (tdim == 1) ? getnnod1(tardeg)
+                         :((tdim == 2) ? getnnod2(tardeg)
+                                       : getnnod3(tardeg));
+    constexpr int nppsrc = (tdim == 1) ? getnnod1(mshdeg)
+                         :((tdim == 2) ? getnnod2(mshdeg)
+                                       : getnnod3(mshdeg));
 
     constexpr int nnmet = (gdim*(gdim+1))/2;
 

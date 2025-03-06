@@ -19,8 +19,10 @@ int increase_cavity2D(MeshBase &msh, MshCavity &cav, int ithread);
 
 
 // Increase cavity for Delaunay criterion on ipoin 
+// normal is only necessary if dimension 3 and cavity has faces
 template<class MFT>
-int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int ithread);
+int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, 
+                             int ithread, double *nrmal = NULL);
 
 // Increase cavity to avoid short edges (add pts to collapse)
 // return nprem ++points to collapse

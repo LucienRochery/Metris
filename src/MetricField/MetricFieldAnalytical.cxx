@@ -10,7 +10,7 @@
 #include "../Mesh/MeshMetric.hxx"
 
 #include "../msh_anamet.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/aux_misc.hxx"
 #include "../low_eval.hxx"
 #include "../linalg/utils.hxx"
 #include "../linalg/explogmet.hxx"

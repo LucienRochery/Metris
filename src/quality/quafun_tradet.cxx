@@ -7,12 +7,12 @@
 
 #include "../Mesh/Mesh.hxx"
 #include "../metris_constants.hxx"
-#include "../aux_utils.hxx"
+#include "../utils/aux_misc.hxx"
 
 #include "../linalg/matprods.hxx"
 #include "../linalg/det.hxx"
 
-#include "../aux_pp_inc.hxx"
+#include "../utils/aux_pp_inc.hxx"
 
 namespace Metris{
 

@@ -8,12 +8,15 @@
 
 #include "../types.hxx"
 
+
 namespace Metris{
+  
+class MeshBase;
 
 // Normal is only necessary if gdim == 3 and tdim == 2
 template <int gdim, int tdim>
-bool indelsphere(const double *coop, const double *metl, 
-                 const dblAr2 &coord, const int *ent2pol, const double *nrmal = NULL);
+bool indelsphere(const MeshBase &msh, const double *coop, const double *metl, 
+                 const int *ent2pol);
 
 }//end namespace
 

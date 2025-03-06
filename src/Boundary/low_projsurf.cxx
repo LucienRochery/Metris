@@ -14,8 +14,189 @@
 #include "../aux_EGADSprinterr.hxx"
 #include "../opt_generic.hxx"
 #include "../low_eval.hxx"
+#include "../utils/mprintf.hxx"
+#include "../linalg/det.hxx"
 
 namespace Metris{
+
+
+
+
+/* -----------------------------------------------------------------
+   FUNCTION1: P1 edge proj, no CAD
+   -----------------------------------------------------------------*/
+
+// Note unlike inverse evaluation, we are projecting onto the element here
+template <int ideg>
+int projptfac(MeshBase &msh, 
+              const double*__restrict__ coop, int iface, 
+              double*__restrict__ bary,
+              double*__restrict__ coopr){
+  METRIS_ASSERT(msh.idim == 3);
+  GETVDEPTH(msh);
+
+  constexpr int gdim = 3;
+
+  int ierro = 0;
+
+  int ipoi1 = msh.fac2poi(iface,0);
+  int ipoi2 = msh.fac2poi(iface,1);
+  int ipoi3 = msh.fac2poi(iface,2);
+
+  if constexpr(ideg == 1){
+    // Compute barycentrics using normal norms
+    // First project coop in triangle plane
+
+    double nrmal[3];
+    getnorfacP1(msh.fac2poi[iface],msh.coord,nrmal);
+    double nrm123 = getnrml2<3>(nrmal);
+    if(nrm123 < Constants::vecNrmTol){
+      #ifndef NDEBUG
+      METRIS_THROW_MSG(GeomExcept(), "Degenerate face passed to projptfac");
+      #endif
+      return 1;
+    }
+
+    // Project coop in triangle's plane
+    for(int ii = 0; ii < 3; ii++)
+      coopr[ii] = coop[ii] - msh.coord(ipoi1,ii);
+    double dtprd = getprdl2<3>(coopr,nrmal) / nrm123; // note nrm123 is ^2
+    for(int ii = 0; ii < 3; ii++)
+      coopr[ii] = coop[ii] - nrmal[ii]*dtprd;
+
+    // Compute normal signed norms of P1, P2, P, etc. 
+    // signed norm = prod with face normal. (they are all colinear)
+    double nrmal1[3];
+    // Let n' be normal of subtriangle, n the unnormalized of whole
+    // Then (n',n/||n||) is the "norm" of n'
+    // We then get the bary by computing (n',n/||n||) / ||n||, ratio of sub to whole
+    // area. 
+    // XP2P3
+    vecprod_vdif(msh.coord[ipoi2],coopr,
+                 msh.coord[ipoi3],coopr,nrmal1);
+    bary[0] = getprdl2<3>(nrmal1,nrmal) / nrm123;
+    // P1XP3
+    vecprod_vdif(coopr           ,msh.coord[ipoi1],
+                 msh.coord[ipoi3],msh.coord[ipoi1],nrmal1);
+    bary[1] = getprdl2<3>(nrmal1,nrmal) / nrm123;
+    // P1P2X
+    vecprod_vdif(msh.coord[ipoi2],msh.coord[ipoi1],
+                 coopr           ,msh.coord[ipoi1],nrmal1);
+    bary[2] = getprdl2<3>(nrmal1,nrmal) / nrm123;
+
+    METRIS_ASSERT(abs(bary[0] + bary[1] + bary[2] - 1) < 1.0e-14);
+
+    ierro = bary[0] < -Constants::baryTol || bary[0] > 1 + Constants::baryTol
+          ||bary[1] < -Constants::baryTol || bary[1] > 1 + Constants::baryTol
+          ||bary[2] < -Constants::baryTol || bary[2] > 1 + Constants::baryTol;
+
+    #if 0
+    if(ierro != 0){
+      // Truncate negative barys to stay on element. If one neg, this preserves
+      // ratio of non zero. If two neg, projects on vertex. 
+      double sum = 0;
+      for(int ii = 0; ii < 3; ii++){
+        bary[ii] = MAX(bary[ii],0);
+        sum += bary[ii];
+      }
+      METRIS_ASSERT(sum >= 0.99); // not a necessity, but something that should be true
+      for(int ii = 0; ii < 3; ii++) bary[ii] /= sum;
+
+      for(int ii = 0; ii < 3; ii++){
+        coopr[ii] = bary[0]*msh.coord(ipoi1,ii)
+                  + bary[1]*msh.coord(ipoi2,ii)
+                  + bary[2]*msh.coord(ipoi3,ii);
+      }
+    }
+    #endif
+
+  }else{ // if ideg > 1
+
+    METRIS_THROW_MSG(TODOExcept(), "ideg > 1 projptfac implement")
+
+    double tol0 = geterrl2<gdim>(msh.coord[ipoi1],msh.coord[ipoi2]);
+    tol0 = sqrt(tol0);
+    newton_drivertype_args<1> args;
+    args.stpmin = 1.0e-12;
+    args.iprt = msh.param->iverb - 1;
+    int iflag = 0, ihess;
+    double xcur, fcur, gcur, hcur;
+
+    double d1F[gdim],d2F[gdim];
+
+    xcur = 0.5;
+    while(true){
+
+      ierro = optim_newton_drivertype<1>(args, &xcur, &fcur, &gcur, &hcur, &iflag, &ihess);
+      
+      CPRINTF1(" - newton ret ierro %d iflag %d xcur %f \n",ierro,iflag,xcur);
+
+      if(ierro > 0){
+        CPRINTF1(" # optim_newton_drivertype error %d\n",ierro);
+        return ierro;
+      }
+      if(iflag <= 0) {
+        CPRINTF1(" - iflag = 0 termination\n");
+        break;
+      }
+
+      bary[0] = xcur;
+      bary[1] = 1 - xcur;
+
+
+      DifVar d2flag = ihess > 0 ? DifVar::Bary : DifVar::None;
+      eval1<gdim, ideg>(msh.coord, msh.fac2poi[iface], msh.getBasis(), DifVar::Bary, d2flag,
+                        bary, coopr, d1F, d2F);
+      fcur = geterrl2<gdim>(coopr,coop) / 2;
+      gcur = getprdl2<gdim>(d1F, coop)  
+           - getprdl2<gdim>(d1F, coopr);
+      if(abs(gcur) < tol0 * Constants::projedgTol){
+        CPRINTF1(" - grad = %15.7e < %15.7e = tol\n",
+                              abs(gcur), tol0*Constants::projedgTol);
+        return 0;
+      }
+      if(ihess > 0) hcur = getprdl2<gdim>(d2F, coopr)
+                         - getprdl2<gdim>(d2F, coop)
+                         + getnrml2<gdim>(d1F);
+      CPRINTF1(" - projptfac bary %f dist = %15.7e gcur %f \n",xcur,fcur,gcur);
+
+    }
+
+    bary[0] = args.xopt[0];
+    bary[1] = 1 - args.xopt[0];
+
+    // Projected is outside
+    if(bary[0] <  - Constants::baryTol){
+      for(int ii = 0; ii < gdim; ii++) coopr[ii] = msh.coord(ipoi2,ii);
+      return 0;
+    }
+    if(bary[0] > 1 + Constants::baryTol){
+      for(int ii = 0; ii < gdim; ii++) coopr[ii] = msh.coord(ipoi1,ii);
+      return 0;
+    }
+
+    eval1<gdim, ideg>(msh.coord, msh.fac2poi[iface], msh.getBasis(), DifVar::None, DifVar::None,
+                      bary, coopr, NULL, NULL);
+  }
+
+  return ierro;
+}
+#define BOOST_PP_LOCAL_MACRO(n)\
+template \
+int projptfac<n>(MeshBase &msh, const double*__restrict__ coop, \
+                 int iface, \
+                 double*__restrict__ bary,\
+                 double*__restrict__ coopr);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+
+
+
+
+
+
+
 
 /* -----------------------------------------------------------------
    FUNCTION1: P1 edge proj, no CAD
