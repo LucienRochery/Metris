@@ -28,14 +28,15 @@ if(GITURL MATCHES "github.com")
   set(DO_UNITTESTS OFF)
   set(CODEGEN_FILES ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.02.cxx
-                    ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.02_d.cxx
+                    ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.02_d_coord.cxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.02_d_pt.cxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_ccoef3.02.cxx
-                    ${PROJECT_SOURCE_DIR}/src/codegen_ccoef3.02_d.cxx
+                    ${PROJECT_SOURCE_DIR}/src/codegen_ccoef3.02_d_coord.cxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_ccoef_d.hxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_lag2bez.cxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_lag2bez.hxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_lagrange.hxx)
+
   foreach(f ${CODEGEN_FILES})
     if(NOT EXISTS "${f}")
       message(FATAL_ERROR "Codegen file ${f} does not exist")
