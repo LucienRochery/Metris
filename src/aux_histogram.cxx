@@ -19,7 +19,7 @@ namespace Metris{
 
 void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
                      dblAr1 &bounds, std::string symb, std::string name){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
   if(!DOPRINTS1()) return;
 
   int nval = values.get_n();
@@ -72,6 +72,10 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
   int imin = -1;
   int ival = 0;
   for(double val : values){
+    if(std::isnan(val)){
+      printf("## NAN VALUES PROVIDED TO HISTO!\n");
+      continue;
+    }
     if(val < vmin){
       vmin = val;
       imin = ival;
@@ -95,6 +99,7 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
   }
 
   if(!nogeom) vavgg = exp(vavgg / nval);
+  METRIS_ASSERT(nval != 0);
   vavgl = vavgl / nval;
 
   int maxbuckt = 0;

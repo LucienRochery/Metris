@@ -6,6 +6,7 @@
 #include "msh_intrinsicmet.hxx"
 
 ////#include "msh_metric.hxx"
+#include "low_normal.hxx"
 #include "low_geo.hxx"
 #include "linalg/explogmet.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
@@ -111,8 +112,6 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
 
 	if(ibas0 == FEBasis::Bezier) msh.met.setBasis(FEBasis::Bezier);
 	
-	msh.met.setSpace(MetSpace::Exp);
-
 
 	StopParallel(LibIdx);
 }

@@ -12,6 +12,7 @@
 #include "../utils/aux_misc.hxx"
 #include "../linalg/det.hxx"
 #include "../low_topo.hxx"
+#include "../low_normal.hxx"
 #include "../low_geo.hxx"
 #include "../utils/mprintf.hxx"
 #include "../utils/aux_timer.hxx"
@@ -26,288 +27,6 @@
 namespace Metris{
 
 
-// Very rudimentary routine to be enhanced with a kd-tree in the future 
-// Localize points, interpolate metric and store seed 
-// Needs two slots in tag arrays 
-// if ipoi0 > 0, it should be the number of P1 points !
-template<class MetricFieldType, int bdeg>
-void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
-  INCVDEPTH(msh);
-	if(bak.getBasis() == FEBasis::Lagrange && bak.curdeg > 1) 
-			METRIS_THROW_MSG(WArgExcept(), "Back should be in Bézier format!");
-
-  METRIS_ENFORCE_MSG(msh.idim == msh.get_tdim(), "Mesh is surface or line in plane.");
-
-  METRIS_ENFORCE(METRIS_MAXTAGS >= 2);
-
-  msh.setBasis(FEBasis::Lagrange);
-
-  int ierro;
-
-	bak.met.setSpace(MetSpace::Log);
-	bak.setBasis(FEBasis::Bezier);
-
-  MetSpace ispac0 = msh.met.getSpace();
-  FEBasis ibas0 = msh.met.getBasis();
-
-  msh.met.forceSpaceFlag(MetSpace::Log);
-  msh.met.forceBasisFlag(FEBasis::Lagrange);
-
-  if(ispac0 == MetSpace::Exp){
-    for(int ipoin = 0; ipoin < ipoi0; ipoin++){
-      if(msh.idim == 2){
-        getlogmet_inp<2,double>(msh.met[ipoin]);
-      }else{
-        getlogmet_inp<3,double>(msh.met[ipoin]);
-      }
-    }
-  }
-  if(ibas0 == FEBasis::Bezier && ipoi0 > 0){
-    if(msh.idim == 2){
-      setFieldLagrange<1,3>(msh,msh.met.rfld);
-    }else{
-      setFieldLagrange<1,6>(msh,msh.met.rfld);
-    }
-  }
-
-
-
-	msh.tag[0]++;
-
-	int gdim  = msh.idim;
-
-  // Will increase in size if needed 
-  intAr1 lerro(100);
-  lerro.set_n(0); 
-
-  double t0 = get_wall_time();
-  for(int ipoin = ipoi0; ipoin < msh.npoin; ipoin++){
-    INCVDEPTH(msh);
-    if(msh.poi2ent(ipoin,0) < 0) continue;
-
-    int pdim = msh.getpoitdim(ipoin);
-    // Corner not an element, start at 1 if lower. 
-    pdim = MAX(pdim, 1);
-
-    // Localize in elements of same dimension 
-    const int tdim = pdim;
-
-    if(pdim == 0) continue;
-
-
-    int iref = -1;
-    int iseed = -1;
-    double algnd[3];
-
-    // Corner is simply a copy from corresponding corned in backmesh
-    if(pdim == 0){
-      MPRINTF("## WATCH OUT THIS IS A HACK Assuming %d front = %d back\n",
-               ipoin,ipoin);
-      int nnmet = (msh.idim * (msh.idim + 1)) / 2;
-      for(int ii = 0; ii < nnmet; ii++) msh.met(ipoin,ii) = bak.met(ipoin,ii);
-      continue;
-    }
-
-    if(pdim < msh.idim){
-      //if(tdim == 2){
-      //  METRIS_THROW_MSG(TODOExcept(), 
-      //                   "Implement get face dir interpFrontBack in 3D")
-      //}
-
-      int ibpoi = msh.poi2bpo[ipoin];
-      METRIS_ASSERT(ibpoi >= 0);
-      for(;ibpoi != -1; ibpoi = msh.bpo2ibi(ibpoi,3)){
-        int itype = msh.bpo2ibi(ibpoi,1);
-        if(itype == tdim){
-          iseed = msh.bpo2ibi(ibpoi,2);
-          iref  = tdim == 1 ? msh.edg2ref[iseed]
-                            : msh.fac2ref[iseed];
-
-          if(msh.CAD()){
-            // Also compute the tangent at
-            double result[18];
-            ego obj = msh.CAD.cad2edg[iref];
-            ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
-            METRIS_ENFORCE(ierro == 0);
-            if(tdim == 1){
-              for(int ii = 0; ii < msh.idim; ii++) algnd[ii] = result[3+ii];
-            }else{
-              vecprod(&result[3],&result[6],algnd);
-              if(normalize_vec<3>(algnd)){
-                CPRINTF1("# ZERO NORMAL IN interpMetBack")
-                iseed = -1;
-                iref = -1;
-                continue;
-              }
-            }
-          }else{
-            if(tdim == 1){
-              int ipoi1 = msh.edg2poi(iseed,0);
-              int ipoi2 = msh.edg2poi(iseed,1);
-              for(int ii = 0; ii < msh.idim; ii++)
-                algnd[ii] = msh.coord(ipoi1,ii) - msh.coord(ipoi2,ii);
-            }else{
-              getnorfacP1(msh.fac2poi[iseed],msh.coord,algnd);
-            }
-          }
-        }
-      }
-      METRIS_ASSERT(iref != -1);
-      METRIS_ASSERT(iseed != -1);
-
-    }else{
-      // Get seed, ref
-      iseed = getpoifac(msh,ipoin);
-      METRIS_ASSERT(iseed != -1);
-      iref = msh.fac2ref[iseed];
-      METRIS_ASSERT(iref != -1);
-    }
-
-
-    //if(msh.CAD()){
-      ierro = msh.interpMetBack(ipoin, tdim, iseed, iref, algnd);
-    //}else{
-    //  ierro = msh.interpMetBack(ipoin, tdim, iseed, iref, NULL);
-    //}
-    if(ierro != 0){
-      printf("## interpMetBack failed ierro = %d\n",ierro);
-      printf("Failed to find ipoin %d iseed %d tdim %d iref %d pdim %d \n",
-             ipoin,iseed,tdim,iref,pdim);
-      printf("ibpoi %d \n",msh.poi2bpo[ipoin]);
-      for(int ii = 0; ii < 3; ii++){
-        printf("iseed vertex %d \n",msh.fac2poi(iseed,ii));
-        printf("poi2bak = %d \n",msh.poi2bak(msh.fac2poi(iseed,ii),1));
-      }
-      writeMesh("interpMetDebug", msh);
-      #ifndef NDEBUG
-      msh.param->iverb = 20;
-      printf("Try to localize coop = ");
-      dblAr1(msh.idim,msh.coord[ipoin]).print();
-
-      int ipdbg = msh.bak->newpoitopo(-1,-1);
-      msh.bak->newbpotopo(ipdbg,0,ipdbg);
-      for(int ii = 0; ii < msh.idim; ii++) 
-        msh.bak->coord(ipdbg,ii) = msh.coord(ipoin,ii);
-      writeMesh("interpMetDebug.back",*(msh.bak));
-      ierro = msh.interpMetBack(ipoin, tdim, iseed, iref, algnd);
-      #endif
-
-      METRIS_THROW(TopoExcept());
-    }
-
-
-  } // for int ipoin
-  double t1 = get_wall_time();
-  CPRINTF1("-- Interp Back -> Front time %f pt/s %d nerror %d \n",t1-t0,
-                                        (int)(msh.npoin/(t1-t0)),lerro.get_n());
-
-  if(lerro.get_n() == 0) return;
-
-  METRIS_THROW_MSG(TODOExcept(), "Error handling unchanged since poi2bak 2D");
-  int tdim  = gdim; 
-
-  intAr1 lball(100);
-  int nnode = msh.nnode(tdim);
-  intAr2 &ent2poi = msh.ent2poi(tdim);
-  intAr2 &bak_ent2tag = bak.ent2tag(tdim);
-  int nloop = 0;
-  int nerro = 0;
-  int nfix = 0;
-  do{
-    if(nloop++ > 10) METRIS_THROW(GeomExcept()); 
-
-    nfix  = 0;
-    nerro = 0;
-    for(int ipoin : lerro){
-      INCVDEPTH(msh);
-      // Fixed previously 
-      if(msh.poi2tag(0,ipoin) < msh.tag[0]) continue;
-      // get ball and try using neighbours 
-      int ientt = getpoient(msh,ipoin,tdim); 
-      int iopen;
-      bool imani;
-      if(tdim == 2){
-        intAr1 dum;
-        ierro = ball2(msh,ipoin,ientt,lball,dum,&iopen,&imani,1);
-      }else{
-        ierro = ball3(msh,ipoin,ientt,lball,&iopen,1);
-      }
-      METRIS_ASSERT(ierro == 0);
-
-      bak.tag[0]++;
-      for(int iebal : lball){
-        INCVDEPTH(msh);
-        for(int ii = 0 ;ii < nnode; ii++){
-          int ipoi2 = ent2poi(iebal,ii);
-          // These are the points that have failed 
-          if(msh.poi2tag(0,ipoi2) >= msh.tag[0]) continue;
-
-          int ieleg = msh.poi2bak(ipoi2,tdim-1);
-          // Skip any seeds that have been tried 
-          if(bak_ent2tag(0,ieleg) >= bak.tag[0]) continue;
-
-          double bary[4], coopr[3];
-          for(int ii = 0; ii < tdim + 1; ii++)  bary[ii] = 1.0 / (tdim + 1);
-          if(tdim == 2){
-            // dummy tdim 
-            METRIS_THROW_MSG(TODOExcept(), 
-              "Error handling unchanged since poi2bak 2D");
-            ierro = locMesh<2,2,bdeg>(bak,&ieleg,msh.coord[ipoin],
-                                      msh.get_tdim(),NULL,-1,NULL,
-                                      coopr,bary,1.0e-6,0,true);
-          }else{
-            // dummy tdim 
-            METRIS_THROW_MSG(TODOExcept(), 
-              "Error handling unchanged since poi2bak 2D");
-            ierro = locMesh<3,2,bdeg>(bak,&ieleg,msh.coord[ipoin],
-                                      msh.get_tdim(),NULL,-1,NULL,
-                                      coopr,bary,1.0e-6,0,true);
-          }
-
-          if(ierro == 0){
-            msh.poi2bak(ipoin,tdim-1) = ieleg;
-            nfix++;
-            msh.poi2tag(0,ipoin)--; // untag as invalid, could help a neighbour 
-            int *ent2pol = tdim == 2 ? bak.fac2poi[ieleg] : bak.tet2poi[ieleg];
-            bak.met.getMetBary(AsDeg::Pk,
-                               DifVar::None,MetSpace::Log,
-                               ent2pol,tdim,bary,msh.met[ipoin],NULL);
-            goto nxtpoi;
-          }
-        }
-      }
-
-      nerro++;
-
-      nxtpoi:
-      continue;
-
-    }
-
-    double t2 = get_wall_time();
-    printf("-- Interp Back -> Front phase 2 time %f nfix %d nerror %d \n",t2-t1,
-      nfix, nerro);
-  }while(nerro > 0 && nfix > 0);
-
-  if(nerro == 0) return;
-
-  printf("## ERROR EXIT DUMP ERROR POINTS \n");
-  int ii = 0;
-  for(int ipoin : lerro){
-    if(msh.poi2tag(0,ipoin) < msh.tag[0]) continue;
-    printf("%d : ipoin = %d \n",ii++,ipoin);
-  }
-}
-
-#define BOOST_PP_LOCAL_MACRO(n)\
-template void interpFrontBack<MetricFieldAnalytical, n >(\
-Mesh<MetricFieldAnalytical> &msh, MeshBack &bak, int ipoi0);\
-template void interpFrontBack<MetricFieldFE        , n >(\
-Mesh<MetricFieldFE        > &msh, MeshBack &bak, int ipoi0);
-#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
-#include BOOST_PP_LOCAL_ITERATE()
-
-
 
 
 template <int gdim, int tdim, int ideg>
@@ -316,7 +35,7 @@ int locMesh(MeshBase &msh, int *ientt,
            int iref, const double* algnd_, 
 	         double* coopr, double* bary, 
 	         double tol, int ithrd, bool iexpensive){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
   METRIS_ASSERT(pdim > 0);
   METRIS_ASSERT(pdim == msh.get_tdim() || uvsrf != NULL);
@@ -325,7 +44,11 @@ int locMesh(MeshBase &msh, int *ientt,
 
   // Instead of barycentrics, consider scalar product of displacement 
   // with opposite edge or face and take minimum as the best nei crit. 
-  const bool dir_nei_criterion = true;
+  static int nwarnprt = 0;
+  const bool dir_nei_criterion = tdim != 3;
+  if(!dir_nei_criterion && nwarnprt++ < 10 && msh.param->iverb != 0) 
+    MPRINTF("## WARNING dir_nei_criterion disabled\n");
+
 
   //printf("Debug set iptr in locMesh = 4 inp guess = %d \n",*ientt);
   //iverb = 4;
@@ -446,10 +169,9 @@ int locMesh(MeshBase &msh, int *ientt,
     ifnd = 0;
 	  msh.tag[ithrd]++;
     maxtag = MAX(maxtag,msh.tag[ithrd]);
-	  double tol1;
     int ntry = 0;
 	  while(!ifnd){
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
       ntry++;
       if(ntry > msh.nentt(tdim)){
         MPRINTF("ntry = %d nentt %d \n",ntry, msh.nentt(tdim));
@@ -458,11 +180,10 @@ int locMesh(MeshBase &msh, int *ientt,
       while(lnext.n1_ > 0){
         *ientt = lnext.pop(); 
       METRIS_ASSERT(*ientt >= 0 && *ientt < nentt);
-        METRIS_ASSERT(!isdeadent(*ientt,ent2poi));
+      METRIS_ASSERT(!isdeadent(*ientt,ent2poi));
       ent2tag(ithrd,*ientt) = msh.tag[ithrd];
       niter++;
 
-      tol1 = getepsent<gdim>(msh, tdim, *ientt);
 
         if constexpr(ideg > 1){
           for(int ii = 0; ii < gdim + 1 ; ii++) bary[ii] = 1.0 / (gdim + 1);
@@ -471,7 +192,15 @@ int locMesh(MeshBase &msh, int *ientt,
 
         if(gdim == tdim){
 
-          ierro = inveval<gdim,ideg>(msh,*ientt,coop,coopr,bary,tolcur*tol1);
+          {
+          INCVDEPTH(msh.param);
+          ierro = inveval<gdim,ideg>(msh,*ientt,coop,coopr,bary,tolcur);
+          }
+          CPRINTF2(" - called inveval dim %d deg %d ientt %d tol %e got bary = ",
+                   gdim,ideg,*ientt,tolcur);
+          if(DOPRINTS2()){
+            dblAr1(gdim+1,bary).print();
+          }
 
         }else if(tdim == 2){
 
@@ -648,24 +377,6 @@ int locMesh(MeshBase &msh, int *ientt,
         double bmax = -1.0e30;
         int    imax = -1;
 
-        // If using direction crit compute P1 centroid 
-        if(dir_nei_criterion && tdim > 1){
-          double coom[gdim] = {}; // value-init to 0
-
-          for(int ii = 0; ii < tdim + 1; ii++){
-            for(int jj = 0; jj < gdim; jj++){
-              coom[jj] += msh.coord(ent2poi(*ientt,ii), jj) / (tdim + 1);
-              edg2[jj] = coom[jj] - coopr[jj];
-            }
-          }
-
-          if(DOPRINTS1()){
-            printf(" dbg edg2 nrm %e = ",getnrml2<gdim>(edg2));
-            dblAr1(gdim,edg2).print();
-          }
-          METRIS_ENFORCE(!normalize_vec<gdim>(edg2));
-        }
-
         if(iexpensive){
           int idx[4] = {0, 1, 2, 3};
           //sortupto8_dec(bary,idx,tdim+1);
@@ -765,6 +476,27 @@ int locMesh(MeshBase &msh, int *ientt,
 
             if(dir_nei_criterion && tdim > 1){
 
+
+              // If using direction crit compute P1 centroid 
+              double coom[gdim] = {}; // value-init to 0
+
+              for(int ii = 0; ii < tdim + 1; ii++){
+                for(int jj = 0; jj < gdim; jj++){
+                  coom[jj] += msh.coord(ent2poi(*ientt,ii), jj) / (tdim + 1);
+                }
+              }
+
+              for(int jj = 0; jj < gdim; jj++)
+                edg2[jj] = coom[jj] - coopr[jj];
+
+
+              if(DOPRINTS1()){
+                CPRINTF1(" - dbg edg2 nrm %e = ",getnrml2<gdim>(edg2));
+                dblAr1(gdim,edg2).print();
+              }
+              METRIS_ENFORCE(!normalize_vec<gdim>(edg2));
+
+
               if(tdim == 2){
                 int ipoi1 = msh.fac2poi(*ientt, lnoed2[ii][0]);
                 int ipoi2 = msh.fac2poi(*ientt, lnoed2[ii][1]);
@@ -789,6 +521,7 @@ int locMesh(MeshBase &msh, int *ientt,
 
 
               }else if(tdim == 3){
+
                 METRIS_THROW_MSG(TODOExcept(),"Implement getnorface and use that in locMesh");
               }
 

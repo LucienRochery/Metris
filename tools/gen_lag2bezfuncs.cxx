@@ -261,7 +261,7 @@ void gen_lag2bez(std::ostringstream &str){
     
         if(szfld > 1){
           str << "    rfld1[lfld["<<i_s<<"]][i] = "<<p<<"*rfld0[lfld["<<j_s<<"]][i]/"<<q;
-          for(int j = 1; j < pcoefs[i].size(); j++){
+          for(int j = 1; j < (int) pcoefs[i].size(); j++){
             #ifndef USE_DBL_COEFS
               p = pcoefs[i][j];
               q = qcoefs[i][j];
@@ -274,7 +274,7 @@ void gen_lag2bez(std::ostringstream &str){
           }
         }else{
           str << "  rfld1[lfld["<<i_s<<"]][0] = "<<p<<"*rfld0[lfld["<<j_s<<"]][0]/"<<q;
-          for(int j = 1; j < pcoefs[i].size(); j++){
+          for(int j = 1; j < (int) pcoefs[i].size(); j++){
             #ifndef USE_DBL_COEFS
               p = pcoefs[i][j];
               q = qcoefs[i][j];

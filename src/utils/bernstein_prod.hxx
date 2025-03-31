@@ -45,7 +45,6 @@ void prod_bernstein(const dblAr2 &coef_inp1, const dblAr2 &coef_inp2, dblAr2 &co
 
   int ndiff = dcoef_inp1.size();
 
-  constexpr int nhess = (gdim*(gdim+1))/2;
   constexpr int nnod1 = getnnode(tdim,ideg1);
   constexpr int nnod2 = getnnode(tdim,ideg2);
   constexpr int nnods = getnnode(tdim,ideg1+ideg2);

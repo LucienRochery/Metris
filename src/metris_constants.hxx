@@ -120,7 +120,7 @@ namespace Constants{
   const double baryTol = 1.0e-9;
 
   // Norm below which we refuse to divide by the square root. 
-  const double vecNrmTol = 1.0e-16;
+  const double vecNrmTol = 1.0e-31;
 
   // Norm of distance gradient before stop
   const double projedgTol = 1.0e-12;

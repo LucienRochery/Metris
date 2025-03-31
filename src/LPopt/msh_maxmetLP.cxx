@@ -276,14 +276,8 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
       // Metric Reinterpolation
       for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
         int irnk1 = idx_point[ipoin];
-        if(irnk1<0) continue;
-        int iseed;
-        if(gdim == 2){
-          iseed = getpoifac(msh, ipoin);
-        }else{
-          iseed = getpoitet(msh, ipoin);
-        }
-        msh.interpMetBack(ipoin, msh.idim, iseed, -1, NULL);
+        if(irnk1 < 0) continue;
+        msh.interpMetBack(ipoin);
       }
 
       solver.updateCoord(msh, idx_point, icoor, qupdt);

@@ -82,6 +82,11 @@ struct MetrisParameters{
   // 5 interpolation error minimization
   int curveType;
 
+  // Type 0 is metric-based
+  // Type 1 is interpolation error, requires -anasol be passed, possibly also
+  // intp_pdeg and intp_pnorm. 
+  int smoo_type;
+
 
 
   

@@ -21,7 +21,7 @@
 #include "../utils/mprintf.hxx"
 
 #include "../SolutionField/SolutionField.hxx"
-#include "../Localization/msh_localization.hxx"
+#include "../Localization/msh_interpFrontBack.hxx"
 
 #include "../io_libmeshb.hxx"
 
@@ -47,15 +47,15 @@ int MetrisRunner::degElevate(){
 
 template<class MFT>
 void MetrisRunner::degElevate0(){
-  GETVDEPTH((*this));
+  GETVDEPTH(this->param);
 
   int ithread = 0;
   bool useOptim = param_.curveType == 3;
 
   Mesh<MFT> &msh = *( (Mesh<MFT>*) msh_g );
 
-  if(param_.inpBack) METRIS_THROW_MSG(TODOExcept(), 
-    "Degree elevation with input back not implemented");
+  //if(param_.inpBack) METRIS_THROW_MSG(TODOExcept(), 
+  //  "Degree elevation with input back not implemented");
   
   double t1 = get_wall_time(); 
   
@@ -107,7 +107,7 @@ void MetrisRunner::degElevate0(){
       int ielem = getpoitet(msh,ipoin);
       if(ielem < 0 || ielem >= msh.nelem) METRIS_THROW_MSG(TopoExcept(),
         "Failed to find back element for (HO) ipoin = "<<ipoin);
-      msh.poi2bak(ipoin,3-1) = ielem;
+      msh.poi2bakipoin,3-1) = ielem;
     }
   }
   if(bak.nface > 0){
@@ -420,7 +420,7 @@ void MetrisRunner::writeOutputs(){
 
 template<class MFT>
 void MetrisRunner::writeOutputs0(){
-  GETVDEPTH((*this));
+  GETVDEPTH(this->param);
 
   Mesh<MFT> &msh = static_cast<Mesh<MFT>&>(*msh_g);
 

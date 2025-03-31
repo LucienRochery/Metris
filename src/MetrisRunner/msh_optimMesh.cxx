@@ -17,11 +17,13 @@
 #include "../msh_lenedg.hxx"
 #include "../utils/mprintf.hxx"
 
+#include "../SolutionField/SolutionField.hxx"
+#include "../SolutionField/minInterpError.hxx"
+
 namespace Metris{
 
 
 double MetrisRunner::optimMesh(){
-  if(param_.opt_niter == 0) return 0;
   double stat = 0;
   CT_FOR0_INC(2,3,gdim){if(gdim == msh_g->idim){
     CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh_g->curdeg == ideg){
@@ -39,17 +41,33 @@ double MetrisRunner::optimMesh(){
 
 template<class MFT, int gdim, int ideg>
 double MetrisRunner::optimMesh0(){
-  GETVDEPTH((*this));
+  GETVDEPTH(this->param);
   Mesh<MFT> &msh = static_cast<Mesh<MFT>&>(*msh_g);
+  CPRINTF2("-- START optimMesh\n");
+
+
+  if(param->anaSol && param->smoo_type == 1){
+    CPRINTF1("-- Analytical solution provided\n");
+    if(param->usrTarDeg > msh.curdeg){
+      CPRINTF1("-> skip until after degree elevation %d -> %d\n",
+               msh.curdeg,param->usrTarDeg);
+      return 0;
+    }
+    SolutionFieldAnalytical sol(msh);
+    sol.setAnalyticalSolution(param->ianasol);
+    // DIRECT
+    minimizeInterpErrglo(msh, sol, param->intp_pdeg, param->intp_pnorm, 1, 0, 1);
+    // Then Newton
+    minimizeInterpErrglo(msh, sol, param->intp_pdeg, param->intp_pnorm, 0, 0, 1);
+    return 0;
+  }
+
+
   if(param_.opt_niter == 0) return 0;
 
   double t01 = get_wall_time();
 
-  if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), 
-                                   "Implement tetras in cavity and optimMesh0");
 
-
-  CPRINTF2("-- START optimMesh\n");
 
   // the higher this is, the more permissive 
   //const int qpower = -1;
@@ -63,13 +81,13 @@ double MetrisRunner::optimMesh0(){
   bool iinva;
 
   //#ifndef NDEBUG
-  //check_topo(msh);
+  //check_topo(msh,0);
   //#endif
 
   const int miter = param_.opt_niter;
   swapOptions swapOpt(*(msh.param));
 
-  if(msh.param->dbgfull) check_topo(msh);
+  if(msh.param->dbgfull) check_topo(msh,0);
 
   intAr2 ilned;
   dblAr1 rlned;
@@ -92,7 +110,7 @@ double MetrisRunner::optimMesh0(){
 
   double stat0 = 1;
   for(int niter = 1; niter <= miter && stat0 >= 0.01; niter++){
-    INCVDEPTH(msh);
+    INCVDEPTH(msh.param);
     stat0 = 0;
 
     //qmax_suf = qavg * MAX(10 / (niter * 1.0), 1.0);
@@ -135,7 +153,7 @@ double MetrisRunner::optimMesh0(){
     //  CPRINTF1("           avg = %15.7e \n",qavg);
     //}
 
-    //if(msh.param->dbgfull) check_topo(msh);
+    //if(msh.param->dbgfull) check_topo(msh,0);
 
 
     // 4. Smoothing (iterative)
@@ -157,7 +175,7 @@ double MetrisRunner::optimMesh0(){
         CPRINTF1("           max = %15.7e \n",qmax);
         CPRINTF1("           avg = %15.7e \n",qavg);
       }
-      if(msh.param->dbgfull) check_topo(msh);
+      if(msh.param->dbgfull) check_topo(msh,0);
 
     }else{
       CPRINTF1("## Smoothing disabled in case gdim = %d tdim = %d \n", msh.idim, msh.get_tdim());
@@ -202,7 +220,7 @@ double MetrisRunner::optimMesh0(){
         CPRINTF1("------------------------------------------------------------\n");
       }
 
-      if(msh.param->dbgfull) check_topo(msh);
+      if(msh.param->dbgfull) check_topo(msh,0);
 
     }else{
       CPRINTF1("## reinsertFlat disabled in case gdim = %d tdim = %d \n", msh.idim, msh.get_tdim());
@@ -214,12 +232,12 @@ double MetrisRunner::optimMesh0(){
     // 2. Swaps
     t0 = get_wall_time();
     int nswap;
-    stat  = swap2D<MFT,gdim,ideg>(msh, swapOpt, &nswap);
+    stat  = swap2D<MFT,gdim,ideg>(msh, swapOpt, &nswap, 0, 1);
     stat0 = MAX(stat0,stat);
     t1 = get_wall_time();
-    if(msh.param->dbgfull) check_topo(msh);
+    if(msh.param->dbgfull) check_topo(msh,0);
     msh.cleanup();
-    if(msh.param->dbgfull) check_topo(msh);
+    if(msh.param->dbgfull) check_topo(msh,0);
     if(DOPRINTS1()){
       if(DOPRINTS2()) writeMesh("v2_swap_opt"+ std::to_string(niter)+".meshb",msh);
       if(DOPRINTS2()) msh.met.writeMetricFile("v2_swap_opt"+ std::to_string(niter)+".solb");

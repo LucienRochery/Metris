@@ -52,11 +52,8 @@ public:
 	MetricFieldFE &operator=(const MetricFieldFE& inp);
 
 	MetSpace getSpace()const{return ispace;}
-	void setSpace(MetSpace ispacn){
-		METRIS_ASSERT(ispacn != MetSpace::Undefined);
-		if(ispacn == MetSpace::Log) setLog();
-		else												setExp();
-	}
+  // Never set iforce to true
+	void setSpace(MetSpace ispacn, bool iforce = false);
 	
   void forceSpaceFlag(MetSpace newsp){ispace = newsp;}
 	
@@ -118,7 +115,7 @@ public:
                   int *ieleg, 
 		              const double* __restrict__ coop, 
 		              double*__restrict__ metl, 
-                  double*__restrict__ dmet, int ithread = 0) ;
+                  double*__restrict__ dmet, int ithread) ;
   #endif
 
 	void getMetFullinfo(AsDeg asdmet,
@@ -168,7 +165,7 @@ private:
 	template<int gdim, int ideg>
 	void getMetPhys0(DifVar idiff, MetSpace tarspac,  int *ieleg, 
 		               const double*__restrict__ coop,
-		                     double*__restrict__ metl, double*__restrict__ dmet, int ithread = 0) ;
+		                     double*__restrict__ metl, double*__restrict__ dmet) ;
 };
 
 
@@ -206,7 +203,7 @@ public:
   void getMetPhys(DifVar idiff, MetSpace tarspac,
                   const double* __restrict__ coop, 
                   double*__restrict__ metl, 
-                  double*__restrict__ dmet, int ithread = 0) ;
+                  double*__restrict__ dmet) ;
 
   void getMetFullinfo(AsDeg asdmet,
                       DifVar idiff, MetSpace tarspac, 

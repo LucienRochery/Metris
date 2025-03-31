@@ -20,7 +20,7 @@ struct swapOptions;
 template<class MFT,int gdim,int ideg>
 int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
              MshCavity &cav, CavWrkArrs &work, 
-             double *qumx0, double *qumx1, int ithread = 0);
+             double *qumx0, double *qumx1, int ithread);
 
 
 } // end namespace

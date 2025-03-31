@@ -315,6 +315,15 @@ double getlenedg_quad(MeshMetric<MetricFieldType> &msh,
                        MetSpace::Exp, edg2pol, 1, bar1, metl, NULL);
 //    eval1_bezier<gdim,ideg>(met  , edg2pol,DifVar::None,bary, metl, dum );
 
+    if(std::isnan(getlenedg<gdim>(tang,metl)*dx)){
+      printf("## DEBUG nan len increment in getlenedg_quad\n");
+      printf("ientt %d tdim %d iedg %d nquad %d gdim %d ideg %d \n",
+             ientt, tdimn, iedg, nquad, gdim, ideg);
+      printf("dx = %e, tang = ",dx);
+      dblAr1(gdim, tang).print();
+      printf("metl = ");
+      dblAr1(nnmet,metl).print();
+    }
     len += getlenedg<gdim>(tang,metl)*dx;
   }
 

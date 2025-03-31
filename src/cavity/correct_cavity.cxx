@@ -9,6 +9,7 @@
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../Mesh/Mesh.hxx"
 #include "../low_geo.hxx"
+#include "../low_normal.hxx"
 #include "../low_topo.hxx"
 #include "../low_ccoef.hxx"
 #include "../aux_topo.hxx"
@@ -23,33 +24,33 @@ namespace Metris{
 // lbad[i][0] element index
 // lbad[i][1] element topo dim
 template<class MFT, int ideg>
-int correct_cavity_fast(Mesh<MFT> &msh,
-                        MshCavity &cav, 
-                        CavOprOpt &opts, 
-                        int npoi0, int nedg0, int nfac0, int nele0,
-                        intAr2 &lbad, 
-                        CavWrkArrs &work, 
-                        int ithread){
+int correct_cavity(Mesh<MFT> &msh,
+                   MshCavity &cav, 
+                   CavOprOpt &opts, 
+                   int npoi0, int nedg0, int nfac0, int nele0,
+                   intAr2 &lbad, 
+                   CavWrkArrs &work, 
+                   int ithread){
   METRIS_ASSERT(lbad.get_stride() == 2);
   int iret; 
 
   CT_FOR0_INC(2,3,idim){if(msh.idim == idim){
-    iret = correct_cavity_fast0<MFT,idim,ideg>(msh,cav,opts,npoi0,nedg0,nfac0,nele0,lbad,work,ithread);
+    iret = correct_cavity0<MFT,idim,ideg>(msh,cav,opts,npoi0,nedg0,nfac0,nele0,lbad,work,ithread);
   }}CT_FOR1(idim);
 
   return iret;
 }
 
 template<class MFT, int gdim, int ideg>
-int correct_cavity_fast0(Mesh<MFT> &msh, 
-                         [[maybe_unused]] MshCavity &cav, 
-                         [[maybe_unused]] CavOprOpt &opts, 
-                         int npoi0, int nedg0, int nfac0, int nele0, 
-                         intAr2 &lbad, 
-                         [[maybe_unused]] CavWrkArrs &work,
-                         int ithread){
+int correct_cavity0(Mesh<MFT> &msh, 
+                    [[maybe_unused]] MshCavity &cav, 
+                    [[maybe_unused]] CavOprOpt &opts, 
+                    int npoi0, int nedg0, int nfac0, int nele0, 
+                    intAr2 &lbad, 
+                    [[maybe_unused]] CavWrkArrs &work,
+                    int ithread){
   METRIS_ASSERT(lbad.get_stride() == 2);
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
   
   lbad.set_n(0);
 
@@ -101,10 +102,14 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
 
 
 
+  int ptag0 = msh.tag[ithread];
   if constexpr(ideg > 1){
 
+    if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), 
+      "Implement Pk tetra correction in cavity")
 
-    CPRINTF1("-- correct_cavity_fast phase 1 : curve & project\n");
+
+    CPRINTF1("-- correct_cavity phase 1 : curve & project\n");
     // No HO curvature yet, just CAD projection
     if(!msh.CAD()){
       CPRINTF1(" - no CAD context, skip\n");
@@ -114,7 +119,8 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
       // ... 
       METRIS_ASSERT(msh.getBasis() == FEBasis::Lagrange);
 
-      msh.tag[ithread]++;
+      ptag0++;
+      cav.maxtag = MAX(cav.maxtag, ptag0);
       for(int tdim = 1; tdim <= 2; tdim++){
         if(tdim == 1 && !msh.isboundary_edges()) break; // Becasue we start with 1: 2 cannot be bdry then
         if(tdim == 2 && !msh.isboundary_faces()) break; // Because there's nothing after, but basically a continue
@@ -153,8 +159,8 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
 
             // This not only avoids duplicates within one tdim, but ensures only the lowest tdim is 
             // responsible for the evaluate. 
-            if(msh.poi2tag(ithread,ipoin) >= msh.tag[ithread]) continue;
-            msh.poi2tag(ithread,ipoin) = msh.tag[ithread];
+            if(msh.poi2tag(ithread,ipoin) >= ptag0) continue;
+            msh.poi2tag(ithread,ipoin) = ptag0;
 
             METRIS_ASSERT(msh.bpo2ibi(msh.poi2bpo[ipoin],1) == tdim); // Actually using mark this should be true. 
             int ibpoi = msh.poi2ebp(ipoin,tdim,ientt,-1);
@@ -194,69 +200,35 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
 
 
     // Interpolate metric at new points 
-    double algnd_[3];
-    double *algnd;
-    msh.tag[ithread]++;
-    for(int tdim = 1; tdim <= 2; tdim++){
-      const intAr2 &ent2poi = msh.ent2poi(tdim); 
-      const intAr1 &ent2ref = msh.ent2ref(tdim);
-      int nnode = tdim == 1 ? getnnod1(ideg) : getnnod2(ideg);
-      int nent0 = tdim == 1 ? nedg0 : nfac0;
+    ptag0++;
+    cav.maxtag = MAX(cav.maxtag, ptag0);
+    for(int tdim = 1; tdim <= 3; tdim++){
+      int nent0 = tdim == 1 ? nedg0 
+                : tdim == 2 ? nfac0 : nele0;
       int nentt = msh.nentt(tdim);
-
+      CPRINTF1(" - Update HO points dim %d entities %d <= i < %d\n",tdim,nent0,nentt);
       for(int ientt = nent0; ientt < nentt; ientt++){
-        INCVDEPTH(msh);
-        METRIS_ASSERT(!isdeadent(ientt,ent2poi));
-        int iref = ent2ref[ientt];
-        for(int ii = tdim+1; ii < nnode; ii++){
-          int ipoin = ent2poi(ientt,ii);
+        INCVDEPTH(msh.param);
+        METRIS_ASSERT(!isdeadent(ientt,msh.ent2poi(tdim)));
+        int iref = msh.ent2ref(tdim)[ientt];
+        for(int ii = tdim+1; ii < getnnode(tdim,ideg); ii++){
+          INCVDEPTH(msh.param);
+          int ipoin = msh.ent2poi(tdim)(ientt,ii);
+          CPRINTF1(" - ipoin = %d tag = %d <? %d\n",ipoin,msh.poi2tag(ithread,ipoin),ptag0);
           if(ipoin < npoi0) continue;
-          if(msh.poi2tag(ithread,ipoin) >= msh.tag[ithread]) continue;
-          msh.poi2tag(ithread,ipoin) = msh.tag[ithread];
-
-          //if(tdim == 1) METRIS_THROW_MSG(TODOExcept(), "algnd in cav reinterp");
+          if(msh.poi2tag(ithread,ipoin) >= ptag0) continue;
+          msh.poi2tag(ithread,ipoin) = ptag0;
 
           CPRINTF1("- update HO pt %d interp seed %d dim %d \n",ipoin,ientt,tdim);
-          algnd = NULL;
-          if(tdim < msh.get_tdim() && msh.CAD()){
-            int ibpoi = msh.poi2ebp(ipoin,tdim,ientt,-1);
-            METRIS_ASSERT(ibpoi >= 0);
-
-            ego obj = tdim == 1 ? msh.CAD.cad2edg[iref] : msh.CAD.cad2fac[iref];
-
-            double result[18];
-            int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
-            if(ierro != 0){
-              algnd = NULL;
-              CPRINTF1("# EG_eval failed\n");
-            }else if(tdim == 1){
-              for(int ii = 0; ii < msh.idim; ii++) algnd_[ii] = result[3+ii];
-              algnd = algnd_;
-            }else{
-              vecprod(&result[3], &result[6], algnd_);
-              algnd = algnd_;
-            }
-          }
-          // Covers !CAD() as well as EG_eval failure (probably never)
-          if(tdim < msh.get_tdim() && algnd == NULL){
-            algnd = algnd_;
-            if(tdim == 1){ 
-              for(int ii = 0; ii < msh.idim; ii++)
-                algnd[ii] = msh.coord(msh.edg2poi(ientt, 1),ii)
-                          - msh.coord(msh.edg2poi(ientt, 0),ii);
-            }else{
-              getnorfacP1(msh.fac2poi[ientt], msh.coord, algnd_);
-            }
-          }
-          msh.interpMetBack(ipoin, tdim, ientt, iref, algnd);
-        }
+          if(msh.interpMetBack(ipoin) != 0) return CAV_ERR_INTERPMETBACK;
+        }// for ii = tdim+1
       }// for ientt
     }// for tdim 
-  }
+  }// if ideg > 1
 
 
 
-  CPRINTF1("-- correct_cavity_fast phase %d : verify validity\n",1+ideg>1);
+  CPRINTF1("-- correct_cavity phase %d : verify validity\n",1+ideg>1);
 
   //double quael;
   CT_FOR0_INC(2,gdim,tdim){
@@ -269,7 +241,7 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
     const intAr2& ent2poi = msh.ent2poi(tdim);
 
     for(int ientt = nent0; ientt < nentt; ientt++){
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
       if constexpr(tdim == 2 && gdim == 3){
         getnorfacP1(msh.fac2poi[ientt], msh.coord, nrmal);
         //if(msh.CAD()){
@@ -283,9 +255,14 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
       if constexpr(ideg == 1){
         double meas = getmeasentP1<gdim,tdim>(msh, ent2poi[ientt], nrmal, &iflat);
         if(DOPRINTS1()){
-          CPRINTF1(" - %d tdim %d ientt %d meas %f iflat %d using normal ",
-                   ientt-nent0,tdim,ientt,meas,iflat);
-          dblAr1(gdim,nrmal).print();
+          if constexpr (tdim == 2){
+            CPRINTF1(" - %d tdim %d ientt %d meas %f iflat %d using normal ",
+                     ientt-nent0,tdim,ientt,meas,iflat);
+            dblAr1(gdim,nrmal).print();
+          }else{
+            CPRINTF1(" - %d tdim %d ientt %d meas %f iflat %d\n",
+                     ientt-nent0,tdim,ientt,meas,iflat);
+          }
         }
         if(DOPRINTS2()){
           if(iflat || meas < 0){
@@ -316,10 +293,10 @@ int correct_cavity_fast0(Mesh<MFT> &msh,
 
 
 #define BOOST_PP_LOCAL_MACRO(n)\
-template int correct_cavity_fast<MetricFieldAnalytical,n>(Mesh<MetricFieldAnalytical> &msh,\
+template int correct_cavity<MetricFieldAnalytical,n>(Mesh<MetricFieldAnalytical> &msh,\
                          MshCavity &cav, CavOprOpt &opts, \
                             int npoi0, int nedg0, int nfac0, int nele0, intAr2 &lbad,CavWrkArrs &work,int ithread);\
-template int correct_cavity_fast<MetricFieldFE        ,n>(Mesh<MetricFieldFE        > &msh,\
+template int correct_cavity<MetricFieldFE        ,n>(Mesh<MetricFieldFE        > &msh,\
                          MshCavity &cav, CavOprOpt &opts, \
                             int npoi0, int nedg0, int nfac0, int nele0,intAr2 &lbad,CavWrkArrs &work,int ithread);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
@@ -327,16 +304,16 @@ template int correct_cavity_fast<MetricFieldFE        ,n>(Mesh<MetricFieldFE    
 
 
 #define BOOST_PP_LOCAL_MACRO(n)\
-template int correct_cavity_fast0<MetricFieldAnalytical, 2, n>(Mesh<MetricFieldAnalytical> &msh,\
+template int correct_cavity0<MetricFieldAnalytical, 2, n>(Mesh<MetricFieldAnalytical> &msh,\
                          MshCavity &cav, CavOprOpt &opts, \
                             int npoi0, int nedg0, int nfac0, int nele0, intAr2 &lbad, CavWrkArrs &work,int ithread);\
-template int correct_cavity_fast0<MetricFieldFE        , 2, n>(Mesh<MetricFieldFE        > &msh,\
+template int correct_cavity0<MetricFieldFE        , 2, n>(Mesh<MetricFieldFE        > &msh,\
                          MshCavity &cav, CavOprOpt &opts, \
                             int npoi0, int nedg0, int nfac0, int nele0, intAr2 &lbad, CavWrkArrs &work,int ithread);\
-template int correct_cavity_fast0<MetricFieldAnalytical, 3, n>(Mesh<MetricFieldAnalytical> &msh,\
+template int correct_cavity0<MetricFieldAnalytical, 3, n>(Mesh<MetricFieldAnalytical> &msh,\
                          MshCavity &cav, CavOprOpt &opts, \
                             int npoi0, int nedg0, int nfac0, int nele0, intAr2 &lbad, CavWrkArrs &work,int ithread);\
-template int correct_cavity_fast0<MetricFieldFE        , 3, n>(Mesh<MetricFieldFE        > &msh,\
+template int correct_cavity0<MetricFieldFE        , 3, n>(Mesh<MetricFieldFE        > &msh,\
                          MshCavity &cav, CavOprOpt &opts, \
                             int npoi0, int nedg0, int nfac0, int nele0, intAr2 &lbad, CavWrkArrs &work,int ithread);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)

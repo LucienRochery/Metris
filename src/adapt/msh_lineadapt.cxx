@@ -13,6 +13,7 @@
 #include "../low_lenedg.hxx"
 #include "../msh_structs.hxx"
 #include "../low_geo.hxx"
+#include "../low_normal.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../msh_checktopo.hxx"
 #include "../aux_topo.hxx"
@@ -26,14 +27,14 @@ namespace Metris{
 
 // Adapt lines "frontally" using CAD
 template<class MFT>
-void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
-  GETVDEPTH(msh);
+void adaptGeoLines(Mesh<MFT> &msh){
+  GETVDEPTH(msh.param);
   if(!msh.CAD()) return;
 
 
   if(msh.idim == 3){
     CPRINTF1("~~ EXPERIMENTAL: call to adaptGeoLines2 in 3D\n");
-    adaptGeoLines2<MFT>(msh,ithrd1,ithrd2);
+    adaptGeoLines2<MFT>(msh);
     if(msh.param->interactive){
       printf("## DEBUG WAIT HERE \n");
       wait();
@@ -41,11 +42,13 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
     return; 
   }
 
+  int ithrd1 = 0;
+  int ithrd2 = 1;
 
 
   CPRINTF1("-- Start adaptGeoLines.\n");
 
-  if(msh.param->dbgfull)  check_topo(msh);
+  if(msh.param->dbgfull)  check_topo(msh, ithrd1);
 
   //printf("## DEBUG corner point 2 print all bpois\n");
   //for(int ibpoi = msh.poi2bpo[2]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
@@ -148,7 +151,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
   int nEGrro = 0;
   for(int iloop = 0; iloop < msh.CAD.ncadlp; iloop++){
-    INCVDEPTH(msh);
+    INCVDEPTH(msh.param);
 
     // Make a map of edge ego orientations 
     ego loop = msh.CAD.cad2lop[iloop], *lchild, geom; 
@@ -170,7 +173,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
     double result[18],  sz[2], len, nrmal[3];
     // Loop over CAD edges and remesh each one 
     for(int iCADed = 0; iCADed < nchild; iCADed++){
-      INCVDEPTH(msh)
+      INCVDEPTH(msh.param)
 
       ego obj = lchild[iCADed];
       if(CADedg2tag[obj] >= CADedgtag) continue;
@@ -202,6 +205,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
       METRIS_ASSERT(ibcr0 >= 0);
       int iedc0 = msh.bpo2ibi(ibcr0,2);
       METRIS_ASSERT(iedc0 >= 0);
+      METRIS_ASSERT(!isdeadent(iedc0,msh.edg2poi));
 
       int iedge = iedc0;
       int ipoi0 = icor0;
@@ -214,7 +218,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
       while(true){
 
-        INCVDEPTH(msh);
+        INCVDEPTH(msh.param);
 
         bool ifin = false;
         int iver = msh.template getveredg<1>(iedge,ipoi0);
@@ -321,7 +325,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
 
       for(int nedgit = 0; nedgit < medgit; nedgit++){
-        INCVDEPTH(msh);
+        INCVDEPTH(msh.param);
         int ninser = 0, nerror = 0, nstein = 0;
 
         // We'll adjust the target length depending on the lengths effectively obtained.
@@ -337,6 +341,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
         // Seed edge 
         iedc0 = msh.bpo2ibi(ibcr0,2);
         METRIS_ASSERT(iedc0 >= 0);
+        METRIS_ASSERT(!isdeadent(iedc0,msh.edg2poi));
 
         CPRINTF1(" - iter %d seed corner %d (t = %f) edge = %d (%d, %d) tarlen = %f\n",
           nedgit,icor0,msh.bpo2rbi(ibcr0,0),iedc0,msh.edg2poi(iedc0,0),msh.edg2poi(iedc0,1),tarlen);
@@ -378,16 +383,12 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
         bool   continue_ref = true;
         int    npins        = 0;
         while(continue_ref){
-          if(msh.param->dbgfull) check_topo(msh);
+          if(msh.param->dbgfull) check_topo(msh, ithrd2);
 
           // Initialize / reset cavity
           cav.lcfac.set_n(0);
           cav.lcedg.set_n(0);
           cav.ipins = -1;
-          cav.nrmal = NULL;
-
-          // Tag is shared with aux_walk_line
-          msh.tag[ithrd1]++;
 
           // Walk from edge to edge until the target length is reached. 
           bool ifin, inewp;
@@ -437,12 +438,11 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
           if(msh.idim >= 3 && iface >= 0){
             getnorfacP1(msh.fac2poi[iface],msh.coord,nrmal);
-            cav.nrmal = nrmal;
           }
           ierro = increase_cavity_Delaunay(msh, cav, ithrd1, nrmal);
           if(ierro != 0) goto cleanup1;
  
-          ierro = increase_cavity2D(msh,cav,ithrd1);
+          ierro = increase_cavity_validity(msh,cav,ithrd1);
           if(ierro != 0) goto cleanup1;
 
 
@@ -521,7 +521,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
               int ipoin = msh.newpoitopo(-1,-1);
               int ibpoi = msh.newbpotopo(ipoin,0,ipoin);
               for(int ii = 0; ii < msh.idim; ii++) 
-                msh.coord(ipoin,ii) = msh.coord[cav.ipins][ii];
+                msh.coord(ipoin,ii) = msh.coord(cav.ipins,ii);
               writeMesh("debug_lineadap0.meshb",msh);
               for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi(ibpoi,ii)  = -1;
               //printf("Wait here \n");
@@ -566,6 +566,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
             }else if(DOPRINTS1()){
               printf("   - going to try Steiner insertion \n");
               #ifndef NDEBUG
+              printf("## WAIT HERE \n");
               if(msh.param->dbgfull) wait();
               #endif
             }
@@ -667,7 +668,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
               // setting lcedg.Set_n = 0 and restoring.
 
 
-              ierro = increase_cavity2D(msh,cav,ithrd1);
+              ierro = increase_cavity_validity(msh,cav,ithrd1);
 
               if(ierro != 0){
                 step *= 1.5;
@@ -749,7 +750,7 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
           }
 
 
-          if(msh.param->dbgfull) check_topo(msh);
+          if(msh.param->dbgfull) check_topo(msh,ithrd1);
           if(DOPRINTS2()) writeMesh("debug_lineadap1.meshb",msh);
 
           if(!continue_ref) break;
@@ -875,15 +876,15 @@ void adaptGeoLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
 }
 
-template void adaptGeoLines<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, int ithrd1, int ithrd2);
-template void adaptGeoLines<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, int ithrd1, int ithrd2);
+template void adaptGeoLines<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh);
+template void adaptGeoLines<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh);
 
 
 // Binary refinement until tolerance is met after split. 
 // ref2cor should, for each edge reference, give its two end points. 
 template<class MFT>
 void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
   const int nref = msh.CAD.ncaded;
   crv_len.set_n(nref);
@@ -935,13 +936,13 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
 
   if(DOPRINTS1()){
     for(int iref = 0; iref < nref; iref++)
-      CPRINTF2(" - line %d len0 = %f\n",iref, crv_len0[iref]);
+      CPRINTF3(" - line %d len0 = %f\n",iref, crv_len0[iref]);
   }
 
 
   // Refine each edge until the successive lengths are close enough 
   for(int iedge = 0; iedge < msh.nedge; iedge++){
-    INCVDEPTH(msh);
+    INCVDEPTH(msh.param);
     if(isdeadent(iedge,msh.edg2poi)) continue;
     int iref = msh.edg2ref[iedge]; 
     ego obj = msh.CAD.cad2edg[iref];
@@ -957,18 +958,18 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
     double t0_1 = msh.bpo2rbi(ibpo1, 0);
     double t0_2 = msh.bpo2rbi(ibpo2, 0); 
 
-    CPRINTF2(" - iedge %d ib1 %d ib2 %d t0_1 %f t0_2 %f \n",iedge,ibpo1,ibpo2,t0_1,t0_2);
+    CPRINTF3(" - iedge %d ib1 %d ib2 %d t0_1 %f t0_2 %f \n",iedge,ibpo1,ibpo2,t0_1,t0_2);
 
-    if(DOPRINTS2()){
-      CPRINTF2(" - ipoi1 = %d ipoi2 = %d \n",ipoi1,ipoi2);
-      CPRINTF2(" - ib1 full bpo:\n");
+    if(DOPRINTS3()){
+      CPRINTF3(" - ipoi1 = %d ipoi2 = %d \n",ipoi1,ipoi2);
+      CPRINTF3(" - ib1 full bpo:\n");
       for(int ibpoi = msh.poi2bpo[ipoi1];ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
-        CPRINTF2(" - ibpoi = %d t = %10.3e : ",ibpoi,msh.bpo2rbi(ibpoi,0));
+        CPRINTF3(" - ibpoi = %d t = %10.3e : ",ibpoi,msh.bpo2rbi(ibpoi,0));
         intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
       }
-      CPRINTF2(" - ib2 full bpo:\n");
+      CPRINTF3(" - ib2 full bpo:\n");
       for(int ibpoi = msh.poi2bpo[ipoi2];ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
-        CPRINTF2(" - ibpoi = %d t = %10.3e : ",ibpoi,msh.bpo2rbi(ibpoi,0));
+        CPRINTF3(" - ibpoi = %d t = %10.3e : ",ibpoi,msh.bpo2rbi(ibpoi,0));
         intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
       }
     }
@@ -990,7 +991,7 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
     // if EG_eval proves costly, we can cache the results from the previous iteration. 
     // (as we're doubling samples each iteration) -> it's also a simple idiv%2 == 0 check. 
     while(true){
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
 
       int iwhich = 0; // which one is the previous in coop
       for(int ii = 0; ii < msh.idim; ii++) 
@@ -1011,7 +1012,7 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
       //int ibseed   = msh.poi2bak(ipoi1,msh.idim-1); 
       double edg_len1 = 0;
       for(int idiv = 0; idiv < ndiv; idiv++){
-        INCVDEPTH(msh);
+        INCVDEPTH(msh.param);
 
         double tnext = tprev + (t0_2 - t0_1)/ndiv; 
 
@@ -1049,7 +1050,7 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
 
 
           for(int ii = 0; ii < nnmet; ii++) 
-             msh.met[ipon[1 - iwhich]][ii]
+             msh.met(ipon[1 - iwhich],ii)
                       =        dtprd  * msh.met(ipoi1,ii) 
                       + (1.0 - dtprd) * msh.met(ipoi2,ii);
 
@@ -1229,7 +1230,9 @@ static int aux_walk_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
     printf("    - aux_walk_line start ipoistart %d iedgstart %d = %d, %d\n",
     ipoistart,iedgstart,msh.edg2poi(iedgstart,0),msh.edg2poi(iedgstart,1));
 
+  msh.tag[ithrd1]++;
   int iface, ibpoi, iedge = iedgstart;
+  METRIS_ASSERT(!isdeadent(iedge, msh.edg2poi));
   edg2pol[0] = ipoistart;
   double coor0[3], result[18];
   int ipoiprev = ipoistart; 
@@ -1263,7 +1266,7 @@ static int aux_walk_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
       if(msh.edg2poi(iedge,ii) == ipoiprev) iipo2 = ii;
     }
     METRIS_ASSERT(iipo2 != -1);
-    edg2pol[1] = msh.edg2poi[iedge][1-iipo2];
+    edg2pol[1] = msh.edg2poi(iedge,1-iipo2);
 
     if(iverb >= 3) 
     printf("      - iedge %d = %d, %d iface = %d nxtp = %d \n",
@@ -1295,9 +1298,9 @@ static int aux_walk_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
       // virtually update coordinates (revert to prior copy) for
       // length computation. 
       for(int ii = 0; ii < msh.idim; ii++){
-        coor0[ii] = msh.coord[edg2pol[1]][ii];
-        *erredg  += abs(msh.coord[edg2pol[1]][ii] - result[ii]);
-        msh.coord[edg2pol[1]][ii] = result[ii];
+        coor0[ii] = msh.coord(edg2pol[1],ii);
+        *erredg  += abs(msh.coord(edg2pol[1],ii) - result[ii]);
+        msh.coord(edg2pol[1],ii) = result[ii];
       }
       (*npterr)++;
     }
@@ -1315,7 +1318,7 @@ static int aux_walk_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
     // Only if the point was previously moved should it be reverted
     if(!(*ifin)){
       for(int ii = 0; ii < msh.idim; ii++){
-        msh.coord[edg2pol[1]][ii] = coor0[ii];
+        msh.coord(edg2pol[1],ii) = coor0[ii];
       }
     }
 
@@ -1323,7 +1326,7 @@ static int aux_walk_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
     if(*lenend > adjusted_tarlen || (*ifin)) break;
 
 
-    ipoiprev = msh.edg2poi[iedge][1-iipo2]; // New previous next point.
+    ipoiprev = msh.edg2poi(iedge,1-iipo2); // New previous next point.
     if(iverb >= 3) printf("      - iedge %d -> %d len %f\n",iedge,msh.edg2edg(iedge,iipo2),*lenend);
     iedge = msh.edg2edg(iedge,iipo2);    // New next edge 
 
@@ -1421,7 +1424,7 @@ static int gen_newp_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
       (*nEGrro)++;
       return 1;
     }
-    for(int ii = 0; ii < msh.idim; ii++) msh.coord[cav.ipins][ii] = result[ii];
+    for(int ii = 0; ii < msh.idim; ii++) msh.coord(cav.ipins,ii) = result[ii];
 
     // -- Interpolate metric at insertion point, only if new
     ierro = msh.interpMetBack(cav.ipins,1,iedgseed,

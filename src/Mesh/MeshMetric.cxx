@@ -15,12 +15,6 @@
 
 namespace Metris{
 
-//template<class MFT>
-//MetricClass MeshMetric<MFT>::metricClass() const{ return met.metricClass(); }
-//
-//template<class MFT>
-//MeshMetric<MFT>::MeshMetric(int nipwk_, int niewk_, int nifwk_, int nitwk_, int nrpwk_) :
-//   MeshBase(nipwk_, niewk_, nifwk_, nitwk_, nrpwk_), met(*this){}
 
 template<int gdim, int ideg,class MetricFieldType>
 double getDomainVolume0(MeshMetric<MetricFieldType> &msh){

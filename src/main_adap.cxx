@@ -33,9 +33,9 @@ int main_metris(int argc, char** argv){
   MetrisOptions opt = run.opt;
 
 
-  if(param.iverb>=1) run.statMesh();
+  if(param.iverb >= 1) run.statMesh();
 
-  if(param.dbgfull) check_topo(*run.msh_g);
+  if(param.dbgfull) check_topo(*run.msh_g,0);
 
   //if(run.param.opt_unif){
   //  printf("## EXPERIMENTAL opt-unif ONLY \n");
@@ -58,18 +58,22 @@ int main_metris(int argc, char** argv){
 
   int ielev = run.degElevate();
 
-  if(param.dbgfull) check_topo(*run.msh_g);
+  if(param.dbgfull) check_topo(*run.msh_g,0);
 
-  if(param.curveType > 0 && !ielev || param.curveType == 5){ // Not really smoothing, rather metric based curving
+  if(param.curveType > 0 && !ielev){ // Not really smoothing, rather metric based curving
     run.curveMesh();
   }
+
+  if(param.anaSol && param.smoo_type == 1){
+    run.optimMesh();
+  }
   
-  if(param.dbgfull) check_topo(*run.msh_g);
+  if(param.dbgfull) check_topo(*run.msh_g,0);
 
   run.writeOutputs();
 
 
-  if(param.iverb>=1) run.statMesh();
+  if(param.iverb >= 1) run.statMesh();
 
   //#ifdef USE_PETSC
   //  PetscCall(PetscFinalize());

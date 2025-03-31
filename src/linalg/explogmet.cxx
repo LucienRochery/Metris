@@ -13,6 +13,7 @@
 #include "../linalg/matprods.hxx"
 #include "../linalg/utils.hxx"
 
+#include <cmath>
 
 namespace Metris{
 
@@ -26,12 +27,15 @@ void getlogmet_cpy(const T* __restrict__ met, T* __restrict__ lmet){
 	T eigval[ndim], eigvec[ndim*ndim];
 
 	geteigsym<ndim,T>(met,eigval,eigvec);
-	if(eigval[0] < 1.0e-16) METRIS_THROW_MSG(RealExcept(),"Negative eigenvalues min = "<<
-			eigval[0]<<"\n");
+
+  if(std::isnan(log(eigval[0])) || std::isinf(log(eigval[0])))
+    METRIS_THROW_MSG(RealExcept(),"Invalid eigenvalues min = "<<eigval[0]<<"\n");
 
 	for(int ii = 0; ii < ndim ; ii++) eigval[ii] = log(eigval[ii]);
 
 	eig2met<ndim,T>(eigval,eigvec,lmet);
+
+  
 }
 
 // -----------------------------------------------------------------------------
@@ -43,8 +47,9 @@ void getlogmet_sum(const T* __restrict__ met, T* __restrict__ lmet){
 	T eigval[ndim], eigvec[ndim*ndim];
 
 	geteigsym<ndim,T>(met,eigval,eigvec);
-	if(eigval[0] < 1.0e-16) METRIS_THROW_MSG(RealExcept(),"Negative eigenvalues min = "<<
-			eigval[0]<<"\n");
+
+  if(std::isnan(log(eigval[0])) || std::isinf(log(eigval[0])))
+    METRIS_THROW_MSG(RealExcept(),"Invalid eigenvalues min = "<<eigval[0]<<"\n");
 
 	for(int ii = 0; ii < ndim ; ii++) eigval[ii] = log(eigval[ii]);
 
@@ -61,7 +66,28 @@ void getlogmet_inp(T *met){
 	T eigval[ndim], eigvec[ndim*ndim];
 
 	geteigsym<ndim,T>(met,eigval,eigvec);
-	if(eigval[0] < 1.0e-16){
+  bool iok = false;
+  if constexpr(std::is_same<T,double>::value){
+    iok = !(std::isnan(log(eigval[0])) || std::isinf(log(eigval[0])));
+  }else{
+    iok = eigval[0].value() > 0;
+    iok = iok && !std::isnan(log(eigval[0].value()));
+  }
+  
+	if(!iok){
+
+
+    if constexpr(std::is_same<T,double>::value){
+      printf("## INVALID METRIC ! eigvals = ");
+      dblAr1(ndim,eigval).print();
+      printf(" TRY CORRECT WITH LAPACK\n");
+      const int nwork = 20;
+      double rwork[nwork];
+      geteigsym<ndim,double>(met, nwork, rwork, eigval, eigvec);
+      iok = !(std::isnan(log(eigval[0])) || std::isinf(log(eigval[0])));
+      if(iok) goto fixed;
+    }
+
     printf("Invalid metric: \n");
     int nnmet = (ndim*(ndim+1))/2;
     if constexpr (std::is_same<T, double>::value){
@@ -76,8 +102,12 @@ void getlogmet_inp(T *met){
       dblAr1(ndim,eigval).print();
     }
 
+
+
     METRIS_THROW_MSG(RealExcept(),"Negative eigenvalues");
   }
+
+fixed:
 
 	for(int ii = 0; ii < ndim ; ii++) eigval[ii] = log(eigval[ii]);
 

@@ -19,6 +19,7 @@
 #include "../utils/aux_timer.hxx"
 #include "../utils/mprintf.hxx"
 #include "../low_geo.hxx"
+#include "../low_normal.hxx"
 #include "../msh_inineigh.hxx"
 #include "../msh_checktopo.hxx"
 #include "../ho_constants.hxx"
@@ -37,7 +38,7 @@ void MeshBase::iniFromFile(std::string fname, int usrTarDeg){
   int64_t libIdx = MetrisOpenMeshFile<GmfRead>(fname.c_str(), &idim);
   readConstants(libIdx, usrTarDeg); 
   zeroArrays();
-  readMeshFile(libIdx);
+  readMeshFile(libIdx,0);
   GmfCloseMesh(libIdx);
 }
 
@@ -46,7 +47,9 @@ void MeshBase::initialize(MetrisAPI *data,
                           MetrisParameters &param){
 
   this->param = &param;
-  const int iverb = param.iverb;
+
+  GETVDEPTH(this->param);
+
 
   int usrTarDeg = -1;
   if(this->meshClass() == MeshClass::Mesh){
@@ -115,11 +118,35 @@ void MeshBase::initialize(MetrisAPI *data,
 
   int nbpo0 = nbpoi; // Those before creation by neighbours, reconst
 
+  // Count tetra domains
+  ndomn = -1;
+  int minref = 1;
+  for(int ielem = 0; ielem < nelem; ielem++){
+    if(isdeadent(ielem,tet2poi)) continue;
+    int iref = tet2ref[ielem];
+    ndomn = MAX(ndomn, iref);
+    minref= MIN(minref,iref);
+  }
+  if(minref < 0){
+    // All tets are ref 0: correct
+    CPRINTF1("## Tets have negative ref min = %d max = %d\n",minref,ndomn);
+    ndomn -= minref;
+    for(int ielem = 0; ielem < nelem; ielem++){
+      if(isdeadent(ielem,tet2poi)) continue;
+      tet2ref[ielem] -= minref;
+    }
+  }
+  ndomn++; // 0 based to count
+
+  dom2tag.allocate(METRIS_MAXTAGS, ndomn);
+  dom2tag.set_n(METRIS_MAXTAGS);
+  CPRINTF1("-- Counted %d tetra domain ids\n",ndomn);
+
   iniNeighbours();
 
-
-  iniBdryPoints();
-  if(param.dbgfull) check_topo(*this);
+  
+  iniBdryPoints(0);
+  if(param.dbgfull) check_topo(*this,0);
 
   
   iniCADLink(nbpo0);
@@ -131,6 +158,7 @@ void MeshBase::initialize(MetrisAPI *data,
   if(idim == 2){
 
     for(int iedge = 0; iedge < nedge; iedge++){
+      INCVDEPTH(this->param);
       if(isdeadent(iedge,edg2poi)) continue;
       int ipoi1 = edg2poi(iedge,0);
       int ipoi2 = edg2poi(iedge,1);
@@ -167,8 +195,7 @@ void MeshBase::initialize(MetrisAPI *data,
       if(dtprd <= 0) continue;
 
       // Positive dotprod: the normal is ingoing, not outgoing. 
-      if(iverb >= 5) 
-        printf(" - reorient edge %d was %d %d dtprd = %f\n",
+      CPRINTF3(" - reorient edge %d was %d %d dtprd = %f\n",
                iedge,ipoi1,ipoi2,dtprd);
       //if(iverb >= 4){
       //  printf("tang = ");
@@ -209,6 +236,7 @@ void MeshBase::initialize(MetrisAPI *data,
     [[maybe_unused]] double nor_tet[3];
 
     for(int iface = 0; iface < nface; iface++){
+      INCVDEPTH(this->param);
       if(isdeadent(iface,fac2poi)) continue;
       getnorfacP1(fac2poi[iface], coord, nor_disc);
 
@@ -233,8 +261,7 @@ void MeshBase::initialize(MetrisAPI *data,
         "dtprd = "<<dtprd)
 
       int iref = fac2ref[iface];
-      if(iverb >= 4) printf("Debug iface %d iref %d dtprd = %f \n",
-                             iface,iref,dtprd);
+      CPRINTF3("Debug iface %d iref %d dtprd = %f \n",iface,iref,dtprd);
 
       if(dtprd < 0){
         // Misaligned, switch d00 and 0d0
@@ -373,7 +400,7 @@ void MeshBase::initialize(MetrisAPI *data,
 
 
 void MeshBase::iniNeighbours(){
-  GETVDEPTH((*this));
+  GETVDEPTH(this->param);
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == this->curdeg){
     double t1 = get_wall_time(); 
     iniMeshNeighbours<ideg>(*this);
@@ -384,7 +411,7 @@ void MeshBase::iniNeighbours(){
 
 
 void MeshBase::iniBdryPoints(int ithread){
-  GETVDEPTH((*this));
+  GETVDEPTH(this->param);
   CPRINTF1("-- Update bdry point link to entities\n");
   int ncrea = iniMeshBdryPoints(*this, ithread); 
   CPRINTF1("   %d boundary points created\n",ncrea);
@@ -505,7 +532,7 @@ void MeshBase::zeroArrays(){
 
 void MeshBase::readMeshFile(int64_t libIdx, int ithread){
 
-  GETVDEPTH((*this));
+  GETVDEPTH(this->param);
 
   int ilag = 1 - GmfStatKwd(libIdx, GmfBezierBasis);
   if(ilag == 1){
@@ -569,7 +596,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
     // feflo.a has output some files with a bunch of 0 corners
     int ncor1 = 0; 
     for(int icorn = 0;icorn < ncorn; icorn++){
-      INCVDEPTH((*this));
+      INCVDEPTH(this->param);
       int ipoin = iwork[icorn] - 1;
       if(ipoin < 0) continue;
       if(ipoin > npoin){
@@ -601,7 +628,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
 
     int ncor1 = 0; 
     for(int icor0 = 0; icor0 < ncorn; icor0++){
-      INCVDEPTH((*this));
+      INCVDEPTH(this->param);
       int ipoin = iwork[2*icor0    ] - 1;
       int icorn = iwork[2*icor0 + 1] - 1;
       if(ipoin < 0) continue;
@@ -979,7 +1006,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
     #if 0
     if(param->refineConventionsInp){
       for(int iedge = 0; iedge < nedge; iedge++){
-        INCVDEPTH((*this));
+        INCVDEPTH(this->param);
         if(isdeadent(iedge,edg2poi)) continue;
         for(int ii = 0; ii < 2; ii++){
           int ipoin = edg2poi(iedge,ii);
@@ -1074,7 +1101,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
 
 
 void MeshBase::readMeshData(MetrisAPI &data){
-  GETVDEPTH((*this));
+  GETVDEPTH(this->param);
 
   ibasis = data.mshbasis;
   METRIS_ASSERT(ibasis == FEBasis::Lagrange || ibasis == FEBasis::Bezier);

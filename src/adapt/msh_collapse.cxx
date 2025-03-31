@@ -18,6 +18,8 @@
 #include "../utils/mprintf.hxx"
 #include "../linalg/det.hxx"
 #include "../cavity/msh_cavity.hxx"
+#include "../aux_histogram.hxx"
+#include "../msh_lenedg.hxx"
 
 
 namespace Metris{
@@ -30,7 +32,7 @@ template<class MFT, int gdim, int ideg>
 double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
                           int ithrd1, int ithrd2, int ithrd3){
 
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
@@ -40,9 +42,8 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
   METRIS_ASSERT(ithrd2 != ithrd3);
 
   constexpr int nnmet = (gdim*(gdim+1))/2;
-  constexpr int tdim = 2;
-  if(msh.get_tdim() != 2) METRIS_THROW_MSG(TODOExcept(), 
-    "Implement collapseShortEdges on tdim != 2, got tdim = "<<msh.get_tdim());
+  const int tdim = msh.get_tdim();
+  const int nedgl = (tdim*(tdim+1))/2;
 
   double stat = 0; 
   int ierro; 
@@ -66,62 +67,62 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
   int ncoll1 = 0, ncoll2 = 0, ncoll3 = 0;
   *ncoll = 0;
-  // Untaged elements are to be considered 
-  #ifndef GLOFRO
+
   msh.tag[ithrd1]++;
-  #endif
 
-
-  int mcfac = 100, mcedg = 2; // more than 2 is a corner collapse: no!
-  MshCavity cav(0,mcfac,mcedg);
+  // More than 2 edges is a corner collapse
+  MshCavity cav(100,100,2);
   CavWrkArrs work;
 
-  do{
-    INCVDEPTH(msh);
+  intAr2& ent2tag = msh.ent2tag(tdim);
+  intAr2& ent2poi = msh.ent2poi(tdim);
+  intAr2& ent2ent = msh.ent2ent(tdim);
 
-    double t0 = get_wall_time();
-    //double stat_swap = swap2D<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt);
-    //double t2 = get_wall_time();
-    //if(iverb >= 2){
-    //  printf("   - Post collapse swap time %f stat = %f \n",t2-t0,stat_swap);
-    //}
+
+
+  do{
+    INCVDEPTH(msh.param);
 
 
     int nerro1 = 0, nerro2 = 0, nerro3 = 0;
     int nedgt = 0;
     ncoll1 = ncoll2 = ncoll3 = 0;
-    int nfac0 = msh.nface;
+    int nent0 = msh.nentt(tdim);
     lerror.fill(0);
 
     double minl = 1.0e30;
     double maxl = -1.0;
 
-    t0 = get_wall_time();
+    double t0 = get_wall_time();
 
 
+    // Don't do this for tdim == 3 (implement later)
+    static int warn1 = 0;
+    if(warn1++ < 10 && ctrl_height) 
+      printf("## Disabled ctrl_height for tdim == 3\n");
 
-    for(int iface = 0; iface < nfac0 && ctrl_height; iface++){
-      INCVDEPTH(msh);
-      if(msh.fac2tag(ithrd1,iface) >= msh.tag[ithrd1]) continue;
-      if(isdeadent(iface,msh.fac2poi)) continue;
+    for(int ientt = 0; ientt < nent0 && ctrl_height && tdim == 2; ientt++){
+      INCVDEPTH(msh.param);
+      if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
+      if(isdeadent(ientt,ent2poi)) continue;
 
       // If an operation goes through, the element goes away, then this does nothing
       // Otherwise, an operation does not happen, thus the element is inert.
-      msh.fac2tag(ithrd1,iface) = msh.tag[ithrd1];
+      ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
 
 
       // Try collapsing for small height against bdry edge now
-      for(int ied = 0; ied < 3; ied++){
+      for(int ied = 0; ied < tdim + 1; ied++){
 
-        int ipcol = msh.fac2poi(iface,ied);
+        int ipcol = ent2poi(ientt,ied);
         if(msh.poi2bpo[ipcol] >= 0){
           // Skip corners.
           if(msh.bpo2ibi[msh.poi2bpo[ipcol]][1] == 0) continue;
         }
 
-        int ipoi1 = msh.fac2poi(iface,lnoed2[ied][0]);
+        int ipoi1 = ent2poi(ientt,lnoed2[ied][0]);
         if(msh.poi2bpo[ipoi1] < 0) continue;
-        int ipoi2 = msh.fac2poi(iface,lnoed2[ied][1]);
+        int ipoi2 = ent2poi(ientt,lnoed2[ied][1]);
         if(msh.poi2bpo[ipoi2] < 0) continue;
 
         // Only if geometric edge 
@@ -130,21 +131,29 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
         int ipoie = msh.newpoitopo(2,-1);
 
-        double bary[3] = {0};
+        double bary[3] = {};
         bary[lnoed2[ied][0]] = 0.5;
         bary[lnoed2[ied][1]] = 0.5;
 
-        eval2<gdim,ideg>(msh.coord,msh.fac2poi[iface],msh.getBasis(),
-                         DifVar::None, DifVar::None, 
-                         bary, msh.coord[ipoie], NULL, NULL);
+        if(tdim == 2){
+          eval2<gdim,ideg>(msh.coord,ent2poi[ientt],msh.getBasis(),
+                           DifVar::None, DifVar::None, 
+                           bary, msh.coord[ipoie], NULL, NULL);
+        }else{
+          if constexpr(gdim == 3){ // linker
+            eval3<gdim,ideg>(msh.coord,ent2poi[ientt],msh.getBasis(),
+                             DifVar::None, DifVar::None, 
+                             bary, msh.coord[ipoie], NULL, NULL);
+          }
+        }
 
 
         msh.met.getMetBary(AsDeg::P1,DifVar::None, 
-                           msh.met.getSpace(), msh.fac2poi[iface], 
-                           2,  bary, 
+                           msh.met.getSpace(), ent2poi[ientt], 
+                           tdim, bary, 
                            msh.met[ipoie], NULL) ;
 
-        int edg2pol[2] = {ipoie, msh.fac2poi(iface,ied)};
+        int edg2pol[2] = {ipoie, ent2poi(ientt,ied)};
 
         double sz[2];
         double len = getlenedg_geosz<MFT,gdim,ideg>(msh,edg2pol,sz);
@@ -156,16 +165,16 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
         if(len > sqrt(3)/(2*sqrt(2))) continue;
 
 
-        CPRINTF1(" - collapse flat %d height = %f \n",iface,len);
+        CPRINTF1(" - collapse flat %d height = %f \n",ientt,len);
         for(int ied2 = 0; ied2 < 3; ied2++){
-          int edg2po2[2] = {msh.fac2poi(iface,lnoed2[ied][0]), 
-                            msh.fac2poi(iface,lnoed2[ied][1])};
+          int edg2po2[2] = {ent2poi(ientt,lnoed2[ied][0]), 
+                            ent2poi(ientt,lnoed2[ied][1])};
           double dd2s = getlenedg_geosz<MFT,gdim,ideg>(msh,edg2po2,sz);
-          CPRINTF2(" - DEBUG ied = %d %d len = %f \n",msh.fac2poi(iface,lnoed2[ied][0]),
-                    msh.fac2poi(iface,lnoed2[ied][1]), dd2s);
+          CPRINTF2(" - DEBUG ied = %d %d len = %f \n",ent2poi(ientt,lnoed2[ied][0]),
+                    ent2poi(ientt,lnoed2[ied][1]), dd2s);
         }
         try{
-          ierro = collversurf(msh, iface, ied, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
+          ierro = collversurf(msh, ientt, ied, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
         }catch(const MetrisExcept &e){
           printf("## FATAL ERROR IN MSH_COLLAPSE\n");
           writeMesh("error_collapse.meshb",msh);
@@ -178,29 +187,32 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
         }
 
         break;
-      }
+      }// for ied
 
-    }
+    }// for ientt
 
 
 
     // Collapse small triangles (bad idea)
-    for(int iface = 0; iface < nfac0 && ctrl_small_bdry; iface++){
-      INCVDEPTH(msh);
-      if(msh.fac2tag(ithrd1,iface) >= msh.tag[ithrd1]) continue;
-      if(isdeadent(iface,msh.fac2poi)) continue;
+    static int warn2 = 0;
+    if(warn2++ < 10 && ctrl_small_bdry) 
+      printf("## Disabled ctrl_small_bdry for tdim == 3\n");
+    for(int ientt = 0; ientt < nent0 && ctrl_small_bdry && tdim == 2; ientt++){
+      INCVDEPTH(msh.param);
+      if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
+      if(isdeadent(ientt,ent2poi)) continue;
 
       // If an operation goes through, the element goes away, then this does nothing
       // Otherwise, an operation does not happen, thus the element is inert.
-      msh.fac2tag(ithrd1,iface) = msh.tag[ithrd1];
+      ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
 
 
       // Check at least one non boundary to collapse 
       bool iskip = true;
       int icol;
       for(int ied = 0; ied < 3; ied++){
-        if(msh.fac2fac(iface,ied) >= 0) continue;
-        int ipoin = msh.fac2poi(iface,ied);
+        if(ent2ent(ientt,ied) >= 0) continue;
+        int ipoin = ent2poi(ientt,ied);
         if(msh.poi2bpo[ipoin] >= 0) continue;
 
         iskip = false;
@@ -209,31 +221,33 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
       if(iskip) continue;
 
       bool iflat;
-      double bary[3] = {1.0/3.0}; 
+      double bary[4];
+      for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim + 1);
       double metl[nnmet];
       double detm, volM;
-      double meas0 = getmeasentP1<gdim,tdim>(msh, msh.fac2poi[iface], NULL, &iflat);
+      double meas0 = tdim == 2 ? getmeasentP1<gdim,2>(msh, ent2poi[ientt], NULL, &iflat)
+                               : getmeasentP1<gdim,3>(msh, ent2poi[ientt], NULL, &iflat);
       if(iflat) goto do_collapse;
 
       // If not flat, compute volume 
 
       msh.met.getMetBary(AsDeg::P1,DifVar::None, 
-                         msh.met.getSpace(), msh.fac2poi[iface], 
-                         2,  bary, 
+                         msh.met.getSpace(), ent2poi[ientt], 
+                         tdim, bary, 
                          metl, NULL) ;
       
       detm = detsym<gdim>(metl);
-      volM = meas0*sqrt(detm)/2; // factorial tdim
+      volM = meas0*sqrt(detm)/2/(tdim == 2 ? 1 : 3); // factorial tdim
       
       if(volM >= isvolsmall) continue;
-      CPRINTF1(" - collapse small triangle %d vol = %f \n",iface,volM);
+      CPRINTF1(" - collapse small triangle %d vol = %f \n",ientt,volM);
       CPRINTF2(" - meas0 = %f detm = %f \n",meas0,detm);
 
       do_collapse:
 
-      int nent00 = msh.nface;
+      int nent00 = msh.nentt(tdim);
       try{
-        ierro = collversurf(msh, iface, icol, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
+        ierro = collversurf(msh, ientt, icol, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
       }catch(const MetrisExcept &e){
         printf("## FATAL ERROR IN MSH_COLLAPSE\n");
         writeMesh("error_collapse.meshb",msh);
@@ -245,40 +259,39 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
         ncoll3 ++;
         for(int ientn = nent00; ientn < msh.nentt(tdim); ientn++){
           for(int ii = 0; ii < tdim + 1 ; ii++){
-            int ineig = msh.fac2fac(ientn,ii);
+            int ineig = ent2ent(ientn,ii);
             if(ineig < 0) continue;
-            METRIS_ASSERT(!isdeadent(ineig,msh.fac2poi));
-            msh.fac2tag(ithrd1,ineig) = msh.tag[ithrd1] - 1;
+            METRIS_ASSERT(!isdeadent(ineig,ent2poi));
+            ent2tag(ithrd1,ineig) = msh.tag[ithrd1] - 1;
           }
         }
       }
+    }// for ientt
 
 
-    }
 
     // Collapse short edges 
-    for(int iface = 0; iface < nfac0; iface++){
-      INCVDEPTH(msh);
-      if(msh.fac2tag(ithrd1,iface) >= msh.tag[ithrd1]) continue;
-      if(isdeadent(iface,msh.fac2poi)) continue;
-
+    for(int ientt = 0; ientt < nent0; ientt++){
+      INCVDEPTH(msh.param);
+      CPRINTF2(" - debug ientt %d tag %d <? %d \n",ientt,ent2tag(ithrd1,ientt),msh.tag[ithrd1]);
+      if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
+      if(isdeadent(ientt,ent2poi)) continue;
 
 
       // If an operation goes through, the element goes away, then this does nothing
       // Otherwise, an operation does not happen, thus the element is inert.
-      msh.fac2tag(ithrd1,iface) = msh.tag[ithrd1];
+      ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
 
 
-
-      for(int ied = 0; ied < 3; ied++){
+      for(int ied = 0; ied < nedgl; ied++){
 
         // Consistency with insertion. Very close
-        double len = getlenedg_geosz<MFT,gdim,ideg>(msh,iface,2,ied);
+        double len = getlenedg_geosz<MFT,gdim,ideg>(msh,ientt,tdim,ied);
         minl = len < minl ? len : minl;
         maxl = len > maxl ? len : maxl;
 
-        //int ipoi0 = msh.fac2poi(iface, lnoed2[ied][0]);
-        //int ipoi1 = msh.fac2poi(iface, lnoed2[ied][1]);
+        //int ipoi0 = ent2poi(ientt, lnoed2[ied][0]);
+        //int ipoi1 = ent2poi(ientt, lnoed2[ied][1]);
         //int ityp0 = 2;
         //int ityp1 = 2;
         //int tmp = msh.poi2bpo[ipoi0];
@@ -291,13 +304,17 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
         if(len >= 1.0/sqrt(2)) continue;  
 
+        if(tdim == 2){
+          CPRINTF1(" - found short edge %d %d len = %f \n",
+            ent2poi(ientt,lnoed2[ied][0]),ent2poi(ientt,lnoed2[ied][1]),len);
+        }else{
+          CPRINTF1(" - found short edge %d %d len = %f \n",
+            ent2poi(ientt,lnoed3[ied][0]),ent2poi(ientt,lnoed3[ied][1]),len);
+        }
 
-        CPRINTF1(" - found short edge %d %d len = %f \n",
-          msh.fac2poi(iface,lnoed2[ied][0]),msh.fac2poi(iface,lnoed2[ied][1]),len);
-
-        int nent00 = msh.nface;
+        int nent00 = msh.nentt(tdim);
         try{
-          ierro = colledgsurf(msh, iface, ied, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
+          ierro = colledgsurf(msh, tdim, ientt, ied, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
         }catch(const MetrisExcept &e){
           printf("## FATAL ERROR IN MSH_COLLAPSE\n");
           writeMesh("error_collapse.meshb",msh);
@@ -309,18 +326,17 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
           ncoll1 ++;
           for(int ientn = nent00; ientn < msh.nentt(tdim); ientn++){
             for(int ii = 0; ii < tdim + 1 ; ii++){
-              int ineig = msh.fac2fac(ientn,ii);
+              int ineig = ent2ent(ientn,ii);
               if(ineig < 0) continue;
-              METRIS_ASSERT(!isdeadent(ineig,msh.fac2poi));
-              msh.fac2tag(ithrd1,ineig) = msh.tag[ithrd1] - 1;
+              METRIS_ASSERT(!isdeadent(ineig,ent2poi));
+              ent2tag(ithrd1,ineig) = msh.tag[ithrd1] - 1;
             }
           }
         }
 
         break;
-      }
-
-    }
+      }// for ied
+    }// for ientt
 
 
 
@@ -339,15 +355,22 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
       }
     }
 
-    if(nedgt == 0) stat = 0;
+    if(nedgt == 0) stat = MAX(stat, 0);
     else           stat = MAX(stat, (double)(ncoll1 + ncoll2) / (double)nedgt);
 
-    *ncoll = ncoll1 + ncoll2;
+    *ncoll += ncoll1 + ncoll2;
 
     //CPRINTF1(" - Warning: disabled collapse looping\n");
     //break;
   }while(ncoll1 + ncoll2 > 0 && niter++ < miter);
 
+  //if(DOPRINTS2()){
+  //  intAr2 ilned;
+  //  dblAr1 rlned;
+  //  dblAr1 lenbds = {1.0/sqrt(2), sqrt(2)};
+  //  double pct_unit = getLengthEdges<MFT>(msh,ilned,rlned);
+  //  print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (collapse)");
+  //}
 
   return stat;
 

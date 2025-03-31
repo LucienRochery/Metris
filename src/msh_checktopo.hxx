@@ -12,8 +12,8 @@ namespace Metris{
 class MeshBase;
 
 void check_topo(MeshBase &msh,
-                int nbpoi, int npoin, int nedge, int nface, int nelem, int ithread = 0); 
-void check_topo(MeshBase &msh, int ithread = 0); 
+                int nbpoi, int npoin, int nedge, int nface, int nelem, int ithread); 
+void check_topo(MeshBase &msh, int ithread); 
 
 }// end namespace
 

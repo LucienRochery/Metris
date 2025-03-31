@@ -71,8 +71,7 @@ void MetricFieldAnalytical::normalize(double coeff){
 void MetricFieldAnalytical::getMetPhys(DifVar idiff, MetSpace tarspac, 
                                        const double*__restrict__ coop, 
                                        double*__restrict__ metl, 
-                                       double*__restrict__ dmet, 
-                                       [[maybe_unused]] int ithread) {
+                                       double*__restrict__ dmet) {
     CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
       getMetPhys0<gdim>(idiff,tarspac,coop,metl,dmet);
     }}CT_FOR1(gdim);

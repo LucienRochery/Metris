@@ -22,9 +22,6 @@ enum Localization_Errors {
 };
 
 
-template<class MetricFieldType, int bdeg>
-void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0 = 0);
-
 /*
 Localize point in mesh 
 - *ielem (in/out): first guess and final in which loc

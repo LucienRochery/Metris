@@ -264,7 +264,7 @@ double getminccoef(MeshBase &msh){
   for(int ielem = 0; ielem < nelems; ielem++){
     if(isdeadent(ielem, ent2poi)) continue;
     double vol = getmeasentP1<gdim>(ent2poi[ielem], msh.coord);
-    //if(vol < Defaults::vtol){
+    //if(vol < msh.param->vtol){
     //  printf(" NEGATIVE VOLUME ? vol = %23.15e vtol = %15.7e",vol,msh.param->vtol);
 
     //  bool iflat;

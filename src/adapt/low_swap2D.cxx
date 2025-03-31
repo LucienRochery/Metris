@@ -11,10 +11,11 @@
 
 #include "../cavity/msh_cavity.hxx"
 #include "../aux_topo.hxx"
+#include "../low_topo.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../low_lenedg.hxx"
 #include "../utils/mprintf.hxx"
-#include "../low_geo.hxx"
+#include "../low_normal.hxx"
 #include "../io_libmeshb.hxx"
 #include "../quality/low_metqua.hxx"
 
@@ -29,7 +30,7 @@ template<class MFT, int gdim, int ideg>
 int swapface(Mesh<MFT>& msh, int iface, swapOptions opt, 
              MshCavity &cav, CavWrkArrs &work, 
              double *qnrm0_, double *qnrm1_, int ithread){
-  INCVDEPTH(msh);
+  INCVDEPTH(msh.param);
 
   double &qnrm0 = *qnrm0_;
   double &qnrm1 = *qnrm1_;
@@ -51,6 +52,15 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   cav.lcfac.set_n(0);
   cav.lctet.set_n(0);
 
+
+  int iele0 = -1;
+  if(msh.get_tdim() == 3){
+    iele0 = msh.fac2tet(iface,0);
+    if(iele0 < 0) iele0 = msh.fac2tet(iface,1);
+    METRIS_ASSERT(iele0 >= 0);
+  }
+
+
   double quae1;
 
   if(pnorm >= 0){
@@ -65,14 +75,6 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     printf(" initial quality = %f \n",quae1);
   }else if(DOPRINTS1()){
     printf("\n");
-  }
-
-  // Accept any swap that gives conformity error norm lower than this element's
-  double nrmal[3];
-  // Surface case, never tested
-  if constexpr (gdim == 3){
-    getnorfacP1(msh.fac2poi[iface],msh.coord,nrmal);
-    cav.nrmal = nrmal;
   }
 
   // Old qualities associated to each possible swap. 
@@ -195,8 +197,17 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     cav.lcfac[1] = ifac2;
     cav.ipins = msh.fac2poi(iface,ied);
 
+    cav.lctet.set_n(0);
+    if(msh.get_tdim() == 3){
+      // Fill tet cavity with edge shell
+      intAr1 dum;
+      int iopen;
+      shell(msh, ip1, ip2, 3, iele0, dum, dum, cav.lctet, &iopen);
+    }
+
     CPRINTF1(" - enact swap ||(%f,%f)|| = %f -> ||(%f,%f)|| = %f \n ",
                                            quae1,quae2,qnrm0,qunw1,qunw2,qnrm1);
+    if(tdim == 3) CPRINTF1(" - cavity ntetr %d \n",cav.lctet.get_n());
 
     int ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithread);
   

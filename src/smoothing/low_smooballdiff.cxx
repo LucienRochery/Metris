@@ -20,7 +20,7 @@ Simplest possible approach.
 #include "../io_libmeshb.hxx"
 #include "../utils/mprintf.hxx"
 
-#include "../opt_generic.hxx"
+#include "../Optimization/opt_generic.hxx"
 #include "../quality/low_metqua_d.hxx"
 #include "../low_ccoef.hxx"
 #include "../low_geo.hxx"
@@ -36,7 +36,9 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
                    double*__restrict__ qnrm1, double*__restrict__ qmax1,
                    QuaFun iquaf){
 
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
+
+  CPRINTF1("-- START smooballdiff ipoin = %d nball %d\n",ipoin,lball.get_n());
 
   constexpr int tdim = idim;
   constexpr int gdim = idim;
@@ -67,51 +69,48 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   // Relative decrease tolerance 
   const double ftol = 1.0e-2;
 
-  double xtol = -1,stpmin = 1.0e-6, 
-         wlfc1 = 0.1 , wlfc2 = 10.0,ratnew = 0.5;
-  int niter = 0, maxit = 50, iflag = 0, ihess, ierro = 0;
-  const int nrwrk = 34, niwrk = 3;
-  int iprt = 0;
-  double rwrkN[nrwrk];
-  int    iwrkN[niwrk];
-  double xopt[idim], xcur[idim], coor0[idim], met0[nnmet], fopt = -1, fcur;
+  newton_drivertype_args<idim> nargs(msh.param);
+  nargs.stpmin = 1.0e-6;
+  nargs.wlfc1 = 0.1;
+  nargs.wlfc2 = 10.0;
+  nargs.ratnew= 0.5;
+  nargs.maxit = 50;
+  nargs.ftol  = ftol;
+  nargs.iprt = DOPRINTS2();
+
+  int iflag = 0, ihess, ierro = 0;
+  double  xcur[idim], coor0[idim], met0[nnmet], fcur;
   double fpre; 
   bool fpreset = false;
   bool iinva;
   double d1qua[idim], d2qua[nhess];
 
   for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
+  for(int ii = 0; ii < idim; ii++) nargs.xopt[ii] = msh.coord(ipoin,ii); // a backup in case no updates
   for(int ii = 0; ii < nnmet;ii++) met0[ii]  = msh.met(ipoin,ii);
 
   for(int niter1 = 0; niter1 < miter1; niter1++){
 
     for(int ii = 0; ii < idim; ii++) xcur[ii]  = msh.coord(ipoin,ii);
     while(true){
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
 
-      optim_newton_drivertype(idim  ,
-                              xcur  , &fcur , d1qua  , d2qua ,
-                              xtol  , stpmin, 1      ,
-                              wlfc1 , wlfc2 , ratnew ,
-                              &niter, maxit , iprt,
-                              &iflag, &ihess,
-                              nrwrk , rwrkN ,
-                              niwrk , iwrkN ,
-                              xopt  , &fopt , &ierro);
-      if(!fpreset){
-        fpreset = true;
-        fpre = fcur; 
-      }else{
-        if(abs(fpre - fcur) < ftol * abs(fpre)){
-          CPRINTF1(" - Relative decrease %15.7e < %15.7e end\n",
-                                abs(fpre - fcur) / abs(fpre), ftol);
-          break;
-        }
-        fpre = fcur;
-      }
+      ierro = optim_newton_drivertype(nargs, xcur, &fcur, d1qua, d2qua, &iflag, &ihess);
+
+      //if(!fpreset){
+      //  fpreset = true;
+      //  fpre = fcur; 
+      //}else{
+      //  if(abs(fpre - fcur) < ftol * abs(fpre)){
+      //    CPRINTF1(" - Relative decrease %15.7e < %15.7e end\n",
+      //                          abs(fpre - fcur) / abs(fpre), ftol);
+      //    break;
+      //  }
+      //  fpre = fcur;
+      //}
       if(ierro > 0){
         CPRINTF1(" # optim_newton_drivertype error %d\n",ierro);
-        goto cleanup;
+        goto finish;
       }
       if(iflag <= 0) {
         CPRINTF1(" - iflag = 0 termination\n");
@@ -140,7 +139,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
       if(iinva){
         fcur = 1.0e10;
         // radical solution for now 
-        goto cleanup;
+        goto finish;
       }
 
 
@@ -178,25 +177,39 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
         if(ihess)
           for(int ii = 0; ii < nhess;ii++) d2qua[ii] += hqelt[ii];
 
-        if(niter == 1 && niter1 == 0){
+        if(nargs.niter == 1 && niter1 == 0){
           *qnrm0 += quael; 
           *qmax0  = MAX(quael,*qmax0);
+        }
+      }// for iball
+      if(DOPRINTS1()){
+        CPRINTF1(" - Newton iter %d fcur = %e xcur = %e %e",nargs.niter,fcur,xcur[0],xcur[1]);
+        if(idim == 3) printf(" %e\n",xcur[2]);
+        else          printf("\n");
+        if(DOPRINTS2()){
+          CPRINTF2(" - grad = ");
+          dblAr1(idim,d1qua).print();
         }
       }
     } // end while true
 
     ierro = 0;
 
-    for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = xopt[ii];
+    finish:
+    if(DOPRINTS1()){
+      CPRINTF1(" -- END smooballdiff fopt = %e xopt = %e %e ",
+        nargs.fopt,nargs.xopt[0],nargs.xopt[1]);
+      if(idim == 3) printf(" %e\n",nargs.xopt[2]);
+      else          printf("\n");
+
+    }
+    for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = nargs.xopt[ii];
 
     if(DOPRINTS2()) writeMesh("debug_smooth0.meshb",msh);
 
-    ierro = msh.interpMetBack(ipoin, idim, lball[0], -1, NULL);
+    ierro = msh.interpMetBack(ipoin);
     if(ierro > 0){
-      CPRINTF1(" # interpMetBack failure ierro = %d \n",ierro);
-      //printf(" ipoin = %d \n",ipoin);
-      //writeMesh("debug_smooth_interpMetBack.meshb",msh);
-      //exit(1);
+      CPRINTF1(" # smooballdiff interpMetBack failure ierro = %d \n",ierro);
       goto cleanup;
     }
 
@@ -205,10 +218,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
       int ient2 = lball[iball];
       bool iflat;
       getmeasentP1<idim,idim>(msh, ent2poi[ient2], NULL, &iflat);
-      if(iflat){
-        CPRINTF1(" # Flat iball %d element %d \n",iball,ient2);
-        goto cleanup;
-      }
+      METRIS_ASSERT_MSG(!iflat,"## Flat iball "<<iball<<" elt "<<ient2);
     }
 
     *qnrm1 = 0;
@@ -433,7 +443,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
                         dblAr1 &work,
                         QuaFun iquaf){
 
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
   constexpr int gdim = idim;
   constexpr int tdim = idim;
   constexpr int nnmet = (idim*(idim+1))/2;
@@ -467,10 +477,10 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
   double lb[gdim], ub[gdim];
 
   double coor0[gdim], met0[nnmet];
-  int poi2bak0[3];
+  int poi2bak0;
   for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
   for(int ii = 0; ii < nnmet;ii++) met0[ii]  = msh.met(ipoin,ii);
-  for(int ii = 0; ii < msh.get_tdim();ii++) poi2bak0[ii] = msh.poi2bak(ipoin,ii);
+  poi2bak0 = msh.poi2bak[ipoin];
 
   for(int ii = 0; ii < gdim; ii++){
     lb[ii] = -HUGE_VAL;
@@ -540,7 +550,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
 
     for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
     for(int ii = 0; ii < nnmet; ii++) met0[ii] = msh.met(ipoin,ii);
-    for(int ii = 0; ii < msh.get_tdim(); ii++) poi2bak0[ii] =  msh.poi2bak(ipoin,ii);
+    poi2bak0 = msh.poi2bak[ipoin];
   }
 
   return 0;
@@ -549,7 +559,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
   cleanup:
   for(int ii = 0; ii < idim; ii++)  msh.coord(ipoin,ii) = coor0[ii];
   for(int ii = 0; ii < nnmet; ii++) msh.met(ipoin,ii) = met0[ii];
-  for(int ii = 0; ii < msh.get_tdim(); ii++) msh.poi2bak(ipoin,ii) = poi2bak0[ii];
+  msh.poi2bak[ipoin] = poi2bak0;
 
   *qnrm1 = *qnrm0;
   *qmax1 = *qmax0;

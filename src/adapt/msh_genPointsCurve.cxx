@@ -26,7 +26,7 @@ namespace Metris{
 template<class MFT>
 void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen, 
                     const double range[2], dblAr1 &lnewt, intAr1 &ledge){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
   const double tessltar = 0.1;
   // Get CAD parameter range
   ego CADed = msh.CAD.cad2edg[iref];
@@ -62,6 +62,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
   tsmet.set_n(1);
   tsedg.set_n(0);
   ted2ed.set_n(0);
+  tsbke.set_n(0);
 
   int ibcr0 = msh.poi2ebp(icor0,1,-1,iref);
   METRIS_ASSERT(ibcr0 >= 0);
@@ -90,7 +91,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
     tsmet[0] = tsmet[0]*tsmet[0];
 
     while(true){
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
       int iver = msh.template getverent<1>(iedge, 1, ipprv);
       METRIS_ASSERT(iver >= 0);
 
@@ -100,6 +101,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
 
       int ntpoi = tspoi.get_n();
       tspoi.stack(tval);
+
 
       #ifndef NDEBUG
         // Verify the back edge ts contain the new t
@@ -131,6 +133,15 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
         ted2ed(ntedg  ,1) = ntedg-1;
       }
 
+
+      CPRINTF1(" - new tess pt %d t = %f new edge %d = %d %d orig mesh edge %d ",ntpoi,tval,
+               ntedg,ntpoi-1,ntpoi,iedge);
+      #ifndef NDEBUG
+      if(DOPRINTS1()) printf(" ts = %f %f \n",tedg[0],tedg[1]);
+      #else
+      if(DOPRINTS1()) printf("\n");
+      #endif
+
       ierro = EG_evaluate(CADed, &tval, result);
       METRIS_ASSERT(ierro == 0);
       // len of curve g = \int_t \sqrt{g(t)^T M(g(t)) g'(t)}
@@ -148,7 +159,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
 
       ipprv = ipnxt;
       iedge = msh.edg2edg(iedge,iver);
-    }
+    }// while true
     CPRINTF1(" - Phase 1 tess npoin = %d\n",tspoi.get_n());
     msh.met.setSpace(ispac0);
 
@@ -157,7 +168,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
     // Store tessellated edges lengths sum to adjust tarlen
     double lentes = 0;
     while(itsed < tsedg.get_n()){
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
       int itpo1 = tsedg(itsed,0);
       int itpo2 = tsedg(itsed,1);
       double sz1 = tsmet[itpo1];
@@ -171,8 +182,8 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
 
       double len = sqrt(met1) * abs(tspoi[itpo1] - tspoi[itpo2]);
 
-      CPRINTF1(" - edge %d / %d poits %d %d sz %f %f len %f \n",
-                            itsed,tsedg.get_n(),itpo1,itpo2,sz1,sz2,len);
+      CPRINTF1(" - edge %d / %d verts %d %d sz %f %f len %f mesh edge %d \n",
+               itsed,tsedg.get_n(),itpo1,itpo2,sz1,sz2,len,tsbke[itsed]);
 
       if(len <= tessltar){
         itsed++;
@@ -215,7 +226,6 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
         if(!inbd) MPRINTF("New t %f not in edge bounds %f %f \n",tnewp, 
                           tedg[0],tedg[1]);
         METRIS_ASSERT_MSG(inbd,"New tess point t not in edge t bounds.");
-
       #endif
 
       // update neighbours
@@ -280,11 +290,12 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
     lnewt.set_n(0);
     ledge.set_n(0);
     while(true){
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
       
       if(itsed < 0){
         lastlen = lentot;
-        CPRINTF1("reached end: lastlen = %f\n",lastlen);
+        CPRINTF1("-- reached end: lastlen = %e recall range %f %f \n",lastlen,
+          range[0],range[1]);
         break;
       }
 
@@ -318,7 +329,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
 
 
       // If we're yet to go above tarlen, continue to next edge. 
-      if(lentot < tarlen) continue;
+      if(lentot < tarlen*1.99) continue;
 
 
       // Otherwise, we just passed a threshold, create new point. 

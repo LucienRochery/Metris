@@ -11,12 +11,13 @@
 
 #include "../utils/aux_misc.hxx"
 #include "../low_lenedg.hxx"
+#include "../low_topo.hxx"
 #include "../io_libmeshb.hxx"
 #include "../adapt/low_increasecav.hxx"
 #include "../cavity/msh_cavity.hxx"
 #include "../Localization/msh_localization.hxx"
 #include "../linalg/det.hxx"
-#include "../low_geo.hxx"
+#include "../low_normal.hxx"
 #include "../utils/mprintf.hxx"
 #include "../msh_checktopo.hxx"
 
@@ -31,7 +32,7 @@ namespace Metris{
 template<class MFT>
 void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lcorn,
                     const dblAr1 &lnewt, const intAr1 &ledge, int ithrd1, int ithrd2){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
   const int miter = 10; 
   const int mdseed = 2; // How many t's appart do we create the cavities from
@@ -44,8 +45,8 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
   opts.allow_remove_points = true;
   opts.dryrun = false;
   opts.geodev1 = 1.0; // lax
-  int mcfac = 100, mcedg = 10;
-  MshCavity cav(0,mcfac,mcedg);
+  int mctet = 100, mcfac = 100, mcedg = 10;
+  MshCavity cav(mctet,mcfac,mcedg);
 
 
 
@@ -59,10 +60,12 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
   t2sed.fill(-1);
   t2poi.fill(-1);
 
+  intAr1 lshell(10);
+
   // Assumptions used throughout: ninsp is ordered in increasing order, as is range
   if(DOPRINTS1()){
-    CPRINTF1("-- START insPointsCurve iref %d print first 100 t:",iref);
-    dblAr1(MIN(100,lnewt.get_n()), &lnewt[0]).print();
+    CPRINTF1("-- START insPointsCurve iref %d\n",iref);
+    //dblAr1(MIN(100,lnewt.get_n()), &lnewt[0]).print();
   }
   if(DOPRINTS2()){
     double result[18];
@@ -183,11 +186,12 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
     int nsucc = 0;
     for(int inewt = 0; inewt < ninsp; inewt++){
       if(t2mrk[inewt] >= tmark) continue;
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
 
-      CPRINTF1(" - insert newt %d / %d \n", inewt, ninsp);
 
       double tcur = lnewt[inewt];
+
+      CPRINTF1(" - insert newt %d / %d at t = %f \n", inewt, ninsp, tcur);
 
       int ipnew = msh.newpoitopo(1, -1);
       int ibnew = msh.newbpotopo(ipnew,1,t2sed[inewt+1]);
@@ -293,7 +297,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
         }//if itext
       }// for it 
 
-      if(DOPRINTS2()) writeMeshCavity("linecav0",msh,cav,ithrd2);
+      if(DOPRINTS2()) writeMeshCavity("linecav0",msh,cav);
 
 
       // fill the cavity adding edges against the t coordinate going
@@ -330,7 +334,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
         }
       }// for int icav
 
-      if(DOPRINTS2()) writeMeshCavity("linecav1",msh,cav,ithrd2);
+      if(DOPRINTS2()) writeMeshCavity("linecav1",msh,cav);
 
       // Add faces to the cavity. 
       cav.lcfac.set_n(0);
@@ -367,7 +371,44 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
         }// if ifac2 == -1
       }// for iedge : cav.lcedg
 
-      if(DOPRINTS2()) writeMeshCavity("linecav2",msh,cav,ithrd2);
+      if(DOPRINTS2()) writeMeshCavity("linecav2",msh,cav);
+
+
+      // Add tetrahedra. We need the edge shells but also the face supported tets
+      // These can be distinct as we can have more faces than edge supported due 
+      // to cav increase
+      if(msh.nelem > 0){
+        for(int iedge : cav.lcedg){
+          int iopen;
+          int ipoi1 = msh.edg2poi(iedge,0);
+          int ipoi2 = msh.edg2poi(iedge,1);
+          int iface = msh.edg2fac[iedge];
+          int iele0 = msh.fac2tet(iface,0);
+          if(iele0 < 0) iele0 = msh.fac2tet(iface,1);
+          METRIS_ASSERT(iele0 >= 0);
+
+          intAr1 dum;
+          shell3(msh, ipoi1, ipoi2, iele0, lshell, dum, &iopen);
+          METRIS_ASSERT(iopen != 0); // should all be open shells.
+
+          for(int ielem : lshell){
+            if(msh.tet2tag(ithrd1,ielem) >= msh.tag[ithrd1]) continue;
+            msh.tet2tag(ithrd1,ielem) = msh.tag[ithrd1];
+            cav.lctet.stack(ielem);
+          }
+        }// for iedge
+        for(int iface : cav.lcfac){
+          for(int ii = 0; ii < 2; ii++){
+            int ielem = msh.fac2tet(iface,ii);
+            if(ielem < 0) continue;
+            if(msh.tet2tag(ithrd1, ielem) >= msh.tag[ithrd1]) continue;
+            msh.tet2tag(ithrd1, ielem) = msh.tag[ithrd1];
+            cav.lctet.stack(ielem);
+          }
+        }
+      }//if msh.nelem > 0
+
+      if(DOPRINTS2()) writeMeshCavity("linecav3",msh,cav);
 
       double nrmal[3];
       if(msh.idim == 3){
@@ -375,27 +416,26 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
         // Use the cavity because we're lazy. It's also not too bad yet as 
         // it shouldn't be skewed, just a ribbon of triangles along a few edges.
         getnorballref<1>(msh,cav.lcfac,-1,nrmal);
-        cav.nrmal = nrmal;
       }
       ierro = increase_cavity_Delaunay(msh, cav, ithrd2, nrmal);
       if(DOPRINTS2()) writeMeshCavity("linecav4",msh,cav);
       if(ierro != 0){
         CPRINTF1(" - failed increase_cavity_Delaunay ierro = %d \n",ierro);
-        if(DOPRINTS2()) writeMeshCavity("linecav4",msh,cav,ithrd2);
+        if(DOPRINTS2()) writeMeshCavity("linecav4",msh,cav);
         if(msh.param->interactive && DOPRINTS1()) wait();
         nerro++;
         goto cleanup;
       }
 
-      ierro = increase_cavity2D(msh,cav,ithrd2);
+      ierro = increase_cavity_validity(msh,cav,ithrd2);
       if(ierro != 0){
-        CPRINTF1(" - failed increase_cavity2D ierro = %d \n",ierro);
-        if(DOPRINTS2()) writeMeshCavity("linecav3",msh,cav,ithrd2);
+        CPRINTF1(" - failed increase_cavity_validity ierro = %d \n",ierro);
+        if(DOPRINTS2()) writeMeshCavity("linecav3",msh,cav);
         if(msh.param->interactive && DOPRINTS1()) wait();
         nerro++;
         goto cleanup;
       }
-      if(DOPRINTS2()) writeMeshCavity("linecav3",msh,cav,ithrd2);
+      if(DOPRINTS2()) writeMeshCavity("linecav5",msh,cav);
 
 
 
@@ -405,11 +445,19 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       }}CT_FOR1(ideg);
 
       if(ierro != 0){
+        printf("## WAIT: Cavity ierro %d \n",ierro);
+        wait();
+      }
+
+      if(ierro != 0){
         CPRINTF1(" - failed cavity_operator ierro = %d \n",ierro);
         nerro++;
         if(msh.param->interactive && DOPRINTS2()) wait();
         goto cleanup;
       }
+
+      // After ierro check to avoid dangling ipins
+      if(msh.param->dbgfull) check_topo(msh,ithrd2);
 
       nsucc++;
       t2mrk[inewt] = tmark;
@@ -483,7 +531,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       msh.killpoint(cav.ipins);
     }// for inewt
 
-    CPRINTF1(" - iter %d inserted %d nerro %d\n",niter,nsucc,nerro);
+    CPRINTF1(" - insPoint ref %d iter %d inserted %d nerro %d\n",iref,niter,nsucc,nerro);
     #ifndef NDEBUG
     if(DOPRINTS2()){
       writeMesh("line"+std::to_string(iref)+"iter"+std::to_string(niter),msh);
@@ -512,305 +560,6 @@ template void insPointsCurve<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> 
 template void insPointsCurve<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, 
    int iref, const double* range, const int*lcorn, const dblAr1 &lnewt, 
    const intAr1 &ledge, int ithrd1, int ithrd2);
-
-
-
-
-
-#if 0
-
-
-// crvlen is the length of the CAD curve computed in the metric field. 
-// icor0 is seed corner on edge 
-// lnewt: t coord of new points
-// iseed0: an edge on this curve close to first t 
-template<class MFT>
-void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lcorn,
-                    const dblAr1 &lnewt, int ithrd1, int ithrd2){
-  GETVDEPTH(msh);
-
-  int npoi0 = msh.npoin;
-
-  CavOprOpt opts;
-  CavOprInfo info;
-  CavWrkArrs work;
-  opts.allow_topological_correction = true;
-  opts.skip_topo_checks = true;
-  opts.allow_remove_points = true;
-  opts.dryrun = false;
-  opts.geodev1 = 1.0; // lax
-  int mcfac = 100, mcedg = 10;
-  MshCavity cav(0,mcfac,mcedg);
-
-
-  int ninsp = lnewt.get_n();
-  intAr1 t2mrk(ninsp+1);
-  t2mrk.set_n(ninsp+1);
-  t2mrk.fill(0);
-  int tmark = 1;
-  double result[18], bary[2], coopr[3], normal[3];
-  ego obj = msh.CAD.cad2edg[iref]; 
-
-  // Iterate in case some errors require restart 
-  for(int niter = 0; niter < 10; niter++){
-
-    int nerro = 0;
-    int nsucc = 0;
-    double tprev = range[0];
-    int iseed1 = -1;
-    {
-      double dt = abs(range[1] - range[0]);
-      // Do it manually because we may have two inciding edges (loop) and we 
-      // need to go by t similarity
-      for(int ib = msh.poi2bpo[lcorn[0]]; ib >= 0; ib = msh.bpo2ibi(ib,3)){
-        if(msh.bpo2ibi(ib,1) != 1) continue;
-        int itmp = msh.bpo2ibi(ib,2);
-        if(msh.edg2ref[itmp] != iref) continue;
-
-        double t = msh.bpo2rbi(ib,0);
-        //printf("Test ib %d t %f range %f %f \n",ib,t,range[0],range[1]);
-        if(abs(t - range[0]) < 1.0e-6 * dt){
-          iseed1 = itmp;
-          break;
-        }
-      }
-      METRIS_ASSERT_MSG(iseed1 >= 0, "COULD NOT FIND t CORNER IN BPOIS")
-      METRIS_ASSERT(msh.edg2ref[iseed1] == iref);
-    }
-    // Loop one over, last is range[1]. We still need to keep track of that. 
-    for(int inewt = 0; inewt < ninsp + 1; inewt++){
-      INCVDEPTH(msh);
-
-      double tcoor;
-      int ierro;
-      if(inewt < ninsp){
-        if(t2mrk[inewt] >= tmark) continue;
-        tcoor = lnewt[inewt]; 
-        cav.ipins = msh.newpoitopo(1,-1);
-
-        ierro = EG_evaluate(obj, &tcoor, result);
-        METRIS_ASSERT(ierro == 0);
-        for(int ii = 0; ii < msh.idim; ii++) msh.coord(cav.ipins,ii) = result[ii];
-      }else{
-        tcoor = range[1];
-        cav.ipins = lcorn[1];
-      }
-      cav.lcedg.set_n(0);
-      cav.lcfac.set_n(0);
-      cav.nrmal = NULL;
-
-      CPRINTF1(" - inewt %d / %d tcoor = %f \n",inewt,ninsp,tcoor);
-
-
-
-      int iseed2 = iseed1;
-
-
-      { // namespace preservation (goto)
-        // get the edge seed by localizing in t space on the front mesh 
-        int itag0 = msh.tag[ithrd1];
-        if(msh.idim == 2){
-          ierro = locMesh<2,1,1>(msh, &iseed2, msh.coord[cav.ipins], 1, &tcoor, iref, &result[3],
-                                 coopr, bary, 1.0e-6, ithrd1);
-        }else{
-          ierro = locMesh<3,1,1>(msh, &iseed2, msh.coord[cav.ipins], 1, &tcoor, iref, &result[3],
-                                 coopr, bary, 1.0e-6, ithrd1);
-        }
-        if(ierro != 0){
-          CPRINTF1(" - failed locMesh ierro = %d \n",ierro);
-          nerro++;
-          goto cleanup;
-        }
-        int itag1 = msh.tag[ithrd1];
-        if(itag1 != itag0+1) METRIS_THROW_MSG(TODOExcept(), 
-                                        "Revise getting edges from iedg1 to iedg2")
-
-        // Now we're going to be a little too clever for our own good, probably. 
-        // Since we're calling locMesh with tdim = 1, no lower dims will be called
-        // Hence the tag is only prev tag + 1
-        // And the tagged elements are all those between iseed1 and iseed2.
-        // These are thus the guys we want in our cavity. 
-        int iecur = iseed1;
-        int ieprv = -1;
-        while(true){
-          cav.lcedg.stack(iecur);
-          METRIS_ASSERT(msh.edg2tag(ithrd1,iecur) == msh.tag[ithrd1]);
-
-          bool ifnd = false;
-          for(int ii = 0; ii < 2; ii++){
-            int ienei = msh.edg2edg(iecur,ii);
-            if(ienei < 0) continue;
-            if(ienei == ieprv) continue;
-            if(msh.edg2tag(ithrd1,ienei) < msh.tag[ithrd1]) continue;
-            ifnd = true;
-            ieprv = iecur;
-            iecur = ienei;
-          }
-          if(!ifnd) break;
-          if(iecur == iseed1){
-            METRIS_THROW_MSG(TODOExcept(), "Investigate this looping after loc");
-            break; // could be a loop
-          }
-        }
-        CPRINTF1(" - step 1: edge cavity n = %d\n",cav.lcedg.get_n());
-        msh.tag[ithrd2]++;
-        for(int iedgl = 0; iedgl < cav.lcedg.get_n(); iedgl++){
-          INCVDEPTH(msh);
-          int iedge = cav.lcedg[iedgl];
-          CPRINTF1(" - iedgl %d / %d \n",iedgl,cav.lcedg.get_n());
-
-          // Skip edges that contain only new points. Remove the edge
-          if(msh.edg2poi(iedge,0) >= npoi0 
-          && msh.edg2poi(iedge,1) >= npoi0 ){
-            cav.lcedg[iedgl] = cav.lcedg[cav.lcedg.get_n() - 1];
-            cav.lcedg.pop();
-            CPRINTF1(" - removed edge i %d = %d \n",iedgl,iedge);
-            iedgl--;
-            continue;
-          }
-
-          int ifac1 = msh.edg2fac[iedge];
-          CPRINTF1(" - iedgl %d / %d consider ifac1 = %d tad = %d <? %d \n", 
-                   iedgl,cav.lcedg.get_n(),ifac1,
-                   msh.fac2tag(ithrd2,ifac1),msh.tag[ithrd2]);
-          if(msh.fac2tag(ithrd2,ifac1) >= msh.tag[ithrd2]) continue;
-          msh.fac2tag(ithrd2,ifac1) = msh.tag[ithrd2];
-          cav.lcfac.stack(ifac1);
-
-          int iedl = getedgfac(msh,ifac1,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
-          METRIS_ASSERT(iedl >= 0);
-          int ifac2 = msh.fac2fac(ifac1,iedl);
-          CPRINTF1(" - consider ifac2 = %d tad = %d <? %d \n", ifac2,
-                   msh.fac2tag(ithrd2,MAX(ifac2,0)),msh.tag[ithrd2]);
-          if(ifac2 >= 0){
-            if(msh.fac2tag(ithrd2,ifac2) < msh.tag[ithrd2]){
-              msh.fac2tag(ithrd2,ifac2) = msh.tag[ithrd2];
-              cav.lcfac.stack(ifac2); 
-            }
-          }
-
-        }
-      } // local namespace
-      CPRINTF1(" - step 2: edge cav n = %d face cav n = %d\n",
-                            cav.lcedg.get_n(),cav.lcfac.get_n());
-
-      if(DOPRINTS2()){
-        writeMeshCavity("inscurvecav0",msh,cav);
-        writeMesh("inscurvepreop",msh);
-      }
-
-      // Now forget about previous seed.
-      iseed1 = iseed2;
-      if(inewt < ninsp){
-        int ibins = msh.newbpotopo(cav.ipins,1,iseed2);
-        msh.bpo2rbi(ibins,0) = tcoor;
-      }
-
-      // Compute a normal if needed.  
-      if(msh.idim == 3){
-        cav.nrmal = normal;
-        getnorballref<1>(msh, cav.lcfac, -1, normal);
-      }
-
-
-
-      // Then interpolate metric at this point 
-      if(inewt < ninsp){
-        ierro = msh.interpMetBack(cav.ipins,1,iseed1,iref,&result[3]);
-        if(ierro != 0){
-          CPRINTF1(" - failed interpMetBack ierro = %d \n",ierro);
-          nerro++;
-          goto cleanup;
-        }
-      }
-
-
-      // Now increase cavity
-      ierro = increase_cavity2D(msh,cav,ithrd1);
-      if(ierro != 0){
-        CPRINTF1(" - failed increase_cavity2D ierro = %d \n",ierro);
-        if(msh.param->dbgfull && DOPRINTS1()) wait();
-        nerro++;
-        goto cleanup;
-      }
-
-      if(DOPRINTS2()) writeMeshCavity("inscurvecav1",msh,cav);
-
-      if(msh.idim == 2){
-        increase_cavity_Delaunay(msh, cav, ithrd1);
-        if(DOPRINTS2()) writeMeshCavity("inscurvecav2",msh,cav);
-      }
-
-      CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
-        ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd1);
-      }}CT_FOR1(ideg);
-
-      if(ierro != 0){
-        CPRINTF1(" - failed cavity_operator ierro = %d \n",ierro);
-        nerro++;
-        if(msh.param->dbgfull && DOPRINTS1()) wait();
-        goto cleanup;
-      }
-
-      if(msh.param->dbgfull)  check_topo(msh);
-
-      nsucc++;
-      // Restart seed from one of the new edges. The one with t going towards next
-      t2mrk[inewt] = tmark;
-
-      if(inewt < ninsp){ // Last will throw, also useless
-        bool ifnd = false;
-        for(int ii = 1; ii <= 2; ii++){
-          int iedge = msh.nedge - ii;
-          int iver = msh.template getverent<1>(iedge, 1, cav.ipins);
-          METRIS_ASSERT(iver >= 0);
-          int ipother = msh.edg2poi(iedge,1-iver);
-          METRIS_ASSERT(ipother >= 0);
-          int ibother = msh.poi2ebp(ipother,1,iedge,iref);
-          METRIS_ASSERT(ibother >= 0);
-          double tother = msh.bpo2rbi(ibother,0);
-          // If this t coord is closer to previous t, then we're going backwards
-          if(abs(tother - tprev) <= abs(tcoor - tprev)) continue;
-          ifnd = true;
-          iseed1 = iedge;
-        }
-        METRIS_ASSERT(ifnd);
-        tprev = tcoor;
-      }
-
-      continue;
-      cleanup:
-      msh.killpoint(cav.ipins);
-    }// for int inewt
-
-
-    CPRINTF1(" - iter %d inserted %d nerro %d\n",niter,nsucc,nerro);
-    //#ifndef NDEBUG
-    //if(nsucc == 1 && nerro == 1 && msh.param->dbgfull){
-    //  MPRINTF("WAIT AT NSUCC 1 NERRO 1 \n");
-    //  wait();
-    //}
-    //#endif
-    if(DOPRINTS2()) writeMesh("insPoints_ref"+std::to_string(iref)+"_iter"+std::to_string(niter),msh);
-    if(nerro == 0) break;
-
-  }// for int niter
-
-
-}
-
-
-template void insPointsCurve<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, 
-   int iref, const double* range, const int*lcorn, const dblAr1 &lnewt, int ithrd1, int ithrd2);
-template void insPointsCurve<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, 
-   int iref, const double* range, const int*lcorn, const dblAr1 &lnewt, int ithrd1, int ithrd2);
-
-#endif
-
-
-
-
-
 
 
 } //namespace Metris

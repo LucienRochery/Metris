@@ -11,7 +11,8 @@
 
 #include "../low_geo.hxx"
 #include "../utils/aux_misc.hxx"
-#include "../opt_generic.hxx"
+#include "../utils/mprintf.hxx"
+#include "../Optimization/opt_generic.hxx"
 #include "../ho_constants.hxx"
 #include "../low_eval.hxx"
 
@@ -58,7 +59,7 @@ int inveval_badNewton0(const MeshBase &msh,
 
   }else{
 
-    newton_drivertype_args<gdim> args;
+    newton_drivertype_args<gdim> args(msh.param);
     args.stpmin = 1.0e-12;
     args.ratnew = 0.5; // LS step decrease factor 
     args.iprt = msh.param->iverb - 1;
@@ -350,6 +351,8 @@ int inveval0(const MeshBase &msh,
   // and NLOPT_LD_TNEWTON (same without restarting or preconditioning).
   constexpr int tdim = gdim;
 
+  GETVDEPTH(msh.param);
+
   nlopt_algorithm algo = NLOPT_LD_TNEWTON_PRECOND_RESTART;
 
   invevalfun_data mydata(msh,ent2pol,coord,coor0,coopr);
@@ -357,63 +360,67 @@ int inveval0(const MeshBase &msh,
   int nwork = luksan_pnet_worksize(gdim);
   work.allocate(nwork);
   work.set_n(nwork);
-  double fstop = tol*tol/2;
+  double fstop = tol*tol;
   double ftol_rel = -1e30; 
   double ftol_abs = -1e30;
   double lb[gdim], ub[gdim];
 
   inventP1<gdim>(ent2pol, coord, coor0, bary);
 
-  for(int ii = 0; ii < gdim; ii++){
-    lb[ii] = -HUGE_VAL;
-    ub[ii] =  HUGE_VAL;
-  }
-  int ierro = luksan_pnetS<gdim>(invevalfun_nlointf<gdim,ideg>, &mydata,
-                                 lb, ub, /* bounds */
-                                 &bary[1], /* in: initial guess, out: minimizer */
-                                 &fopt,
-                                 //int mf, /* subspace dimension (0 for default) */
-                                 algo,
-                                 work,
-                                 fstop , ftol_rel, ftol_abs);
+  if constexpr(ideg > 1){
+    for(int ii = 0; ii < gdim; ii++){
+      lb[ii] = -HUGE_VAL;
+      ub[ii] =  HUGE_VAL;
+    }
+    int ierro = luksan_pnetS<gdim>(invevalfun_nlointf<gdim,ideg>, &mydata,
+                                   lb, ub, /* bounds */
+                                   &bary[1], /* in: initial guess, out: minimizer */
+                                   &fopt,
+                                   //int mf, /* subspace dimension (0 for default) */
+                                   algo,
+                                   work,
+                                   fstop , ftol_rel, ftol_abs);
 
-  bary[0] = 1;
-  for(int ii = 0; ii < gdim; ii++){
-    bary[0]   -= bary[ii+1];
-  }
+    bary[0] = 1;
+    for(int ii = 0; ii < gdim; ii++){
+      bary[0]   -= bary[ii+1];
+    }
 
-  constexpr auto evalf = tdim == 1 ? eval1<gdim,ideg> : 
-                         tdim == 2 ? eval2<gdim,ideg> : eval3<gdim,ideg>;
-  evalf(coord,ent2pol,msh.getBasis(),DifVar::None,
-        DifVar::None,bary,coopr,NULL,NULL);
-  double dist = geterrl2<gdim>(coopr,coor0);
-  // Why is this mixed in with unconverged conditions?
-  if(ierro == NLOPT_STOPVAL_REACHED
-  || ierro == NLOPT_FTOL_REACHED
-  || ierro == NLOPT_XTOL_REACHED) ierro = NLOPT_SUCCESS;
+    constexpr auto evalf = tdim == 1 ? eval1<gdim,ideg> : 
+                           tdim == 2 ? eval2<gdim,ideg> : eval3<gdim,ideg>;
+    evalf(coord,ent2pol,msh.getBasis(),DifVar::None,
+          DifVar::None,bary,coopr,NULL,NULL);
+    double dist = geterrl2<gdim>(coopr,coor0);
+    // Why is this mixed in with unconverged conditions?
+    if(ierro == NLOPT_STOPVAL_REACHED
+    || ierro == NLOPT_FTOL_REACHED
+    || ierro == NLOPT_XTOL_REACHED) ierro = NLOPT_SUCCESS;
 
-  if(ierro != NLOPT_SUCCESS){
-    if(msh.param->iverb >= 3) 
-      printf("     -luksan_pnet failed ierro %d \n",ierro);
-    return 2;
-  }
+    if(ierro != NLOPT_SUCCESS){
+      CPRINTF1("## luksan_pnet failed ierro %d \n",ierro);
+      return 2;
+    }
 
-
-  if(dist >= tol*tol){
-    if(msh.param->iverb >= 3) 
-      printf("     -luksan_pnet did not converge dist %e >= %e reported %e \n",dist,tol*tol,fopt*2);
-    return 2;
+    CPRINTF1(" - luksan_pnet finished with dist %e <? %e\n",dist,tol*tol);
+    if(dist >= tol*tol){
+      CPRINTF1("## luksan_pnet did not converge dist %e >= %e reported %e fstop %e\n",
+               dist,tol*tol,fopt,fstop);
+      printf("## WAIT HERE! Why is it that we have ierro =? NLOPT_SUCCESS: %d "
+             "but not respecting the distance\n",ierro == NLOPT_SUCCESS);
+      wait();
+      return 2;
+    }
   }
 
   //if(dist >= tol*tol){
   //  if(msh.param->iverb >= 3) printf("dist > tol despite  failed ierro %d \n",ierro);
   //}
 
-  bool iout = false;
+  int iout = 0;
   for(int ii = 0 ;ii < gdim+1; ii++){
     if(bary[ii] >   - Constants::baryTol 
     && bary[ii] < 1 + Constants::baryTol) continue;
-    iout = true;
+    iout = 1;
   }
 
   return iout;
@@ -447,6 +454,7 @@ int inveval(MeshBase &msh, int ientt,
                   double* __restrict__ coopr, 
                   double* __restrict__ bary,
                   double tol0){
+  GETVDEPTH(msh.param);
   constexpr int tdim = gdim;
 
   const int iverb = msh.param->iverb;
@@ -466,8 +474,7 @@ int inveval(MeshBase &msh, int ientt,
     // 
   }
 
-  if(iverb >= 3)
-    printf("    -- Start inveval ientt %d adj tol fac %15.7e\n",ientt,tol/tol0);
+  CPRINTF1("-- START inveval ientt %d tol inp = %e adj = %e\n",ientt,tol0,tol);
   
 
   const intAr2 &ent2poi = msh.ent2poi(tdim);
@@ -476,7 +483,7 @@ int inveval(MeshBase &msh, int ientt,
   if(ierro < 2) return ierro;
   // Only if ideg > 1 should we be here 
   METRIS_ASSERT(ideg > 1);
-  if(iverb >= 3) printf("    - inveval0 unconverged, precondition\n");
+  CPRINTF1(" - inveval0 unconverged, precondition\n");
 
   //printf("DEBUG WAIT HERE\n");
   //wait();
@@ -511,7 +518,7 @@ int inveval(MeshBase &msh, int ientt,
 
   for(int ii = 0; ii < gdim ;ii++) dum[ii] = 0;
 
-  ierro = inveval0<gdim,ideg>(msh,ent2pol,coorl,dum,coopr,bary,work,tol0/10);
+  ierro = inveval0<gdim,ideg>(msh,ent2pol,coorl,dum,coopr,bary,work,tol);
 
   // Bary is correct but coopr needs reevaluating
   constexpr auto evalf = tdim == 1 ? eval1<gdim,ideg> : 
@@ -520,14 +527,14 @@ int inveval(MeshBase &msh, int ientt,
         DifVar::None,bary,coopr,NULL,NULL);
 
   double dist = geterrl2<gdim>(coopr,coor0);
-  if(iverb >= 3) printf("     - precond call ret ierro %d dist = %15.7e\n",ierro,dist);
+  CPRINTF1(" - precond call ret ierro %d dist = %15.7e\n",ierro,dist);
 
 
   //printf("DEBUG WAIT HERE after precond\n");
   //wait();
 
   if(dist >= tol*tol){
-    if(iverb >= 3) printf("    ## still unconverged dist %e >= %e !!\n",dist,tol*tol);
+    CPRINTF1("## END inveval: still unconverged dist %e >= %e !!\n",dist,tol*tol);
     return 2;
   }
 
@@ -574,18 +581,18 @@ double invevalfun(const MeshBase &msh,
   // f = ||FK(xi) - X0||^2 / 2
   // dif = (J_{i:}, (FK(xi) - X0))
   // dijf = (H_{ij:}, (FK(xi) - X0)) + (J_{i:}, J_{j:})
-  double fcur = dist / 2;
+  double fcur = dist;
   if(grad != NULL){
     for(int ii = 0; ii < gdim; ii++) 
-      grad[ii] = getprdl2<gdim>(jmat[ii], coopr)  
-               - getprdl2<gdim>(jmat[ii], coor0);
+      grad[ii] = 2*( getprdl2<gdim>(jmat[ii], coopr)  
+                   - getprdl2<gdim>(jmat[ii], coor0));
   }
   if(ihess > 0){
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = ii; jj < gdim; jj++){
-        hess[sym2idx(ii,jj)] = getprdl2<gdim>(hmat[sym2idx(ii,jj)], coopr)
-                             - getprdl2<gdim>(hmat[sym2idx(ii,jj)], coor0)
-                             + getprdl2<gdim>(jmat[ii],jmat[jj]);
+        hess[sym2idx(ii,jj)] = 2*( getprdl2<gdim>(hmat[sym2idx(ii,jj)], coopr)
+                                 - getprdl2<gdim>(hmat[sym2idx(ii,jj)], coor0)
+                                 + getprdl2<gdim>(jmat[ii],jmat[jj]));
       }
     }
   }// if ihess

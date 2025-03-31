@@ -15,32 +15,6 @@
 
 namespace Metris{
 
-// The boundary here is a set of edges. They will be reconnected to 
-// ipins. 
-// Note: if the initial cavity includes edges, these have been reconnected
-// and the result is in lnewed
-// Triangles, likewise. 
-template <class MFT, int ideg>
-int reconnect_tetcav([[maybe_unused]]Mesh<MFT> &msh, 
-                     [[maybe_unused]] const MshCavity& cav, 
-                     [[maybe_unused]] CavOprOpt &opts, 
-                     [[maybe_unused]] double *qmax, 
-                     [[maybe_unused]] int ithread){
-  if(cav.lctet.get_n() > 0){
-    METRIS_THROW_MSG(TODOExcept(), "Implement reconnect_tetcav");
-  }
-	return 0;
-}
-
-
-// ---------- Forward declarations
-// See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
-// Section A.4.1.2 Vertical Repetition
-#define BOOST_PP_LOCAL_MACRO(n)\
-template int reconnect_tetcav<MetricFieldAnalytical, n >(Mesh<MetricFieldAnalytical> &msh, const MshCavity& cav, CavOprOpt &opts, double *qmax, int ithread);\
-template int reconnect_tetcav<MetricFieldFE        , n >(Mesh<MetricFieldFE        > &msh, const MshCavity& cav, CavOprOpt &opts, double *qmax, int ithread); 
-#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
-#include BOOST_PP_LOCAL_ITERATE()
 
 // -------------------------------------------------------------------------------------- //
 // -------------------------------------------------------------------------------------- //
@@ -54,15 +28,14 @@ int cavity_operator(Mesh<MFT> &msh ,
                     CavWrkArrs &work  ,
                     CavOprInfo &info  ,
                     int ithread){
-  GETVDEPTH(msh);
+  INCVDEPTH(msh.param);
   info.done = false;
 
-  METRIS_ENFORCE_MSG(opts.max_increase_cav_geo <= 1, 
-                     "Implement cavity correction")
+  METRIS_ENFORCE_MSG(opts.max_increase_cav_geo <= 1,"Implement cavity correction")
 
   CPRINTF1("-- cavity_operator start ncedg = %d ncfac = %d nctet = %d ipins = %d \n",
-    cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),cav.ipins);
-  
+           cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),cav.ipins);
+  CPRINTF1("   npoin %d nedge %d nface %d nelem %d\n",msh.npoin,msh.nedge,msh.nface,msh.nelem);
   if(DOPRINTS1()){
     if(cav.lcedg.get_n() > 0){
       CPRINTF1(" - Edge cavity: ");
@@ -107,22 +80,15 @@ int cavity_operator(Mesh<MFT> &msh ,
 	if(cav.ipins < 0 || cav.ipins >= msh.npoin) 
 		METRIS_THROW_MSG(WArgExcept(),"ipins out of bounds\n");
 
-	// The outcav must only store elements that will be put in the mesh
-	// It will not include everything coming from gen_lcav, gen_faccav, gen_tetcav.
-	// Those are stored separately and are only used to generate new elements. 
-	//MshCavity outcav(cav.lctet.size(),cav.lcfac.size(),cav.lcedg.size());
 	int ierro = CAV_NOERR;
-	//int mbad = 100, nbad = 0;
-	//RoutineWorkMemory<int> iwrk(msh.iwrkmem);
-	//intAr2 lbad(mbad,2,iwrk.allocate(2*mbad));
 
-  //int nbad; 
-  intAr2 &lbad = work.lbad;
+
 
 	int iinva = 0;
 	int niter_incr = 0;
 	// In lbad, store: [2*i + 0] = entity rank in cavity
 	//                 [2*i + 1] = entity type: 0 = edg, 1 = fac, 2 = tet
+  intAr2 &lbad = work.lbad;
 
 
 	int nbpo0 = msh.nbpoi,
@@ -134,7 +100,8 @@ int cavity_operator(Mesh<MFT> &msh ,
   double qmax;
 
   /*  --------------   Correctness checks -------------------- */
-	if(cav.lcedg.get_n() > 0 && msh.isboundary_edges() || cav.lcfac.get_n() > 0 && msh.isboundary_faces() ){
+	if(cav.lcedg.get_n() > 0 && msh.isboundary_edges() 
+  || cav.lcfac.get_n() > 0 && msh.isboundary_faces() ){
 		int ibpoi = msh.poi2bpo[cav.ipins];
     if(ibpoi < 0){
       CPRINTF1("## ERROR CAV_ERR_NOBPO\n");
@@ -147,19 +114,6 @@ int cavity_operator(Mesh<MFT> &msh ,
       ierro = CAV_ERR_TDIMN;
       goto cleanup;
     }
-
-    // Only if the point is pure surface need the normal be given
-    // Otherwise we'll compute on the fly for each surface. 
-    // This begs refactoring at some point 
-    if(cav.lcfac.get_n() > 0 && msh.idim >= 3 && ityp == 2){
-      METRIS_ASSERT(cav.nrmal != NULL);
-    }
-    // This can happen legitimately. (but the op is not valid)
-		//if(ibpoi < 0) {
-    //  METRIS_THROW_MSG(WArgExcept(),
-		//	"When (re)inserting a boundary point, provide an ibpoi with (u,v)s\n ipins = "
-    //  <<cav.ipins<<" ibpoi = "<<ibpoi);
-    //}
 	}
 
 
@@ -168,18 +122,22 @@ int cavity_operator(Mesh<MFT> &msh ,
 	if(ierro > 0) goto cleanup;
 
 
+  // The minimum value we need to set to (note right ++ is fine as we need only >=)
+  cav.maxtag = ++msh.tag[ithread];
+  
 	// Goto constraint, decl needs to be above
 	iinva = 0;
 	niter_incr = 0;
 	do{
-   /*  -------------- Generate final cavity -------------------- 
-   		------- For typent in (line|face|tetra) do 
-       -------   Generate typent cavity + new typent-1 elements boundary
-       -------   Reconnect bdry to ipins
-   */
+     /*  -------------- Generate final cavity -------------------- 
+     		 For typent in (line|face|tetra) do 
+           Generate typent cavity + new typent-1 elements boundary
+           Reconnect bdry to ipins
+     */
 
 			ierro = reconnect_lincav<MFT, ideg>(msh, cav, opts, ithread);
 			if(ierro > 0) goto cleanup;
+
 
       CPRINTF1("-- reconnect_lincav done nedg0 = %d nedge = %d npoi0 = %d npoin = %d\n",
                nedg0,msh.nedge,npoi0,msh.npoin);
@@ -205,8 +163,9 @@ int cavity_operator(Mesh<MFT> &msh ,
       CPRINTF1("-- reconnect_faccav done nfac0 = %d nface = %d \n",nfac0,msh.nface);
 
 
-			ierro = reconnect_tetcav<MFT, ideg>(msh, cav, opts, &qmax, ithread);
+			ierro = reconnect_tetcav<MFT, ideg>(msh, cav, opts, nfac0, &qmax, ithread);
       if(ierro > 0) goto cleanup; 
+      CPRINTF1("-- reconnect_tetcav done nele0 = %d nelem = %d \n",nele0,msh.nelem);
 	
 	/*  -------------- Fast validity correction --------------------
 	  If this doesn't pass, don't invest on expensive optimization 
@@ -214,7 +173,7 @@ int cavity_operator(Mesh<MFT> &msh ,
 	*/
 
 
-		ierro = correct_cavity_fast<MFT,ideg>(msh,cav,opts,npoi0,nedg0,
+		ierro = correct_cavity<MFT,ideg>(msh,cav,opts,npoi0,nedg0,
                                                       nfac0,nele0,lbad,work,ithread);
     if(ierro > 0) goto cleanup;
 
@@ -261,7 +220,7 @@ int cavity_operator(Mesh<MFT> &msh ,
 
 
   CPRINTF1("-- Cavity successful exit\n");
-	return 0;
+	goto finish;
 
 
   //-------- cleanup (error case)
@@ -273,7 +232,7 @@ int cavity_operator(Mesh<MFT> &msh ,
   }
 	//METRIS_THROW_MSG(TODOExcept(), 
   //  "Get rid of bpoi entries of existing points? Do these exist? Check ierro = "<<ierro);
-  msh.tag[ithread]++;
+  msh.tag[ithread] = cav.maxtag;
   if(msh.isboundary_faces()){
     for(int iface = nfac0; iface < msh.nface; iface++){
       msh.fac2tag(ithread,iface) = msh.tag[ithread];
@@ -296,9 +255,11 @@ int cavity_operator(Mesh<MFT> &msh ,
 	msh.set_nedge(nedg0);
 	msh.set_nface(nfac0);
 	msh.set_nelem(nele0);
+
+  finish:
+  msh.tag[ithread] = cav.maxtag;
 	return ierro;
 }
-// ---------- Forward declarations
 // See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\

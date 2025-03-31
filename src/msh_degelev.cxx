@@ -392,7 +392,8 @@ void deg_elevate(Mesh<MFT> &msh){
     
     
           int iopen;
-          shell3(msh, ip1 ,ip2 ,ielem ,lshell, &iopen); // i = dum
+          intAr1 dum;
+          shell3(msh, ip1 ,ip2 ,ielem ,lshell, dum, &iopen); // i = dum
     
     
           // If the shell is open, that means the edge is on the boundary. 

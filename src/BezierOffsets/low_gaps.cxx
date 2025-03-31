@@ -292,8 +292,8 @@ void scalrotJ0(const MeshBase &msh, int ielem  ,
   double jmat[gdim][gdim];
   for(int j = 0; j < gdim; j++){
     for(int i = 0; i < gdim; i++){
-      jmat[j][i] = msh.coord[ent2poi[ielem][j+1]][i]
-                 - msh.coord[ent2poi[ielem][  0]][i];
+      jmat[j][i] = msh.coord(ent2poi[ielem][j+1],i)
+                 - msh.coord(ent2poi[ielem][  0],i);
     }
     //jmat[0][i] = msh.coord[msh.tet2poi(ielem,1)][i]
     //           - msh.coord[msh.tet2poi(ielem,0)][i];

@@ -201,7 +201,7 @@ int getedgfacOpp(const MeshBase &msh, int iface, int i1, int i2){
 		int j2 = msh.fac2poi(iface,lnoed2[i][1]);
 		if(i1 == j2 && i2 == j1) return i;
 	}
-	METRIS_THROW_MSG(TopoExcept(),"EDGE NOT IN TRIANGLE");
+  return -1;
 }
 
 int getfactetOpp(const MeshBase &msh, int ielem, int i1, int i2, int i3){
@@ -214,7 +214,7 @@ int getfactetOpp(const MeshBase &msh, int ielem, int i1, int i2, int i3){
 		|| (i1 == j2 && i2 == j1 && i3 == j3) 
 		|| (i1 == j3 && i2 == j2 && i3 == j1)) return i;
 	}
-	METRIS_THROW_MSG(TopoExcept(),"FACE NOT BACKWARDS (OR NOT AT ALL) IN TET");
+  return -1;
 }
 
 int getfactet(const MeshBase &msh, int ielem, int i1, int i2, int i3){
@@ -230,7 +230,7 @@ int getfactet(const MeshBase &msh, int ielem, int i1, int i2, int i3){
 		|| (i1 == j3 && i2 == j2 && i3 == j1)
 		|| (i1 == j3 && i2 == j1 && i3 == j2) ) return i;
 	}
-	METRIS_THROW_MSG(TopoExcept(),"FACE NOT IN TET");
+  return -1;
 }
 
 // Get the face ifa2 such that iele2's ifa-th neighbour is iele1
@@ -238,7 +238,7 @@ int getneitet(const MeshBase &msh, int iele1, int iele2){
 	for(int i = 0; i < 4; i++){
 		if(msh.tet2tet(iele2,i) == iele1) return i;
 	}
-	METRIS_THROW_MSG(TopoExcept(),"TET NEIGHBOUR DOES NOT EXIST");
+  return -1;
 }
 
 int getedgtet(const MeshBase &msh, int ielem,  int i1, int i2){
@@ -247,7 +247,25 @@ int getedgtet(const MeshBase &msh, int ielem,  int i1, int i2){
 		int j2 = msh.tet2poi(ielem,lnoed3[i][1]);
 		if((i1 == j1 && i2 == j2) || (i1 == j2 && i2 == j1)) return i;
 	}
-	METRIS_THROW_MSG(TopoExcept(),"EDGE NOT IN TET");
+  return -1;
+}
+
+
+
+int getedgent(const MeshBase &msh, int tdim, int ientt, int i1, int i2){
+  if(tdim == 1){
+    METRIS_THROW_MSG(WArgExcept(), "getedgent called with tdim == 1: error?");
+    if(  msh.edg2poi(ientt,0) == i1 && msh.edg2poi(ientt,1) == i2
+      || msh.edg2poi(ientt,0) == i1 && msh.edg2poi(ientt,1) == i2){
+      return 0;
+    }else{
+      return -1;
+    }
+  }else if(tdim == 2){
+    return getedgfac(msh,ientt,i1,i2);
+  }else{
+    return getedgtet(msh,ientt,i1,i2);
+  }
 }
 
 
@@ -265,7 +283,7 @@ int isedgtet(const intAr2 &tet2poi,int ielem, int ied,int i1,int i2){
 void print_bpolist(MeshBase &msh, int ibpoi){
 	if(ibpoi < 0) return;
 
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 	MPRINTF("-- START printing list for ibpoi = %d \n",ibpoi);
 
 	int ibpo2 = ibpoi;
@@ -278,6 +296,13 @@ void print_bpolist(MeshBase &msh, int ibpoi){
 		}
 		MPRINTF("   - %d: %d = (%d %d %d %d)\n",nlist,ibpo2,msh.bpo2ibi(ibpo2,0)
 			      ,msh.bpo2ibi(ibpo2,1),msh.bpo2ibi(ibpo2,2),msh.bpo2ibi(ibpo2,3));
+
+    int tdim = msh.bpo2ibi(ibpo2,1);
+    if(tdim >= 1){
+      MPRINTF("     - entity nodes: ");
+      int ientt = msh.bpo2ibi(ibpo2,2);
+      intAr1(getnnode(tdim,msh.curdeg),msh.ent2poi(tdim)[ientt]).print();
+    }
 		ibpo2 = msh.bpo2ibi(ibpo2,3);
 	}while(ibpo2 >= 0 && ibpo2 != ibpoi);
 }

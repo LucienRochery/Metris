@@ -9,6 +9,7 @@
 
 #include "../low_lenedg.hxx"
 #include "../aux_topo.hxx"
+#include "../io_libmeshb.hxx"
 #include "../utils/aux_timer.hxx"
 #include "../utils/mprintf.hxx"
 #include "../cavity/msh_cavity.hxx"
@@ -16,6 +17,9 @@
 #include "../BezierOffsets/low_gaps.hxx"
 #include "../low_geo.hxx"
 #include "../Mesh/Mesh.hxx"
+#include "../msh_checktopo.hxx"
+#include "../aux_histogram.hxx"
+#include "../msh_lenedg.hxx"
 
 #include <cmath>
 
@@ -26,7 +30,7 @@ namespace Metris{
 // also: as iterations go, fewer and fewer edges are long, no use allocating more than once to maximum needed size (first iter)
 template<class MFT, int gdim, int ideg>
 double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int ithrd3){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd3 >= 0 && ithrd3 < METRIS_MAXTAGS);
@@ -34,8 +38,17 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
   METRIS_ASSERT(ithrd1 != ithrd3);
   METRIS_ASSERT(ithrd2 != ithrd3);
 
+  //if(DOPRINTS2()){
+  //  intAr2 ilned;
+  //  dblAr1 rlned;
+  //  dblAr1 lenbds = {1.0/sqrt(2), sqrt(2)};
+  //  double pct_unit = getLengthEdges<MFT>(msh,ilned,rlned);
+  //  print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (insert1)");
+  //}
+
+
   bool imovmet = true; 
-  bool imovavg = true;
+  static int nwarnprt1 = 0;
   //bool type2 = false;
 
   // Swap norm -1: length-based. 
@@ -46,10 +59,8 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
   msh.met.setSpace(MetSpace::Exp);
 
 
-  if(msh.get_tdim() != 2) METRIS_THROW_MSG(TODOExcept(), 
-    "Implement insertLongEdges on tdim != 2, got tdim = "<<msh.get_tdim());
-
-  if(msh.bak != NULL) msh.bak->met.setSpace(MetSpace::Log);
+  //if(msh.get_tdim() != 2) METRIS_THROW_MSG(TODOExcept(), 
+  //  "Implement insertLongEdges on tdim != 2, got tdim = "<<msh.get_tdim());
 
   CPRINTF2("-- insertLongEdges start \n");
   #ifndef NDEBUG
@@ -66,7 +77,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
   const int tdim = msh.get_tdim();
 
-  auto getedgent = tdim == 2 ? getedgfac : getedgtet;
+  //auto getedgent = tdim == 2 ? getedgfac : getedgtet;
 
   const int nedgl = (tdim*(tdim+1))/2;
 
@@ -94,6 +105,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
   const int miter1 = 30, miter2 = 30;
 
+
   double bar1[2] = {0.5,0.5};
   double coop[gdim], t0;
   int ierro;
@@ -101,17 +113,14 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
   int ninser2 = 0;
   *ninser = 0;
   int niter1 = 0;
-  // Untaged elements are to be considered 
-  #ifndef GLOFRO
-  msh.tag[ithrd1]++;
-  #endif
 
-  const int mcfac = 100, mcedg = 1; 
-  MshCavity cav(0,mcfac,mcedg);
+  msh.tag[ithrd1]++;
+  
+  // At most one edge in an insertion that doesn't collapse a point.
+  MshCavity cav(100,100,1);
   CavWrkArrs work;
 
   do{
-    INCVDEPTH(msh);
     ninser1 = 0;
 
     msh.cleanup();
@@ -126,6 +135,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
     int niter2 = 0;
     do{
+      INCVDEPTH(msh.param);
       ninser2 = 0;
 
 
@@ -136,7 +146,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
       int nent0 = msh.nentt(tdim);
       t0 = get_wall_time();
       for(int ientt = 0; ientt < nent0; ientt++){
-        INCVDEPTH(msh);
+        INCVDEPTH(msh.param);
         
         if(isdeadent(ientt,ent2poi)) continue;
         if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
@@ -232,8 +242,8 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
             }
 
             for(int ii = 0; ii < gdim; ii++) coop[ii] += offset[ii]*fac;
-            for(int ii = 0; ii < gdim; ii++) coop[ii] = 0.25 * msh.coord[edg2pol[0]][ii]
-              + 0.5 * coop[ii] + 0.25 * msh.coord[edg2pol[1]][ii];
+            for(int ii = 0; ii < gdim; ii++) coop[ii] = 0.25 * msh.coord(edg2pol[0],ii)
+              + 0.5 * coop[ii] + 0.25 * msh.coord(edg2pol[1],ii);
             METRIS_ASSERT(ideg == 1);
           }else if(imovavg){
             int ineig = ent2ent(ientt,ied);
@@ -266,14 +276,17 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
           int nent00 = msh.nentt(tdim); 
           int itry = 0;
           do{
-            ierro = insedgesurf(msh,ientt,ied,coop,bar1[0],
-                                cav,work,lcaverr,ithrd2,ithrd3);
+            if(DOPRINTS2()){
+              writeMesh("preins",msh);
+            }
+            ierro = insertEdge(msh,tdim,ientt,ied,coop,bar1[0],
+                               cav,work,lcaverr,ithrd2,ithrd3);
             if(ierro <= 0) break;
             itry++;
-            if(itry >= 1 + imovmet + imovavg) break;
+            if(itry >= 1 + imovmet) break;
             if(ierro == 0) CPRINTF1(" - After trying ierro = 0 \n");
-            if(ierro > 0 && (itry == 0 && imovmet || imovavg)){
-              CPRINTF1(" -> insedgesurf fail: try again w/ imovmet %d imovavg %d\n",imovmet,imovavg);
+            if(ierro > 0 && (itry == 0 && imovmet)){
+              CPRINTF1(" -> insertEdge fail: try again w/ imovmet %d\n",imovmet);
               if(DOPRINTS1()){
                 CPRINTF1(" - initial ipins = ");
                 dblAr1(gdim,coop).print();
@@ -297,35 +310,8 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
                 }
 
                 for(int ii = 0; ii < gdim; ii++) coop[ii] += offset[ii]*fac;
-                for(int ii = 0; ii < gdim; ii++) coop[ii] = 0.25 * msh.coord[edg2pol[0]][ii]
-                  + 0.5 * coop[ii] + 0.25 * msh.coord[edg2pol[1]][ii];
-              }else if(imovavg){
-                // This can put the point outside ! Depends on the boundary
-                int ineig = ent2ent(ientt,ied);
-                //double bary[tdim+1] = {1.0/(tdim+1)}; 
-                //double eval[gdim];
-                //for(int ii = 0; ii < gdim; ii++) coop[ii] = 0;
-                //double wttot = 0;
-                //for(int ient2 : {ientt, ineig}){
-                //  if(ient2 < 0) continue;
-                //  eval2<gdim,1>(msh.coord,msh.fac2poi[ient2],msh.getBasis(),
-                //                DifVar::None,DifVar::None,
-                //                bary,eval,NULL,NULL);
-                //  double meas0 = getmeasentP1<gdim>(ent2poi[ient2], msh.coord);
-                //  for(int jj = 0; jj < gdim; jj++) coop[jj] += meas0*eval[jj];
-                //  wttot += meas0;
-                //}
-                //for(int jj = 0; jj < gdim; jj++) coop[jj] /= wttot;
-                if(ineig >= 0){
-                  int ipoi1 = ent2poi(ientt,ied);
-                  int ie2 = getedgent(msh,ineig,edg2pol[0],edg2pol[1]);
-                  int ipoi2 = ent2poi(ineig,ie2);
-                  CPRINTF1(" -> do imovavg use ineig %d ip1/2 %d %d\n",
-                    ineig,ipoi1,ipoi2);
-                  for(int jj = 0; jj < gdim; jj++){
-                    coop[jj] = 0.5*msh.coord(ipoi1,jj) + 0.5*msh.coord(ipoi2,jj);
-                  }
-                }
+                for(int ii = 0; ii < gdim; ii++) coop[ii] = 0.25 * msh.coord(edg2pol[0],ii)
+                  + 0.5 * coop[ii] + 0.25 * msh.coord(edg2pol[1],ii);
               }
               if(DOPRINTS1()){
                 CPRINTF1(" - final ipins = ");
@@ -346,6 +332,8 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
                 ent2tag(ithrd1,ineig) = msh.tag[ithrd1] - 1;
               }
             }
+            //CPRINTF1("## DEBUG SUCCESS WAIT HERE\n");
+            //wait();
           }else{
             CPRINTF1(" - insertion failed ierro = %d \n",ierro);
             linserr[ierro - 1] ++;
@@ -357,6 +345,9 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
             //  ent2tag(ithrd1,ientt) = msh.tag[ithrd1] - 1;
             //}
           }
+
+
+          if(msh.param->dbgfull) check_topo(msh,ithrd2);
 
           if(dobrk) break;
         }
@@ -379,6 +370,12 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
           CPRINTF2("   ierro = %d : %d \n",ii+1,linserr[ii]);
         }
       }
+
+
+      msh.cleanup();
+
+      //if(DOPRINTS2()) writeMesh("ins_iter"+std::to_string(niter2),msh);
+
 
       //if(msh.param->iverb == 4){
       //  printf("DEBUG KILL AFTER FIRST IVERB 4\n");
@@ -472,7 +469,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
       }
       #endif
 
-      if(nedgt == 0) stat = 0;
+      if(nedgt == 0) stat = MAX(stat, 0);
       else           stat = MAX(stat, (double)ninser2/(double)nedgt);
 
       ninser1 += ninser2;
@@ -536,6 +533,13 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
   //  nerro,ngood,ngood2,vmin,vmax);
   //msh.set_npoin(msh.npoin-1);
 
+  //if(DOPRINTS2()){
+  //  intAr2 ilned;
+  //  dblAr1 rlned;
+  //  dblAr1 lenbds = {1.0/sqrt(2), sqrt(2)};
+  //  double pct_unit = getLengthEdges<MFT>(msh,ilned,rlned);
+  //  print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (insert2)");
+  //}
 
 
 
@@ -737,7 +741,7 @@ double insertLongEdges(Mesh<MFT> &msh,   int iverb, int ithrd1 ){
 
 
           // Try insert point coop
-          ierro = insedgesurf(msh,ientt,ied,coop,bar1[0],iverb,lcaverr,ithrd1);
+          ierro = insertEdge(msh,ientt,ied,coop,bar1[0],iverb,lcaverr,ithrd1);
           ncall++;
           if(ierro <= 0) ninser++;
 

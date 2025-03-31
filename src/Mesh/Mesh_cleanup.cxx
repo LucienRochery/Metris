@@ -4,7 +4,7 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#include "../Mesh/Mesh.hxx"
+#include "Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../msh_checktopo.hxx"
 #include "../utils/aux_misc.hxx"
@@ -16,7 +16,7 @@ namespace Metris{
 template<class MetricFieldType>
 void Mesh<MetricFieldType>::cleanup(){
 
-  GETVDEPTH((*this));
+  GETVDEPTH(this->param);
 
   intAr1& lentt = this->iwork;
 
@@ -84,8 +84,7 @@ void Mesh<MetricFieldType>::cleanup(){
       this->met(iponn,ii) = this->met(ipoin,ii);
     
     this->poi2bpo[iponn] = this->poi2bpo[ipoin]; 
-    for(int ii = 1; ii <= this->get_tdim(); ii++)
-      this->poi2bak(iponn,ii-1) = this->poi2bak(ipoin,ii-1); 
+    this->poi2bak[iponn] = this->poi2bak[ipoin]; 
   }
 
   if(this->npoin == nponn) goto update_tetras; 
@@ -338,7 +337,7 @@ void Mesh<MetricFieldType>::cleanup(){
     }
   }
 
-  if(this->param->dbgfull) check_topo(*this);
+  if(this->param->dbgfull) check_topo(*this,0);
 
 
 }

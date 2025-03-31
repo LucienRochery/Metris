@@ -10,47 +10,53 @@
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 
+#include "../utils/mprintf.hxx"
 #include "../cavity/msh_cavity.hxx"
 #include "../aux_topo.hxx"
 #include "../msh_structs.hxx"
 #include "../low_topo.hxx"
-#include "../utils/mprintf.hxx"
+#include "../low_normal.hxx"
 #include "../low_geo.hxx"
 #include "../io_libmeshb.hxx"
 #include "../linalg/det.hxx"
+#include "../low_lenedg.hxx"
 
 
 namespace Metris{
 
 // Return 0 if done nothing, 1 if error, -1 if done swap
 // bar1 is t along the edge with 1 if lnoed[iedl][0]
-template<class MetricFieldType>
-int insedgesurf(Mesh<MetricFieldType>& msh, 
-                int iface, int iedl, 
-                double *coop, double bar1, 
-                MshCavity &cav, CavWrkArrs &work, 
-                intAr1 &lerro, int ithrd1, int ithrd2){
-  GETVDEPTH(msh);
+template<class MFT>
+int insertEdge(Mesh<MFT>& msh, 
+               int tdim, int ientt, int iedl, 
+               double *coop, double bar1, 
+               MshCavity &cav, CavWrkArrs &work, 
+               intAr1 &lerro, int ithrd1, int ithrd2){
+  GETVDEPTH(msh.param);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd1 != ithrd2);
-  METRIS_ASSERT(iedl >= 0 && iedl < 3);
-  METRIS_ASSERT(iface >= 0 && iface < msh.nface && !isdeadent(iface, msh.fac2poi));
+  METRIS_ASSERT(!isdeadent(ientt,msh.ent2poi(tdim)));
 
-  const int tdim = 2;
+  const int nedgl = (tdim*(tdim+1))/2;
+  METRIS_ASSERT(iedl >= 0 && iedl < nedgl);
 
-  int iret = 0;
+  int nentt = msh.nentt(tdim);
 
-  bool isellen = true;
+  const intAr2 &ent2poi = msh.ent2poi(tdim);
+  const auto lnoed = tdim == 2 ? lnoed2 : lnoed3;
+  METRIS_ASSERT(ientt >= 0 && ientt < nentt && !isdeadent(ientt, ent2poi));
 
-  if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement + tet nelem = "<<msh.nelem)
+
+
+  //if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement + tet nelem = "<<msh.nelem)
 
   CavOprOpt opts;
   CavOprInfo info;
   opts.allow_topological_correction = true;
   opts.skip_topo_checks = true;
   opts.dryrun = false;
-  opts.allow_remove_points = false;
+  opts.allow_remove_points = false; // good for an infinite loop
 
   int mcavcorr = 5, ncavcorr;
 
@@ -58,74 +64,124 @@ int insedgesurf(Mesh<MetricFieldType>& msh,
   cav.lcfac.set_n(0);
   cav.lctet.set_n(0);
 
-  CPRINTF1("-- START insedgesurf iface = %d ied %d\n",iface,iedl);
+  CPRINTF1("-- START insertEdge tdim = %d ientt = %d ied %d\n",tdim,ientt,iedl);
 
   int ierro = 0, nprem;
+  int ip1 = ent2poi(ientt,lnoed[iedl][0]);
+  int ip2 = ent2poi(ientt,lnoed[iedl][1]);
 
-  int ifac2 = msh.fac2fac(iface,iedl);
- 
-  int iedge = -1; 
-  if(ifac2 <= -1 || msh.idim >= 3){ // geometric edge
-    int ip1 = msh.fac2poi(iface,lnoed2[iedl][0]);
-    int ip2 = msh.fac2poi(iface,lnoed2[iedl][1]);
-    iedge = getedgglo(msh,ip1,ip2);
+  int iopen;
+  shell(msh,ip1,ip2,tdim,ientt,cav.lcedg,cav.lcfac,cav.lctet,&iopen);
+  CPRINTF1(" - cavity seed nedge %d nface %d ntetr %d\n",
+           cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
 
-    if(msh.idim == 2){
-      METRIS_ASSERT(iedge >= 0);
-      METRIS_ASSERT(!isdeadent(iedge,msh.edg2poi)); 
-    }
-    if(iedge >= 0){
-      cav.lcedg.stack(iedge); 
+
+  METRIS_ASSERT(cav.lcedg.get_n() > 0 || cav.lcfac.get_n() > 0 || cav.lctet.get_n() > 0);
+  #ifndef NDEBUG
+  if(msh.get_tdim() == 2) METRIS_ASSERT(cav.lcfac.get_n() > 0);
+  if(msh.get_tdim() == 3) METRIS_ASSERT(cav.lctet.get_n() > 0);
+  if(msh.param->dbgfull){
+    for(int ientt : cav.lcent(msh.get_tdim())){
+      METRIS_ASSERT_MSG(!isdeadent(ientt,msh.ent2poi(msh.get_tdim())),
+        "Shell element dead");
     }
   }
 
+  #endif  
 
-  if(ifac2 < -1){ // Non manifold 
-    shell2_nm(msh,iface,iedl,cav.lcfac);
-  }else if(ifac2 == -1){ // only iface
-    cav.lcfac.stack(iface); 
-  }else{ // 2 faces 
-    cav.lcfac.stack(iface); 
-    cav.lcfac.stack(ifac2); 
+  #if 0 // shell now gathers all dimension entities
+  int iedge = -1;
+  if(tdim == 2){
+    int ient2 = msh.fac2fac(ientt,iedl);
+    if(ient2 <= -1 || msh.idim >= 3){ // geometric edge
+      iedge = getedgglo(msh,ip1,ip2);
+
+      if(msh.idim == 2){
+        METRIS_ASSERT(iedge >= 0);
+        METRIS_ASSERT(!isdeadent(iedge,msh.edg2poi)); 
+      }
+      if(iedge >= 0){
+        cav.lcedg.stack(iedge); 
+      }
+    }
+
+
+    if(ient2 < -1){ // Non manifold 
+      shell2_nm(msh,ientt,iedl,cav.lcfac);
+    }else if(ient2 == -1){ // only ientt
+      cav.lcfac.stack(ientt); 
+    }else{ // 2 faces 
+      cav.lcfac.stack(ientt); 
+      cav.lcfac.stack(ient2); 
+    }
+  }// if tdim == 2
+
+
+  if(msh.get_tdim() == 3){ // Regardless of ientt tdim, we need the tets 
+    int itet0 = -1; 
+    if(tdim == 1){
+      int iface = msh.edg2fac[ientt];
+      itet0 = msh.fac2poi(iface,0);
+    }else if(tdim == 2){
+      itet0 = msh.fac2poi(ientt,0);
+    }else if(tdim == 3){
+      itet0 = ientt;
+    }
+    
+    METRIS_ASSERT(itet0 >= 0);
+    int iopen;
+    CPRINTF1(" - calling shell3 with itet0 = %d \n",itet0);
+    shell3(msh, ip1, ip2, itet0, cav.lctet, cav.lcfac, &iopen);
+    // Only exception would be non manifold, but not always (not to say most unlikely)
+    if(iopen >= 0) METRIS_ASSERT(cav.lcfac.get_n() == 2);
   }
+  #endif
 
-  int ibpoi = -1;
+  int tdimp = -1;
+       if(cav.lcedg.get_n() > 0) tdimp = 1;
+  else if(cav.lcfac.get_n() > 0) tdimp = 2;
+  else                           tdimp = 3;
+
+  int ibins = -1;
 
   // Create the point, set info for localization 
-  int iseed, tdimp, iref;
-  ego obj;
+  int iseed, iref;
+  ego obj = NULL;
   double algnd[3];
-  if(iedge >= 0){
+  if(tdimp == 1){
+    int iedge = cav.lcedg[0];
+    METRIS_ASSERT(iedge >= 0);
     cav.ipins = msh.newpoitopo(1,iedge);
-    ibpoi = msh.newbpotopo(cav.ipins,1,iedge);
+    ibins = msh.newbpotopo(cav.ipins,1,iedge);
     iseed = iedge;
-    tdimp = 1;
     iref = msh.edg2ref[iedge];
-    if(msh.CAD())
-      obj  = msh.CAD.cad2edg[iref];
-  }else{
+    if(msh.CAD()) obj  = msh.CAD.cad2edg[iref];
+  }else if(tdimp == 2){
+    int iface = cav.lcfac[0];
+    METRIS_ASSERT(iface >= 0);
     cav.ipins = msh.newpoitopo(2,iface);
-    if(msh.isboundary_faces()){
-      ibpoi = msh.newbpotopo(cav.ipins,2,iface);
-    }
     iseed = iface;
-    tdimp = 2;
     iref  = msh.fac2ref[iface];
-    if(msh.isboundary_faces() && msh.CAD())
-      obj   = msh.CAD.cad2fac[iref];
+    if(msh.isboundary_faces()){
+      ibins = msh.newbpotopo(cav.ipins,2,iface);
+      if(msh.CAD()) obj = msh.CAD.cad2fac[iref];
+    }
+  }else{
+    cav.ipins = msh.newpoitopo(3,ientt);
+    iseed = ientt;
   }
-  METRIS_ASSERT(iref >= 0);
-  METRIS_ASSERT(obj != NULL || tdimp == 2 && !msh.isboundary_faces());
+  if(msh.CAD()) METRIS_ASSERT(obj != NULL 
+                    || tdimp == 2 && !msh.isboundary_faces() || tdimp == 3);
 
   CPRINTF1(" - create ipins %d tdim = %d seed %d ref %d\n",cav.ipins,tdimp,iseed,iref);
 
-  for(int ii = 0; ii < msh.idim; ii++) msh.coord[cav.ipins][ii] = coop[ii];
+  for(int ii = 0; ii < msh.idim; ii++) msh.coord(cav.ipins,ii) = coop[ii];
 
 
   // Evaluate ipins on CAD, also get algnd for interpMetBack 
-  int ip[2] = {msh.fac2poi(iface,lnoed2[iedl][0]),
-               msh.fac2poi(iface,lnoed2[iedl][1])};
-  if(ibpoi >= 0 && msh.CAD()){
+  int ip[2] = {ent2poi(ientt,lnoed[iedl][0]),
+               ent2poi(ientt,lnoed[iedl][1])};
+  if(ibins >= 0 && msh.CAD()){
     int ib[2];
     // Correct ibs : attach to ref or edge/face as needed
     for(int ii = 0; ii < 2; ii++){
@@ -133,15 +189,14 @@ int insedgesurf(Mesh<MetricFieldType>& msh,
       METRIS_ASSERT(ib[ii] >= 0);
     }
 
-    for(int ii = 0; ii < 2; ii++) msh.bpo2rbi(ibpoi,ii) = 
-        bar1 * msh.bpo2rbi[ib[0]][ii] + (1.0 - bar1) * msh.bpo2rbi[ib[1]][ii];
+    for(int ii = 0; ii < 2; ii++) msh.bpo2rbi(ibins,ii) = 
+        bar1*msh.bpo2rbi[ib[0]][ii] + (1.0 - bar1)*msh.bpo2rbi[ib[1]][ii];
 
     double result[18];
     METRIS_ASSERT(obj != NULL);
-    ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
+    ierro = EG_evaluate(obj, msh.bpo2rbi[ibins], result);
     if(ierro != 0){
       ierro = INS2D_ERR_EGEVALUATE; 
-      iret = ierro;
       goto cleanup;
     }
     if(DOPRINTS2()){
@@ -150,7 +205,7 @@ int insedgesurf(Mesh<MetricFieldType>& msh,
       CPRINTF2("new = ");
       dblAr1(msh.idim,result).print();
     }
-    for(int ii = 0; ii < msh.idim; ii++) msh.coord[cav.ipins][ii] = result[ii];
+    for(int ii = 0; ii < msh.idim; ii++) msh.coord(cav.ipins,ii) = result[ii];
 
     if(tdimp == 1){
       for(int ii = 0; ii < msh.idim; ii++) algnd[ii] = result[3+ii];
@@ -158,18 +213,19 @@ int insedgesurf(Mesh<MetricFieldType>& msh,
       vecprod(&result[3], &result[6], algnd);
     }
 
-    // If the point moved away from the initial cavity, increase it. 
-    ierro = increase_cavity2D(msh,cav,ithrd1);
+    //// If the point moved away from the initial cavity, increase it. 
+    //ierro = increase_cavity_validity(msh,cav,ithrd1);
 
-    if(DOPRINTS2()){
-      writeMeshCavity("insert_cavity0.meshb", msh, cav, ithrd2);
-      CPRINTF2("increase_cavity2D after EGADS failed ipins = %d \n",cav.ipins);
-    }
-    if(ierro != 0){
-      ierro = INS2D_ERR_INCCAV2D2;
-      goto cleanup;
-    } 
-  }else if(!msh.CAD()){ 
+    //if(DOPRINTS2()){
+    //  writeMeshCavity("insert_cavity0.meshb", msh, cav);
+    //  CPRINTF2("increase_cavity_validity after EGADS  ierro %d ipins = %d \n",ierro,cav.ipins);
+    //}
+    //if(ierro != 0){
+    //  ierro = INS2D_ERR_INCCAV2D2;
+    //  goto cleanup;
+    //} 
+  }else if(ibins >= 0 && !msh.CAD()){ 
+    METRIS_ASSERT(tdimp <= 2);
     // No reevaluation, but initialize algnd to edge tangent 
     CPRINTF1(" - discrete algnd initialization tdimp %d \n",tdimp);
     if(tdimp == 1){
@@ -182,7 +238,7 @@ int insedgesurf(Mesh<MetricFieldType>& msh,
                    bary, dum, algnd, NULL);
       //}}CT_FOR1(ideg);
     }else if(msh.idim == 3){
-      getnorfacP1(msh.fac2poi[iface],msh.coord,algnd);
+      getnorfacP1(ent2poi[ientt],msh.coord,algnd);
     }
   }
  
@@ -193,142 +249,80 @@ int insedgesurf(Mesh<MetricFieldType>& msh,
   }
 
   ncavcorr = 0;
+  ierro = 0;
   do{
+
+    int nced0 = cav.lcedg.get_n();
+    int ncfa0 = cav.lcfac.get_n();
+    int ncte0 = cav.lctet.get_n();
    
     if(DOPRINTS2()) writeMeshCavity("insert_cavity0."+std::to_string(ncavcorr), 
-                                  msh,cav, ithrd2);
-    CPRINTF1(" - initial cavity size %d \n",cav.lcfac.get_n()); 
-   
-    ierro = increase_cavity_Delaunay(msh, cav, ithrd1, algnd);
-    if(ierro != 0){
-      CPRINTF1(" - +del error %d\n",ierro);
-      ierro = INS2D_ERR_INCCAVDEL;
-      goto cleanup;
+                                  msh,cav);
+    CPRINTF1(" - initial cavity nedge %d nface %d nelem %d\n",
+             cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
+
+    nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
+    if(nprem < 0){
+      ierro = INS2D_ERR_SHORTEDG;
+      CPRINTF1(" - with ops.allow_remove_points == false, short edge would be created\n");
+      goto fixpoint;
     }
-   
-    CPRINTF1(" - +del cavity size %d \n",cav.lcfac.get_n()); 
+    CPRINTF1(" - +len cavity size %d nprem = %d\n", cav.lcfac.get_n(),nprem); 
+
+
+    ierro = increase_cavity(msh, cav, true, ithrd1, ithrd2);
+    if(ierro != 0){
+      CPRINTF1(" - +cav error %d\n",ierro);
+      ierro = INS2D_ERR_INCCAV2D;
+    }
+    CPRINTF1(" - +cav nedge %d nface %d nelem %d\n",
+             cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
     if(DOPRINTS2()){
       writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr), 
-                                  msh,cav, ithrd2);
-      if(msh.param->dbgfull){
-        printf("Wait after Delaunay\n");
-        wait();
-      }
+                                  msh,cav);
     }
+   
+    if(ierro <= 0) break;
 
-    if(isellen){
-      nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2); 
-      if(nprem < 0){
-        ierro = INS2D_ERR_SHORTEDG;
-      }
-      CPRINTF1(" - +len cavity size %d nprem = %d\n", cav.lcfac.get_n(),nprem); 
-    }
-    int ierr2 = increase_cavity2D(msh,cav,ithrd1);
-    CPRINTF1(" - +val cavity size %d \n",cav.lcfac.get_n()); 
-    if(ierr2 > 0 && ierro <= 0) ierro = INS2D_ERR_INCCAV2D;
+    fixpoint:
 
-    if(ierro <= 0) break; 
-
-    if(tdimp < msh.get_tdim()){
+    if(ibins >= 0){
       ierro = INS2D_ERR_BDRYNOCORR; 
-      CPRINTF1(" - Cannot correct boundary point in insert2D\n");
+      CPRINTF1(" - Cannot correct boundary point in insertEdge\n");
       goto cleanup;
     }
 
-    // Try relocate ipins to cavity barycenter but only if not boundary
-    double bary[4];
-    for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim + 1);
-    double newp[3] = {0,0,0};
-    double eval[3];
-    double meast = 0;
-    for(int iface : cav.lcfac){
-      double wt;
-      bool iflat;
-      CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
-        eval2<gdim,1>(msh.coord,msh.fac2poi[iface],msh.getBasis(),DifVar::None,
-                      DifVar::None,bary,eval,NULL,NULL);
-        wt = getmeasentP1<gdim,2>(msh, msh.fac2poi[iface], algnd, &iflat);
-      }}CT_FOR1(gdim);
-      if(iflat) continue;
-      // For simply barycentre, use meas0
-      // To skew towards the largest elements use meas0 * meas0
-      for(int ii = 0; ii < msh.idim;ii++) newp[ii] += wt * eval[ii];
-      meast += wt;
-    }
-    for(int ii = 0; ii < msh.idim;ii++){
-      newp[ii] /= meast;
-      msh.coord[cav.ipins][ii] = newp[ii];
+    METRIS_ASSERT(tdim == msh.idim);
+    // Try relocate ipins to cavity barycenter using only lowest dim and CAD if
+    // available. 
+
+    cav.lcedg.set_n(nced0);
+    cav.lcfac.set_n(ncfa0);
+    cav.lctet.set_n(ncte0);
+
+    int ierr2 = aux_movePointCav(msh, cav, tdimp, iseed, iref, algnd);
+
+    if(ierr2 != 0){
+      ierro = INS2D_ERR_INTERPMETBACK;
+      CPRINTF1(" - Failed to move point in insertEdge\n");
+      break;
     }
 
     if(DOPRINTS2()) writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr)+".meshb", 
-                                  msh,cav, ithrd2);
+                                    msh,cav);
 
-    // reinterp metric. This is always interior case, no need for ref of bdry dir
-    ierr2 = msh.interpMetBack(cav.ipins,tdimp,iseed, iref,  algnd);
-    if(ierr2 != 0){
-      ierro = INS2D_ERR_INTERPMETBACK;
-      break; 
-    }
   }while(ierro > 0 && ncavcorr++ < mcavcorr);
   if(ierro > 0) goto cleanup;
 
 
-  //// In this case let's even just take the face normal
-  //double nrmal[3];
-  //if(msh.idim == 3 && (!msh.CAD() || !msh.param->dbgfull)){
-  //  getnorfacP1(msh.fac2poi[iface],msh.coord,nrmal);
-  //  cav.nrmal = nrmal;
-  //}
-  cav.nrmal = algnd;
-
-
-  CPRINTF1(" insert ipins =  %d \n",cav.ipins);
-  //printf("## DEBUG WAIT HERE \n");
-  //wait();
-
-  #ifndef NDEBUG
-    if(DOPRINTS2()){
-      int *refold = (int *) malloc(msh.nface*sizeof(int));
-      METRIS_ENFORCE(refold != NULL);
-      for(int ii = 0; ii < msh.nface; ii++){
-        refold[ii] = msh.fac2ref[ii];
-        //msh.fac2ref[ii] = 1 + (msh.fac2tag(ithrd1,ii) == msh.tag[ithrd1]);
-        msh.fac2ref[ii] = 1;
-      }
-
-      for(int ii = 0; ii < cav.lcfac.get_n(); ii++){
-        msh.fac2ref[cav.lcfac[ii]] = 2;
-      }
-      // Add a corner at ipoin 
-      int ipoin = msh.newpoitopo(-1,-1);
-      int ibpoi = msh.newbpotopo(ipoin,0,ipoin);
-      for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipoin,ii) = msh.coord[cav.ipins][ii] ;
-      writeMesh("debug_insert0.meshb",msh);
-      for(int ii = 0; ii < nibi; ii++) msh.bpo2ibi(ibpoi,ii)  = -1;
-      msh.set_npoin(msh.npoin-1);
-      msh.set_nbpoi(msh.nbpoi-1);
-
-
-      for(int ii = 0; ii < msh.nface; ii++){
-        msh.fac2ref[ii] = refold[ii];
-      }
-      free(refold);
-
-    }
-  #endif
-
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
-    ierro = cavity_operator<MetricFieldType,ideg>(msh,cav,opts,work,info,ithrd1);
+    ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd1);
   }}CT_FOR1(ideg);
 
-
-  if(ierro > 0){
-    lerro[ierro-1]++;
-  }
-
+  if(ierro > 0) lerro[ierro-1]++;
 
   if(info.done){
-    CPRINTF1("-- END insedgesurf ipins = %d  \n",cav.ipins);
+    CPRINTF1("-- END insertEdge ipins = %d  \n",cav.ipins);
     #ifndef NDEBUG
       if(DOPRINTS2()) writeMesh("debug_insert1.meshb",msh);
     #endif
@@ -336,21 +330,108 @@ int insedgesurf(Mesh<MetricFieldType>& msh,
   }
 
   cleanup:
-  iret = ierro;
   msh.killpoint(cav.ipins);
 
-  return iret;
+  return ierro;
 }
 
 
 
-template int insedgesurf<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
-                         int iface, int iedl, double *coop, double bar1, 
+template int insertEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
+                         int tdim, int ientt, int iedl, double *coop, double bar1, 
                          MshCavity &cav, CavWrkArrs &work, 
                          intAr1 &lerro, int ithrd1, int ithrd2);
-template int insedgesurf<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
-                         int iface, int iedl, double *coop, double bar1, 
+template int insertEdge<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
+                         int tdim, int ientt, int iedl, double *coop, double bar1, 
                          MshCavity &cav, CavWrkArrs &work, 
                          intAr1 &lerro, int ithrd1, int ithrd2);
+
+
+
+
+
+
+template<class MFT>
+int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav, 
+                     int tdimp, int iseed, int iref, double *algnd){
+  GETVDEPTH(msh.param);
+  int ierro = 0;
+
+  // Interior and non-surface case, most straightforward
+  if(tdimp == msh.idim){
+    const intAr2 &ent2poi = msh.ent2poi(msh.get_tdim());
+    int tdim = tdimp;
+
+    double bary[4];
+    for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim + 1);
+
+    double newp[3] = {0,0,0};
+    double eval[3];
+    //double metl[6];
+    //const int nnmet = (msh.idim*(msh.idim+1))/2;
+    double meast = 0;
+    const intAr1& lcent = cav.lcent(tdim);
+    for(int ientt : lcent){
+      double wt;
+      bool iflat;
+      CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
+        // gdim == tdim here
+        if constexpr(gdim == 2){
+          eval2<gdim,1>(msh.coord,ent2poi[ientt],msh.getBasis(),DifVar::None,
+                        DifVar::None,bary,eval,NULL,NULL);
+          wt = getmeasentP1<gdim,2>(msh, ent2poi[ientt], algnd, &iflat);
+        }else{
+          eval3<gdim,1>(msh.coord,ent2poi[ientt],msh.getBasis(),DifVar::None,
+                        DifVar::None,bary,eval,NULL,NULL);
+          wt = getmeasentP1<gdim,3>(msh, ent2poi[ientt], algnd, &iflat);
+        }
+      }}CT_FOR1(gdim);
+      if(iflat) continue;
+
+      //msh.met.getMetBary(AsDeg::P1, DifVar::None, msh.met.getSpace(), 
+      //                   ent2poi[ientt], msh.get_tdim(), bary, 
+      //                   metl, NULL);
+
+      // For simply barycentre, use meas0
+      // To skew towards the largest elements use meas0*meas0
+      for(int ii = 0; ii < msh.idim;ii++) newp[ii] += wt*eval[ii];
+      meast += wt;
+    }
+    METRIS_ASSERT(meast > 0);
+    for(int ii = 0; ii < msh.idim;ii++){
+      newp[ii] /= meast;
+      msh.coord(cav.ipins,ii) = newp[ii];
+    }
+
+  }else{
+    // Boundary case. 
+    return 0;
+  }// if tdimp == msh.get_tdim()
+
+  // reinterp metric. This is always interior case, no need for ref of bdry dir
+  ierro = msh.interpMetBack(cav.ipins,tdimp,iseed,iref,algnd);
+  if(ierro != 0){
+    CPRINTF1(" - interpMetBack failed ierro = %d \n",ierro);
+    ierro = INS2D_ERR_INTERPMETBACK;
+  }
+
+  return ierro;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 } // end namespace

@@ -64,6 +64,23 @@ int MeshBase::poi2ebp(int ipoin, int tdim, int ientt, int iref) const {
 }
 
 
+int MeshBase::poi2del(int ipoin, int tdim, int iref) const{
+  METRIS_ASSERT(tdim != 0);
+  int pdim = getpoitdim(ipoin);
+  if(pdim > tdim) return -1;
+  int ientt = poi2ent(ipoin,0);
+  if(pdim == tdim){
+    METRIS_ASSERT(poi2ent(ipoin,1) == tdim);
+    if(ent2ref(tdim)[ientt] != iref) return -1;
+    return ientt;
+  }
+  // Otherwise, could be several refs, and we're boundary as pdim < tdim <= idim
+  int ibpoi = this->poi2ebp(ipoin, tdim, -1, iref);
+  if(ibpoi < 0) return -1;
+  return bpo2ibi(ibpoi,2);
+}
+
+
 int MeshBase::newpoitopo(int tdimn, int ientt){
   set_npoin(npoin+1);
   for(int ii = 0; ii < METRIS_MAXTAGS; ii++) poi2tag[ii][npoin-1] = 0;
@@ -329,7 +346,7 @@ void MeshBase::rembpotag(int ipoin, int ithread){
     if(ientt < 0) rement = true;
     else{
       int ietag = tdim == 1 ? edg2tag(ithread,ientt) :
-                  tdim == 2 ? fac2tag(ithread,ientt) : itag-1;
+                  tdim == 2 ? fac2tag(ithread,ientt) : itag-1; // corner
       if(ietag >= itag) rement = true;
     }
     int ibpon = bpo2ibi(ibpoc,3); // next

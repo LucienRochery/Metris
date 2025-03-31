@@ -24,12 +24,12 @@ public:
 
   MeshClass meshClass() const override { return MeshClass::Mesh; }
 
-	Mesh() : MeshMetric<MetricFieldType>(1,1,1,1,1) {
+	Mesh() : MeshMetric<MetricFieldType>() {
     bak = NULL;
   }
-  // poi2bak gives MeshBack germs (elements) of dimension given by second index
-  // +1. So poi2bak(ipoin,tdim-1) gives a tdim germ for ipoin. 
-	intAr2 poi2bak;
+  // poi2bak gives MeshBack germs (elements) of dimension same as the point. 
+  // if the point is corner, the "element" is a corner in the back mesh.
+	intAr1 poi2bak;
   MeshBack *bak;
 
   /* ----- Back mesh interpolation ----- 
@@ -41,38 +41,43 @@ public:
     This works both in 2D and 3D, unlike normal. 
     In case tdim == 2, give normal. */
 
+  // If ipoin is properly initialized (has poi2ent and t/(u,v)), use this:
+  int interpMetBack(int ipoin);
+  // As previously but provide the point seed explicitly. 
+  int interpMetBack(int ipoin, int ipseed);
+  // Otherwise supply element seed and compute algnd outside:
   int interpMetBack(int ipoin, int tdim, int iseed, int iref, 
                     const double* algnd);
+  // When the seed is a point, not an element. The seed point should be dim
+  // <= dim of ipoi0. Algnd should be provided if needed (tdim < msh.idim)
+  int interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
+                      const double*__restrict__ algnd);
 
 private:
   int interpMetBack0(int ipoi0, 
                      int tdim, int iseed, 
-                     int iref, const double*__restrict__ algnd,
-                     int*__restrict__ ieleb,
-                     double*__restrict__ barb);
+                     int iref, 
+                     const double*__restrict__ algnd);
+
+
 
 public:
   // Delete dead elements and minimize array sizes 
   void cleanup();
 
 
-  // -- Internal or deprecated: 
+// -- Internal
 public:
-
   int newpoitopo(int tdimn, int ientt = -1);
 
   // Called from MetrisRunner
-  void initialize(MetrisAPI *data, MeshBack &bak, 
-    MetrisParameters &param);
+  void initialize(MetrisAPI *data, MeshBack &bak, MetrisParameters &param);
 
-  
   void set_npoin(int npoin, bool skipallocf = false) override;
   void set_nentt(int tdimn, int nentt, bool skipallocf = false) override;
 
-
 protected:
-  void initializeCommon(MetrisAPI *data, MeshBack &bak, 
-    MetrisParameters &param);
+  void initializeCommon(MetrisAPI *data, MeshBack &bak, MetrisParameters &param);
 };
 
 } // End namespace

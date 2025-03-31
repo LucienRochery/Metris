@@ -27,15 +27,37 @@ namespace Metris{
 // redge has info for the point that is not ipins
 // rface is dblAr3 as 2 nodes, each 2 parameters
 template<class MFT, int ideg>
-int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
+int update_cavity(Mesh<MFT> &msh, MshCavity &cav, const CavWrkArrs &work,
                   int npoi0, int nedg0, int nfac0, int nele0, 
                   int ithread){
 
-  GETVDEPTH(msh);
+  int ierro = 0;
+  GETVDEPTH(msh.param);
+
+  if(msh.param->dbgfull){
+    bool ok[3] = {true, true, true};
+    for(int tdim = 1; tdim <= 3; tdim++){
+      for(int ientt : cav.lcent(tdim)){
+        if(msh.ent2tag(tdim)(ithread,ientt) >= msh.tag[ithread]) continue;
+        ok[tdim-1] = false;
+        break;
+      }
+    }
+    if(!ok[0] || !ok[1] || !ok[2]){
+      printf("## Untagged cavity entities tag = %d \n",msh.tag[ithread]);
+      for(int tdim = 1; tdim <= 3; tdim++){
+        for(int ientt : cav.lcent(tdim)){
+          printf("tdim %d ientt %d tag %d \n",tdim,ientt,msh.ent2tag(tdim)(ithread,ientt));
+        }
+      }
+      METRIS_THROW(TopoExcept());
+    }
+  }
 
   const int ncedg = cav.lcedg.get_n();
   const int ncfac = cav.lcfac.get_n();
   const int nctet = cav.lctet.get_n();
+  HshTabInt3 facHsh; 
 
   if(DOPRINTS2()){
     MshCavity cav2(msh.nelem-nele0,msh.nedge-nedg0,msh.nface-nfac0);
@@ -45,15 +67,6 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
     cav2.ipins = cav.ipins;
     writeMeshCavity("cavity1",msh,cav2);
   }
-
-  // Tag cavity entities 
-  msh.tag[ithread]++;
-  CT_FOR0_INC(1,3,tdimn){
-    for(int ientt : cav.lcent<tdimn>()){
-      msh.template ent2tag<tdimn>()[ithread][ientt] = msh.tag[ithread];
-    }
-  }CT_FOR1(tdimn);
-
 
   // -- 1 Manage bpois
 
@@ -86,9 +99,10 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
       // If it's an old one, skip.
       if(iface < nfac0) continue;
 
-      // We can get its connex component:
-      int icoco = msh.fac2tag(ithread,iface); 
-      METRIS_ASSERT(icoco >= 0 && icoco < work.lfcco.get_n());
+      // For new faces, we store icoco such that face is untagged, see crenewfa:
+      int icoco = - msh.fac2tag(ithread,iface) + msh.tag[ithread] - 1; 
+      METRIS_ASSERT_MSG(icoco >= 0 && icoco < work.lfcco.get_n(),
+        " icoco = "<<icoco);
 
       // Get a face from before, from this connex component
       int ifaco = work.lfcco[icoco];
@@ -109,10 +123,10 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
       METRIS_ASSERT(iref >= 0);
       ego obj = msh.CAD.cad2fac[iref];
 
-      int ierro = EG_invEvaluateGuess(obj, msh.coord[cav.ipins], msh.bpo2rbi[ibins], result);
+      ierro = EG_invEvaluateGuess(obj, msh.coord[cav.ipins], msh.bpo2rbi[ibins], result);
       if(ierro != 0){
         CPRINTF1("## EG_invEvaluateGuess ERROR %d \n",ierro);
-        goto cleanup;
+        return ierro;
       }
 
 
@@ -120,25 +134,46 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
   }
 
 
+  if(msh.param->dbgfull){
+    bool ok[3] = {true, true, true};
+    for(int tdim = 1; tdim <= 3; tdim++){
+      for(int ientt : cav.lcent(tdim)){
+        if(msh.ent2tag(tdim)(ithread,ientt) >= msh.tag[ithread]) continue;
+        ok[tdim-1] = false;
+        break;
+      }
+    }
+    if(!ok[0] || !ok[1] || !ok[2]){
+      printf("## 1 Untagged cavity entities tag = %d \n",msh.tag[ithread]);
+      for(int tdim = 1; tdim <= 3; tdim++){
+        for(int ientt : cav.lcent(tdim)){
+          printf("tdim %d ientt %d tag %d \n",tdim,ientt,msh.ent2tag(tdim)(ithread,ientt));
+        }
+      }
+      METRIS_THROW(TopoExcept());
+    }
+  }
   // -- 1.1 remove old ibpois
 
   //bool dowait = false;
+  int ptag0 = msh.tag[ithread] + 1;
+  cav.maxtag = MAX(cav.maxtag,ptag0);
   CT_FOR0_INC(1,2,tdimn){
-    if (msh.isboundary_tdimn(tdimn)){
+    if (msh.isboundary_tdim(tdimn)){
     int nnode = msh.nnode(tdimn);
     for(int ientt : cav.lcent<tdimn>()){
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
       for(int ii = 0; ii < nnode; ii++){
         int ip = msh.template ent2poi<tdimn>()[ientt][ii];
-        if(msh.poi2tag(ithread,ip) >= msh.tag[ithread]) continue;
-        msh.poi2tag(ithread,ip) = msh.tag[ithread];
-        if(DOPRINTS1()){
-          CPRINTF1(" - ip = %d clean bpo pre:\n",ip);
+        if(msh.poi2tag(ithread,ip) >= ptag0) continue;
+        msh.poi2tag(ithread,ip) = ptag0;
+        if(DOPRINTS3()){
+          CPRINTF3(" - ip = %d clean bpo pre:\n",ip);
           print_bpolist(msh,msh.poi2bpo[ip]);
         }
         msh.rembpotag(ip,ithread);
-        if(DOPRINTS1()){
-          CPRINTF1(" - bpo post:\n");
+        if(DOPRINTS3()){
+          CPRINTF3(" - bpo post:\n");
           print_bpolist(msh,msh.poi2bpo[ip]);
         }
       }
@@ -146,82 +181,49 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
     }
   }CT_FOR1(tdimn);
 
-  //if(dowait){
-  //  printf("## WAITING BECAUSE OF IP 2 REMBPO\n");
-  //  printf("New bpolist:\n");
-  //  for(int ibpoi = msh.poi2bpo[2]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
-  //    printf("%d t = %f : ",ibpoi,msh.bpo2rbi(ibpoi,0));
-  //    intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
-  //    if(abs(msh.bpo2rbi(ibpoi,0) - 1) < 1.0e-6) dowait = false;
-  //  }
-  //  if(dowait) wait();
-  //}
-
-
-  //if(msh.isboundary_edges()){
-  //  int nnode = getnnod1(msh.curdeg);
-  //  for(int iedgl = 0; iedgl < ncedg; iedgl++){
-  //    int iedge = cav.lcedg[iedgl];
-  //    for(int ii = 0; ii < nnode; ii++){
-  //      int ip = msh.edg2poi(iedge,ii);
-  //      if(msh.poi2tag(ithread,ip) >= msh.tag[ithread]) continue;
-  //      printf("debug ip = %d \n",ip);
-  //      msh.poi2tag(ithread,ip) = msh.tag[ithread];
-  //      if(iverb >= METRIS_CAV_PRTLEV + 1){
-  //        printf("   - ip = %d clean bpo pre:\n",ip);
-  //        print_bpolist(msh,msh.poi2bpo[ip]);
-  //      }
-  //      msh.rembpotag(ip,ithread);
-  //      if(iverb >= METRIS_CAV_PRTLEV + 1){
-  //        printf("   - bpo post:\n");
-  //        print_bpolist(msh,msh.poi2bpo[ip]);
-  //      }
-  //    }
-  //  }
-  //}
-  //if(msh.isboundary_faces()){
-  //  int nnodf = getnnod2(msh.curdeg);
-  //  for(int ifacl = 0; ifacl < ncfac; ifacl++){
-  //    int iface = cav.lcfac[ifacl];
-  //    msh.fac2tag(ithread,iface) = msh.tag[ithread];
-  //    for(int ii = 0; ii < nnodf; ii++){
-  //      int ip = msh.fac2poi(iface,ii);
-  //      if(msh.poi2tag(ithread,ip) >= msh.tag[ithread]) continue;
-  //      printf("debug ip = %d \n",ip);
-  //      msh.poi2tag(ithread,ip) = msh.tag[ithread];
-  //      if(iverb >= METRIS_CAV_PRTLEV + 1){
-  //        printf("   - ip = %d clean bpo pre:\n",ip);
-  //        print_bpolist(msh,msh.poi2bpo[ip]);
-  //      }
-  //      msh.rembpotag(ip,ithread);
-  //      if(iverb >= METRIS_CAV_PRTLEV + 1){
-  //        printf("   - bpo post:\n");
-  //        print_bpolist(msh,msh.poi2bpo[ip]);
-  //      }
-  //    }
-  //  }
-  //}
-
   // ipins may be on a "virtual" dead edge/face 
   if(msh.poi2bpo[cav.ipins] >= 0) msh.rembpotag(cav.ipins,ithread);
 
+  if(msh.param->dbgfull){
+    bool ok[3] = {true, true, true};
+    for(int tdim = 1; tdim <= 3; tdim++){
+      for(int ientt : cav.lcent(tdim)){
+        if(msh.ent2tag(tdim)(ithread,ientt) >= msh.tag[ithread]) continue;
+        ok[tdim-1] = false;
+        break;
+      }
+    }
+    if(!ok[0] || !ok[1] || !ok[2]){
+      printf("## 2 Untagged cavity entities tag = %d \n",msh.tag[ithread]);
+      for(int tdim = 1; tdim <= 3; tdim++){
+        for(int ientt : cav.lcent(tdim)){
+          printf("tdim %d ientt %d tag %d \n",tdim,ientt,msh.ent2tag(tdim)(ithread,ientt));
+        }
+      }
+      METRIS_THROW(TopoExcept());
+    }
+  }
 
   // During reconnect_faccav and reconnect_lincav, we called newbpotopo on each
   // new entity. Now, we need to clean up. This was necessary as not stacking any
   // new bpos might have made a point unlinked after old elt deletion. 
-  for(int tdimn : {1,2}){
+  ptag0++;
+  cav.maxtag = MAX(cav.maxtag,ptag0);
+  for(int tdim : {1,2}){
     // Edges are probably always boundary but still.
-    if(!msh.isboundary_tdimn(tdimn)) continue;
-    int nnode = msh.nnode(tdimn);
-    int nentt = msh.nentt(tdimn);
-    int nent0 = tdimn == 1 ? nedg0 : nfac0;
-    intAr2 &ent2poi = msh.ent2poi(tdimn);
+    if(!msh.isboundary_tdim(tdim)) continue;
+    int nnode = msh.nnode(tdim);
+    int nentt = msh.nentt(tdim);
+    int nent0 = tdim == 1 ? nedg0 : nfac0;
+    intAr2 &ent2poi = msh.ent2poi(tdim);
     for(int ientt = nent0; ientt < nentt; ientt++){
+      INCVDEPTH(msh.param);
       for(int ii = 0; ii < nnode; ii++){
         int ip = ent2poi(ientt,ii);
-        if(msh.poi2tag(ithread,ip) >= msh.tag[ithread]+1) continue;
-        msh.poi2tag(ithread,ip) = msh.tag[ithread]+1;
+        if(msh.poi2tag(ithread,ip) >= ptag0) continue;
+        msh.poi2tag(ithread,ip) = ptag0;
 
+        CPRINTF2(" - update bpo tdim %d ientt %d ipoin %d\n",tdim,ientt,ip);
         // First link and minimum topo dimn
         int ibpo0 = msh.poi2bpo[ip];
         METRIS_ASSERT(ibpo0 >= 0); 
@@ -245,6 +247,25 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
   }
 
 
+  if(msh.param->dbgfull){
+    bool ok[3] = {true, true, true};
+    for(int tdim = 1; tdim <= 3; tdim++){
+      for(int ientt : cav.lcent(tdim)){
+        if(msh.ent2tag(tdim)(ithread,ientt) >= msh.tag[ithread]) continue;
+        ok[tdim-1] = false;
+        break;
+      }
+    }
+    if(!ok[0] || !ok[1] || !ok[2]){
+      printf("## 3 Untagged cavity entities tag = %d \n",msh.tag[ithread]);
+      for(int tdim = 1; tdim <= 3; tdim++){
+        for(int ientt : cav.lcent(tdim)){
+          printf("tdim %d ientt %d tag %d \n",tdim,ientt,msh.ent2tag(tdim)(ithread,ientt));
+        }
+      }
+      METRIS_THROW(TopoExcept());
+    }
+  }
 
   // Deleting entities in the initial cavity. 
   CT_FOR0_INC(1,2,tdime){
@@ -254,31 +275,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
       msh.template hshTab<tdime>().extract(key);
     }
   }CT_FOR1(tdime);
-  //for(int iedgl = 0; iedgl < ncedg; iedgl++){
-  //  int iedge = cav.lcedg[iedgl];
-  //  msh.edg2tag(ithread,iedge) = msh.tag[ithread];
 
-  //  int ip1 = msh.edg2poi(iedge,0);
-  //  int ip2 = msh.edg2poi(iedge,1);
-  //  auto key = stup2(ip1,ip2);
-  //  // This removes if exists
-  //  msh.edgHshTab.extract(key); 
-  //}
-  //for(int ifacl = 0; ifacl < ncfac; ifacl++){
-  //  int iface = cav.lcfac[ifacl];
-  //  msh.fac2tag(ithread,iface) = msh.tag[ithread];
-
-  //  int ip1 = msh.fac2poi(iface,0);
-  //  int ip2 = msh.fac2poi(iface,1);
-  //  int ip3 = msh.fac2poi(iface,2);
-  //  auto key = stup3(ip1,ip2,ip3);
-  //  // This removes if exists
-  //  msh.facHshTab.extract(key); 
-  //}
-  //for(int ielel = 0; ielel < nctet; ielel++){
-  //  int ielem = cav.lctet[ielel];
-  //  msh.tet2tag(ithread,ielem) = msh.tag[ithread];
-  //}
 
   // remove poi2ents 
   for(int tdime = 1; tdime <= 3; tdime++){
@@ -291,6 +288,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
     int nnode = msh.nnode(tdime); 
 
     for(int ientl = 0; ientl < ncent; ientl++){
+      INCVDEPTH(msh.param);
       int ientt = lcent[ientl];
       for(int ii = 0; ii < nnode; ii++){
         int ipoin = ent2poi(ientt,ii);
@@ -303,60 +301,6 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
       }
     }
   }
-
-  //// 1.2 Add new bpois 
-  //if(msh.isboundary_edges()){
-  //  int nnode = getnnod1(msh.curdeg);
-  //  for(int iedge = nedg0 ; iedge < msh.nedge; iedge++){
-  //    for(int ii = 0; ii < nnode ;ii ++){
-  //      int ip = msh.edg2poi(iedge,ii);
-  //      METRIS_ASSERT(ip >= 0 && ip < msh.npoin);
-  //      int ib = msh.poi2bpo[ip];
-  //      // Normal rules don't apply as we just removed a bunch of bpois
-  //      // If ib == -1, or if ib >= 0 and itype == 0, then insert this edge. 
-  //      // NOTE: if the point is a corner, this info has not been lost! thus there is no
-  //      // risk of missing to add an edge of a reference not represented. 
-  //      if(ib >= 0){
-  //        if(msh.bpo2ibi(ib,0) == -1) msh.poi2bpo[ip] = -1;
-  //        if(msh.bpo2ibi(ib,1) == 0 || msh.bpo2ibi(ib,1) == 2 || msh.bpo2ibi(ib,0) == -1) ib = -1; 
-  //      }
-  //      if(ib == -1){
-  //        ib = msh.newbpotopo(ip,1,iedge);
-  //        if(ii < 2 && ip != cav.ipins){
-  //          msh.bpo2rbi(ib,0) = redge[iedge-nedg0];
-  //        }
-  //      }
-  //    }
-  //  } 
-  //}
-
-  //if(msh.isboundary_faces()){
-  //  int nnode = getnnod2(msh.curdeg);
-  //  for(int iface = nfac0 ; iface < msh.nface; iface++){
-  //    int jj = 0;
-  //    for(int ii = 0; ii < nnode ;ii ++){
-  //      int ip = msh.fac2poi(iface,ii);
-  //      METRIS_ASSERT(ip >= 0 && ip < msh.npoin);
-  //      int ib = msh.poi2bpo[ip];
-  //      // Same as previous, triangle goes in only if nothing yet (ib == -1)
-  //      // or corner / edge (itype <= 1)
-  //      if(ib >= 0){
-  //        if(msh.bpo2ibi(ib,0) == -1) msh.poi2bpo[ip] = -1;
-  //        if(msh.bpo2ibi(ib,1) <= 1 || msh.bpo2ibi(ib,0) == -1) ib = -1; 
-  //      }
-  //      if(ib == -1){
-  //        ib = msh.newbpotopo(ip,2,iface);
-  //        //msh.bpo2rbi(ib,0) = redge[iedge-nedg0];
-  //        if(ii < 3 && ip != cav.ipins){
-  //          msh.bpo2rbi(ib,0) = rface(iface-nfac0,jj,0);
-  //          msh.bpo2rbi(ib,1) = rface(iface-nfac0,jj,1);
-  //          jj++; // node in rface index
-  //        }
-  //      }
-  //    }
-  //  } 
-  //}
-  
 
 
   // Remove dead non manifold neighbours 
@@ -461,83 +405,21 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
       }
     }
   }
-
-  //msh.tag[ithread]++;
-  //// Internal neighbours. 
-  //for(int iedge = nedg0; iedge < msh.nedge; iedge++){
-  //  for(int inei = 0; inei < 2; inei++){
-  //    int ip = msh.edg2poi[iedge][1-nei];
-  //    if(msh.poi2tag(ithread,ip) > msh.tag[ithread]){
-  //      // This is an internal neighbour
-  //      int iedg2 = msh.poi2tag(ithread,ip) - msh.tag[ithread] - 1;
-  //      // Mostly a check that poi2tag[ithread] is valid
-  //      assert("Internal neighbour is a new edge" && iedg2 >= nedg0);
-  //      #ifndef NDEBUG
-  //        printf("    -- int nei / %d, iedg2 = %d (%d , %d)\n",ip,iedg2,msh.edg2poi(iedg2,0),msh.edg2poi(iedg2,1));
-  //        fflush(stdout);
-  //      #endif
-  //      msh.edg2edg(iedge,inei) = iedg2;
-  //      if(msh.edg2poi(iedg2,0) == ip){
-  //        msh.edg2edg(iedg2,1) = iedge;
-  //      }else if(msh.edg2poi(iedg2,1) == ip){
-  //        msh.edg2edg(iedg2,0) = iedge;
-  //      }else{
-  //        printf("## ERROR EDGE NEIGHBOUR DOES NOT HAVE VERTEX \n");
-  //        exit(1);
-  //      }
-  //      msh.poi2tag(ithread,ip) = msh.tag[ithread];
-  //      continue;
-  //    }
-  //    if(msh.poi2tag(ithread,ip) == msh.tag[ithread]){
-  //      // This means the point was seen twice already. 
-  //      // This cannot happen before we have implemented non manifold point insertion (corner)
-  //      printf("## CORNER CASE! TEST THOROUGHLY: IMPLEMENT REFS ! \n");
-  //    }
-  //    msh.poi2tag(ithread,ip) = msh.tag[ithread] + 1 + iedge;
-  //    
-  //    int ienei = msh.edg2edg(iedge,inei);
-  //    if(ienei < 0) continue;
-
-  //    #ifndef NDEBUG
-  //      printf("    -- ext nei / %d, ienei = %d (%d , %d)\n",ip,ienei,msh.edg2poi(ienei,0),msh.edg2poi(ienei,1));
-  //    #endif
-
-  //    if(msh.edg2poi(ienei,0) == ip){
-  //      msh.edg2edg(ienei,1) = iedge;
-  //    }else if(msh.edg2poi(ienei,1) == ip){
-  //      msh.edg2edg(ienei,0) = iedge;
-  //    }else{
-  //      printf("## ERROR EDGE NEIGHBOUR DOES NOT HAVE VERTEX\n");
-  //      exit(1);
-  //    }
-  //  }
-  //}
-
-
-  //for(int iedge = nedg0; iedge < msh.nedge; iedge++){
-  //  for(int i=0; i<2;i++){
-  //    msh.poi2tag[ithread][msh.edg2poi(iedge,i)] = 0;
-  //  }
-  //}
-
-  // Tag cavity faces
-  for(int iface : cav.lcfac) msh.fac2tag(ithread,iface) = msh.tag[ithread];
-
  
   // Inform cavity neighbours that their neighbours are defunct. 
-  // This is necessry because some edges (or facets) of the cavity boundary need 
+  // This is necessry because some edges (or facets) of the cavity boundary may 
   // not have created new elements !
   // Also update edg2fac when the fac in question is outside the cavity 
-  for(int ifacl = 0; ifacl < ncfac; ifacl++){
-    int iface = cav.lcfac[ifacl];
+  for(int iface : cav.lcfac){
     for(int ied = 0; ied < 3; ied++){
       int ifac2 = msh.fac2fac(iface,ied);
       if(ifac2 == -1) continue;
       if(ifac2 >= 0 && msh.fac2tag(ithread,ifac2) >= msh.tag[ithread]) continue;
-      if(ifac2 < -1 && msh.fac2tag[ithread][-ifac2-2] >= msh.tag[ithread]) continue;
+      if(ifac2 < -1 && msh.fac2tag(ithread,-ifac2-2) >= msh.tag[ithread]) continue;
 
-      // Even if the edge was not originally boundary, it may be now!! 
-      // This is precisely why we do this. 
+      // ifac2 is a non-cavity element, this edge is on cavity bdry
+
+      // Even if the edge was not originally boundary, it may be now!
       int ip1 = msh.fac2poi(iface,lnoed2[ied][0]);
       int ip2 = msh.fac2poi(iface,lnoed2[ied][1]);
       int iedge = getedgglo(msh,ip1,ip2);
@@ -548,30 +430,35 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
     }
   }
 
-  if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(),
-    "See dead triangle neighbour update -> tets nelem = "<<msh.nelem)
 
 
-
+  // Remove old faces from hashtable
+  for(int iface : cav.lcfac){
+    int ip1 = msh.fac2poi(iface,0);
+    int ip2 = msh.fac2poi(iface,1);
+    int ip3 = msh.fac2poi(iface,2);
+    auto key = stup3(ip1,ip2,ip3);
+    msh.facHshTab.erase(key);
+  }
 
   // New face updates, namely neighbours 
   for(int ifanw = nfac0; ifanw < msh.nface; ifanw++){
-    INCVDEPTH(msh);
+    INCVDEPTH(msh.param);
     // poi2ent update
     int ip[3]; 
     for(int ii = 0; ii < 3; ii++){
       ip[ii] = msh.fac2poi(ifanw,ii);
-      if(msh.poi2ent[ip[ii]][1] >= 2  || msh.poi2ent[ip[ii]][1] <= 0){
-        msh.poi2ent[ip[ii]][0] = ifanw;
-        msh.poi2ent[ip[ii]][1] = 2;
+      if(msh.poi2ent(ip[ii],1) >= 2  || msh.poi2ent(ip[ii],1) <= 0){
+        msh.poi2ent(ip[ii],0) = ifanw;
+        msh.poi2ent(ip[ii],1) = 2;
       }
     }
     constexpr int nnode = getnnod2(ideg);
     for(int ii = 3; ii < nnode; ii++){
       int ipoin = msh.fac2poi(ifanw,ii);
-      if(msh.poi2ent[ipoin][1] >= 2  || msh.poi2ent[ipoin][1] <= 0){
-        msh.poi2ent[ipoin][0] = ifanw;
-        msh.poi2ent[ipoin][1] = 2;
+      if(msh.poi2ent(ipoin,1) >= 2  || msh.poi2ent(ipoin,1) <= 0){
+        msh.poi2ent(ipoin,0) = ifanw;
+        msh.poi2ent(ipoin,1) = 2;
       }
     }
     // insert in hashtab 
@@ -621,7 +508,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
                  ifaed,isdeadent(ifaed,msh.fac2poi));
         if(!isdeadent(ifaed,msh.fac2poi) && DOPRINTS1()){
           CPRINTF1(" - ifaed vertices: ");
-          intAr1(getnnod2(msh.curdeg),msh.fac2poi[ifaed]).print();
+          intAr1(getnnod2(ideg),msh.fac2poi[ifaed]).print();
         }
 
         // If an old cavity element, or a new one already updated
@@ -740,7 +627,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
         }
       }
       writeMesh("fatal",msh);
-      writeMeshCavity("fatal.cav",msh,cav,0);
+      writeMeshCavity("fatal.cav",msh,cav);
       METRIS_THROW_MSG(TODOExcept(), 
         "Not the 2 face -> 1 edge case, inspect. msh.nedge = "
         <<msh.nedge<<" nedg0 = "<<nedg0);
@@ -798,8 +685,7 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
   // Inform cavity neighbours that their neighbours are defunct. 
   // This is necessry because some edges (or facets) of the cavity boundary need not have created new elements !
   // Also update edg2fac when the fac in question is outside the cavity 
-  for(int ifacl = 0; ifacl < ncfac; ifacl++){
-    int iface = cav.lcfac[ifacl];
+  for(int iface : cav.lcfac){
     for(int ied = 0; ied < 3; ied++){
       int ifac2 = msh.fac2fac(iface,ied);
       if(ifac2 == -1) continue;
@@ -822,42 +708,170 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
     }
   }
 
-  if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(),
-        "See dead triangle neighbour update -> tets nelem = "<<msh.nelem)
+  //if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(),
+  //      "See dead triangle neighbour update -> tets nelem = "<<msh.nelem)
+
+  // Next two steps are to update exterior neighbours and fac2tet. 
+  // Tetra internal neighbour relationships have already been set in reconnect_tetcav.
+  // We already have one-way links from new elements to exterior elements, but
+  // not the other way around. 
+  // We do not have these links when the faces contain ipins as these did not 
+  // generate new elements, nor are they interior to the cavity. 
+
+  // 1. Using cavity elements, a) hash the faces that contain ipins to update
+  // exterior neighbours. 
+  // b) look for any boundary faces and update their fac2tet. Most obvious is 
+  // setting to -1. But in the case of a collapse, some volume can be carved out
+  // exposing previously mesh-interior faces as now boundary faces. 
+  // Hence we must check if there is a neighbour that is outside the cavity 
+  // and set that as fac2tet instead of -1. These faces are invisible to new
+  // cavity elements as there are none there.
+  for(int ielem : cav.lctet){
+    INCVDEPTH(msh.param);
+
+    // If there is an outside element, kill self as neighbour. 
+    // These faces will not be seen from new cavity elements in some cases 
+    // (collapse), hence this is the only chance we have of correcting the outside
+    // tet neighbour to none. 
+    // Additionally, see if there is a boundary face here. Then set its fac2tet
+    // to the neighbour. (see point b) above)
+    for(int ifa = 0; ifa < 4; ifa++){
+      int iele2 = msh.tet2tet(ielem,ifa);
+      if(iele2 < 0) continue;
+      if(msh.tet2tag(ithread,iele2) >= msh.tag[ithread]) continue;
+      bool ifnd = false;
+      for(int if2 = 0; if2 < 4; if2++){
+        if(msh.tet2tet(iele2,if2) == ielem){
+          msh.tet2tet(iele2,if2) = -1;
+          ifnd = true;
+          break;
+        }
+      }
+      METRIS_ASSERT(ifnd);
+
+      int iface = msh.tetfac2glo(ielem, ifa);
+      if(iface < 0) continue;
+
+      CPRINTF1(" - tetra %d interior face %d = %d %d %d becomes boundary iface = %d \n",
+        ielem, ifa, 
+        msh.fac2poi(iface,0),msh.fac2poi(iface,1),msh.fac2poi(iface,2),iface);
+      if(msh.fac2tet(iface,0) < 0 
+        || msh.tet2tag(ithread,msh.fac2tet(iface,0)) >= msh.tag[ithread]){
+        // Nothing here yet
+        msh.fac2tet(iface,0) = iele2;
+      }else{
+        // Points to dead element.
+        msh.fac2tet(iface,1) = iele2;
+      }
+
+    }
+    int iver = msh.template getvertet<1>(ielem, cav.ipins);
+    if(iver < 0) continue;
+    // Go over the other faces and see if they are cavity bdry 
+    for(int ifa = 0; ifa < 4; ifa++){
+      //CPRINTF1("Debug consider ielem %d ifa %d\n",ielem,ifa);
+      if(ifa == iver) continue;
+      int iele2 = msh.tet2tet(ielem,ifa);
+      if(iele2 < 0) continue; // this is handled next
+      if(iele2 >= 0 && msh.tet2tag(ithread,iele2) >= msh.tag[ithread]) continue;
+      int ip1 = msh.tet2poi(ielem,lnofa3[ifa][0]);
+      int ip2 = msh.tet2poi(ielem,lnofa3[ifa][1]);
+      int ip3 = msh.tet2poi(ielem,lnofa3[ifa][2]);
+      CPRINTF1(" - add %d to neighb hashtable %d %d %d from %d face %d \n",iele2,
+               ip1,ip2,ip3,ielem,ifa);
+      auto key = stup3(ip1,ip2,ip3);
+      facHsh[key] = iele2;
+    }
+  }
+
+
+  for(int ielem = nele0; ielem < msh.nelem; ielem++){
+    INCVDEPTH(msh.param)
+    for(int ifa = 0; ifa < 4; ifa++){
+      int iele2 = msh.tet2tet(ielem,ifa);
+
+      if(iele2 >= 0){
+
+        // Lastly, we can be pointing to dead or cav elements. This is only if ipins 
+        // was boundary: removing bdry elements exposed tetrahedra and made some 
+        // inernal faces boundary. 
+        if(isdeadent(iele2,msh.tet2poi) || msh.tet2tag(ithread,iele2) >= msh.tag[ithread]){
+          CPRINTF1(" - found dead tetra neighbour -> remove\n");
+          msh.tet2tet(ielem,ifa) = -1;
+        }else{
+          //if(msh.tet2tag(ithread,iele2) >= msh.tag[ithread]){
+          //  METRIS_ASSERT(msh.tet2tet(iele2,0) == ielem 
+          //              ||msh.tet2tet(iele2,1) == ielem 
+          //              ||msh.tet2tet(iele2,2) == ielem 
+          //              ||msh.tet2tet(iele2,3) == ielem);
+          //  continue;
+          //}
+
+          int if2 = getfactet(msh,iele2,msh.tet2poi(ielem,lnofa3[ifa][0])
+                                       ,msh.tet2poi(ielem,lnofa3[ifa][2])
+                                       ,msh.tet2poi(ielem,lnofa3[ifa][1]));
+          METRIS_ASSERT(if2 >= 0);
+
+          msh.tet2tet(iele2, if2) = ielem;
+          CPRINTF1(" - tetra neighbour update %d -> %d\n",iele2,ielem);
+        }
+      }
+
+      int iface = msh.tetfac2glo(ielem, ifa);
+      CPRINTF1(" - ielem %d ifa %d glo face? %d \n",ielem,ifa,iface);
+      if(iface >= 0 && msh.fac2tet(iface,0) != ielem 
+                    && msh.fac2tet(iface,1) != ielem){
+        CPRINTF1(" - current fac2tet = %d %d \n",msh.fac2tet(iface,0),msh.fac2tet(iface,1));
+        if(msh.fac2tet(iface,0) < 0 
+        || msh.tet2tag(ithread,msh.fac2tet(iface,0)) >= msh.tag[ithread]){
+          // Nothing here yet
+          msh.fac2tet(iface,0) = ielem;
+        }else{
+          // Points to dead element.
+          msh.fac2tet(iface,1) = ielem;
+        }
+      }
+
+      if(msh.tet2poi(ielem, ifa) != cav.ipins){
+        // If not face opposite ipins, check facHsh
+        int ip1 = msh.tet2poi(ielem,lnofa3[ifa][0]);
+        int ip2 = msh.tet2poi(ielem,lnofa3[ifa][1]);
+        int ip3 = msh.tet2poi(ielem,lnofa3[ifa][2]);
+        auto key = stup3(ip1,ip2,ip3);
+        auto tt = facHsh.find(key);
+        if(tt != facHsh.end()){
+          int iele2 = tt->second;
+          CPRINTF1(" - found outside neighbour %d in hash tab\n",iele2);
+          int ifa2 = getfactet(msh,iele2,ip1,ip2,ip3);
+          METRIS_ASSERT(ifa2 >= 0);
+          msh.tet2tet(ielem,ifa)  = iele2;
+          msh.tet2tet(iele2,ifa2) = ielem;
+        }
+      }
 
 
 
+    }
 
-  // poi2ent updates. Order matters (lowest tdim prevails)
-  // First reset link for cavity vertices 
+    int nnode = getnnod3(ideg);
+    for(int ii = 0; ii < nnode; ii++){
+      int ipoin = msh.tet2poi(ielem, ii);
+      METRIS_ASSERT(ipoin >= 0);
+      if(msh.poi2ent(ipoin,1) <= 2 && msh.poi2ent(ipoin,1) >= 1) continue;
+      msh.poi2ent(ipoin,1) = 3;
+      msh.poi2ent(ipoin,0) = ielem;
+    }
+  }
 
-//  for(int ielem = nele0; ielem < msh.nelem; ielem++){
-//    for(int ii = 0; ii < getnnod3(msh.curdeg); ii++){
-//      int ipoin = msh.tet2poi(ielem,ii);
-//      msh.poi2ent[ipoin] = ielem;
-//    }
-//  }
-//  for(int iface = nfac0; iface < msh.nface; iface++){
-//    for(int ii = 0; ii < getnnod2(msh.curdeg); ii++){
-//      int ipoin = msh.fac2poi(iface,ii);
-//      msh.poi2ent[ipoin] = iface;
-//    }
-//  }
-//  for(int iedge = nedg0; iedge < msh.nedge; iedge++){
-//    for(int ii = 0; ii < getnnod1(msh.curdeg); ii++){
-//      int ipoin = msh.edg2poi(iedge,ii);
-//      msh.poi2ent[ipoin] = iedge;
-//    }
-//  }
 
 
   if(msh.isboundary_edges()){
     for(int iedgl = 0; iedgl < ncedg; iedgl++){
       int iedge = cav.lcedg[iedgl];
-      int nnode = getnnod1(msh.curdeg); 
+      int nnode = getnnod1(ideg); 
       for(int ii = 0; ii < nnode; ii++){
         int ipoin = msh.edg2poi(iedge,ii);
-        if(msh.poi2ent(ipoin,0) != -1) continue;
+        if(msh.poi2ent(ipoin,0) >= 0) continue;
         int ibpoi = msh.poi2bpo[ipoin];
         while(ibpoi >= 0){
           msh.bpo2ibi(ibpoi,0) = -1;
@@ -870,10 +884,10 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
   if(msh.isboundary_faces()){
     for(int ifacl = 0; ifacl < ncfac; ifacl++){
       int iface = cav.lcfac[ifacl];
-      int nnode = getnnod2(msh.curdeg); 
+      int nnode = getnnod2(ideg); 
       for(int ii = 0; ii < nnode; ii++){
         int ipoin = msh.fac2poi(iface,ii);
-        if(msh.poi2ent(ipoin,0) != -1) continue;
+        if(msh.poi2ent(ipoin,0) >= 0) continue;
         int ibpoi = msh.poi2bpo[ipoin];
         while(ibpoi >= 0){
           msh.bpo2ibi(ibpoi,0) = -1;
@@ -884,149 +898,75 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
     }
   }
 
-//  { // new HO point updates: metric and CAD
-//    // To avoid polluting the scope
-//  int nentt = msh.nelem > 0 ? msh.nelem : 
-//              msh.nface > 0 ? msh.nface : 
-//                              msh.nedge;
-//  int nent0 = msh.nelem > 0 ? nele0 : 
-//              msh.nface > 0 ? nfac0 : 
-//                              nedg0;
-//  int nnode = msh.nelem > 0 ? getnnod3(msh.curdeg) : 
-//              msh.nface > 0 ? getnnod2(msh.curdeg) : 
-//                              getnnod1(msh.curdeg);
-//  intAr2& ent2poi = msh.nelem > 0 ? msh.tet2poi : 
-//                    msh.nface > 0 ? msh.fac2poi : 
-//                                    msh.edg2poi;
-//  for(int ientt = nent0; ientt < nentt; ientt++){
-//    for(int ii = 0; ii < nnode; ii++){
-//      int ipoin = ent2poi(ientt,ii);
-//      // Old points need this update because elements changed
-//      msh.poi2ent[ipoin] = ientt;
-//
-//      // However only new pts need a metric / CAD update
-//      if(ipoin < npoi0) continue;
-//    }
-//  }
-//
-//
-//
-//  } // poi2ent update
 
-  if(msh.isboundary_faces() && msh.curdeg > 1 && msh.CAD()){ 
+
+  // For line points, regenerate (u,v) from t. 
+  if(msh.isboundary_faces() && ideg > 1 && msh.CAD()){ 
     // No updates necessary otherwise
-    METRIS_ASSERT(cav.nrmal != NULL);
+    METRIS_ASSERT(msh.idim == 3);
 
     for(int ipoin = npoi0; ipoin < msh.npoin; ipoin++){
-      // regenerate (u,v)s from t
-      int ib = msh.poi2bpo[ipoin];
-      int ityp = msh.bpo2ibi(ib,1);
+      int ibpoi = msh.poi2bpo[ipoin];
+      int ityp = msh.bpo2ibi(ibpoi,1);
       if(ityp >= 2) continue;
 
       // Cannot have created a corner. 
       METRIS_ASSERT(ityp == 1);
 
-      // Material is to the left of the curve when positively walked
-      // Meaning if the normal is going towards us, edge is going up, 
+      // To use EG_getEdgeUV, we need to provide the sign (direction) of the curve 
+      // in the face. In EGADS convention, material is to the left of the curve
+      // when positively walked.
+      // Meaning if the normal is going towards us, edge is going "up", 
       // then triangles to the left that share the edge, have 
       // the height (or the other edges) with positive scalar product 
       // to the vector product between normal and edge... 
 
-      // edge = e 
+      // edge tangent = e 
       // normal = n
       // h = project 3rd triangle vertex (not on edge) -> 3rd triangle vertex
-      // compute vec(n,e) = l
+      // compute l = n x e (vector product)
       // if (l,h) > 0 triangle is left -> positive
       //          < 0 triangle is right -> negative 
 
-      double t = msh.bpo2rbi(ib,0);
+      // We can simplify all of this and base it only on a topological criterion:
+      // is the triangle edge ordered the same as the edge edge?
+      // If so, then the edge going up, triangle is trigo, normal is going towards
+      // us, this yields positive edge. So positive = same ordering. 
 
-      int iedge = msh.bpo2ibi(ib,2);
+
+      int iedge = msh.bpo2ibi(ibpoi,2);
       METRIS_ASSERT(iedge >= 0);
+      int ip1 = msh.edg2poi(iedge,0);
+      int ip2 = msh.edg2poi(iedge,1);
 
+
+      // Get EG object for this edge
+      double tt = msh.bpo2rbi(ibpoi,0);
       int irefe = msh.edg2ref[iedge];
       ego EG_edg = msh.CAD.cad2edg[irefe];
       METRIS_ASSERT(EG_edg != NULL);
 
+      for(ibpoi = msh.bpo2ibi(ibpoi,3); ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+        if(msh.bpo2ibi(ibpoi,1) != 2) continue;
 
-      double vec[3];
+        // Found a triangle, now update.
+        int iface = msh.bpo2ibi(ibpoi,2);
+        int ireff = msh.fac2ref[iface];
+        ego EG_fac  = msh.CAD.cad2fac[ireff];
 
-      if constexpr(ideg >= 2){
-        int jj = -1;
-        for(int ii = 2; ii < getnnod1(ideg); ii++){
-          int ip = msh.edg2poi(iedge,ii);
-          if(ip == ipoin){
-            jj = ii;
-            break;
-          }
-        }
-        METRIS_ASSERT(jj>=0);
-    
-        double bar1[2];
-        bar1[0] = ordedg.s[ideg][jj][0] / (ideg * 1.0);
-        bar1[1] = ordedg.s[ideg][jj][1] / (ideg * 1.0);
-      
-        double dum[3], tang[3];
-        eval1<3,ideg>(msh.coord,msh.edg2poi[iedge],msh.getBasis(),
-                      DifVar::Bary,DifVar::None,bar1,dum,tang,NULL);
+        METRIS_ASSERT(EG_fac != NULL);
 
-        // This vector is the definition of left
-        vecprod(cav.nrmal,tang,vec);
+        // Base on ordering
+        int ied = getedgfac(msh,iface,ip1,ip2);
+        METRIS_ASSERT(ied >= 0);
+        int sg = 1;
+        if(ip1 != msh.fac2poi(iface,lnoed2[ied][0])) sg = -1;
+
+        int icode = EG_getEdgeUV(EG_fac, EG_edg, sg, tt, msh.bpo2rbi[ibpoi]);
+
+        if(icode != 0) METRIS_THROW_MSG(GeomExcept(),"EG_getEdgeUV failed !");
+
       }
-
-
-
-      ib = msh.bpo2ibi(ib,3);
-      METRIS_ASSERT(ib >= 0);
-      do{
-        if(msh.bpo2ibi(ib,1) == 2){
-          // Found a triangle, now update. 
-          int iface = msh.bpo2ibi(ib,2);
-          int ireff = msh.fac2ref[iface];
-          ego EG_fac  = msh.CAD.cad2fac[ireff];
-
-          METRIS_ASSERT(EG_fac != NULL);
-
-          // Material is left if edge + 
-          // Check to other triangle vertices. 
-          // Note triangle may or may not share a full edge so just take max dtprd
-          // For robustness take both min and max and keep highest abs value
-          double dtprm =  1.0;
-          double dtprM = -1.0;
-          double du[3];
-          for(int ii = 0; ii < 3; ii++){
-            int ip = msh.fac2poi(iface,ii);
-            if(ip == ipoin) continue;
-            for(int jj = 0; jj < 3; jj++) du[jj] = 
-              msh.coord(ip,jj) - msh.coord(ipoin,jj);
-            double dtprd = getprdl2<3>(du,vec);
-            if(dtprd > dtprM) dtprM = dtprd;
-            if(dtprd < dtprm) dtprm = dtprd;
-          }
-
-          // If both dtprM and dtprm > 0, then |dtprM| > |dtprm|
-          // If both dtprM and dtprm < 0, then |dtprm| > |dtprM|
-
-          // If dtprM > 0 and dtprm < 0, we assume this is roff error 
-          // of the smallest in absolute value. 
-          // In this case, if |dtprM| > |dtprm|, then dtprM > 0 and dtprm > 0 (in reality)
-
-          // In summary, the test is |dtprM| > |dtprm| <=> dtprM > 0 && dtprm > 0
-          int sg = 1;
-          if(abs(dtprM) < abs(dtprm)){
-            sg = -1;
-          }
-
-          int icode = EG_getEdgeUV(EG_fac, EG_edg, sg, t, msh.bpo2rbi[ib]);
-
-          if(icode != 0) METRIS_THROW_MSG(GeomExcept(),"EG_getEdgeUV failed !");
-
-        }
-        ib = msh.bpo2ibi(ib,3);
-      }while(ib >= 0);
-
-
-
 
     } 
   }
@@ -1035,44 +975,28 @@ int update_cavity(Mesh<MFT> &msh, const MshCavity &cav, const CavWrkArrs &work,
   // Deleting entities in the initial cavity. 
   for(int iedgl = 0; iedgl < ncedg; iedgl++){
     int iedge = cav.lcedg[iedgl];
-    //    msh.edg2tag(ithread,iedge) = msh.tag[ithread];
-
-    //int ip1 = msh.edg2poi(iedge,0);
-    //int ip2 = msh.edg2poi(iedge,1);
-    //auto key = stup2(ip1,ip2);
-    // This removes if exists
     killent(iedge, msh.edg2poi);
   }
   for(int ifacl = 0; ifacl < ncfac; ifacl++){
     int iface = cav.lcfac[ifacl];
-    //    msh.fac2tag(ithread,iface) = msh.tag[ithread];
-
-    //int ip1 = msh.fac2poi(iface,0);
-    //int ip2 = msh.fac2poi(iface,1);
-    //int ip3 = msh.fac2poi(iface,2);
-    //auto key = stup3(ip1,ip2,ip3);
-    // This removes if exists
     killent(iface, msh.fac2poi);
   }
   for(int ielel = 0; ielel < nctet; ielel++){
     int ielem = cav.lctet[ielel];
-    //    msh.tet2tag(ithread,ielem) = msh.tag[ithread];
     killent(ielem, msh.tet2poi);
   }
 
 
-  cleanup:
-  msh.tag[ithread]++; // Because points were tag+1
-  return 0;
+  return ierro;
 }
 
 #define BOOST_PP_LOCAL_MACRO(n)\
 template int update_cavity<MetricFieldAnalytical,n>(Mesh<MetricFieldAnalytical> &msh,\
-                            const MshCavity &cav, const CavWrkArrs &work, int npoi0, int nedg0, \
+                            MshCavity &cav, const CavWrkArrs &work, int npoi0, int nedg0, \
                             int nfac0, int nele0, \
                             int ithread);\
 template int update_cavity<MetricFieldFE        ,n>(Mesh<MetricFieldFE        > &msh, \
-                            const MshCavity &cav, const CavWrkArrs &work, int npoi0, int nedg0, \
+                            MshCavity &cav, const CavWrkArrs &work, int npoi0, int nedg0, \
                             int nfac0, int nele0, \
                             int ithread);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)

@@ -14,7 +14,7 @@ namespace Metris{
 // Evaluate points on lines and forcibly reinsert them in the mesh, breaking 
 // everything on the way 
 template<class MFT>
-void reinsertLines(Mesh<MFT> &msh, int ithrd1 = 0, int ithrd2 = 1);
+void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2);
 
 }// end Namespace
 

@@ -3,8 +3,8 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef __METRIS_OPT_GENERIC__
-#define __METRIS_OPT_GENERIC__
+#ifndef __METRIS_OPTIMIZATION_NEWTON__
+#define __METRIS_OPTIMIZATION_NEWTON__
 
 #ifdef USE_PETSC
   #include <petscmat.h>
@@ -13,30 +13,39 @@
 #include <functional>
 #include <nlopt.h>
 
+#include "MetrisRunner/MetrisParameters.hxx"
 
 namespace Metris{
 
 template<int nvar>
 struct newton_drivertype_args{
-  double xtol, stpmin, wlfc1, wlfc2, ratnew;
+  double xtol, stpmin, wlfc1, wlfc2, ratnew, ftol;
   int niter, maxit, iprt, isym;
   int iwork[3];
   double rwork[4 + nvar*10];
   double xopt[nvar]; 
-  double fopt; 
+  double fopt;
 
-  newton_drivertype_args(){
-    xtol = -1;
+  double fpre; // work
+
+
+  newton_drivertype_args() = delete;
+
+  newton_drivertype_args(MetrisParameters *param_) : param(param_){
+    xtol   = -1;
     stpmin = 1.0e-3;
-    wlfc1 = 0.1;
-    wlfc2 = 10.0;
+    wlfc1  = 0.1;
+    wlfc2  = 10.0;
     ratnew = 0.5;
+    ftol   = -1;
 
     niter = 0;
     maxit = 50;
     iprt  = 0;
     isym  = 1;
   }
+
+  const MetrisParameters* param;
 };
 struct truncated_newton_work{
   // Using a dblAr1 should be safer (throw if undersized)

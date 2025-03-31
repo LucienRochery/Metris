@@ -17,6 +17,21 @@ namespace Metris{
 // -----------------------------------------------------------------------------
 
 template<>
+void geteigsym<2,double>(const double* met,int nwork,double* rwork,double* eigval,double* eigvec){
+  //double eigve2[9];
+  eigvec[2*0+0] = met[0];
+  eigvec[2*1+0] = met[1];
+  eigvec[2*1+1] = met[2];
+
+  char c1 = 'V', c2 = 'U';
+  int two = 2, info;
+  LAPACK_dsyev(&c1,&c2,&two,eigvec,&two,eigval,rwork,&nwork,&info);
+  if(info != 0)METRIS_THROW_MSG(AlgoExcept(),
+   "LAPACK_dsyev failed last ierro = "<<info<<"\n");
+
+
+}
+template<>
 void geteigsym<3,double>(const double* met,int nwork,double* rwork,double* eigval,double* eigvec){
   //double eigve2[9];
   eigvec[3*0+0] = met[0];
@@ -29,8 +44,8 @@ void geteigsym<3,double>(const double* met,int nwork,double* rwork,double* eigva
   char c1 = 'V', c2 = 'U';
   int three = 3, info;
   LAPACK_dsyev(&c1,&c2,&three,eigvec,&three,eigval,rwork,&nwork,&info);
-  if(info != 0) METRIS_THROW_MSG(AlgoExcept(),
-   "LAPACK_dsyev FAILED INFO = "<<info<<"\n");
+  if(info != 0)METRIS_THROW_MSG(AlgoExcept(),
+   "LAPACK_dsyev failed last ierro = "<<info<<"\n");
 
 
 }
@@ -49,14 +64,17 @@ void geteigsym(const T* __restrict__ met,
                      T* __restrict__ eigval,
                      T* __restrict__ eigvec){
 
-  //if constexpr(ndimn == 2){
-//
-  //}else{
-    int ierro = dsyevq<ndimn,T>(met,eigvec,eigval);
-    if(ierro != 0)METRIS_THROW_MSG(AlgoExcept(),
-    "dsyevq3 FAILED INFO = "<<ierro<<"inp ="<<met[0]<<" "<<met[1]<<" "<<met[2]<<"\n"
-      );
-  //}
+  int ierro = dsyevq<ndimn,T>(met,eigvec,eigval);
+  if(ierro != 0){
+    if constexpr(std::is_same<T,double>::value){
+      const int nwork = 20;
+      double rwork[nwork];
+      geteigsym<ndimn,double>(met, nwork, rwork, eigval, eigvec);
+    }else{
+      METRIS_THROW_MSG(AlgoExcept(),
+        "dsyevq3 FAILED INFO = "<<ierro<<"inp ="<<met[0]<<" "<<met[1]<<" "<<met[2]<<"\n");
+    }
+  }
 }
 
 template void geteigsym<2,double>(const double* __restrict__ met,

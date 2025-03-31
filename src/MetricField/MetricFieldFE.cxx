@@ -32,6 +32,18 @@ MetricFieldFE::MetricFieldFE(MeshBase &msh_) : msh(msh_){
   rfld.set_n(msh.npoin);
 }
   
+
+void MetricFieldFE::setSpace(MetSpace ispacn, bool iforce){
+  #ifndef NDEBUG
+  if(msh.meshClass() == MeshClass::MeshBack && !iforce && ispacn != this->ispace){
+    METRIS_THROW_MSG(GeomExcept(),"setSpace called on back mesh! Should not be done.")
+  }
+  #endif
+  METRIS_ASSERT(ispacn != MetSpace::Undefined);
+  if(ispacn == MetSpace::Log) setLog();
+  else                        setExp();
+}
+
 int MetricFieldFE::getnnmet()const{
   return (msh.idim*(msh.idim+1))/2;
 }
@@ -201,6 +213,7 @@ void MetricFieldFE::readMetricFile(std::string inpname){
 
 void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
 
+  // For now, always force writing as exp metric. 
   const MetSpace outspac = MetSpace::Exp;
 
   if(ibasis == FEBasis::Undefined){
@@ -211,10 +224,32 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
 
   int iverb = msh.param->iverb;
 
-  MetSpace ispac0 = this->ispace;
-  setSpace(outspac);
+  dblAr2 buffer;
+  if(outspac == this->ispace){
+    buffer = this->rfld;
+  }else{
+    buffer.allocate(this->rfld.get_n(),this->rfld.get_stride());
+    buffer.set_n(this->rfld.get_n());
+    for(int ii = 0; ii < this->rfld.get_n(); ii++){
+      for(int jj = 0; jj < this->rfld.get_stride(); jj++){
+        buffer(ii,jj) = this->rfld(ii,jj);
+      }
+    }
+    if(outspac == MetSpace::Log){
+      if(msh.idim == 2){
+        setLogMetMesh0<2>(msh, buffer);
+      }else{
+        setLogMetMesh0<3>(msh, buffer);
+      }
+    }else{
+      if(msh.idim == 2){
+        setExpMetMesh0<2>(msh, buffer);
+      }else{
+        setExpMetMesh0<3>(msh, buffer);
+      }
+    }
+  }
 
-  // For now, always force writing as exp metric. 
 
   std::string metName = correctExtension_solb(outname);
   int idim = msh.idim;
@@ -230,7 +265,7 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
 
   libIdx = MetrisOpenMeshFile<GmfWrite>(metName, idim);
   if(this->ibasis == FEBasis::Bezier) GmfSetKwd( libIdx, GmfBezierBasis, 1); 
-  if(this->ispace == MetSpace::Log ){
+  if(outspac == MetSpace::Log ){
     GmfSetKwd(libIdx,GmfComments,1);
     const char buf[8] = "log";
     GmfSetLin(libIdx,GmfComments,buf);
@@ -242,17 +277,13 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
  // if(iverb>0)std::cout<<"-- Start writing metrics: "<<msh.npoin<<std::endl;
   GmfSetKwd(libIdx, GmfSolAtVertices, msh.npoin, 1, &szfld);
   GmfSetBlock(libIdx, GmfSolAtVertices, 1, msh.npoin, 0, NULL, NULL,
-    GmfDoubleVec, nnmet, &this->rfld[0][0], &this->rfld[msh.npoin-1][0]);
+    GmfDoubleVec, nnmet, buffer[0], buffer[msh.npoin-1]);
  //               GmfDoubleVec, 3, &coord[0], &coord[npoin-1],
 //                GmfInt         , &poi2bpo[0], &poi2bpo[npoin-1]);
   if(iverb >= 3) std::cout<<"-- Done  writing metric"<<std::endl;
 
 
   GmfCloseMesh( libIdx );
-
-  //std::cout<<" - Done  writing "<<metName<<std::endl;
-
-  setSpace(ispac0);
 }
 
 
@@ -342,6 +373,16 @@ void MetricFieldFE::getMetBary(AsDeg asdmet,
 
     }
   }}CT_FOR1(gdim);
+
+  if(std::isnan(metl[0])){
+    printf("## DEBUG NAN METRIC IN GETMETBARY\n");
+    printf("bary = ");
+    dblAr1(msh.idim+1,bary).print();
+    for(int inode = 0; inode < getnnode(msh.idim,msh.curdeg); inode++){
+      printf("elt node %d met = ",ent2pol[inode]);
+      dblAr1((msh.idim*(msh.idim+1))/2, this->rfld[ent2pol[inode]]).print();
+    }
+  }
 
 }
 

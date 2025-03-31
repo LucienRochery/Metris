@@ -10,6 +10,7 @@
 #include "../linalg/invmat.hxx"
 #include "../linalg/det.hxx"
 #include "../aux_exceptions.hxx"
+#include "../low_normal.hxx"
 #include "../low_geo.hxx"
 #include "../utils/mprintf.hxx"
 
@@ -24,9 +25,8 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
   //if(gdim > tdim){
   //  METRIS_ASSERT(nrmal != NULL);
   //}
-  if(tdim != 2) METRIS_THROW_MSG(TODOExcept(), "Implement Delaunay tdim 3");
 
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
   const double orthTol = 1.0e-15; // VecNrmTol = 1.0e-16 doesn't cut it
 
@@ -52,9 +52,10 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
   //   (if 3D) (P4-P1)^TM
   if constexpr(tdim == gdim){
     for(int ii = 0; ii < tdim; ii++){
-      for(int jj = 0; jj < gdim; jj++) buf[jj] = msh.coord[ent2pol[ii+1]][jj] - msh.coord[ent2pol[0]][jj];
+      for(int jj = 0; jj < gdim; jj++) 
+        buf[jj] = msh.coord(ent2pol[ii+1],jj) - msh.coord(ent2pol[0],jj);
       symXvec<gdim>(metl,buf,mat[ii]);
-      CPRINTF1(" - buf %f %f \n",buf[0],buf[1]);
+      //CPRINTF1(" - buf %f %f \n",buf[0],buf[1]);
     }
   }else{
     // In this case, we're going to compute the Frénet frame associated to the 
@@ -136,7 +137,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
     // Compute t1^T P as the components instead of straight P
     for(int ii = 0; ii < tdim; ii++){
       for(int jj = 0; jj < tdim; jj++) 
-        buf1[jj] = msh.coord[ent2pol[ii+1]][jj] - msh.coord[ent2pol[0]][jj];
+        buf1[jj] = msh.coord(ent2pol[ii+1],jj) - msh.coord(ent2pol[0],jj);
       buf[0] = getprdl2<gdim>(tau1,buf1);
       buf[1] = getprdl2<gdim>(tau2,buf1);
       symXvec<tdim>(met2,buf,mat[ii]);
@@ -190,7 +191,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
   matXvec<tdim>(mat[0], rhs, centr);
 
   if constexpr(tdim == gdim){
-    for(int jj = 0; jj < gdim; jj++) buf[jj] = msh.coord[ent2pol[0]][jj] - centr[jj];
+    for(int jj = 0; jj < gdim; jj++) buf[jj] = msh.coord(ent2pol[0],jj) - centr[jj];
     r = tvecXsymXvec<tdim>(buf,buf,metl);
 
     for(int jj = 0; jj < gdim; jj++) buf[jj] = coop[jj] - centr[jj];

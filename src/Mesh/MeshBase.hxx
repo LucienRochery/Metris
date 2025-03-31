@@ -94,44 +94,51 @@ public:
 	intAr1  tet2ref;
 	intAr2r tet2tag;
 	bolAr1  tet2ftg; 
+  intAr2  dom2tag; // tetra domain tags
   int tet2fac(int ielem, int ifal);
+  const int &nelem = nelem_;
+  int ndomn; // number of domain refs (some may be empty)
 
 	intAr2  fac2poi; 
 	intAr1  fac2ref;
 	intAr2r fac2tag;
   // Return global edge at face edge if exists, -1 otherwise
   int fac2edg(int iface, int iedl);
+  const int &nface = nface_;
 
 	intAr2  edg2poi; 
 	intAr1  edg2ref;
 	intAr2r edg2tag; 
+  const int &nedge = nedge_;
 
 	intAr2  poi2ent;
 	intAr2r poi2tag; 
 	dblAr2  coord;
+  const int &npoin = npoin_;
+
   // Boundary link 
   intAr1  poi2bpo; 
   intAr2  bpo2ibi; 
   intAr2r bpo2tag;
   dblAr2  bpo2rbi;
+  const int &nbpoi = nbpoi_;
 
-  // Seek a bpo for ipoin of dim tdim that matches either ientt or, if not, then iref
-  // either can be -1 (or both, then return first dim matching ent)
+  // point to element boundary point
+  // Seek a bpo for ipoin of dim tdim that matches either ientt or, if not, 
+  // then iref either can be -1 (or both, then return first dim matching ent)
   int poi2ebp(int ipoin, int tdim, int ientt, int iref) const;
+
+  // point to dimension element
+  // Give an entity of dimension tdim that contains ipoin and has ref iref 
+  // if iref >= 0.
+  int poi2del(int ipoin, int tdim, int iref) const;
 
 	// Work arrays: to be freely used by any routine
   intAr1 iwork;
   dblAr1 rwork;
 
 
-
 	int tag[METRIS_MAXTAGS];
-
-	// Walk linked list instead. Can use getbpos in low_topo. 
-	//// Indexed by unique pairs (iface,ivert) or (iedge,ivert)
-	//// Yielding 
-	//absl::flat_hash_map<std::tuple<int,int>, int> fac2bpo;
-	//absl::flat_hash_map<std::tuple<int,int>, int> edg2bpo;
 
   // tet -> tet neighbours in tet2tet
   // edg -> edg neighbours in edg2edg
@@ -159,12 +166,6 @@ public:
   int idim;
 
 
-  // Different subclasses will need different values. 
-  // For now it's only MeshBack that needs 10.
-  const int nipwk, niewk, nifwk, nitwk;
-  const int nrpwk;
-	
-
 	// This is intended to be kept throughout execution and 
 	// passed to e.g. the cavity operator as needed. 
 	// Nothing inside of this allocator is kept valid from
@@ -186,16 +187,10 @@ public:
   virtual MeshClass meshClass() const { return MeshClass::MeshBase; }
   virtual MetricClass metricClass() const;
 
-	MeshBase() = delete;
-	MeshBase(int nipwk_=1, int niewk_=1, int nifwk_=1, int nitwk_=1, int nrpwk_=1);
+	MeshBase();
 
   virtual ~MeshBase(){}
 
-  const int &nbpoi = nbpoi_;
-  const int &npoin = npoin_;
-  const int &nedge = nedge_;
-  const int &nface = nface_;
-  const int &nelem = nelem_;
 
   const int &mbpoi = mbpoi_;
   const int &mpoin = mpoin_;
@@ -216,12 +211,12 @@ public:
 	unsigned long long int  getMemCost(); // in bytes
 	void zeroArrays();
 
-	void readMeshFile(int64_t libmeshbIdx, int ithread = 0);
+	void readMeshFile(int64_t libmeshbIdx, int ithread);
   // This destroys the data 
   void readMeshData(MetrisAPI &data);
 
 	void iniNeighbours();
-	void iniBdryPoints(int ithread = 0);
+	void iniBdryPoints(int ithread);
   void iniCADLink(int nbpo0);
 
   /* END INIT */
@@ -236,20 +231,10 @@ public:
   // To be used in initialization
   void forceBasisFlag(FEBasis ibasn){ibasis = ibasn;}
 
-  int get_tdim() const{
-    if(nelem > 0) return 3;
-    else if (nface > 0) return 2;
-    return 1;
-  }
+  // Return highest topo dim in mesh
+  int get_tdim() const;
 
-  int get_gdim() const{return idim;}
-
-  void set_gdim(int idim){
-    METRIS_ASSERT(idim == 2 || idim == 3);
-    this->idim = idim;
-  }
-
-
+  // Dimension generic helpers
               int  nentt(int tdimn) const;
               //int &nentt(int tdimn);
               int  mentt(int tdimn) const;
@@ -270,6 +255,10 @@ public:
   template<int tdimn>       intAr2& ent2ent();
   template<int tdimn> const intAr2& ent2ent() const;
 
+  // points to ced2tag, cfa2tag or dom2tag
+        intAr2r& ref2tag(int tdimn);
+  const intAr2r& ref2tag(int tdimn) const;
+
   // return edgHshTab (tdimn = 1) or facHshTab reference 
   template<int tdimn> typename 
               std::conditional<tdimn==1,HshTabInt2,HshTabInt3>::type & hshTab();
@@ -280,17 +269,19 @@ public:
 	// And in case we want to change this, keep it in one place. 
 	bool isboundary_edges()const{return idim >= 2;}
 	bool isboundary_faces()const{return idim >= 3;}
-  bool isboundary_tdimn(int tdimn)const{return tdimn == 0 ? true : 
-                                               tdimn == 1 ? isboundary_edges() :
-                                               tdimn == 2 ? isboundary_faces() : false;}
+  bool isboundary_tdim(int tdimn)const{return tdimn == 0 ? true : 
+                                              tdimn == 1 ? isboundary_edges() :
+                                              tdimn == 2 ? isboundary_faces() : false;}
 
   // Lowest point topological dimension
   int getpoitdim(int ipoin) const;
 
+  // Get ipoin local index in entity of dim tdimn
   template<int ideg> 
   int getverent(int ientt, int tdimn, int ipoin);
   int getverent(int ientt, int tdimn, int ipoin);
 
+  // Get ipoin local index in edge, face, tetra
   template<int ideg> 
   int getveredg(int ientt, int ipoin);
   template<int ideg> 
@@ -298,9 +289,11 @@ public:
   template<int ideg> 
   int getvertet(int ientt, int ipoin);
 
+  // Mostly for internal use, compute the localization alignment direction
+  // (edge tangent, face normal) of a point with CAD link and poi2ent initialized.
+  void get_algnd(int ipoin, double *algnd);
 
-  // Whenever some nbpoi, npoin, nedge, nface, nelem is incremented, call these guys beforehand
-  // They will reallocate if needed, and throw an exception if impossible. 
+
   // Flag skipallocf determines whether main data (found in file) should be 
   // allocated or not. This is for initialization from API, to use std::move. 
   virtual void set_nbpoi(int nbpoi);
@@ -308,7 +301,6 @@ public:
   virtual void set_nedge(int nedge, bool skipallocf = false);
   virtual void set_nface(int nface, bool skipallocf = false);
   virtual void set_nelem(int nelem, bool skipallocf = false);
-
   virtual void set_nentt(int tdimn, int nentt, bool skipallocf = false);
 
 
@@ -330,11 +322,12 @@ public:
 
 	template <int ideg>
 	void newedgtopo(int iface, int iedfa, int iref = -1);
+
 	int newbpotopo(int ipoin, int tdim, int ientt = -1);
   void killpoint(int ipoin);
 
   // Remove all tagged entities from ipoin
-  void rembpotag(int ipoin, int ithread = 0);
+  void rembpotag(int ipoin, int ithread);
 
 	// Check if local edge iedl of iface is a global edge, and return index (or < 0)
 	int facedg2glo(int iface, int iedl) const;
@@ -345,10 +338,6 @@ public:
 
   // Return computed geodev (see below)
   double get_geodev(int tdim) const {return geodev[tdim-1];}
-  //// return surface normal for surface iref 
-  //// averaged
-  //// bad for periodic but good enough for first approximation
-  //void getpoinormal(int ipoin, int iref, double *nrmal);
 
 
   MetrisParameters* param;
@@ -356,9 +345,6 @@ public:
 
 protected:
   FEBasis ibasis;
-
-	// From maximum point count, deduce maximum other entity count
-	void setMpoiToMent();
 
 	void setLagrange();
 	void setBezier();

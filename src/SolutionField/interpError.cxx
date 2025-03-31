@@ -50,6 +50,80 @@ template double interpErrGlo<2, 2, n, 2,true >(const SolutionFieldAnalytical &so
 #include BOOST_PP_LOCAL_ITERATE()
 
 
+// Compute interpolation error over ball of point (shell if HO node)
+template<int idim, int ideg, int pdeg, int pnorm, bool iexact>
+double interpErrBall(const SolutionFieldAnalytical &sol, 
+                     const intAr1& lball, const intAr1& lnode,
+                     std::initializer_list<double*> derr){
+
+  int nball = lball.get_n();
+  const int nderiv = derr.size();
+  constexpr int nhess = (idim*(idim+1))/2;
+  METRIS_ASSERT(nderiv <= 2);
+
+  double dloc[idim];
+  double hloc[nhess];
+
+  double *d1err = NULL, *d2err = NULL;
+  if(nderiv > 0){
+    auto it = derr.begin();
+    d1err = *it;
+    for(int ii = 0; ii < idim; ii++) d1err[ii] = 0;
+    if(nderiv > 1){
+      it++;
+      d2err = *it;
+      for(int ii = 0; ii < nhess; ii++) d2err[ii] = 0;
+    }
+  }
+
+  double fcur = 0;
+  for(int iball = 0; iball < nball; iball++){
+    int ientt = lball[iball];
+    int inode = lnode[iball];
+
+    if(nderiv == 0){
+      fcur += interpErr<idim, ideg, pdeg, pnorm, iexact>(sol, ientt);
+    }else if(nderiv == 1){
+      fcur += interpErr<idim, ideg, pdeg, pnorm, iexact>(sol, ientt, inode, {dloc});
+    }else{
+      fcur += interpErr<idim, ideg, pdeg, pnorm, iexact>(sol, ientt, inode, {dloc, hloc});
+    }
+
+
+    if(nderiv == 0) continue;
+
+    for(int ii = 0; ii < idim; ii++) d1err[ii] += dloc[ii];
+
+    if(nderiv == 1) continue;
+
+    for(int ii = 0; ii < nhess; ii++) d2err[ii] += hloc[ii];
+
+  }// for iball
+
+  return fcur;
+}
+#define BOOST_PP_LOCAL_MACRO(n)\
+template double interpErrBall<2, 1, n, 1,false>(const SolutionFieldAnalytical &sol,\
+   const intAr1& lball, const intAr1& lnode, std::initializer_list<double*> derr);\
+template double interpErrBall<2, 1, n, 2,false>(const SolutionFieldAnalytical &sol,\
+   const intAr1& lball, const intAr1& lnode, std::initializer_list<double*> derr);\
+template double interpErrBall<2, 2, n, 1,false>(const SolutionFieldAnalytical &sol,\
+   const intAr1& lball, const intAr1& lnode, std::initializer_list<double*> derr);\
+template double interpErrBall<2, 2, n, 2,false>(const SolutionFieldAnalytical &sol,\
+   const intAr1& lball, const intAr1& lnode, std::initializer_list<double*> derr);\
+template double interpErrBall<2, 1, n, 1,true >(const SolutionFieldAnalytical &sol,\
+   const intAr1& lball, const intAr1& lnode, std::initializer_list<double*> derr);\
+template double interpErrBall<2, 1, n, 2,true >(const SolutionFieldAnalytical &sol,\
+   const intAr1& lball, const intAr1& lnode, std::initializer_list<double*> derr);\
+template double interpErrBall<2, 2, n, 1,true >(const SolutionFieldAnalytical &sol,\
+   const intAr1& lball, const intAr1& lnode, std::initializer_list<double*> derr);\
+template double interpErrBall<2, 2, n, 2,true >(const SolutionFieldAnalytical &sol,\
+   const intAr1& lball, const intAr1& lnode, std::initializer_list<double*> derr);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+
+
 // Evaluate interpolation error over an element. (tdim = msh.get_tdim())
 // ideg is mesh degree maximum 2
 // pdeg is interpolation degree maximum 2 

@@ -22,6 +22,7 @@ MeshArray1D<T,INT1>::MeshArray1D(){
   array_sp = NULL;
 }
 
+
 template<typename T,typename INT1>
 MeshArray1D<T,INT1>::MeshArray1D(INT1 m){
   METRIS_ENFORCE_MSG(m >= 0, "Negative size passed to MeshArray1D");
@@ -149,6 +150,17 @@ bool MeshArray1D<T,INT1>::allocate(INT1 m){
   m1 = m;
 
   return true;
+}
+
+
+template<typename T,typename INT1>
+void MeshArray1D<T,INT1>::inc_n(){
+  if(n1 >= m1){
+    INT1 m1_new = MAX(MAX(n1+1,n1 * Defaults::mem_growfac), 
+                      m1 * Defaults::mem_growfac); 
+    this->allocate(m1_new);
+  }
+  n1++;
 }
 
 template<typename T,typename INT1>

@@ -16,7 +16,7 @@ namespace Metris{
 
 void checkMet(const MeshMetric<MetricFieldFE>& msh){
 
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
 
   if(msh.met.getSpace() == MetSpace::Log){

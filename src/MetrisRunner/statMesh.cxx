@@ -13,6 +13,9 @@
 #include "../low_ccoef.hxx"
 #include "../utils/mprintf.hxx"
 
+#include "../SolutionField/SolutionField.hxx"
+#include "../SolutionField/minInterpError.hxx"
+#include "../SolutionField/interpError.hxx"
 
 namespace Metris{
 
@@ -29,7 +32,7 @@ void MetrisRunner::statMesh0(MeshStat* stat){
 
 
   Mesh<MFT> &msh = *( (Mesh<MFT>*) msh_g );
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
   if(!DOPRINTS1() && stat == NULL) return;
   
@@ -66,6 +69,23 @@ void MetrisRunner::statMesh0(MeshStat* stat){
     }
   }
 
+
+  if(param->anaSol && msh.idim == 2){
+    SolutionFieldAnalytical sol(msh);
+    sol.setAnalyticalSolution(param->ianasol);
+    double errGlo = -1;
+    //CT_FOR0_INC(2,3,idim){if(idim == msh.idim){
+    CT_FOR0_INC(1,2,ideg){if(ideg == msh.curdeg){
+    CT_FOR0_INC(1,2,pnorm){if(pnorm == param->intp_pnorm){
+    CT_FOR0_INC(1,2,pdeg){if(pdeg == param->intp_pdeg){
+      errGlo = interpErrGlo<2,ideg,pdeg,pnorm,true>(sol);
+    }}CT_FOR1(pdeg);
+    }}CT_FOR1(pnorm);
+    }}CT_FOR1(ideg);
+    //}}CT_FOR1(idim);
+    CPRINTF1("-- Analytical solution interpolation error pnorm %d pdeg %d: %e\n",
+             param->intp_pdeg, param->intp_pnorm, errGlo);
+  } 
 
 
   //getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::GeoSiz);

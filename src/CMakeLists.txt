@@ -161,6 +161,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/low_ccoef.cxx
     ${PROJECT_SOURCE_DIR}/src/low_eval.cxx
     ${PROJECT_SOURCE_DIR}/src/low_geo.cxx
+    ${PROJECT_SOURCE_DIR}/src/low_normal.cxx
     ${PROJECT_SOURCE_DIR}/src/low_lenedg.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_lenedg.cxx
     ##${PROJECT_SOURCE_DIR}/src/low_subdivide.cxx
@@ -173,9 +174,11 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/msh_lag2bez.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_checktopo.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_degelev.cxx
-    ${PROJECT_SOURCE_DIR}/src/opt_generic.cxx
+    ${PROJECT_SOURCE_DIR}/src/Optimization/Newton.cxx
+    ${PROJECT_SOURCE_DIR}/src/Optimization/DIRECT.cxx
     ${PROJECT_SOURCE_DIR}/src/Localization/low_localization.cxx
     ${PROJECT_SOURCE_DIR}/src/Localization/msh_localization.cxx
+    ${PROJECT_SOURCE_DIR}/src/Localization/msh_interpFrontBack.cxx
     ${PROJECT_SOURCE_DIR}/src/Boundary/msh_inisurf.cxx
     ${PROJECT_SOURCE_DIR}/src/Boundary/low_projsurf.cxx
     #${PROJECT_SOURCE_DIR}/src/Boundary/msh_optsurf.cxx
@@ -205,10 +208,11 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/linalg/invmat.cxx
     ${PROJECT_SOURCE_DIR}/src/linalg/utils.cxx
     ${PROJECT_SOURCE_DIR}/src/cavity/check_cavity_topo.cxx
-    ${PROJECT_SOURCE_DIR}/src/cavity/correct_cavity_fast.cxx
+    ${PROJECT_SOURCE_DIR}/src/cavity/correct_cavity.cxx
     ${PROJECT_SOURCE_DIR}/src/cavity/msh_cavity.cxx
     ${PROJECT_SOURCE_DIR}/src/cavity/reconnect_lincav.cxx
     ${PROJECT_SOURCE_DIR}/src/cavity/reconnect_faccav.cxx
+    ${PROJECT_SOURCE_DIR}/src/cavity/reconnect_tetcav.cxx
     ${PROJECT_SOURCE_DIR}/src/cavity/update_cavity.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/CADInfo.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshBase.cxx
@@ -216,8 +220,9 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshBase_topo.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshBack.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshMetric.cxx
-    ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh.cxx
+    ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh_interpMetBack.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh_cleanup.cxx
+    ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/MetricFieldFE.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/MetricFieldAnalytical.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/MetricField_getMetNodes.cxx

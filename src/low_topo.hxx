@@ -13,9 +13,12 @@
 
 namespace Metris{
 
-enum ballErrors {BALL_ERR_MBALL = 1,
-                 BALL_ERR_MBEDG = 2,
-                 BALL_ERR_MBFAC = 3};
+// Gathers all entities
+// lbedg, lbfac and lbtet can be size 0 (allocated to 0)
+// in that case, they will not be filled.
+int ball(MeshBase& msh, int ipoin,
+         intAr1 &lbedg, intAr1 &lbfac, intAr1 &lbtet,
+         int *iopen, int ithrd);
 
 int ball3(MeshBase& __restrict__ msh,
           int ipoin  ,int iele0, 
@@ -30,7 +33,7 @@ void ball3_nm(MeshBase& __restrict__ msh,
               intAr1 &lball,
               intAr1 &lbfac, 
               int* __restrict__ iopen,
-              int ithread = 0);
+              int ithread);
 
 void ball3_full(MeshBase& __restrict__ msh,
                int ipoin  ,int tdimn, int iseed, 
@@ -48,14 +51,20 @@ int ball2(MeshBase& __restrict__ msh,
           intAr1&            lbedg,
           int* __restrict__  iopen,
           bool* __restrict__ imani,
-          int ithread = 0);
+          int ithread);
 
+// iopen = 0 if closed
+//       = 1 if open 
+void shell(const MeshBase& msh,
+           int ipoi1, int ipoi2, 
+           int tdim , int iele0, 
+           intAr1& lsedg, intAr1& lsfac, intAr1& lstet, int* iopen);
 
-// iopen = -1 if shell is closed
+// iopen = 0 if shell is closed
 // = boundary shell element otherwise
 void shell3(const MeshBase& msh,
 	          int ipoi1, int ipoi2, int iele0, 
-            intAr1& lshell,
+            intAr1& lshell, intAr1& lbdry,
             int* iopen);
 
 

@@ -40,6 +40,9 @@ int getfactet(const MeshBase &msh, int ielem, int i1, int i2, int i3);
 int getneitet(const MeshBase &msh, int iele1, int iele2);
 int getedgtet(const MeshBase &msh, int ielem, int i1, int i2);
 
+int getedgent(const MeshBase &msh, int tdim, int ientt, int i1, int i2);
+
+
 // In case this is changed in the future; e.g. -1 but what if unsigned? 
 inline bool isdeadent(int ient, const intAr2 &lent){
 	return (lent[ient][0] == lent[ient][1] || lent[ient][0] < 0);

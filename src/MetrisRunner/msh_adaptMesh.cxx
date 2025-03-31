@@ -43,7 +43,7 @@ void MetrisRunner::adaptMesh(){
 // Profiling is attrocious if the template parameters are unrolled within the function
 template<class MFT,int gdim,int ideg>
 void MetrisRunner::adaptMesh0(){
-  GETVDEPTH((*this));
+  GETVDEPTH(this->param);
   Mesh<MFT> &msh = static_cast<Mesh<MFT>&>(*msh_g);
 
 
@@ -52,7 +52,6 @@ void MetrisRunner::adaptMesh0(){
   const int miter = param_.adp_niter;
 
   if(msh.param->adp_niter == 0)  return;  
-  if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement tetras in cavity and adaptMesh0");
 
   msh.cleanup();
 
@@ -116,7 +115,7 @@ void MetrisRunner::adaptMesh0(){
   if(msh.CAD() && msh.param->adp_line_adapt){
 
     t0 = get_wall_time();
-    adaptGeoLines<MFT>(msh,0);
+    adaptGeoLines<MFT>(msh);
     t1 = get_wall_time();
     CPRINTF1(" - adaptGeoLines time = %fs \n",t1-t0);
     if(DOPRINTS2()) writeMesh("v2_geolines_adp",msh);
@@ -203,6 +202,12 @@ void MetrisRunner::adaptMesh0(){
       CPRINTF2("------------------------------------------------------------\n");
     }
     if(msh.param->dbgfull) check_topo(msh,1);
+
+
+    //pct_unit = 100*getLengthEdges(msh,ilned,rlned);
+    //printf("## Debug pct_unit after collapse %f \n",pct_unit);
+
+
     // 2. Swaps
 
     if(niter%2 == 0 || qmax_suf < 0.5){
@@ -232,6 +237,10 @@ void MetrisRunner::adaptMesh0(){
     if(msh.param->dbgfull) check_topo(msh,1);
 
     // 3. Insert on long edges 
+
+    //pct_unit = 100*getLengthEdges(msh,ilned,rlned);
+    //printf("## Debug pct_unit after swap %f \n",pct_unit);
+
 
     t0 = get_wall_time();
     stat  = insertLongEdges<MFT,gdim,ideg>(msh, &ninser, ithrdfro, 1, 2);
@@ -334,8 +343,11 @@ void MetrisRunner::adaptMesh0(){
       break;
     }
 
+    bool dosmoo_adp = (iopt_niter < msh.param->adp_opt_niter|| msh.param->adp_opt_niter < 0)
+                        && !msh.param->opt_unif;
     bool stagn = stat0 < 1.0e-3
               || stat0 < minstat;
+              //|| stat0 < 5.0e-2 && dosmoo_adp;
              // || abs(stat0 - stat_prev) < 1.0e-6 ;// This last criterion just catches cycles
 
     //stat_prev = stat0;

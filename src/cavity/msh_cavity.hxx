@@ -35,7 +35,11 @@ enum Cavity_Errors {CAV_NOERR = 0,
                     CAV_ERR_FLATEDG = 17,
                     CAV_ERR_DUPFAC = 18,
                     CAV_ERR_LINFAC = 19, // face has 3 vertices on same edge ref
-                    CAV_ERR_NERROR = 20
+                    CAV_ERR_FLATTET = 20,
+                    CAV_ERR_MULTIREFTET = 21,
+                    CAV_ERR_NOFACTET = 22,
+                    CAV_ERR_INTERPMETBACK = 23,
+                    CAV_ERR_NERROR = 24
                     };
 
 
@@ -45,11 +49,8 @@ enum Cavity_Errors {CAV_NOERR = 0,
 
 class MshCavity{
 public:
-	MshCavity(){
-		//mctet = mcfac = mcedg = 0;
-		//nctet = ncfac = ncedg = 0;
-		//lctet = lcfac = lcedg = NULL;
-	}
+	MshCavity(){}
+
   MshCavity(int mctet_, int mcfac_, int mcedg_) 
     : lctet(mctet_), lcfac(mcfac_), lcedg(mcedg_) {
       lctet.set_n(0);
@@ -57,55 +58,13 @@ public:
       lcedg.set_n(0);
     }
   
-  #if 0
-	MshCavity(int mctet_, int mcfac_, int mcedg_, 
-		        int nbuff, int *lbuff){
-
-		int tmem_ = mctet_ + mcfac_ + mcedg_;
-		if(tmem_ > nbuff)
-			METRIS_THROW_MSG(DMemExcept(),"PROVIDE LARGER CAVITY BUFFER")
-
-		int ovft = (nbuff - tmem_) / 2;
-		int ovff = (nbuff - tmem_ - ovft) / 2;
-		int ovfe = (nbuff - tmem_ - ovff - ovft);
-
-
-		int mctet = mctet_ + ovft;
-		int mcfac = mcfac_ + ovff;
-		int mcedg = mcedg_ + ovfe;
-
-		//nctet = ncfac = ncedg = 0;
-		lctet.set_buffer(mctet,&(lbuff[0]));
-		lcfac.set_buffer(mcfac,&(lbuff[mctet]));
-		lcedg.set_buffer(mcedg,&(lbuff[mctet+mcfac]));
-
-    //lctet = &(lbuff[0]);
-    //lcfac = &(lbuff[mctet]);
-    //lcedg = &(lbuff[mctet+mcfac]);
-		nrempts = 0;
-		iremcor = -1;
-		ipins   = -1;
-
-    nrmal  = NULL;
-	}
-  #endif
-    
 	void reset(){
-		//nctet = 0;
-		//ncedg = 0;
-		//ncfac = 0;
 		ipins =-1;
 		nrempts = 0;
 		iremcor = -1;
     lcedg.set_n(0);
     lcfac.set_n(0);
     lctet.set_n(0);
-    nrmal = NULL;
-	}
-	~MshCavity(){
-		//lctet = NULL;
-		//lcfac = NULL;
-		//lcedg = NULL;
 	}
 
   intAr1& lcent(int tdimn){
@@ -156,12 +115,6 @@ public:
   /* User set data */
   // Usage examples bunit/face_cavityX.cxx 
   
-  // m = storage size
-  // n = element count 
-  // l = element list
-	//int  mctet, mcfac, mcedg;
-	//int  nctet, ncfac, ncedg;
-	//int *lctet,*lcfac,*lcedg;
   intAr1 lctet,lcfac,lcedg;
 
   // Point to be inserted. ibpoi must be set. If needed, use newedgvirtual/newfacvirtual to give a surface ref 
@@ -170,15 +123,10 @@ public:
   // if options qmax_nec, qmax_suf or qmax_iff are set > 0. 
 	int ipins;
 
-  // Surface normal at ipins. Can be NULL if not surface. 2D doesnt need either. 
-  double *nrmal;
-
   /* End user set data */
-
-
   // Internal use
 	// Store removed points, whether a corner is removed and if so which one (one at the most)
-	int nrempts, iremcor;
+	int nrempts, iremcor, maxtag;
 };
 
 struct CavOprOpt{
@@ -280,8 +228,6 @@ struct CavWrkArrs{
   // Store normals for each connex component of the cavity.
   dblAr2 lnorf;
 
-  int tagf0;
-
   CavWrkArrs(){
     lbad.allocate(100,2);
 
@@ -291,8 +237,6 @@ struct CavWrkArrs{
     lfcco.allocate(100);
 
     lnorf.allocate(10,3);
-
-    tagf0 = -1;
   }
 
   //void set_mmeas(int mmeas_){
@@ -331,68 +275,69 @@ struct CavWrkArrs{
 
 template<class MetricFieldType, int ideg>
 int cavity_operator(Mesh<MetricFieldType> &msh ,
-                   MshCavity &cav,
-                   CavOprOpt &opts,
+                    MshCavity &cav,
+                    CavOprOpt &opts,
                     CavWrkArrs &work,
                     CavOprInfo &info,
-                   int ithread = 0);
+                    int ithread);
+
+
 
 // Check at most one corner
 // Check edges attached to faces attached to tets
 // Check no int points if norempts option set
-template<class MetricFieldType>
-int check_cavity_topo(Mesh<MetricFieldType> &msh, MshCavity &cav, 
+int check_cavity_topo(MeshBase &msh, MshCavity &cav, 
                       CavOprOpt &opts,//RoutineWorkMemory<int> &iwrk,
-                      int ithread = 0);
+                      int ithread);
 
 template<class MetricFieldType, int ideg>
-int update_cavity(Mesh<MetricFieldType> &msh, const MshCavity &cav, const CavWrkArrs &work, 
-                 int npoi0, int nedg0, int nfac0, int nele0, int ithread = 0);
+int update_cavity(Mesh<MetricFieldType> &msh, MshCavity &cav, const CavWrkArrs &work, 
+                 int npoi0, int nedg0, int nfac0, int nele0, int ithread);
 
 
 // The boundary of the line cavity is simply the set of end points.
 // There can be arbitrarily many in a non-manifold mesh if a corner 
 // point is included in the line cavity. 
 template<class MetricFieldType, int ideg>
-int reconnect_lincav(Mesh<MetricFieldType> &msh, const MshCavity& cav, CavOprOpt &opts, 
-                     int ithread = 0);//,int mnwedg, int *nnwedg,int lnwedg[]);
+int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts, 
+                     int ithread);//,int mnwedg, int *nnwedg,int lnwedg[]);
 
 
-// The boundary here is a set of edges. They will be reconnected to 
-// ipins. 
+// The boundary here is a set of edges. They will be reconnected to ipins. 
 // Note: if the initial cavity includes edges, these have been reconnected
-// and the result is in lnewed
+// and the result is edges >= nedg0
 template<class MetricFieldType, int ideg>
-int reconnect_faccav(Mesh<MetricFieldType> &msh, const MshCavity& cav, CavOprOpt &opts, CavWrkArrs &work,
-                     int nedg0, double *qumin, int ithread = 0);
+int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts, CavWrkArrs &work,
+                     int nedg0, double *qumin, int ithread);
                      //,int nnwedg,const int* lnwedg,int mnwfac,int *nnwfac,int lnwfac[]);
 
 template<class MetricFieldType, int ideg>
-int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav, CavOprOpt &opts, CavWrkArrs &work,
+int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts, CavWrkArrs &work,
               int ient1, int ied, int iref ,
               bool check_val, bool check_qua,
               int nedg0, int nfac0, double* qmax, int ithread);
 
 // Triangles, likewise. 
 template<class MetricFieldType, int ideg>
-int reconnect_tetcav(Mesh<MetricFieldType> &msh, const MshCavity& cav, CavOprOpt &opts,  
-                     double *qumin, int ithread = 0);//,int nnwfac,const int* lnwfac,
-//	                                                              int mnwtet,int *nnwtet,int lnwtet[]);
+int reconnect_tetcav(Mesh<MetricFieldType> &msh, 
+                     MshCavity& cav, CavOprOpt &opts,  
+                     int nfac0, double *qumin, int ithread);
+                    
 
 // After first reconnection round, check if cavity is valid or can be made valid with quick corrections
 // If not, tag facets supporting invalid elements as "bad", proposing them for extension.
 // Note: if ideg = 1, this leads to the usual cavity correction by extension through faces yielding
 // invalid elements.
 template<class MetricFieldType,int ideg>
-int correct_cavity_fast(Mesh<MetricFieldType> &msh, 
-                        MshCavity &cav, CavOprOpt &opts, 
-                        int npoi0, int nedg0, int nfac0, int nele0,
-                        intAr2& lbad, CavWrkArrs &work, int ithread);
+int correct_cavity(Mesh<MetricFieldType> &msh, 
+                   MshCavity &cav, CavOprOpt &opts, 
+                   int npoi0, int nedg0, int nfac0, int nele0,
+                   intAr2& lbad, CavWrkArrs &work, int ithread);
 template<class MetricFieldType, int gdim, int ideg>
-int correct_cavity_fast0(Mesh<MetricFieldType> &msh, 
-                         MshCavity &cav, CavOprOpt &opts, 
-                         int npoi0, int nedg0, int nfac0, int nele0,
-                         intAr2& lbad,CavWrkArrs &work,int ithread);
+int correct_cavity0(Mesh<MetricFieldType> &msh, 
+                    MshCavity &cav, CavOprOpt &opts, 
+                    int npoi0, int nedg0, int nfac0, int nele0,
+                    intAr2& lbad,CavWrkArrs &work,int ithread);
 
 
 

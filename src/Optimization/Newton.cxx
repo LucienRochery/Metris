@@ -9,8 +9,9 @@
 #include "linalg/matprods.hxx"
 #include "tools/minmax.h"
 #include "types.hxx"
-#include "opt_generic.hxx"
+#include "Optimization/opt_generic.hxx"
 #include "low_geo.hxx"
+#include "utils/mprintf.hxx"
 
 #include "../libs/nlopt/src/util/nlopt-util.h"
 #include "../libs/nlopt/src/algs/luksan/luksan.h"
@@ -294,6 +295,7 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
                             double *xcur ,double *fcur ,
                             double *gcur ,double *hess ,
                             int *iflag, int *ihess){
+  GETVDEPTH(args.param);
 
   int ierro = 0;
 
@@ -314,6 +316,7 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
     args.niter = 0;   
     *iflag = 1;
     args.fopt  = 1.0e30;
+    args.fpre  = 1.0e30;
     *ihess = 1;
     args.iwork[0] = 0;
     args.iwork[1] = 0;
@@ -323,17 +326,26 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
     goto flag999;
   }
 
-  if(args.iprt >= 3) printf(" - enter Newton niter %d fcur = %15.8f isym = %d\n",args.niter,*fcur,args.isym);
+  CPRINTF1(" - enter Newton niter %d fcur = %15.8f isym = %d\n",args.niter,*fcur,args.isym);
 
   if(*fcur < args.fopt){
     for(int ii = 0; ii < nvar; ii++) args.xopt[ii] = xcur[ii];
     args.fopt = *fcur;
-    if(args.iprt >= 3) printf(" fopt update in newton algo %f \n",args.fopt);
+    CPRINTF1(" - fopt update in newton algo %f \n",args.fopt);
   }
 
 
   flag2000:
   if(*iflag == 1){
+    // Update (end line search or first call)
+
+    double fdec = (args.fpre - *fcur)/MAX(args.fpre, 1.0e-12);
+    if(fdec < args.ftol && args.ftol > 0){
+      CPRINTF1("-- END Newton decrease %e < tol %e \n",fdec,args.ftol);
+      *iflag = 0;
+      goto flag999;
+    }
+    args.fpre = *fcur;
 
     //--- COMPUTE DESCENT DIRECTION
     if(nvar == 1){
@@ -377,10 +389,10 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
     }
 
     if(args.niter == 1){
-      if(args.iprt >= 3)printf(" First dir norm %f \n",gnorm);
+      CPRINTF1(" First dir norm %f \n",gnorm);
       args.rwork[10*nvar+4-1] = MAX(gnorm,1.0e-12);
     }else if(gnorm < args.xtol*args.rwork[10*nvar+4-1]) {
-      if(args.iprt >= 3) printf(" debug gnorm termination \n");
+      CPRINTF1(" debug gnorm termination \n");
       *iflag = 0;
       goto flag999;
     } 
@@ -406,8 +418,8 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
     //args.rwork[1] = alpha0;
 
 
-    if(args.iprt >= 3){
-      printf("-- start LS step = %15.7e dir = ",args.rwork[1]);
+    if(DOPRINTS1()){
+      CPRINTF1("-- start LS step = %15.7e dir = ",args.rwork[1]);
       dblAr1(nvar,&args.rwork[2*nvar+3]).print();
     } 
 
@@ -441,7 +453,6 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
     //bool cdt2 = ( dot >= wc2*args.rwork[2] );
     bool cdt2 = ( abs(dot) <= wc2*abs(args.rwork[2]) );
 
-    if(args.iprt > 1) {
       //printf(" (Newton) 1st cdt %15.7e <= %15.7e %d \n",
       //  *fcur, args.rwork[0] + wc1*step*dot, 
       //  ( *fcur      <=  (args.rwork[0] + wc1*step*dot)) );
@@ -449,21 +460,20 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
       //printf(" (Newton) 2nd cdt %15.7e <= %15.7e %d \n",
       //  abs(dot),wc2*abs(args.rwork[2]),(abs(dot)  <=  wc2*abs(args.rwork[2])) );
 
-      printf(" (Newton) 1st cdt %15.7e <= %15.7e %d \n",
-        *fcur, args.rwork[0] + wc1*step*args.rwork[2],  cdt1);
+    CPRINTF1(" (Newton) 1st cdt %15.7e <= %15.7e %d \n",
+      *fcur, args.rwork[0] + wc1*step*args.rwork[2],  cdt1);
 
-      printf(" (Newton) 2nd cdt %15.7e >= %15.7e %d \n",
-             dot,wc2*args.rwork[2],cdt2);
-    }
+    CPRINTF1(" (Newton) 2nd cdt %15.7e >= %15.7e %d \n",
+           dot,wc2*args.rwork[2],cdt2);
     //if(  ( *fcur      <=  (args.rwork[0] + wc1*args.rwork[1]*dot)
     //  &&   abs(dot)  <=  wc2*abs(args.rwork[2])             )  )
     if(cdt1 && cdt2)
       //||  (args.rwork[0] - *fcur)/args.rwork[0] > 0.05  
       {
-      if(args.iprt >= 3){
-        printf(" ++ strong Wolfe conditions ok at xcur = ");
+      if(DOPRINTS1()){
+        CPRINTF1(" ++ strong Wolfe conditions ok at xcur = ");
         dblAr1(nvar,xcur).print();
-        printf("  relative decrease = %f\n",(*fcur - args.rwork[0])/args.rwork[0]);
+        CPRINTF1("  relative decrease = %f\n",(*fcur - args.rwork[0])/args.rwork[0]);
       }
       ierro = -1;
       if(*ihess <= 0) {
@@ -472,8 +482,8 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
         goto flag999;
       }else{
         *iflag = 1;
-        if(args.iprt >= 3) printf("++ since user set ihess to 1, it is assumed hessian is computed\n");
-        if(args.iprt >= 3) printf("  -> thus going back to 1\n");
+        CPRINTF1("++ since user set ihess to 1, it is assumed hessian is computed\n");
+        CPRINTF1("  -> thus going back to 1\n");
         goto flag2000;
       }
       goto flag999;
@@ -486,7 +496,7 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
     args.rwork[1] = args.rwork[1] * args.ratnew;
     if(args.rwork[1] < args.stpmin) {
       *iflag = 0;
-      if(args.iprt >= 3) printf(" step < stepmin termination \n");
+      CPRINTF1(" step < stepmin termination \n");
       goto flag999;
     }
     // xpre + step * desc
@@ -502,7 +512,7 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
   flag999:
   args.niter++; 
   if(args.niter  >  args.maxit) {
-    if(args.iprt >= 3) printf(" newton max step exceeded %d \n",args.maxit);
+    CPRINTF1(" newton max step exceeded %d \n",args.maxit);
     *iflag = 0;
   }
 
@@ -1117,7 +1127,7 @@ nlopt_result luksan_pnetS(nlopt_func f, void *f_data,
   stop.x_weights = NULL;//opt->x_weights;
   int neval = 0;
   stop.nevals_p = &neval; 
-  stop.maxeval = 100;
+  stop.maxeval = 1000;
   stop.force_stop = 0; // &(opt->force_stop);
   stop.stop_msg = NULL;
   stop.maxtime = -1;
@@ -1141,7 +1151,7 @@ nlopt_result luksan_pnetS(nlopt_func f, void *f_data,
   double *xl, *xu, *gf, *gn, *s, *xo, *go, *xs, *gs, *xm, *gm, *u1, *u2;
   double gmax, minf_est;
   double xmax = 0; /* no maximum */
-  double tolg = 0; /* default gradient tolerance */
+  double tolg = -1; /* default gradient tolerance */
   int iest = 0; /* we have no estimate of min function value */
   int mit = 0, mfg = 0; /* default no limit on #iterations */
   int mfv = stop.maxeval;
@@ -1186,9 +1196,6 @@ nlopt_result luksan_pnetS(nlopt_func f, void *f_data,
         gf, gn, s, xo, go, xs, gs, xm, gm, u1, u2,
         &xmax,
             /* fixme: pass tol_rel and tol_abs and use NLopt check */
-        &stop.xtol_rel,
-        &stop.ftol_rel,
-        &stop.minf_max,
         &tolg,
         &stop,
         &minf_est, &gmax,

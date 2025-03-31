@@ -110,7 +110,8 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
     iniMetris<MetricFieldFE        >(data_front,data_back);
   }
 
-  if(param_.dbgfull) check_topo(*msh_g, msh_g->nbpoi, msh_g->npoin, msh_g->nedge, msh_g->nface, msh_g->nelem,0);
+  if(param_.dbgfull) 
+    check_topo(*msh_g, msh_g->nbpoi, msh_g->npoin, msh_g->nedge, msh_g->nface, msh_g->nelem,0);
 }
 
 
@@ -147,7 +148,7 @@ void MetrisRunner::iniMetris(MetrisAPI *data_front, MetrisAPI *data_back){
   msh.met.setSpace(MetSpace::Exp);
   msh.met.setBasis(FEBasis::Lagrange);
 
-  if(param_.dbgfull) check_topo(msh);
+  if(param_.dbgfull) check_topo(msh,0);
   
 
   //set_array_debugids<MetricFieldType>();

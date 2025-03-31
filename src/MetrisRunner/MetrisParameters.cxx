@@ -31,6 +31,7 @@ MetrisParameters::MetrisParameters(){
 
   anasol_ptr= NULL;
   ianasol   = -1;
+  anaSol    = false;
 
   main_in_prefix = false;
 
@@ -42,6 +43,7 @@ MetrisParameters::MetrisParameters(){
   // 3 is offsets followed by smoothing 
   // 4 is offsets then backtrack and stop there 
   curveType = 0; 
+  smoo_type = 0;
 
   opt_unif = false;
 
@@ -56,7 +58,10 @@ MetrisParameters::MetrisParameters(){
   opt_power = Defaults::opt_power;
   opt_niter = Defaults::opt_niter;
   opt_smoo_niter = Defaults::opt_smoo_niter;
-  opt_swap_pnorm = Defaults::opt_swap_niter;
+
+  opt_swap_pnorm = Defaults::opt_swap_pnorm;
+  opt_swap_niter = Defaults::opt_swap_niter;
+  opt_swap_thres = Defaults::opt_swap_thres;
 
 
   opt_coef_det = 1.0;
@@ -208,6 +213,11 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     //METRIS_ENFORCE(curveType == 1 || curveType == 2 || curveType == 3);
   }
 
+  if(opt.count("smoo-type")){
+    smoo_type = opt.m["smoo-type"].template as<int>();
+    //METRIS_ENFORCE(curveType == 1 || curveType == 2 || curveType == 3);
+  }
+
   if(opt.count("jtol")){
     jtol = opt.m["jtol"].as<double>();
   }
@@ -251,6 +261,9 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
 
   if(opt.count("opt-swap-pnorm")){
     opt_swap_pnorm = opt.m["opt-swap-pnorm"].as<int>();
+  }
+  if(opt.count("opt-swap-niter")){
+    opt_swap_niter = opt.m["opt-swap-niter"].as<int>();
   }
 
   if(opt.count("iflag1")){

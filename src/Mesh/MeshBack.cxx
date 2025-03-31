@@ -104,7 +104,7 @@ void MeshBack::initialize(MetrisAPI *data,
   MeshBase::initialize(data,param);
   setBasis(FEBasis::Bezier);
 
-  GETVDEPTH((*this));
+  GETVDEPTH(this->param);
 
   if(DOPRINTS2()) writeMesh("mshDATAback", *this);
 
@@ -152,6 +152,7 @@ void MeshBack::initialize(MetrisAPI *data,
     if(data != NULL)METRIS_ENFORCE_MSG(!data->imet, "Metric specified both in data and file");
 
     met.readMetricFile(param.metFileName);
+    met.setSpace(MetSpace::Log, true);
 
   }else if(data != NULL && data->imet){
 
@@ -175,7 +176,6 @@ void MeshBack::initialize(MetrisAPI *data,
   // Correct metric if needed 
   //met.correctMetric();
 
-  met.setSpace(MetSpace::Log);
   met.setBasis(FEBasis::Bezier);
 
   if(param.scaleMet){
@@ -248,7 +248,7 @@ void MeshBack::initialize(MetrisAPI *data,
 
       tag[0]++;
       for(int ientt = 0; ientt < nentt; ientt++){
-        INCVDEPTH((*this));
+        INCVDEPTH(this->param);
         if(isdeadent(ientt,ent2poi)) continue;
         int iref = ent2ref[ientt];
         ego obj = tdim == 1 ? CAD.cad2edg[iref] : CAD.cad2fac[iref];
@@ -279,9 +279,8 @@ void MeshBack::initialize(MetrisAPI *data,
             dirCAD = buf;
           }
 
-          CPRINTF1("ientt %d iref %d ipoin = %d ibpoi = %d : ",
-                               ientt,iref,ipoin,ibpoi);
-          if(DOPRINTS1()) intAr1(nibi,bpo2ibi[ibpoi]).print();
+          //CPRINTF3("ientt %d iref %d ipoin = %d ibpoi = %d : ",ientt,iref,ipoin,ibpoi);
+          //if(DOPRINTS1()) intAr1(nibi,bpo2ibi[ibpoi]).print();
 
           // Get elt direction (tangent if dim = 1, normal otherwise)
           double dirent[3], dum[3];
@@ -340,17 +339,17 @@ void MeshBack::initialize(MetrisAPI *data,
           // oriented, so there's nothing to check here. 
           dtprd = abs(dtprd);
 
-          if(DOPRINTS1()){
-            CPRINTF1(" - ientt %d ipoin %d mtype %d dtprd %f dirCAD = ",ientt,ipoin,mtype,dtprd);
+          if(DOPRINTS3()){
+            CPRINTF3(" - ientt %d ipoin %d mtype %d dtprd %f dirCAD = ",ientt,ipoin,mtype,dtprd);
             dblAr1(idim,dirCAD).print();
-            CPRINTF1(" - dirent = ");
+            CPRINTF3(" - dirent = ");
             dblAr1(idim,dirent).print();
-            CPRINTF1(" - (u,v) = ");
+            CPRINTF3(" - (u,v) = ");
             dblAr1(nrbi,bpo2rbi[ibpoi]).print();
             if(1 - abs(dtprd) >= 0.9){
-              CPRINTF1("## LARGE GEODEV \n");
+              CPRINTF3("## LARGE GEODEV \n");
               for(int ibpo0 = poi2bpo[ipoin]; ibpo0 >= 0; ibpo0 = bpo2ibi(ibpo0,3)){
-                CPRINTF1("   - ibpoi %d : ",ibpo0);
+                CPRINTF3("   - ibpoi %d : ",ibpo0);
                 intAr1(nibi,bpo2ibi[ibpo0]).print();
                 MPRINTF(" (u,v) = %f %f \n",bpo2rbi(ibpo0,0),bpo2rbi(ibpo0,1));
               }
@@ -370,7 +369,7 @@ void MeshBack::initialize(MetrisAPI *data,
           }
 
         }// for int ii 
-        CPRINTF1(" - ientt %d final dev = %15.7e \n",ientt,ent2dev[ientt]);
+        CPRINTF3(" - ientt %d final dev = %15.7e \n",ientt,ent2dev[ientt]);
 
       }
       CPRINTF1("-- %d singular CAD normals / tangents at topo dim %d entities\n",nCADsing,tdim);

@@ -44,6 +44,7 @@
 namespace Metris{
 
 template<typename T, typename INT1, typename INT2> class MeshArray2D;
+template<typename T, typename INT1> class MeshArray1D;
 
 // remove_extent strips [] from T[], yielding T
 // this is to avoid having to write cpp17_make_shared<T> 
@@ -57,6 +58,70 @@ cpp17_make_shared(INT1 m){
 }
 
 
+
+template<typename T, typename INT1 = int>
+class Loop{
+public:
+  Loop() : arr(NULL), is_range(false) {}
+  //Loop(int i1, int i2) : arr(NULL), is_range(true) {}
+  //Loop(MeshArray1D<INT1,INT1> &arr_) : arr(&arr_), is_range(false){}
+
+  void setRange(int i1_, int i2_){
+    i1 = i1_;
+    i2 = i2_;
+    is_range = true;
+  }
+
+  void setArray(MeshArray1D<INT1,INT1> &arr_){
+    arr = &arr_;
+  }
+
+  INT1 start(){
+    if(is_range) return i1;
+    else         return 0;
+  }
+  
+  INT1 end(){
+    if(is_range) return i2;
+    else         return arr->get_n();
+  }
+
+  // Loop indices have no business being mutable references
+  T operator[](int idx) const{
+    if(is_range){
+      METRIS_ASSERT_MSG(idx >= i1 && idx < i2,
+        "Passed idx = "<<idx<<" to range based with "
+        <<" i1 = "<<i1<<" i2 = "<<i2);
+      return idx;
+    }else{
+      // MeshArray1D does its own error handling
+      return arr->operator[](idx);
+    }
+  }
+
+  //const T& operator[](int idx) const{
+  //  if(is_range){
+  //    METRIS_ASSERT(i1+idx < i2);
+  //    return i1+idx;
+  //  }else{
+  //    // MeshArray1D does its own error handling
+  //    return arr->operator[](idx);
+  //  }
+  //}
+  //T& operator[](int idx){
+  //  if(is_range){
+  //    METRIS_THROW_MSG(WArgExcept(),"Range is immutable");
+  //  }else{
+  //    // MeshArray1D does its own error handling
+  //    return arr->operator[](idx);
+  //  }
+  //}
+
+private:
+  MeshArray1D<INT1,INT1> *arr;
+  bool is_range;
+  int i1, i2;
+};
 
 template <typename T, typename INT1 = int>
 class MeshArray1D{
@@ -104,6 +169,7 @@ public:
     this->allocate(n);
     n1 = n;
   }
+  void inc_n();
 
   ALWAYS_INLINE INT1 get_n() const {return n1;}
 

@@ -39,7 +39,7 @@
 #include "msh_lag2bez.hxx"
 #include "msh_lenedg.hxx"
 #include "msh_structs.hxx"
-#include "opt_generic.hxx"
+#include "Optimization/opt_generic.hxx"
 #include "types.hxx"
 
 

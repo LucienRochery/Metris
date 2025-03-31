@@ -22,7 +22,7 @@ namespace Defaults{
   // det(li lj) >= vtol * (pi_i ||l_i||)^(2/(idim+1))   (idim / nnmet)
   // The 1/idim! factor is not included. 
   const double jtol = 1.0e-6;
-  const double vtol = 1.0e-9;
+  const double vtol = 1.0e-12;
   // Absolute tolerance on edge length 
   const double ltol = 1.0e-12;
 

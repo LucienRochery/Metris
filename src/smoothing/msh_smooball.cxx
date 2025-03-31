@@ -59,7 +59,7 @@ template double smoothInterior_Ball<MetricFieldFE        >(Mesh<MetricFieldFE   
 template<class MFT, int idim, int ideg>
 double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf, 
                             int ithrd1, int ithrd2){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
   constexpr int tdim = idim;
   //constexpr int gdim = idim;
@@ -150,7 +150,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
 
   double noper = 0;
   for(int niter = 0; niter < miter; niter++){
-    INCVDEPTH(msh);
+    INCVDEPTH(msh.param);
 
     #if 0
     for(int ii = 0; ii < msh.npoin; ii++){
@@ -314,7 +314,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
     #ifndef USE_LPLIB_SMOOTHINTERIOR
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
       if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
 
       int ib = msh.poi2bpo[ipoin];
       if(ib >= 0) continue;
@@ -330,17 +330,17 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
       int ierro = 0;
 
       if(iver < tdim+1){
-        bool imani = false;
         int iopen;
         // Vertex case 
         if constexpr (idim == 2){
           intAr1 dum; 
+          bool imani = false;
           ierro = ball2(msh,ipoin,ientt,lball,dum,&iopen,&imani,ithrd2);
+          METRIS_ASSERT(imani == true);
         }else{
           ierro = ball3(msh,ipoin,ientt,lball,&iopen,ithrd2);
         }
         METRIS_ASSERT(iopen == 0);
-        METRIS_ASSERT(imani == true);
       }else{
         // HO node
         if constexpr (tdim == 2){

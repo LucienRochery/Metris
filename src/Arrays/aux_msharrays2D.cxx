@@ -96,7 +96,7 @@ MeshArray2D<T,INT1,INT2>::MeshArray2D(MeshArray2D &&cpy){
 template<typename T, typename INT1, typename INT2>
 bool MeshArray2D<T,INT1,INT2>::allocate(INT1 m, INT2 s){
 
-  METRIS_ASSERT_MSG(m >= n1," Trying to allocate size "<<m<<" < n1 = "<<n1); 
+  METRIS_ASSERT_MSG(MAX(m,m1) >= n1," Trying to allocate size "<<m<<" < n1 = "<<n1); 
   METRIS_ASSERT(s >= 0); 
 
   // No need to reallocate nor copy if the stride hasn't changed and we have enough room.

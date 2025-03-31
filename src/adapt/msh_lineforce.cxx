@@ -24,7 +24,7 @@ namespace Metris{
 // everything on the way 
 template<class MFT>
 void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
   MshCavity cav(0,100,2);
   cav.lcedg.set_n(2);
   // There could be one single face for 2 edges even not corner 
@@ -46,7 +46,7 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
   msh.tag[ithrd1]++;
   for(int iedge = 0; iedge < msh.nedge; iedge++){
-    INCVDEPTH(msh);
+    INCVDEPTH(msh.param);
     if(isdeadent(iedge,msh.edg2poi)) continue;
 
     int iref = msh.edg2ref[iedge];
@@ -136,9 +136,9 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
       if(!ireins) continue;
 
-      ierro = increase_cavity2D(msh,cav,ithrd2);
+      ierro = increase_cavity_validity(msh,cav,ithrd2);
       if(ierro != 0 && DOPRINTS2()){
-        CPRINTF2(" # increase_cavity2D failed ierro %d \n",ierro);
+        CPRINTF2(" # increase_cavity_validity failed ierro %d \n",ierro);
         CPRINTF2("Trying to reinsert ipoin %d iedge = %d iedg1 %d iface %d iref %d \n",
                  cav.ipins, iedge, iedg1, iface, iref);
         writeMesh("increase_fail", msh);

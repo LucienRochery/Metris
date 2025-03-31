@@ -15,13 +15,16 @@
 #include "../ho_constants.hxx"
 #include "../utils/CT_loop.hxx"
 #include "../msh_lag2bez.hxx"
+#include "../low_normal.hxx"
+#include "../linalg/det.hxx"
+#include "../low_geo.hxx"
+#include "../utils/mprintf.hxx"
 
 namespace Metris{
 
 MetricClass MeshBase::metricClass() const { return MetricClass::None; }
   
-MeshBase::MeshBase(int nipwk_, int niewk_, int nifwk_, int nitwk_, int nrpwk_) : 
-  nipwk(nipwk_),niewk(niewk_),nifwk(nifwk_),nitwk(nitwk_),nrpwk(nrpwk_){
+MeshBase::MeshBase(){
   param  = NULL;
   nbpoi_ = (mbpoi_ = 0);
   npoin_ = (mpoin_ = 0);
@@ -38,6 +41,57 @@ MeshBase::MeshBase(int nipwk_, int niewk_, int nifwk_, int nitwk_, int nrpwk_) :
 }
 
 
+// Mostly for internal use, compute the localization alignment direction
+// (edge tangent, face normal) of a point with CAD link and poi2ent initialized.
+void MeshBase::get_algnd(int ipoin, double* algnd){
+  GETVDEPTH(param);
+  int tdim = getpoitdim(ipoin);
+  if(tdim == idim) return;
+
+  int ientt = poi2ent(ipoin,0);
+  int iref  = ent2ref(tdim)[ientt];
+  bool done = false;
+  if(CAD()){
+    done = true; 
+    int ibpoi = poi2bpo[ipoin];
+    METRIS_ASSERT(bpo2ibi(ibpoi,1) == tdim);
+
+    double result[18];
+    ego obj = tdim == 1 ? CAD.cad2edg[iref] : CAD.cad2fac[iref];
+    int ierro = EG_evaluate(obj, bpo2rbi[ibpoi], result);
+    METRIS_ASSERT(ierro == 0); // EGADS errors are not expected 
+
+    if(tdim == 1){
+      for(int ii = 0; ii < idim; ii++) algnd[ii] = result[3+ii];
+    }else{
+      vecprod(&result[3],&result[6],algnd);
+      if(normalize_vec<3>(algnd)){
+        CPRINTF1("# ZERO NORMAL IN get_algnd")
+        done = false;
+      }
+    }
+  }
+
+  if(!done){
+    if(tdim == 1){
+      int ipoi1 = edg2poi(ientt,0);
+      int ipoi2 = edg2poi(ientt,1);
+      for(int ii = 0; ii < idim; ii++)
+        algnd[ii] = coord(ipoi1,ii) - coord(ipoi2,ii);
+    }else{
+      getnorfacP1(fac2poi[ientt],coord,algnd);
+    }
+  }
+
+
+}
+
+
+int MeshBase::get_tdim() const{
+  if(nelem > 0) return 3;
+  else if (nface > 0) return 2;
+  return 1;
+}
 
 int MeshBase::nentt(int tdimn) const {
   switch(tdimn){
@@ -279,6 +333,32 @@ template const intAr2& MeshBase::ent2ent<2>()const;
 template const intAr2& MeshBase::ent2ent<3>()const;
 
 
+
+  // points to ced2tag, cfa2tag or dom2tag
+intAr2r& MeshBase::ref2tag(int tdimn){
+  METRIS_ASSERT(tdimn >= 1 && tdimn <= 3);
+  if(tdimn == 1){
+    return ced2tag;
+  }else if(tdimn == 2){
+    return cfa2tag;
+  }else{
+    return dom2tag;
+  }
+}
+
+const intAr2r& MeshBase::ref2tag(int tdimn) const{
+  METRIS_ASSERT(tdimn >= 1 && tdimn <= 3);
+  if(tdimn == 1){
+    return ced2tag;
+  }else if(tdimn == 2){
+    return cfa2tag;
+  }else{
+    return dom2tag;
+  }
+}
+
+
+
 template<int tdimn> typename std::conditional<tdimn==1,HshTabInt2,HshTabInt3>::type &
 MeshBase::hshTab(){
   if constexpr(tdimn == 1) return edgHshTab;
@@ -286,30 +366,6 @@ MeshBase::hshTab(){
 }
 template HshTabInt2& MeshBase::hshTab<1>();
 template HshTabInt3& MeshBase::hshTab<2>();
-
-
-void MeshBase::setMpoiToMent(){
-  int _mbpoi, _medge, _mface, _melem;
-  if(idim == 2){
-    double avgVertPpoi = Constants::verppoi2[strdeg];
-    _melem = 0;
-    _mface = (int) (avgVertPpoi * mpoin * Constants::facpver2);
-    _medge = (int) (Constants::memfitCoeff12*pow(mpoin*avgVertPpoi,1.0/2.0));
-    _mbpoi = getnnod1(strdeg)*_medge;
-  }else if(idim == 3){
-    double avgVertPpoi = Constants::verppoi3[strdeg];
-    _melem = (int) (avgVertPpoi * mpoin * Constants::tetpver3);
-    _mface = (int) (Constants::memfitCoeff23*pow(mpoin*avgVertPpoi,2.0/3.0));
-    _medge = (int) (Constants::memfitCoeff13*pow(mpoin*avgVertPpoi,1.0/3.0));
-    _mbpoi = getnnod2(strdeg)*_mface; 
-  }else{
-    METRIS_THROW(WArgExcept());
-  }
-  if(_melem > melem) melem_ =_melem;
-  if(_mface > mface) mface_ =_mface;
-  if(_medge > medge) medge_ = 5*_medge;
-  if(_mbpoi > mbpoi) mbpoi_ =_mbpoi;
-}
 
 
 
@@ -383,6 +439,10 @@ MeshBase& MeshBase::operator=(const MeshBase &inp){
   if(ine2) ced2tag.fill(METRIS_MAXTAGS, CAD.ncaded,0);
   if(ine3) cno2tag.fill(METRIS_MAXTAGS, CAD.ncadno,0);
 
+  ndomn = inp.ndomn;
+  dom2tag.allocate(METRIS_MAXTAGS, ndomn);
+  dom2tag.set_n(METRIS_MAXTAGS);
+  dom2tag.fill(0);
 
   bpo2tag.fill(METRIS_MAXTAGS,nbpoi,0);
   poi2tag.fill(METRIS_MAXTAGS,npoin,0);

@@ -39,9 +39,11 @@ struct MetrisOptions{
       ("bez"    , "Output format Bézier (default Lagrange)")
       ("jtol", po::value<double>(), "Scaled Jacobian control coefficient minimum")
       ("vtol", po::value<double>(), "Flatness tolerance")
-      ("curve" , po::value<int>(), "Apply metric-based smoothing."
+      ("curve" , po::value<int>(), "Metric-based smoothing type."
           " Type 1: Offsets followed by ccoef maximization."
           " Type 2: metric-based LP.")
+      ("smoo-type", po::value<int>(), "Smoothing type: 0 (default) = metric-based"
+                                      " 1 = interpolation error based (use -anasol)")
       ("tardeg" , po::value<int>(), "Target mesh degree"   )
       ("nosort" , "Disable Hilbert reordering"   )
       ("dbgfull"    , "Enable expensive debugs"   )

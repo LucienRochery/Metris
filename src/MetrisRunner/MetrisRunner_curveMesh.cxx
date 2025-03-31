@@ -29,7 +29,7 @@ void MetrisRunner::curveMesh(){
 }
 template<class MFT>
 void MetrisRunner::curveMesh0(){
-  GETVDEPTH((*this));
+  GETVDEPTH(this->param);
 
   Mesh<MFT> &msh = static_cast<Mesh<MFT>&>(*msh_g);
 
@@ -78,13 +78,16 @@ void MetrisRunner::curveMesh0(){
           }
         }
       }else if(itype == 5){
-        if(!param->anaSol){
-          printf("## SPECIFY ANALYTICAL SOLUTION\n");
-        }else{
-          SolutionFieldAnalytical sol(msh);
-          sol.setAnalyticalSolution(param->ianasol);
-          minimizeInterpErrglo(msh, sol, param->intp_pdeg, param->intp_pnorm);
-        }
+        //if(!param->anaSol){
+        //  printf("## SPECIFY ANALYTICAL SOLUTION\n");
+        //}else{
+        //  SolutionFieldAnalytical sol(msh);
+        //  sol.setAnalyticalSolution(param->ianasol);
+        //  // DIRECT
+        //  minimizeInterpErrglo(msh, sol, param->intp_pdeg, param->intp_pnorm, 1);
+        //  // Then Newton
+        //  minimizeInterpErrglo(msh, sol, param->intp_pdeg, param->intp_pnorm, 0);
+        //}
       }
     }
   }CT_FOR1(ideg);

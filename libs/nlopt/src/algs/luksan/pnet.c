@@ -5,18 +5,6 @@
 #include <stdio.h>
 #include "luksan.h"
 
-
-#include <time.h>
-#include <sys/time.h>
-static double get_wall_time(){
-    struct timeval time;
-    if (gettimeofday(&time,NULL)){
-        //  Handle error
-        return 0;
-    }
-    return (double)time.tv_sec + (double)time.tv_usec * .000001;
-}
-
 #define MAX2(a,b) ((a) > (b) ? (a) : (b))
 #define MIN2(a,b) ((a) < (b) ? (a) : (b))
 
@@ -53,9 +41,6 @@ static double get_wall_time(){
 /*  RA  U1(MF)  AUXILIARY VECTOR. */
 /*  RA  U2(MF)  AUXILIARY VECTOR. */
 /*  RI  XMAX  MAXIMUM STEPSIZE. */
-/*  RI  TOLX  TOLERANCE FOR CHANGE OF VARIABLES. */
-/*  RI  TOLF  TOLERANCE FOR CHANGE OF FUNCTION VALUES. */
-/*  RI  TOLB  TOLERANCE FOR THE FUNCTION VALUE. */
 /*  RI  TOLG  TOLERANCE FOR THE GRADIENT NORM. */
 /*  RI  MINF_EST  ESTIMATION OF THE MINIMUM FUNCTION VALUE. */
 /*  RO  GMAX  MAXIMUM PARTIAL DERIVATIVE. */
@@ -77,9 +62,9 @@ static double get_wall_time(){
 /*  II  MF  THE NUMBER OF LIMITED-MEMORY VARIABLE METRIC UPDATES */
 /*         IN EACH ITERATION (THEY USE 2*MF STORED VECTORS). */
 /*  IO  ITERM  VARIABLE THAT INDICATES THE CAUSE OF TERMINATION. */
-/*         ITERM=1-IF ABS(X-XO) WAS LESS THAN OR EQUAL TO TOLX IN */
+/*         ITERM=1-IF ABS(X-XO) WAS LESS THAN OR EQUAL TO xtol_rel IN */
 /*                   MTESX (USUALLY TWO) SUBSEQUEBT ITERATIONS. */
-/*         ITERM=2-IF ABS(F-FO) WAS LESS THAN OR EQUAL TO TOLF IN */
+/*         ITERM=2-IF ABS(F-FO) WAS LESS THAN OR EQUAL TO ftol_rel IN */
 /*                   MTESF (USUALLY TWO) SUBSEQUEBT ITERATIONS. */
 /*         ITERM=3-IF F IS LESS THAN OR EQUAL TO TOLB. */
 /*         ITERM=4-IF GMAX IS LESS THAN OR EQUAL TO TOLG. */
@@ -141,8 +126,9 @@ static void pnet_(int *nf, int *nb, double *xcur, int *
 		  ix, double *xl, double *xu, double *gf, double *gn,
 		  double *s, double *xo, double *go, double *xs,
 		  double *gs, double *xm, double *gm, double *u1,
-		  double *u2, double *xmax, double *tolx, double *tolf,
-		  double *tolb, double *tolg, nlopt_stopping *stop,
+		  double *u2, double *xmax, 
+      double *tolg, 
+      nlopt_stopping *stop,
 		  double *minf_est, double *
 		  gmax, double *f, int *mit, int *mfv, int *mfg,
 		  int *iest, int *mos1, int *mos2, int *mf,
@@ -190,7 +176,6 @@ static void pnet_(int *nf, int *nb, double *xcur, int *
     int mtesx, ntesx;
     ps1l01_state state;
 
-	(void) tolb;
 
 /*     INITIATION */
 
@@ -254,15 +239,6 @@ static void pnet_(int *nf, int *nb, double *xcur, int *
     }
     if (*xmax <= 0.) {
 	*xmax = 1e16;
-    }
-    if (*tolx <= 0.) {
-	*tolx = 1e-16;
-    }
-    if (*tolf <= 0.) {
-	*tolf = 1e-14;
-    }
-    if (*tolg <= 0.) {
-	 *tolg = 1e-8; /* SGJ: was 1e-6, but this sometimes stops too soon */
     }
 #if 0
     /* removed by SGJ: this check prevented us from using minf_max <= 0,
@@ -590,8 +566,6 @@ nlopt_result luksan_pnet(int n, nlopt_func f, void *f_data,
 			 int mos1, int mos2) /* 1 or 2 */
 {
 
-     double t0 = get_wall_time();
-
      int i, *ix, nb = 1;
      double *work;
      double *xl, *xu, *gf, *gn, *s, *xo, *go, *xs, *gs, *xm, *gm, *u1, *u2;
@@ -652,9 +626,6 @@ nlopt_result luksan_pnet(int n, nlopt_func f, void *f_data,
 	   &xmax,
 
 	   /* fixme: pass tol_rel and tol_abs and use NLopt check */
-	   &stop->xtol_rel,
-	   &stop->ftol_rel,
-	   &stop->minf_max,
 	   &tolg,
 	   stop,
 

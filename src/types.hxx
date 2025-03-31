@@ -42,6 +42,8 @@ using intAr2  = MeshArray2D<int   ,INT1,INT2>;
 using intAr2r = MeshArray2D<int   ,INT2,INT1>;
 using dblAr2  = MeshArray2D<double,INT1,INT2>;
 
+using intLoop = Loop<int, INT1>;
+
 //template<typename INT1 = int, typename INT2 = int>
 //using intAr3 = MeshArray3D<int   ,INT1,INT2>;
 //template<typename INT1 = int, typename INT2 = int>
@@ -84,12 +86,16 @@ typedef MeshArray3D<double> dblAr3;
 
 #ifdef USE_ABSL
 typedef absl::flat_hash_map<std::tuple<int, int>, int>      HshTabInt2;
+typedef absl::flat_hash_map<std::tuple<int, int>, std::pair<int,int>> HshTabInt2x2;
 typedef absl::flat_hash_map<std::tuple<int, int>, double>   HshTabDbl2;
 typedef absl::flat_hash_map<std::tuple<int, int, int>, int> HshTabInt3;
+//typedef absl::flat_hash_map<std::tuple<int, int, int>, std::pair<int,int>> HshTabInt3x2;
 #else
-typedef std::unordered_map<std::tuple<int, int>, int,      tup2_hash::hash>      HshTabInt2;
-typedef std::unordered_map<std::tuple<int, int>, double,   tup2_hash::hash>   HshTabDbl2;
+typedef std::unordered_map<std::tuple<int, int>, int,      tup2_hash::hash> HshTabInt2;
+typedef std::unordered_map<std::tuple<int, int>, std::pair<int,int>, tup2_hash::hash> HshTabInt2x2;
+typedef std::unordered_map<std::tuple<int, int>, double,   tup2_hash::hash> HshTabDbl2;
 typedef std::unordered_map<std::tuple<int, int, int>, int, tup3_hash::hash> HshTabInt3;
+//typedef std::unordered_map<std::tuple<int, int, int>, std::pair<int,int>, tup3_hash::hash> HshTabInt3x2;
 #endif
 
 } // End namespace

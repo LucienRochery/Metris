@@ -36,7 +36,6 @@ if(GITURL MATCHES "github.com")
                     ${PROJECT_SOURCE_DIR}/src/codegen_lag2bez.cxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_lag2bez.hxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_lagrange.hxx)
-
   foreach(f ${CODEGEN_FILES})
     if(NOT EXISTS "${f}")
       message(FATAL_ERROR "Codegen file ${f} does not exist")

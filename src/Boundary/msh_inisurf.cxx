@@ -37,7 +37,7 @@ Those are only verified.
 Points from nbpo0 included to nbpoi excluded have been re-created. Their (u,v)s will be projected. 
 */
 void prjMeshPoints(MeshBase &msh, int nbpo0, bool onlyproj, bool updtX){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 	if(!msh.CAD()) METRIS_THROW_MSG(TopoExcept(),
 		"EMPTY EGADS CONTEXT");
 
@@ -67,7 +67,7 @@ void prjMeshPoints(MeshBase &msh, int nbpo0, bool onlyproj, bool updtX){
 
 
 	for(int ibpoi = 0; ibpoi < nbpo0; ibpoi++){
-    INCVDEPTH(msh);
+    INCVDEPTH(msh.param);
     int ipoin = msh.bpo2ibi(ibpoi,0);
 		int ientt = msh.bpo2ibi(ibpoi,2);
     METRIS_ASSERT_MSG(ientt >= 0,"ipoin = "<<ipoin<<" ientt "<<ientt
@@ -145,7 +145,7 @@ doproj:
   int ndelay = 0;
   for(int irep = 0; irep < 2; irep++){
    for(int ibpoi = nbpo0; ibpoi < msh.nbpoi; ibpoi++){
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
       int ipoin = msh.bpo2ibi(ibpoi,0);
       if(msh.poi2ent(ipoin,0) < 0) continue;
       if(msh.bpo2tag(ithrd,ibpoi) >= btag) continue;
@@ -181,14 +181,14 @@ doproj:
           int ibpo2 = msh.poi2ebp(ipoi2,bdim,ientt,-1);
           METRIS_ASSERT(ibpo2 >= 0);
 
-          if(DOPRINTS1()){
-            CPRINTF1(" - %d -> %d guess ipoin %d ibpo0 %d ientt %d ibpoi %d ipoi2 %d ibpo2 %d\n",
+          if(DOPRINTS3()){
+            CPRINTF3(" - %d -> %d guess ipoin %d ibpo0 %d ientt %d ibpoi %d ipoi2 %d ibpo2 %d\n",
                    pdim,bdim,ipoin,ibpo0,msh.bpo2ibi(ibpoi,2),ibpoi,ipoi2,ibpo2);
             int pdim2 = msh.bpo2ibi(msh.poi2bpo[ipoi2],1);
             if(ibpo2 >= ibpoi && irep == 0){
-              CPRINTF1(" -> delay \n");
+              CPRINTF3(" -> delay \n");
             }else{
-              CPRINTF1(" - ibpo2 dim %d (u,v) = %f %f \n",pdim2,
+              CPRINTF3(" - ibpo2 dim %d (u,v) = %f %f \n",pdim2,
                         msh.bpo2rbi(ibpo2,0),msh.bpo2rbi(ibpo2,1));
             }
           }
@@ -206,7 +206,7 @@ doproj:
         }
 
         if(delayp){
-          CPRINTF1(" -> delay \n");
+          CPRINTF3(" -> delay \n");
           if(irep == 1) lbad.stack(ibpoi);
           ndelay++;
           continue;
@@ -267,7 +267,7 @@ doproj:
   intAr1 lfacl(100);
   const int nnod2 = msh.nnode(2);
   while(lbad.get_n() > 0){
-    INCVDEPTH(msh);
+    INCVDEPTH(msh.param);
     if(niter++ > 100) METRIS_THROW_MSG(GeomExcept(), 
                          "Could not fix "<<lbad.get_n()<<" points in CAD proj")
 
@@ -308,7 +308,7 @@ doproj:
 
         if(msh.bpo2tag(ithrd,ibpo2) < btag) continue;
         // Found one ! 
-        CPRINTF1(" - ibpoi %d ipoin %d ifac0 %d using guess face %d ibpo2 %d ipoi2 %d (u,v) = %f %f \n",
+        CPRINTF3(" - ibpoi %d ipoin %d ifac0 %d using guess face %d ibpo2 %d ipoi2 %d (u,v) = %f %f \n",
                      ibpoi,ipoin,ifac0,iface,ibpo2,ipoi2,msh.bpo2rbi(ibpo2,0),msh.bpo2rbi(ibpo2,1));
         
         for(int ii = 0; ii < nrbi; ii++) 
@@ -323,7 +323,7 @@ doproj:
             for(int ii = 0; ii < msh.idim && updtX; ii++) 
               msh.coord(ipoin,ii) = result[ii];
           }
-          CPRINTF1(" -> got (u,v) = %f %f \n",msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
+          CPRINTF3(" -> got (u,v) = %f %f \n",msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
           break;
         }else{
           CPRINTF1("## EG_invEvaluateGuess error %d \n",ierro);
@@ -562,7 +562,7 @@ void iniMeshBdryCorners(MeshBase &msh){
 	These must be skipped. 
 */
 int iniMeshBdryPoints(MeshBase &msh, int ithread){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
   const int ideg = msh.curdeg;
 
@@ -592,7 +592,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
     const int nnode = tdim == 1 ? getnnod1(ideg) : getnnod2(ideg);
 
     for(int ientt = 0; ientt < nentt; ientt++){
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
       if(isdeadent(ientt,ent2poi)) continue;
       
       int iref1 = ent2ref[ientt];
@@ -884,7 +884,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 	// Start with edges. Corners are all initialized already. 
   int ncre1 = 0;
 	for(int iedge = 0; iedge < msh.nedge; iedge++){
-    INCVDEPTH(msh);
+    INCVDEPTH(msh.param);
 		if(isdeadent(iedge,msh.edg2poi)) continue;
 		for(int iver = 0; iver < getnnod1(ideg); iver++){
 			int ipoin = msh.edg2poi(iedge,iver);
@@ -896,7 +896,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 			if(ibpoi < 0 || msh.bpo2ibi(ibpoi,1) == 0){
 				msh.newbpotopo(ipoin,1,iedge);
 				ncre1++;
-        CPRINTF2(" - new edge bpo ipoin = %d iedge = %d ncre1 = %d\n",ipoin,iedge,ncre1);
+        CPRINTF3(" - new edge bpo ipoin = %d iedge = %d ncre1 = %d\n",ipoin,iedge,ncre1);
 			}
 		}
 	}
@@ -906,7 +906,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 	if(msh.idim >= 3){
 		// We can now do faces as we needed to know about edge points. 
 		for(int iface = 0; iface < msh.nface; iface++){
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
 			if(isdeadent(iface,msh.fac2poi)) continue;
 			for(int iver = 0; iver < getnnod2(ideg); iver++){
 				int ipoin = msh.fac2poi(iface,iver);
@@ -918,7 +918,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 				if(ibpoi < 0 || msh.bpo2ibi(ibpoi,1) < 2){
 					msh.newbpotopo(ipoin,2,iface);
 					ncre2++;
-          CPRINTF2(" - new face bpo ipoin = %d iface = %d ncre2 = %d\n",ipoin,iface,ncre2);
+          CPRINTF3(" - new face bpo ipoin = %d iface = %d ncre2 = %d\n",ipoin,iface,ncre2);
 					continue;
 				}
 			}
@@ -980,7 +980,7 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
 	                                               intAr2& lgpof, dblAr2& rgpof,
                                                  int incre){
 
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
   METRIS_ASSERT(lgpoe.get_stride() == 2);
   METRIS_ASSERT(lgpof.get_stride() == 2);//not a typo
@@ -1001,7 +1001,7 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
   CPRINTF3("-- START genOnGeometricEntLists nbpoi = %d\n",msh.nbpoi);
 
   for(int ipoin = 0; ipoin < msh.npoin ;ipoin++){
-    INCVDEPTH(msh);
+    INCVDEPTH(msh.param);
     if(msh.poi2ent(ipoin,0) < 0){
       if(do_lpoic) lpoic[ipoin] = 0;
       continue;
@@ -1026,7 +1026,7 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
   if(msh.param->refineConventionsOut) goto refineConvention;
 
   for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
-    INCVDEPTH(msh);
+    INCVDEPTH(msh.param);
    int ipoin = msh.bpo2ibi(ibpoi,0);
    if(ipoin < 0) continue;
     if(msh.poi2ent(ipoin,0) < 0) continue;
@@ -1073,7 +1073,7 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
   intAr1 lfbpo(10), lfref(10);
   // We'll be looping over the chained list for each point
   for(int ibpo0 = 0; ibpo0 < msh.nbpoi; ibpo0++){ 
-    INCVDEPTH(msh);
+    INCVDEPTH(msh.param);
     int ipoin = msh.bpo2ibi(ibpo0,0);
     if(ipoin < 0) continue;
 

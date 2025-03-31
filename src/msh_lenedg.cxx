@@ -94,6 +94,11 @@ double getLengthEdges0(MeshMetric<MFT> &msh, intAr2 &ilned, dblAr1 &rlned, LenTy
       }else{
         METRIS_THROW_MSG(TODOExcept(),"Size interp scheme not implemented");
       }
+      if(std::isnan(len)){
+        printf("## DEBUG NAN LEN EDGE !\n");
+        printf("ientt = %d tdim = %d edge %d itype == GeoSiz? %d\n",
+               ientt,tdimn,iedgl,itype == LenTyp::GeoSiz);
+      }
       int iedgg = ilned.get_n();
       ilned.inc_n();
       ilned(iedgg,0) = std::get<0>(key);

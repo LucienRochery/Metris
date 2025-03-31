@@ -29,14 +29,16 @@ namespace Metris{
 // In this rewrite, we first generate points in t space, and only then insert 
 // them in bulk. 
 template<class MFT>
-void adaptGeoLines2(Mesh<MFT> &msh, int ithrd1, int ithrd2){
-  GETVDEPTH(msh);
+void adaptGeoLines2(Mesh<MFT> &msh){
+  GETVDEPTH(msh.param);
+  int ithrd1 = 0;
+  int ithrd2 = 1;
 
   if(!msh.CAD()) return;
 
   CPRINTF1("-- Start adaptGeoLines.\n");
 
-  if(msh.param->dbgfull) check_topo(msh);
+  if(msh.param->dbgfull) check_topo(msh, ithrd1);
 
   MetSpace ispac0 = msh.met.getSpace();
   msh.met.setSpace(MetSpace::Exp);
@@ -149,7 +151,7 @@ void adaptGeoLines2(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
     // Loop over CAD edges and remesh each one 
     for(int iCADed = 0; iCADed < nchild; iCADed++){
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
 
       ego obj = lchild[iCADed];
       if(CADedg2tag[obj] >= CADedgtag) continue;
@@ -195,8 +197,8 @@ void adaptGeoLines2(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 }
 
 
-template void adaptGeoLines2<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, int ithrd1, int ithrd2);
-template void adaptGeoLines2<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, int ithrd1, int ithrd2);
+template void adaptGeoLines2<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh);
+template void adaptGeoLines2<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh);
 
 
 

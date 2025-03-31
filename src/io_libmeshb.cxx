@@ -102,8 +102,8 @@ template<> int64_t MetrisOpenMeshFile<GmfRead>(std::string meshName, int *meshDi
 
 
 
-void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav, int ithread){
-  GETVDEPTH(msh);
+void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav){
+  GETVDEPTH(msh.param);
 
   std::string meshName = msh.param->outmPrefix + meshName_;
 
@@ -154,10 +154,6 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav,
   //intAr1 buffr(nrmax);
 
 
-  msh.tag[ithread]++; 
-
-  // Not gonna use this actually. 
-  int npoin = 0;
 
   intAr2 ent2po2;
   intAr1 ent2re2;
@@ -199,10 +195,6 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav,
       for(int jj = 0; jj < npp; jj++){
         int ip = msh.edg2poi(iedge,jj);
         ent2po2[ii][jj] = ip + 1;
-        if(msh.poi2tag(ithread,ip) < msh.tag[ithread]){
-          npoin++;
-          msh.poi2tag(ithread,ip) = msh.tag[ithread];
-        }
       }
       ent2re2[ii] = 1; //iedge + 1;
     }
@@ -247,22 +239,18 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav,
     //intAr2 fac2po2(ncfac,npp,&buffp[0]);
     //intAr1 fac2re2(ncfac,&buffr[0]);
 
-    printf("Debug cav.lcfac = ");
-    cav.lcfac.print();
-    for(int iface : cav.lcfac){
-      printf(" %d : ",iface);
-      intAr1(npp, msh.fac2poi[iface]).print();
-    }
+    //printf("Debug cav.lcfac = ");
+    //cav.lcfac.print();
+    //for(int iface : cav.lcfac){
+    //  printf(" %d : ",iface);
+    //  intAr1(npp, msh.fac2poi[iface]).print();
+    //}
 
     for(int ii = 0; ii < ncfac; ii++){
       int iface = cav.lcfac[ii];
       for(int jj = 0; jj < npp; jj++){
         int ip = msh.fac2poi(iface,jj);
         ent2po2[ii][jj] = ip + 1;
-        if(msh.poi2tag(ithread,ip) < msh.tag[ithread]){
-          npoin++;
-          msh.poi2tag(ithread,ip) = msh.tag[ithread];
-        }
       }
       ent2re2[ii] = 1; //iface + 1;
     }
@@ -310,10 +298,6 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav,
       for(int jj = 0; jj < npp; jj++){
         int ip = msh.tet2poi(itete,jj);
         ent2po2[ii][jj] = ip + 1;
-        if(msh.poi2tag(ithread,ip) < msh.tag[ithread]){
-          npoin++;
-          msh.poi2tag(ithread,ip) = msh.tag[ithread];
-        }
       }
       ent2re2[ii] = 1; //itete + 1;
     }
@@ -329,7 +313,6 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav,
   int mcorn = 2 * ncedg * msh.isboundary_edges();
   if(msh.isboundary_faces()) mcorn = MAX(mcorn, 3*ncfac);
   // But there can be no more than points, obviously. 
-  mcorn = MIN(mcorn, npoin);
 
   mcorn++; // ipins
 
@@ -337,19 +320,27 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav,
 
   bool iipns = false;
 
-  msh.tag[ithread]++;
+  // Quadratic search in the corners so we don't have to use tags.
   for(int ii = 0; ii < ncedg; ii++){
     int iedge = cav.lcedg[ii];
     for(int jj = 0; jj < 2; jj++){
       int ip = msh.edg2poi(iedge,jj);
-      if(msh.poi2tag(ithread,ip) >= msh.tag[ithread]) continue;
-      msh.poi2tag(ithread,ip) = msh.tag[ithread];
       int ib = msh.poi2bpo[ip];
       METRIS_ASSERT(ib >= 0);
-      if(msh.bpo2ibi(ib,1) == 0){
-        lcorn.stack(ip + 1);
-        if(ip == cav.ipins) iipns = true;
+
+      if(msh.bpo2ibi(ib,1) != 0) continue;
+
+      bool iskip = false;
+      for(int icorn : lcorn){
+        if(icorn != ip+1) continue;
+        iskip = true;
+        break;
       }
+
+      if(iskip) continue;
+
+      lcorn.stack(ip + 1);
+      if(ip == cav.ipins) iipns = true;
     }
   }
 
@@ -358,14 +349,22 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav,
       int iface = cav.lcfac[ii];
       for(int jj = 0; jj < 3; jj++){
         int ip = msh.fac2poi(iface,jj);
-        if(msh.poi2tag(ithread,ip) >= msh.tag[ithread]) continue;
-        msh.poi2tag(ithread,ip) = msh.tag[ithread];
         int ib = msh.poi2bpo[ip];
         METRIS_ASSERT(ib >= 0);
-        if(msh.bpo2ibi(ib,1) == 0){
-          lcorn.stack(ip);
-          if(ip == cav.ipins) iipns = true;
-        } 
+
+        if(msh.bpo2ibi(ib,1) != 0) continue;
+
+        bool iskip = false;
+        for(int icorn : lcorn){
+          if(icorn != ip+1) continue;
+          iskip = true;
+          break;
+        }
+
+        if(iskip) continue;
+
+        lcorn.stack(ip + 1);
+        if(ip == cav.ipins) iipns = true;
       }
     }
   }
@@ -489,7 +488,7 @@ void debugInveval(std::string meshName_, MeshBase &msh, int tdim, int* ent2pol, 
 
 void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
                int nedg0, int nfac0, int nele0){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
 
   std::string eff_meshName = iprefix ? msh.param->outmPrefix + meshName
@@ -804,7 +803,7 @@ void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
 
 
 void writeField(std::string outname, const MeshBase &msh, SolTyp stype, dblAr1 &rfld, int ndim){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
   if(stype != SolTyp::P0Elt && stype != SolTyp::CG) 
     METRIS_THROW_MSG(TODOExcept(), "Implement other SolTyps in writeField");
@@ -901,7 +900,7 @@ static int warning_print_writeBackLinks = 0;
 
 template<class MFT>
 void writeBackLinks(std::string solName, Mesh<MFT>& msh){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
   if(msh.met.metricClass() != MetricClass::MetricFieldFE){
     if(warning_print_writeBackLinks++ < 2){
@@ -916,7 +915,7 @@ void writeBackLinks(std::string solName, Mesh<MFT>& msh){
   double bary[4], coom[3];
 
   for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-    if(msh.poi2ent(ipoin,msh.get_tdim()-1) < 0){
+    if(msh.poi2ent(ipoin,0) < 0){
       for(int ii = 0; ii < msh.idim; ii++) field(ipoin, ii) = 0.0;
       continue;
     } 
@@ -926,7 +925,7 @@ void writeBackLinks(std::string solName, Mesh<MFT>& msh){
     if(pdim == 0) continue;
 
     //for(int tdim = 1; tdim <= msh.get_tdim(); tdim++){
-    int ientt = msh.poi2bak(ipoin,pdim-1);
+    int ientt = msh.poi2bak[ipoin];
     if(ientt < 0) continue;
 
     const intAr2& ent2poi = msh.bak->ent2poi(pdim);

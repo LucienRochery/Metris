@@ -4,8 +4,8 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#ifndef __METRIS_MSH_COLLAPSE__
-#define __METRIS_MSH_COLLAPSE__
+#ifndef __METRIS_LOW_INSERT__
+#define __METRIS_LOW_INSERT__
 
 #include "../Mesh/MeshFwd.hxx"
 #include "../types.hxx"
@@ -30,11 +30,17 @@ enum insedgesuf_Errors {INS2D_NOERR = 0,
 
 // Collapse edge iedl of triangle iface
 // bar1 is t along the edge with 1 if lnoed[iedl][0]
-template<class MetricFieldType>
-int insedgesurf(Mesh<MetricFieldType>& msh, int iface, int iedl, 
+template<class MFT>
+int insertEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, 
                double* coop, double bar1, 
                MshCavity &cav, CavWrkArrs &work, 
-               intAr1 &lerro, int ithrd1 = 0, int ithrd2 = 1);
+               intAr1 &lerro, int ithrd1, int ithrd2);
+
+
+// Correct point location in case of cavity construction error (e.g. short edge)
+template<class MFT>
+int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav, 
+                     int tdimp, int iseed, int iref, double *algnd);
 
 
 } // end namespace

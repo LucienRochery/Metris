@@ -14,8 +14,13 @@ namespace Metris{
 class MshCavity;
 struct CavOprOpt;
 
+// Increase for validity and Delaunay (if idelaunay == true) both. 
+template<class MFT>
+int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav, 
+                    bool idelaunay, int ithrd1, int ithrd2);
+
 // Increase cavity based on validity only 
-int increase_cavity2D(MeshBase &msh, MshCavity &cav, int ithread);
+int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread);
 
 
 // Increase cavity for Delaunay criterion on ipoin 

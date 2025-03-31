@@ -9,10 +9,11 @@
 #include "../Mesh/MeshBase.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 
+#include "../low_normal.hxx"
 #include "../low_geo.hxx"
 #include "../io_libmeshb.hxx"
 #include "../aux_EGADSprinterr.hxx"
-#include "../opt_generic.hxx"
+#include "../Optimization/opt_generic.hxx"
 #include "../low_eval.hxx"
 #include "../utils/mprintf.hxx"
 #include "../linalg/det.hxx"
@@ -33,7 +34,7 @@ int projptfac(MeshBase &msh,
               double*__restrict__ bary,
               double*__restrict__ coopr){
   METRIS_ASSERT(msh.idim == 3);
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
   constexpr int gdim = 3;
 
@@ -116,7 +117,7 @@ int projptfac(MeshBase &msh,
 
     double tol0 = geterrl2<gdim>(msh.coord[ipoi1],msh.coord[ipoi2]);
     tol0 = sqrt(tol0);
-    newton_drivertype_args<1> args;
+    newton_drivertype_args<1> args(msh.param);
     args.stpmin = 1.0e-12;
     args.iprt = msh.param->iverb - 1;
     int iflag = 0, ihess;
@@ -240,7 +241,7 @@ int projptedg(MeshBase &msh, const double*__restrict__ coop,
 
     double tol0 = geterrl2<gdim>(msh.coord[ipoi1],msh.coord[ipoi2]);
     tol0 = sqrt(tol0);
-    newton_drivertype_args<1> args;
+    newton_drivertype_args<1> args(msh.param);
     args.stpmin = 1.0e-12;
     args.iprt = msh.param->iverb - 1;
     int iflag = 0, ihess;

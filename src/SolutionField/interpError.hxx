@@ -21,6 +21,11 @@ template<int idim, int ideg, int pdeg, int pnorm, bool iexact = false>
 double interpErr(const SolutionFieldAnalytical &sol, int ielem,
                  int idiff = -1, std::initializer_list<double*> derr = {});
 
+template<int idim, int ideg, int pdeg, int pnorm, bool iexact>
+double interpErrBall(const SolutionFieldAnalytical &sol, 
+                     const intAr1& lball, const intAr1& lnode,
+                     std::initializer_list<double*> derr);
+
 template<int idim, int ideg, int pdeg, int pnorm, bool iexact = false>
 double interpErrGlo(const SolutionFieldAnalytical &sol);
 

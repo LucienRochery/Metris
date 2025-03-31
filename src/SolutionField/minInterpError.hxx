@@ -15,14 +15,14 @@ template <class MFT> class Mesh;
 
 template <class MFT>
 void minimizeInterpErrglo(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol, 
-                          int pdeg, int pnorm, int ithrd1 = 0, int ithrd2 = 1);
+                          int pdeg, int pnorm, int ialgo, int ithrd1, int ithrd2);
 
 
 
 // Aux
 template<class MFT, int idim, int ideg, int pdeg>
 void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol, 
-                           int pnorm, int ithrd1, int ithrd2);
+                           int pnorm, int ialgo, int ithrd1, int ithrd2);
 
 
 // For nlopt
@@ -44,11 +44,14 @@ struct interpErrglo_constraint_data{
 
 
 
-
+template<class MFT, int idim, int ideg, int pdeg>
+int minimizeInterpErrloc_Newton(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol, 
+                                int pnorm, intAr1& lball, intAr1& lnode,
+                                double *errLp0, double *errLp1);
 
 template<class MFT, int idim, int ideg, int pdeg>
-int minimizeInterpErrloc(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol, 
-                         int pnorm, intAr1& lball, intAr1& lnode,
-                         double *errLp0, double *errLp1);
+int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol, 
+                                int pnorm, intAr1& lball, intAr1& lnode,
+                                double *errLp0, double *errLp1);
 } //namespace
 #endif

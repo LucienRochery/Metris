@@ -11,6 +11,7 @@
 
 #include "../aux_topo.hxx"
 #include "../ho_constants.hxx"
+#include "../low_normal.hxx"
 #include "../low_geo.hxx"
 #include "../quality/low_metqua.hxx"
 #include "../utils/mprintf.hxx"
@@ -19,15 +20,14 @@
 
 namespace Metris{
 
-// The boundary here is a set of edges. They will be reconnected to 
-// ipins. 
-// Note: if the initial cavity includes edges, these have been reconnected
-// and the result is in lnewed
+//  Reconnect face cavity boundary to ipins. 
+//  Also fill work connex component array lfcco and their normals lnorf
+// and tag faces as tag[ithread]+icoco+1, icoco their connex component. 
 template <class MetricFieldType, int ideg>
-int reconnect_faccav(Mesh<MetricFieldType> &msh, const MshCavity& cav, 
+int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav, 
                      CavOprOpt &opts, CavWrkArrs &work,
                      int nedg0, double *qmax, int ithread){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
   const int ncfac = cav.lcfac.get_n();
 
@@ -68,28 +68,18 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, const MshCavity& cav,
 
   int nfac0 = msh.nface;
 
-	msh.tag[ithread]++;
-  // Store this so we can still substract the tag even after reconnect_tetcav
-  work.tagf0 = msh.tag[ithread];
-
-	// Tag cavity edges and triangles to determine cavity boundary. 
-	for(int iedge : cav.lcedg){
-		METRIS_ASSERT(iedge >= 0);
-    // avoid duplicates in cavity 
-    METRIS_ASSERT(msh.edg2tag(ithread,iedge) < msh.tag[ithread]);
-		msh.edg2tag(ithread,iedge) = msh.tag[ithread];
-	}
+  // Note: edges already tagged. 
 
   // We need to colour the faces per connex components. 
   // Also compute normals per connex component and store into lfcco. 
 	for(int iface : cav.lcfac){
 		METRIS_ASSERT(iface >= 0);
     // avoid duplicates in cavity 
-    if(msh.fac2tag(ithread,iface) >= msh.tag[ithread]){
+    if(msh.fac2tag(ithread,iface) > msh.tag[ithread]){
       printf("## DEBUG TAGGED FACE PRINT CAV \n");
       cav.lcfac.print();
     }
-    METRIS_ASSERT(msh.fac2tag(ithread,iface) < msh.tag[ithread]);
+    METRIS_ASSERT(msh.fac2tag(ithread,iface) <= msh.tag[ithread]);
 		msh.fac2tag(ithread,iface) = msh.tag[ithread];
 	}
   int ncoco = 0;
@@ -149,7 +139,10 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, const MshCavity& cav,
 
     lfcco.stack(iface);
 
-  }
+  }// for iface 
+
+  METRIS_ASSERT(msh.tag[ithread] + ncoco > cav.maxtag);
+  cav.maxtag = msh.tag[ithread] + ncoco;
 
   METRIS_ASSERT(lfcco.get_n() == ncoco);
   if(msh.param->dbgfull){
@@ -161,7 +154,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, const MshCavity& cav,
     }
   }
 
-  CPRINTF1(" - %d connex component(s) \n",ncoco);
+  CPRINTF1(" - %d connex component(s) \n",work.lfcco.get_n());
 
 	for(int iedge = nedg0; iedge < msh.nedge; iedge++){
 		METRIS_ASSERT(!isdeadent(iedge,msh.edg2poi));
@@ -175,15 +168,16 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, const MshCavity& cav,
 		}
     int iedex = edtyp.get_n(); 
 		msh.poi2tag(ithread,ipoin) = msh.tag[ithread] + iedex;
+
 		edtyp.stack(1);
 		edent.stack(iedge);
 	}
 
+
   // Other category of iedex, if ipins on the boundary:
   // triangle edges that contain ipins, against the cavity bdry
   // edtyp = -2 as they are triangles but not internal edges
-  for(int ifacl = 0; ifacl < ncfac; ifacl++){
-    int iface = cav.lcfac[ifacl];
+  for(int iface : cav.lcfac){
     for(int ied = 0; ied < 3; ied++){
       int ip1 = msh.fac2poi(iface,lnoed2[ied][0]);
       int ip2 = msh.fac2poi(iface,lnoed2[ied][1]);
@@ -235,6 +229,8 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, const MshCavity& cav,
       }
     }
   }  
+
+  cav.maxtag = MAX(cav.maxtag, msh.tag[ithread] + edtyp.get_n());
 
   if(DOPRINTS2()){
     CPRINTF2(" - nedex = %d :\n",edtyp.get_n());
@@ -321,9 +317,8 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, const MshCavity& cav,
 
 
   cleanup:
-  msh.tag[ithread] += ncoco;
 
-	//untag
+	//untag points
 	while(edtyp.get_n() > 0){
 		int ityp  = edtyp.pop();
 		int ientt = edent.pop();
@@ -347,13 +342,12 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, const MshCavity& cav,
 	return ierro;
 }
 
-// ---------- Forward declarations
 // See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
-template int reconnect_faccav<MetricFieldAnalytical, n >(Mesh<MetricFieldAnalytical> &msh, const MshCavity& cav, CavOprOpt &opts,\
+template int reconnect_faccav<MetricFieldAnalytical, n >(Mesh<MetricFieldAnalytical> &msh, MshCavity& cav, CavOprOpt &opts,\
                         CavWrkArrs&, int nedg0, double* qmax, int ithread);\
-template int reconnect_faccav<MetricFieldFE        , n >(Mesh<MetricFieldFE        > &msh, const MshCavity& cav, CavOprOpt &opts,\
+template int reconnect_faccav<MetricFieldFE        , n >(Mesh<MetricFieldFE        > &msh, MshCavity& cav, CavOprOpt &opts,\
                         CavWrkArrs&, int nedg0, double* qmax, int ithread);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
@@ -377,12 +371,16 @@ template<class MetricFieldType>
 static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, 
     int ip, int ifacn, int ifac0, int ipins, int ithread){
 
+  GETVDEPTH(msh.param);
+
   int ib = msh.poi2bpo[ip];
   METRIS_ASSERT(ib >= 0);
 
   // Easy case: same dim 
   if(msh.bpo2ibi(ib,1) == 2){
     int ifa = msh.bpo2ibi(ib,2);
+    CPRINTF2(" - update bpo ib dim 2 iface = %d tag = %d >=? %d",ifa,
+             msh.fac2tag(ithread,ifa), msh.tag[ithread]);
     if(msh.fac2tag(ithread,ifa) >= msh.tag[ithread] // if face about to get deleted
     && msh.bpo2ibi(ib,3) == -1){ // and have not yet done what we're about to do  || note unlike edges there is no higher tdim
       // then create new bpo and copy the old uvs here
@@ -445,12 +443,12 @@ template void aux_bpo_update_fac<MetricFieldAnalytical>(Mesh<MetricFieldAnalytic
 
 // cavity element ifac1 spawns new element from its edge ied
 template<class MetricFieldType, int ideg>
-int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav, 
+int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav, 
              CavOprOpt &opts, CavWrkArrs &work,
              int ifac1, int ied, int iref ,
              bool check_val, bool check_qua,
              int nedg0, int nfac0, double* qmax, int ithread){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
   METRIS_ASSERT(ithread >= 0 && ithread < METRIS_MAXTAGS);
 
   constexpr int nnode = getnnod2(ideg);
@@ -576,22 +574,21 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
   }
 
   int ifacn = msh.nface;
-
   msh.set_nface(msh.nface+1);
   msh.fac2poi(ifacn,0) = cav.ipins;
   msh.fac2poi(ifacn,1) = ip1;
   msh.fac2poi(ifacn,2) = ip2;
 
+  CPRINTF1(" - new face %d vertices %d %d %d \n",ifacn, cav.ipins, ip1, ip2);
+
   for(int ii = 0; ii < METRIS_MAXTAGS; ii++) msh.fac2tag(ii,ifacn) = 0;
 
-  // Store connex component for (u,v) updates down the line. We also use here to 
-  // retrieve normal for getmeasentP1
+  // Connex component gives us the normal
   int icoco = msh.fac2tag(ithread,ifac1) - msh.tag[ithread] - 1;
   METRIS_ASSERT_MSG(icoco >= 0 && icoco < work.lnorf.get_n(), 
                     "icoco = "<<icoco<< " n "<<work.lnorf.get_n());
-  // We don't use msh.tag[ithread] because the next functions are free
-  // to touch that. 
-  msh.fac2tag(ithread,ifacn) = icoco;
+  // We want to keep new faces untagged. 
+  msh.fac2tag(ithread,ifacn) = msh.tag[ithread] - icoco - 1;
 
   if(check_val){
     bool iflat;
@@ -599,23 +596,8 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
     if(msh.idim == 2){
       meas0 = getmeasentP1<2,2>(msh, msh.fac2poi[ifacn], NULL, &iflat);
     }else if(msh.idim == 3){
-      //double nrmal[3]; 
-      //if(tdimi <= 1){ // NO depends on side for periodic
-      //  getnorpoiref<1>(msh,cav.ipins,iref,cav.lcfac,nrmal);
-      //  //msh.getpoinormal(cav.ipins,iref,nrmal);
-      //}else{
-      //  for(int ii = 0; ii < 3; ii++) nrmal[ii] = cav.nrmal[ii];
-      //}
-
-      //use ifac1 to compute the normal
-      //double normal[3];
-      //if(msh.CAD()){
-      //  getnorfacCAD(msh, ifac1, normal);
-      //}else{
-      //getnorfacP1(msh.fac2poi[ifac1], msh.coord, normal);
-      //}
       if(DOPRINTS2()){
-        CPRINTF2(" - test using nrmal = ");
+        CPRINTF2(" - new face using connex comp %d normal = ",icoco);
         dblAr1(3,work.lnorf[icoco]).print();
       }
       meas0 = getmeasentP1<3,2>(msh, msh.fac2poi[ifacn], work.lnorf[icoco], &iflat);
@@ -625,12 +607,6 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
     if(iflat){
       CPRINTF1(" - iflat ! return ip1 ip2 ip3 = %d %d %d meas = %15.7e \n", 
                cav.ipins,ip1,ip2,meas0); 
-      if(DOPRINTS1()){
-        if(msh.idim == 3){
-          CPRINTF1(" normal = ");
-          dblAr1(msh.idim,cav.nrmal).print();
-        }
-      }
       return CAV_ERR_FLATFAC;
     }     
     if(meas0 < 0){
@@ -663,7 +639,8 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
  
   // Next up, edge interior nodes and neighbours. 
 
-  // Not very pretty but let's not assume 1, 2 is edge 0. (though it is and should remain)
+  // Not very pretty but let's not assume 1, 2 is edge 0. 
+  // (though it is and should remain)
   for(int iedn = 0; iedn < 3; iedn++){
     int jp1 = msh.fac2poi(ifacn,lnoed2[iedn][0]);
     METRIS_ASSERT(jp1 >= 0 && jp1 < msh.npoin);
@@ -711,6 +688,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
       int ifac2 = -1;
       if(abs(ityp) == 1){
         int iedge = work.edent[iedex];
+        CPRINTF2(" - found edge attached to global edge %d\n",iedge);
         cpy_gloedg2facedg<ideg>(msh,iedge,ifacn,iedn);
         // Next up we update or exploit edg2fac. 
         if(ityp > 0){ // A new edge
@@ -729,7 +707,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
               aux_bpo_update_fac(msh,ip,ifacn,ifac1,cav.ipins,ithread);
             }
           }else{
-            METRIS_ASSERT(cav.nrmal != NULL || !msh.CAD());
+            //METRIS_ASSERT(cav.nrmal != NULL || !msh.CAD());
             // We don't do it now. But later, we will need to regenerate (u,v) from t. 
             // For now just create ibpoi. 
             for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
@@ -856,6 +834,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
 
 
 
+  // Over zealous check does not know we had in fact previously detected edge.
   // This is more of a retroactive check on the edges.
   // See that we did not create an edge that is on the bdry of the cavity. 
   // This could be recovered but it becomes messy when CAD and HO is involved so just reject... 
@@ -873,7 +852,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
       int jp1 = msh.edg2poi(iedge,0);
       int jp2 = msh.edg2poi(iedge,1);
       if(jp1 == kp1 && jp2 == kp2 || jp1 == kp2 && jp2 == kp1){
-        CPRINTF1(" previously created edge coincides with this edge");
+        CPRINTF1(" previously created edge %d coincides with this edge",iedge);
         return CAV_ERR_DUPEDG2;
       }
     }
@@ -947,17 +926,16 @@ int crenewfa(Mesh<MetricFieldType> &msh, const MshCavity& cav,
 }
 
 
-// ---------- Forward declarations
 // See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
 template int crenewfa<MetricFieldAnalytical, n>(Mesh<MetricFieldAnalytical> &msh, \
-              const MshCavity& cav, CavOprOpt &opts, CavWrkArrs &work, \
+              MshCavity& cav, CavOprOpt &opts, CavWrkArrs &work, \
               int ifac1, int ied, int iref,\
               bool check_val, bool check_qua,\
               int nedg0, int nfac0, double* qmax, int ithread);\
 template int crenewfa<MetricFieldFE        , n>(Mesh<MetricFieldFE        > &msh, \
-              const MshCavity& cav, CavOprOpt &opts, CavWrkArrs &work, \
+              MshCavity& cav, CavOprOpt &opts, CavWrkArrs &work, \
               int ifac1, int ied, int iref,\
               bool check_val, bool check_qua,\
               int nedg0, int nfac0, double* qmax, int ithread);

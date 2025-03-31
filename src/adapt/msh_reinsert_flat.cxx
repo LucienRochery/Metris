@@ -22,12 +22,16 @@ namespace Metris{
 // Reinsert vertices that create almost flat elements. 
 template<class MFT, int idim, int ideg>
 int reinsertFlat(Mesh<MFT> &msh){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
   constexpr int gdim = idim;
   constexpr int tdim = idim; 
   constexpr int nnmet = (gdim * (gdim + 1)) / 2;
 
-  if(tdim != 2) METRIS_THROW_MSG(TODOExcept(), "Implement reinsertFlat dim 3");
+  if(tdim != 2){
+    static int nwarnprt = 0;
+    if(nwarnprt++ < 10)printf("\n\n## DISABLED REINSERTFLAT IN DIM 3\n\n\n");
+    return 0;
+  } 
 
   // For now, make it an option later 
   const double hgttol = 1.0e-8;
@@ -83,7 +87,7 @@ int reinsertFlat(Mesh<MFT> &msh){
     int noper  = 0;
     int nerro = 0;
     for(int ientt = nent0; ientt < nent1; ientt++){
-      INCVDEPTH(msh);
+      INCVDEPTH(msh.param);
       if(isdeadent(ientt,ent2poi)) continue;
 
       //if(ibdryonly){
@@ -118,7 +122,7 @@ int reinsertFlat(Mesh<MFT> &msh){
 
         CPRINTF1(" - Collapse point %d \n", ipoin);
         // Just collapse the point. 
-        collversurf(msh,ientt,ifa,msh.param->iverb,cav,work,lerror);
+        collversurf(msh,ientt,ifa,msh.param->iverb,cav,work,lerror, 0, 1);
         break;
 
         #if 0
@@ -172,7 +176,7 @@ int reinsertFlat(Mesh<MFT> &msh){
               }
               printf("\n");
               for(int ii = 0; ii < msh.idim; ii++){
-                printf(" %15.7e ",msh.coord[cav.ipins][ii]);
+                printf(" %15.7e ",msh.coord(cav.ipins,ii));
               }
               printf("\n");
 

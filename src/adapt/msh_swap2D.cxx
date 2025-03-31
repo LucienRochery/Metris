@@ -11,6 +11,7 @@
 
 #include "../cavity/msh_cavity.hxx"
 #include "../aux_topo.hxx"
+#include "../low_topo.hxx"
 #include "../io_libmeshb.hxx"
 #include "../utils/aux_timer.hxx"
 #include "../utils/mprintf.hxx"
@@ -26,7 +27,12 @@ namespace Metris{
 // Greedy swaps: if a swap improves, do it
 template<class MFT, int gdim, int ideg>
 double swap2D(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int ithrd2){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
+
+  if(msh.param->opt_swap_niter <= 0){
+    CPRINTF1("-- Provided swap_niter == 0: skip swapping\n");
+    return 0;
+  }
 
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
@@ -35,93 +41,139 @@ double swap2D(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int i
   MetSpace ispac0 = msh.met.getSpace();
   msh.met.setSpace(MetSpace::Log);
 
-  if(msh.get_tdim() != 2) METRIS_THROW_MSG(TODOExcept(), 
-    "Implement collapseShortEdges on tdim != 2, got tdim = "<<msh.get_tdim());
+  //if(msh.get_tdim() != 2){
+  //  printf("## SKIP SWAP2D FOR TETRA \n");
+  //  return 0;
+  //}
   double stat = 0;
 
-  int mcfac = 2; // more than 2 is a corner collapse: no!
-  MshCavity cav(0,mcfac,0);
+  
+  MshCavity cav(64,2,0);
   CavWrkArrs work;
+  intAr1 lshell(100);
+
 
   *nswap = 0;
-  int miter = 100;
-  // Untaged elements are to be considered 
-  #ifndef GLOFRO
-  msh.tag[ithrd1]++;
-  #endif
+  int miter = msh.param->opt_swap_niter;
   int ntry0 = -1;
+  msh.tag[ithrd1]++;
+  
   for(int niter = 0; niter < miter; niter++){
-    INCVDEPTH(msh);
+    INCVDEPTH(msh.param);
     
     bool onebad = false;
-    int nerro = 0;
-    int nswap1 = 0;
     int ntry  = 0;
-    int nfac0 = msh.nface;
+    int nerro2 = 0;
+    int nswap2 = 0;
+    double t02 = get_wall_time();
 
-    double t0 = get_wall_time();
-
-    for(int iface = 0; iface < nfac0; iface++){
-      INCVDEPTH(msh);
-      if(isdeadent(iface,msh.fac2poi)) continue;
-      if(msh.fac2tag(ithrd1,iface) >= msh.tag[ithrd1]) continue;
-
-      int info; 
-      int nfac1 = msh.nface;
-      double qumx0,qumx1;
-      #ifndef NDEBUG
-        try{
-      #endif
-        info = swapface<MFT,gdim,ideg>(msh, iface, swapOpt, cav, work, &qumx0, &qumx1, ithrd2);
-      #ifndef NDEBUG
-        if(msh.param->dbgfull)  check_topo(msh);
-        }catch(MetrisExcept &e){
-          printf("Caught exception in swapface, writing mesh:\n");
-          writeMesh("swap_except.meshb",msh);
-          msh.met.writeMetricFile("swap_except.solb");
-          writeMesh("swap_except_back", *(msh.bak));
-          msh.bak->met.writeMetricFile("swap_except_back.solb");
-          std::string CADname = msh.param->outmPrefix + "swap_except_CAD.egads";
-          EG_saveModel(msh.CAD.EGADS_model, CADname.c_str());
-          std::cout<<"Wrote CAD file "<<CADname<<"\n";
-          throw(e);
-        }
-      #endif
-
-
-      if(info == 0){ // Nothing done 
-        // Tag face as inert 
-        msh.fac2tag(ithrd1,iface) = msh.tag[ithrd1];
-      }else if(info > 0){ // Error 
-        nerro ++;
-      }else if(info < 0){ // Successful swap
-        CPRINTF1(" - swap successful\n");
-        METRIS_ASSERT(nfac1 == msh.nface - 2);
-        for(int ifanw = nfac1; ifanw < msh.nface; ifanw++){
-          for(int ii = 0; ii < 3; ii++){
-            int ifnei = msh.fac2fac(ifanw,ii);
-            if(ifnei < 0) continue; // nm not eligible to swap w/ this either 
-            // Unmark as inert if tagged 
-            msh.fac2tag(ithrd1,ifnei) = msh.tag[ithrd1] - 1;
-          }
-        }
-        nswap1++;
-        onebad = true;
+    for(int tdim = 2; tdim <= msh.get_tdim(); tdim++){
+      if(tdim == 3){
+        static int nwarnprt1 = 0;
+        if(nwarnprt1++ < 10) printf("\n\n## WARNING1: no 3D swaps\n\n\n");
+        continue;
       }
-      ntry++; 
-    }
-    if(ntry0 < 0) ntry0 = ntry;
-    if(ntry0 == 0) stat = 0;
-    else stat = MAX(stat, (double)nswap1 / (double)ntry0);
+      int nent0 = msh.nentt(tdim);
+      intAr2& ent2tag = msh.ent2tag(tdim);
 
-    double t1 = get_wall_time();
-    int ncallps = 1000*(int)((nswap1 / (t1-t0)) / 1000);
-    CPRINTF1("Loop end ntry = %d  nswap %d = %d /s; nerro %d coll \n",
-                                                    ntry, nswap1, ncallps,nerro);
-    *nswap += nswap1;
+      int nerro1 = 0;
+      int nswap1 = 0;
+
+      double t01 = get_wall_time();
+
+      for(int ientt = 0; ientt < nent0; ientt++){
+        INCVDEPTH(msh.param);
+        if(isdeadent(ientt,msh.ent2poi(tdim))) continue;
+        //ntry++;
+        
+        if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
+
+        int info; 
+        int nent1 = msh.nentt(tdim);
+        double qumx0,qumx1;
+        #ifndef NDEBUG
+          try{
+        #endif
+          if(tdim == 2){
+            info = swapface<MFT,gdim,ideg>(msh, ientt, swapOpt, cav, work, &qumx0, &qumx1, ithrd2);
+          }else{
+            info = 0;
+            static int nwarnprt = 0;
+            if(nwarnprt++ < 10) printf("\n\n## WARNING: no 3D swaps\n\n\n");
+          }
+        #ifndef NDEBUG
+          if(msh.param->dbgfull)  check_topo(msh,ithrd2);
+          }catch(MetrisExcept &e){
+            printf("Caught exception in swapface, writing mesh:\n");
+            writeMesh("swap_except.meshb",msh);
+            msh.met.writeMetricFile("swap_except.solb");
+            writeMesh("swap_except_back", *(msh.bak));
+            msh.bak->met.writeMetricFile("swap_except_back.solb");
+            std::string CADname = msh.param->outmPrefix + "swap_except_CAD.egads";
+            EG_saveModel(msh.CAD.EGADS_model, CADname.c_str());
+            std::cout<<"Wrote CAD file "<<CADname<<"\n";
+            throw(e);
+          }
+        #endif
+
+        //CPRINTF2(" - swap try entity %d info = %d \n",ientt, info);
+
+
+        if(info == 0){ // Nothing done 
+          // Tag entity as inert 
+          ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
+        }else if(info > 0){ // Error 
+          nerro1++;
+        }else if(info < 0){ // Successful swap
+          CPRINTF1(" - swap successful\n");
+          METRIS_ASSERT(nent1 == msh.nface - 2 || tdim == 3);
+          if(tdim == 2){
+            for(int ient1 = nent1; ient1 < msh.nentt(tdim); ient1++){
+              for(int ii = 0; ii < 3; ii++){
+                int ifnei = msh.fac2fac(ient1,ii);
+                if(ifnei < 0) continue; // nm not eligible to swap w/ this either 
+                // Unmark as inert if tagged 
+                msh.fac2tag(ithrd1,ifnei) = msh.tag[ithrd1] - 1;
+              }
+            }
+          }else{
+            // In case 3D, we need to use the shells.
+            intAr1 dum1;
+            for(int ient1 = nent1; ient1 < msh.nentt(tdim); ient1++){
+              for(int iedgl = 0; iedgl < 6; iedgl++){
+                int ip1 = msh.tet2poi(ient1,lnoed3[iedgl][0]);
+                int ip2 = msh.tet2poi(ient1,lnoed3[iedgl][1]);
+                int iopen;
+                shell3(msh, ip1, ip2, ient1, lshell, dum1, &iopen);
+                for(int ient2 : lshell)
+                  msh.tet2tag(ithrd1,ient2) = msh.tag[ithrd1] - 1;
+              }// for iedgl
+            }// for ient1
+          }// if tdim == 2
+          nswap1++;
+          onebad = true;
+        }
+        ntry++; 
+      }
+      double t11 = get_wall_time();
+      int ncallps1 = 1000*(int)((nswap1 / (t11-t01)) / 1000);
+      CPRINTF1(" - swaps dim %d swapped %d = %d /s nerro %d\n",
+               tdim,nswap1,ncallps1,nerro1)
+      nswap2 += nswap1;
+      nerro2 += nerro1;
+    }// for tdim
+
+    if(ntry0 < 0)  ntry0 = ntry;
+    if(ntry0 == 0) stat = MAX(stat,0);
+    else           stat = MAX(stat, (double)nswap2 / (double)ntry0);
+
+    double t12 = get_wall_time();
+    int ncallps2 = 1000*(int)((nswap2 / (t12-t02)) / 1000);
+    CPRINTF1(" - swaps full iter ntry = %d nswap %d = %d /s; nerro %d stat %f \n",
+            ntry, nswap2, ncallps2,nerro2, (double)nswap2 / (double)ntry0);
+    *nswap += nswap2;
 
     if(!onebad) break;
-
   }// for niter
 
 

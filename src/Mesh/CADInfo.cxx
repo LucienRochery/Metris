@@ -185,7 +185,7 @@ void CADInfo::setModel(size_t nbyte, char* stream){
 
 
 void CADInfo::iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0){
-  GETVDEPTH(msh);
+  GETVDEPTH(msh.param);
 
   if(EGADS_model == NULL){
 

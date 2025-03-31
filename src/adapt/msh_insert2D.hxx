@@ -15,7 +15,7 @@ namespace Metris{
 
 template<class MetricFieldType, int gdim, int ideg>
 double insertLongEdges(Mesh<MetricFieldType> &msh, int *ninser,
-                       int ithrd1 = 0, int ithrd2 = 1, int ithrd3 = 2);
+                       int ithrd1, int ithrd2, int ithrd3);
 
 
 }// end Namespace
