@@ -128,6 +128,7 @@ void MeshBack::initialize(MetrisAPI *data,
         anamet(NULL, coord[ipoin], param.metScale, 0, met[ipoin], NULL);
       } 
       setBasis(ibas0);
+      met.setSpace(MetSpace::Log, true);
 
     // Else intrinsic:
     }else{
