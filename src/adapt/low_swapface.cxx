@@ -34,7 +34,8 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
   double &qnrm0 = *qnrm0_;
   double &qnrm1 = *qnrm1_;
-  const int pnorm = opt.swap_norm;
+  const int qpnorm = opt.swap_norm;
+  const int qpower = msh.param->opt_power;
 
   constexpr int tdim = 2;
   constexpr AsDeg asdmet = AsDeg::P1;
@@ -63,15 +64,15 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
   double quae1;
 
-  if(pnorm >= 0){
-    quae1 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,iface,opts.qpower,
-                                  opts.qpnorm,1.0);
+  if(qpnorm >= 0){
+    quae1 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,iface,qpower,
+                                  qpnorm,1.0);
     METRIS_ASSERT_MSG(quae1 > -1.0e-16, "Negative quae1 "<<quae1<<" iface "<<iface);
   }
 
 
   CPRINTF1("-- START swapface iface = %d",iface);
-  if(DOPRINTS1() && pnorm >= 0){
+  if(DOPRINTS1() && qpnorm >= 0){
     printf(" initial quality = %f \n",quae1);
   }else if(DOPRINTS1()){
     printf("\n");
@@ -91,9 +92,9 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     int iedge = msh.fac2edg(iface, ied);
     if(iedge >= 0) continue;
 
-    if(pnorm >= 0){
+    if(qpnorm >= 0){
       quaol[ied] = metqua<MFT,gdim,tdim>(msh,AsDeg::P1, asdmet, 
-                                         ifac2,opts.qpower,opts.qpnorm,1.0);
+                                         ifac2,qpower,qpnorm,1.0);
     }else{  
       double sz[2], len;
       len = getlenedg_geosz<MFT,gdim,ideg>(msh, iface, 2, ied, sz);
@@ -123,10 +124,10 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     CPRINTF1(" - consider swap qface = %f qneigh = %f \n", quae1,quae2);
 
     // Quality of previous configuration 
-    if(pnorm == 0){
+    if(qpnorm == 0){
       qnrm0 = MAX(quae1,quae2);
-    }else if (pnorm > 0){
-      qnrm0 = pow(pow(quae1,pnorm) + pow(quae2,pnorm), 1.0/pnorm);
+    }else if (qpnorm > 0){
+      qnrm0 = pow(pow(quae1,qpnorm) + pow(quae2,qpnorm), 1.0/qpnorm);
     }else{
       qnrm0 = quae2;
     }
@@ -147,9 +148,9 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     fac2pol(1,2) = ip2;
 
     double qunw1, qunw2; 
-    if(pnorm >= 0){
+    if(qpnorm >= 0){
       qunw1 = metqua0<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,fac2pol[0],
-                                     opts.qpower, opts.qpnorm,1.0);
+                                     qpower, qpnorm,1.0);
     }else{
       edg2pol[0] = msh.fac2poi(iface,ied);
       edg2pol[1] = msh.fac2poi(ifac2,ie2);
@@ -161,17 +162,17 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     }
     CPRINTF1(" - new face quality = %f \n",qunw1);
     // Can skip already if using max
-    if(pnorm == 0 && qunw1 + opt.swap_thres > qnrm0) continue; 
+    if(qpnorm == 0 && qunw1 + opt.swap_thres > qnrm0) continue; 
 
     // If edge length, only one "quality" to consider. If worse, skip already. 
-    if(pnorm  < 0 && qunw1 + opt.swap_thres > qnrm0) continue;
+    if(qpnorm  < 0 && qunw1 + opt.swap_thres > qnrm0) continue;
 
-    if(pnorm >= 0){
+    if(qpnorm >= 0){
       #ifndef NDEBUG
       try{
       #endif
       qunw2 = metqua0<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,fac2pol[1],
-                                     opts.qpower, opts.qpnorm,1.0);
+                                     qpower, qpnorm,1.0);
       #ifndef NDEBUG
       }catch(const MetrisExcept &e){
         printf(" ## METQUA FAILED DUE TO FAC2POL ? = \n");
@@ -185,14 +186,14 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     CPRINTF1(" - new face quality = %f \n",qunw2);
 
     // Quality of new configuration 
-    if(pnorm == 0){
+    if(qpnorm == 0){
       qnrm1 = MAX(qunw1,qunw2);
-    }else if (pnorm > 0){
-      qnrm1 = pow(pow(qunw1,pnorm) + pow(qunw2,pnorm), 1.0/pnorm);
+    }else if (qpnorm > 0){
+      qnrm1 = pow(pow(qunw1,qpnorm) + pow(qunw2,qpnorm), 1.0/qpnorm);
     }else{
       qnrm1 = qunw1;
     }
-    if(pnorm >= 0 && qnrm1 + opt.swap_thres > qnrm0) continue; 
+    if(qpnorm >= 0 && qnrm1 + opt.swap_thres > qnrm0) continue; 
 
     cav.lcfac[1] = ifac2;
     cav.ipins = msh.fac2poi(iface,ied);
@@ -218,8 +219,8 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       //  if(iverb >= 4){
       //    writeMesh("debug_swap1.meshb",msh);
       //    for(int ifanw = msh.nface-2; ifanw < msh.nface; ifanw++){
-      //      qunw1 = metqua<MFT,gdim,tdim,ideg,asdmet,double>(msh,ifanw,opts.qpower,
-      //                                                          opts.qpnorm,1.0);
+      //      qunw1 = metqua<MFT,gdim,tdim,ideg,asdmet,double>(msh,ifanw,qpower,
+      //                                                          qpnorm,1.0);
       //      printf(" - debug after cavity new face qua%d = %f \n",ifanw-msh.nface-1,qunw1);
       //    }
       //  } 

@@ -23,11 +23,9 @@
 namespace Metris{
 
 
-// Swap edge between two triangles (including surface w/ tets)
-// Return 0 if nothing done, 1 if error, -1 if swap done
-// Compute using norm specified in opt: if 0, take max.
-// If norm is -1, use edge length instead.
-
+// tet swaps: try face and edge swaps. 
+// if lazy, take first quality improving operation. 
+// Tet swaps can only be quality, not length, based (for now and perhaps ever).
 template<class MFT, int gdim, int ideg>
 int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt, 
              MshCavity &cav, CavWrkArrs &work, 
@@ -83,7 +81,8 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
 
   double &qnrm0 = *qnrm0_;
   double &qnrm1 = *qnrm1_;
-  const int pnorm = opt.swap_norm;
+  const int qpnorm = opt.swap_norm;
+  const int qpower= msh.param->opt_power;
 
   constexpr int tdim = 2;
   constexpr AsDeg asdmet = AsDeg::P1;
@@ -112,22 +111,22 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
 
   double quae1;
 
-  if(pnorm >= 0){
-    quae1 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,itetr,opts.qpower,
-                                  opts.qpnorm,1.0);
+  if(qpnorm >= 0){
+    quae1 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,itetr,qpower,
+                                  qpnorm,1.0);
     METRIS_ASSERT_MSG(quae1 > -1.0e-16, "Negative quae1 "<<quae1<<" itetr "<<itetr);
   }
 
 
   CPRINTF1("-- START swaptetra itetr = %d",itetr);
-  if(DOPRINTS1() && pnorm >= 0){
+  if(DOPRINTS1() && qpnorm >= 0){
     printf(" initial quality = %f \n",quae1);
   }else if(DOPRINTS1()){
     printf("\n");
   }
 
   // Old qualities associated to each possible swap. 
-  // If pnorm >= 0, this is the p-norm of quality accross 
+  // If qpnorm >= 0, this is the p-norm of quality accross 
   // Otherwise it is the length of the edge. 
   double quaol[3];
   for(int ied = 0; ied < 3; ied++){
@@ -140,9 +139,9 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
     int iedge = msh.fac2edg(itetr, ied);
     if(iedge >= 0) continue;
 
-    if(pnorm >= 0){
+    if(qpnorm >= 0){
       quaol[ied] = metqua<MFT,gdim,tdim>(msh,AsDeg::P1, asdmet, 
-                                         ifac2,opts.qpower,opts.qpnorm,1.0);
+                                         ifac2,qpower,qpnorm,1.0);
     }else{  
       double sz[2], len;
       len = getlenedg_geosz<MFT,gdim,ideg>(msh, itetr, 2, ied, sz);
@@ -172,10 +171,10 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
     CPRINTF1(" - consider swap qface = %f qneigh = %f \n", quae1,quae2);
 
     // Quality of previous configuration 
-    if(pnorm == 0){
+    if(qpnorm == 0){
       qnrm0 = MAX(quae1,quae2);
-    }else if (pnorm > 0){
-      qnrm0 = pow(pow(quae1,pnorm) + pow(quae2,pnorm), 1.0/pnorm);
+    }else if (qpnorm > 0){
+      qnrm0 = pow(pow(quae1,qpnorm) + pow(quae2,qpnorm), 1.0/qpnorm);
     }else{
       qnrm0 = quae2;
     }
@@ -196,9 +195,9 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
     fac2pol(1,2) = ip2;
 
     double qunw1, qunw2; 
-    if(pnorm >= 0){
+    if(qpnorm >= 0){
       qunw1 = metqua0<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,fac2pol[0],
-                                     opts.qpower, opts.qpnorm,1.0);
+                                     qpower, qpnorm,1.0);
     }else{
       edg2pol[0] = msh.fac2poi(itetr,ied);
       edg2pol[1] = msh.fac2poi(ifac2,ie2);
@@ -210,17 +209,17 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
     }
     CPRINTF1(" - new face quality = %f \n",qunw1);
     // Can skip already if using max
-    if(pnorm == 0 && qunw1 + opt.swap_thres > qnrm0) continue; 
+    if(qpnorm == 0 && qunw1 + opt.swap_thres > qnrm0) continue; 
 
     // If edge length, only one "quality" to consider. If worse, skip already. 
-    if(pnorm  < 0 && qunw1 + opt.swap_thres > qnrm0) continue;
+    if(qpnorm  < 0 && qunw1 + opt.swap_thres > qnrm0) continue;
 
-    if(pnorm >= 0){
+    if(qpnorm >= 0){
       #ifndef NDEBUG
       try{
       #endif
       qunw2 = metqua0<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,fac2pol[1],
-                                     opts.qpower, opts.qpnorm,1.0);
+                                     qpower, qpnorm,1.0);
       #ifndef NDEBUG
       }catch(const MetrisExcept &e){
         printf(" ## METQUA FAILED DUE TO FAC2POL ? = \n");
@@ -234,14 +233,14 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
     CPRINTF1(" - new face quality = %f \n",qunw2);
 
     // Quality of new configuration 
-    if(pnorm == 0){
+    if(qpnorm == 0){
       qnrm1 = MAX(qunw1,qunw2);
-    }else if (pnorm > 0){
-      qnrm1 = pow(pow(qunw1,pnorm) + pow(qunw2,pnorm), 1.0/pnorm);
+    }else if (qpnorm > 0){
+      qnrm1 = pow(pow(qunw1,qpnorm) + pow(qunw2,qpnorm), 1.0/qpnorm);
     }else{
       qnrm1 = qunw1;
     }
-    if(pnorm >= 0 && qnrm1 + opt.swap_thres > qnrm0) continue; 
+    if(qpnorm >= 0 && qnrm1 + opt.swap_thres > qnrm0) continue; 
 
     cav.lcfac[1] = ifac2;
     cav.ipins = msh.fac2poi(itetr,ied);
@@ -267,8 +266,8 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
       //  if(iverb >= 4){
       //    writeMesh("debug_swap1.meshb",msh);
       //    for(int ifanw = msh.nface-2; ifanw < msh.nface; ifanw++){
-      //      qunw1 = metqua<MFT,gdim,tdim,ideg,asdmet,double>(msh,ifanw,opts.qpower,
-      //                                                          opts.qpnorm,1.0);
+      //      qunw1 = metqua<MFT,gdim,tdim,ideg,asdmet,double>(msh,ifanw,qpower,
+      //                                                          qpnorm,1.0);
       //      printf(" - debug after cavity new face qua%d = %f \n",ifanw-msh.nface-1,qunw1);
       //    }
       //  } 
@@ -292,5 +291,77 @@ template int swaptetra<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        >& m
                                     double *qumx0, double *qnrm1, int ithread);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
+
+
+// Do not call directly. In dryrun mode, the cavity operator is not called.
+// quae2 is initial tetra quality, precomputed in caller as reusable. 
+template<class MFT, int gdim, int ideg>
+int aux_swaptetface(Mesh<MFT>& msh, int itetr, int ifacl, double quae1,
+                    swapOptions opt,
+                    MshCavity &cav, CavWrkArrs &work,
+                    double *qnrm0_, double *qnrm1_,
+                    bool dryrun, int ithread){
+  GETVDEPTH(msh.param);
+  constexpr int tdim = 3;
+  constexpr AsDeg asdmet = AsDeg::P1;
+
+  const int qpnorm = msh.param->opt_pnorm;
+  const int qpower = msh.param->opt_power;
+
+  double &qnrm0 = *qnrm0_;
+  double &qnrm1 = *qnrm1_;
+
+  int itet2 = msh.tet2tet(itetr, ifacl);
+  if(itet2 < 0) return 1;
+
+  int idom1 = msh.tet2ref[itetr];
+  if(idom1 != msh.tet2ref[itet2]){
+    CPRINTF1("# Reject face swap with refs %d != %d\n",idom1, msh.tet2ref[itet2]);
+    return 1;
+  }
+
+  double quae2 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,itetr,
+                                       qpower,qpnorm,1.0);
+
+  if(qpnorm == 0){
+    qnrm0 = MAX(quae1,quae2);
+  }else if (qpnorm > 0){
+    qnrm0 = pow(pow(quae1,qpnorm) + pow(quae2,qpnorm), 1.0/qpnorm);
+  }
+
+
+  int nele0 = msh.nelem;
+  msh.set_nelem(nele0+3);
+
+  int ifac2 = -1;
+  for(int itmp = 0; itmp < 4; itmp++){
+    if(msh.tet2tet(itet2,itmp) != itetr) continue;
+    ifac2 = itmp;
+    break;
+  }
+  METRIS_ASSERT(ifac2 >= 0);
+
+  // Get point opposite face in second tetra. 
+  int ipopp = msh.tet2poi(itet2,ifac2);
+
+  // New tetrahedra are comprised of a face of itetr with the new point. 
+
+  int ifacn = 0;
+  for(int inewt = 0; inewt < 3; inewt++){
+    if(ifacn == ifacl) ifacn++;
+    // Use face ifacn
+    msh.tet2poi(nele0 + inewt, 0) = ipopp;
+    for(int ii = 0; ii < 3; ii++){
+      msh.tet2poi(nele0 + inewt, 1 + ii) = msh.tet2poi(itetr, lnofa3[ifacn][ii]);
+    }
+    // Check non flat/negative, this is hard reject.
+
+    ifacn++;
+  }
+
+
+}
+
+
 
 } // end namespace

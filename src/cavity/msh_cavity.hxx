@@ -183,12 +183,6 @@ struct CavOprOpt{
   // the metric as a P1 field to compute qualities.
   // However this still means the metric at ipins must be computed !!
 
-  // Power: > 0 = (tra / det)^|power| 
-  // Negative is more stable but less discriminant 
-  // This can be solved by using higher pnorm (or power). 
-  int qpower;
-  int qpnorm;
-
 
 	CavOprOpt():allow_topological_correction(true)
              ,skip_topo_checks(true)
@@ -201,8 +195,6 @@ struct CavOprOpt{
              ,qmax_nec(-1.0)
              ,qmax_suf(-1.0)
              ,qmax_iff(-1.0)
-             ,qpower(-1)
-             ,qpnorm(2)
              {}
 };
 

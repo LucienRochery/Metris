@@ -162,8 +162,8 @@ int reconnect_tetcav(Mesh<MFT> &msh,
       if(check_qua){
         // Regardless of degree, verify underlying P1 element is decent enough
         double quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,
-                                       ielen,opts.qpower,
-                                       opts.qpnorm,1.0);
+                                       ielen,msh.param->opt_power,
+                                       msh.param->opt_pnorm,1.0);
         CPRINTF1(" - new tetra %d = %d %d %d %d from %d conf error = %f \n",
            ielen,
            msh.tet2poi(ielen,0), msh.tet2poi(ielen,1), msh.tet2poi(ielen,2),
