@@ -65,7 +65,7 @@ cases/public/*
 !cases/public/square.egads
 
 
-examples/adapt_square
+examples/adapt_square/*
 !examples/adapt_square/test_script.sh
 !examples/adapt_square/test_scriptP2.sh
 !examples/adapt_square/square.meshb
