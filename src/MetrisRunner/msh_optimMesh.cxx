@@ -5,7 +5,7 @@
 
 #include "../MetrisRunner/MetrisRunner.hxx"
 #include "../Mesh/Mesh.hxx"
-#include "../adapt/msh_swap2D.hxx"
+#include "../adapt/msh_swap.hxx"
 #include "../adapt/msh_reinsert_flat.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../utils/aux_timer.hxx"
@@ -110,7 +110,6 @@ double MetrisRunner::optimMesh0(){
 
   double stat0 = 1;
   for(int niter = 1; niter <= miter && stat0 >= 0.01; niter++){
-    INCVDEPTH(msh.param);
     stat0 = 0;
 
     //qmax_suf = qavg * MAX(10 / (niter * 1.0), 1.0);
@@ -232,7 +231,7 @@ double MetrisRunner::optimMesh0(){
     // 2. Swaps
     t0 = get_wall_time();
     int nswap;
-    stat  = swap2D<MFT,gdim,ideg>(msh, swapOpt, &nswap, 0, 1);
+    stat  = swapMesh<MFT,gdim,ideg>(msh, swapOpt, &nswap, 0, 1);
     stat0 = MAX(stat0,stat);
     t1 = get_wall_time();
     if(msh.param->dbgfull) check_topo(msh,0);

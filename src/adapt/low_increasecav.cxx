@@ -992,6 +992,9 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
       double len = getlenedg_geosz<MFT,gdim,1>(msh,edg2pol,sz);
       //ncomp++;
 
+      CPRINTF1(" - check len ipoin %d len = %f <? 1/sqrt(2) %d\n",
+                ipoin,len,len <= 1.0/sqrt(2));
+
       if(len <= 1.0/sqrt(2)){
         if(!opts.allow_remove_points) return -1; 
         lbedg.set_n(0);

@@ -742,6 +742,7 @@ void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
   }else{
     intAr1 lpoic(msh.npoin);
     intAr1 lcorn(10);
+    lcorn.set_n(0);
     for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
       int ipoin = msh.bpo2ibi(ibpoi,0);
       if(ipoin < 0) continue;

@@ -121,8 +121,8 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
   const int miter = 10;
   //const double maxwt = 20.0;
   //const double qrthr = 2.0;
-  const double tolavg = 0.005;
-  const double tolmax = 0.005;
+  const double tolavg = msh.param->opt_smoo_tol;
+  const double tolmax = msh.param->opt_smoo_tol;
 
   dblAr1 work;
   if(msh.param->iflag2 != 0){

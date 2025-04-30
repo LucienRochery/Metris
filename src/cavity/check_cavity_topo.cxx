@@ -22,7 +22,6 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
   cav.maxtag = ++msh.tag[ithread];
 
   GETVDEPTH(msh.param);
-  int ierro = 0;
 
   bool icheck1 = cav.lcfac.get_n() > 0 && msh.nelem > 0;
   bool icheck2 = !opts.allow_remove_points;
@@ -122,7 +121,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
 
         CPRINTF1(" ## norempts and point %d will be removed \n",ipoin);
         
-        return 1;
+        return CAV_ERR_REMPT;
 
       }
     }
@@ -130,7 +129,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
   } // if(!opts.allow_remove_points)
 
 
-  return ierro;
+  return 0;
 }
 
 

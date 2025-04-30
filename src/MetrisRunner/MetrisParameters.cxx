@@ -36,6 +36,7 @@ MetrisParameters::MetrisParameters(){
   main_in_prefix = false;
 
   adp_niter     = 0;
+  adp_unit_stop = 99.9;
   adp_opt_niter = 1;
   adp_line_adapt = true;
 
@@ -58,6 +59,7 @@ MetrisParameters::MetrisParameters(){
   opt_power = Defaults::opt_power;
   opt_niter = Defaults::opt_niter;
   opt_smoo_niter = Defaults::opt_smoo_niter;
+  opt_smoo_tol   = Defaults::opt_smoo_tol;
 
   opt_swap_pnorm = Defaults::opt_swap_pnorm;
   opt_swap_niter = Defaults::opt_swap_niter;
@@ -201,6 +203,9 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("adp-opt-niter")){
     adp_opt_niter = opt.m["adp-opt-niter"].as<int>();
   }
+  if(opt.count("adp-unit-stop")){
+    adp_unit_stop = opt.m["adp-unit-stop"].as<double>();
+  }
   if(opt.count("no-line-adp")){
     adp_line_adapt = false; 
   }
@@ -257,6 +262,9 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   }
   if(opt.count("opt-smoo-niter")){
     opt_smoo_niter = opt.m["opt-smoo-niter"].as<int>();
+  }
+  if(opt.count("opt-smoo-tol")){
+    opt_smoo_tol = opt.m["opt-smoo-tol"].as<double>();
   }
 
   if(opt.count("opt-swap-pnorm")){

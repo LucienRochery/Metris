@@ -242,10 +242,11 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/statMesh.cxx
     ${PROJECT_SOURCE_DIR}/src/adapt/msh_collapse.cxx
     ${PROJECT_SOURCE_DIR}/src/adapt/low_collapse.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/msh_swap2D.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/low_swap2D.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/msh_insert2D.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/low_insert2D.cxx
+    ${PROJECT_SOURCE_DIR}/src/adapt/msh_swap.cxx
+    ${PROJECT_SOURCE_DIR}/src/adapt/low_swapface.cxx
+    ${PROJECT_SOURCE_DIR}/src/adapt/low_swaptetra.cxx
+    ${PROJECT_SOURCE_DIR}/src/adapt/msh_insert.cxx
+    ${PROJECT_SOURCE_DIR}/src/adapt/low_insert.cxx
     ${PROJECT_SOURCE_DIR}/src/adapt/low_increasecav.cxx
     ${PROJECT_SOURCE_DIR}/src/adapt/msh_lineadapt.cxx
     ${PROJECT_SOURCE_DIR}/src/adapt/msh_lineforce.cxx

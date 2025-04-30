@@ -417,6 +417,9 @@ void MetricFieldFE::getMetBary0( DifVar idiff,  MetSpace tarspac,
                                       double*__restrict__ dmet) {
   constexpr int nnmet = (gdim*(gdim+1))/2;
 
+  METRIS_ASSERT_MSG(this->ispace == MetSpace::Log, 
+                    "Do not call getMetBary on an Exp met field");
+
   double *dmet0 = dmet;
   RoutineWorkMemory<double> tmp(this->rwrkmem);
   DifVar idife = DifVar::None;

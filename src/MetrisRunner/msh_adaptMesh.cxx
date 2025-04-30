@@ -6,8 +6,8 @@
 #include "MetrisRunner.hxx"
 
 #include "../adapt/msh_collapse.hxx"
-#include "../adapt/msh_swap2D.hxx"
-#include "../adapt/msh_insert2D.hxx"
+#include "../adapt/msh_swap.hxx"
+#include "../adapt/msh_insert.hxx"
 
 #include "../Mesh/Mesh.hxx"
 #include "../utils/aux_misc.hxx"
@@ -136,7 +136,7 @@ void MetrisRunner::adaptMesh0(){
     //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (bdry, quad)");
 
 
-    swap2D<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdfro, 1);
+    swapMesh<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdfro, 1);
 
     //if(DOPRINTS2()) writeMesh("debug_swap_pre.meshb",msh);
     //if(DOPRINTS2()) msh.met.writeMetricFile("debug_swap_pre.solb");
@@ -212,7 +212,7 @@ void MetrisRunner::adaptMesh0(){
 
     if(niter%2 == 0 || qmax_suf < 0.5){
       t0 = get_wall_time();
-      stat  = swap2D<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdfro, 1);
+      stat  = swapMesh<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdfro, 1);
       stat0 = MAX(stat0,stat);
       t1 = get_wall_time();
       tswap += t1-t0;
@@ -337,9 +337,10 @@ void MetrisRunner::adaptMesh0(){
     // "-- Adp loop %3d / %3d inser %d coll %d swap %d, %fpct unit, op stat = %f \n"
     if(DOPRINTS1())printf(fmt.c_str(), spaces_string__, 
              niter,miter, tloop1 - tloop0, ninser,ncoll,nswap, pct_unit,stat0);
-    if(pct_unit >= 99.9){
+    if(pct_unit >= msh.param->adp_unit_stop){
       CPRINTF1("------------------------------------------------------------\n");
-      CPRINTF1("- 99.9%% edges unit exit\n");
+      CPRINTF1("- %7.2f%% edges unit exit threshold = %7.2f\n",pct_unit,
+                msh.param->adp_unit_stop);
       break;
     }
 

@@ -3,8 +3,8 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef __METRIS_MSH_SWAP2D__
-#define __METRIS_MSH_SWAP2D__
+#ifndef __METRIS_MSH_SWAP__
+#define __METRIS_MSH_SWAP__
 
 #include "../Mesh/MeshFwd.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -52,8 +52,8 @@ namespace Defaults{
 
 
 template<class MetricFieldType, int gdim, int ideg>
-double swap2D(Mesh<MetricFieldType> &msh, swapOptions opt, int *nswap, 
-              int ithrd1, int ithrd2);
+double swapMesh(Mesh<MetricFieldType> &msh, swapOptions opt, int *nswap, 
+                int ithrd1, int ithrd2);
 
 
 } // end namespace

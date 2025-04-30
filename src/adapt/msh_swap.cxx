@@ -4,8 +4,8 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#include "msh_swap2D.hxx"
-#include "low_swap2D.hxx"
+#include "msh_swap.hxx"
+#include "low_swap.hxx"
 
 #include "../Mesh/Mesh.hxx"
 
@@ -26,7 +26,7 @@ namespace Metris{
 
 // Greedy swaps: if a swap improves, do it
 template<class MFT, int gdim, int ideg>
-double swap2D(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int ithrd2){
+double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
 
   if(msh.param->opt_swap_niter <= 0){
@@ -97,9 +97,11 @@ double swap2D(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int i
           if(tdim == 2){
             info = swapface<MFT,gdim,ideg>(msh, ientt, swapOpt, cav, work, &qumx0, &qumx1, ithrd2);
           }else{
-            info = 0;
-            static int nwarnprt = 0;
-            if(nwarnprt++ < 10) printf("\n\n## WARNING: no 3D swaps\n\n\n");
+            if constexpr(gdim == 3){
+              info = swaptetra<MFT,gdim,ideg>(msh, ientt, swapOpt, cav, work, &qumx0, &qumx1, ithrd2);
+            }else{
+              METRIS_THROW_MSG(TopoExcept(),"in dim < 3, ntetra > 0");
+            }
           }
         #ifndef NDEBUG
           if(msh.param->dbgfull)  check_topo(msh,ithrd2);
@@ -187,13 +189,13 @@ double swap2D(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int i
 // See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
-template double swap2D<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
+template double swapMesh<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
                               swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2);\
-template double swap2D<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,\
+template double swapMesh<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,\
                               swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2);\
-template double swap2D<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,\
+template double swapMesh<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,\
                               swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2);\
-template double swap2D<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,\
+template double swapMesh<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,\
                               swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()

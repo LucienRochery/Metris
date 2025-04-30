@@ -4,7 +4,7 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#include "low_insert2D.hxx"
+#include "low_insert.hxx"
 #include "low_increasecav.hxx"
 
 #include "../Mesh/Mesh.hxx"
@@ -289,6 +289,10 @@ int insertEdge(Mesh<MFT>& msh,
     if(ibins >= 0){
       ierro = INS2D_ERR_BDRYNOCORR; 
       CPRINTF1(" - Cannot correct boundary point in insertEdge\n");
+      if(msh.param->dbgfull){
+        printf("## WAIT HERE INS2D_ERR_BDRYNOCORR\n");
+        wait();
+      }
       goto cleanup;
     }
 
@@ -320,6 +324,14 @@ int insertEdge(Mesh<MFT>& msh,
   }}CT_FOR1(ideg);
 
   if(ierro > 0) lerro[ierro-1]++;
+  #ifndef NDEBUG
+  if(ierro == CAV_ERR_NOBPO){
+    printf("## CAV_ERR_NOBPO error \n");
+    wait();
+  }
+  #endif
+
+  if(ierro != 0) ierro = INS2D_ERR_CAVITYOPERATOR;
 
   if(info.done){
     CPRINTF1("-- END insertEdge ipins = %d  \n",cav.ipins);

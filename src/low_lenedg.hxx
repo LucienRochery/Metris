@@ -37,7 +37,7 @@ double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
                        int ientt, int tdimn, int iedg, double *sz);
 template<class MetricFieldType, int gdim, int ideg>
 double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
-                       int *edg2pol, double *sz);
+                       const int *edg2pol, double *sz);
 
 // This one assumes lpoi of size ideg + 1
 //template<int gdim, int ideg>

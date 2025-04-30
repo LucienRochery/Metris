@@ -4,8 +4,8 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#ifndef __METRIS_MSH_COLLAPSE__
-#define __METRIS_MSH_COLLAPSE__
+#ifndef __METRIS_LOW_SWAP__
+#define __METRIS_LOW_SWAP__
 
 #include "../Mesh/MeshFwd.hxx"
 
@@ -16,12 +16,23 @@ class MshCavity;
 struct CavWrkArrs;
 struct swapOptions;
 
-// Collapse edge iedl of triangle iface
+// Swap edge between two triangles (including surface w/ tets)
+// looking for best swap involving iface (low quality triangle). 
+// Return 0 if nothing done, 1 if error, -1 if swap done
+// Compute using norm specified in opt: if 0, take max.
+// If norm is -1, use edge length instead.
+// low_swapface.cxx
 template<class MFT,int gdim,int ideg>
 int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
              MshCavity &cav, CavWrkArrs &work, 
              double *qumx0, double *qumx1, int ithread);
 
+
+// low_swaptetra.cxx
+template<class MFT,int gdim,int ideg>
+int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
+              MshCavity &cav, CavWrkArrs &work, 
+              double *qumx0, double *qumx1, int ithread);
 
 } // end namespace
 

@@ -6,7 +6,7 @@
 
 #include "../adapt/msh_collapse.hxx"
 #include "../adapt/low_collapse.hxx"
-#include "../adapt/msh_swap2D.hxx"
+#include "../adapt/msh_swap.hxx"
 
 #include "../Mesh/Mesh.hxx"
 

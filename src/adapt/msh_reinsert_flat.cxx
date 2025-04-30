@@ -83,6 +83,7 @@ int reinsertFlat(Mesh<MFT> &msh){
   int nent0 = 0;
   int nent1 = msh.nentt(tdim);
   for(int niter = 0; niter < miter; niter++){
+    INCVDEPTH(msh.param);
     CPRINTF1(" - niter %d / %d nent0 -> nent1 %d -> %d\n",niter,miter,nent0,nent1);
     int noper  = 0;
     int nerro = 0;

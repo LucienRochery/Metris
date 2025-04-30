@@ -24,7 +24,8 @@ enum insedgesuf_Errors {INS2D_NOERR = 0,
                         INS2D_ERR_SHORTEDG = 5,
                         INS2D_ERR_BDRYNOCORR = 6,
                         INS2D_ERR_INCCAVDEL = 7,
-                        INS2D_ERR_NERROR = 8
+                        INS2D_ERR_CAVITYOPERATOR = 8,
+                        INS2D_ERR_NERROR = 9
                         };
 
 

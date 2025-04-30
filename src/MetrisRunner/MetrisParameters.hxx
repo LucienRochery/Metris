@@ -70,6 +70,7 @@ struct MetrisParameters{
   // ----------------- Adaptation options  
   int adp_opt_niter; // do smoothing/swapping in adaptation loop (expensive)
   int adp_niter;
+  double adp_unit_stop;
   bool adp_line_adapt;
   // ----------------- END Adaptation options  
 
@@ -110,6 +111,7 @@ struct MetrisParameters{
   int opt_pnorm;
   int opt_power;
   int opt_smoo_niter;
+  double opt_smoo_tol;
 
   // -- Quality (quafun_unit)
   // compute coef_det (det - 1)^powr_det + idem(tra)

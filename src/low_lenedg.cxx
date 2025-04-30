@@ -169,7 +169,7 @@ double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
 
 // Same but also return the sizes (e.g. for insertion)
 template<class MetricFieldType, int gdim, int ideg>
-double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,int *edg2pol, double *sz){
+double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,const int *edg2pol, double *sz){
   constexpr int nnmet = (gdim*(gdim+1))/2;
   double dum[nnmet],tang[gdim];
   double bar1[2];//,bary[tdimn+1];
@@ -221,13 +221,13 @@ template double getlenedg_geosz<MetricFieldAnalytical, 3, n >(\
 template double getlenedg_geosz<MetricFieldFE        , 3, n >(\
         MeshMetric<MetricFieldFE        > &msh,int ientt, int tdimn, int iedg, double* sz);\
 template double getlenedg_geosz<MetricFieldAnalytical, 2, n >(\
-        MeshMetric<MetricFieldAnalytical> &msh,int *edg2pol, double *sz);\
+        MeshMetric<MetricFieldAnalytical> &msh,const int *edg2pol, double *sz);\
 template double getlenedg_geosz<MetricFieldFE        , 2, n >(\
-        MeshMetric<MetricFieldFE        > &msh,int *edg2pol, double *sz);\
+        MeshMetric<MetricFieldFE        > &msh,const int *edg2pol, double *sz);\
 template double getlenedg_geosz<MetricFieldAnalytical, 3, n >(\
-        MeshMetric<MetricFieldAnalytical> &msh,int *edg2pol, double *sz);\
+        MeshMetric<MetricFieldAnalytical> &msh,const int *edg2pol, double *sz);\
 template double getlenedg_geosz<MetricFieldFE        , 3, n >(\
-        MeshMetric<MetricFieldFE        > &msh,int *edg2pol, double *sz);
+        MeshMetric<MetricFieldFE        > &msh,const int *edg2pol, double *sz);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

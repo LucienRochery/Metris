@@ -34,6 +34,7 @@ namespace Defaults{
   const int opt_power = -1;
   const int opt_niter = 5;
   const int opt_smoo_niter = 100;
+  const double opt_smoo_tol = 0.005;
 
   const int opt_swap_niter = 100;
   const int opt_swap_pnorm = opt_pnorm;

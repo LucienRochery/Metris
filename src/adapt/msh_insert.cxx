@@ -4,8 +4,8 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#include "msh_insert2D.hxx"
-#include "low_insert2D.hxx"
+#include "msh_insert.hxx"
+#include "low_insert.hxx"
 
 #include "../low_lenedg.hxx"
 #include "../aux_topo.hxx"
@@ -13,7 +13,7 @@
 #include "../utils/aux_timer.hxx"
 #include "../utils/mprintf.hxx"
 #include "../cavity/msh_cavity.hxx"
-#include "../adapt/msh_swap2D.hxx"
+#include "../adapt/msh_swap.hxx"
 #include "../BezierOffsets/low_gaps.hxx"
 #include "../low_geo.hxx"
 #include "../Mesh/Mesh.hxx"
@@ -356,7 +356,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
       double t1 = get_wall_time();
       int ncallps = 1000*(int)((ninser2 / (t1-t0)) / 1000);
-      CPRINTF1(" - Loop 1 end t = %f ninser %d = %d /s; nerro %d coll \n",
+      CPRINTF1(" - Loop 1 end t = %f ninser %d = %d /s; nerro %d\n",
                 t1-t0,ninser2,ncallps,nerro);
       if(DOPRINTS2() && nerro > 0){
         CPRINTF2(" - cavity ierro list:\n");
@@ -766,7 +766,7 @@ double insertLongEdges(Mesh<MFT> &msh,   int iverb, int ithrd1 ){
     double t1 = get_wall_time();
     int ncallps = 1000*(int)((ninser / (t1-t0)) / 1000);
     if(iverb >= 1){
-      printf("   - Loop end ninser %d = %d /s; nerro %d coll \n",
+      printf("   - Loop end ninser %d = %d /s; nerro %d\n",
         ninser,ncallps,nerro);
       if(iverb >= 2){
         if(nerro > 0){

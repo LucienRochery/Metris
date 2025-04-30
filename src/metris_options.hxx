@@ -77,6 +77,8 @@ struct MetrisOptions{
     s.add_options()
       ("adapt"  , po::value<int>() ->default_value(0)->implicit_value(-1),
         "Adaptation iterations")
+      ("adp-unit-stop", po::value<double>(), 
+        "Percent unit edges to stop adaptation, default 99.9%")
       ("adp-opt-niter", po::value<int>(), 
         "Smoothing in adaptation: -1 unlimited, N > 0 number of iter")
       ("no-line-adp",
@@ -99,6 +101,9 @@ struct MetrisOptions{
                     "Otherwise ~ tra / det.")
       ("opt-smoo-niter", po::value<int>(),
                     "Inner optimization loop global smoothing iterations")
+      ("opt-smoo-tol", po::value<double>(),
+                    "Quality improvement tolerance (absolute for qual in range 0-1)"
+                    " to freeze vertex smoothing. Default 0.005")
       ("opt-swap-pnorm", po::value<int>(),
                     "Optimization pnorm parameter (default same as smoothing). "
                     "Compute Q^(opt-power) in norm pnorm")
