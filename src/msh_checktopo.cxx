@@ -142,6 +142,7 @@ void check_topo(MeshBase &msh,
       for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
         if(msh.poi2ent(ipoin,0) < 0) continue;
 
+
         int pdim = msh.getpoitdim(ipoin);
         if(pdim < 0 || pdim > msh.get_tdim()){
           printf(" ## INVLIAD pdim %d \n",pdim);
@@ -155,9 +156,16 @@ void check_topo(MeshBase &msh,
           printf("ipoin %d pdim %d poi2bak %d negative\n",ipoin,pdim,iebak);
         }
         METRIS_ENFORCE(iebak >= 0);
+        int nentb = msh.metricClass() == MetricClass::MetricFieldFE ?  
+          ((Mesh<MetricFieldFE> *)(&msh))->bak->nentt(pdim):
+          ((Mesh<MetricFieldAnalytical> *)(&msh))->bak->nentt(pdim);
+        if(iebak >= nentb){
+          printf("ipoin %d pdim %d poi2bak %d >= nentb %d\n",ipoin,pdim,iebak,nentb);
+        }
+        METRIS_ENFORCE(iebak < nentb);
         const intAr2& ent2pob = msh.metricClass() == MetricClass::MetricFieldFE ?  
-        ((Mesh<MetricFieldFE> *)(&msh))->bak->ent2poi(pdim):
-        ((Mesh<MetricFieldAnalytical> *)(&msh))->bak->ent2poi(pdim);
+          ((Mesh<MetricFieldFE> *)(&msh))->bak->ent2poi(pdim):
+          ((Mesh<MetricFieldAnalytical> *)(&msh))->bak->ent2poi(pdim);
         if(isdeadent(iebak,ent2pob)){
           printf("Point %d tdim %d has dead back seed %d \n",ipoin,pdim,iebak);
         }

@@ -22,10 +22,9 @@ namespace Metris{
 template <class MFT, int ideg>
 int reconnect_tetcav(Mesh<MFT> &msh, 
                      MshCavity& cav, 
-                     [[maybe_unused]]CavOprOpt &opts, 
-                     int nfac0,
-                     [[maybe_unused]]double *qmax, 
-                     [[maybe_unused]]int ithread){
+                     CavOprOpt  &opts, 
+                     CavOprInfo &info,
+                     int nfac0, double *qmax, int ithread){
 
   const int nctet = cav.lctet.get_n();
   if(nctet <= 0) return 0;
@@ -38,7 +37,12 @@ int reconnect_tetcav(Mesh<MFT> &msh,
   bool check_val = opts.fast_reject 
                 || opts.max_increase_cav_geo <= 0
                 || check_qua;
+
+  const int qpnorm = msh.param->opt_pnorm;
+  const int qpower = msh.param->opt_power;
   *qmax = -1;
+  info.qcav3 = qpnorm == 0 ? -1 : 0;
+
 
   GETVDEPTH(msh.param);
   CPRINTF1(" - start reconnect_tetcav check_qua = %d \n",check_qua);
@@ -172,20 +176,23 @@ int reconnect_tetcav(Mesh<MFT> &msh,
             CPRINTF2(" - found cached quality\n");
           }else{
             quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,
-                                    ielen,msh.param->opt_power,
-                                    msh.param->opt_pnorm,1.0);
+                                    ielen,qpower,qpnorm,1.0);
             cav.qtetr[key] = quael;
           }
         }else{
           quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,
-                                  ielen,msh.param->opt_power,
-                                  msh.param->opt_pnorm,1.0);
+                                  ielen,qpower,qpnorm,1.0);
         }
         CPRINTF1(" - new tetra %d = %d %d %d %d from %d conf error = %f \n",
            ielen,
            msh.tet2poi(ielen,0), msh.tet2poi(ielen,1), msh.tet2poi(ielen,2),
            msh.tet2poi(ielen,3) ,iele0,quael);
         *qmax = quael > *qmax ? quael : *qmax;
+        if(qpnorm == 0){
+          info.qcav3 = MAX(info.qcav3, quael);
+        }else{
+          info.qcav3 += pow(abs(quael), qpnorm);
+        }
         if(quael > opts.qmax_nec && opts.qmax_nec > 0.0) return CAV_ERR_QMAXNEC; // Run rejected
         if(quael > opts.qmax_iff && opts.qmax_iff > 0.0) return CAV_ERR_QMAXIFF; // Run rejected
         if(quael < 0) return CAV_ERR_QFACNEG;  // Run rejected
@@ -415,6 +422,10 @@ int reconnect_tetcav(Mesh<MFT> &msh,
     }// for iver
   }// for iele0
 
+  if(check_qua && qpnorm > 0){
+    info.qcav3 = pow(info.qcav3, 1.0 / qpnorm);
+    CPRINTF1(" - Final tetra cavity quality = %.3f\n",info.qcav3);
+  }
 
 
   return 0;
@@ -424,8 +435,10 @@ int reconnect_tetcav(Mesh<MFT> &msh,
 // See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
-template int reconnect_tetcav<MetricFieldAnalytical, n >(Mesh<MetricFieldAnalytical> &msh, MshCavity& cav, CavOprOpt &opts, int nfac0, double *qmax, int ithread);\
-template int reconnect_tetcav<MetricFieldFE        , n >(Mesh<MetricFieldFE        > &msh, MshCavity& cav, CavOprOpt &opts, int nfac0, double *qmax, int ithread); 
+template int reconnect_tetcav<MetricFieldAnalytical, n >(Mesh<MetricFieldAnalytical> &msh,\
+ MshCavity& cav, CavOprOpt &opts, CavOprInfo &info, int nfac0, double *qmax, int ithread);\
+template int reconnect_tetcav<MetricFieldFE        , n >(Mesh<MetricFieldFE        > &msh,\
+ MshCavity& cav, CavOprOpt &opts, CavOprInfo &info, int nfac0, double *qmax, int ithread); 
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

@@ -139,6 +139,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
       if(iinva){
         fcur = 1.0e10;
         // radical solution for now 
+        CPRINTF1("# invalid config -> finish");
         goto finish;
       }
 
@@ -191,7 +192,9 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
           dblAr1(idim,d1qua).print();
         }
       }
+
     } // end while true
+
 
     ierro = 0;
 

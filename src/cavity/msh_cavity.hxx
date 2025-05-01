@@ -114,9 +114,9 @@ public:
       return lctet;
     }
   }
+
   /* User set data */
   // Usage examples bunit/face_cavityX.cxx 
-  
   intAr1 lctet,lcfac,lcedg;
 
   // Provide precomputed tetrahedron qualities. Cavity also fills this in if some 
@@ -129,10 +129,12 @@ public:
   // if options qmax_nec, qmax_suf or qmax_iff are set > 0. 
 	int ipins;
 
+
   /* End user set data */
   // Internal use
 	// Store removed points, whether a corner is removed and if so which one (one at the most)
 	int nrempts, iremcor, maxtag;
+
 
 };
 
@@ -214,6 +216,9 @@ struct CavOprInfo{
   // Anisotropic qualities start, end (for swaps, not implemented yet)
   double qmax_ini,qavg_ini;
   double qmax_end,qavg_end;
+  
+  double qcav3; // Quality of final tetra cavity in norm specified by msh.param
+
   bool done; // flags whether change was done (dryrun) ; different from an error
 };
 
@@ -324,7 +329,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts, CavWrk
 // Triangles, likewise. 
 template<class MetricFieldType, int ideg>
 int reconnect_tetcav(Mesh<MetricFieldType> &msh, 
-                     MshCavity& cav, CavOprOpt &opts,  
+                     MshCavity& cav, CavOprOpt &opts, CavOprInfo &info, 
                      int nfac0, double *qumin, int ithread);
                     
 

@@ -14,6 +14,7 @@ namespace Metris{
 
 class MshCavity;
 struct CavWrkArrs;
+struct CavOprOpt;
 struct swapOptions;
 
 // Swap edge between two triangles (including surface w/ tets)
@@ -22,17 +23,23 @@ struct swapOptions;
 // Compute using norm specified in opt: if 0, take max.
 // If norm is -1, use edge length instead.
 // low_swapface.cxx
-template<class MFT,int gdim,int ideg>
+template<class MFT, int gdim, int ideg>
 int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
              MshCavity &cav, CavWrkArrs &work, 
              double *qumx0, double *qumx1, int ithread);
 
 
 // low_swaptetra.cxx
-template<class MFT,int gdim,int ideg>
+template<class MFT,int ideg>
 int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
               MshCavity &cav, CavWrkArrs &work, 
               double *qumx0, double *qumx1, int ithread);
+
+template<class MFT,int ideg>
+int aux_swaptetface(Mesh<MFT>& msh, int itetr, int ifacl, double quae1,
+                    MshCavity &cav, CavOprOpt &opts, CavWrkArrs &work,
+                    double *qnrm0_, double *qnrm1_,
+                    int ithread);
 
 } // end namespace
 

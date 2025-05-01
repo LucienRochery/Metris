@@ -24,9 +24,9 @@ namespace Metris{
 template <class MFT, int ideg>
 int cavity_operator(Mesh<MFT> &msh , 
                     MshCavity  &cav,
-                    CavOprOpt  &opts  ,
-                    CavWrkArrs &work  ,
-                    CavOprInfo &info  ,
+                    CavOprOpt  &opts,
+                    CavWrkArrs &work,
+                    CavOprInfo &info,
                     int ithread){
   INCVDEPTH(msh.param);
   info.done = false;
@@ -163,7 +163,7 @@ int cavity_operator(Mesh<MFT> &msh ,
       CPRINTF1("-- reconnect_faccav done nfac0 = %d nface = %d \n",nfac0,msh.nface);
 
 
-			ierro = reconnect_tetcav<MFT, ideg>(msh, cav, opts, nfac0, &qmax, ithread);
+			ierro = reconnect_tetcav<MFT, ideg>(msh, cav, opts, info, nfac0, &qmax, ithread);
       if(ierro > 0) goto cleanup; 
       CPRINTF1("-- reconnect_tetcav done nele0 = %d nelem = %d \n",nele0,msh.nelem);
 	

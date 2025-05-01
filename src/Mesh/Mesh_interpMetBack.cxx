@@ -41,6 +41,9 @@ int Mesh<MFT>::interpMetBack(int ipoin){
   int iref = this->ent2ref(tdim)[iseed];
   METRIS_ASSERT(iref >= 0);
 
+  CPRINTF2("-- START interpMetBack ipoin %d pdim %d iseed %d iref %d poi2bak %d\n",
+           ipoin,tdim,iseed,iref,this->poi2bak[ipoin]);
+
   // Get algnd
   double algnd[3];
   this->get_algnd(ipoin, algnd);
@@ -176,6 +179,11 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
                                const double*__restrict__ algnd){
   GETVDEPTH(this->param);
 
+  if constexpr(std::is_same<MFT,MetricFieldAnalytical>::value){
+    this->met.getMetPhys(DifVar::None,this->met.getSpace(),
+                         this->coord[ipoi0],this->met[ipoi0],NULL); 
+    return 0;
+  }
 
   CPRINTF1("-- START interpMetBack00 ipoi0 %d tdim %d iref %d ipseed %d\n",
            ipoi0,tdim,iref,ipseed);
@@ -185,6 +193,8 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
     CPRINTF2(" - skip seed %d < 0\n",ieleb);
     return 1; // Happens when called from the cavity operator.
   }
+
+  CPRINTF2(" - init ieleb = %d\n",ieleb);
 
   int pdim_seed;
 
@@ -253,7 +263,7 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
       CPRINTF1(" - back seed elt %d vertex %d = %d points to back elt %d of ref %d\n",
                ieleb, inode, ipoib, this->bak->bpo2ibi(ibpob, 2), iref);
       ieleb = this->bak->bpo2ibi(ibpob, 2);
-      METRIS_ASSERT(ieleb >= 0);
+      METRIS_ASSERT(ieleb >= 0 && ieleb < this->bak->nentt(this->get_tdim()));
       goto ieleb_initialized;
     }
     return 4;

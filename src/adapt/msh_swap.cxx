@@ -98,7 +98,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
             info = swapface<MFT,gdim,ideg>(msh, ientt, swapOpt, cav, work, &qumx0, &qumx1, ithrd2);
           }else{
             if constexpr(gdim == 3){
-              info = swaptetra<MFT,gdim,ideg>(msh, ientt, swapOpt, cav, work, &qumx0, &qumx1, ithrd2);
+              info = swaptetra<MFT,ideg>(msh, ientt, swapOpt, cav, work, &qumx0, &qumx1, ithrd2);
             }else{
               METRIS_THROW_MSG(TopoExcept(),"in dim < 3, ntetra > 0");
             }

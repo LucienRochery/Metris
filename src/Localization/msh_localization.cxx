@@ -622,7 +622,7 @@ int locMesh(MeshBase &msh, int *ientt,
                   bary[lnoed2[iedl][1]] = barf[0];
                 }
               }else{
-                METRIS_THROW_MSG(TODOExcept(), "Get bary from facet");
+                METRIS_THROW_MSG(TODOExcept(), "Get bary from facet in case tdim = "<<tdim);
               }
 
               // Maybe an error, maybe not, but not a standard run. 
