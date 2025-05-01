@@ -15,6 +15,7 @@
 #include "../low_geo.hxx"
 #include "../quality/low_metqua.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/aux_misc.hxx"
 #include "../io_libmeshb.hxx"
 
 

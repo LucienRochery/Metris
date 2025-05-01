@@ -57,7 +57,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, const CavWrkArrs &work,
   const int ncedg = cav.lcedg.get_n();
   const int ncfac = cav.lcfac.get_n();
   const int nctet = cav.lctet.get_n();
-  HshTabInt3 facHsh; 
+  HshTab_I3I facHsh; 
 
   if(DOPRINTS2()){
     MshCavity cav2(msh.nelem-nele0,msh.nedge-nedg0,msh.nface-nfac0);

@@ -427,7 +427,7 @@ void check_topo(MeshBase &msh,
       }
     }
 
-    HshTabInt2 hshTab2(1.5*msh.nface + msh.nedge);
+    HshTab_I2I hshTab2(1.5*msh.nface + msh.nedge);
 
     msh.tag[ithread]++;
     msh.ced2tag.fill(0);

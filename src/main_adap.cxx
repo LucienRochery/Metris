@@ -64,7 +64,7 @@ int main_metris(int argc, char** argv){
     run.curveMesh();
   }
 
-  if(param.anaSol && param.smoo_type == 1){
+  if(param.anaSol && param.smoo_type == 1 || param.smoo_type == 0){
     run.optimMesh();
   }
   

@@ -35,7 +35,7 @@ void getMetMesh0_lplib(int ient0, int ient1,int ithread, MeshMetric<MetricFieldT
 // These are old routines that probably don't work as intended (pre metric refactor, gdim)
 // -----------------------------------------------------------------------------
 template <class MetricFieldType,int ideg>
-void getmshedglen(MeshMetric<MetricFieldType> &msh, HshTabDbl2 &rlened, int nquad){
+void getmshedglen(MeshMetric<MetricFieldType> &msh, HshTab_I2R &rlened, int nquad){
 	rlened.reserve((int)(6.5*msh.nelem/5.5));
 
 	int edg2pol[ideg+1];
@@ -67,7 +67,7 @@ void getmshedglen(MeshMetric<MetricFieldType> &msh, HshTabDbl2 &rlened, int nqua
 
 // -----------------------------------------------------------------------------
 template <class MetricFieldType,int ideg>
-void getmshedglen_shell(MeshMetric<MetricFieldType> &msh, HshTabDbl2 &rlened, int nquad){
+void getmshedglen_shell(MeshMetric<MetricFieldType> &msh, HshTab_I2R &rlened, int nquad){
 	rlened.reserve((int)(6.5*msh.nelem/5.5));
 	int edg2pol[ideg+1];
 

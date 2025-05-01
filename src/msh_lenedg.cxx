@@ -67,7 +67,7 @@ double getLengthEdges0(MeshMetric<MFT> &msh, intAr2 &ilned, dblAr1 &rlned, LenTy
   intAr2 &ent2poi = msh.ent2poi(tdimn);
   int nedgl = (tdimn * (tdimn + 1)) / 2;
   const intAr2 lnoed(nedgl,2,tdimn == 2 ? lnoed2[0] : lnoed3[0]);
-  HshTabInt2 hshTab; 
+  HshTab_I2I hshTab; 
   hshTab.reserve(2*nentt);
 
   ilned.set_n(0);

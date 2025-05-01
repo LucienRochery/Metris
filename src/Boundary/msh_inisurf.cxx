@@ -394,7 +394,7 @@ The latter have already been rebuilt in iniMesshNeighbours
 If the file supplies triangles, same goes but skip those already in msh.facHshTab. 
 */
 template<int ideg>
-void iniMeshBdryTriangles(MeshBase &msh, HshTabInt3 &intfHshTab){
+void iniMeshBdryTriangles(MeshBase &msh, HshTab_I3I &intfHshTab){
 	if(msh.idim == 2) METRIS_THROW_MSG(TopoExcept(), "Calling iniMeshBdryTriangles on 2D meshes: NO!");
 
 	int ncref = 0;
@@ -451,7 +451,7 @@ void iniMeshBdryTriangles(MeshBase &msh, HshTabInt3 &intfHshTab){
 // See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
-template void iniMeshBdryTriangles< n >(MeshBase &msh, HshTabInt3 &intfHshTab);
+template void iniMeshBdryTriangles< n >(MeshBase &msh, HshTab_I3I &intfHshTab);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

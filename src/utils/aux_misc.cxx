@@ -190,7 +190,12 @@ void wait(){
   scanf("%c",&tmp);
 }
 
-// Gets 2,3 ints, returns sorted tuple (for hash keys)
+// Gets 2,..4 ints, returns sorted tuple (for hash keys)
+std::tuple<int,int,int,int> stup4(int i1,int i2,int i3,int i4){
+  int key_[4] = {i1,i2,i3,i4};
+  sortupto8_dec(key_,4);
+  return std::tuple<int,int,int,int>({key_[0],key_[1],key_[2],key_[3]});
+}
 std::tuple<int,int,int> stup3(int i1,int i2,int i3){
   int key_[3] = {i1,i2,i3};
   sortupto8_dec(key_,3);

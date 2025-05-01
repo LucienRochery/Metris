@@ -66,6 +66,7 @@ public:
     lcedg.set_n(0);
     lcfac.set_n(0);
     lctet.set_n(0);
+    qtetr.clear();
 	}
 
   intAr1& lcent(int tdimn){
@@ -118,6 +119,10 @@ public:
   
   intAr1 lctet,lcfac,lcedg;
 
+  // Provide precomputed tetrahedron qualities. Cavity also fills this in if some 
+  // provided or if flag cache_tetra_quality set.  
+  HshTab_I4R qtetr;
+
   // Point to be inserted. ibpoi must be set. If needed, use newedgvirtual/newfacvirtual to give a surface ref 
   // of the lowest topo dim, for a new point. See e.g. bunit/face_cavityX.cxx 
   // Metric at ipins must be computed and naturally stored in msh.met[ipins] if quality is requested, i.e. 
@@ -128,6 +133,7 @@ public:
   // Internal use
 	// Store removed points, whether a corner is removed and if so which one (one at the most)
 	int nrempts, iremcor, maxtag;
+
 };
 
 struct CavOprOpt{
@@ -183,6 +189,10 @@ struct CavOprOpt{
   // the metric as a P1 field to compute qualities.
   // However this still means the metric at ipins must be computed !!
 
+  // Store any computed tetrahedron qualities in the provided hashtable qtetr.
+  // Off by default (only useful in swaps)
+  bool cache_tetra_quality;
+
 
 	CavOprOpt():allow_topological_correction(true)
              ,skip_topo_checks(true)
@@ -195,6 +205,7 @@ struct CavOprOpt{
              ,qmax_nec(-1.0)
              ,qmax_suf(-1.0)
              ,qmax_iff(-1.0)
+             ,cache_tetra_quality(false)
              {}
 };
 

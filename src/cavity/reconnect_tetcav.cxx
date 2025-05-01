@@ -13,6 +13,7 @@
 #include "../low_geo.hxx"
 #include "../quality/low_metqua.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/aux_misc.hxx"
 #include "../io_libmeshb.hxx"
 
 namespace Metris{
@@ -60,7 +61,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
   // As they all share ipins, it is enough to hash the remaining two vertices. 
   // Such faces hit at most 2 elements; we need only keep track of one, as 
   // when we are the second, we update info and can trash the face. 
-  HshTabInt2x2 facHsh; 
+  HshTab_I2I2 facHsh; 
   for(int iface = nfac0; iface < msh.nface; iface++){
     int iver = msh.template getverfac<1>(iface, cav.ipins);
     METRIS_ASSERT(iver >= 0);
@@ -161,9 +162,25 @@ int reconnect_tetcav(Mesh<MFT> &msh,
 
       if(check_qua){
         // Regardless of degree, verify underlying P1 element is decent enough
-        double quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,
-                                       ielen,msh.param->opt_power,
-                                       msh.param->opt_pnorm,1.0);
+        double quael;
+        if(opts.cache_tetra_quality){
+          auto key = stup4(msh.tet2poi(ielen,0),msh.tet2poi(ielen,1),
+                           msh.tet2poi(ielen,2),msh.tet2poi(ielen,3));
+          auto tt = cav.qtetr.find(key);
+          if(tt != cav.qtetr.end()){
+            quael = tt->second;
+            CPRINTF2(" - found cached quality\n");
+          }else{
+            quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,
+                                    ielen,msh.param->opt_power,
+                                    msh.param->opt_pnorm,1.0);
+            cav.qtetr[key] = quael;
+          }
+        }else{
+          quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,
+                                  ielen,msh.param->opt_power,
+                                  msh.param->opt_pnorm,1.0);
+        }
         CPRINTF1(" - new tetra %d = %d %d %d %d from %d conf error = %f \n",
            ielen,
            msh.tet2poi(ielen,0), msh.tet2poi(ielen,1), msh.tet2poi(ielen,2),

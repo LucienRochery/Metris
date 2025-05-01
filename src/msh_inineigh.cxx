@@ -36,7 +36,7 @@
 #include <tuple>                                   // for tuple
 #include "aux_exceptions.hxx"                  // for METRIS_THROW_MSG
 #include "Mesh/Mesh.hxx"                    
-#include "types.hxx"                           // for HshTabInt2, HshTab...
+#include "types.hxx"                           // for HshTab_I2I, HshTab...
 /*
 Build topo links, neighbours. Also surface reconstruction. 
 Since we're building face, edge hash tables, compare to those created on reading file. 
@@ -80,7 +80,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
 
   // Note the absence of a "point hash table". We'll handle edge neighbours 
   // using msh.poi2tag[0] (the index is an implicit value)
-  HshTabInt2 edgeHshTab(1.5*msh.nface + msh.nedge); // index by edge, fetch iface
+  HshTab_I2I edgeHshTab(1.5*msh.nface + msh.nedge); // index by edge, fetch iface
 
   //  Algo:
   //  For each edge taken from triangle, check if in hashtab. 
@@ -315,8 +315,8 @@ void iniMeshNeighbours3D(MeshBase &msh){
 
   // Note the absence of a "point hash table". We'll handle edge neighbours 
   // using msh.poi2tag[0] (the index is an implicit value)
-  HshTabInt2 edgeHshTab(1.5*msh.nface + msh.nedge); // index by edge, fetch iface
-  HshTabInt3 intfHshTab(2*msh.nelem + msh.nface);
+  HshTab_I2I edgeHshTab(1.5*msh.nface + msh.nedge); // index by edge, fetch iface
+  HshTab_I3I intfHshTab(2*msh.nelem + msh.nface);
 
   // Input: empty intfHshTab
   // Output: intfHshTab contains faces seen only once (bdry)

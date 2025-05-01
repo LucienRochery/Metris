@@ -158,9 +158,9 @@ public:
 	intAr1 edg2fac;
 	// Geometric edges (init as read from file)
 	// Store ip1,ip2,iedge. This is used to point to an edge from a triangle or tetrahedron
-  HshTabInt2 edgHshTab; 
+  HshTab_I2I edgHshTab; 
   // Similarly, used to point to a triangle from a tetrahedron. 
-  HshTabInt3 facHshTab;
+  HshTab_I3I facHshTab;
 
 	int curdeg,strdeg; 
   int idim;
@@ -261,7 +261,7 @@ public:
 
   // return edgHshTab (tdimn = 1) or facHshTab reference 
   template<int tdimn> typename 
-              std::conditional<tdimn==1,HshTabInt2,HshTabInt3>::type & hshTab();
+              std::conditional<tdimn==1,HshTab_I2I,HshTab_I3I>::type & hshTab();
 
 
 	// Flag whether being on an edge or triangle makes us an ibpoi

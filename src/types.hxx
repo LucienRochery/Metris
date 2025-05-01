@@ -85,17 +85,20 @@ typedef MeshArray3D<int   > intAr3;
 typedef MeshArray3D<double> dblAr3;
 
 #ifdef USE_ABSL
-typedef absl::flat_hash_map<std::tuple<int, int>, int>      HshTabInt2;
-typedef absl::flat_hash_map<std::tuple<int, int>, std::pair<int,int>> HshTabInt2x2;
-typedef absl::flat_hash_map<std::tuple<int, int>, double>   HshTabDbl2;
-typedef absl::flat_hash_map<std::tuple<int, int, int>, int> HshTabInt3;
-//typedef absl::flat_hash_map<std::tuple<int, int, int>, std::pair<int,int>> HshTabInt3x2;
+typedef absl::flat_hash_map<std::tuple<int, int>, int>      HshTab_I2I;
+typedef absl::flat_hash_map<std::tuple<int, int>, std::pair<int,int>> HshTab_I2I2;
+typedef absl::flat_hash_map<std::tuple<int, int>, double>   HshTab_I2R;
+typedef absl::flat_hash_map<std::tuple<int, int, int>, int> HshTab_I3I;
+// For quality hashing in cavity. Only in 3D
+typedef absl::flat_hash_map<std::tuple<int, int, int, int>, double> HshTab_I4R;
+//typedef absl::flat_hash_map<std::tuple<int, int, int>, std::pair<int,int>> HshTab_I3Ix2;
 #else
-typedef std::unordered_map<std::tuple<int, int>, int,      tup2_hash::hash> HshTabInt2;
-typedef std::unordered_map<std::tuple<int, int>, std::pair<int,int>, tup2_hash::hash> HshTabInt2x2;
-typedef std::unordered_map<std::tuple<int, int>, double,   tup2_hash::hash> HshTabDbl2;
-typedef std::unordered_map<std::tuple<int, int, int>, int, tup3_hash::hash> HshTabInt3;
-//typedef std::unordered_map<std::tuple<int, int, int>, std::pair<int,int>, tup3_hash::hash> HshTabInt3x2;
+typedef std::unordered_map<std::tuple<int, int>, int,      tup2_hash::hash> HshTab_I2I;
+typedef std::unordered_map<std::tuple<int, int>, std::pair<int,int>, tup2_hash::hash> HshTab_I2I2;
+typedef std::unordered_map<std::tuple<int, int>, double,   tup2_hash::hash> HshTab_I2R;
+typedef std::unordered_map<std::tuple<int, int, int>, int, tup3_hash::hash> HshTab_I3I;
+//typedef std::unordered_map<std::tuple<int, int, int>, std::pair<int,int>, tup3_hash::hash> HshTab_I3Ix2;
+typedef std::unordered_map<std::tuple<int, int, int, int>, double, tup4_hash::hash> HshTab_I4R;
 #endif
 
 } // End namespace

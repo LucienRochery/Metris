@@ -359,13 +359,13 @@ const intAr2r& MeshBase::ref2tag(int tdimn) const{
 
 
 
-template<int tdimn> typename std::conditional<tdimn==1,HshTabInt2,HshTabInt3>::type &
+template<int tdimn> typename std::conditional<tdimn==1,HshTab_I2I,HshTab_I3I>::type &
 MeshBase::hshTab(){
   if constexpr(tdimn == 1) return edgHshTab;
   else                     return facHshTab;
 }
-template HshTabInt2& MeshBase::hshTab<1>();
-template HshTabInt3& MeshBase::hshTab<2>();
+template HshTab_I2I& MeshBase::hshTab<1>();
+template HshTab_I3I& MeshBase::hshTab<2>();
 
 
 

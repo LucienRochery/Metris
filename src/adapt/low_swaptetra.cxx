@@ -316,7 +316,7 @@ int aux_swaptetface(Mesh<MFT>& msh, int itetr, int ifacl, double quae1,
 
   int idom1 = msh.tet2ref[itetr];
   if(idom1 != msh.tet2ref[itet2]){
-    CPRINTF1("# Reject face swap with refs %d != %d\n",idom1, msh.tet2ref[itet2]);
+    CPRINTF1("# Tetra face swap error: crosses refs %d != %d\n",idom1, msh.tet2ref[itet2]);
     return 1;
   }
 
@@ -351,12 +351,25 @@ int aux_swaptetface(Mesh<MFT>& msh, int itetr, int ifacl, double quae1,
     if(ifacn == ifacl) ifacn++;
     // Use face ifacn
     msh.tet2poi(nele0 + inewt, 0) = ipopp;
-    for(int ii = 0; ii < 3; ii++){
-      msh.tet2poi(nele0 + inewt, 1 + ii) = msh.tet2poi(itetr, lnofa3[ifacn][ii]);
-    }
-    // Check non flat/negative, this is hard reject.
+    for(int ii = 0; ii < 3; ii++)
+      msh.tet2poi(nele0 + inewt, lnofa3[0][ii]) = msh.tet2poi(itetr, lnofa3[ifacn][ii]);
 
+    // Check non flat/negative, this is hard reject.
+    bool iflat;
+    double meas0 = getmeasentP1<gdim, tdim>(msh, msh.tet2poi[nele0+inewt], NULL, &iflat);
+    if(iflat){
+      msh.set_nelem(nele0);
+      CPRINTF1("# New tetra from swap face %d invalid flat: %d vol %f\n",ifacn,iflat,meas0);
+      return 2;
+    }
     ifacn++;
+  }
+
+  // If none flat, then compute qualities.
+  for(int inewt = 0; inewt < 3; inewt++){
+    double quaen = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,nele0 + inewt,
+                                         qpower,qpnorm,1.0);
+    
   }
 
 

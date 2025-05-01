@@ -83,6 +83,19 @@ namespace tup3_hash{
     }
   };
 }
+namespace tup4_hash{
+  struct hash
+  {
+    std::size_t operator()(const std::tuple<int,int,int,int>& key) const {
+      std::size_t seed = 0;
+      boost::hash_combine(seed, std::get<0>(key));
+      boost::hash_combine(seed, std::get<1>(key));
+      boost::hash_combine(seed, std::get<2>(key));
+      boost::hash_combine(seed, std::get<3>(key));
+      return seed;
+    }
+  };
+}
 #endif
 
 

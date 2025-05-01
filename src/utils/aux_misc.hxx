@@ -208,8 +208,9 @@ template<typename T>
 void sortupto8_inc(T *tab,int n);
 
 // Gets 2,3 ints, returns sorted tuple (for hash keys)
-std::tuple<int,int,int> stup3(int i1,int i2,int i3);
-std::tuple<int,int>     stup2(int i1,int i2);
+std::tuple<int,int,int,int> stup4(int i1,int i2,int i3,int i4);
+std::tuple<int,int,int>     stup3(int i1,int i2,int i3);
+std::tuple<int,int>         stup2(int i1,int i2);
 //template<int n>
 //typename std::conditional<n == 2, std::tuple<int,int>, std::tuple<int,int,int>>::type
 //stupn(const int *ii);

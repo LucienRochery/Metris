@@ -11,7 +11,7 @@ fi
 rm -r unif
 mkdir unif
 
-for sclmet in 0.1 0.05 0.02 0.01
+for sclmet in 0.5 0.2 0.1
 do
 	metris -in square -anamet 1 -sclmet $sclmet -prefix unif/ -main-in-prefix -out outP1_$sclmet -adapt 10 -qopt-niter 5 -adp-opt-niter 0 -adp-unit-stop 99 -opt-smoo-tol 0.05
 	metris -in square -anamet 1 -sclmet $sclmet -prefix unif/ -main-in-prefix -out outCADP1_$sclmet -adapt 10 -qopt-niter 5 -cad square.egads -adp-opt-niter 0 -adp-unit-stop 99 -opt-smoo-tol 0.05
