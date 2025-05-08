@@ -196,10 +196,12 @@ int locMesh(MeshBase &msh, int *ientt,
           INCVDEPTH(msh.param);
           ierro = inveval<gdim,ideg>(msh,*ientt,coop,coopr,bary,tolcur);
           }
-          CPRINTF2(" - called inveval dim %d deg %d ientt %d tol %e got bary = ",
-                   gdim,ideg,*ientt,tolcur);
+          CPRINTF2(" - called inveval dim %d deg %d ientt %d tol %e got ierro %d bary = ",
+                   gdim,ideg,*ientt,tolcur,ierro);
           if(DOPRINTS2()){
             dblAr1(gdim+1,bary).print();
+            CPRINTF2(" got coopr ");
+            dblAr1(gdim,coopr).print();
           }
 
         }else if(tdim == 2){

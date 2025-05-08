@@ -244,6 +244,8 @@ int insertEdge(Mesh<MFT>& msh,
  
   ierro = msh.interpMetBack(cav.ipins, tdimp, iseed, iref, algnd);
   if(ierro != 0){
+    printf("debug interpMetBack error %d\n",ierro);
+    wait();
     ierro = INS2D_ERR_INTERPMETBACK;
     goto cleanup;
   }

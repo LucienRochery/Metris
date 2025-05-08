@@ -281,6 +281,9 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
             }
             ierro = insertEdge(msh,tdim,ientt,ied,coop,bar1[0],
                                cav,work,lcaverr,ithrd2,ithrd3);
+            //if(ierro > 0){
+            //  printf("DEBUG insertEdge error %d \n",ierro);
+            //}
             if(ierro <= 0) break;
             itry++;
             if(itry >= 1 + imovmet) break;

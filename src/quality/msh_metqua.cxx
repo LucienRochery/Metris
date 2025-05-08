@@ -16,31 +16,7 @@ namespace Metris{
 // Version with default "conformity error" settings that should be called except perhaps in specific cases
 template <class MFT, int tdim, AsDeg asdmet>
 double getmetquamesh(Mesh<MFT> &msh, bool *iinva, double *qmin, double *qmax, double *qavg, dblAr1 *lquae){
-  return getmetquamesh<MFT,tdim,asdmet>(msh,-1,2,1.0,iinva,qmin,qmax,qavg,lquae);
-}
-template double getmetquamesh<MetricFieldAnalytical, 2, AsDeg::P1>(Mesh<MetricFieldAnalytical> &msh,
-                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
-template double getmetquamesh<MetricFieldFE        , 2, AsDeg::P1>(Mesh<MetricFieldFE        > &msh,
-                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
-template double getmetquamesh<MetricFieldAnalytical, 2, AsDeg::Pk>(Mesh<MetricFieldAnalytical> &msh,
-                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
-template double getmetquamesh<MetricFieldFE        , 2, AsDeg::Pk>(Mesh<MetricFieldFE        > &msh,
-                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
-
-template double getmetquamesh<MetricFieldAnalytical, 3, AsDeg::P1>(Mesh<MetricFieldAnalytical> &msh,
-                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
-template double getmetquamesh<MetricFieldFE        , 3, AsDeg::P1>(Mesh<MetricFieldFE        > &msh,
-                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
-template double getmetquamesh<MetricFieldAnalytical, 3, AsDeg::Pk>(Mesh<MetricFieldAnalytical> &msh,
-                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
-template double getmetquamesh<MetricFieldFE        , 3, AsDeg::Pk>(Mesh<MetricFieldFE        > &msh,
-                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
-
-
-template <class MFT, int tdim, AsDeg asdmet>
-double getmetquamesh(Mesh<MFT> &msh, int power, int pnorm, double difto,
-  bool *iinva, double *qmin, double *qmax, double *qavg, dblAr1 *lquae){
-
+  
   static_assert(tdim == 2 || tdim == 3);
 
   MetSpace metspac0 = msh.met.getSpace();
@@ -68,14 +44,12 @@ double getmetquamesh(Mesh<MFT> &msh, int power, int pnorm, double difto,
       try{
         if(msh.idim == 2){
           if constexpr(tdim == 2){
-            quent = metqua<MFT,2,tdim>(msh,AsDeg::Pk,asdmet,
-                                       ientt,power,pnorm,difto);
+            quent = metqua<MFT,2,tdim>(msh,AsDeg::Pk,asdmet,ientt,1.0);
           }else{
             METRIS_THROW(WArgExcept());
           }
         }else{
-          quent = metqua<MFT,3,tdim>(msh,AsDeg::Pk,asdmet,
-                                     ientt,power,pnorm,difto);
+          quent = metqua<MFT,3,tdim>(msh,AsDeg::Pk,asdmet,ientt,1.0);
         }
       }catch(...){
         *iinva = true; 
@@ -90,24 +64,24 @@ double getmetquamesh(Mesh<MFT> &msh, int power, int pnorm, double difto,
   *qavg = qtot / ncnt;
 
   msh.met.setSpace(metspac0);
-  return pow(qtot,1.0/pnorm);
+  return pow(qtot,1.0/msh.param->opt_pnorm);
 }
+template double getmetquamesh<MetricFieldAnalytical, 2, AsDeg::P1>(Mesh<MetricFieldAnalytical> &msh,
+                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
+template double getmetquamesh<MetricFieldFE        , 2, AsDeg::P1>(Mesh<MetricFieldFE        > &msh,
+                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
+template double getmetquamesh<MetricFieldAnalytical, 2, AsDeg::Pk>(Mesh<MetricFieldAnalytical> &msh,
+                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
+template double getmetquamesh<MetricFieldFE        , 2, AsDeg::Pk>(Mesh<MetricFieldFE        > &msh,
+                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
 
-template double getmetquamesh<MetricFieldAnalytical, 2, AsDeg::P1>(Mesh<MetricFieldAnalytical>& msh, int power, int pnorm, double difto,
-                                                               bool* iinva, double* qmin, double *qmax, double *qtot, dblAr1 *lquae);
-template double getmetquamesh<MetricFieldFE        , 2, AsDeg::P1>(Mesh<MetricFieldFE        >& msh, int power, int pnorm, double difto,
-                                                               bool* iinva, double* qmin, double *qmax, double *qtot, dblAr1 *lquae);
-template double getmetquamesh<MetricFieldAnalytical, 2, AsDeg::Pk>(Mesh<MetricFieldAnalytical>& msh, int power, int pnorm, double difto,
-                                                               bool* iinva, double* qmin, double *qmax, double *qtot, dblAr1 *lquae);
-template double getmetquamesh<MetricFieldFE        , 2, AsDeg::Pk>(Mesh<MetricFieldFE        >& msh, int power, int pnorm, double difto,
-                                                               bool* iinva, double* qmin, double *qmax, double *qtot, dblAr1 *lquae);
+template double getmetquamesh<MetricFieldAnalytical, 3, AsDeg::P1>(Mesh<MetricFieldAnalytical> &msh,
+                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
+template double getmetquamesh<MetricFieldFE        , 3, AsDeg::P1>(Mesh<MetricFieldFE        > &msh,
+                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
+template double getmetquamesh<MetricFieldAnalytical, 3, AsDeg::Pk>(Mesh<MetricFieldAnalytical> &msh,
+                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
+template double getmetquamesh<MetricFieldFE        , 3, AsDeg::Pk>(Mesh<MetricFieldFE        > &msh,
+                                                               bool* iinva, double* qmin, double *qmax, double *qavg, dblAr1 *lquae);
 
-template double getmetquamesh<MetricFieldAnalytical, 3, AsDeg::P1>(Mesh<MetricFieldAnalytical>& msh, int power, int pnorm, double difto,
-                                                               bool* iinva, double* qmin, double *qmax, double *qtot, dblAr1 *lquae);
-template double getmetquamesh<MetricFieldFE        , 3, AsDeg::P1>(Mesh<MetricFieldFE        >& msh, int power, int pnorm, double difto,
-                                                               bool* iinva, double* qmin, double *qmax, double *qtot, dblAr1 *lquae);
-template double getmetquamesh<MetricFieldAnalytical, 3, AsDeg::Pk>(Mesh<MetricFieldAnalytical>& msh, int power, int pnorm, double difto,
-                                                               bool* iinva, double* qmin, double *qmax, double *qtot, dblAr1 *lquae);
-template double getmetquamesh<MetricFieldFE        , 3, AsDeg::Pk>(Mesh<MetricFieldFE        >& msh, int power, int pnorm, double difto,
-                                                               bool* iinva, double* qmin, double *qmax, double *qtot, dblAr1 *lquae);
 } // End namespace

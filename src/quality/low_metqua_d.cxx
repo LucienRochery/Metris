@@ -26,27 +26,28 @@ namespace Metris{
 
 template <class MFT, int gdim, QuaFun iquaf, typename ftype>
 ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
-               int ielem, int power, 
+               int ielem, 
                int ivar, FEBasis dofbas, DifVar idifmet, 
                ftype*__restrict__ dquael, ftype*__restrict__ hquael, 
-               int pnorm, double difto){
+               double difto){
   constexpr int tdim = gdim;
   int* ent2poi = tdim == 2 ? msh.fac2poi[ielem] : msh.tet2poi[ielem];
   return d_metqua0<MFT,gdim,iquaf,ftype>(msh,asdmsh,asdmet,
-                                         ent2poi,power,
+                                         ent2poi,
                                          ivar,dofbas,idifmet,
                                          dquael,hquael,
-                                         pnorm,difto);
+                                         difto);
 }
 
 // Hessian is optional (pass in NULL)
 template <class MFT, int gdim, QuaFun iquaf, typename ftype>
 ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
-                const int* ent2poi, int power,
+                const int* ent2poi,
                 int ivar, FEBasis dofbas, DifVar idifmet, 
                 ftype*__restrict__ dquael, ftype*__restrict__ hquael,
-                int pnorm, double difto){
+                double difto){
   static_assert(gdim==2 || gdim==3);
+  const int pnorm = msh.param->opt_pnorm;
   METRIS_ASSERT(pnorm > 0);
   constexpr int tdim = gdim;
   constexpr int nhess = (gdim*(gdim+1))/2;
@@ -80,12 +81,12 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
       if(hquael == NULL){
         qua0 = d_quafun_xi(msh,asdmsh,asdmet,
-                           ent2poi,bary,power,
+                           ent2poi,bary,
                            ivar,dofbas,idifmet,
                            dqua0,NULL);
       }else{
         qua0 = d_quafun_xi(msh,asdmsh,asdmet,
-                           ent2poi,bary,power,
+                           ent2poi,bary,
                            ivar,dofbas,idifmet,
                            dqua0,hqua0);
       }
@@ -127,7 +128,7 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   }else{
     for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0/(tdim  + 1);
     qutet = d_quafun_xi(msh,asdmsh,asdmet,
-                        ent2poi,bary,power,
+                        ent2poi,bary,
                         ivar,dofbas,idifmet,
                         dquael,hquael);
     ftype powm1 = pow(abs(qutet - difto),pnorm-1);
@@ -174,12 +175,10 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 template FTYPE d_metqua< MFT_VAL , 2+gdim, QUAFUN,FTYPE>\
                   (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
                    int ielem, \
-                   int power, \
                    int ivar, \
                    FEBasis dofbas, \
                    DifVar idifmet, \
                    FTYPE*__restrict__ dquael, FTYPE*__restrict__ hquael, \
-                   int pnorm,\
                    double difto);
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_GDIM,\
                               (MFT_SEQ)(QUAFUN_SEQ)(QUA_FTYPE_SEQ))
@@ -189,12 +188,11 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_GDIM,\
 template FTYPE d_metqua0< MFT_VAL , 2+gdim, QUAFUN, FTYPE>\
                   (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2poi, \
-                   int power, \
                    int ivar, \
                    FEBasis dofbas, \
                    DifVar idifmet, \
                    FTYPE*__restrict__ dquael, FTYPE*__restrict__ hquael, \
-                   int pnorm, double difto);
+                   double difto);
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_GDIM,\
                               (MFT_SEQ)(QUAFUN_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
@@ -223,16 +221,14 @@ template <class MFT, int gdim, int ideg, AsDeg asdmet, typename ftype>
 ftype D_quafun_distortion(Mesh<MFT> &msh, 
                   const int* ent2poi,
                   const double*__restrict__ bary, 
-                  int power, 
                   FEBasis dofbas, 
                   DifVar idifmet, 
                   ftype*__restrict__ dquael, 
                   ftype*__restrict__ hquael){
 
-
+  const int power = msh.param->opt_power;
   static_assert(gdim == 2 || gdim == 3);
   METRIS_ASSERT(gdim == msh.idim);
-  METRIS_ASSERT(power != 0);
   METRIS_ASSERT(msh.met.getSpace() == MetSpace::Log)
   // Differentiate or don't, but there is no barycentric derivative in this context 
   METRIS_ASSERT(idifmet == DifVar::None || idifmet == DifVar::Phys);
@@ -569,7 +565,6 @@ template FTYPE D_quafun_distortion< MFT_VAL , 2+gdim, 1+ideg, ASDEG_VAL, FTYPE>\
                   (Mesh< MFT_VAL > &msh, \
                   const int* ent2poi,\
                   const double*__restrict__ bary, \
-                  int power, /*DifVar idiff, \*/\
                   FEBasis dofbas, \
                   DifVar idifmet, \
                   FTYPE*__restrict__ dquael, \
@@ -593,28 +588,28 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG,\
 
 
 template <class MFT, int gdim, int ideg, AsDeg asdmet, typename ftype>
-ftype D_metqua(Mesh<MFT> &msh, int ielem, int power, 
+ftype D_metqua(Mesh<MFT> &msh, int ielem,
                FEBasis dofbas, DifVar idifmet, 
                ftype*__restrict__ dquael, ftype*__restrict__ hquael, 
-               int pnorm, double difto){
+               double difto){
   constexpr int tdim = gdim;
   int* ent2poi = tdim == 2 ? msh.fac2poi[ielem] : msh.tet2poi[ielem];
-  return D_metqua<MFT,gdim,ideg,asdmet,ftype>(msh,ent2poi,power,
+  return D_metqua<MFT,gdim,ideg,asdmet,ftype>(msh,ent2poi,
                                                 dofbas,idifmet,
-                                                dquael,hquael,
-                                                pnorm,difto);
+                                                dquael,hquael,difto);
 }
 
 
 template <class MFT, int gdim, int ideg, AsDeg asdmet, typename ftype>
-ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi, int power,
+ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi,
               FEBasis dofbas, DifVar idifmet, 
               ftype*__restrict__ dquael, 
               ftype*__restrict__ hquael,
-              int pnorm, double difto){
-  static_assert(gdim==2 || gdim==3);
-  METRIS_ASSERT(pnorm > 0);
+              double difto){
+
+  static_assert(gdim == 2 || gdim == 3);
   constexpr int tdim = gdim;
+  const int pnorm = msh.param->opt_pnorm;
 
   double bary[tdim+1];
 
@@ -648,7 +643,7 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi, int power,
       for(int ii = 0; ii < tdim + 1; ii++){
         bary[ii] = ordelt[idegj][iquad][ii]/((double) (idegj));
       }
-      ftype qua0 = D_quafun_distortion<MFT,gdim,ideg,asdmet,ftype>(msh,ent2poi,bary,power,
+      ftype qua0 = D_quafun_distortion<MFT,gdim,ideg,asdmet,ftype>(msh,ent2poi,bary,
                                                        dofbas,idifmet,
                                                        dqua0,hqua0);
       ftype powm1 = pow(qua0 - difto,pnorm-1);
@@ -692,7 +687,7 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi, int power,
     constexpr int nnode = tdim + 1;
 
     for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0/(tdim  + 1);
-    ftype qua0 = D_quafun_distortion<MFT,gdim,1,asdmet,ftype>(msh,ent2poi,bary,power,
+    ftype qua0 = D_quafun_distortion<MFT,gdim,1,asdmet,ftype>(msh,ent2poi,bary,
                                                       dofbas,idifmet,
                                                       dquael,hquael);
 
@@ -743,11 +738,9 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi, int power,
 template FTYPE D_metqua< MFT_VAL , 2+gdim, 1+ideg, ASDEG_VAL, FTYPE>\
                   (Mesh< MFT_VAL > &msh, \
                    int ielem, \
-                   int power, \
                    FEBasis dofbas, \
                    DifVar idifmet, \
                    FTYPE*__restrict__ dquael, FTYPE*__restrict__ hquael, \
-                   int pnorm,\
                    double difto); 
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG,(MFT_SEQ)(ASDEG_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
@@ -756,11 +749,10 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG,(MFT_SEQ)(ASDEG_SEQ)(QUA_FTYPE_SEQ))
 template FTYPE D_metqua< MFT_VAL , 2+gdim, 1+ideg, ASDEG_VAL, FTYPE>\
                   (Mesh< MFT_VAL > &msh, \
                    const int* ent2poi, \
-                   int power, \
                    FEBasis dofbas, \
                    DifVar idifmet, \
                    FTYPE*__restrict__ dquael, FTYPE*__restrict__ hquael, \
-                   int pnorm, double difto); 
+                   double difto); 
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG,(MFT_SEQ)(ASDEG_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
 
@@ -775,161 +767,6 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG,(MFT_SEQ)(ASDEG_SEQ)(QUA_FTYPE_SEQ))
 #undef REPEAT_IDEG
 #undef MFT_SEQ // note these two could go into headers 
 #undef ASDEG_SEQ 
-
-
-
-#if 0
-#define BOOST_PP_LOCAL_MACRO(n)\
-template double d_quafun_distortion<MetricFieldAnalytical, 2, n, AsDeg::P1, double>\
-                  (Mesh<MetricFieldAnalytical> &msh, \
-                   int ielem, const double*__restrict__ bary, \
-                   int power, \
-                   int ivar, \
-                   FEBasis dofbas, \
-                   DifVar idifmet, \
-                   double*__restrict__ dquael);\
-/* switch met  */ \
-template double d_quafun_distortion<MetricFieldFE        , 2, n, AsDeg::P1, double>\
-                  (Mesh<MetricFieldFE        > &msh, \
-                   int ielem, const double*__restrict__ bary, \
-                   int power, \
-                   int ivar, \
-                   FEBasis dofbas, \
-                   DifVar idifmet, \
-                   double*__restrict__ dquael);\
-/* switch dim + met */ \
-template double d_quafun_distortion<MetricFieldAnalytical, 3, n, AsDeg::P1, double>\
-                  (Mesh<MetricFieldAnalytical> &msh, \
-                   int ielem, const double*__restrict__ bary, \
-                   int power, \
-                   int ivar, \
-                   FEBasis dofbas, \
-                   DifVar idifmet, \
-                   double*__restrict__ dquael);\
-/* switch met  */ \
-template double d_quafun_distortion<MetricFieldFE        , 3, n, AsDeg::P1, double>\
-                  (Mesh<MetricFieldFE        > &msh, \
-                   int ielem, const double*__restrict__ bary, \
-                   int power, \
-                   int ivar, \
-                   FEBasis dofbas, \
-                   DifVar idifmet, \
-                   double*__restrict__ dquael);\
-/* switch AsDeg + dim + met  */ \
-template double d_quafun_distortion<MetricFieldAnalytical, 2, n, AsDeg::Pk, double>\
-                  (Mesh<MetricFieldAnalytical> &msh, \
-                   int ielem, const double*__restrict__ bary, \
-                   int power, \
-                   int ivar, \
-                   FEBasis dofbas, \
-                   DifVar idifmet, \
-                   double*__restrict__ dquael);\
-/* switch met  */ \
-template double d_quafun_distortion<MetricFieldFE        , 2, n, AsDeg::Pk, double>\
-                  (Mesh<MetricFieldFE        > &msh, \
-                   int ielem, const double*__restrict__ bary, \
-                   int power, \
-                   int ivar, \
-                   FEBasis dofbas, \
-                   DifVar idifmet, \
-                   double*__restrict__ dquael);\
-/* switch dim + met */ \
-template double d_quafun_distortion<MetricFieldAnalytical, 3, n, AsDeg::Pk, double>\
-                  (Mesh<MetricFieldAnalytical> &msh, \
-                   int ielem, const double*__restrict__ bary, \
-                   int power, \
-                   int ivar, \
-                   FEBasis dofbas, \
-                   DifVar idifmet, \
-                   double*__restrict__ dquael);\
-/* switch met  */ \
-template double d_quafun_distortion<MetricFieldFE        , 3, n, AsDeg::Pk, double>\
-                  (Mesh<MetricFieldFE        > &msh, \
-                   int ielem, const double*__restrict__ bary, \
-                   int power, \
-                   int ivar, \
-                   FEBasis dofbas, \
-                   DifVar idifmet, \
-                   double*__restrict__ dquael);
-#define BOOST_PP_LOCAL_LIMITS     (1, __MAXEG_JACOBIAN__)
-#include BOOST_PP_LOCAL_ITERATE()
-#endif
-
-#if 0
-#define INSTANTIATE(z,gdim,ideg) \
-template double d_quafun_distortion<MetricFieldAnalytical, 2+gdim, 1+ideg, AsDeg::P1, double>\
-                  (Mesh<MetricFieldAnalytical> &msh, \
-                   int ielem, const double*__restrict__ bary, \
-                   int power, \
-                   int ivar, \
-                   FEBasis dofbas, \
-                   DifVar idifmet, \
-                   double*__restrict__ dquael);\
-/* switch met  */ \
-template double d_quafun_distortion<MetricFieldFE        , 2+gdim, 1+ideg, AsDeg::P1, double>\
-                  (Mesh<MetricFieldFE        > &msh, \
-                   int ielem, const double*__restrict__ bary, \
-                   int power, \
-                   int ivar, \
-                   FEBasis dofbas, \
-                   DifVar idifmet, \
-                   double*__restrict__ dquael);\
-/* switch AsDeg + dim + met  */ \
-template double d_quafun_distortion<MetricFieldAnalytical, 2+gdim, 1+ideg, AsDeg::Pk, double>\
-                  (Mesh<MetricFieldAnalytical> &msh, \
-                   int ielem, const double*__restrict__ bary, \
-                   int power, \
-                   int ivar, \
-                   FEBasis dofbas, \
-                   DifVar idifmet, \
-                   double*__restrict__ dquael);\
-/* switch met  */ \
-template double d_quafun_distortion<MetricFieldFE        , 2+gdim, 1+ideg, AsDeg::Pk, double>\
-                  (Mesh<MetricFieldFE        > &msh, \
-                   int ielem, const double*__restrict__ bary, \
-                   int power, \
-                   int ivar, \
-                   FEBasis dofbas, \
-                   DifVar idifmet, \
-                   double*__restrict__ dquael);
-#endif
-
-////BOOST_PP_REPEAT(2,INSTANTIATE,~)
-//#define REPEAT_GDIM(z,n,data) BOOST_PP_REPEAT(2,INSTANTIATE,n)
-//BOOST_PP_REPEAT(METRIS_MAX_DEG,REPEAT_GDIM,~)
-
-
-//#define LOOP_MFT(data) BOOST_PP_SEQ_FOR_EACH(REPEAT_IDEG,data,MFT_SEQ)
-////LOOP_MFT(~)
-//
-//#define LOOP_MFT_r(r,data,tupelem) BOOST_PP_SEQ_FOR_EACH_R(r,REPEAT_IDEG,tupelem,MFT_SEQ)
-//BOOST_PP_SEQ_FOR_EACH(LOOP_MFT_r,~,MFT_SEQ)
-////BOOST_PP_SEQ_FOR_EACH(REPEAT_IDEG,~,MFT_SEQ)
-//
-//
-//#define DEBUG_TAKES_PRODUCT(r,product) f(BOOST_PP_SEQ_ELEM(0,product), BOOST_PP_SEQ_ELEM(1,product))
-//BOOST_PP_SEQ_FOR_EACH_PRODUCT(DEBUG_TAKES_PRODUCT,(MFT_SEQ)(ASDEG_SEQ))
-//
-//
-//
-//#define EXPAND_TEMPLATE2(z,gdim,SEQ) g(gdim,SEQ) h(gdim,BOOST_PP_SEQ_ELEM(0,SEQ),\
-//                                                        BOOST_PP_SEQ_ELEM(1,SEQ),\
-//                                                        BOOST_PP_SEQ_ELEM(2,SEQ))
-//
-////h(gdim,BOOST_PP_SEQ_ELEM(1,SEQ),\
-//                                                 //       BOOST_PP_SEQ_ELEM(0,BOOST_PP_SEQ_ELEM(0,SEQ)),\
-//                                                 //       BOOST_PP_SEQ_ELEM(1,BOOST_PP_SEQ_ELEM(0,SEQ))
-//#define REPEAT_GDIM3(r,n,SEQ) BOOST_PP_REPEAT(2,EXPAND_TEMPLATE2, (n)SEQ)
-//#define REPEAT_IDEG2(r,SEQ) BOOST_PP_REPEAT(METRIS_MAX_DEG,REPEAT_GDIM3,SEQ)
-//
-//
-//BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG2,(MFT_SEQ)(ASDEG_SEQ))
-
-
-
-//#define BOOST_PP_LOCAL_MACRO(n) BOOST_PP_REPEAT(2,MACRO2,n)
-//#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG_JACOBIAN)
-//#include BOOST_PP_LOCAL_ITERATE()
 
 
 

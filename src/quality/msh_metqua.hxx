@@ -22,13 +22,6 @@ template <class MFT, int tdim, AsDeg = AsDeg::Pk>
 double getmetquamesh(Mesh<MFT> &msh,
                      bool *iinva, double *qmin, double *qmax, 
                      double *qavg, dblAr1 *lquae);
-// More options:
-template <class MFT, int tdim, AsDeg = AsDeg::Pk>
-double getmetquamesh(Mesh<MFT> &msh, int power, 
-                     int pnorm, double difto, 
-                     bool *iinva, double *qmin, double *qmax, 
-                     double *qavg, dblAr1 *lquae);
-
 } // End namespace
 
 #endif

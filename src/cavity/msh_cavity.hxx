@@ -119,6 +119,9 @@ public:
   // Usage examples bunit/face_cavityX.cxx 
   intAr1 lctet,lcfac,lcedg;
 
+  // Optional array, as MshCavity is often reused
+  intAr1 usrwrk1;
+
   // Provide precomputed tetrahedron qualities. Cavity also fills this in if some 
   // provided or if flag cache_tetra_quality set.  
   HshTab_I4R qtetr;
@@ -216,7 +219,7 @@ struct CavOprInfo{
   // Anisotropic qualities start, end (for swaps, not implemented yet)
   double qmax_ini,qavg_ini;
   double qmax_end,qavg_end;
-  
+
   double qcav3; // Quality of final tetra cavity in norm specified by msh.param
 
   bool done; // flags whether change was done (dryrun) ; different from an error
@@ -247,36 +250,6 @@ struct CavWrkArrs{
 
     lnorf.allocate(10,3);
   }
-
-  //void set_mmeas(int mmeas_){
-  //  if(mmeas_ <= mmeas) return;
-  //  mmeas = mmeas_;
-  //  lmeas.allocate(2,mmeas); 
-  //}
-
-  //void set_mfcco(int mfcco_){
-  //  if(mfcco_ <= mfcco) return;
-  //  mfcco = mfcco_;
-  //  lfcco.allocate(mfcco);
-  //}
-
-  //void set_nedex(int nedex){
-  //  METRIS_ASSERT(nedex >= 0);
-  //  if(nedex >= medex){
-  //    medex *= 1.5;
-  //    edtyp.allocate(medex);
-  //    edent.allocate(medex);
-  //  }
-  //  edtyp.set_n(nedex);
-  //  edent.set_n(nedex);
-  //}
-  //void check_medex(int nedex){
-  //  if(nedex >= medex){
-  //    medex *= 1.5;
-  //    edtyp.allocate(medex);
-  //    edent.allocate(medex);
-  //  }
-  //}
 
 };
 

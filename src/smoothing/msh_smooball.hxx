@@ -25,15 +25,13 @@ namespace Metris{
 // types. 
 template<class MetricFieldType>
 double smoothInterior_Ball(Mesh<MetricFieldType> &msh, 
-             QuaFun iquaf = QuaFun::Distortion, int ithrd1 = 0, int ithrd2 = 1);
+             QuaFun iquaf, int ithrd1, int ithrd);
 
 
 // idim: gdim = tdim
 template<class MetricFieldType, int idim, int ideg>
 double smoothInterior_Ball0(Mesh<MetricFieldType> &msh, 
-             QuaFun iquaf = QuaFun::Distortion, int ithrd1 = 0, int ithrd2 = 1);
-
-
+             QuaFun iquaf, int ithrd1, int ithrd);
 
 
 } // end namespace

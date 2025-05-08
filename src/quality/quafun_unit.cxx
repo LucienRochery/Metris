@@ -23,7 +23,7 @@ template <class MFT, int gdim, int tdim, typename ftype>
 ftype quafun_unit(Mesh<MFT> &msh,
                 AsDeg asdmsh, AsDeg asdmet,
                 const int*__restrict__ ent2poi,  
-                const double*__restrict__ bary, int power, 
+                const double*__restrict__ bary,
                 double*__restrict__ met_){
 
   static_assert(gdim == 2 || gdim == 3);
@@ -34,7 +34,7 @@ ftype quafun_unit(Mesh<MFT> &msh,
 
   ftype tra, det;
   quafun_tradet<MFT,gdim,tdim,ftype>
-              (msh,asdmsh,asdmet,ent2poi,bary,power,met_,&tra,&det);
+              (msh,asdmsh,asdmet,ent2poi,bary,met_,&tra,&det);
 
 
 
@@ -86,17 +86,17 @@ ftype quafun_unit(Mesh<MFT> &msh,
 template FTYPE quafun_unit< MFT_VAL , 2, 2, FTYPE>\
                   (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
                    const int*__restrict__ ent2poi, \
-                   const double*__restrict__ bary, int power,\
+                   const double*__restrict__ bary,\
                    double*__restrict__ met); \
 template FTYPE quafun_unit< MFT_VAL , 3, 2, FTYPE>\
                   (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
                    const int*__restrict__ ent2poi, \
-                   const double*__restrict__ bary, int power,\
+                   const double*__restrict__ bary,\
                    double*__restrict__ met); \
 template FTYPE quafun_unit< MFT_VAL , 3, 3, FTYPE>\
                   (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
                    const int*__restrict__ ent2poi, \
-                   const double*__restrict__ bary, int power,\
+                   const double*__restrict__ bary,\
                    double*__restrict__ met); 
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,(MFT_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
@@ -124,7 +124,6 @@ ftype d_quafun_unit(Mesh<MFT> &msh,
                     AsDeg asdmsh, AsDeg asdmet,
                     const int* ent2poi,
                     const double*__restrict__ bary, 
-                    int power, 
                     int ivar, 
                     FEBasis dofbas, 
                     DifVar idifmet, 
@@ -146,7 +145,7 @@ ftype d_quafun_unit(Mesh<MFT> &msh,
 
   d_quafun_tradet<MFT,gdim,ftype>
       (msh,asdmsh,asdmet,
-       ent2poi,bary,power,ivar,dofbas,idifmet,
+       ent2poi,bary,ivar,dofbas,idifmet,
        &tra,dtra,htra,
        &det,ddet,hdet);
 
@@ -283,7 +282,6 @@ template FTYPE d_quafun_unit< MFT_VAL , 2+gdim, FTYPE>\
                   (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2poi, \
                    const double*__restrict__ bary, \
-                   int power, \
                    int ivar, \
                    FEBasis dofbas, \
                    DifVar idifmet, \

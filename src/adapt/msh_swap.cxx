@@ -26,7 +26,7 @@ namespace Metris{
 
 // Greedy swaps: if a swap improves, do it
 template<class MFT, int gdim, int ideg>
-double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int ithrd2){
+double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int ithrd2, int ithrd3){
   GETVDEPTH(msh.param);
 
   if(msh.param->opt_swap_niter <= 0){
@@ -36,7 +36,10 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
 
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
+  METRIS_ASSERT(ithrd3 >= 0 && ithrd3 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd1 != ithrd2);
+  METRIS_ASSERT(ithrd1 != ithrd3);
+  METRIS_ASSERT(ithrd2 != ithrd3);
 
   MetSpace ispac0 = msh.met.getSpace();
   msh.met.setSpace(MetSpace::Log);
@@ -55,29 +58,30 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
 
   *nswap = 0;
   int miter = msh.param->opt_swap_niter;
-  int ntry0 = -1;
   msh.tag[ithrd1]++;
   
-  for(int niter = 0; niter < miter; niter++){
+  for(int tdim = 2; tdim <= msh.get_tdim(); tdim++){
     INCVDEPTH(msh.param);
     
-    bool onebad = false;
-    int ntry  = 0;
-    int nerro2 = 0;
-    int nswap2 = 0;
+    int nerro_tdim = 0;
+    int nswap_tdim = 0;
+    int nswap3fa = 0;
+    int nswap3ed = 0;
     double t02 = get_wall_time();
 
-    for(int tdim = 2; tdim <= msh.get_tdim(); tdim++){
-      if(tdim == 3){
-        static int nwarnprt1 = 0;
-        if(nwarnprt1++ < 10) printf("\n\n## WARNING1: no 3D swaps\n\n\n");
-        continue;
-      }
+    for(int niter = 0; niter < miter; niter++){
+      bool onebad = false;
+      int   ntry  = 0;
+      //if(tdim == 3){
+      //  static int nwarnprt1 = 0;
+      //  if(nwarnprt1++ < 10) printf("\n\n## WARNING1: no 3D swaps\n\n\n");
+      //  continue;
+      //}
       int nent0 = msh.nentt(tdim);
       intAr2& ent2tag = msh.ent2tag(tdim);
 
-      int nerro1 = 0;
-      int nswap1 = 0;
+      int nerro_niter = 0;
+      int nswap_niter = 0;
 
       double t01 = get_wall_time();
 
@@ -98,7 +102,9 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
             info = swapface<MFT,gdim,ideg>(msh, ientt, swapOpt, cav, work, &qumx0, &qumx1, ithrd2);
           }else{
             if constexpr(gdim == 3){
-              info = swaptetra<MFT,ideg>(msh, ientt, swapOpt, cav, work, &qumx0, &qumx1, ithrd2);
+              info = swaptetra<MFT,ideg>(msh, ientt, swapOpt, cav, work, &qumx0, &qumx1, ithrd2, ithrd3);
+              //printf("## WAIT AFTER SWAPTETRA\n");
+              //wait();
             }else{
               METRIS_THROW_MSG(TopoExcept(),"in dim < 3, ntetra > 0");
             }
@@ -125,7 +131,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
           // Tag entity as inert 
           ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
         }else if(info > 0){ // Error 
-          nerro1++;
+          nerro_niter++;
         }else if(info < 0){ // Successful swap
           CPRINTF1(" - swap successful\n");
           METRIS_ASSERT(nent1 == msh.nface - 2 || tdim == 3);
@@ -139,6 +145,11 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
               }
             }
           }else{
+            if(info == -1){
+              nswap3ed++;
+            }else{
+              nswap3fa++;
+            }
             // In case 3D, we need to use the shells.
             intAr1 dum1;
             for(int ient1 = nent1; ient1 < msh.nentt(tdim); ient1++){
@@ -152,31 +163,39 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
               }// for iedgl
             }// for ient1
           }// if tdim == 2
-          nswap1++;
+          nswap_niter++;
           onebad = true;
         }
         ntry++; 
       }
       double t11 = get_wall_time();
-      int ncallps1 = 1000*(int)((nswap1 / (t11-t01)) / 1000);
-      CPRINTF1(" - swaps dim %d swapped %d = %d /s nerro %d\n",
-               tdim,nswap1,ncallps1,nerro1)
-      nswap2 += nswap1;
-      nerro2 += nerro1;
-    }// for tdim
 
-    if(ntry0 < 0)  ntry0 = ntry;
-    if(ntry0 == 0) stat = MAX(stat,0);
-    else           stat = MAX(stat, (double)nswap2 / (double)ntry0);
+      double stat0 =(double)nswap_niter / (double)msh.nentt(tdim);
+      if(ntry == 0) stat  = MAX(stat, 0);
+      else          stat  = MAX(stat, stat0);
+
+      int ncallps_niter = 1000*(int)((nswap_niter / (t11-t01)) / 1000);
+      CPRINTF1(" - swaps full iter ntry = %d nswap %d = %d /s; nerro %d stat %f \n",
+              ntry, nswap_niter, ncallps_niter,nerro_niter, stat0);
+      nswap_tdim += nswap_niter;
+      nerro_tdim += nerro_niter;
+
+      if(!onebad) break;
+
+    }// for niter
+
 
     double t12 = get_wall_time();
-    int ncallps2 = 1000*(int)((nswap2 / (t12-t02)) / 1000);
-    CPRINTF1(" - swaps full iter ntry = %d nswap %d = %d /s; nerro %d stat %f \n",
-            ntry, nswap2, ncallps2,nerro2, (double)nswap2 / (double)ntry0);
-    *nswap += nswap2;
+    int ncallps_tdim = 1000*(int)((nswap_tdim / (t12-t02)) / 1000);
+    if(tdim == 2){
+      CPRINTF1(" - swaps dim %d swapped %d = %d /s nerro %d\n",tdim,nswap_tdim,ncallps_tdim,nerro_tdim)
+    }else{
+      CPRINTF1(" - swaps dim %d swapped %d = %d /s nerro %d edge = %d face = %d\n",
+               tdim,nswap_tdim,ncallps_tdim,nerro_tdim,nswap3ed,nswap3fa);
+    }
+    *nswap += nswap_tdim;
 
-    if(!onebad) break;
-  }// for niter
+  }// for tdim
 
 
   msh.met.setSpace(ispac0);
@@ -190,13 +209,13 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
 template double swapMesh<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
-                              swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2);\
+                    swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2, int ithrd3);\
 template double swapMesh<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,\
-                              swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2);\
+                    swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2, int ithrd3);\
 template double swapMesh<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,\
-                              swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2);\
+                    swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2, int ithrd3);\
 template double swapMesh<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,\
-                              swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2);
+                    swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2, int ithrd3);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

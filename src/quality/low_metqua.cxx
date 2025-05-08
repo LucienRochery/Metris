@@ -19,27 +19,27 @@ namespace Metris{
 
 template <class MFT, int gdim, int tdim, QuaFun iquaf, typename ftype>
 ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
-             int ielem, int power, int pnorm, ftype difto){
+             int ielem, ftype difto){
 	static_assert(tdim==2 || tdim==3);
   METRIS_ASSERT(!isdeadent(ielem,tdim == 2 ? msh.fac2poi : msh.tet2poi));
   int* ent2pol = tdim == 2 ? msh.fac2poi[ielem] : msh.tet2poi[ielem];
-  return metqua0<MFT,gdim,tdim,iquaf,ftype>(msh,asdmsh,asdmet,
-                                            ent2pol,power,pnorm,difto);
+  return metqua0<MFT,gdim,tdim,iquaf,ftype>(msh,asdmsh,asdmet,ent2pol,difto);
 }
 
 template <class MFT, int gdim, int tdim, 
           QuaFun iquaf, typename ftype>
 ftype metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet, 
-              const int* ent2pol, int power, int pnorm, ftype difto){
+              const int* ent2pol, ftype difto){
   static_assert(gdim==2 || gdim==3);
 
   double bary[tdim+1];
 
+  const int pnorm = msh.param->opt_pnorm;
+
   ftype qutet; 
 
   // Performance impact should be zero
-  constexpr auto quafun_xi 
-    = get_quafun_xi<MFT,gdim,tdim,iquaf,ftype>();
+  constexpr auto quafun_xi = get_quafun_xi<MFT,gdim,tdim,iquaf,ftype>();
 
   const int ideg = msh.curdeg;
   if(asdmet == AsDeg::Pk && ideg > 1){
@@ -54,25 +54,22 @@ ftype metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       for(int ii = 0; ii < tdim + 1; ii++){
         bary[ii] = ordelt[idegj][iquad][ii]/((double) (idegj));
       }
-      //ftype qua0 = quafun_distortion<MFT,gdim,tdim,ideg,asdmet,ftype>(msh,ent2pol,bary,power);
-      ftype qua0 = quafun_xi(msh,asdmet,asdmsh,ent2pol,bary,power,NULL);
+      ftype qua0 = quafun_xi(msh,asdmet,asdmsh,ent2pol,bary,NULL);
       qutet += pow(abs(qua0 - difto),pnorm) / nnodj;
     }
     for(int iquad = tdim+1; iquad < nnodj; iquad++){
       for(int ii = 0; ii < tdim + 1; ii++){
         bary[ii] = ordelt[idegj][iquad][ii]/((double) (idegj));
       }
-      //ftype qua0 = quafun_distortion<MFT,gdim,tdim,ideg,asdmet,ftype>(msh,ent2pol,bary,power);
-      ftype qua0 = quafun_xi(msh,asdmet,asdmsh,ent2pol,bary,power,NULL);
+      ftype qua0 = quafun_xi(msh,asdmet,asdmsh,ent2pol,bary,NULL);
       qutet += pow(abs(qua0 - difto),pnorm) / nnodj;
     }
   }else{
     for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim  + 1);
-    //qutet = quafun_distortion<MFT,gdim,tdim,1,asdmet,ftype>(msh,ent2pol,bary,power);
     #ifndef NDEBUG
       try{
     #endif
-    qutet = quafun_xi(msh,asdmet,asdmsh,ent2pol,bary,power,NULL);
+    qutet = quafun_xi(msh,asdmet,asdmsh,ent2pol,bary,NULL);
     #ifndef NDEBUG
       }catch(const MetrisExcept &e){
         printf("## metqua ent2pol \n");
@@ -96,26 +93,26 @@ ftype metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 #define INSTANTIATE(MFT_VAL,QUAFUN,FTYPE)\
 template FTYPE metqua< MFT_VAL , 2, 2, QUAFUN, FTYPE>\
             (Mesh<MFT_VAL> &msh, AsDeg, AsDeg, \
-             int ielem, int power, int pnorm, FTYPE difto);\
+             int ielem, FTYPE difto);\
 template FTYPE metqua< MFT_VAL , 3, 2, QUAFUN, FTYPE>\
             (Mesh<MFT_VAL> &msh, AsDeg, AsDeg, \
-             int ielem, int power, int pnorm, FTYPE difto);\
+             int ielem, FTYPE difto);\
 template FTYPE metqua< MFT_VAL , 3, 3, QUAFUN, FTYPE>\
             (Mesh<MFT_VAL> &msh, AsDeg, AsDeg, \
-             int ielem, int power, int pnorm, FTYPE difto);
+             int ielem, FTYPE difto);
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,(MFT_SEQ)(QUAFUN_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
 
 #define INSTANTIATE(MFT_VAL,QUAFUN,FTYPE)\
 template FTYPE metqua0< MFT_VAL , 2, 2, QUAFUN,FTYPE>\
    (Mesh<MFT_VAL> &msh, AsDeg, AsDeg,\
-    const int* ent2pol, int power, int pnorm, FTYPE difto);\
+    const int* ent2pol, FTYPE difto);\
 template FTYPE metqua0< MFT_VAL , 3, 2, QUAFUN,FTYPE>\
    (Mesh<MFT_VAL> &msh, AsDeg, AsDeg,\
-    const int* ent2pol, int power, int pnorm, FTYPE difto);\
+    const int* ent2pol, FTYPE difto);\
 template FTYPE metqua0< MFT_VAL , 3, 3, QUAFUN,FTYPE>\
    (Mesh<MFT_VAL> &msh, AsDeg, AsDeg,\
-    const int* ent2pol, int power, int pnorm, FTYPE difto);
+    const int* ent2pol, FTYPE difto);
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,(MFT_SEQ)(QUAFUN_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
 

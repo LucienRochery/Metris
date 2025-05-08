@@ -114,9 +114,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
 
 
   // Eventually move all constants to MetrisParameters 
-  // L2 conformity error from 0 to 1
-  const int qpower = msh.param->opt_power;
-  const int qpnorm = msh.param->opt_pnorm; 
+  // L2 conformity error from 0 to 1 
   const double difto = 1.0;
   const int miter = 10;
   //const double maxwt = 20.0;
@@ -134,7 +132,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
 
   constexpr int nnmet = (idim*(idim+1))/2;
 
-  METRIS_ENFORCE(qpower < 0); // Otherwise rework the mins / maxs
+  METRIS_ENFORCE(msh.param->opt_power < 0); // Otherwise rework the mins / maxs
   // Otherwise not only edge nodes 
   METRIS_ENFORCE(ideg <= tdim + 1); 
 
@@ -168,7 +166,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
 
       navg++;
 
-      double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ientt,qpower,qpnorm,difto);
+      double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ientt,difto);
 
       qnrm += quael;
       qmin = MIN(qmin,quael);
@@ -181,7 +179,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
     qnrm /= navg;
     double t0 = get_wall_time();
     CPRINTF1(" - smoo iter %3d init %10.6e < q < %10.6e (at %d), avg = %10.6e " 
-                   "(p = %d)\n",niter,qmin,qmax,imax,qnrm,qpnorm);
+                   "(p = %d)\n",niter,qmin,qmax,imax,qnrm,msh.param->opt_pnorm);
     //if(iverb >= 2 && qmax >= 1e10){
     //  printf("## HIGH QMAX mshdeg = %d \n",msh.curdeg);
     //  std::string fname = "qmax"+std::to_string(imax);

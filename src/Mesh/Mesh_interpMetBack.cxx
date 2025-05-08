@@ -88,8 +88,7 @@ int Mesh<MFT>::interpMetBack(int ipoin, int tdim, int iseed,
   METRIS_ASSERT_MSG(ipoin >= 0 && ipoin < this->npoin, 
     "interpMetBack ipoin out of bounds "<<ipoin<<" < ? "<<this->npoin);
 
-  int ierro = this->interpMetBack0(ipoin, tdim, iseed,
-                                   iref, algnd);
+  int ierro = this->interpMetBack0(ipoin, tdim, iseed, iref, algnd);
 
   if(DOPRINTS1()){
     CPRINTF1("-- END interpMetBack ipoin = %d ierro %d met = ",ipoin,ierro);
@@ -191,7 +190,7 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
   int ieleb = poi2bak[ipseed];
   if(ieleb < 0){
     CPRINTF2(" - skip seed %d < 0\n",ieleb);
-    return 1; // Happens when called from the cavity operator.
+    return 2; // Happens when called from the cavity operator.
   }
 
   CPRINTF2(" - init ieleb = %d\n",ieleb);
@@ -205,7 +204,7 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
 
   if(pdim_seed > tdim){
     CPRINTF2(" - seed has dim %d > %d = point dim, skip\n",pdim_seed,tdim);
-    return 2;
+    return 3;
   }
 
   CPRINTF1(" - seed point dim %d initial bak seed %d\n",pdim_seed,ieleb);
@@ -214,7 +213,7 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
     // Easiest case, ieleb is already the one, and we just need to check ref.
     if(iref >= 0 && this->bak->ent2ref(tdim)[ieleb] != iref){
       CPRINTF1(" # provided seed has ref %d != %d \n",this->bak->ent2ref(tdim)[ieleb],iref);
-      return 2;
+      return 4;
     }
     goto ieleb_initialized;
   }
@@ -227,7 +226,7 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
     if(ibpob < 0){
       CPRINTF1(" # could not find seed element dim %d ref %d from point %d\n",
                tdim, iref, poi2bak[ipseed]);
-      return 3;
+      return 5;
     }
     ieleb = this->bak->bpo2ibi(ibpob,2);
     METRIS_ASSERT(this->bak->ent2ref(tdim)[ieleb] == iref);
@@ -266,11 +265,11 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
       METRIS_ASSERT(ieleb >= 0 && ieleb < this->bak->nentt(this->get_tdim()));
       goto ieleb_initialized;
     }
-    return 4;
+    return 6;
   }else{
     static int nwarnprt = 0;
     if(nwarnprt++ < 10) printf("## IMPLEMENT BACK SEED INIT IN MULTI DOMAIN MESH");
-    return 5;
+    return 7;
   }
 
 ieleb_initialized:
@@ -415,7 +414,7 @@ ieleb_initialized:
   }
   #endif
 
-
+  // Only in debug mode:
   double tang[3];
   double len;
   for(int ii = 0; ii < this->idim; ii++)
@@ -463,6 +462,12 @@ ieleb_initialized:
     ierro = 0;
   }else{
     CPRINTF1("# Large length %e \n",len);
+    if(DOPRINTS2()){
+      CPRINTF2("- proj point ");
+      dblAr1(this->idim, coopr).print();
+      CPRINTF2("- loc  point ");
+      dblAr1(this->idim, this->coord[ipoi0]).print();
+    }
     ierro = 1;
   }
 
@@ -507,7 +512,7 @@ ieleb_initialized:
     this->poi2bak[ipoi0] = ieleb;
   }
 
-  return ierro;
+  return ierro > 0 ? 10+ierro : 0;
 }
 template int Mesh<MetricFieldFE>::interpMetBack00(int ipoi0, int tdim, 
                           int iref, int ipseed,const double*__restrict__ algnd);

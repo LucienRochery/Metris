@@ -11,6 +11,7 @@
 #include "../io_libmeshb.hxx"
 #include "../utils/aux_pp_inc.hxx"
 #include "../utils/mprintf.hxx"
+#include "../msh_checktopo.hxx"
 
 
 namespace Metris{
@@ -165,6 +166,7 @@ int cavity_operator(Mesh<MFT> &msh ,
 
 			ierro = reconnect_tetcav<MFT, ideg>(msh, cav, opts, info, nfac0, &qmax, ithread);
       if(ierro > 0) goto cleanup; 
+      if(msh.get_tdim() == 3) info.qmax_end = qmax;
       CPRINTF1("-- reconnect_tetcav done nele0 = %d nelem = %d \n",nele0,msh.nelem);
 	
 	/*  -------------- Fast validity correction --------------------
@@ -207,7 +209,9 @@ int cavity_operator(Mesh<MFT> &msh ,
       goto cleanup;
     }
   }
-  if(opts.qmax_nec > 0 && qmax < opts.qmax_nec){
+  if(opts.qmax_nec > 0 && qmax > opts.qmax_nec){
+    CPRINTF1(" # specified qmax_nec = %e and got qmax = %e -> reject\n",
+             opts.qmax_nec,qmax);
     ierro = CAV_ERR_DRYFAIL2;
     goto cleanup;
   }
@@ -258,6 +262,7 @@ int cavity_operator(Mesh<MFT> &msh ,
 
   finish:
   msh.tag[ithread] = cav.maxtag;
+  if(msh.param->dbgfull) check_topo(msh,ithread);
 	return ierro;
 }
 // See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html

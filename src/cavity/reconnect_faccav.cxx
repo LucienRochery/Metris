@@ -907,13 +907,9 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
   if(check_qua){
     double quael;
     if(msh.idim == 2)
-      quael = metqua<MetricFieldType,2,2>(msh,AsDeg::Pk,AsDeg::P1,
-                                          ifacn,msh.param->opt_power,
-                                          msh.param->opt_pnorm,1.0);
+      quael = metqua<MetricFieldType,2,2>(msh,AsDeg::Pk,AsDeg::P1,ifacn,1.0);
     else
-      quael = metqua<MetricFieldType,3,2>(msh,AsDeg::Pk,AsDeg::P1,
-                                          ifacn,msh.param->opt_power,
-                                          msh.param->opt_pnorm,1.0);
+      quael = metqua<MetricFieldType,3,2>(msh,AsDeg::Pk,AsDeg::P1,ifacn,1.0);
     CPRINTF1(" - new triangle %d = %d %d %d from %d nei = %d %d %d conf error = %f \n",ifacn,
        msh.fac2poi(ifacn,0), msh.fac2poi(ifacn,1), msh.fac2poi(ifacn,2),ifac1,
        msh.fac2fac(ifacn,0), msh.fac2fac(ifacn,1), msh.fac2fac(ifacn,2), quael);

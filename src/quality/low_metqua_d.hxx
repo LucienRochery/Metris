@@ -22,42 +22,41 @@ template <class MetricFieldType, int gdim,
           QuaFun iquaf = QuaFun::Distortion, typename ftype = double>
 ftype d_metqua(Mesh<MetricFieldType> &msh,
                AsDeg asdmsh, AsDeg asdmet, 
-               int ielem, int power, 
+               int ielem, 
                int ivar,
                FEBasis dofbas, DifVar idifmet, 
                ftype*__restrict__ dquael, ftype*__restrict__ hquael, 
-               int pnorm = 1, double difto = 1);
+               double difto = 1);
 
 template <class MetricFieldType, int gdim,
           QuaFun iquaf = QuaFun::Distortion, typename ftype = double>
 ftype d_metqua0(Mesh<MetricFieldType> &msh,
                 AsDeg asdmsh, AsDeg asdmet, 
-                const int *ent2poi, int power, 
+                const int *ent2poi, 
                 int ivar,
                 FEBasis dofbas, DifVar idifmet, 
                 ftype*__restrict__ dquael, ftype*__restrict__ hquael, 
-                int pnorm = 1, double difto = 1);
+                double difto = 1);
 
 
-// Integrated quality 
+// All derivatives
 template <class MetricFieldType, int gdim, int mshdeg, AsDeg asdmet, typename ftype = double>
-ftype D_metqua(Mesh<MetricFieldType> &msh, int ielem, int power, 
+ftype D_metqua(Mesh<MetricFieldType> &msh, int ielem, 
                FEBasis dofbas, DifVar idifmet, 
                ftype*__restrict__ dquael, ftype*__restrict__ hquael, 
-               int pnorm = 1, double difto = 1);
+               double difto = 1);
 
 template <class MetricFieldType, int gdim, int mshdeg, AsDeg asdmet, typename ftype = double>
-ftype D_metqua(Mesh<MetricFieldType> &msh, const int *ent2poi, int power, 
+ftype D_metqua(Mesh<MetricFieldType> &msh, const int *ent2poi, 
                FEBasis dofbas, DifVar idifmet, 
                ftype*__restrict__ dquael, ftype*__restrict__ hquael, 
-               int pnorm = 1, double difto = 1);
+               double difto = 1);
 
 // Differentiated wrt all nodes and coordinates 
 template <class MFT, int gdim, int mshdeg, AsDeg asdmet, typename ftype>
 ftype D_quafun_distortion(Mesh<MFT> &msh, 
                   const int* ent2poi,
                   const double*__restrict__ bary, 
-                  int power, 
                   FEBasis dofbas, 
                   DifVar idifmet, 
                   ftype*__restrict__ dquael, 
@@ -70,8 +69,8 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
 
 
 template<class MFT, int gdim, int tdim, class ftype=double>
-std::function<ftype(Mesh<MFT>&,AsDeg,AsDeg,int,int,int,FEBasis,DifVar,
-                    ftype*__restrict__,ftype*__restrict__,int,double)>
+std::function<ftype(Mesh<MFT>&,AsDeg,AsDeg,int,int,FEBasis,DifVar,
+                    ftype*__restrict__,ftype*__restrict__,double)>
 get_d_quafun(QuaFun iquaf){
   if(iquaf == QuaFun::Distortion){
     return d_metqua<MFT,gdim,QuaFun::Distortion,ftype>;

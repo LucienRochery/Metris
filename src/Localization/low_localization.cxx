@@ -410,6 +410,11 @@ int inveval0(const MeshBase &msh,
       wait();
       return 2;
     }
+  }else{
+    constexpr auto evalf = tdim == 1 ? eval1<gdim,ideg> : 
+                           tdim == 2 ? eval2<gdim,ideg> : eval3<gdim,ideg>;
+    evalf(coord,ent2pol,msh.getBasis(),DifVar::None,
+          DifVar::None,bary,coopr,NULL,NULL);
   }
 
   //if(dist >= tol*tol){

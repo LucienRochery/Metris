@@ -32,6 +32,7 @@ int getnorfacCAD(const MeshBase &msh, int iface, double *nrmal){
   for(int iver = 0; iver < 3; iver++){
     int ipoin = msh.fac2poi(iface,iver);
     int ibpoi = msh.poi2ebp(ipoin,2,iface,-1);
+    CPRINTF2(" - getnorfacCAD iface %d iver %d ipoin %d ibpoi %d\n", iface, iver, ipoin, ibpoi);
     METRIS_ASSERT(ibpoi >= 0);
 
     double dum[3];

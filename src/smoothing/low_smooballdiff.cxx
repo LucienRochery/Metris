@@ -47,13 +47,6 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   constexpr int nhess = nnmet;
 
   const intAr2& ent2poi = msh.ent2poi(idim); 
-  const int qpower  = msh.param->opt_power;
-  const int qpnorm  = msh.param->opt_pnorm;
-
-  //auto quafun 
-  //  = QuaFunList<MFT,gdim,tdim,ideg,AsDeg::Pk,AsDeg::Pk>{}.quafun(iquaf);
-  //auto d_quafun 
-  //  = QuaFunList<MFT,gdim,tdim,ideg,AsDeg::Pk,AsDeg::Pk>{}.d_quafun(iquaf);
 
   const auto quafun = get_quafun<MFT,gdim,tdim>(iquaf);
   const auto d_quafun = get_d_quafun<MFT,gdim,tdim>(iquaf);
@@ -162,16 +155,14 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
         double quael;
         if(ihess){
           quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
-                           ient2,qpower,ivar,
+                           ient2,ivar,
                            msh.getBasis(),
-                           DifVar::None,dqelt,hqelt,
-                           qpnorm, 1);
+                           DifVar::None,dqelt,hqelt,1);
         }else{
           quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
-                           ient2,qpower,ivar,
+                           ient2,ivar,
                            msh.getBasis(),
-                           DifVar::None,dqelt,NULL,
-                           qpnorm, 1);
+                           DifVar::None,dqelt,NULL,1);
         }
         fcur += quael;
         for(int ii = 0; ii < idim; ii++) d1qua[ii] += dqelt[ii];
@@ -229,7 +220,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
     for(int iball = 0; iball < nball; iball++){
       int ient2 = lball[iball];
       double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,
-                            ient2,qpower,qpnorm,1);
+                            ient2,1);
 
       *qnrm1 += quael; 
       *qmax1  = MAX(quael,*qmax1);
@@ -388,8 +379,6 @@ double smooballdiff_fun([[maybe_unused]] unsigned int nvar,
     return 1.0e10;
   }
 
-  const int qpower  = msh.param->opt_power;
-  const int qpnorm  = msh.param->opt_pnorm;
   double fcur = 0;
   for(int ii = 0; ii < idim && grad != NULL; ii++) grad[ii] = 0;
   for(int ientt : lball){
@@ -402,10 +391,9 @@ double smooballdiff_fun([[maybe_unused]] unsigned int nvar,
     if(grad != NULL) ivar = msh.template getverent<ideg>(ientt,idim,ipoin);
     double dqelt[idim];
     double quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
-                            ientt,qpower,ivar,
+                            ientt,ivar,
                             msh.getBasis(),
-                            DifVar::None,dqelt,NULL,
-                            qpnorm, 1);
+                            DifVar::None,dqelt,NULL,1);
     fcur += quael;
     for(int ii = 0; ii < idim && grad != NULL; ii++) grad[ii] += dqelt[ii];
 
@@ -456,8 +444,6 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
 
 
   const auto quafun = get_quafun<MFT,gdim,tdim>(iquaf);
-  const int qpower  = msh.param->opt_power;
-  const int qpnorm  = msh.param->opt_pnorm;
   const intAr2& ent2poi = msh.ent2poi(idim); 
 
   int ierro = 0;
@@ -496,7 +482,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
   *qnrm0 = 0;
   *qmax0 = -1.0e30;
   for(int ientt : lball){
-    double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ientt,qpower,qpnorm,1);
+    double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ientt,1);
 
     *qnrm0 += quael; 
     *qmax0  = MAX(quael,*qmax0);
@@ -535,7 +521,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
     *qnrm1 = 0;
     *qmax1 = -1.0e30;
     for(int ientt : lball){
-      double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ientt,qpower,qpnorm,1);
+      double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ientt,1);
 
       *qnrm1 += quael; 
       *qmax1  = MAX(quael,*qmax1);

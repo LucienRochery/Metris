@@ -67,7 +67,9 @@ double MetrisRunner::optimMesh0(){
 
   double t01 = get_wall_time();
 
-
+  const int ithrd1 = 0;
+  const int ithrd2 = 1;
+  const int ithrd3 = 2;
 
   // the higher this is, the more permissive 
   //const int qpower = -1;
@@ -86,6 +88,10 @@ double MetrisRunner::optimMesh0(){
 
   const int miter = param_.opt_niter;
   swapOptions swapOpt(*(msh.param));
+  if(msh.get_tdim() >= 3){
+    printf("## In dim 3, set swap norm L^inf, requested %d\n", msh.param->opt_swap_pnorm);
+    swapOpt.swap_norm = 0;
+  }
 
   if(msh.param->dbgfull) check_topo(msh,0);
 
@@ -160,7 +166,7 @@ double MetrisRunner::optimMesh0(){
     if(msh.idim == msh.get_tdim()){
 
       t0 = get_wall_time();
-      stat = smoothInterior_Ball<MFT>(msh,QuaFun::Distortion);
+      stat = smoothInterior_Ball<MFT>(msh,QuaFun::Distortion, ithrd1, ithrd2);
       stat0 = MAX(stat, stat0); 
       t1 = get_wall_time();
       if(DOPRINTS1()){
@@ -231,7 +237,7 @@ double MetrisRunner::optimMesh0(){
     // 2. Swaps
     t0 = get_wall_time();
     int nswap;
-    stat  = swapMesh<MFT,gdim,ideg>(msh, swapOpt, &nswap, 0, 1);
+    stat  = swapMesh<MFT,gdim,ideg>(msh, swapOpt, &nswap, ithrd1, ithrd2, ithrd3);
     stat0 = MAX(stat0,stat);
     t1 = get_wall_time();
     if(msh.param->dbgfull) check_topo(msh,0);

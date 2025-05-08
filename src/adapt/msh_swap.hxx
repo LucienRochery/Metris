@@ -53,7 +53,7 @@ namespace Defaults{
 
 template<class MetricFieldType, int gdim, int ideg>
 double swapMesh(Mesh<MetricFieldType> &msh, swapOptions opt, int *nswap, 
-                int ithrd1, int ithrd2);
+                int ithrd1, int ithrd2, int ithrd3);
 
 
 } // end namespace

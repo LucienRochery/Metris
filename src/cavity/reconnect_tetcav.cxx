@@ -29,9 +29,9 @@ int reconnect_tetcav(Mesh<MFT> &msh,
   const int nctet = cav.lctet.get_n();
   if(nctet <= 0) return 0;
 
-  bool check_qua = (opts.qmax_nec > 0 && msh.get_tdim() == 2)
-                || (opts.qmax_suf > 0 && msh.get_tdim() == 2)
-                || (opts.qmax_iff > 0 && msh.get_tdim() == 2);
+  bool check_qua = (opts.qmax_nec > 0 && msh.get_tdim() == 3)
+                || (opts.qmax_suf > 0 && msh.get_tdim() == 3)
+                || (opts.qmax_iff > 0 && msh.get_tdim() == 3);
 
   // When would we not though?
   bool check_val = opts.fast_reject 
@@ -39,13 +39,13 @@ int reconnect_tetcav(Mesh<MFT> &msh,
                 || check_qua;
 
   const int qpnorm = msh.param->opt_pnorm;
-  const int qpower = msh.param->opt_power;
   *qmax = -1;
   info.qcav3 = qpnorm == 0 ? -1 : 0;
 
 
   GETVDEPTH(msh.param);
-  CPRINTF1(" - start reconnect_tetcav check_qua = %d \n",check_qua);
+  CPRINTF1(" - START reconnect_tetcav check_qua = %d qpnorm %d qpower %d\n",
+            check_qua,qpnorm,msh.param->opt_power);
 
   const int nele0 = msh.nelem;
 
@@ -175,25 +175,26 @@ int reconnect_tetcav(Mesh<MFT> &msh,
             quael = tt->second;
             CPRINTF2(" - found cached quality\n");
           }else{
-            quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,
-                                    ielen,qpower,qpnorm,1.0);
+            quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
             cav.qtetr[key] = quael;
           }
         }else{
-          quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,
-                                  ielen,qpower,qpnorm,1.0);
+          quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
         }
         CPRINTF1(" - new tetra %d = %d %d %d %d from %d conf error = %f \n",
            ielen,
            msh.tet2poi(ielen,0), msh.tet2poi(ielen,1), msh.tet2poi(ielen,2),
            msh.tet2poi(ielen,3) ,iele0,quael);
-        *qmax = quael > *qmax ? quael : *qmax;
+        *qmax = MAX(quael, *qmax);
         if(qpnorm == 0){
           info.qcav3 = MAX(info.qcav3, quael);
         }else{
           info.qcav3 += pow(abs(quael), qpnorm);
         }
-        if(quael > opts.qmax_nec && opts.qmax_nec > 0.0) return CAV_ERR_QMAXNEC; // Run rejected
+        if(quael > opts.qmax_nec && opts.qmax_nec > 0.0){
+          CPRINTF1(" # quael = %e > %e = qmax_nec -> reject\n",quael, opts.qmax_nec);
+          return CAV_ERR_QMAXNEC; // Run rejected
+        }
         if(quael > opts.qmax_iff && opts.qmax_iff > 0.0) return CAV_ERR_QMAXIFF; // Run rejected
         if(quael < 0) return CAV_ERR_QFACNEG;  // Run rejected
       }

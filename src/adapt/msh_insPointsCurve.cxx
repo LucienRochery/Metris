@@ -445,7 +445,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       }}CT_FOR1(ideg);
 
       if(ierro != 0){
-        printf("## WAIT: Cavity ierro %d \n",ierro);
+        printf("## WAIT: in insPointsCurve cavity ierro %d \n",ierro);
         wait();
       }
 

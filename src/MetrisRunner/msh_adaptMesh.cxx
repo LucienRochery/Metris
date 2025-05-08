@@ -110,6 +110,8 @@ void MetrisRunner::adaptMesh0(){
 
   // This is the common thread for all routines. Tagged elements are ignored
   const int ithrdfro = 0;
+  const int ithrd1 = 1;
+  const int ithrd2 = 2;
   msh.tag[ithrdfro]++;
 
   if(msh.CAD() && msh.param->adp_line_adapt){
@@ -135,8 +137,7 @@ void MetrisRunner::adaptMesh0(){
     //pct_unit = getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::Quad);
     //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (bdry, quad)");
 
-
-    swapMesh<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdfro, 1);
+    swapMesh<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdfro, ithrd1, ithrd2);
 
     //if(DOPRINTS2()) writeMesh("debug_swap_pre.meshb",msh);
     //if(DOPRINTS2()) msh.met.writeMetricFile("debug_swap_pre.solb");
@@ -176,10 +177,9 @@ void MetrisRunner::adaptMesh0(){
     //qmax_suf = 1.0 - (niter - 1) / (double) miter; 
     //qmax_suf = 0;
     double stat;
-
     // 1. Collapse short edges
     t0 = get_wall_time();
-    stat  = collapseShortEdges<MFT,gdim,ideg>(msh, qmax_suf, &ncoll, ithrdfro, 1, 2);
+    stat  = collapseShortEdges<MFT,gdim,ideg>(msh, qmax_suf, &ncoll, ithrdfro, ithrd1, ithrd2);
     stat0 = MAX(stat0,stat);
     t1 = get_wall_time();
     tcollapse += t1-t0;
@@ -212,7 +212,7 @@ void MetrisRunner::adaptMesh0(){
 
     if(niter%2 == 0 || qmax_suf < 0.5){
       t0 = get_wall_time();
-      stat  = swapMesh<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdfro, 1);
+      stat  = swapMesh<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdfro, ithrd1, ithrd2);
       stat0 = MAX(stat0,stat);
       t1 = get_wall_time();
       tswap += t1-t0;
@@ -243,7 +243,7 @@ void MetrisRunner::adaptMesh0(){
 
 
     t0 = get_wall_time();
-    stat  = insertLongEdges<MFT,gdim,ideg>(msh, &ninser, ithrdfro, 1, 2);
+    stat  = insertLongEdges<MFT,gdim,ideg>(msh, &ninser, ithrdfro, ithrd1, ithrd2);
     stat0 = MAX(stat0,stat);
     t1 = get_wall_time();
     tinsert += t1-t0;
@@ -288,7 +288,7 @@ void MetrisRunner::adaptMesh0(){
     if(msh.param->opt_unif){
       // 4. Smoothing (heuristic) -> fast but bad; improve
       t0 = get_wall_time();
-      double stat = smoothInterior_Ball<MFT>(msh,QuaFun::Unit);
+      double stat = smoothInterior_Ball<MFT>(msh,QuaFun::Unit,ithrd1,ithrd2);
       stat0 = MAX(stat, stat0); 
       t1 = get_wall_time();
       if(DOPRINTS2()) writeMesh("v2_unif_adp"+ std::to_string(niter)+".meshb",msh);
@@ -378,7 +378,8 @@ void MetrisRunner::adaptMesh0(){
         break;
       }
     }
-  }
+
+  }// for niter
 
 
   ttotal = get_wall_time() - ttotal;

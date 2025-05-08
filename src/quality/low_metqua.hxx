@@ -29,16 +29,14 @@ template <class MetricFieldType, int gdim, int tdim,
           typename ftype = double>
 ftype metqua(Mesh<MetricFieldType> &msh, 
              AsDeg asdmsh, AsDeg asdmet, 
-             int ielem, int power, 
-             int pnorm = 1, ftype difto = 1);
+             int ielem, ftype difto = 1);
 
 template <class MetricFieldType, int gdim, int tdim, 
           QuaFun iquaf = QuaFun::Distortion, 
           typename ftype = double>
 ftype metqua0(Mesh<MetricFieldType> &msh, 
               AsDeg asdmsh, AsDeg asdmet, 
-              const int *ent2poi, 
-              int power, int pnorm = 1, ftype difto = 1);
+              const int *ent2poi, ftype difto = 1);
 
 
 
@@ -46,7 +44,7 @@ ftype metqua0(Mesh<MetricFieldType> &msh,
  Convenience: return f pointers selecting depending on iquaf
    ---------------------------------------------- */
 template<class MFT, int gdim, int tdim, class ftype=double>
-std::function<ftype(Mesh<MFT>&,AsDeg,AsDeg,int,int,int,ftype)>
+std::function<ftype(Mesh<MFT>&,AsDeg,AsDeg,int,ftype)>
 get_quafun(QuaFun iquaf){
   if(iquaf == QuaFun::Distortion){
     return metqua<MFT,gdim,tdim,QuaFun::Distortion,ftype>;

@@ -20,7 +20,7 @@ namespace Metris{
 template <class MFT, int gdim, int tdim, typename ftype>
 void quafun_tradet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
                    const int*__restrict__ ent2pol,  
-                   const double*__restrict__ bary, int power, 
+                   const double*__restrict__ bary,
                    double*__restrict__ met_,
                    ftype*__restrict__ tra,
                    ftype*__restrict__ det){
@@ -30,7 +30,6 @@ void quafun_tradet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
 
   METRIS_ASSERT(gdim == msh.idim);
 
-  METRIS_ASSERT(power != 0);
 
 
   if(msh.met.getSpace() != MetSpace::Log) METRIS_THROW_MSG(WArgExcept(),
@@ -116,7 +115,7 @@ void quafun_tradet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
     *det = detsym2<2>(J0tJtMJJ0);
   }
 
-  if(abs(*det) < 1.0e-16 && power > 0) 
+  if(abs(*det) < 1.0e-16 && msh.param->opt_power > 0) 
      METRIS_THROW_MSG(GeomExcept(), "Singular J^TMJ det = "<<det);
 
    return;
@@ -134,7 +133,7 @@ template void quafun_tradet< MFT_VAL , 2, 2, FTYPE>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int*__restrict__ ent2pol, \
-                   const double*__restrict__ bary, int power,\
+                   const double*__restrict__ bary,\
                    double*__restrict__ met,\
                    FTYPE*__restrict__ tra,\
                    FTYPE*__restrict__ det); \
@@ -142,7 +141,7 @@ template void quafun_tradet< MFT_VAL , 3, 2, FTYPE>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int*__restrict__ ent2pol, \
-                   const double*__restrict__ bary, int power,\
+                   const double*__restrict__ bary,\
                    double*__restrict__ met,\
                    FTYPE*__restrict__ tra,\
                    FTYPE*__restrict__ det); \
@@ -150,7 +149,7 @@ template void quafun_tradet< MFT_VAL , 3, 3, FTYPE>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int*__restrict__ ent2pol, \
-                   const double*__restrict__ bary, int power,\
+                   const double*__restrict__ bary,\
                    double*__restrict__ met,\
                    FTYPE*__restrict__ tra,\
                    FTYPE*__restrict__ det); 
@@ -215,7 +214,6 @@ template <class MFT, int gdim, typename ftype>
 void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                      const int* ent2pol,
                      const double*__restrict__ bary, 
-                     int power, 
                      int ivar, 
                      FEBasis dofbas, 
                      DifVar idifmet, 
@@ -229,7 +227,6 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
   static_assert(gdim == 2 || gdim == 3);
   METRIS_ASSERT(gdim == msh.idim);
-  METRIS_ASSERT(power != 0);
   METRIS_ASSERT(msh.met.getSpace() == MetSpace::Log)
   // Differentiate or don't, but there is no barycentric derivative in this context 
   METRIS_ASSERT(idifmet == DifVar::None || idifmet == DifVar::Phys);
@@ -319,7 +316,7 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     det = detsym2<2>(J0tJtMJJ0);
   }
 
-  if(abs(det) < 1.0e-16 && power > 0) 
+  if(abs(det) < 1.0e-16 && msh.param->opt_power > 0) 
      METRIS_THROW_MSG(GeomExcept(), "Singular J^TMJ det = "<<det);
 
 
@@ -464,7 +461,6 @@ template void d_quafun_tradet< MFT_VAL , 2, FTYPE>\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2pol,\
                    const double*__restrict__ bary,\
-                   int power,\
                    int ivar,\
                    FEBasis dofbas,\
                    DifVar idifmet,\
@@ -479,7 +475,6 @@ template void d_quafun_tradet< MFT_VAL , 3, FTYPE>\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2pol,\
                    const double*__restrict__ bary,\
-                   int power,\
                    int ivar,\
                    FEBasis dofbas,\
                    DifVar idifmet,\
