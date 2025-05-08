@@ -58,6 +58,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
       //CPRINTF1(" - buf %f %f \n",buf[0],buf[1]);
     }
   }else{
+    static_assert(gdim == 3);
     // In this case, we're going to compute the Frénet frame associated to the 
     // normal. Then write the metric in that frame, as well as project the 
     // above buf vector. 
@@ -136,7 +137,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
 
     // Compute t1^T P as the components instead of straight P
     for(int ii = 0; ii < tdim; ii++){
-      for(int jj = 0; jj < tdim; jj++) 
+      for(int jj = 0; jj < gdim; jj++) 
         buf1[jj] = msh.coord(ent2pol[ii+1],jj) - msh.coord(ent2pol[0],jj);
       buf[0] = getprdl2<gdim>(tau1,buf1);
       buf[1] = getprdl2<gdim>(tau2,buf1);

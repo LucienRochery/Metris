@@ -110,7 +110,12 @@ struct MetrisOptions{
       ("opt-swap-thres", po::value<double>(),
                     "Quality p-norm (over shell) increase threshold for swaps.")
       ("opt-swap-niter", po::value<int>(),
-                    "Inner optimization loop global swapping iterations");
+                    "Inner optimization loop global swapping iterations")
+      ("qua-surf-wt-quality", po::value<double>(),
+                    "Weight of raw quality in surface quality.")
+      ("qua-surf-wt-normal", po::value<double>(),
+                    "Weight of normal deviation in surface quality.");
+
 
     // ----------------- Generic flags. Used for quick debugging
     s.add_options()  

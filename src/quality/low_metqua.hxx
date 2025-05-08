@@ -31,13 +31,6 @@ ftype metqua(Mesh<MetricFieldType> &msh,
              AsDeg asdmsh, AsDeg asdmet, 
              int ielem, ftype difto = 1);
 
-template <class MetricFieldType, int gdim, int tdim, 
-          QuaFun iquaf = QuaFun::Distortion, 
-          typename ftype = double>
-ftype metqua0(Mesh<MetricFieldType> &msh, 
-              AsDeg asdmsh, AsDeg asdmet, 
-              const int *ent2poi, ftype difto = 1);
-
 
 
 /* ----------------------------------------------

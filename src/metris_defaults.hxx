@@ -36,6 +36,9 @@ namespace Defaults{
   const int opt_smoo_niter = 100;
   const double opt_smoo_tol = 0.005;
 
+  const double qua_surf_wt_normal  = 1;
+  const double qua_surf_wt_quality = 1;
+
   const int opt_swap_niter = 100;
   const int opt_swap_pnorm = opt_pnorm;
   const double opt_swap_thres = 0.0;

@@ -31,7 +31,8 @@ namespace Metris{
 // iseed0: an edge on this curve close to first t 
 template<class MFT>
 void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lcorn,
-                    const dblAr1 &lnewt, const intAr1 &ledge, int ithrd1, int ithrd2){
+                    const dblAr1 &lnewt, const intAr1 &ledge, 
+                    int ithrd1, int ithrd2, int ithrd3){
   GETVDEPTH(msh.param);
 
   const int miter = 10; 
@@ -417,6 +418,19 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
         // it shouldn't be skewed, just a ribbon of triangles along a few edges.
         getnorballref<1>(msh,cav.lcfac,-1,nrmal);
       }
+
+      // 
+      ierro = increase_cavity(msh, cav, true, ithrd2, ithrd3);
+      if(DOPRINTS2()) writeMeshCavity("linecav4",msh,cav);
+      if(ierro != 0){
+        CPRINTF1(" - failed increase_cavity ierro = %d \n",ierro);
+        if(DOPRINTS2()) writeMeshCavity("linecav4",msh,cav);
+        if(msh.param->interactive && DOPRINTS1()) wait();
+        nerro++;
+        goto cleanup;
+      }
+
+      /*
       ierro = increase_cavity_Delaunay(msh, cav, ithrd2, nrmal);
       if(DOPRINTS2()) writeMeshCavity("linecav4",msh,cav);
       if(ierro != 0){
@@ -436,6 +450,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
         goto cleanup;
       }
       if(DOPRINTS2()) writeMeshCavity("linecav5",msh,cav);
+      */
 
 
 
@@ -556,10 +571,10 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
 
 template void insPointsCurve<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, 
    int iref, const double* range, const int*lcorn, const dblAr1 &lnewt, 
-   const intAr1 &ledge, int ithrd1, int ithrd2);
+   const intAr1 &ledge, int ithrd1, int ithrd2, int ithrd3);
 template void insPointsCurve<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, 
    int iref, const double* range, const int*lcorn, const dblAr1 &lnewt, 
-   const intAr1 &ledge, int ithrd1, int ithrd2);
+   const intAr1 &ledge, int ithrd1, int ithrd2, int ithrd3);
 
 
 } //namespace Metris

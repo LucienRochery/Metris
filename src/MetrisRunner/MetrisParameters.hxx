@@ -113,6 +113,11 @@ struct MetrisParameters{
   int opt_smoo_niter;
   double opt_smoo_tol;
 
+  // Surface qualities (Distortion only atm) weight the main term by qua_surf_w_quality
+  // and the normal deviation term by qua_surf_w_normal. 
+  double qua_surf_wt_normal;
+  double qua_surf_wt_quality;
+
   // -- Quality (quafun_unit)
   // compute coef_det (det - 1)^powr_det + idem(tra)
   double opt_coef_det, opt_coef_tra;

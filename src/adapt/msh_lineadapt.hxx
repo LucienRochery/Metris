@@ -34,7 +34,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
 
 template<class MFT>
 void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lcorn,
-  const dblAr1 &lnewt, const intAr1 &ledge, int ithrd1, int ithrd2);
+  const dblAr1 &lnewt, const intAr1 &ledge, int ithrd1, int ithrd2, int ithrd3);
 /* ---------------------------------------------
 // Functions auxiliary to msh_lineadapt.hxx 
 // Functions that don't have a use outside of breaking up adaptGeoLines

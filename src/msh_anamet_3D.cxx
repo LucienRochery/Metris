@@ -119,7 +119,7 @@ void anamet3D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   SANS::SurrealS<3,double> metS[6];
   eig2met<3,SANS::SurrealS<3,double>>(eigval,eigvec[0],metS);
 
-  if(idif1 > 0) getmet_SurS2dbl<3>(metS,met,dmet);
+  getmet_SurS2dbl<3>(metS,met,dmet);
 
   //for(int jj = 0; jj < 6; jj++){
   //  met[jj] = metS[jj].value();
@@ -231,7 +231,7 @@ void anamet3D_3([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   eig2met<3,SANS::SurrealS<2,double>>(eigval,rot[0],metS);
 
 
-  if(idif1 > 0) getmet_SurS2dbl<3>(metS,met,dmet);
+  getmet_SurS2dbl<3>(metS,met,dmet);
 
 }
 
@@ -267,7 +267,7 @@ void anamet3D_4([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   // SANS::SurrealS<3,double> metS[6] = {1/(scal*scal), 0, 1/(scal*scal), 0, 0, 1/(scal*scal)};
 
 
-  if(idif1 > 0) getmet_SurS2dbl<3>(metS,met,dmet);
+  getmet_SurS2dbl<3>(metS,met,dmet);
 
 }
 

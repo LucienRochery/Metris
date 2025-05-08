@@ -5,20 +5,44 @@
 
 
 #include "low_normal.hxx"
+#include "low_eval.hxx"
 #include "low_geo.hxx"
 #include "linalg/det.hxx"
 #include "Mesh/MeshBase.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include "utils/mprintf.hxx"
+#include "utils/CT_loop.hxx"
 #include "io_libmeshb.hxx"
+#include "metris_constants.hxx"
 
 namespace Metris{
+
 
 
 void getnorfacP1(const int *fac2pol, const dblAr2 &coord, double *nrmal){
   METRIS_ASSERT(coord.get_stride() == 3);
   vecprod_vdif(coord[fac2pol[1]],coord[fac2pol[0]],
                coord[fac2pol[2]],coord[fac2pol[0]],nrmal);
+}
+
+void getnorfac(const MeshBase &msh, int iface, 
+               const double *bary, AsDeg asdmsh, double *nrmal){
+
+  METRIS_ASSERT(msh.idim == 3);
+
+  if(asdmsh == AsDeg::P1 || msh.curdeg == 1){
+    getnorfacP1(msh.fac2poi[iface], msh.coord, nrmal);
+    return;
+  }
+
+  double coop[3], jmat[2][3];
+  CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
+    eval2<3, ideg>(msh.coord, msh.fac2poi[iface], msh.getBasis(), 
+                   DifVar::Bary, DifVar::None, 
+                   bary, coop, jmat[0], NULL);
+    vecprod(jmat[0],jmat[1],nrmal);
+  }}CT_FOR1(ideg);
+  return;
 }
 
 static int warning_print_CADnor = 0;

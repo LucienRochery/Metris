@@ -33,6 +33,7 @@ void adaptGeoLines2(Mesh<MFT> &msh){
   GETVDEPTH(msh.param);
   int ithrd1 = 0;
   int ithrd2 = 1;
+  int ithrd3 = 2;
 
   if(!msh.CAD()) return;
 
@@ -186,7 +187,7 @@ void adaptGeoLines2(Mesh<MFT> &msh){
       genPointsCurve<MFT>(msh, iref, icor0, crv_lens[iref], ref2rng[iref], lnewt, ledge);
 
       // Insert them 
-      insPointsCurve<MFT>(msh, iref, ref2rng[iref], ref2cor[iref], lnewt, ledge, ithrd1, ithrd2);
+      insPointsCurve<MFT>(msh, iref, ref2rng[iref], ref2cor[iref], lnewt, ledge, ithrd1, ithrd2, ithrd3);
 
       if(DOPRINTS2()) writeMesh("lineadapt" + std::to_string(iref),msh);
     } // for iCADed

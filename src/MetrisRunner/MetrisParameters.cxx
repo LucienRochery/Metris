@@ -66,6 +66,10 @@ MetrisParameters::MetrisParameters(){
   opt_swap_thres = Defaults::opt_swap_thres;
 
 
+  qua_surf_wt_normal  = Defaults::qua_surf_wt_normal;
+  qua_surf_wt_quality = Defaults::qua_surf_wt_quality;
+
+
   opt_coef_det = 1.0;
   opt_powr_det = -2;
 
@@ -272,6 +276,15 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   }
   if(opt.count("opt-swap-niter")){
     opt_swap_niter = opt.m["opt-swap-niter"].as<int>();
+  }
+
+
+  if(opt.count("qua-surf-wt-quality")){
+    qua_surf_wt_quality = opt.m["qua-surf-wt-quality"].as<double>();
+  }
+
+  if(opt.count("qua-surf-wt-normal")){
+    qua_surf_wt_normal = opt.m["qua-surf-wt-normal"].as<double>();
   }
 
   if(opt.count("iflag1")){

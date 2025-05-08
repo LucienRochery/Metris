@@ -11,8 +11,13 @@
 
 namespace Metris{
 
+enum class AsDeg;
+
 
 void getnorfacP1(const int *fac2pol, const dblAr2 &coord, double *nrmal);
+
+void getnorfac(const MeshBase &msh, int iface, 
+               const double *bary, AsDeg asdmsh, double *nrmal);
 
 // Average normals at the vertices
 // To compute the CAD normal, the safest is to average the vertex normals.

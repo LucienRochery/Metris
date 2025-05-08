@@ -13,9 +13,12 @@
 #include "../metris_constants.hxx"
 #include "../aux_exceptions.hxx"
 
-//#include <functional>
-
 namespace Metris{
+
+  // Distortion is C det(JK^T M JK)^(1/n) / tra(JK^T M JK)
+  // Unit is cf quafun_unit.cxx not being used currently.
+  // Distortion has additionally a normal deviation penalization term.
+  // Weights are given by 
 
   enum class QuaFun{Distortion,Unit};
 

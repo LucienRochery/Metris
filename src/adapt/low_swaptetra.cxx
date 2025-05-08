@@ -355,7 +355,7 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
         if(ipoin == ipoi2) continue;
         if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
         msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1];
-        CPRINTF1(" - %d -> %d swap try point %d from elt %d\n",nshell, 2*(nshell-2), ielem);
+        CPRINTF1(" - %d -> %d swap try point %d from elt %d\n",nshell, 2*(nshell-2), ipoin,ielem);
         cav.ipins = ipoin;
         ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
         CPRINTF1("- aux_swaptetedge called cavity, ierro = %d info.done = %d qnrm1 = %e\n",
