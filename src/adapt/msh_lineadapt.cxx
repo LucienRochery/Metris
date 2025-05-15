@@ -1192,13 +1192,17 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
     } // while(true)
 
     crv_len[iref] += edg_len0;
+    CPRINTF2(" - iref %d len + %e\n",iref,edg_len0);
 
   } // for int iedge 
+
+
 
 
   if(DOPRINTS1()){
     for(int iref = 0; iref < nref; iref++)
       CPRINTF1(" - END line %d/%d len = %f\n",iref, nref, crv_len[iref]);
+
   }
 
 

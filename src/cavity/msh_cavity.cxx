@@ -143,9 +143,6 @@ int cavity_operator(Mesh<MFT> &msh ,
       CPRINTF1("-- reconnect_lincav done nedg0 = %d nedge = %d npoi0 = %d npoin = %d\n",
                nedg0,msh.nedge,npoi0,msh.npoin);
 
-      //printf("## DEBUG: costly call to check_topo after lincav\n");
-      //check_topo(msh,nbpo0, npoi0, nedg0, nfac0, nele0);
-
 			ierro = reconnect_faccav<MFT, ideg>(msh, cav, opts, work, nedg0, &qmax, ithread);
 
       {
@@ -155,9 +152,6 @@ int cavity_operator(Mesh<MFT> &msh ,
         if(check_qua) CPRINTF1(" - after reconnect_faccav qmax = %f \n",qmax);
       }
       if(msh.get_tdim() == 2) info.qmax_end = qmax;
-
-      //printf("## DEBUG: costly call to check_topo after lincav\n");
-      //check_topo(msh,nbpo0, npoi0, nedg0, nfac0, nele0);
 
 			if(ierro > 0) goto cleanup;
 
@@ -229,6 +223,7 @@ int cavity_operator(Mesh<MFT> &msh ,
 
   //-------- cleanup (error case)
 	cleanup:
+  msh.tag[ithread] = cav.maxtag;
   CPRINTF1("-- Cavity error ierro = %d \n",ierro);
   if(DOPRINTS2()){
     // Write out the cavity. 
@@ -236,7 +231,7 @@ int cavity_operator(Mesh<MFT> &msh ,
   }
 	//METRIS_THROW_MSG(TODOExcept(), 
   //  "Get rid of bpoi entries of existing points? Do these exist? Check ierro = "<<ierro);
-  msh.tag[ithread] = cav.maxtag;
+  msh.tag[ithread]++;
   if(msh.isboundary_faces()){
     for(int iface = nfac0; iface < msh.nface; iface++){
       msh.fac2tag(ithread,iface) = msh.tag[ithread];
@@ -248,9 +243,11 @@ int cavity_operator(Mesh<MFT> &msh ,
     }
   }
   for(int ibpoi = nbpo0; ibpoi < msh.nbpoi; ibpoi++){
+    INCVDEPTH(msh.param);
     int ip = msh.bpo2ibi(ibpoi,0);
     if( ip < 0 ) continue;
     if(msh.poi2tag(ithread,ip) >= msh.tag[ithread]) continue;
+    CPRINTF1(" - remove ipoin %d bpois of new entities\n",ip);
     msh.poi2tag(ithread,ip) = msh.tag[ithread];
     msh.rembpotag(ip,ithread);
   }
@@ -259,10 +256,13 @@ int cavity_operator(Mesh<MFT> &msh ,
 	msh.set_nedge(nedg0);
 	msh.set_nface(nfac0);
 	msh.set_nelem(nele0);
+  
+  cav.maxtag = MAX(cav.maxtag, msh.tag[ithread]);
+
 
   finish:
   msh.tag[ithread] = cav.maxtag;
-  if(msh.param->dbgfull) check_topo(msh,ithread);
+  if(ierro == 0 && msh.param->dbgfull) check_topo(msh,ithread);
 	return ierro;
 }
 // See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html

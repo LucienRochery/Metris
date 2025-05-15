@@ -288,14 +288,6 @@ int MeshBase::newbpotopo(int ipoin, int tdim, int ientt){
       if(ient0 == ientt && ient0 >= 0) return ibpoi;
     }
 
-    //int ibpo2 = ibpoi;
-    //int ibprv = -1;
-    //do{
-    //  ibprv = ibpo2;
-    //  ibpo2 = bpo2ibi(ibpo2,3);
-    //  if(ibpo2 < 0 || bpo2ibi(ibpo2,1) > tdim) break;
-    //}while(ibpo2 >= 0 && ibpo2 != ibpoi);
-
     // Create new ibpoi
     set_nbpoi(nbpoi+1);
     int tmp = bpo2ibi(ibprv,3);
@@ -307,18 +299,8 @@ int MeshBase::newbpotopo(int ipoin, int tdim, int ientt){
   bpo2ibi(ibpon,0) = ipoin; 
   bpo2ibi(ibpon,1) = tdim;  // Type
   bpo2ibi(ibpon,2) = ientt; // Ref
-  //bpo2ibi(ibpon,3) = ibpoi; // Link to next
 
   for(int i = 0; i < nrbi ;i++) bpo2rbi(ibpon,i) = 0;
-  
-
-  //if(ibpoi >= 0){
-  //  // There is no particular order here, just put it at the start
-  //  int tmp = bpo2ibi(ibpoi,3);
-  //  bpo2ibi(ibpoi,3) = ibpon;
-  //  bpo2ibi(ibpon,3) = tmp;
-  //  //if(tmp < 0) bpo2ibi(ibpon,3) = ibpoi; // Not a loop
-  //}
 
   return ibpon;
 }
@@ -335,6 +317,7 @@ void MeshBase::rembpotag(int ipoin, int ithread){
   int ibpop = -1;    // previous
   int nn = 0;
   do{
+    INCVDEPTH(param);
     nn++;
     METRIS_ASSERT(nn <= METRIS_MAX_WHILE);
     METRIS_ASSERT(ibpoc >= 0 && ibpoc < nbpoi);
@@ -343,13 +326,17 @@ void MeshBase::rembpotag(int ipoin, int ithread){
 
     bool rement = false;
 
+    int ietag = -1;
     if(ientt < 0) rement = true;
     else{
-      int ietag = tdim == 1 ? edg2tag(ithread,ientt) :
-                  tdim == 2 ? fac2tag(ithread,ientt) : itag-1; // corner
+      ietag = tdim == 1 ? edg2tag(ithread,ientt) :
+              tdim == 2 ? fac2tag(ithread,ientt) : itag-1; // corner
       if(ietag >= itag) rement = true;
     }
     int ibpon = bpo2ibi(ibpoc,3); // next
+
+    CPRINTF2(" - rembpotag ip %d ib %d entity %d dim %d remove ? %d ent tag %d tag %d\n",
+             ipoin, ibpoc, ientt, tdim, rement, ietag, itag);
     
     if(rement){ // Remove this entry 
       // Update previous link. If ibpop == -1, this is still poi2bpo. 

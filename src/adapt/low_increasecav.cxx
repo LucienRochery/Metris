@@ -902,6 +902,8 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
   GETVDEPTH(msh.param);
 
   const int tdim = msh.get_tdim();
+  // Note ipins must be seeded with newbpotopo
+  const int pdim_ipins = msh.getpoitdim(ipins);
 
   //const intAr2 &ent2ent = msh.ent2ent(tdim);
   const intAr2 &ent2poi = msh.ent2poi(tdim);
@@ -996,7 +998,28 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
                 ipoin,len,len <= 1.0/sqrt(2));
 
       if(len <= 1.0/sqrt(2)){
-        if(!opts.allow_remove_points) return -1; 
+        int pdim = msh.getpoitdim(ipoin);
+
+        if(pdim < pdim_ipins){
+          CPRINTF1(" - short edge and other end has dim %d < %d = dim ipins -> reject\n",
+            pdim, pdim_ipins);
+          return -1;
+        }
+
+        if(pdim == pdim_ipins && !opts.allow_remove_points){
+          CPRINTF1(" - short edge and other end has dim %d = %d = dim ipins "
+                  "w/ opts.allow_remove_points == false -> reject\n",
+                 pdim, pdim_ipins);
+          return -1;
+        }
+
+        if(pdim > pdim_ipins && !opts.allow_remove_points_superdim){
+          CPRINTF1(" - short edge and other end has dim %d > %d = dim ipins "
+                  "w/ opts.allow_remove_points_superdim == false -> reject\n",
+                 pdim, pdim_ipins);
+          return -1;
+        }
+
         lbedg.set_n(0);
         lbfac.set_n(0);
         lbtet.set_n(0);
@@ -1004,7 +1027,6 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
           ball2(msh,ipoin,ientt,lbfac,lbedg,&iopen,&imani,ithrd2);
         }else{
           ball3(msh,ipoin,ientt,lbtet,&iopen,ithrd2);
-          int pdim = msh.getpoitdim(ipoin);
           if(pdim <= 2){
             // Also get ball2 of point
             int iface = -1;

@@ -57,7 +57,7 @@ int getnorfacCAD(const MeshBase &msh, int iface, double *nrmal){
     int ipoin = msh.fac2poi(iface,iver);
     int ibpoi = msh.poi2ebp(ipoin,2,iface,-1);
     CPRINTF2(" - getnorfacCAD iface %d iver %d ipoin %d ibpoi %d\n", iface, iver, ipoin, ibpoi);
-    METRIS_ASSERT(ibpoi >= 0);
+    METRIS_ASSERT_MSG(ibpoi >= 0," boundary point "<<ipoin<<" has no ibpoi");
 
     double dum[3];
     if(getnorpoiCAD2(msh,ibpoi,dum)){

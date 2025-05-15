@@ -11,6 +11,7 @@
 
 #include "MetrisRunner/MetrisRunner.hxx"
 #include "msh_checktopo.hxx"
+#include "io_libmeshb.hxx"
 
 #ifdef USE_PETSC
   #include <petscsys.h>
@@ -33,51 +34,58 @@ int main_metris(int argc, char** argv){
   MetrisOptions opt = run.opt;
 
 
-  if(param.iverb >= 1) run.statMesh();
+  try{
 
-  if(param.dbgfull) check_topo(*run.msh_g,0);
+    if(param.iverb >= 1) run.statMesh();
 
-  //if(run.param.opt_unif){
-  //  printf("## EXPERIMENTAL opt-unif ONLY \n");
-  //  if(run.metricFE){
-  //    Mesh<MetricFieldFE        > *msh = (Mesh<MetricFieldFE        > *) run.msh_g;
-  //    rebalanceMesh<MetricFieldFE,2>(*msh);
-  //  }else{
-  //    Mesh<MetricFieldAnalytical> *msh = (Mesh<MetricFieldAnalytical> *) run.msh_g;
-  //    rebalanceMesh<MetricFieldAnalytical,2>(*msh);
-  //  }
-  //  run.writeOutputs();
-  //  return 0;
-  //}
+    if(param.dbgfull) check_topo(*run.msh_g,0);
 
-
-  run.adaptMesh();
-
-  run.optimMesh();
+    //if(run.param.opt_unif){
+    //  printf("## EXPERIMENTAL opt-unif ONLY \n");
+    //  if(run.metricFE){
+    //    Mesh<MetricFieldFE        > *msh = (Mesh<MetricFieldFE        > *) run.msh_g;
+    //    rebalanceMesh<MetricFieldFE,2>(*msh);
+    //  }else{
+    //    Mesh<MetricFieldAnalytical> *msh = (Mesh<MetricFieldAnalytical> *) run.msh_g;
+    //    rebalanceMesh<MetricFieldAnalytical,2>(*msh);
+    //  }
+    //  run.writeOutputs();
+    //  return 0;
+    //}
 
 
-  int ielev = run.degElevate();
+    run.adaptMesh();
 
-  if(param.dbgfull) check_topo(*run.msh_g,0);
-
-  if(param.curveType > 0 && !ielev){ // Not really smoothing, rather metric based curving
-    run.curveMesh();
-  }
-
-  if(param.anaSol && param.smoo_type == 1 || param.smoo_type == 0){
     run.optimMesh();
+
+
+    int ielev = run.degElevate();
+
+    if(param.dbgfull) check_topo(*run.msh_g,0);
+
+    if(param.curveType > 0 && !ielev){ // Not really smoothing, rather metric based curving
+      run.curveMesh();
+    }
+
+    if(param.anaSol && param.smoo_type == 1 || param.smoo_type == 0){
+      run.optimMesh();
+    }
+    
+    if(param.dbgfull) check_topo(*run.msh_g,0);
+
+    run.writeOutputs();
+
+
+    if(param.iverb >= 1) run.statMesh();
+
+    //#ifdef USE_PETSC
+    //  PetscCall(PetscFinalize());
+    //#endif
+  }catch(const MetrisExcept &e){
+    printf("## Exception thrown, print mesh\n");
+    writeMesh("exception",*run.msh_g);
+    throw(e);
   }
-  
-  if(param.dbgfull) check_topo(*run.msh_g,0);
-
-  run.writeOutputs();
-
-
-  if(param.iverb >= 1) run.statMesh();
-
-  //#ifdef USE_PETSC
-  //  PetscCall(PetscFinalize());
-  //#endif
 
   return 0;
 }

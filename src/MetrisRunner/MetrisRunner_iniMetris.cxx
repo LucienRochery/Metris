@@ -11,6 +11,7 @@
 #include "../metris_options.hxx"
 #include "../aux_exceptions.hxx"
 #include "../msh_checktopo.hxx"
+#include <git.h>
 
 namespace Metris{
 
@@ -34,18 +35,30 @@ param(&param_){
 
 void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back){
 
-  //hookedAPI = NULL;
-
   if(param_.iverb >= 1){
 
-    std::cout<<"\n\n"
+    printf("\n\n"
+    "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
     "Metris: high-order metric-based non-manifold tetrahedral remesher\n"
-    "Copyright (C) 2023-2024, Massachusetts Institute of Technology\n"
+    "Copyright (C) 2023-2025, Massachusetts Institute of Technology\n"
     "Licensed under The GNU Lesser General Public License, version 2.1\n"
-    "See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n";
+    "See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n\n"
+    );
+
+    if(git_IsPopulated()){
+      printf("Metris Git repository URL " METRIS_GIT_URL "\n");
+      printf("commit SHA1 %s ",git_CommitSHA1());
+      if(git_AnyUncommittedChanges()){
+        printf("with uncommitted changes.\n");
+      }else{
+        printf("no uncommitted changes.\n");
+      }
+    }else{
+      printf("This build not in a Git repository.\n");
+    }
 
     #ifndef NDEBUG
-    std::cout<<"Debug build.\n";
+    printf("\nDebug build.\n");
     #endif
 
     bool use_petsc = false, use_absl=false;
@@ -66,21 +79,19 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
       std::cout<<"\n";
     }
 
-    std::cout<<"\n\n";
-    
-    // Here go Metris prints
     if(param_.dbgfull){
       printf("\n\n##################################################\n");
       printf("### FULL DEBUG -> VERY EXPENSIVE ! -dbgfull option\n");
       printf("##################################################\n\n\n");
     }
-  }
-  if(param_.iverb >= 1){
+
     const char *OCCrev;
     int eg_imajor, eg_iminor;
     EG_revision(&eg_imajor, &eg_iminor, &OCCrev);
-    printf("Compiled with EGADS version %d.%d\n",eg_imajor,eg_iminor);
+    printf("\nCompiled with EGADS version %d.%d\n",eg_imajor,eg_iminor);
     printf("              OCC revision: %s\n\n",OCCrev);
+
+    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
   }
   
   if(data_front == NULL && data_back == NULL && !param_.inpBack && !param_.inpMesh) METRIS_THROW_MSG(WArgExcept(),

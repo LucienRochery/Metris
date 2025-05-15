@@ -194,6 +194,8 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
 
       CPRINTF1(" - insert newt %d / %d at t = %f \n", inewt, ninsp, tcur);
 
+      if(msh.param->dbgfull) check_topo(msh,ithrd2);
+
       int ipnew = msh.newpoitopo(1, -1);
       int ibnew = msh.newbpotopo(ipnew,1,t2sed[inewt+1]);
       cav.ipins = ipnew;
@@ -459,10 +461,10 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
         ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
       }}CT_FOR1(ideg);
 
-      if(ierro != 0){
-        printf("## WAIT: in insPointsCurve cavity ierro %d \n",ierro);
-        wait();
-      }
+      //if(ierro != 0){
+      //  printf("## WAIT: in insPointsCurve cavity ierro %d \n",ierro);
+      //  wait();
+      //}
 
       if(ierro != 0){
         CPRINTF1(" - failed cavity_operator ierro = %d \n",ierro);

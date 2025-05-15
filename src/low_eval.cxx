@@ -295,27 +295,28 @@ double eval_bezierfunc(const int * __restrict__ idx,
   const double  * __restrict__  bary, int ider, double * __restrict__  dbez){
     double eval;
     for(int ii = 0; ii < idim + 1; ii++){
-      if(idx[ii] < 0) {
+      if(idx[ii] < 0){
         eval = 0;
         if(ider > 0) 
           for(int jj = 0; jj < idim; jj++) dbez[jj] = 0;
         return eval;
       }
     }
+    double eval0;
     if constexpr (idim == 1){
-      eval = cbzedg.s[ideg][mul2nod(idx[0],idx[1])];
+      eval = eval0 = cbzedg.s[ideg][mul2nod(idx[0],idx[1])];
       if(idx[0] < 0 || idx[1] < 0){
         eval = 0;
         METRIS_ASSERT(ider == 0); // Not implemented yet, just fill with 0
       }
     }else if(idim == 2){
-      eval = cbzfac.s[ideg][mul2nod(idx[0],idx[1],idx[2])];
+      eval = eval0 = cbzfac.s[ideg][mul2nod(idx[0],idx[1],idx[2])];
       if(idx[0] < 0 || idx[1] < 0 || idx[2] < 0){
         eval = 0;
         METRIS_ASSERT(ider == 0); // Not implemented yet, just fill with 0
       }
     }else if(idim == 3){
-      eval = cbztet.s[ideg][mul2nod(idx[0],idx[1],idx[2],idx[3])];
+      eval = eval0 = cbztet.s[ideg][mul2nod(idx[0],idx[1],idx[2],idx[3])];
       if(idx[0] < 0 || idx[1] < 0 || idx[2] < 0 || idx[3] < 0){
         eval = 0;
         METRIS_ASSERT(ider == 0); // Not implemented yet, just fill with 0
@@ -340,8 +341,12 @@ double eval_bezierfunc(const int * __restrict__ idx,
       for(int ii = 0; ii < idim + 1; ii++) idx2[ii] = idx[ii];
       double dd[idim+1];
       for(int ii = 0; ii < idim + 1; ii++){
+        if(idx[ii] <= 0){
+          dd[ii] = 0;
+          continue;
+        }
         idx2[ii] -= 1;
-        dd[ii] = idim*eval_bezierfunc<ideg-1,idim>(idx,bary,-1,NULL);
+        dd[ii] = idx[ii]*eval0*eval_bezierfunc<ideg-1,idim>(idx2,bary,-1,NULL);
         idx2[ii] += 1;
       }
       for(int ii = 0; ii < idim; ii++){

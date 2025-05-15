@@ -235,6 +235,12 @@ double linearRegression(int n, double *x, double *y) {
   const auto s_xx = std::inner_product(v_x.begin(), v_x.end(), v_x.begin(), 0.0);
   const auto s_xy = std::inner_product(v_x.begin(), v_x.end(), v_y.begin(), 0.0);
   const auto a    = (n * s_xy - s_x * s_y) / (n * s_xx - s_x * s_x);
+  if(std::isnan(a)){
+    printf("## linearRegression nan coeff a using n = %d sx = %e sy = %e\n",
+      n,s_x,s_y);
+    printf(" s_xx %e s_xy %e\n",s_xx,s_xy);
+    METRIS_THROW(GeomExcept());
+  }
   return a;
 }
 

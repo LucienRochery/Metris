@@ -49,7 +49,7 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   static_assert(gdim==2 || gdim==3);
   const int pnorm = msh.param->opt_pnorm;
   METRIS_ASSERT(pnorm > 0);
-  constexpr int tdim = gdim;
+  constexpr int tdim  = gdim;
   constexpr int nhess = (gdim*(gdim+1))/2;
 
   double bary[tdim+1];

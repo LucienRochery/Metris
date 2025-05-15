@@ -51,6 +51,7 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
   opts.allow_topological_correction = false;
   opts.skip_topo_checks = true;
   opts.allow_remove_points = false;
+  opts.allow_remove_points_superdim = false;
   opts.cache_tetra_quality = true;
 
   // Precompute initial tetra quality and store in cavity hash table.

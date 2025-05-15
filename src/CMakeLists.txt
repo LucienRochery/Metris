@@ -317,6 +317,7 @@ target_link_libraries(libMetris PUBLIC libmeshb
                                        alglib
                                        ${BOOST_TRACELIBS}
                                        nlopt
+                                       cmake_git_version_tracking
                                        )
 if(CLP_FOUND)
   target_link_libraries(libMetris PUBLIC ${CLP_LIBRARIES})

@@ -66,7 +66,13 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
     const intAr2&  ent2poi = msh.ent2poi(tdimn);
     const intAr2r& ent2tag = msh.ent2tag(tdimn);
 
+    // ipins should always be seeded with a newbpotopo if it is going to be bdry
+    const int pdim_ipins = msh.getpoitdim(cav.ipins);
+    METRIS_ASSERT_MSG(pdim_ipins >= 0 && pdim_ipins <= msh.get_tdim(),
+      "pdim_ipins = "<<pdim_ipins);
 
+    // Tag points that won't be deleted: there is at least one elt outside
+    // the cavity that has the point. 
     for(int ientt : lcent){
       for(int ii = 0; ii < tdimn + 1; ii++){
         int ipoin = ent2poi(ientt,ii);
@@ -92,6 +98,15 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
         if(ipoin == cav.ipins) continue;
         if(msh.poi2tag(ithread,ipoin) >= msh.tag[ithread]) continue;
         CPRINTF2("  - rem pt ? %d \n", ipoin);
+
+        // Check the point dimension wrt to option allow_remove_points_superdim
+        int pdim = msh.getpoitdim(ipoin);
+        if(pdim > pdim_ipins && opts.allow_remove_points_superdim){
+          CPRINTF1(" - point dim %d > %d = dim(ipins) " 
+                   "with allow_remove_points_superdim, skip check\n",
+                   pdim, pdim_ipins);
+          continue;
+        }
 
         // point going to be deleted, but only if any existing lower dim entities
         // are also in the cavity. 

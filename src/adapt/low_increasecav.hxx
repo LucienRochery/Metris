@@ -9,6 +9,16 @@
 #include "../Mesh/MeshFwd.hxx"
 
 
+/*
+Cavity extension routines:
+- increase_cavity increases for validity and Delaunay
+- increase_cavity_lenedg increases/rejects for short edges
+
+The point ipins must be constructed by newpoitopo followed by newbpotopo 
+of the appropriate dimension.
+*/
+
+
 namespace Metris{
 
 class MshCavity;
@@ -22,7 +32,6 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
 // Increase cavity based on validity only 
 int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread);
 
-
 // Increase cavity for Delaunay criterion on ipoin 
 // normal is only necessary if dimension 3 and cavity has faces
 template<class MFT>
@@ -31,6 +40,13 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav,
 
 // Increase cavity to avoid short edges (add pts to collapse)
 // return nprem ++points to collapse
+// If an edge ipins-ipoin is short:
+// - if dim(ipoin) < dim(ipins), error (always)
+// - if dim(ipoin) == dim(ipins), error iff !opts.allow_remove_points
+// - if dim(ipoin) > dim(ipins), error iff !opts.allow_remove_points_superdim
+// I.e. set opts.allow_remove_points = false 
+//      and opts.allow_remove_points_superdim = true
+// to force a boundary operation except if it would conflict with boundary points.
 template<class MFT>
 int increase_cavity_lenedg(MeshMetric<MFT> &msh, MshCavity &cav, CavOprOpt &opts, 
                               int ipins, int ithrd1, int ithrd2);

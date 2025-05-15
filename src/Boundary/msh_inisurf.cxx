@@ -62,12 +62,15 @@ void prjMeshPoints(MeshBase &msh, int nbpo0, bool onlyproj, bool updtX){
 	ego obj;
 	double result[18];
 
+  msh.tag[ithrd]++;
+  int btag = msh.tag[ithrd]; // So we can move tag later for faces
 
 	if(onlyproj) goto doproj;
 
 
 	for(int ibpoi = 0; ibpoi < nbpo0; ibpoi++){
     INCVDEPTH(msh.param);
+    msh.bpo2tag(ithrd,ibpoi) = btag;
     int ipoin = msh.bpo2ibi(ibpoi,0);
 		int ientt = msh.bpo2ibi(ibpoi,2);
     METRIS_ASSERT_MSG(ientt >= 0,"ipoin = "<<ipoin<<" ientt "<<ientt
@@ -138,8 +141,6 @@ doproj:
 
   intAr1 lbad(10);
   lbad.set_n(0);
-  msh.tag[ithrd]++;
-  int btag = msh.tag[ithrd]; // So we can move tag later for faces
   // Corners and such may be delayed once 
   // Double full loop is overkill but simplest to write and few involved. 
   int ndelay = 0;
@@ -150,11 +151,11 @@ doproj:
       if(msh.poi2ent(ipoin,0) < 0) continue;
       if(msh.bpo2tag(ithrd,ibpoi) >= btag) continue;
 
-   	int ientt = msh.bpo2ibi(ibpoi,2);
-   	int bdim  = msh.bpo2ibi(ibpoi,1);
+   	  int ientt = msh.bpo2ibi(ibpoi,2);
+   	  int bdim  = msh.bpo2ibi(ibpoi,1);
       // Corners don't need projecting 
       if(bdim == 0) continue;
-   	METRIS_ASSERT(bdim >= 0 && bdim <= 2);
+   	  METRIS_ASSERT(bdim >= 0 && bdim <= 2);
 
       int ibpo0 = msh.poi2bpo[ipoin]; 
       int pdim  = msh.bpo2ibi(ibpo0,1);
@@ -269,7 +270,7 @@ doproj:
   while(lbad.get_n() > 0){
     INCVDEPTH(msh.param);
     if(niter++ > 100) METRIS_THROW_MSG(GeomExcept(), 
-                         "Could not fix "<<lbad.get_n()<<" points in CAD proj")
+                         "## Could not fix "<<lbad.get_n()<<" points in CAD proj")
 
     int ibpoi = lbad.pop();
     METRIS_ASSERT(msh.bpo2tag(ithrd,ibpoi) < btag);
@@ -279,9 +280,9 @@ doproj:
     int ifac0 = msh.bpo2ibi(ibpoi,2);
     int bdim  = msh.bpo2ibi(ibpoi,1);
     // Corners can't end up here. Edges neither for now (we could change this, but doing irep above)
-    METRIS_ASSERT_MSG(bdim == 2,"Corners cannot end up here");
+    METRIS_ASSERT_MSG(bdim == 2,"Neither corners nor edge points can end up here");
 
-    int iref = bdim == 1 ? msh.edg2ref[ifac0] : msh.fac2ref[ifac0];
+    int iref = msh.fac2ref[ifac0];
     METRIS_ASSERT(iref >= 0);
     obj = msh.CAD.cad2fac[iref];
 
@@ -328,7 +329,7 @@ doproj:
         }else{
           CPRINTF1("## EG_invEvaluateGuess error %d \n",ierro);
         }
-      }
+      }// for inode
 
       if(solvedpt) break;
 
@@ -566,12 +567,12 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 
   const int ideg = msh.curdeg;
 
-  if(msh.isboundary_faces() && msh.param->refineConventionsInp)
-    METRIS_THROW_MSG(TODOExcept(), "Surface bpois not handled iniMeshBdryPoints "
-      "with refineConventionsInp == true.");
+  //if(msh.isboundary_faces() && msh.param->refineConventionsInp)
+  //  METRIS_THROW_MSG(TODOExcept(), "Surface bpois not handled iniMeshBdryPoints "
+  //    "with refineConventionsInp == true.");
 
   intAr1 lrbpo(10);
-  int ncor0 = 0, ncor1 = 0;
+  int ncor0 = 0, ncor1 = 0, ncrebp = 0;
 
   intAr1 dum, lbfac(20);
   intAr1 lcof1(20), lcof2(20);
@@ -583,13 +584,13 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
   if(msh.isboundary_faces()) 
     MPRINTF("\n## WARNING: Faces untested in iniMeshBdryPoints w/ refineConventionsInp\n");
 
-
+  CPRINTF2(" - Refine convention bpoi intialization\n");
   for(int tdim = 1; tdim <= 2; tdim++){
     if(tdim == 2 && !msh.isboundary_faces()) break;
     int nentt = msh.nentt(tdim);
     const intAr2& ent2poi = msh.ent2poi(tdim);
     const intAr1& ent2ref = msh.ent2ref(tdim);
-    const int nnode = tdim == 1 ? getnnod1(ideg) : getnnod2(ideg);
+    const int nnode = getnnode(tdim,ideg);
 
     for(int ientt = 0; ientt < nentt; ientt++){
       INCVDEPTH(msh.param);
@@ -605,35 +606,30 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 
         int pdim = msh.bpo2ibi(ibpo0,1);
 
-        if(ipoin == 2){
-          printf("## DEBUG ipoin 2\n");
-          for(int ibpoi = ibpo0; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
-            printf("ibpoi %d :",ibpoi);
-            intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
-          }// for ibpoi
-        }
-
         lrbpo.set_n(0);
         for(int ibpoi = ibpo0; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+          INCVDEPTH(msh.param);
           int itype = msh.bpo2ibi(ibpoi,1);
+          CPRINTF2(" - ibpoi %d bpo tdim %d\n",ibpoi,itype);
           if(itype != tdim) continue;
           int ientt = msh.bpo2ibi(ibpoi,2);
+          CPRINTF2(" - ientt %d\n",ientt);
           if(ientt >= 0) continue;
           // In refine convention, the onGeometricEdges entry stores the ref
           // we put here - the entry. 
           int iref2 = - ientt - 1;
+          CPRINTF2(" - iref2 %d iref1 %d \n",iref2, iref1);
           if(iref2 != iref1) continue;
           // The ref is correct, but this could still be a loop (one ref, two t's)
           // Simply stack and deal with later
           lrbpo.stack(ibpoi);
         }// for ibpoi
 
-
+        CPRINTF2(" - tdim %d ientt %d ipoin %d nrbpo = %d \n",
+                 tdim,ientt,ipoin,lrbpo.get_n());
 
         if(lrbpo.get_n() == 0) continue;
 
-        CPRINTF1(" - tdim %d ientt %d ipoin %d nrbpo = %d \n",
-                 tdim,ientt,ipoin,lrbpo.get_n());
 
         if(lrbpo.get_n() == 1){
           int ibpoi = lrbpo.pop();
@@ -854,6 +850,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
             // Create new ibpois for the other faces
             for(int iface : lcofa){
               if(iface == ientt) continue;
+              ncrebp++;
               msh.newbpotopo(ipoin,2,iface);
             }// for iface 
 
@@ -869,7 +866,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
                "translated %d open, %d loop bpois \n",ncor1,ncor0);
     }else{
       CPRINTF1(" - VerticesOnGeometricFaces w/ refine convention: " 
-               "translated %d bpois \n",ncor1);
+               "translated %d bpois created %d\n",ncor1,ncrebp);
     }
   }// for tdim
 
@@ -882,7 +879,8 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
   noRefine:
 
 	// Start with edges. Corners are all initialized already. 
-  int ncre1 = 0;
+  int ntry1 = 0;
+  int nbpo0 = msh.nbpoi;
 	for(int iedge = 0; iedge < msh.nedge; iedge++){
     INCVDEPTH(msh.param);
 		if(isdeadent(iedge,msh.edg2poi)) continue;
@@ -895,14 +893,17 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 			// Create new bpo link either if point new bdry or if corner
 			if(ibpoi < 0 || msh.bpo2ibi(ibpoi,1) == 0){
 				msh.newbpotopo(ipoin,1,iedge);
-				ncre1++;
-        CPRINTF3(" - new edge bpo ipoin = %d iedge = %d ncre1 = %d\n",ipoin,iedge,ncre1);
+				ntry1++;
+        CPRINTF3(" - new edge bpo ipoin = %d iedge = %d ntry1 = %d\n",ipoin,iedge,ntry1);
 			}
 		}
 	}
+  int ncre1 = msh.nbpoi - nbpo0;
+
 
 	// Triangles are only boundary entities in dimension 3+
-  int ncre2 = 0;
+  int ntry2 = 0;
+  nbpo0 = msh.nbpoi;
 	if(msh.idim >= 3){
 		// We can now do faces as we needed to know about edge points. 
 		for(int iface = 0; iface < msh.nface; iface++){
@@ -917,15 +918,21 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 				// New bpo link if either new or (edge or corner) point. 
 				if(ibpoi < 0 || msh.bpo2ibi(ibpoi,1) < 2){
 					msh.newbpotopo(ipoin,2,iface);
-					ncre2++;
-          CPRINTF3(" - new face bpo ipoin = %d iface = %d ncre2 = %d\n",ipoin,iface,ncre2);
+					ntry2++;
+          CPRINTF3(" - new face bpo ipoin = %d iface = %d ntry2 = %d\n",ipoin,iface,ntry2);
+          //for(int ibpo2 = msh.poi2bpo[ipoin]; ibpo2 >= 0; ibpo2 = msh.bpo2ibi(ibpo2,3)){
+          //  printf("debug ibpo2 %d :",ibpo2);
+          //  intAr1(nibi,msh.bpo2ibi[ibpo2]).print();
+          //}
+          //wait();
 					continue;
 				}
 			}
 		}
 	}
+  int ncre2 = msh.nbpoi - nbpo0;
 
-  CPRINTF1("-- Created %d edge, %d face bpois \n",ncre1,ncre2);
+  CPRINTF1("-- Created %d/%d edge, %d/%d face bpois \n",ncre1,ntry1,ncre2,ntry2);
 
 	return ncre1 + ncre2;
 }

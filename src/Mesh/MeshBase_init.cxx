@@ -129,7 +129,7 @@ void MeshBase::initialize(MetrisAPI *data,
   }
   if(minref < 0){
     // All tets are ref 0: correct
-    CPRINTF1("## Tets have negative ref min = %d max = %d\n",minref,ndomn);
+    CPRINTF1("## Tets have negative ref min = %d max = %d -> correct\n",minref,ndomn);
     ndomn -= minref;
     for(int ielem = 0; ielem < nelem; ielem++){
       if(isdeadent(ielem,tet2poi)) continue;
@@ -147,6 +147,9 @@ void MeshBase::initialize(MetrisAPI *data,
   
   iniBdryPoints(0);
   if(param.dbgfull) check_topo(*this,0);
+
+
+  CPRINTF1("-- iniBdryPoints nbpoi %d -> %d\n",nbpo0, nbpoi);
 
   
   iniCADLink(nbpo0);
@@ -694,7 +697,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
         GmfInt         , &tet2ref[0   ], &tet2ref[nelem-1  ]);
     }}CT_FOR1(ideg);
   
-    for(int i = 0; i< nelem;i++){
+    for(int i = 0; i < nelem;i++){
       tet2ref[i] -= 1;
       for(int j = 0; j < getnnod3(curdeg); j++){
         tet2poi(i,j) -= 1;
@@ -706,36 +709,36 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
     }
     
-    #if 0
-    if(param->refineConventionsInp){
-      int nseen = 0;
-      bool ineg = false;
-      for(int ielem = 0; ielem < nelem; ielem++){
-        if(isdeadent(ielem,tet2poi)) continue;
-        nseen++;
-        if(nseen >= 100 && !ineg) break;
-        double meas;
-        if(!ineg){
-          meas = getmeasentP1<3>(tet2poi[ielem], coord);
-        }
-        if(ineg || meas < param->vtol){
-          METRIS_ENFORCE_MSG(ineg || nseen == 1, "## FIRST NEGATIVE ELEMENT IS RANK "<<nseen
-            << " meas "<<meas);
-          ineg = true;
-          int tmp = tet2poi(ielem,0);
-          tet2poi(ielem,0) = tet2poi(ielem,1);
-          tet2poi(ielem,1) = tmp;
-        }
-      }
-      if(ineg) CPRINTF1("## FLIPPED ELEMENT SIGNS !\n");
-    }
-    #else
+    //#if 0
+    //if(param->refineConventionsInp){
+    //  int nseen = 0;
+    //  bool ineg = false;
+    //  for(int ielem = 0; ielem < nelem; ielem++){
+    //    if(isdeadent(ielem,tet2poi)) continue;
+    //    nseen++;
+    //    if(nseen >= 100 && !ineg) break;
+    //    double meas;
+    //    if(!ineg){
+    //      meas = getmeasentP1<3>(tet2poi[ielem], coord);
+    //    }
+    //    if(ineg || meas < param->vtol){
+    //      METRIS_ENFORCE_MSG(ineg || nseen == 1, "## FIRST NEGATIVE ELEMENT IS RANK "<<nseen
+    //        << " meas "<<meas);
+    //      ineg = true;
+    //      int tmp = tet2poi(ielem,0);
+    //      tet2poi(ielem,0) = tet2poi(ielem,1);
+    //      tet2poi(ielem,1) = tmp;
+    //    }
+    //  }
+    //  if(ineg) CPRINTF1("## FLIPPED ELEMENT SIGNS !\n");
+    //}
+    //#else
 
-      if(isboundary_faces() && param->refineConventionsInp)
-        METRIS_THROW_MSG(TODOExcept(), "Surface bpois not handled MeshBase_init "
-          "with refineConventionsInp == true. Modify iniMeshBdryPoints.");
+    //  if(isboundary_faces() && param->refineConventionsInp)
+    //    METRIS_THROW_MSG(TODOExcept(), "Surface bpois not handled MeshBase_init "
+    //      "with refineConventionsInp == true. Modify iniMeshBdryPoints.");
 
-    #endif
+    //#endif
 
     CPRINTF2("-- Done reading %10d tetrahedra\n",nelem);
   }
@@ -978,9 +981,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
 
 
       if(!param->refineConventionsInp){
-        if(edg2tag(0,iedge) < tag[0]) 
+        if(edg2tag(0,iedge) < tag[0]){
           edg2tag(0,iedge) = tag[0];
-        else{
+        }else{
           edg2tag(0, iedge)++;
           maxtag = MAX(maxtag, edg2tag(0,iedge));
         }
@@ -1053,6 +1056,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
 
     for(int igpof = 0; igpof < ngpof; igpof++){
       int ipoin = lgpof(igpof,0) - 1;
+      // If in refineConvention, this will be a ref 1-n, otherwise an edge
       int iface = param->refineConventionsInp ? -lgpof(igpof,1) 
                                               : (lgpof(igpof,1) - 1);
       if(!param->refineConventionsInp && isdeadent(iface,fac2poi)){
@@ -1070,30 +1074,30 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       bpo2rbi(ibpoi,1) = rgpof(igpof,1);
     }
 
-    if(param->refineConventionsInp && idim >= 3){
-      for(int iface = 0; iface < nface; iface++){
-        if(isdeadent(iface,fac2poi)) continue;
-        for(int ii = 0; ii < 3; ii++){
-          int ipoin = fac2poi(iface,ii);
-          int ibpoi = poi2bpo[ipoin];
-          METRIS_ASSERT(ibpoi >= 0 && ibpoi < nbpoi);
-          // Find first ibpoi entry that is associated to an face of same ref
-          // and does not have an entity yet. 
-          for(;ibpoi >= 0; ibpoi = bpo2ibi(ibpoi,3)){
-            int itype = bpo2ibi(ibpoi,1);
-            if(itype != 2) continue;
-            int ientt = bpo2ibi(ibpoi,2);
-            if(ientt >= 0) continue;
-            // In refine convention, the onGeometricfaces entry stores the ref
-            // we put here - the entry. 
-            int iref = - ientt - 1;
-            if(iref != fac2ref[iface]) continue;
-            bpo2ibi(ibpoi,2) = iface;
-            break;
-          }
-        }
-      }
-    }
+    //if(param->refineConventionsInp && idim >= 3){
+    //  for(int iface = 0; iface < nface; iface++){
+    //    if(isdeadent(iface,fac2poi)) continue;
+    //    for(int ii = 0; ii < 3; ii++){
+    //      int ipoin = fac2poi(iface,ii);
+    //      int ibpoi = poi2bpo[ipoin];
+    //      METRIS_ASSERT(ibpoi >= 0 && ibpoi < nbpoi);
+    //      // Find first ibpoi entry that is associated to an face of same ref
+    //      // and does not have an entity yet. 
+    //      for(;ibpoi >= 0; ibpoi = bpo2ibi(ibpoi,3)){
+    //        int itype = bpo2ibi(ibpoi,1);
+    //        if(itype != 2) continue;
+    //        int ientt = bpo2ibi(ibpoi,2);
+    //        if(ientt >= 0) continue;
+    //        // In refine convention, the onGeometricfaces entry stores the ref
+    //        // we put here - the entry. 
+    //        int iref = - ientt - 1;
+    //        if(iref != fac2ref[iface]) continue;
+    //        bpo2ibi(ibpoi,2) = iface;
+    //        break;
+    //      }
+    //    }
+    //  }
+    //}
 
   }
 

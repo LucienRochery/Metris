@@ -198,7 +198,11 @@ void check_topo(MeshBase &msh,
           <<" = "<<msh.edg2poi(iedge,0)<<" "<<msh.edg2poi(iedge,1));
       }
       for(int ipoin = 0; ipoin < npoin; ipoin++){
-        METRIS_ENFORCE(msh.poi2tag(itag,ipoin) <= msh.tag[itag] && msh.poi2tag(itag,ipoin) >= 0);
+        METRIS_ENFORCE_MSG(msh.poi2tag(itag,ipoin) <= msh.tag[itag] 
+                        && msh.poi2tag(itag,ipoin) >= 0,
+                        "Wrong point tag ithread "<<itag<<" ipoin "
+                        << ipoin <<" has "<<msh.poi2tag(itag,ipoin)<<
+                        " tag is "<<msh.tag[itag]);
       }
     }
 
@@ -276,6 +280,14 @@ void check_topo(MeshBase &msh,
       int tdimn = msh.get_tdim();
       if(ibpoi >= 0) tdimn = msh.bpo2ibi(ibpoi,1);
 
+      if(!(tdimn == msh.poi2ent(ipoin,1) || tdimn == 0)){
+        printf("ipoin = %d poi2ent = %d %d",ipoin,msh.poi2ent(ipoin,0)
+               ,msh.poi2ent(ipoin,1));
+        for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+          printf("ibpoi %d : ",ibpoi);
+          intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
+        }
+      }
       METRIS_ENFORCE_MSG(tdimn == msh.poi2ent(ipoin,1) || tdimn == 0,
         "Wrong tdimn? ipoin = "<<ipoin<<" tdimn using bpo = "<<tdimn<<
         " in poi2ent = "<<msh.poi2ent(ipoin,1)); 

@@ -159,14 +159,6 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
       CPRINTF1(" - new edge %d = %d %d    \n",iedgn,
                 msh.edg2poi(iedgn,0), msh.edg2poi(iedgn,1) );
 
-      if(iref == 3 && (cav.ipins == 0 || ipseed == 0)){
-        printf("## DEBUG FOUND EDGE IN REF 3 POINTING TO 1 vertices %d %d \n",cav.ipins,ipseed);
-        printf("seed edge %d ref %d points %d %d \n",iedge,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1),
-          msh.edg2ref[iedge]);
-        writeMesh("debugref3",msh);
-        wait();
-      }
-
 
       for(int ii = 0; ii < 2; ii++){
         int ip = msh.edg2poi(iedgn,ii);

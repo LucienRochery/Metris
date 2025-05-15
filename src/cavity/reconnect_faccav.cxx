@@ -375,7 +375,7 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh,
   GETVDEPTH(msh.param);
 
   int ib = msh.poi2bpo[ip];
-  METRIS_ASSERT(ib >= 0);
+  METRIS_ASSERT_MSG(ib >= 0, "aux_bpo_update_fac called on non boundary point");
 
   // Easy case: same dim 
   if(msh.bpo2ibi(ib,1) == 2){

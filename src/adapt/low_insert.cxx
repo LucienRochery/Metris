@@ -57,6 +57,7 @@ int insertEdge(Mesh<MFT>& msh,
   opts.skip_topo_checks = true;
   opts.dryrun = false;
   opts.allow_remove_points = false; // good for an infinite loop
+  opts.allow_remove_points_superdim = true; // For boundary
 
   int mcavcorr = 5, ncavcorr;
 

@@ -21,6 +21,8 @@ execute_process(COMMAND "${GIT_EXECUTABLE}" config --get remote.origin.url
                 ERROR_QUIET
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+add_compile_definitions(METRIS_GIT_URL="${GITURL}")
+
 if(GITURL MATCHES "github.com")
   set(LIGHT_BUILD ON)
   message(WARNING "Disabled codegen!")

@@ -11,6 +11,7 @@
 #include "linalg/explogmet.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include "io_libmeshb.hxx"
+#include "utils/mprintf.hxx"
 
 #include "../libs/lplib3.h"
 
@@ -24,6 +25,7 @@ namespace Metris{
 // We can simply to a Lag2Bez routine call on the metric field too
 template<class MetricFieldType, int ideg>
 void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh){
+  GETVDEPTH(msh.param);
 
   double hmin = param.hmin;
   double hmax = param.hmax;
@@ -40,17 +42,17 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
 
   int nthread = GetNumberOfCores();
   if(nthread <= 0){
-    if(param.iverb >= 1)printf("## WARNING: LPlib function GetNumberOfCores() returned negative threads. Set to default %d.\n",METRIS_MAXTAGS);
+    CPRINTF1("## WARNING: LPlib function GetNumberOfCores() returned negative threads. Set to default %d.\n",METRIS_MAXTAGS);
     nthread = METRIS_MAXTAGS;
   }else{
-    if(param.iverb >= 3) printf("-- LPlib found ncore = %d \n",nthread);
+    CPRINTF2("-- LPlib found ncore = %d \n",nthread);
     if(nthread > METRIS_MAXTAGS){
-      if(param.iverb >= 1)printf("## WARNING: must verify nthread <= METRIS_MAXTAGS = %d. Increase in metris_constants.hxx.\n",METRIS_MAXTAGS);
+      CPRINTF1("## WARNING: must verify nthread <= METRIS_MAXTAGS = %d. Increase in metris_constants.hxx.\n",METRIS_MAXTAGS);
       nthread = METRIS_MAXTAGS;
     }
   }
   if(nproc > 0) nthread = MIN(nthread, nproc);
-  if(param.iverb >= 1) printf("Running intrinsic metric with nproc = %d \n",nthread);
+  CPRINTF1(" - running intrinsic metric with nproc = %d \n",nthread);
 
 
   int tdim = msh.get_tdim();
@@ -105,10 +107,10 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
    }}CT_FOR1(tdim_);
   }}CT_FOR1(gdim);
 
-  if(param.iverb >= 3) printf("Intrinsic metric accel 1 = %f \n",acc);
+  CPRINTF2(" - intrinsic metric accel 1 = %f \n",acc);
   acc = LaunchParallelMultiArg(LibIdx, LP_poi, 0, (void*)metcomp2_LPlib, 
                                3, &msh, lbdmin, lbdmax);
-  if(param.iverb >= 3) printf("Intrinsic metric accel 2 = %f \n",acc);
+  CPRINTF2(" - intrinsic metric accel 2 = %f \n",acc);
 
 	if(ibas0 == FEBasis::Bezier) msh.met.setBasis(FEBasis::Bezier);
 	

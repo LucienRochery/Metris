@@ -152,8 +152,16 @@ struct CavOprOpt{
 	// It will no doubt provide a large speedup to the first stage. 
 	bool skip_topo_checks;
 
-	// Only concerns volume or manifold surface points. 
-	bool allow_remove_points;
+	// Allow removing points of dimension >= as ipins ?
+  bool allow_remove_points;
+
+  // Allow removing points of dimension > as ipins ?
+	bool allow_remove_points_superdim;
+
+  // allow_remove_points supersedes allow_remove_points_superdim: 
+  // if allow_remove_points, then allow_remove_points_superdim is not considered.
+
+  // NB: allow_remove_points_subdim would make no sense.
 
 	// A corner (triple+ pt) is only removed if one is reinserting the same corner. 
 	// This defaults to false to avoid accidents. 
@@ -201,7 +209,8 @@ struct CavOprOpt{
 
 	CavOprOpt():allow_topological_correction(true)
              ,skip_topo_checks(true)
-	           ,allow_remove_points(true)
+             ,allow_remove_points(true)
+	           ,allow_remove_points_superdim(true)
 	           ,allow_remove_corners(false)
 	           ,max_increase_cav_geo(0)
              ,geodev1(0.5)
