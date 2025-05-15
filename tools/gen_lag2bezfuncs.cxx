@@ -1,5 +1,5 @@
 //Metris: high-order metric-based non-manifold tetrahedral remesher
-//Copyright (C) 2023-2024, Massachusetts Institute of Technology
+//Copyright (C) 2023-2025, Massachusetts Institute of Technology
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
@@ -329,7 +329,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv){
 //  strh<<"#include \"ho_constants.hxx\"\n";
 
   strh << "//Metris: high-order metric-based non-manifold tetrahedral remesher\n";
-  strh << "//Copyright (C) 2023-2024, Massachusetts Institute of Technology\n";
+  strh << "//Copyright (C) 2023-2025, Massachusetts Institute of Technology\n";
   strh << "//Licensed under The GNU Lesser General Public License, version 2.1\n";
   strh << "//See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n\n";
   strh<<"#include \"types.hxx\"\n\n";
@@ -355,7 +355,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char **argv){
   std::ostringstream strc;
 
   strc << "//Metris: high-order metric-based non-manifold tetrahedral remesher\n";
-  strc << "//Copyright (C) 2023-2024, Massachusetts Institute of Technology\n";
+  strc << "//Copyright (C) 2023-2025, Massachusetts Institute of Technology\n";
   strc << "//Licensed under The GNU Lesser General Public License, version 2.1\n";
   strc << "//See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n\n";
   strc<<"#include \"codegen_lag2bez.hxx\"\n\n";

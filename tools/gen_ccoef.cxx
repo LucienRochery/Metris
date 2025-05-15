@@ -1,5 +1,5 @@
 //Metris: high-order metric-based non-manifold tetrahedral remesher
-//Copyright (C) 2023-2024, Massachusetts Institute of Technology
+//Copyright (C) 2023-2025, Massachusetts Institute of Technology
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
@@ -53,7 +53,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv){
   printf("------- Generate codegen_ccoef.hxx\n");
   std::ostringstream str;
   str << "//Metris: high-order metric-based non-manifold tetrahedral remesher\n";
-  str << "//Copyright (C) 2023-2024, Massachusetts Institute of Technology\n";
+  str << "//Copyright (C) 2023-2025, Massachusetts Institute of Technology\n";
   str << "//Licensed under The GNU Lesser General Public License, version 2.1\n";
   str << "//See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n\n";
 
@@ -79,7 +79,7 @@ int main([[maybe_unused]] int argc, [[maybe_unused]] char** argv){
   str.clear();
   printf("------- Generate codegen_ccoef_d.hxx\n");
   str << "//Metris: high-order metric-based non-manifold tetrahedral remesher\n";
-  str << "//Copyright (C) 2023-2024, Massachusetts Institute of Technology\n";
+  str << "//Copyright (C) 2023-2025, Massachusetts Institute of Technology\n";
   str << "//Licensed under The GNU Lesser General Public License, version 2.1\n";
   str << "//See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n\n";
 
@@ -311,7 +311,7 @@ void gen_ccoef3(){
     std::ostringstream str;
 
     str << "//Metris: high-order metric-based non-manifold tetrahedral remesher\n";
-    str << "//Copyright (C) 2023-2024, Massachusetts Institute of Technology\n";
+    str << "//Copyright (C) 2023-2025, Massachusetts Institute of Technology\n";
     str << "//Licensed under The GNU Lesser General Public License, version 2.1\n";
     str << "//See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n\n";
 
@@ -441,7 +441,7 @@ void gen_ccoef2(){
     std::ostringstream str;
 
     str << "//Metris: high-order metric-based non-manifold tetrahedral remesher\n";
-    str << "//Copyright (C) 2023-2024, Massachusetts Institute of Technology\n";
+    str << "//Copyright (C) 2023-2025, Massachusetts Institute of Technology\n";
     str << "//Licensed under The GNU Lesser General Public License, version 2.1\n";
     str << "//See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n\n";
     
@@ -542,7 +542,7 @@ void gen_ccoef2(){
     //str.clear();
 
     //str << "//Metris: high-order metric-based non-manifold tetrahedral remesher\n";
-    //str << "//Copyright (C) 2023-2024, Massachusetts Institute of Technology\n";
+    //str << "//Copyright (C) 2023-2025, Massachusetts Institute of Technology\n";
     //str << "//Licensed under The GNU Lesser General Public License, version 2.1\n";
     //str << "//See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n\n";
 
