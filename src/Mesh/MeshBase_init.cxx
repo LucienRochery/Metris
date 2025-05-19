@@ -617,8 +617,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   }
 
   ncorn = GmfStatKwd(libIdx, GmfVerticesOnGeometricVertices);
+  CPRINTF2("-- Start reading %10d VerticesOnGeometricVertices (corners)\n",ncorn);
   if(ncorn > 0){
-    CPRINTF2("-- Start reading %10d VerticesOnGeometricVertices (corners)\n",ncorn);
     iwork.allocate(2*ncorn);
     iwork.set_n(2*ncorn);
     //GmfGetBlock(libIdx, GmfVerticesOnGeometricVertices, 1, ncorn, 0, NULL, NULL,

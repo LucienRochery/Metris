@@ -24,7 +24,7 @@ ftype quafun_unit(Mesh<MFT> &msh,
                 AsDeg asdmsh, AsDeg asdmet,
                 const int*__restrict__ ent2poi,  
                 const double*__restrict__ bary,
-                double*__restrict__ met_){
+                const double*__restrict__ met_){
 
   static_assert(gdim == 2 || gdim == 3);
   static_assert(tdim <= gdim); 
@@ -87,17 +87,17 @@ template FTYPE quafun_unit< MFT_VAL , 2, 2, FTYPE>\
                   (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
                    const int*__restrict__ ent2poi, \
                    const double*__restrict__ bary,\
-                   double*__restrict__ met); \
+                   const double*__restrict__ met); \
 template FTYPE quafun_unit< MFT_VAL , 3, 2, FTYPE>\
                   (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
                    const int*__restrict__ ent2poi, \
                    const double*__restrict__ bary,\
-                   double*__restrict__ met); \
+                   const double*__restrict__ met); \
 template FTYPE quafun_unit< MFT_VAL , 3, 3, FTYPE>\
                   (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
                    const int*__restrict__ ent2poi, \
                    const double*__restrict__ bary,\
-                   double*__restrict__ met); 
+                   const double*__restrict__ met); 
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,(MFT_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
 #undef EXPAND_TEMPLATE
@@ -123,7 +123,8 @@ template <class MFT, int gdim, typename ftype>
 ftype d_quafun_unit(Mesh<MFT> &msh,
                     AsDeg asdmsh, AsDeg asdmet,
                     const int* ent2poi,
-                    const double*__restrict__ bary, 
+                    const double*__restrict__ bary,
+                    const double*__restrict__ met_,
                     int ivar, 
                     FEBasis dofbas, 
                     DifVar idifmet, 
@@ -136,6 +137,7 @@ ftype d_quafun_unit(Mesh<MFT> &msh,
   ftype dtra[gdim], htra_[nhess];
   ftype ddet[gdim], hdet_[nhess];
 
+
   // This is not needed for the gradient as ivar pilots that 
   ftype *htra = NULL, *hdet = NULL;
   if(hquael != NULL){
@@ -145,7 +147,7 @@ ftype d_quafun_unit(Mesh<MFT> &msh,
 
   d_quafun_tradet<MFT,gdim,ftype>
       (msh,asdmsh,asdmet,
-       ent2poi,bary,ivar,dofbas,idifmet,
+       ent2poi,bary,ivar,dofbas,idifmet,met_,
        &tra,dtra,htra,
        &det,ddet,hdet);
 
@@ -282,6 +284,7 @@ template FTYPE d_quafun_unit< MFT_VAL , 2+gdim, FTYPE>\
                   (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2poi, \
                    const double*__restrict__ bary, \
+                   const double*__restrict__ met_, \
                    int ivar, \
                    FEBasis dofbas, \
                    DifVar idifmet, \

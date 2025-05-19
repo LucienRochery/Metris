@@ -248,6 +248,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       cav.lcedg.stack(t2sed[inewt+1]);
       msh.edg2tag(ithrd1,t2sed[inewt+1]) = msh.tag[ithrd1];
 
+
       // Seed cavity from both sides
       for(int it = 0; it <= 1; it++){
         int itext = it == 0 ? itprv : itnxt;

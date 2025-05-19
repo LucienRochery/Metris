@@ -49,18 +49,10 @@ int locMesh(MeshBase &msh, int *ientt,
   if(!dir_nei_criterion && nwarnprt++ < 10 && msh.param->iverb != 0) 
     MPRINTF("## WARNING dir_nei_criterion disabled\n");
 
-
-  //printf("Debug set iptr in locMesh = 4 inp guess = %d \n",*ientt);
-  //iverb = 4;
-
   static_assert(gdim == 1 || gdim == 2 || gdim == 3);
   static_assert(tdim <= gdim && tdim > 0);
 
   //if constexpr(tdim < gdim) METRIS_ASSERT(algnd_ != NULL);
-
-  //constexpr int nnode = msh.nnode(tdim);
-  //constexpr auto entnpps = ENTNPPS(tdim);
-  //constexpr int nnode = entnpps[ideg];
 
   double algnd[gdim];
   if(algnd_ != NULL){
@@ -75,7 +67,8 @@ int locMesh(MeshBase &msh, int *ientt,
   const intAr2 &ent2poi = msh.ent2poi(tdim);
   const intAr1 &ent2ref = msh.ent2ref(tdim);
   if(iref >= 0) METRIS_ASSERT_MSG(ent2ref[*ientt] == iref,
-       "Provided ref "<<iref<<" is not seed ref = "<<ent2ref[*ientt]);
+       "Provided ref "<<iref<<" is not seed ref = "<<ent2ref[*ientt]
+    <<" with ientt = "<<*ientt<<" tdim "<<tdim<<" pdim = "<<pdim);
 
 
   //double tolcur = MAX(1.0e-2,tol+1.0e-16);
@@ -111,39 +104,12 @@ int locMesh(MeshBase &msh, int *ientt,
     ierro = locMesh<gdim,tdim,1>(msh,ientt,coop,pdim,uvsrf,iref,algnd_,
                                  coopr,bary,tol,ithrd);
 
-    //if(ierro != 0){
-    //  if(iverb >= 3) printf("##Failed P1 localization. Attempting P%d\n",ideg);
-    //  return LOC_ERR_FAILP1;
-    //}
-
     if(DOPRINTS1()){
       double dist = geterrl2<gdim>(coopr,coop);
       CPRINTF1(" -> P1 loc done ientt = %d bary = ",*ientt);
       dblAr1(tdim+1,bary).print();
       CPRINTF1(" - dist = %15.7e\n",dist);
     }
-
-    //if(gdim == tdim){
-    //  double tol1 = getepsent<gdim>(msh, tdim, *ientt);
-    //  ierro = inveval<gdim,ideg>(msh,*ientt,coop,coopr,bary,tolcur*tol1);
-    //}else if(tdim == 2){
-    //  METRIS_THROW_MSG(TODOExcept(), "Implement projptfac in low_projsurf")
-    //}else{
-    //  ierro = projptedg<gdim,ideg>(msh, coop, *ientt, bary, coopr);
-    //  ierro = 0;
-    //  if(bary[0] < -Constants::baryTol || bary[0] > 1 + Constants::baryTol)
-    //    ierro = 1;
-    //  // redundant but who knows with floating point
-    //  if(bary[1] < -Constants::baryTol || bary[1] > 1 + Constants::baryTol)
-    //    ierro = 1;
-    //  //METRIS_THROW_MSG(TODOExcept(), "Implement Pk projptedg");
-    //  //METRIS_THROW_MSG(TODOExcept(), "Implement Pk algnd handling");
-    //}
-    //if(ierro == 0){
-    //  return 0;
-    //}else{
-    //  printf(" - Failed Pk localization in P1 element got ierro = %d \n",ierro);
-    //}
     
 	}
 
@@ -624,6 +590,30 @@ int locMesh(MeshBase &msh, int *ientt,
                   bary[lnoed2[iedl][1]] = barf[0];
                 }
               }else{
+                printf("TODO msh_localization.cxx\n");
+                printf("inp gdim = %d tdim = %d ideg = %d\n",gdim,tdim,ideg);
+                printf("coop = ");
+                dblAr1(gdim,coop).print();
+                if(uvsrf != NULL) dblAr1(tdim, uvsrf).print();
+                printf("iref = %d",iref);
+                if(algnd_ != NULL) dblAr1(gdim, algnd_).print();
+                printf("bary = ");
+                dblAr1(tdim+1,bary).print();
+                printf("here ientt = %d ientf %d \n",*ientt,ientf);
+                if(msh.meshClass() == MeshClass::Mesh){
+                  printf("Front mesh\n");
+                }else if(msh.meshClass() == MeshClass::MeshBack){
+                  printf("Back mesh\n");
+                }
+                int ipdbg = msh.newpoitopo(-1,-1);
+                int ibdbg = msh.newbpotopo(ipdbg,0,ipdbg);
+                for(int ii = 0; ii < msh.idim; ii++) 
+                  msh.coord(ipdbg,ii) = coop[ii];
+
+                writeMesh("TODO_loc", msh);
+                msh.bpo2ibi(ibdbg,0)  = -1;
+                msh.killpoint(ipdbg);
+
                 METRIS_THROW_MSG(TODOExcept(), "Get bary from facet in case tdim = "<<tdim);
               }
 

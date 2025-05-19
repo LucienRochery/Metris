@@ -141,7 +141,7 @@ void getMetMesh0_lplib(int ient0, int ient1, [[maybe_unused]] int ithread, MeshM
   intAr2 &ent2poi = tdim == 2 ? msh.fac2poi : msh.tet2poi;
   constexpr auto ordent = ORDELT(tdim);
 
-  constexpr int npps = tdim == 2 ? getnnod2(ideg) : getnnod3(ideg);
+  constexpr int npps = getnnode(tdim,ideg);
 
   bool iflat;
 
@@ -154,22 +154,14 @@ void getMetMesh0_lplib(int ient0, int ient1, [[maybe_unused]] int ithread, MeshM
 
     meas0 = getmeasentP1<gdim,tdim>(msh,ent2poi[ientt],norfac,&iflat);
 
-    //METRIS_ENFORCE_MSG(!iflat,"Element "<<ientt<<" tdimn = "<<tdim<<" is flat"); // Not a program failure -> not an assert
-    if(iflat){
-      printf("Element %d gdim = %d tdim = %d is flat \n",ientt,gdim,tdim);
-      printf("vertices: ");
-      intAr1(tdim + 1, ent2poi[ientt]).print();
-      writeMesh("debug_flat",msh);
-
-      meas0 = getmeasentP1<gdim,tdim>(msh, ent2poi[ientt], norfac, &iflat);
-      METRIS_THROW(GeomExcept());
-    }
+    METRIS_ASSERT(!iflat);
 
     for(int iver = 0; iver < npps; iver++){ 
       int ipoin = ent2poi(ientt,iver);
       METRIS_ASSERT(ipoin >= 0 && ipoin < msh.npoin);
 
-      for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = ordent[ideg][iver][ii] / (double) ideg;
+      for(int ii = 0; ii < tdim + 1; ii++) 
+        bary[ii] = ordent[ideg][iver][ii] / (double) ideg;
 
       if(msh.poi2tag(0,ipoin) < poitag){
         msh.poi2tag(0,ipoin) = poitag;

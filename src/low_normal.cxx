@@ -204,7 +204,7 @@ void getnorballref(MeshBase &msh, const intAr1 &lball, int iref, double* norpoi)
   }
   if(normalize_vec<3>(norpoi) != 0){
     writeMesh("debug_zero_normal.meshb",msh);
-    printf("Normal norm = %e\n",sqrt(getnrml2<3>(norpoi)));
+    printf("Normal norm = %e ball size %d\n",sqrt(getnrml2<3>(norpoi)),lball.get_n());
     for(int iface : lball){
       int iref2 = msh.fac2ref[iface];
       if(iref2 != iref && iref >= 0) continue;

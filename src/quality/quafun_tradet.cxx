@@ -21,7 +21,7 @@ template <class MFT, int gdim, int tdim, typename ftype>
 void quafun_tradet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
                    const int*__restrict__ ent2pol,  
                    const double*__restrict__ bary,
-                   double*__restrict__ met_,
+                   const double*__restrict__ met_,
                    ftype*__restrict__ tra,
                    ftype*__restrict__ det){
 
@@ -32,7 +32,8 @@ void quafun_tradet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
 
 
 
-  if(msh.met.getSpace() != MetSpace::Log) METRIS_THROW_MSG(WArgExcept(),
+  // Only if metric interpolation is needed
+  if(msh.met.getSpace() != MetSpace::Log && met_ == NULL) METRIS_THROW_MSG(WArgExcept(),
       "## SET MESH METRIC TO LOG BEFORE CALLING metqua2_xi");
 
   constexpr int nnmet = (gdim*(gdim+1))/2;
@@ -42,7 +43,22 @@ void quafun_tradet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
 
 
   // Get Jacobian matrix at xi
-  if(asdmsh == AsDeg::P1){
+  if(asdmsh == AsDeg::P1 || msh.curdeg == 1){
+    // Not faster
+    //for(int ii = 0; ii < gdim; ii++) coopr[ii] = 0;
+    //const int ipoi0 = ent2pol[0];
+    //for(int ii = 0; ii < tdim + 1; ii ++){
+    //  const int ipoin = ent2pol[ii];
+    //  for(int jj = 0; jj < gdim; jj++){
+    //    coopr[jj] += bary[ii] * msh.coord(ipoin,jj);
+    //  }
+    //}
+    //for(int ii = 0; ii < tdim; ii ++){
+    //  const int ipoin = ent2pol[ii+1];
+    //  for(int jj = 0; jj < gdim; jj++){
+    //    jmat[gdim*ii+jj] = msh.coord(ipoin,jj) - msh.coord(ipoi0,jj);
+    //  }
+    //}
     if constexpr(tdim == 2){  
       eval2<gdim,1>(msh.coord,ent2pol,msh.getBasis(),
                        DifVar::Bary,DifVar::None,
@@ -69,15 +85,9 @@ void quafun_tradet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
   }
 
   if(met_ == NULL){
-    // Get metric interpolated at xi
-    // The metric field class fetches geometric dimension from the mesh
-    if(asdmet == AsDeg::P1){
-      msh.met.getMetFullinfo(asdmet,DifVar::None,MetSpace::Exp,
-                             ent2pol,tdim,bary,coopr,met,NULL);
-    }else{
-      msh.met.getMetFullinfo(asdmet,DifVar::None,MetSpace::Exp,
-                             ent2pol,tdim,bary,coopr,met,NULL);
-    }
+    // Get metric interpolated at xi (or eval if analytical)
+    msh.met.getMetFullinfo(asdmet,DifVar::None,MetSpace::Exp,
+                           ent2pol,tdim,bary,coopr,met,NULL);
   }else{
     for(int ii = 0; ii < nnmet; ii++) met[ii] = met_[ii];
   }
@@ -100,13 +110,17 @@ void quafun_tradet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
   if constexpr (tdim == 3) *tra += J0tJtMJJ0_diag[2];
   
   // This is an actual exception that should never theoretically happen. 
-  if(*tra < 1.0e-16) METRIS_THROW(GeomExcept());
+  if(*tra < 1.0e-16) METRIS_THROW_MSG(GeomExcept(),"Zero trace of spd matrix? "<<*tra);
 
 
   if constexpr(tdim == gdim){
     ftype det1 = detmat<gdim>(invtJ_0tJ_K); // Error of 10^{-19} = 10^-14 relative compared to Matlab on wonky case
-    //ftype tmp = detsym<gdim>(met); // Error of 10^5 ... // Matlab yields 7.346639223296765e+09 we get 7.346911345315383e+09 // Even in relative this is terrible
-    ftype tmp = detsym2<gdim>(met); // Also wrong, same error. Note Matlab gets 10^-9 final quality relative error ! Our determinant is terribly bad
+    ftype tmp = detsym<gdim>(met); // Error of 10^5 ... // Matlab yields 7.346639223296765e+09 we get 7.346911345315383e+09 // Even in relative this is terrible
+    if(tmp < 0 || abs(tmp) < 1.0e-16 || abs(tmp) > 1.0e10){
+      // Try more robust version (much costlier)
+      tmp = detsym2<gdim>(met);
+    }
+    //ftype tmp = detsym2<gdim>(met); // Also wrong, same error. Note Matlab gets 10^-9 final quality relative error ! Our determinant is terribly bad
     *det = det1*det1*tmp; 
   }else{
     static_assert(tdim == 2);
@@ -134,7 +148,7 @@ template void quafun_tradet< MFT_VAL , 2, 2, FTYPE>\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int*__restrict__ ent2pol, \
                    const double*__restrict__ bary,\
-                   double*__restrict__ met,\
+                   const double*__restrict__ met,\
                    FTYPE*__restrict__ tra,\
                    FTYPE*__restrict__ det); \
 template void quafun_tradet< MFT_VAL , 3, 2, FTYPE>\
@@ -142,7 +156,7 @@ template void quafun_tradet< MFT_VAL , 3, 2, FTYPE>\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int*__restrict__ ent2pol, \
                    const double*__restrict__ bary,\
-                   double*__restrict__ met,\
+                   const double*__restrict__ met,\
                    FTYPE*__restrict__ tra,\
                    FTYPE*__restrict__ det); \
 template void quafun_tradet< MFT_VAL , 3, 3, FTYPE>\
@@ -150,7 +164,7 @@ template void quafun_tradet< MFT_VAL , 3, 3, FTYPE>\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int*__restrict__ ent2pol, \
                    const double*__restrict__ bary,\
-                   double*__restrict__ met,\
+                   const double*__restrict__ met,\
                    FTYPE*__restrict__ tra,\
                    FTYPE*__restrict__ det); 
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,\
@@ -199,6 +213,10 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG,(MFT_SEQ)(ASDEG_SEQ)(QUA_FTYPE_SEQ))
 
 
 /*
+NOTE: This does not yet use the metric field derivatives. 
+That is something we might not want, it'll be costlier as we can no longer
+provide a metric, but instead must interpolate (which dominates CPU time 
+because of the matrix exponential).
 Compute quality function and derivative with respect to node ivar
 - gdim is geometric dimension: also topological dimension !
 - asdmsh is mesh as P1 or Pk
@@ -217,6 +235,7 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                      int ivar, 
                      FEBasis dofbas, 
                      DifVar idifmet, 
+                     const double*__restrict__ met_,
                      ftype*__restrict__ tra_, 
                      ftype*__restrict__ dtra, 
                      ftype*__restrict__ htra, 
@@ -227,7 +246,7 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
   static_assert(gdim == 2 || gdim == 3);
   METRIS_ASSERT(gdim == msh.idim);
-  METRIS_ASSERT(msh.met.getSpace() == MetSpace::Log)
+  METRIS_ASSERT(msh.met.getSpace() == MetSpace::Log || met_ != NULL && idifmet == DifVar::None);
   // Differentiate or don't, but there is no barycentric derivative in this context 
   METRIS_ASSERT(idifmet == DifVar::None || idifmet == DifVar::Phys);
   if(idifmet != DifVar::None) METRIS_THROW_MSG(TODOExcept(), 
@@ -284,8 +303,13 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   // Get metric interpolated at xi
   // The metric field class fetches geometric dimension from the mesh
   double met[nnmet],dmet[gdim][nnmet];
-  msh.met.getMetFullinfo(asdmet,idifmet,MetSpace::Exp,
-                         ent2pol,tdim,bary,coopr,met,dmet[0]);
+  if(met_ == NULL){
+    msh.met.getMetFullinfo(asdmet,idifmet,MetSpace::Exp,
+                           ent2pol,tdim,bary,coopr,met,dmet[0]);
+  }else{
+    for(int ii = 0; ii < nnmet; ii++) met[ii] = met_[ii];
+  }
+
 
   // Compute the trace 
   tra = tra_matXsymXtmat<gdim, double, ftype, ftype>(met, invtJ0_tJ[0]);
@@ -464,6 +488,7 @@ template void d_quafun_tradet< MFT_VAL , 2, FTYPE>\
                    int ivar,\
                    FEBasis dofbas,\
                    DifVar idifmet,\
+                   const double*__restrict__ met_,\
                    FTYPE*__restrict__ tra,\
                    FTYPE*__restrict__ dtra,\
                    FTYPE*__restrict__ htra,\
@@ -478,6 +503,7 @@ template void d_quafun_tradet< MFT_VAL , 3, FTYPE>\
                    int ivar,\
                    FEBasis dofbas,\
                    DifVar idifmet,\
+                   const double*__restrict__ met_,\
                    FTYPE*__restrict__ tra,\
                    FTYPE*__restrict__ dtra,\
                    FTYPE*__restrict__ htra,\

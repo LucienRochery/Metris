@@ -69,11 +69,17 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
   int iedg0 = msh.bpo2ibi(ibcr0,2);
   METRIS_ASSERT(iedg0 >= 0);
 
-  if(abs(msh.bpo2rbi(ibcr0,1) - range[0]) < abs(msh.bpo2rbi(ibcr0,1) - range[1])){
+  if(abs(msh.bpo2rbi(ibcr0,0) - range[0]) < abs(msh.bpo2rbi(ibcr0,0) - range[1])){
     tspoi[0] = range[0];
   }else{
     tspoi[0] = range[1];
   }
+
+  CPRINTF1(" - init tess point 0 t = %f range[0] = %f range[1] = %f\n",
+           tspoi[0],range[0],range[1]);
+  CPRINTF1(" - ibcr0 = %d from icor0 = %d has bpo2rbi = %f %f\n",
+            ibcr0,icor0,msh.bpo2rbi(ibcr0,0),msh.bpo2rbi(ibcr0,1));
+
 
   { // don't pollute namespace with frequent variable names
     MetSpace ispac0 = msh.met.getSpace();
@@ -176,6 +182,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
 
       METRIS_ASSERT(itpo1 >= 0);
       METRIS_ASSERT(itpo2 >= 0);
+      METRIS_ASSERT(!isdeadent(tsbke[itsed],msh.edg2poi));
 
 
       double met1 = sqrt(sz1*sz2);
@@ -223,8 +230,15 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
         }        
         bool inbd = tnewp >= tedg[0] && tnewp <= tedg[1]
                  || tnewp <= tedg[0] && tnewp >= tedg[1];
-        if(!inbd) MPRINTF("New t %f not in edge bounds %f %f \n",tnewp, 
+        if(!inbd){
+          MPRINTF("New t %f not in edge bounds %f %f \n",tnewp, 
                           tedg[0],tedg[1]);
+          MPRINTF("Edge is %d vertices %d %d \n",iseed,msh.edg2poi(iseed,0)
+                  ,msh.edg2poi(iseed,1));
+          MPRINTF("itpo1 = %d itpo2 = %d tspoi = %f %f\n",itpo1,itpo2,
+                   tspoi[itpo1],tspoi[itpo2]);
+          writeMesh("debug_t",msh);
+        }
         METRIS_ASSERT_MSG(inbd,"New tess point t not in edge t bounds.");
       #endif
 

@@ -298,86 +298,44 @@ template double getmeasentP1<2,3>(const MetrisParameters *msh,
 
 
 
-template<>
-void getheightentP1_aniso<2>(const int *ent2pol,const dblAr2 &coord, 
-                             double *metl, double *height){
-  constexpr int gdim = 2;
-  constexpr int tdim = 2;
+template<class MFT, int tdim>
+void getheightentP1_aniso(const Mesh<MFT> &msh, int ientt,
+                          double *height){
+
+  METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+  static_assert(tdim == 2);
+
+  constexpr int gdim = tdim;
 
   for(int ied = 0; ied < tdim + 1; ied++){
 
-    int ipoi1 = ent2pol[lnoed2[ied][0]];
-    int ipoi2 = ent2pol[lnoed2[ied][1]];
+    int ipoi1 = msh.fac2poi(ientt,lnoed2[ied][0]);
+    int ipoi2 = msh.fac2poi(ientt,lnoed2[ied][1]);
     double tan[gdim];
-    for(int ii = 0; ii < gdim; ii++) tan[ii] = coord(ipoi2,ii)
-                                             - coord(ipoi1,ii);
+    for(int ii = 0; ii < gdim; ii++) tan[ii] = msh.coord(ipoi2,ii)
+                                             - msh.coord(ipoi1,ii);
 
-    int ipoin = ent2pol[ied];
-    double x0 = getprdl2<gdim>(coord[ipoi1], tan);
-    double x1 = getprdl2<gdim>(coord[ipoi2], tan);
-    double tp = (getprdl2<gdim>(coord[ipoin], tan) - x0) / (x1 - x0);
+    int ipoin = msh.fac2poi(ientt,ied);
+    double x0 =  getprdl2<gdim>(msh.coord[ipoi1], tan);
+    double x1 =  getprdl2<gdim>(msh.coord[ipoi2], tan);
+    double tp = (getprdl2<gdim>(msh.coord[ipoin], tan) - x0) / (x1 - x0);
 
     //printf("Debug ied %d  x0 %f x1 %f xp %f tp %f ipoi1 %d ipoi2 %d ipoin %d\n",
-    //  ied,x0,x1,getprdl2<gdim>(coord[ipoin], tan),tp, ipoi1, ipoi2, ipoin);
+    //  ied,x0,x1,getprdl2<gdim>(msh.coord[ipoin], tan),tp, ipoi1, ipoi2, ipoin);
 
     tp = MAX(0.0,MIN(1.0,tp));
     double dp[2];
-    for(int ii = 0; ii < gdim; ii++) dp[ii] = (1.0 - tp) * coord(ipoi1,ii)
-                                            +        tp  * coord(ipoi2,ii)
-                                            -              coord(ipoin,ii);
-    double len = getlenedgsq<gdim>(dp, metl);
+    for(int ii = 0; ii < gdim; ii++) dp[ii] = (1.0 - tp) * msh.coord(ipoi1,ii)
+                                            +        tp  * msh.coord(ipoi2,ii)
+                                            -              msh.coord(ipoin,ii);
+    double len = getlenedgsq<gdim>(dp, msh.met[ipoin]);
     height[ied] = sqrt(len);
   }
-
-  // This version gives 3 0 heights for a flat triangle even if it's made by 
-  // projecting a point on the middle of the opposite edge. 
-  // This does not properly diagnose the problem. 
-  #if 0
-  double nor[gdim];
-  for(int ied = 0; ied < tdim + 1; ied++){
-    int ipoin = ent2pol[ied];
-    int ipoi1 = ent2pol[lnoed2[ied][0]];
-    int ipoi2 = ent2pol[lnoed2[ied][1]];
-    nor[0] = coord(ipoi1,1) - coord(ipoi2,1);
-    nor[1] = coord(ipoi2,0) - coord(ipoi1,0);
-
-    double nrm = getnrml2<2>(nor);
-    METRIS_ENFORCE_MSG(nrm > 1.0e-30, "zero length edge");
-    nrm = 1.0 / sqrt(nrm);
-
-    nor[0] *= nrm;
-    nor[1] *= nrm;
-
-    double dtprd = (coord(ipoin,0) - coord(ipoi1,0)) * nor[0]
-                 + (coord(ipoin,1) - coord(ipoi1,1)) * nor[1];
-
-    // The height vector is:
-    // h = -dtprd * nor
-    // Compute nor^T M nor then normalize by dtprd^2
-
-    // Go for a fast one 
-    double len = getlenedgsq<gdim>(nor, metl);
-    height[ied] = sqrt(len) * abs(dtprd);
-
-
-    //double du[gdim];
-    //for(int ii = 0; ii < gdim; ii++) du
-    //double coop[gdim];
-    //for(int ii = 0; ii < gdim; ii++) coop[ii] = coord(ipoin,ii) - dtprd * nor[ii]; 
-
-    //double du[2] = {msh.coord(ipoin,0) - coop[0]}
-
-    //height[ied] = abs(dtprd); 
-  }
-  #endif
 }
-template<>
-void getheightentP1_aniso<3>([[maybe_unused]] const int *ent2pol,
-                             [[maybe_unused]] const dblAr2 &coord,
-                             [[maybe_unused]] double *metl, 
-                             [[maybe_unused]] double *height){
-  METRIS_THROW_MSG(TODOExcept(),"Implement getheightentP1 idim = 3");
-}
+template void getheightentP1_aniso<MetricFieldAnalytical, 2>(
+         const Mesh<MetricFieldAnalytical> &msh, int ientt, double *height);
+template void getheightentP1_aniso<MetricFieldFE        , 2>(
+         const Mesh<MetricFieldFE        > &msh, int ientt, double *height);
 
 
 template <int gdim>

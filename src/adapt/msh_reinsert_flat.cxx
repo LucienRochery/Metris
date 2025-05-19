@@ -55,8 +55,8 @@ int reinsertFlat(Mesh<MFT> &msh){
 
   //writeMesh("debug00", msh);
 
-  MetSpace ispac0 = msh.met.getSpace();
-  msh.met.setSpace(MetSpace::Log);
+  //MetSpace ispac0 = msh.met.getSpace();
+  //msh.met.setSpace(MetSpace::Log);
 
   // Can have up to one edge in the cavity
   int mcfac = 100, mcedg = 1; 
@@ -75,7 +75,7 @@ int reinsertFlat(Mesh<MFT> &msh){
   int nerro_tot = 0;
   int noper_tot = 0;
 
-  double metl[nnmet];
+  //double metl[nnmet];
   double height[tdim + 1];
   double bar0[tdim + 1];
   for(int ii = 0; ii < tdim + 1; ii++) bar0[ii] = 1.0 / (tdim + 1.0);
@@ -101,11 +101,12 @@ int reinsertFlat(Mesh<MFT> &msh){
       //  if(!onbdry) continue;
       //}
 
-      msh.met.getMetBary(AsDeg::P1,DifVar::None, 
-                         MetSpace::Exp, 
-                         ent2poi[ientt], tdim, bar0, metl, NULL);
+      //msh.met.getMetBary(AsDeg::P1,DifVar::None, 
+      //                   MetSpace::Exp, 
+      //                   ent2poi[ientt], tdim, bar0, metl, NULL);
 
-      getheightentP1_aniso<gdim>(ent2poi[ientt], msh.coord, metl, height);
+      //getheightentP1_aniso<gdim>(ent2poi[ientt], msh.coord, metl, height);
+      getheightentP1_aniso<MFT,gdim>(msh, ientt, height);
 
       if(DOPRINTS1()){
         MPRINTF(" - ientt %d heights ",ientt);
@@ -255,7 +256,7 @@ int reinsertFlat(Mesh<MFT> &msh){
   }
 
 
-  msh.met.setSpace(ispac0);
+  //msh.met.setSpace(ispac0);
 
   return noper_tot;
 }

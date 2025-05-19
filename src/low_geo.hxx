@@ -103,8 +103,8 @@ double getmeasentP1(const MetrisParameters *param,
                     const dblAr2 &coord,
                     const double* norref, bool* iflat);
 
-template <int idim>
-void getheightentP1_aniso(const int *ent2pol,const dblAr2 &coord, double *metl, double *height);
+template <class MFT, int idim>
+void getheightentP1_aniso(const Mesh<MFT> &msh, int ientt, double *heights);
 
 
 

@@ -86,7 +86,7 @@ void MetrisRunner::adaptMesh0(){
                               msh,SolTyp::CG,pdens);
   }
 
-  msh.met.setSpace(MetSpace::Log);
+  msh.met.setSpace(MetSpace::Exp);
   msh.setBasis(FEBasis::Lagrange);
 
   double qmin, qmax, qavg;
@@ -141,10 +141,10 @@ void MetrisRunner::adaptMesh0(){
 
     //if(DOPRINTS2()) writeMesh("debug_swap_pre.meshb",msh);
     //if(DOPRINTS2()) msh.met.writeMetricFile("debug_swap_pre.solb");
+    if(msh.param->dbgfull) check_topo(msh,1);
   }
 
 
-  if(msh.param->dbgfull) check_topo(msh,1);
   
 
   // Will never exceed this 
@@ -164,12 +164,6 @@ void MetrisRunner::adaptMesh0(){
   msh.tag[ithrdfro]++;
   for(int niter = 1; niter <= miter || (miter < 0 && niter < miter_max); niter++){
     stat0 = 0;
-    //if(niter == miter - 1){
-    //  iverb++;
-    //  printf("last iter iverb++\n");
-    //  wait();
-    //}
-
     double tloop0 = get_wall_time();
 
 

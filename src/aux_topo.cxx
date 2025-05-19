@@ -182,10 +182,10 @@ int getfacglo(const MeshBase &msh, int i1, int i2, int i3){
 
 int getedgfac(const MeshBase &msh, int iface, int i1, int i2){
   METRIS_ASSERT(iface >= 0 && iface < msh.nface);
-	for(int i=0;i<3;i++){
-		int j1 = msh.fac2poi(iface,lnoed2[i][0]);
-		int j2 = msh.fac2poi(iface,lnoed2[i][1]);
-		if((i1 == j1 && i2 == j2) || (i1 == j2 && i2 == j1)) return i;
+	for(int ii = 0; ii < 3; ii++){
+		int j1 = msh.fac2poi(iface,lnoed2[ii][0]);
+		int j2 = msh.fac2poi(iface,lnoed2[ii][1]);
+		if((i1 == j1 && i2 == j2) || (i1 == j2 && i2 == j1)) return ii;
 	}
 	METRIS_THROW_MSG(TopoExcept(),
     "EDGE NOT IN TRIANGLE iface = "<<iface<<" vertices "<<

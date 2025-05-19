@@ -35,6 +35,8 @@ param(&param_){
 
 void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back){
 
+  param_.checkParameters();
+
   if(param_.iverb >= 1){
 
     printf("\n\n"

@@ -8,6 +8,7 @@
 #include "../quality/msh_metqua.hxx"
 #include "../Mesh/Mesh.hxx"
 #include "../utils/CT_loop.hxx"
+#include "../utils/mprintf.hxx"
 
 
 namespace Metris{
@@ -19,11 +20,13 @@ double getmetquamesh(Mesh<MFT> &msh, bool *iinva, double *qmin, double *qmax, do
   
   static_assert(tdim == 2 || tdim == 3);
 
-  MetSpace metspac0 = msh.met.getSpace();
-  msh.met.setSpace(MetSpace::Log);
+  //MetSpace metspac0 = msh.met.getSpace();
+  //msh.met.setSpace(MetSpace::Log);
 
-  int nentt = tdim == 2 ? msh.nface : msh.nelem;
-  intAr2 &ent2poi = tdim == 2 ? msh.fac2poi : msh.tet2poi;
+  msh.met.setSpace(MetSpace::Exp);
+
+  int nentt = msh.nentt(tdim);
+  intAr2 &ent2poi = msh.ent2poi(tdim);
 
   double qtot = 0;
   *qmin = 1.0e30;
@@ -38,10 +41,11 @@ double getmetquamesh(Mesh<MFT> &msh, bool *iinva, double *qmin, double *qmax, do
 
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
     for(int ientt = 0; ientt < nentt; ientt++){
+      INCVDEPTH(msh.param);
       if(isdeadent(ientt,ent2poi)) continue;
       ncnt ++;
       double quent = 0;
-      try{
+      //try{
         if(msh.idim == 2){
           if constexpr(tdim == 2){
             quent = metqua<MFT,2,tdim>(msh,AsDeg::Pk,asdmet,ientt,1.0);
@@ -51,19 +55,20 @@ double getmetquamesh(Mesh<MFT> &msh, bool *iinva, double *qmin, double *qmax, do
         }else{
           quent = metqua<MFT,3,tdim>(msh,AsDeg::Pk,asdmet,ientt,1.0);
         }
-      }catch(...){
-        *iinva = true; 
-      } // Ignore exceptions in this context. 
+      //}catch(...){
+      //  *iinva = true; 
+      //} // Ignore exceptions in this context. 
       if(lquae != NULL) (*lquae)[ientt] = quent;
       qtot += quent;
       (*qmin) = MIN(*qmin,quent);
       (*qmax) = MAX(*qmax,quent);
+      CPRINTF3(" - getmetquamesh ientt %d dim %d qual = %e\n",ientt,tdim,quent);
     }
   }}CT_FOR1(ideg);
 
   *qavg = qtot / ncnt;
 
-  msh.met.setSpace(metspac0);
+  //msh.met.setSpace(metspac0);
   return pow(qtot,1.0/msh.param->opt_pnorm);
 }
 template double getmetquamesh<MetricFieldAnalytical, 2, AsDeg::P1>(Mesh<MetricFieldAnalytical> &msh,

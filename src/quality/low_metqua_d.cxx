@@ -61,10 +61,13 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     = get_d_quafun_xi<MFT,gdim,tdim,iquaf,ftype>();
 
   const int ideg = msh.curdeg;
-  if(asdmet == AsDeg::Pk && ideg > 1){
+  const int ideg_eff = asdmsh == AsDeg::P1 ? 1 : ideg;
+  const int nnode = getnnode(tdim, ideg_eff);
 
-    const int idegj = SMOO_DEGJ(ideg);
-    const int nnodj = tdim == 2 ? getnnod2(idegj) : getnnod3(idegj);
+  if(ideg_eff > 1){
+
+    //const int idegj = SMOO_DEGJ(ideg);
+    //const int nnodj = tdim == 2 ? getnnod2(idegj) : getnnod3(idegj);
 
     const auto ordelt = ORDELT(tdim);
 
@@ -73,25 +76,28 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     if(ivar >= 0)
       for(int ii = 0; ii < gdim; ii++) dquael[ii] = 0;
 
+    METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+
     ftype qua0, dqua0[gdim], hqua0[nhess];
-    for(int iquad = 0; iquad < nnodj; iquad++){
+    for(int iquad = 0; iquad < nnode; iquad++){
 
       for(int ii = 0; ii < tdim + 1; ii++)
-        bary[ii] = ordelt[idegj][iquad][ii]/((double) (idegj));
+        bary[ii] = ordelt[ideg][iquad][ii]/((double) (ideg));
 
+      const int ipoin = ent2poi[iquad];
       if(hquael == NULL){
         qua0 = d_quafun_xi(msh,asdmsh,asdmet,
-                           ent2poi,bary,
+                           ent2poi,bary,msh.met[ipoin],
                            ivar,dofbas,idifmet,
                            dqua0,NULL);
       }else{
         qua0 = d_quafun_xi(msh,asdmsh,asdmet,
-                           ent2poi,bary,
+                           ent2poi,bary,msh.met[ipoin],
                            ivar,dofbas,idifmet,
                            dqua0,hqua0);
       }
       ftype powm1 = pow(abs(qua0 - difto),pnorm-1);
-      qutet += abs(qua0 - difto)*abs(powm1)/nnodj;
+      qutet += abs(qua0 - difto)*abs(powm1)/nnode;
 
       if(ivar < 0) continue;
 
@@ -102,7 +108,7 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       int sg = 1;
       if(qua0 - difto < 0) sg = -1;
       for(int ii = 0; ii < gdim; ii++){
-        dquael[ii] += sg*pnorm*dqua0[ii]*powm1/nnodj;
+        dquael[ii] += sg*pnorm*dqua0[ii]*powm1/nnode;
       }
 
       if(hquael == NULL) continue;
@@ -126,6 +132,8 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
     }// for iquad 
   }else{
+
+    #if 0
     for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0/(tdim  + 1);
     qutet = d_quafun_xi(msh,asdmsh,asdmet,
                         ent2poi,bary,
@@ -133,6 +141,34 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                         dquael,hquael);
     ftype powm1 = pow(abs(qutet - difto),pnorm-1);
     qutet = powm1*abs(qutet - difto); 
+    #else
+      METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+      constexpr int nnmet = (gdim*(gdim+1))/2;
+      double met[nnmet];
+      for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim  + 1);
+      for(int jj = 0; jj < nnmet; jj++) met[jj] = 0;
+      for(int ii = 0; ii < tdim + 1; ii++){
+        int ipoin = ent2poi[ii];
+        for(int jj = 0; jj < nnmet; jj++){
+          met[jj] += msh.met(ipoin,jj) / (tdim + 1);
+        }
+      }
+      qutet = d_quafun_xi(msh,asdmsh,asdmet,
+                          ent2poi,bary,met,
+                          ivar,dofbas,idifmet,
+                          dquael,hquael);
+      // You'd think this wouldn't be a bottleneck but it eats up 20% of optimization
+      // time to run pow() here even if pnorm = 2 or 1.
+      qutet = abs(qutet - difto);
+      ftype powm1 = 1; // case pnorm 1 
+      if(pnorm == 2){
+        powm1 = qutet;
+        qutet *= qutet;
+      }else if(pnorm > 2){
+        powm1 = pow(qutet,pnorm-1);
+        qutet = qutet*powm1;
+      }
+    #endif
 
     if(ivar < 0) return qutet;
 

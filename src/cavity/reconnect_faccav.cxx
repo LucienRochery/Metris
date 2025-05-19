@@ -241,57 +241,6 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
   }
 
 
-  // This is more of an assert type situation
-  // Ensure internal edges had been added to the cavity 
-  #ifndef NDEBUG
-    for(int ifacl = 0; ifacl < ncfac; ifacl++){
-      int iface = cav.lcfac[ifacl];
-      for(int ied = 0; ied < 3 ;ied++){
-        int ip1 = msh.fac2poi(iface,lnoed2[ied][0]);
-        int ip2 = msh.fac2poi(iface,lnoed2[ied][1]);
-        int ifac2 = msh.fac2fac(iface,ied);
-        if(ifac2 == -1) continue;
-
-        if(ifac2 >= 0){
-          if(msh.fac2tag(ithread,ifac2) < msh.tag[ithread]) continue;
-        }else if(ifac2 < -1){// Non manifold
-          // Check any of the other nm faces are in the cavity. 
-          // If yes, the edge needs to be as well. 
-
-
-          int ifac3 = iface;
-          bool iint = false;
-          int ied2 = ied;
-          while(getnextfacnm(msh,iface,ip1,ip2,&ifac3,&ied2)){
-            if(msh.fac2tag(ithread,ifac3) >= msh.tag[ithread]){
-              iint = true;
-              break;
-            }
-          }
-
-          if(!iint) continue;
-        }
-
-        int iedge = getedgglo(msh,ip1,ip2);
-
-        if(iedge < 0 && ifac2 < 0) METRIS_THROW_MSG(TopoExcept(),"Non manifold and no edge");
-
-        if(iedge < 0) continue;
-
-        if(msh.edg2tag(ithread,iedge) < msh.tag[ithread]){
-          CPRINTF1("## edge %d is internal but was not in cavity\n",iedge);
-          // This is not always an error in the sense of an assert.
-          // The assert has proved useful to spot legitimate bugs but let's downgrade it now
-          ierro = CAV_ERR_INTEDG;
-          goto cleanup;
-//          METRIS_THROW_MSG(TopoExcept(),   "Internal edge not in cavity")
-        }
-      }
-    }
-  #endif
-
-
-
 	for(int iface : cav.lcfac){
 		// If there is a new triangle, its ref will be this triangle's ref.
 		int iref  = msh.fac2ref[iface]; 

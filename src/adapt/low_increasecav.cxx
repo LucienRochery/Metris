@@ -108,7 +108,7 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
   int nnmet = (msh.idim * (msh.idim + 1)) / 2;
   double metl[6], lmet[6];
   double *metl_p; 
-  if(idelaunay){
+  if(idelaunay && !msh.param->ins_lazy_interp){
     if(msh.met.getSpace() == MetSpace::Log){
       for(int ii = 0; ii < nnmet; ii++) lmet[ii] = msh.met(cav.ipins,ii);
       if(msh.idim == 2){
@@ -322,6 +322,19 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
               continue;
             }
 
+
+            // Check if Delaunay 
+            if(msh.param->ins_lazy_interp){
+              metl_p = metl;
+              // Linear average of metrics at P1 nodes: this option is for speed
+              for(int ii = 0; ii < nnmet; ii++) metl[ii] = 0;
+              for(int jj = 0; jj < tdim + 1; jj++){
+                int ipoin = ent2poi(ienei, jj);
+                for(int ii = 0; ii < nnmet; ii++){
+                  metl[ii] += msh.met(ipoin,ii) / (tdim + 1);
+                }
+              }
+            }
             bool isinsph;
             if(tdim == 2){
               if(msh.idim == 2){
@@ -843,7 +856,6 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav,
 
       ent2tag(ithread,ienei) = msh.tag[ithread];
 
-      // Check if Delaunay 
       bool isinsph;
       if(tdim == 2){
         if(msh.idim == 2){
@@ -900,6 +912,10 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
                             CavOprOpt &opts,
                             int ipins, int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
+
+  if(msh.param->ins_lazy_interp){
+    METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+  }
 
   const int tdim = msh.get_tdim();
   // Note ipins must be seeded with newbpotopo
@@ -991,8 +1007,14 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
       msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1];
 
       edg2pol[1] = ipoin;
-      double len = getlenedg_geosz<MFT,gdim,1>(msh,edg2pol,sz);
-      //ncomp++;
+      double len;
+      if(!msh.param->ins_lazy_interp){
+        len = getlenedg_geosz<MFT,gdim,1>(msh,edg2pol,sz);
+      }else{
+        len = getlenedg<gdim>(msh.coord[ipoin],msh.coord[ipins],
+                        msh.met[ipoin]);
+      }
+
 
       CPRINTF1(" - check len ipoin %d len = %f <? 1/sqrt(2) %d\n",
                 ipoin,len,len <= 1.0/sqrt(2));

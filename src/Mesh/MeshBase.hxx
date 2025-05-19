@@ -304,7 +304,8 @@ public:
   virtual void set_nentt(int tdimn, int nentt, bool skipallocf = false);
 
 
-protected:
+//protected:
+public:
   // This should only be called from the top levels (Mesh and MeshBack)
   // Otherwise some auxiliary data structs may not be properly set. 
 	int newpoitopo(int tdimn, int ientt = -1);

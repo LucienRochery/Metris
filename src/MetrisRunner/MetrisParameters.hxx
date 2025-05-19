@@ -29,6 +29,8 @@ struct MetrisParameters{
 
   MetrisParameters(MetrisOptions &opt);
 
+  void checkParameters();
+
   void setMeshIn(std::string inp);
   void setMeshOut(std::string out);
   void setAnalyticalMetric(int ianamet);
@@ -72,6 +74,10 @@ struct MetrisParameters{
   int adp_niter;
   double adp_unit_stop;
   bool adp_line_adapt;
+
+  // lazy interpolation in insertion: use approximate metric for a priori checks
+  // and cavity building, only interpolate metric after successful operation.
+  bool ins_lazy_interp;
   // ----------------- END Adaptation options  
 
   // Metric min/max size control
@@ -136,6 +142,11 @@ struct MetrisParameters{
   // Minimum increase in quality function to go through with a swap. Governed by
   // option -qswap-thres in optimization module (not adaptation). 
   double opt_swap_thres;
+  // Whether expensive tet swaps should be done (edge -> faces)
+  // These are rarely done in practice and take by far the most time, 
+  // seemingly 85% of total tet swapping time. 
+  bool opt_swap_tet_expensive;
+
   // ----------------- END Optimization options  
 
 

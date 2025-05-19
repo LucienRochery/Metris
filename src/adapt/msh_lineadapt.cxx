@@ -889,8 +889,8 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
   const int nref = msh.CAD.ncaded;
   crv_len.set_n(nref);
 
-  MetSpace ispac0 = msh.met.getSpace();
-  msh.met.setSpace(MetSpace::Log);
+  //MetSpace ispac0 = msh.met.getSpace();
+  //msh.met.setSpace(MetSpace::Log);
 
   CPRINTF2(" - START getCADCurveLengths\n");
 
@@ -1205,8 +1205,7 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
 
   }
 
-
-  msh.met.setSpace(ispac0);
+  //msh.met.setSpace(ispac0);
 }
 
 

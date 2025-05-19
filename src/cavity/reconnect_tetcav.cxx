@@ -90,6 +90,8 @@ int reconnect_tetcav(Mesh<MFT> &msh,
   //  }// for ifa0
   //}// for iele0
 
+  // To check if all points are on the boundary. 
+  const int pdim_ipins = msh.getpoitdim(cav.ipins);
 
   // Next loop over cavity boundary faces to generate new tets. If there are 
   // new faces, they do not generate tetrahedra, as those would have ipins twice.
@@ -148,6 +150,18 @@ int reconnect_tetcav(Mesh<MFT> &msh,
       msh.tet2poi(ielen, lnofa3[ifa0][0]) = msh.tet2poi(iele0, lnofa3[ifa0][0]);
       msh.tet2poi(ielen, lnofa3[ifa0][1]) = msh.tet2poi(iele0, lnofa3[ifa0][1]);
       msh.tet2poi(ielen, lnofa3[ifa0][2]) = msh.tet2poi(iele0, lnofa3[ifa0][2]);
+
+      if(pdim_ipins < 3){
+        int pdim;
+        for(int ii = 0; ii < 3; ii++){
+          pdim = msh.getpoitdim(msh.tet2poi(iele0, lnofa3[ifa0][ii]));
+          if(pdim >= 3) goto check_bdry_done;
+        }
+        CPRINTF1(" # REJECT: all tet vertices on boundary\n");
+        return CAV_ERR_BDRYTET;
+      }
+      check_bdry_done:
+
 
       CPRINTF1(" - new tetra = %d from iele0 = %d ifa = %d vertices: %d %d %d %d\n",
                ielen,iele0,ifa0,msh.tet2poi(ielen,0),msh.tet2poi(ielen,1),

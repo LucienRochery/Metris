@@ -75,7 +75,7 @@ double MetrisRunner::optimMesh0(){
   //const int qpower = -1;
   //const int qpnorm = 2;
 
-  msh.met.setSpace(MetSpace::Log);
+  msh.met.setSpace(MetSpace::Exp);
   msh.setBasis(FEBasis::Lagrange);
 
   double qmin, qmax, qavg;

@@ -87,6 +87,8 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
     //wait();
   }
 
+  if(!msh.param->opt_swap_tet_expensive) return 0;
+
   for(int ied = 0; ied < 6; ied++){
     int ierro = aux_swaptetedge<MFT,ideg>(msh, opt, itetr, ied, quael, cav, opts, work, 
                                           qnrm0_, qnrm1_, ithrd1, ithrd2);

@@ -40,7 +40,10 @@ enum Cavity_Errors {CAV_NOERR = 0,
                     CAV_ERR_NOFACTET = 22,
                     CAV_ERR_INTERPMETBACK = 23,
                     CAV_ERR_REMPT = 24,
-                    CAV_ERR_NERROR = 25
+                    CAV_ERR_NOEDGFAC = 25,
+                    CAV_ERR_INTFAC = 26,
+                    CAV_ERR_BDRYTET = 27,
+                    CAV_ERR_NERROR = 28
                     };
 
 

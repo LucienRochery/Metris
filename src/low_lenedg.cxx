@@ -284,38 +284,60 @@ double getlenedg_quad(MeshMetric<MetricFieldType> &msh,
 
   //for(int ii = 0; ii < tdimn + 1 ; ii ++) bary[ii] = 0;
 
-  int lnoed1[1][2] = {{0, 1}};
-  const intAr2 lnoed(nedgl,2,tdimn == 1 ? lnoed1[0] :
-                             tdimn == 2 ? lnoed2[0] : lnoed3[0]);
-//  const int **lnoed = tdimn == 1 ? &lnoed1[0] :
-//                      tdimn == 2 ? &lnoed2[0] : &lnoed3[0];
-  intAr2 &ent2poi = tdimn == 1 ? msh.edg2poi : 
-                    tdimn == 2 ? msh.fac2poi : msh.tet2poi;
+  int lnoed1[2] = {0, 1};
+  const int* lnoed = tdimn == 1 ? lnoed1 :
+                     tdimn == 2 ? lnoed2[iedg] : lnoed3[iedg];
+  intAr2 &ent2poi = msh.ent2poi(tdimn);
 
   int edg2pol[getnnod1(ideg)];
-  edg2pol[0] = ent2poi(ientt,lnoed[iedg][0]);
-  edg2pol[1] = ent2poi(ientt,lnoed[iedg][1]);
-  int idx0 = tdimn + 1 + iedg*(ideg-1);
-  for(int ii = 0; ii < ideg-1; ii++){
-    edg2pol[2+ii] = ent2poi[ientt][idx0+ii];
+
+  // In this case, metric does not need reinterpolating. 
+  bool atnodes = nquad == msh.nnode(1);
+  METRIS_ASSERT(!(atnodes && (  msh.met.getBasis() != FEBasis::Lagrange
+                             || msh.met.getSpace() != MetSpace::Exp)));
+
+  if constexpr (ideg == 1){
+    int ipoi1 = ent2poi(ientt,lnoed[0]);
+    int ipoi2 = ent2poi(ientt,lnoed[1]);
+    for(int ii = 0; ii < gdim; ii++){
+      tang[ii] = msh.coord(ipoi1, ii) - msh.coord(ipoi2, ii);
+    }
   }
 
+  if(ideg > 1 || !atnodes){
+    edg2pol[0] = ent2poi(ientt,lnoed[0]);
+    edg2pol[1] = ent2poi(ientt,lnoed[1]);
+    int idx0 = tdimn + 1 + iedg*(ideg-1);
+    for(int ii = 0; ii < ideg-1; ii++){
+      edg2pol[2+ii] = ent2poi[ientt][idx0+ii];
+    }
+  }
 
   double bar1[2];
   for(int iquad = 0; iquad < nquad; iquad++){
 
-    bar1[0] = iquad/(nquad-1.0);
-    bar1[1] = 1.0 - bar1[0];
-    eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), DifVar::Bary, DifVar::None, 
-                     bar1,  dum, tang, NULL);
+    if constexpr(ideg > 1){
+      bar1[0] = iquad/(nquad-1.0);
+      bar1[1] = 1.0 - bar1[0];
+      eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), DifVar::Bary, DifVar::None, 
+                       bar1,  dum, tang, NULL);
+    }
 
-    //bary[lnoed[iedg][0]] = bar1[0];
-    //bary[lnoed[iedg][1]] = bar1[1];
-    msh.met.getMetBary(AsDeg::Pk, DifVar::None, 
-                       MetSpace::Exp, edg2pol, 1, bar1, metl, NULL);
-//    eval1_bezier<gdim,ideg>(met  , edg2pol,DifVar::None,bary, metl, dum );
+    if(!atnodes){
+      if constexpr(ideg == 1){ // case where not previously init
+        bar1[0] = iquad/(nquad-1.0);
+        bar1[1] = 1.0 - bar1[0];
+      }
+      msh.met.getMetBary(AsDeg::Pk, DifVar::None, 
+                         MetSpace::Exp, edg2pol, 1, bar1, metl, NULL);
+      len += getlenedg<gdim>(tang,metl)*dx;
+    }else{
+      int ipoin = ent2poi(ientt, lnoed[iquad]);
+      len += getlenedg<gdim>(tang,msh.met[ipoin])*dx;
+    }
 
-    if(std::isnan(getlenedg<gdim>(tang,metl)*dx)){
+    #ifndef NDEBUG
+    if(std::isnan(len)){
       printf("## DEBUG nan len increment in getlenedg_quad\n");
       printf("ientt %d tdim %d iedg %d nquad %d gdim %d ideg %d \n",
              ientt, tdimn, iedg, nquad, gdim, ideg);
@@ -323,8 +345,9 @@ double getlenedg_quad(MeshMetric<MetricFieldType> &msh,
       dblAr1(gdim, tang).print();
       printf("metl = ");
       dblAr1(nnmet,metl).print();
+      METRIS_THROW(GeomExcept());
     }
-    len += getlenedg<gdim>(tang,metl)*dx;
+    #endif
   }
 
   return len;

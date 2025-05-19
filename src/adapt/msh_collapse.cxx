@@ -56,9 +56,13 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
   const int merror = CAV_ERR_NERROR;
   intAr1 lerror(merror);
 
+  msh.met.setSpace(MetSpace::Exp);
 
-  msh.met.setSpace(MetSpace::Log);
-  // Absolutely cretin first prototype:
+  //msh.met.setSpace(MetSpace::Log);
+  if(ctrl_height || ctrl_small_bdry){
+    METRIS_ENFORCE_MSG(msh.met.getSpace() == MetSpace::Log,
+      "Front metric in log space: is it faster in collapse with options?");
+  }
 
   const int miter = 10;
   int niter = 0;
@@ -342,7 +346,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
     double t1 = get_wall_time();
     int ncallps = 1000*(int)(((ncoll1+ncoll2) / (t1-t0)) / 1000);
-    CPRINTF1(" - Loop end t = %f ncoll1 %d = ncoll2 = %d ncoll3 = %d tot =  %d /s; nerro1 %d nerro2 %d nerro3 %d\n",
+    CPRINTF1(" - Loop end t = %f ncoll1 = %d ncoll2 = %d ncoll3 = %d tot =  %d /s; nerro1 %d nerro2 %d nerro3 %d\n",
       t1-t0,ncoll1,ncoll2,ncoll3,ncallps,nerro1,nerro2,nerro3);
     CPRINTF1(" %f < len < %f \n",minl,maxl);
     if(DOPRINTS2()){

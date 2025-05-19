@@ -206,6 +206,8 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
                              DifVar::None, DifVar::None, 
                              bar1, coop, NULL, NULL);
           }else{
+            METRIS_THROW_MSG(TODOExcept(),"Implement useCAD case in msh_insert. "
+              "Note that this is done in low_insert.cxx")
             #if 0
             CPRINTF2(" - CAD link dim %d for this edge\n",bdim);
             METRIS_ASSERT(bdim == 1 || bdim == 2);
@@ -279,6 +281,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
             if(DOPRINTS2()){
               writeMesh("preins",msh);
             }
+
             ierro = insertEdge(msh,tdim,ientt,ied,coop,bar1[0],
                                cav,work,lcaverr,ithrd2,ithrd3);
             //if(ierro > 0){

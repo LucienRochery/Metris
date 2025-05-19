@@ -40,6 +40,10 @@ MetrisParameters::MetrisParameters(){
   adp_opt_niter = 1;
   adp_line_adapt = true;
 
+  // Does not work currently, namely the lenedg increasecav criterion needs
+  // improving for this to work. 
+  ins_lazy_interp = false;
+
   // 0 is none, default
   // 3 is offsets followed by smoothing 
   // 4 is offsets then backtrack and stop there 
@@ -64,6 +68,7 @@ MetrisParameters::MetrisParameters(){
   opt_swap_pnorm = Defaults::opt_swap_pnorm;
   opt_swap_niter = Defaults::opt_swap_niter;
   opt_swap_thres = Defaults::opt_swap_thres;
+  opt_swap_tet_expensive = false;
 
 
   qua_surf_wt_normal  = Defaults::qua_surf_wt_normal;
@@ -146,8 +151,6 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   // usrTarDeg is the minimum degree the user wants. 
   if(opt.count("tardeg")){  
     usrTarDeg = opt.m["tardeg"].template as<int>();
-    METRIS_ENFORCE_MSG(usrTarDeg >= 1, "Degree < 1 provided through tardeg.");
-    METRIS_ENFORCE_MSG(usrTarDeg <= METRIS_MAX_DEG, "Opt -tardeg > METRIS_MAX_DEG = "<<METRIS_MAX_DEG);
   }
 
   if(opt.count("nproc")){
@@ -238,12 +241,10 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
 
   if(opt.count("geo-lentolfac")){
     geo_lentolfac = opt.m["geo-lentolfac"].as<double>();
-    METRIS_ENFORCE(geo_lentolfac >= 1.0);
   }
 
   if(opt.count("geo-abstoledg")){
     geo_abstoledg = opt.m["geo-abstoledg"].as<double>();
-    METRIS_ENFORCE(geo_abstoledg >= 0.0);
   }
   
   
@@ -277,6 +278,9 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("opt-swap-niter")){
     opt_swap_niter = opt.m["opt-swap-niter"].as<int>();
   }
+  if(opt.count("opt-swap-tet-expensive")){
+    opt_swap_tet_expensive = true;
+  }
 
 
   if(opt.count("qua-surf-wt-quality")){
@@ -297,6 +301,14 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     iflag3 = opt.m["iflag3"].as<int>();
   }
 
+}
+
+void MetrisParameters::checkParameters(){
+  METRIS_ENFORCE_MSG(abs(opt_power) == 1, "opt_power can be set to -1 or 1");
+  METRIS_ENFORCE(geo_abstoledg >= 0.0);
+  METRIS_ENFORCE(geo_lentolfac >= 1.0);
+  METRIS_ENFORCE_MSG(usrTarDeg >= 1, "Degree < 1 provided through tardeg.");
+  METRIS_ENFORCE_MSG(usrTarDeg <= METRIS_MAX_DEG, "Opt -tardeg > METRIS_MAX_DEG = "<<METRIS_MAX_DEG);
 }
 
 

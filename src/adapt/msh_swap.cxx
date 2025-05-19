@@ -41,8 +41,8 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
   METRIS_ASSERT(ithrd1 != ithrd3);
   METRIS_ASSERT(ithrd2 != ithrd3);
 
-  MetSpace ispac0 = msh.met.getSpace();
-  msh.met.setSpace(MetSpace::Log);
+  //MetSpace ispac0 = msh.met.getSpace();
+  //msh.met.setSpace(MetSpace::Log);
 
   //if(msh.get_tdim() != 2){
   //  printf("## SKIP SWAP2D FOR TETRA \n");
@@ -198,7 +198,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
   }// for tdim
 
 
-  msh.met.setSpace(ispac0);
+  //msh.met.setSpace(ispac0);
   
   return stat;
 }

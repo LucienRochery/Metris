@@ -111,6 +111,8 @@ struct MetrisOptions{
                     "Quality p-norm (over shell) increase threshold for swaps.")
       ("opt-swap-niter", po::value<int>(),
                     "Inner optimization loop global swapping iterations")
+      ("opt-swap-tet-expensive",
+                    "Do expensive tet swaps (~ 6x slowdown on 3D swaps)")
       ("qua-surf-wt-quality", po::value<double>(),
                     "Weight of raw quality in surface quality.")
       ("qua-surf-wt-normal", po::value<double>(),

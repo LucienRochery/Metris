@@ -230,6 +230,9 @@ void check_topo(MeshBase &msh,
       int iface = msh.edg2fac[iedge];
       // No detached edges, and in bounds 
       METRIS_ENFORCE(msh.get_tdim() == 1 || (iface >= 0 && iface < msh.nface));
+      METRIS_ENFORCE_MSG(!isdeadent(iface,msh.fac2poi),
+        "iedge "<<iedge<<" points to face "<<iface<<" which is dead"
+        <<"\nedge vertices: "<<msh.edg2poi(iedge,0)<<" "<<msh.edg2poi(iedge,1));
       int ip1 = msh.edg2poi(iedge,0);
       int ip2 = msh.edg2poi(iedge,1);
 

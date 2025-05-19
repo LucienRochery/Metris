@@ -58,6 +58,9 @@ int insertEdge(Mesh<MFT>& msh,
   opts.dryrun = false;
   opts.allow_remove_points = false; // good for an infinite loop
   opts.allow_remove_points_superdim = true; // For boundary
+  opts.qmax_nec = -1;
+  opts.qmax_suf = -1;
+  opts.qmax_iff = -1;
 
   int mcavcorr = 5, ncavcorr;
 
@@ -89,54 +92,6 @@ int insertEdge(Mesh<MFT>& msh,
   }
 
   #endif  
-
-  #if 0 // shell now gathers all dimension entities
-  int iedge = -1;
-  if(tdim == 2){
-    int ient2 = msh.fac2fac(ientt,iedl);
-    if(ient2 <= -1 || msh.idim >= 3){ // geometric edge
-      iedge = getedgglo(msh,ip1,ip2);
-
-      if(msh.idim == 2){
-        METRIS_ASSERT(iedge >= 0);
-        METRIS_ASSERT(!isdeadent(iedge,msh.edg2poi)); 
-      }
-      if(iedge >= 0){
-        cav.lcedg.stack(iedge); 
-      }
-    }
-
-
-    if(ient2 < -1){ // Non manifold 
-      shell2_nm(msh,ientt,iedl,cav.lcfac);
-    }else if(ient2 == -1){ // only ientt
-      cav.lcfac.stack(ientt); 
-    }else{ // 2 faces 
-      cav.lcfac.stack(ientt); 
-      cav.lcfac.stack(ient2); 
-    }
-  }// if tdim == 2
-
-
-  if(msh.get_tdim() == 3){ // Regardless of ientt tdim, we need the tets 
-    int itet0 = -1; 
-    if(tdim == 1){
-      int iface = msh.edg2fac[ientt];
-      itet0 = msh.fac2poi(iface,0);
-    }else if(tdim == 2){
-      itet0 = msh.fac2poi(ientt,0);
-    }else if(tdim == 3){
-      itet0 = ientt;
-    }
-    
-    METRIS_ASSERT(itet0 >= 0);
-    int iopen;
-    CPRINTF1(" - calling shell3 with itet0 = %d \n",itet0);
-    shell3(msh, ip1, ip2, itet0, cav.lctet, cav.lcfac, &iopen);
-    // Only exception would be non manifold, but not always (not to say most unlikely)
-    if(iopen >= 0) METRIS_ASSERT(cav.lcfac.get_n() == 2);
-  }
-  #endif
 
   int tdimp = -1;
        if(cav.lcedg.get_n() > 0) tdimp = 1;
@@ -170,6 +125,7 @@ int insertEdge(Mesh<MFT>& msh,
   }else{
     cav.ipins = msh.newpoitopo(3,ientt);
     iseed = ientt;
+    iref = msh.tet2ref[ientt];
   }
   if(msh.CAD()) METRIS_ASSERT(obj != NULL 
                     || tdimp == 2 && !msh.isboundary_faces() || tdimp == 3);
@@ -242,14 +198,62 @@ int insertEdge(Mesh<MFT>& msh,
       getnorfacP1(ent2poi[ientt],msh.coord,algnd);
     }
   }
- 
-  ierro = msh.interpMetBack(cav.ipins, tdimp, iseed, iref, algnd);
-  if(ierro != 0){
-    printf("debug interpMetBack error %d\n",ierro);
-    wait();
-    ierro = INS2D_ERR_INTERPMETBACK;
-    goto cleanup;
+  //try{
+  if(!msh.param->ins_lazy_interp){
+    ierro = msh.interpMetBack(cav.ipins, tdimp, iseed, iref, algnd);
+    if(ierro != 0){
+      printf("debug interpMetBack error %d\n",ierro);
+      wait();
+      ierro = INS2D_ERR_INTERPMETBACK;
+      goto cleanup;
+    }
   }
+
+  //}catch(const MetrisExcept& e){
+
+  //  printf("Exception in interpMetBack from insertEdge\n");
+  //  printf("ipins = %d\n",cav.ipins);
+  //  MPRINTF("-- cavity ncedg = %d ncfac = %d nctet = %d ipins = %d \n",
+  //           cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),cav.ipins);
+  //  MPRINTF("   npoin %d nedge %d nface %d nelem %d\n",msh.npoin,msh.nedge,msh.nface,msh.nelem);
+  //  if(cav.lcedg.get_n() > 0){
+  //    MPRINTF(" - Edge cavity: ");
+  //    cav.lcedg.print(cav.lcedg.get_n());
+  //  }
+  //  if(cav.lcfac.get_n() > 0){
+  //    MPRINTF(" - Face cavity: ");
+  //    cav.lcfac.print(cav.lcfac.get_n());
+  //  }
+  //  if(cav.lctet.get_n() > 0){
+  //    MPRINTF(" - Tetra cavity: ");
+  //    cav.lctet.print(cav.lctet.get_n());
+  //  }
+
+  //  for(int tdimn = 1; tdimn <= 3; tdimn++){
+  //    intAr1 &lcent = cav.lcent(tdimn);
+  //    int ncent = lcent.get_n();
+  //    if(ncent <= 0) continue;
+  //    intAr2 &ent2poi = msh.ent2poi(tdimn);
+
+  //    if(tdimn == 1){
+  //      MPRINTF(" - Edge cavity: \n");
+  //    }else if(tdimn == 2){
+  //      MPRINTF(" - Face cavity: \n");
+  //    }else{
+  //      MPRINTF(" - Tetra cavity: \n");
+  //    }
+  //    int nnode = msh.nnode(tdimn);
+  //    for(int ientt : lcent){
+  //      MPRINTF("%d : ",ientt);
+  //      for(int ii = 0; ii < nnode; ii++){
+  //        printf(" %d ",ent2poi(ientt,ii));
+  //      }
+  //      printf("\n");
+  //    }
+  //  }
+  //  writeMeshCavity("cavity0",msh,cav);
+  //  throw(e);
+  //}
 
   ncavcorr = 0;
   ierro = 0;
@@ -337,6 +341,18 @@ int insertEdge(Mesh<MFT>& msh,
   if(ierro != 0) ierro = INS2D_ERR_CAVITYOPERATOR;
 
   if(info.done){
+
+    if(msh.param->ins_lazy_interp){
+      ierro = msh.interpMetBack(cav.ipins, tdimp, iseed, iref, algnd);
+      if(ierro != 0){
+        printf("debug interpMetBack error %d\n",ierro);
+        wait();
+        //ierro = INS2D_ERR_INTERPMETBACK;
+        //goto cleanup;
+      }
+      METRIS_ENFORCE(ierro == 0);
+    }
+
     CPRINTF1("-- END insertEdge ipins = %d  \n",cav.ipins);
     #ifndef NDEBUG
       if(DOPRINTS2()) writeMesh("debug_insert1.meshb",msh);
@@ -423,13 +439,15 @@ int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav,
     return 0;
   }// if tdimp == msh.get_tdim()
 
-  // reinterp metric. This is always interior case, no need for ref of bdry dir
-  ierro = msh.interpMetBack(cav.ipins,tdimp,iseed,iref,algnd);
-  if(ierro != 0){
-    CPRINTF1(" - interpMetBack failed ierro = %d \n",ierro);
-    ierro = INS2D_ERR_INTERPMETBACK;
+  if(!msh.param->ins_lazy_interp){
+    // reinterp metric. This is always interior case, no need for ref of bdry dir
+    ierro = msh.interpMetBack(cav.ipins,tdimp,iseed,iref,algnd);
+    if(ierro != 0){
+      CPRINTF1(" - interpMetBack failed ierro = %d \n",ierro);
+      ierro = INS2D_ERR_INTERPMETBACK;
+    }
   }
-
+  
   return ierro;
 }
 

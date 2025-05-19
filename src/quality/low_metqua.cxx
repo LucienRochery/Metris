@@ -37,7 +37,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
   const int pnorm = msh.param->opt_pnorm;
 
-  ftype qutet; 
+  ftype qutet = 0; 
   double nordev = 0;
   bool do_nordev = tdim == 2 && gdim == 3 
     && msh.CAD()
@@ -73,6 +73,8 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   //  }
   //}
   const int ideg = msh.curdeg;
+  const int ideg_eff = asdmsh == AsDeg::P1 ? 1 : ideg;
+  const int nnode = getnnode(tdim, ideg_eff);
 
   // Accumulate normal error at the nodes (depending on asdmsh)
   if(do_nordev){
@@ -80,9 +82,6 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     double norCAD[gdim], norelt[gdim];
     double *du = &result[3];
     double *dv = &result[6];
-    const int ideg_eff = asdmsh == AsDeg::P1 ? 1 : ideg;
-
-    const int nnode = getnnode(tdim, ideg_eff);
     const int iref = msh.fac2ref[ientt];
     const ego obj  = msh.CAD.cad2fac[iref];
 
@@ -153,38 +152,102 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     nordev = sqrt(nordev);
   }
 
-  if(asdmet == AsDeg::Pk && ideg > 1){
+  if(ideg_eff > 1){
     qutet = 0.0;
     nordev= 0.0;
 
-    const int idegj = SMOO_DEGJ(ideg);
-    const int nnodj = tdim == 2 ? getnnod2(idegj) : getnnod3(idegj);
+    //const int idegj = SMOO_DEGJ(ideg);
+    //const int nnodj = tdim == 2 ? getnnod2(idegj) : getnnod3(idegj);
 
 
+    METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
 
-    for(int iquad = 0; iquad < nnodj; iquad++){
+    for(int iquad = 0; iquad < nnode; iquad++){
       for(int ii = 0; ii < tdim + 1; ii++){
-        bary[ii] = ordelt[idegj][iquad][ii]/((double) (idegj));
+        bary[ii] = ordelt[ideg][iquad][ii]/((double) (ideg));
       }
-      ftype qua0 = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,NULL);
-      qutet += pow(abs(qua0 - difto),pnorm) / nnodj;
+      const int ipoin = ent2poi(ientt, iquad);
+      ftype qua0 = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,msh.met[ipoin]);
+
+      // You'd think this wouldn't be a bottleneck but it eats up 20% of optimization
+      // time to run pow() here even if pnorm = 2 or 1.
+      qua0 = abs(qua0 - difto);
+      if(pnorm == 2){
+        qua0 *= qua0;
+      }else if(pnorm > 2){
+        qua0 = pow(qua0, pnorm);
+      }
+      qutet += qua0 / nnode;
+      
+      //qutet += pow(abs(qua0 - difto),pnorm) / nnode;
 
     }
 
   }else{
-    for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim  + 1);
-    #ifndef NDEBUG
-      try{
-    #endif
-    qutet = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,NULL);
-    #ifndef NDEBUG
-      }catch(const MetrisExcept &e){
-        printf("## metqua ent2pol \n");
-        intAr1(getnnode(tdim,ideg), ent2poi[ientt]).print();
-        throw(e);
+
+    #if 0
+      // Value doesn't matter. (P1)
+      for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim  + 1);
+      METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+      for(int iquad = 0; iquad < tdim + 1; iquad++){
+        int ipoin = ent2poi(ientt, iquad);
+        ftype qua0 = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,msh.met[ipoin]);
+        // You'd think this wouldn't be a bottleneck but it eats up 20% of optimization
+        // time to run pow() here even if pnorm = 2 or 1.
+        qua0 = abs(qua0 - difto);
+        if(pnorm == 2){
+          qua0 *= qua0;
+        }else if(pnorm > 2){
+          qua0 = pow(qua0, pnorm);
+        }
+        qutet += qua0 / (tdim + 1);
+      }
+    
+    #elif 0
+      for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim  + 1);
+      #ifndef NDEBUG
+        try{
+      #endif
+      qutet = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,NULL);
+      #ifndef NDEBUG
+        }catch(const MetrisExcept &e){
+          printf("## metqua ent2pol \n");
+          intAr1(getnnode(tdim,ideg), ent2poi[ientt]).print();
+          throw(e);
+        }
+      #endif
+      // You'd think this wouldn't be a bottleneck but it eats up 20% of optimization
+      // time to run pow() here even if pnorm = 2 or 1.
+      qutet = abs(qutet - difto);
+      if(pnorm == 2){
+        qutet *= qutet;
+      }else if(pnorm > 2){
+        qutet = pow(qutet, pnorm);
+      }
+
+    #else
+      METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+      constexpr int nnmet = (gdim*(gdim+1))/2;
+      double met[nnmet];
+      for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim  + 1);
+      for(int jj = 0; jj < nnmet; jj++) met[jj] = 0;
+      for(int ii = 0; ii < tdim + 1; ii++){
+        int ipoin = ent2poi(ientt, ii);
+        for(int jj = 0; jj < nnmet; jj++){
+          met[jj] += msh.met(ipoin,jj) / (tdim + 1);
+        }
+      }
+      qutet = quafun_xi(msh,AsDeg::P1,asdmet,ent2poi[ientt],bary,met);
+      // You'd think this wouldn't be a bottleneck but it eats up 20% of optimization
+      // time to run pow() here even if pnorm = 2 or 1.
+      qutet = abs(qutet - difto);
+      if(pnorm == 2){
+        qutet *= qutet;
+      }else if(pnorm > 2){
+        qutet = pow(qutet, pnorm);
       }
     #endif
-    qutet = pow(abs(qutet - difto),pnorm);
+
   }
 
   if(do_nordev){

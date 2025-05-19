@@ -109,7 +109,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
     // avoided by LPlib
   #endif
 
-  msh.met.setSpace(MetSpace::Log);
+  //msh.met.setSpace(MetSpace::Log);
 
 
 

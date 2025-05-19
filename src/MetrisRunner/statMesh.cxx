@@ -37,12 +37,13 @@ void MetrisRunner::statMesh0(MeshStat* stat){
   if(!DOPRINTS1() && stat == NULL) return;
   
   msh.cleanup();
+  msh.met.setSpace(MetSpace::Exp);
 
   intAr2 ilned;
   ilned.set_n(0);
   dblAr1 rlned;
   dblAr1 lenbds = {1.0/sqrt(2), sqrt(2)};
-  getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::Quad);
+  getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::GeoSiz);
 
   if(stat != NULL){
     stat->minlen = 1.0e30;
@@ -61,11 +62,11 @@ void MetrisRunner::statMesh0(MeshStat* stat){
   }
 
   if(DOPRINTS1()){
-    print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (quadrature)");
+    print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (geometric)");
   
-    if(DOPRINTS2())
-      getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::GeoSiz);
-      print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (geometric)");{
+    if(DOPRINTS2()){
+      getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::Quad);
+      print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (quadrature)");
     }
   }
 
@@ -87,9 +88,6 @@ void MetrisRunner::statMesh0(MeshStat* stat){
              param->intp_pdeg, param->intp_pnorm, errGlo);
   } 
 
-
-  //getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::GeoSiz);
-  //print_histogram(rlned,IntrpTyp::Linear,lenbds,"l","Edge length (geom interp)");
 
   double qmin, qmax, qavg;
   bool iinva;

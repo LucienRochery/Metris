@@ -242,6 +242,12 @@ int cavity_operator(Mesh<MFT> &msh ,
       msh.edg2tag(ithread,iedge) = msh.tag[ithread];
     }
   }
+  for(int tdim = 1; tdim <= msh.get_tdim(); tdim++){
+    int nent0 = tdim == 1 ? nedg0 : tdim == 2 ? nfac0 : nele0;
+    for(int ientt = nent0; ientt < msh.nentt(tdim); ientt++){
+      msh.ent2poi(tdim)(ientt,0) = -1;
+    }
+  }
   for(int ibpoi = nbpo0; ibpoi < msh.nbpoi; ibpoi++){
     INCVDEPTH(msh.param);
     int ip = msh.bpo2ibi(ibpoi,0);
