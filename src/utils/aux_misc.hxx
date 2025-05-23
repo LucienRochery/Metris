@@ -38,6 +38,11 @@
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
+template<typename _Ty1, typename _Ty2>
+std::ostream& operator<<(std::ostream& _os, const std::pair<_Ty1, _Ty2>& _p) {
+    _os << '(' << _p.first << ',' << _p.second << ')';
+    return _os;
+}
 
 namespace Metris{
 

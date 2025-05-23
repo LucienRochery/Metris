@@ -142,12 +142,12 @@ void MeshBase::initialize(MetrisAPI *data,
   dom2tag.set_n(METRIS_MAXTAGS);
   CPRINTF1("-- Counted %d tetra domain ids\n",ndomn);
 
+
+  // Note, this guy creates nbpos, but only corners. They don't need projecting.
   iniNeighbours();
 
-  
-  iniBdryPoints(0);
+  nbpo0 = iniBdryPoints(0);
   if(param.dbgfull) check_topo(*this,0);
-
 
   CPRINTF1("-- iniBdryPoints nbpoi %d -> %d\n",nbpo0, nbpoi);
 
@@ -413,11 +413,13 @@ void MeshBase::iniNeighbours(){
 }
 
 
-void MeshBase::iniBdryPoints(int ithread){
+int MeshBase::iniBdryPoints(int ithread){
   GETVDEPTH(this->param);
   CPRINTF1("-- Update bdry point link to entities\n");
-  int ncrea = iniMeshBdryPoints(*this, ithread); 
+  int nbpo0;
+  int ncrea = iniMeshBdryPoints(*this, &nbpo0, ithread); 
   CPRINTF1("   %d boundary points created\n",ncrea);
+  return nbpo0;
 }
 
 void MeshBase::iniCADLink(int nbpo0){

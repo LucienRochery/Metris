@@ -23,35 +23,31 @@ namespace Metris{
 
 #ifdef METRIS_LARGE_MESH
 
-#define INT1 int64_t
-#define INT2 int32_t
+#define METRIS_INT1 int64_t
+#define METRIS_INT2 int32_t
 
 #else
 
-#define INT1 int32_t
-#define INT2 int32_t
+#define METRIS_INT1 int32_t
+#define METRIS_INT2 int32_t
 
 #endif
 
-using intAr1 = MeshArray1D<int   ,INT1>;
-using bolAr1 = MeshArray1D<int   ,INT1>;
-using egoAr1 = MeshArray1D<ego   ,INT1>;
-using dblAr1 = MeshArray1D<double,INT1>;
+using intAr1 = MeshArray1D<int   ,METRIS_INT1>;
+using bolAr1 = MeshArray1D<int   ,METRIS_INT1>;
+using egoAr1 = MeshArray1D<ego   ,METRIS_INT1>;
+using dblAr1 = MeshArray1D<double,METRIS_INT1>;
 
-using intAr2  = MeshArray2D<int   ,INT1,INT2>;
-using intAr2r = MeshArray2D<int   ,INT2,INT1>;
-using dblAr2  = MeshArray2D<double,INT1,INT2>;
+using intAr2  = MeshArray2D<int   ,METRIS_INT1,METRIS_INT2>;
+using intAr2r = MeshArray2D<int   ,METRIS_INT2,METRIS_INT1>;
+using dblAr2  = MeshArray2D<double,METRIS_INT1,METRIS_INT2>;
 
-using intLoop = Loop<int, INT1>;
+using intLoop = Loop<int, METRIS_INT1>;
 
-//template<typename INT1 = int, typename INT2 = int>
-//using intAr3 = MeshArray3D<int   ,INT1,INT2>;
-//template<typename INT1 = int, typename INT2 = int>
-//using dblAr3 = MeshArray3D<double,INT1,INT2>;
-
-#undef INT1
-#undef INT2
-
+//template<typename METRIS_INT1 = int, typename METRIS_INT2 = int>
+//using intAr3 = MeshArray3D<int   ,METRIS_INT1,METRIS_INT2>;
+//template<typename METRIS_INT1 = int, typename METRIS_INT2 = int>
+//using dblAr3 = MeshArray3D<double,METRIS_INT1,METRIS_INT2>;
 
 
 //template<typename INT1 = int>

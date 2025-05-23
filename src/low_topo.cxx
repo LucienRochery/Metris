@@ -757,12 +757,16 @@ void shell(const MeshBase& msh,
            iele0,tdim,ipoi1,ipoi2, doedg, dofac, dotet);
 
   // Skip straight to shell3-like; only if tet seeded and edge not requested
-  if(tdim == 3 && dotet && !doedg) goto doshell3;
+  if(tdim == 3 && dotet && !doedg){
+    CPRINTF1(" - using tet seed, skip to regular shell as no edges required\n");
+    goto doshell3;
+  }
   // Seed tet if edge not needed and go to shell3
   if(tdim == 2 && dotet && !doedg){
     itet0 = msh.fac2tet(ifac0,0);
     if(itet0 < 0) itet0 = msh.fac2tet(ifac0,1);
     METRIS_ASSERT(itet0 >= 0);
+    CPRINTF1(" - using face seed, get attached tet and skip to regular shell as no edges required\n");
     goto doshell3;
   }
 
@@ -775,6 +779,7 @@ void shell(const MeshBase& msh,
   // ipoi1 and ipoi2 are both boundary.
   if(doedg && ibdry){
     iedg0 = getedgglo(msh,ipoi1,ipoi2);
+    CPRINTF1(" - looking for edge %d %d -> got %d\n",ipoi1,ipoi2,iedg0);
   }
   // Either seeded or provided as argument, the only possible shell edge: 
   if(iedg0 >= 0) lsedg.stack(iedg0);

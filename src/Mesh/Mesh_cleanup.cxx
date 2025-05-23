@@ -16,7 +16,14 @@ namespace Metris{
 template<class MetricFieldType>
 void Mesh<MetricFieldType>::cleanup(){
 
+
   GETVDEPTH(this->param);
+
+  if(this->param->nocleanup){
+    MPRINTF("## Option -nocleanup enabled -> Mesh::cleanup() skipped.\n");
+    return;
+  }
+
 
   intAr1& lentt = this->iwork;
 

@@ -64,7 +64,8 @@ void MetrisRunner::statMesh0(MeshStat* stat){
   if(DOPRINTS1()){
     print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (geometric)");
   
-    if(DOPRINTS2()){
+    if(DOPRINTS3()){
+      // This is very expensive to compute
       getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::Quad);
       print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (quadrature)");
     }
@@ -93,11 +94,8 @@ void MetrisRunner::statMesh0(MeshStat* stat){
   bool iinva;
   dblAr1 lquae;
   dblAr1 dum = {1.0e-8, 0.1};
-  if(msh.idim == 2){
-    getmetquamesh<MFT,2,AsDeg::P1>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
-  }else{
-    getmetquamesh<MFT,3,AsDeg::P1>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
-  }
+  getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
+                     &iinva,&qmin,&qmax,&qavg,&lquae);
   if(stat != NULL){
     stat->minqua = qmin;
     stat->maxqua = qmax;
@@ -106,11 +104,8 @@ void MetrisRunner::statMesh0(MeshStat* stat){
   print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality (As P1)");
 
   if(msh.curdeg > 1){
-    if(msh.idim == 2){
-      getmetquamesh<MFT,2,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
-    }else{
-      getmetquamesh<MFT,3,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
-    }
+    getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,
+                       &iinva,&qmin,&qmax,&qavg,&lquae);
     if(stat != NULL){//overwrite
       stat->minqua = qmin;
       stat->maxqua = qmax;

@@ -23,23 +23,36 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
 
   GETVDEPTH(msh.param);
 
-  // Check tetrahedra supported by faces are removed if those faces are removed
-  bool icheck1 = cav.lcfac.get_n() > 0 && msh.nelem > 0;
-  // Check triangles supported by edges are removed if those edges are removed
-  bool icheck2 = cav.lcedg.get_n() > 0 && msh.nface > 0;
-  // Check point removal rules are respected.
-  bool icheck3 = !opts.allow_remove_points;
+  //// Check tetrahedra supported by faces are removed if those faces are removed
+  //bool icheck1 = cav.lcfac.get_n() > 0 && msh.nelem > 0;
+  //// Check triangles supported by edges are removed if those edges are removed
+  //bool icheck2 = cav.lcedg.get_n() > 0 && msh.nface > 0;
+  //// Check point removal rules are respected.
+  //bool icheck3 = !opts.allow_remove_points;
 
-  if(icheck1 || icheck3){
-    for(int ielem : cav.lctet) msh.tet2tag(ithread,ielem) = msh.tag[ithread];
+
+  // Tag while checking no duplicates (hard error).
+  for(int tdim = 1; tdim <= 3; tdim++){
+    const intAr1& lcent = cav.lcent(tdim);
+    intAr2& ent2tag = msh.ent2tag(tdim);
+    const int nnode = msh.nnode(tdim);
+    const intAr2 &ent2poi = msh.ent2poi(tdim);
+    if(!cav.inewp) continue;
+    for(int ientt : lcent){
+      METRIS_ASSERT(ent2tag(ithread,ientt) < msh.tag[ithread]);
+      ent2tag(ithread,ientt) = msh.tag[ithread];
+      // Check if ipins is present in the cavity elements.
+      for(int inode = 0; inode < nnode; inode++){
+        int ipoin = ent2poi(ientt, inode);
+        if(ipoin == cav.ipins) cav.inewp = false;
+      }
+      if(!cav.inewp) break;
+    }
   }
 
-  if(icheck2){
-    for(int iface : cav.lcfac) msh.fac2tag(ithread,iface) = msh.tag[ithread];
-  }
 
   // Check that supported triangles are collapsed together with edges
-  if(cav.lcedg.get_n() > 0 && msh.nface > 0){
+  if(msh.nface > 0){
     for(int iedge : cav.lcedg){
       int iface = msh.edg2fac[iedge];
       if(iface < 0) continue;
@@ -74,7 +87,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
     }
   }
   // Check that supported tetrahedra are collapsed together with faces
-  if(cav.lcfac.get_n() > 0 && msh.nelem > 0){
+  if(msh.nelem > 0){
     for(int iface : cav.lcfac){
       for(int ii = 0; ii < 2; ii++){
         int ielem = msh.fac2tet(iface,ii);
@@ -146,7 +159,6 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
         CPRINTF1("## face %d is internal but was not in cavity\n",iface);
         return CAV_ERR_INTFAC;
       }
-
     }
   }
 

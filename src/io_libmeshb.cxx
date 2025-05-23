@@ -142,19 +142,6 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav)
   const int ncfac = cav.lcfac.get_n();
   const int nctet = cav.lctet.get_n();
 
-  //int npmax = ncedg * getnnod1(msh.curdeg); 
-  //npmax = MAX(npmax, ncfac * getnnod2(msh.curdeg) );
-  //npmax = MAX(npmax, nctet * getnnod3(msh.curdeg) );
-
-  //int nrmax = ncedg;
-  //nrmax = MAX(nrmax, ncfac);
-  //nrmax = MAX(nrmax, nctet);
-
-  //intAr1 buffp(npmax);
-  //intAr1 buffr(nrmax);
-
-
-
   intAr2 ent2po2;
   intAr1 ent2re2;
 
@@ -196,7 +183,7 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav)
         int ip = msh.edg2poi(iedge,jj);
         ent2po2[ii][jj] = ip + 1;
       }
-      ent2re2[ii] = 1; //iedge + 1;
+      ent2re2[ii] = msh.edg2ref[iedge] + 1; //iedge + 1;
     }
 
     GmfSetKwd( libIdx, fKwd, ncedg);
@@ -252,7 +239,7 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav)
         int ip = msh.fac2poi(iface,jj);
         ent2po2[ii][jj] = ip + 1;
       }
-      ent2re2[ii] = 1; //iface + 1;
+      ent2re2[ii] = msh.fac2ref[iface] + 1; //iface + 1;
     }
 
     GmfSetKwd( libIdx, fKwd, ncfac);
@@ -299,7 +286,7 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav)
         int ip = msh.tet2poi(itete,jj);
         ent2po2[ii][jj] = ip + 1;
       }
-      ent2re2[ii] = 1; //itete + 1;
+      ent2re2[ii] = msh.tet2ref[itete] + 1; //itete + 1;
     }
 
 

@@ -17,6 +17,54 @@
 namespace Metris{
 
 
+void MshCavity::print(const MeshBase &msh, int iforce) const{
+  GETVDEPTH(msh.param);
+
+  if(DOPRINTS1() || iforce >= 1){
+
+    MPRINTF(" - cavity ipins %d ncedg %d ncfac %d nctet %d\n",ipins,
+            lcedg.get_n(),lcfac.get_n(),lctet.get_n());
+
+    if(this->lcedg.get_n() > 0){
+      MPRINTF(" - Edge cavity: ");
+      this->lcedg.print();
+    }
+    if(this->lcfac.get_n() > 0){
+      MPRINTF(" - Face cavity: ");
+      this->lcfac.print();
+    }
+    if(this->lctet.get_n() > 0){
+      MPRINTF(" - Tetra cavity: ");
+      this->lctet.print();
+    }
+  }
+
+  if(DOPRINTS2() || iforce >= 2){
+    for(int tdimn = 1; tdimn <= msh.get_tdim(); tdimn++){
+      const intAr1 &lcent = this->lcent(tdimn);
+      int ncent = lcent.get_n();
+      if(ncent <= 0) continue;
+      const intAr2 &ent2poi = msh.ent2poi(tdimn);
+
+      if(tdimn == 1){
+        MPRINTF(" - Edge cavity: \n");
+      }else if(tdimn == 2){
+        MPRINTF(" - Face cavity: \n");
+      }else{
+        MPRINTF(" - Tetra cavity: \n");
+      }
+      int nnode = msh.nnode(tdimn);
+      for(int ientt : lcent){
+        MPRINTF("%d : ",ientt);
+        for(int ii = 0; ii < nnode; ii++){
+          printf(" %d ",ent2poi(ientt,ii));
+        }
+        printf("\n");
+      }
+    }
+  }
+}
+
 // -------------------------------------------------------------------------------------- //
 // -------------------------------------------------------------------------------------- //
 // -------------------------------------------------------------------------------------- //
@@ -29,54 +77,29 @@ int cavity_operator(Mesh<MFT> &msh ,
                     CavWrkArrs &work,
                     CavOprInfo &info,
                     int ithread){
+
+  try{
+  //static int nwarnprt11 = 0;
+  //if(nwarnprt11++ <10) printf("## WARNING REMOVE THIS DEBUG \n");
+  //if(cav.ipins == 72065){
+  //  printf("## DEBUG SETTING MAX PRINTS FOR 71925\n");
+  //  wait();
+  //  msh.param->iverb = 5;
+  //  msh.param->ivdepth = 5;
+  //}
   INCVDEPTH(msh.param);
   info.done = false;
+  cav.inewp = true; // this will be updated by check_cavity_topo
 
   METRIS_ENFORCE_MSG(opts.max_increase_cav_geo <= 1,"Implement cavity correction")
 
   CPRINTF1("-- cavity_operator start ncedg = %d ncfac = %d nctet = %d ipins = %d \n",
            cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),cav.ipins);
   CPRINTF1("   npoin %d nedge %d nface %d nelem %d\n",msh.npoin,msh.nedge,msh.nface,msh.nelem);
-  if(DOPRINTS1()){
-    if(cav.lcedg.get_n() > 0){
-      CPRINTF1(" - Edge cavity: ");
-      cav.lcedg.print(cav.lcedg.get_n());
-    }
-    if(cav.lcfac.get_n() > 0){
-      CPRINTF1(" - Face cavity: ");
-      cav.lcfac.print(cav.lcfac.get_n());
-    }
-    if(cav.lctet.get_n() > 0){
-      CPRINTF1(" - Tetra cavity: ");
-      cav.lctet.print(cav.lctet.get_n());
-    }
-  }
 
-  if(DOPRINTS2()){
-    for(int tdimn = 1; tdimn <= 3; tdimn++){
-      intAr1 &lcent = cav.lcent(tdimn);
-      int ncent = lcent.get_n();
-      if(ncent <= 0) continue;
-      intAr2 &ent2poi = msh.ent2poi(tdimn);
+  cav.print(msh);
 
-      if(tdimn == 1){
-        CPRINTF2(" - Edge cavity: \n");
-      }else if(tdimn == 2){
-        CPRINTF2(" - Face cavity: \n");
-      }else{
-        CPRINTF2(" - Tetra cavity: \n");
-      }
-      int nnode = msh.nnode(tdimn);
-      for(int ientt : lcent){
-        CPRINTF2("%d : ",ientt);
-        for(int ii = 0; ii < nnode; ii++){
-          printf(" %d ",ent2poi(ientt,ii));
-        }
-        printf("\n");
-      }
-    }
-    writeMeshCavity("cavity0",msh,cav);
-  }
+  if(DOPRINTS2()) writeMeshCavity("cavity0",msh,cav);
 
 	if(cav.ipins < 0 || cav.ipins >= msh.npoin) 
 		METRIS_THROW_MSG(WArgExcept(),"ipins out of bounds\n");
@@ -84,9 +107,6 @@ int cavity_operator(Mesh<MFT> &msh ,
 	int ierro = CAV_NOERR;
 
 
-
-	int iinva = 0;
-	int niter_incr = 0;
 	// In lbad, store: [2*i + 0] = entity rank in cavity
 	//                 [2*i + 1] = entity type: 0 = edg, 1 = fac, 2 = tet
   intAr2 &lbad = work.lbad;
@@ -126,75 +146,45 @@ int cavity_operator(Mesh<MFT> &msh ,
   // The minimum value we need to set to (note right ++ is fine as we need only >=)
   cav.maxtag = ++msh.tag[ithread];
   
-	// Goto constraint, decl needs to be above
-	iinva = 0;
-	niter_incr = 0;
-	do{
-     /*  -------------- Generate final cavity -------------------- 
-     		 For typent in (line|face|tetra) do 
-           Generate typent cavity + new typent-1 elements boundary
-           Reconnect bdry to ipins
-     */
+   /*  -------------- Generate final cavity -------------------- 
+   		 For typent in (line|face|tetra) do 
+         Generate typent cavity + new typent-1 elements boundary
+         Reconnect bdry to ipins
+   */
 
-			ierro = reconnect_lincav<MFT, ideg>(msh, cav, opts, ithread);
-			if(ierro > 0) goto cleanup;
+	ierro = reconnect_lincav<MFT, ideg>(msh, cav, opts, ithread);
+	if(ierro > 0) goto cleanup;
+  CPRINTF1("-- reconnect_lincav done nedg0 = %d nedge = %d npoi0 = %d npoin = %d\n",
+           nedg0,msh.nedge,npoi0,msh.npoin);
 
 
-      CPRINTF1("-- reconnect_lincav done nedg0 = %d nedge = %d npoi0 = %d npoin = %d\n",
-               nedg0,msh.nedge,npoi0,msh.npoin);
-
-			ierro = reconnect_faccav<MFT, ideg>(msh, cav, opts, work, nedg0, &qmax, ithread);
-
-      {
-        bool check_qua = (opts.qmax_nec > 0 && msh.get_tdim() == 2)
-                      || (opts.qmax_suf > 0 && msh.get_tdim() == 2)
-                      || (opts.qmax_iff > 0 && msh.get_tdim() == 2);
-        if(check_qua) CPRINTF1(" - after reconnect_faccav qmax = %f \n",qmax);
-      }
-      if(msh.get_tdim() == 2) info.qmax_end = qmax;
-
-			if(ierro > 0) goto cleanup;
-
-      CPRINTF1("-- reconnect_faccav done nfac0 = %d nface = %d \n",nfac0,msh.nface);
+	ierro = reconnect_faccav<MFT, ideg>(msh, cav, opts, work, nedg0, &qmax, ithread);
+  if(msh.get_tdim() == 2) info.qmax_end = qmax;
+	if(ierro > 0) goto cleanup;
+  CPRINTF1("-- reconnect_faccav done nfac0 = %d nface = %d \n",nfac0,msh.nface);
 
 
-			ierro = reconnect_tetcav<MFT, ideg>(msh, cav, opts, info, nfac0, &qmax, ithread);
-      if(ierro > 0) goto cleanup; 
-      if(msh.get_tdim() == 3) info.qmax_end = qmax;
-      CPRINTF1("-- reconnect_tetcav done nele0 = %d nelem = %d \n",nele0,msh.nelem);
-	
-	/*  -------------- Fast validity correction --------------------
+	ierro = reconnect_tetcav<MFT, ideg>(msh, cav, opts, info, nfac0, &qmax, ithread);
+  if(ierro > 0) goto cleanup; 
+  if(msh.get_tdim() == 3) info.qmax_end = qmax;
+  CPRINTF1("-- reconnect_tetcav done nele0 = %d nelem = %d \n",nele0,msh.nelem);
+
+  // Update ibpois in case surface for new points (HO and ipins if new and dim < 2)
+  try{
+    ierro = update_bpois_newp(msh, cav, work, npoi0, nfac0, ithread);
+  }catch(const MetrisExcept& e){
+    writeMesh("cavenderr",msh,true,nedg0,nfac0,nele0);
+    throw(e);
+  }
+
+	/*  -------------- Validity correction and quality checks ------------------
 	  If this doesn't pass, don't invest on expensive optimization 
-		Instead, increase cavity and restart.
 	*/
 
+	ierro = correct_cavity<MFT,ideg>(msh,cav,opts,npoi0,nedg0,nfac0,nele0,
+                                   lbad,work,ithread);
+  if(ierro > 0) goto cleanup;
 
-		ierro = correct_cavity<MFT,ideg>(msh,cav,opts,npoi0,nedg0,
-                                                      nfac0,nele0,lbad,work,ithread);
-    if(ierro > 0) goto cleanup;
-
-    int nbad = lbad.get_n();
-
-		if(nbad > 0){
-      if(DOPRINTS1()){
-        CPRINTF1(" - debug nbad = %d \n",nbad);
-        lbad.print(nbad);
-        CPRINTF1("## Reject cavity\n");
-        CPRINTF1(" - debug write mesh:\n");
-        writeMesh("debug_failed_correctcav.meshb",msh, false, nedg0, nfac0, nele0);
-      }
-      ierro = CAV_ERR_INCORRECTIBLE;
-      goto cleanup;
-		}
-
-	}while(iinva > 0 && niter_incr < opts.max_increase_cav_geo);
-
-	//ierro = make_cavity_unit(msh,outcav,opts);
-	//if(ierro > 0){
-	//	ierro += 10*(ierr0);
-	//	goto cleanup;
-	//}
-	//ierr0++;
 
   if(opts.dryrun){
     if((opts.qmax_suf < 0 || qmax > opts.qmax_suf) && 
@@ -267,9 +257,47 @@ int cavity_operator(Mesh<MFT> &msh ,
 
 
   finish:
+
+  static int nwarnprt22 = 0;
+  if(nwarnprt22++ <10) MPRINTF("## WARNING REMOVE THIS DEBUG \n");
+  if(msh.npoin >= 71926 && msh.poi2bpo[71925] >= 0){
+    int ipoin = 71925;
+    bool ibad = false;
+    for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+      int tdim = msh.bpo2ibi(ibpoi,1);
+      int ientt = msh.bpo2ibi(ibpoi,2);
+      METRIS_ENFORCE(ientt >= 0);
+      if(tdim <= 1) continue;
+      int iref = msh.ent2ref(tdim)[ientt];
+      if(iref != 3) continue;
+      ibad = msh.bpo2rbi(ibpoi,0) < 1.0e-6;
+    }
+    if(ibad){
+      printf("## POINT 71925 has bad (u,v) = for face ref 3\n");
+      printf(" operation ierro %d was:\n",ierro);
+      cav.print(msh, 2);
+      printf(" bpo list:\n");
+      for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+        int tdim = msh.bpo2ibi(ibpoi,1);
+        int ientt = msh.bpo2ibi(ibpoi,2);
+        METRIS_ENFORCE(ientt >= 0);
+        int iref = msh.ent2ref(tdim)[ientt];
+        printf(" ibpoi %d ientt %d ref %d (u,v) = %e %e\n",ibpoi, ientt, iref,
+               msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
+      }
+      wait();
+    }
+  }
+
   msh.tag[ithread] = cav.maxtag;
   if(ierro == 0 && msh.param->dbgfull) check_topo(msh,ithread);
 	return ierro;
+  }catch(const MetrisExcept& e){
+    printf("## EXCEPTION IN CAVITY \n");
+    cav.print(msh,2);
+    writeMeshCavity("cavity_except",msh,cav);
+    throw(e);
+  }
 }
 // See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
 // Section A.4.1.2 Vertical Repetition

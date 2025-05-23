@@ -43,7 +43,8 @@ enum Cavity_Errors {CAV_NOERR = 0,
                     CAV_ERR_NOEDGFAC = 25,
                     CAV_ERR_INTFAC = 26,
                     CAV_ERR_BDRYTET = 27,
-                    CAV_ERR_NERROR = 28
+                    CAV_ERR_BDRYTET2 = 28,
+                    CAV_ERR_NERROR = 29
                     };
 
 
@@ -118,6 +119,8 @@ public:
     }
   }
 
+  void print(const MeshBase &msh, int iforce = 0) const;
+
   /* User set data */
   // Usage examples bunit/face_cavityX.cxx 
   intAr1 lctet,lcfac,lcedg;
@@ -140,6 +143,7 @@ public:
   // Internal use
 	// Store removed points, whether a corner is removed and if so which one (one at the most)
 	int nrempts, iremcor, maxtag;
+  bool inewp; // is ipins a whole new point or already in the mesh?
 
 
 };
@@ -252,6 +256,10 @@ struct CavWrkArrs{
   // Store normals for each connex component of the cavity.
   dblAr2 lnorf;
 
+  // Store edge (reference, sign) pairs 
+  // for edges that bound a connex component of the face cavity. 
+  MeshArray1D<MeshArray1D<std::pair<int,int>, int>, int> edcco;
+
   CavWrkArrs(){
     lbad.allocate(100,2);
 
@@ -261,6 +269,7 @@ struct CavWrkArrs{
     lfcco.allocate(100);
 
     lnorf.allocate(10,3);
+    edcco.allocate(10);
   }
 
 };
@@ -308,7 +317,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
 template<class MetricFieldType, int ideg>
 int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts, CavWrkArrs &work,
               int ient1, int ied, int iref ,
-              bool check_val, bool check_qua,
+              bool check_qua,
               int nedg0, int nfac0, double* qmax, int ithread);
 
 // Triangles, likewise. 
@@ -317,6 +326,9 @@ int reconnect_tetcav(Mesh<MetricFieldType> &msh,
                      MshCavity& cav, CavOprOpt &opts, CavOprInfo &info, 
                      int nfac0, double *qumin, int ithread);
                     
+
+int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
+                      int npoi0, int nfac0, int ithreads);
 
 // After first reconnection round, check if cavity is valid or can be made valid with quick corrections
 // If not, tag facets supporting invalid elements as "bad", proposing them for extension.

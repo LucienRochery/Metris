@@ -16,6 +16,7 @@ template<int ideg> void iniMeshNeighbours(MeshBase &msh);
 
 template<int ideg> void iniMeshNeighbours2D(MeshBase &msh);
 template<int ideg> void iniMeshNeighbours3D(MeshBase &msh);
+//template<int ideg> void iniMeshNeighbours0(MeshBase &msh);
 
 
 } // End namespace

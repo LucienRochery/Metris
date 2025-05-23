@@ -324,6 +324,8 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
           writeMesh("error_collapse.meshb",msh);
           throw(e);
         }
+
+
         if(ierro > 0){
           nerro1 ++;
         }else{

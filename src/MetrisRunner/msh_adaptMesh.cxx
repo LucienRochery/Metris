@@ -145,6 +145,7 @@ void MetrisRunner::adaptMesh0(){
   }
 
 
+
   
 
   // Will never exceed this 
@@ -185,10 +186,11 @@ void MetrisRunner::adaptMesh0(){
     }
 
     if(DOPRINTS2()){
-      getmetquamesh<MFT,2,AsDeg::P1>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
+      getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
+                         &iinva,&qmin,&qmax,&qavg,&lquae);
       CPRINTF1(" - Quality min = %15.7e \n",qmin);
-      CPRINTF1(" max = %15.7e \n",qmax);
-      CPRINTF1(" avg = %15.7e \n",qavg);
+      CPRINTF1("           max = %15.7e \n",qmax);
+      CPRINTF1("           avg = %15.7e \n",qavg);
       if(DOPRINTS2()) writeField("v2_collapsequa_adp"+ std::to_string(niter)+".solb",
                                 msh,SolTyp::P0Elt,lquae);
       CPRINTF2("------------------------------------------------------------\n");
@@ -217,10 +219,11 @@ void MetrisRunner::adaptMesh0(){
         writeBackLinks("v2_swap_adp_poi2bak" + std::to_string(niter), msh);
       }
       if(DOPRINTS2()){
-        getmetquamesh<MFT,2,AsDeg::P1>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
+        getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
+                           &iinva,&qmin,&qmax,&qavg,&lquae);
         CPRINTF2(" - Quality min = %15.7e \n",qmin);
-        CPRINTF2(" max = %15.7e \n",qmax);
-        CPRINTF2(" avg = %15.7e \n",qavg);
+        CPRINTF2("           max = %15.7e \n",qmax);
+        CPRINTF2("           avg = %15.7e \n",qavg);
         if(DOPRINTS2()) writeField("v2_swapqua_adp"+ std::to_string(niter)+".solb",
                                  msh,SolTyp::P0Elt,lquae);
         CPRINTF2("------------------------------------------------------------\n");
@@ -292,10 +295,11 @@ void MetrisRunner::adaptMesh0(){
         CPRINTF2("------------------------------------------------------------\n");
         CPRINTF2("- iteration %d unif ball stat = %f time = %f \n",niter,stat,t1-t0);
         CPRINTF2("------------------------------------------------------------\n");
-        getmetquamesh<MFT,2,AsDeg::P1>(msh,&iinva,&qmin,&qmax,&qavg,NULL);
+        getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
+                           &iinva,&qmin,&qmax,&qavg,&lquae);
         CPRINTF2(" - Quality min = %15.7e \n",qmin);
-        CPRINTF2(" max = %15.7e \n",qmax);
-        CPRINTF2(" avg = %15.7e \n",qavg);
+        CPRINTF2("           max = %15.7e \n",qmax);
+        CPRINTF2("           avg = %15.7e \n",qavg);
       }
     }
 
@@ -386,11 +390,12 @@ void MetrisRunner::adaptMesh0(){
   CPRINTF1(" -      swap time = %f \n",tswap);
   CPRINTF1(" - smoothing time = %f \n",tsmooth);
 
-  if(DOPRINTS1() && DOPRINTS2()){
+  if(DOPRINTS1() || DOPRINTS3()){
     writeMesh("adapt_end.meshb",msh);
     msh.met.writeMetricFile("adapt_end.solb");
-    if(DOPRINTS2()){
-      getmetquamesh<MFT,2,AsDeg::P1>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
+    if(DOPRINTS3()){
+      getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
+                         &iinva,&qmin,&qmax,&qavg,&lquae);
       writeField("adapt_end.qua.solb",msh,SolTyp::P0Elt,lquae);
     }
   }

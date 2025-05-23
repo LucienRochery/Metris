@@ -47,11 +47,8 @@ void MetrisRunner::curveMesh0(){
   bool iinva;
   dblAr1 lquae, dum = {0.1, 0.9};
   if(iverb >= 1){
-    if(msh.idim == 2){
-      getmetquamesh<MFT,2,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
-    }else{
-      getmetquamesh<MFT,3,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
-    }
+    getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,
+                       &iinva,&qmin,&qmax,&qavg,&lquae);
     print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality");
   }
 
@@ -107,11 +104,8 @@ void MetrisRunner::curveMesh0(){
   }
 
   if(iverb >= 1){
-    if(msh.idim == 2){
-      getmetquamesh<MFT,2,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
-    }else{
-      getmetquamesh<MFT,3,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
-    }
+    getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,
+                       &iinva,&qmin,&qmax,&qavg,&lquae);
     print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality");
   }
 

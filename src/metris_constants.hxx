@@ -69,7 +69,9 @@ enum class AsDeg {P1, Pk};
 // API Related
 enum class APIDefaultOrderings{ExodusII,Metris};
 
+constexpr int dummy_lnoedopp[1][2] = {{1,0}};
 
+constexpr int lnoed1[1][2] = {{0,1}};
 constexpr int lnoed2[3][2] = {{1,2},
                               {2,0},
                               {0,1}};
@@ -79,6 +81,17 @@ constexpr int lnoed3[6][2] = {{0,1},
                               {0,3},
                               {1,3},
                               {2,3}};
+template <int tdim>
+constexpr auto getlnoed(){
+  static_assert(tdim >= 1 && tdim <=3);
+  if constexpr(tdim == 1){
+    return lnoed1;
+  }else if(tdim == 2){
+    return lnoed2;
+  }else{
+    return lnoed3;
+  }
+}
 constexpr int lnofa3[4][3] = {{1,3,2},
                               {2,3,0},
                               {3,1,0},
@@ -88,6 +101,19 @@ constexpr int ledfa3[4][3] = {{5,1,4},
                               {0,3,4},
                               {1,2,0}};
 
+// Get array giving nodes of subdim facet (face of tet, edge of face)
+// opposite given index (e.g. face opposite node, vertex opposite node, node opposite node)
+template <int tdim>
+constexpr auto getlnosub(){
+  static_assert(tdim >= 1 && tdim <=3);
+  if constexpr(tdim == 1){ 
+    return dummy_lnoedopp;
+  }else if(tdim == 2){
+    return lnoed2;
+  }else{
+    return lnoed3;
+  }
+}
 
 
 namespace Constants{

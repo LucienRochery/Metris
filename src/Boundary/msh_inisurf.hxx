@@ -32,7 +32,7 @@ in the main loops, such as between different reference (interior) elements.
 template <int ideg> void iniMeshBdryTriangles(MeshBase &msh, HshTab_I3I &intfHshTab);
 template <int ideg> void iniMeshBdryEdges(MeshBase &msh);
 void iniMeshBdryCorners(MeshBase &msh);
-int iniMeshBdryPoints(MeshBase &msh, int ithread);
+int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread);
 
 ///*
 //Generate corner information: 

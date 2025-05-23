@@ -85,7 +85,11 @@ int projptfac(MeshBase &msh,
                  coopr           ,msh.coord[ipoi1],nrmal1);
     bary[2] = getprdl2<3>(nrmal1,nrmal) / nrm123;
 
-    METRIS_ASSERT(abs(bary[0] + bary[1] + bary[2] - 1) < 1.0e-14);
+    METRIS_ASSERT_MSG(abs(bary[0] + bary[1] + bary[2] - 1) 
+      < 1.0e-14*MAX(MAX(abs(bary[0]),abs(bary[1])),abs(bary[2])),
+      "Triangle barycentrics dont sum to one: "<<bary[0]
+      <<" "<<bary[1]<<" "<<bary[2]<<" sum = "<<bary[0] + bary[1] + bary[2] 
+      <<" dif to 1 "<<abs(bary[0] + bary[1] + bary[2] - 1));
 
     ierro = bary[0] < -Constants::baryTol || bary[0] > 1 + Constants::baryTol
           ||bary[1] < -Constants::baryTol || bary[1] > 1 + Constants::baryTol

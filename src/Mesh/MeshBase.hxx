@@ -95,6 +95,7 @@ public:
 	intAr2r tet2tag;
 	bolAr1  tet2ftg; 
   intAr2  dom2tag; // tetra domain tags
+  // Return global face at tet face if exists, -1 otherwise
   int tet2fac(int ielem, int ifal);
   const int &nelem = nelem_;
   int ndomn; // number of domain refs (some may be empty)
@@ -216,7 +217,8 @@ public:
   void readMeshData(MetrisAPI &data);
 
 	void iniNeighbours();
-	void iniBdryPoints(int ithread);
+  // Returns nbpo0 s.t. ibpoi <= nbpo0 needs no projection. 
+	int iniBdryPoints(int ithread);
   void iniCADLink(int nbpo0);
 
   /* END INIT */

@@ -893,6 +893,59 @@ void check_topo(MeshBase &msh,
     }
 
 
+    // Check (u,v)s and ts are correct.
+    if(msh.CAD()){
+      // Compute a minimum distance between each point and their neighbour. 
+      // This will be used as an epsilon.
+      // Loop over highest dim boundary entities.
+      const double EG_tol = 1.0e-10;
+      dblAr1 rbpoi(msh.npoin);
+      rbpoi.fill(1.0e30);
+      int tdims = 1;
+      if(msh.isboundary_faces() && msh.nface > 0) tdims = 2;
+      for(int ientt = 0; ientt < msh.nentt(tdims); ientt++){
+        for(int iver = 0; iver < msh.nnode(tdims); iver++){
+          int ipoi1 = msh.ent2poi(tdims)(ientt, iver);
+          for(int ive2 = iver+1; ive2 < msh.nnode(tdims); ive2++){
+            int ipoi2 = msh.ent2poi(tdims)(ientt, ive2);
+            double dst = msh.idim == 2 ? geterrl2<2>(msh.coord[ipoi1], msh.coord[ipoi2])
+                                       : geterrl2<3>(msh.coord[ipoi1], msh.coord[ipoi2]);
+            rbpoi[ipoi1] = MIN(rbpoi[ipoi1], dst);
+            rbpoi[ipoi2] = MIN(rbpoi[ipoi2], dst);
+          }
+        }
+      }
+
+      double result[18];
+      for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
+        int ipoin = msh.bpo2ibi(ibpoi,0);
+        if(ipoin < 0) continue;
+        int tdim = msh.bpo2ibi(ibpoi,1);
+        if(tdim == 0) continue;
+        int ientt = msh.bpo2ibi(ibpoi,2);
+        int iref = msh.ent2ref(tdim)[ientt];
+        ego obj = tdim == 1 ? msh.CAD.cad2edg[iref] : msh.CAD.cad2fac[iref];
+        EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
+        double err = msh.idim == 2 ? geterrl2<2>(result, msh.coord[ipoin])
+                                   : geterrl2<3>(result, msh.coord[ipoin]);
+        if(err >= rbpoi[ipoin]*EG_tol){
+          printf("## ERROR PRINT all bpoi for ipoin %d \n",ipoin);
+          for(int ibpo0 = msh.poi2bpo[ipoin]; ibpo0 >= 0; ibpo0 = msh.bpo2ibi(ibpo0,3)){
+            int tdim1 = msh.bpo2ibi(ibpo0,1);
+            printf("%d : %d %d %d ref %d; %e %e\n",ibpo0, msh.bpo2ibi(ibpo0,0), 
+              msh.bpo2ibi(ibpo0,1), msh.bpo2ibi(ibpo0,2), msh.ent2ref(tdim1)[msh.bpo2ibi(ibpo0,2)],
+              msh.bpo2rbi(ibpo0,0),msh.bpo2rbi(ibpo0,1));
+          }
+        }
+        METRIS_ENFORCE_MSG(err < rbpoi[ipoin]*EG_tol, "High point surface error "<<
+          err<<" with eps "<<rbpoi[ipoin]<<" bpoi "<<ibpoi<<" is dim "<<tdim<<" ientt "<<ientt
+          <<" iref "<<iref<<" rbi "<<msh.bpo2rbi(ibpoi,0)<<" "<<msh.bpo2rbi(ibpoi,1)
+          <<" ipoin = "<<ipoin)
+
+      }
+    }
+
+
   }catch(const MetrisExcept& e){
     printf("Check_topo failed, dumping mesh:\n");
     writeMesh("check_topo_fail.meshb",msh);

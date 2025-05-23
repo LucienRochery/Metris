@@ -62,15 +62,15 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
   if(DOPRINTS1()){
     if(cav.lcedg.get_n() > 0){
       CPRINTF1(" - Edge cavity: ");
-      cav.lcedg.print(cav.lcedg.get_n());
+      cav.lcedg.print();
     }
     if(cav.lcfac.get_n() > 0){
       CPRINTF1(" - Face cavity: ");
-      cav.lcfac.print(cav.lcfac.get_n());
+      cav.lcfac.print();
     }
     if(cav.lctet.get_n() > 0){
       CPRINTF1(" - Tetra cavity: ");
-      cav.lctet.print(cav.lctet.get_n());
+      cav.lctet.print();
     }
   }
   if(DOPRINTS2()){
@@ -447,15 +447,15 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
   if(DOPRINTS1()){
     if(cav.lcedg.get_n() > 0){
       CPRINTF1(" - Edge cavity: ");
-      cav.lcedg.print(cav.lcedg.get_n());
+      cav.lcedg.print();
     }
     if(cav.lcfac.get_n() > 0){
       CPRINTF1(" - Face cavity: ");
-      cav.lcfac.print(cav.lcfac.get_n());
+      cav.lcfac.print();
     }
     if(cav.lctet.get_n() > 0){
       CPRINTF1(" - Tetra cavity: ");
-      cav.lctet.print(cav.lctet.get_n());
+      cav.lctet.print();
     }
   }
   if(DOPRINTS2()){
@@ -917,14 +917,10 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
     METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
   }
 
-  const int tdim = msh.get_tdim();
   // Note ipins must be seeded with newbpotopo
   const int pdim_ipins = msh.getpoitdim(ipins);
 
   //const intAr2 &ent2ent = msh.ent2ent(tdim);
-  const intAr2 &ent2poi = msh.ent2poi(tdim);
-        intAr2 &ent2tag = msh.ent2tag(tdim);
-  intAr1 &lcent = cav.lcent(tdim); 
   msh.tag[ithrd1]++;
   for(int tdim = 1; tdim <= msh.get_tdim(); tdim++){
     for(int ientt : cav.lcent(tdim)){
@@ -936,8 +932,6 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
   aux_taginsrefs(msh,cav,ithrd1);
 
 
-  const int nedgl = (tdim*(tdim+1))/2;
-  const intAr2 lnoed(nedgl,2,tdim == 2 ? lnoed2[0] : lnoed3[0]);
 
   intAr1 lbtet(20), lbfac(20), lbedg(20);
   int iopen;
@@ -953,11 +947,19 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
   //int ncav0 = lcent.get_n();
 
   // NB: loop bounds MUST be reevaluated ! don't range-for this 
+  int cdim = 0;
+       if(cav.lctet.get_n() > 0) cdim = 3;
+  else if(cav.lcfac.get_n() > 0) cdim = 2;
+  else if(cav.lcedg.get_n() > 0) cdim = 1;
+  const int nedgl = (cdim*(cdim+1))/2;
+  const intAr2 lnoed(nedgl,2,cdim == 2 ? lnoed2[0] : lnoed3[0]);
+
+  intAr1 &lcent = cav.lcent(cdim); 
   for(int ii = 0; ii < lcent.get_n(); ii++){
     INCVDEPTH(msh.param);
     int ientt = lcent[ii];
-    METRIS_ASSERT_MSG(!isdeadent(ientt, ent2poi),
-      "entity "<<ientt<<" tdim "<<tdim<<" is dead");
+    METRIS_ASSERT_MSG(!isdeadent(ientt, msh.ent2poi(cdim)),
+      "entity "<<ientt<<" tdim "<<cdim<<" is dead");
 
 
     #if 0
@@ -1000,8 +1002,8 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
       }
     }
     #else
-    for(int inode = 0; inode < tdim + 1; inode++){
-      int ipoin = ent2poi(ientt,inode);
+    for(int inode = 0; inode < cdim + 1; inode++){
+      int ipoin = msh.ent2poi(cdim)(ientt,inode);
       if(ipoin == ipins) continue;
       if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
       msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1];
@@ -1045,7 +1047,7 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
         lbedg.set_n(0);
         lbfac.set_n(0);
         lbtet.set_n(0);
-        if(tdim == 2){
+        if(cdim == 2){
           ball2(msh,ipoin,ientt,lbfac,lbedg,&iopen,&imani,ithrd2);
         }else{
           ball3(msh,ipoin,ientt,lbtet,&iopen,ithrd2);
@@ -1076,7 +1078,7 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
           }
         }
         for(int ient2 : lbfac){
-          if(ent2tag(ithrd1,ient2) >= msh.tag[ithrd1]) continue;
+          if(msh.fac2tag(ithrd1,ient2) >= msh.tag[ithrd1]) continue;
           int iref = msh.fac2ref[ient2];
           if(msh.cfa2tag(ithrd1,iref) < msh.tag[ithrd1]){
             ifail = true;
@@ -1094,17 +1096,17 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
 
         for(int ient2 : lbedg){
           if(msh.edg2tag(ithrd1,ient2) >= msh.tag[ithrd1]) continue;
-          ent2tag(ithrd1,ient2) = msh.tag[ithrd1];
+          msh.edg2tag(ithrd1,ient2) = msh.tag[ithrd1];
           cav.lcedg.stack(ient2);
         }
         for(int ient2 : lbfac){
-          if(ent2tag(ithrd1,ient2) >= msh.tag[ithrd1]) continue;
-          ent2tag(ithrd1,ient2) = msh.tag[ithrd1];
+          if(msh.fac2tag(ithrd1,ient2) >= msh.tag[ithrd1]) continue;
+          msh.fac2tag(ithrd1,ient2) = msh.tag[ithrd1];
           cav.lcfac.stack(ient2);
         }
         for(int ient2 : lbtet){
           if(msh.tet2tag(ithrd1,ient2) >= msh.tag[ithrd1]) continue;
-          ent2tag(ithrd1,ient2) = msh.tag[ithrd1];
+          msh.tet2tag(ithrd1,ient2) = msh.tag[ithrd1];
           cav.lctet.stack(ient2);
         }
 

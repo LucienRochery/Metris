@@ -8,6 +8,7 @@
 #include "../Mesh/MeshBase.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 
+#include "../types.hxx"
 #include "../ho_constants.hxx"
 #include "../aux_topo.hxx"
 #include "../low_topo.hxx"
@@ -47,9 +48,9 @@ void prjMeshPoints(MeshBase &msh, int nbpo0, bool onlyproj, bool updtX){
   const int ithrd = 0;
 
   if(onlyproj){
-    CPRINTF1("-- prjMeshPoints start: project %d\n",msh.nbpoi-nbpo0);
+    CPRINTF2("-- prjMeshPoints start: project %d\n",msh.nbpoi-nbpo0);
   }else{
-    CPRINTF1("-- prjMeshPoints start: verify %d, project %d\n",nbpo0,msh.nbpoi-nbpo0);
+    CPRINTF2("-- prjMeshPoints start: verify %d, project %d\n",nbpo0,msh.nbpoi-nbpo0);
   }
 
 
@@ -262,7 +263,7 @@ doproj:
 
 
   if(lbad.get_n() > 0) 
-    CPRINTF1("-- End main loop %d bad points to fix \n",lbad.get_n());
+    CPRINTF2("-- End main loop %d bad points to fix \n",lbad.get_n());
 
   int niter = 0;
   intAr1 lfacl(100);
@@ -327,7 +328,7 @@ doproj:
           CPRINTF3(" -> got (u,v) = %f %f \n",msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
           break;
         }else{
-          CPRINTF1("## EG_invEvaluateGuess error %d \n",ierro);
+          CPRINTF2("## EG_invEvaluateGuess error %d \n",ierro);
         }
       }// for inode
 
@@ -374,10 +375,10 @@ doproj:
 	if(msh.nbpoi - nbpo0 > 0){
 		if(nent[1] > 0)errl2[1] = sqrt(errl2[1])/nent[1];
 		if(nent[2] > 0)errl2[2] = sqrt(errl2[2])/nent[2];
-		CPRINTF1("Projected %d points. Errors:\n",msh.nbpoi - nbpo0);
-		if(nent[1] > 0)CPRINTF1("%8d Edges:   %8.3e max (%d), %8.3e avg L2, %d errs\n",
+		CPRINTF2("Projected %d points. Errors:\n",msh.nbpoi - nbpo0);
+		if(nent[1] > 0)CPRINTF2("%8d Edges:   %8.3e max (%d), %8.3e avg L2, %d errs\n",
 			                     nent[1],errli[1],imax[1],errl2[1],nerr[1]);
-		if(nent[2] > 0)CPRINTF1("%8d Faces:   %8.3e max (%d), %8.3e avg L2, %d errs\n",
+		if(nent[2] > 0)CPRINTF2("%8d Faces:   %8.3e max (%d), %8.3e avg L2, %d errs\n",
 			                     nent[2],errli[2],imax[2],errl2[2],nerr[2]);
 	}
 
@@ -562,7 +563,7 @@ void iniMeshBdryCorners(MeshBase &msh){
 	In that case, the entries (edg|fac)2bpo have already been initialized. 
 	These must be skipped. 
 */
-int iniMeshBdryPoints(MeshBase &msh, int ithread){
+int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
   GETVDEPTH(msh.param);
 
   const int ideg = msh.curdeg;
@@ -575,7 +576,10 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
   int ncor0 = 0, ncor1 = 0, ncrebp = 0;
 
   intAr1 dum, lbfac(20);
-  intAr1 lcof1(20), lcof2(20);
+  //MeshArray1D<MeshArray1D<int, METRIS_INT1>, METRIS_INT1> lcofa;
+  //lcofa.allocate(4);
+  //for(int ii = 0; ii < 4; ii++) lcofa[ii].allocate(20);
+  //intAr1 lcof1, lcof2;
 
   // If in refine convention, begin by propagating negative refs (CAD entity)
   if(!msh.param->refineConventionsInp) goto noRefine;
@@ -585,7 +589,16 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
     MPRINTF("\n## WARNING: Faces untested in iniMeshBdryPoints w/ refineConventionsInp\n");
 
   CPRINTF2(" - Refine convention bpoi intialization\n");
+  #ifndef NDEBUG
+  // Check all bpois point to refs, not entities. 
+  for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
+    if(msh.bpo2ibi(ibpoi,1) < 1)continue;
+    METRIS_ASSERT(msh.bpo2ibi(ibpoi,2) < 0);
+  }
+  #endif
+
   for(int tdim = 1; tdim <= 2; tdim++){
+    INCVDEPTH(msh.param);
     if(tdim == 2 && !msh.isboundary_faces()) break;
     int nentt = msh.nentt(tdim);
     const intAr2& ent2poi = msh.ent2poi(tdim);
@@ -625,50 +638,86 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
           lrbpo.stack(ibpoi);
         }// for ibpoi
 
-        CPRINTF2(" - tdim %d ientt %d ipoin %d nrbpo = %d \n",
-                 tdim,ientt,ipoin,lrbpo.get_n());
+        CPRINTF2(" - tdim %d ientt %d iref %d ipoin %d nrbpo = %d \n",
+                 tdim,ientt,iref1,ipoin,lrbpo.get_n());
 
         if(lrbpo.get_n() == 0) continue;
 
 
         if(lrbpo.get_n() == 1){
-          int ibpoi = lrbpo.pop();
+          int ibpoi = lrbpo[0];
           msh.bpo2ibi(ibpoi,2) = ientt;
           CPRINTF2(" - create link ipoin %d ibpoi %d -> dim %d ent %d\n",
                    ipoin,ibpoi,tdim,ientt);
-          ncor1 ++;
-          continue;
+          if(tdim <= 1) ncor1++;
+          //continue;
+        }else{
+          // case several for one point
+          METRIS_ENFORCE_MSG(pdim < tdim, "Point interior to dim "<<tdim<<
+            " geom but given several t/(u,v) coordinates");
         }
 
-        // case several for one point
-        METRIS_ENFORCE_MSG(pdim < tdim, "Point interior to dim "<<tdim<<
-          " geom but given several t/(u,v) coordinates");
 
-        // Both of these are edge only
         if(tdim == 1){
           // Never too safe
           METRIS_ENFORCE_MSG(iver < 2, "Edge HO node given several t coordinates.");
-
-          METRIS_ENFORCE_MSG(lrbpo.get_n() == 2,
+          METRIS_ENFORCE_MSG(lrbpo.get_n() <= 2,
                   "At most 2 t coords can be given per edge point but "
                   <<lrbpo.get_n()<<" provided");
+          if(msh.getpoitdim(ipoin) >= 2){
+            METRIS_THROW_MSG(TopoExcept(), "Face point was given edge t coordinate\n");
+          }else if(msh.getpoitdim(ipoin) == 1){
+            CPRINTF2(" - edge interior point has been updated, continue\n");
+            continue;
+          }
         }
+
+        if(tdim == 2){
+          if(msh.getpoitdim(ipoin) > 2){
+            METRIS_THROW_MSG(TopoExcept(),
+            "Interior point was given face (u,v) coordinate\n");
+          }else if(msh.getpoitdim(ipoin) == 2){
+            CPRINTF2(" - face interior point has been updated, continue\n");
+            continue;
+          }
+        }
+
 
 
         if(tdim == 1){
           // Get the other edge, find which gets which.
           int iedg2 = msh.edg2edg(ientt,1-iver);
-          if(iedg2 < 0){
-            int inei;
+          CPRINTF2(" - check neighbour %d\n",iedg2);
+          if(iedg2 == -1){
+            CPRINTF2(" -> no neighbour, skip\n");
+            continue;
+          }
+          else if(iedg2 < -1){
             bool ifnd = false;
+            iedg2 = ientt;
+            int inei = 1-iver;
             while(getnextedgnm(msh,ientt,ipoin,&iedg2,&inei)){
+              CPRINTF2(" - next edge: %d\n",iedg2);
+              METRIS_ASSERT(iedg2 >= 0);
               int iref2 = ent2ref[iedg2];
               if(iref2 == iref1){
+                CPRINTF2(" - found edge %d of same ref %d\n",iedg2, iref1);
                 ifnd = true;
                 break;
               }
             }
-            METRIS_ENFORCE_MSG(ifnd, "Failed to find other same ref edge in 2 t coord case");
+            if(!ifnd){
+              CPRINTF2(" - node at 3+ node but ref %d is no loop: finish\n",iref1);
+              continue;
+            }
+          }else{
+            int iref2 = msh.edg2ref[iedg2];
+            CPRINTF2(" - neighbour %d ref %d\n",iedg2,iref2);
+            if(iref2 != iref1){
+              CPRINTF2(" - node with 2 edges of different refs %d %d: finish\n",
+                       iref1,iref2);
+              continue;
+            }
           }
 
           // Now ientt has another vertex, as does iedg2, each with a t coordinate
@@ -749,123 +798,172 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
           }
 
           ncor0++;
+
         }else if(tdim == 2){
-          // Face case. Similar but over ball connex components. 
-          int iopen;
-          bool imani;
-          int ierro = ball2(msh, ipoin, ientt, lbfac, dum, &iopen, &imani, ithread);
-          METRIS_ENFORCE_MSG(ierro == 0, "ball2 failed in inisurf")
-          METRIS_ENFORCE_MSG(lbfac.get_n() > 0, "empty ball2");
 
-          // Split the ball by connex components. Also get one interior ibpoi 
-          // per connex component for proximity check. 
-          lcof1.set_n(0);
-          lcof2.set_n(0);
+          METRIS_ASSERT_MSG(lrbpo.get_n() <= 2, "Face meets itself "
+                                      <<lrbpo.get_n()<<" times at same point?");
 
+          // There can be up to 2 connex components to the point's ball, that
+          // have same ref as ientt. One contains ientt. The other, we don't know,
+          // and it perhaps doesn't exist. As we fill up ientt's connex component,
+          // we will find an element to seed the 2nd connex component iff the 
+          // latter exists. 
+          int lseed[2] = {ientt ,-1};
           msh.tag[ithread]++;
-          int ntagfa = 0;
-          for(int iface : lbfac){
-            msh.fac2tag(ithread,iface) = msh.tag[ithread];
-            ntagfa++;
-          }
+          for(int icoco = 0; icoco < 2; icoco++){
+            int iseed = lseed[icoco];
+            if(iseed < 0) break;
 
-          int icoco = 0;
-          int ibpoc[2] = {-1,-1};
-          while(ntagfa > 0){
-            METRIS_ENFORCE_MSG(icoco <= 1, "More than 2 connex components in ball2");
-            intAr1 &lcofa = icoco == 0 ? lcof1 : lcof2;
+            lbfac.set_n(0);
+            lbfac.stack(iseed);
+            msh.fac2tag(ithread,iseed) = msh.tag[ithread];
 
-            lcofa.stack(lbfac[0]);
-            msh.fac2tag(ithread,lbfac[0]) = msh.tag[ithread] - 1; // Untag
-            ntagfa--;
+            CPRINTF2(" - start new connex component seeded from %d\n",iseed);
 
-            int nadded = 0;
-            int istack = 0;
-            do{
-              int iface = lcofa[istack];
-              istack++;
-
-              // Seize the opportunity to get an interior ibpoi per coco
-              if(ibpoc[icoco] < 0){
-                for(int ii = 0; ii < 3; ii++){
-                  int ipoi2 = msh.fac2poi(iface,ii);
-                  int ibpoi = msh.poi2bpo[ipoi2];
-                  METRIS_ASSERT(ibpoi >= 0);
-                  if(msh.bpo2ibi(ibpoi,1) == 2){
-                    ibpoc[icoco] = ibpoi;
-                    break;
+            // Do not replace with range-based for loop as lbfac changes.
+            for(int ibfac = 0; ibfac < lbfac.get_n(); ibfac++){
+              int iface = lbfac[ibfac];
+              for(int inei = 0; inei < 3; inei++){
+                if(msh.fac2poi(iface,inei) == ipoin) continue;
+                int ifac2 = msh.fac2fac(iface, inei);
+                // < 0 even if nm same ref is not to share the same (u,v)
+                if(ifac2 < 0) continue;
+                int iref2 = msh.fac2ref[ifac2];
+                if(iref2 != iref1) continue;
+                // Cross a connex component
+                if(msh.facedg2glo(iface,inei) >= 0){
+                  if(iseed == 0 && lseed[1] < 0){
+                    CPRINTF2("   - found seed for second ball component %d\n",iface);
+                    lseed[1] = ifac2;
                   }
+                  continue;
                 }
-              }//if ibpoc 
+                // Now we are in the same connex component.
+                if(msh.fac2tag(ithread,ifac2) >= msh.tag[ithread]) continue;
+                msh.fac2tag(ithread,ifac2) = msh.tag[ithread];
+                // Same ref face in same connex component, add to ball and update
+                //int ibpon = msh.newbpotopo(ipoin,2,ifac2);
+                lbfac.stack(ifac2);
+              }// for inei
+            }// for ibfac
 
-              // Add people to connex component
-              for(int ii = 0; ii < 3; ii++){
-                int ifnei = msh.fac2fac(iface,ii);
-                if(ifnei < 0) continue; // Non-manifold : other connex component
-
-                // Not in ball
-                if(msh.fac2tag(ithread,ifnei) < msh.tag[ithread]) continue;
-
-                int iedge = msh.facedg2glo(iface,ii);
-                if(iedge >= 0) continue; // Interior edge: other connex component
-
-                // In ball and same connex component
-                lcofa.stack(ifnei);
-                msh.fac2tag(ithread,ifnei) = msh.tag[ithread] - 1;
-                nadded++;
+            // See if we can make the update without looking for closest (u,v).
+            int irbpo = -1;
+            if(icoco == 0){
+              if(lseed[1] == -1){
+                METRIS_ENFORCE_MSG(lrbpo.get_n() == 1,
+                  lrbpo.get_n() << " (u,v)s provided but only one ball connex component found.");
+                // No other choice
+                irbpo = 0;
+                CPRINTF2(" - only one connex component -> update using %d = %e %e \n",
+                     lrbpo[0], msh.bpo2rbi(lrbpo[0],0), msh.bpo2rbi(lrbpo[0],1));
+                goto update_bpo_face;
+              }else{
+                METRIS_ENFORCE_MSG(lrbpo.get_n() == 2,
+                  "Second connex component found but only one (u,v) provided.");
               }
-
-            }while(nadded > 0);
-
-            CPRINTF1(" - connex component %d has %d faces \n",icoco, lcofa.get_n());
-            icoco++;
-          } // while ntagfa
-
-          METRIS_ENFORCE(ibpoc[0] >= 0 && (ibpoc[1] >= 0 || lcof2.get_n() == 0))
-
-          int iused = -1;
-          for(int icoco = 0; icoco <= 1; icoco++){
-            intAr1 &lcofa = icoco == 0 ? lcof1 : lcof2;
-            if(lcofa.get_n() == 0) continue;
-
-            int ibpoi = ibpoc[icoco];
-
-            double dst1 = abs(msh.bpo2rbi(lrbpo[0],0) - msh.bpo2rbi(ibpoi,0));
-            double dst2 = abs(msh.bpo2rbi(lrbpo[1],0) - msh.bpo2rbi(ibpoi,0));
-            if(dst1 < dst2){
-              CPRINTF2(" - (u,v) coordinate distances %10.3e < %10.3e -> update %d",
-                       dst1,dst2,lrbpo[0]);
-              METRIS_ENFORCE_MSG(iused != 0, "t coordinte already used, distances too close?")
-              iused = 0;
             }else{
-              CPRINTF2(" - (u,v) coordinate distances %10.3e > %10.3e -> update %d",
-                       dst1,dst2,lrbpo[1]);
-              METRIS_ENFORCE_MSG(iused != 1, "t coordinte already used, distances too close?")
-              iused = 1;
+              if(lrbpo[0] < 0) irbpo = 1;
+              else             irbpo = 0;
+              CPRINTF2(" - second connex component -> update using %d = %e %e \n",
+                     lrbpo[irbpo], msh.bpo2rbi(lrbpo[irbpo],0), msh.bpo2rbi(lrbpo[irbpo],1));
+              goto update_bpo_face;
             }
 
-            // Update the negative ibpoi with the seed face 
-            msh.bpo2ibi(lrbpo[iused],1) = ientt;
+            // Create new ibpois. First, get average (u,v) from neighbouring 
+            // points. This will determine which lrbpo is used for which. 
+            {// namespace (goto)
+            double uvavg[2] = {0,0};
+            int navg = 0;
+            double dstmin = 1.0e30, dstmax = -1.0e30;
+            for(int iface : lbfac){
+              for(int iver = 0; iver < nnode; iver++){
+                int ipoi2 = msh.fac2poi(iface,iver);
+                int ibpo2 = msh.poi2ebp(ipoi2, 2, iface, iref1);
+                if(ibpo2 < 0) continue;
+                if(msh.bpo2ibi(ibpo2,2) < 0) continue;
+                CPRINTF2("   - point %d attached to face %d has (u,v) = %e %e\n",
+                         ipoi2,iface,msh.bpo2rbi(ibpo2,0),msh.bpo2rbi(ibpo2,1));
+                uvavg[0] += msh.bpo2rbi(ibpo2,0);
+                uvavg[1] += msh.bpo2rbi(ibpo2,1);
+                navg++;
+              }// for iver
+            }// for iface
 
-            // Create new ibpois for the other faces
-            for(int iface : lcofa){
-              if(iface == ientt) continue;
-              ncrebp++;
-              msh.newbpotopo(ipoin,2,iface);
-            }// for iface 
+            METRIS_ENFORCE_MSG(navg > 0, "No nearby (u,v)s were found\n"
+              "This error could be handled by delaying a connex component"
+              " and proceding by elimination...");
+            uvavg[0] /= navg; 
+            uvavg[1] /= navg;
+
+            for(int ii : lrbpo){
+              int ibpoi = lrbpo[ii];
+              METRIS_ASSERT_MSG(ibpoi >= 0, "How are we here with an eliminated rbpoi?");
+              double dist = geterrl2<2>(msh.bpo2rbi[ibpoi], uvavg);
+              if(dist < dstmin) irbpo = ii;
+              dstmin = MIN(dstmin, dist);
+              dstmax = MAX(dstmax, dist);
+              CPRINTF2(" - lrbpo[%d] = %d (u,v) = %e %e dist = %e\n",
+                 ii, ibpoi, msh.bpo2rbi(ibpoi,0), msh.bpo2rbi(ibpoi,1), dist);
+            }
+            METRIS_ENFORCE_MSG(1 - dstmin/dstmax < 0.1, 
+              "Very low (u,v) 'contrast'... max = "<<dstmax<<" min = "<<dstmin);
+
+            }// namespace (goto)
+
+
+            update_bpo_face:
+            METRIS_ASSERT(irbpo >= 0);
+            int ibpo_file = lrbpo[irbpo];
+            lrbpo[irbpo] = -1;
+
+            // Now we can update the ball connex component bpois. 
+            for(int iface : lbfac){
+              METRIS_ASSERT(iface >= 0);
+              int ibpoi = msh.poi2ebp(ipoin, 2, iface, -1);
+              if(ibpoi >= 0){
+                METRIS_ASSERT(iface == ientt);
+              }else{
+                ibpoi = msh.newbpotopo(ipoin, 2, iface);
+              }
+
+              for(int ii = 0; ii < nrbi; ii++) 
+                msh.bpo2rbi(ibpoi,ii) = msh.bpo2rbi(ibpo_file, ii);
+            }
 
           }// for icoco
 
         }// if tdim == 1
 
+        #if 0
+        if(ipoin == 169 && tdim == 2){
+          printf("in main 169 ientt = %d tdim %d iref %d\n", ientt, tdim, iref1);
+          int idbg = msh.poi2ebp(169,2,-1,8);
+          printf("## DEBUG ipoin 169 check 0 (u,v) = %e %e\n",
+            msh.bpo2rbi(idbg,0), msh.bpo2rbi(idbg,1));
+
+          printf("full ibpoi:\n");
+          for(int ibpoi = msh.poi2bpo[169]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+            printf("%d : ",ibpoi);
+            intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
+            int tdim = msh.bpo2ibi(ibpoi,1);
+            int ientt = msh.bpo2ibi(ibpoi,2);
+            printf("ref = %d (u,v) = %e %e\n",ientt >= 0 ? msh.ent2ref(tdim)[ientt] : -1,
+              msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
+          }
+          wait();
+        }
+        #endif
+
       } // for iver
     }// for ientt
 
     if(tdim == 1){
-      CPRINTF1(" - VerticesOnGeometricEdges w/ refine convention: " 
+      CPRINTF2(" - VerticesOnGeometricEdges w/ refine convention: " 
                "translated %d open, %d loop bpois \n",ncor1,ncor0);
     }else{
-      CPRINTF1(" - VerticesOnGeometricFaces w/ refine convention: " 
+      CPRINTF2(" - VerticesOnGeometricFaces w/ refine convention: " 
                "translated %d bpois created %d\n",ncor1,ncrebp);
     }
   }// for tdim
@@ -880,7 +978,7 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 
 	// Start with edges. Corners are all initialized already. 
   int ntry1 = 0;
-  int nbpo0 = msh.nbpoi;
+  *nbpo0 = msh.nbpoi;
 	for(int iedge = 0; iedge < msh.nedge; iedge++){
     INCVDEPTH(msh.param);
 		if(isdeadent(iedge,msh.edg2poi)) continue;
@@ -898,12 +996,12 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 			}
 		}
 	}
-  int ncre1 = msh.nbpoi - nbpo0;
+  int ncre1 = msh.nbpoi - *nbpo0;
 
 
 	// Triangles are only boundary entities in dimension 3+
   int ntry2 = 0;
-  nbpo0 = msh.nbpoi;
+  *nbpo0 = msh.nbpoi;
 	if(msh.idim >= 3){
 		// We can now do faces as we needed to know about edge points. 
 		for(int iface = 0; iface < msh.nface; iface++){
@@ -930,9 +1028,9 @@ int iniMeshBdryPoints(MeshBase &msh, int ithread){
 			}
 		}
 	}
-  int ncre2 = msh.nbpoi - nbpo0;
+  int ncre2 = msh.nbpoi - *nbpo0;
 
-  CPRINTF1("-- Created %d/%d edge, %d/%d face bpois \n",ncre1,ntry1,ncre2,ntry2);
+  CPRINTF2("-- Created %d/%d edge, %d/%d face bpois \n",ncre1,ntry1,ncre2,ntry2);
 
 	return ncre1 + ncre2;
 }

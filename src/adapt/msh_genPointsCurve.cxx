@@ -189,7 +189,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
 
       double len = sqrt(met1) * abs(tspoi[itpo1] - tspoi[itpo2]);
 
-      CPRINTF1(" - edge %d / %d verts %d %d sz %f %f len %f mesh edge %d \n",
+      CPRINTF3(" - edge %d / %d verts %d %d sz %f %f len %f mesh edge %d \n",
                itsed,tsedg.get_n(),itpo1,itpo2,sz1,sz2,len,tsbke[itsed]);
 
       if(len <= tessltar){
@@ -299,17 +299,58 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
     double lentot = 0;
     int ipprv = 0; // 0 is always the leftmost point as we always leave the old 
     // edge left and only change its 1-th entry
-    int itsed = 0;
-    double lastlen = 0;
+    int itsep, itsed = 0;
+    double lastlen, lastmet = -1;
     lnewt.set_n(0);
     ledge.set_n(0);
     while(true){
       INCVDEPTH(msh.param);
       
       if(itsed < 0){
-        lastlen = lentot;
-        CPRINTF1("-- reached end: lastlen = %e recall range %f %f \n",lastlen,
-          range[0],range[1]);
+        // Compute last length by using the last node of the tessellation
+        // nodes of the last tessellation edge, gives us 
+        int itpoe = -1;
+        if(ted2ed(itsep,0) < 0){
+          itpoe = tsedg(itsep, 1);
+        }else if(ted2ed(itsep,1) < 0){
+          itpoe = tsedg(itsep, 0);
+        }else{
+          METRIS_THROW_MSG(TopoExcept(), "Last edge has 2 neighbours");
+        }
+        double sze = tsmet[itpoe];
+
+        // Get the t value of the last node and metric 
+        double tlastp = lnewt[lnewt.get_n() - 1];
+        double met1 = sqrt(sze * lastmet);
+        double reslen = sqrt(met1) * abs(tspoi[itpoe] - tlastp);
+
+        CPRINTF1("-- reached end: len to last = %e to corner = %e w/ range %f %f \n",
+          lastlen, reslen, range[0],range[1]);
+        CPRINTF1(" using tlast = %f tend = %f sz1 = %e sz2 = %e\n",tlastp, tspoi[itpoe],
+          sze,lastmet);
+        if(reslen < tarlen / sqrt(2)){
+          lastlen += reslen;
+          CPRINTF1("-- prune last point reslen = %e < %e / sqrt(2), new lastlen = %e\n",
+            reslen,tarlen,lastlen);
+          //if(DOPRINTS2()){
+          //  double result[18];
+          //  ego obj = msh.CAD.cad2edg[iref]; 
+          //  int npoi0 = msh.npoin;
+          //  for(int inewt = 0; inewt < lnewt.get_n(); inewt++){
+          //    double tcur = lnewt[inewt];
+          //    METRIS_ENFORCE(EG_evaluate(obj, &tcur, result) == EGADS_SUCCESS);
+          //    int ipnew = msh.newpoitopo(0, -1);
+          //    msh.newbpotopo(ipnew,0,ipnew);
+          //    for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipnew,ii) = result[ii];
+          //  }
+          //  writeMesh("genPoints_prune_ref"+std::to_string(iref),msh);
+          //  for(int ipoin = npoi0; ipoin < msh.npoin;ipoin++){
+          //    msh.killpoint(ipoin);
+          //  }
+          //}
+          lnewt.pop();
+          ledge.pop();
+        }
         break;
       }
 
@@ -321,6 +362,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
       int iseed  = tsbke[itsed];
 
       double met1 = sqrt(sz1 * sz2);
+      lastmet = met1;
       double len = sqrt(met1) * abs(tspoi[itpo1] - tspoi[itpo2]);
 
       double lento0 = lentot;
@@ -330,6 +372,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
                 itpo1,itpo2,sz1,sz2,len,lentot,tarlen);
 
       // In any case, whether new pt or not, we'll need to walk to the next edge. 
+      itsep = itsed; // for final update
       if(itpo1 == ipprv){
         ipprv = itpo2;
         itsed = ted2ed(itsed,0);
@@ -343,7 +386,8 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
 
 
       // If we're yet to go above tarlen, continue to next edge. 
-      if(lentot < tarlen*1.99) continue;
+      //if(lentot < tarlen*1.99) continue;
+      if(lentot < tarlen) continue;
 
 
       // Otherwise, we just passed a threshold, create new point. 
@@ -381,6 +425,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
 
       // reset lentot to the leftover length from this tessellation edge. 
       // that's lentot - tarlen
+      lastlen = lentot;
       lentot = lentot - tarlen;
     }//while true
 
@@ -392,7 +437,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
     
     CPRINTF1(" - generated %d / %d points along curve last len %f "
            " tarlen %f -> %f \n",nnewp1,nnewp,lastlen,tarlen,adjusted_tarlen);
-    if(DOPRINTS2() && msh.param->dbgfull){
+    if(DOPRINTS2()){
       double result[18];
       ego obj = msh.CAD.cad2edg[iref]; 
       int npoi0 = msh.npoin;

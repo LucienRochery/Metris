@@ -34,6 +34,11 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
     return 0;
   }
 
+  //printf("## DEBUG SET MAX PRINTS HERE \n");
+  //wait();
+  //msh.param->ivdepth = 5;
+  //msh.param->iverb = 5;
+
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd3 >= 0 && ithrd3 < METRIS_MAXTAGS);

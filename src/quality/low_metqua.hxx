@@ -27,7 +27,7 @@ enum class AsDeg;
 template <class MetricFieldType, int gdim, int tdim, 
           QuaFun iquaf = QuaFun::Distortion, 
           typename ftype = double>
-ftype metqua(Mesh<MetricFieldType> &msh, 
+ftype metqua(Mesh<MetricFieldType> &msh,
              AsDeg asdmsh, AsDeg asdmet, 
              int ielem, ftype difto = 1);
 

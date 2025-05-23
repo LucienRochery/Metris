@@ -158,7 +158,10 @@ public:
 
 
   MeshArray1D(const std::initializer_list<T> & list);
-  MeshArray1D(MeshArray1D &&cpy);
+  MeshArray1D(MeshArray1D &&mov);
+  // Hard copy
+  MeshArray1D(const MeshArray1D &cpy);
+
   //void set_buffer(INT1 n, T *a);
   void set_sp(INT1 n, std::shared_ptr<T[]> a);
 
@@ -188,6 +191,7 @@ public:
 
   void print(INT1 n) const;
   void print() const;
+  std::ostream& print(std::ostream& _os) const;
 
   //operator const T*() const {return array;}
   //operator       T*()       {return array;}
@@ -565,5 +569,12 @@ protected:
 
 
 } // End namespace
+
+
+template<class T, class INT1>
+std::ostream& operator<<(std::ostream& _os, const Metris::MeshArray1D<T, INT1> &arr){
+  return arr.print(_os);
+}
+
 
 #endif

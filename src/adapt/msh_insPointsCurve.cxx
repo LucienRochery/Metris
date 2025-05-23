@@ -33,7 +33,12 @@ template<class MFT>
 void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lcorn,
                     const dblAr1 &lnewt, const intAr1 &ledge, 
                     int ithrd1, int ithrd2, int ithrd3){
+
   GETVDEPTH(msh.param);
+
+  // Enabling this leads to many errors
+  bool idelaunay = false;
+
 
   const int miter = 10; 
   const int mdseed = 2; // How many t's appart do we create the cavities from
@@ -64,26 +69,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
   intAr1 lshell(10);
 
   // Assumptions used throughout: ninsp is ordered in increasing order, as is range
-  if(DOPRINTS1()){
-    CPRINTF1("-- START insPointsCurve iref %d\n",iref);
-    //dblAr1(MIN(100,lnewt.get_n()), &lnewt[0]).print();
-  }
-  if(DOPRINTS2()){
-    double result[18];
-    ego obj = msh.CAD.cad2edg[iref]; 
-    int npoi0 = msh.npoin;
-    for(int inewt = 0; inewt < ninsp; inewt++){
-      double tcur = lnewt[inewt];
-      METRIS_ENFORCE(EG_evaluate(obj, &tcur, result) == EGADS_SUCCESS);
-      int ipnew = msh.newpoitopo(0, -1);
-      msh.newbpotopo(ipnew,0,ipnew);
-      for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipnew,ii) = result[ii];
-    }
-    writeMesh("genPoints_ref"+std::to_string(iref),msh);
-    for(int ipoin = npoi0; ipoin < msh.npoin;ipoin++){
-      msh.killpoint(ipoin);
-    }
-  }
+  CPRINTF1("-- START insPointsCurve iref %d\n",iref);
   METRIS_ENFORCE(lnewt[0] > range[0]);
   METRIS_ENFORCE(ninsp == 1 || lnewt[1] > lnewt[0]);
 
@@ -180,10 +166,12 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
   double result[18];
   ego obj = msh.CAD.cad2edg[iref]; 
   int nedg0;
-
+  const int ierro_max = CAV_ERR_NERROR+2;
+  intAr1 lerro(ierro_max);
   // Attempts to correct errors
   for(int niter = 0; niter < miter; niter++){
     int nerro = 0;
+    if(DOPRINTS2()) lerro.fill(0);
     int nsucc = 0;
     for(int inewt = 0; inewt < ninsp; inewt++){
       if(t2mrk[inewt] >= tmark) continue;
@@ -237,6 +225,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       ierro = msh.interpMetBack(cav.ipins,1,t2sed[inewt+1],iref,&result[3]);
       if(ierro != 0){
         CPRINTF1(" - failed interpMetBack ierro = %d \n",ierro);
+        lerro[CAV_ERR_NERROR+1]++;
         nerro++;
         goto cleanup;
       }
@@ -423,12 +412,13 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       }
 
       // 
-      ierro = increase_cavity(msh, cav, true, ithrd2, ithrd3);
+      ierro = increase_cavity(msh, cav, idelaunay, ithrd2, ithrd3);
       if(DOPRINTS2()) writeMeshCavity("linecav4",msh,cav);
       if(ierro != 0){
         CPRINTF1(" - failed increase_cavity ierro = %d \n",ierro);
         if(DOPRINTS2()) writeMeshCavity("linecav4",msh,cav);
         if(msh.param->interactive && DOPRINTS1()) wait();
+        lerro[CAV_ERR_NERROR]++;
         nerro++;
         goto cleanup;
       }
@@ -470,6 +460,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       if(ierro != 0){
         CPRINTF1(" - failed cavity_operator ierro = %d \n",ierro);
         nerro++;
+        lerro[ierro]++;
         if(msh.param->interactive && DOPRINTS2()) wait();
         goto cleanup;
       }
@@ -550,13 +541,18 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
     }// for inewt
 
     CPRINTF1(" - insPoint ref %d iter %d inserted %d nerro %d\n",iref,niter,nsucc,nerro);
+    if(DOPRINTS2() && nerro > 0){
+      printf(" - Error list:\n");
+      for(int ii = 0; ii < ierro_max; ii++){
+        if(lerro[ii] <= 0) continue;
+        CPRINTF2("   - %d : %d", ii, lerro[ii]);
+        if(ii < CAV_ERR_NERROR) printf(" (cav)");
+        printf("\n");
+      }
+    }
     #ifndef NDEBUG
     if(DOPRINTS2()){
       writeMesh("line"+std::to_string(iref)+"iter"+std::to_string(niter),msh);
-      if(msh.param->interactive){
-        CPRINTF1("## WAIT HERE 1 \n");
-        wait();
-      }
     }
     #endif
     if(nerro == 0) break;
@@ -564,10 +560,6 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
 
   if(DOPRINTS2()){
     writeMesh("line"+std::to_string(iref),msh);
-    if(msh.param->interactive){
-      CPRINTF1("## WAIT HERE 2 \n");
-      wait();
-    }
   }
 }
 

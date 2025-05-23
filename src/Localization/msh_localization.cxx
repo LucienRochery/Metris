@@ -38,7 +38,8 @@ int locMesh(MeshBase &msh, int *ientt,
   GETVDEPTH(msh.param);
 
   METRIS_ASSERT(pdim > 0);
-  METRIS_ASSERT(pdim == msh.get_tdim() || uvsrf != NULL);
+  METRIS_ASSERT_MSG(tdim == msh.get_tdim() || pdim > tdim || uvsrf != NULL, 
+                     "No uvsrf (t) in case pdim = "<<pdim<<" tdim = "<<tdim);
 
   int ierro = 0;
 
@@ -230,6 +231,7 @@ int locMesh(MeshBase &msh, int *ientt,
 
             double t1 = msh.bpo2rbi(ibpo1,0);
             double t2 = msh.bpo2rbi(ibpo2,0);
+            METRIS_ASSERT(uvsrf != NULL);
             double tp = *uvsrf;
 
             if(abs(t2-t1) < 1.0e-16) METRIS_THROW_MSG(GeomExcept(),
@@ -326,7 +328,7 @@ int locMesh(MeshBase &msh, int *ientt,
         if(ierro == 0){
           if(DOPRINTS1()){
             CPRINTF1("  - END niter = %d ierro %d ientt %d tdim %d bary ",niter,ierro,*ientt,tdim);
-            dblAr1(gdim+1,bary).print();
+            dblAr1(tdim+1,bary).print();
           } 
           ifnd = 1;
           break;
@@ -551,7 +553,7 @@ int locMesh(MeshBase &msh, int *ientt,
               maxtag = MAX(maxtag, msh.tag[ithrd]);
               msh.tag[ithrd] = tag0;
               if(ierr2 > 0 && ierr2 != LOC_ERR_ALLPOS) ierro = LOC_ERR_PROJ;
-              CPRINTF1(" # lower dim tried but failed ierro %d \n",ierr2);
+              CPRINTF1(" - lower dim projection done ierro = %d \n",ierr2);
             }else{
               CPRINTF1(" # lower dim not pertinent \n");
               ierro = LOC_ERR_PROJ;
@@ -576,6 +578,8 @@ int locMesh(MeshBase &msh, int *ientt,
             // If this entity has been seen before, call it quits. Get bary:
             if(ent2tag(ithrd,ient2) >= msh.tag[ithrd] || ierro == 0){
 
+              CPRINTF1(" - lower dim projection did not reveal a different element\n");
+
               if constexpr(tdim == 2){
                 int ipoi1 = msh.edg2poi(ientf, 0);
                 int ipoi2 = msh.edg2poi(ientf, 1);
@@ -590,6 +594,32 @@ int locMesh(MeshBase &msh, int *ientt,
                   bary[lnoed2[iedl][1]] = barf[0];
                 }
               }else{
+
+                int ipoi1 = msh.fac2poi(ientf, 0);
+                int ipoi2 = msh.fac2poi(ientf, 1);
+                int ipoi3 = msh.fac2poi(ientf, 2);
+
+                int ifal = getfactet(msh, *ientt, ipoi1, ipoi2, ipoi3);
+                METRIS_ASSERT(ifal >= 0);
+
+                bary[ifal] = 0;
+                // Dumb but we can't assume orientation if internal surfaces
+                for(int ii = 0; ii < 3; ii++){
+                  #ifndef NDEBUG
+                  bool ifnd = false;
+                  #endif
+                  for(int jj = 0; jj < 3; jj++){
+                    if(msh.tet2poi(*ientt,lnofa3[ifal][ii]) != msh.fac2poi(ientf, jj)) continue;
+                    bary[lnofa3[ifal][ii]] = barf[jj];
+                    #ifndef NDEBUG
+                    ifnd = true;
+                    #endif
+                    break;
+                  }
+                  METRIS_ASSERT(ifnd);
+                }
+
+                /*
                 printf("TODO msh_localization.cxx\n");
                 printf("inp gdim = %d tdim = %d ideg = %d\n",gdim,tdim,ideg);
                 printf("coop = ");
@@ -615,6 +645,7 @@ int locMesh(MeshBase &msh, int *ientt,
                 msh.killpoint(ipdbg);
 
                 METRIS_THROW_MSG(TODOExcept(), "Get bary from facet in case tdim = "<<tdim);
+                */
               }
 
               // Maybe an error, maybe not, but not a standard run. 

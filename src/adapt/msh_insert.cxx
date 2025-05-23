@@ -103,16 +103,13 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
   const int minserr = 100;
   intAr1 linserr(minserr);
 
-  const int miter1 = 30, miter2 = 30;
+  const int miter1 = 10, miter2 = 3;
 
 
   double bar1[2] = {0.5,0.5};
   double coop[gdim], t0;
   int ierro;
-  int ninser1 = 0;
-  int ninser2 = 0;
   *ninser = 0;
-  int niter1 = 0;
 
   msh.tag[ithrd1]++;
   
@@ -120,369 +117,380 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
   MshCavity cav(100,100,1);
   CavWrkArrs work;
 
-  do{
-    ninser1 = 0;
+  int niter2 = 0;
+  int ninser2 = 1; // otherwise doesnt enter loop
+  for(niter2 = 0; niter2 < miter2 && ninser2 > 0; niter2++){
+    INCVDEPTH(msh.param);
+    ninser2 = 0;
+
+    lcaverr.fill(0);
+    linserr.fill(0);
+    int nedgt = 0;
+    int nerro = 0;
+    int nent0 = msh.nentt(tdim);
+    t0 = get_wall_time();
+    for(int ientt = 0; ientt < nent0; ientt++){
+      INCVDEPTH(msh.param);
+      
+      if(isdeadent(ientt,ent2poi)) continue;
+      if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
+
+      bool dobrk = false;
+      // Whatever happens, this element will be tagged as inert. Indeed, 
+      // it is either going to give rise to an insertion (thus disappear)
+      // or it won't (thus become inert)
+      // The only exception is if an insertion is rejected due to short edge, 
+      // or other cavity extension routines, as neighbours influence this decision. 
+      ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
+      for(int ied = 0; ied < nedgl; ied++){
+        GETVDEPTH(msh.param);
+        nedgt++;
+
+        double sz[2];
+        double len = getlenedg_geosz<MFT,gdim,ideg>(msh,ientt,tdim,ied,sz);
+        CPRINTF1(" - try ientt = %d ied = %d len = %f \n",ientt,ied,len);
+        if(len < sqrt(2)) continue;
+
+        edg2pol[0] = ent2poi(ientt,lnoed[ied][0]);
+        edg2pol[1] = ent2poi(ientt,lnoed[ied][1]);
+
+        bool iuse_CAD = false;
+        #if 0
+        int bdim = -1;
+        int iCADe= -1;
+        if(msh.CAD()){
+          if(tdim == 2 && msh.idim == 2 && ent2ent(ientt,ied) >= 0){
+            CPRINTF2(" - Internal edge -> no CAD link\n");
+          }else{
+            // In case tdim 2, gdim 3, it is always CAD; but still determine if edge
+            int iedge = getedgglo(msh, edg2pol[0], edg2pol[1]);
+            if(iedge >= 0){
+              iuse_CAD = true;
+              bdim     = 1;
+              iCADe    = iedge;
+            }else{
+              METRIS_ASSERT(msh.idim == 3);
+              if(tdim == 2){
+                iuse_CAD = true;
+                bdim     = 2;
+                iCADe    = ientt;
+              }else{
+                METRIS_THROW_MSG(TODOExcept(), "Get tetra face CAD link bool here")
+              }
+            }// if iedge >= 0
+          }// if tdim == 2 && msh.idim == 2 ...
+        }
+        #endif
+
+        if(!iuse_CAD){
+          CPRINTF2(" - No CAD link for this edge -> eval at element\n");
+          int idx0 = tdim + 1 + ied*(ideg-1);
+          for(int ii = 0; ii < ideg-1; ii++) edg2pol[2+ii] = ent2poi[ientt][idx0+ii];
+
+          eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), 
+                           DifVar::None, DifVar::None, 
+                           bar1, coop, NULL, NULL);
+        }else{
+          METRIS_THROW_MSG(TODOExcept(),"Implement useCAD case in msh_insert. "
+            "Note that this is done in low_insert.cxx")
+          #if 0
+          CPRINTF2(" - CAD link dim %d for this edge\n",bdim);
+          METRIS_ASSERT(bdim == 1 || bdim == 2);
+          //int iref = bdim == 1 ? msh.edg2ref[iCADe] : msh.fac2ref[iCADe];
+          int ibpo1 = msh.poi2ebp(edg2pol[0], bdim, iCADe, -1);
+          METRIS_ASSERT(ibpo1 >= 0);
+          int ibpo2 = msh.poi2ebp(edg2pol[1], bdim, iCADe, -1);
+          METRIS_ASSERT(ibpo2 >= 0);
+          #endif
+        }// if(!iuse_CAD)
+
+        if(DOPRINTS1()){
+          CPRINTF1(" - enact ins ientt = %d ied = %d len = %f edg %d %d  coord = ",
+                 ientt,ied,len,edg2pol[0],edg2pol[1]);
+          dblAr1(msh.idim,coop).print();
+        }
+
+        #if 0
+        if(imovmet){
+          // Do better than this, compute the Bézier offset for the metric and 
+          // place the point here -> follow curvature (even if P1)
+          double offset[gdim];
+          getBezOffsetsEdge<MFT,gdim,ideg>(msh,tdim,ent2poi[ientt],ied,offset);
+
+          double nrm1 = geterrl2<gdim>(msh.coord[edg2pol[0]],msh.coord[edg2pol[0]]);
+          double nrm2 = getnrml2<gdim>(offset);
+
+          // Maximum ratio -> dampen if more 
+          const double ratlen = 0.1;
+
+          double fac = 1;
+          if(nrm2 > ratlen*ratlen*nrm1){
+            fac = ratlen*sqrt(nrm1/nrm2);
+          }
+
+          for(int ii = 0; ii < gdim; ii++) coop[ii] += offset[ii]*fac;
+          for(int ii = 0; ii < gdim; ii++) coop[ii] = 0.25 * msh.coord(edg2pol[0],ii)
+            + 0.5 * coop[ii] + 0.25 * msh.coord(edg2pol[1],ii);
+          METRIS_ASSERT(ideg == 1);
+        }else if(imovavg){
+          int ineig = ent2ent(ientt,ied);
+          //double bary[tdim+1] = {1.0/(tdim+1)}; 
+          //double eval[gdim];
+          //for(int ii = 0; ii < gdim; ii++) coop[ii] = 0;
+          //double wttot = 0;
+          //for(int ient2 : {ientt, ineig}){
+          //  if(ient2 < 0) continue;
+          //  eval2<gdim,1>(msh.coord,msh.fac2poi[ient2],msh.getBasis(),
+          //                DifVar::None,DifVar::None,
+          //                bary,eval,NULL,NULL);
+          //  double meas0 = getmeasentP1<gdim>(ent2poi[ient2], msh.coord);
+          //  for(int jj = 0; jj < gdim; jj++) coop[jj] += meas0*eval[jj];
+          //  wttot += meas0;
+          //}
+          //for(int jj = 0; jj < gdim; jj++) coop[jj] /= wttot;
+          if(ineig >= 0){
+            int ipoi1 = ent2poi(ientt,ied);
+            int ie2 = getedgent(msh,ineig,edg2pol[0],edg2pol[1]);
+            int ipoi2 = ent2poi(ineig,ie2);
+            for(int jj = 0; jj < gdim; jj++){
+              coop[jj] = 0.5*msh.coord(ipoi1,jj) + 0.5*msh.coord(ipoi2,jj);
+            }
+          }
+        }
+        #endif
+
+        // Try insert point coop
+        int nent00 = msh.nentt(tdim); 
+        int itry = 0;
+        do{
+          if(DOPRINTS2()){
+            writeMesh("preins",msh);
+          }
+
+          ierro = insertEdge(msh,tdim,ientt,ied,coop,bar1[0],
+                             cav,work,lcaverr,ithrd2,ithrd3);
+
+          #if 0
+          if(msh.bpo2rbi(msh.poi2ebp(169,2,-1,8),1) < 0.75){
+            printf("## POINT HAS CHANGED (u,v) ! \n");
+            int idbg = msh.poi2ebp(169,2,-1,8);
+            printf("## DEBUG ipoin 169 (u,v) = %e %e\n",
+              msh.bpo2rbi(idbg,0), msh.bpo2rbi(idbg,1));
+            printf("full ibpoi:\n");
+            for(int ibpoi = msh.poi2bpo[169]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+              printf("%d : ",ibpoi);
+              intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
+              int tdim = msh.bpo2ibi(ibpoi,1);
+              int ientt = msh.bpo2ibi(ibpoi,2);
+              printf("ref = %d (u,v) = %e %e\n",msh.ent2ref(tdim)[ientt],
+                msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
+            }
+            printf("npoin = %d\n",msh.npoin);
+
+
+            idbg = msh.poi2ebp(msh.npoin-1,2,-1,8);
+            printf("## DEBUG new point (u,v) = %e %e\n",
+              msh.bpo2rbi(idbg,0), msh.bpo2rbi(idbg,1));
+            writeMesh("debuguv",msh);
+            wait();
+          }
+          #endif
+
+          //if(ierro > 0){
+          //  printf("DEBUG insertEdge error %d \n",ierro);
+          //}
+          if(ierro <= 0) break;
+          itry++;
+          if(itry >= 1 + imovmet) break;
+          if(ierro == 0) CPRINTF1(" - After trying ierro = 0 \n");
+          if(ierro > 0 && (itry == 0 && imovmet)){
+            CPRINTF1(" -> insertEdge fail: try again w/ imovmet %d\n",imovmet);
+            if(DOPRINTS1()){
+              CPRINTF1(" - initial ipins = ");
+              dblAr1(gdim,coop).print();
+            }
+            if(imovmet && itry == 1){
+              CPRINTF1(" -> do imovmet\n");
+              // Do better than this, compute the Bézier offset for the metric and 
+              // place the point here -> follow curvature (even if P1)
+              double offset[gdim];
+              getBezOffsetsEdge<MFT,gdim,ideg>(msh,tdim,ent2poi[ientt],ied,offset);
+
+              double nrm1 = geterrl2<gdim>(msh.coord[edg2pol[0]],msh.coord[edg2pol[0]]);
+              double nrm2 = getnrml2<gdim>(offset);
+
+              // Maximum ratio -> dampen if more 
+              const double ratlen = 0.1;
+
+              double fac = 1;
+              if(nrm2 > ratlen*ratlen*nrm1){
+                fac = ratlen*sqrt(nrm1/nrm2);
+              }
+
+              for(int ii = 0; ii < gdim; ii++) coop[ii] += offset[ii]*fac;
+              for(int ii = 0; ii < gdim; ii++) coop[ii] = 0.25 * msh.coord(edg2pol[0],ii)
+                + 0.5 * coop[ii] + 0.25 * msh.coord(edg2pol[1],ii);
+            }
+            if(DOPRINTS1()){
+              CPRINTF1(" - final ipins = ");
+              dblAr1(gdim,coop).print();
+            }
+          }
+        }while(ierro != 0);
+
+        if(ierro <= 0){
+          ninser2++;
+          dobrk = true;
+          int nent11 = msh.nentt(tdim);
+          for(int ientn = nent00; ientn < nent11; ientn++){
+            for(int ii = 0; ii < tdim + 1 ; ii++){
+              int ineig = ent2ent(ientn,ii);
+              if(ineig < 0) continue;
+              METRIS_ASSERT(!isdeadent(ineig,ent2poi));
+              ent2tag(ithrd1,ineig) = msh.tag[ithrd1] - 1;
+            }
+          }
+          //CPRINTF1("## DEBUG SUCCESS WAIT HERE\n");
+          //wait();
+        }else{
+          CPRINTF1(" - insertion failed ierro = %d \n",ierro);
+          linserr[ierro - 1] ++;
+          nerro++;
+          // If cavity selection error, untag as inert, as neighbours may influence yet
+          //if(ierro == INS2D_ERR_INCCAV2D 
+          //|| ierro == INS2D_ERR_INCCAV2D2 
+          //|| ierro == INS2D_ERR_SHORTEDG){
+          //  ent2tag(ithrd1,ientt) = msh.tag[ithrd1] - 1;
+          //}
+        }
+
+
+        if(msh.param->dbgfull) check_topo(msh,ithrd2);
+
+        if(dobrk) break;
+      }
+
+    }
+
+    double t1 = get_wall_time();
+    int ncallps = 1000*(int)((ninser2 / (t1-t0)) / 1000);
+    CPRINTF1(" - Loop 1 end t = %f ninser %d = %d /s; nerro %d\n",
+              t1-t0,ninser2,ncallps,nerro);
+    if(DOPRINTS2() && nerro > 0){
+      CPRINTF2(" - cavity ierro list:\n");
+      for(int ii = 0; ii < mcaverr; ii++){
+        if(lcaverr[ii] == 0) continue;
+        CPRINTF2("   ierro = %d : %d \n",ii+1,lcaverr[ii]);
+      }
+      CPRINTF2(" - inspoi ierro list:\n");
+      for(int ii = 0; ii < minserr; ii++){
+        if(linserr[ii] == 0) continue;
+        CPRINTF2("   ierro = %d : %d \n",ii+1,linserr[ii]);
+      }
+    }
+
 
     msh.cleanup();
 
-    //// New elements are untagged for ithrd1 -> no need to go over them 
-    //t0 = get_wall_time();
-    //double stat_swap = swap2D<MFT,gdim,ideg>(msh, swapOpt, ithrd2, ithrd3);
-    //t2 = get_wall_time();
-    //if(iverb >= 2){
-    //  printf("   - Post inser swap time %f stat = %f \n",t2-t0,stat_swap);
+    //if(DOPRINTS2()) writeMesh("ins_iter"+std::to_string(niter2),msh);
+
+
+    //if(msh.param->iverb == 4){
+    //  printf("DEBUG KILL AFTER FIRST IVERB 4\n");
+    //  exit(1);
     //}
 
-    int niter2 = 0;
-    do{
-      INCVDEPTH(msh.param);
+    //if(ninser2 == 50){
+    //  printf("## DEBUG SET IVERB = 4\n");
+    //  msh.param->iverb = 4;
+    //}
+
+    #if 0
+    // LOOP 2: over elements ; try element barycentres 
+    if(type2){
+
       ninser2 = 0;
-
-
       lcaverr.fill(0);
       linserr.fill(0);
-      int nedgt = 0;
-      int nerro = 0;
-      int nent0 = msh.nentt(tdim);
-      t0 = get_wall_time();
+      nerro = 0;
+      nent0 = msh.nentt(tdim);
+
+      int ipdum = msh.newpoitopo(2,-1); 
+      int edg2pol[2];
+      nerro = 0;
       for(int ientt = 0; ientt < nent0; ientt++){
-        INCVDEPTH(msh.param);
-        
         if(isdeadent(ientt,ent2poi)) continue;
         if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
 
-        bool dobrk = false;
-        // Whatever happens, this element will be tagged as inert. Indeed, 
-        // it is either going to give rise to an insertion (thus disappear)
-        // or it won't (thus become inert)
-        // The only exception is if an insertion is rejected due to short edge, 
-        // or other cavity extension routines, as neighbours influence this decision. 
-        ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
-        for(int ied = 0; ied < nedgl; ied++){
-          nedgt++;
-
-          double sz[2];
-          double len = getlenedg_geosz<MFT,gdim,ideg>(msh,ientt,tdim,ied,sz);
-          CPRINTF1(" - try ientt = %d ied = %d len = %f \n",ientt,ied,len);
-          if(len < sqrt(2)) continue;
-
-          edg2pol[0] = ent2poi(ientt,lnoed[ied][0]);
-          edg2pol[1] = ent2poi(ientt,lnoed[ied][1]);
-
-          bool iuse_CAD = false;
-          #if 0
-          int bdim = -1;
-          int iCADe= -1;
-          if(msh.CAD()){
-            if(tdim == 2 && msh.idim == 2 && ent2ent(ientt,ied) >= 0){
-              CPRINTF2(" - Internal edge -> no CAD link\n");
-            }else{
-              // In case tdim 2, gdim 3, it is always CAD; but still determine if edge
-              int iedge = getedgglo(msh, edg2pol[0], edg2pol[1]);
-              if(iedge >= 0){
-                iuse_CAD = true;
-                bdim     = 1;
-                iCADe    = iedge;
-              }else{
-                METRIS_ASSERT(msh.idim == 3);
-                if(tdim == 2){
-                  iuse_CAD = true;
-                  bdim     = 2;
-                  iCADe    = ientt;
-                }else{
-                  METRIS_THROW_MSG(TODOExcept(), "Get tetra face CAD link bool here")
-                }
-              }// if iedge >= 0
-            }// if tdim == 2 && msh.idim == 2 ...
-          }
-          #endif
-
-          if(!iuse_CAD){
-            CPRINTF2(" - No CAD link for this edge -> eval at element\n");
-            int idx0 = tdim + 1 + ied*(ideg-1);
-            for(int ii = 0; ii < ideg-1; ii++) edg2pol[2+ii] = ent2poi[ientt][idx0+ii];
-
-            eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), 
-                             DifVar::None, DifVar::None, 
-                             bar1, coop, NULL, NULL);
-          }else{
-            METRIS_THROW_MSG(TODOExcept(),"Implement useCAD case in msh_insert. "
-              "Note that this is done in low_insert.cxx")
-            #if 0
-            CPRINTF2(" - CAD link dim %d for this edge\n",bdim);
-            METRIS_ASSERT(bdim == 1 || bdim == 2);
-            //int iref = bdim == 1 ? msh.edg2ref[iCADe] : msh.fac2ref[iCADe];
-            int ibpo1 = msh.poi2ebp(edg2pol[0], bdim, iCADe, -1);
-            METRIS_ASSERT(ibpo1 >= 0);
-            int ibpo2 = msh.poi2ebp(edg2pol[1], bdim, iCADe, -1);
-            METRIS_ASSERT(ibpo2 >= 0);
-            #endif
-          }// if(!iuse_CAD)
-
-          if(DOPRINTS1()){
-            CPRINTF1(" - enact ins ientt = %d ied = %d len = %f edg %d %d  coord = ",
-                   ientt,ied,len,edg2pol[0],edg2pol[1]);
-            dblAr1(msh.idim,coop).print();
-          }
-
-          #if 0
-          if(imovmet){
-            // Do better than this, compute the Bézier offset for the metric and 
-            // place the point here -> follow curvature (even if P1)
-            double offset[gdim];
-            getBezOffsetsEdge<MFT,gdim,ideg>(msh,tdim,ent2poi[ientt],ied,offset);
-
-            double nrm1 = geterrl2<gdim>(msh.coord[edg2pol[0]],msh.coord[edg2pol[0]]);
-            double nrm2 = getnrml2<gdim>(offset);
-
-            // Maximum ratio -> dampen if more 
-            const double ratlen = 0.1;
-
-            double fac = 1;
-            if(nrm2 > ratlen*ratlen*nrm1){
-              fac = ratlen*sqrt(nrm1/nrm2);
-            }
-
-            for(int ii = 0; ii < gdim; ii++) coop[ii] += offset[ii]*fac;
-            for(int ii = 0; ii < gdim; ii++) coop[ii] = 0.25 * msh.coord(edg2pol[0],ii)
-              + 0.5 * coop[ii] + 0.25 * msh.coord(edg2pol[1],ii);
-            METRIS_ASSERT(ideg == 1);
-          }else if(imovavg){
-            int ineig = ent2ent(ientt,ied);
-            //double bary[tdim+1] = {1.0/(tdim+1)}; 
-            //double eval[gdim];
-            //for(int ii = 0; ii < gdim; ii++) coop[ii] = 0;
-            //double wttot = 0;
-            //for(int ient2 : {ientt, ineig}){
-            //  if(ient2 < 0) continue;
-            //  eval2<gdim,1>(msh.coord,msh.fac2poi[ient2],msh.getBasis(),
-            //                DifVar::None,DifVar::None,
-            //                bary,eval,NULL,NULL);
-            //  double meas0 = getmeasentP1<gdim>(ent2poi[ient2], msh.coord);
-            //  for(int jj = 0; jj < gdim; jj++) coop[jj] += meas0*eval[jj];
-            //  wttot += meas0;
-            //}
-            //for(int jj = 0; jj < gdim; jj++) coop[jj] /= wttot;
-            if(ineig >= 0){
-              int ipoi1 = ent2poi(ientt,ied);
-              int ie2 = getedgent(msh,ineig,edg2pol[0],edg2pol[1]);
-              int ipoi2 = ent2poi(ineig,ie2);
-              for(int jj = 0; jj < gdim; jj++){
-                coop[jj] = 0.5*msh.coord(ipoi1,jj) + 0.5*msh.coord(ipoi2,jj);
-              }
-            }
-          }
-          #endif
-
-          // Try insert point coop
-          int nent00 = msh.nentt(tdim); 
-          int itry = 0;
-          do{
-            if(DOPRINTS2()){
-              writeMesh("preins",msh);
-            }
-
-            ierro = insertEdge(msh,tdim,ientt,ied,coop,bar1[0],
-                               cav,work,lcaverr,ithrd2,ithrd3);
-            //if(ierro > 0){
-            //  printf("DEBUG insertEdge error %d \n",ierro);
-            //}
-            if(ierro <= 0) break;
-            itry++;
-            if(itry >= 1 + imovmet) break;
-            if(ierro == 0) CPRINTF1(" - After trying ierro = 0 \n");
-            if(ierro > 0 && (itry == 0 && imovmet)){
-              CPRINTF1(" -> insertEdge fail: try again w/ imovmet %d\n",imovmet);
-              if(DOPRINTS1()){
-                CPRINTF1(" - initial ipins = ");
-                dblAr1(gdim,coop).print();
-              }
-              if(imovmet && itry == 1){
-                CPRINTF1(" -> do imovmet\n");
-                // Do better than this, compute the Bézier offset for the metric and 
-                // place the point here -> follow curvature (even if P1)
-                double offset[gdim];
-                getBezOffsetsEdge<MFT,gdim,ideg>(msh,tdim,ent2poi[ientt],ied,offset);
-
-                double nrm1 = geterrl2<gdim>(msh.coord[edg2pol[0]],msh.coord[edg2pol[0]]);
-                double nrm2 = getnrml2<gdim>(offset);
-
-                // Maximum ratio -> dampen if more 
-                const double ratlen = 0.1;
-
-                double fac = 1;
-                if(nrm2 > ratlen*ratlen*nrm1){
-                  fac = ratlen*sqrt(nrm1/nrm2);
-                }
-
-                for(int ii = 0; ii < gdim; ii++) coop[ii] += offset[ii]*fac;
-                for(int ii = 0; ii < gdim; ii++) coop[ii] = 0.25 * msh.coord(edg2pol[0],ii)
-                  + 0.5 * coop[ii] + 0.25 * msh.coord(edg2pol[1],ii);
-              }
-              if(DOPRINTS1()){
-                CPRINTF1(" - final ipins = ");
-                dblAr1(gdim,coop).print();
-              }
-            }
-          }while(ierro != 0);
-
-          if(ierro <= 0){
-            ninser2++;
-            dobrk = true;
-            int nent11 = msh.nentt(tdim);
-            for(int ientn = nent00; ientn < nent11; ientn++){
-              for(int ii = 0; ii < tdim + 1 ; ii++){
-                int ineig = ent2ent(ientn,ii);
-                if(ineig < 0) continue;
-                METRIS_ASSERT(!isdeadent(ineig,ent2poi));
-                ent2tag(ithrd1,ineig) = msh.tag[ithrd1] - 1;
-              }
-            }
-            //CPRINTF1("## DEBUG SUCCESS WAIT HERE\n");
-            //wait();
-          }else{
-            CPRINTF1(" - insertion failed ierro = %d \n",ierro);
-            linserr[ierro - 1] ++;
-            nerro++;
-            // If cavity selection error, untag as inert, as neighbours may influence yet
-            //if(ierro == INS2D_ERR_INCCAV2D 
-            //|| ierro == INS2D_ERR_INCCAV2D2 
-            //|| ierro == INS2D_ERR_SHORTEDG){
-            //  ent2tag(ithrd1,ientt) = msh.tag[ithrd1] - 1;
-            //}
-          }
-
-
-          if(msh.param->dbgfull) check_topo(msh,ithrd2);
-
-          if(dobrk) break;
+        double bar2[3] = {1.0/3.0,1.0/3.0,1.0/3.0};
+        eval1<gdim,ideg>(msh.coord, msh.fac2poi[ientt], msh.getBasis(), 
+                         DifVar::None, DifVar::None, 
+                         bar2, msh.coord[ipdum], NULL, NULL);
+    
+        //ierro = msh.interpMetBack(ipdum,tdim,ientt,
+        //                          -1, NULL,
+        //                          &msh.poi2bak(msh.fac2poi(ientt,0),tdim-1),
+        //                          msh.met[ipdum]);
+        ierro = msh.interpMetBack(ipdum,tdim,ientt,-1, NULL);
+        
+        if(ierro > 0){
+          nerro++;
+          continue;
         }
+        edg2pol[0] = ipdum;
+        bool oneshort = false;
+        for(int ii = 0; ii < 3; ii++){
+          double sz[2];
+          edg2pol[1] = msh.fac2poi(ientt,ii);
+          double len = getlenedg_geosz<MFT,gdim,1>(msh,edg2pol,sz);
+          if(len < 1.0/sqrt(2)) oneshort = true;
+          if(oneshort) break;
+        }
+        if(oneshort) continue;
 
+        int nent00 = msh.nentt(tdim); 
+        ierro = insfacsurf(msh,ientt,coop,cav,work,lcaverr,ithrd2,ithrd3);
+        if(ierro <= 0){
+          ninser2++;
+          int nent11 = msh.nentt(tdim);
+          for(int ientn = nent00; ientn < nent11; ientn++){
+            for(int ii = 0; ii < tdim + 1 ; ii++){
+              int ineig = ent2ent(ientn,ii);
+              if(ineig < 0) continue;
+              METRIS_ASSERT(!isdeadent(ineig,ent2poi));
+              ent2tag(ithrd1,ineig) = msh.tag[ithrd1] - 1;
+            }
+          }
+        }else{
+          linserr[ierro - 1] ++;
+          nerro++;
+        }
       }
 
-      double t1 = get_wall_time();
-      int ncallps = 1000*(int)((ninser2 / (t1-t0)) / 1000);
-      CPRINTF1(" - Loop 1 end t = %f ninser %d = %d /s; nerro %d\n",
-                t1-t0,ninser2,ncallps,nerro);
+
+      double t2 = get_wall_time();
+      ncallps = 1000*(int)((ninser2 / (t2-t1)) / 1000);
+        CPRINTF1("   - Loop 2 end t = %f ninser %d = %d /s; nerro %d coll \n",
+                 t2-t1,ninser2,ncallps,nerro);
       if(DOPRINTS2() && nerro > 0){
-        CPRINTF2(" - cavity ierro list:\n");
+        CPRINTF2("   - cavity ierro list:\n");
         for(int ii = 0; ii < mcaverr; ii++){
           if(lcaverr[ii] == 0) continue;
-          CPRINTF2("   ierro = %d : %d \n",ii+1,lcaverr[ii]);
+          CPRINTF2("     ierro = %d : %d \n",ii+1,lcaverr[ii]);
         }
-        CPRINTF2(" - inspoi ierro list:\n");
+        CPRINTF2("   - inspoi ierro list:\n");
         for(int ii = 0; ii < minserr; ii++){
           if(linserr[ii] == 0) continue;
-          CPRINTF2("   ierro = %d : %d \n",ii+1,linserr[ii]);
+          CPRINTF2("     ierro = %d : %d \n",ii+1,linserr[ii]);
         }
       }
+    }
+    #endif
 
+    if(nedgt == 0) stat = MAX(stat, 0);
+    else           stat = MAX(stat, (double)ninser2/(double)nedgt);
 
-      msh.cleanup();
-
-      //if(DOPRINTS2()) writeMesh("ins_iter"+std::to_string(niter2),msh);
-
-
-      //if(msh.param->iverb == 4){
-      //  printf("DEBUG KILL AFTER FIRST IVERB 4\n");
-      //  exit(1);
-      //}
-
-      //if(ninser2 == 50){
-      //  printf("## DEBUG SET IVERB = 4\n");
-      //  msh.param->iverb = 4;
-      //}
-
-      #if 0
-      // LOOP 2: over elements ; try element barycentres 
-      if(type2){
-
-        ninser2 = 0;
-        lcaverr.fill(0);
-        linserr.fill(0);
-        nerro = 0;
-        nent0 = msh.nentt(tdim);
-
-        int ipdum = msh.newpoitopo(2,-1); 
-        int edg2pol[2];
-        nerro = 0;
-        for(int ientt = 0; ientt < nent0; ientt++){
-          if(isdeadent(ientt,ent2poi)) continue;
-          if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
-
-          double bar2[3] = {1.0/3.0,1.0/3.0,1.0/3.0};
-          eval1<gdim,ideg>(msh.coord, msh.fac2poi[ientt], msh.getBasis(), 
-                           DifVar::None, DifVar::None, 
-                           bar2, msh.coord[ipdum], NULL, NULL);
-      
-          //ierro = msh.interpMetBack(ipdum,tdim,ientt,
-          //                          -1, NULL,
-          //                          &msh.poi2bak(msh.fac2poi(ientt,0),tdim-1),
-          //                          msh.met[ipdum]);
-          ierro = msh.interpMetBack(ipdum,tdim,ientt,-1, NULL);
-          
-          if(ierro > 0){
-            nerro++;
-            continue;
-          }
-          edg2pol[0] = ipdum;
-          bool oneshort = false;
-          for(int ii = 0; ii < 3; ii++){
-            double sz[2];
-            edg2pol[1] = msh.fac2poi(ientt,ii);
-            double len = getlenedg_geosz<MFT,gdim,1>(msh,edg2pol,sz);
-            if(len < 1.0/sqrt(2)) oneshort = true;
-            if(oneshort) break;
-          }
-          if(oneshort) continue;
-
-          int nent00 = msh.nentt(tdim); 
-          ierro = insfacsurf(msh,ientt,coop,cav,work,lcaverr,ithrd2,ithrd3);
-          if(ierro <= 0){
-            ninser2++;
-            int nent11 = msh.nentt(tdim);
-            for(int ientn = nent00; ientn < nent11; ientn++){
-              for(int ii = 0; ii < tdim + 1 ; ii++){
-                int ineig = ent2ent(ientn,ii);
-                if(ineig < 0) continue;
-                METRIS_ASSERT(!isdeadent(ineig,ent2poi));
-                ent2tag(ithrd1,ineig) = msh.tag[ithrd1] - 1;
-              }
-            }
-          }else{
-            linserr[ierro - 1] ++;
-            nerro++;
-          }
-        }
-
-
-        double t2 = get_wall_time();
-        ncallps = 1000*(int)((ninser2 / (t2-t1)) / 1000);
-          CPRINTF1("   - Loop 2 end t = %f ninser %d = %d /s; nerro %d coll \n",
-                   t2-t1,ninser2,ncallps,nerro);
-        if(DOPRINTS2() && nerro > 0){
-          CPRINTF2("   - cavity ierro list:\n");
-          for(int ii = 0; ii < mcaverr; ii++){
-            if(lcaverr[ii] == 0) continue;
-            CPRINTF2("     ierro = %d : %d \n",ii+1,lcaverr[ii]);
-          }
-          CPRINTF2("   - inspoi ierro list:\n");
-          for(int ii = 0; ii < minserr; ii++){
-            if(linserr[ii] == 0) continue;
-            CPRINTF2("     ierro = %d : %d \n",ii+1,linserr[ii]);
-          }
-        }
-      }
-      #endif
-
-      if(nedgt == 0) stat = MAX(stat, 0);
-      else           stat = MAX(stat, (double)ninser2/(double)nedgt);
-
-      ninser1 += ninser2;
-    }while(ninser2 > 0 && niter2++ < miter2);
-
-    *ninser += ninser1;
-  }while(ninser1 > 0 && niter1++ < miter1);
+  }// for niter2
 
 
   //int ipnew = msh.npoin;

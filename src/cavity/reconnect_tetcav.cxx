@@ -136,7 +136,6 @@ int reconnect_tetcav(Mesh<MFT> &msh,
       }
 
 
-
       // Boundary face, create tet. 
       int ielen = msh.nelem;
       msh.set_nelem(msh.nelem+1);
@@ -150,19 +149,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
       msh.tet2poi(ielen, lnofa3[ifa0][0]) = msh.tet2poi(iele0, lnofa3[ifa0][0]);
       msh.tet2poi(ielen, lnofa3[ifa0][1]) = msh.tet2poi(iele0, lnofa3[ifa0][1]);
       msh.tet2poi(ielen, lnofa3[ifa0][2]) = msh.tet2poi(iele0, lnofa3[ifa0][2]);
-
-      if(pdim_ipins < 3){
-        int pdim;
-        for(int ii = 0; ii < 3; ii++){
-          pdim = msh.getpoitdim(msh.tet2poi(iele0, lnofa3[ifa0][ii]));
-          if(pdim >= 3) goto check_bdry_done;
-        }
-        CPRINTF1(" # REJECT: all tet vertices on boundary\n");
-        return CAV_ERR_BDRYTET;
-      }
-      check_bdry_done:
-
-
+      
       CPRINTF1(" - new tetra = %d from iele0 = %d ifa = %d vertices: %d %d %d %d\n",
                ielen,iele0,ifa0,msh.tet2poi(ielen,0),msh.tet2poi(ielen,1),
                msh.tet2poi(ielen,2),msh.tet2poi(ielen,3));
@@ -177,6 +164,53 @@ int reconnect_tetcav(Mesh<MFT> &msh,
       }else if(DOPRINTS2()){
         CPRINTF2(" - new tetra volume %e \n",meas0);
       }
+
+
+      // If the tet has all vertices on boundary, check faces orientations.
+      if(pdim_ipins < 3){
+        for(int ii = 0; ii < 3; ii++){
+          int pdim = msh.getpoitdim(msh.tet2poi(ielen, lnofa3[ifa0][ii]));
+          if(pdim >= 3) goto check_bdry_done;
+        }
+
+        // All vertices are on the boundary. Go over faces and compare orientation
+        bool nogood = false;
+        for(int ifal = 0; ifal < 4; ifal++){
+          int iface = msh.tet2fac(ielen, ifal);
+          if(iface < 0) continue;
+          if(msh.fac2tet(iface,0) >= 0 && msh.fac2tet(iface,1) >= 0){
+            if(msh.param->dbgfull) 
+              METRIS_THROW_MSG(TODOExcept(), "Handle internal surface case here");
+            CPRINTF1(" # REJECT: tet face %d matches glo face %d which is internal\n",
+              ifal, iface);
+            return CAV_ERR_BDRYTET2;
+          }
+          int ip1 = msh.tet2poi(ielen, lnofa3[ifal][0]);
+          int ip2 = msh.tet2poi(ielen, lnofa3[ifal][1]);
+          int ip3 = msh.tet2poi(ielen, lnofa3[ifal][2]);
+          int jp1 = msh.fac2poi(iface, 0);
+          int jp2 = msh.fac2poi(iface, 1);
+          int jp3 = msh.fac2poi(iface, 2);
+          CPRINTF1(" - tet face %d = %d %d %d matches glo face %d = %d %d %d: check orientation\n",
+                  ifal, ip1, ip2, ip3, iface, jp1, jp2, jp3);
+          if(ip1 == jp1){
+            if(ip2 == jp2) nogood = true;
+          }else if(ip1 == jp2){
+            if(ip2 == jp3) nogood = true;
+          }else if(ip1 == jp3){
+            if(ip2 == jp1) nogood = true;
+          }else{
+            METRIS_THROW_MSG(TopoExcept(), "Tet local <-> global face mismatch");
+          }
+          if(nogood) break;
+        }
+        if(nogood){
+          CPRINTF1(" # REJECT: tet face matches glo face orientation\n");
+          return CAV_ERR_BDRYTET;
+        }
+      }
+      check_bdry_done:
+
 
       if(check_qua){
         // Regardless of degree, verify underlying P1 element is decent enough

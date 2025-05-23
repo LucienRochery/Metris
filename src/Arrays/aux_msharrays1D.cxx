@@ -6,13 +6,13 @@
 
 #include "../Arrays/aux_msharrays.hxx"
 #include "../SurrealS_inc.hxx"
-#include <egads.h>
 #include "../metris_constants.hxx"
+#include "../utils/aux_misc.hxx"
+#include <egads.h>
 #include <memory>
 
 
 namespace Metris{
-
 
 template<typename T,typename INT1>
 MeshArray1D<T,INT1>::MeshArray1D(){
@@ -82,6 +82,19 @@ MeshArray1D<T,INT1>::MeshArray1D(const std::initializer_list<T>& list){
 template<typename T,typename INT1>
 MeshArray1D<T,INT1>::MeshArray1D(MeshArray1D &&cpy){
   *this = std::move(cpy);
+}
+
+// Hard copy
+template<typename T,typename INT1>
+MeshArray1D<T,INT1>::MeshArray1D(const MeshArray1D &cpy){
+  this->free();
+  m1 = cpy.m1;
+  n1 = cpy.n1;
+  array_sp = cpp17_make_shared<T[]>(m1);
+  array    = array_sp.get();
+  array_ro = array; 
+
+  for(int ii = 0; ii < n1; ii++) array[ii] = cpy.array_ro[ii];
 }
 
 //template<typename T,typename INT1>
@@ -209,6 +222,14 @@ void MeshArray1D<T,INT1>::print() const{
   this->print(n1);
 }
 
+template<typename T,typename INT1>
+std::ostream& MeshArray1D<T,INT1>::print(std::ostream& _os) const{
+  for(INT1 ii = 0; ii < n1; ii++){
+    _os<<array_ro[ii]<<" ";
+  }
+  _os<<"\n";
+  return _os;
+}
 
 template<typename T,typename INT1>
 void MeshArray1D<T,INT1>::stack(T val){
@@ -236,6 +257,9 @@ T MeshArray1D<T,INT1>::pop(){
 #define EXPAND_TUP(r,SEQ) INSTANTIATE(BOOST_PP_SEQ_ELEM(0, SEQ),BOOST_PP_SEQ_ELEM(1, SEQ))
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TUP,(T_SEQ)(INT1_SEQ))
 #undef INSTANTIATE
+
+template class MeshArray1D<std::pair<int,int>,int>;
+template class MeshArray1D<MeshArray1D<std::pair<int,int>,int>,int>;
 
 //template MeshArray1D<bool,int32_t>::MeshArray1D<bool,int32_t,int32_t>(MeshArray2D<bool,int32_t,int32_t> &arr2);
 //

@@ -104,6 +104,7 @@ struct MetrisParameters{
 
   // Full debugs (costly), wait at certain errors (debug only)
   bool dbgfull, interactive;
+  bool nocleanup; // disable cleanup routines, easier index tracking.
 
   // Generic integer flags
   int iflag1, iflag2, iflag3;

@@ -54,6 +54,12 @@ int MeshBase::poi2ebp(int ipoin, int tdim, int ientt, int iref) const {
     int ient2 = bpo2ibi(ibpo2,2);
     if(ient2 == ientt) return ibpo2;
 
+    // In case refine convention
+    if(ient2 < 0){
+      METRIS_ASSERT(this->param->refineConventionsInp);
+      continue;
+    }
+
     // or the reference:
     int iref2 = tdim == 1 ? edg2ref[ient2] : fac2ref[ient2];
     if(iref == iref2) return ibpo2;

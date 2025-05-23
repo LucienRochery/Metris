@@ -213,6 +213,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/cavity/reconnect_lincav.cxx
     ${PROJECT_SOURCE_DIR}/src/cavity/reconnect_faccav.cxx
     ${PROJECT_SOURCE_DIR}/src/cavity/reconnect_tetcav.cxx
+    ${PROJECT_SOURCE_DIR}/src/cavity/update_bpois_newp.cxx
     ${PROJECT_SOURCE_DIR}/src/cavity/update_cavity.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/CADInfo.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshBase.cxx

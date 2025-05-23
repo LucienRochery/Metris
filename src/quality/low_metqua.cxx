@@ -113,17 +113,41 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       METRIS_ENFORCE_MSG(ierro == 0, "metqua0 EG_evaluate error " << ierro);
       vecprod(du,dv,norCAD);
       if(normalize_vec<gdim>(norCAD)){
+        //printf("using tdim = %d ientt = %d iref = %d \n",tdim, ientt, iref);
         // legitimate if e.g. cone tip.
         if(msh.getpoitdim(ipoin) != 0){
           printf("ipoin = %d point dim = %d",ipoin,msh.getpoitdim(ipoin));
           printf("using ibpoi = %d : ",ibpoi);
           intAr1(nibi, msh.bpo2ibi[ibpoi]).print();
+          int  idbgdim = msh.bpo2ibi(ibpoi,1);
+          int  idbgent = msh.bpo2ibi(ibpoi,2);
+          printf(" entity ref = %d \n", msh.ent2ref(idbgdim)[idbgent]);
           printf("get du = ");
           dblAr1(gdim, du).print();
           printf("get dv = ");
           dblAr1(gdim, dv).print();
           printf("vecprod = ");
           dblAr1(gdim, norCAD).print();
+
+          printf("(u,v) = %24.15e %24.15e\n", msh.bpo2rbi(ibpoi,0), msh.bpo2rbi(ibpoi,1));
+          printf("eval coop %24.15e %24.15e %24.15e \n",
+            result[0],result[1],result[2]);
+
+          double nrm = getnrml2<gdim>(norCAD);
+          printf("nrm = %24.15e\n",nrm);
+
+
+          int ibpo2 = msh.poi2ebp(168, tdim, ientt, iref);
+          printf("168 (node) (u,v) = %24.15e %24.15e\n", msh.bpo2rbi(ibpo2,0), msh.bpo2rbi(ibpo2,1));
+          ierro = EG_evaluate(obj, msh.bpo2rbi[ibpo2], result);
+          printf("get du = ");
+          dblAr1(gdim, du).print();
+          printf("get dv = ");
+          dblAr1(gdim, dv).print();
+          printf("vecprod = ");
+          printf("eval coop %24.15e %24.15e %24.15e \n",
+            result[0],result[1],result[2]);
+
 
           METRIS_THROW_MSG(GeomExcept(), "Normal (CAD) vanishes at ipoin "<<ipoin);
         }

@@ -32,6 +32,7 @@ int insertEdge(Mesh<MFT>& msh,
                double *coop, double bar1, 
                MshCavity &cav, CavWrkArrs &work, 
                intAr1 &lerro, int ithrd1, int ithrd2){
+
   GETVDEPTH(msh.param);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
@@ -46,8 +47,6 @@ int insertEdge(Mesh<MFT>& msh,
   const intAr2 &ent2poi = msh.ent2poi(tdim);
   const auto lnoed = tdim == 2 ? lnoed2 : lnoed3;
   METRIS_ASSERT(ientt >= 0 && ientt < nentt && !isdeadent(ientt, ent2poi));
-
-
 
   //if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement + tet nelem = "<<msh.nelem)
 
@@ -64,6 +63,9 @@ int insertEdge(Mesh<MFT>& msh,
 
   int mcavcorr = 5, ncavcorr;
 
+  cav.lcedg.allocate(10);
+  cav.lcfac.allocate(10);
+  cav.lctet.allocate(10);
   cav.lcedg.set_n(0);
   cav.lcfac.set_n(0);
   cav.lctet.set_n(0);
@@ -90,8 +92,8 @@ int insertEdge(Mesh<MFT>& msh,
         "Shell element dead");
     }
   }
-
   #endif  
+
 
   int tdimp = -1;
        if(cav.lcedg.get_n() > 0) tdimp = 1;
@@ -198,62 +200,67 @@ int insertEdge(Mesh<MFT>& msh,
       getnorfacP1(ent2poi[ientt],msh.coord,algnd);
     }
   }
-  //try{
+
+  try{
+
   if(!msh.param->ins_lazy_interp){
     ierro = msh.interpMetBack(cav.ipins, tdimp, iseed, iref, algnd);
     if(ierro != 0){
-      printf("debug interpMetBack error %d\n",ierro);
-      wait();
+      //printf("debug interpMetBack error %d\n",ierro);
+      //wait();
       ierro = INS2D_ERR_INTERPMETBACK;
       goto cleanup;
     }
   }
 
-  //}catch(const MetrisExcept& e){
+  }catch(const MetrisExcept& e){
 
-  //  printf("Exception in interpMetBack from insertEdge\n");
-  //  printf("ipins = %d\n",cav.ipins);
-  //  MPRINTF("-- cavity ncedg = %d ncfac = %d nctet = %d ipins = %d \n",
-  //           cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),cav.ipins);
-  //  MPRINTF("   npoin %d nedge %d nface %d nelem %d\n",msh.npoin,msh.nedge,msh.nface,msh.nelem);
-  //  if(cav.lcedg.get_n() > 0){
-  //    MPRINTF(" - Edge cavity: ");
-  //    cav.lcedg.print(cav.lcedg.get_n());
-  //  }
-  //  if(cav.lcfac.get_n() > 0){
-  //    MPRINTF(" - Face cavity: ");
-  //    cav.lcfac.print(cav.lcfac.get_n());
-  //  }
-  //  if(cav.lctet.get_n() > 0){
-  //    MPRINTF(" - Tetra cavity: ");
-  //    cav.lctet.print(cav.lctet.get_n());
-  //  }
+    printf("Exception in interpMetBack from insertEdge\n");
+    printf(" insertion dim was %d\n",tdimp);
+    printf(" using iseed iref %d %d initial seed ientt %d tdim %d\n",
+           iseed,iref,ientt,tdim);
+    printf("ipins = %d\n",cav.ipins);
+    MPRINTF("-- cavity ncedg = %d ncfac = %d nctet = %d ipins = %d \n",
+             cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),cav.ipins);
+    MPRINTF("   npoin %d nedge %d nface %d nelem %d\n",msh.npoin,msh.nedge,msh.nface,msh.nelem);
+    if(cav.lcedg.get_n() > 0){
+      MPRINTF(" - Edge cavity: ");
+      cav.lcedg.print();
+    }
+    if(cav.lcfac.get_n() > 0){
+      MPRINTF(" - Face cavity: ");
+      cav.lcfac.print();
+    }
+    if(cav.lctet.get_n() > 0){
+      MPRINTF(" - Tetra cavity: ");
+      cav.lctet.print();
+    }
 
-  //  for(int tdimn = 1; tdimn <= 3; tdimn++){
-  //    intAr1 &lcent = cav.lcent(tdimn);
-  //    int ncent = lcent.get_n();
-  //    if(ncent <= 0) continue;
-  //    intAr2 &ent2poi = msh.ent2poi(tdimn);
+    for(int tdimn = 1; tdimn <= 3; tdimn++){
+      intAr1 &lcent = cav.lcent(tdimn);
+      int ncent = lcent.get_n();
+      if(ncent <= 0) continue;
+      intAr2 &ent2poi = msh.ent2poi(tdimn);
 
-  //    if(tdimn == 1){
-  //      MPRINTF(" - Edge cavity: \n");
-  //    }else if(tdimn == 2){
-  //      MPRINTF(" - Face cavity: \n");
-  //    }else{
-  //      MPRINTF(" - Tetra cavity: \n");
-  //    }
-  //    int nnode = msh.nnode(tdimn);
-  //    for(int ientt : lcent){
-  //      MPRINTF("%d : ",ientt);
-  //      for(int ii = 0; ii < nnode; ii++){
-  //        printf(" %d ",ent2poi(ientt,ii));
-  //      }
-  //      printf("\n");
-  //    }
-  //  }
-  //  writeMeshCavity("cavity0",msh,cav);
-  //  throw(e);
-  //}
+      if(tdimn == 1){
+        MPRINTF(" - Edge cavity: \n");
+      }else if(tdimn == 2){
+        MPRINTF(" - Face cavity: \n");
+      }else{
+        MPRINTF(" - Tetra cavity: \n");
+      }
+      int nnode = msh.nnode(tdimn);
+      for(int ientt : lcent){
+        MPRINTF("%d : ",ientt);
+        for(int ii = 0; ii < nnode; ii++){
+          printf(" %d ",ent2poi(ientt,ii));
+        }
+        printf("\n");
+      }
+    }
+    writeMeshCavity("inscavity1",msh,cav);
+    throw(e);
+  }
 
   ncavcorr = 0;
   ierro = 0;
@@ -275,6 +282,10 @@ int insertEdge(Mesh<MFT>& msh,
       goto fixpoint;
     }
     CPRINTF1(" - +len cavity size %d nprem = %d\n", cav.lcfac.get_n(),nprem); 
+    if(DOPRINTS2()){
+      writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr), 
+                                  msh,cav);
+    }
 
 
     ierro = increase_cavity(msh, cav, true, ithrd1, ithrd2);
@@ -285,7 +296,7 @@ int insertEdge(Mesh<MFT>& msh,
     CPRINTF1(" - +cav nedge %d nface %d nelem %d\n",
              cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
     if(DOPRINTS2()){
-      writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr), 
+      writeMeshCavity("insert_cavity2."+std::to_string(ncavcorr), 
                                   msh,cav);
     }
    
@@ -319,7 +330,7 @@ int insertEdge(Mesh<MFT>& msh,
       break;
     }
 
-    if(DOPRINTS2()) writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr)+".meshb", 
+    if(DOPRINTS2()) writeMeshCavity("insert_cavity3."+std::to_string(ncavcorr)+".meshb", 
                                     msh,cav);
 
   }while(ierro > 0 && ncavcorr++ < mcavcorr);

@@ -48,6 +48,7 @@ struct MetrisOptions{
       ("nosort" , "Disable Hilbert reordering"   )
       ("dbgfull"    , "Enable expensive debugs"   )
       ("interactive", "Enable wait() calls (debug)"   )
+      ("nocleanup", "Disable cleanup (debug)"   )
       ("nproc"  , po::value<int>(), "Maximum number of CPU cores for multi-threading"   );
 
 

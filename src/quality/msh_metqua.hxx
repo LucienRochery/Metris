@@ -18,8 +18,8 @@ namespace Metris{
   
 // -- Whole mesh qualities
 // Prefer calling this one. Computes L^2 conformity error 
-template <class MFT, int tdim, AsDeg = AsDeg::Pk>
-double getmetquamesh(Mesh<MFT> &msh,
+template <class MFT>
+double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
                      bool *iinva, double *qmin, double *qmax, 
                      double *qavg, dblAr1 *lquae);
 } // End namespace

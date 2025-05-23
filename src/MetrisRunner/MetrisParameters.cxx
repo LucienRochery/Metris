@@ -55,7 +55,7 @@ MetrisParameters::MetrisParameters(){
   iverb     = 1;
   ivdepth   = 0;
 
-  interactive = dbgfull = false;
+  interactive = dbgfull = nocleanup = false;
 
   refineConventionsInp = refineConventionsOut = false;
 
@@ -170,6 +170,10 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("interactive")){
     if(iverb >= 1) printf("-- Wait calls activated\n");
     interactive = true;
+  }
+  if(opt.count("nocleanup")){
+    if(iverb >= 1) printf("-- Cleanup calls deactivated\n");
+    nocleanup = true;
   }
 
   if(opt.count("back")){

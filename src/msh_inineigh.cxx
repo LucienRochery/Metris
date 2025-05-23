@@ -66,11 +66,7 @@ void iniMeshNeighbours(MeshBase &msh){
 // See 3D version (original) for more comments
 template <int ideg>
 void iniMeshNeighbours2D(MeshBase &msh){
-  #ifndef NDEBUG
-  const int iprt = 0;
-  #else
-  const int iprt = 0;
-  #endif
+  GETVDEPTH(msh.param);
 
   // Ref to give when no refs
   int iref_dum = 0;
@@ -125,7 +121,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
 
       auto key = stup2(i1,i2);
 
-      if(iprt > 0) std::cout<<"Tri "<<iface<<" edg "<<ied1<<" points "<<i1<<" "<<i2<<std::endl;
+      //if(iprt > 0) std::cout<<"Tri "<<iface<<" edg "<<ied1<<" points "<<i1<<" "<<i2<<std::endl;
 
       int iinte = 0, ifac2 = -1;
       auto s = edgeHshTab.extract(key);
@@ -133,7 +129,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
         edgeHshTab.insert({key,iface});
       }else{
         ifac2 = s.mapped();
-        if(iprt > 0) std::cout<<" - Found ifac2 = "<<ifac2<<std::endl;
+        //if(iprt > 0) std::cout<<" - Found ifac2 = "<<ifac2<<std::endl;
         // Previous face who saw this edge is manifold, may or may not already have neighbour
         // Fetch neighbour to this edge
         int ied2; 
@@ -160,7 +156,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
 
       if(t!=msh.edgHshTab.end()){
         int iedge = t->second;
-        assert("Glo edg hsh tab valid" && iedge >= 0 && iedge < msh.nedge);
+        METRIS_ASSERT_MSG(iedge >= 0 && iedge < msh.nedge,"Glo edg hsh tab valid");
         msh.edg2fac[iedge] = iface;
       }else if(iinte == 1){
         // If the edge was sandwiched between facs of diff refs, we must create it
@@ -170,10 +166,10 @@ void iniMeshNeighbours2D(MeshBase &msh){
         ncree++;
       }
     }
-    if(iprt > 0) std::cout<<"iter end  "<<iface<<" print all nei"<<std::endl;
+    //if(iprt > 0) std::cout<<"iter end  "<<iface<<" print all nei"<<std::endl;
   }
-  if(ncree > 0)printf("   Created %d edges \n",ncree);
-  if(iprt > 0)printf("-- Faces finished\n");
+  if(ncree > 0)CPRINTF1(" - created %d edges \n",ncree);
+  //if(iprt > 0)printf("-- Faces finished\n");
 
 
   iniMeshBdryEdges<ideg>(msh);
@@ -191,19 +187,19 @@ void iniMeshNeighbours2D(MeshBase &msh){
 
   for(int iedge = 0; iedge < msh.nedge; iedge++){
     if(isdeadent(iedge,msh.edg2poi)) continue;
-    if(iprt > 0) printf("Start iedge = %d vertices = %d %d \n",iedge,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
+    //if(iprt > 0) printf("Start iedge = %d vertices = %d %d \n",iedge,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
     for(int ive1 = 0; ive1 < 2; ive1++){
       int ip = msh.edg2poi(iedge,ive1);
-      if(iprt>0)printf("  ive1 = %d ip = %d \n",ive1,ip);
+      //if(iprt>0)printf("  ive1 = %d ip = %d \n",ive1,ip);
       int iedge2 = msh.poi2tag(0,ip); 
-      if(iprt>0)printf("  iedge2 = %d \n",iedge2);
+      //if(iprt>0)printf("  iedge2 = %d \n",iedge2);
 
       // Case no neighbour yet
       if(iedge2 == -1){
         msh.poi2tag(0,ip) = iedge; 
         continue;
       }
-      if(iprt > 0) std::cout<<" - Found iedge2 = "<<iedge2<<std::endl;
+      //if(iprt > 0) std::cout<<" - Found iedge2 = "<<iedge2<<std::endl;
 
       int inewc = 0;
       // If iedge2 >= 0, that point has already seen another edge (iedge2). 
@@ -212,15 +208,15 @@ void iniMeshNeighbours2D(MeshBase &msh){
         // Fetch neighbour to this edge
         int                           ive2 = 0;
         if(msh.edg2poi(iedge2,1) == ip) ive2 = 1;
-        if(iprt > 0)printf("  msh.edg2poi iedge2: %d %d \n",msh.edg2poi(iedge2,0),msh.edg2poi(iedge2,1));
+        //if(iprt > 0)printf("  msh.edg2poi iedge2: %d %d \n",msh.edg2poi(iedge2,0),msh.edg2poi(iedge2,1));
         assert(("Hash table (1)" && msh.edg2poi(iedge2,ive2) == ip));
         int iedge3 = msh.edg2edg[iedge2][1-ive2];
 
         if(iedge3 == -1){ 
           // There is a neighbour but the point is still manifold
-          if(iprt>0)printf("  Initialize neighbour (%d,%d) -> %d and (%d,%d) -> %d \n",
-            iedge2,1-ive2,iedge,iedge,1-ive1,iedge2);
-            msh.edg2edg[iedge2][1-ive2] = iedge  ;
+          //if(iprt>0)printf("  Initialize neighbour (%d,%d) -> %d and (%d,%d) -> %d \n",
+          //  iedge2,1-ive2,iedge,iedge,1-ive1,iedge2);
+          msh.edg2edg[iedge2][1-ive2] = iedge  ;
           msh.edg2edg[iedge ][1-ive1] = iedge2 ;
           // Tag point to be added as corner if refs differ
           if(msh.edg2ref[iedge] != msh.edg2ref[iedge2]) inewc = 1;
@@ -230,7 +226,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
           inewc = 1;
           assert(("Skipped msh.poi2tag[0] update" && iedge3 > -1));
 
-          if(iprt>0)printf("  Found neighbour %d \n",iedge3);
+          //if(iprt>0)printf("  Found neighbour %d \n",iedge3);
 
           assert(("Array corruption" && iedge3 != iedge)); 
 
@@ -241,15 +237,15 @@ void iniMeshNeighbours2D(MeshBase &msh){
 
           assert(("Hash table (2)" && msh.edg2poi(iedge3,ive3) == ip));
 
-          if(iprt>0)printf("  Update using 1,2,3 = (%d,%d) (%d,%d) (%d,%d)\n",
-                                        iedge,1-ive1,iedge2,1-ive2,iedge3,1-ive3);
-                                        msh.edg2edg[iedge2][1-ive2] = -(iedge3+2) ;
+          //if(iprt>0)printf("  Update using 1,2,3 = (%d,%d) (%d,%d) (%d,%d)\n",
+          //                              iedge,1-ive1,iedge2,1-ive2,iedge3,1-ive3);
+          msh.edg2edg[iedge2][1-ive2] = -(iedge3+2) ;
           msh.edg2edg[iedge3][1-ive3] = -(iedge +2) ;
           msh.edg2edg[iedge ][1-ive1] = -(iedge2+2) ;
 
           // We must update the value in the hash table to reflect this. 
           // This should certainly not lead to an insertion.
-          if(iprt>0)printf("  Update ip = %d tag to %d \n",ip,-iedge3-1);
+          //if(iprt>0)printf("  Update ip = %d tag to %d \n",ip,-iedge3-1);
           msh.poi2tag(0,ip) =  -(iedge3+2);
         }
       }else{
@@ -257,7 +253,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
         iedge2 = - (iedge2 + 2) ; 
         assert(("Array corruption" && iedge2 != iedge));
 
-        if(iprt>0)printf("Already non manifold edge, get iedge2 = %d (For)\n",iedge2+1);
+        //if(iprt>0)printf("Already non manifold edge, get iedge2 = %d (For)\n",iedge2+1);
 
         int ive2 = -1;
         if(msh.edg2poi(iedge2,0) == ip) ive2 = 0;
@@ -269,7 +265,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
 
         iedge3 = - (iedge3 + 2);
 
-        if(iprt>0)printf("  Got iedge3 = %d \n",iedge3);
+        //if(iprt>0)printf("  Got iedge3 = %d \n",iedge3);
 
         msh.edg2edg[iedge2][1-ive2] = -(iedge  + 2);
         msh.edg2edg[iedge ][1-ive1] = -(iedge3 + 2);
@@ -288,8 +284,8 @@ void iniMeshNeighbours2D(MeshBase &msh){
     }
 
 
-    if(iprt > 1) std::cout<<"iter end  "<<iedge<<" print all nei"<<std::endl;
-    if(iprt > 1) msh.edg2edg.print(msh.nedge); 
+    //if(iprt > 1) std::cout<<"iter end  "<<iedge<<" print all nei"<<std::endl;
+    //if(iprt > 1) msh.edg2edg.print(msh.nedge); 
   }
 
   // Reset tag to 0, it's few points
@@ -657,6 +653,120 @@ void iniMeshNeighbours3D(MeshBase &msh){
 template void iniMeshNeighbours< n >(MeshBase &msh);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
+
+
+#if 0
+// See 3D version (original) for more comments
+template <int ideg>
+void iniMeshNeighbours0(MeshBase &msh){
+  GETVDEPTH(msh.param);
+
+  msh.edg2edg.fill(msh.nedge,2,-1);
+  msh.fac2fac.fill(msh.nface,3,-1);
+  msh.tet2tet.fill(msh.nelem,4,-1);
+
+  // Note the absence of a "point hash table". We'll handle edge neighbours 
+  // using msh.poi2tag[0] (the index is an implicit value)
+  HshTab_I2I edgeHshTab(1.5*msh.nface + msh.nedge); // index by edge, fetch iface
+  HshTab_I3I intfHshTab(msh.nelem > 0 ? 2*msh.nelem + msh.nface : 0); // not used if 2D
+
+  // Go from highest to lowest tdim, building missing lower dim entities as needed
+  // Use CT LOOP to use tdim as time (e.g. for stupn)
+  CT_FOR0_INC(0,2,tdim0){
+    constexpr int tdim = 3 - tdim0;
+    constexpr int nneil = tdim + 1;
+    const int nentt = msh.nentt(tdim);
+    const intAr2 &ent2poi = msh.ent2poi(tdim);
+          intAr2 &ent2ent = msh.ent2ent(tdim);
+
+    constexpr auto lnosub = getlnosub<tdim>();
+    auto subHshTab = tdim == 3 ? intfHshTab : edgeHshTab;
+
+    auto subHshTabMesh = tdim == 3 ? msh.facHshTab : msh.edgHshTab;
+
+    for(int ientt = 0; ientt < nentt; ientt++){
+      for(int ineil = 0; ineil < nneil; ineil++){
+
+        if constexpr(tdim >= 2){
+
+          int idxsub[tdim]; 
+          for(int ii = 0; ii < tdim; ii++) 
+            idxsub[ii] = ent2poi(ientt,lnosub[ineil][ii]);
+          auto key = stupn<tdim>(idxsub);
+          auto sfnd = subHshTab.extract(key);
+          int ient2 = -1;
+          if(sfnd.empty()){
+            subHshTab.insert({key,ientt});
+          }else{
+            ient2 = sfnd.mapped();
+            int inei2 = -1;
+            bool iints = false;
+            if constexpr(tdim == 2){
+              inei2 = getedgfacOpp(msh,ient2,idxsub[0],idxsub[1]);
+            }else{
+              inei2 = getfactetOpp(msh,ient2,idxsub[0],idxsub[1],idxsub[2]);
+            }
+            CPRINTF3(" - tdim %d found ient2 = %d inei2 = %d \n",ielem2,inei2);
+            METRIS_ASSERT(inei2 >= 0);
+
+            ent2ent(ient2, inei2) = ientt;
+            ent2ent(ientt, ineil) = ient2;
+
+            // If the subent corresponds to 2 entts of different refs, we will 
+            // need to create it if it doesn't exist.
+            if(msh.ent2ref(tdim)[ientt] != msh.ent2ref(tdim)[ient2]) iints = true;
+          }// if snfd.empty()
+
+          // Now we look for the facet (subent) in the boundary face hash table
+          auto tfnd = subHshTabMesh.find(key);
+
+          if(tfnd != msh.facHshTab.end()){
+            // Found this subent in the global subent hash table: update msh.fac2tet
+            // or msh.edg2fac
+            int isube = tfnd->second;
+            if constexpr(tdim == 3){
+              if(msh.fac2tet(isube,0) > -1){
+                msh.fac2tet(isube,1) = ientt;
+              }else{
+                msh.fac2tet(isube,0) = ientt;
+              }
+            }else{
+              msh.edg2fac[isube] = ientt;
+            }
+          }else if(iintf == 1){
+            // If the face was sandwiched between tets of diff refs, we must create it
+            // Note that this only applies if the previous failed, i.e. face does not exist
+            if constexpr(tdim == 3){
+              msh.newfactopo<ideg>(ientt, ineil, 0, ient2);
+            }else{
+              msh.newedgtopo<ideg>(ientt, ineil, 0);
+              msh.edg2fac[msh.nedge-1] = ientt;
+            }
+          }// if tfnd != msh.facHshTab.end()
+
+        }// if tdim >= 2
+
+      }// for ineil
+    }// for ientt
+
+    if constexpr(tdim == 3){
+      iniMeshBdryTriangles<ideg>(msh,  intfHshTab);
+    }else if(tdim == 2){
+
+    }
+
+  }CT_FOR1(tdim0);
+
+}
+
+// See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
+// Section A.4.1.2 Vertical Repetition
+#define BOOST_PP_LOCAL_MACRO(n)\
+template void iniMeshNeighbours0< n >(MeshBase &msh);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+#endif
+
 
 
 } // End namespace
