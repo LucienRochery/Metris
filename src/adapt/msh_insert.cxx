@@ -490,6 +490,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
     if(nedgt == 0) stat = MAX(stat, 0);
     else           stat = MAX(stat, (double)ninser2/(double)nedgt);
 
+    *ninser += ninser2;
   }// for niter2
 
 
