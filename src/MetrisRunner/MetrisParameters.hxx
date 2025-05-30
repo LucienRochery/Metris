@@ -150,6 +150,7 @@ struct MetrisParameters{
 
   // ----------------- END Optimization options  
 
+  int interp_err_min_algo;
 
   FEBasis outbasis;
 

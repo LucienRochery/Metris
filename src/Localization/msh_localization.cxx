@@ -234,8 +234,10 @@ int locMesh(MeshBase &msh, int *ientt,
             METRIS_ASSERT(uvsrf != NULL);
             double tp = *uvsrf;
 
-            if(abs(t2-t1) < 1.0e-16) METRIS_THROW_MSG(GeomExcept(),
-                                      "t coordinates too close");
+            METRIS_ENFORCE_MSG(abs(t2-t1) >= 1.0e-16,
+              "t coordinates too close ipoi1 = "<<ipoi1<<" ipoi2 = "<<ipoi2
+              <<" ibpo1 = "<<ibpo1<<" ibpo2 = "<<ibpo2
+              <<" t1 = "<<t1<<" t2 = "<<t2);
 
             ierro = 0;
             bary[0] = (t2 - tp) / (t2 - t1);

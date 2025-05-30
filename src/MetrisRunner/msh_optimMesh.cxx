@@ -55,10 +55,12 @@ double MetrisRunner::optimMesh0(){
     }
     SolutionFieldAnalytical sol(msh);
     sol.setAnalyticalSolution(param->ianasol);
-    // DIRECT
-    minimizeInterpErrglo(msh, sol, param->intp_pdeg, param->intp_pnorm, 1, 0, 1);
-    // Then Newton
-    minimizeInterpErrglo(msh, sol, param->intp_pdeg, param->intp_pnorm, 0, 0, 1);
+    int ialgo = msh.param->interp_err_min_algo;
+    minimizeInterpErrglo(msh, sol, param->intp_pdeg, param->intp_pnorm, ialgo, 0, 1);
+    //// DIRECT
+    //minimizeInterpErrglo(msh, sol, param->intp_pdeg, param->intp_pnorm, 1, 0, 1);
+    //// Then Newton
+    //minimizeInterpErrglo(msh, sol, param->intp_pdeg, param->intp_pnorm, 0, 0, 1);
     return 0;
   }
 

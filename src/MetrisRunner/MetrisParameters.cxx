@@ -92,6 +92,7 @@ MetrisParameters::MetrisParameters(){
   outbasis  = FEBasis::Lagrange;
 
   iflag1 = iflag2 = iflag3 = 0;
+  interp_err_min_algo = 1; // 1 for Newton, 0 for DIRECT
 }
 
 MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
@@ -305,6 +306,11 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     iflag3 = opt.m["iflag3"].as<int>();
   }
 
+  if(opt.count("interp-err-min-algo")){
+    interp_err_min_algo = opt.m["interp-err-min-algo"].as<int>();
+    METRIS_ENFORCE_MSG(interp_err_min_algo == 0 || interp_err_min_algo == 1,
+      "interp_err_min_algo has to be 0 (Newton) or 1 (DIRECT)");
+  }
 }
 
 void MetrisParameters::checkParameters(){

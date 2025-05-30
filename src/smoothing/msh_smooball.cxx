@@ -116,7 +116,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
   // Eventually move all constants to MetrisParameters 
   // L2 conformity error from 0 to 1 
   const double difto = 1.0;
-  const int miter = 10;
+  const int miter = msh.param->opt_smoo_niter;
   //const double maxwt = 20.0;
   //const double qrthr = 2.0;
   const double tolavg = msh.param->opt_smoo_tol;

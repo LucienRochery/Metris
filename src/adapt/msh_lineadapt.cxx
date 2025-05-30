@@ -157,7 +157,7 @@ void adaptGeoLines(Mesh<MFT> &msh){
     ego loop = msh.CAD.cad2lop[iloop], *lchild, geom; 
     int oclass,mtype,nchild,*senses;
     int ierro = EG_getTopology(loop,&geom,&oclass,&mtype,NULL,
-                           &nchild,&lchild,&senses);
+                               &nchild,&lchild,&senses);
     if(ierro != 0){
       print_EGADS_error("EG_getTopology (LOOP)",ierro);
       METRIS_THROW(TopoExcept());

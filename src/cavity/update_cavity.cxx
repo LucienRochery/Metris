@@ -70,69 +70,6 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, const CavWrkArrs &work,
 
   // -- 1 Manage bpois
 
-  // -- 1.0  Get (u,v)s in case of a pdim < 2 point. If point is tdim 2, (u,v) is 
-  // computed by the driver. We need to do this before deleting bpois.
-  int pdim = -1;
-  int ibins = msh.poi2bpo[cav.ipins];
-  if(ibins >= 0) pdim = msh.bpo2ibi(ibins,1);
-  if(pdim < 2 && msh.isboundary_faces() && msh.CAD()){ 
-    // We could be clever in the case where ipins already belonged to the mesh
-    // and recycle known (u,v)s. But we're not doing that yet, let's keep it 
-    // generic. 
-    // What info do we have? Surface connex components are stored in lfcco, 
-    // which points to seeds in initial cavity. 
-    // We'll use those to do an EG_invEvaluateGuess.
-    // Similarly, we could use EG_getEdgeUV, but then we'd have to deal with 
-    // isens, and with the corner case. So let's remain sane and use EG_invEvaluateGuess. 
-    // This could still be done dumbly by using the seed and computing distance
-    // to obtained (u,v)s, keeping the closest as the correct one. 
-    double result[18];
-    for(ibins = msh.poi2bpo[cav.ipins]; ibins >= 0; ibins = msh.bpo2ibi(ibins,3)){
-      int bdim = msh.bpo2ibi(ibins,1);
-      if(bdim != 2) continue;
-
-      // This can be either an old or a new face as we've got bpois for both 
-      // at this stage. 
-      int iface = msh.bpo2ibi(ibins,2);
-      METRIS_ASSERT(iface >= 0 && iface < msh.nface);
-
-      // If it's an old one, skip.
-      if(iface < nfac0) continue;
-
-      // For new faces, we store icoco such that face is untagged, see crenewfa:
-      int icoco = - msh.fac2tag(ithread,iface) + msh.tag[ithread] - 1; 
-      METRIS_ASSERT_MSG(icoco >= 0 && icoco < work.lfcco.get_n(),
-        " icoco = "<<icoco);
-
-      // Get a face from before, from this connex component
-      int ifaco = work.lfcco[icoco];
-
-      for(int ii = 0; ii < nrbi; ii++) msh.bpo2rbi(ibins,ii) = 0;
-
-      // Use only the vertices, that'll be enough. 
-      for(int ii = 0; ii < 3; ii++){
-        int ipoin = msh.fac2poi(ifaco, ii);
-        METRIS_ASSERT(ipoin >= 0);
-        int ibpoi = msh.poi2ebp(ipoin, 2, ifaco, -1);
-        METRIS_ASSERT(ibpoi >= 0);
-        for(int ii = 0; ii < nrbi; ii++) 
-          msh.bpo2rbi(ibins,ii) += msh.bpo2rbi(ibpoi,ii) / 3.0;
-      }
-
-      int iref = msh.fac2ref[iface];
-      METRIS_ASSERT(iref >= 0);
-      ego obj = msh.CAD.cad2fac[iref];
-
-      ierro = EG_invEvaluateGuess(obj, msh.coord[cav.ipins], msh.bpo2rbi[ibins], result);
-      if(ierro != 0){
-        CPRINTF1("## EG_invEvaluateGuess ERROR %d \n",ierro);
-        return ierro;
-      }
-
-
-    }
-  }
-
 
   if(msh.param->dbgfull){
     bool ok[3] = {true, true, true};

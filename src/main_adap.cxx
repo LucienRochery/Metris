@@ -59,20 +59,25 @@ int main_metris(int argc, char** argv){
     run.optimMesh();
 
 
-    int ielev = run.degElevate();
+    if(param.usrTarDeg > 1 || run.msh_g->curdeg > 1){
+      int ielev = run.degElevate();
 
-    if(param.dbgfull) check_topo(*run.msh_g,0);
+      if(param.dbgfull) check_topo(*run.msh_g,0);
 
-    if(param.curveType > 0 && !ielev){ // Not really smoothing, rather metric based curving
-      run.curveMesh();
+      if(param.curveType > 0 && !ielev){ // Not really smoothing, rather metric based curving
+        run.curveMesh();
+      }
+
+      if(param.smoo_type == 0){
+        run.optimMesh();
+      }
+      
+      if(param.dbgfull) check_topo(*run.msh_g,0);
     }
 
-    if(param.anaSol && param.smoo_type == 1 || param.smoo_type == 0){
+    if(param.anaSol && param.smoo_type == 1){
       run.optimMesh();
     }
-    
-    if(param.dbgfull) check_topo(*run.msh_g,0);
-
     run.writeOutputs();
 
 

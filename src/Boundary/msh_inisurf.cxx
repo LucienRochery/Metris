@@ -217,7 +217,7 @@ doproj:
 
       msh.bpo2tag(ithrd,ibpoi) = btag;
       
-   	double err; 
+   	  double err; 
 
 			obj = bdim == 1 ? msh.CAD.cad2edg[iref] : msh.CAD.cad2fac[iref];
 
@@ -226,6 +226,9 @@ doproj:
       }else{
         ierro = EG_invEvaluateGuess(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
       }
+
+      CPRINTF3(" - proj ipoin %d pdim %d bdim %d ibpoi %d ierro %d coord (u,v)/t = %e %e\n",
+               ipoin,pdim,bdim,ibpoi,ierro,msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
 
 			if(ierro != 0){
 				nerr[bdim]++;
@@ -975,10 +978,10 @@ int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
 
 
   noRefine:
+  *nbpo0 = msh.nbpoi;
 
 	// Start with edges. Corners are all initialized already. 
   int ntry1 = 0;
-  *nbpo0 = msh.nbpoi;
 	for(int iedge = 0; iedge < msh.nedge; iedge++){
     INCVDEPTH(msh.param);
 		if(isdeadent(iedge,msh.edg2poi)) continue;
@@ -1001,7 +1004,7 @@ int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
 
 	// Triangles are only boundary entities in dimension 3+
   int ntry2 = 0;
-  *nbpo0 = msh.nbpoi;
+  int nbpo1 = msh.nbpoi;
 	if(msh.idim >= 3){
 		// We can now do faces as we needed to know about edge points. 
 		for(int iface = 0; iface < msh.nface; iface++){
@@ -1028,7 +1031,7 @@ int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
 			}
 		}
 	}
-  int ncre2 = msh.nbpoi - *nbpo0;
+  int ncre2 = msh.nbpoi - nbpo1;
 
   CPRINTF2("-- Created %d/%d edge, %d/%d face bpois \n",ncre1,ntry1,ncre2,ntry2);
 

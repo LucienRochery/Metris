@@ -80,6 +80,12 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
   double t0 = get_wall_time();
   CPRINTF1("-- START minimizeInterpErrglo\n");
 
+  if(ialgo == 0){
+    CPRINTF1(" - using algo: Newton\n");
+  }else{
+    CPRINTF1(" - using algo: DIRECT\n");
+  }
+
 
 
   // start

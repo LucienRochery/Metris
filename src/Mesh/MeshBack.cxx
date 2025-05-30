@@ -64,7 +64,7 @@ dblAr1& MeshBack::ent2dev(int tdimn){
   case(2):
     return fac2dev;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG(WArgExcept(),"ent2dev (1) tdimn not in range = "<<tdimn);
   }
 }
 
@@ -75,7 +75,7 @@ const dblAr1& MeshBack::ent2dev(int tdimn) const{
   case(2):
     return fac2dev;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG(WArgExcept(),"ent2dev (2) tdimn not in range = "<<tdimn);
   }
 }
 

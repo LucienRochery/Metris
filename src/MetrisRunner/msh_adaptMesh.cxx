@@ -23,6 +23,8 @@
 #include "../linalg/det.hxx"
 #include "../utils/mprintf.hxx"
 
+#include "../low_geo.hxx"
+
 
 namespace Metris{
 
@@ -43,15 +45,16 @@ void MetrisRunner::adaptMesh(){
 // Profiling is attrocious if the template parameters are unrolled within the function
 template<class MFT,int gdim,int ideg>
 void MetrisRunner::adaptMesh0(){
+  if(param->adp_niter == 0) return;
+
   GETVDEPTH(this->param);
   Mesh<MFT> &msh = static_cast<Mesh<MFT>&>(*msh_g);
 
+  //METRIS_THROW(TODOExcept());
 
   // Make it an option 
   const double minstat = 1.0e-12;
   const int miter = param_.adp_niter;
-
-  if(msh.param->adp_niter == 0)  return;  
 
   msh.cleanup();
 
@@ -59,31 +62,6 @@ void MetrisRunner::adaptMesh0(){
   if(DOPRINTS1()){
     writeMesh("debug_adapt_inp", msh);
     msh.met.writeMetricFile("debug_adapt_inp");
-  }
-  if(DOPRINTS2()){
-    if(DOPRINTS2()) writeBackLinks("debug_adapt_inp_poi2bak", msh);
-    double rat = msh.npoin / (double) msh.nface;
-    dblAr1 pdens(msh.npoin);
-    //dblAr1 fdens(msh.nface);
-    //fdens.set_n(msh.nface);
-    pdens.fill(0);
-    //for(int iface = 0; iface < msh.nface; iface++){
-    //  if(isdeadent(iface,msh.fac2poi)) continue;
-    //  double meas = getmeasentP1<2,2>(msh.face2poi[iface],
-    //                                  msh.coord);
-    //  for(int ii = 0; ii < 3; ii++){
-    //    int ipoin = msh.fac2poi(iface,ii);
-    //    double det = detsym<2>(msh.met[ipoin]);
-    //    pdens[ipoin] += sqrt(det) / meas;
-    //  }
-
-    //}
-    for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-      double det = detsym<2>(msh.met[ipoin]);
-      pdens[ipoin] = sqrt(det) / sqrt(3) * 2 * rat;
-    }
-    writeField("debug_adapt_inp.dens.solb",
-                              msh,SolTyp::CG,pdens);
   }
 
   msh.met.setSpace(MetSpace::Exp);
@@ -127,20 +105,9 @@ void MetrisRunner::adaptMesh0(){
       pct_unit = getLengthEdges_Bdry<MFT>(msh,ilned,rlned);
       print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (bdry)");
     }
-
-    //#ifndef NDEBUG
-    //  printf("wait after geolines\n");
-    //  wait();
-    //#endif
-
-    //wait();
-    //pct_unit = getLengthEdges<MFT>(msh,ilned,rlned,LenTyp::Quad);
-    //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (bdry, quad)");
-
+    
     swapMesh<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdfro, ithrd1, ithrd2);
 
-    //if(DOPRINTS2()) writeMesh("debug_swap_pre.meshb",msh);
-    //if(DOPRINTS2()) msh.met.writeMetricFile("debug_swap_pre.solb");
     if(msh.param->dbgfull) check_topo(msh,1);
   }
 
@@ -199,11 +166,6 @@ void MetrisRunner::adaptMesh0(){
     }
     if(msh.param->dbgfull) check_topo(msh,1);
 
-
-    //pct_unit = 100*getLengthEdges(msh,ilned,rlned);
-    //printf("## Debug pct_unit after collapse %f \n",pct_unit);
-
-
     // 2. Swaps
 
     if(niter%2 == 0 || qmax_suf < 0.5){
@@ -235,9 +197,6 @@ void MetrisRunner::adaptMesh0(){
 
     // 3. Insert on long edges 
 
-    //pct_unit = 100*getLengthEdges(msh,ilned,rlned);
-    //printf("## Debug pct_unit after swap %f \n",pct_unit);
-
 
     t0 = get_wall_time();
     stat  = insertLongEdges<MFT,gdim,ideg>(msh, &ninser, ithrdfro, ithrd1, ithrd2);
@@ -255,32 +214,10 @@ void MetrisRunner::adaptMesh0(){
       writeBackLinks("v2_insert_adp_poi2bak" + std::to_string(niter), msh);
     }
     if(DOPRINTS2()){
-      //getmetquamesh<MFT,2,AsDeg::P1>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
-      //printf(" - Quality min = %15.7e \n",qmin);
-      //printf("           max = %15.7e \n",qmax);
-      //printf("           avg = %15.7e \n",qavg);
-      //if(DOPRINTS2()) writeField("debug_insert_glo_qua"+ std::to_string(niter)+".solb",
-      //                          msh.get_tdim(),SolTyp::P0Elt,lquae);
       CPRINTF2("------------------------------------------------------------\n");
       CPRINTF2("- iteration %d insertions stat = %f time = %f \n",niter,stat,t1-t0);
       CPRINTF2("------------------------------------------------------------\n");
     }
-
-
-    //if(msh.param->opt_unif){
-    //  if(iverb >= 1) t0 = get_wall_time();
-    //  stat = rebalanceMesh<MFT,gdim>(msh);
-    //  stat0 = MAX(stat0,stat);
-    //  if(iverb >= 1) t1 = get_wall_time();
-    //  if(iverb >= 1){
-    //    if(DOPRINTS2()) writeMesh("debug_rebalance_glo"+ std::to_string(niter)+".meshb",msh);
-    //    if(DOPRINTS2()) msh.met.writeMetricFile("debug_rebalance_glo"+ std::to_string(niter)+".solb");    
-    //    printf("------------------------------------------------------------\n");
-    //    printf("\n - iteration %d rebalance stat = %f time = %f \n",niter,stat,t1-t0);
-    //    printf("------------------------------------------------------------\n");
-    //  }
-    //}
-
 
     if(msh.param->opt_unif){
       // 4. Smoothing (heuristic) -> fast but bad; improve
@@ -313,18 +250,6 @@ void MetrisRunner::adaptMesh0(){
                         + (double)msh.nedge) ) + 1;
 
     double tloop1 = get_wall_time();
-
-    //int ncheck = 0;
-    //for(int iface = 0; iface < msh.nface; iface++){
-    //  if(isdeadent(iface,msh.fac2poi)) continue;
-    //  if(msh.fac2tag(ithrdfro,iface) >= msh.tag[ithrdfro]) continue;
-    //  ncheck++;
-    //}
-
-    //double tloop2 = get_wall_time();
-    //printf("## DEBUG tloop empty %f ncehck %d / %d \n",tloop2-tloop1,ncheck,msh.nface);
-    //wait();
-
 
     std::string fmt = 
     "%s-- Adp loop %3d / %3d time %fs " 
@@ -400,12 +325,7 @@ void MetrisRunner::adaptMesh0(){
     }
   }
 
-
   if(DOPRINTS1()) statMesh();
-
-  //pct_unit = getLengthEdges(msh,ilned,rlned);
-  //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
-  //writeEdgesLengths(msh,"edgelen", ilned, rlned);
 }
 
 #define BOOST_PP_LOCAL_MACRO(n)\

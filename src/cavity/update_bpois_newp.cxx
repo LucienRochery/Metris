@@ -27,7 +27,8 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
 
   GETVDEPTH(msh.param);
 
-  CPRINTF1("-- START update_bpois_newp %d <= ipoin < %d\n",npoi0, msh.npoin);
+  CPRINTF1("-- START update_bpois_newp %d <= ipoin < %d + ipins = %d\n",
+           npoi0, msh.npoin, cav.ipins);
 
   if(!msh.isboundary_faces()){
     CPRINTF1("-- END update_bpois_newp, mesh dim %d <= 2\n",msh.idim);

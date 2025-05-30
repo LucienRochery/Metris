@@ -124,7 +124,9 @@ struct MetrisOptions{
     s.add_options()  
       ("iflag1", po::value<int>(), "Generic integer flag")
       ("iflag2", po::value<int>(), "Generic integer flag")
-      ("iflag3", po::value<int>(), "Generic integer flag");
+      ("iflag3", po::value<int>(), "Generic integer flag")
+      ("interp-err-min-algo", po::value<int>(), 
+        "Interpolation error minimization algo: 0 for Newton, 1 for DIRECT");
   }
 
   MetrisOptions(int argc, char **argv): MetrisOptions() {

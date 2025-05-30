@@ -33,7 +33,7 @@ namespace Defaults{
   const int opt_pnorm = 2;
   const int opt_power = -1;
   const int opt_niter = 5;
-  const int opt_smoo_niter = 100;
+  const int opt_smoo_niter = 10;
   const double opt_smoo_tol = 0.005;
 
   const double qua_surf_wt_normal  = 1;

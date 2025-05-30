@@ -48,6 +48,9 @@ void MeshBase::initialize(MetrisAPI *data,
 
   this->param = &param;
 
+  const char* meshName = this->meshClass() == MeshClass::Mesh ? 
+  "(front)" : "(back)";
+
   GETVDEPTH(this->param);
 
 
@@ -129,7 +132,8 @@ void MeshBase::initialize(MetrisAPI *data,
   }
   if(minref < 0){
     // All tets are ref 0: correct
-    CPRINTF1("## Tets have negative ref min = %d max = %d -> correct\n",minref,ndomn);
+    CPRINTF1("%s ## Tets have negative ref min = %d max = %d -> correct\n",
+             meshName,minref,ndomn);
     ndomn -= minref;
     for(int ielem = 0; ielem < nelem; ielem++){
       if(isdeadent(ielem,tet2poi)) continue;
@@ -140,7 +144,7 @@ void MeshBase::initialize(MetrisAPI *data,
 
   dom2tag.allocate(METRIS_MAXTAGS, ndomn);
   dom2tag.set_n(METRIS_MAXTAGS);
-  CPRINTF1("-- Counted %d tetra domain ids\n",ndomn);
+  CPRINTF1("%s -- Counted %d tetra domain ids\n",meshName,ndomn);
 
 
   // Note, this guy creates nbpos, but only corners. They don't need projecting.
@@ -149,7 +153,7 @@ void MeshBase::initialize(MetrisAPI *data,
   nbpo0 = iniBdryPoints(0);
   if(param.dbgfull) check_topo(*this,0);
 
-  CPRINTF1("-- iniBdryPoints nbpoi %d -> %d\n",nbpo0, nbpoi);
+  CPRINTF1("%s -- iniBdryPoints nbpoi %d -> %d\n",meshName, nbpo0, nbpoi);
 
   
   iniCADLink(nbpo0);
@@ -415,10 +419,10 @@ void MeshBase::iniNeighbours(){
 
 int MeshBase::iniBdryPoints(int ithread){
   GETVDEPTH(this->param);
-  CPRINTF1("-- Update bdry point link to entities\n");
+  CPRINTF1("-- Update bdry point link to entities (iniBdryPoints)\n");
   int nbpo0;
   int ncrea = iniMeshBdryPoints(*this, &nbpo0, ithread); 
-  CPRINTF1("   %d boundary points created\n",ncrea);
+  CPRINTF1("   %d boundary points created (iniBdryPoints)\n",ncrea);
   return nbpo0;
 }
 

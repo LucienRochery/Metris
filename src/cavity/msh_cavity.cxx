@@ -79,14 +79,6 @@ int cavity_operator(Mesh<MFT> &msh ,
                     int ithread){
 
   try{
-  //static int nwarnprt11 = 0;
-  //if(nwarnprt11++ <10) printf("## WARNING REMOVE THIS DEBUG \n");
-  //if(cav.ipins == 72065){
-  //  printf("## DEBUG SETTING MAX PRINTS FOR 71925\n");
-  //  wait();
-  //  msh.param->iverb = 5;
-  //  msh.param->ivdepth = 5;
-  //}
   INCVDEPTH(msh.param);
   info.done = false;
   cav.inewp = true; // this will be updated by check_cavity_topo
@@ -185,7 +177,6 @@ int cavity_operator(Mesh<MFT> &msh ,
                                    lbad,work,ithread);
   if(ierro > 0) goto cleanup;
 
-
   if(opts.dryrun){
     if((opts.qmax_suf < 0 || qmax > opts.qmax_suf) && 
        (opts.qmax_iff < 0 || qmax > opts.qmax_iff)){
@@ -257,37 +248,6 @@ int cavity_operator(Mesh<MFT> &msh ,
 
 
   finish:
-
-  static int nwarnprt22 = 0;
-  if(nwarnprt22++ <10) MPRINTF("## WARNING REMOVE THIS DEBUG \n");
-  if(msh.npoin >= 71926 && msh.poi2bpo[71925] >= 0){
-    int ipoin = 71925;
-    bool ibad = false;
-    for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
-      int tdim = msh.bpo2ibi(ibpoi,1);
-      int ientt = msh.bpo2ibi(ibpoi,2);
-      METRIS_ENFORCE(ientt >= 0);
-      if(tdim <= 1) continue;
-      int iref = msh.ent2ref(tdim)[ientt];
-      if(iref != 3) continue;
-      ibad = msh.bpo2rbi(ibpoi,0) < 1.0e-6;
-    }
-    if(ibad){
-      printf("## POINT 71925 has bad (u,v) = for face ref 3\n");
-      printf(" operation ierro %d was:\n",ierro);
-      cav.print(msh, 2);
-      printf(" bpo list:\n");
-      for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
-        int tdim = msh.bpo2ibi(ibpoi,1);
-        int ientt = msh.bpo2ibi(ibpoi,2);
-        METRIS_ENFORCE(ientt >= 0);
-        int iref = msh.ent2ref(tdim)[ientt];
-        printf(" ibpoi %d ientt %d ref %d (u,v) = %e %e\n",ibpoi, ientt, iref,
-               msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
-      }
-      wait();
-    }
-  }
 
   msh.tag[ithread] = cav.maxtag;
   if(ierro == 0 && msh.param->dbgfull) check_topo(msh,ithread);

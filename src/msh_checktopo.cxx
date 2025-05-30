@@ -892,6 +892,45 @@ void check_topo(MeshBase &msh,
 
     }
 
+    // Check no duplicate entries in ibpoi.
+    for(int itmp = 0; itmp < msh.nbpoi; itmp++){
+      int ipoin = msh.bpo2ibi(itmp,0);
+      if(ipoin < 0) continue;
+      if(msh.tag[ithread] >= INT_MAX-10){
+        msh.tag[ithread] = 0;
+        for(int tdim = 1; tdim <= 3; tdim++){
+          for(int ientt = 0; ientt < msh.nentt(tdim); ientt++){
+            msh.ent2tag(tdim)(ithread, ientt) = 0;
+          }
+        }
+        for(int ipoin = 0; ipoin < msh.npoin; ipoin++)
+          msh.poi2tag(ithread, ipoin) = 0;
+        for(int ii = 0; ii < msh.cfa2tag.get_stride(); ii++) 
+          msh.cfa2tag(ithread, ii) = 0;
+        for(int ii = 0; ii < msh.ced2tag.get_stride(); ii++) 
+          msh.ced2tag(ithread, ii) = 0;
+        for(int ii = 0; ii < msh.cno2tag.get_stride(); ii++) 
+          msh.cno2tag(ithread, ii) = 0;
+        for(int ii = 0; ii < msh.dom2tag.get_stride(); ii++) 
+          msh.dom2tag(ithread, ii) = 0;
+      }
+      msh.tag[ithread]++;
+
+      bool icor = false;
+      for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+        int tdim  = msh.bpo2ibi(ibpoi,1);
+        int ientt = msh.bpo2ibi(ibpoi,2);
+        if(tdim == 0){
+          METRIS_ENFORCE_MSG(!icor, "Duplicate corner entries");
+          icor = true;
+          continue;
+        }
+        METRIS_ENFORCE_MSG(msh.ent2tag(tdim)(ithread, ientt) < msh.tag[ithread],
+          "Entity found twice in point ibpois.");
+        msh.ent2tag(tdim)(ithread, ientt) = msh.tag[ithread];
+      }
+    }
+
 
     // Check (u,v)s and ts are correct.
     if(msh.CAD()){
@@ -904,12 +943,17 @@ void check_topo(MeshBase &msh,
       int tdims = 1;
       if(msh.isboundary_faces() && msh.nface > 0) tdims = 2;
       for(int ientt = 0; ientt < msh.nentt(tdims); ientt++){
+        if(isdeadent(ientt, msh.ent2poi(tdims))) continue;
         for(int iver = 0; iver < msh.nnode(tdims); iver++){
           int ipoi1 = msh.ent2poi(tdims)(ientt, iver);
           for(int ive2 = iver+1; ive2 < msh.nnode(tdims); ive2++){
             int ipoi2 = msh.ent2poi(tdims)(ientt, ive2);
             double dst = msh.idim == 2 ? geterrl2<2>(msh.coord[ipoi1], msh.coord[ipoi2])
                                        : geterrl2<3>(msh.coord[ipoi1], msh.coord[ipoi2]);
+            if(dst < 1.0e-16){
+              printf(" ## DEBUG < 1.0e-16 DISt = %e ipoi1 = %d ipoi2 = %d\n",dst,
+                     ipoi1,ipoi2);
+            }
             rbpoi[ipoi1] = MIN(rbpoi[ipoi1], dst);
             rbpoi[ipoi2] = MIN(rbpoi[ipoi2], dst);
           }
@@ -932,8 +976,10 @@ void check_topo(MeshBase &msh,
           printf("## ERROR PRINT all bpoi for ipoin %d \n",ipoin);
           for(int ibpo0 = msh.poi2bpo[ipoin]; ibpo0 >= 0; ibpo0 = msh.bpo2ibi(ibpo0,3)){
             int tdim1 = msh.bpo2ibi(ibpo0,1);
+            int irefdbg = -1;
+            if(tdim1 > 0) irefdbg = msh.ent2ref(tdim1)[msh.bpo2ibi(ibpo0,2)];
             printf("%d : %d %d %d ref %d; %e %e\n",ibpo0, msh.bpo2ibi(ibpo0,0), 
-              msh.bpo2ibi(ibpo0,1), msh.bpo2ibi(ibpo0,2), msh.ent2ref(tdim1)[msh.bpo2ibi(ibpo0,2)],
+              msh.bpo2ibi(ibpo0,1), msh.bpo2ibi(ibpo0,2), irefdbg,
               msh.bpo2rbi(ibpo0,0),msh.bpo2rbi(ibpo0,1));
           }
         }

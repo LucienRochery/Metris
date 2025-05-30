@@ -80,7 +80,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
   lcorb.set_n(0);
   lcorf.set_n(0);
   for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
-    if(bak.bpo2ibi(ibpoi,0) < 0 ) continue;
+    if(msh.bpo2ibi(ibpoi,0) < 0 ) continue;
     if(msh.bpo2ibi(ibpoi,1) != 0) continue;
     int ipoin = msh.bpo2ibi(ibpoi,0);
     lcorf.stack(ipoin);

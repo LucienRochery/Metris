@@ -109,7 +109,8 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
 
     int irefcco = msh.fac2ref[iface];
 
-    CPRINTF1(" - start new connex component %d from seed %d\n",icoco,iface);
+    CPRINTF1(" - start new connex component %d from seed %d ref %d\n",icoco,iface,
+             irefcco);
 
     // The algo is add any old face to lfcco, then stack as work array
     // the work section is only from ncoco:-
@@ -172,13 +173,65 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
           int ibf2 = msh.poi2ebp(ip2, 2, ifacs, irefcco);
           int ibf3 = msh.poi2ebp(ip3, 2, ifacs, irefcco);
 
-          // Get ibs for t on the curve
-          int ibe2 = msh.poi2ebp(ip2, 1, iedge, irefe);
-          int ibe3 = msh.poi2ebp(ip3, 1, iedge, irefe);
+          // Get ibs for t on the curve; would be two LoC if never any periodic
+          int ibe[2];
+          int ibad[2];
+          int ifail = -1;
+          for(int ii = 0; ii < 2; ii++){
+            int ipe = ii == 0 ? ip2 : ip3;
+            int ib = msh.poi2bpo[ipe];
+            if(msh.bpo2ibi(ib,1) != 0){
+              ibe[ii] = msh.poi2ebp(ipe, 1, iedge, irefe);
+              continue;
+            }
+            METRIS_ASSERT(msh.bpo2ibi(ib,1) == 0);
+
+            // If corner, check if it has two ts for this edge. 
+            int ibed1 = -1, ibed2 = -1;
+            for(int ib2 = msh.bpo2ibi(ib,3); ib2 >= 0; ib2 = msh.bpo2ibi(ib2,3)){
+              if(msh.bpo2ibi(ib2,1) != 1) continue;
+              int itmpe = msh.bpo2ibi(ib2,2);
+              // At this stage, we have duplicate ibpois because of reconnect_lincav.
+              if(itmpe >= nedg0) continue;
+              int itmpr = msh.edg2ref[itmpe];
+              if(itmpr != irefe) continue;
+              CPRINTF2("   - corner %d has ib %d for edge ref %d: %d %d %d %d t = %e\n",
+                 ipe,ib2, irefe, msh.bpo2ibi(ib2,0), msh.bpo2ibi(ib2,1)
+                 , msh.bpo2ibi(ib2,2), msh.bpo2ibi(ib2,3),
+                 msh.bpo2rbi(ib2,0));
+              if(ibed1 < 0) ibed1 = ib2;
+              else          ibed2 = ib2;
+            }
+            if(ibed2 < 0){
+              ibe[ii] = ibed1;
+              continue;
+            }
+            // only one extremity can be corner of this ref edge:
+            METRIS_ASSERT(ifail == -1); 
+            ifail = ii;
+            ibad[0] = ibed1;
+            ibad[1] = ibed2;
+            CPRINTF2("   - edge ref %d is a loop -> resolve corner %d t\n",irefe,ipe);
+          }
+          if(ifail != -1){
+            // Now we have the other t, so we can resolve this one.
+            double tother = msh.bpo2rbi(ibe[1-ifail],0);
+            double dst1 = abs(tother - msh.bpo2rbi(ibad[0],0));
+            double dst2 = abs(tother - msh.bpo2rbi(ibad[1],0));
+            CPRINTF2("   - got ts = %e %e dist to other = %e %e\n",
+                     msh.bpo2rbi(ibad[0],0),msh.bpo2rbi(ibad[1],0),
+                     dst1, dst2);
+            // We need this at least a little resolved.
+            METRIS_ASSERT(dst1 / dst2 < 0.4 || dst2 / dst1 < 0.4);
+            if(dst1 < dst2) ibe[ifail] = ibad[0];
+            else            ibe[ifail] = ibad[1];
+          }
 
           // if t3 < t2, switch ibf2 and ibf3 around
-          METRIS_ASSERT(ibe2 >= 0 && ibe3 >= 0);
-          if(msh.bpo2rbi(ibe3,0) < msh.bpo2rbi(ibe2,0)){
+          METRIS_ASSERT(ibe[0] >= 0 && ibe[1] >= 0);
+          if(msh.bpo2rbi(ibe[1],0) < msh.bpo2rbi(ibe[0],0)){
+            CPRINTF2("   - triangle nodes %d %d %d (u,v)s reordered because t %e < %e\n",
+              ip1,ip2,ip3,msh.bpo2rbi(ibe[1],0),msh.bpo2rbi(ibe[0],0));
             int itmp = ibf2;
             ibf2 = ibf3;
             ibf3 = itmp;
@@ -189,8 +242,8 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
                                   msh.bpo2rbi[ibf3], msh.bpo2rbi[ibf1]);
           int isens = meas > 0 ? 1 : -1;
           edcco[icoco].stack(std::pair<int,int>(irefe, isens));
-          CPRINTF2("   - add new entry (%d,%d) to refs/sign connex component pairs of %d\n",
-                   irefe,isens,icoco);
+          CPRINTF2("   - add (%d,%d) to (refs,sign) coco %d pairs using area %e\n",
+                   irefe,isens,icoco,meas);
           continue;
         }
 
