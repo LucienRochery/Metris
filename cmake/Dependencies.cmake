@@ -129,7 +129,7 @@ endif()
  
  
 if(NOT(DEFINED ENV{ESP_ROOT}) OR NOT(DEFINED ENV{CASROOT}))
-  message(FATAL_ERROR "Set the environment variable ESP_ROOT to the folder containing include/egads.h and CASROOT to the folder containing bin/ include/ lib/ share/ of OpenCascade library to link to.")
+  message(FATAL_ERROR "Set the environment variable ESP_ROOT (here $ENV{ESP_ROOT}) to the folder containing include/egads.h and CASROOT (here $ENV{CASROOT}) to the folder containing bin/ include/ lib/ share/ of OpenCascade library to link to.")
 else()
   set(ESP_ROOT $ENV{ESP_ROOT})
   message("Found ESP_ROOT = ${ESP_ROOT}")
