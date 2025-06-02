@@ -31,6 +31,18 @@ template<class MFT, int gdim, int ideg>
 int swapface(Mesh<MFT>& msh, int iface, swapOptions opt, 
              MshCavity &cav, CavWrkArrs &work, 
              double *qnrm0_, double *qnrm1_, int ithread){
+
+  //bool istop = false;
+  //static int nwarn = 0;
+  //if(nwarn++ < 10)printf("## DEBUG REMOVE THIS \n");
+  //if(iface == 18971 || iface == 18972){
+  //  printf("## DEBUG SET MAX PRINTS\n");
+  //  msh.param->iverb = 5;
+  //  msh.param->ivdepth = 5;
+  //  istop = true;
+  //  writeMesh("debug_swapface", msh);
+  //}
+
   INCVDEPTH(msh.param);
 
   double &qnrm0 = *qnrm0_;
@@ -42,6 +54,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
   constexpr int tdim = 2;
   constexpr AsDeg asdmet = AsDeg::P1;
+
 
 
   if(isdeadent(iface,msh.fac2poi)) return 0; 
@@ -56,6 +69,9 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   cav.lcedg.set_n(0);
   cav.lcfac.set_n(0);
   cav.lctet.set_n(0);
+  cav.lcedg.allocate(1);
+  cav.lcfac.allocate(2);
+  if(msh.get_tdim() >= 3) cav.lctet.allocate(10);
 
 
   int iele0 = -1;
@@ -298,6 +314,10 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     }
   }
 
+  //if(istop){
+  //  printf("## DEBUG STOP HERE \n");
+  //  wait();
+  //}
   return 0;
 }
 

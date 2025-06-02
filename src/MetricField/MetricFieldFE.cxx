@@ -288,26 +288,27 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
 
 
 
-
+// coeff is size multiplier
 void MetricFieldFE::normalize(double coeff){
   METRIS_ASSERT(coeff > 0.0);
+  double size = 1/coeff/coeff;
   int nnmet = getnnmet();
   if(ispace == MetSpace::Exp){
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
       if(msh.poi2ent(ipoin,0) < 0) continue;
       for(int ii = 0; ii < nnmet; ii++){
-        rfld(ipoin,ii) *= coeff;
+        rfld(ipoin,ii) *= size;
       }
     }
   }else{
-    double lcoeff = log(coeff);
+    double lsize = log(size);
     // Identity commutes with everyone so exp(log(M) + c I)
     // = M * exp(c)I
     // hence replace c with log(c) and add identity to the metrics.
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
       if(msh.poi2ent(ipoin,0) < 0) continue;
       for(int ii = 0; ii < msh.idim; ii++){
-        rfld[ipoin][sym2idx(ii,ii)] += lcoeff;
+        rfld[ipoin][sym2idx(ii,ii)] += lsize;
       }
     }
   }

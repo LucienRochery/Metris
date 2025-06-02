@@ -56,6 +56,11 @@ double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
         }else{
           quent = metqua<MFT,3,tdim_c>(msh,asdmsh,asdmet,ientt,1.0);
         }
+        if(quent > 1){
+          printf("## DEBUG QUENT > 1 tdim = %d tdim_c = %d gdim = %d\n",
+            tdim,tdim_c,msh.idim);
+          exit(1);
+        }
       //}catch(...){
       //  *iinva = true; 
       //} // Ignore exceptions in this context. 

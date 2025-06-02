@@ -81,7 +81,7 @@ void MetrisRunner::adaptMesh0(){
   dblAr1 rlned;
   dblAr1 lenbds = {1.0/sqrt(2), sqrt(2)};
   if(DOPRINTS1()){
-    pct_unit = getLengthEdges<MFT>(msh,ilned,rlned);
+    pct_unit = getLengthEdges<MFT>(msh,msh.get_tdim(),ilned,rlned);
     print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
   }
   double t0,t1;
@@ -102,8 +102,8 @@ void MetrisRunner::adaptMesh0(){
     if(DOPRINTS2()) msh.met.writeMetricFile("v2_geolines_adp");
 
     if(DOPRINTS1()){
-      pct_unit = getLengthEdges_Bdry<MFT>(msh,ilned,rlned);
-      print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (bdry)");
+      pct_unit = getLengthEdges<MFT>(msh,1,ilned,rlned);
+      print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (lines)");
     }
     
     swapMesh<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdfro, ithrd1, ithrd2);
@@ -243,7 +243,7 @@ void MetrisRunner::adaptMesh0(){
 
 
 
-    pct_unit = 100*getLengthEdges(msh,ilned,rlned);
+    pct_unit = 100*getLengthEdges(msh,msh.get_tdim(),ilned,rlned);
     int ndigit = ceil(log10((double)msh.npoin
                         + (double)msh.nelem
                         + (double)msh.nface

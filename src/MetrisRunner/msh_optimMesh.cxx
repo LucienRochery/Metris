@@ -104,7 +104,7 @@ double MetrisRunner::optimMesh0(){
   double t0,t1;
 
   if(DOPRINTS1()){
-    getLengthEdges(msh,ilned,rlned);
+    getLengthEdges(msh,msh.get_tdim(),ilned,rlned);
     print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
   
     getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,
@@ -269,14 +269,6 @@ double MetrisRunner::optimMesh0(){
     }
 
   }
-
-  //if(param_.iverb >= 1){
-  //  getmetquamesh<MFT,gdim,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
-  //  print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality (As Pk)");
-
-  //  getLengthEdges(msh,ilned,rlned);
-  //  print_histogram(rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
-  //}
 
   double t11 = get_wall_time();
 

@@ -37,16 +37,15 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
     intAr2& ent2tag = msh.ent2tag(tdim);
     const int nnode = msh.nnode(tdim);
     const intAr2 &ent2poi = msh.ent2poi(tdim);
-    if(!cav.inewp) continue;
     for(int ientt : lcent){
       METRIS_ASSERT(ent2tag(ithread,ientt) < msh.tag[ithread]);
       ent2tag(ithread,ientt) = msh.tag[ithread];
+      if(!cav.inewp) continue;
       // Check if ipins is present in the cavity elements.
       for(int inode = 0; inode < nnode; inode++){
         int ipoin = ent2poi(ientt, inode);
         if(ipoin == cav.ipins) cav.inewp = false;
       }
-      if(!cav.inewp) break;
     }
   }
 

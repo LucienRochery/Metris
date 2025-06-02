@@ -18,7 +18,7 @@ namespace Metris{
 
 
 void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
-                     dblAr1 &bounds, std::string symb, std::string name){
+                     const dblAr1 &bounds, std::string symb, std::string name){
   GETVDEPTH(msh.param);
   if(!DOPRINTS1()) return;
 

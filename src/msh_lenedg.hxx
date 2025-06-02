@@ -18,25 +18,9 @@ enum class LenTyp {GeoSiz, Quad};
 // ilned returns edge vertices
 // rlned its length in the metric field 
 template<class MFT>
-double getLengthEdges(MeshMetric<MFT> &msh, intAr2 &ilned, dblAr1 &rlned, 
+double getLengthEdges(MeshMetric<MFT> &msh, int tdim, intAr2 &ilned, dblAr1 &rlned, 
                       LenTyp itype = LenTyp::GeoSiz);
 
-// internal 
-template<class MFT, int gdim, int ideg>
-double getLengthEdges0(MeshMetric<MFT> &msh, intAr2 &ilned, dblAr1 &rlned, 
-                       LenTyp itype = LenTyp::GeoSiz);
-
-
-// ilned returns edge vertices
-// rlned its length in the metric field 
-template<class MFT>
-double getLengthEdges_Bdry(MeshMetric<MFT> &msh, intAr2 &ilned, dblAr1 &rlned, 
-                           LenTyp itype = LenTyp::GeoSiz);
-
-// internal 
-template<class MFT, int gdim, int ideg>
-double getLengthEdges_Bdry0(MeshMetric<MFT> &msh, intAr2 &ilned, dblAr1 &rlned, 
-                            LenTyp itype = LenTyp::GeoSiz);
 
 }// end namespace
 #endif

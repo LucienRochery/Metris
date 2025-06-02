@@ -1,4 +1,5 @@
-cmake_minimum_required(VERSION 3.22)
+# FetchContent_MakeAvailable is latest constraint:
+cmake_minimum_required(VERSION 3.14.0)
 project(Metris)
 set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -15,14 +16,14 @@ include(MetrisFlags)
 
 find_package(Git)
 execute_process(COMMAND "${GIT_EXECUTABLE}" config --get remote.origin.url
-                WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+                WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" 
                 RESULT_VARIABLE dum
                 OUTPUT_VARIABLE GITURL
                 ERROR_QUIET
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 add_compile_definitions(METRIS_GIT_URL="${GITURL}")
-
+message("Metris using METRIS_GIT_URL = ${GITURL}")
 if(GITURL MATCHES "github.com")
   set(LIGHT_BUILD ON)
   message(WARNING "Disabled codegen!")
