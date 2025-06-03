@@ -62,7 +62,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   CavOprOpt opts;
   CavOprInfo info;
   opts.allow_topological_correction = false;
-  opts.skip_topo_checks = true;
+  opts.skip_topo_checks = false;
   opts.allow_remove_points = false;
   opts.allow_remove_points_superdim = false;
   opts.dryrun = false;

@@ -49,6 +49,11 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
     }
   }
 
+  if(opts.skip_topo_checks){
+    CPRINTF1(" - flag skip_topo_checks set: skipping topological checks.\n");
+    return 0;
+  }
+
 
   // Check that supported triangles are collapsed together with edges
   if(msh.nface > 0){

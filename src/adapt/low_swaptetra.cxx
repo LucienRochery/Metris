@@ -49,10 +49,12 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
 
   CavOprOpt opts;
   opts.allow_topological_correction = false;
-  opts.skip_topo_checks = true;
+  opts.skip_topo_checks = false;
   opts.allow_remove_points = false;
   opts.allow_remove_points_superdim = false;
   opts.cache_tetra_quality = true;
+  // No cavity extension means no issues should arise. 
+  opts.skip_topo_checks = true;
 
   // Precompute initial tetra quality and store in cavity hash table.
   cav.reset(); // this resets the quality hash table
@@ -149,6 +151,20 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
     CPRINTF1("# END aux_swaptetface: crosses refs %d != %d\n",idom1, msh.tet2ref[itet2]);
     return 1;
   }
+
+
+  #ifndef NDEBUG
+  int iface = getfacglo(msh, msh.tet2poi(ifacl,lnofa3[ifacl][0]),
+                             msh.tet2poi(ifacl,lnofa3[ifacl][1]),
+                             msh.tet2poi(ifacl,lnofa3[ifacl][2]));
+  if(iface >= 0){
+    CPRINTF1("# END aux_swaptetface: found face between two same-domn elements\n");
+    METRIS_THROW(TopoExcept());s
+    return 1;
+  }
+  #endif
+
+
 
   // Compute second tetrahedron quality for computing qnrm0. 
   // We cache this quality for the following cases:
@@ -258,14 +274,20 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
   cav.lcedg.set_n(0);
   cav.lcfac.set_n(0);
   cav.lctet.set_n(0);
+  cav.lcedg.allocate(1);
+  cav.lcfac.allocate(10);
   cav.lctet.allocate(10);
 
   int iopen;
-  intAr1 dum;
-  shell(msh, ipoi1, ipoi2, 3, itetr, dum, dum, cav.lctet, &iopen);
+  shell(msh, ipoi1, ipoi2, 3, itetr, cav.lcedg, cav.lcfac, cav.lctet, &iopen);
   if(iopen != 0){
     CPRINTF1("# END aux_swaptetedge: open shell\n");
     return 2;
+  }
+  if(cav.lcedg.get_n() > 0 || cav.lcfac.get_n() > 0){
+    CPRINTF1("# END aux_swaptetedge: %d edges and %d faces in shell\n",
+      cav.lcedg.get_n(), cav.lcfac.get_n());
+    return 4;
   }
 
   int idom1 = msh.tet2ref[itetr];

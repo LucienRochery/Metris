@@ -28,7 +28,7 @@ if(REQ_CODEGEN)
       GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
       GIT_TAG d6e3b528b2ae2a55d55749e9ef50b1e12ff34bc3
       #GIT_TAG master
-      #FIND_PACKAGE_ARGS NAMES Eigen3
+      #FIND_PACKAGE_ARGS NAMES Eigen3 
       EXCLUDE_FROM_ALL
     )
     LIST(APPEND FETCH_LIST Eigen3)
@@ -46,20 +46,11 @@ if(REQ_CODEGEN)
 endif()
 
 
-if(EXISTS "/usr/include/lapacke.h")
-  message("Found lapacke.h: /usr/include/lapacke.h")
-  set(LAPACK_INCLUDE_DIR /usr/include/)
-elseif(EXISTS "/usr/local/include/lapacke.h")
-  message("Found lapacke.h: /usr/local/include/lapacke.h")
-  set(LAPACK_INCLUDE_DIR /usr/local/include/)
-else()
-  if(NOT(DEFINED ENV{LAPACK_INCLUDE_DIR}))
-    message(FATAL_ERROR "Set the environment variable LAPACK_INCLUDE_DIR to the folder containing lapacke.h")
-  else()
-    set(LAPACK_INCLUDE_DIR $ENV{LAPACK_INCLUDE_DIR})
-    message("Found LAPACK_INCLUDE_DIR = ${LAPACK_INCLUDE_DIR}")
-  endif()
-endif()
+include(FindLAPACK)
+message("Got LAPACK_INCLUDE_DIRS = ${LAPACK_INCLUDE_DIRS}")
+message("Got LAPACK_LIBRARIES    = ${LAPACK_LIBRARIES}")
+
+
 
 
 if(USE_PETSC)

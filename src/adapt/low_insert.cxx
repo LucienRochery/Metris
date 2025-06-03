@@ -53,7 +53,7 @@ int insertEdge(Mesh<MFT>& msh,
   CavOprOpt opts;
   CavOprInfo info;
   opts.allow_topological_correction = true;
-  opts.skip_topo_checks = true;
+  opts.skip_topo_checks = false;
   opts.dryrun = false;
   opts.allow_remove_points = false; // good for an infinite loop
   opts.allow_remove_points_superdim = true; // For boundary

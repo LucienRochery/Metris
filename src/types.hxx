@@ -44,39 +44,6 @@ using dblAr2  = MeshArray2D<double,METRIS_INT1,METRIS_INT2>;
 
 using intLoop = Loop<int, METRIS_INT1>;
 
-//template<typename METRIS_INT1 = int, typename METRIS_INT2 = int>
-//using intAr3 = MeshArray3D<int   ,METRIS_INT1,METRIS_INT2>;
-//template<typename METRIS_INT1 = int, typename METRIS_INT2 = int>
-//using dblAr3 = MeshArray3D<double,METRIS_INT1,METRIS_INT2>;
-
-
-//template<typename INT1 = int>
-//using intAr1 = MeshArray1D<int   ,INT1>;
-//template<typename INT1 = int>
-//using egoAr1 = MeshArray1D<ego   ,INT1>;
-//template<typename INT1 = int>
-//using dblAr1 = MeshArray1D<double,INT1>;
-
-//template<typename INT1 = int, typename INT2 = int>
-//using intAr2 = MeshArray2D<int   ,INT1,INT2>;
-//template<typename INT1 = int, typename INT2 = int>
-//using dblAr2 = MeshArray2D<double,INT1,INT2>;
-
-//template<typename INT1 = int, typename INT2 = int>
-//using intAr3 = MeshArray3D<int   ,INT1,INT2>;
-//template<typename INT1 = int, typename INT2 = int>
-//using dblAr3 = MeshArray3D<double,INT1,INT2>;
-
-
-
-
-//typedef MeshArray1D<int   > intAr1;
-//typedef MeshArray1D<ego   > egoAr1;
-//typedef MeshArray1D<double> dblAr1;
-
-//typedef MeshArray2D<int   > intAr2;
-//typedef MeshArray2D<double> dblAr2;
-
 typedef MeshArray3D<int   > intAr3;
 typedef MeshArray3D<double> dblAr3;
 

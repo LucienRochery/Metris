@@ -115,7 +115,7 @@ void adaptGeoLines2(Mesh<MFT> &msh){
   CavOprOpt opts;
   CavWrkArrs work;
   opts.allow_topological_correction = true;
-  opts.skip_topo_checks = true;
+  opts.skip_topo_checks = false;
   opts.allow_remove_points = true;
   opts.dryrun = false;
   opts.geodev1 = 1.0; // lax

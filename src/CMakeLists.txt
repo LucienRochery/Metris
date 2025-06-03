@@ -87,7 +87,7 @@ target_include_directories(meshBASIC PRIVATE "." ".." )
 target_include_directories(meshBASIC PUBLIC 
                            "libs"
                            "/usr/local/include"
-                           ${LAPACK_INCLUDE_DIR}
+                           ${LAPACK_INCLUDE_DIRS}
                            ${ESP_ROOT}/include
                            ${PETSC_INCLUDE}
                            ${ABSL_INCLUDE_DIRS}
@@ -289,7 +289,7 @@ target_include_directories(libMetris PUBLIC
                            "../libs/libkdtree/"
                            "../libs/alglib/src/"
                            "/usr/local/include"
-                           ${LAPACK_INCLUDE_DIR}
+                           ${LAPACK_INCLUDE_DIRS}
                            ${ESP_ROOT}/include
                            ${PETSC_INCLUDE}
                            ${SRC_INCLUDE_DIRS}
@@ -310,7 +310,7 @@ target_link_libraries(libMetris PUBLIC libmeshb
                                        ${Boost_PROGRAM_OPTIONS_LIBRARY}
                                        dl
                                        ${ABSL_LIBRARIES}
-                                       lapack 
+                                       ${LAPACK_LIBRARIES} 
                                        ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY}
                                        lplib3
                                        ${PETSC_LIBRARIES}

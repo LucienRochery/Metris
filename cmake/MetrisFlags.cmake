@@ -43,7 +43,7 @@ if(SHORT_COMPILER_NAME STREQUAL icc OR SHORT_COMPILER_NAME STREQUAL icx OR CMAKE
   message(Using Intel compiler ${CMAKE_C_COMPILER} ${SHORT_COMPILER_NAME})
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
   message("Using GNU compiler ${CMAKE_C_COMPILER} ${SHORT_COMPILER_NAME}")
-  set(METRIS_CXX_FLAGS_RELEASE  -fconstexpr-ops-limit=10000000 -fPIC -DNDEBUG -O3 )
+  set(METRIS_CXX_FLAGS_RELEASE  -g -fconstexpr-ops-limit=10000000 -fPIC -DNDEBUG -O3 )
   #set(METRIS_CXX_FLAGS_DEBUG   -Og -ggdb3 -Wall -Wextra -pedantic  -march=native -no-pie -fno-pie  -rdynamic) # -S -fverbose-asm
   set(METRIS_CXX_FLAGS_DEBUG  -fconstexpr-ops-limit=10000000 -fPIC  -Og -g -Wall -march=native ) #  -rdynamic # -S -fverbose-asm -ggdb3
   set(METRIS_CXX_FLAGS_MEMCHECK -fconstexpr-ops-limit=10000000 -fPIC -O0 -g -fsanitize=address -fno-omit-frame-pointer)
@@ -53,7 +53,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
   set(METRIS_C_FLAGS_MEMCHECK ${METRIS_CXX_FLAGS_MEMCHECK})
 elseif(CMAKE_CXX_COMPILER_ID MATCHES Clang)
   message("Using Clang ${CMAKE_C_COMPILER} ${SHORT_COMPILER_NAME}")
-  set(METRIS_CXX_FLAGS_RELEASE  -DNDEBUG -fconstexpr-steps=1000000000 -O3 -fPIC)
+  set(METRIS_CXX_FLAGS_RELEASE  -g -DNDEBUG -fconstexpr-steps=1000000000 -O3 -fPIC)
   set(METRIS_CXX_FLAGS_DEBUG    -fconstexpr-steps=1000000000 -O0 -g  -Wall -Wextra -pedantic  -march=native  -fno-pie  -fPIC) # -S -fverbose-asm -rdynamic -ggdb3
   #set(METRIS_CXX_FLAGS_DEBUG  -fsanitize=address  -fconstexpr-steps=10000000 -O0 -g3  -march=native -fno-pie ) # -S -fverbose-asm
   set(METRIS_CXX_FLAGS_MEMCHECK   -fconstexpr-steps=1000000000 -Wall -fsanitize=address -O0 -g -fPIC) # -S -fverbose-asm

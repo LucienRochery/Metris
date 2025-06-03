@@ -138,7 +138,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
         }else if(info > 0){ // Error 
           nerro_niter++;
         }else if(info < 0){ // Successful swap
-          CPRINTF1(" - swap successful\n");
+          CPRINTF2(" - swap successful\n");
           METRIS_ASSERT(nent1 == msh.nface - 2 || tdim == 3);
           if(tdim == 2){
             for(int ient1 = nent1; ient1 < msh.nentt(tdim); ient1++){
@@ -180,7 +180,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
       else          stat  = MAX(stat, stat0);
 
       int ncallps_niter = 1000*(int)((nswap_niter / (t11-t01)) / 1000);
-      CPRINTF1(" - swaps full iter ntry = %d nswap %d = %d /s; nerro %d stat %f \n",
+      CPRINTF2(" - swaps full iter ntry = %d nswap %d = %d /s; nerro %d stat %f \n",
               ntry, nswap_niter, ncallps_niter,nerro_niter, stat0);
       nswap_tdim += nswap_niter;
       nerro_tdim += nerro_niter;
@@ -193,10 +193,10 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
     double t12 = get_wall_time();
     int ncallps_tdim = 1000*(int)((nswap_tdim / (t12-t02)) / 1000);
     if(tdim == 2){
-      CPRINTF1(" - swaps dim %d swapped %d = %d /s nerro %d\n",tdim,nswap_tdim,ncallps_tdim,nerro_tdim)
+      CPRINTF2(" - swaps dim %d time %e swapped %d = %d /s nerro %d\n",tdim,t12-t02,nswap_tdim,ncallps_tdim,nerro_tdim)
     }else{
-      CPRINTF1(" - swaps dim %d swapped %d = %d /s nerro %d edge = %d face = %d\n",
-               tdim,nswap_tdim,ncallps_tdim,nerro_tdim,nswap3ed,nswap3fa);
+      CPRINTF2(" - swaps dim %d time %e swapped %d = %d /s nerro %d edge = %d face = %d\n",
+               tdim,t12-t02,nswap_tdim,ncallps_tdim,nerro_tdim,nswap3ed,nswap3fa);
     }
     *nswap += nswap_tdim;
 

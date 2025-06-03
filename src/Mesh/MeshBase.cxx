@@ -542,7 +542,7 @@ void MeshBase::set_nface(int nface, bool skipallocf){
   if(idim >= 3){
     fac2tet.allocate(mface, 2);
     fac2tet.set_n(nface);
-    facHshTab.reserve(nface);
+    facHshTab.reserve(mface);
   }
 
   if(skipallocf) return; 

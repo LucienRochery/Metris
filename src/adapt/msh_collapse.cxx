@@ -169,7 +169,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
         if(len > sqrt(3)/(2*sqrt(2))) continue;
 
 
-        CPRINTF1(" - collapse flat %d height = %f \n",ientt,len);
+        CPRINTF2(" - collapse flat %d height = %f \n",ientt,len);
         for(int ied2 = 0; ied2 < 3; ied2++){
           int edg2po2[2] = {ent2poi(ientt,lnoed2[ied][0]), 
                             ent2poi(ientt,lnoed2[ied][1])};
@@ -244,7 +244,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
       volM = meas0*sqrt(detm)/2/(tdim == 2 ? 1 : 3); // factorial tdim
       
       if(volM >= isvolsmall) continue;
-      CPRINTF1(" - collapse small triangle %d vol = %f \n",ientt,volM);
+      CPRINTF2(" - collapse small triangle %d vol = %f \n",ientt,volM);
       CPRINTF2(" - meas0 = %f detm = %f \n",meas0,detm);
 
       do_collapse:
@@ -309,10 +309,10 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
         if(len >= 1.0/sqrt(2)) continue;  
 
         if(tdim == 2){
-          CPRINTF1(" - found short edge %d %d len = %f \n",
+          CPRINTF2(" - found short edge %d %d len = %f \n",
             ent2poi(ientt,lnoed2[ied][0]),ent2poi(ientt,lnoed2[ied][1]),len);
         }else{
-          CPRINTF1(" - found short edge %d %d len = %f \n",
+          CPRINTF2(" - found short edge %d %d len = %f \n",
             ent2poi(ientt,lnoed3[ied][0]),ent2poi(ientt,lnoed3[ied][1]),len);
         }
 
@@ -348,9 +348,9 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
     double t1 = get_wall_time();
     int ncallps = 1000*(int)(((ncoll1+ncoll2) / (t1-t0)) / 1000);
-    CPRINTF1(" - Loop end t = %f ncoll1 = %d ncoll2 = %d ncoll3 = %d tot =  %d /s; nerro1 %d nerro2 %d nerro3 %d\n",
+    CPRINTF2(" - Loop end t = %f ncoll1 = %d ncoll2 = %d ncoll3 = %d tot =  %d /s; nerro1 %d nerro2 %d nerro3 %d\n",
       t1-t0,ncoll1,ncoll2,ncoll3,ncallps,nerro1,nerro2,nerro3);
-    CPRINTF1(" %f < len < %f \n",minl,maxl);
+    CPRINTF2(" %f < len < %f \n",minl,maxl);
     if(DOPRINTS2()){
       if(nerro1 + nerro2 + nerro3 > 0){
         CPRINTF2(" - ierro list:\n");
@@ -366,8 +366,6 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
     *ncoll += ncoll1 + ncoll2;
 
-    //CPRINTF1(" - Warning: disabled collapse looping\n");
-    //break;
   }while(ncoll1 + ncoll2 > 0 && niter++ < miter);
 
   //if(DOPRINTS2()){

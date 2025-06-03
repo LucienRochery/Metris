@@ -3,7 +3,7 @@
 # Metris: high-order metric-based simplex remesher
 
 Metris adapts simplex meshes provided an input metric field, and supports high-order meshes and CAD geometry. 
-Only 2D is implemented yet (01/25).
+Early 3D stages (05/25) with surface smoothing missing. 
 Relevant publications:
 
 - L. Rochery, M. Chiriac, M. C. Galbraith, D. L. Darmofal, S. Allmaras, "Metris: An Open-Source High-Order Metric-Based Remesher", AIAA SciTech 2025, https://arc.aiaa.org/doi/10.2514/6.2025-0779, [local file](docs/rochery-et-al-2025-metris-an-open-source-high-order-metric-based-remesher.pdf)
@@ -24,11 +24,15 @@ cmake --build . -j --target install
 ```
 
 Run `cconfig .` before building to verify all LAPACKE related flags are set to ON. 
-When choosing install prefix, be wary that LAPACK already has an `INSTALL` directory. 
+When choosing install prefix, be wary that LAPACK already has an `INSTALL` directory.
 
-Set `LAPACK_INCLUDE_DIR` environment variable to directory containing `lapacke.h` and `lapacke_mangling.h`. 
-If compiled from source, this is the `<install dir>/include/` directory. 
-If in `/usr/include` or `/usr/local/include`, this is not necessary. 
+To help Metris find LAPACK:
+
+ - Set environment variable LAPACK_DIR or pass -DLAPACK_DIR to directory containing lib/liblapack(e)\* and include/lapacke.h
+ - or set variables -DLAPACK_INCLUDE_DIRS -DLAPACK_LIBRARIES either from a parent project or at CMake call time
+ - or append to C_INCLUDE_PATH or CPLUS_INCLUDE_PATH where lapacke.h is found assuming the parent contains lib/liblapack(e)\*
+
+Failing that, default system directories will be tried. 
 
 ---
 

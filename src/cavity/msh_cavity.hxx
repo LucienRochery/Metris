@@ -215,7 +215,7 @@ struct CavOprOpt{
 
 
 	CavOprOpt():allow_topological_correction(true)
-             ,skip_topo_checks(true)
+             ,skip_topo_checks(false)
              ,allow_remove_points(true)
 	           ,allow_remove_points_superdim(true)
 	           ,allow_remove_corners(false)

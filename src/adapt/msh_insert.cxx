@@ -148,7 +148,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
         auto key = stup2(ip1,ip2);
         auto tt  = ledro.find(key);
         if(tt != ledro.end()){
-          CPRINTF1(" - ientt %d ied %d ip %d %d in hash tab -> skip\n",
+          CPRINTF2(" - ientt %d ied %d ip %d %d in hash tab -> skip\n",
                    ientt, ied, ip1, ip2);
           nskip++;
           safe_continue = true;
@@ -158,7 +158,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
         double sz[2];
         double len = getlenedg_geosz<MFT,gdim,ideg>(msh,ientt,tdim,ied,sz);
-        CPRINTF1(" - try ientt = %d ied = %d len = %f \n",ientt,ied,len);
+        CPRINTF2(" - try ientt = %d ied = %d len = %f \n",ientt,ied,len);
         if(len < sqrt(2)){
           ledro[key] = -1;
           safe_continue = true;
@@ -208,7 +208,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
                          bar1, coop, NULL, NULL);
 
         if(DOPRINTS1()){
-          CPRINTF1(" - enact ins ientt = %d ied = %d len = %f edg %d %d coord = ",
+          CPRINTF2(" - enact ins ientt = %d ied = %d len = %f edg %d %d coord = ",
                  ientt,ied,len,edg2pol[0],edg2pol[1]);
           dblAr1(msh.idim,coop).print();
         }
@@ -227,15 +227,15 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
           if(ierro <= 0) break;
           itry++;
           if(itry >= 1 + imovmet) break;
-          if(ierro == 0) CPRINTF1(" - After trying ierro = 0 \n");
+          if(ierro == 0) CPRINTF2(" - After trying ierro = 0 \n");
           if(ierro > 0 && (itry == 0 && imovmet)){
-            CPRINTF1(" -> insertEdge fail: try again w/ imovmet %d\n",imovmet);
+            CPRINTF2(" -> insertEdge fail: try again w/ imovmet %d\n",imovmet);
             if(DOPRINTS1()){
-              CPRINTF1(" - initial ipins = ");
+              CPRINTF2(" - initial ipins = ");
               dblAr1(gdim,coop).print();
             }
             if(imovmet && itry == 1){
-              CPRINTF1(" -> do imovmet\n");
+              CPRINTF2(" -> do imovmet\n");
               // Do better than this, compute the Bézier offset for the metric and 
               // place the point here -> follow curvature (even if P1)
               double offset[gdim];
@@ -257,7 +257,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
                 + 0.5 * coop[ii] + 0.25 * msh.coord(edg2pol[1],ii);
             }
             if(DOPRINTS1()){
-              CPRINTF1(" - final ipins = ");
+              CPRINTF2(" - final ipins = ");
               dblAr1(gdim,coop).print();
             }
           }
@@ -276,7 +276,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
             }
           }
         }else{
-          CPRINTF1(" - insertion failed ierro = %d \n",ierro);
+          CPRINTF2(" - insertion failed ierro = %d \n",ierro);
           linserr[ierro - 1] ++;
           nerro++;
           ledro[key] = ierro;
@@ -295,7 +295,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
     avg_nnewp /= nlong;
     double t1 = get_wall_time();
     int ncallps = 1000*(int)((ninser2 / (t1-t0)) / 1000);
-    CPRINTF1(" - Loop 1 end t = %f nlong %d nskip %d ninser %d = %d /s; nerro %d; nnewp avg = %f, max = %d\n",
+    CPRINTF2(" - Loop 1 end t = %f nlong %d nskip %d ninser %d = %d /s; nerro %d; nnewp avg = %f, max = %d\n",
               t1-t0,nlong,nskip,ninser2,ncallps,nerro,avg_nnewp, max_nnewp);
     if(DOPRINTS2() && nerro > 0){
       CPRINTF2(" - cavity ierro list:\n");
@@ -427,7 +427,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
         double sz[2];
         double len = getlenedg_geosz<MFT,gdim,ideg>(msh,ientt,tdim,ied,sz);
-        CPRINTF1(" - try ientt = %d ied = %d len = %f \n",ientt,ied,len);
+        CPRINTF2(" - try ientt = %d ied = %d len = %f \n",ientt,ied,len);
         if(len < sqrt(2)) continue;
         nlong++;
 
@@ -473,7 +473,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
                          bar1, coop, NULL, NULL);
 
         if(DOPRINTS1()){
-          CPRINTF1(" - enact ins ientt = %d ied = %d len = %f edg %d %d coord = ",
+          CPRINTF2(" - enact ins ientt = %d ied = %d len = %f edg %d %d coord = ",
                  ientt,ied,len,edg2pol[0],edg2pol[1]);
           dblAr1(msh.idim,coop).print();
         }
@@ -492,15 +492,15 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
           if(ierro <= 0) break;
           itry++;
           if(itry >= 1 + imovmet) break;
-          if(ierro == 0) CPRINTF1(" - After trying ierro = 0 \n");
+          if(ierro == 0) CPRINTF2(" - After trying ierro = 0 \n");
           if(ierro > 0 && (itry == 0 && imovmet)){
-            CPRINTF1(" -> insertEdge fail: try again w/ imovmet %d\n",imovmet);
+            CPRINTF2(" -> insertEdge fail: try again w/ imovmet %d\n",imovmet);
             if(DOPRINTS1()){
-              CPRINTF1(" - initial ipins = ");
+              CPRINTF2(" - initial ipins = ");
               dblAr1(gdim,coop).print();
             }
             if(imovmet && itry == 1){
-              CPRINTF1(" -> do imovmet\n");
+              CPRINTF2(" -> do imovmet\n");
               // Do better than this, compute the Bézier offset for the metric and 
               // place the point here -> follow curvature (even if P1)
               double offset[gdim];
@@ -522,7 +522,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
                 + 0.5 * coop[ii] + 0.25 * msh.coord(edg2pol[1],ii);
             }
             if(DOPRINTS1()){
-              CPRINTF1(" - final ipins = ");
+              CPRINTF2(" - final ipins = ");
               dblAr1(gdim,coop).print();
             }
           }
@@ -541,7 +541,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
             }
           }
         }else{
-          CPRINTF1(" - insertion failed ierro = %d \n",ierro);
+          CPRINTF2(" - insertion failed ierro = %d \n",ierro);
           linserr[ierro - 1] ++;
           nerro++;
         }
@@ -557,7 +557,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
     avg_nnewp /= nlong;
     double t1 = get_wall_time();
     int ncallps = 1000*(int)((ninser2 / (t1-t0)) / 1000);
-    CPRINTF1(" - Loop 1 end t = %f nlong %d ninser %d = %d /s; nerro %d; nnewp avg = %f, max = %d\n",
+    CPRINTF2(" - Loop 1 end t = %f nlong %d ninser %d = %d /s; nerro %d; nnewp avg = %f, max = %d\n",
               t1-t0,nlong,ninser2,ncallps,nerro,avg_nnewp, max_nnewp);
     if(DOPRINTS2() && nerro > 0){
       CPRINTF2(" - cavity ierro list:\n");
@@ -687,7 +687,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
         double sz[2];
         double len = getlenedg_geosz<MFT,gdim,ideg>(msh,ientt,tdim,ied,sz);
-        CPRINTF1(" - try ientt = %d ied = %d len = %f \n",ientt,ied,len);
+        CPRINTF2(" - try ientt = %d ied = %d len = %f \n",ientt,ied,len);
         if(len < sqrt(2)) continue;
 
         edg2pol[0] = ent2poi(ientt,lnoed[ied][0]);
@@ -709,7 +709,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
         }// if(!iuse_CAD)
 
         if(DOPRINTS1()){
-          CPRINTF1(" - enact ins ientt = %d ied = %d len = %f edg %d %d  coord = ",
+          CPRINTF2(" - enact ins ientt = %d ied = %d len = %f edg %d %d  coord = ",
                  ientt,ied,len,edg2pol[0],edg2pol[1]);
           dblAr1(msh.idim,coop).print();
         }
@@ -728,15 +728,15 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
           if(ierro <= 0) break;
           itry++;
           if(itry >= 1 + imovmet) break;
-          if(ierro == 0) CPRINTF1(" - After trying ierro = 0 \n");
+          if(ierro == 0) CPRINTF2(" - After trying ierro = 0 \n");
           if(ierro > 0 && (itry == 0 && imovmet)){
-            CPRINTF1(" -> insertEdge fail: try again w/ imovmet %d\n",imovmet);
+            CPRINTF2(" -> insertEdge fail: try again w/ imovmet %d\n",imovmet);
             if(DOPRINTS1()){
-              CPRINTF1(" - initial ipins = ");
+              CPRINTF2(" - initial ipins = ");
               dblAr1(gdim,coop).print();
             }
             if(imovmet && itry == 1){
-              CPRINTF1(" -> do imovmet\n");
+              CPRINTF2(" -> do imovmet\n");
               // Do better than this, compute the Bézier offset for the metric and 
               // place the point here -> follow curvature (even if P1)
               double offset[gdim];
@@ -758,7 +758,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
                 + 0.5 * coop[ii] + 0.25 * msh.coord(edg2pol[1],ii);
             }
             if(DOPRINTS1()){
-              CPRINTF1(" - final ipins = ");
+              CPRINTF2(" - final ipins = ");
               dblAr1(gdim,coop).print();
             }
           }
@@ -777,7 +777,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
             }
           }
         }else{
-          CPRINTF1(" - insertion failed ierro = %d \n",ierro);
+          CPRINTF2(" - insertion failed ierro = %d \n",ierro);
           linserr[ierro - 1] ++;
           nerro++;
         }
@@ -792,7 +792,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
     double t1 = get_wall_time();
     int ncallps = 1000*(int)((ninser2 / (t1-t0)) / 1000);
-    CPRINTF1(" - Loop 1 end t = %f ninser %d = %d /s; nerro %d\n",
+    CPRINTF2(" - Loop 1 end t = %f ninser %d = %d /s; nerro %d\n",
               t1-t0,ninser2,ncallps,nerro);
     if(DOPRINTS2() && nerro > 0){
       CPRINTF2(" - cavity ierro list:\n");
