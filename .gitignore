@@ -20,7 +20,6 @@ src/CMakeFiles/
 Documentation
 docs/Numerical_Robustness.md
 notes.txt
-bunit/.*
 .*.cxx
 .*.hxx
 tmp/
