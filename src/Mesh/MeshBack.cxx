@@ -122,24 +122,21 @@ void MeshBack::initialize(MetrisAPI *data,
       int nnmet = (idim * (idim+1))/2;
       met.rfld.allocate(npoin,nnmet);
       met.rfld.set_n(npoin);
-      FEBasis ibas0 = ibasis;
-      setBasis(FEBasis::Lagrange);
       for(int ipoin = 0; ipoin < npoin; ipoin++){
         anamet(NULL, coord[ipoin], param.metScale, 0, met[ipoin], NULL);
       } 
-      setBasis(ibas0);
       met.setSpace(MetSpace::Log, true);
 
     // Else intrinsic:
     }else{
       CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == curdeg){
-        if(DOPRINTS1()) std::cout << "(back)  - Compute intrinsic metric field \n";
+        CPRINTF1("(back)  - Compute intrinsic metric field\n")
         double t0, t1;
 
         if(DOPRINTS1()) t0 = get_wall_time();
         getMetMesh<MetricFieldFE,ideg>(param,*this);
         if(DOPRINTS1()) t1 = get_wall_time();
-        if(DOPRINTS1()) std::cout << "(back)  - Done time = "<<t1-t0<<std::endl;
+        CPRINTF1("(back)  - Done time = %f\n",t1-t0);
       }}CT_FOR1(ideg);
     }
 
@@ -150,27 +147,27 @@ void MeshBack::initialize(MetrisAPI *data,
 
   }else if(param.inpMet){
     
-    if(data != NULL)METRIS_ENFORCE_MSG(!data->imet, "Metric specified both in data and file");
+    CPRINTF1("(back)  - Get metric from file %s\n",param.metFileName.c_str());
+    METRIS_ENFORCE_MSG(data == NULL || !data->imet, 
+                       "Metric specified both in data and file");
 
     met.readMetricFile(param.metFileName);
     met.setSpace(MetSpace::Log, true);
 
   }else if(data != NULL && data->imet){
 
+    CPRINTF1("(back)  - Get metric from data\n");
+
     met.rfld = std::move(data->metfld); 
-    //int nnmet = (idim * (idim + 1)) / 2;
-    //for(int ipoin = 0; ipoin < npoin; ipoin++){
-    //  for(int ii = 0; ii < nnmet; ii++){
-    //    met(ipoin,ii) = data->metfld[ipoin][ii];
-    //  }
-    //}
     met.forceBasisFlag(data->metbasis);
     met.forceSpaceFlag(data->metspace);
+
+    met.setSpace(MetSpace::Log, true);
 
     if(DOPRINTS2()) met.writeMetricFile("metDATA");
 
   }else{
-    METRIS_THROW_MSG(WArgExcept(), "No metric info for back ?? ");
+    METRIS_THROW_MSG(WArgExcept(), "## No metric info for back");
   }
 
 

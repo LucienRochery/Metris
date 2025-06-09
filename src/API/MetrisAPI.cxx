@@ -388,7 +388,6 @@ void MetrisAPI::setDegree(int tardeg){
       lgpof(igpof,0) = iponw;
     }
 
-    printf("## DEBUG: MetrisAPI cleanup() npoin %d -> %d\n",npoin,nponw);
     npoin = nponw;
 
   }

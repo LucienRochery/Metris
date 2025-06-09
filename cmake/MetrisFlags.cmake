@@ -24,9 +24,16 @@ message("Metris using build type = ${CMAKE_BUILD_TYPE}")
 
 set(METRIS_WARNING_FLAGS -Wno-gnu-zero-variadic-macro-arguments  -Wno-logical-op-parentheses
     -Wno-gcc-compat -Wno-variadic-macros)  
-set(METRIS_CXX_FLAGS ${METRIS_WARNING_FLAGS})
+set(METRIS_CXX_FLAGS ${METRIS_WARNING_FLAGS} -DMETRIS_GIT_URL="${GITURL}")
 if(USE_TRACELIBS)
   set(METRIS_CXX_FLAGS ${METRIS_CXX_FLAGS} -DBOOST_STACKTRACE_USE_ADDR2LINE)
+endif()
+if(USE_ABSL)
+  set(METRIS_CXX_FLAGS ${METRIS_CXX_FLAGS} -DUSE_ABSL)
+endif()
+if(USE_METRIS_HASH)
+  message("Using Metris hash tables")
+  set(METRIS_CXX_FLAGS ${METRIS_CXX_FLAGS} -DUSE_METRIS_HASH)
 endif()
 
 #Somehow, a straight comparison with EQUAL icc or EQUAL icc doesn't register here. Perhaps there's a space in there. 

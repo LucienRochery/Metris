@@ -165,17 +165,35 @@ int getpoient(const MeshBase &msh, int ipoin, int tdimn){
 
 
 int getedgglo(const MeshBase &msh, int i1, int i2){
-  auto key = stup2(i1,i2);
-  auto t = msh.edgHshTab.find(key);
-  if(t == msh.edgHshTab.end()) return -1;
-  return t->second;
+  #ifndef USE_METRIS_HASH
+    auto key = stup2(i1,i2);
+    auto t = msh.edgHshTab.find(key);
+    if(t == msh.edgHshTab.end()) return -1;
+    return t->second;
+  #else
+    METRIS_ASSERT(i1 >= 0 && i2 >= 0);
+    uint32_t key[2] = {(uint32_t)i1, (uint32_t)i2};
+    stup2(key);
+    int ifnd = msh.edgHshTab.find(key);
+    if(ifnd < 0) return -1;
+    return msh.edgHshTab[ifnd];
+  #endif
 }
 
 int getfacglo(const MeshBase &msh, int i1, int i2, int i3){
-  auto key = stup3(i1,i2,i3);
-  auto t = msh.facHshTab.find(key);
-  if(t == msh.facHshTab.end()) return -1;
-  return t->second;
+  #ifndef USE_METRIS_HASH
+    auto key = stup3(i1,i2,i3);
+    auto t = msh.facHshTab.find(key);
+    if(t == msh.facHshTab.end()) return -1;
+    return t->second;
+  #else
+    METRIS_ASSERT(i1 >= 0 && i2 >= 0 && i3 >= 0);
+    uint32_t key[3] = {(uint32_t)i1, (uint32_t)i2, (uint32_t)i3};
+    stup3(key);
+    int ifnd = msh.edgHshTab.find(key);
+    if(ifnd < 0) return -1;
+    return msh.edgHshTab[ifnd];
+  #endif
 }
 
 

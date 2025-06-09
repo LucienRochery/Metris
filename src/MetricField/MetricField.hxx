@@ -32,6 +32,7 @@ public:
   virtual MetricClass metricClass() const { return MetricClass::MetricFieldFE; }
 	MetricFieldFE() = delete;
 	MetricFieldFE(MeshBase &msh_);
+  virtual ~MetricFieldFE() = default;
 
 
 	//void setdeg(int ideg_){ideg = ideg_;}
@@ -180,6 +181,7 @@ public:
 
 	MetricFieldAnalytical() = delete;
 	MetricFieldAnalytical(MeshBase &msh_);
+  virtual ~MetricFieldAnalytical() = default;
 
   void setAnalyticalMetric(int ianamet_);
 	void setAnalyticalMetric(anamet_proto fptr);

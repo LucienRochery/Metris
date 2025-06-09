@@ -254,6 +254,7 @@ MeshArray2D<T,INT1,INT2>& MeshArray2D<T,INT1,INT2>::operator=(MeshArray2D &&cpy)
 }
 
 // ent2poi: large n, small s. ent2tag: small n, large s
+template class MeshArray2D<uint32_t,int32_t,int32_t>;
 template class MeshArray2D<int,int32_t,int32_t>;
 template class MeshArray2D<int,int64_t,int32_t>;
 template class MeshArray2D<int,int32_t,int64_t>;

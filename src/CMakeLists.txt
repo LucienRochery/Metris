@@ -153,7 +153,6 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/utils/bernstein_prod.cxx
     ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays1D.cxx
     ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays2D.cxx
-    ${PROJECT_SOURCE_DIR}/src/aux_hashtab.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_topo.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_histogram.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_EGADSprinterr.cxx

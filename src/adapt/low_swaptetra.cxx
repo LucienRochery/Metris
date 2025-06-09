@@ -159,7 +159,7 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
                              msh.tet2poi(ifacl,lnofa3[ifacl][2]));
   if(iface >= 0){
     CPRINTF1("# END aux_swaptetface: found face between two same-domn elements\n");
-    METRIS_THROW(TopoExcept());s
+    METRIS_THROW(TopoExcept());
     return 1;
   }
   #endif

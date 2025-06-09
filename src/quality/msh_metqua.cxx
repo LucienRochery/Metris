@@ -20,6 +20,7 @@ template <class MFT>
 double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
                      bool *iinva, double *qmin, double *qmax, double *qavg, 
                      dblAr1 *lquae){
+  INCVDEPTH(msh.param);
   
   msh.met.setSpace(MetSpace::Exp);
   *iinva = false;

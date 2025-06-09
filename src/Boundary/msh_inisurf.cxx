@@ -227,8 +227,8 @@ doproj:
         ierro = EG_invEvaluateGuess(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
       }
 
-      CPRINTF3(" - proj ipoin %d pdim %d bdim %d ibpoi %d ierro %d coord (u,v)/t = %e %e\n",
-               ipoin,pdim,bdim,ibpoi,ierro,msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
+      CPRINTF3(" - proj ipoin %d pdim %d bdim %d iref %d ibpoi %d ierro %d coord (u,v)/t = %e %e\n",
+               ipoin,pdim,bdim,iref,ibpoi,ierro,msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
 
 			if(ierro != 0){
 				nerr[bdim]++;

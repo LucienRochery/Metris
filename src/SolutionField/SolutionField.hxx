@@ -35,6 +35,7 @@ public:
 
   SolutionFieldBase() = delete;
   SolutionFieldBase(const MeshBase &msh_) : msh(&msh_) {}
+  virtual ~SolutionFieldBase() = default;
 
   // virtual incurs costs
   inline const double& operator[]([[maybe_unused]] int i) const {
@@ -70,6 +71,7 @@ public:
   SolutionFieldAnalytical() = delete;
   SolutionFieldAnalytical(const MeshBase &msh_) : 
     SolutionFieldBase::SolutionFieldBase(msh_), ianasol(-1), anasol(NULL){}
+  virtual ~SolutionFieldAnalytical() = default;
 
   void setAnalyticalSolution(int ianamet_);
   void setAnalyticalSolution(anasol_proto fptr);

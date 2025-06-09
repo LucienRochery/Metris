@@ -206,6 +206,21 @@ std::tuple<int,int>     stup2(int i1,int i2){
   sortupto8_dec(key_,2);
   return std::tuple<int,int>({key_[0],key_[1]});
 }
+
+// Gets 2,..4 ints, returns sorted tuple (for hash keys)
+void stup4(uint32_t* key){
+  sortupto8_dec(key,4);
+  return;
+}
+void stup3(uint32_t* key){
+  sortupto8_dec(key,3);
+  return;
+}
+void stup2(uint32_t* key){
+  sortupto8_dec(key,2);
+  return;
+}
+
 //template<int n>
 //typename std::conditional<n == 2, std::tuple<int,int>, std::tuple<int,int,int>>::type 
 //stupn(const int *ii){
@@ -1176,6 +1191,7 @@ void sortupto8_inc(T *tab,int n){
   }
 }
 
+template void sortupto8_dec<uint32_t>(uint32_t *tab,int n);
 template void sortupto8_dec<int>(int *tab,int n);
 template void sortupto8_inc<int>(int *tab,int n);
 

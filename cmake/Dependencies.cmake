@@ -24,7 +24,6 @@ if(REQ_CODEGEN)
   if (NOT EIGEN3_INCLUDE_DIR)
     FetchContent_Declare(
       Eigen3
-      #URL https://github.com/abseil/abseil-cpp/archive/e7fe9ec9ebfc6607765d489b76c9954e0a88c5d4.zip
       GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
       GIT_TAG d6e3b528b2ae2a55d55749e9ef50b1e12ff34bc3
       #GIT_TAG master
@@ -116,17 +115,34 @@ endif()
 
 
 
-
- 
- 
-if(NOT(DEFINED ENV{ESP_ROOT}) OR NOT(DEFINED ENV{CASROOT}))
-  message(FATAL_ERROR "Set the environment variable ESP_ROOT (here $ENV{ESP_ROOT}) to the folder containing include/egads.h and CASROOT (here $ENV{CASROOT}) to the folder containing bin/ include/ lib/ share/ of OpenCascade library to link to.")
-else()
-  set(ESP_ROOT $ENV{ESP_ROOT})
-  message("Found ESP_ROOT = ${ESP_ROOT}")
-  set(CAS_ROOT $ENV{CASROOT})
-  message("Found CAS_ROOT = ${CAS_ROOT}")
+if(NOT DEFINED ESP_ROOT)
+  if(DEFINED ENV{ESP_ROOT})
+    set(ESP_ROOT $ENV{ESP_ROOT})
+  elseif(DEFINED ENV{ESP_DIR})
+    set(ESP_ROOT $ENV{ESP_DIR})
+  else()
+    message(FATAL_ERROR "Set environment variable ESP_ROOT (here $ENV{ESP_ROOT})"
+      " or ESP_DIR (here $ENV{ESP_DIR}) to the folder containing include/egads.h")
+  endif()
 endif()
+
+if(NOT DEFINED CAS_ROOT)
+  if(DEFINED ENV{CASROOT})
+    set(CAS_ROOT $ENV{CASROOT})
+  elseif(DEFINED ENV{CAS_ROOT})
+    set(CAS_ROOT $ENV{CAS_ROOT})
+  elseif(DEFINED ENV{CAS_DIR})
+    set(CAS_ROOT $ENV{CAS_DIR})
+  else()
+    message(FATAL_ERROR "Set environment variable CASROOT (here $ENV{CASROOT})"
+      " or CAS_ROOT (here $ENV{CAS_ROOT}) or CAS_DIR (here $ENV{CAS_DIR})"
+      " to the folder containing bin/ include/ lib/ share/ of OpenCascade library to link to.")
+  endif()
+endif()
+
+message("Using ESP_ROOT = ${ESP_ROOT}")
+message("Using CAS_ROOT = ${CAS_ROOT}")
+
 # Linker still needs path to lib files at compile time
 find_file(EGADS_LIBRARY NAMES libegads.dylib libegads.so PATHS ${ESP_ROOT}/lib/)
 find_file(EGADSLITE_LIBRARY NAMES libegadslite.dylib libegadslite.so PATHS ${ESP_ROOT}/lib/)
@@ -157,8 +173,7 @@ if(USE_ABSL)
     fetch_absl
     #URL https://github.com/abseil/abseil-cpp/archive/e7fe9ec9ebfc6607765d489b76c9954e0a88c5d4.zip
     GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-    GIT_TAG e7fe9ec9ebfc6607765d489b76c9954e0a88c5d4  
-    #GIT_TAG master
+    #GIT_TAG e7fe9ec9ebfc6607765d489b76c9954e0a88c5d4  
     #FIND_PACKAGE_ARGS NAMES absl
     EXCLUDE_FROM_ALL
   )

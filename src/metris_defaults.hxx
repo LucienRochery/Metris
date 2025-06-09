@@ -45,6 +45,9 @@ namespace Defaults{
 
   // What factor to multiply sizes by when realloc necessary.
   const double mem_growfac = 1.5;
+
+  // Average number of collisions per key hoped for
+  const int TupleHashTable_ncoll = 10;
 }// namespace Defaults
 
 }// namespace Metris
