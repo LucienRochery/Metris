@@ -85,7 +85,7 @@ int cavity_operator(Mesh<MFT> &msh ,
 
   METRIS_ENFORCE_MSG(opts.max_increase_cav_geo <= 1,"Implement cavity correction")
 
-  CPRINTF1("-- cavity_operator start ncedg = %d ncfac = %d nctet = %d ipins = %d \n",
+  CPRINTF1("-- START cavity_operator ncedg = %d ncfac = %d nctet = %d ipins = %d \n",
            cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),cav.ipins);
   CPRINTF1("   npoin %d nedge %d nface %d nelem %d\n",msh.npoin,msh.nedge,msh.nface,msh.nelem);
 
@@ -175,6 +175,7 @@ int cavity_operator(Mesh<MFT> &msh ,
 
 	ierro = correct_cavity<MFT,ideg>(msh,cav,opts,npoi0,nedg0,nfac0,nele0,
                                    lbad,work,ithread);
+  if(lbad.get_n() > 0) ierro = CAV_ERR_CORRECTCAV;
   if(ierro > 0) goto cleanup;
 
   if(opts.dryrun){
