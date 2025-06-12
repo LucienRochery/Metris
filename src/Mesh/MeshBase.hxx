@@ -280,16 +280,16 @@ public:
 
   // Get ipoin local index in entity of dim tdimn
   template<int ideg> 
-  int getverent(int ientt, int tdimn, int ipoin);
-  int getverent(int ientt, int tdimn, int ipoin);
+  int getverent(int ientt, int tdimn, int ipoin) const;
+  int getverent(int ientt, int tdimn, int ipoin) const;
 
   // Get ipoin local index in edge, face, tetra
   template<int ideg> 
-  int getveredg(int ientt, int ipoin);
+  int getveredg(int ientt, int ipoin) const;
   template<int ideg> 
-  int getverfac(int ientt, int ipoin);
+  int getverfac(int ientt, int ipoin) const;
   template<int ideg> 
-  int getvertet(int ientt, int ipoin);
+  int getvertet(int ientt, int ipoin) const;
 
   // Mostly for internal use, compute the localization alignment direction
   // (edge tangent, face normal) of a point with CAD link and poi2ent initialized.

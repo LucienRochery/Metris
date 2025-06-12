@@ -50,6 +50,7 @@ void MetrisRunner::adaptMesh0(){
   GETVDEPTH(this->param);
   Mesh<MFT> &msh = static_cast<Mesh<MFT>&>(*msh_g);
 
+
   //METRIS_THROW(TODOExcept());
 
   // Make it an option 
@@ -81,10 +82,22 @@ void MetrisRunner::adaptMesh0(){
   dblAr1 rlned;
   dblAr1 lenbds = {1.0/sqrt(2), sqrt(2)};
   if(DOPRINTS1()){
-    pct_unit = getLengthEdges<MFT>(msh,msh.get_tdim(),ilned,rlned);
+    pct_unit = getLengthEdges<MFT>(msh,msh.get_tdim(),-1,ilned,rlned);
     print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
   }
   double t0,t1;
+
+
+  //printf("\n\n\n## DEBUG stat surface ref 4\n");
+  //pct_unit = getLengthEdges<MFT>(msh,2,4,ilned,rlned,LenTyp::GeoSiz);
+  //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (GeoSiz)");
+  //pct_unit = getLengthEdges<MFT>(msh,2,4,ilned,rlned,LenTyp::Quad);
+  //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (Quad)");
+  //pct_unit = getLengthEdges<MFT>(msh,2,4,ilned,rlned,LenTyp::LogIntrp);
+  //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (LogIntrp)");
+  //pct_unit = getLengthEdges<MFT>(msh,2,4,ilned,rlned,LenTyp::BdryCor);
+  //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (BdryCor)");
+  //wait();
 
   // This is the common thread for all routines. Tagged elements are ignored
   const int ithrdfro = 0;
@@ -102,7 +115,7 @@ void MetrisRunner::adaptMesh0(){
     if(DOPRINTS2()) msh.met.writeMetricFile("v2_geolines_adp");
 
     if(DOPRINTS1()){
-      pct_unit = getLengthEdges<MFT>(msh,1,ilned,rlned);
+      pct_unit = getLengthEdges<MFT>(msh,1,-1,ilned,rlned);
       print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (lines)");
     }
     
@@ -243,7 +256,7 @@ void MetrisRunner::adaptMesh0(){
 
 
 
-    pct_unit = 100*getLengthEdges(msh,msh.get_tdim(),ilned,rlned);
+    pct_unit = 100*getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned);
     int ndigit = ceil(log10((double)msh.npoin
                         + (double)msh.nelem
                         + (double)msh.nface

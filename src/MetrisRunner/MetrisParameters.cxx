@@ -28,6 +28,7 @@ MetrisParameters::MetrisParameters(){
   metScale  = 1;
   hmin = 1.0e-30;
   hmax = 1.0e30;
+  met_snap_tol = Defaults::met_snap_tol;
 
   anasol_ptr= NULL;
   ianasol   = -1;
@@ -38,7 +39,7 @@ MetrisParameters::MetrisParameters(){
   adp_niter     = 0;
   adp_unit_stop = 99.9;
   adp_opt_niter = 1;
-  adp_line_adapt = true;
+  adp_line_adapt = false;
 
   // Does not work currently, namely the lenedg increasecav criterion needs
   // improving for this to work. 
@@ -218,8 +219,8 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("adp-unit-stop")){
     adp_unit_stop = opt.m["adp-unit-stop"].as<double>();
   }
-  if(opt.count("no-line-adp")){
-    adp_line_adapt = false; 
+  if(opt.count("do-line-adp")){
+    adp_line_adapt = true; 
   }
 
   
@@ -259,6 +260,9 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   }
   if(opt.count("hmax")){
     hmax = opt.m["hmax"].as<double>();
+  }
+  if(opt.count("met-snap-tol")){
+    met_snap_tol = opt.m["met-snap-tol"].as<double>();
   }
 
   if(opt.count("opt-niter")){

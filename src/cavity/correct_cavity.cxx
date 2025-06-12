@@ -244,14 +244,9 @@ int correct_cavity0(Mesh<MFT> &msh,
       INCVDEPTH(msh.param);
       if constexpr(tdim == 2 && gdim == 3){
         getnorfacP1(msh.fac2poi[ientt], msh.coord, nrmal);
-        //if(msh.CAD()){
-        //  getnorfacCAD(msh, ientt, nrmal);
-        //}else{
-        //  getnorfacP1(msh.fac2poi[ientt], msh.coord, nrmal);
-        //}
       }
 
-      bool iflat;
+      bool iflat = false;
       if constexpr(ideg == 1){
         double meas = getmeasentP1<gdim,tdim>(msh, ent2poi[ientt], nrmal, &iflat);
         if(DOPRINTS1()){

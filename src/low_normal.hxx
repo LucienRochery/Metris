@@ -35,10 +35,12 @@ int getnorpoiCAD2(const MeshBase &msh, int ibpoi, double *norpoi);
 template <int ideg>
 void getnorballref(MeshBase &msh, const intAr1 &lball, int iref, double* norpoi);
 
-template <int ideg>
 void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi);
 
-
+// Specify either iedg0 or iref0 (or both). Handles both CAD and discrete case. 
+// - if iedg0 >= 0 && iref0 < 0: get tangent from iedg0 side 
+//   (in CAD case, no difference if not corner)
+int gettanpoiref(const MeshBase &msh, int ipoin, int iref, double* tanpoi);
 
 }// namespace
 

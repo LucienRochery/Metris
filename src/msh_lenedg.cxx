@@ -14,7 +14,7 @@
 namespace Metris{
 
 template<class MFT>
-double getLengthEdges(MeshMetric<MFT> &msh, int tdim, intAr2 &ilned, dblAr1 &rlned, LenTyp itype){
+double getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref, intAr2 &ilned, dblAr1 &rlned, LenTyp itype){
   
   METRIS_ASSERT(tdim >= 1); // implement lnoed1
 
@@ -33,7 +33,9 @@ double getLengthEdges(MeshMetric<MFT> &msh, int tdim, intAr2 &ilned, dblAr1 &rln
   const int nquad = 100;
 
   int nentt = msh.nentt(tdim);
-  intAr2 &ent2poi = msh.ent2poi(tdim);
+  const intAr2 &ent2poi = msh.ent2poi(tdim);
+  const intAr1 &ent2ref = msh.ent2ref(tdim);
+
   int nedgl = (tdim * (tdim + 1)) / 2;
   const intAr2 lnoed(nedgl,2,tdim == 1 ? lnoed1[0] :
                              tdim == 2 ? lnoed2[0] : lnoed3[0]);
@@ -47,6 +49,8 @@ double getLengthEdges(MeshMetric<MFT> &msh, int tdim, intAr2 &ilned, dblAr1 &rln
 
   for(int ientt = 0; ientt < nentt; ientt++){
     if(isdeadent(ientt,ent2poi)) continue;
+    if(iref >= 0 && iref != ent2ref[ientt]) continue;
+
 
     for(int iedgl = 0; iedgl < nedgl; iedgl++){
 
@@ -66,6 +70,14 @@ double getLengthEdges(MeshMetric<MFT> &msh, int tdim, intAr2 &ilned, dblAr1 &rln
             len = getlenedg_geosz<MFT,gdim,ideg>(msh,ientt,tdim,iedgl);
           }else if(itype == LenTyp::Quad){
             len = getlenedg_quad<MFT,gdim,ideg>(msh,ientt,tdim,iedgl,nquad);
+          }else if(itype == LenTyp::LogIntrp){
+            len = getlenedg_quad<MFT,gdim,ideg>(msh,ientt,tdim,iedgl,msh.nnode(1)-1);
+          }else if(itype == LenTyp::BdryCor){
+            METRIS_ENFORCE_MSG(tdim == 2 && gdim == 3, "BdryCor only available for triangles")
+            static double sz[2];
+            if constexpr(gdim == 3){
+              len = getlenedg_geosz_plane<MFT,gdim,ideg>(msh,ientt,tdim,iedgl,sz);
+            }
           }else{
             METRIS_THROW_MSG(TODOExcept(),"Size interp scheme not implemented");
           }
@@ -93,9 +105,9 @@ double getLengthEdges(MeshMetric<MFT> &msh, int tdim, intAr2 &ilned, dblAr1 &rln
 }
 
 template double getLengthEdges<MetricFieldAnalytical>(MeshMetric<MetricFieldAnalytical> &msh, 
-                                int tdim,intAr2 &ilned, dblAr1 &rlned,LenTyp itype);
+                                int tdim,int iref,intAr2 &ilned, dblAr1 &rlned,LenTyp itype);
 template double getLengthEdges<MetricFieldFE        >(MeshMetric<MetricFieldFE        > &msh, 
-                                int tdim,intAr2 &ilned, dblAr1 &rlned,LenTyp itype);
+                                int tdim,int iref,intAr2 &ilned, dblAr1 &rlned,LenTyp itype);
 
 
 }// end namespace

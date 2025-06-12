@@ -56,7 +56,8 @@ void getBezOffsetsEdge(Mesh<MFT> &msh,
 
 
   int nedgl = (tdim*(tdim+1))/2;
-  const intAr2 lnoed(nedgl,2,tdim == 2 ? lnoed2[0] : lnoed3[0]);
+  const intAr2 lnoed(nedgl,2,tdim == 1 ? lnoed1[0] :
+                             tdim == 2 ? lnoed2[0] : lnoed3[0]);
 
   constexpr int nnmet = (gdim*(gdim+1))/2;
   double met[nnmet], dmet[gdim*nnmet];
@@ -93,7 +94,8 @@ void getBezOffsetsEdge(Mesh<MFT> &msh,
                        MetSpace::Exp,
                        edg2pol,1,bary,met,dmet);
   }else{
-    METRIS_ASSERT(tdim == gdim);
+    METRIS_ASSERT_MSG(tdim == gdim, "getBezOffsetsEdge called with tdim < gdim:"
+      " call from a full dim entity so the metric field physical derivative can be computed");
     bary[lnoed(iedgl,0)] = 0.5;
     bary[lnoed(iedgl,1)] = 0.5;
     msh.met.getMetBary(AsDeg::P1,DifVar::Phys,MetSpace::Exp,

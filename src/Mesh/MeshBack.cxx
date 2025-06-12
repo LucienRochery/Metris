@@ -5,6 +5,11 @@
 
 #include "../Mesh/MeshBack.hxx"
 
+
+#include "../MetricField/msh_intrinsicmet.hxx"
+#include "../MetricField/msh_checkmet.hxx"
+#include "../MetricField/msh_snapmetsurf.hxx"
+
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../ho_constants.hxx"
 #include "../utils/aux_misc.hxx"
@@ -12,9 +17,7 @@
 #include "../low_eval.hxx"
 #include "../low_geo.hxx"
 #include "../utils/mprintf.hxx"
-#include "../msh_intrinsicmet.hxx"
 #include "../io_libmeshb.hxx"
-#include "../MetricField/msh_checkmet.hxx"
 #include "../API/MetrisAPI.hxx"
 #include "../linalg/det.hxx"
 
@@ -137,6 +140,9 @@ void MeshBack::initialize(MetrisAPI *data,
         getMetMesh<MetricFieldFE,ideg>(param,*this);
         if(DOPRINTS1()) t1 = get_wall_time();
         CPRINTF1("(back)  - Done time = %f\n",t1-t0);
+
+        snapMetSurf<MetricFieldFE>(*this, 0);
+
       }}CT_FOR1(ideg);
     }
 

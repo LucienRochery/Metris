@@ -13,12 +13,12 @@ namespace Metris{
 
 template<class MFT> class MeshMetric;
 
-enum class LenTyp {GeoSiz, Quad};
+enum class LenTyp {GeoSiz, Quad, LogIntrp, BdryCor};
 
 // ilned returns edge vertices
 // rlned its length in the metric field 
 template<class MFT>
-double getLengthEdges(MeshMetric<MFT> &msh, int tdim, intAr2 &ilned, dblAr1 &rlned, 
+double getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref, intAr2 &ilned, dblAr1 &rlned, 
                       LenTyp itype = LenTyp::GeoSiz);
 
 

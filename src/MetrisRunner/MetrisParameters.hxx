@@ -82,6 +82,7 @@ struct MetrisParameters{
 
   // Metric min/max size control
   double hmin, hmax;
+  double met_snap_tol; // tolerance for surface snapping in intrinsic metric case
 
   // options: "curve"
   // Defaults to 0 (no curve), 1 for offsets followed by ccoef max, 2 for 

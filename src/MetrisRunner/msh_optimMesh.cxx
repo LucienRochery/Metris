@@ -104,7 +104,7 @@ double MetrisRunner::optimMesh0(){
   double t0,t1;
 
   if(DOPRINTS1()){
-    getLengthEdges(msh,msh.get_tdim(),ilned,rlned);
+    getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned);
     print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
   
     getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,

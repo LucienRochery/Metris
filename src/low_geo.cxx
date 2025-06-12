@@ -226,6 +226,11 @@ double getmeasentP1(const MetrisParameters *param,
       //vecprod(l1,l2,norfac);
 
       getnorfacP1(ent2pol,coord,norfac);
+      double nrm = getnrml2<3>(norfac);
+      if(nrm < Constants::vecNrmTol){
+        *iflat = true;
+        return 0;
+      }
       //printf("## DEBUG ent2pol ");
       //intAr1(3,ent2pol).print();
       //printf("## NORMAL = ");
@@ -238,8 +243,12 @@ double getmeasentP1(const MetrisParameters *param,
         det = sqrt(det);
       }else{
         double nrm = getnrml2<3>(norref);
-        METRIS_ASSERT_MSG(nrm >= Constants::vecNrmTol*Constants::vecNrmTol,
-          "Normal norm under tolerance = "<<nrm);
+        if(nrm < Constants::vecNrmTol){
+          *iflat = true;
+          return 0;
+        }
+        //METRIS_ASSERT_MSG(nrm >= Constants::vecNrmTol,
+        //  "Normal norm under tolerance = "<<nrm);
         nrm = 1.0 / sqrt(nrm);
 
         // norfac is l1 x l2 is already homo h^2 despite norref O(1)

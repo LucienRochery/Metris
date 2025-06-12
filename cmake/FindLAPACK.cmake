@@ -47,8 +47,16 @@ else()
 
   include(GNUInstallDirs) # Also handles MacOS
 
-  string(REPLACE ":" ";" CPLUS_INCLUDE_PATH_LIST $ENV{CPLUS_INCLUDE_PATH})
-  string(REPLACE ":" ";" C_INCLUDE_PATH_LIST $ENV{C_INCLUDE_PATH})
+  if(DEFINED ENV{CPLUS_INCLUDE_PATH})
+    string(REPLACE ":" ";" CPLUS_INCLUDE_PATH_LIST $ENV{CPLUS_INCLUDE_PATH})
+  else()
+    set(CPLUS_INCLUDE_PATH_LIST "")
+  endif()
+  if(DEFINED ENV{C_INCLUDE_PATH})
+    string(REPLACE ":" ";" C_INCLUDE_PATH_LIST $ENV{C_INCLUDE_PATH})
+  else()
+    set(C_INCLUDE_PATH_LIST "")
+  endif()
 
   find_path(LAPACK_INCLUDE_DIRS NAMES lapacke.h
             HINTS ${CPLUS_INCLUDE_PATH_LIST} ${C_INCLUDE_PATH_LIST} 

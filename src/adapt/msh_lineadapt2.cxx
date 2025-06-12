@@ -186,6 +186,11 @@ void adaptGeoLines2(Mesh<MFT> &msh){
       // Generate points on the curve 
       genPointsCurve<MFT>(msh, iref, icor0, crv_lens[iref], ref2rng[iref], lnewt, ledge);
 
+      if(lnewt.get_n() == 0){
+        CPRINTF1(" # Warning line %d with len %f -> no points to insert\n",
+                  iref, crv_lens[iref]);
+        continue;
+      }
       // Insert them 
       insPointsCurve<MFT>(msh, iref, ref2rng[iref], ref2cor[iref], lnewt, ledge, ithrd1, ithrd2, ithrd3);
 

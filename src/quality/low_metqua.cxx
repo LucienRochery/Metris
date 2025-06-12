@@ -92,6 +92,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
         writeMesh("debug_ibpoi",msh);
         printf("norelt vanished ientt = %d nodes ",ientt);
         intAr1(nnode, ent2poi[ientt]).print();
+        for(int ii = 0; ii < gdim; ii++) printf("%d: %23.15e\n",ii,norelt[ii]);
         METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
       }
     }
@@ -163,6 +164,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
           writeMesh("debug_ibpoi",msh);
           printf("norelt vanished ientt = %d node %d point %d nodes ",ientt,inode,ipoin);
           intAr1(nnode, ent2poi[ientt]).print();
+          for(int ii = 0; ii < gdim; ii++) printf("%d: %23.15e\n",ii,norelt[ii]);
           METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
         }
       }

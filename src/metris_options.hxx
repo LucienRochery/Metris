@@ -39,6 +39,7 @@ struct MetrisOptions{
       ("bez"    , "Output format Bézier (default Lagrange)")
       ("jtol", po::value<double>(), "Scaled Jacobian control coefficient minimum")
       ("vtol", po::value<double>(), "Flatness tolerance")
+      ("met-snap-tol", po::value<double>(), "Surface metric snapping tolerance")
       ("curve" , po::value<int>(), "Metric-based smoothing type."
           " Type 1: Offsets followed by ccoef maximization."
           " Type 2: metric-based LP.")
@@ -82,8 +83,8 @@ struct MetrisOptions{
         "Percent unit edges to stop adaptation, default 99.9%")
       ("adp-opt-niter", po::value<int>(), 
         "Smoothing in adaptation: -1 unlimited, N > 0 number of iter")
-      ("no-line-adp",
-        "Skip using adaptGeoLines (not very robust if boundary very coarse)")
+      ("do-line-adp",
+        "Use adaptGeoLines (not very robust if boundary very coarse)")
       ("opt-unif" , 
         "Shape preserving uniformization")
       ("geo-lentolfac", po::value<double>()->default_value(Defaults::geo_lentolfac),

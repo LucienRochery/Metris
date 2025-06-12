@@ -20,6 +20,8 @@
 #include "../io_libmeshb.hxx"
 #include "../quality/low_metqua.hxx"
 
+#include "../BezierOffsets/low_gaps.hxx"
+
 namespace Metris{
 
 
@@ -32,16 +34,34 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
              MshCavity &cav, CavWrkArrs &work, 
              double *qnrm0_, double *qnrm1_, int ithread){
 
-  //bool istop = false;
-  //static int nwarn = 0;
-  //if(nwarn++ < 10)printf("## DEBUG REMOVE THIS \n");
-  //if(iface == 18971 || iface == 18972){
-  //  printf("## DEBUG SET MAX PRINTS\n");
-  //  msh.param->iverb = 5;
-  //  msh.param->ivdepth = 5;
-  //  istop = true;
-  //  writeMesh("debug_swapface", msh);
-  //}
+  #if 0
+  bool istop = false;
+  static int nwarn = 0;
+  if(nwarn++ < 10)printf("## DEBUG REMOVE THIS \n");
+  int iverb0 = msh.param->iverb;
+  int ivdepth0 = msh.param->ivdepth;
+  if(msh.fac2poi(iface,0) == 2148 && msh.fac2poi(iface,1) == 2152 && msh.fac2poi(iface,2) == 2139
+  || msh.fac2poi(iface,0) == 2148 && msh.fac2poi(iface,2) == 2152 && msh.fac2poi(iface,1) == 2139
+  || msh.fac2poi(iface,1) == 2148 && msh.fac2poi(iface,2) == 2152 && msh.fac2poi(iface,0) == 2139
+  || msh.fac2poi(iface,1) == 2148 && msh.fac2poi(iface,0) == 2152 && msh.fac2poi(iface,2) == 2139
+  || msh.fac2poi(iface,2) == 2148 && msh.fac2poi(iface,0) == 2152 && msh.fac2poi(iface,1) == 2139
+  || msh.fac2poi(iface,2) == 2148 && msh.fac2poi(iface,1) == 2152 && msh.fac2poi(iface,0) == 2139
+  //
+  || msh.fac2poi(iface,0) == 2137 && msh.fac2poi(iface,1) == 2152 && msh.fac2poi(iface,2) == 2139
+  || msh.fac2poi(iface,0) == 2137 && msh.fac2poi(iface,2) == 2152 && msh.fac2poi(iface,1) == 2139
+  || msh.fac2poi(iface,1) == 2137 && msh.fac2poi(iface,2) == 2152 && msh.fac2poi(iface,0) == 2139
+  || msh.fac2poi(iface,1) == 2137 && msh.fac2poi(iface,0) == 2152 && msh.fac2poi(iface,2) == 2139
+  || msh.fac2poi(iface,2) == 2137 && msh.fac2poi(iface,0) == 2152 && msh.fac2poi(iface,1) == 2139
+  || msh.fac2poi(iface,2) == 2137 && msh.fac2poi(iface,1) == 2152 && msh.fac2poi(iface,0) == 2139
+     ){
+    printf("\n\n\n## DEBUG SET MAX PRINTS iface = %d vertices %d %d %d\n",iface,
+      msh.fac2poi(iface,0),msh.fac2poi(iface,1),msh.fac2poi(iface,2));
+    msh.param->iverb = 5;
+    msh.param->ivdepth = 5;
+    istop = true;
+    writeMesh("debug_swapface0", msh);
+  }
+  #endif
 
   INCVDEPTH(msh.param);
 
@@ -90,7 +110,8 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   }
 
 
-  CPRINTF1("-- START swapface iface = %d",iface);
+  CPRINTF1("-- START swapface iface = %d verts %d %d %d",iface
+    ,msh.fac2poi(iface,0),msh.fac2poi(iface,1),msh.fac2poi(iface,2));
   if(DOPRINTS1() && spnorm >= 0){
     printf(" initial quality = %f \n",quae1);
   }else if(DOPRINTS1()){
@@ -121,12 +142,86 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       quaol[ied] = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,ifac2,1.0);
     }else{  
       double sz[2], len;
-      len = getlenedg_geosz<MFT,gdim,ideg>(msh, iface, 2, ied, sz);
+
+      if constexpr(gdim >= 3){
+        // In surface case, compute length only in tangent plane.
+        // This is necessary e.g. in curved boundary layer cases. 
+        // One case (Sandia bump 1e-6 BL spacing) had:
+        // - 2000 edge length using getlenedg_geosz
+        // - 0.86 using getlenedg_geosz_plane
+        //int edg2pol[2];
+        //edg2pol[0] = msh.fac2poi(iface, lnoed2[ied][0]);
+        //edg2pol[1] = msh.fac2poi(iface, lnoed2[ied][1]);
+        //double nrmals[2][3];
+        //getnorpoiref(msh, edg2pol[0], iref, nrmals[0]);
+        //getnorpoiref(msh, edg2pol[1], iref, nrmals[1]);
+        //len = getlenedg_geosz_plane<MFT,gdim,ideg>(msh, edg2pol, nrmals[0], sz);
+        len = getlenedg_geosz_plane<MFT,gdim,ideg>(msh, iface, 2, ied, sz);
+      }else{
+        len = getlenedg_geosz<MFT,gdim,ideg>(msh, iface, 2, ied, sz);
+      }
+
+
       // Attribute quality between 0 and 1, multiplicatively symmetric: 
       // i.e. q(sqrt2) = q(1/sqrt2). 
       quaol[ied] = len < 1.0 ? 1.0 - len 
                              : 1.0 - 1.0 / len;
       CPRINTF1(" - edge %d length %f quality %15.7e\n",ied,len, quaol[ied]);
+
+      #if 0
+      if(istop){if constexpr(gdim == 3){
+
+        printf("## DEBUG recompute using getlenedg_geosz_plane\n");
+        int edg2pol[2];
+        edg2pol[0] = msh.fac2poi(iface, lnoed2[ied][0]);
+        edg2pol[1] = msh.fac2poi(iface, lnoed2[ied][1]);
+        double nrmals[2][3];
+        getnorpoiref(msh, edg2pol[0], iref, nrmals[0]);
+        getnorpoiref(msh, edg2pol[1], iref, nrmals[1]);
+        //printf("edg2pol = %d %d \n",edg2pol[0],edg2pol[1]);
+        //printf("Got normal 1:");
+        //dblAr1(3,nrmals[0]).print();
+        //printf("Got normal 2:");
+        //dblAr1(3,nrmals[1]).print();
+        //printf("Diff = %e \n",sqrt(geterrl2<gdim>(nrmals[0],nrmals[1])));
+        double len2 = getlenedg_geosz_plane<MFT,gdim,ideg>(msh, edg2pol, nrmals[0], sz);
+        printf("Got new length %e \n",len2);
+        wait();
+
+      }}
+      if(istop){
+        printf("## Debug try creating control point here, curve the edge, then recompute length\n");
+        
+        double offset[3];
+        int iedt = getedgtet(msh, iele0, msh.fac2poi(iface, lnoed2[iface][0]), 
+                                         msh.fac2poi(iface, lnoed2[iface][1]));
+        METRIS_ASSERT(iedt >= 0);
+        getBezOffsetsEdge<MFT,gdim,1>(msh, 3, msh.tet2poi[iele0], iedt, offset);
+
+        int edg2pol[3];
+        edg2pol[0] = msh.fac2poi(iface, lnoed2[iface][0]);
+        edg2pol[1] = msh.fac2poi(iface, lnoed2[iface][1]);
+        edg2pol[2] = msh.newpoitopo(2, -1);
+        for(int ii = 0; ii < gdim; ii++)
+          msh.coord(edg2pol[2],ii) = offset[ii];
+
+        double bary[2] = {0.5, 0.5};
+
+        msh.met.getMetBary(AsDeg::P1,DifVar::None,
+                           msh.met.getSpace(),
+                           edg2pol,1,bary,msh.met[edg2pol[2]],NULL);
+
+        double len2 = getlenedg_geosz<MFT,gdim,2>(msh, edg2pol, sz);
+        printf("Got new length %e \n",len2);
+
+        msh.newbpotopo(edg2pol[2],0,edg2pol[2]);
+        writeMesh("debug_curved",msh);
+
+
+        msh.killpoint(edg2pol[2]);
+      }
+      #endif
+
     }
     CPRINTF1(" - candidate neighbour %d has qual %e\n",ifac2,quaol[ied]);
   }
@@ -268,9 +363,9 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     if(spnorm >= 0){
       //qunw2 = metqua0<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,fac2pol[1],1.0);
       qunw2 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,nfac0+1,1.0);
+      CPRINTF1(" - new face quality = %f \n",qunw2);
     }
 
-    CPRINTF1(" - new face quality = %f \n",qunw2);
     
     msh.set_nface(nfac0);
     if constexpr (gdim >= 3){
@@ -288,7 +383,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     }else{
       qnrm1 = qunw1;
     }
-    if(spnorm >= 0 && qnrm1 + opt.swap_thres > qnrm0) continue; 
+    if(spnorm >= 0 && qnrm1 + opt.swap_thres > qnrm0) continue;
 
     cav.lcfac[1] = ifac2;
     cav.ipins = msh.fac2poi(iface,ied);
@@ -301,12 +396,28 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       shell(msh, ip1, ip2, 3, iele0, dum, dum, cav.lctet, &iopen);
     }
 
-    CPRINTF1(" - enact swap ||(%f,%f)|| = %f -> ||(%f,%f)|| = %f \n ",
-                                           quae1,quae2,qnrm0,qunw1,qunw2,qnrm1);
+    if(spnorm >= 0){
+      CPRINTF1(" - enact swap ||(%f,%f)|| = %f -> ||(%f,%f)|| = %f \n ",
+                                             quae1,quae2,qnrm0,qunw1,qunw2,qnrm1);
+    }else{
+      CPRINTF1(" - enact swap %f -> %f\n ",qnrm0,qnrm1);
+    }
     if(tdim == 3) CPRINTF1(" - cavity ntetr %d \n",cav.lctet.get_n());
 
     int ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithread);
   
+    #if 0
+    if(istop){
+      istop = false;
+      msh.param->iverb = iverb0;
+      msh.param->ivdepth = ivdepth0;
+      if(info.done && ierro == 0){
+        writeMesh("debug_swapface1", msh);
+        printf("## DEBUG STOP HERE \n");
+        wait();
+      }
+    }
+    #endif
     if(info.done && ierro == 0){
       CPRINTF1("-- END swapface did %d - %d -> %d - %d \n",iface,
                                                  ifac2,msh.nface-2,msh.nface-1);
@@ -314,10 +425,15 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     }
   }
 
-  //if(istop){
-  //  printf("## DEBUG STOP HERE \n");
-  //  wait();
-  //}
+  #if 0
+  if(istop){
+    msh.param->iverb = iverb0;
+    msh.param->ivdepth = ivdepth0;
+    //writeMesh("debug_swapface1", msh);
+    //printf("## DEBUG STOP HERE \n");
+    //wait();
+  }
+  #endif
   return 0;
 }
 

@@ -71,7 +71,8 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
   // Assumptions used throughout: ninsp is ordered in increasing order, as is range
   CPRINTF1("-- START insPointsCurve iref %d\n",iref);
   METRIS_ENFORCE(lnewt[0] > range[0]);
-  METRIS_ENFORCE(ninsp == 1 || lnewt[1] > lnewt[0]);
+  METRIS_ENFORCE_MSG(ninsp >= 1 || lnewt[1] > lnewt[0],
+    "ninsp = "<<ninsp<<" lnewt = "<<lnewt[0]<<" "<<lnewt[1]);
 
 
   // Fill edges seeds for extremities
@@ -382,7 +383,9 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
 
           intAr1 dum;
           shell3(msh, ipoi1, ipoi2, iele0, lshell, dum, &iopen);
-          METRIS_ASSERT(iopen != 0); // should all be open shells.
+          // should all be open shells.
+          METRIS_ASSERT_MSG(iopen >= 0," shell is closed ipoi1 = "<<ipoi1
+            <<" ipoi2 = "<<ipoi2);
 
           for(int ielem : lshell){
             if(msh.tet2tag(ithrd1,ielem) >= msh.tag[ithrd1]) continue;

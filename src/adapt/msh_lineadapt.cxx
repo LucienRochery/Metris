@@ -880,19 +880,128 @@ template void adaptGeoLines<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &
 template void adaptGeoLines<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh);
 
 
+// Improved and simplified: old version did a binary refinement and computed 
+// length in the metric of sub-edges. 
+// This was bad for many reasons:
+//  - slow
+//  - stopping criterion depends on the metric 
+//  - discrete metric would not align with curve and lead to gross overestimation
+//  of length.
+// Now we simply compute arc length using EG_arcLength and then apply a geometric
+// metric size interpolation (see getlenedg_geosz). The sizes are given by 
+// CAD unit tangent sizes in the metric. If no CAD, then discrete tangent. 
+template<class MFT>
+void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
+  GETVDEPTH(msh.param);
+
+  CPRINTF2(" - START getCADCurveLengths\n");
+  
+  METRIS_ENFORCE(msh.met.getSpace() == MetSpace::Exp);
+
+  const int nref = msh.CAD.ncaded;
+  crv_len.set_n(nref);
+
+  const int gdim = msh.idim;
+
+  double result[18];
+  const int nnmet = (msh.idim*(msh.idim + 1)) / 2;
+
+  // add two dummy points 
+  int ipon[2]; 
+  ipon[0] = msh.newpoitopo(-1,-1);
+  ipon[1] = msh.newpoitopo(-1,-1);
+  int edg2pol[2] = {ipon[0], ipon[1]};
+  double sz[2];
+
+
+  bool noCAD = !msh.CAD();
+
+
+  for(int iedge = 0; iedge < msh.nedge; iedge++){
+    INCVDEPTH(msh.param);
+    if(isdeadent(iedge,msh.edg2poi)) continue;
+    int iref = msh.edg2ref[iedge]; 
+
+    // Compute sizes at extremities
+    double sz[2];
+
+    // Get sizes at vertices and edge length
+    double lene = -1;
+
+    for(int iver = 0; iver < 2; iver++){
+      int ipoin = msh.edg2poi(iedge, iver);
+      double tanp[3];
+      int ierro = gettanpoiref(msh, ipoin, iref, tanp);
+      sz[iver] = gdim == 2 ? getlenedg<2>(tanp, msh.met[ipoin])
+                           : getlenedg<3>(tanp, msh.met[ipoin]);
+    }
+    if(noCAD){
+
+      // Edge tangent and len (weight) only for computing vertex tangents.
+      double tane[3];
+      for(int ii = 0; ii < gdim; ii++)
+        tane[ii] = msh.coord(msh.edg2poi(iedge,0),ii) 
+                 - msh.coord(msh.edg2poi(iedge,1),ii);
+      double tanp[3];
+      lene = gdim == 2 ? sqrt(getnrml2<2>(tane))
+                       : sqrt(getnrml2<3>(tane));
+      METRIS_ASSERT(lene*lene >= Constants::vecNrmTol);
+
+    }else{// if noCAD
+
+      ego obj = msh.CAD.cad2edg[iref];
+      double tt[2];
+      for(int iver = 0; iver < 2; iver++){
+        int ipoin = msh.edg2poi(iedge,iver);
+        int ibpoi = msh.poi2ebp(ipoin,1,iedge,-1);
+        METRIS_ASSERT(ibpoi >= 0);
+
+        tt[iver] = msh.bpo2rbi(ibpoi, 0);
+
+        CPRINTF3(" - iedge %d ver %d ibpoi %d t %f\n",iedge,iver,ibpoi,tt[iver]);
+      }
+      int ierro = EG_arcLength(obj, tt[0], tt[1], &lene);
+      METRIS_ENFORCE(ierro == EGADS_SUCCESS);
+
+    }// if noCAD
+
+    // Lastly, apply geometric size interpolation (see getlenedg_geosz)
+    double aa = sz[0]/sz[1];
+    if(abs(aa-1.0) < 1.0e-12){
+      lene *= sz[1];
+    }else{
+      lene *= sz[1] * (aa-1.0)/log(aa);
+    }
+
+    crv_len[iref] += lene;
+    CPRINTF3(" - iref %d iedge %d len + %e\n",iref,iedge,lene);
+
+  } // for int iedge 
+
+
+  if(DOPRINTS1()){
+    for(int iref = 0; iref < nref; iref++)
+      CPRINTF1(" - END line %d/%d len = %f\n",iref, nref, crv_len[iref]);
+
+  }
+
+}
+template void getCADCurveLengths<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, double tol, dblAr1 &crv_len);
+template void getCADCurveLengths<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, double tol, dblAr1 &crv_len);
+
+
+
+
 // Binary refinement until tolerance is met after split. 
 // ref2cor should, for each edge reference, give its two end points. 
 template<class MFT>
-void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
+void getCADCurveLengths_old(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
   GETVDEPTH(msh.param);
 
   const int nref = msh.CAD.ncaded;
   crv_len.set_n(nref);
 
-  //MetSpace ispac0 = msh.met.getSpace();
-  //msh.met.setSpace(MetSpace::Log);
-
-  CPRINTF2(" - START getCADCurveLengths\n");
+  CPRINTF2(" - START getCADCurveLengths_old\n");
 
   double result[18];
   const int nnmet = (msh.idim*(msh.idim + 1)) / 2;
@@ -911,8 +1020,6 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
     ref2ned[iref] ++;
   }
 
-
-  //for(int ii = 0; ii < nref; ii++) crv_len0[ii] = crv_len[ii];
 
   // Initialize crv_len using initial mesh. This is simply for normalization 
   // purposes. 
@@ -1122,23 +1229,6 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
             METRIS_THROW(GeomExcept());
           }
           #endif
-
-          //double lmet[6];
-          //for(int ii = 0; ii < nnmet; ii++) 
-          //   lmet[ii] =        dtprd  * msh.met(ipoi1,ii) 
-          //            + (1.0 - dtprd) * msh.met(ipoi2,ii);
-          //if(msh.idim == 2){
-          //  getexpmet_cpy<2>(lmet, msh.met[ipon[1 - iwhich]]);
-          //}else{
-          //}
-
-          // No need! The front is the back still (ran first thing adaptMesh)
-          // Localize new point in back mesh
-          //int isdnew; 
-          //ierro = msh.interpMetBack(msh.coord[ipon[1 - iwhich]],ibseed,&isdnew,
-          //                          msh.met[ipon[1 - iwhich]]);
-          //METRIS_ENFORCE(ierro == 0);
-          //ibseed = isdnew; 
         }
 
 
@@ -1209,8 +1299,8 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
 }
 
 
-template void getCADCurveLengths<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, double tol, dblAr1 &crv_len);
-template void getCADCurveLengths<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, double tol, dblAr1 &crv_len);
+template void getCADCurveLengths_old<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, double tol, dblAr1 &crv_len);
+template void getCADCurveLengths_old<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, double tol, dblAr1 &crv_len);
 
 
 

@@ -41,7 +41,10 @@ namespace Defaults{
 
   const int opt_swap_niter = 100;
   const int opt_swap_pnorm = opt_pnorm;
-  const double opt_swap_thres = 0.0;
+  const double opt_swap_thres = 1.0e-16;
+
+  // tolerance for surface snapping in intrinsic metric case
+  const double met_snap_tol = 1.0e-3;
 
   // What factor to multiply sizes by when realloc necessary.
   const double mem_growfac = 1.5;

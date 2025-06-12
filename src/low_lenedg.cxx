@@ -9,6 +9,7 @@
 #include "linalg/symidx.hxx"
 #include "linalg/matprods.hxx"
 #include "low_geo.hxx"
+#include "low_normal.hxx"
 
 
 namespace Metris{
@@ -166,7 +167,6 @@ double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
 }
 
 
-
 // Same but also return the sizes (e.g. for insertion)
 template<class MetricFieldType, int gdim, int ideg>
 double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,const int *edg2pol, double *sz){
@@ -174,20 +174,132 @@ double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,const int *edg2pol, doub
   double dum[nnmet],tang[gdim];
   double bar1[2];//,bary[tdimn+1];
  
-  for(int ii = 0; ii < 2; ii++){
-    bar1[0] = 1.0 - (double) ii;
-    bar1[1] = (double) ii;
-    eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), 
-                     DifVar::Bary, DifVar::None, 
-                     bar1, dum, tang, NULL);
+  if constexpr (ideg > 1){
+    for(int ii = 0; ii < 2; ii++){
+      bar1[0] = 1.0 - (double) ii;
+      bar1[1] = (double) ii;
+      eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), 
+                       DifVar::Bary, DifVar::None, 
+                       bar1, dum, tang, NULL);
 
- 
-    if(msh.met.getSpace() == MetSpace::Log){
-      sz[ii] = getlenedg_log<gdim>(tang,msh.met[edg2pol[ii]],100,1.0e-6);
-    }else{
-      sz[ii] = getlenedg<gdim>(tang,msh.met[edg2pol[ii]]);
+   
+      if(msh.met.getSpace() == MetSpace::Log){
+        sz[ii] = getlenedg_log<gdim>(tang,msh.met[edg2pol[ii]],100,1.0e-6);
+      }else{
+        sz[ii] = getlenedg<gdim>(tang,msh.met[edg2pol[ii]]);
+      }
+
     }
+  }else{// ideg == 1
+    for(int ii = 0; ii < gdim; ii++) tang[ii] = msh.coord(edg2pol[1],ii)
+                                              - msh.coord(edg2pol[0],ii);
+    if(msh.met.getSpace() == MetSpace::Log){
+      sz[0] = getlenedg_log<gdim>(tang,msh.met[edg2pol[0]],100,1.0e-6);
+      sz[1] = getlenedg_log<gdim>(tang,msh.met[edg2pol[1]],100,1.0e-6);
+    }else{
+      sz[0] = getlenedg<gdim>(tang,msh.met[edg2pol[0]]);
+      sz[1] = getlenedg<gdim>(tang,msh.met[edg2pol[1]]);
+    }
+  }
 
+  double a = sz[0]/sz[1];
+  double len = -1;
+  if(abs(a-1.0) < 1.0e-12){
+    len = sz[1];
+  }else{
+    len = sz[1] * (a-1.0)/log(a);
+  }
+
+  return len;
+}
+
+
+
+// This version uses surface tangent directions to compute the metric size at 
+// the edge extremities. 
+template<class MetricFieldType, int gdim, int ideg>
+double getlenedg_geosz_plane(MeshMetric<MetricFieldType> &msh,
+                             int ientt, int tdimn, int iedg, 
+                             double *sz){
+  static_assert(gdim == 3);
+  METRIS_ASSERT(tdimn < gdim);
+  METRIS_ASSERT(tdimn == 2); // we need a surface ref
+
+  const int nedgl = (tdimn*(tdimn+1))/2;
+
+  int lnoed1[1][2] = {{0, 1}};
+  const intAr2 lnoed(nedgl,2,tdimn == 1 ? lnoed1[0] :
+                             tdimn == 2 ? lnoed2[0] : lnoed3[0]);
+
+  intAr2 &ent2poi = tdimn == 1 ? msh.edg2poi : 
+                    tdimn == 2 ? msh.fac2poi : msh.tet2poi;
+
+  int edg2pol[getnnod1(ideg)];
+
+  edg2pol[0] = ent2poi(ientt,lnoed[iedg][0]);
+  edg2pol[1] = ent2poi(ientt,lnoed[iedg][1]);
+  int idx0 = tdimn + 1 + iedg*(ideg-1);
+  for(int ii = 0; ii < ideg-1; ii++){
+    edg2pol[2+ii] = ent2poi[ientt][idx0+ii];
+  }
+
+  double nrmals[2][3];
+  int iref = msh.fac2ref[ientt];
+  getnorpoiref(msh, edg2pol[0], iref, nrmals[0]);
+  getnorpoiref(msh, edg2pol[1], iref, nrmals[1]);
+
+  return getlenedg_geosz_plane<MetricFieldType,gdim,ideg>(msh,&edg2pol[0],nrmals[0],sz);
+}
+
+// Provide unit normals to project on plane. 
+template<class MetricFieldType, int gdim, int ideg>
+double getlenedg_geosz_plane(MeshMetric<MetricFieldType> &msh,
+                             const int *edg2pol, double *nrmals, double *sz){
+  constexpr int nnmet = (gdim*(gdim+1))/2;
+  double dum[nnmet],tang[gdim];
+  double bar1[2];//,bary[tdimn+1];
+  static_assert(gdim == 3);
+ 
+  if constexpr (ideg > 1){
+    for(int ii = 0; ii < 2; ii++){
+      bar1[0] = 1.0 - (double) ii;
+      bar1[1] = (double) ii;
+      eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), 
+                       DifVar::Bary, DifVar::None, 
+                       bar1, dum, tang, NULL);
+
+      double dtprd = getprdl2<gdim>(tang, &nrmals[gdim*ii]);
+      for(int jj = 0; jj < gdim; jj++) tang[jj] -= dtprd*nrmals[gdim*ii + jj];
+   
+      if(msh.met.getSpace() == MetSpace::Log){
+        sz[ii] = getlenedg_log<gdim>(tang,msh.met[edg2pol[ii]],100,1.0e-6);
+      }else{
+        sz[ii] = getlenedg<gdim>(tang,msh.met[edg2pol[ii]]);
+      }
+
+    }
+  }else{// ideg == 1
+    for(int ii = 0; ii < gdim; ii++) tang[ii] = msh.coord(edg2pol[1],ii)
+                                              - msh.coord(edg2pol[0],ii);
+
+    double dtpr1 = getprdl2<gdim>(tang, &nrmals[gdim*0]);
+    double dtpr2 = getprdl2<gdim>(tang, &nrmals[gdim*1]);
+    double tan1[3], tan2[3];
+    for(int jj = 0; jj < gdim; jj++) tan1[jj] = tang[jj] - dtpr1*nrmals[gdim*0 + jj];
+    for(int jj = 0; jj < gdim; jj++) tan2[jj] = tang[jj] - dtpr2*nrmals[gdim*1 + jj];
+
+    //printf("Debug dtpr1 = %e dtpr2 = %e\n",dtpr1, dtpr2);
+    //printf("Debug tang = %f %f %f\n",tang[0],tang[1],tang[2]);
+    //printf("Debug nrmal1 = %f %f %f\n",nrmals[gdim*0+0],nrmals[gdim*0+1],nrmals[gdim*0+2]);
+    //printf("Debug nrmal2 = %f %f %f\n",nrmals[gdim*1+0],nrmals[gdim*1+1],nrmals[gdim*1+2]);
+
+    if(msh.met.getSpace() == MetSpace::Log){
+      sz[0] = getlenedg_log<gdim>(tan1,msh.met[edg2pol[0]],100,1.0e-6);
+      sz[1] = getlenedg_log<gdim>(tan2,msh.met[edg2pol[1]],100,1.0e-6);
+    }else{
+      sz[0] = getlenedg<gdim>(tan1,msh.met[edg2pol[0]]);
+      sz[1] = getlenedg<gdim>(tan2,msh.met[edg2pol[1]]);
+    }
   }
 
   double a = sz[0]/sz[1];
@@ -227,7 +339,15 @@ template double getlenedg_geosz<MetricFieldFE        , 2, n >(\
 template double getlenedg_geosz<MetricFieldAnalytical, 3, n >(\
         MeshMetric<MetricFieldAnalytical> &msh,const int *edg2pol, double *sz);\
 template double getlenedg_geosz<MetricFieldFE        , 3, n >(\
-        MeshMetric<MetricFieldFE        > &msh,const int *edg2pol, double *sz);
+        MeshMetric<MetricFieldFE        > &msh,const int *edg2pol, double *sz);\
+template double getlenedg_geosz_plane<MetricFieldAnalytical, 3, n >(\
+        MeshMetric<MetricFieldAnalytical> &msh,int ientt, int tdimn, int iedg, double* sz);\
+template double getlenedg_geosz_plane<MetricFieldFE        , 3, n >(\
+        MeshMetric<MetricFieldFE        > &msh,int ientt, int tdimn, int iedg, double* sz);\
+template double getlenedg_geosz_plane<MetricFieldAnalytical, 3, n >(\
+        MeshMetric<MetricFieldAnalytical> &msh,const int *edg2pol, double *nrmals, double *sz);\
+template double getlenedg_geosz_plane<MetricFieldFE        , 3, n >(\
+        MeshMetric<MetricFieldFE        > &msh,const int *edg2pol, double *nrmals, double *sz);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 
@@ -317,16 +437,26 @@ double getlenedg_quad(MeshMetric<MetricFieldType> &msh,
   for(int iquad = 0; iquad < nquad; iquad++){
 
     if constexpr(ideg > 1){
-      bar1[0] = iquad/(nquad-1.0);
-      bar1[1] = 1.0 - bar1[0];
+      if(nquad > 1){
+        bar1[0] = iquad/(nquad-1.0);
+        bar1[1] = 1.0 - bar1[0];
+      }else{
+        bar1[0] = 0.5;
+        bar1[1] = 0.5;
+      }
       eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), DifVar::Bary, DifVar::None, 
                        bar1,  dum, tang, NULL);
     }
 
     if(!atnodes){
       if constexpr(ideg == 1){ // case where not previously init
-        bar1[0] = iquad/(nquad-1.0);
-        bar1[1] = 1.0 - bar1[0];
+        if(nquad > 1){
+          bar1[0] = iquad/(nquad-1.0);
+          bar1[1] = 1.0 - bar1[0];
+        }else{
+          bar1[0] = 0.5;
+          bar1[1] = 0.5;
+        }
       }
       msh.met.getMetBary(AsDeg::Pk, DifVar::None, 
                          MetSpace::Exp, edg2pol, 1, bar1, metl, NULL);

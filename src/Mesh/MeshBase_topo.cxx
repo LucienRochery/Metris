@@ -410,37 +410,37 @@ int MeshBase::tetedg2glo(int ielem, int iedl) const{
 
 
 template <int ideg>
-int MeshBase::getveredg(int iedge, int ipoin){
+int MeshBase::getveredg(int iedge, int ipoin) const{
   for(int ii = 0 ; ii < getnnod1(ideg); ii++){
     if(edg2poi(iedge,ii) == ipoin) return ii;
   }
   return -1;
 }
 template <int ideg>
-int MeshBase::getverfac(int iface, int ipoin){
+int MeshBase::getverfac(int iface, int ipoin) const{
   for(int ii = 0 ; ii < getnnod2(ideg); ii++){
     if(fac2poi(iface,ii) == ipoin) return ii;
   }
   return -1;
 }
 template <int ideg>
-int MeshBase::getvertet(int ielem, int ipoin){
+int MeshBase::getvertet(int ielem, int ipoin) const{
   for(int ii = 0 ; ii < getnnod3(ideg); ii++){
     if(tet2poi(ielem,ii) == ipoin) return ii;
   }
   return -1;
 }
 #define BOOST_PP_LOCAL_MACRO(n)\
-template int MeshBase::getveredg<n>(int ientt, int ipoin);\
-template int MeshBase::getverfac<n>(int ientt, int ipoin);\
-template int MeshBase::getvertet<n>(int ientt, int ipoin);
+template int MeshBase::getveredg<n>(int ientt, int ipoin) const;\
+template int MeshBase::getverfac<n>(int ientt, int ipoin) const;\
+template int MeshBase::getvertet<n>(int ientt, int ipoin) const;
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 
 
 
 
-int MeshBase::getverent(int ientt, int tdimn, int ipoin){
+int MeshBase::getverent(int ientt, int tdimn, int ipoin) const{
   int iver;
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == curdeg){
     if(tdimn == 1){
@@ -455,7 +455,7 @@ int MeshBase::getverent(int ientt, int tdimn, int ipoin){
 }
 
 template <int ideg>
-int MeshBase::getverent(int ientt, int tdimn, int ipoin){
+int MeshBase::getverent(int ientt, int tdimn, int ipoin) const{
   if(tdimn == 1){
     return getveredg<ideg>(ientt,ipoin);
   }else if(tdimn == 2){
@@ -466,7 +466,7 @@ int MeshBase::getverent(int ientt, int tdimn, int ipoin){
   return -2;
 }
 #define BOOST_PP_LOCAL_MACRO(n)\
-template int MeshBase::getverent<n>(int ientt, int tdimn, int ipoin);
+template int MeshBase::getverent<n>(int ientt, int tdimn, int ipoin) const;
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

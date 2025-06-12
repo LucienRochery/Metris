@@ -14,6 +14,7 @@
 #include "utils/CT_loop.hxx"
 #include "io_libmeshb.hxx"
 #include "low_ccoef.hxx"
+#include "low_normal.hxx"
 #include "utils/mprintf.hxx"
 
 namespace Metris{
@@ -35,11 +36,8 @@ void check_topo(MeshBase &msh,
     // Absolute difference CAD -> point
     const double geotol = 1.0e+6;
 
-    int tdim = msh.idim;
-    const int jdeg = tdim * (msh.curdeg - 1);
-    const int ncoef = tdim == 2 ? getnnod2(jdeg)
-                                : getnnod3(jdeg);
-    dblAr1 ccoef(ncoef);
+    const int jdeg = msh.idim * (msh.curdeg - 1);
+    dblAr1 ccoef(getnnode(msh.idim,jdeg));
 
 
     // 1 check not nan coords
@@ -53,16 +51,21 @@ void check_topo(MeshBase &msh,
       }
     }
 
-    if(tdim > msh.get_tdim()) goto aftervalidity;
 
-
-    CT_FOR0_INC(2,3,idim){if(idim == tdim){
+    CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
+    CT_FOR0_INC(2,gdim,tdim){if(tdim <= msh.get_tdim()){
       int nentt = msh.nentt(tdim);
-      intAr2 &ent2poi = msh.ent2poi(tdim);
+      const intAr2 &ent2poi = msh.ent2poi(tdim);
       for(int ientt = 0; ientt < nentt; ientt++){
         if(isdeadent(ientt,ent2poi)) continue;
+
+        double nrmal[3];
+        if constexpr(tdim == 2 && gdim == 3){
+          getnorfacP1(msh.fac2poi[ientt], msh.coord, nrmal);
+        }
+
         bool iflat;
-        double meas = getmeasentP1<idim,idim>(msh,ent2poi[ientt],NULL,&iflat);
+        double meas = getmeasentP1<gdim,tdim>(msh,ent2poi[ientt],nrmal,&iflat);
         if(iflat || meas <= 0){
           printf("## FLAT ELEMENT %d \n",ientt);
           writeMesh("flat"+std::to_string(ientt),msh);
@@ -70,7 +73,7 @@ void check_topo(MeshBase &msh,
         }
         if(msh.curdeg > 1){
           CT_FOR0_INC(2,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-            getsclccoef<idim,idim,ideg>(msh,ientt,NULL,&ccoef[0],&iflat);
+            getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,&ccoef[0],&iflat);
           }}CT_FOR1(ideg);
           if(iflat){
             printf("## NEGATIVE JACOBIAN %d \n ",ientt);
@@ -78,9 +81,10 @@ void check_topo(MeshBase &msh,
             METRIS_THROW(GeomExcept());
           }
         }
-
       }
-    }}CT_FOR1(idim);
+    }}CT_FOR1(tdim);
+    }}CT_FOR1(gdim);
+
 
     aftervalidity:
 
@@ -269,6 +273,29 @@ void check_topo(MeshBase &msh,
     }
 
 
+    for(int itetr = 0; itetr < nelem; itetr++){
+      if(isdeadent(itetr,msh.tet2poi)) continue;
+      int idom1 = msh.tet2ref[itetr];
+      for(int ifa = 0; ifa < 4; ifa++){
+        int ip1 = msh.tet2poi(itetr,lnofa3[ifa][0]);
+        int ip2 = msh.tet2poi(itetr,lnofa3[ifa][1]);
+        int ip3 = msh.tet2poi(itetr,lnofa3[ifa][2]);
+
+        int iface = getfacglo(msh, ip1, ip2, ip3);
+
+        int itet2 = msh.tet2tet(itetr, ifa);
+        if(itet2 < 0){
+          METRIS_ENFORCE_MSG(iface >= 0, "No face on domain boundary");
+        }else{
+          int idom2 = msh.tet2ref[itetr];
+          if(idom1 == idom2){
+            METRIS_ENFORCE_MSG(iface < 0, "Face found between same ref tetras")
+          }else{
+            METRIS_ENFORCE_MSG(iface >= 0, "No face between two ref tetras")
+          }
+        }
+      }
+    }
 
 
     for(int ipoin = 0; ipoin < npoin; ipoin++){
@@ -871,6 +898,20 @@ void check_topo(MeshBase &msh,
           int iref = msh.edg2ref[ientt];
           obj = msh.CAD.cad2edg[iref];
         }else if(tdim == 2){
+          if(isdeadent(ientt,msh.fac2poi)){
+            printf("ibpoi points to dead entity\n");
+            printf("tdim = %d ientt = %d ibpoi = %d ipoin = %d\n",
+              tdim, ientt, ibpoi, ipoin);
+            printf("Full bpo list:\n");
+            for(int ibpo2 = msh.poi2bpo[ipoin]; ibpo2 >= 0; ibpo2 = msh.bpo2ibi(ibpo2,3)){
+              printf("%d : ",ibpo2);
+              intAr1(nibi, msh.bpo2ibi[ibpo2]).print();
+            }
+            printf("poi2ent = %d %d \n",msh.poi2ent(ipoin,0),msh.poi2ent(ipoin,1));
+            int ient2 = msh.poi2ent(ipoin,0);
+            int tdim2 = msh.poi2ent(ipoin,1);
+            if(ient2 >= 0) printf(" isdead? %d\n",isdeadent(ient2,msh.ent2poi(tdim2)));
+          }
           METRIS_ENFORCE_MSG(!isdeadent(ientt,msh.fac2poi),"ibpoi points to non-dead entity");
           int iref = msh.fac2ref[ientt];
           obj = msh.CAD.cad2fac[iref];

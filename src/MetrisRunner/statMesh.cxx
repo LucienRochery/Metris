@@ -45,8 +45,8 @@ void MetrisRunner::statMesh0(MeshStat* stat){
 
   intAr2 ilned, ilned_bdry;
   dblAr1 rlned, rlned_bdry;
-  getLengthEdges<MFT>(msh,tdim,ilned,rlned,LenTyp::GeoSiz);
-  getLengthEdges<MFT>(msh,tdim-1,ilned_bdry,rlned_bdry,LenTyp::GeoSiz);
+  getLengthEdges<MFT>(msh,tdim  ,-1,ilned     ,rlned     ,LenTyp::GeoSiz);
+  getLengthEdges<MFT>(msh,tdim-1,-1,ilned_bdry,rlned_bdry,LenTyp::GeoSiz);
 
   if(stat != NULL){
     stat->minlen = 1.0e30;
@@ -87,7 +87,7 @@ void MetrisRunner::statMesh0(MeshStat* stat){
 
     if(DOPRINTS3()){
       // This is very expensive to compute
-      getLengthEdges<MFT>(msh,tdim,ilned,rlned,LenTyp::Quad);
+      getLengthEdges<MFT>(msh,tdim,-1,ilned,rlned,LenTyp::Quad);
       print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (quadrature)");
     }
   }

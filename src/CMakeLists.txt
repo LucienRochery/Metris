@@ -153,6 +153,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/utils/bernstein_prod.cxx
     ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays1D.cxx
     ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays2D.cxx
+    ${PROJECT_SOURCE_DIR}/src/aux_hashtab.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_topo.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_histogram.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_EGADSprinterr.cxx
@@ -169,7 +170,6 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/msh_anamet_2D.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_anamet_3D.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_inineigh.cxx
-    ${PROJECT_SOURCE_DIR}/src/msh_intrinsicmet.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_lag2bez.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_checktopo.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_degelev.cxx
@@ -228,6 +228,8 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/MetricField/MetricField_getMetNodes.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/msh_explogmet.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/msh_checkmet.cxx
+    ${PROJECT_SOURCE_DIR}/src/MetricField/msh_intrinsicmet.cxx
+    ${PROJECT_SOURCE_DIR}/src/MetricField/msh_snapmetsurf.cxx
     ${PROJECT_SOURCE_DIR}/src/SolutionField/interpError.cxx
     ${PROJECT_SOURCE_DIR}/src/SolutionField/minInterpError.cxx
     ${PROJECT_SOURCE_DIR}/src/SolutionField/SolutionField.cxx
