@@ -1,6 +1,5 @@
 # FetchContent_MakeAvailable is latest constraint:
 cmake_minimum_required(VERSION 3.14.0)
-project(Metris)
 set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -12,7 +11,18 @@ set(CMAKE_CXX_EXTENSIONS OFF) # Otherwise get -std=gnu++17 messes with intel
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 
-include(MetrisFlags)
+# Get the name of the binary directory
+STRING( TOUPPER ${CMAKE_BINARY_DIR} BIN_DIR_NAME )
+GET_FILENAME_COMPONENT( BIN_DIR_NAME ${BIN_DIR_NAME} NAME_WE )
+
+# This must come before project or we get an infinite loop.
+include(cmake/Compiler.cmake)
+
+project(Metris)
+
+include(cmake/BuildType.cmake)
+include(cmake/MetrisFlags.cmake)
+
 
 find_package(Git)
 execute_process(COMMAND "${GIT_EXECUTABLE}" config --get remote.origin.url
@@ -49,11 +59,6 @@ else()
   set(LIGHT_BUILD OFF)
   set(REQ_CODEGEN ON)
   set(DO_UNITTESTS ON)
-endif()
-
-if(NOT CMAKE_BUILD_TYPE)
-  message(WARNING "No build type defined: defaulting to Release")
-  set(CMAKE_BUILD_TYPE Release)
 endif()
 
 

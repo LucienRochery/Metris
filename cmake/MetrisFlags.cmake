@@ -13,17 +13,23 @@ function(setMetrisFlags arg1 arg2)
 endfunction()
 
 
+
+
+
 set(CBT_lower ${CMAKE_BUILD_TYPE})
 string( TOLOWER "${CBT_lower}" CBT_lower )
 
 if(CBT_lower MATCHES "memcheck")
   remove_definitions("-DNDEBUG")
 endif()
+if(CBT_lower MATCHES "relwithdebinfo")
+  remove_definitions("-DNDEBUG")
+endif()
 
 message("Metris using build type = ${CMAKE_BUILD_TYPE}")
 
 set(METRIS_WARNING_FLAGS -Wno-gnu-zero-variadic-macro-arguments  -Wno-logical-op-parentheses
-    -Wno-gcc-compat -Wno-variadic-macros)  
+                         -Wno-gcc-compat -Wno-variadic-macros)  
 set(METRIS_CXX_FLAGS ${METRIS_WARNING_FLAGS} -DMETRIS_GIT_URL="${GITURL}")
 if(USE_TRACELIBS)
   set(METRIS_CXX_FLAGS ${METRIS_CXX_FLAGS} -DBOOST_STACKTRACE_USE_ADDR2LINE)
@@ -38,36 +44,53 @@ endif()
 
 #Somehow, a straight comparison with EQUAL icc or EQUAL icc doesn't register here. Perhaps there's a space in there. 
 if(SHORT_COMPILER_NAME STREQUAL icc OR SHORT_COMPILER_NAME STREQUAL icx OR CMAKE_CXX_COMPILER_ID STREQUAL IntelLLVM)
+
   message("Using Intel compiler ${CMAKE_C_COMPILER} ${SHORT_COMPILER_NAME}")
   # NDEBUG should be set in release mode by default, but somehow this doesn't work with icc
   #  -guide=4
   #set(METRIS_CXX_FLAGS_RELEASE  -DNDEBUG -fno-alias -funroll-all-loops -fno-fnalias -fast -fno-protect-parens -Ofast -flto -diag-disable=10441 -qopt-subscript-in-range)
   set(METRIS_CXX_FLAGS_RELEASE -DNDEBUG -O3 -fPIC )
   set(METRIS_CXX_FLAGS_DEBUG   -g -O3 -diag-disable=10441 -fPIC)
+  set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_CXX_RELEASE} -g)
+
   set(METRIS_C_FLAGS_RELEASE  -O3)
   #set(METRIS_C_FLAGS_RELEASE   -fno-alias -fno-fnalias -fast -fno-protect-parens -Ofast -flto -diag-disable=10441 -qopt-subscript-in-range)
   set(METRIS_C_FLAGS_DEBUG ${METRIS_CXX_FLAGS_DEBUG})
-  message(Using Intel compiler ${CMAKE_C_COMPILER} ${SHORT_COMPILER_NAME})
+  set(METRIS_C_FLAGS_RELWITHDEBINFO ${METRIS_C_RELEASE} -g)
+
+  if(CBT_lower STREQUAL "memcheck")
+    message(FATAL_ERROR "Memcheck compiler options not defined for icc, implement in MetrisFlags.cmake")
+  endif()
+
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
+
   message("Using GNU compiler ${CMAKE_C_COMPILER} ${SHORT_COMPILER_NAME}")
-  set(METRIS_CXX_FLAGS_RELEASE  -g -fconstexpr-ops-limit=10000000 -fPIC -DNDEBUG -O3 )
+  set(METRIS_CXX_FLAGS_RELEASE  -DNDEBUG -fconstexpr-ops-limit=10000000 -fPIC -O3 )
   #set(METRIS_CXX_FLAGS_DEBUG   -Og -ggdb3 -Wall -Wextra -pedantic  -march=native -no-pie -fno-pie  -rdynamic) # -S -fverbose-asm
   set(METRIS_CXX_FLAGS_DEBUG  -fconstexpr-ops-limit=10000000 -fPIC  -Og -g -Wall -march=native ) #  -rdynamic # -S -fverbose-asm -ggdb3
   set(METRIS_CXX_FLAGS_MEMCHECK -fconstexpr-ops-limit=10000000 -fPIC -O0 -g -fsanitize=address -fno-omit-frame-pointer)
+  set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_CXX_RELEASE} -g)
 
   set(METRIS_C_FLAGS_RELEASE  ${METRIS_CXX_FLAGS_RELEASE})
   set(METRIS_C_FLAGS_DEBUG ${METRIS_CXX_FLAGS_DEBUG})
   set(METRIS_C_FLAGS_MEMCHECK ${METRIS_CXX_FLAGS_MEMCHECK})
+  set(METRIS_C_FLAGS_RELWITHDEBINFO ${METRIS_C_RELEASE} -g)
+
 elseif(CMAKE_CXX_COMPILER_ID MATCHES Clang)
+
   message("Using Clang ${CMAKE_C_COMPILER} ${SHORT_COMPILER_NAME}")
-  set(METRIS_CXX_FLAGS_RELEASE  -g -DNDEBUG -fconstexpr-steps=1000000000 -O3 -fPIC)
+  set(METRIS_CXX_FLAGS_RELEASE -DNDEBUG -fconstexpr-steps=1000000000 -march=native -O3 -fPIC)
   set(METRIS_CXX_FLAGS_DEBUG    -fconstexpr-steps=1000000000 -O0 -g  -Wall -Wextra -pedantic  -march=native  -fno-pie  -fPIC) # -S -fverbose-asm -rdynamic -ggdb3
   #set(METRIS_CXX_FLAGS_DEBUG  -fsanitize=address  -fconstexpr-steps=10000000 -O0 -g3  -march=native -fno-pie ) # -S -fverbose-asm
   set(METRIS_CXX_FLAGS_MEMCHECK   -fconstexpr-steps=1000000000 -Wall -fsanitize=address -O0 -g -fPIC) # -S -fverbose-asm
+  set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_CXX_RELEASE} -g)
+
   #-fno-omit-frame-pointer
   set(METRIS_C_FLAGS_RELEASE  ${METRIS_CXX_FLAGS_RELEASE})
   set(METRIS_C_FLAGS_DEBUG ${METRIS_CXX_FLAGS_DEBUG})
   set(METRIS_C_FLAGS_MEMCHECK ${METRIS_CXX_FLAGS_MEMCHECK})
+  set(METRIS_C_FLAGS_RELWITHDEBINFO ${METRIS_C_RELEASE} -g)
+
 else()
   message(FATAL_ERROR "Unknown compiler ID = ${CMAKE_CXX_COMPILER_ID}, SHORT_COMPILER_NAME = ${SHORT_COMPILER_NAME}")
 endif()

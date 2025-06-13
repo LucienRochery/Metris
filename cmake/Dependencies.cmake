@@ -1,6 +1,6 @@
 include(FetchContent)
 
-include(MetrisFlags)
+include(cmake/MetrisFlags.cmake)
 
  
 if(REQ_CODEGEN)
@@ -45,7 +45,7 @@ if(REQ_CODEGEN)
 endif()
 
 
-include(FindLAPACK)
+include(cmake/FindLAPACK.cmake)
 message("Got LAPACK_INCLUDE_DIRS = ${LAPACK_INCLUDE_DIRS}")
 message("Got LAPACK_LIBRARIES    = ${LAPACK_LIBRARIES}")
 
