@@ -64,21 +64,25 @@ else()
                   ${CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES} ${CMAKE_C_STANDARD_INCLUDE_DIRECTORIES}
             PATH_SUFFIXES include)
 
-  if(NOT LAPACK_INCLUDE_DIRS OR NOT EXISTS ${LAPACK_INCLUDE_DIRS})
-    message(FATAL_ERROR "find_path failed to find LAPACK_INCLUDE_DIRS ${CMAKE_INSTALL_INCLUDEDIR}"
-      " using hint 1 ${CMAKE_INSTALL_INCLUDEDIR} 2 ${CMAKE_INSTALL_FULL_INCLUDEDIR}" 
-      " 3 ${CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES}"
-      " 4 ${CMAKE_C_STANDARD_INCLUDE_DIRECTORIES} 5 ${C_INCLUDE_PATH_LIST}"
-      " 6 ${CPLUS_INCLUDE_PATH_LIST}")
-  endif()
+  #if(NOT LAPACK_INCLUDE_DIRS OR NOT EXISTS ${LAPACK_INCLUDE_DIRS})
+  #  message(FATAL_ERROR "find_path failed to find LAPACK_INCLUDE_DIRS ${CMAKE_INSTALL_INCLUDEDIR}"
+  #    " using hint 1 ${CMAKE_INSTALL_INCLUDEDIR} 2 ${CMAKE_INSTALL_FULL_INCLUDEDIR}" 
+  #    " 3 ${CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES}"
+  #    " 4 ${CMAKE_C_STANDARD_INCLUDE_DIRECTORIES} 5 ${C_INCLUDE_PATH_LIST}"
+  #    " 6 ${CPLUS_INCLUDE_PATH_LIST}")
+  #endif()
 
-  if(NOT EXISTS ${LAPACK_INCLUDE_DIRS}/lapacke.h)
-    message(FATAL_ERROR "LAPACK_INCLUDE_DIRS = ${LAPACK_INCLUDE_DIRS} does not not contain lapacke.h")
-  endif()
+  #if(NOT EXISTS ${LAPACK_INCLUDE_DIRS}/lapacke.h)
+  #  message(FATAL_ERROR "LAPACK_INCLUDE_DIRS = ${LAPACK_INCLUDE_DIRS} does not not contain lapacke.h")
+  #endif()
 
   # Try first the directory in which include/lapacke.h was found
-  get_filename_component(LAPACK_INCLUDE_DIR_PARENT ${LAPACK_INCLUDE_DIRS} DIRECTORY)
-
+  if(LAPACK_INCLUDE_DIRS)
+    get_filename_component(LAPACK_INCLUDE_DIR_PARENT ${LAPACK_INCLUDE_DIRS} DIRECTORY)
+  else()
+    set(LAPACK_INCLUDE_DIR_PARENT "")
+  endif()
+  
   find_library(LAPACK_LIBRARIES NAMES lapacke lapack 
                HINTS ${LAPACK_INCLUDE_DIR_PARENT} 
                      ${CMAKE_INSTALL_LIBDIR} # defined by GNUInstallDirs
