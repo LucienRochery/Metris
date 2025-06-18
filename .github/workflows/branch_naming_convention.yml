@@ -14,8 +14,10 @@ jobs:
           branch="${GITHUB_REF#refs/heads/}"
           echo "Using GITHUB_ACTOR = $GITHUB_ACTOR"
           echo "Using branch = $branch"
-          
-          if [[ "$branch" != "$GITHUB_ACTOR/"* ]]; then
-            echo "Error: $GITHUB_ACTOR can only push to branches named $GITHUB_ACTOR/*"
-            exit 1
+
+          if [[ $GITHUB_ACTOR != "LucienRochery" ]]; then
+            if [[ "$branch" != "$GITHUB_ACTOR/"* ]]; then
+              echo "Error: $GITHUB_ACTOR can only push to branches named $GITHUB_ACTOR/*"
+              exit 1
+            fi
           fi
