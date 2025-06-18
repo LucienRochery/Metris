@@ -11,6 +11,8 @@
 
 namespace Metris{
 
+
+
 // Constexpr here just allows these functions to be used in a constexpr context
 inline constexpr int sym2idx(int i, int j){
   return i > j ? (i*(i+1))/2 + j : (j*(j+1))/2 + i;

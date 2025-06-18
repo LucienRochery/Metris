@@ -282,28 +282,33 @@ add_library(libMetris STATIC ${SRC_SOURCES})
 setMetrisFlags(libMetris PUBLIC)
 set_property(TARGET libMetris PROPERTY CXX_STANDARD 17)
 
-target_include_directories(libMetris PRIVATE "." "..")
-target_include_directories(libMetris PUBLIC 
-                           ${PROJECT_BINARY_DIR}/src
-                           "../SANS/"
-                           "../libs"
-                           "../libs/libkdtree/"
-                           "../libs/alglib/src/"
-                           "/usr/local/include"
-                           ${LAPACK_INCLUDE_DIRS}
-                           ${ESP_ROOT}/include
-                           ${PETSC_INCLUDE}
-                           ${SRC_INCLUDE_DIRS}
-                           ${CLP_INCLUDE_DIRS}
-                           ${ABSL_INCLUDE_DIRS}
-                           ${NLOPT_INCLUDE}
-                           ${Boost_INCLUDE_DIRS}
-                           ${EIGEN3_INCLUDE_DIR}
-                           #${LPLIB_INCLUDE_DIR}
-                           )
+set(METRIS_DEPS_INCLUDE_DIRS  ${PROJECT_SOURCE_DIR}
+                              ${PROJECT_BINARY_DIR}/src
+                              ${PROJECT_SOURCE_DIR}/src
+                              ${PROJECT_SOURCE_DIR}/SANS
+                              ${PROJECT_SOURCE_DIR}/libs
+                              ${PROJECT_SOURCE_DIR}/src/libs/libkdtree/
+                              ${PROJECT_SOURCE_DIR}/src/libs/alglib/src/
+                              "/usr/local/include"
+                              ${LAPACK_INCLUDE_DIRS}
+                              ${ESP_ROOT}/include
+                              ${PETSC_INCLUDE}
+                              ${SRC_INCLUDE_DIRS}
+                              ${CLP_INCLUDE_DIRS}
+                              ${ABSL_INCLUDE_DIRS}
+                              ${NLOPT_INCLUDE}
+                              ${Boost_INCLUDE_DIRS}
+                              ${EIGEN3_INCLUDE_DIR}
+                              ${GITLIB_INCLUDE_DIR}
+                              #${LPLIB_INCLUDE_DIR}
+                              )
 if(CLP_FOUND)
-  target_include_directories(libMetris PUBLIC ${CLP_INCLUDE_DIRS})
+  set(METRIS_DEPS_INCLUDE_DIRS ${METRIS_DEPS_INCLUDE_DIRS} ${CLP_INCLUDE_DIRS})
 endif()
+
+target_include_directories(libMetris PRIVATE "." "..")
+target_include_directories(libMetris PUBLIC  ${METRIS_DEPS_INCLUDE_DIRS} )
+
 target_link_libraries(libMetris PUBLIC libmeshb
                                        SANS 
                                        #nlopt
@@ -334,4 +339,12 @@ SET_TARGET_PROPERTIES(libMetris PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
 list(APPEND CMAKE_BUILD_RPATH ${CMAKE_BINARY_DIR}/src/ ${CMAKE_BINARY_DIR}/SANS/)
 list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_BINARY_DIR}/src/ ${CMAKE_BINARY_DIR}/SANS/)
 
+# C Prepro target for debugging (optional)
+add_library(metrisPrepro STATIC ${SRC_SOURCES})
+set_property(TARGET metrisPrepro PROPERTY CXX_STANDARD 17)
+target_compile_options(metrisPrepro PUBLIC ${METRIS_CXX_FLAGS} -E)
+target_include_directories(metrisPrepro PUBLIC  ${METRIS_DEPS_INCLUDE_DIRS} )
+if(REQ_CODEGEN)
+  add_dependencies(libMetris codegen1 codegen2)
+endif()
    

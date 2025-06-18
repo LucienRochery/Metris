@@ -33,18 +33,9 @@ ftype quafun_distortion(Mesh<MFT> &msh,
 
 
   ftype tra, det;
-  #ifndef NDEBUG
-  try{
-  #endif
   quafun_tradet<MFT,gdim,tdim,ftype>(msh,asdmsh,asdmet,ent2pol,bary,
                                      met_,&tra,&det);
-  #ifndef NDEBUG
-  }catch(const MetrisExcept& e){
-    printf("##quafun_distortion excpt ent2pol = \n");
-    intAr1(getnnod2(msh.curdeg),ent2pol).print();
-    throw(e);
-  }
-  #endif
+
 
   ftype quent; 
   if constexpr (tdim == 2){
@@ -95,38 +86,6 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,\
 #undef INSTANTIATE
 #undef EXPAND_TEMPLATE
 
-#if 0
-#define EXPAND_TEMPLATE(z,ideg,SEQ) \
-                  INSTANTIATE(z,ideg,BOOST_PP_SEQ_ELEM(0, SEQ),\
-                                     BOOST_PP_SEQ_ELEM(1, SEQ),\
-                                     BOOST_PP_SEQ_ELEM(2, SEQ))
-#define REPEAT_IDEG(r,SEQ)   BOOST_PP_REPEAT(METRIS_MAX_DEG,EXPAND_TEMPLATE,SEQ)
-#define MFT_SEQ (MetricFieldFE)(MetricFieldAnalytical)
-#define ASDEG_SEQ (AsDeg::P1)(AsDeg::Pk) 
-
-
-#define INSTANTIATE(z,ideg,MFT_VAL,ASDMET,FTYPE)\
-template FTYPE quafun_distortion< MFT_VAL , 2, 2, 1+ideg, ASDMET, FTYPE>\
-                  (Mesh< MFT_VAL > &msh,\
-                   const int*__restrict__ ent2pol, \
-                   const double*__restrict__ bary, int power,\
-                   double*__restrict__ met); \
-template FTYPE quafun_distortion< MFT_VAL , 3, 2, 1+ideg, ASDMET, FTYPE>\
-                  (Mesh< MFT_VAL > &msh,\
-                   const int*__restrict__ ent2pol, \
-                   const double*__restrict__ bary, int power,\
-                   double*__restrict__ met); \
-template FTYPE quafun_distortion< MFT_VAL , 3, 3, 1+ideg, ASDMET, FTYPE>\
-                  (Mesh< MFT_VAL > &msh,\
-                   const int*__restrict__ ent2pol, \
-                   const double*__restrict__ bary, int power,\
-                   double*__restrict__ met); 
-BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG,(MFT_SEQ)(ASDEG_SEQ)(QUA_FTYPE_SEQ))
-#undef INSTANTIATE
-#undef EXPAND_TEMPLATE
-#undef REPEAT_IDEG
-#endif
-
 
 
 
@@ -147,7 +106,7 @@ Compute quality function and derivative with respect to node ivar
 - idifmet is either DifVar::None ("static" metric approximation) or DifVar::Phys
 - quael is output quality and derivatives 
 */
-template <class MFT, int gdim, typename ftype>
+template <class MFT, int gdim, int tdim, typename ftype>
 ftype d_quafun_distortion(Mesh<MFT> &msh, 
                   AsDeg asdmsh, AsDeg asdmet,
                   const int* ent2pol,
@@ -160,7 +119,6 @@ ftype d_quafun_distortion(Mesh<MFT> &msh,
                   ftype*__restrict__ hquael){
 
   const int power = msh.param->opt_power;
-  constexpr int tdim  = gdim;
   constexpr int nhess = (gdim*(gdim+1))/2;
   ftype tra, det;
   ftype dtra[gdim], htra_[nhess];
@@ -173,7 +131,7 @@ ftype d_quafun_distortion(Mesh<MFT> &msh,
     hdet = hdet_;
   }
 
-  d_quafun_tradet<MFT,gdim,ftype>
+  d_quafun_tradet<MFT,gdim,tdim,ftype>
       (msh,asdmsh,asdmet,ent2pol,bary,ivar,dofbas,idifmet,
        met_,
        &tra,dtra,htra,
@@ -265,7 +223,7 @@ ftype d_quafun_distortion(Mesh<MFT> &msh,
                               BOOST_PP_SEQ_ELEM(1, SEQ))
 
 #define INSTANTIATE(MFT_VAL,FTYPE)\
-template FTYPE d_quafun_distortion< MFT_VAL , 2, FTYPE>\
+template FTYPE d_quafun_distortion< MFT_VAL , 2, 2, FTYPE>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2pol, \
@@ -276,7 +234,18 @@ template FTYPE d_quafun_distortion< MFT_VAL , 2, FTYPE>\
                    DifVar idifmet, \
                    FTYPE*__restrict__ dquael, \
                    FTYPE*__restrict__ hquael);\
-template FTYPE d_quafun_distortion< MFT_VAL , 3, FTYPE>\
+template FTYPE d_quafun_distortion< MFT_VAL , 3, 2, FTYPE>\
+                  (Mesh< MFT_VAL > &msh,\
+                   AsDeg asdmsh, AsDeg asdmet,\
+                   const int* ent2pol, \
+                   const double*__restrict__ bary,\
+                   const double*__restrict__ met_,\
+                   int ivar, \
+                   FEBasis dofbas, \
+                   DifVar idifmet, \
+                   FTYPE*__restrict__ dquael, \
+                   FTYPE*__restrict__ hquael);\
+template FTYPE d_quafun_distortion< MFT_VAL , 3, 3, FTYPE>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2pol, \

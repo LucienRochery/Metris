@@ -6,7 +6,7 @@
 #ifndef SURREALS_FWD_H
 #define SURREALS_FWD_H
 
-#include "SANS/tools/SANSnumerics.h"
+#include "../tools/SANSnumerics.h"
 
 namespace SANS
 {

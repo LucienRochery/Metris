@@ -23,7 +23,6 @@ project(Metris)
 include(cmake/BuildType.cmake)
 include(cmake/MetrisFlags.cmake)
 
-
 find_package(Git)
 execute_process(COMMAND "${GIT_EXECUTABLE}" config --get remote.origin.url
                 WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" 
@@ -139,14 +138,14 @@ add_executable(egads2lite "progs/EGADS2lite.cxx")
 set_target_properties(metris PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 
-#message("MPI_LIBRARIES = ${MPI_LIBRARIES}")
 
 target_link_libraries(metris PUBLIC libMetris 
                                     libmeshb
                                     SANS 
                                     ${ABSL_LIBRARIES}
-                                    lapack
-                                    ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY}
+                                    ${LAPACK_LIBRARIES}
+                                    ${EGADS_LIBRARY} 
+                                    ${EGADSLITE_LIBRARY}
                                     #nlopt
 #                                   LP.3
                                     lplib3
@@ -165,7 +164,8 @@ target_link_libraries(metris PUBLIC libMetris
 
 target_link_libraries(egads2lite PUBLIC libMetris 
                                         libmeshb 
-                                        ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY}
+                                        ${EGADS_LIBRARY} 
+                                        ${EGADSLITE_LIBRARY}
                                         Boost::headers # yes this is weird
                                         ${Boost_LIBRARIES}
                                         ${Boost_PROGRAM_OPTIONS_LIBRARY})
@@ -177,13 +177,29 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/progs/scatter_rh.cxx)
                                           libmeshb 
                                           #libegads libegadslite
                                           #egads egadslite
-                                          ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY}
+                                          ${EGADS_LIBRARY} 
+                                          ${EGADSLITE_LIBRARY}
                                           Boost::headers # yes this is weird
                                           ${Boost_LIBRARIES}
                                           ${Boost_PROGRAM_OPTIONS_LIBRARY})
   target_include_directories(scatter_rh PRIVATE  "."
                              ${ESP_ROOT}/include)
   setMetrisFlags(scatter_rh PUBLIC)
+endif()
+
+if(EXISTS ${CMAKE_SOURCE_DIR}/progs/extract_surf.cxx)
+  add_executable(extract_surf "progs/extract_surf.cxx")
+  target_link_libraries(extract_surf PUBLIC libMetris 
+                                          libmeshb 
+                                          #libegads libegadslite
+                                          #egads egadslite
+                                          ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY}
+                                          Boost::headers # yes this is weird
+                                          ${Boost_LIBRARIES}
+                                          ${Boost_PROGRAM_OPTIONS_LIBRARY})
+  target_include_directories(extract_surf PRIVATE  "."
+                             ${ESP_ROOT}/include)
+  setMetrisFlags(extract_surf PUBLIC)
 endif()
 
 # Note on includes: the src lib target (libMetris) already includes publicly everything that we need
@@ -203,6 +219,17 @@ setMetrisFlags(egads2lite PUBLIC)
 # icc having trouble with GTest on my system, figure this out later
 #if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME) AND "Debug" IN_LIST CMAKE_BUILD_TYPE)
 if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME)  AND  DO_UNITTESTS)
+
+  if(DEFINED METRIS_CASES_DIR)
+    message("-- Using provided METRIS_CASES_DIR = ${METRIS_CASES_DIR}")
+  elseif(DEFINED ENV{METRIS_CASES_DIR})
+    set(METRIS_CASES_DIR $ENV{METRIS_CASES_DIR})
+    message("-- Using env var METRIS_CASES_DIR = ${METRIS_CASES_DIR}")
+  else()
+    set(METRIS_CASES_DIR "${CMAKE_SOURCE_DIR}/cases")
+    message("-- Using default METRIS_CASES_DIR = root/cases = ${METRIS_CASES_DIR}")
+  endif()
+  set(METRIS_CASES_DIR ${METRIS_CASES_DIR} CACHE PATH "Directory where Metris cases are found.")
 
   #include(FetchContent)
   #FetchContent_Declare(
@@ -247,6 +274,7 @@ if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME
     get_filename_component(d ${t} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
     add_executable(${d} ${t})
     setMetrisFlags(${d} PUBLIC)
+    target_compile_definitions(${d} PUBLIC METRIS_CASES_DIR="${METRIS_CASES_DIR}")
     target_link_libraries(${d} PUBLIC libMetris)
     target_link_libraries(${d} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
     target_link_libraries(${d} PUBLIC ${Boost_PROGRAM_OPTIONS_LIBRARY}

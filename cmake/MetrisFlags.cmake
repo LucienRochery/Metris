@@ -5,15 +5,13 @@ function(setMetrisFlags arg1 arg2)
   target_compile_options(${arg1} ${arg2} $<$<CONFIG:MEMCHECK>:${METRIS_CXX_FLAGS_MEMCHECK}>)
   target_compile_options(${arg1} ${arg2} $<$<CONFIG:DEBUG>:${METRIS_CXX_FLAGS_DEBUG}>)
   target_compile_options(${arg1} ${arg2} $<$<CONFIG:RELEASE>:${METRIS_CXX_FLAGS_RELEASE}>)
-  #target_compile_options(${arg1} ${arg2} $<$<CONFIG:DEBUG>:-fsanitize=address>)
-  #target_link_options(${arg1} ${arg2} $<$<CONFIG:DEBUG>:-fsanitize=address>)
+  target_compile_options(${arg1} ${arg2} $<$<CONFIG:RELWITHDEBINFO>:${METRIS_CXX_FLAGS_RELWITHDEBINFO}>)
+
   target_link_options(${arg1} ${arg2} $<$<CONFIG:MEMCHECK>:${METRIS_CXX_FLAGS_MEMCHECK}>)
   target_link_options(${arg1} ${arg2} $<$<CONFIG:DEBUG>:${METRIS_CXX_FLAGS_DEBUG}>)
   target_link_options(${arg1} ${arg2} $<$<CONFIG:RELEASE>:${METRIS_CXX_FLAGS_RELEASE}>)
+  target_link_options(${arg1} ${arg2} $<$<CONFIG:RELWITHDEBINFO>:${METRIS_CXX_FLAGS_RELWITHDEBINFO}>)
 endfunction()
-
-
-
 
 
 set(CBT_lower ${CMAKE_BUILD_TYPE})
@@ -22,14 +20,16 @@ string( TOLOWER "${CBT_lower}" CBT_lower )
 if(CBT_lower MATCHES "memcheck")
   remove_definitions("-DNDEBUG")
 endif()
-if(CBT_lower MATCHES "relwithdebinfo")
+if(CBT_lower MATCHES "debug")
   remove_definitions("-DNDEBUG")
 endif()
 
 message("Metris using build type = ${CMAKE_BUILD_TYPE}")
 
-set(METRIS_WARNING_FLAGS -Wno-gnu-zero-variadic-macro-arguments  -Wno-logical-op-parentheses
-                         -Wno-gcc-compat -Wno-variadic-macros)  
+set(METRIS_WARNING_FLAGS -Wno-gnu-zero-variadic-macro-arguments  
+                         -Wno-logical-op-parentheses
+                         -Wno-gcc-compat 
+                         -Wno-variadic-macros)  
 set(METRIS_CXX_FLAGS ${METRIS_WARNING_FLAGS} -DMETRIS_GIT_URL="${GITURL}")
 if(USE_TRACELIBS)
   set(METRIS_CXX_FLAGS ${METRIS_CXX_FLAGS} -DBOOST_STACKTRACE_USE_ADDR2LINE)
@@ -95,15 +95,9 @@ else()
   message(FATAL_ERROR "Unknown compiler ID = ${CMAKE_CXX_COMPILER_ID}, SHORT_COMPILER_NAME = ${SHORT_COMPILER_NAME}")
 endif()
 
-set(METRIS_CXX_FLAGS_RELEASE  ${METRIS_CXX_FLAGS_RELEASE} ${METRIS_CXX_FLAGS} )
-set(METRIS_CXX_FLAGS_DEBUG    ${METRIS_CXX_FLAGS_DEBUG} ${METRIS_CXX_FLAGS} )
-set(METRIS_CXX_FLAGS_MEMCHECK ${METRIS_CXX_FLAGS_MEMCHECK} ${METRIS_CXX_FLAGS} )
+set(METRIS_CXX_FLAGS_RELEASE        ${METRIS_CXX_FLAGS} ${METRIS_CXX_FLAGS_RELEASE})
+set(METRIS_CXX_FLAGS_DEBUG          ${METRIS_CXX_FLAGS} ${METRIS_CXX_FLAGS_DEBUG})
+set(METRIS_CXX_FLAGS_MEMCHECK       ${METRIS_CXX_FLAGS} ${METRIS_CXX_FLAGS_MEMCHECK})
+set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_CXX_FLAGS} ${METRIS_CXX_FLAGS_RELWITHDEBINFO})
 
-message("Flags = ${METRIS_CXX_FLAGS_RELEASE}")
 
-if(PREPRO STREQUAL "True")
-  message(WARNING "preprocessor mode")
-  set(METRIS_CXX_FLAGS_RELEASE  ${METRIS_CXX_FLAGS_RELEASE} -E )
-  set(METRIS_CXX_FLAGS_DEBUG ${METRIS_CXX_FLAGS_DEBUG} -E )
-  set(METRIS_CXX_FLAGS_DEBUG ${METRIS_CXX_FLAGS_MEMCHECK} -E )
-endif()

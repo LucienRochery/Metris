@@ -83,7 +83,7 @@ else()
     set(LAPACK_INCLUDE_DIR_PARENT "")
   endif()
   
-  find_library(LAPACK_LIBRARIES NAMES lapacke lapack 
+  find_library(LAPACK_LIBRARIES NAMES lapack 
                HINTS ${LAPACK_INCLUDE_DIR_PARENT} 
                      ${CMAKE_INSTALL_LIBDIR} # defined by GNUInstallDirs
                PATH_SUFFIXES lib)

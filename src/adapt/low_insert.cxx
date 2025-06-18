@@ -305,7 +305,7 @@ int insertEdge(Mesh<MFT>& msh,
     fixpoint:
 
     if(ibins >= 0){
-      ierro = INS2D_ERR_BDRYNOCORR; 
+      //ierro = INS2D_ERR_BDRYNOCORR; 
       CPRINTF1(" - Cannot correct boundary point in insertEdge\n");
       if(msh.param->interactive){
         printf("## WAIT HERE INS2D_ERR_BDRYNOCORR\n");

@@ -38,6 +38,7 @@ MetrisParameters::MetrisParameters(){
 
   adp_niter     = 0;
   adp_unit_stop = 99.9;
+  adp_stagn_stop = Defaults::adp_stagn_stop;
   adp_opt_niter = 1;
   adp_line_adapt = false;
 
@@ -218,6 +219,9 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   }
   if(opt.count("adp-unit-stop")){
     adp_unit_stop = opt.m["adp-unit-stop"].as<double>();
+  }
+  if(opt.count("adp-stat-stop")){
+    adp_stagn_stop = opt.m["adp-stat-stop"].as<double>();
   }
   if(opt.count("do-line-adp")){
     adp_line_adapt = true; 

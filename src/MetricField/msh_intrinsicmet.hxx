@@ -7,13 +7,13 @@
 #define __METRIS_MSH_INTRINSICMET__
 
 
-#include "utils/aux_misc.hxx"
-#include "Mesh/MeshMetric.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../Mesh/MeshMetric.hxx"
 
-#include "types.hxx"
+#include "../types.hxx"
 //#include "ho_constants.hxx"
-#include "aux_topo.hxx"
-#include "low_lenedg.hxx"
+#include "../aux_topo.hxx"
+#include "../low_lenedg.hxx"
 
 
 namespace Metris{

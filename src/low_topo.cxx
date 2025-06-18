@@ -68,8 +68,21 @@ int ball(MeshBase& msh, int ipoin,
     if(pdim == 1 && doedg){
       METRIS_ASSERT(lbedg.get_n() > 0);
       int iedg0 = lbedg[0];
+      METRIS_ASSERT(iedg0 >= 0);
+      METRIS_ASSERT(!isdeadent(iedg0,msh.edg2poi));
       int iver = msh.getveredg<1>(iedg0, ipoin);
-      METRIS_ASSERT(iver >= 0);
+      #ifndef NDEBUG
+      if(iver < 0){
+        printf("iedg0 %d ipoin %d \n",iedg0, ipoin);
+        printf("ipoin full bpo list:\n");
+        for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+          printf("%d : ",ibpoi);
+          intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
+        }
+      }
+      METRIS_ASSERT_MSG(iver >= 0,"got iver < 0 with iedg0 = "<<iedg0<<
+        " ipoin = "<<ipoin);
+      #endif
       int iedg1 = msh.edg2edg(iedg0,1-iver);
       if(iedg1 >= 0){
         if(msh.edg2tag(ithrd,iedg1) < msh.tag[ithrd]) lbedg.stack(iedg1);

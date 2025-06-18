@@ -8,8 +8,8 @@
 
 #include <cstddef> // std::size_t
 
-#include "SANS/tools/SANSTraitsScalar.h"
-#include "SANS//Surreal/SurrealS_fwd.h"
+#include "../tools/SANSTraitsScalar.h"
+#include "SurrealS_fwd.h"
 
 #include <concepts>
 

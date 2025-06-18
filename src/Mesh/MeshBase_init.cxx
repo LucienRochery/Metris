@@ -265,7 +265,10 @@ void MeshBase::initialize(MetrisAPI *data,
 
       METRIS_ASSERT_MSG(abs(dtprd) >= Constants::dtprdMisAlign,
         "Check meaning of apparently very badly aligned CAD and face normal. "
-        "dtprd = "<<dtprd)
+        "dtprd = "<<dtprd<<" iface = "<<iface<<
+        "\n norCAD = "<<norCAD[0]<<" "<<norCAD[1]<<" "<<norCAD[2]<<" "
+        "\n norfac = "<<nor_disc[0]<<" "<<nor_disc[1]<<" "<<nor_disc[2]
+        )
 
       int iref = fac2ref[iface];
       CPRINTF3("Debug iface %d iref %d dtprd = %f \n",iface,iref,dtprd);

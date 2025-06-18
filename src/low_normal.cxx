@@ -226,8 +226,6 @@ void getnorballref(MeshBase &msh, const intAr1 &lball, int iref, double* norpoi)
 void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
   METRIS_ASSERT(msh.idim == 3);
 
-  METRIS_ASSERT(msh.CAD());
-
   // Actually it's free when called from some cavity callers
   //if(msh.CAD()) METRIS_ASSERT(nball == 0); // We don't need this, bpos give us all
 
@@ -239,7 +237,6 @@ void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
 
   double result[18];
   double *du,*dv;
-  double nrm;
 
 
   // Whether tdimp 2 or less, we can do this loop, it'll have 1 iter if tdimp == 2 !
@@ -275,12 +272,12 @@ void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
       getnorfac(msh, iface, bary, AsDeg::Pk, norfac);
     }
     
-    if(normalize_vec<3>(norfac)) METRIS_THROW_MSG(GeomExcept(), "norfac nrm = "<<nrm);
+    if(normalize_vec<3>(norfac)) METRIS_THROW_MSG(GeomExcept(), "## norfac vanishes");
 
     for(int ii = 0; ii < 3; ii++) norpoi[ii] += norfac[ii];
   }
   
-  if(normalize_vec<3>(norpoi)) METRIS_THROW_MSG(GeomExcept(), "norpoi nrm = "<<nrm);
+  if(normalize_vec<3>(norpoi)) METRIS_THROW_MSG(GeomExcept(), "## norpoi vanishes");
 
 }
 
@@ -306,13 +303,20 @@ int gettanpoiref(const MeshBase &msh, int ipoin, int iref, double* tanpoi){
     int iref1 = msh.edg2ref[iedg1];
 
     int iedg2 = msh.edg2edg(iedg1, 1-iver1);
-    int iver2 = msh.template getveredg<1>(iedg2, ipoin);
-    int iref2 = msh.edg2ref[iedg2];
+    if(iref >= 0 && iedg2 < 0 && iref1 != iref) return 3;
+
+    int iver2 = -1, iref2 = iref;
+    bool skipref2 = false;
+    if(iedg2 >= 0){
+      iver2 = msh.template getveredg<1>(iedg2, ipoin);
+      iref2 = msh.edg2ref[iedg2];
+    }else{
+      skipref2 = true;
+    }
 
     if(iref >= 0 && iref1 != iref && iref2 != iref) return 2;
 
     // If only one to be considered, make sure it's the first
-    bool skipref2 = false;
     if(iref >= 0 && iref1 != iref){
       skipref2 = true;
 

@@ -4,12 +4,12 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#include "../linalg/eigen.hxx"
-#include "../linalg/dsyevq.hxx"
+#include "eigen.hxx"
+#include "dsyevq.hxx"
+#include "Metris_LAPACK.hxx"
 
 #include "../aux_exceptions.hxx"
 #include "../SANS/Surreal/SurrealS.h"
-#include <lapacke.h>
 
 
 namespace Metris{
@@ -25,9 +25,10 @@ void geteigsym<2,double>(const double* met,int nwork,double* rwork,double* eigva
 
   char c1 = 'V', c2 = 'U';
   int two = 2, info;
-  LAPACK_dsyev(&c1,&c2,&two,eigvec,&two,eigval,rwork,&nwork,&info);
+  // The LAPACKE version does memory allocation...
+  dsyev_(&c1,&c2,&two,eigvec,&two,eigval,rwork,&nwork,&info);
   if(info != 0)METRIS_THROW_MSG(AlgoExcept(),
-   "LAPACK_dsyev failed last ierro = "<<info<<"\n");
+   "1 dsyev failed last ierro = "<<info<<"\n");
 
 
 }
@@ -43,9 +44,9 @@ void geteigsym<3,double>(const double* met,int nwork,double* rwork,double* eigva
 
   char c1 = 'V', c2 = 'U';
   int three = 3, info;
-  LAPACK_dsyev(&c1,&c2,&three,eigvec,&three,eigval,rwork,&nwork,&info);
+  dsyev_(&c1,&c2,&three,eigvec,&three,eigval,rwork,&nwork,&info);
   if(info != 0)METRIS_THROW_MSG(AlgoExcept(),
-   "LAPACK_dsyev failed last ierro = "<<info<<"\n");
+   "2 dsyev failed last ierro = "<<info<<"\n");
 
 
 }

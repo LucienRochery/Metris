@@ -6,8 +6,7 @@
 #ifndef SANSTRAITSSCALAR_H
 #define SANSTRAITSSCALAR_H
 
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
-//#include "LinearAlgebra/DenseLinAlg/DynamicSize/MatrixD_Type.h"
+#include "../LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
 #include <concepts>
 
 #include <boost/multiprecision/cpp_bin_float.hpp>

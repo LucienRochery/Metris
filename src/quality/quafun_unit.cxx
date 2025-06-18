@@ -119,7 +119,7 @@ Compute quality function and derivative with respect to node ivar
 - idifmet is either DifVar::None ("static" metric approximation) or DifVar::Phys
 - quael is output quality and derivatives 
 */
-template <class MFT, int gdim, typename ftype>
+template <class MFT, int gdim, int tdim, typename ftype>
 ftype d_quafun_unit(Mesh<MFT> &msh,
                     AsDeg asdmsh, AsDeg asdmet,
                     const int* ent2poi,
@@ -131,7 +131,6 @@ ftype d_quafun_unit(Mesh<MFT> &msh,
                     ftype*__restrict__ dquael, 
                     ftype*__restrict__ hquael){
 
-  constexpr int tdim  = gdim;
   constexpr int nhess = (gdim*(gdim+1))/2;
   ftype tra, det;
   ftype dtra[gdim], htra_[nhess];
@@ -145,7 +144,7 @@ ftype d_quafun_unit(Mesh<MFT> &msh,
     hdet = hdet_;
   }
 
-  d_quafun_tradet<MFT,gdim,ftype>
+  d_quafun_tradet<MFT,gdim,tdim,ftype>
       (msh,asdmsh,asdmet,
        ent2poi,bary,ivar,dofbas,idifmet,met_,
        &tra,dtra,htra,
@@ -274,13 +273,32 @@ ftype d_quafun_unit(Mesh<MFT> &msh,
 
 // While cumbersome, this replaces a bunch of manual instantiations, about to 
 // be made worse the day we add tdimn as a template argument. 
-#define EXPAND_TEMPLATE(z,gdim,SEQ) \
-                  INSTANTIATE(gdim,BOOST_PP_SEQ_ELEM(0, SEQ),\
-                                   BOOST_PP_SEQ_ELEM(1, SEQ))
-#define REPEAT_GDIM(r,SEQ) BOOST_PP_REPEAT(2,EXPAND_TEMPLATE,SEQ)
+#define EXPAND_TEMPLATE(r,SEQ) \
+                  INSTANTIATE(BOOST_PP_SEQ_ELEM(0, SEQ),\
+                              BOOST_PP_SEQ_ELEM(1, SEQ))
 
-#define INSTANTIATE(gdim,MFT_VAL,FTYPE)\
-template FTYPE d_quafun_unit< MFT_VAL , 2+gdim, FTYPE>\
+#define INSTANTIATE(MFT_VAL,FTYPE)\
+template FTYPE d_quafun_unit< MFT_VAL , 2, 2, FTYPE>\
+                  (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
+                   const int* ent2poi, \
+                   const double*__restrict__ bary, \
+                   const double*__restrict__ met_, \
+                   int ivar, \
+                   FEBasis dofbas, \
+                   DifVar idifmet, \
+                   FTYPE*__restrict__ dquael, \
+                   FTYPE*__restrict__ hquael);\
+template FTYPE d_quafun_unit< MFT_VAL , 3, 2, FTYPE>\
+                  (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
+                   const int* ent2poi, \
+                   const double*__restrict__ bary, \
+                   const double*__restrict__ met_, \
+                   int ivar, \
+                   FEBasis dofbas, \
+                   DifVar idifmet, \
+                   FTYPE*__restrict__ dquael, \
+                   FTYPE*__restrict__ hquael);\
+template FTYPE d_quafun_unit< MFT_VAL , 3, 3, FTYPE>\
                   (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2poi, \
                    const double*__restrict__ bary, \
@@ -290,10 +308,10 @@ template FTYPE d_quafun_unit< MFT_VAL , 2+gdim, FTYPE>\
                    DifVar idifmet, \
                    FTYPE*__restrict__ dquael, \
                    FTYPE*__restrict__ hquael); 
-BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_GDIM,(MFT_SEQ)(QUA_FTYPE_SEQ))
+#define MFT_SEQ (MetricFieldFE)(MetricFieldAnalytical) 
+BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,(MFT_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
 #undef EXPAND_TEMPLATE
-#undef REPEAT_GDIM
 
 #undef MFT_SEQ 
 

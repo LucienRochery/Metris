@@ -10,8 +10,8 @@
 // C++11 static_assert lacks this ability
 #include <boost/mpl/assert.hpp>
 
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/tools/PromoteSurreal.h"
+#include "MatrixS_Type.h"
+#include "../tools/PromoteSurreal.h"
 
 namespace SANS
 {

@@ -10,6 +10,7 @@
 #include "utils/aux_misc.hxx"
 #include "utils/CT_loop.hxx"
 #include "Mesh/MeshMetric.hxx"
+#include "BezierOffsets/low_gaps.hxx"
 
 namespace Metris{
 
@@ -19,13 +20,13 @@ double getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref, intAr2 &ilned, d
   METRIS_ASSERT(tdim >= 1); // implement lnoed1
 
   //msh.met.setSpace(MetSpace::Log);
-  MetSpace ispac0 = msh.met.getSpace();
+  //MetSpace ispac0 = msh.met.getSpace();
 
-  if(itype == LenTyp::GeoSiz){    
-    msh.met.setSpace(MetSpace::Exp);
-  }else{
-    msh.met.setSpace(MetSpace::Log);
-  }
+  //if(itype == LenTyp::GeoSiz){    
+  //  msh.met.setSpace(MetSpace::Exp);
+  //}else{
+  //  msh.met.setSpace(MetSpace::Log);
+  //}
   int ned_unit = 0;
   int ned_totl = 0;
 
@@ -46,6 +47,17 @@ double getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref, intAr2 &ilned, d
   rlned.allocate(nentt);
   ilned.set_n(0);
   rlned.set_n(0);
+
+  int ipdum = -1;
+  if(itype == LenTyp::MetCrv){
+    ipdum = msh.newpoitopo(msh.get_tdim(), -1);
+    if(msh.getBasis() == FEBasis::Undefined || msh.curdeg == 1){
+      METRIS_ASSERT(msh.curdeg == 1);
+      msh.forceBasisFlag(FEBasis::Bezier);
+    }else{
+      METRIS_THROW_MSG(TODOExcept(), "LenType::MetCrv not implemented for Pk");
+    }
+  }
 
   for(int ientt = 0; ientt < nentt; ientt++){
     if(isdeadent(ientt,ent2poi)) continue;
@@ -78,6 +90,39 @@ double getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref, intAr2 &ilned, d
             if constexpr(gdim == 3){
               len = getlenedg_geosz_plane<MFT,gdim,ideg>(msh,ientt,tdim,iedgl,sz);
             }
+          }else if(itype == LenTyp::MetCrv){
+            METRIS_ASSERT(msh.get_tdim() == gdim);
+            double offset[gdim];
+            int ients = -1, iedgs = -1;
+            if(tdim == gdim){
+              ients = ientt;
+              iedgs = iedgl;
+            }else if(tdim == 1){
+              ients = msh.edg2fac[ientt];
+              if(gdim == 2){
+                iedgs = getedgfac(msh, ients, ip1, ip2);
+              }else{
+                ients = msh.fac2tet(ients,0);
+                iedgs = getedgtet(msh, ients, ip1, ip2);
+              }
+            }else{
+              ients = msh.fac2tet(ientt,0);
+              iedgs = getedgtet(msh, ients, ip1, ip2);
+            }
+            METRIS_ASSERT(iedgs >= 0);
+            METRIS_ASSERT(ients >= 0);
+
+            getBezOffsetsEdge<MFT, gdim, ideg>(msh, gdim, msh.ent2poi(gdim)[ients], iedgs, offset);
+
+            for(int ii = 0; ii < gdim; ii++){
+              msh.coord(ipdum, ii) = (msh.coord(ip1,ii) + msh.coord(ip2,ii))/2
+                                   + offset[ii];
+            }
+
+            double sz[2];
+            int edg2pol[3] = {ip1, ip2, ipdum};
+            len = getlenedg_geosz<MFT, gdim, 2>(msh, edg2pol, sz);
+
           }else{
             METRIS_THROW_MSG(TODOExcept(),"Size interp scheme not implemented");
           }
@@ -99,7 +144,7 @@ double getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref, intAr2 &ilned, d
     }
   }
 
-  msh.met.setSpace(ispac0);
+  //msh.met.setSpace(ispac0);
   double pct_unit = ned_unit / (double) ned_totl;
   return pct_unit;
 }

@@ -8,10 +8,9 @@
 
 #include  <type_traits>
 
-#include "SANS/tools/SANSnumerics.h"
-//#include "SANS//Surreal/always_inline.h"
+#include "../tools/SANSnumerics.h"
 
-#include "SANS//Surreal/SurrealS_fwd.h"
+#include "SurrealS_fwd.h"
 
 
 namespace SANS

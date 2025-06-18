@@ -1,5 +1,5 @@
 // Solution Adaptive Numerical Simulator (SANS)
-// Copyright 2013-2019, Massachusetts Institute of Technology
+// Copyright 2013-2025, Massachusetts Institute of Technology
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
@@ -77,6 +77,10 @@ MATRIXS_MATMUL_NATIVE( 2,4, 4,1, Real, Real, Real, Real );
 MATRIXS_MATMUL_NATIVE( 2,5, 5,1, Real, Real, Real, Real ); // FP-IBL3 coupling
 MATRIXS_MATMUL_NATIVE( 2,6, 6,1, Real, Real, Real, Real ); // FP-IBL3 coupling
 MATRIXS_MATMUL_NATIVE( 2,8, 8,1, Real, Real, Real, Real );
+MATRIXS_MATMUL_NATIVE( 3,5, 5,1, Real, Real, Real, Real );
+MATRIXS_MATMUL_NATIVE( 4,5, 5,1, Real, Real, Real, Real );
+MATRIXS_MATMUL_NATIVE( 5,4, 4,1, Real, Real, Real, Real );
+
 
 MATRIXS_MATMUL_NATIVE( 3,1, 1,1, Real, Real, Real, Real );
 MATRIXS_MATMUL_NATIVE( 3,1, 1,2, Real, Real, Real, Real );
@@ -143,6 +147,11 @@ MATRIXS_MATMUL_NATIVE( 8,4, 4,1, Real, Real, Real, Real );
 MATRIXS_MATMUL_NATIVE( 8,6, 6,1, Real, Real, Real, Real );
 
 MATRIXS_MATMUL_NATIVE( 8,8, 8,1, Real, Real, Real, Real );
+
+MATRIXS_MATMUL_NATIVE( 20,11, 11,1, Real, Real, Real, Real ); // for Prt NN with 11 inputs and 20 neurons
+MATRIXS_MATMUL_NATIVE( 20,20, 20,1, Real, Real, Real, Real);
+MATRIXS_MATMUL_NATIVE( 1,20, 20,1, Real, Real, Real, Real );
+MATRIXS_MATMUL_NATIVE( 20,20, 20,20, Real, Real, Real, Real );
 
 //Explicit instantiation of square matrix multiplications
 #define DECL(z, n, text) \

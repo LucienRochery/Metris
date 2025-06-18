@@ -30,7 +30,7 @@ ftype quafun_unit(Mesh<MetricFieldType> &msh,
                   const double*__restrict__ met_);
 
 // Differentiated w.r.t. ielem's ivar-th control point/node. 
-template <class MetricFieldType, int gdim, typename ftype = double>
+template <class MetricFieldType, int gdim, int tdim, typename ftype = double>
 ftype d_quafun_unit(Mesh<MetricFieldType> &msh,
                     AsDeg asdmsh, AsDeg asdmet,
                     const int* ent2poi, 

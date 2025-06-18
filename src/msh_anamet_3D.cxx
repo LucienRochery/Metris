@@ -74,7 +74,7 @@ void anamet3D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
 
   SANS::SurrealS<3,double> eigvec[3][3];
 
-  double pi = 3.1415;
+  double pi = 3.141592653589793;
 
 //  SANS::SurrealS<3,double> phi[3] = {x, y, (10*z - cos(2*pi*x)*cos(2*pi*y))/(100.0 + 8.0*pi*pi)};
   SANS::SurrealS<3,double> d1phi3 = 2*pi*sin(2*pi*x)*cos(2*pi*y)/(100.0 + 8.0*pi*pi);
@@ -82,12 +82,12 @@ void anamet3D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   SANS::SurrealS<3,double> d3phi3 = 10.0/(100.0 + 8.0*pi*pi);
 
   eigvec[0][0] = 1;
-  eigvec[1][0] = 0; 
-  eigvec[2][0] = 0; 
+  eigvec[0][1] = 0; 
+  eigvec[0][2] = 0; 
 
-  eigvec[0][1] = 0;
+  eigvec[1][0] = 0;
   eigvec[1][1] = 1; 
-  eigvec[2][1] = 0; 
+  eigvec[1][2] = 0; 
 
   SANS::SurrealS<3,double> nrm = d1phi3*d1phi3
                                + d2phi3*d2phi3
@@ -102,8 +102,8 @@ void anamet3D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   //  printf("\n");
   //}
   nrm = sqrt(nrm);
-  eigvec[0][2] = d1phi3/nrm;
-  eigvec[1][2] = d2phi3/nrm;
+  eigvec[2][0] = d1phi3/nrm;
+  eigvec[2][1] = d2phi3/nrm;
   eigvec[2][2] = d3phi3/nrm;
 
   //for(int idif = 0; idif < 3; idif ++){

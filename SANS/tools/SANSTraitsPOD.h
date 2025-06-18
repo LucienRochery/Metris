@@ -6,8 +6,8 @@
 #ifndef SANSTRAITSPOD_H
 #define SANSTRAITSPOD_H
 
-#include "SANS/tools/SANSnumerics.h"   // Real
-#include "SANS/tools/SANSException.h"
+#include "SANSnumerics.h"   // Real
+#include "SANSException.h"
 
 namespace SANS
 {

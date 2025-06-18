@@ -15,7 +15,6 @@
 #include "../metris_constants.hxx"
 
 #include "../SANS/Surreal/SurrealS.h"
-#include <lapacke.h>
 
 
 namespace Metris{
@@ -29,10 +28,10 @@ int invspd(int nmat, double met[]){
 	char c = 'U';
 	int info;
 
-	LAPACK_dpptrf(&c,&nmat,met,&info);
+	dpptrf_(&c,&nmat,met,&info);
   if(info != 0) return(abs(info));
 
-	LAPACK_dpptri(&c,&nmat,met,&info);
+	dpptri_(&c,&nmat,met,&info);
   if(info != 0) return(abs(info));
 
   return 0;
@@ -50,10 +49,10 @@ int invsym(double* met){
   double nrm = getnrml2<(n*(n+1))/2>(met);
   if(nrm < 1.0e-300) return 1;
 
-	LAPACK_dsptrf(&c,&nmat,met,ipiv,&info);
+	dsptrf_(&c,&nmat,met,ipiv,&info);
   if(info != 0) return(abs(info));
 
-	LAPACK_dsptri(&c,&nmat,met,ipiv,work,&info);
+	dsptri_(&c,&nmat,met,ipiv,work,&info);
   if(info != 0) return(abs(info));
 
   return 0;
@@ -85,13 +84,14 @@ int invmat(int n, double mat[]){
 	METRIS_ENFORCE_MSG(n <= 3, "invmat expecting n <= 3");
 	int ipiv[3];
 	constexpr int nwork = 20;
+  int nwork_ = nwork;
 	double rwork[nwork];
 	int info;
 
-	LAPACK_dgetrf(&n,&n,mat,&n,ipiv,&info);
+	dgetrf_(&n,&n,mat,&n,ipiv,&info);
   if(info != 0) return(abs(info)); 
 
-	LAPACK_dgetri(&n,mat,&n,ipiv,rwork,&nwork,&info);
+	dgetri_(&n,mat,&n,ipiv,rwork,&nwork_,&info);
   if(info != 0) return(abs(info)); 
 
   return 0;

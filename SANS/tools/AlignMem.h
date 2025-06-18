@@ -6,8 +6,8 @@
 #ifndef ALIGN_MEM_H_INCLUDED
 #define ALIGN_MEM_H_INCLUDED
 
-#include "SANS/tools/SANSException.h"
-#include "SANS/tools/CacheLineSize.h"
+#include "SANSException.h"
+#include "CacheLineSize.h"
 
 #if (defined __INTEL_COMPILER)
 #define ALIGN_MEM __declspec(align(16))

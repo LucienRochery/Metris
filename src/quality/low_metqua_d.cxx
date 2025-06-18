@@ -6,6 +6,8 @@
 #include "low_metqua_d.hxx"
 #include "quafun.hxx"
 
+#include "../low_normal.hxx"
+#include "../low_geo.hxx"
 #include "../linalg/symidx.hxx"
 #include "../linalg/det.hxx"
 #include "../linalg/matprods.hxx"
@@ -24,50 +26,91 @@ namespace Metris{
 
 
 
-template <class MFT, int gdim, QuaFun iquaf, typename ftype>
+template <class MFT, int gdim, int tdim, QuaFun iquaf, typename ftype>
 ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
-               int ielem, 
+               int ientt, 
                int ivar, FEBasis dofbas, DifVar idifmet, 
                ftype*__restrict__ dquael, ftype*__restrict__ hquael, 
                double difto){
-  constexpr int tdim = gdim;
-  int* ent2poi = tdim == 2 ? msh.fac2poi[ielem] : msh.tet2poi[ielem];
-  return d_metqua0<MFT,gdim,iquaf,ftype>(msh,asdmsh,asdmet,
-                                         ent2poi,
-                                         ivar,dofbas,idifmet,
-                                         dquael,hquael,
-                                         difto);
-}
-
-// Hessian is optional (pass in NULL)
-template <class MFT, int gdim, QuaFun iquaf, typename ftype>
-ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
-                const int* ent2poi,
-                int ivar, FEBasis dofbas, DifVar idifmet, 
-                ftype*__restrict__ dquael, ftype*__restrict__ hquael,
-                double difto){
   static_assert(gdim==2 || gdim==3);
   const int pnorm = msh.param->opt_pnorm;
   METRIS_ASSERT(pnorm > 0);
-  constexpr int tdim  = gdim;
   constexpr int nhess = (gdim*(gdim+1))/2;
+
+  const intAr2 &ent2poi = msh.ent2poi(tdim);
 
   double bary[tdim+1];
 
   ftype qutet = 0; 
+  double nordev = 0;
+  bool do_nordev = tdim == 2 && gdim == 3 
+    && msh.CAD()
+    && abs(msh.param->qua_surf_wt_normal) > 1.0e-9*abs(msh.param->qua_surf_wt_quality);
 
 
-  constexpr auto d_quafun_xi 
-    = get_d_quafun_xi<MFT,gdim,tdim,iquaf,ftype>();
+  constexpr auto d_quafun_xi = get_d_quafun_xi<MFT,gdim,tdim,iquaf,ftype>();
+  constexpr auto ordelt = ORDELT(tdim);
 
   const int ideg = msh.curdeg;
   const int ideg_eff = asdmsh == AsDeg::P1 ? 1 : ideg;
   const int nnode = getnnode(tdim, ideg_eff);
 
-  if(ideg_eff > 1){
+  // Accumulate normal error at the nodes (depending on asdmsh)
+  if(do_nordev){
+    double result[18];
+    double norCAD[gdim], norelt[gdim];
+    double *du = &result[3];
+    double *dv = &result[6];
+    const int iref = msh.fac2ref[ientt];
+    const ego obj  = msh.CAD.cad2fac[iref];
 
-    //const int idegj = SMOO_DEGJ(ideg);
-    //const int nnodj = tdim == 2 ? getnnod2(idegj) : getnnod3(idegj);
+    // Even if we use CAD normals at all vertices, we can compute this one just once.
+    if(ideg == 1){
+      getnorfacP1(ent2poi[ientt], msh.coord, norelt);
+      if(normalize_vec<gdim>(norelt)){
+        METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
+      }
+    }
+
+    for(int inode = 0; inode < nnode; inode++){
+      int ipoin = ent2poi(ientt, inode);
+      int ibpoi = msh.poi2ebp(ipoin, tdim, ientt, iref);
+      METRIS_ASSERT_MSG(ibpoi >= 0 && ibpoi < msh.nbpoi, 
+        "iface = "<<ientt<<" iref  "<<iref<<" inode = "<<inode
+        <<" ipoin = "<<ipoin<<" ibpoi = "<< ibpoi);
+      int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
+      METRIS_ENFORCE_MSG(ierro == 0, "metqua0 EG_evaluate error " << ierro);
+      vecprod(du,dv,norCAD);
+      if(normalize_vec<gdim>(norCAD)){
+        // legitimate if e.g. cone tip.
+        METRIS_ENFORCE_MSG(msh.getpoitdim(ipoin) == 0,
+          "Normal (CAD) vanishes at non-corner point "<<ipoin)
+        nordev += 0;
+        continue;
+      }
+
+      if(ideg > 1){
+        for(int ii = 0; ii < tdim + 1; ii++)
+          bary[ii] = ordelt[ideg_eff][inode][ii]/((double) (ideg_eff));
+        getnorfac(msh, ientt, bary, asdmsh, norelt);
+        if(normalize_vec<gdim>(norelt)){
+          printf("norelt vanished ientt = %d node %d point %d nodes ",ientt,inode,ipoin);
+          intAr1(nnode, ent2poi[ientt]).print();
+          for(int ii = 0; ii < gdim; ii++) printf("%d: %23.15e\n",ii,norelt[ii]);
+          METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
+        }
+      }
+
+      double dtprd = getprdl2<gdim>(norelt, norCAD);
+      double tmp = 1 - abs(dtprd);
+      METRIS_ASSERT(tmp >= 0);
+      nordev += tmp*tmp;
+    }
+    nordev /= nnode;
+    nordev = sqrt(nordev);
+  }
+
+  if(ideg_eff > 1){
 
     const auto ordelt = ORDELT(tdim);
 
@@ -84,15 +127,15 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       for(int ii = 0; ii < tdim + 1; ii++)
         bary[ii] = ordelt[ideg][iquad][ii]/((double) (ideg));
 
-      const int ipoin = ent2poi[iquad];
+      const int ipoin = ent2poi(ientt,iquad);
       if(hquael == NULL){
         qua0 = d_quafun_xi(msh,asdmsh,asdmet,
-                           ent2poi,bary,msh.met[ipoin],
+                           ent2poi[ientt],bary,msh.met[ipoin],
                            ivar,dofbas,idifmet,
                            dqua0,NULL);
       }else{
         qua0 = d_quafun_xi(msh,asdmsh,asdmet,
-                           ent2poi,bary,msh.met[ipoin],
+                           ent2poi[ientt],bary,msh.met[ipoin],
                            ivar,dofbas,idifmet,
                            dqua0,hqua0);
       }
@@ -148,13 +191,13 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim  + 1);
       for(int jj = 0; jj < nnmet; jj++) met[jj] = 0;
       for(int ii = 0; ii < tdim + 1; ii++){
-        int ipoin = ent2poi[ii];
+        int ipoin = ent2poi(ientt,ii);
         for(int jj = 0; jj < nnmet; jj++){
           met[jj] += msh.met(ipoin,jj) / (tdim + 1);
         }
       }
       qutet = d_quafun_xi(msh,asdmsh,asdmet,
-                          ent2poi,bary,met,
+                          ent2poi[ientt],bary,met,
                           ivar,dofbas,idifmet,
                           dquael,hquael);
       // You'd think this wouldn't be a bottleneck but it eats up 20% of optimization
@@ -195,46 +238,81 @@ ftype d_metqua0(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       }
     }
   }
+
+
+  if(do_nordev){
+    METRIS_ASSERT(msh.param->qua_surf_wt_quality >= 0);
+    METRIS_ASSERT(msh.param->qua_surf_wt_normal  >= 0);
+    qutet = msh.param->qua_surf_wt_quality*qutet 
+          + msh.param->qua_surf_wt_normal*pow(nordev, pnorm); // for homogeneity
+  }
   return qutet;
 }
 
+//// While cumbersome, this replaces a bunch of manual instantiations, about to 
+//// be made worse the day we add tdimn as a template argument. 
+//#define EXPAND_TEMPLATE(z,gdim,SEQ) \
+//                  INSTANTIATE(gdim,BOOST_PP_SEQ_ELEM(0, SEQ),\
+//                                   BOOST_PP_SEQ_ELEM(1, SEQ),\
+//                                   BOOST_PP_SEQ_ELEM(2, SEQ))
+//#define REPEAT_GDIM(r,SEQ) BOOST_PP_REPEAT(2,EXPAND_TEMPLATE,SEQ)
+//#define MFT_SEQ (MetricFieldFE)(MetricFieldAnalytical)
+//#define QUAFUN_SEQ (QuaFun::Distortion)(QuaFun::Unit)
+//#define INSTANTIATE(gdim,MFT_VAL,QUAFUN,FTYPE)\
+//template FTYPE d_metqua< MFT_VAL , 2+gdim, QUAFUN,FTYPE>\
+//                  (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
+//                   int ientt, \
+//                   int ivar, \
+//                   FEBasis dofbas, \
+//                   DifVar idifmet, \
+//                   FTYPE*__restrict__ dquael, FTYPE*__restrict__ hquael, \
+//                   double difto);
+//BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_GDIM,\
+//                              (MFT_SEQ)(QUAFUN_SEQ)(QUA_FTYPE_SEQ))
+//#undef INSTANTIATE
+//#undef EXPAND_TEMPLATE
+//#undef REPEAT_GDIM
+
+
+
 // While cumbersome, this replaces a bunch of manual instantiations, about to 
 // be made worse the day we add tdimn as a template argument. 
-#define EXPAND_TEMPLATE(z,gdim,SEQ) \
-                  INSTANTIATE(gdim,BOOST_PP_SEQ_ELEM(0, SEQ),\
-                                   BOOST_PP_SEQ_ELEM(1, SEQ),\
-                                   BOOST_PP_SEQ_ELEM(2, SEQ))
-#define REPEAT_GDIM(r,SEQ) BOOST_PP_REPEAT(2,EXPAND_TEMPLATE,SEQ)
+#define EXPAND_TEMPLATE(r,SEQ) \
+                  INSTANTIATE(BOOST_PP_SEQ_ELEM(0, SEQ),\
+                              BOOST_PP_SEQ_ELEM(1, SEQ),\
+                              BOOST_PP_SEQ_ELEM(2, SEQ))
 #define MFT_SEQ (MetricFieldFE)(MetricFieldAnalytical)
 #define QUAFUN_SEQ (QuaFun::Distortion)(QuaFun::Unit)
-#define INSTANTIATE(gdim,MFT_VAL,QUAFUN,FTYPE)\
-template FTYPE d_metqua< MFT_VAL , 2+gdim, QUAFUN,FTYPE>\
+#define INSTANTIATE(MFT_VAL,QUAFUN,FTYPE)\
+template FTYPE d_metqua< MFT_VAL , 2, 2, QUAFUN,FTYPE>\
                   (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
-                   int ielem, \
+                   int ientt, \
+                   int ivar, \
+                   FEBasis dofbas, \
+                   DifVar idifmet, \
+                   FTYPE*__restrict__ dquael, FTYPE*__restrict__ hquael, \
+                   double difto);\
+template FTYPE d_metqua< MFT_VAL , 3, 2, QUAFUN,FTYPE>\
+                  (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
+                   int ientt, \
+                   int ivar, \
+                   FEBasis dofbas, \
+                   DifVar idifmet, \
+                   FTYPE*__restrict__ dquael, FTYPE*__restrict__ hquael, \
+                   double difto);\
+template FTYPE d_metqua< MFT_VAL , 3, 3, QUAFUN,FTYPE>\
+                  (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
+                   int ientt, \
                    int ivar, \
                    FEBasis dofbas, \
                    DifVar idifmet, \
                    FTYPE*__restrict__ dquael, FTYPE*__restrict__ hquael, \
                    double difto);
-BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_GDIM,\
-                              (MFT_SEQ)(QUAFUN_SEQ)(QUA_FTYPE_SEQ))
-#undef INSTANTIATE
-
-#define INSTANTIATE(gdim,MFT_VAL,QUAFUN,FTYPE)\
-template FTYPE d_metqua0< MFT_VAL , 2+gdim, QUAFUN, FTYPE>\
-                  (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
-                   const int* ent2poi, \
-                   int ivar, \
-                   FEBasis dofbas, \
-                   DifVar idifmet, \
-                   FTYPE*__restrict__ dquael, FTYPE*__restrict__ hquael, \
-                   double difto);
-BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_GDIM,\
+BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,\
                               (MFT_SEQ)(QUAFUN_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
 #undef EXPAND_TEMPLATE
 #undef REPEAT_GDIM
-
 
 
 
@@ -271,7 +349,7 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
   if(idifmet != DifVar::None) METRIS_THROW_MSG(TODOExcept(), 
                            "Metric field derivative not implemented in quality")
   //METRIS_ASSERT( !(idiff != DifVar::None && dofbas == FEBasis::Undefined) );
-  if(dofbas == FEBasis::Bezier) METRIS_THROW_MSG(TODOExcept(), 
+  if(dofbas == FEBasis::Bezier && idifmet != DifVar::None) METRIS_THROW_MSG(TODOExcept(), 
     "Ctrl pt dof not implemented -> do lag2bez derivatives of metric")
   //METRIS_ASSERT( !(idiff != DifVar::None && dquael == NULL) );
 

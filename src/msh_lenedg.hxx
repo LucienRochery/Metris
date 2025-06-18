@@ -13,7 +13,7 @@ namespace Metris{
 
 template<class MFT> class MeshMetric;
 
-enum class LenTyp {GeoSiz, Quad, LogIntrp, BdryCor};
+enum class LenTyp {GeoSiz, Quad, LogIntrp, BdryCor, MetCrv};
 
 // ilned returns edge vertices
 // rlned its length in the metric field 

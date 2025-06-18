@@ -341,11 +341,11 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         METRIS_ASSERT(iopen == 0);
       }else{
         // HO node
+        int nppe = getnnod1(ideg) - 2;
+        int ied = (iver - (tdim + 1)) / nppe;
         if constexpr (tdim == 2){
           lball.set_n(0);
           lball.stack(ientt);
-          int nppe = getnnod1(ideg) - 2;
-          int ied = (iver - (tdim + 1)) / nppe;
           METRIS_ASSERT(ied < 4);
 
           int ifnei = ent2ent(ientt,ied);
@@ -354,7 +354,12 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
 
           lball.stack(ifnei);
         }else{
-          METRIS_THROW_MSG(TODOExcept(), "Call shell3");
+          int ip1 = msh.tet2poi(ientt, lnoed3[ied][0]);
+          int ip2 = msh.tet2poi(ientt, lnoed3[ied][1]);
+          static intAr1 dum;
+          int iopen;
+          shell3(msh, ip1, ip2, ientt, lball, dum, &iopen);
+          METRIS_ASSERT(iopen < 0);
         }
 
       }

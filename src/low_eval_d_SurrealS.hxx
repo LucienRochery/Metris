@@ -12,6 +12,7 @@
 #include "types.hxx"
 #include "low_eval_d_bezier.hxx"
 #include "low_eval_d_helper.hxx"
+#include "utils/CT_loop.hxx"
 #include <boost/hana.hpp> 
 
 
@@ -21,7 +22,7 @@ template <typename T, int szfld, int tdim, int ideg,  int nvar>
 void eval_d_SurrealS0(const T& __restrict__  rfld,   
                       FEBasis ibasis, DifVar idif1, DifVar idif2, 
                       const double * __restrict__  bary, 
-                      SANS::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>> *eval, 
+                      SANS::DLA::VectorS<     szfld,SANS::SurrealS<nvar,double>> *eval, 
                       SANS::DLA::MatrixS<tdim,szfld,SANS::SurrealS<nvar,double>> *jmat, 
                       SANS::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat){
   if constexpr (ideg == 1){
@@ -164,7 +165,7 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
 
 // SANS::SurrealS-based version can only handle Bézier for now. 
 // Slower in all cases except P2 + Jacobian. 
-template <int szfld, int tdim, int ideg,  int ivar, int nvar = szfld>
+template <int szfld, int tdim, int ideg, int ivar, int nvar = szfld>
 void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,  
                      const int * __restrict__ lfld,
                      FEBasis ibasis, DifVar idif1, DifVar idif2, 
@@ -288,6 +289,76 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
     }// if idif2
 
   }
+}
+
+
+
+// SANS::SurrealS-based version can only handle Bézier for now. 
+// Slower in all cases except P2 + Jacobian. 
+template <int szfld, int tdim, int ideg, int nvar>
+void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,  
+                     const int * __restrict__ lfld,
+                     FEBasis ibasis, DifVar idif1, DifVar idif2, 
+                     const double * __restrict__ bary,
+                     int ivar_, 
+                     SANS::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>>* eval,
+                     SANS::DLA::MatrixS<tdim ,szfld,SANS::SurrealS<nvar,double>>* jmat,
+                     SANS::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>>* hmat,
+                     const SANS::DLA::MatrixS<szfld,nvar,double>* dfld = NULL){
+
+
+  // -- For clarity. 
+  // Number of (r|l)fld entries
+  constexpr int nrfld = getnnode(tdim,ideg);
+  static_assert(nrfld < 31);
+  METRIS_ASSERT(ivar_ >= 0 && ivar_ < nrfld);
+
+
+  auto rfld_0 = hana::replicate<hana::tuple_tag>((const double *) 1, hana::size_c<nrfld>);
+
+  CT_FOR0_EXC(0, nrfld, ivar){if(ivar == ivar_){
+
+    auto rfld_1 = to_std_tuple(replace_at_c<ivar>(rfld_0,(SANS::SurrealS<nvar,double>*) 0));
+    // Store the dof as SANS::SurrealS
+    SANS::SurrealS<nvar,double> smem[szfld];
+
+    if(dfld == NULL){
+      METRIS_ASSERT(nvar == szfld);
+      for(int icmp = 0; icmp < szfld; icmp++){
+        smem[icmp].value() = rfld[lfld[ivar]][icmp];
+        for(int j = 0; j < nvar; j++){
+          smem[icmp].deriv(j) = 0;
+        }
+        smem[icmp].deriv(icmp) = 1;
+      }
+    }else{
+      for(int icmp = 0; icmp < szfld; icmp++){
+        smem[icmp].value() = rfld[lfld[ivar]][icmp];
+        for(int idof = 0; idof < nvar; idof++){
+          smem[icmp].deriv(idof) = (*dfld)(idof,icmp);
+        }
+      }
+    }
+
+    tuple_wrapper w_op(rfld_1);
+
+    // Populate w_op tuple with appropriate types. 
+    // The idea is to get something like a tuple<double*, SANS::SurrealS*, double*, double*...>
+    // Storing, for the double*'s, the non-dof rfld entries and, for the one SANS::SurrealS*, 
+    // the DoF SANS::SurrealS array. 
+    // Replace c_ii by ii in this loop to bathe in compiler errors
+    CT_FOR0_EXC(0, nrfld, ii){
+      if constexpr(ii == ivar){
+        w_op[c_ii] = smem;
+      }else{
+        w_op[c_ii] = rfld[lfld[ii]];
+      }
+    }CT_FOR1(ii); 
+
+    eval_d_SurrealS0<decltype(w_op),szfld,tdim,ideg>
+                       (w_op,ibasis,idif1,idif2,bary,eval,jmat,hmat);
+
+  }}CT_FOR1(ivar);
 }
 
 

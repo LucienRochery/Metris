@@ -81,6 +81,8 @@ struct MetrisOptions{
         "Adaptation iterations")
       ("adp-unit-stop", po::value<double>(), 
         "Percent unit edges to stop adaptation, default 99.9%")
+      ("adp-stagn-stop", po::value<double>(), 
+        "Stat value (work / entities) threshold to stop adaptation. Default 1e-3")
       ("adp-opt-niter", po::value<int>(), 
         "Smoothing in adaptation: -1 unlimited, N > 0 number of iter")
       ("do-line-adp",

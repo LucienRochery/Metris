@@ -72,6 +72,9 @@ void MetrisRunner::degElevate0(){
       }
     }CT_FOR1(tdeg);
   }CT_FOR1(ideg);
+
+  double t1_1 = get_wall_time();
+  CPRINTF1("-- DONE time %f\n",t1_1 - t1);
  
 
   CPRINTF1("-- Back metric interpolation back deg = %d\n",bak.curdeg);
@@ -81,7 +84,10 @@ void MetrisRunner::degElevate0(){
     msh.setBasis(FEBasis::Lagrange);
     interpFrontBack<MFT,bdeg>(msh,bak,npoi0);
   }}CT_FOR1(bdeg);
+  double t1_2 = get_wall_time();
+  
 
+  CPRINTF1("-- DONE time %f\n",t1_2-t1_1);
   if(DOPRINTS2()) writeMesh("interpBack",msh);
   if(DOPRINTS2()) msh.met.writeMetricFile("interpBack");
 

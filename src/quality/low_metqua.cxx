@@ -170,7 +170,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       }
 
       double dtprd = getprdl2<gdim>(norelt, norCAD);
-      double tmp = 1-dtprd;
+      double tmp = 1-abs(dtprd);
       METRIS_ASSERT(tmp >= 0);
       nordev += tmp*tmp;
     }

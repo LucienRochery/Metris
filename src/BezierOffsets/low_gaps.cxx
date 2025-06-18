@@ -46,7 +46,7 @@ This way, no need to set constraints on metric derivatives tensor.
 */
 
 template<class MFT, int gdim, int ideg>
-void getBezOffsetsEdge(Mesh<MFT> &msh, 
+void getBezOffsetsEdge(MeshMetric<MFT> &msh, 
   int tdim, const int* ent2pol, int iedgl, double* offsets){
   METRIS_ASSERT(ideg == msh.curdeg || ideg == 1);
   METRIS_ASSERT(tdim == 2 || tdim == 3);
@@ -264,13 +264,13 @@ void getBezOffsetsEdge(Mesh<MFT> &msh,
 
 
 #define BOOST_PP_LOCAL_MACRO(n)\
-template void getBezOffsetsEdge<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh, \
+template void getBezOffsetsEdge<MetricFieldFE        ,2,n>(MeshMetric<MetricFieldFE        > &msh, \
     int tdim, const int* ent2poi, int iedgl, double* offsets);\
-template void getBezOffsetsEdge<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh, \
+template void getBezOffsetsEdge<MetricFieldAnalytical,2,n>(MeshMetric<MetricFieldAnalytical> &msh, \
     int tdim, const int* ent2poi, int iedgl, double* offsets);\
-template void getBezOffsetsEdge<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh, \
+template void getBezOffsetsEdge<MetricFieldFE        ,3,n>(MeshMetric<MetricFieldFE        > &msh, \
     int tdim, const int* ent2poi, int iedgl, double* offsets);\
-template void getBezOffsetsEdge<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh, \
+template void getBezOffsetsEdge<MetricFieldAnalytical,3,n>(MeshMetric<MetricFieldAnalytical> &msh, \
     int tdim, const int* ent2poi, int iedgl, double* offsets);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()

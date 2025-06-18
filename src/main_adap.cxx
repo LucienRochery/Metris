@@ -23,6 +23,7 @@ namespace Metris{
 // First API steps, mostly for use with Boost::test
 int main_metris(int argc, char** argv){ 
 
+
   //#ifdef USE_PETSC
   //  static char help_PETSc[] = "PETSc Metris instance.\n\n";
   //  char help[] = "ok\0";
@@ -32,6 +33,11 @@ int main_metris(int argc, char** argv){
   MetrisRunner run(argc,argv);
   MetrisParameters &param = run.param_;
   MetrisOptions opt = run.opt;
+
+  bool iprt = param.iverb > 0;
+
+  double t0, t1;
+  if(iprt) t0 = get_wall_time();
 
 
   try{
@@ -56,8 +62,6 @@ int main_metris(int argc, char** argv){
 
     run.adaptMesh();
 
-    run.optimMesh();
-
 
     if(param.usrTarDeg > 1 || run.msh_g->curdeg > 1){
       int ielev = run.degElevate();
@@ -75,9 +79,11 @@ int main_metris(int argc, char** argv){
       if(param.dbgfull) check_topo(*run.msh_g,0);
     }
 
-    if(param.anaSol && param.smoo_type == 1){
-      run.optimMesh();
-    }
+    run.optimMesh();
+
+    //if(param.anaSol && param.smoo_type == 1){
+    //  run.optimMesh();
+    //}
     run.writeOutputs();
 
 
@@ -89,7 +95,19 @@ int main_metris(int argc, char** argv){
   }catch(const MetrisExcept &e){
     printf("## Exception thrown, print mesh\n");
     writeMesh("exception",*run.msh_g);
+    if(run.metricFE){
+      Mesh<MetricFieldFE> &msh = (Mesh<MetricFieldFE> &)(*run.msh_g);
+      msh.met.writeMetricFile("exception.solb");
+    }else{
+      Mesh<MetricFieldAnalytical> &msh = (Mesh<MetricFieldAnalytical> &)(*run.msh_g);
+      msh.met.writeMetricFile("exception.solb");
+    }
     throw(e);
+  }
+
+  if(iprt){
+    t1 = get_wall_time();
+    printf("\n-- END Metris total runtime %e\n",t1-t0);
   }
 
   return 0;

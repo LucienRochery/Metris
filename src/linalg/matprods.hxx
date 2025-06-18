@@ -8,7 +8,7 @@
 #ifndef __METRIS_MATPRODS__
 #define __METRIS_MATPRODS__
 
-#include "../linalg/symidx.hxx"
+#include "symmat.hxx"
 
 
 namespace Metris{
@@ -263,64 +263,24 @@ void matXsym(const T1* __restrict__ mat,
 
 }
 
-
 // -----------------------------------------------------------------------------
-// Compute A^T M A with M sym
+// Compute A M with M sym
 // out is symmetric stored column first, like sym: 1 2 4  0 1 3
 //                                                   3 5    2 4 
 //                                                     6      5
-template <typename T1, typename T2, typename T3>
-inline void tAMA3(const T1* sym, const T2* mat, T3* out){
-	out[0] =   mat[3*0+0]*mat[3*0+0]*sym[0] 
-	       +   mat[3*1+0]*mat[3*1+0]*sym[2]
-	       +   mat[3*2+0]*mat[3*2+0]*sym[5]
-	       + 2*mat[3*0+0]*mat[3*1+0]*sym[1]
-	       + 2*mat[3*0+0]*mat[3*2+0]*sym[3]
-	       + 2*mat[3*1+0]*mat[3*2+0]*sym[4];
-
-	out[1] =   mat[3*0+0]*mat[3*0+1]*sym[0] 
-	       +   mat[3*1+0]*mat[3*1+1]*sym[2]
-	       +   mat[3*2+0]*mat[3*2+1]*sym[5]
-	       +   mat[3*0+0]*mat[3*1+1]*sym[1]
-	       +   mat[3*1+0]*mat[3*0+1]*sym[1]
-	       +   mat[3*0+0]*mat[3*2+1]*sym[3]
-	       +   mat[3*2+0]*mat[3*0+1]*sym[3]
-	       +   mat[3*1+0]*mat[3*2+1]*sym[4]
-	       +   mat[3*2+0]*mat[3*1+1]*sym[4];
-
-	out[2] =   mat[3*0+1]*mat[3*0+1]*sym[0] 
-	       +   mat[3*1+1]*mat[3*1+1]*sym[2]
-	       +   mat[3*2+1]*mat[3*2+1]*sym[5]
-	       + 2*mat[3*0+1]*mat[3*1+1]*sym[1]
-	       + 2*mat[3*0+1]*mat[3*2+1]*sym[3]
-	       + 2*mat[3*1+1]*mat[3*2+1]*sym[4];
-
-	out[3] =   mat[3*0+0]*mat[3*0+2]*sym[0] 
-	       +   mat[3*1+0]*mat[3*1+2]*sym[2]
-	       +   mat[3*2+0]*mat[3*2+2]*sym[5]
-	       +   mat[3*0+0]*mat[3*1+2]*sym[1]
-	       +   mat[3*1+0]*mat[3*0+2]*sym[1]
-	       +   mat[3*0+0]*mat[3*2+2]*sym[3]
-	       +   mat[3*2+0]*mat[3*0+2]*sym[3]
-	       +   mat[3*1+0]*mat[3*2+2]*sym[4]
-	       +   mat[3*2+0]*mat[3*1+2]*sym[4];
-
-	out[4] =   mat[3*0+1]*mat[3*0+2]*sym[0] 
-	       +   mat[3*1+1]*mat[3*1+2]*sym[2]
-	       +   mat[3*2+1]*mat[3*2+2]*sym[5]
-	       +   mat[3*0+1]*mat[3*1+2]*sym[1]
-	       +   mat[3*1+1]*mat[3*0+2]*sym[1]
-	       +   mat[3*0+1]*mat[3*2+2]*sym[3]
-	       +   mat[3*2+1]*mat[3*0+2]*sym[3]
-	       +   mat[3*1+1]*mat[3*2+2]*sym[4]
-	       +   mat[3*2+1]*mat[3*1+2]*sym[4];
-
-	out[5] =   mat[3*0+2]*mat[3*0+2]*sym[0] 
-	       +   mat[3*1+2]*mat[3*1+2]*sym[2]
-	       +   mat[3*2+2]*mat[3*2+2]*sym[5]
-	       + 2*mat[3*0+2]*mat[3*1+2]*sym[1]
-	       + 2*mat[3*0+2]*mat[3*2+2]*sym[3]
-	       + 2*mat[3*1+2]*mat[3*2+2]*sym[4];
+// A is size n1 x n2
+// M is size n2 x n2 
+// out is size n1 x n2
+template <int n1, int n2, typename T1, typename T2, typename T3>
+inline void matXsym(const T2* mat, const T1* sym, T3* out){
+  for(int ii = 0; ii < n1; ii++){
+    for(int jj = 0; jj < n2; jj++){
+      out[n1*ii+jj] = mat[n1*ii+0]*sym[sym2idx(0,jj)];
+      for(int kk = 1; kk < n2; kk++){
+        out[n1*ii+jj] += mat[n1*ii+kk]*sym[sym2idx(kk,jj)];
+      }
+    }
+  }
 }
 
 // -----------------------------------------------------------------------------
@@ -421,6 +381,99 @@ inline void matXsymXtmat(const T1* sym, const T2* mat, T3* out){
 
   }
 }
+
+// Same as previous but with VectorS/MatrixS types. Ti could be SurrealS. 
+template <int n1, int n2, typename T1, typename T2, typename T3>
+inline void matXsymXtmat(const SANS::DLA::MatSymS<n2   ,T1> &sym, 
+                         const SANS::DLA::MatrixS<n1,n2,T2> &mat, 
+                               SANS::DLA::MatSymS<n1   ,T3> &out){
+  static_assert(n1 == 2 || n1 == 3);
+  static_assert(n2 == 2 || n2 == 3);
+
+  if constexpr(n1 == n2 && n1 == 2){
+    out[0] =   mat(0,0)*mat(0,0)*sym[0] 
+           +   mat(0,1)*mat(0,1)*sym[2]
+           + 2*mat(0,0)*mat(0,1)*sym[1];
+  
+    out[1] =   mat(0,0)*mat(1,0)*sym[0] 
+           +   mat(0,1)*mat(1,1)*sym[2]
+           +   (mat(0,0)*mat(1,1) + mat(0,1)*mat(1,0))*sym[1];
+  
+    out[2] =   mat(1,0)*mat(1,0)*sym[0] 
+           +   mat(1,1)*mat(1,1)*sym[2]
+           + 2*mat(1,0)*mat(1,1)*sym[1];
+
+  }else if (n1 == n2 && n1 == 3){
+    out[0] =   mat(0,0)*mat(0,0)*sym[0] 
+           +   mat(0,1)*mat(0,1)*sym[2]
+           +   mat(0,2)*mat(0,2)*sym[5]
+           + 2*mat(0,0)*mat(0,1)*sym[1]
+           + 2*mat(0,0)*mat(0,2)*sym[3]
+           + 2*mat(0,1)*mat(0,2)*sym[4];
+  
+    out[1] =   mat(0,0)*mat(1,0)*sym[0] 
+           +   mat(0,1)*mat(1,1)*sym[2]
+           +   mat(0,2)*mat(1,2)*sym[5]
+           +   (mat(0,0)*mat(1,1) + mat(0,1)*mat(1,0))*sym[1]
+           +   (mat(0,0)*mat(1,2) + mat(0,2)*mat(1,0))*sym[3]
+           +   (mat(0,1)*mat(1,2) + mat(0,2)*mat(1,1))*sym[4];
+  
+    out[2] =   mat(1,0)*mat(1,0)*sym[0] 
+           +   mat(1,1)*mat(1,1)*sym[2]
+           +   mat(1,2)*mat(1,2)*sym[5]
+           + 2*mat(1,0)*mat(1,1)*sym[1]
+           + 2*mat(1,0)*mat(1,2)*sym[3]
+           + 2*mat(1,1)*mat(1,2)*sym[4];
+  
+    out[3] =   mat(0,0)*mat(2,0)*sym[0] 
+           +   mat(0,1)*mat(2,1)*sym[2]
+           +   mat(0,2)*mat(2,2)*sym[5]
+           +  (mat(0,0)*mat(2,1) + mat(0,1)*mat(2,0))*sym[1]
+           +  (mat(0,0)*mat(2,2) + mat(0,2)*mat(2,0))*sym[3]
+           +  (mat(0,1)*mat(2,2) + mat(0,2)*mat(2,1))*sym[4];
+  
+    out[4] =   mat(1,0)*mat(2,0)*sym[0] 
+           +   mat(1,1)*mat(2,1)*sym[2]
+           +   mat(1,2)*mat(2,2)*sym[5]
+           +  (mat(1,0)*mat(2,1) + mat(1,1)*mat(2,0))*sym[1]
+           +  (mat(1,0)*mat(2,2) + mat(1,2)*mat(2,0))*sym[3]
+           +  (mat(1,1)*mat(2,2) + mat(1,2)*mat(2,1))*sym[4];
+  
+    out[5] =   mat(2,0)*mat(2,0)*sym[0] 
+           +   mat(2,1)*mat(2,1)*sym[2]
+           +   mat(2,2)*mat(2,2)*sym[5]
+           + 2*mat(2,0)*mat(2,1)*sym[1]
+           + 2*mat(2,0)*mat(2,2)*sym[3]
+           + 2*mat(2,1)*mat(2,2)*sym[4];
+  }else{
+    // This if constexpr should not be necessary, but it is 
+    if constexpr(n1 != n2)    static_assert(n1 == 2 && n2 == 3);
+
+    out[0] =   mat(0,0)*mat(0,0)*sym[sym2idx(0,0)] 
+           +   mat(0,1)*mat(0,1)*sym[sym2idx(1,1)]
+           +   mat(0,2)*mat(0,2)*sym[sym2idx(2,2)]
+           + 2*mat(0,0)*mat(0,1)*sym[sym2idx(0,1)]
+           + 2*mat(0,0)*mat(0,2)*sym[sym2idx(0,2)]
+           + 2*mat(0,1)*mat(0,2)*sym[sym2idx(1,2)];
+  
+    out[1] =   mat(0,0)*mat(1,0)*sym[sym2idx(0,0)] 
+           +   mat(0,1)*mat(1,1)*sym[sym2idx(1,1)]
+           +   mat(0,2)*mat(1,2)*sym[sym2idx(2,2)]
+           +   (mat(0,0)*mat(1,1) + mat(0,1)*mat(1,0))*sym[sym2idx(0,1)]
+           +   (mat(0,0)*mat(1,2) + mat(0,2)*mat(1,0))*sym[sym2idx(0,2)]
+           +   (mat(0,1)*mat(1,2) + mat(0,2)*mat(1,1))*sym[sym2idx(1,2)];
+  
+    out[2] =   mat(1,0)*mat(1,0)*sym[sym2idx(0,0)] 
+           +   mat(1,1)*mat(1,1)*sym[sym2idx(1,1)]
+           +   mat(1,2)*mat(1,2)*sym[sym2idx(2,2)]
+           + 2*mat(1,0)*mat(1,1)*sym[sym2idx(0,1)]
+           + 2*mat(1,0)*mat(1,2)*sym[sym2idx(0,2)]
+           + 2*mat(1,1)*mat(1,2)*sym[sym2idx(1,2)];
+
+  }
+}
+
+
 
 // Compute the trace of A Sym A^T 
 template <int ndimn, typename T1, typename T2, typename T3>

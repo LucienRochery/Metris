@@ -41,14 +41,14 @@ namespace Metris{
            QuaFun iquaf, class ftype=double>
   constexpr auto get_d_quafun_xi(){
     if constexpr(iquaf == QuaFun::Distortion){
-      return d_quafun_distortion<MFT,gdim,ftype>;
+      return d_quafun_distortion<MFT,gdim,tdim,ftype>;
     }else if(iquaf == QuaFun::Unit){
-      return d_quafun_unit<MFT,gdim,ftype>;
+      return d_quafun_unit<MFT,gdim,tdim,ftype>;
     }else{
       METRIS_THROW_MSG(TODOExcept(), "Implement QuaFun in get_quafun_xi");
     }
     METRIS_THROW_MSG(TODOExcept(), "Implement QuaFun in get_quafun_xi");
-    return d_quafun_distortion<MFT,gdim,ftype>;
+    return d_quafun_distortion<MFT,gdim,tdim,ftype>;
   }
 
 

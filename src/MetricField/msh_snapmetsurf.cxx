@@ -29,8 +29,8 @@ void snapMetSurf(MeshMetric<MetricFieldType> &msh,
 
   intAr1 ntryref1(msh.CAD.ncaded), ntryref2(msh.CAD.ncadfa);
   intAr1 ncorref1(msh.CAD.ncaded), ncorref2(msh.CAD.ncadfa);
-  dblAr1 maxerrminref1(msh.CAD.ncaded), maxerrminref2(msh.CAD.ncaded);
-  dblAr1 minerrminref1(msh.CAD.ncaded), minerrminref2(msh.CAD.ncaded);
+  dblAr1 maxerrminref1(msh.CAD.ncaded), maxerrminref2(msh.CAD.ncadfa);
+  dblAr1 minerrminref1(msh.CAD.ncaded), minerrminref2(msh.CAD.ncadfa);
   ntryref1.fill(0);
   ntryref2.fill(0);
   ncorref1.fill(0);

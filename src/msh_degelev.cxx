@@ -9,6 +9,7 @@
 #include "low_topo.hxx"
 #include "aux_exceptions.hxx"
 #include "utils/aux_misc.hxx"
+#include "utils/mprintf.hxx"
 
 #include "Mesh/Mesh.hxx"
 
@@ -83,6 +84,7 @@ void deg_elevate(Mesh<MFT> &msh){
     
     /* PHASE 1: EDGES*/
     for(int iedge = 0; iedge < msh.nedge; iedge++){
+      INCVDEPTH(msh.param)
       if(isdeadent(iedge,msh.edg2poi)){
         for(int ii = 2; ii < getnnod1(tardeg); ii++) msh.edg2poi(iedge,ii) = -1;
         continue;
@@ -118,8 +120,6 @@ void deg_elevate(Mesh<MFT> &msh){
           ibnew = msh.newbpotopo(ipnew,1,iedge);
         }
 
-        if(ipnew == 1517) printf("## DEBUG 1517 CREATED BY EDGE %d \n",iedge);
-
         for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
 
 
@@ -139,6 +139,7 @@ void deg_elevate(Mesh<MFT> &msh){
     
     /* PHASE 2: TRIANGLES */
     for(int iface = 0; iface < msh.nface; iface++){
+      INCVDEPTH(msh.param)
       if(isdeadent(iface,msh.fac2poi)){
         for(int ii = 3; ii < getnnod2(tardeg); ii++) msh.fac2poi(iface,ii) = -1;
         continue;
@@ -184,8 +185,6 @@ void deg_elevate(Mesh<MFT> &msh){
             ipnew = msh.newpoitopo(2,iface);
             ibnew = msh.newbpotopo(ipnew,2,iface);
           }
-
-          if(ipnew == 1517) printf("## DEBUG 1517 CREATED BY FACE %d \n",iface);
 
           for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
 
@@ -294,6 +293,7 @@ void deg_elevate(Mesh<MFT> &msh){
     /* PHASE 3: TETRAHEDRA */
     if constexpr (gdim >= 3){ // Note: constexpr avoids compilation of invalid template param combinations such as tdim = 3, gdim = 2
       for(int ielem = 0; ielem < msh.nelem; ielem++){
+        INCVDEPTH(msh.param)
         if(isdeadent(ielem,msh.tet2poi)){
           for(int ii = 4; ii < getnnod3(tardeg); ii++) msh.tet2poi(ielem,ii) = -1;
           continue;

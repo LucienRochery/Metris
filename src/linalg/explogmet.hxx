@@ -53,7 +53,7 @@ void getexpmet_cpy_d(const double* met ,const double* dmet,
                      double tol = 1.0e-12, int iscal = 1);
 
 // -----------------------------------------------------------------------------
-// lwork as required by LAPACK_dsyev
+// lwork as required by dsyev
 inline void getexpmet_cpy_LAPACK(const double lmet[], double met[]){
 	double eigval[3], eigvec[9],rwork[10];
 	geteigsym<3,double>(lmet,10,rwork,eigval,eigvec);

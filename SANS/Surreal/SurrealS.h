@@ -13,7 +13,7 @@
 //#if defined(SURREAL_TRAD)
 //#include "SurrealS_Trad.h"
 //#elif defined(SURREAL_LAZY)
-#include "SANS//Surreal/SurrealS_Lazy.h"
+#include "SurrealS_Lazy.h"
 //#elif defined(SURREAL_REVERSE)
 //#include "SurrealS_Reverse.h"
 //#else

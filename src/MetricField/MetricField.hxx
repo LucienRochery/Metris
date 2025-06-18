@@ -177,6 +177,8 @@ operator[] deals with the FE field in all cases
 class MetricFieldAnalytical : public MetricFieldFE{
 
 public:
+  friend class MeshBack;
+  
   MetricClass metricClass() const override { return MetricClass::MetricFieldAnalytical; }
 
 	MetricFieldAnalytical() = delete;

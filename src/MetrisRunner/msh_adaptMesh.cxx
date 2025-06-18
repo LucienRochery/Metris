@@ -97,6 +97,8 @@ void MetrisRunner::adaptMesh0(){
   //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (LogIntrp)");
   //pct_unit = getLengthEdges<MFT>(msh,2,4,ilned,rlned,LenTyp::BdryCor);
   //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (BdryCor)");
+  //pct_unit = getLengthEdges<MFT>(msh,2,4,ilned,rlned,LenTyp::MetCrv);
+  //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (MetCrv)");
   //wait();
 
   // This is the common thread for all routines. Tagged elements are ignored
@@ -282,7 +284,7 @@ void MetrisRunner::adaptMesh0(){
 
     bool dosmoo_adp = (iopt_niter < msh.param->adp_opt_niter|| msh.param->adp_opt_niter < 0)
                         && !msh.param->opt_unif;
-    bool stagn = stat0 < 1.0e-3
+    bool stagn = stat0 < msh.param->adp_stagn_stop
               || stat0 < minstat;
               //|| stat0 < 5.0e-2 && dosmoo_adp;
              // || abs(stat0 - stat_prev) < 1.0e-6 ;// This last criterion just catches cycles

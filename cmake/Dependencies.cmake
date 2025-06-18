@@ -52,6 +52,7 @@ message("Got LAPACK_LIBRARIES    = ${LAPACK_LIBRARIES}")
 
 
 
+
 if(USE_PETSC)
   message("PETSC enabled")
 
@@ -281,11 +282,13 @@ FetchContent_Declare(cmake_git_version_tracking
   GIT_TAG 6c0cb87edd029ddfb403a8e24577c144a03605a6
 )
 FetchContent_MakeAvailable(cmake_git_version_tracking)
+set(GITLIB_INCLUDE_DIR "${CMAKE_BINARY_DIR}/_deps/cmake_git_version_tracking-src/")
+
 
 
 FetchContent_MakeAvailable(${FETCH_LIST})
-# This is necessary to make the sanitizer work correctly. Also we do want to 
-# propagate flags, in general. 
+# This is necessary to make the sanitizer work correctly. Also we want to 
+# propagate flags. 
 if(USE_ABSL)
   setMetrisFlags(absl_hash INTERFACE)
   setMetrisFlags(absl_flat_hash_map INTERFACE)

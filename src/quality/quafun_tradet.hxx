@@ -13,7 +13,11 @@
 
 
 #include "../Mesh/MeshFwd.hxx"
+#include "SANS/Surreal/SurrealS_fwd.h"
 
+namespace SANS::DLA{
+  template<int n, int m, typename T> class MatrixS;
+}
 
 namespace Metris{
 
@@ -34,7 +38,7 @@ void quafun_tradet(Mesh<MetricFieldType> &msh,
                    ftype*__restrict__ det);
 
 // Differentiated w.r.t. ielem's ivar-th control point/node. 
-template <class MetricFieldType, int gdim, 
+template <class MetricFieldType, int gdim, int tdim,
            typename ftype = double>
 void d_quafun_tradet(Mesh<MetricFieldType> &msh,
                      AsDeg asdmsh, AsDeg asdmet,
@@ -50,6 +54,19 @@ void d_quafun_tradet(Mesh<MetricFieldType> &msh,
                      ftype*__restrict__ det, 
                      ftype*__restrict__ ddet, 
                      ftype*__restrict__ hdet);
+
+
+template <class MFT, int gdim, int tdim, int nvar, typename ftype>
+void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
+                              const int* ent2pol,
+                              const double*__restrict__ bary, 
+                              int ivar, 
+                              FEBasis dofbas, 
+                              DifVar idifmet, 
+                              const double*__restrict__ met_,
+                              SANS::SurrealS<nvar, ftype>&__restrict__ tra, 
+                              SANS::SurrealS<nvar, ftype>&__restrict__ det,
+                              const SANS::DLA::MatrixS<gdim,nvar,double> *dpoint);
 
 
 } // End namespace

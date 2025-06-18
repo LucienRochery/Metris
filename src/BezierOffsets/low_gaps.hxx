@@ -18,7 +18,7 @@ namespace Metris{
 //              double* __restrict__ rotmat);
 
 template<class MetricFieldType, int gdim, int ideg>
-void getBezOffsetsEdge(Mesh<MetricFieldType> &msh, int tdimn, 
+void getBezOffsetsEdge(MeshMetric<MetricFieldType> &msh, int tdimn, 
                        const int* ent2poi, int iedgl, double* offsets);
 
 //template<int gdim, int ideg>

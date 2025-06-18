@@ -138,36 +138,51 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
 
   double t0 = get_wall_time();
 
-  if(ipoi0 != 0){
-    // Case where we assume only HO points to initialize. We have valid seeds.
-    for(int ipoin = ipoi0; ipoin < msh.npoin; ipoin++){
-
-      INCVDEPTH(msh.param);
-
-      if(msh.poi2ent(ipoin,0) < 0) continue;
-
-      int pdim = msh.getpoitdim(ipoin);
-      // Corner not to be localized but matched prior
-      if(pdim == 0) continue;
-
-      ierro = msh.interpMetBack(ipoin);
-      if(ierro != 0) METRIS_THROW_MSG(TODOExcept(),"Implement bad stack to retry later");
-    }
+  intAr1 lpfro;
+  if(ipoi0 > 0){
+    lpfro.allocate(ipoi0);
+    lpfro.set_n(0);
+    for(int ipoin = 0; ipoin < ipoi0; ipoin++) lpfro.stack(ipoin);
   }else{
+    lpfro.allocate(lcorf.get_n());
+    lcorf.copyTo(lpfro);
+  }
+
+  //if(ipoi0 != 0){
+  //  // Case where we assume only HO points to initialize. We have valid seeds.
+  //  for(int ipoin = ipoi0; ipoin < msh.npoin; ipoin++){
+
+  //    INCVDEPTH(msh.param);
+
+  //    if(msh.poi2ent(ipoin,0) < 0) continue;
+
+  //    int pdim = msh.getpoitdim(ipoin);
+  //    // Corner not to be localized but matched prior
+  //    if(pdim == 0) continue;
+
+  //    ierro = msh.interpMetBack(ipoin);
+  //    if(ierro != 0) METRIS_THROW_MSG(TODOExcept(),"Implement bad stack to retry later");
+  //  }
+  //}else{
     // Case where no points (except corners) are seeded. 
     CPRINTF1("-- Frontal back -> front links\n");
     // Create a point front. Each point gathers ball but only of tdim >= its own, 
     // initializes neighbours' poi2bak using its own poi2bak and potentially edg2fac, fac2tet
     // Add thusly initialized neighbours to stack, pop self. 
-    intAr1 lpfro(lcorf.get_n());
-    lcorf.copyTo(lpfro);
+    //intAr1 lpfro(lcorf.get_n());
+    //lcorf.copyTo(lpfro);
     METRIS_ASSERT(lcorf.get_n() > 0);
     intAr1 lentt[3] = {10, 100, msh.idim == 3 ? 100 : 0};
     msh.tag[ithread]++;
     int ptag = msh.tag[ithread];
     if(DOPRINTS2()){
-      CPRINTF2(" - Init front with: ");
-      lpfro.print();
+      CPRINTF2(" - Init front with %d points",lpfro.get_n());
+      if(lpfro.get_n() <= 10){
+        printf(": ");
+        lpfro.print();
+      }else{
+        printf("\n");
+      }
     }
     for(int ipoin : lpfro){
       msh.poi2tag(ithread,ipoin) = ptag;
@@ -185,7 +200,40 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
       int iopen;
       {
       INCVDEPTH(msh.param)
-      ierro = ball(msh, ipseed, lentt[0], lentt[1], lentt[2], &iopen, ithread);
+      int ientt = msh.poi2ent(ipseed, 0);
+      int tdime = msh.poi2ent(ipseed, 1);
+      int iver = msh.getverent(ientt,tdime,ipseed);
+      int iedl = -1;
+      ierro = 0;
+      if(iver < tdime+1){
+        ierro = ball(msh, ipseed, lentt[0], lentt[1], lentt[2], &iopen, ithread);
+      }else{
+        bool doshell = false;
+        if(msh.curdeg <= 2){
+          METRIS_ASSERT(msh.curdeg == 2);
+          doshell = true;
+        }else{
+
+          int nppe = getnnod1(msh.curdeg) - 2;
+
+          if(iver <= tdime + 1 + nppe * (tdime*(tdime+1))/2){
+            iedl = (iver - (tdime + 1)) / nppe;
+            doshell = true;
+          }
+
+          // Interior control point, unless volume, could be face...
+          METRIS_THROW_MSG(TODOExcept(), "Implement P3+ case")
+          lentt[tdime-1].stack(ientt);
+        }
+        if(doshell){
+          const int* lnoed = tdime == 1 ? lnoed1[0] :
+                             tdime == 2 ? lnoed2[iedl] : lnoed3[iedl];
+          int ipsed1 = msh.ent2poi(tdime)(ientt, lnoed[0]);
+          int ipsed2 = msh.ent2poi(tdime)(ientt, lnoed[1]);
+          shell(msh, ipsed1, ipsed2, tdime, ientt, lentt[0], lentt[1], lentt[2], &iopen);
+        }
+      }
+
       }
       METRIS_ASSERT(ierro == 0);
 
@@ -239,15 +287,15 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
       }// for tdim
 
     }// while lpfro
-    if(nsucc != msh.npoin - ipoi0){
-      CPRINTF1("## Failed %d points\n",msh.npoin - ipoi0 - nsucc);
+    if(nsucc != msh.npoin){
+      MPRINTF("## Failed %d points\n",msh.npoin - nsucc);
       for(int ipoin = ipoi0; ipoin < msh.npoin; ipoin++){
         if(msh.poi2tag(ithread,ipoin) >= ptag) continue;
         printf("Failed point %d \n",ipoin);
       }
       METRIS_THROW(GeomExcept());
     }
-  }
+  //}
 
   double t1 = get_wall_time();
   CPRINTF1("-- Interp Back -> Front time %f pt/s %d nerror %d \n",t1-t0,

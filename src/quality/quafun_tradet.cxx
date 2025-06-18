@@ -7,12 +7,15 @@
 
 #include "../Mesh/Mesh.hxx"
 #include "../metris_constants.hxx"
+#include "../low_eval_d_SurrealS.hxx"
 #include "../utils/aux_misc.hxx"
 
 #include "../linalg/matprods.hxx"
 #include "../linalg/det.hxx"
 
 #include "../utils/aux_pp_inc.hxx"
+
+#include "SANS/Surreal/SurrealS.h"
 
 namespace Metris{
 
@@ -44,21 +47,6 @@ void quafun_tradet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
 
   // Get Jacobian matrix at xi
   if(asdmsh == AsDeg::P1 || msh.curdeg == 1){
-    // Not faster
-    //for(int ii = 0; ii < gdim; ii++) coopr[ii] = 0;
-    //const int ipoi0 = ent2pol[0];
-    //for(int ii = 0; ii < tdim + 1; ii ++){
-    //  const int ipoin = ent2pol[ii];
-    //  for(int jj = 0; jj < gdim; jj++){
-    //    coopr[jj] += bary[ii] * msh.coord(ipoin,jj);
-    //  }
-    //}
-    //for(int ii = 0; ii < tdim; ii ++){
-    //  const int ipoin = ent2pol[ii+1];
-    //  for(int jj = 0; jj < gdim; jj++){
-    //    jmat[gdim*ii+jj] = msh.coord(ipoin,jj) - msh.coord(ipoi0,jj);
-    //  }
-    //}
     if constexpr(tdim == 2){  
       eval2<gdim,1>(msh.coord,ent2pol,msh.getBasis(),
                        DifVar::Bary,DifVar::None,
@@ -92,6 +80,7 @@ void quafun_tradet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
     for(int ii = 0; ii < nnmet; ii++) met[ii] = met_[ii];
   }
 
+
   // Compute J_0^{-T} J_K^T M J_K J_0^{-1}
   // Starting with J_K J_0^{-1}
   // Note that J_K is stored transposed w.r.t. above ! -> jmat[i,j] = d_i F_j 
@@ -99,13 +88,14 @@ void quafun_tradet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
 
 
   // Get J_0^{-T} J_K^T
-  ftype invtJ_0tJ_K[tdim*gdim];
+  ftype invtJ0_tJK[tdim*gdim];
 
-  matXmat<tdim,tdim,gdim>(Constants::invtJ_0[hana::type_c<ftype>][tdim],jmat,invtJ_0tJ_K);
+  matXmat<tdim,tdim,gdim>(Constants::invtJ_0[hana::type_c<ftype>][tdim],
+                          jmat,invtJ0_tJK);
 
 
   ftype J0tJtMJJ0_diag[tdim];
-  matXsymXtmat_diag<gdim, tdim, double, ftype, ftype>(met, invtJ_0tJ_K, J0tJtMJJ0_diag);
+  matXsymXtmat_diag<gdim, tdim, double, ftype, ftype>(met, invtJ0_tJK, J0tJtMJJ0_diag);
   *tra = J0tJtMJJ0_diag[0] + J0tJtMJJ0_diag[1];
   if constexpr (tdim == 3) *tra += J0tJtMJJ0_diag[2];
   
@@ -114,7 +104,7 @@ void quafun_tradet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
 
 
   if constexpr(tdim == gdim){
-    ftype det1 = detmat<gdim>(invtJ_0tJ_K); // Error of 10^{-19} = 10^-14 relative compared to Matlab on wonky case
+    ftype det1 = detmat<gdim>(invtJ0_tJK); // Error of 10^{-19} = 10^-14 relative compared to Matlab on wonky case
     ftype tmp = detsym<gdim>(met); // Error of 10^5 ... // Matlab yields 7.346639223296765e+09 we get 7.346911345315383e+09 // Even in relative this is terrible
     if(tmp < 0 || abs(tmp) < 1.0e-16 || abs(tmp) > 1.0e10){
       // Try more robust version (much costlier)
@@ -123,10 +113,10 @@ void quafun_tradet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
     //ftype tmp = detsym2<gdim>(met); // Also wrong, same error. Note Matlab gets 10^-9 final quality relative error ! Our determinant is terribly bad
     *det = det1*det1*tmp; 
   }else{
-    static_assert(tdim == 2);
-    ftype J0tJtMJJ0[3];
-    matXsymXtmat<2,3,double,ftype,ftype>(met,invtJ_0tJ_K,J0tJtMJJ0);
-    *det = detsym2<2>(J0tJtMJJ0);
+    static_assert(tdim == 2 && gdim == 3);
+    ftype tJ0_tJK_M_JK_J0[3];
+    matXsymXtmat<2,3,double,ftype,ftype>(met,invtJ0_tJK,tJ0_tJK_M_JK_J0);
+    *det = detsym2<2>(tJ0_tJK_M_JK_J0);
   }
 
   if(abs(*det) < 1.0e-16 && msh.param->opt_power > 0) 
@@ -171,45 +161,6 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,\
                               (MFT_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
 #undef EXPAND_TEMPLATE
-#undef REPEAT_IDEG
-
-#if 0
-#define EXPAND_TEMPLATE(z,ideg,SEQ) \
-                  INSTANTIATE(z,ideg,BOOST_PP_SEQ_ELEM(0, SEQ),\
-                                     BOOST_PP_SEQ_ELEM(1, SEQ),\
-                                     BOOST_PP_SEQ_ELEM(2, SEQ))
-#define REPEAT_IDEG(r,SEQ)   BOOST_PP_REPEAT(METRIS_MAX_DEG,EXPAND_TEMPLATE,SEQ)
-#define MFT_SEQ (MetricFieldFE)(MetricFieldAnalytical)
-#define ASDEG_SEQ (AsDeg::P1)(AsDeg::Pk) 
-
-
-#define INSTANTIATE(z,ideg,MFT_VAL,ASDEG_VAL,FTYPE)\
-template void quafun_tradet< MFT_VAL , 2, 2, 1+ideg, ASDEG_VAL, FTYPE>\
-                  (Mesh< MFT_VAL > &msh,\
-                   const int*__restrict__ ent2pol, \
-                   const double*__restrict__ bary, int power,\
-                   double*__restrict__ met,\
-                   FTYPE*__restrict__ tra,\
-                   FTYPE*__restrict__ det); \
-template void quafun_tradet< MFT_VAL , 3, 2, 1+ideg, ASDEG_VAL, FTYPE>\
-                  (Mesh< MFT_VAL > &msh,\
-                   const int*__restrict__ ent2pol, \
-                   const double*__restrict__ bary, int power,\
-                   double*__restrict__ met,\
-                   FTYPE*__restrict__ tra,\
-                   FTYPE*__restrict__ det); \
-template void quafun_tradet< MFT_VAL , 3, 3, 1+ideg, ASDEG_VAL, FTYPE>\
-                  (Mesh< MFT_VAL > &msh,\
-                   const int*__restrict__ ent2pol, \
-                   const double*__restrict__ bary, int power,\
-                   double*__restrict__ met,\
-                   FTYPE*__restrict__ tra,\
-                   FTYPE*__restrict__ det); 
-BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG,(MFT_SEQ)(ASDEG_SEQ)(QUA_FTYPE_SEQ))
-#undef INSTANTIATE
-#undef EXPAND_TEMPLATE
-#undef REPEAT_IDEG
-#endif
 
 
 /*
@@ -228,7 +179,7 @@ Compute quality function and derivative with respect to node ivar
 - idifmet is either DifVar::None ("static" metric approximation) or DifVar::Phys
 - quael is output quality and derivatives 
 */
-template <class MFT, int gdim, typename ftype>
+template <class MFT, int gdim, int tdim, typename ftype>
 void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                      const int* ent2pol,
                      const double*__restrict__ bary, 
@@ -249,13 +200,12 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   METRIS_ASSERT(msh.met.getSpace() == MetSpace::Log || met_ != NULL && idifmet == DifVar::None);
   // Differentiate or don't, but there is no barycentric derivative in this context 
   METRIS_ASSERT(idifmet == DifVar::None || idifmet == DifVar::Phys);
-  if(idifmet != DifVar::None) METRIS_THROW_MSG(TODOExcept(), 
+  METRIS_ASSERT_MSG(idifmet == DifVar::None, 
                            "Metric field derivative not implemented in quality")
   METRIS_ASSERT( !(ivar >= 0 && dofbas == FEBasis::Undefined) );
-  if(dofbas == FEBasis::Bezier) METRIS_THROW_MSG(TODOExcept(), 
+  METRIS_ASSERT_MSG(!(dofbas == FEBasis::Bezier && idifmet != DifVar::None), 
     "Ctrl pt dof not implemented -> do lag2bez derivatives of metric")
 
-  constexpr int tdim  = gdim;
   constexpr int nnmet = (gdim*(gdim+1))/2;
   //constexpr int nhess = nnmet;
 
@@ -297,9 +247,9 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   // whereas (J_K)_{ij} = d_j F_i .. 
 
   // Get J_0^{-T} J_K^T 
-  ftype invtJ0_tJ[tdim][gdim];
+  ftype invtJ0_tJK[tdim][gdim];
   matXmat<tdim,tdim,gdim>(Constants::invtJ_0[hana::type_c<ftype>][tdim],
-                          jmat,invtJ0_tJ[0]);
+                          jmat,invtJ0_tJK[0]);
   // Get metric interpolated at xi
   // The metric field class fetches geometric dimension from the mesh
   double met[nnmet],dmet[gdim][nnmet];
@@ -312,32 +262,35 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
 
   // Compute the trace 
-  tra = tra_matXsymXtmat<gdim, double, ftype, ftype>(met, invtJ0_tJ[0]);
-  //tra = invtJ0_tJ_M_J_invJ0iag[0] + invtJ0_tJ_M_J_invJ0iag[1];
-  //if constexpr (tdim == 3) tra += invtJ0_tJ_M_J_invJ0iag[2]; 
+  ftype tJ0_tJK_M_JK_J0_diag[tdim];
+  matXsymXtmat_diag<gdim, tdim, double, ftype, ftype>(met, 
+                                           invtJ0_tJK[0], tJ0_tJK_M_JK_J0_diag);
+  tra = tJ0_tJK_M_JK_J0_diag[0] + tJ0_tJK_M_JK_J0_diag[1];
+  if constexpr (tdim == 3) tra += tJ0_tJK_M_JK_J0_diag[2];
+
+  //tra = tra_matXsymXtmat<gdim, double, ftype, ftype>(met, invtJ0_tJK[0]);
   // This is an actual exception that should never theoretically happen. 
-  if(tra < 1.0e-16) 
-    METRIS_THROW_MSG(GeomExcept(), "NEGATIVE J^TMJ trace "<<tra);
+  METRIS_ENFORCE_MSG(tra >= 1.0e-16, "## Negative tJMJ trace = "<<tra)
 
 
 
   ftype detM, det_invtJ0_tJ;
   if constexpr(tdim == gdim){
     // Error of 10^{-19} = 10^-14 relative compared to Matlab on wonky case
-    det_invtJ0_tJ = detmat<gdim,ftype>(invtJ0_tJ[0]);
+    det_invtJ0_tJ = detmat<gdim,ftype>(invtJ0_tJK[0]);
     // Error of 10^5 ... 
     // Matlab yields 7.346639223296765e+09 we get 7.346911345315383e+09 
-    // Even in relative this is terrible>(invtJ0_tJ[0]); 
+    // Even in relative this is terrible>(invtJ0_tJ); 
     //ftype tmp = detsym<gdim>(met); 
     // Also wrong, same error. Note Matlab gets 10^-9 final quality 
     // relative error ! Our determinant is terribly bad
     detM = detsym2<gdim>(met); 
     det  = det_invtJ0_tJ*det_invtJ0_tJ*detM; 
   }else{
-    static_assert(tdim == 2);
-    ftype J0tJtMJJ0[3];
-    matXsymXtmat<2,3,double,ftype,ftype>(met,invtJ0_tJ[0],J0tJtMJJ0);
-    det = detsym2<2>(J0tJtMJJ0);
+    static_assert(tdim == 2 && gdim == 3);
+    ftype tJ0_tJK_M_JK_J0[3];
+    matXsymXtmat<2,3,double,ftype,ftype>(met,invtJ0_tJK[0],tJ0_tJK_M_JK_J0);
+    det = detsym2<2>(tJ0_tJK_M_JK_J0);
   }
 
   if(abs(det) < 1.0e-16 && msh.param->opt_power > 0) 
@@ -380,36 +333,34 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   }
 
   // The derivative is much simplified, see pdf doc 
-  ftype D_J_invJ0[tdim];
+  ftype d_JK_invJ0[tdim];
 
   // d_i(invtJ0_tJ)_{ij} = \sum_k \psi_k C_kj^T
   // In these notations, C_kj^T = Constants::invtJ_0[hana::type_c<ftype>][tdim][k][j]
   // BECAUSE THE JACOBIAN MATRICES ARE TRANSPOSED! 
   ftype sumDk2 = 0; // needed for second derivative of trace 
   for(int ii = 0; ii < tdim; ii++){
-    D_J_invJ0[ii] = 0;
+    d_JK_invJ0[ii] = 0;
     for(int kk = 0; kk < tdim; kk++){
-      D_J_invJ0[ii] 
+      d_JK_invJ0[ii] 
         += dfun[kk]*Constants::invtJ_0[hana::type_c<ftype>][tdim][tdim*ii+kk];
     }
-    sumDk2 += D_J_invJ0[ii]*D_J_invJ0[ii];
+    sumDk2 += d_JK_invJ0[ii]*d_JK_invJ0[ii];
   }
 
   // Compute A^TM 
-  ftype invtJ0_tJ_M[tdim][gdim];
-  matXsym<gdim>(invtJ0_tJ[0],met,invtJ0_tJ_M[0]);
-
+  ftype invtJ0_tJK_M[tdim][gdim];
+  //matXsym<gdim>(invtJ0_tJK[0],met,invtJ0_tJK_M[0]);
+  matXsym<tdim,gdim,double,ftype,ftype>(invtJ0_tJK[0], met, invtJ0_tJK_M[0]);
 
 
   // Compute trace derivatives
   // Given by d_i tr = 2 \sum_j (d_iA^T)_{ji} (A^TM)_{ji}
-  //ftype dtra[gdim] = {0};//, htra[nhess] = {0};
-
   for(int ii = 0; ii < gdim; ii++){
     dtra[ii] = 0;
-    for(int jj = 0; jj < gdim; jj++){
-      dtra[ii] += 2*invtJ0_tJ_M[jj][ii]
-                   *D_J_invJ0[jj];
+    for(int jj = 0; jj < tdim; jj++){
+      dtra[ii] += 2*invtJ0_tJK_M[jj][ii]
+                   *d_JK_invJ0[jj];
     }
     //dtrapowd[ii] = tdim*dtra[ii]*trapowdm1;
   }
@@ -426,46 +377,50 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   }
 
   // Compute determinant derivatives 
-  // Given by two terms:
-  // d_i det(A^TMA) = det(A)det(M) ( T1 + T2 )
-  // T1 = det(diA_(:1)   A_(:2)   A_(:3)) 
-  //    + det(  A_(:1) diA_(:2)   A_(:3)) 
-  //    + det(  A_(:1)   A_(:2) diA_(:3)) 
-  // T2 = det(diA_(1:) + det(  A_(1:) + det(  A_(1:)                                     
-  //            A_(2:)       diA_(2:)         A_(2:)                                 
-  //            A_(3:))        A_(3:))      diA_(3:))
-  //    = only one term, the one where di is in the i-th position. 
-  // We'll need both invtJ0_tJ and its transpose:
-  ftype J_invJ0[tdim][tdim];
-  for(int ii = 0; ii < tdim; ii++){
-    for(int jj = 0; jj < tdim; jj++){
-      J_invJ0[jj][ii] = invtJ0_tJ[ii][jj];
-    }
-  }
-  // Compute T2 first. 
-  if constexpr (gdim == 2){
-    ddet[0] = detvec2<ftype>(D_J_invJ0   ,  J_invJ0[1]);
-    ddet[1] = detvec2<ftype>(  J_invJ0[0],D_J_invJ0   );
-  }else{
-    ddet[0] = detvec3<ftype>(D_J_invJ0   ,  J_invJ0[1],  J_invJ0[2]);
-    ddet[1] = detvec3<ftype>(  J_invJ0[0],D_J_invJ0   ,  J_invJ0[2]);
-    ddet[2] = detvec3<ftype>(  J_invJ0[0],  J_invJ0[1],D_J_invJ0   );
-  }
-  // Now T1. Normally the matrix is column-wise, and we eliminate (i,1), (i,2)...
-  // Since subdetvec takes lines, we instead give it the lines of the transpose,
-  // and so we eliminate (1,i), (2,i) and so on. 
-
-  // At this stage, ddet stores grad of det(A). (if the full matrix is A^TMA). 
-  // Now compute the second derivatives:
-  if(hdet != NULL){
-    for(int ii = 0; ii < gdim; ii++){
-      for(int jj = ii; jj < gdim; jj++){
-        hdet[sym2idx(ii,jj)] = 2.0*detM*ddet[ii]*ddet[jj];
+  if constexpr (tdim == gdim){
+    // Given by two terms:
+    // d_i det(A^TMA) = det(A)det(M) ( T1 + T2 )
+    // T1 = det(diA_(:1)   A_(:2)   A_(:3)) 
+    //    + det(  A_(:1) diA_(:2)   A_(:3)) 
+    //    + det(  A_(:1)   A_(:2) diA_(:3)) 
+    // T2 = det(diA_(1:) + det(  A_(1:) + det(  A_(1:)                                     
+    //            A_(2:)       diA_(2:)         A_(2:)                                 
+    //            A_(3:))        A_(3:))      diA_(3:))
+    //    = only one term, the one where di is in the i-th position. 
+    // We'll need both invtJ0_tJ and its transpose:
+    ftype JK_invJ0[gdim][tdim];
+    for(int ii = 0; ii < tdim; ii++){
+      for(int jj = 0; jj < gdim; jj++){
+        JK_invJ0[jj][ii] = invtJ0_tJK[ii][jj];
       }
     }
-  }
-  for(int ii = 0; ii < gdim;ii++){
-    ddet[ii] *= 2*detM*det_invtJ0_tJ;
+    // Compute T2 first. 
+    if constexpr (gdim == 2){
+      ddet[0] = detvec2<ftype>(d_JK_invJ0   ,  JK_invJ0[1]);
+      ddet[1] = detvec2<ftype>(  JK_invJ0[0],d_JK_invJ0   );
+    }else{
+      ddet[0] = detvec3<ftype>(d_JK_invJ0   ,  JK_invJ0[1],  JK_invJ0[2]);
+      ddet[1] = detvec3<ftype>(  JK_invJ0[0],d_JK_invJ0   ,  JK_invJ0[2]);
+      ddet[2] = detvec3<ftype>(  JK_invJ0[0],  JK_invJ0[1],d_JK_invJ0   );
+    }
+    // Now T1. Normally the matrix is column-wise, and we eliminate (i,1), (i,2)...
+    // Since subdetvec takes lines, we instead give it the lines of the transpose,
+    // and so we eliminate (1,i), (2,i) and so on. 
+
+    // At this stage, ddet stores grad of det(A). (if the full matrix is A^TMA). 
+    // Now compute the second derivatives:
+    if(hdet != NULL){
+      for(int ii = 0; ii < gdim; ii++){
+        for(int jj = ii; jj < gdim; jj++){
+          hdet[sym2idx(ii,jj)] = 2.0*detM*ddet[ii]*ddet[jj];
+        }
+      }
+    }
+    for(int ii = 0; ii < gdim;ii++){
+      ddet[ii] *= 2*detM*det_invtJ0_tJ;
+    }
+  }else{
+
   }
 
   return;
@@ -480,7 +435,7 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                               BOOST_PP_SEQ_ELEM(1, SEQ))
 
 #define INSTANTIATE(MFT_VAL,FTYPE)\
-template void d_quafun_tradet< MFT_VAL , 2, FTYPE>\
+template void d_quafun_tradet< MFT_VAL , 2, 2, FTYPE>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2pol,\
@@ -495,7 +450,22 @@ template void d_quafun_tradet< MFT_VAL , 2, FTYPE>\
                    FTYPE*__restrict__ det,\
                    FTYPE*__restrict__ ddet,\
                    FTYPE*__restrict__ hdet);\
-template void d_quafun_tradet< MFT_VAL , 3, FTYPE>\
+template void d_quafun_tradet< MFT_VAL , 3, 2, FTYPE>\
+                  (Mesh< MFT_VAL > &msh,\
+                   AsDeg asdmsh, AsDeg asdmet,\
+                   const int* ent2pol,\
+                   const double*__restrict__ bary,\
+                   int ivar,\
+                   FEBasis dofbas,\
+                   DifVar idifmet,\
+                   const double*__restrict__ met_,\
+                   FTYPE*__restrict__ tra,\
+                   FTYPE*__restrict__ dtra,\
+                   FTYPE*__restrict__ htra,\
+                   FTYPE*__restrict__ det,\
+                   FTYPE*__restrict__ ddet,\
+                   FTYPE*__restrict__ hdet); \
+template void d_quafun_tradet< MFT_VAL , 3, 3, FTYPE>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2pol,\
@@ -514,49 +484,199 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,\
                               (MFT_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
 #undef EXPAND_TEMPLATE
-#undef REPEAT_GDIM
-
-#undef MFT_SEQ  
 
 
-#if 0
+
+
+// This version uses SurrealS to compute derivatives
+// It is meant to be used for boundary nodes.
+// No second derivatives
+template <class MFT, int gdim, int tdim, int nvar, typename ftype>
+void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
+                              const int* ent2pol,
+                              const double*__restrict__ bary, 
+                              int ivar, 
+                              FEBasis dofbas, 
+                              DifVar idifmet, 
+                              const double*__restrict__ met_,
+                              SANS::SurrealS<nvar, ftype>&__restrict__ tra, 
+                              SANS::SurrealS<nvar, ftype>&__restrict__ det,
+                              const SANS::DLA::MatrixS<gdim,nvar,double> *dpoint){
+
+
+  static_assert(gdim == 2 || gdim == 3);
+  METRIS_ASSERT(gdim == msh.idim);
+  METRIS_ASSERT(msh.met.getSpace() == MetSpace::Log || met_ != NULL && idifmet == DifVar::None);
+  // Differentiate or don't, but there is no barycentric derivative in this context 
+  METRIS_ASSERT(idifmet == DifVar::None || idifmet == DifVar::Phys);
+  METRIS_ASSERT_MSG(idifmet == DifVar::None, 
+                           "Metric field derivative not implemented in quality")
+  METRIS_ASSERT( !(ivar >= 0 && dofbas == FEBasis::Undefined) );
+  METRIS_ASSERT_MSG(!(dofbas == FEBasis::Bezier && idifmet != DifVar::None), 
+    "Ctrl pt dof not implemented -> do lag2bez derivatives of metric")
+
+  typedef SANS::SurrealS<nvar,ftype > ftypeS;
+  typedef SANS::SurrealS<nvar,double> doubleS;
+
+  constexpr int nnmet = (gdim*(gdim+1))/2;
+  //constexpr int nhess = nnmet;
+
+  // Get Jacobian matrix at xi  
+  // Derivatives are not needed, we compute them ourselves, as they greatly simplify
+  // see docs/quality/qualityiff.pdf
+  SANS::DLA::MatrixS<tdim ,gdim,doubleS> jmat;
+  SANS::DLA::VectorS<      gdim,doubleS> coopr;
+  // Get Jacobian matrix at xi
+  if(asdmsh == AsDeg::P1){
+    eval_d_SurrealS<gdim, tdim, 1, nvar>(msh.coord, ent2pol, 
+                                     msh.getBasis(), DifVar::Bary, DifVar::None, 
+                                     bary, ivar, &coopr, &jmat, NULL, dpoint);
+  }else{
+    CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
+      eval_d_SurrealS<gdim, tdim, ideg, nvar>(msh.coord, ent2pol, 
+                                     msh.getBasis(), DifVar::Bary, DifVar::None, 
+                                     bary, ivar, &coopr, &jmat, NULL, dpoint);
+    }}CT_FOR1(ideg);
+  }
+  // Compute J_0^{-T} J_K^T M J_K J_0^{-1}
+  // Note that J_K is stored transposed w.r.t. above ! -> jmat[i,j] = d_i F_j 
+  // whereas (J_K)_{ij} = d_j F_i .. 
+
+  // Get J_0^{-T} J_K^T 
+  SANS::DLA::MatrixS<tdim ,tdim, double> 
+    invtJ_0(Constants::invtJ_0[hana::type_c<ftype>][tdim], tdim*tdim);
+  SANS::DLA::MatrixS<tdim ,gdim,ftypeS> invtJ0_tJK = invtJ_0*jmat;
+
+  // Get metric interpolated at xi
+  // The metric field class fetches geometric dimension from the mesh
+  double met[nnmet],dmet[gdim][nnmet];
+  if(met_ == NULL){
+    double coor0[gdim];
+    for(int ii = 0; ii < gdim; ii++) coor0[ii] = coopr[ii].value();
+    msh.met.getMetFullinfo(asdmet,idifmet,MetSpace::Exp,
+                           ent2pol,tdim,bary,coor0,met,dmet[0]);
+  }else{
+    for(int ii = 0; ii < nnmet; ii++) met[ii] = met_[ii];
+  }
+
+  // Store as vector.
+  if(idifmet != DifVar::None) METRIS_THROW_MSG(TODOExcept(), 
+    "Multiply dmet by point Jacobian matrix.");
+  SANS::DLA::MatSymS<gdim,doubleS> metS;
+  for(int ii = 0; ii < nnmet; ii++){
+    metS[ii].value() = met[ii];
+    //if(idifmet != DifVar::None){
+    //  for(int jj = 0; jj < nvar; jj++){
+    //    metS[ii].deriv(jj) = dmet[]
+    //  }
+    //}
+  }
+
+
+  // Compute the trace. Matrix is sized tdim x tdim and symmetric.
+  //SANS::DLA::VectorS<(tdim*(tdim+1))/2,ftypeS> tJ0_tJK_M_JK_J0;
+  SANS::DLA::MatSymS<tdim,ftypeS> tJ0_tJK_M_JK_J0;
+  matXsymXtmat(metS,invtJ0_tJK,tJ0_tJK_M_JK_J0);
+  //matXsymXtmat<tdim,gdim,
+  //             doubleS,
+  //             ftypeS,
+  //             ftypeS>(metS,invtJ0_tJK[0],tJ0_tJK_M_JK_J0);
+  tra = tJ0_tJK_M_JK_J0[0] + tJ0_tJK_M_JK_J0[2];
+  if constexpr (tdim == 3) tra += tJ0_tJK_M_JK_J0[5];
+
+  // This is an actual exception that should never theoretically happen. 
+  METRIS_ENFORCE_MSG(tra.value() >= 1.0e-16, "## Negative tJMJ trace = "<<tra)
+
+
+  ftypeS detM, det_invtJ0_tJ;
+  if constexpr(tdim == gdim){
+    // Error of 10^{-19} = 10^-14 relative compared to Matlab on wonky case
+    det_invtJ0_tJ = detmat(invtJ0_tJK);
+    // Error of 10^5 ... 
+    // Matlab yields 7.346639223296765e+09 we get 7.346911345315383e+09 
+    // Even in relative this is terrible>(invtJ0_tJ); 
+    //ftype tmp = detsym<gdim>(met); 
+    // Also wrong, same error. Note Matlab gets 10^-9 final quality 
+    // relative error ! Our determinant is terribly bad
+    //detM = detsym2<gdim, doubleS>(metS); 
+    detM = detsym2(metS); 
+    det  = det_invtJ0_tJ*det_invtJ0_tJ*detM; 
+  }else{
+    static_assert(tdim == 2 && gdim == 3);
+    det = detsym2(tJ0_tJK_M_JK_J0);
+    //det = detsym2<tdim, ftypeS>(tJ0_tJK_M_JK_J0);
+  }
+
+  if(abs(det.value()) < 1.0e-16 && msh.param->opt_power > 0) 
+     METRIS_THROW_MSG(GeomExcept(), "Singular J^TMJ det = "<<det);
+
+  return;
+}
+
 
 // While cumbersome, this replaces a bunch of manual instantiations, about to 
 // be made worse the day we add tdimn as a template argument. 
-#define EXPAND_TEMPLATE(z,gdim,SEQ) \
-                  INSTANTIATE(z,gdim,BOOST_PP_SEQ_ELEM(0, SEQ),\
-                                     BOOST_PP_SEQ_ELEM(1, SEQ),\
-                                     BOOST_PP_SEQ_ELEM(2, SEQ),\
-                                     BOOST_PP_SEQ_ELEM(3, SEQ))
-#define REPEAT_GDIM(z,n,SEQ) BOOST_PP_REPEAT(2,EXPAND_TEMPLATE,(n)SEQ)
-#define REPEAT_IDEG(r,SEQ)   BOOST_PP_REPEAT(METRIS_MAX_DEG,REPEAT_GDIM,SEQ)
+#define EXPAND_TEMPLATE(r,SEQ) \
+                  INSTANTIATE(BOOST_PP_SEQ_ELEM(0, SEQ),\
+                              BOOST_PP_SEQ_ELEM(1, SEQ))
 
-#define INSTANTIATE(z,gdim,ideg,MFT_VAL,ASDEG_VAL,FTYPE)\
-template void d_quafun_tradet< MFT_VAL , 2+gdim, 1+ideg, ASDEG_VAL, FTYPE>\
+#define INSTANTIATE(MFT_VAL,FTYPE)\
+template void d_quafun_tradet_SurrealS< MFT_VAL , 2, 2, 2, FTYPE>\
                   (Mesh< MFT_VAL > &msh,\
+                   AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2pol,\
                    const double*__restrict__ bary,\
-                   int power,\
                    int ivar,\
                    FEBasis dofbas,\
                    DifVar idifmet,\
-                   FTYPE*__restrict__ tra,\
-                   FTYPE*__restrict__ dtra,\
-                   FTYPE*__restrict__ htra,\
-                   FTYPE*__restrict__ det,\
-                   FTYPE*__restrict__ ddet,\
-                   FTYPE*__restrict__ hdet); 
-BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG,(MFT_SEQ)(ASDEG_SEQ)(QUA_FTYPE_SEQ))
+                   const double*__restrict__ met_,\
+                   SANS::SurrealS<2, FTYPE>&__restrict__ tra,\
+                   SANS::SurrealS<2, FTYPE>&__restrict__ det,\
+                   const SANS::DLA::MatrixS<2,2,double> *dpoint);\
+template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 3, 3, FTYPE>\
+                  (Mesh< MFT_VAL > &msh,\
+                   AsDeg asdmsh, AsDeg asdmet,\
+                   const int* ent2pol,\
+                   const double*__restrict__ bary,\
+                   int ivar,\
+                   FEBasis dofbas,\
+                   DifVar idifmet,\
+                   const double*__restrict__ met_,\
+                   SANS::SurrealS<3, FTYPE>&__restrict__ tra,\
+                   SANS::SurrealS<3, FTYPE>&__restrict__ det,\
+                   const SANS::DLA::MatrixS<3,3,double> *dpoint);\
+template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 2, FTYPE>\
+                  (Mesh< MFT_VAL > &msh,\
+                   AsDeg asdmsh, AsDeg asdmet,\
+                   const int* ent2pol,\
+                   const double*__restrict__ bary,\
+                   int ivar,\
+                   FEBasis dofbas,\
+                   DifVar idifmet,\
+                   const double*__restrict__ met_,\
+                   SANS::SurrealS<2, FTYPE>&__restrict__ tra,\
+                   SANS::SurrealS<2, FTYPE>&__restrict__ det,\
+                   const SANS::DLA::MatrixS<3,2,double> *dpoint);\
+template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 3, FTYPE>\
+                  (Mesh< MFT_VAL > &msh,\
+                   AsDeg asdmsh, AsDeg asdmet,\
+                   const int* ent2pol,\
+                   const double*__restrict__ bary,\
+                   int ivar,\
+                   FEBasis dofbas,\
+                   DifVar idifmet,\
+                   const double*__restrict__ met_,\
+                   SANS::SurrealS<3, FTYPE>&__restrict__ tra,\
+                   SANS::SurrealS<3, FTYPE>&__restrict__ det,\
+                   const SANS::DLA::MatrixS<3,3,double> *dpoint);
+BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,\
+                              (MFT_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
 #undef EXPAND_TEMPLATE
-#undef REPEAT_GDIM
-#undef REPEAT_IDEG
-
-#undef MFT_SEQ 
-#undef ASDEG_SEQ 
-#undef QUA_FTYPE_SEQ 
-
-#endif
 
 
+
+
+
+#undef MFT_SEQ  
 }

@@ -54,7 +54,7 @@ template <typename T>
 struct tuple_wrapper{
   tuple_wrapper(T t):tup(t){};
 
-  // Integral constant, or how to pass a vlue by type
+  // Integral constant, or how to pass a value by type
   // so we can bend template parameter deduction to our will
   // The lengths we go to to write rfld[i(_c)] !
   template<typename S>

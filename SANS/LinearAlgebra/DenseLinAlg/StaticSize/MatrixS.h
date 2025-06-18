@@ -21,16 +21,16 @@
 // not sure how to register them with std::is_arithmetic
 #include <boost/type_traits/is_arithmetic.hpp>
 
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Add.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Mul.h"
+#include "MatrixS_Type.h"
+#include "MatrixS_Add.h"
+#include "MatrixS_Mul.h"
 
-#include "SANS/LinearAlgebra/DenseLinAlg/tools/Matrix_Util.h"
+#include "../tools/Matrix_Util.h"
 #include "SANS/LinearAlgebra/DenseLinAlg/tools/Identity.h"
 
-#include "SANS/tools/SANSTraitsPOD.h"
-#include "SANS/tools/SANSException.h"
-#include "SANS/tools/SANSTraitsInitListAssign.h"
+#include "../../../tools/SANSTraitsPOD.h"
+#include "../../../tools/SANSException.h"
+#include "../../../tools/SANSTraitsInitListAssign.h"
 
 namespace SANS
 {
@@ -39,8 +39,7 @@ namespace DLA
 {
 
 //Forward declaration
-template< int M,  int N, class T >
-class MatrixS;
+template< int M,  int N, class T > class MatrixS;
 
 }
 

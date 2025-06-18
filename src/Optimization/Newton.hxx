@@ -13,7 +13,7 @@
 #include <functional>
 #include <nlopt.h>
 
-#include "MetrisRunner/MetrisParameters.hxx"
+#include "../MetrisRunner/MetrisParameters.hxx"
 
 namespace Metris{
 

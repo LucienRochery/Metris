@@ -85,11 +85,11 @@ void MetrisRunner::statMesh0(MeshStat* stat){
     print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (geometric)");
     print_histogram(msh,rlned_bdry,IntrpTyp::Linear,lenbds,"l","Edge length (geo, bdry)");
 
-    if(DOPRINTS3()){
-      // This is very expensive to compute
-      getLengthEdges<MFT>(msh,tdim,-1,ilned,rlned,LenTyp::Quad);
-      print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (quadrature)");
-    }
+    //if(DOPRINTS3()){
+    //  // This is very expensive to compute
+    //  getLengthEdges<MFT>(msh,tdim,-1,ilned,rlned,LenTyp::Quad);
+    //  print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (quadrature)");
+    //}
   }
 
 

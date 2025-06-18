@@ -19,14 +19,14 @@
 #include <boost/mpl/assert.hpp>
 #include <boost/preprocessor/cat.hpp>
 
-#include "SANS/tools/SANSnumerics.h"     // Real
-#include "SANS/tools/SANSException.h"
-#include "SANS/tools/SANSTraitsPOD.h"
-#include "SANS/tools/CacheLineSize.h"
-#include "SANS/tools/AlignMem.h"
+#include "../tools/SANSnumerics.h"     // Real
+#include "../tools/SANSException.h"
+#include "../tools/SANSTraitsPOD.h"
+#include "../tools/CacheLineSize.h"
+#include "../tools/AlignMem.h"
 
 
-#include "SANS//Surreal/SurrealS_Type.h"
+#include "SurrealS_Type.h"
 
 //#define SURREALS_LOOP_UNROLL
 

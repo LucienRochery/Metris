@@ -32,7 +32,7 @@ ftype quafun_distortion(Mesh<MetricFieldType> &msh,
                         const double*__restrict__ met);
 
 // Differentiated w.r.t. ielem's ivar-th control point/node. 
-template <class MetricFieldType, int gdim, 
+template <class MetricFieldType, int gdim, int tdim,
            typename ftype = double>
 ftype d_quafun_distortion(Mesh<MetricFieldType> &msh, 
                           AsDeg asdmsh, AsDeg asdmet,

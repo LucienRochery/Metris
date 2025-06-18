@@ -113,12 +113,20 @@ void MeshBack::initialize(MetrisAPI *data,
 
   met.forceBasisFlag(FEBasis::Undefined);
 
+
   // If no input file: 
   if(!param.inpMet && data == NULL || (data != NULL && !data->imet)){
     // If analytical:
     if(param.anamet_ptr != NULL || param.ianamet >= 1){
+
       auto anamet = param.anamet_ptr;
-      if(param.ianamet >= 0) anamet = (idim == 2 ? __ANAMET2D[param.ianamet-1] : __ANAMET3D[param.ianamet-1]);
+      if(param.ianamet >= 0){
+
+      METRIS_ENFORCE_MSG((param.ianamet <= MAX_ANAMET_DEFINED(this->idim)),
+        "Invalid anamet index: 1 - "<<MAX_ANAMET_DEFINED(idim )<<" accepted");
+  
+        anamet = (idim == 2 ? __ANAMET2D[param.ianamet-1] : __ANAMET3D[param.ianamet-1]);
+      }
 
       met.forceBasisFlag(FEBasis::Lagrange);
       met.forceSpaceFlag(MetSpace::Exp);

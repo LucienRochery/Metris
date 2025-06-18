@@ -6,10 +6,10 @@
 #ifndef __METRIS_LINALG_DET__
 #define __METRIS_LINALG_DET__
 
+#include "symmat.hxx"
+#include "Metris_LAPACK.hxx"
 
-#include "symidx.hxx"
-#include <lapacke.h>
-
+#include <type_traits>
 
 namespace Metris{
 
@@ -20,10 +20,22 @@ inline T detmat(const T mat[]){
 	if constexpr(ndimn == 2){
 		return mat[2*0+0]*mat[2*1+1] - mat[2*1+0]*mat[2*0+1];
 	}else{
-		return mat[3*0+0]*(mat[3*1+1]*mat[3*2+2]-mat[3*1+2]*mat[3*2+1])
-        + mat[3*1+0]*(mat[3*2+1]*mat[3*0+2]-mat[3*2+2]*mat[3*0+1])
-        + mat[3*2+0]*(mat[3*0+1]*mat[3*1+2]-mat[3*0+2]*mat[3*1+1]);
+		return mat[3*0+0]*(mat[3*1+1]*mat[3*2+2] - mat[3*1+2]*mat[3*2+1])
+         + mat[3*1+0]*(mat[3*2+1]*mat[3*0+2] - mat[3*2+2]*mat[3*0+1])
+         + mat[3*2+0]*(mat[3*0+1]*mat[3*1+2] - mat[3*0+2]*mat[3*1+1]);
 	}
+}
+// With MatrixS type.
+template<int ndimn, typename T = double>
+inline T detmat(const SANS::DLA::MatrixS<ndimn,ndimn,T> &mat){
+  static_assert(ndimn == 2 || ndimn == 3);
+  if constexpr(ndimn == 2){
+    return mat(0,0)*mat(1,1) - mat(1,0)*mat(0,1);
+  }else{
+    return mat(0,0)*(mat(1,1)*mat(2,2) - mat(1,2)*mat(2,1))
+         + mat(1,0)*(mat(2,1)*mat(0,2) - mat(2,2)*mat(0,1))
+         + mat(2,0)*(mat(0,1)*mat(1,2) - mat(0,2)*mat(1,1));
+  }
 }
 
 // Determinant of matrix whose columns or lines are given by v1, v2(, v3)
@@ -136,7 +148,7 @@ inline T detsym2(const T met[]){
       int ipiv[3] = {-1};
       int info;
       int n = 3;
-      LAPACK_dgetrf(&n,&n,A[0],&n,ipiv,&info) ;
+      dgetrf_(&n,&n,A[0],&n,ipiv,&info);
 //      int nn = (ipiv[0] > 2) + (ipiv[0] > 3) 
 //             + (ipiv[1] > 3);
       // It's actually not a permutation vector but lists permutations per iteration...
@@ -159,6 +171,29 @@ inline T detsym2(const T met[]){
     }
   }
 }
+
+// MatrixS version
+template<int ndimn, typename T = double>
+inline T detsym2(const SANS::DLA::MatSymS<ndimn,T> &met){
+  static_assert(ndimn == 2 || ndimn == 3);
+  if constexpr(ndimn == 2){
+    return met[0]*met[2] - met[1]*met[1];
+  }else{
+    T mx = abs(met[0]); 
+    mx = mx > abs(met[1]) ? mx : abs(met[1]);
+    mx = mx > abs(met[2]) ? mx : abs(met[2]);
+    mx = mx > abs(met[3]) ? mx : abs(met[3]);
+    mx = mx > abs(met[4]) ? mx : abs(met[4]);
+    mx = mx > abs(met[5]) ? mx : abs(met[5]);
+    T met2[6] ;
+    for(int ii = 0; ii < 6 ;ii++) met2[ii] = met[ii] / mx;
+    T det = met2[0]*(met2[2]*met2[5]-met2[4]*met2[4])
+          + met2[1]*(met2[4]*met2[3]-met2[5]*met2[1])
+          + met2[3]*(met2[1]*met2[4]-met2[3]*met2[2]);
+    return det*mx*mx*mx;
+  }
+}
+
 
 //// -----------------------------------------------------------------------------
 //template<int ndimn, typename T = double>
