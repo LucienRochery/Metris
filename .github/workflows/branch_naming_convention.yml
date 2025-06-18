@@ -1,0 +1,21 @@
+name: Enforce Branch Naming
+
+on:
+  push:
+    branches:
+      - '**'  # Run on all branches
+
+jobs:
+  check-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check branch name matches user/*
+        run: |
+          branch="${GITHUB_REF#refs/heads/}"
+          echo "Using GITHUB_ACTOR = $GITHUB_ACTOR"
+          echo "Using branch = $branch"
+          
+          if [[ "$branch" != "$GITHUB_ACTOR/"* ]]; then
+            echo "Error: $GITHUB_ACTOR can only push to branches named $GITHUB_ACTOR/*"
+            exit 1
+          fi
