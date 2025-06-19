@@ -29,48 +29,53 @@ if(REQ_CODEGEN)
   message("CLN_INCLUDE_DIRS   = ${CLN_INCLUDE_DIRS}")
   message("GINAC_LIBRARIES    = ${GINAC_LIBRARIES}")
 
-  set(EIGEN3_INCLUDE_DIRS "$ENV{EIGEN_DIR}")
-  if (NOT EIGEN3_INCLUDE_DIRS)
-    FetchContent_Declare(
-      Eigen3
-      GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-      GIT_TAG bcce88c99ed687b756b7a537554cb7c1780b816e
-      #GIT_TAG master
-      #FIND_PACKAGE_ARGS NAMES Eigen3 
-      EXCLUDE_FROM_ALL
-    )
-    LIST(APPEND FETCH_LIST Eigen3)
-    set(EIGEN3_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/eigen3-src/")
-    message("EIGEN3_INCLUDE_DIRS = ${EIGEN3_INCLUDE_DIRS}")
-  endif()
-
-  message("EIGEN3_INCLUDE_DIRS = ${EIGEN3_INCLUDE_DIRS}")
-
   list(APPEND METRIS_DEPS_LIBRARIES ${GINAC_LIBRARIES})
-  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${GINAC_INCLUDE_DIRS} ${CLN_INCLUDE_DIRS} ${EIGEN3_INCLUDE_DIRS})
+  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${GINAC_INCLUDE_DIRS} ${CLN_INCLUDE_DIRS})
 endif()
 
 
-enable_language(Fortran)
-include(cmake/FindLAPACK.cmake)
-message("-- LAPACK_LIBRARIES    = ${LAPACK_LIBRARIES}")
-list(APPEND METRIS_DEPS_LIBRARIES ${LAPACK_LIBRARIES})
-
-find_package(BLAS REQUIRED)
-message("-- BLAS_LIBRARIES    = ${BLAS_LIBRARIES}")
-list(APPEND METRIS_DEPS_LIBRARIES ${BLAS_LIBRARIES})
-
-find_library(GFORTRAN_LIBRARIES NAMES gfortran
-             HINTS /usr/local/lib /opt/homebrew/opt/gcc/lib/gcc/current/
-             )
-if(NOT GFORTRAN_LIBRARIES)
-  message("-- GFORTRAN_LIBRARIES not found, defaulting to -lgfortran")
- # set(GFORTRAN_LIBRARIES gfortran)
-else()
-  message("-- GFORTRAN_LIBRARIES = ${GFORTRAN_LIBRARIES}")
+set(EIGEN3_INCLUDE_DIRS "$ENV{EIGEN_DIR}")
+if (NOT EIGEN3_INCLUDE_DIRS)
+  FetchContent_Declare(
+    Eigen3
+    GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+    GIT_TAG bcce88c99ed687b756b7a537554cb7c1780b816e
+    #GIT_TAG master
+    #FIND_PACKAGE_ARGS NAMES Eigen3 
+    EXCLUDE_FROM_ALL
+  )
+  FetchContent_MakeAvailable(Eigen3)
+  set(EIGEN3_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/eigen3-src/")
+  message("EIGEN3_INCLUDE_DIRS = ${EIGEN3_INCLUDE_DIRS}")
+  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIRS})
 endif()
-list(APPEND METRIS_DEPS_LIBRARIES ${GFORTRAN_LIBRARIES})
 
+message("EIGEN3_INCLUDE_DIRS = ${EIGEN3_INCLUDE_DIRS}")
+
+
+if(USE_LAPACK)
+  add_compile_definitions(USE_LAPACK)
+
+  enable_language(Fortran)
+  include(cmake/FindLAPACK.cmake)
+  message("-- LAPACK_LIBRARIES    = ${LAPACK_LIBRARIES}")
+  list(APPEND METRIS_DEPS_LIBRARIES ${LAPACK_LIBRARIES})
+
+  find_package(BLAS REQUIRED)
+  message("-- BLAS_LIBRARIES    = ${BLAS_LIBRARIES}")
+  list(APPEND METRIS_DEPS_LIBRARIES ${BLAS_LIBRARIES})
+
+  find_library(GFORTRAN_LIBRARIES NAMES gfortran
+               HINTS /usr/local/lib /opt/homebrew/opt/gcc/lib/gcc/current/
+               )
+  if(NOT GFORTRAN_LIBRARIES)
+    message("-- GFORTRAN_LIBRARIES not found, defaulting to -lgfortran")
+   # set(GFORTRAN_LIBRARIES gfortran)
+  else()
+    message("-- GFORTRAN_LIBRARIES = ${GFORTRAN_LIBRARIES}")
+  endif()
+  list(APPEND METRIS_DEPS_LIBRARIES ${GFORTRAN_LIBRARIES})
+endif()
 
 
 if(USE_PETSC)

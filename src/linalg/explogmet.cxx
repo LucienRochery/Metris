@@ -76,17 +76,18 @@ void getlogmet_inp(T *met){
   
 	if(!iok){
 
-
+    #ifdef USE_LAPACK
     if constexpr(std::is_same<T,double>::value){
       printf("## INVALID METRIC ! eigvals = ");
       dblAr1(ndim,eigval).print();
       printf(" TRY CORRECT WITH LAPACK\n");
       const int nwork = 20;
       double rwork[nwork];
-      geteigsym<ndim,double>(met, nwork, rwork, eigval, eigvec);
+      geteigsym_LAPACK<ndim>(met, nwork, rwork, eigval, eigvec);
       iok = !(std::isnan(log(eigval[0])) || std::isinf(log(eigval[0])));
       if(iok) goto fixed;
     }
+    #endif
 
     printf("Invalid metric: \n");
     int nnmet = (ndim*(ndim+1))/2;
@@ -101,8 +102,6 @@ void getlogmet_inp(T *met){
       std::cout<<"eigvals:";
       dblAr1(ndim,eigval).print();
     }
-
-
 
     METRIS_THROW_MSG(RealExcept(),"Negative eigenvalues");
   }

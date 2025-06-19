@@ -52,16 +52,18 @@ void getexpmet_cpy_d(const double* met ,const double* dmet,
                      double*  __restrict__ expm,double*  __restrict__ dexp, 
                      double tol = 1.0e-12, int iscal = 1);
 
+#ifdef USE_LAPACK
 // -----------------------------------------------------------------------------
 // lwork as required by dsyev
 inline void getexpmet_cpy_LAPACK(const double lmet[], double met[]){
 	double eigval[3], eigvec[9],rwork[10];
-	geteigsym<3,double>(lmet,10,rwork,eigval,eigvec);
+	geteigsym_LAPACK<3>(lmet,10,rwork,eigval,eigvec);
 	eigval[0] = exp(eigval[0]);
 	eigval[1] = exp(eigval[1]);
 	eigval[2] = exp(eigval[2]);
 	eig2met<3,double>(eigval,eigvec,met);
 }
+#endif
 
 template <int ndim, typename T>
 void getexpmet_inp(T* met);

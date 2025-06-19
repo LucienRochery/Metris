@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(test_eval3)
   std::uniform_real_distribution<double> unif(1.0e-16,1.0);
   std::default_random_engine rng(0);
 
-  double aniso_max = 2e6;
+  double aniso_max = 2e7;
   double aniso_mul = 10;
 
   CT_FOR0_INC(2,3,ndim){
@@ -55,19 +55,31 @@ BOOST_AUTO_TEST_CASE(test_eval3)
     printf("-- Tests for dim = %d \n",ndim);
 
 
-    for(double anisorat = 2; anisorat < aniso_max; anisorat *= aniso_mul){
+    for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
 
       double errminmet_aniso = 1.0e30;
       double errmaxmet_aniso = -1;
       double erravgmet_aniso = 0;
 
+      double errminmetL_aniso = 1.0e30;
+      double errmaxmetL_aniso = -1;
+      double erravgmetL_aniso = 0;
+
+      double errminmetE_aniso = 1.0e30;
+      double errmaxmetE_aniso = -1;
+      double erravgmetE_aniso = 0;
+
       double errmineig_aniso = 1.0e30;
       double errmaxeig_aniso = -1;
       double erravgeig_aniso = 0;
 
-      double errminei2_aniso = 1.0e30;
-      double errmaxei2_aniso = -1;
-      double erravgei2_aniso = 0;
+      double errmineigL_aniso = 1.0e30;
+      double errmaxeigL_aniso = -1;
+      double erravgeigL_aniso = 0;
+
+      double errmineigE_aniso = 1.0e30;
+      double errmaxeigE_aniso = -1;
+      double erravgeigE_aniso = 0;
 
       double nerro_aniso = 0;
 
@@ -79,6 +91,7 @@ BOOST_AUTO_TEST_CASE(test_eval3)
       dblAr2 met_samples(nsamp, nnmet);
 
       for(int isamp = 0; isamp < nsamp; isamp++){
+        nerro_aniso++;
 
         generate_metric<ndim>(anisorat, eigval, eigvec, unif, rng);
         for(int ii = 0; ii < ndim; ii++){
@@ -92,8 +105,10 @@ BOOST_AUTO_TEST_CASE(test_eval3)
         eig2met<ndim,double>(eigval,eigvec[0],met);
         for(int ii = 0; ii < nnmet; ii++) met_samples(isamp, ii) = met[ii];
 
+
+        // ----- Test geteigsym (SurrealS compatible dsyevq)
+
         // Re-decompose and compare
-        double rwork[10];
         geteigsym<ndim,double>(met,eigva2,eigve2[0]);
 
         // Test unit norm 
@@ -113,13 +128,45 @@ BOOST_AUTO_TEST_CASE(test_eval3)
         errminmet_aniso = MIN(errminmet_aniso, errmet);
         errmaxmet_aniso = MAX(errmaxmet_aniso, errmet);
         erravgmet_aniso += errmet;
-        nerro_aniso++;
-
 
         double erreig = sqrt(geterrl2<ndim>(eigval,eigva2) / getnrml2<ndim>(eigval));
         errmineig_aniso = MIN(errmineig_aniso, erreig);
         errmaxeig_aniso = MAX(errmaxeig_aniso, erreig);
         erravgeig_aniso += erreig;
+
+
+
+        // ----- Test LAPACK
+        double rwork[10];
+        geteigsym_LAPACK<ndim>(met,10,rwork,eigva2,eigve2[0]);
+
+        // Test unit norm 
+        for(int i = 0; i < ndim; i++){
+          BOOST_TEST( abs(sqrt(getnrml2<ndim>(eigve2[0])) - 1) < tol);
+        }
+        // Test orthogonality 
+        BOOST_TEST( abs(getprdl2<ndim>(eigve2[0],eigve2[1])) < tol);
+        if constexpr (ndim > 2){
+          BOOST_TEST( abs(getprdl2<ndim>(eigve2[0],eigve2[2])) < tol);
+          BOOST_TEST( abs(getprdl2<ndim>(eigve2[1],eigve2[2])) < tol);
+        }
+
+        eig2met<ndim,double>(eigva2,eigve2[0],met2);
+
+        double errmetL = sqrt(geterrl2<nnmet>(met2,met) / getnrml2<nnmet>(met));
+        errminmetL_aniso = MIN(errminmetL_aniso, errmetL);
+        errmaxmetL_aniso = MAX(errmaxmetL_aniso, errmetL);
+        erravgmetL_aniso += errmetL;
+
+        double erreigL = sqrt(geterrl2<ndim>(eigval,eigva2) / getnrml2<ndim>(eigval));
+        errmineigL_aniso = MIN(errmineigL_aniso, erreigL);
+        errmaxeigL_aniso = MAX(errmaxeigL_aniso, erreigL);
+        erravgeigL_aniso += erreigL;
+
+
+
+
+        // ---- Test Eigen
 
         typedef Eigen::Matrix<double,ndim,ndim> MatrixN;
         typedef Eigen::Vector<double,ndim> VectorN;
@@ -136,38 +183,70 @@ BOOST_AUTO_TEST_CASE(test_eval3)
         VectorN eigenvalues  = solver.eigenvalues();
         MatrixN eigenvectors = solver.eigenvectors();
 
-        double eigva3[ndim];
-        for(int ii = 0; ii < ndim; ii++) eigva3[ii] = eigenvalues[ii];
-        double errei2 = sqrt(geterrl2<ndim>(eigval,eigva3) / getnrml2<ndim>(eigval));
+        for(int ii = 0; ii < ndim; ii++) eigva2[ii] = eigenvalues[ii];
+        for(int ii = 0; ii < ndim; ii++) 
+          for(int jj = 0; jj < ndim; jj++) 
+            eigve2[jj][ii] = eigenvectors(ii,jj);
 
-        errminei2_aniso = MIN(errminei2_aniso, errei2);
-        errmaxei2_aniso = MAX(errmaxei2_aniso, errei2);
-        erravgei2_aniso += errei2;
+        eig2met<ndim,double>(eigva2,eigve2[0],met2);
+        double errmetE = sqrt(geterrl2<nnmet>(met2,met) / getnrml2<nnmet>(met));
+        errminmetE_aniso = MIN(errminmetE_aniso, errmetE);
+        errmaxmetE_aniso = MAX(errmaxmetE_aniso, errmetE);
+        erravgmetE_aniso += errmetE;
+
+        double erreigE = sqrt(geterrl2<ndim>(eigval,eigva2) / getnrml2<ndim>(eigval));
+        errmineigE_aniso = MIN(errmineigE_aniso, erreigE);
+        errmaxeigE_aniso = MAX(errmaxeigE_aniso, erreigE);
+        erravgeigE_aniso += erreigE;
 
       }// for isamp
 
       erravgmet_aniso /= nerro_aniso;
+      erravgmetL_aniso /= nerro_aniso;
+      erravgmetE_aniso /= nerro_aniso;
       erravgeig_aniso /= nerro_aniso;
-      erravgei2_aniso /= nerro_aniso;
+      erravgeigL_aniso /= nerro_aniso;
+      erravgeigE_aniso /= nerro_aniso;
 
-      printf("  -- DONE with aniso ratio %5.1e\n",anisorat);
       printf("   - metric error min = %e avg = %e max = %e\n",errminmet_aniso,erravgmet_aniso,errmaxmet_aniso);
       printf("   - eigenv error min = %e avg = %e max = %e\n",errmineig_aniso,erravgeig_aniso,errmaxeig_aniso);
-      printf("   - eigenv error min = %e avg = %e max = %e (Eigen)\n",errminei2_aniso,erravgei2_aniso,errmaxei2_aniso);
+      printf("   - metric error min = %e avg = %e max = %e (LAPACK)\n",errminmetL_aniso,erravgmetL_aniso,errmaxmetL_aniso);
+      printf("   - eigenv error min = %e avg = %e max = %e (LAPACK)\n",errmineigL_aniso,erravgeigL_aniso,errmaxeigL_aniso);
+      printf("   - metric error min = %e avg = %e max = %e (Eigen)\n",errminmetE_aniso,erravgmetE_aniso,errmaxmetE_aniso);
+      printf("   - eigenv error min = %e avg = %e max = %e (Eigen)\n",errmineigE_aniso,erravgeigE_aniso,errmaxeigE_aniso);
 
       BOOST_TEST(errmaxmet_aniso <= tol);
       BOOST_TEST(errmaxeig_aniso <= tol);
+
+      BOOST_TEST(errmaxmetL_aniso <= tol);
+      BOOST_TEST(errmaxeigL_aniso <= tol);
+
+      BOOST_TEST(errmaxmetE_aniso <= tol);
+      BOOST_TEST(errmaxeigE_aniso <= tol);
+
 
 
 
       // ------------------------------------------------------------ Benchmark
       #ifdef NDEBUG
-      double t0_LAPACK = get_wall_time();
-      double dum_LAPACK = 0;
+      double t0_DSYEVQ = get_wall_time();
+      double dum_DSYEVQ = 0;
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples(isamp, ii);
         double rwork[10];
         geteigsym<ndim,double>(met,eigva2,eigve2[0]);
+        dum_DSYEVQ += eigva2[0];
+      }
+      double t1_DSYEVQ = get_wall_time();
+
+
+      double t0_LAPACK = get_wall_time();
+      double dum_LAPACK = 0;
+      int rwork[10];
+      for(int isamp = 0; isamp < nsamp; isamp++){
+        for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples(isamp, ii);
+        double rwork[10];
+        geteigsym_LAPACK<ndim>(met,10,rwork,eigva2,eigve2[0]);
         dum_LAPACK += eigva2[0];
       }
       double t1_LAPACK = get_wall_time();
@@ -219,17 +298,22 @@ BOOST_AUTO_TEST_CASE(test_eval3)
       double t1_EIGEN2 = get_wall_time();
 
 
-      printf("  -- DONE benchmarks LAPACK time : %8.2e = %d op/s\n",
-                  t1_LAPACK-t0_LAPACK,(int)(nerro_aniso/(t1_LAPACK-t0_LAPACK)));
+      printf("  -- DONE benchmarks DSYEVQ time : %8.2e = %d op/s\n",
+                  t1_DSYEVQ-t0_DSYEVQ,(int)(nerro_aniso/(t1_DSYEVQ-t0_DSYEVQ)));
+      printf("                     LAPACK time : %8.2e = %d op/s, fac = %4.2fx\n",
+                  t1_LAPACK-t0_LAPACK,(int)(nerro_aniso/(t1_LAPACK-t0_LAPACK)),
+                  (t1_LAPACK-t0_LAPACK)/(t1_DSYEVQ-t0_DSYEVQ));
       printf("                      Eigen time : %8.2e = %d op/s, fac = %4.2fx\n",
                   t1_EIGEN-t0_EIGEN,(int)(nerro_aniso/(t1_EIGEN-t0_EIGEN)),
-                  (t1_EIGEN-t0_EIGEN)/(t1_LAPACK-t0_LAPACK));
+                  (t1_EIGEN-t0_EIGEN)/(t1_DSYEVQ-t0_DSYEVQ));
       printf("                     Eigen2 time : %8.2e = %d op/s, fac = %4.2fx\n",
                   t1_EIGEN2-t0_EIGEN2,(int)(nerro_aniso/(t1_EIGEN2-t0_EIGEN2)),
-                  (t1_EIGEN2-t0_EIGEN2)/(t1_LAPACK-t0_LAPACK));
+                  (t1_EIGEN2-t0_EIGEN2)/(t1_DSYEVQ-t0_DSYEVQ));
 
 
       #endif
+
+      printf("  -- DONE with aniso ratio %5.1e\n",anisorat);
     }// for anisorat
 
 

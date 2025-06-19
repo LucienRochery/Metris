@@ -11,10 +11,13 @@
 namespace Metris{
 
 
-template<int ndim, typename T>
-void geteigsym(const T* met,int nwork,double* rwork,T* eigval,T* eigvec);
+#ifdef USE_LAPACK
+template<int ndim>
+void geteigsym_LAPACK(const double* met,int nwork,double* rwork,double* eigval,double* eigvec);
+#endif
 
 
+// This function can take SANS::SurrealS as input.
 template<int ndim, typename T>
 void geteigsym(const T* __restrict__ met,T* __restrict__ eigval,T* __restrict__ eigvec);
 

@@ -42,7 +42,6 @@ if(GITURL MATCHES "github.com")
   set(LIGHT_BUILD ON)
   message(WARNING "Disabled codegen!")
   set(REQ_CODEGEN OFF)
-  set(DO_UNITTESTS OFF)
   set(CODEGEN_FILES ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.02.cxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.02_d_coord.cxx
@@ -62,9 +61,9 @@ else()
   message("-- Metris with codegen enabled ")
   set(LIGHT_BUILD OFF)
   set(REQ_CODEGEN ON)
-  set(DO_UNITTESTS ON)
 endif()
 
+set(DO_UNITTESTS ON)
 
 add_compile_definitions(SURREAL_LAZY)
 

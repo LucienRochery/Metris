@@ -4,6 +4,7 @@
 
 // Unfortunately, some LAPACKE routines call malloc, and we use them for very
 // small matrices (2x2, 3x3...)
+#ifdef USE_LAPACK
 
 extern "C" {
 
@@ -32,5 +33,7 @@ void dgetri_(int* n, double* a, int* lda, int* ipiv,
              double* work, int* lwork, int* info);
 
 } // extern "C"
+
+#endif
 
 #endif
