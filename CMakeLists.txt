@@ -23,6 +23,11 @@ project(Metris)
 include(cmake/BuildType.cmake)
 include(cmake/MetrisFlags.cmake)
 
+
+set(METRIS_DEPS_LIBRARIES "")
+set(METRIS_DEPS_INCLUDE_DIRS "")
+
+
 find_package(Git)
 execute_process(COMMAND "${GIT_EXECUTABLE}" config --get remote.origin.url
                 WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" 
@@ -130,8 +135,6 @@ add_subdirectory(SANS)
 #add_subdirectory(libs/libkdtree)
 
 
-
-
 add_executable(metris "progs/main.cxx")
 add_executable(egads2lite "progs/EGADS2lite.cxx")
 
@@ -144,8 +147,8 @@ target_link_libraries(metris PUBLIC libMetris
                                     SANS 
                                     ${ABSL_LIBRARIES}
                                     ${LAPACK_LIBRARIES}
-                                    ${EGADS_LIBRARY} 
-                                    ${EGADSLITE_LIBRARY}
+                                    ${EGADS_LIBRARIES} 
+                                    ${EGADSLITE_LIBRARIES}
                                     #nlopt
 #                                   LP.3
                                     lplib3
@@ -164,8 +167,8 @@ target_link_libraries(metris PUBLIC libMetris
 
 target_link_libraries(egads2lite PUBLIC libMetris 
                                         libmeshb 
-                                        ${EGADS_LIBRARY} 
-                                        ${EGADSLITE_LIBRARY}
+                                        ${EGADS_LIBRARIES} 
+                                        ${EGADSLITE_LIBRARIES}
                                         Boost::headers # yes this is weird
                                         ${Boost_LIBRARIES}
                                         ${Boost_PROGRAM_OPTIONS_LIBRARY})
@@ -177,8 +180,8 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/progs/scatter_rh.cxx)
                                           libmeshb 
                                           #libegads libegadslite
                                           #egads egadslite
-                                          ${EGADS_LIBRARY} 
-                                          ${EGADSLITE_LIBRARY}
+                                          ${EGADS_LIBRARIES} 
+                                          ${EGADSLITE_LIBRARIES}
                                           Boost::headers # yes this is weird
                                           ${Boost_LIBRARIES}
                                           ${Boost_PROGRAM_OPTIONS_LIBRARY})
@@ -193,7 +196,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/progs/extract_surf.cxx)
                                           libmeshb 
                                           #libegads libegadslite
                                           #egads egadslite
-                                          ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY}
+                                          ${EGADS_LIBRARIES} ${EGADSLITE_LIBRARIES}
                                           Boost::headers # yes this is weird
                                           ${Boost_LIBRARIES}
                                           ${Boost_PROGRAM_OPTIONS_LIBRARY})
@@ -204,13 +207,11 @@ endif()
 
 # Note on includes: the src lib target (libMetris) already includes publicly everything that we need
 # The main.cxx itself only needs main.hxx additionally. 
-target_include_directories(metris PRIVATE "progs/main.hxx" "." "SANS"
-                                  PUBLIC ${Boost_INCLUDE_DIRS}
-                                         ${PETSC_INCLUDE}
-                                         ${ABSL_INCLUDE_DIRS}
-#                                  PUBLIC ${LPLIB_INCLUDE_DIR}
+target_include_directories(metris PRIVATE "progs/main.hxx"
+                                  PUBLIC ${METRIS_DEPS_INCLUDE_DIRS}
                                   )
 setMetrisFlags(metris PUBLIC)
+
 target_include_directories(egads2lite PRIVATE  "."
                            ${ESP_ROOT}/include)
 setMetrisFlags(egads2lite PUBLIC)
@@ -285,7 +286,7 @@ if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME
                                       lapack 
                                       #libegads libegadslite 
                                       #egads egadslite
-                                      ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY} 
+                                      ${EGADS_LIBRARIES} ${EGADSLITE_LIBRARIES} 
                                       nlopt
                                       libmeshb
                                       pthread)

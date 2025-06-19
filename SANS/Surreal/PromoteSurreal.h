@@ -11,7 +11,6 @@
 #include "../tools/SANSTraitsScalar.h"
 #include "SurrealS_fwd.h"
 
-#include <concepts>
 
 // Forward declare
 class SurrealD;

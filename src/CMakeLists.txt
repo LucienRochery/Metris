@@ -92,7 +92,7 @@ target_include_directories(meshBASIC PUBLIC
                            ${PETSC_INCLUDE}
                            ${ABSL_INCLUDE_DIRS}
                            ${Boost_INCLUDE_DIRS}
-                           ${EIGEN3_INCLUDE_DIR}
+                           ${EIGEN3_INCLUDE_DIRS}
                            ${SRC_INCLUDE_DIRS})
 target_link_libraries(meshBASIC PUBLIC ${ABSL_LIBRARIES}
                                        ${BOOST_TRACELIBS}
@@ -113,8 +113,8 @@ if(REQ_CODEGEN)
                              ${ABSL_INCLUDE_DIRS}
                              ${PROJECT_SOURCE_DIR}
                              ${Boost_INCLUDE_DIRS}
-                             ${EIGEN3_INCLUDE_DIR})
-  target_include_directories(gen_lag2bez PRIVATE ${SRC_INCLUDE_DIRS} ".")
+                             ${EIGEN3_INCLUDE_DIRS})
+  target_include_directories(gen_lag2bez PRIVATE ".")
 
   add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/codegen_lag2bez.hxx 
                             ${PROJECT_BINARY_DIR}/src/codegen_lag2bez.cxx
@@ -131,6 +131,7 @@ endif()
 set(CODEGEN_OUT_SRC ${CCOEF_OUT_SRC})
 if(REQ_CODEGEN)
   list(APPEND CODEGEN_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_lag2bez.cxx)
+  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${PROJECT_BINARY_DIR}/src)
 else()
   list(APPEND CODEGEN_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_lag2bez.cxx)
 endif()
@@ -151,6 +152,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/utils/mprintf.cxx
     ${PROJECT_SOURCE_DIR}/src/utils/binom.cxx
     ${PROJECT_SOURCE_DIR}/src/utils/bernstein_prod.cxx
+    ${PROJECT_SOURCE_DIR}/src/utils/tuple_hashtable.cxx
     ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays1D.cxx
     ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays2D.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_hashtab.cxx
@@ -282,53 +284,11 @@ add_library(libMetris STATIC ${SRC_SOURCES})
 setMetrisFlags(libMetris PUBLIC)
 set_property(TARGET libMetris PROPERTY CXX_STANDARD 17)
 
-set(METRIS_DEPS_INCLUDE_DIRS  ${PROJECT_SOURCE_DIR}
-                              ${PROJECT_BINARY_DIR}/src
-                              ${PROJECT_SOURCE_DIR}/src
-                              ${PROJECT_SOURCE_DIR}/SANS
-                              ${PROJECT_SOURCE_DIR}/libs
-                              ${PROJECT_SOURCE_DIR}/src/libs/libkdtree/
-                              ${PROJECT_SOURCE_DIR}/src/libs/alglib/src/
-                              "/usr/local/include"
-                              ${LAPACK_INCLUDE_DIRS}
-                              ${ESP_ROOT}/include
-                              ${PETSC_INCLUDE}
-                              ${SRC_INCLUDE_DIRS}
-                              ${CLP_INCLUDE_DIRS}
-                              ${ABSL_INCLUDE_DIRS}
-                              ${NLOPT_INCLUDE}
-                              ${Boost_INCLUDE_DIRS}
-                              ${EIGEN3_INCLUDE_DIR}
-                              ${GITLIB_INCLUDE_DIR}
-                              #${LPLIB_INCLUDE_DIR}
-                              )
-if(CLP_FOUND)
-  set(METRIS_DEPS_INCLUDE_DIRS ${METRIS_DEPS_INCLUDE_DIRS} ${CLP_INCLUDE_DIRS})
-endif()
 
 target_include_directories(libMetris PRIVATE "." "..")
 target_include_directories(libMetris PUBLIC  ${METRIS_DEPS_INCLUDE_DIRS} )
 
-target_link_libraries(libMetris PUBLIC libmeshb
-                                       SANS 
-                                       #nlopt
-                                       #Boost::program_options
-                                       ${Boost_PROGRAM_OPTIONS_LIBRARY}
-                                       dl
-                                       ${ABSL_LIBRARIES}
-                                       ${LAPACK_LIBRARIES} 
-                                       ${EGADS_LIBRARY} ${EGADSLITE_LIBRARY}
-                                       lplib3
-                                       ${PETSC_LIBRARIES}
-                                       ${MPI_LIBRARIES}
-                                       alglib
-                                       ${BOOST_TRACELIBS}
-                                       nlopt
-                                       cmake_git_version_tracking
-                                       )
-if(CLP_FOUND)
-  target_link_libraries(libMetris PUBLIC ${CLP_LIBRARIES})
-endif()
+target_link_libraries(libMetris PUBLIC ${METRIS_DEPS_LIBRARIES})
 
 if(REQ_CODEGEN)
   add_dependencies(libMetris codegen1 codegen2)

@@ -7,7 +7,6 @@
 #define SANSTRAITSSCALAR_H
 
 #include "../LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
-#include <concepts>
 
 #include <boost/multiprecision/cpp_bin_float.hpp>
 typedef  boost::multiprecision::cpp_bin_float_oct  float8;
