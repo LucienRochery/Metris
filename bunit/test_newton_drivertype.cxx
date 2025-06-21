@@ -26,8 +26,6 @@ using namespace hana::literals;
 
 namespace utf = boost::unit_test;
 
-using namespace std;
-
 using namespace Metris;
 
 

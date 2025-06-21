@@ -26,7 +26,6 @@
 #include "CoinTime.hpp"
 #endif
 
-using namespace alglib;
 
 
 namespace Metris{

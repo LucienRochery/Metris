@@ -15,5 +15,3 @@
 #include <boost/hana/fwd/min.hpp> 
 #include <boost/hana/fwd/tuple.hpp>
 #include <boost/hana/tuple.hpp>
-namespace hana = boost::hana;
-using namespace hana::literals;

@@ -20,12 +20,12 @@ Guidelines:
  passed as a template param.
  - Minimize loop size. Code is pasted around; place as close to where needed. 
 */
-#define CT_FOR0_INC(i1,i2,var) hana::while_(hana::less_equal.than(hana::int_c<i2>), hana::int_c<i1>, [&](auto c_##var){\
+#define CT_FOR0_INC(i1,i2,var) boost::hana::while_(boost::hana::less_equal.than(boost::hana::int_c<i2>), boost::hana::int_c<i1>, [&](auto c_##var){\
   constexpr int var = c_##var;
-#define CT_FOR0_EXC(i1,i2,var) hana::while_(hana::less.than(hana::int_c<i2>), hana::int_c<i1>, [&](auto c_##var){\
+#define CT_FOR0_EXC(i1,i2,var) boost::hana::while_(boost::hana::less.than(boost::hana::int_c<i2>), boost::hana::int_c<i1>, [&](auto c_##var){\
   constexpr int var = c_##var;
-#define CT_FOR1(var) return c_##var+1_c;})
-#define CT_CONTINUE(var) return c_##var+1_c;
+#define CT_FOR1(var) return c_##var+boost::hana::int_c<1>;})
+#define CT_CONTINUE(var) return c_##var+boost::hana::int_c<1>;
 
 
 #endif

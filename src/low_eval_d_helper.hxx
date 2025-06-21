@@ -16,8 +16,6 @@
 #include "../SANS/Surreal/SurrealS.h"
 #include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 #include <boost/hana.hpp> 
-namespace hana = boost::hana;
-using namespace hana::literals;
 
 
 namespace Metris{

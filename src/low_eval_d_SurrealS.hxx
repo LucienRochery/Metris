@@ -28,7 +28,7 @@ void eval_d_SurrealS0(const T& __restrict__  rfld,
   if constexpr (ideg == 1){
     
     for(int icmp = 0; icmp < szfld; icmp++){
-      (*eval)[icmp] = bary[0]*rfld[0_c][icmp];
+      (*eval)[icmp] = bary[0]*rfld[boost::hana::int_c<0>][icmp];
       // Note bounds included
       CT_FOR0_INC(1,tdim,ii){  
         // Macro creates c_ii
@@ -41,7 +41,7 @@ void eval_d_SurrealS0(const T& __restrict__  rfld,
       for(int i = 0; i < szfld; i++){
         // Note upper bound excluded
         CT_FOR0_INC(1,tdim,jj){
-          (*jmat)(jj-1,i) = rfld[c_jj][i] - rfld[0_c][i];
+          (*jmat)(jj-1,i) = rfld[c_jj][i] - rfld[boost::hana::int_c<0>][i];
 
         }CT_FOR1(jj);
       }
@@ -78,20 +78,20 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
                              SANS::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat){
   //printf("Debug surreal0 bary = %f %f %f %f field:\n",bary[0]
   //  ,bary[1],bary[2],bary[3]);
-  //std::cout<<"0: "<<rfld[0_c][0]<<" "<<rfld[0_c][1]<<" "
-  //                <<rfld[0_c][2]<<std::endl;
-  //std::cout<<"1: "<<rfld[1_c][0]<<" "<<rfld[1_c][1]<<" "
-  //                <<rfld[1_c][2]<<std::endl;
+  //std::cout<<"0: "<<rfld[boost::hana::int_c<0>][0]<<" "<<rfld[boost::hana::int_c<0>][1]<<" "
+  //                <<rfld[boost::hana::int_c<0>][2]<<std::endl;
+  //std::cout<<"1: "<<rfld[boost::hana::int_c<1>][0]<<" "<<rfld[boost::hana::int_c<1>][1]<<" "
+  //                <<rfld[boost::hana::int_c<1>][2]<<std::endl;
   //std::cout<<"2: "<<rfld[2_c][0]<<" "<<rfld[2_c][1]<<" "
   //                <<rfld[2_c][2]<<std::endl;
   //std::cout<<"3: "<<rfld[3_c][0]<<" "<<rfld[3_c][1]<<" "
   //                <<rfld[3_c][2]<<std::endl;
   if constexpr (ideg == 1){
-    //hana::while_(hana::less.than(szfld_c), 0_c, [&](auto i_c){
+    //hana::while_(hana::less.than(szfld_c), boost::hana::int_c<0>, [&](auto i_c){
     //  constexpr int i = i_c;
     
     for(int icmp = 0; icmp < szfld; icmp++){
-      (*eval)[icmp] = bary[0]*rfld[0_c][icmp];
+      (*eval)[icmp] = bary[0]*rfld[boost::hana::int_c<0>][icmp];
       // Note bounds included
       for(int ii = 1; ii <= tdim; ii++){
         (*eval)[icmp] += bary[ii]*rfld[ii][icmp];
@@ -100,12 +100,12 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
       //  // Macro creates c_ii
       //  (*eval)[icmp] += bary[ii]*rfld[c_ii][icmp];
       //}CT_FOR1(ii);
-      //(*eval)[icmp] = bary[0]*rfld[0_c][icmp]
-      //              + bary[1]*rfld[1_c][icmp]
+      //(*eval)[icmp] = bary[0]*rfld[boost::hana::int_c<0>][icmp]
+      //              + bary[1]*rfld[boost::hana::int_c<1>][icmp]
       //              + bary[2]*rfld[2_c][icmp]
       //              + bary[3]*rfld[3_c][icmp];
     }
-    //return i_c+1_c;});
+    //return i_c+boost::hana::int_c<1>;});
 
     if (idif1 == DifVar::Bary){
       
@@ -115,11 +115,11 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
           (*jmat)(jj-1,i) = rfld[jj][i] - rfld[0][i];
         }
         //CT_FOR0_INC(1,tdim,jj){
-        //  (*jmat)(jj-1,i) = rfld[c_jj][i] - rfld[0_c][i];
+        //  (*jmat)(jj-1,i) = rfld[c_jj][i] - rfld[boost::hana::int_c<0>][i];
         //}CT_FOR1(jj);
-        //(*jmat)(0,i) = rfld[1_c][i] - rfld[0_c][i];
-        //(*jmat)(1,i) = rfld[2_c][i] - rfld[0_c][i];
-        //(*jmat)(2,i) = rfld[3_c][i] - rfld[0_c][i];
+        //(*jmat)(0,i) = rfld[boost::hana::int_c<1>][i] - rfld[boost::hana::int_c<0>][i];
+        //(*jmat)(1,i) = rfld[2_c][i] - rfld[boost::hana::int_c<0>][i];
+        //(*jmat)(2,i) = rfld[3_c][i] - rfld[boost::hana::int_c<0>][i];
       }
     }
     if (idif2 == DifVar::Bary){
@@ -229,7 +229,7 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
   // Storing, for the double*'s, the non-dof rfld entries and, for the one SANS::SurrealS*, 
   // the DoF SANS::SurrealS array. 
   //imem = 0;
-  hana::while_(hana::less.than(hana::int_c<nrfld>), 0_c, [&](auto i_c){
+  hana::while_(hana::less.than(hana::int_c<nrfld>), boost::hana::int_c<0>, [&](auto i_c){
     constexpr int i = i_c;
     if constexpr(i == ivar){
       w_op[i_c] = smem;
@@ -238,7 +238,7 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
       w_op[i_c] = rfld[lfld[i]];
 //      imem++;
     }
-  return i_c+1_c;});  
+  return i_c+boost::hana::int_c<1>;});  
 //  SANS::SurrealS<nvar,double> seval[szfld];
   constexpr int nnsym = (tdim*(tdim+1))/2;
 
@@ -249,13 +249,13 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
 //  SANS::SurrealS<nvar,double> shmat[sdim3*szfld];
 
 
-  //hana::while_(hana::less.than(hana::int_c<nrfld>), 0_c, [&](auto i_c){
+  //hana::while_(hana::less.than(hana::int_c<nrfld>), boost::hana::int_c<0>, [&](auto i_c){
   //  constexpr int i = i_c;
   //  printf("Debug rfld[%d] = \n",i);
   //  std::cout<<"0:"<<w_op[i_c][0]<<std::endl;
   //  std::cout<<"1:"<<w_op[i_c][1]<<std::endl;
   //  std::cout<<"2:"<<w_op[i_c][2]<<std::endl;
-  //return i_c+1_c;});  
+  //return i_c+boost::hana::int_c<1>;});  
 
 
   eval_d_SurrealS0<decltype(w_op),szfld,tdim,ideg>
@@ -428,7 +428,7 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
   // Storing, for the double*'s, the non-dof rfld entries and, for the one SANS::SurrealS*, 
   // the DoF SANS::SurrealS array. 
   //imem = 0;
-  hana::while_(hana::less.than(hana::int_c<nrfld>), 0_c, [&](auto i_c){
+  hana::while_(hana::less.than(hana::int_c<nrfld>), boost::hana::int_c<0>, [&](auto i_c){
     constexpr int i = i_c;
     if constexpr(i == ivar){
       w_op[i_c] = smem;
@@ -437,7 +437,7 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
       w_op[i_c] = rfld[lfld[i]];
 //      imem++;
     }
-  return i_c+1_c;});  
+  return i_c+boost::hana::int_c<1>;});  
 //  SANS::SurrealS<nvar,double> seval[szfld];
   constexpr int nnsym = (tdim*(tdim+1))/2;
 
@@ -448,13 +448,13 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
 //  SANS::SurrealS<nvar,double> shmat[sdim3*szfld];
 
 
-  //hana::while_(hana::less.than(hana::int_c<nrfld>), 0_c, [&](auto i_c){
+  //hana::while_(hana::less.than(hana::int_c<nrfld>), boost::hana::int_c<0>, [&](auto i_c){
   //  constexpr int i = i_c;
   //  printf("Debug rfld[%d] = \n",i);
   //  std::cout<<"0:"<<w_op[i_c][0]<<std::endl;
   //  std::cout<<"1:"<<w_op[i_c][1]<<std::endl;
   //  std::cout<<"2:"<<w_op[i_c][2]<<std::endl;
-  //return i_c+1_c;});  
+  //return i_c+boost::hana::int_c<1>;});  
 
 
   eval_d_SurrealS0<decltype(w_op),szfld,tdim,ideg>

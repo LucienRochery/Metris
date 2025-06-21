@@ -36,7 +36,6 @@ void LPsolver::allocate(int nrow, int ncol){
   this->nrow = nrow;
   this->ncol = ncol;
 
-  using namespace alglib;
   minlpcreate(ncol, state);
 
   //using matrix = std::conditional_t<ilib == LPLib::alglib, 
@@ -186,19 +185,18 @@ void LPsolver::setConstraintUBinf(){
 
 double LPsolver::optimize(){
   if(ilib == LPLib::alglib){
-    using namespace alglib;
-    minlpreport rep;
-    minlpsetcost(state, obj_ALG);
-    minlpsetlc2(state, Acstr_ALG, LB_ALG, UB_ALG, nrow);
+    alglib::minlpreport rep;
+    alglib::minlpsetcost(state, obj_ALG);
+    alglib::minlpsetlc2(state, Acstr_ALG, LB_ALG, UB_ALG, nrow);
     if(method == LPMethod::Simplex){
       alglib::trace_file("DSS.DETAILED,PREC.F15", "LPoutDSS.log");
-      minlpsetalgodss(state, 1e-7);
+      alglib::minlpsetalgodss(state, 1e-7);
     }else{
       alglib::trace_file("IPM.DETAILED,PREC.F15", "LPoutIPM.log");
       alglib::minlpsetalgoipm(state, 1e-5);
     }
-    minlpoptimize(state);
-    minlpresults(state, x_ALG, rep);
+    alglib::minlpoptimize(state);
+    alglib::minlpresults(state, x_ALG, rep);
     // Won't be throwing later on, instead handle the error
     if(rep.terminationtype < 1) METRIS_THROW_MSG(AlgoExcept(),
                         "LP failed to be solved code = "<<rep.terminationtype)

@@ -21,8 +21,6 @@
 #include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
 #include <boost/hana.hpp> 
-namespace hana = boost::hana;
-using namespace hana::literals;
 
 namespace Metris{
 // The main eval routine. Can be used for scalar fields (szfld = 1), element geometry (szfld = 3)
