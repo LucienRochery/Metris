@@ -3,6 +3,45 @@ include(FetchContent)
 include(cmake/MetrisFlags.cmake)
 
 
+if(USE_GMP)
+  if(NOT DEFINED GMP_DIR)
+    if(DEFINED ENV{GMP_DIR})
+      set(GMP_DIR $ENV{GMP_DIR})
+    else()
+      message(FATAL_ERROR "Specify GMP_DIR as CMake option or env var")
+    endif()
+  endif()
+  set(USE_MULTIPRECISION ON)
+  add_compile_definitions(USE_GMP)
+  set(GMP_INCLUDE_DIRS ${GMP_DIR}/include)
+  find_library(GMP_LIBRARIES NAMES gmp
+               HINTS $ENV{GMP_DIR}
+               PATH_SUFFIXES lib)
+
+  list(APPEND METRIS_DEPS_LIBRARIES ${GMP_LIBRARIES})
+  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${GMP_INCLUDE_DIRS})
+  message("-- GMP_INCLUDE_DIRS = ${GMP_INCLUDE_DIRS}")
+  message("-- GMP_LIBRARIES    = ${GMP_LIBRARIES}")
+endif()
+
+if(USE_MULTIPRECISION)
+  find_package(Boost COMPONENTS multiprecision)
+  if(NOT(Boost_multiprecision_FOUND))
+    message(WARNING "find_package(Boost COMPONENTS multiprecision) failed, cloning")
+    FetchContent_Declare(
+      fetch_multiprecision
+      GIT_REPOSITORY https://github.com/boostorg/multiprecision.git
+      GIT_TAG master   
+      EXCLUDE_FROM_ALL
+    )
+    list(APPEND METRIS_DEPS_LIBRARIES Boost::multiprecision)
+    FetchContent_MakeAvailable(fetch_multiprecision)
+  endif()
+  list(APPEND METRIS_DEPS_LIBRARIES ${Boost_MULTIPRECISION_LIBRARY})
+  message("-- Boost_LIBRARIES = ${Boost_LIBRARIES}")
+  message("-- Boost_MULTIPRECISION_LIBRARY = ${Boost_MULTIPRECISION_LIBRARY}")
+  message("-- Boost_MULTIPRECISION_LIBRARIES = ${Boost_MULTIPRECISION_LIBRARIES}")
+endif()
  
 if(REQ_CODEGEN)
   if(NOT DEFINED ENV{GINAC_DIR} AND NOT (DEFINED GINAC_LIBRARIES AND DEFINED GINAC_INCLUDE_DIRS))
@@ -25,9 +64,9 @@ if(REQ_CODEGEN)
     set(CLN_INCLUDE_DIRS "$ENV{CLN_DIR}/include")
   endif()
 
-  message("GINAC_INCLUDE_DIRS = ${GINAC_INCLUDE_DIRS}")
-  message("CLN_INCLUDE_DIRS   = ${CLN_INCLUDE_DIRS}")
-  message("GINAC_LIBRARIES    = ${GINAC_LIBRARIES}")
+  message("-- GINAC_INCLUDE_DIRS = ${GINAC_INCLUDE_DIRS}")
+  message("-- CLN_INCLUDE_DIRS   = ${CLN_INCLUDE_DIRS}")
+  message("-- GINAC_LIBRARIES    = ${GINAC_LIBRARIES}")
 
   list(APPEND METRIS_DEPS_LIBRARIES ${GINAC_LIBRARIES})
   list(APPEND METRIS_DEPS_INCLUDE_DIRS ${GINAC_INCLUDE_DIRS} ${CLN_INCLUDE_DIRS})
@@ -232,7 +271,7 @@ if(USE_ABSL)
 endif()
 
 
-find_package(Boost COMPONENTS program_options exception)
+find_package(Boost COMPONENTS program_options exception math)
 if(NOT(Boost_program_options_FOUND))
   FetchContent_Declare(
     fetch_program_options

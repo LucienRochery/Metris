@@ -37,17 +37,19 @@ void generate_metric(double aniso, double eigval[ndim], double eigvec[ndim][ndim
   MetSpace metspac,
   std::uniform_real_distribution<double>& unif, std::default_random_engine& rng);
 
-BOOST_AUTO_TEST_CASE(test_eval3) 
+BOOST_AUTO_TEST_CASE(test_expmet) 
 {//METRIS_MAX_DEG
 
   const int nsamp = 1e5;
   const double tol = 1.0e-11;
+  const double exptol = 1.0e-16;
 
   std::uniform_real_distribution<double> unif(1.0e-16,1.0);
   std::default_random_engine rng(0);
 
   double aniso_max = 2e6;
   double aniso_mul = 10;
+
 
   dblAr2 eigval_samples[2];
   dblAr2 eigvec_samples[2];
@@ -61,6 +63,37 @@ BOOST_AUTO_TEST_CASE(test_eval3)
 
     met_samples[idim-2].allocate(nsamp,(idim*(idim+1))/2);
     met_samples[idim-2].set_n(nsamp);
+  }
+
+
+  // i = idim - 2, j = 0 ? log : exp;
+  scriptArrayString errsD[2][2], errsE1[2][2], errsE2[2][2];
+  scriptArrayString benchD[2][2], benchE1[2][2], benchE2[2][2];
+
+  scriptArrayString anisos("aniso");
+  for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
+    anisos += anisorat;
+  }
+  anisos.finish();
+
+  for(int ii = 0; ii < 2; ii++){
+    errsD[ii][0].setName("err_max_log_DSYEVQ_"+std::to_string(ii+2));
+    errsD[ii][1].setName("err_max_exp_DSYEVQ_"+std::to_string(ii+2));
+
+    errsE1[ii][0].setName("err_max_log_EIGEN1_"+std::to_string(ii+2));
+    errsE1[ii][1].setName("err_max_exp_EIGEN1_"+std::to_string(ii+2));
+
+    errsE2[ii][0].setName("err_max_log_EIGEN2_"+std::to_string(ii+2));
+    errsE2[ii][1].setName("err_max_exp_EIGEN2_"+std::to_string(ii+2));
+
+    benchD[ii][0].setName("time_max_log_DSYEVQ_"+std::to_string(ii+2));
+    benchD[ii][1].setName("time_max_exp_DSYEVQ_"+std::to_string(ii+2));
+
+    benchE1[ii][0].setName("time_max_log_EIGEN1_"+std::to_string(ii+2));
+    benchE1[ii][1].setName("time_max_exp_EIGEN1_"+std::to_string(ii+2));
+
+    benchE2[ii][0].setName("time_max_log_EIGEN2_"+std::to_string(ii+2));
+    benchE2[ii][1].setName("time_max_exp_EIGEN2_"+std::to_string(ii+2));
   }
 
 
@@ -81,22 +114,9 @@ BOOST_AUTO_TEST_CASE(test_eval3)
       if(metspac == MetSpace::Exp) printf(" log\n");
       else                         printf(" exp\n");
 
-      for(double anisorat = 2; anisorat < aniso_max; anisorat *= aniso_mul){
+      for(double anisorat = 2; anisorat < aniso_max + 1; anisorat *= aniso_mul){
 
-        double errmin1_aniso = 1.0e30;
-        double errmax1_aniso = -1;
-        double erravg1_aniso = 0;
-
-        double errmin2_aniso = 1.0e30;
-        double errmax2_aniso = -1;
-        double erravg2_aniso = 0;
-
-        double errmin3_aniso = 1.0e30;
-        double errmax3_aniso = -1;
-        double erravg3_aniso = 0;
-
-
-        double nerro_aniso = 0;
+        MinMaxAvg errD, errE1, errE2;
 
 
         for(int isamp = 0; isamp < nsamp; isamp++){
@@ -113,6 +133,8 @@ BOOST_AUTO_TEST_CASE(test_eval3)
           eig2met<ndim,double>(eigval,eigvec[0],met);
           for(int ii = 0; ii < nnmet; ii++) met_samples[ndim-2](isamp, ii) = met[ii];
 
+
+          // --- Using DSYEVQ to compute eigvals, then log/exp eigval
           for(int ii = 0; ii < nnmet; ii++) met2[ii] = met[ii];
           if(metspac == MetSpace::Exp){
             getlogmet_inp<ndim,double>(met2);
@@ -123,13 +145,11 @@ BOOST_AUTO_TEST_CASE(test_eval3)
           }
           eig2met<ndim,double>(eigva2,eigvec[0],met3);
 
-          double err1 = sqrt(geterrl2<nnmet>(met2,met3) / getnrml2<nnmet>(met3));
-          errmin1_aniso = MIN(errmin1_aniso, err1);
-          errmax1_aniso = MAX(errmax1_aniso, err1);
-          erravg1_aniso += err1;
-          nerro_aniso++;
+          errD += sqrt(geterrl2<nnmet>(met2,met3) / getnrml2<nnmet>(met3));
 
 
+
+          // --- Eigen using log() / exp()
           for(int ii = 0; ii < ndim; ii++) 
             for(int jj = 0; jj < ndim; jj++) 
               met_Eigen(ii, jj) = met[sym2idx(ii,jj)];
@@ -143,14 +163,10 @@ BOOST_AUTO_TEST_CASE(test_eval3)
           for(int ii = 0; ii < ndim; ii++) 
             for(int jj = 0; jj < ndim; jj++) 
               met2[sym2idx(ii,jj)] = met2_Eigen(ii, jj);
-          double err2 = sqrt(geterrl2<nnmet>(met2,met3) / getnrml2<nnmet>(met3));
-          errmin2_aniso = MIN(errmin2_aniso, err2);
-          errmax2_aniso = MAX(errmax2_aniso, err2);
-          erravg2_aniso += err2;
+          errE1 += sqrt(geterrl2<nnmet>(met2,met3) / getnrml2<nnmet>(met3));
 
 
-
-
+          // --- Eigen using eigvals then log/exp eigvals
           Eigen::SelfAdjointEigenSolver<MatrixN> solver(met_Eigen);
 
           VectorN eigenvalues  = solver.eigenvalues();
@@ -166,26 +182,26 @@ BOOST_AUTO_TEST_CASE(test_eval3)
           for(int ii = 0; ii < ndim; ii++) 
             for(int jj = 0; jj < ndim; jj++) 
               met2[sym2idx(ii,jj)] = met2_Eigen(ii, jj);
-          double err3 = sqrt(geterrl2<nnmet>(met2,met3) / getnrml2<nnmet>(met3));
-          errmin3_aniso = MIN(errmin3_aniso, err3);
-          errmax3_aniso = MAX(errmax3_aniso, err3);
-          erravg3_aniso += err3;
+          errE2 += sqrt(geterrl2<nnmet>(met2,met3) / getnrml2<nnmet>(met3));
 
 
         }// for isamp
 
-        erravg1_aniso /= nerro_aniso;
-        erravg2_aniso /= nerro_aniso;
-        erravg3_aniso /= nerro_aniso;
+        int ifun = metspac == MetSpace::Exp ? 0 : 1;
+
+        errsD[ndim-2][ifun]  += errD.max();
+        errsE1[ndim-2][ifun] += errE1.max();
+        errsE2[ndim-2][ifun] += errE2.max();
+
 
         printf("  -- DONE with aniso ratio %5.1e\n",anisorat);
-        printf("   - error min = %e avg = %e max = %e\n",errmin1_aniso,erravg1_aniso,errmax1_aniso);
-        printf("   - error min = %e avg = %e max = %e (Eigen)\n",errmin2_aniso,erravg2_aniso,errmax2_aniso);
-        printf("   - error min = %e avg = %e max = %e (Eigen2)\n",errmin3_aniso,erravg3_aniso,errmax3_aniso);
+        printf("   - error min = %e avg = %e max = %e (DSYEVQ)\n",errD.min(),errD.avg(),errD.max());
+        printf("   - error min = %e avg = %e max = %e (Eigen direct)\n",errE1.min(),errE1.avg(),errE1.max());
+        printf("   - error min = %e avg = %e max = %e (Eigen decomp)\n",errE2.min(),errE2.avg(),errE2.max());
 
-        BOOST_TEST(errmax1_aniso <= tol);
-        BOOST_TEST(errmax2_aniso <= tol);
-        BOOST_TEST(errmax3_aniso <= tol);
+        BOOST_TEST(errD <= tol);
+        BOOST_TEST(errE1 <= tol);
+        BOOST_TEST(errE2 <= tol);
 
       }// for anisorat
     }// for MetSpace
@@ -209,10 +225,11 @@ BOOST_AUTO_TEST_CASE(test_eval3)
       MatrixN met_Eigen, met2_Eigen;
 
 
-      for(double anisorat = 2; anisorat < aniso_max; anisorat *= aniso_mul){
+      for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
 
-        double t0_LAPACK = get_wall_time();
-        double dum_LAPACK = 0;
+        // Using DSYEVQ
+        double t0_DSYEVQ = get_wall_time();
+        double dum_DSYEVQ = 0;
         for(int isamp = 0; isamp < nsamp; isamp++){
           for(int ii = 0; ii < nnmet; ii++) met2[ii] = met_samples[ndim-2](isamp, ii);
           if(metspac == MetSpace::Exp){
@@ -220,13 +237,13 @@ BOOST_AUTO_TEST_CASE(test_eval3)
           }else{
             getexpmet_inp<ndim,double>(met2);
           }
-          dum_LAPACK += met2[0];
+          dum_DSYEVQ += met2[0];
         }
-        double t1_LAPACK = get_wall_time();
+        double t1_DSYEVQ = get_wall_time();
 
 
-        double t0_EIGEN = get_wall_time();
-        double dum_EIGEN = 0;
+        double t0_EIGEN1 = get_wall_time();
+        double dum_EIGEN1 = 0;
         for(int isamp = 0; isamp < nsamp; isamp++){
           for(int ii = 0; ii < ndim; ii++) 
             for(int jj = 0; jj < ndim; jj++) 
@@ -241,9 +258,9 @@ BOOST_AUTO_TEST_CASE(test_eval3)
           for(int ii = 0; ii < ndim; ii++) 
             for(int jj = 0; jj < ndim; jj++) 
               met[sym2idx(ii,jj)] = met2_Eigen(ii, jj);
-          dum_EIGEN += met[0];
+          dum_EIGEN1 += met[0];
         }
-        double t1_EIGEN = get_wall_time();
+        double t1_EIGEN1 = get_wall_time();
 
 
         double t0_EIGEN2 = get_wall_time();
@@ -269,27 +286,97 @@ BOOST_AUTO_TEST_CASE(test_eval3)
           for(int ii = 0; ii < ndim; ii++) 
             for(int jj = 0; jj < ndim; jj++) 
               met[sym2idx(ii,jj)] = met2_Eigen(ii, jj);
-          dum_EIGEN += met[0];
+          dum_EIGEN2 += met[0];
         }
         double t1_EIGEN2 = get_wall_time(); 
 
 
         std::string funname = metspac == MetSpace::Exp ? "log" : "exp";
-        printf("  -- DONE bench dim %1d aniso %5.1e %s LAPACK time : %8.2es = %dk op/s\n",
+        printf("  -- DONE bench dim %1d aniso %5.1e %s DSYEVQ time : %8.2es = %dk op/s\n",
                     ndim,anisorat,funname.c_str(),
-                    t1_LAPACK-t0_LAPACK,(int)(nsamp/(t1_LAPACK-t0_LAPACK)/1000));
+                    t1_DSYEVQ-t0_DSYEVQ,(int)(nsamp/(t1_DSYEVQ-t0_DSYEVQ)/1000));
         printf("                                         Eigen time : %8.2es = %dk op/s, fac = %4.2fx\n",
-                    t1_EIGEN-t0_EIGEN,(int)(nsamp/(t1_EIGEN-t0_EIGEN)/1000),
-                    (t1_EIGEN-t0_EIGEN)/(t1_LAPACK-t0_LAPACK));
+                    t1_EIGEN1-t0_EIGEN1,(int)(nsamp/(t1_EIGEN1-t0_EIGEN1)/1000),
+                    (t1_EIGEN1-t0_EIGEN1)/(t1_DSYEVQ-t0_DSYEVQ));
         printf("                                        Eigen2 time : %8.2es = %dk op/s, fac = %4.2fx\n",
                     t1_EIGEN2-t0_EIGEN2,(int)(nsamp/(t1_EIGEN2-t0_EIGEN2)/1000),
-                    (t1_EIGEN2-t0_EIGEN2)/(t1_LAPACK-t0_LAPACK));
+                    (t1_EIGEN2-t0_EIGEN2)/(t1_DSYEVQ-t0_DSYEVQ));
 
+      int ifun = metspac == MetSpace::Exp ? 0 : 1;
+      benchD[ndim-2][ifun]  += nsamp/(t1_DSYEVQ - t0_DSYEVQ);
+      benchE1[ndim-2][ifun] += nsamp/(t1_EIGEN1 - t0_EIGEN1);
+      benchE2[ndim-2][ifun] += nsamp/(t1_EIGEN2 - t0_EIGEN2);
 
       }// for anisorat
     }CT_FOR1(ndim);
   }// for MetSpace
   #endif
+
+  std::ofstream fil;
+  std::string fname = "test_explogmet.py";
+  fil.open(fname.c_str(), std::ios::out);
+  fil << "import matplotlib.pyplot as plt\n\n";
+  fil << anisos.str() << "\n\n";
+  int ifig = 0;
+  for(int ndim = 0; ndim < 2; ndim++){
+    for(int iar = 0; iar < 2; iar++){
+      std::string funname = iar == 0 ? "log" : "exp";
+      errsD[ndim][iar].finish();
+      errsE1[ndim][iar].finish();
+      errsE2[ndim][iar].finish();
+      fil << errsD[ndim][iar].str() << "\n";
+      fil << errsE1[ndim][iar].str() << "\n";
+      fil << errsE2[ndim][iar].str() << "\n";
+      fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
+      fil << "plt.loglog(aniso," << errsD[ndim][iar].name()<<",label='DSYEVQ')\n";
+      fil << "plt.loglog(aniso," << errsE1[ndim][iar].name()<<",label='Eigen1')\n";
+      fil << "plt.loglog(aniso," << errsE2[ndim][iar].name()<<",label='Eigen2')\n";
+      fil << "plt.title('Output relative error "<<funname<<" (max), dim "
+          << std::to_string(ndim+2)<< "')\n";
+      fil << "plt.xlabel('anisotropic ratio')\n";
+      fil << "plt.ylabel('relative error')\n";
+      fil << "plt.legend()\n";
+      fil << "plt.grid(True)\n";
+      fil << "plt.savefig('errs_explogmet_"<<funname<<std::to_string(ndim+2)<<".png')\n";
+      fil << "\n\n";
+    }
+  }
+  fil << "plt.show()\n";
+  fil.close();
+
+  fname = "bench_explogmet.py";
+  fil.open(fname.c_str(), std::ios::out);
+  fil << "import matplotlib.pyplot as plt\n";
+  fil << "import numpy as np\n";
+  fil << "\n";
+
+  fil << anisos.str() << "\n\n";
+  ifig = 0;
+  for(int ndim = 0; ndim < 2; ndim++){
+    for(int iar = 0; iar < 2; iar++){
+      std::string funname = iar == 0 ? "log" : "exp";
+      benchD[ndim][iar].finish();
+      benchE1[ndim][iar].finish();
+      benchE2[ndim][iar].finish();
+      fil << benchD[ndim][iar].str() << "\n";
+      fil << benchE1[ndim][iar].str() << "\n";
+      fil << benchE2[ndim][iar].str() << "\n";
+      fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
+      fil << "plt.semilogx(aniso,np.array(" << benchE1[ndim][iar].name()<<")"
+          << "/np.array(" << benchD[ndim][iar].name() << ")" <<",label='Eigen1')\n";
+      fil << "plt.semilogx(aniso,np.array(" << benchE2[ndim][iar].name()<<")"
+          << "/np.array(" << benchD[ndim][iar].name() << ")" <<",label='Eigen2')\n";
+      fil << "plt.title('Benchmark "<<funname<<" dim "<< std::to_string(ndim+2)<< "')\n";
+      fil << "plt.xlabel('anisotropic ratio')\n";
+      fil << "plt.ylabel('op/s divided by DSYEVQs')\n";
+      fil << "plt.legend()\n";
+      fil << "plt.grid(True)\n";
+      fil << "plt.savefig('bench_explogmet_"<<funname<<"_"<<std::to_string(ndim+2)<<".png')\n";
+      fil << "\n\n";
+    }
+  }
+  fil << "plt.show()\n";
+  fil.close();
 
 }
 

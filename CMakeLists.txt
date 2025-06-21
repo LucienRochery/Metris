@@ -283,6 +283,7 @@ if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME
                                       ${PETSC_LIBRARIES}
                                       ${ABSL_LIBRARIES}
                                       lapack 
+                                      SANS
                                       #libegads libegadslite 
                                       #egads egadslite
                                       ${EGADS_LIBRARIES} ${EGADSLITE_LIBRARIES} 

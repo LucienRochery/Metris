@@ -149,8 +149,6 @@ inline T detsym2(const T met[]){
       int info;
       int n = 3;
       dgetrf_(&n,&n,A[0],&n,ipiv,&info);
-//      int nn = (ipiv[0] > 2) + (ipiv[0] > 3) 
-//             + (ipiv[1] > 3);
       // It's actually not a permutation vector but lists permutations per iteration...
       int nn = (ipiv[0] != 1) + (ipiv[1] != 2) + (ipiv[2] != 3); 
       double det = A[0][0]*A[1][1]*A[2][2]; 
@@ -169,6 +167,33 @@ inline T detsym2(const T met[]){
                  + met2[3]*(met2[1]*met2[4]-met2[3]*met2[2]);
       return det*mx*mx*mx;
     }
+  }
+}
+// -----------------------------------------------------------------------------
+template<int ndimn, typename T = double>
+inline T detsym3(const T met[]){
+  static_assert(ndimn == 2 || ndimn == 3);
+  if constexpr(ndimn == 2){
+    T mx = abs(met[0]); 
+    mx = mx > abs(met[1]) ? mx : abs(met[1]);
+    mx = mx > abs(met[2]) ? mx : abs(met[2]);
+    T met2[3] ;
+    for(int ii = 0; ii < 3 ;ii++) met2[ii] = met[ii] / mx;
+    double det = met2[0]*met2[2] - met2[1]*met2[1];
+    return det*mx*mx;
+  }else{
+    T mx = abs(met[0]); 
+    mx = mx > abs(met[1]) ? mx : abs(met[1]);
+    mx = mx > abs(met[2]) ? mx : abs(met[2]);
+    mx = mx > abs(met[3]) ? mx : abs(met[3]);
+    mx = mx > abs(met[4]) ? mx : abs(met[4]);
+    mx = mx > abs(met[5]) ? mx : abs(met[5]);
+    T met2[6] ;
+    for(int ii =0; ii < 6 ;ii++) met2[ii] = met[ii] / mx;
+    double det = met2[0]*(met2[2]*met2[5]-met2[4]*met2[4])
+               + met2[1]*(met2[4]*met2[3]-met2[5]*met2[1])
+               + met2[3]*(met2[1]*met2[4]-met2[3]*met2[2]);
+    return det*mx*mx*mx;
   }
 }
 

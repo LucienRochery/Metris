@@ -56,7 +56,7 @@ void d_quafun_tradet(Mesh<MetricFieldType> &msh,
                      ftype*__restrict__ hdet);
 
 
-template <class MFT, int gdim, int tdim, int nvar, typename ftype>
+template <class MFT, int gdim, int tdim, int nvar>
 void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                               const int* ent2pol,
                               const double*__restrict__ bary, 
@@ -64,8 +64,8 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                               FEBasis dofbas, 
                               DifVar idifmet, 
                               const double*__restrict__ met_,
-                              SANS::SurrealS<nvar, ftype>&__restrict__ tra, 
-                              SANS::SurrealS<nvar, ftype>&__restrict__ det,
+                              SANS::SurrealS<nvar, double>&__restrict__ tra, 
+                              SANS::SurrealS<nvar, double>&__restrict__ det,
                               const SANS::DLA::MatrixS<gdim,nvar,double> *dpoint);
 
 

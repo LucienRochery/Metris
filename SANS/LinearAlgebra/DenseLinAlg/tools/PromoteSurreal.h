@@ -41,8 +41,10 @@ template<int M, class T>\
 struct promote_Surreal< DLA::MatrixSymS<M,T>, RealType > { typedef DLA::MatrixSymS<M,T> type; };\
 
 APPLY_TO_REALTYPE(double)
+#ifdef USE_MULTIPRECISION
 APPLY_TO_REALTYPE(float4)
 APPLY_TO_REALTYPE(float8)
+#endif
 #undef APPLY_TO_REALTYPE
 
 

@@ -7,10 +7,7 @@
 #define SANSTRAITSSCALAR_H
 
 #include "../LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
-
-#include <boost/multiprecision/cpp_bin_float.hpp>
-typedef  boost::multiprecision::cpp_bin_float_oct  float8;
-typedef  boost::multiprecision::cpp_bin_float_quad float4;
+#include "src/types_scalar.hxx"
 
 
 namespace SANS

@@ -7,6 +7,8 @@
 #ifndef __METRIS_FACT_POW__
 #define __METRIS_FACT_POW__
 
+#include "../metris_constants.hxx"
+
 namespace Metris{
 
 template<int n>

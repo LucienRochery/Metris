@@ -491,7 +491,7 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,\
 // This version uses SurrealS to compute derivatives
 // It is meant to be used for boundary nodes.
 // No second derivatives
-template <class MFT, int gdim, int tdim, int nvar, typename ftype>
+template <class MFT, int gdim, int tdim, int nvar>
 void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                               const int* ent2pol,
                               const double*__restrict__ bary, 
@@ -499,10 +499,9 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                               FEBasis dofbas, 
                               DifVar idifmet, 
                               const double*__restrict__ met_,
-                              SANS::SurrealS<nvar, ftype>&__restrict__ tra, 
-                              SANS::SurrealS<nvar, ftype>&__restrict__ det,
+                              SANS::SurrealS<nvar,double>&__restrict__ tra, 
+                              SANS::SurrealS<nvar,double>&__restrict__ det,
                               const SANS::DLA::MatrixS<gdim,nvar,double> *dpoint){
-
 
   static_assert(gdim == 2 || gdim == 3);
   METRIS_ASSERT(gdim == msh.idim);
@@ -515,7 +514,6 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   METRIS_ASSERT_MSG(!(dofbas == FEBasis::Bezier && idifmet != DifVar::None), 
     "Ctrl pt dof not implemented -> do lag2bez derivatives of metric")
 
-  typedef SANS::SurrealS<nvar,ftype > ftypeS;
   typedef SANS::SurrealS<nvar,double> doubleS;
 
   constexpr int nnmet = (gdim*(gdim+1))/2;
@@ -544,8 +542,8 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
   // Get J_0^{-T} J_K^T 
   SANS::DLA::MatrixS<tdim ,tdim, double> 
-    invtJ_0(Constants::invtJ_0[hana::type_c<ftype>][tdim], tdim*tdim);
-  SANS::DLA::MatrixS<tdim ,gdim,ftypeS> invtJ0_tJK = invtJ_0*jmat;
+    invtJ_0(Constants::invtJ_0[hana::type_c<double>][tdim], tdim*tdim);
+  SANS::DLA::MatrixS<tdim ,gdim,doubleS> invtJ0_tJK = invtJ_0*jmat;
 
   // Get metric interpolated at xi
   // The metric field class fetches geometric dimension from the mesh
@@ -564,7 +562,7 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     "Multiply dmet by point Jacobian matrix.");
   SANS::DLA::MatSymS<gdim,doubleS> metS;
   for(int ii = 0; ii < nnmet; ii++){
-    metS[ii].value() = met[ii];
+    metS[ii].value() = (double) met[ii];
     //if(idifmet != DifVar::None){
     //  for(int jj = 0; jj < nvar; jj++){
     //    metS[ii].deriv(jj) = dmet[]
@@ -574,13 +572,13 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
 
   // Compute the trace. Matrix is sized tdim x tdim and symmetric.
-  //SANS::DLA::VectorS<(tdim*(tdim+1))/2,ftypeS> tJ0_tJK_M_JK_J0;
-  SANS::DLA::MatSymS<tdim,ftypeS> tJ0_tJK_M_JK_J0;
+  //SANS::DLA::VectorS<(tdim*(tdim+1))/2,doubleS> tJ0_tJK_M_JK_J0;
+  SANS::DLA::MatSymS<tdim,doubleS> tJ0_tJK_M_JK_J0;
   matXsymXtmat(metS,invtJ0_tJK,tJ0_tJK_M_JK_J0);
   //matXsymXtmat<tdim,gdim,
   //             doubleS,
-  //             ftypeS,
-  //             ftypeS>(metS,invtJ0_tJK[0],tJ0_tJK_M_JK_J0);
+  //             doubleS,
+  //             doubleS>(metS,invtJ0_tJK[0],tJ0_tJK_M_JK_J0);
   tra = tJ0_tJK_M_JK_J0[0] + tJ0_tJK_M_JK_J0[2];
   if constexpr (tdim == 3) tra += tJ0_tJK_M_JK_J0[5];
 
@@ -588,14 +586,14 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   METRIS_ENFORCE_MSG(tra.value() >= 1.0e-16, "## Negative tJMJ trace = "<<tra)
 
 
-  ftypeS detM, det_invtJ0_tJ;
+  doubleS detM, det_invtJ0_tJ;
   if constexpr(tdim == gdim){
     // Error of 10^{-19} = 10^-14 relative compared to Matlab on wonky case
     det_invtJ0_tJ = detmat(invtJ0_tJK);
     // Error of 10^5 ... 
     // Matlab yields 7.346639223296765e+09 we get 7.346911345315383e+09 
     // Even in relative this is terrible>(invtJ0_tJ); 
-    //ftype tmp = detsym<gdim>(met); 
+    //double tmp = detsym<gdim>(met); 
     // Also wrong, same error. Note Matlab gets 10^-9 final quality 
     // relative error ! Our determinant is terribly bad
     //detM = detsym2<gdim, doubleS>(metS); 
@@ -604,7 +602,7 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   }else{
     static_assert(tdim == 2 && gdim == 3);
     det = detsym2(tJ0_tJK_M_JK_J0);
-    //det = detsym2<tdim, ftypeS>(tJ0_tJK_M_JK_J0);
+    //det = detsym2<tdim, doubleS>(tJ0_tJK_M_JK_J0);
   }
 
   if(abs(det.value()) < 1.0e-16 && msh.param->opt_power > 0) 
@@ -614,14 +612,8 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 }
 
 
-// While cumbersome, this replaces a bunch of manual instantiations, about to 
-// be made worse the day we add tdimn as a template argument. 
-#define EXPAND_TEMPLATE(r,SEQ) \
-                  INSTANTIATE(BOOST_PP_SEQ_ELEM(0, SEQ),\
-                              BOOST_PP_SEQ_ELEM(1, SEQ))
-
-#define INSTANTIATE(MFT_VAL,FTYPE)\
-template void d_quafun_tradet_SurrealS< MFT_VAL , 2, 2, 2, FTYPE>\
+#define INSTANTIATE(MFT_VAL)\
+template void d_quafun_tradet_SurrealS< MFT_VAL , 2, 2, 2>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2pol,\
@@ -630,10 +622,10 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 2, 2, 2, FTYPE>\
                    FEBasis dofbas,\
                    DifVar idifmet,\
                    const double*__restrict__ met_,\
-                   SANS::SurrealS<2, FTYPE>&__restrict__ tra,\
-                   SANS::SurrealS<2, FTYPE>&__restrict__ det,\
+                   SANS::SurrealS<2>&__restrict__ tra,\
+                   SANS::SurrealS<2>&__restrict__ det,\
                    const SANS::DLA::MatrixS<2,2,double> *dpoint);\
-template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 3, 3, FTYPE>\
+template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 3, 3>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2pol,\
@@ -642,10 +634,10 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 3, 3, FTYPE>\
                    FEBasis dofbas,\
                    DifVar idifmet,\
                    const double*__restrict__ met_,\
-                   SANS::SurrealS<3, FTYPE>&__restrict__ tra,\
-                   SANS::SurrealS<3, FTYPE>&__restrict__ det,\
+                   SANS::SurrealS<3>&__restrict__ tra,\
+                   SANS::SurrealS<3>&__restrict__ det,\
                    const SANS::DLA::MatrixS<3,3,double> *dpoint);\
-template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 2, FTYPE>\
+template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 2>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2pol,\
@@ -654,10 +646,10 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 2, FTYPE>\
                    FEBasis dofbas,\
                    DifVar idifmet,\
                    const double*__restrict__ met_,\
-                   SANS::SurrealS<2, FTYPE>&__restrict__ tra,\
-                   SANS::SurrealS<2, FTYPE>&__restrict__ det,\
+                   SANS::SurrealS<2>&__restrict__ tra,\
+                   SANS::SurrealS<2>&__restrict__ det,\
                    const SANS::DLA::MatrixS<3,2,double> *dpoint);\
-template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 3, FTYPE>\
+template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 3>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
                    const int* ent2pol,\
@@ -666,13 +658,13 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 3, FTYPE>\
                    FEBasis dofbas,\
                    DifVar idifmet,\
                    const double*__restrict__ met_,\
-                   SANS::SurrealS<3, FTYPE>&__restrict__ tra,\
-                   SANS::SurrealS<3, FTYPE>&__restrict__ det,\
+                   SANS::SurrealS<3>&__restrict__ tra,\
+                   SANS::SurrealS<3>&__restrict__ det,\
                    const SANS::DLA::MatrixS<3,3,double> *dpoint);
-BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,\
-                              (MFT_SEQ)(QUA_FTYPE_SEQ))
+INSTANTIATE(MetricFieldAnalytical)
+INSTANTIATE(MetricFieldFE)
+
 #undef INSTANTIATE
-#undef EXPAND_TEMPLATE
 
 
 

@@ -7,28 +7,137 @@
 #define __COMMON_SETUP_MSH__
 
 #include <string>
-#include <src/types.hxx>
-#include <src/io_libmeshb.hxx>
-#include <src/ho_constants.hxx>
-#include <src/aux_topo.hxx>
-#include <src/utils/aux_misc.hxx>
-#include <src/low_topo.hxx>
+#include "src/types.hxx"
+#include "src/io_libmeshb.hxx"
+#include "src/ho_constants.hxx"
+#include "src/aux_topo.hxx"
+#include "src/utils/aux_misc.hxx"
+#include "src/low_topo.hxx"
 
-#include <src/low_geo.hxx>
-#include <src/linalg/matprods.hxx>
-#include <src/msh_degelev.hxx>
-#include <src/aux_exceptions.hxx>
-#include <src/MetrisRunner/MetrisRunner.hxx>
+#include "src/low_geo.hxx"
+#include "src/linalg/matprods.hxx"
+#include "src/msh_degelev.hxx"
+#include "src/aux_exceptions.hxx"
+#include "src/MetrisRunner/MetrisRunner.hxx"
 
-#include <src/main_adap.hxx>
+#include "src/main_adap.hxx"
 #include <fcntl.h>
 
 #include <boost/test/unit_test.hpp>
 #include <boost/test/included/unit_test.hpp> 
 #include <boost/timer/progress_display.hpp>
 
+#include <sstream>
+
 namespace Metris{
 
+class scriptArrayString {
+public:
+  scriptArrayString() : ifirst(true), iinit(false) {}
+
+  scriptArrayString(const std::string &name__) : ifirst(true){
+    iinit = true;
+    name_ = name__;
+    setName(name__);
+  }
+
+  void setName(const std::string &name__){
+    iinit = true;
+    name_ = name__;
+    oss << name__ << " = [";
+  }
+
+  void finish(){
+    oss << "]";
+  }
+
+  std::string str() const {
+    return oss.str();
+  }
+
+  std::string name() const {
+    return name_;
+  }
+
+  template<typename T>
+  scriptArrayString& operator+=(T val){
+    METRIS_ASSERT(iinit);
+    if(!ifirst){
+      oss << ",";
+    }else{
+      ifirst = false;
+    }
+    oss << val;
+    return *this;
+  }
+private:
+  std::ostringstream oss;
+  bool ifirst, iinit;
+  std::string name_;
+};
+
+class MinMaxAvg {
+public:
+  MinMaxAvg() : min_(1.0e30), avg_(0), max_(-1.0e30), navg(0){}
+
+  MinMaxAvg& operator+=(double val){
+    if (val < min_) min_ = val;
+    if (val > max_) max_ = val;
+    avg_ += val;
+    navg++;
+    return *this;
+  }
+
+  double min() const {return min_;}
+  double avg() const {return navg > 0 ? avg_/navg : 0;}
+  double max() const {return max_;}
+
+  bool operator<=(double value) const {
+    return max_ <= value;
+  }
+
+  friend bool operator<=(double lhs, const MinMaxAvg& rhs) {
+    return lhs <= rhs.max_;
+  }
+
+  bool operator<(double value) const {
+    return max_ < value;
+  }
+
+  friend bool operator<(double lhs, const MinMaxAvg& rhs) {
+    return lhs < rhs.max_;
+  }
+
+
+  bool operator>=(double value) const {
+    return max_ >= value;
+  }
+
+  friend bool operator>=(double lhs, const MinMaxAvg& rhs) {
+    return lhs >= rhs.max_;
+  }
+
+  bool operator>(double value) const {
+    return max_ > value;
+  }
+
+  friend bool operator>(double lhs, const MinMaxAvg& rhs) {
+    return lhs > rhs.max_;
+  }
+
+  friend std::ostream& operator<<(std::ostream& os, const MinMaxAvg& mma) {
+    os << "min: " << mma.min_ << ", "
+       << "avg: " << mma.avg() << ", "
+       << "max: " << mma.max_ << ", "
+       << "count: " << mma.navg;
+    return os;
+  }
+
+private:
+  double min_, avg_, max_;
+  unsigned long long int navg;
+  bool iinit;
+};
 
 #if 0
 template<class MetricFieldType>

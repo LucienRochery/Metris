@@ -10,6 +10,7 @@
 
 #include <boost/timer/progress_display.hpp>
 #include <random>
+#include <fstream>
 
 //#include "../src/utils/aux_utils.hxx"
 #include "../src/low_geo.hxx"
@@ -19,6 +20,7 @@
 
 
 #include <Eigen/Dense>
+
 
 
 namespace Metris{
@@ -33,7 +35,7 @@ template<int ndim>
 void generate_metric(double aniso, double eigval[ndim], double eigvec[ndim][ndim],
   std::uniform_real_distribution<double>& unif, std::default_random_engine& rng);
 
-BOOST_AUTO_TEST_CASE(test_eval3) 
+BOOST_AUTO_TEST_CASE(test_eigen) 
 {//METRIS_MAX_DEG
 
   const int nsamp = 1e5;
@@ -44,6 +46,44 @@ BOOST_AUTO_TEST_CASE(test_eval3)
 
   double aniso_max = 2e7;
   double aniso_mul = 10;
+
+
+  // i = idim - 2, j = 0 ? avg : max;
+  scriptArrayString errseigD[2][2], errseigE[2][2], errseigL[2][2];
+  scriptArrayString errseicD[2][2], errseicE[2][2], errseicL[2][2];
+
+  scriptArrayString benchD[2], benchE[2], benchL[2];
+
+  scriptArrayString anisos("aniso");
+  for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
+    anisos += anisorat;
+  }
+  anisos.finish();
+
+  for(int ii = 0; ii < 2; ii++){
+    errseigD[ii][0].setName("erreig_avg_DSYEVQ"+std::to_string(ii+2));
+    errseigD[ii][1].setName("erreig_max_DSYEVQ"+std::to_string(ii+2));
+
+    errseigL[ii][0].setName("erreig_avg_LAPACK"+std::to_string(ii+2));
+    errseigL[ii][1].setName("erreig_max_LAPACK"+std::to_string(ii+2));
+
+    errseigE[ii][0].setName("erreig_avg_EIGEN"+std::to_string(ii+2));
+    errseigE[ii][1].setName("erreig_max_EIGEN"+std::to_string(ii+2));
+
+    errseicD[ii][0].setName("erreic_avg_DSYEVQ"+std::to_string(ii+2));
+    errseicD[ii][1].setName("erreic_max_DSYEVQ"+std::to_string(ii+2));
+
+    errseicL[ii][0].setName("erreic_avg_LAPACK"+std::to_string(ii+2));
+    errseicL[ii][1].setName("erreic_max_LAPACK"+std::to_string(ii+2));
+
+    errseicE[ii][0].setName("erreic_avg_EIGEN"+std::to_string(ii+2));
+    errseicE[ii][1].setName("erreic_max_EIGEN"+std::to_string(ii+2));
+
+    benchD[ii].setName("time_DSYEVQ"+std::to_string(ii+2));
+    benchL[ii].setName("time_LAPACK"+std::to_string(ii+2));
+    benchE[ii].setName("time_EIGEN"+std::to_string(ii+2));
+  }
+
 
   CT_FOR0_INC(2,3,ndim){
     constexpr int nnmet = (ndim*(ndim+1))/2;
@@ -57,29 +97,9 @@ BOOST_AUTO_TEST_CASE(test_eval3)
 
     for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
 
-      double errminmet_aniso = 1.0e30;
-      double errmaxmet_aniso = -1;
-      double erravgmet_aniso = 0;
-
-      double errminmetL_aniso = 1.0e30;
-      double errmaxmetL_aniso = -1;
-      double erravgmetL_aniso = 0;
-
-      double errminmetE_aniso = 1.0e30;
-      double errmaxmetE_aniso = -1;
-      double erravgmetE_aniso = 0;
-
-      double errmineig_aniso = 1.0e30;
-      double errmaxeig_aniso = -1;
-      double erravgeig_aniso = 0;
-
-      double errmineigL_aniso = 1.0e30;
-      double errmaxeigL_aniso = -1;
-      double erravgeigL_aniso = 0;
-
-      double errmineigE_aniso = 1.0e30;
-      double errmaxeigE_aniso = -1;
-      double erravgeigE_aniso = 0;
+      MinMaxAvg errmetD, errmetL, errmetE;
+      MinMaxAvg erreigD, erreigL, erreigE;
+      MinMaxAvg erreicD, erreicL, erreicE;
 
       double nerro_aniso = 0;
 
@@ -89,6 +109,8 @@ BOOST_AUTO_TEST_CASE(test_eval3)
       eigvec_samples.set_n(nsamp);
 
       dblAr2 met_samples(nsamp, nnmet);
+
+      double err;
 
       for(int isamp = 0; isamp < nsamp; isamp++){
         nerro_aniso++;
@@ -111,6 +133,8 @@ BOOST_AUTO_TEST_CASE(test_eval3)
         // Re-decompose and compare
         geteigsym<ndim,double>(met,eigva2,eigve2[0]);
 
+        sorteig<ndim, double>(eigva2,eigve2[0]);
+
         // Test unit norm 
         for(int i = 0; i < ndim; i++){
           BOOST_TEST( abs(sqrt(getnrml2<ndim>(eigve2[0])) - 1) < tol);
@@ -124,15 +148,17 @@ BOOST_AUTO_TEST_CASE(test_eval3)
 
         eig2met<ndim,double>(eigva2,eigve2[0],met2);
 
-        double errmet = sqrt(geterrl2<nnmet>(met2,met) / getnrml2<nnmet>(met));
-        errminmet_aniso = MIN(errminmet_aniso, errmet);
-        errmaxmet_aniso = MAX(errmaxmet_aniso, errmet);
-        erravgmet_aniso += errmet;
+        err = sqrt(geterrl2<nnmet>(met2,met) / getnrml2<nnmet>(met));
+        errmetD += err;
 
-        double erreig = sqrt(geterrl2<ndim>(eigval,eigva2) / getnrml2<ndim>(eigval));
-        errmineig_aniso = MIN(errmineig_aniso, erreig);
-        errmaxeig_aniso = MAX(errmaxeig_aniso, erreig);
-        erravgeig_aniso += erreig;
+        err = sqrt(geterrl2<ndim>(eigval,eigva2) / getnrml2<ndim>(eigval));
+        erreigD += err;
+
+        err = 0;
+        for(int ii = 0; ii < ndim; ii++){
+          err += abs(eigval[ii] - eigva2[ii])/abs(eigval[ii]);
+        }
+        erreicD += err;
 
 
 
@@ -153,16 +179,17 @@ BOOST_AUTO_TEST_CASE(test_eval3)
 
         eig2met<ndim,double>(eigva2,eigve2[0],met2);
 
-        double errmetL = sqrt(geterrl2<nnmet>(met2,met) / getnrml2<nnmet>(met));
-        errminmetL_aniso = MIN(errminmetL_aniso, errmetL);
-        errmaxmetL_aniso = MAX(errmaxmetL_aniso, errmetL);
-        erravgmetL_aniso += errmetL;
+        err = sqrt(geterrl2<nnmet>(met2,met) / getnrml2<nnmet>(met));
+        errmetL += err;
 
-        double erreigL = sqrt(geterrl2<ndim>(eigval,eigva2) / getnrml2<ndim>(eigval));
-        errmineigL_aniso = MIN(errmineigL_aniso, erreigL);
-        errmaxeigL_aniso = MAX(errmaxeigL_aniso, erreigL);
-        erravgeigL_aniso += erreigL;
+        err = sqrt(geterrl2<ndim>(eigval,eigva2) / getnrml2<ndim>(eigval));
+        erreigL += err;
 
+        err = 0;
+        for(int ii = 0; ii < ndim; ii++){
+          err += abs(eigval[ii] - eigva2[ii])/abs(eigval[ii]);
+        }
+        erreicL += err;
 
 
 
@@ -189,40 +216,56 @@ BOOST_AUTO_TEST_CASE(test_eval3)
             eigve2[jj][ii] = eigenvectors(ii,jj);
 
         eig2met<ndim,double>(eigva2,eigve2[0],met2);
-        double errmetE = sqrt(geterrl2<nnmet>(met2,met) / getnrml2<nnmet>(met));
-        errminmetE_aniso = MIN(errminmetE_aniso, errmetE);
-        errmaxmetE_aniso = MAX(errmaxmetE_aniso, errmetE);
-        erravgmetE_aniso += errmetE;
+        err = sqrt(geterrl2<nnmet>(met2,met) / getnrml2<nnmet>(met));
+        errmetE += err;
 
-        double erreigE = sqrt(geterrl2<ndim>(eigval,eigva2) / getnrml2<ndim>(eigval));
-        errmineigE_aniso = MIN(errmineigE_aniso, erreigE);
-        errmaxeigE_aniso = MAX(errmaxeigE_aniso, erreigE);
-        erravgeigE_aniso += erreigE;
+        err = sqrt(geterrl2<ndim>(eigval,eigva2) / getnrml2<ndim>(eigval));
+        erreigE += err;
+
+        err = 0;
+        for(int ii = 0; ii < ndim; ii++){
+          err += abs(eigval[ii] - eigva2[ii])/abs(eigval[ii]);
+        }
+        erreicE += err;
 
       }// for isamp
 
-      erravgmet_aniso /= nerro_aniso;
-      erravgmetL_aniso /= nerro_aniso;
-      erravgmetE_aniso /= nerro_aniso;
-      erravgeig_aniso /= nerro_aniso;
-      erravgeigL_aniso /= nerro_aniso;
-      erravgeigE_aniso /= nerro_aniso;
+      errseigD[ndim-2][0] += erreigD.avg();
+      errseigL[ndim-2][0] += erreigL.avg();
+      errseigE[ndim-2][0] += erreigE.avg();
 
-      printf("   - metric error min = %e avg = %e max = %e\n",errminmet_aniso,erravgmet_aniso,errmaxmet_aniso);
-      printf("   - eigenv error min = %e avg = %e max = %e\n",errmineig_aniso,erravgeig_aniso,errmaxeig_aniso);
-      printf("   - metric error min = %e avg = %e max = %e (LAPACK)\n",errminmetL_aniso,erravgmetL_aniso,errmaxmetL_aniso);
-      printf("   - eigenv error min = %e avg = %e max = %e (LAPACK)\n",errmineigL_aniso,erravgeigL_aniso,errmaxeigL_aniso);
-      printf("   - metric error min = %e avg = %e max = %e (Eigen)\n",errminmetE_aniso,erravgmetE_aniso,errmaxmetE_aniso);
-      printf("   - eigenv error min = %e avg = %e max = %e (Eigen)\n",errmineigE_aniso,erravgeigE_aniso,errmaxeigE_aniso);
+      errseicD[ndim-2][0] += erreicD.avg();
+      errseicL[ndim-2][0] += erreicL.avg();
+      errseicE[ndim-2][0] += erreicE.avg();
 
-      BOOST_TEST(errmaxmet_aniso <= tol);
-      BOOST_TEST(errmaxeig_aniso <= tol);
+      errseigD[ndim-2][1] += erreigD.max();
+      errseigL[ndim-2][1] += erreigL.max();
+      errseigE[ndim-2][1] += erreigE.max();
 
-      BOOST_TEST(errmaxmetL_aniso <= tol);
-      BOOST_TEST(errmaxeigL_aniso <= tol);
+      errseicD[ndim-2][1] += erreicD.max();
+      errseicL[ndim-2][1] += erreicL.max();
+      errseicE[ndim-2][1] += erreicE.max();
 
-      BOOST_TEST(errmaxmetE_aniso <= tol);
-      BOOST_TEST(errmaxeigE_aniso <= tol);
+      printf("   - metric error min = %e avg = %e max = %e (DSYEV)\n",errmetD.min(),errmetD.avg(),errmetD.max());
+      printf("   - eigvec error min = %e avg = %e max = %e (DSYEV)\n",erreigD.min(),erreigD.avg(),erreigD.max());
+      printf("   - eigrel error min = %e avg = %e max = %e (DSYEV)\n",erreicD.min(),erreicD.avg(),erreicD.max());
+
+      printf("   - metric error min = %e avg = %e max = %e (LAPACK)\n",errmetL.min(),errmetL.avg(),errmetL.max());
+      printf("   - eigvec error min = %e avg = %e max = %e (LAPACK)\n",erreigL.min(),erreigL.avg(),erreigL.max());
+      printf("   - eigrel error min = %e avg = %e max = %e (LAPACK)\n",erreicL.min(),erreicL.avg(),erreicL.max());
+
+      printf("   - metric error min = %e avg = %e max = %e (Eigen)\n",errmetE.min(),errmetE.avg(),errmetE.max());
+      printf("   - eigvec error min = %e avg = %e max = %e (Eigen)\n",erreigE.min(),erreigE.avg(),erreigE.max());
+      printf("   - eigrel error min = %e avg = %e max = %e (Eigen)\n",erreicE.min(),erreicE.avg(),erreicE.max());
+
+      BOOST_TEST(errmetD <= tol);
+      BOOST_TEST(erreigD <= tol);
+
+      BOOST_TEST(errmetL <= tol);
+      BOOST_TEST(erreigL <= tol);
+
+      BOOST_TEST(errmetE <= tol);
+      BOOST_TEST(erreigE <= tol);
 
 
 
@@ -310,6 +353,9 @@ BOOST_AUTO_TEST_CASE(test_eval3)
                   t1_EIGEN2-t0_EIGEN2,(int)(nerro_aniso/(t1_EIGEN2-t0_EIGEN2)),
                   (t1_EIGEN2-t0_EIGEN2)/(t1_DSYEVQ-t0_DSYEVQ));
 
+      benchD[ndim-2] += nerro_aniso/(t1_DSYEVQ - t0_DSYEVQ);
+      benchL[ndim-2] += nerro_aniso/(t1_LAPACK - t0_LAPACK);
+      benchE[ndim-2] += nerro_aniso/(t1_EIGEN  - t0_EIGEN );
 
       #endif
 
@@ -320,6 +366,97 @@ BOOST_AUTO_TEST_CASE(test_eval3)
 
     printf("-- All tests done for ndim = %d \n",ndim);
   }CT_FOR1(ndim);
+
+
+  std::ofstream fil;
+  std::string fname = "test_eigen.py";
+  fil.open(fname.c_str(), std::ios::out);
+  fil << "import matplotlib.pyplot as plt\n\n";
+  fil << anisos.str() << "\n\n";
+  int ifig = 0;
+  for(int ndim = 0; ndim < 2; ndim++){
+    for(int iar = 0; iar < 2; iar++){
+
+      std::string errtype = iar == 0 ? "avg" : "max";
+
+      errseigD[ndim][iar].finish();
+      errseigL[ndim][iar].finish();
+      errseigE[ndim][iar].finish();
+      fil << errseigD[ndim][iar].str() << "\n";
+      fil << errseigL[ndim][iar].str() << "\n";
+      fil << errseigE[ndim][iar].str() << "\n";
+      fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
+      fil << "plt.loglog(aniso," << errseigD[ndim][iar].name()<<",label='DSYEVQ')\n";
+      fil << "plt.loglog(aniso," << errseigL[ndim][iar].name()<<",label='LAPACK')\n";
+      fil << "plt.loglog(aniso," << errseigE[ndim][iar].name()<<",label='Eigen')\n";
+      fil << "plt.title('Eigenvalue vector relative error (" << errtype << "), dim "
+          << std::to_string(ndim+2)<< "')\n";
+      fil << "plt.xlabel('anisotropic ratio')\n";
+      fil << "plt.ylabel('relative error')\n";
+      fil << "plt.legend()\n";
+      fil << "plt.grid(True)\n";
+      fil << "plt.savefig('errseig_eigen_"<<errtype<<std::to_string(ndim+2)<<".png')\n";
+      fil << "\n\n";
+
+
+      errseicD[ndim][iar].finish();
+      errseicL[ndim][iar].finish();
+      errseicE[ndim][iar].finish();
+      fil << errseicD[ndim][iar].str() << "\n";
+      fil << errseicL[ndim][iar].str() << "\n";
+      fil << errseicE[ndim][iar].str() << "\n";
+      fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
+      fil << "plt.loglog(aniso," << errseicD[ndim][iar].name()<<",label='DSYEVQ')\n";
+      fil << "plt.loglog(aniso," << errseicL[ndim][iar].name()<<",label='LAPACK')\n";
+      fil << "plt.loglog(aniso," << errseicE[ndim][iar].name()<<",label='Eigen')\n";
+      fil << "plt.title('Eigenvalue coordinate-wise relative error (" << errtype << "), dim "
+          << std::to_string(ndim+2)<< "')\n";
+      fil << "plt.xlabel('anisotropic ratio')\n";
+      fil << "plt.ylabel('relative error')\n";
+      fil << "plt.legend()\n";
+      fil << "plt.grid(True, which = 'both', linestyle='--')\n";
+      fil << "plt.savefig('errseic_eigen_"<<errtype<<std::to_string(ndim+2)<<".png')\n";
+      fil << "\n\n";
+    }
+  }
+  fil << "plt.show()\n";
+  fil.close();
+
+  fname = "bench_eigen.py";
+  fil.open(fname.c_str(), std::ios::out);
+  fil << "import matplotlib.pyplot as plt\n";
+  fil << "import numpy as np\n";
+  fil << "\n";
+
+  fil << anisos.str() << "\n\n";
+  ifig = 0;
+  for(int ndim = 0; ndim < 2; ndim++){
+
+    benchD[ndim].finish();
+    benchL[ndim].finish();
+    benchE[ndim].finish();
+    fil << benchD[ndim].str() << "\n";
+    fil << benchL[ndim].str() << "\n";
+    fil << benchE[ndim].str() << "\n";
+    fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
+    fil << "plt.semilogx(aniso,np.array(" << benchD[ndim].name()<<")"
+        << "/np.array(" << benchL[ndim].name() << ")" <<",label='DSYEVQ')\n";
+    fil << "plt.semilogx(aniso,np.array(" << benchE[ndim].name()<<")"
+        << "/np.array(" << benchL[ndim].name() << ")" <<",label='Eigen')\n";
+    //fil << "plt.semilogx(aniso," << benchD[ndim].name()<<",label='DSYEVQ')\n";
+    //fil << "plt.semilogx(aniso," << benchL[ndim].name()<<",label='LAPACK')\n";
+    //fil << "plt.semilogx(aniso," << benchE[ndim].name()<<",label='Eigen')\n";
+    fil << "plt.title('Benchmark dim "<< std::to_string(ndim+2)<< "')\n";
+    fil << "plt.xlabel('anisotropic ratio')\n";
+    fil << "plt.ylabel('op/s divided by LAPACKs')\n";
+    fil << "plt.legend()\n";
+    fil << "plt.grid(True)\n";
+    fil << "plt.savefig('bench_eigen_"<<std::to_string(ndim+2)<<".png')\n";
+    fil << "\n\n";
+  }
+  fil << "plt.show()\n";
+  fil.close();
+
 
 }
 

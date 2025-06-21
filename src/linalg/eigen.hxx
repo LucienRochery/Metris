@@ -18,6 +18,7 @@ void geteigsym_LAPACK(const double* met,int nwork,double* rwork,double* eigval,d
 
 
 // This function can take SANS::SurrealS as input.
+// Returns UNSORTED eigenvalues, call sorteig if needed
 template<int ndim, typename T>
 void geteigsym(const T* __restrict__ met,T* __restrict__ eigval,T* __restrict__ eigvec);
 
@@ -26,6 +27,37 @@ void geteigsym(const T* __restrict__ met,T* __restrict__ eigval,T* __restrict__ 
 //	geteigsym<3,double>(met,eigval,eigvec);
 //}
 
+template<int ndim, typename T>
+void sorteig(T* __restrict__ eigval,T* __restrict__ eigvec){
+
+  static_assert(ndim == 2 || ndim == 3);
+
+  if constexpr(ndim == 3){
+   
+    if(eigval[1] > eigval[2]){
+      swi(eigval[1],eigval[2]);
+      for(int ii = 0; ii < ndim; ii++) swi(eigvec[ndim*1 + ii], eigvec[ndim*2 + ii]);
+    }
+    
+    if(eigval[0] > eigval[2]){
+      swi(eigval[0],eigval[2]);
+      for(int ii = 0; ii < ndim; ii++) swi(eigvec[ndim*0 + ii], eigvec[ndim*2 + ii]);
+    }
+    
+    if(eigval[0] > eigval[1]){
+      swi(eigval[0],eigval[1]);
+      for(int ii = 0; ii < ndim; ii++) swi(eigvec[ndim*0 + ii], eigvec[ndim*1 + ii]);
+    }
+
+  }else if(ndim == 2){
+
+    if(eigval[0] > eigval[1]){
+      swi(eigval[0],eigval[1]);
+      for(int ii = 0; ii < ndim; ii++) swi(eigvec[ndim*0 + ii], eigvec[ndim*1 + ii]);
+    }
+
+  }
+}
 
 
 // -----------------------------------------------------------------------------

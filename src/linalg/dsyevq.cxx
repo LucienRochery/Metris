@@ -38,7 +38,7 @@ namespace Metris{
 
 // ----------------------------------------------------------------------------
 template<int ndim, typename T>
-int dsyevq(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  w)
+int dsyevq(const T* __restrict__ mat, T* __restrict__ eigvec, T* __restrict__  eigval)
 // ----------------------------------------------------------------------------
 // Calculates the eigenvalues and normalized eigenvectors of a symmetric 3x3
 // matrix A using the QL algorithm with implicit shifts, preceded by a
@@ -65,7 +65,7 @@ int dsyevq(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  w)
   int m;
 
   // Transform A to real tridiagonal form by the Householder method
-  dsytrd<T,ndim>(A, Q, w, e);
+  dsytrd<T,ndim>(mat, eigvec, eigval, e);
   
   // Calculate eigensystem of the remaining real symmetric tridiagonal matrix
   // with the QL method
@@ -80,7 +80,7 @@ int dsyevq(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  w)
       // element e(l) is zero
       for (m=l; m <= ndim-2; m++)
       {
-        g = abs(w[m])+abs(w[m+1]);
+        g = abs(eigval[m])+abs(eigval[m+1]);
         if (abs(e[m]) + g == g)
           break;
       }
@@ -91,12 +91,12 @@ int dsyevq(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  w)
         return -1;
 
       // Calculate g = d_m - k
-      g = (w[l+1] - w[l]) / (e[l] + e[l]);
+      g = (eigval[l+1] - eigval[l]) / (e[l] + e[l]);
       r = sqrt(SQR(g) + 1.0);
       if (g > 0)
-        g = w[m] - w[l] + e[l]/(g + r);
+        g = eigval[m] - eigval[l] + e[l]/(g + r);
       else
-        g = w[m] - w[l] + e[l]/(g - r);
+        g = eigval[m] - eigval[l] + e[l]/(g - r);
 
       s = c = 1.0;
       p = 0.0;
@@ -119,21 +119,21 @@ int dsyevq(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  w)
           s     *= (c = 1.0/r);
         }
         
-        g = w[i+1] - p;
-        r = (w[i] - g)*s + 2.0*c*b;
+        g = eigval[i+1] - p;
+        r = (eigval[i] - g)*s + 2.0*c*b;
         p = s * r;
-        w[i+1] = g + p;
+        eigval[i+1] = g + p;
         g = c*r - b;
 
         // Form eigenvectors
         for (int k=0; k < ndim; k++)
         {
-          t = Q[ndim*(i+1) + k];
-          Q[ndim*(i+1) + k] = s*Q[ndim*i + k] + c*t;
-          Q[ndim*i     + k] = c*Q[ndim*i + k] - s*t;
+          t = eigvec[ndim*(i+1) + k];
+          eigvec[ndim*(i+1) + k] = s*eigvec[ndim*i + k] + c*t;
+          eigvec[ndim*i     + k] = c*eigvec[ndim*i + k] - s*t;
         }
       }
-      w[l] -= p;
+      eigval[l] -= p;
       e[l]  = g;
       e[m]  = 0.0;
     }
@@ -142,45 +142,48 @@ int dsyevq(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  w)
 
   //int idx[3];
 
+  #if 0
+  int idx[ndim];
   if constexpr(ndim == 3){
-    if(w[0] < w[1] && w[0] < w[2]){// 0 ..
-      if(w[1] < w[2]){ // 0 1 2 already sorted
+    if(eigval[0] < eigval[1] && eigval[0] < eigval[2]){// 0 ..
+      if(eigval[1] < eigval[2]){ // 0 1 2 already sorted
         return 0;
       }else{ // 0 2 1 
-        swi(w[1],w[2]);
-        for(int i = 0; i < ndim; i++) swi(Q[ndim*1+i], Q[ndim*2+i]);
+        swi(eigval[1],eigval[2]);
+        for(int i = 0; i < ndim; i++) swi(eigvec[ndim*1+i], eigvec[ndim*2+i]);
       }
     }else{ // ...
-      if(w[1] < w[0] && w[1] < w[2]){  // 1 ..
-        if(w[0] < w[2]){ // 1 0 2
-          swi(w[1],w[0]);
-          for(int i = 0; i < ndim; i++) swi(Q[ndim*1+i], Q[ndim*0+i]);
+      if(eigval[1] < eigval[0] && eigval[1] < eigval[2]){  // 1 ..
+        if(eigval[0] < eigval[2]){ // 1 0 2
+          swi(eigval[1],eigval[0]);
+          for(int i = 0; i < ndim; i++) swi(eigvec[ndim*1+i], eigvec[ndim*0+i]);
         }else{ // 1 2 0 
-          swi(w[0],w[2]);
-          for(int i = 0; i < ndim; i++) swi(Q[ndim*2+i], Q[ndim*0+i]);
+          swi(eigval[0],eigval[2]);
+          for(int i = 0; i < ndim; i++) swi(eigvec[ndim*2+i], eigvec[ndim*0+i]);
 
-          swi(w[0],w[1]);
-          for(int i = 0; i < ndim; i++) swi(Q[ndim*0+i], Q[ndim*1+i]);
+          swi(eigval[0],eigval[1]);
+          for(int i = 0; i < ndim; i++) swi(eigvec[ndim*0+i], eigvec[ndim*1+i]);
         }
       }else{// 2 ..
-        if(w[0] < w[1]){ // 2 0 1
-          swi(w[2],w[0]);
-          for(int i = 0; i < ndim; i++) swi(Q[ndim*2+i], Q[ndim*0+i]);
+        if(eigval[0] < eigval[1]){ // 2 0 1
+          swi(eigval[2],eigval[0]);
+          for(int i = 0; i < ndim; i++) swi(eigvec[ndim*2+i], eigvec[ndim*0+i]);
 
-          swi(w[2],w[1]);
-          for(int i = 0; i < ndim; i++) swi(Q[ndim*2+i], Q[ndim*1+i]);
+          swi(eigval[2],eigval[1]);
+          for(int i = 0; i < ndim; i++) swi(eigvec[ndim*2+i], eigvec[ndim*1+i]);
         }else{ // 2 1 0
-          swi(w[2],w[0]);
-          for(int i = 0; i < ndim; i++) swi(Q[ndim*2+i], Q[ndim*0+i]);
+          swi(eigval[2],eigval[0]);
+          for(int i = 0; i < ndim; i++) swi(eigvec[ndim*2+i], eigvec[ndim*0+i]);
         }
       }
     }
   }else{
-    if(w[1] < w[0]){
-      swi(w[1],w[0]);
-      for(int i = 0; i < ndim; i++) swi(Q[ndim*1+i], Q[ndim*0+i]);
+    if(eigval[1] < eigval[0]){
+      swi(eigval[1],eigval[0]);
+      for(int i = 0; i < ndim; i++) swi(eigvec[ndim*1+i], eigvec[ndim*0+i]);
     }
   }
+  #endif
 
   return 0;
 }

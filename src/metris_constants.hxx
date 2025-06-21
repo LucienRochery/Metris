@@ -14,6 +14,7 @@
 #include <boost/hana/pair.hpp>
 #include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
 #include "metris_defaults.hxx"
+#include "types_scalar.hxx"
 namespace hana = boost::hana;
 
 // Maximum while loop counter for non-manifold structures and other linked lists.
@@ -43,10 +44,6 @@ namespace hana = boost::hana;
 
 
 #ifdef USE_MULTIPRECISION
-  #include <boost/multiprecision/cpp_bin_float.hpp>
-  typedef  boost::multiprecision::cpp_bin_float_oct  float8;
-  typedef  boost::multiprecision::cpp_bin_float_quad float4;
-
   #define QUA_FTYPE_SEQ (double)(float4)(float8)
 #else
   #define QUA_FTYPE_SEQ (double)
@@ -203,8 +200,8 @@ namespace Constants{
 
 
   static double r8invtJ_0[4][3*3] = {
-    {0},
-    {1},
+    {0.0},
+    {1.0},
     {1,0,-0.577350269189626,1.154700538379252},
     { -0.57735026918962562,-0.57735026918962562 , 0                 ,
       1                   ,-1                   , 0                 ,
@@ -213,19 +210,19 @@ namespace Constants{
 
   #ifdef USE_MULTIPRECISION
     static float4 r16invtJ_0[4][3*3] = {
-      {0},
-      {1},
+      {0.0},
+      {1.0},
       {1,0,-0.577350269189626,1.154700538379252},
-      { -0.57735026918962562,-0.57735026918962562 , 0                 ,
-        1                   ,-1                   , 0                 ,
+      { -0.57735026918962562,-0.57735026918962562 , 0.0                 ,
+        1.0                   ,-1.0                   , 0.0                 ,
         -0.40824829046386302,-0.4082482904638630  , 1.2247448713915889}
     };
     static float8 r32invtJ_0[4][3*3] = {
-      {0},
-      {1},
-      {1,0,-0.577350269189626,1.154700538379252},
-      { -0.57735026918962562,-0.57735026918962562 , 0                 ,
-        1                   ,-1                   , 0                 ,
+      {0.0},
+      {1.0},
+      {1.0,0,-0.577350269189626,1.154700538379252},
+      { -0.57735026918962562,-0.57735026918962562 , 0.0                 ,
+        1.0                   ,-1.0                   , 0.0                 ,
         -0.40824829046386302,-0.4082482904638630  , 1.2247448713915889}
     };
   #endif
