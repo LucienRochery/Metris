@@ -25,24 +25,26 @@ if(USE_GMP)
 endif()
 
 if(USE_MULTIPRECISION)
-  find_package(Boost COMPONENTS multiprecision)
-  if(NOT(Boost_multiprecision_FOUND))
-    message(WARNING "find_package(Boost COMPONENTS multiprecision) failed, cloning")
-    FetchContent_Declare(
-      fetch_multiprecision
-      GIT_REPOSITORY https://github.com/boostorg/multiprecision.git
-      GIT_TAG master   
-      EXCLUDE_FROM_ALL
-    )
-    list(APPEND METRIS_DEPS_LIBRARIES Boost::multiprecision)
-    FetchContent_MakeAvailable(fetch_multiprecision)
+  find_package(Boost COMPONENTS headers)
+  if(NOT(Boost_headers_FOUND))
+    message(FATAL_ERROR "Boost headers not found: either clone all Boost libs here or install system wide")
+    #message(WARNING "find_package(Boost COMPONENTS multiprecision) failed, cloning")
+    #FetchContent_Declare(
+    #  fetch_multiprecision
+    #  GIT_REPOSITORY https://github.com/boostorg/multiprecision.git
+    #  GIT_TAG master   
+    #  EXCLUDE_FROM_ALL
+    #)
+    #list(APPEND METRIS_DEPS_LIBRARIES Boost::multiprecision)
+    #FetchContent_MakeAvailable(fetch_multiprecision)
   endif()
-  list(APPEND METRIS_DEPS_LIBRARIES ${Boost_MULTIPRECISION_LIBRARY})
-  message("-- Boost_LIBRARIES = ${Boost_LIBRARIES}")
-  message("-- Boost_MULTIPRECISION_LIBRARY = ${Boost_MULTIPRECISION_LIBRARY}")
-  message("-- Boost_MULTIPRECISION_LIBRARIES = ${Boost_MULTIPRECISION_LIBRARIES}")
+  #list(APPEND METRIS_DEPS_LIBRARIES ${Boost_MULTIPRECISION_LIBRARY})
+  #message("-- Boost_LIBRARIES = ${Boost_LIBRARIES}")
+  #message("-- Boost_MULTIPRECISION_LIBRARY = ${Boost_MULTIPRECISION_LIBRARY}")
+  #message("-- Boost_MULTIPRECISION_LIBRARIES = ${Boost_MULTIPRECISION_LIBRARIES}")
 endif()
- 
+
+
 if(REQ_CODEGEN)
   if(NOT DEFINED ENV{GINAC_DIR} AND NOT (DEFINED GINAC_LIBRARIES AND DEFINED GINAC_INCLUDE_DIRS))
     message(FATAL_ERROR "Set environment variable GINAC_DIR to directory containing lib/libginac and include/ginac/ginac.h")
