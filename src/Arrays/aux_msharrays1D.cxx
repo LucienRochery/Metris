@@ -251,7 +251,11 @@ T MeshArray1D<T,INT1>::pop(){
 
 
 #include "../utils/aux_pp_inc.hxx"
-#define T_SEQ (bool)(ego)(int)(double)(float4)(float8)(SurrealS2)(SurrealS3)
+#ifdef USE_MULTIPRECISION
+  #define T_SEQ (bool)(ego)(int)(double)(float4)(float8)(SurrealS2)(SurrealS3)
+#else
+  #define T_SEQ (bool)(ego)(int)(double)(SurrealS2)(SurrealS3)
+#endif
 #define INT1_SEQ (int32_t)(int64_t)
 #define INSTANTIATE(T,INT1) template class MeshArray1D<T,INT1>;
 #define EXPAND_TUP(r,SEQ) INSTANTIATE(BOOST_PP_SEQ_ELEM(0, SEQ),BOOST_PP_SEQ_ELEM(1, SEQ))
