@@ -8,6 +8,8 @@
 
 #include "../src/types_arrays.hxx"
 
+#include <random>
+
 namespace Metris{
 static void genBary(int nsamp, int tdim, dblAr2 &bary){
   bary.allocate(nsamp, tdim+1);

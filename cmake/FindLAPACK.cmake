@@ -33,7 +33,9 @@ elseif(DEFINED ENV{LAPACK_DIR} OR DEFINED LAPACK_DIR)
 
 
   set(LAPACK_INCLUDE_DIRS "${LAPACK_DIR}/include/")
-  set(LAPACK_LIBRARIES "${LAPACK_DIR}/lib/")
+  find_library(LAPACK_LIBRARIES NAMES lapack 
+               HINTS ${LAPACK_DIR}
+               PATH_SUFFIXES lib)
 
   if(NOT EXISTS ${LAPACK_INCLUDE_DIRS} OR NOT EXISTS ${LAPACK_INCLUDE_DIRS}/lapacke.h)
     message(FATAL_ERROR "LAPACK_INCLUDE_DIRS = ${LAPACK_INCLUDE_DIRS} does not exist or does not contain lapacke.h")

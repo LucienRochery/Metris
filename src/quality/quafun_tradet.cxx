@@ -21,7 +21,7 @@ namespace Metris{
 
 // For some special barys (nodes), met is already known -> pass it in
 template <class MFT, int gdim, int tdim, typename ftype>
-void quafun_tradet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
+void quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                    const int*__restrict__ ent2pol,  
                    const double*__restrict__ bary,
                    const double*__restrict__ met_,

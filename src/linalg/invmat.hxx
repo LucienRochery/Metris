@@ -8,27 +8,35 @@
 
 
 namespace Metris{
-/*
-	LAPACK WRAPPERS & AUX
-*/
 // -----------------------------------------------------------------------------
 // met must be positive definite. Otherwise use inv3sym. 
-int invspd(int n, double met[]);
+template<int ndim, typename T>
+int invspd(T* met);
 
-// 
-template <int n>
-int invsym(double* met);
-
-template<typename T>
-int inv3sym(T *met, T *inv);
-
-// Matrix stored line first in C fashion
-int invmat(int n, double mat[]);
-
-// Ad-hoc one (dims 2 and 3)
 template<int n>
 int invmat(double mat[]);
 
+
+
+// ----------------------------------------------------------------------- AUX
+// inp and out can be the same
+template<int ndim, typename T>
+int invspd_Eigen(T *inp, T *out);
+#ifdef USE_LAPACK
+  int invspd_LAPACK(int n, double met[]);
+#endif
+
+
+// Ad-hoc one (dims 2 and 3)
+template<int n>
+int invmat_naive(double mat[]);
+#ifdef USE_LAPACK
+  int invmat_LAPACK(int n, double *mat);
+#endif
+template<int ndim, typename T>
+int invmat_EigenLUPP(T* mat, T* inv);
+template<int ndim, typename T>
+int invmat_EigenLUFP(T* mat, T* inv);
 
 } // End namespace
 

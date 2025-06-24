@@ -22,11 +22,16 @@ void geteigsym_LAPACK(const double* met,int nwork,double* rwork,double* eigval,d
 template<int ndim, typename T>
 void geteigsym(const T* __restrict__ met,T* __restrict__ eigval,T* __restrict__ eigvec);
 
+// This function can take SANS::SurrealS as input.
+template<int ndim, typename T>
+int geteigsym_Eigen(const T* __restrict__ met,T* __restrict__ eigval,T* __restrict__ eigvec);
+
 
 //inline void geteigsym(const double* __restrict__ met,double* __restrict__ eigval,double* __restrict__ eigvec){
 //	geteigsym<3,double>(met,eigval,eigvec);
 //}
 
+// Sort ascending
 template<int ndim, typename T>
 void sorteig(T* __restrict__ eigval,T* __restrict__ eigvec){
 

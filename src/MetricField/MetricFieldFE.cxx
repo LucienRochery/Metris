@@ -468,7 +468,7 @@ void MetricFieldFE::getMetBary0( DifVar idiff,  MetSpace tarspac,
 
     // Get dM / dX at X (coop)
     // 1. Invert dF_K/dxi
-    METRIS_ENFORCE(!invmat(gdim,jmat3[0]));
+    METRIS_ENFORCE(!invmat<gdim>(jmat3[0]));
     // 2. Get dM/dxi (dF_K/dxi)^{-1}
     int kk = 0;
     for(int ii = 0; ii < gdim; ii++){

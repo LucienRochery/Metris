@@ -413,7 +413,7 @@ int getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis ib
 
     met[2] = 4*(jmat[2*0+1]*jmat[2*0+1] + jmat[2*1+1]*jmat[2*1+1])/3
            - 4* jmat[2*0+1]*jmat[2*1+1]/3;
-    ierro = invspd(gdim,met);
+    ierro = invspd<gdim>(met);
   }else if(gdim == 3 && tdim == 3){
     met[0] = 3*(jmat[3*0+0]*jmat[3*0+0] + jmat[3*1+0]*jmat[3*1+0] + jmat[3*2+0]*jmat[3*2+0])/2
            -    jmat[3*0+0]*jmat[3*1+0]
@@ -444,7 +444,7 @@ int getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis ib
            -    jmat[3*0+2]*jmat[3*1+2]
            -    jmat[3*0+2]*jmat[3*2+2]
            -    jmat[3*1+2]*jmat[3*2+2];
-    ierro = invspd(gdim,met);
+    ierro = invspd<gdim>(met);
   }else if(gdim == 3 && tdim == 2){
     // This case is a mess! There must be a more elegant way but this seems to work. 
     // The columns of J are T1, T2 (stored transposed here, don't forget)

@@ -128,21 +128,21 @@ void optim_newton_drivertype(int nvar ,
       }
       gnorm = abs(rwork[2*nvar+3]);
     }else if(nvar == 2) {
-      invsym<2>(hess);
+      invspd<2>(hess);
       rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1]);
       rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1]);
       gnorm = MAX(abs(rwork[2*nvar+3]),
                   abs(rwork[2*nvar+4]));
     }else if(nvar == 3){
       if(isym > 0){
-        *ierro = invspd(3,hess);
+        *ierro = invspd<3>(hess);
         if(ierro != 0) goto flag999;
         rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1] + hess[3]*gcur[2]);
         rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1] + hess[4]*gcur[2]);
         rwork[2*nvar+5] = -(hess[3]*gcur[0] + hess[4]*gcur[1] + hess[5]*gcur[2]);
       }else{
         // Actually a Jacobian, so not symmetric 
-        *ierro = invmat(3,hess);
+        *ierro = invmat<3>(hess);
         if(ierro != 0) goto flag999;
         if(isym == 0){
           mat3vec(hess,gcur,&rwork[2*nvar+3]);
@@ -357,7 +357,7 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
       }
       gnorm = abs(args.rwork[2*nvar+3]);
     }else if(nvar == 2) {
-      ierro = invsym<2>(hess);
+      ierro = invspd<2>(hess);
       if(ierro != 0) goto flag999;
       args.rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1]);
       args.rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1]);
@@ -365,14 +365,14 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
                   abs(args.rwork[2*nvar+4]));
     }else if(nvar == 3){
       if(args.isym > 0){
-        ierro = invspd(3,hess);
+        ierro = invspd<3>(hess);
         if(ierro != 0) goto flag999;
         args.rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1] + hess[3]*gcur[2]);
         args.rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1] + hess[4]*gcur[2]);
         args.rwork[2*nvar+5] = -(hess[3]*gcur[0] + hess[4]*gcur[1] + hess[5]*gcur[2]);
       }else{
         // Actually a Jacobian, so not symmetric 
-        ierro = invmat(3,hess);
+        ierro = invmat<3>(hess);
         if(ierro != 0) goto flag999;
         if(args.isym == 0){
           mat3vec(hess,gcur,&args.rwork[2*nvar+3]);

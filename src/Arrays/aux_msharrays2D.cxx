@@ -264,6 +264,12 @@ template class MeshArray2D<double,int64_t,int32_t>;
 template class MeshArray2D<SANS::SurrealS<2,double>,int32_t,int32_t>;
 template class MeshArray2D<SANS::SurrealS<3,double>,int32_t,int32_t>;
 
+#ifdef USE_MULTIPRECISION
+template class MeshArray2D<float8,int32_t,int32_t>;
+template class MeshArray2D<float8,int64_t,int32_t>;
+template class MeshArray2D<float8,int32_t,int64_t>;
+template class MeshArray2D<float8,int64_t,int64_t>;
+#endif
 
 
 }// End namespace

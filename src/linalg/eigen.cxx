@@ -7,10 +7,11 @@
 #include "eigen.hxx"
 #include "dsyevq.hxx"
 #include "Metris_LAPACK.hxx"
+#include "symidx.hxx"
 
 #include "../aux_exceptions.hxx"
 #include "../SANS/Surreal/SurrealS.h"
-
+#include <Eigen/Dense>
 
 namespace Metris{
 
@@ -93,9 +94,39 @@ template void geteigsym<3,SANS::SurrealS<3,double>>(const SANS::SurrealS<3,doubl
                                                           SANS::SurrealS<3,double>* __restrict__ eigval,
                                                           SANS::SurrealS<3,double>* __restrict__ eigvec);
 
-//template<> void geteigsym<SANS::SurrealS<3,double>>(const SANS::SurrealS<3,double>* met, 
-//              int nwork, double* rwork, SANS::SurrealS<3,double>* eigval, SANS::SurrealS<3,double>* eigvec);
 
+// This function can take SANS::SurrealS as input.
+template<int ndim, typename T>
+int geteigsym_Eigen(const T* __restrict__ met,T* __restrict__ eigval,T* __restrict__ eigvec){
+  typedef Eigen::Matrix<T,ndim,ndim> MatrixN;
+  typedef Eigen::Vector<T,ndim> VectorN;
+
+  MatrixN met_Eigen;
+  // SelfAdjointEigenSolver uses the lower triangular part of the matrix
+  // Note Eigen stores column-major
+  for(int jj = 0; jj < ndim; jj++) 
+    for(int ii = jj; ii < ndim; ii++) 
+      met_Eigen(ii, jj) = met[sym2idx(ii,jj)];
+
+  Eigen::SelfAdjointEigenSolver<MatrixN> solver(met_Eigen);
+  if(solver.info() != Eigen::Success) return 1;
+  VectorN eigenvalues  = solver.eigenvalues();
+  MatrixN eigenvectors = solver.eigenvectors();
+
+  for(int ii = 0; ii < ndim; ii++) eigval[ii] = eigenvalues[ii];
+  for(int jj = 0; jj < ndim; jj++) 
+    for(int ii = 0; ii < ndim; ii++) 
+      eigvec[ndim*jj + ii] = eigenvectors(ii,jj);
+
+  return 0;
+}
+
+template int  geteigsym_Eigen<2,double>(const double* __restrict__ met,
+                                        double* __restrict__ eigval,
+                                        double* __restrict__ eigvec);
+template int  geteigsym_Eigen<3,double>(const double* __restrict__ met,
+                                        double* __restrict__ eigval,
+                                        double* __restrict__ eigvec);
 
 
 } // End namespace

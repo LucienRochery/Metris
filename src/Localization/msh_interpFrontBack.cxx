@@ -142,7 +142,10 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
   if(ipoi0 > 0){
     lpfro.allocate(ipoi0);
     lpfro.set_n(0);
-    for(int ipoin = 0; ipoin < ipoi0; ipoin++) lpfro.stack(ipoin);
+    for(int ipoin = 0; ipoin < ipoi0; ipoin++){
+      if(msh.poi2ent(ipoin,0) < 0) continue;
+      lpfro.stack(ipoin);
+    }
   }else{
     lpfro.allocate(lcorf.get_n());
     lcorf.copyTo(lpfro);
@@ -205,12 +208,17 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
       int iver = msh.getverent(ientt,tdime,ipseed);
       int iedl = -1;
       ierro = 0;
+      lentt[0].set_n(0);
+      lentt[1].set_n(0);
+      lentt[2].set_n(0);
       if(iver < tdime+1){
         ierro = ball(msh, ipseed, lentt[0], lentt[1], lentt[2], &iopen, ithread);
       }else{
         bool doshell = false;
         if(msh.curdeg <= 2){
           METRIS_ASSERT(msh.curdeg == 2);
+          int nppe = getnnod1(msh.curdeg) - 2;
+          iedl = (iver - (tdime + 1)) / nppe;
           doshell = true;
         }else{
 
@@ -226,6 +234,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
           lentt[tdime-1].stack(ientt);
         }
         if(doshell){
+          METRIS_ASSERT(iedl >= 0);
           const int* lnoed = tdime == 1 ? lnoed1[0] :
                              tdime == 2 ? lnoed2[iedl] : lnoed3[iedl];
           int ipsed1 = msh.ent2poi(tdime)(ientt, lnoed[0]);
@@ -245,6 +254,12 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
         for(int ientt : lentt[tdim-1]){
           INCVDEPTH(msh.param);
           CPRINTF1(" - ball dim %d entity %d check for new points\n",tdim,ientt);
+          METRIS_ASSERT_MSG(ientt >= 0 && ientt < msh.nentt(tdim),
+            "front point "<<ipseed
+            <<"\nseed edg "<<lentt[0]
+            <<"\nseed fac "<<lentt[1]
+            <<"\nseed tet "<<lentt[2] << "\n"
+            <<"Error at tdim "<<tdim<<" ientt = "<<ientt);
           int nnode = getnnode(tdim,msh.curdeg);
 
           for(int inode = 0; inode < nnode; inode++){

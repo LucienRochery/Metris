@@ -201,6 +201,7 @@ set(SRC_SOURCES
     #${PROJECT_SOURCE_DIR}/src/quality/opt_metqua_3D.cxx
     #${PROJECT_SOURCE_DIR}/src/quality/opt_metqua_costfunc.cxx
     #${PROJECT_SOURCE_DIR}/src/quality/opt_metqua_tests.cxx
+    ${PROJECT_SOURCE_DIR}/src/linalg/det.cxx
     ${PROJECT_SOURCE_DIR}/src/linalg/dsyevq.cxx
     ${PROJECT_SOURCE_DIR}/src/linalg/dsytrd.cxx
     ${PROJECT_SOURCE_DIR}/src/linalg/eigen.cxx

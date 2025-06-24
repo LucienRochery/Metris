@@ -222,10 +222,10 @@ inline void symXvec(const double*__restrict__ met,
 		}
 	}
 }
-template <int ndimn>
-inline void matXvec(const double*__restrict__ mat,
-                    const double*__restrict__ ve1,
-                          double*__restrict__ ve2){
+template <int ndimn, typename T>
+inline void matXvec(const T*__restrict__ mat,
+                    const T*__restrict__ ve1,
+                          T*__restrict__ ve2){
   for(int ii = 0; ii < ndimn; ii++){
     ve2[ii] = mat[ndimn*ii+0]*ve1[0];
     for(int jj = 1; jj < ndimn; jj++){

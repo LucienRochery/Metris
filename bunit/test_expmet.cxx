@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(test_expmet)
             getlogmet_inp<ndim,double>(met2);
             for(int ii = 0; ii < ndim; ii++) eigva2[ii] = log(eigval[ii]);
           }else{
-            getexpmet_inp<ndim,double>(met2);
+            getexpmet_dsyevq<ndim,double>(met2);
             for(int ii = 0; ii < ndim; ii++) eigva2[ii] = exp(eigval[ii]);
           }
           eig2met<ndim,double>(eigva2,eigvec[0],met3);
@@ -150,23 +150,26 @@ BOOST_AUTO_TEST_CASE(test_expmet)
 
 
           // --- Eigen using log() / exp()
-          for(int ii = 0; ii < ndim; ii++) 
-            for(int jj = 0; jj < ndim; jj++) 
+          for(int jj = 0; jj < ndim; jj++) 
+            for(int ii = 0; ii < ndim; ii++) 
               met_Eigen(ii, jj) = met[sym2idx(ii,jj)];
 
           if(metspac == MetSpace::Exp){
-            met_Eigen.log().evalTo(met2_Eigen);
+            met_Eigen.log().evalTo(met_Eigen);
           }else{
-            met_Eigen.exp().evalTo(met2_Eigen); 
+            met_Eigen.exp().evalTo(met_Eigen); 
           }
 
           for(int ii = 0; ii < ndim; ii++) 
             for(int jj = 0; jj < ndim; jj++) 
-              met2[sym2idx(ii,jj)] = met2_Eigen(ii, jj);
+              met2[sym2idx(ii,jj)] = met_Eigen(ii, jj);
           errE1 += sqrt(geterrl2<nnmet>(met2,met3) / getnrml2<nnmet>(met3));
 
 
           // --- Eigen using eigvals then log/exp eigvals
+          for(int jj = 0; jj < ndim; jj++) 
+            for(int ii = 0; ii < ndim; ii++) 
+              met_Eigen(ii, jj) = met[sym2idx(ii,jj)];
           Eigen::SelfAdjointEigenSolver<MatrixN> solver(met_Eigen);
 
           VectorN eigenvalues  = solver.eigenvalues();

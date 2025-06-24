@@ -22,7 +22,6 @@
 [[maybe_unused]] const int iverb__ = param_obj->iverb;\
 [[maybe_unused]] const int ivdepth__ = param_obj->ivdepth;
 
-//std::string spaces_string__ = dc__.getSpaces();\
 
 // ##__VA_ARGS__ deletes trailing comma if __VA_ARGS__ empty. C++20 has more 
 // elegant solutions but this should be most portable.

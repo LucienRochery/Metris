@@ -56,6 +56,7 @@ void snapMetSurf(MeshMetric<MetricFieldType> &msh,
     double maxerrmin = -1, minerrmin = 1;
 
     for(int ientt = 0; ientt < nentt; ientt++){
+      if(isdeadent(ientt, ent2poi)) continue;
       INCVDEPTH(msh.param);
       int iref = ent2ref[ientt];
 
@@ -134,19 +135,42 @@ void snapMetSurf(MeshMetric<MetricFieldType> &msh,
         }
 
 
-        double dtpr1 = gdim == 2 ? getprdl2<2>(&eigvec[gdim*ivec2], surfdir)
-                                 : getprdl2<3>(&eigvec[gdim*ivec2], surfdir);
-        double dtpr2 = gdim == 2 ? getprdl2<2>(&eigvec[gdim*ivec2], &eigvec[gdim*ivec1])
-                                 : getprdl2<3>(&eigvec[gdim*ivec2], &eigvec[gdim*ivec1]);
-        for(int ii = 0; ii < gdim; ii++) 
-          eigvec[gdim*ivec2 + ii] -= dtpr1*surfdir[ii]
-                                   + dtpr2*eigvec[gdim*ivec1 + ii];
-        ierro = gdim == 2 ? normalize_vec<2>(&eigvec[gdim*ivec2])
-                          : normalize_vec<3>(&eigvec[gdim*ivec2]);
-        METRIS_ASSERT(ierro == 0);
-        if(ierro != 0){
-          nerro++;
-          continue;
+        if(gdim == 3){
+          double dtpr1 = gdim == 2 ? getprdl2<2>(&eigvec[gdim*ivec2], surfdir)
+                                   : getprdl2<3>(&eigvec[gdim*ivec2], surfdir);
+          double dtpr2 = gdim == 2 ? getprdl2<2>(&eigvec[gdim*ivec2], &eigvec[gdim*ivec1])
+                                   : getprdl2<3>(&eigvec[gdim*ivec2], &eigvec[gdim*ivec1]);
+          #ifndef NDEBUG
+            double eigvec2_debug[gdim];
+          #endif
+          for(int ii = 0; ii < gdim; ii++){
+            #ifndef NDEBUG
+            eigvec2_debug[ii] = eigvec[gdim*ivec2 + ii];
+            #endif
+            eigvec[gdim*ivec2 + ii] -= dtpr1*surfdir[ii]
+                                     + dtpr2*eigvec[gdim*ivec1 + ii];
+          }
+          ierro = gdim == 2 ? normalize_vec<2>(&eigvec[gdim*ivec2])
+                            : normalize_vec<3>(&eigvec[gdim*ivec2]);
+          #ifndef NDEBUG
+            if(ierro != 0){
+              printf("## snapMetSurf error ivec2\n");
+              printf("eigvec1 : ");
+              dblAr1(gdim,&eigvec[gdim*ivec1]).print();
+              printf("eigvec2 : ");
+              dblAr1(gdim,&eigvec[gdim*ivec2]).print();
+              printf("eigvec2 ini: ");
+              dblAr1(gdim,eigvec2_debug).print();
+              printf("surfdir : ");
+              dblAr1(gdim,surfdir).print();
+              printf("dtpr1 %e dtpr2 %e",dtpr1,dtpr2);
+            }
+          #endif
+          METRIS_ASSERT(ierro == 0);
+          if(ierro != 0){
+            nerro++;
+            continue;
+          }
         }
 
         if(gdim == 2) eig2met<2>(eigval, eigvec, msh.met[ipoin]);

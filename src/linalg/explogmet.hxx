@@ -22,18 +22,25 @@ void getlogmet_inp(T *met);
 template <int ndim, typename T>
 void getexpmet_inp(T* met);
 
+template <int gdim, typename T>
+void getspacmet_inp(T* met, MetSpace tarspac){
+  if(tarspac == MetSpace::Log) getlogmet_inp<gdim,T>(met);
+  else                         getexpmet_inp<gdim,T>(met);
+}
 
 
 // -----------------------------------------------------------------------------
+// using eigendecomposition
+template <int ndim, typename T>
+void getexpmet_dsyevq(T* met);
+// inp can == out. using Eigen's .exp()
+template <int ndim, typename T>
+void getexpmet_Eigen(T* inp, T* out);
+
+
 template <int n>
 void getexpmet_cpy(const double* met ,double*  __restrict__ expm);
 
-
-template <int gdim, typename T>
-void getspacmet_inp(T* met, MetSpace tarspac){
-	if(tarspac == MetSpace::Log) getlogmet_inp<gdim,T>(met);
-	else                         getexpmet_inp<gdim,T>(met);
-}
 
 
 } // End namespace

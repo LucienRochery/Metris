@@ -28,15 +28,15 @@ In all cases, eigenvalues appear obtained to machine zero relative error.
 
 <div style="display: flex; justify-content: space-around; align-items: center;">
 
-  <img src="figures/errseig_eigen_avg2.png" width="45%" />
-  <img src="figures/errseig_eigen_max2.png" width="45%" />
+  <img src="figures/mac1/clang/errseig_eigen_avg2.png" width="45%" />
+  <img src="figures/mac1/clang/errseig_eigen_max2.png" width="45%" />
 
 </div>
 
 <div style="display: flex; justify-content: space-around; align-items: center;">
 
-  <img src="figures/errseig_eigen_avg3.png" width="45%" />
-  <img src="figures/errseig_eigen_max3.png" width="45%" />
+  <img src="figures/mac1/clang/errseig_eigen_avg3.png" width="45%" />
+  <img src="figures/mac1/clang/errseig_eigen_max3.png" width="45%" />
 
 </div>
 
@@ -51,15 +51,15 @@ These results indicate eigendecompositions should be avoided as much as possible
 
 <div style="display: flex; justify-content: space-around; align-items: center;">
 
-  <img src="figures/errseic_eigen_avg2.png" width="45%" />
-  <img src="figures/errseic_eigen_max2.png" width="45%" />
+  <img src="figures/mac1/clang/errseic_eigen_avg2.png" width="45%" />
+  <img src="figures/mac1/clang/errseic_eigen_max2.png" width="45%" />
 
 </div>
 
 <div style="display: flex; justify-content: space-around; align-items: center;">
 
-  <img src="figures/errseic_eigen_avg3.png" width="45%" />
-  <img src="figures/errseic_eigen_max3.png" width="45%" />
+  <img src="figures/mac1/clang/errseic_eigen_avg3.png" width="45%" />
+  <img src="figures/mac1/clang/errseic_eigen_max3.png" width="45%" />
 
 </div>
 
@@ -74,8 +74,8 @@ DSYEVQ remains an attractive alternative.
 
 <div style="display: flex; justify-content: space-around; align-items: center;">
 
-  <img src="figures/bench_eigen_2.png" width="45%" />
-  <img src="figures/bench_eigen_3.png" width="45%" />
+  <img src="figures/mac1/clang/bench_eigen_2.png" width="45%" />
+  <img src="figures/mac1/clang/bench_eigen_3.png" width="45%" />
 
 </div>
 
@@ -118,8 +118,8 @@ It is marginally more accurate to carry out eigendecomposition instead of scalin
 
 <div style="display: flex; justify-content: space-around; align-items: center;">
 
-  <img src="figures/errs_explogmet_exp2.png" width="45%" />
-  <img src="figures/errs_explogmet_exp3.png" width="45%" />
+  <img src="figures/mac1/clang/errs_explogmet_exp2.png" width="45%" />
+  <img src="figures/mac1/clang/errs_explogmet_exp3.png" width="45%" />
 
 </div>
 
@@ -132,8 +132,8 @@ Even at moderate anisotropy ratios (1000), the error reaches around 1e-10, which
 
 <div style="display: flex; justify-content: space-around; align-items: center;">
 
-  <img src="figures/errs_explogmet_log2.png" width="45%" />
-  <img src="figures/errs_explogmet_log3.png" width="45%" />
+  <img src="figures/mac1/clang/errs_explogmet_log2.png" width="45%" />
+  <img src="figures/mac1/clang/errs_explogmet_log3.png" width="45%" />
 
 </div>
 
@@ -153,8 +153,8 @@ About 24M op/s are carried out in 2D, and 4.5M/s in 3D (macbook pro M4 and clang
 
 <div style="display: flex; justify-content: space-around; align-items: center;">
 
-  <img src="figures/bench_explogmet_exp_2.png" width="45%" />
-  <img src="figures/bench_explogmet_exp_3.png" width="45%" />
+  <img src="figures/mac1/clang/bench_explogmet_exp_2.png" width="45%" />
+  <img src="figures/mac1/clang/bench_explogmet_exp_3.png" width="45%" />
 
 </div>
 
@@ -162,8 +162,8 @@ About 24M op/s are carried out in 2D, and 4.5M/s in 3D (macbook pro M4 and clang
 ### Matrix logarithm
 <div style="display: flex; justify-content: space-around; align-items: center;">
 
-  <img src="figures/bench_explogmet_log_2.png" width="45%" />
-  <img src="figures/bench_explogmet_log_3.png" width="45%" />
+  <img src="figures/mac1/clang/bench_explogmet_log_2.png" width="45%" />
+  <img src="figures/mac1/clang/bench_explogmet_log_3.png" width="45%" />
 
 </div>
 
@@ -198,8 +198,8 @@ These are completely unusable.
 
 <div style="display: flex; justify-content: space-around; align-items: center;">
 
-  <img src="figures/errs_det_2.png" width="45%" />
-  <img src="figures/errs_det_3.png" width="45%" />
+  <img src="figures/mac1/clang/errs_det_2.png" width="45%" />
+  <img src="figures/mac1/clang/errs_det_3.png" width="45%" />
 
 </div>
 
@@ -211,18 +211,19 @@ These are completely unusable.
 Possibly our most performance critical uses of the determinant is in computing element qualities (`quafun_tradet`). 
 To contextualize the results, this function was benchmarked (`bench_quafun_tradet`) after removing determinant calls. 
 The input meshes (hence the back, hence the metric) were 2D Q1 or Q2 and the front mesh was (when appropriate) elevated to degree 2. 
-In summary, the core of the quality computation can be carried out about **15M/s in 2D** regardless of degree, and **4M/s in 3D**.
+In summary, the core of the quality computation can be carried out about **17M/s in 2D** regardless of degree, and **4M/s in 3D** on the Mac machine, and resp. **11M/s in 2D**, **3.5M/s in 3D** on the Linux workstation.
 
-| Case          | type | ideg | Speed     |
-|---------------|------|------|-----------|
-| 2D Q1         | 2D   | 1    | 21882k/s  |
-|               | 2D   | 2    | 18947k/s  |
-| 2D Q2         | 2D   | 2    | 18790k/s  |
-|               | 2D   | 2    | 16845k/s  |
-| 3D Q1         | surf | 1    | 4000k/s   |
-|               | 3D   | 1    | 4410k/s   |
-|               | surf | 2    | 4640k/s   |
-|               | 3D   | 2    | 4108k/s   |
+| Case          | type | ideg | Mac M3 clang | Linux Intel i9-9900K gcc |
+|---------------|------|------|--------------|--------------------------|
+| 2D Q1         | 2D   | 1    | 21882k/s     | 12027k/s                 |
+|               | 2D   | 2    | 18947k/s     | 10480k/s                 |
+| 2D Q2         | 2D   | 2    | 18790k/s     | 10532k/s                 |
+|               | 2D   | 2    | 16845k/s     | 10557k/s                 |
+| 3D Q1         | surf | 1    | 4000k/s      | 4010k/s                  |
+|               | 3D   | 1    | 4410k/s      | 3904k/s                  |
+|               | surf | 2    | 4640k/s      | 3809k/s                  |
+|               | 3D   | 2    | 4108k/s      | 3397k/s                  |
+
 
 
 ### Results
@@ -230,30 +231,52 @@ In summary, the core of the quality computation can be carried out about **15M/s
 All approaches are compared to the naive (fastest) approach. 
 There is little variation in 2D and the absolute speeds are very large (we don't need determinant computations very intensively), in the order of 1e9 op/s. 
 In 3D, LAPACK is 100x slower than the naive approach, Eigen's decompositions only about 10x slower. 
-In absolute terms, Eigen carries out about 100M determinant computations a second, which should not prove a limiting factor. 
+In absolute terms, Eigen carries out about 100M determinant computations a second in 3D and 700M/s in 2D (Mac setting), which does not prove a limiting factor. 
 
-<div style="display: flex; justify-content: space-around; align-items: center;">
+<figure style="text-align: center;">
+  <div style="display: flex; justify-content: space-around; align-items: center;">
+    <img src="figures/mac1/clang/bench_det_2.png" width="50%" />
+    <img src="figures/mac1/clang/bench_det_3.png" width="50%" />
+  </div>
 
-  <img src="figures/bench_det_2.png" width="45%" />
-  <img src="figures/bench_det_3.png" width="45%" />
+  <figcaption style="margin-top: 0.5em; font-style: italic;">
+    Figure: Benchmark results on the Mac machine with clang
+  </figcaption>
+</figure>
 
-</div>
+<figure style="text-align: center;">
+  <div style="display: flex; justify-content: space-around; align-items: center;">
+    <img src="figures/linux1/gcc/bench_det_2.png" width="50%" />
+    <img src="figures/linux1/gcc/bench_det_3.png" width="50%" />
+  </div>
+
+  <figcaption style="margin-top: 0.5em; font-style: italic;">
+    Figure: Benchmark results on the Linux machine with gcc
+  </figcaption>
+</figure>
+
+
+## Extended precision 
+
+None of the determinant computation methods are precise enough on highly anisotropic meshes. 
+Furthermore, we still have some performance margin to work with, as currently using Eigen's LLT with double precision is about 30x faster, resp. 25x in 3D than computing `quafun_tradet`. 
+Hence we could slow it down by another factor of 25x (but ideally less) before it takes up a majority of the time in quality computation. 
 
 
 
-## Conclusion 
 
-None of the determinant computation methods are satisfactory from the standpoint of precision. 
+
+## Conclusion
+
+None of the determinant computation methods are satisfactory from the standpoint of precision using double precision. 
+Extended precision is expensive on machines that don't offer hardware acceleration for `long double` (e.g. the Mac M3). 
 As much as possible, we should avoid determinant computations on metrics. 
 It should also be investigated whether computing JK^T M J_K or det(J_K)^2 det(M) is more appropriate. 
 In the former case, the matrix is more or less the identity, but to get there requires possibly inaccurate matrix multiplications (J_K is "very small" and M is "very large"). 
 
-The least worst methods are using matrix decompositions either with LAPACK or Eigen; Eigen offers comparable error to LAPACK while being 10x faster for the chosen matrix decompositions. 
-At any rate, it appears fast enough (100M op/s in 3D) for our needs, but still too inaccurate. 
+Depending on the platform, the accurate options are:
+- If `long double` is implemented in hardware, Eigen's LLT with `long double`
+- Otherwise, naive determinant with quadruple precision. 
 
-
-
-
-
-
+The latter's cost is comparable to a whole `quafun_tradet` computation, hence this configuration should near double quality computation time... 
 

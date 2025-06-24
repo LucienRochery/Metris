@@ -14,6 +14,8 @@
 #include "../linalg/utils.hxx"
 
 #include <cmath>
+#include <unsupported/Eigen/MatrixFunctions>
+#include <Eigen/Dense>
 
 namespace Metris{
 
@@ -73,15 +75,45 @@ fixed:
 }
 
 
+// inp and out can be the same pointer
+template <int ndim, typename T>
+void getexpmet_Eigen(T* inp, T* out){
+  typedef Eigen::Matrix<T,ndim,ndim> MatrixN;
+  MatrixN met_Eigen;
+  for(int jj = 0; jj < ndim; jj++) 
+    for(int ii = 0; ii < ndim; ii++) 
+      met_Eigen(ii, jj) = inp[sym2idx(ii,jj)];
+  met_Eigen.exp().evalTo(met_Eigen);
+
+  for(int jj = 0; jj < ndim; jj++) 
+    for(int ii = jj; ii < ndim; ii++) 
+      out[sym2idx(ii,jj)] = met_Eigen(ii, jj);
+}
+
+template <int ndim, typename T>
+void getexpmet_dsyevq(T* met){
+  T eigval[ndim], eigvec[ndim*ndim];
+
+  geteigsym<ndim,T>(met,eigval,eigvec);
+
+  for(int ii = 0; ii < ndim ; ii++) eigval[ii] = exp(eigval[ii]);
+
+  eig2met<ndim,T>(eigval,eigvec,met);
+}
+template void getexpmet_dsyevq<2,double>(double*);
+template void getexpmet_dsyevq<2,SANS::SurrealS<2,double>>(SANS::SurrealS<2,double>*);
+template void getexpmet_dsyevq<3,double>(double*);
+template void getexpmet_dsyevq<3,SANS::SurrealS<3,double>>(SANS::SurrealS<3,double>*);
+
+
 template <int ndim, typename T>
 void getexpmet_inp(T* met){
-	T eigval[ndim], eigvec[ndim*ndim];
-
-	geteigsym<ndim,T>(met,eigval,eigvec);
-
-	for(int ii = 0; ii < ndim ; ii++) eigval[ii] = exp(eigval[ii]);
-
-	eig2met<ndim,T>(eigval,eigvec,met);
+  // In dim 3, using Eigen's exp is faster than using the eigendecomposition
+  if constexpr(ndim == 3 && std::is_same<T,double>::value){
+    getexpmet_Eigen<ndim, T>(met, met);
+  }else{
+    getexpmet_dsyevq<ndim,T>(met);
+  }
 }
 
 

@@ -117,6 +117,14 @@ inline T subdetvec3(const T* __restrict__ v1,
 }
 
 
+template<int ndim, typename ftype>
+ftype detsym_Eigen_LLT(const ftype *met);
+
+#ifdef USE_LAPACK
+template<int ndim>
+double detsym_LAPACK(const double* met);
+#endif
+
 
 // -----------------------------------------------------------------------------
 template<int ndimn, typename T = double>
@@ -138,35 +146,15 @@ inline T detsym2(const T met[]){
   if constexpr(ndimn == 2){
     return met[0]*met[2] - met[1]*met[1];
   }else{
+    #ifdef USE_LAPACK
     if constexpr (std::is_same<T,double>::value){
-      double A[3][3]; 
-      for(int ii = 0; ii < 3 ; ii++){
-        for(int jj = 0; jj < 3 ;jj++){
-          A[ii][jj] = met[sym2idx(ii,jj)];
-        }
-      }
-      int ipiv[3] = {-1};
-      int info;
-      int n = 3;
-      dgetrf_(&n,&n,A[0],&n,ipiv,&info);
-      // It's actually not a permutation vector but lists permutations per iteration...
-      int nn = (ipiv[0] != 1) + (ipiv[1] != 2) + (ipiv[2] != 3); 
-      double det = A[0][0]*A[1][1]*A[2][2]; 
-      return nn % 2 == 0 ? det : -det; 
+      return detsym_LAPACK<ndimn>(met);
     }else{
-      T mx = abs(met[0]); 
-      mx = mx > abs(met[1]) ? mx : abs(met[1]);
-      mx = mx > abs(met[2]) ? mx : abs(met[2]);
-      mx = mx > abs(met[3]) ? mx : abs(met[3]);
-      mx = mx > abs(met[4]) ? mx : abs(met[4]);
-      mx = mx > abs(met[5]) ? mx : abs(met[5]);
-      T met2[6] ;
-      for(int ii =0; ii < 6 ;ii++) met2[ii] = met[ii] / mx;
-      double det = met2[0]*(met2[2]*met2[5]-met2[4]*met2[4])
-                 + met2[1]*(met2[4]*met2[3]-met2[5]*met2[1])
-                 + met2[3]*(met2[1]*met2[4]-met2[3]*met2[2]);
-      return det*mx*mx*mx;
+    #endif
+      return detsym_Eigen_LLT<ndimn>(met);
+    #ifdef USE_LAPACK
     }
+    #endif
   }
 }
 // -----------------------------------------------------------------------------
@@ -240,6 +228,20 @@ inline void vecprod(const double*__restrict__ u, const double*__restrict__ v,
   out[1] = u[2]*v[0] - u[0]*v[2];
   out[2] = u[0]*v[1] - u[1]*v[0];
 }
+#ifdef USE_MULTIPRECISION
+inline void vecprod(const float4*__restrict__ u, const float4*__restrict__ v, 
+                    float4*__restrict__ out){
+  out[0] = u[1]*v[2] - u[2]*v[1];
+  out[1] = u[2]*v[0] - u[0]*v[2];
+  out[2] = u[0]*v[1] - u[1]*v[0];
+}
+inline void vecprod(const float8*__restrict__ u, const float8*__restrict__ v, 
+                    float8*__restrict__ out){
+  out[0] = u[1]*v[2] - u[2]*v[1];
+  out[1] = u[2]*v[0] - u[0]*v[2];
+  out[2] = u[0]*v[1] - u[1]*v[0];
+}
+#endif
 
 // Compute (u1 - u2) x (v1 - v2)
 inline void vecprod_vdif(const double*__restrict__ u1, const double*__restrict__ u2, 

@@ -7,12 +7,23 @@
 
 #include <boost/test/included/unit_test.hpp> 
 #include "common_setup.hxx"
+#include "gen_bary.hxx"
 
 #include "../src/quality/quafun_tradet.hxx"
+#include "../src/low_eval.hxx"
+#include "../src/linalg/det.hxx"
+
 
 namespace Metris{
 
 typedef MetricFieldFE MFT;
+
+
+template<int gdim>
+void generate_frame(float8* eigvec,
+                    std::uniform_real_distribution<double>& unif, 
+                    std::default_random_engine& rng);
+
 
 template <class MFT, int gdim, int tdim, typename ftype>
 void quafun_tradet_nodet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
@@ -31,7 +42,28 @@ BOOST_AUTO_TEST_CASE(test_eigen)
    METRIS_CASES_DIR "/2D/square.circmet.5k.curved.meshb  -sclmet 0.5 -adapt 20 -prefix tmp/ -out out",
   };
 
+  const double aniso_max = 2e7;
+  const double aniso_mul = 10;
+  const int ntrans = 2; // anisotropic linear transformations
+  const int nsamp = 10; // bary samples
 
+
+  dblAr2 barys[4];
+  genBary(nsamp, 2, barys[2]);
+  genBary(nsamp, 3, barys[3]);
+
+  std::uniform_real_distribution<double> unif(0.0,1.0);
+  std::default_random_engine rng(0);
+
+  MeshArray2D<float8> transfo[4];
+  for(int gdim = 2; gdim <= 3; gdim++){
+    transfo[gdim].allocate(ntrans,gdim*gdim);
+    transfo[gdim].set_n(ntrans);
+  }
+  for(int itrans = 0; itrans < ntrans; itrans++){
+    generate_frame<2>(transfo[3][itrans], unif, rng);
+    generate_frame<3>(transfo[3][itrans], unif, rng);
+  }
   for(auto testcase : meshes){
     std::string mesh_name = testcase;
     std::cout<<"-- Test case mesh = "<<mesh_name<<std::endl;
@@ -44,50 +76,166 @@ BOOST_AUTO_TEST_CASE(test_eigen)
     msh.cleanup();
     msh.met.setSpace(MetSpace::Log);
 
-    for(int ideg = 0; ideg < 2; ideg++){
-      if(ideg == 1) run.degElevate();
 
-      // i = gdim, j = tdim
-      double opps_full[4][4],opps_nodet[4][4];
-      double dum = 0;
-      CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
-        CT_FOR0_INC(2,gdim,tdim){if(tdim <= msh.get_tdim()){
-          double bary[tdim + 1];
-          for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1/(tdim + 1.0);
-          auto quafun = quafun_tradet<MFT,gdim,tdim,double>;
-          auto quafun_nodet = quafun_tradet_nodet<MFT,gdim,tdim,double>;
+    CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
+      CT_FOR0_INC(2,gdim,tdim){if(tdim <= msh.get_tdim()){
+        constexpr int nnmet = (gdim*(gdim+1))/2;
+        auto quafun = quafun_tradet<MFT,gdim,tdim,double>;
+        auto quafun_nodet = quafun_tradet_nodet<MFT,gdim,tdim,double>;
 
-          int nentt = msh.nentt(tdim);
-          const intAr2& ent2poi = msh.ent2poi(tdim);
+        int nentt = msh.nentt(tdim);
+        const intAr2& ent2poi = msh.ent2poi(tdim);
 
-          double t0_full = get_wall_time();
-          for(int ientt = 0; ientt < nentt; ientt++){
-            double tra, det;
-            quafun(msh, AsDeg::Pk, AsDeg::Pk, ent2poi[ientt], bary, NULL, &tra, &det);
-            dum += tra*det;
-          }// for ientt
-          double t1_full = get_wall_time();
-          opps_full[gdim][tdim] = nentt / (t1_full - t0_full);
+        // ---------------------------------------------------------------
 
-          double t0_nodet = get_wall_time();
-          for(int ientt = 0; ientt < nentt; ientt++){
-            double tra, det;
-            quafun_nodet(msh, AsDeg::Pk, AsDeg::Pk, ent2poi[ientt], bary, NULL, &tra, &det);
-            dum += tra*det;
-          }// for ientt
-          double t1_nodet = get_wall_time();
-          opps_nodet[gdim][tdim] = nentt / (t1_nodet - t0_nodet);
+        for(int idegelev = 0; idegelev <= 1; idegelev++){
+          if(idegelev == 1) run.degElevate();
 
-          printf("-- gdim %d tdim %d ideg %d full %dk/s nodet %dk/s\n",gdim,tdim,msh.curdeg,
-            (int) (opps_full[gdim][tdim]/1000),(int)(opps_nodet[gdim][tdim]/1000));
+          CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
 
-        }}CT_FOR1(tdim);
-      }}CT_FOR1(gdim);
+            const int nnode = getnnode(tdim,ideg);
+
+            // --- Get function error, only the determinant term
+            MeshArray2D<float8> coordf8(nnode,gdim);
+            MeshArray2D<double> eltcrd(nnode,gdim);
+
+            for(double aniso = 2; aniso <= aniso_max + 1; aniso *= aniso_mul){
+
+              MinMaxAvg errsmat;
+
+              for(int ientt = 0; ientt < nentt; ientt++){
+
+                for(int inode = 0; inode < nnode; inode++){
+                  int ipoin = ent2poi(ientt, inode);
+                  for(int ii = 0; ii < gdim; ii++){
+                    coordf8(inode, ii) = (float8) msh.coord(ipoin,ii);
+                    eltcrd(inode, ii) = msh.coord(ipoin,ii);
+                  }
+                }
+                for(int itrans = 0; itrans < ntrans; itrans++){
+
+                  float8 f8_trans0[gdim*gdim], f8_trans1[gdim*gdim];
+
+                  // Transfo is an orthogonal matrix R
+                  // Make it anisotropic by multiplying by D = diag(1/aniso, 1, ...)
+                  // Map coord by L = RD, metric by L^-T M L-1 = R D-1MD-1 R^T
+                  for(int ii = 0; ii < gdim; ii++){
+                    for(int jj = 0; jj < gdim; jj++){
+                      f8_trans0[gdim*ii+jj] = (float8) transfo[gdim](itrans,gdim*ii+jj);
+                      f8_trans1[gdim*ii+jj] = (float8) transfo[gdim](itrans,gdim*ii+jj);
+                    }
+                  }
+
+                  // Multiply by diag(1/aniso, 1, ...)
+                  for(int ii = 0; ii < gdim; ii++){
+                    f8_trans1[ii] /= aniso;
+                  }
+
+                  for(int inode = 0; inode < nnode; inode++){
+                    int ipoin = ent2poi(ientt, inode);
+                    float8 coop[gdim];
+                    // Transform the coordinates by transfo[itrans]
+                    matXvec<gdim>(f8_trans1, coordf8[inode], coop);
+                    for(int ii = 0; ii < gdim; ii++) msh.coord(ipoin,ii) = (double) coop[ii];
+                  }
+
+                  for(int isamp = 0; isamp < nsamp; isamp++){
+
+                    double *bary = barys[tdim][isamp];
 
 
+                    // 
+                    double f2_jmat[tdim*gdim], f2_coopr[gdim];
+                    float8 f8_jmat[tdim*gdim], f8_coopr[gdim];
+                    if constexpr (tdim == 2){
+                      eval2<gdim,ideg>(msh.coord,ent2poi[ientt],msh.getBasis(),
+                          DifVar::Bary,DifVar::None,
+                          bary,f2_coopr,f2_jmat,NULL);
+                    }else{
+                      eval3<gdim,ideg>(msh.coord,ent2poi[ientt],msh.getBasis(),
+                          DifVar::Bary,DifVar::None,
+                          bary,f2_coopr,f2_jmat,NULL);
+                    }
+                    for(int ii = 0; ii < gdim; ii++) f8_coopr[ii] = (float8) f2_coopr[ii];
+                    for(int ii = 0; ii < tdim*gdim; ii++) f8_jmat[ii] = (float8) f2_jmat[ii];
 
-    }
 
+                    double f2_invtJ0_tJK[tdim*gdim];
+                    float8 f8_invtJ0_tJK[tdim*gdim];
+                    matXmat<tdim,tdim,gdim>(Constants::invtJ_0[hana::type_c<double>][tdim],
+                                            f2_jmat,f2_invtJ0_tJK);
+                    matXmat<tdim,tdim,gdim>(Constants::invtJ_0[hana::type_c<float8>][tdim],
+                                            f8_jmat,f8_invtJ0_tJK);
+
+                    double f2_met[nnmet], f2_met0[nnmet];
+                    float8 f8_met[nnmet], f8_met0[nnmet];
+                    msh.met.getMetBary(AsDeg::Pk, DifVar::None, MetSpace::Exp, 
+                                       ent2poi[ientt], tdim, bary, f2_met0, NULL);
+                    // Transform the metric in quadruple precision. 
+                    for(int ii = 0; ii < nnmet; ii++) f8_met0[ii] = (float8) f2_met0[ii];
+                    // Get D^-1 M D-1
+                    f8_met0[sym2idx(0,0)] *= (float8) (aniso*aniso);
+                    for(int ii = 1; ii < gdim; ii++)
+                      f8_met0[sym2idx(ii,0)] *= (float8) aniso;
+
+                    // Get RD-1MD-1R^T
+                    matXsymXtmat<gdim,gdim,float8,float8,float8>(f8_met0,f8_trans0,f8_met);
+                    for(int ii = 0; ii < nnmet; ii++) f2_met[ii] = (double) f8_met[ii];
+
+
+                    constexpr int nmat = (tdim*(tdim+1))/2;
+                    double f2_tJ0_tJK_M_JK_J0[nmat];
+                    float8 f8_tJ0_tJK_M_JK_J0[nmat];
+                    matXsymXtmat<tdim,gdim,double,double,double>(f2_met,f2_invtJ0_tJK,f2_tJ0_tJK_M_JK_J0);
+                    matXsymXtmat<tdim,gdim,float8,float8,float8>(f8_met,f8_invtJ0_tJK,f8_tJ0_tJK_M_JK_J0);
+                    float8 errmat = 0;
+                    for(int ii = 0; ii < nmat; ii++)
+                      errmat += abs(f8_tJ0_tJK_M_JK_J0[ii] - (float8)f2_tJ0_tJK_M_JK_J0[ii]);
+
+                    errsmat += (double) errmat;
+
+                  }// for isamp
+                }// for itrans
+              }// for ientt
+
+              printf("  -- DONE with aniso ratio %5.1e gdim %d tdim %d\n",aniso,gdim,tdim);
+              printf("   - error min = %e avg = %e max = %e (Naive)\n",errsmat.min(),errsmat.avg(),errsmat.max());
+
+
+            }// for aniso
+
+            // --- Benchmark function without determinant calls
+            // i = gdim, j = tdim
+            double opps_full[4][4],opps_nodet[4][4];
+            double dum = 0;
+            double bary[tdim + 1];
+            for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1/(tdim + 1.0);
+
+            double t0_full = get_wall_time();
+            for(int ientt = 0; ientt < nentt; ientt++){
+              double tra, det;
+              quafun(msh, AsDeg::Pk, AsDeg::Pk, ent2poi[ientt], bary, NULL, &tra, &det);
+              dum += tra*det;
+            }// for ientt
+            double t1_full = get_wall_time();
+            opps_full[gdim][tdim] = nentt / (t1_full - t0_full);
+
+            double t0_nodet = get_wall_time();
+            for(int ientt = 0; ientt < nentt; ientt++){
+              double tra, det;
+              quafun_nodet(msh, AsDeg::Pk, AsDeg::Pk, ent2poi[ientt], bary, NULL, &tra, &det);
+              dum += tra*det;
+            }// for ientt
+            double t1_nodet = get_wall_time();
+            opps_nodet[gdim][tdim] = nentt / (t1_nodet - t0_nodet);
+
+            printf("-- gdim %d tdim %d ideg %d full %dk/s nodet %dk/s\n",gdim,tdim,msh.curdeg,
+              (int) (opps_full[gdim][tdim]/1000),(int)(opps_nodet[gdim][tdim]/1000));
+
+          }}CT_FOR1(ideg);
+        }// for idegelev
+      }}CT_FOR1(tdim);
+    }}CT_FOR1(gdim);
   }// for testcase
 
 
@@ -191,6 +339,74 @@ void quafun_tradet_nodet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
 
    return;
 }
+
+template<int ndim>
+void generate_frame(float8 *eigvec,
+                    std::uniform_real_distribution<double>& unif, 
+                    std::default_random_engine& rng){
+  // Generate frame
+  while(true){
+    for(int jj = 0; jj < ndim; jj++){
+     eigvec[0*ndim+jj] = unif(rng);
+    }
+    float8 nrm = sqrt(getnrml2<ndim>(&eigvec[0*ndim]));
+
+    if(nrm < 1.0e-12) continue;
+
+    for(int jj = 0; jj < ndim; jj++){
+     eigvec[0*ndim+jj] = eigvec[0*ndim+jj] / nrm;
+    }
+
+    bool ifnd = false;
+    for(int jj = 0; jj < ndim; jj++){
+      if( abs(eigvec[0*ndim+jj]) > 1.0e-6 ){
+        for(int kk = 0; kk < ndim; kk++){
+          eigvec[1*ndim+kk] = 0;
+        }
+        eigvec[1*ndim+(jj+1)%ndim] = -eigvec[0*ndim+jj];
+        eigvec[1*ndim+jj]          = eigvec[0*ndim+(jj+1)%ndim];
+        nrm = sqrt(getnrml2<ndim>(&eigvec[1*ndim]));
+        for(int jj = 0; jj < ndim; jj++){
+         eigvec[1*ndim+jj] = eigvec[1*ndim+jj] / nrm;
+        }
+
+        ifnd = true;
+        break;
+      }
+    }
+
+    if(!ifnd) continue;
+
+    METRIS_ENFORCE( abs(getprdl2<ndim>(&eigvec[0*ndim],&eigvec[1*ndim])) < 1.0e-12);
+
+    if constexpr(ndim == 3){
+      vecprod(&eigvec[0*ndim],&eigvec[1*ndim],&eigvec[2*ndim]);
+      float8 nrm = sqrt(getnrml2<ndim>(&eigvec[2*ndim]));
+      for(int jj = 0; jj < ndim; jj++){
+       eigvec[2*ndim+jj] = eigvec[2*ndim+jj] / nrm;
+      }
+      METRIS_ENFORCE_MSG( abs(getnrml2<ndim>(&eigvec[2*ndim]) - 1) < 1.0e-12,
+        "Not orthogonormal, nrm dif to 1 = "<<abs(getnrml2<ndim>(&eigvec[2*ndim]) - 1));
+      METRIS_ENFORCE_MSG( abs(getprdl2<ndim>(&eigvec[0*ndim],&eigvec[1*ndim])) < 1.0e-12,
+        "Not orthogonormal, prd = "<<abs(getprdl2<ndim>(&eigvec[0*ndim],&eigvec[1*ndim])));
+      METRIS_ENFORCE_MSG( abs(getprdl2<ndim>(&eigvec[2*ndim],&eigvec[1*ndim])) < 1.0e-12,
+        "Not orthogonormal, prd = "<<abs(getprdl2<ndim>(&eigvec[2*ndim],&eigvec[1*ndim])));
+      METRIS_ENFORCE_MSG( abs(getprdl2<ndim>(&eigvec[2*ndim],&eigvec[0*ndim])) < 1.0e-12,
+        "Not orthogonormal, prd = "<<abs(getprdl2<ndim>(&eigvec[2*ndim],&eigvec[0*ndim])));
+    }
+
+    break;
+  }
+}
+
+template 
+void generate_frame<2>(float8* eigvec,
+                    std::uniform_real_distribution<double>& unif, 
+                    std::default_random_engine& rng);
+template 
+void generate_frame<3>(float8* eigvec,
+                    std::uniform_real_distribution<double>& unif, 
+                    std::default_random_engine& rng);
 
 
 

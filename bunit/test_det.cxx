@@ -24,9 +24,7 @@
 namespace Metris{
 
 template<int ndim,typename ftype>
-ftype det_Eigen_LDLT(const ftype *met);
-template<int ndim>
-double det_Eigen_LLT(const double *met);
+ftype detsym_Eigen_LDLT(const ftype *met);
 
 
 
@@ -48,14 +46,14 @@ BOOST_AUTO_TEST_CASE(test_eigen)
   std::uniform_real_distribution<double> unif(1.0e-16,1.0);
   std::default_random_engine rng(0);
 
-  double aniso_max = 2e7;
-  double aniso_mul = 10;
+  const double aniso_max = 2e7;
+  const double aniso_mul = 10;
 
 
   // i = idim - 2, j = 0 ? avg : max;
-  scriptArrayString errs1[2], errsELLT[2], errsEdet[2], errsELDLT[2], errsL[2];
+  scriptArrayString errsN[2], errsNf4[2], errsELLT[2], errsEdet[2], errsELDLT[2], errsELDLTf4[2], errsL[2];
 
-  scriptArrayString bench1[2], benchELLT[2], benchEdet[2], benchELDLT[2], benchL[2];
+  scriptArrayString benchN[2], benchELLT[2], benchEdet[2], benchELDLTf4[2], benchELDLT[2], benchL[2], benchNf4[2];
 
   scriptArrayString anisos("aniso");
   for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
@@ -64,17 +62,21 @@ BOOST_AUTO_TEST_CASE(test_eigen)
   anisos.finish();
 
   for(int ii = 0; ii < 2; ii++){
-    errs1[ii].setName("err_max_1"+std::to_string(ii+2));
+    errsN[ii].setName("err_max_Naive"+std::to_string(ii+2));
+    errsNf4[ii].setName("err_max_Naivef4"+std::to_string(ii+2));
     errsL[ii].setName("err_max_LAPACK"+std::to_string(ii+2));
-    errsELLT[ii].setName("err_max_EIGEN1"+std::to_string(ii+2));
-    errsEdet[ii].setName("err_max_EIGEN2"+std::to_string(ii+2));
-    errsELDLT[ii].setName("err_max_EIGEN3"+std::to_string(ii+2));
+    errsELLT[ii].setName("err_max_EIGENLLT"+std::to_string(ii+2));
+    errsEdet[ii].setName("err_max_EIGENDET"+std::to_string(ii+2));
+    errsELDLT[ii].setName("err_max_EigenLDLT"+std::to_string(ii+2));
+    errsELDLTf4[ii].setName("err_max_EigenLDLTf4"+std::to_string(ii+2));
 
-    bench1[ii].setName("time_1"+std::to_string(ii+2));
+    benchN[ii].setName("time_Naive"+std::to_string(ii+2));
+    benchNf4[ii].setName("time_Naivef4"+std::to_string(ii+2));
     benchL[ii].setName("time_LAPACK"+std::to_string(ii+2));
-    benchELLT[ii].setName("time_EIGEN1"+std::to_string(ii+2));
-    benchEdet[ii].setName("time_EIGEN2"+std::to_string(ii+2));
-    benchELDLT[ii].setName("time_EIGEN3"+std::to_string(ii+2));
+    benchELLT[ii].setName("time_EIGENLLT"+std::to_string(ii+2));
+    benchEdet[ii].setName("time_EIGENDET"+std::to_string(ii+2));
+    benchELDLT[ii].setName("time_EigenLDLT"+std::to_string(ii+2));
+    benchELDLTf4[ii].setName("time_EigenLDLTf4"+std::to_string(ii+2));
   }
 
   dblAr2 met_samples[2];
@@ -98,7 +100,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
     for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
 
-      MinMaxAvg err1, err3, errL, err4, errD, errELLT, errE2, errELDLT, errELDLT_f4;
+      MinMaxAvg errN, err3, errL, errNf4, errD, errELLT, errE2, errELDLT, errELDLTf4;
 
       double nerro_aniso = 0;
 
@@ -125,15 +127,15 @@ BOOST_AUTO_TEST_CASE(test_eigen)
         for(int ii = 0; ii < nnmet; ii++) met4[ii] = (float4) met[ii];
         float4 det4 = detsym<ndim, float4>(met4);
         float8 err = abs( ((float8) det4) - det0 ) /det0;
-        err4 += (double) err;
+        errNf4 += (double) err;
 
         // ----- Test detsym (naive computation)
         double det1 = detsym<ndim>(met);
         err = abs( ((float8) det1) - det0 ) /det0;
-        err1 += (double) err;
+        errN += (double) err;
 
-        // ----- Test detsym2 which uses LAPACK in 3D (same as previous in 2D)
-        double detL = detsym2<ndim>(met);
+        // ----- Test detsym_LAPACK which uses LAPACK in 3D (same as previous in 2D)
+        double detL = detsym_LAPACK<ndim>(met);
         err = abs( ((float8) detL) - det0 ) /det0;
         errL += (double) err;
 
@@ -151,7 +153,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
 
         // ----- Test Eigen using a Cholesky decomposition
-        double detE = det_Eigen_LLT<ndim>(met);
+        double detE = detsym_Eigen_LLT<ndim>(met);
         err = abs( ((float8) detE) - det0 ) /det0;
         errELLT += (double) err;
 
@@ -169,37 +171,39 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
 
         // ----- Test Eigen using LDLT
-        double detE3 = det_Eigen_LDLT<ndim>(met);
+        double detE3 = detsym_Eigen_LDLT<ndim>(met);
         err = abs( ((float8) detE3) - det0 ) /det0;
         errELDLT += (double) err;
 
         // ----- Test Eigen using LDLT and float4
-        float4 detE4 = det_Eigen_LDLT<ndim,float4>(met4);
+        float4 detE4 = detsym_Eigen_LDLT<ndim,float4>(met4);
         err = abs( ((float8) detE4) - det0 ) /det0;
-        errELDLT_f4 += (double) err;
+        errELDLTf4 += (double) err;
 
 
 
       }// for isamp
 
-      errs1[ndim-2] += err1.max();
+      errsN[ndim-2] += errN.max();
+      errsNf4[ndim-2] += errNf4.max();
       errsL[ndim-2] += errL.max();
       errsELLT[ndim-2] += errELLT.max();
       errsEdet[ndim-2] += errE2.max();
       errsELDLT[ndim-2] += errELDLT.max();
+      errsELDLTf4[ndim-2] += errELDLTf4.max();
 
       printf("  -- DONE with aniso ratio %5.1e dim %d\n",anisorat,ndim);
-      printf("   - det error min = %e avg = %e max = %e (Naive)\n",err1.min(),err1.avg(),err1.max());
-      printf("   - det error min = %e avg = %e max = %e (Naive f4)\n",err4.min(),err4.avg(),err4.max());
+      printf("   - det error min = %e avg = %e max = %e (Naive)\n",errN.min(),errN.avg(),errN.max());
+      printf("   - det error min = %e avg = %e max = %e (Naive f4)\n",errNf4.min(),errNf4.avg(),errNf4.max());
       printf("   - det error min = %e avg = %e max = %e (LAPACK)\n",errL.min(),errL.avg(),errL.max());
       printf("   - det error min = %e avg = %e max = %e (Precond)\n",err3.min(),err3.avg(),err3.max());
       printf("   - det error min = %e avg = %e max = %e (DSYEVQ)\n",errD.min(),errD.avg(),errD.max());
       printf("   - det error min = %e avg = %e max = %e (Eigen LLT)\n",errELLT.min(),errELLT.avg(),errELLT.max());
       printf("   - det error min = %e avg = %e max = %e (Eigen det)\n",errE2.min(),errE2.avg(),errE2.max());
       printf("   - det error min = %e avg = %e max = %e (Eigen LDLT)\n",errELDLT.min(),errELDLT.avg(),errELDLT.max());
-      printf("   - det error min = %e avg = %e max = %e (Eigen LDLT f4)\n",errELDLT_f4.min(),errELDLT_f4.avg(),errELDLT_f4.max());
+      printf("   - det error min = %e avg = %e max = %e (Eigen LDLT f4)\n",errELDLTf4.min(),errELDLTf4.avg(),errELDLTf4.max());
 
-      BOOST_TEST(err1 <= tol);
+      BOOST_TEST(errN <= tol);
       BOOST_TEST(errL <= tol);
       BOOST_TEST(errELLT <= tol);
       BOOST_TEST(errELDLT <= tol);
@@ -228,24 +232,24 @@ BOOST_AUTO_TEST_CASE(test_eigen)
     for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
       // ------------------------------------------------------------ Benchmark
       #ifdef NDEBUG
-      double t0_1 = get_wall_time();
-      double dum_1 = 0;
+      double t0_N = get_wall_time();
+      double dum_N = 0;
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
         double det = detsym<ndim>(met);
-        dum_1 += det;
+        dum_N += det;
       }
-      double t1_1 = get_wall_time();
+      double t1_N = get_wall_time();
 
 
-      double t0_1f4 = get_wall_time();
-      double dum_1f4 = 0;
+      double t0_Nf4 = get_wall_time();
+      double dum_Nf4 = 0;
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met4[ii] = (float4) met_samples[ndim-2](isamp, ii);
         float4 det = detsym<ndim,float4>(met4);
-        dum_1f4 += (double) det;
+        dum_Nf4 += (double) det;
       }
-      double t1_1f4 = get_wall_time();
+      double t1_Nf4 = get_wall_time();
 
 
       double t0_L = get_wall_time();
@@ -253,7 +257,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       int rwork[10];
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
-        double det = detsym2<ndim>(met);
+        double det = detsym_LAPACK<ndim>(met);
         dum_L += det;
       }
       double t1_L = get_wall_time();
@@ -263,7 +267,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       double dum_ELLT = 0;
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
-        double det = det_Eigen_LLT<ndim>(met);
+        double det = detsym_Eigen_LLT<ndim>(met);
         dum_ELLT += det;
       }
       double t1_ELLT = get_wall_time();
@@ -286,7 +290,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       double dum_ELDLT= 0;
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
-        double det = det_Eigen_LDLT<ndim>(met);
+        double det = detsym_Eigen_LDLT<ndim>(met);
         dum_ELDLT+= det;
       }
       double t1_ELDLT= get_wall_time();
@@ -295,40 +299,42 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       double dum_ELDLTf4= 0;
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met4[ii] = (float4) met_samples[ndim-2](isamp, ii);
-        float4 det = det_Eigen_LDLT<ndim,float4>(met4);
+        float4 det = detsym_Eigen_LDLT<ndim,float4>(met4);
         dum_ELDLTf4+= (double) det;
       }
       double t1_ELDLTf4 = get_wall_time();
 
 
       printf("  -- DONE bench dim %1d aniso %5.1e dum %5.0e\n",ndim,anisorat,
-             dum_1*dum_L/dum_ELLT/dum_Edet*dum_ELDLT/dum_ELDLTf4*dum_1f4);
+             dum_N*dum_L/dum_ELLT/dum_Edet*dum_ELDLT/dum_ELDLTf4*dum_Nf4);
       printf("  -- DONE benchmarks  Naive    time : %8.2e = %dk op/s\n",
-                  t1_1-t0_1,(int)(nsamp/(t1_1-t0_1))/1000);
+                  t1_N-t0_N,(int)(nsamp/(t1_N-t0_N))/1000);
       printf("                     Naivef4   time : %8.2e = %dk op/s, fac = %4.2fx\n",
-                  t1_1f4-t0_1f4,(int)(nsamp/(t1_1f4-t0_1f4)/1000),
-                  (t1_1f4-t0_1f4)/(t1_1-t0_1));
+                  t1_Nf4-t0_Nf4,(int)(nsamp/(t1_Nf4-t0_Nf4)/1000),
+                  (t1_Nf4-t0_Nf4)/(t1_N-t0_N));
       printf("                     LAPACK    time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_L-t0_L,(int)(nsamp/(t1_L-t0_L)/1000),
-                  (t1_L-t0_L)/(t1_1-t0_1));
+                  (t1_L-t0_L)/(t1_N-t0_N));
       printf("                      ELLT     time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_ELLT-t0_ELLT,(int)(nsamp/(t1_ELLT-t0_ELLT)/1000),
-                  (t1_ELLT-t0_ELLT)/(t1_1-t0_1));
+                  (t1_ELLT-t0_ELLT)/(t1_N-t0_N));
       printf("                      Edet     time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_Edet-t0_Edet,(int)(nsamp/(t1_Edet-t0_Edet)/1000),
-                  (t1_Edet-t0_Edet)/(t1_1-t0_1));
+                  (t1_Edet-t0_Edet)/(t1_N-t0_N));
       printf("                      ELDLT   time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_ELDLT-t0_ELDLT,(int)(nsamp/(t1_ELDLT-t0_ELDLT)/1000),
-                  (t1_ELDLT-t0_ELDLT)/(t1_1-t0_1));
+                  (t1_ELDLT-t0_ELDLT)/(t1_N-t0_N));
       printf("                      ELDLTf4 time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_ELDLTf4-t0_ELDLTf4,(int)(nsamp/(t1_ELDLTf4-t0_ELDLTf4)/1000),
-                  (t1_ELDLTf4-t0_ELDLTf4)/(t1_1-t0_1));
+                  (t1_ELDLTf4-t0_ELDLTf4)/(t1_N-t0_N));
 
-      bench1[ndim-2] += nsamp/(t1_1 - t0_1);
+      benchN[ndim-2] += nsamp/(t1_N - t0_N);
+      benchNf4[ndim-2] += nsamp/(t1_Nf4 - t0_Nf4);
       benchL[ndim-2] += nsamp/(t1_L - t0_L);
       benchELLT[ndim-2] += nsamp/(t1_ELLT - t0_ELLT);
       benchEdet[ndim-2] += nsamp/(t1_Edet - t0_Edet);
       benchELDLT[ndim-2] += nsamp/(t1_ELDLT- t0_ELDLT);
+      benchELDLTf4[ndim-2] += nsamp/(t1_ELDLTf4- t0_ELDLTf4);
 
       #endif
 
@@ -344,18 +350,18 @@ BOOST_AUTO_TEST_CASE(test_eigen)
   fil << anisos.str() << "\n\n";
   int ifig = 0;
   for(int ndim = 0; ndim < 2; ndim++){
-    errs1[ndim].finish();
+    errsN[ndim].finish();
     errsL[ndim].finish();
     errsELLT[ndim].finish();
     errsEdet[ndim].finish();
     errsELDLT[ndim].finish();
-    fil << errs1[ndim].str() << "\n";
+    fil << errsN[ndim].str() << "\n";
     fil << errsL[ndim].str() << "\n";
     fil << errsELLT[ndim].str() << "\n";
     fil << errsEdet[ndim].str() << "\n";
     fil << errsELDLT[ndim].str() << "\n";
     fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
-    fil << "plt.loglog(aniso," << errs1[ndim].name()<<",'--o',label='Naive',)\n";
+    fil << "plt.loglog(aniso," << errsN[ndim].name()<<",'--o',label='Naive',)\n";
     fil << "plt.loglog(aniso," << errsL[ndim].name()<<",'--x',label='LAPACK')\n";
     fil << "plt.loglog(aniso," << errsELLT[ndim].name()<<",'--+',label='Eigen (LLT)')\n";
     fil << "plt.loglog(aniso," << errsELDLT[ndim].name()<<",'--o',label='Eigen (LDLT)')\n";
@@ -382,26 +388,26 @@ BOOST_AUTO_TEST_CASE(test_eigen)
   ifig = 0;
   for(int ndim = 0; ndim < 2; ndim++){
 
-    bench1[ndim].finish();
+    benchN[ndim].finish();
     benchL[ndim].finish();
     benchELLT[ndim].finish();
     benchEdet[ndim].finish();
     benchELDLT[ndim].finish();
-    fil << bench1[ndim].str() << "\n";
+    fil << benchN[ndim].str() << "\n";
     fil << benchL[ndim].str() << "\n";
     fil << benchELLT[ndim].str() << "\n";
     fil << benchEdet[ndim].str() << "\n";
     fil << benchELDLT[ndim].str() << "\n";
     fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
     fil << "plt.loglog(aniso,np.array(" << benchL[ndim].name()<<")"
-        << "/np.array(" << bench1[ndim].name() << ")" <<",label='LAPACK')\n";
+        << "/np.array(" << benchN[ndim].name() << ")" <<",label='LAPACK')\n";
     fil << "plt.loglog(aniso,np.array(" << benchELLT[ndim].name()<<")"
-        << "/np.array(" << bench1[ndim].name() << ")" <<",label='Eigen (LLT)')\n";
+        << "/np.array(" << benchN[ndim].name() << ")" <<",label='Eigen (LLT)')\n";
     fil << "plt.loglog(aniso,np.array(" << benchELDLT[ndim].name()<<")"
-        << "/np.array(" << bench1[ndim].name() << ")" <<",label='Eigen (LDLT)')\n";
+        << "/np.array(" << benchN[ndim].name() << ")" <<",label='Eigen (LDLT)')\n";
     fil << "plt.loglog(aniso,np.array(" << benchEdet[ndim].name()<<")"
-        << "/np.array(" << bench1[ndim].name() << ")" <<",label='Eigen (det)')\n";
-    //fil << "plt.loglog(aniso," << bench1[ndim].name()<<",label='DSYEVQ')\n";
+        << "/np.array(" << benchN[ndim].name() << ")" <<",label='Eigen (det)')\n";
+    //fil << "plt.loglog(aniso," << benchN[ndim].name()<<",label='DSYEVQ')\n";
     //fil << "plt.loglog(aniso," << benchL[ndim].name()<<",label='LAPACK')\n";
     //fil << "plt.loglog(aniso," << benchE[ndim].name()<<",label='Eigen')\n";
     fil << "plt.title('Benchmark dim "<< std::to_string(ndim+2)<< "')\n";
@@ -501,7 +507,7 @@ void generate_metric<3>(double aniso, double eigval[3], double eigvec[3][3],
 
 
 template<int ndim, typename ftype>
-ftype det_Eigen_LDLT(const ftype *met){
+ftype detsym_Eigen_LDLT(const ftype *met){
 
   typedef Eigen::Matrix<ftype,ndim,ndim> MatrixN;
   typedef Eigen::Vector<ftype,ndim> VectorN;
@@ -522,34 +528,10 @@ ftype det_Eigen_LDLT(const ftype *met){
   return detE3;
 }
 
-template  double det_Eigen_LDLT<2>(const double *met);
-template  double det_Eigen_LDLT<3>(const double *met);
-template  float4 det_Eigen_LDLT<2>(const float4 *met);
-template  float4 det_Eigen_LDLT<3>(const float4 *met);
-
-template<int ndim>
-double det_Eigen_LLT(const double *met){
-  typedef Eigen::Matrix<double,ndim,ndim> MatrixN;
-  typedef Eigen::Vector<double,ndim> VectorN;
-
-  MatrixN met_Eigen;
-  for(int ii = 0; ii < ndim; ii++) 
-    for(int jj = 0; jj < ndim; jj++) 
-      met_Eigen(ii, jj) = met[sym2idx(ii,jj)];
-  Eigen::LLT<MatrixN> llt(met_Eigen);
-  if(llt.info() != Eigen::Success) METRIS_THROW(GeomExcept());
-
-  MatrixN LL = llt.matrixL();
-
-  double detE = LL(0,0);
-  for(int ii = 1; ii < ndim; ii++) detE *= LL(ii,ii);
-  return detE*detE;
-}
-
-template  double det_Eigen_LLT<2>(const double *met);
-template  double det_Eigen_LLT<3>(const double *met);
-
-
+template  double detsym_Eigen_LDLT<2>(const double *met);
+template  double detsym_Eigen_LDLT<3>(const double *met);
+template  float4 detsym_Eigen_LDLT<2>(const float4 *met);
+template  float4 detsym_Eigen_LDLT<3>(const float4 *met);
 
 
 

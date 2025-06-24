@@ -195,15 +195,17 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
         // ---- Test Eigen
 
+        int ierro = geteigsym_Eigen<ndim, double>(met, eigva2, eigve2[0]);
+        #if 0
         typedef Eigen::Matrix<double,ndim,ndim> MatrixN;
         typedef Eigen::Vector<double,ndim> VectorN;
         MatrixN met_Eigen;
 
         for(int ii = 0; ii < ndim; ii++) 
-          for(int jj = 0; jj < ndim; jj++) 
+          for(int jj = 0; jj <= ii; jj++) 
             met_Eigen(ii, jj) = met[sym2idx(ii,jj)];
 
-        METRIS_ENFORCE(met_Eigen.isApprox(met_Eigen.transpose()))
+        //METRIS_ENFORCE(met_Eigen.isApprox(met_Eigen.transpose()))
 
         Eigen::SelfAdjointEigenSolver<MatrixN> solver(met_Eigen);
 
@@ -214,6 +216,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
         for(int ii = 0; ii < ndim; ii++) 
           for(int jj = 0; jj < ndim; jj++) 
             eigve2[jj][ii] = eigenvectors(ii,jj);
+        #endif
 
         eig2met<ndim,double>(eigva2,eigve2[0],met2);
         err = sqrt(geterrl2<nnmet>(met2,met) / getnrml2<nnmet>(met));

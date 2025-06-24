@@ -16,15 +16,14 @@
 
 #include "../SANS/Surreal/SurrealS.h"
 
+#include <Eigen/Dense>
 
 namespace Metris{
 
-/*
-	LAPACK WRAPPERS & AUX
-*/
 // -----------------------------------------------------------------------------
 // met must be positive definite. Otherwise use inv3sym. 
-int invspd(int nmat, double met[]){
+#ifdef USE_LAPACK
+int invspd_LAPACK(int nmat, double met[]){
 	char c = 'U';
 	int info;
 
@@ -36,70 +35,121 @@ int invspd(int nmat, double met[]){
 
   return 0;
 }
+#endif
 
-// 
-template <int n>
-int invsym(double* met){
-	char c = 'U';
-	int info;
-	int ipiv[n];
-	double work[n];
-  int nmat = n;
+// inp and out can be the same
+template<int ndim, typename T>
+int invspd_Eigen(T *inp, T *out){
+  typedef Eigen::Matrix<T, ndim, ndim> MatrixN;
 
-  double nrm = getnrml2<(n*(n+1))/2>(met);
-  if(nrm < 1.0e-300) return 1;
+  MatrixN met_Eigen;
+  for(int jj = 0; jj < ndim; jj++)
+    for(int ii = jj; ii < ndim; ii++)
+      met_Eigen(ii,jj) = inp[sym2idx(ii,jj)];
 
-	dsptrf_(&c,&nmat,met,ipiv,&info);
-  if(info != 0) return(abs(info));
+  Eigen::LLT<MatrixN> llt(met_Eigen);
+  if(llt.info() != Eigen::Success) return 1;
 
-	dsptri_(&c,&nmat,met,ipiv,work,&info);
-  if(info != 0) return(abs(info));
+  MatrixN invmet_Eigen = llt.solve(Eigen::Matrix<double,ndim,ndim>::Identity());
 
-  return 0;
-}
-template int invsym<2>(double *met);
-template int invsym<3>(double *met);
-
-template<typename T>
-int inv3sym(T *met, T *inv){
-  T det = detsym<3,T>(met);
-  if(abs(det) < Constants::detTol) return 1;
-  inv[sym2idx(0,0)] =   (met[sym2idx(1,1)]*met[sym2idx(2,2)] - met[sym2idx(1,2)]*met[sym2idx(2,1)]) / det;
-  inv[sym2idx(1,0)] = - (met[sym2idx(1,0)]*met[sym2idx(2,2)] - met[sym2idx(1,2)]*met[sym2idx(2,0)]) / det;
-  inv[sym2idx(2,0)] =   (met[sym2idx(1,0)]*met[sym2idx(2,1)] - met[sym2idx(1,1)]*met[sym2idx(2,0)]) / det;
-
-  inv[sym2idx(1,1)] =   (met[sym2idx(0,0)]*met[sym2idx(2,2)] - met[sym2idx(0,2)]*met[sym2idx(2,0)]) / det;
-  inv[sym2idx(2,1)] = - (met[sym2idx(0,0)]*met[sym2idx(2,1)] - met[sym2idx(2,0)]*met[sym2idx(0,1)]) / det;
-
-  inv[sym2idx(2,2)] =   (met[sym2idx(0,0)]*met[sym2idx(1,1)] - met[sym2idx(0,1)]*met[sym2idx(1,0)]) / det;
-  return 0;
-}
-template int inv3sym<double>(double *met, double *inv);
-template int inv3sym<SANS::SurrealS<3,double>>(SANS::SurrealS<3,double> *met, SANS::SurrealS<3,double> *inv);
-
-
-
-// Matrix stored line first in C fashion
-int invmat(int n, double mat[]){
-	METRIS_ENFORCE_MSG(n <= 3, "invmat expecting n <= 3");
-	int ipiv[3];
-	constexpr int nwork = 20;
-  int nwork_ = nwork;
-	double rwork[nwork];
-	int info;
-
-	dgetrf_(&n,&n,mat,&n,ipiv,&info);
-  if(info != 0) return(abs(info)); 
-
-	dgetri_(&n,mat,&n,ipiv,rwork,&nwork_,&info);
-  if(info != 0) return(abs(info)); 
+  for(int jj = 0; jj < ndim; jj++)
+    for(int ii = jj; ii < ndim; ii++)
+      out[sym2idx(ii,jj)] = invmet_Eigen(ii,jj);
 
   return 0;
 }
+template int invspd_Eigen<2,double>(double *inp, double *out);
+template int invspd_Eigen<3,double>(double *inp, double *out);
 
+template<int ndim, typename T>
+int invspd(T* met){
+  // LAPACK never worthwhile here
+  //#ifdef USE_LAPACK
+  //return invspd_LAPACK(nmat, met);
+  //#else 
+  return invspd_Eigen<ndim>(met, met);
+  //#endif
+}
+template int invspd<2,double>(double *met);
+template int invspd<3,double>(double *met);
+
+
+
+// Only call if matrix is known to be invertible!
+// mat and invmat can be the same
+// using PartialPivLU (faster but less robust);
+template<int ndim, typename T>
+int invmat_EigenLUPP(T* mat, T* inv){
+  typedef Eigen::Matrix<T, ndim, ndim> MatrixN;
+  MatrixN mat_Eigen;
+  // Store mat^T in mat_Eigen
+  for(int ii = 0; ii < ndim; ii++)
+    for(int jj = 0; jj < ndim; jj++)
+      mat_Eigen(jj,ii) = mat[ndim*ii+jj];
+
+  Eigen::PartialPivLU<MatrixN> lu(mat_Eigen);
+
+  MatrixN invmat_Eigen = lu.inverse();
+
+  // Copy back invmat_Eigen^T into mat
+  for(int ii = 0; ii < ndim; ii++)
+    for(int jj = 0; jj < ndim; jj++)
+      inv[ndim*ii+jj] = invmat_Eigen(jj,ii);
+
+  return 0;
+}
+template int invmat_EigenLUPP<2,double>(double *mat, double* inv);
+template int invmat_EigenLUPP<3,double>(double *mat, double* inv);
+
+// mat and invmat can be the same
+// using FullPivLU (faster but less robust)
+template<int ndim, typename T>
+int invmat_EigenLUFP(T* mat, T* inv){
+  typedef Eigen::Matrix<T, ndim, ndim> MatrixN;
+  MatrixN mat_Eigen;
+  // Store mat^T in mat_Eigen
+  for(int ii = 0; ii < ndim; ii++)
+    for(int jj = 0; jj < ndim; jj++)
+      mat_Eigen(jj,ii) = mat[ndim*ii+jj];
+
+  Eigen::FullPivLU<MatrixN> lu(mat_Eigen);
+
+  if(!lu.isInvertible()) return 1;
+
+  MatrixN invmat_Eigen = lu.inverse();
+
+  // Copy back invmat_Eigen^T into mat
+  for(int ii = 0; ii < ndim; ii++)
+    for(int jj = 0; jj < ndim; jj++)
+      inv[ndim*ii+jj] = invmat_Eigen(jj,ii);
+
+  return 0;
+}
+template int invmat_EigenLUFP<2,double>(double *mat, double* inv);
+template int invmat_EigenLUFP<3,double>(double *mat, double* inv);
+
+#ifdef USE_LAPACK
+  // Matrix stored line first in C fashion
+  int invmat_LAPACK(int n, double mat[]){
+  	METRIS_ENFORCE_MSG(n <= 3, "invmat expecting n <= 3");
+  	int ipiv[3];
+  	constexpr int nwork = 20;
+    int nwork_ = nwork;
+  	double rwork[nwork];
+  	int info;
+
+  	dgetrf_(&n,&n,mat,&n,ipiv,&info);
+    if(info != 0) return(abs(info)); 
+
+  	dgetri_(&n,mat,&n,ipiv,rwork,&nwork_,&info);
+    if(info != 0) return(abs(info)); 
+
+    return 0;
+  }
+#endif
 
 template<>
-int invmat<2>(double *mat){
+int invmat_naive<2>(double *mat){
   double det = mat[0]*mat[3] - mat[1]*mat[2];
   if(abs(det) < Constants::detTol) return 1; 
 
@@ -112,15 +162,21 @@ int invmat<2>(double *mat){
 }
 
 template<>
-int invmat<3>([[maybe_unused]] double *mat){
-  return invmat(3, mat);
-}
-
-template<>
-int invmat<1>(double *mat){
+int invmat_naive<1>(double *mat){
   if(abs(*mat) < Constants::detTol) return 1; 
   *mat = 1.0 / (*mat);
   return 0;
 }
+
+
+template<int ndim>
+int invmat(double *mat){
+  // naive formula no less stable in dim 2 and much faster
+  if constexpr(ndim <= 2) return invmat_naive<ndim>(mat);
+  else                    return invmat_EigenLUFP<ndim>(mat,mat);
+}
+template int invmat<1>(double *mat);
+template int invmat<2>(double *mat);
+template int invmat<3>(double *mat);
 
 } // End namespace
