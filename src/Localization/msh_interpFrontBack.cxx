@@ -38,7 +38,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
   if(bak.getBasis() == FEBasis::Lagrange && bak.curdeg > 1) 
       METRIS_THROW_MSG(WArgExcept(), "Back should be in Bézier format!");
 
-  METRIS_ENFORCE_MSG(msh.idim == msh.get_tdim(), "Mesh is surface or line in plane.");
+  //METRIS_ENFORCE_MSG(msh.idim == msh.get_tdim(), "Mesh is surface or line in plane.");
 
   METRIS_ENFORCE(METRIS_MAXTAGS >= 2);
 

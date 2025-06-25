@@ -3,9 +3,12 @@ LAPACKE is not viable because its routines do not take work arrays but instead d
 Eigen promises optimized code via lazy evaluation, has statically-sized matrices, is header only and well integrated to CMake. 
 We document here the differences observed with LAPACK for future reference, as we intend to make LAPACK optional (and possibly remove it altogether eventually). 
 
-These tests were carried out on a macbook pro M4 laptop with clang as the compiler and Release mode (-O3).
+These tests were carried out on a macbook pro M4 laptop with clang as the compiler and Release mode (-O3), and on a Linux workstation with an Intel i9-9900K CPU with gcc.
 
-Conclusions are that LAPACK is slower than Eigen or `src/linalg/dsyevq.(c|h)xx` (an implementation of dsyevq by Joachim Kopp) for eigendecomposition of spd matrices, and Eigen can be slightly faster than dsyevq followed by exp but only in dimension 3 for matrix exponentiation. 
+Conclusions are that LAPACK is slower than Eigen or `src/linalg/dsyevq.(c|h)xx` (an implementation of dsyevq by Joachim Kopp) for eigendecomposition of spd matrices.
+For matrix exponentiation, Eigen can be slightly faster than dsyevq followed by exponentiating the eigenvalues but only in dimension 3. 
+Determinant computations using naive formulas are too numerically unstable in dimension 3 and the fastest robust approach is a Cholesky decomposition using Eigen. 
+
 
 # Eigen decomposition
 
@@ -235,22 +238,22 @@ In absolute terms, Eigen carries out about 100M determinant computations a secon
 
 <figure style="text-align: center;">
   <div style="display: flex; justify-content: space-around; align-items: center;">
-    <img src="figures/mac1/clang/bench_det_2.png" width="50%" />
-    <img src="figures/mac1/clang/bench_det_3.png" width="50%" />
+    <img src="figures/mac1/clang/bench_det_2.png" width="48%" />
+    <img src="figures/mac1/clang/bench_det_3.png" width="48%" />
   </div>
 
-  <figcaption style="margin-top: 0.5em; font-style: italic;">
+  <figcaption style="margin-top: 0.5em; font-style: italic; text-align: center;">
     Figure: Benchmark results on the Mac machine with clang
   </figcaption>
 </figure>
 
 <figure style="text-align: center;">
   <div style="display: flex; justify-content: space-around; align-items: center;">
-    <img src="figures/linux1/gcc/bench_det_2.png" width="50%" />
-    <img src="figures/linux1/gcc/bench_det_3.png" width="50%" />
+    <img src="figures/linux1/gcc/bench_det_2.png" width="48%" />
+    <img src="figures/linux1/gcc/bench_det_3.png" width="48%" />
   </div>
 
-  <figcaption style="margin-top: 0.5em; font-style: italic;">
+  <figcaption style="margin-top: 0.5em; font-style: italic; text-align: center;">
     Figure: Benchmark results on the Linux machine with gcc
   </figcaption>
 </figure>

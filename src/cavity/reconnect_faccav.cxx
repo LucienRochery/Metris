@@ -719,8 +719,9 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
 
   if(msh.isboundary_faces()){ // Create bpois and get uvs
     // HO nodes delayed until check validity
-    for(int ii = 0; ii < nnode; ii++){
+    for(int ii = 0; ii < 3; ii++){
       int ip = msh.fac2poi(ifacn,ii);
+      METRIS_ASSERT(ip >= 0 && ip < msh.npoin);
       aux_bpo_update_fac(msh,cav,ip,ifacn,ifac1,ithread);
     }
   }
