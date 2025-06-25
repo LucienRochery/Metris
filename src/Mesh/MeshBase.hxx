@@ -23,8 +23,7 @@ namespace Metris{
 class MetricFieldFE;
 class MetricFieldAnalytical;
 class MetrisAPI; 
-
-
+class MeshBase;
 
 /* N Integer Boundary Information: stride of bpo2ibi */                   
 const int nibi = 4; 
@@ -36,6 +35,7 @@ const int nrbi = 2;
 
 enum class MeshClass{MeshBase, MeshMetric, MeshBack, Mesh};
 enum class MetricClass;
+
 
 
 class MeshBase{
@@ -134,9 +134,6 @@ public:
   // if iref >= 0.
   int poi2del(int ipoin, int tdim, int iref) const;
 
-	// Work arrays: to be freely used by any routine
-  intAr1 iwork;
-  dblAr1 rwork;
 
 
 	int tag[METRIS_MAXTAGS];
@@ -295,6 +292,26 @@ public:
   // (edge tangent, face normal) of a point with CAD link and poi2ent initialized.
   void get_algnd(int ipoin, double *algnd);
 
+protected:
+  MeshArray1D<intAr1> iwork;
+  MeshArray1D<dblAr1> rwork;
+  intAr1 iwork_lock, rwork_lock;
+
+public:
+  // Request rwork/iwork sized nn
+  dblWrkAr1 get_rwork(int nn = 0);
+  intWrkAr1 get_iwork(int nn = 0);
+  // No need to call these.
+  template<typename T>
+  void free_work(int ii){
+    static_assert(std::is_same<T,double>::value || std::is_same<T,int>::value);
+    if(std::is_same<T,double>::value){
+      rwork_lock[ii] = 0;
+    }else if(std::is_same<T,int>::value){
+      iwork_lock[ii] = 0;
+    }
+  }
+
 
   // Flag skipallocf determines whether main data (found in file) should be 
   // allocated or not. This is for initialization from API, to use std::move. 
@@ -366,6 +383,40 @@ protected:
   // 2: faces, normal
   // Deviation is 1 - abs(dtprd) 
   double geodev[2];  // Also in back mesh... 
+};
+
+
+
+template<typename T>
+class WorkArray1D{
+public:
+  WorkArray1D(MeshBase& msh_, int ilock_, MeshArray1D<T>& array_) 
+    : msh(msh_), ilock(ilock_), array(array_) {}
+
+  ~WorkArray1D(){
+    msh.free_work<T>(ilock);
+  }
+
+  ALWAYS_INLINE T &operator[](const int &ii){
+    return array[ii];
+  }
+  ALWAYS_INLINE const T &operator[](const int &ii) const {
+    return array[ii];
+  }
+
+  void set_n(int nn){array.set_n(nn);}
+  int get_n() const {return array.get_n();}
+  void stack(T val){array.stack(val);}
+  T pop(){return array.pop();}
+  bool allocate(int m){return array.allocate(m);}
+
+  MeshArray1D<T>& get_array(){return array;}
+  const MeshArray1D<T>& get_array() const {return array;}
+
+private:
+  int ilock, itype;
+  MeshArray1D<T>& array;
+  MeshBase& msh;
 };
 
 

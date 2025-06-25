@@ -642,6 +642,63 @@ void MeshBase::set_nentt(int tdimn, int nentt, bool skipallocf){
 
 
 
+dblWrkAr1 MeshBase::get_rwork(int nn){
+  int nwork = rwork.get_n();
+  int ivalid = -1;
+  int iret = -1;
+  for(int ii = 0; ii < nwork; ii++){
+    if(rwork_lock[ii] > 0) continue;
+    ivalid = ii;
+    if(rwork[ii].size() >= nn){
+      iret = ii;
+      goto ret;
+    }
+  }
+  if(ivalid >= 0){
+    iret = ivalid;
+    goto ret;
+  }
+  // Create a new one
+  rwork.inc_n();
+  rwork_lock.inc_n();
+  iret = nwork;
+  goto ret;
+
+ret:
+  rwork[iret].allocate(nn);
+  rwork[iret].set_n(nn);
+  rwork_lock[iret] = 1;
+  return dblWrkAr1(*this, iret, rwork[iret]);
+}
+
+intWrkAr1 MeshBase::get_iwork(int nn){
+  int nwork = iwork.get_n();
+  int ivalid = -1;
+  int iret = -1;
+  for(int ii = 0; ii < nwork; ii++){
+    if(iwork_lock[ii] > 0) continue;
+    ivalid = ii;
+    if(iwork[ii].size() >= nn){
+      iret = ii;
+      goto ret;
+    }
+  }
+  if(ivalid >= 0){
+    iret = ivalid;
+    goto ret;
+  }
+  // Create a new one
+  iwork.inc_n();
+  iwork_lock.inc_n();
+  iret = nwork;
+  goto ret;
+
+ret:
+  iwork[iret].allocate(nn);
+  iwork[iret].set_n(nn);
+  iwork_lock[iret] = 1;
+  return intWrkAr1(*this, iret, iwork[iret]);
+}
 
 
 

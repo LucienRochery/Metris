@@ -30,6 +30,11 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
                 intAr1 &lerro, int ithrd1, int ithrd2);
 
 
+// Reject proposed cavity based on edge length:
+// if more long edges are created than short edges are destroyed, reject
+template<class MFT>
+int collrejcav_len(Mesh<MFT>& msh, MshCavity &cav, int ithrd1);
+
 } // end namespace
 
 #endif

@@ -115,7 +115,7 @@ int locMesh(MeshBase &msh, int *ientt,
 	}
 
   //intAr1 lnext(10);
-  intAr1 &lnext = msh.iwork; 
+  intWrkAr1 lnext = msh.get_iwork(10); 
   lnext.set_n(0);
   lnext.stack(*ientt);
 
@@ -144,12 +144,12 @@ int locMesh(MeshBase &msh, int *ientt,
         MPRINTF("ntry = %d nentt %d \n",ntry, msh.nentt(tdim));
         METRIS_THROW_MSG(AlgoExcept(),"TRIED ALL ELEMENTS !");
       }
-      while(lnext.n1_ > 0){
+      while(lnext.get_n() > 0){
         *ientt = lnext.pop(); 
-      METRIS_ASSERT(*ientt >= 0 && *ientt < nentt);
-      METRIS_ASSERT(!isdeadent(*ientt,ent2poi));
-      ent2tag(ithrd,*ientt) = msh.tag[ithrd];
-      niter++;
+        METRIS_ASSERT(*ientt >= 0 && *ientt < nentt);
+        METRIS_ASSERT(!isdeadent(*ientt,ent2poi));
+        ent2tag(ithrd,*ientt) = msh.tag[ithrd];
+        niter++;
 
 
         if constexpr(ideg > 1){

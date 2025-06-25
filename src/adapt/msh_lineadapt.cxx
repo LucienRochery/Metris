@@ -507,7 +507,7 @@ void adaptGeoLines(Mesh<MFT> &msh){
                                      cav.ipins,cav.lcedg.get_n(),cav.lcfac.get_n());
 
             if(DOPRINTS2() && msh.param->dbgfull){
-              intAr1 &refold = msh.iwork;
+              intWrkAr1 refold = msh.get_iwork(msh.nface);
               refold.set_n(msh.nface);
               for(int ii = 0; ii < msh.nface; ii++){
                 refold[ii] = msh.fac2ref[ii];

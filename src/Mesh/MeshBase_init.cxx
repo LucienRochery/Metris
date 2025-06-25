@@ -601,8 +601,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   int ncorn = GmfStatKwd(libIdx, GmfCorners);
   if(ncorn > 0){
     CPRINTF2("-- Start reading %10d corners\n",ncorn);
-    iwork.allocate(ncorn);
-    iwork.set_n(ncorn);
+    intWrkAr1 iwork = this->get_iwork(ncorn);
     GmfGetBlock(libIdx, GmfCorners, 1, ncorn, 0, NULL, NULL,
       GmfInt, &iwork[0] , &iwork[ncorn-1]);
     // feflo.a has output some files with a bunch of 0 corners
@@ -628,8 +627,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   ncorn = GmfStatKwd(libIdx, GmfVerticesOnGeometricVertices);
   CPRINTF2("-- Start reading %10d VerticesOnGeometricVertices (corners)\n",ncorn);
   if(ncorn > 0){
-    iwork.allocate(2*ncorn);
-    iwork.set_n(2*ncorn);
+    intWrkAr1 iwork = this->get_iwork(2*ncorn);
     //GmfGetBlock(libIdx, GmfVerticesOnGeometricVertices, 1, ncorn, 0, NULL, NULL,
     //            GmfIntVec, &iwork[0] , &iwork[2*ncorn-1]);
     GmfGotoKwd(libIdx, GmfVerticesOnGeometricVertices);

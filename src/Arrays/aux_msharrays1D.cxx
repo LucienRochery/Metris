@@ -265,6 +265,9 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TUP,(T_SEQ)(INT1_SEQ))
 template class MeshArray1D<std::pair<int,int>,int>;
 template class MeshArray1D<MeshArray1D<std::pair<int,int>,int>,int>;
 
+template class MeshArray1D<MeshArray1D<double,int>,int>;
+template class MeshArray1D<MeshArray1D<int   ,int>,int>;
+
 //template MeshArray1D<bool,int32_t>::MeshArray1D<bool,int32_t,int32_t>(MeshArray2D<bool,int32_t,int32_t> &arr2);
 //
 //#define INSTANTIATE(T,INT1,INT1_2,INT2_2)\

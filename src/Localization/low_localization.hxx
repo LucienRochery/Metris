@@ -8,6 +8,8 @@
 
 #include "../types.hxx"
 
+class dblWrkAr1;
+
 namespace Metris{
 
 class MeshBase;
@@ -55,7 +57,7 @@ int inveval0(const MeshBase &msh,
              const double* coor0, 
              double* __restrict__ coopr, 
              double* __restrict__ bary,
-             dblAr1 &work,
+             dblWrkAr1 &work,
              double tol);
 
 

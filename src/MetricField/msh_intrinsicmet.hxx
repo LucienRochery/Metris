@@ -24,7 +24,8 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
 
 
 template<class MetricFieldType, int gdim, int tdim, int ideg>
-void getMetMesh0_lplib(int ient0, int ient1,int ithread, MeshMetric<MetricFieldType> *msh_, int poitag);
+void getMetMesh0_lplib(int ient0, int ient1,int ithread, 
+                       MeshMetric<MetricFieldType> *msh_, dblWrkAr1 *rwork,int poitag);
 
 //// This reoutine re-interpolates at edge extremities from the shell
 //template<int ideg,int ilag>

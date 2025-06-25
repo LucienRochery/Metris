@@ -17,6 +17,8 @@
 #include "../Mesh/Mesh.hxx"
 
 
+//#define NODELSURF
+
 namespace Metris{
 
 
@@ -30,12 +32,14 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
   METRIS_ASSERT(cav.ipins >= 0 && cav.ipins < msh.npoin);
 
 
+  #ifdef NODELSURF
   static int nwarn = 0;
   // Disable surf
   if(msh.get_tdim() < msh.idim && msh.param->iflag1 == 0 && idelaunay){
     if(nwarn++ < 10) MPRINTF("## WARNING DELAUNAY SURFACE DISABLED\n");
     idelaunay = false;
   }
+  #endif
 
   msh.tag[ithrd1]++;
   if(idelaunay) msh.tag[ithrd2]++;
@@ -737,6 +741,7 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav,
 
   GETVDEPTH(msh.param);
 
+  #ifdef NODELSURF
   static int nwarn = 0;
 
   // Disable surf
@@ -744,6 +749,7 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav,
     if(nwarn++ < 10) MPRINTF("## WARNING DELAUNAY SURFACE DISABLED\n");
     return 0;
   }
+  #endif
 
 
   //if(msh.get_tdim() == 3) 

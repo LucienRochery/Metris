@@ -17,6 +17,10 @@
 #include "../io_libmeshb.hxx"
 #include "../msh_checktopo.hxx"
 #include "../adapt/low_increasecav.hxx"
+#include "../low_lenedg.hxx"
+#include "../low_geo.hxx"
+
+#include <unordered_set>
 
 namespace Metris{
 
@@ -137,9 +141,7 @@ int colledgsurf(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf,
     int nbalf = cav.lcfac.get_n();
     int nbale = cav.lcedg.get_n();
     intAr1& lcent = cav.lcent(msh.get_tdim());
-    int nbent     = lcent.get_n();
-    for(int ii = 0; ii < nbent; ii++){
-      int icent = lcent[ii]; 
+    for(int icent : lcent){
       METRIS_ASSERT(!isdeadent(icent,ent2poi));
 
       // Doesn't change but easy to get it here 
@@ -217,6 +219,8 @@ int colledgsurf(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf,
 
         if(DOPRINTS2()) writeMeshCavity("collapse_cavity0.meshb", msh, cav);
 
+        //static int nwarnprt = 0;
+        //if(nwarnprt++ < 10) printf("## PUT BACK DELAUNAY IN LOW COLLAPSE\n");
         ierro = increase_cavity(msh, cav, true, ithrd1, ithrd2);
         if(ierro != 0){
           CPRINTF1("# increase_cavity error %d \n",ierro);
@@ -230,6 +234,12 @@ int colledgsurf(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf,
         //if(ierro > 0) continue;
 
         if(DOPRINTS2()) writeMeshCavity("collapse_cavity1.meshb", msh, cav);
+
+        //ierro = collrejcav_len(msh, cav, ithrd2);
+        //if(ierro > 0){
+        //  CPRINTF1(" # reject cavity\n");
+        //  continue;
+        //}
 
 
         CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
@@ -472,6 +482,217 @@ template int collversurf<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh
                    int iface, int iver, double qmax_suf, 
                    MshCavity &cav, CavWrkArrs &work, 
                    intAr1 &lerro, int ithrd1, int ithrd2);
+
+
+
+// Reject proposed cavity based on density changes
+// Each point counts in the cavity as the ratio of the ball volume that is contained
+// in the cavity
+
+// Accelerate by using nentt sized work array
+// Implement getmeasent for surface
+template<class MFT>
+int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
+  GETVDEPTH(msh.param);
+
+  const int tdim = cav.lctet.get_n() > 0 ? 3 
+                 : cav.lcfac.get_n() > 0 ? 2 
+                                         : 1;
+  METRIS_ASSERT(tdim != 1);
+
+  METRIS_ENFORCE(tdim == msh.idim);
+
+  const intAr1& lcent = cav.lcent(tdim);
+  const int ncent = lcent.get_n();
+  const intAr2& ent2poi = msh.ent2poi(tdim);
+  const intAr2& ent2ent = msh.ent2ent(tdim);
+  intAr2& ent2tag = msh.ent2tag(tdim);
+
+
+  // To precompute element volumes
+  cav.rwrk1.set_n(ncent);
+  // To accumulate volumes per point
+  msh.rwork.allocate(msh.npoin);
+  msh.rwork.set_n(msh.npoin);
+
+  double met[6];
+
+  // Tag cavity elements, compute volumes and zero out their point volumes
+  for(int icent = 0; icent < ncent; icent++){
+    int ientt = lcent[icent];
+    ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
+
+    double volM;
+    MSH_DIM_DEG0(msh)
+    volM = getmeasent<MFT,gdim,ideg>(msh, ientt);
+    MSH_DIM_DEG1(msh)
+
+    METRIS_ASSERT(volM > 0);
+    cav.rwrk1[icent] = volM;
+
+    // zero out point volumes, we'll accumulate in a later loop
+    for(int iver = 0; iver < tdim + 1; iver++){
+      int ipoin = ent2poi(ientt, iver);
+      msh.rwork[ipoin] = 0;
+    }
+  }
+
+  // Tag points on cavity boundary, these are not internal
+  // Also compute their balls and volume 
+  for(int icent = 0; icent < ncent; icent++){
+    int ientt = lcent[icent];
+    // Only consider cav boundary facets
+    for(int ifa = 0; ifa < tdim + 1; ifa++){
+      int ienei = ent2ent(ientt, ifa);
+      if(ienei >= 0 && ent2tag(ithrd1,ienei) >= msh.tag[ithrd1]) continue;
+      // Accumulate volume at facet vertices
+      for(int iver = 0; iver < tdim + 1; iver++){
+        if(iver == ifa) continue;
+        int ipoin = ent2poi(ientt, iver);
+        if(msh.poi2tag(ithrd1, ipoin) == msh.tag[ithrd1]) continue;
+        msh.poi2tag(ithrd1, ipoin) = msh.tag[ithrd1];
+        msh.rwork[ipoin] += cav.rwrk1[icent];
+
+      }// for iver
+    }// for ifa
+  }
+
+
+}
+
+
+// This idea is probably doomed to fail: 2 long edges do not mean 2 new points...
+// Reject proposed cavity based on edge length:
+// if more long edges are created than short edges are destroyed, reject
+// Return 1 if reject, 0 otherwise
+template<class MFT>
+int collrejcav_len(Mesh<MFT>& msh, MshCavity &cav, int ithrd1){
+
+
+  GETVDEPTH(msh.param);
+
+  printf("## DEBUG forced iverb = 5 ivdepth = 5\n");
+  iverb__ = 5;
+  ivdepth__ = 5;
+
+  // Tag points that won't be deleted: there is at least one elt outside
+  // the cavity that has the point. 
+  int tdim = cav.lctet.get_n() > 0 ? 3 
+           : cav.lcfac.get_n() > 0 ? 2 
+                                   : 1;
+  const intAr1& lcent = cav.lcent(tdim);
+  const intAr2& ent2poi = msh.ent2poi(tdim);
+  const intAr2& ent2ent = msh.ent2ent(tdim);
+  intAr2& ent2tag = msh.ent2tag(tdim);
+
+  // Store here the edges whose length is not to be computed
+  std::unordered_set<std::pair<int,int>,tup2_hash::hash> nocomp;
+
+  // Tag cavity elements
+  for(int ientt : lcent){
+    ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
+  }
+
+
+  // Start by adding all edges on the cavity boundary to the set. 
+  // In 3D, this doesn't mean they're on a boundary face... so we need to separate
+  //auto ledfa = tdim == 2 ? ledfa2 : ledfa3;
+  //int nedfa = tdim == 2 ? 1 : 3;
+  if(tdim == 3){
+    for(int itetr : lcent){
+      for(int ifa = 0; ifa < tdim + 1; ifa++){
+        int itnei = msh.tet2tet(itetr,ifa);
+        if(itnei >= 0 && msh.tet2tag(ithrd1,itnei) == msh.tag[ithrd1]) continue;
+        // Edges on the cavity boundary:
+        for(int iedf = 0; iedf < 3; iedf++){
+          int ied = ledfa3[ifa][iedf];
+          int ipoi1 = msh.tet2poi(itetr, lnoed3[ied][0]);
+          int ipoi2 = msh.tet2poi(itetr, lnoed3[ied][1]);
+          auto key = stup2(ipoi1, ipoi2);
+          nocomp.insert(key);
+        }// for ied
+      }// for ifa
+    }// for itetr
+  }
+
+  const int nedl = (tdim*(tdim+1))/2;
+  int nshort0 = 0, nlong0 = 0;
+  const auto lnoed = tdim == 2 ? lnoed2 : lnoed3;
+  double len, sz[2];
+  for(int ientt : lcent){
+    for(int ied = 0; ied < nedl; ied++){
+      int ipoi1 = ent2poi(ientt, lnoed[ied][0]);
+      int ipoi2 = ent2poi(ientt, lnoed[ied][1]);
+
+      // In this case, we haven't added to nocomp
+      // Also seize opportunity to tag the points
+      if(tdim == 2){
+        int ifnei = msh.fac2fac(ientt,ied);
+        if(ifnei < 0 || msh.fac2tag(ithrd1,ifnei) < msh.tag[ithrd1]) continue;
+      }
+
+      auto key = stup2(ipoi1, ipoi2);
+
+      if(nocomp.find(key) != nocomp.end()) continue;
+
+      CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
+        len = msh.idim == 2 ? 
+          getlenedg_geosz<MFT,2,ideg>(msh,ientt,tdim,ied,sz) :
+          getlenedg_geosz<MFT,3,ideg>(msh,ientt,tdim,ied,sz);
+      }}CT_FOR1(ideg);
+
+      if(len > sqrt(2)) nlong0++;
+      if(len < 1/sqrt(2)) nshort0++;
+
+      nocomp.insert(key);
+    }// for ied
+  }// for ientt
+
+  // Compute nshort and nlong in final cavity
+  int nshort1 = 0, nlong1 = 0;
+  int edg2pol[2] = {cav.ipins, -1};
+  for(int ientt : lcent){
+    for(int ifa = 0; ifa < tdim + 1; ifa++){
+      int ienei = ent2ent(ientt,ifa);
+      if(ienei >= 0 && ent2tag(ithrd1,ienei) == msh.tag[ithrd1]) continue;
+      // Get points on face (3D) / edge (2D)
+      for(int ipfa = 0; ipfa < tdim; ipfa++){
+        int ipoin = tdim == 2 ? lnoed2[ifa][ipfa] : lnofa3[ifa][ipfa];
+        if(ipoin == cav.ipins) continue;
+        if(msh.poi2tag(ithrd1, ipoin) == msh.tag[ithrd1]) continue;
+        msh.poi2tag(ithrd1, ipoin) = msh.tag[ithrd1];
+
+        edg2pol[1] = ipoin;
+        CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
+          len = msh.idim == 2 ? 
+            getlenedg_geosz<MFT,2,ideg>(msh,edg2pol,sz) :
+            getlenedg_geosz<MFT,3,ideg>(msh,edg2pol,sz);
+        }}CT_FOR1(ideg);
+        if(len > sqrt(2)) nlong1++;
+        if(len < 1/sqrt(2)) nshort1++;
+
+      }// for ipfa
+    }// for ifa
+  }// for ientt
+
+  CPRINTF1(" - collrejcav_len got short %d -> %d, long %d -> %d\n",
+           nshort0,nshort1,nlong0,nlong1);
+
+  writeMeshCavity("collapse_cavity0.meshb", msh, cav);
+  printf("Debug wait\n");
+  wait();
+
+  METRIS_ASSERT(nshort1 <= nshort0);
+  METRIS_ASSERT(nlong1 >= nlong0);
+
+  // More long are created than short are destroyed
+  if(nlong1 - nlong0 >= nshort0 - nshort1) return 1;
+  return 0;
+}
+
+template int collrejcav_len<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, int ithrd1);
+template int collrejcav_len<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, int ithrd1);
+
 
 
 } // end namespace

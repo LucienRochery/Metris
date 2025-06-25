@@ -40,6 +40,13 @@ using intLoop = Loop<int, METRIS_INT1>;
 typedef MeshArray3D<int   > intAr3;
 typedef MeshArray3D<double> dblAr3;
 
+
+template<typename T> class WorkArray1D;
+using intWrkAr1 = WorkArray1D<int   >;
+using dblWrkAr1 = WorkArray1D<double>;
+
+
+
 }
 
 #endif

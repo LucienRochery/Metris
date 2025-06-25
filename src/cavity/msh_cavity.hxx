@@ -127,7 +127,8 @@ public:
   intAr1 lctet,lcfac,lcedg;
 
   // Optional array, as MshCavity is often reused
-  intAr1 usrwrk1;
+  intAr1 iwrk1;
+  dblAr1 rwrk1;
 
   // Provide precomputed tetrahedron qualities. Cavity also fills this in if some 
   // provided or if flag cache_tetra_quality set.  

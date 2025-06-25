@@ -335,13 +335,13 @@ template int locMeshQuick<3>(MeshBase &msh, const double *coor0);
 //        2 if unconverged
 template<int gdim, int ideg> 
 int inveval0(const MeshBase &msh,
-                   const int* ent2pol,
-                   const dblAr2 &coord,
-                   const double* coor0, 
-                   double* __restrict__ coopr, 
-                   double* __restrict__ bary,
-                   dblAr1 &work,
-                   double tol){
+             const int* ent2pol,
+             const dblAr2 &coord,
+             const double* coor0, 
+             double* __restrict__ coopr, 
+             double* __restrict__ bary,
+             dblWrkAr1 &work,
+             double tol){
 /*nlopt::LD_TNEWTON_PRECOND_RESTART,
   nlopt::LD_TNEWTON_RESTART,
   nlopt::LD_TNEWTON */
@@ -378,7 +378,7 @@ int inveval0(const MeshBase &msh,
                                    &fopt,
                                    //int mf, /* subspace dimension (0 for default) */
                                    algo,
-                                   work,
+                                   work.get_array(),
                                    fstop , ftol_rel, ftol_abs);
 
     bary[0] = 1;
@@ -438,7 +438,7 @@ template int inveval0<2,n>(const MeshBase &msh,\
                            const double* coor0,\
                            double* __restrict__ coopr,\
                            double* __restrict__ bary,\
-                           dblAr1 &work,\
+                           dblWrkAr1 &work,\
                            double tol);\
 template int inveval0<3,n>(const MeshBase &msh,\
                            const int* ent2pol,\
@@ -446,7 +446,7 @@ template int inveval0<3,n>(const MeshBase &msh,\
                            const double* coor0,\
                            double* __restrict__ coopr,\
                            double* __restrict__ bary,\
-                           dblAr1 &work,\
+                           dblWrkAr1 &work,\
                            double tol);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
@@ -483,7 +483,7 @@ int inveval(MeshBase &msh, int ientt,
   
 
   const intAr2 &ent2poi = msh.ent2poi(tdim);
-  dblAr1 &work = msh.rwork;
+  dblWrkAr1 work = msh.get_rwork();
   int ierro = inveval0<gdim,ideg>(msh,ent2poi[ientt],msh.coord,coor0,coopr,bary,work,tol);
   if(ierro < 2) return ierro;
   // Only if ideg > 1 should we be here 

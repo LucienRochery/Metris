@@ -31,7 +31,7 @@ namespace Metris{
 // iseed0: an edge on this curve close to first t 
 template<class MFT>
 void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lcorn,
-                    const dblAr1 &lnewt, const intAr1 &ledge, 
+                    const dblAr1 &lnewt, const intWrkAr1 &ledge, 
                     int ithrd1, int ithrd2, int ithrd3){
 
   GETVDEPTH(msh.param);
@@ -569,10 +569,10 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
 
 template void insPointsCurve<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, 
    int iref, const double* range, const int*lcorn, const dblAr1 &lnewt, 
-   const intAr1 &ledge, int ithrd1, int ithrd2, int ithrd3);
+   const intWrkAr1 &ledge, int ithrd1, int ithrd2, int ithrd3);
 template void insPointsCurve<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, 
    int iref, const double* range, const int*lcorn, const dblAr1 &lnewt, 
-   const intAr1 &ledge, int ithrd1, int ithrd2, int ithrd3);
+   const intWrkAr1 &ledge, int ithrd1, int ithrd2, int ithrd3);
 
 
 } //namespace Metris

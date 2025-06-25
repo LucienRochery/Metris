@@ -103,6 +103,10 @@ double getmeasentP1(const MetrisParameters *param,
                     const dblAr2 &coord,
                     const double* norref, bool* iflat);
 
+// Volume in the metric
+template <class MFT, int gdim, int ideg>
+double getmeasent(const MeshMetric<MFT> &msh, int ientt);
+
 template <class MFT, int idim>
 void getheightentP1_aniso(const Mesh<MFT> &msh, int ientt, double *heights);
 

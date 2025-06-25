@@ -93,6 +93,10 @@ constexpr int lnofa3[4][3] = {{1,3,2},
                               {2,3,0},
                               {3,1,0},
                               {0,1,2}};
+
+constexpr int ledfa2[3][1] = {{0},
+                              {1},
+                              {2}};
 constexpr int ledfa3[4][3] = {{5,1,4},
                               {3,2,5},
                               {0,3,4},
@@ -108,7 +112,7 @@ constexpr auto getlnosub(){
   }else if(tdim == 2){
     return lnoed2;
   }else{
-    return lnoed3;
+    return lnofa3;
   }
 }
 

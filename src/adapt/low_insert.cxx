@@ -287,7 +287,8 @@ int insertEdge(Mesh<MFT>& msh,
                                   msh,cav);
     }
 
-
+    //static int nwarnprt = 0;
+    //if(nwarnprt++ < 10) printf("## PUT BACK DELAUNAY IN LOW INSERT\n");
     ierro = increase_cavity(msh, cav, true, ithrd1, ithrd2);
     if(ierro != 0){
       CPRINTF1(" - +cav error %d\n",ierro);

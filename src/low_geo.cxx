@@ -307,6 +307,69 @@ template double getmeasentP1<2,3>(const MetrisParameters *msh,
 
 
 
+template <class MFT, int gdim, int ideg>
+double getmeasent(const MeshMetric<MFT> &msh, int ientt){
+
+  constexpr int tdim = gdim;
+  constexpr int nnode = getnnode(tdim, ideg);
+  constexpr auto eval = tdim == 2 ? eval2<gdim,ideg> : eval3<gdim,ideg>;
+  constexpr auto ordent = ORDELT(tdim);
+  const intAr2 &ent2poi = tdim == 3 ? msh.tet2poi : msh.fac2poi;
+
+  double bary[tdim+1];
+  double dum[gdim],jmat[tdim*gdim];
+  const double* metl;
+
+  const double dq = 1.0 / nnode;
+  double volM = 0;
+  if constexpr (ideg == 1){
+    for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1 / (tdim + 1.0);
+    eval(msh.coord,ent2poi[ientt],msh.getBasis(),DifVar::Bary,DifVar::None,
+         bary, dum, jmat, NULL);
+  }
+  for(int inode = 0; inode < nnode; inode++){
+    for(int ii = 0; ii < tdim + 1; ii++)
+      bary[ii] = ordent[ideg][inode][ii] / (double) ideg;
+      
+    int ipoin = ent2poi(ientt, inode);
+
+    metl = msh.met[ipoin];
+
+    // and Jacobian 
+    if constexpr(ideg > 1){
+      eval(msh.coord,ent2poi[ientt],msh.getBasis(),DifVar::Bary,DifVar::None,
+           bary, dum, jmat, NULL);
+    }
+
+    double detJ = detmat<gdim>(jmat) / tdim / (tdim - 1); // Works in 2D and 3D
+    // Determinant of M^{1/2}
+    double det12;
+    if(msh.met.getSpace() == MetSpace::Exp){
+      det12 = sqrt(detsym2<gdim>(metl));
+    }else{ // In log format, simply the trace
+      det12 = metl[0] + metl[2];
+      if constexpr(gdim == 3) det12 += metl[5];
+      det12 = exp(det12/2);
+    } 
+    volM += det12 * detJ * dq ;
+  }
+
+  return volM;
+}
+
+// See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
+// Section A.4.1.2 Vertical Repetition
+#define BOOST_PP_LOCAL_MACRO(n)\
+template double getmeasent<MetricFieldAnalytical,2,n>(const MeshMetric<MetricFieldAnalytical> &msh, int ientt);\
+template double getmeasent<MetricFieldFE        ,2,n>(const MeshMetric<MetricFieldFE        > &msh, int ientt);\
+template double getmeasent<MetricFieldAnalytical,3,n>(const MeshMetric<MetricFieldAnalytical> &msh, int ientt);\
+template double getmeasent<MetricFieldFE        ,3,n>(const MeshMetric<MetricFieldFE        > &msh, int ientt);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+
+
+
 template<class MFT, int tdim>
 void getheightentP1_aniso(const Mesh<MFT> &msh, int ientt,
                           double *height){

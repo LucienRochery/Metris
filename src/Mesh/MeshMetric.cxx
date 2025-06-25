@@ -21,7 +21,7 @@ double getDomainVolume0(MeshMetric<MetricFieldType> &msh){
   static_assert(gdim == 2 || gdim == 3);
 
   int nentt       = gdim == 3 ? msh.nelem   : msh.nface;
-  intAr2 &ent2poi = gdim == 3 ? msh.tet2poi : msh.fac2poi;
+  const intAr2 &ent2poi = gdim == 3 ? msh.tet2poi : msh.fac2poi;
   constexpr auto ordent = ORDELT(gdim);
 
   MetSpace ispac0 = msh.met.getSpace();
@@ -59,8 +59,8 @@ double getDomainVolume0(MeshMetric<MetricFieldType> &msh){
       eval(msh.coord,ent2poi[ientt],msh.getBasis(),DifVar::Bary,DifVar::None,
            bary, dum, jmat, NULL);
 
-      // Determinant of M^{1/2}
       double detJ = detmat<gdim>(jmat) / gdim / (gdim - 1); // Works in 2D and 3D
+      // Determinant of M^{1/2}
       double det12;
       if(tarSpace == MetSpace::Exp){
         det12 = detsym<gdim>(metl);

@@ -79,21 +79,22 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
 
 
 	// Placeholder
-  msh.rwork.allocate(msh.npoin);
-  msh.rwork.set_n(msh.npoin);
-	for(int ipoin = 0; ipoin < msh.npoin; ipoin++) msh.rwork[ipoin] = 1.0;
+  dblWrkAr1 rwork = msh.get_rwork(msh.npoin);
+	for(int ipoin = 0; ipoin < msh.npoin; ipoin++) rwork[ipoin] = 1.0;
 	
 
 	msh.tag[0]++;
 	int poitag = msh.tag[0];
 
 
-	void (*metcomp2_LPlib)(int,int,int,MeshMetric<MetricFieldType>*,double,double)
-	=[] (int ipoi0, int ipoi1, [[maybe_unused]] int ithrd, MeshMetric<MetricFieldType> *msh, [[maybe_unused]] double lbdmin, [[maybe_unused]] double lbdmax){
+	void (*metcomp2_LPlib)(int,int,int,MeshMetric<MetricFieldType>*,dblWrkAr1*,double,double)
+	=[] (int ipoi0, int ipoi1, [[maybe_unused]] int ithrd, 
+      MeshMetric<MetricFieldType> *msh, dblWrkAr1 *rwork, 
+      [[maybe_unused]] double lbdmin, [[maybe_unused]] double lbdmax){
 		int nnmet = (msh->idim*(msh->idim+1))/2;
 		for(int ipoin = ipoi0 - 1; ipoin < ipoi1; ipoin++){
       if(msh->poi2ent(ipoin,0) < 0) continue;
-			for(int jj = 0; jj < nnmet; jj++) msh->met(ipoin,jj) /= msh->rwork[ipoin];
+			for(int jj = 0; jj < nnmet; jj++) msh->met(ipoin,jj) /= rwork->operator[](ipoin);
 		}
 		// Control sizes here if provided (hmin hmax)
 	};
@@ -103,13 +104,13 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
   CT_FOR0_INC(2,3,gdim){if(msh.idim == gdim){
     CT_FOR0_INC(2,c_gdim,tdim_){if(tdim_ == tdim){
       acc = LaunchParallelMultiArg(LibIdx, LP_elt, LP_poi, (void*)getMetMesh0_lplib<MetricFieldType,gdim,tdim_,ideg>, 
-                                   2, &msh, poitag);
+                                   2, &msh, &rwork, poitag);
    }}CT_FOR1(tdim_);
   }}CT_FOR1(gdim);
 
   CPRINTF2(" - intrinsic metric accel 1 = %f \n",acc);
   acc = LaunchParallelMultiArg(LibIdx, LP_poi, 0, (void*)metcomp2_LPlib, 
-                               3, &msh, lbdmin, lbdmax);
+                               3, &msh, &rwork, lbdmin, lbdmax);
   CPRINTF2(" - intrinsic metric accel 2 = %f \n",acc);
 
 	if(ibas0 == FEBasis::Bezier) msh.met.setBasis(FEBasis::Bezier);
@@ -129,7 +130,10 @@ template void getMetMesh< MetricFieldFE         , n>(const MetrisParameters &par
 
 
 template<class MetricFieldType, int gdim, int tdim, int ideg>
-void getMetMesh0_lplib(int ient0, int ient1, [[maybe_unused]] int ithread, MeshMetric<MetricFieldType> *msh_, int poitag){
+void getMetMesh0_lplib(int ient0, int ient1, 
+                       [[maybe_unused]] int ithread, 
+                       MeshMetric<MetricFieldType> *msh_, dblWrkAr1 *rwork,
+                       int poitag){
   static_assert(gdim == 2 || gdim == 3);
   static_assert(tdim == 2 || tdim == 3);
   static_assert(tdim <= gdim);
@@ -165,13 +169,13 @@ void getMetMesh0_lplib(int ient0, int ient1, [[maybe_unused]] int ithread, MeshM
 
       if(msh.poi2tag(0,ipoin) < poitag){
         msh.poi2tag(0,ipoin) = poitag;
-        msh.rwork[ipoin]    = meas0;
+        (*rwork)[ipoin]    = meas0;
         METRIS_ENFORCE((!getintmetxi<gdim,tdim,ideg>(msh.coord,ent2poi[ientt],
                                                msh.getBasis(),bary,msh.met[ipoin])));
         getlogmet_inp<gdim>(msh.met[ipoin]);
         for(int jj = 0; jj < nnmet; jj++) msh.met(ipoin,jj) *= meas0;
       }else{
-        msh.rwork[ipoin] += meas0;
+        (*rwork)[ipoin] += meas0;
         METRIS_ENFORCE((!getintmetxi<gdim,tdim,ideg>(msh.coord,ent2poi[ientt],
                                                  msh.getBasis(),bary,metl) ));
         getlogmet_inp<gdim>(metl);
@@ -182,12 +186,12 @@ void getMetMesh0_lplib(int ient0, int ient1, [[maybe_unused]] int ithread, MeshM
 }
 
 #define BOOST_PP_LOCAL_MACRO(n)\
-template void getMetMesh0_lplib< MetricFieldAnalytical , 2, 2, n>(int ient0, int ient1,int ithread, MeshMetric<MetricFieldAnalytical> *msh_, int poitag);\
-template void getMetMesh0_lplib< MetricFieldAnalytical , 3, 2, n>(int ient0, int ient1,int ithread, MeshMetric<MetricFieldAnalytical> *msh_, int poitag);\
-template void getMetMesh0_lplib< MetricFieldAnalytical , 3, 3, n>(int ient0, int ient1,int ithread, MeshMetric<MetricFieldAnalytical> *msh_, int poitag);\
-template void getMetMesh0_lplib< MetricFieldFE         , 2, 2, n>(int ient0, int ient1,int ithread, MeshMetric<MetricFieldFE        > *msh_, int poitag);\
-template void getMetMesh0_lplib< MetricFieldFE         , 3, 2, n>(int ient0, int ient1,int ithread, MeshMetric<MetricFieldFE        > *msh_, int poitag);\
-template void getMetMesh0_lplib< MetricFieldFE         , 3, 3, n>(int ient0, int ient1,int ithread, MeshMetric<MetricFieldFE        > *msh_, int poitag);
+template void getMetMesh0_lplib< MetricFieldAnalytical , 2, 2, n>(int ient0, int ient1,int ithread, MeshMetric<MetricFieldAnalytical> *msh_,dblWrkAr1 *rwork, int poitag);\
+template void getMetMesh0_lplib< MetricFieldAnalytical , 3, 2, n>(int ient0, int ient1,int ithread, MeshMetric<MetricFieldAnalytical> *msh_,dblWrkAr1 *rwork, int poitag);\
+template void getMetMesh0_lplib< MetricFieldAnalytical , 3, 3, n>(int ient0, int ient1,int ithread, MeshMetric<MetricFieldAnalytical> *msh_,dblWrkAr1 *rwork, int poitag);\
+template void getMetMesh0_lplib< MetricFieldFE         , 2, 2, n>(int ient0, int ient1,int ithread, MeshMetric<MetricFieldFE        > *msh_,dblWrkAr1 *rwork, int poitag);\
+template void getMetMesh0_lplib< MetricFieldFE         , 3, 2, n>(int ient0, int ient1,int ithread, MeshMetric<MetricFieldFE        > *msh_,dblWrkAr1 *rwork, int poitag);\
+template void getMetMesh0_lplib< MetricFieldFE         , 3, 3, n>(int ient0, int ient1,int ithread, MeshMetric<MetricFieldFE        > *msh_,dblWrkAr1 *rwork, int poitag);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

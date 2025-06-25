@@ -341,6 +341,22 @@ void MetrisRunner::adaptMesh0(){
   }
 
   if(DOPRINTS1()) statMesh();
+
+  #if 0
+  printf("## DEBUG REMOVE THIS\n");
+  double voltot = msh.getDomainVolume();
+  int npvol = 0;
+  for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
+    if(msh.poi2ent(ipoin,0) < 0) continue;
+    npvol ++;
+  }
+  printf("-- Point density = %e ; vol = %e np = %d\n",voltot/npvol, voltot, npvol);
+  const double pi = 3.141592653589793238462643383279502884;
+  //double dens0 = msh.get_tdim() == 2 ? pi / 4 : 2*pi/3;
+  double dens0 = msh.get_tdim() == 2 ? pi / 4 : 1.0/sqrt(2);
+  printf(" - expected = %e err = %e\n",dens0,abs(dens0 - voltot/npvol));
+  wait();
+  #endif
 }
 
 #define BOOST_PP_LOCAL_MACRO(n)\

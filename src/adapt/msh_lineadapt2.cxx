@@ -129,7 +129,7 @@ void adaptGeoLines2(Mesh<MFT> &msh){
   }
 
   dblAr1 lnewt(100);
-  intAr1 &ledge = msh.iwork;
+  intWrkAr1 ledge = msh.get_iwork();
   ledge.set_n(0);
 
   for(int iloop = 0; iloop < msh.CAD.ncadlp; iloop++){

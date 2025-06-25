@@ -24,8 +24,10 @@ void Mesh<MetricFieldType>::cleanup(){
     return;
   }
 
-
-  intAr1& lentt = this->iwork;
+  int nwork = MAX(this->nbpoi, this->nedge);
+  nwork = MAX(nwork, this->nface);
+  nwork = MAX(nwork, this->nelem);
+  intWrkAr1 lentt = this->get_iwork(nwork);
 
   intAr1 lpoin(this->npoin);
   lpoin.set_n(this->npoin);

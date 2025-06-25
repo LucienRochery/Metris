@@ -13,14 +13,14 @@
 
 #define INCVDEPTH(param_obj) [[maybe_unused]] DepthCounter dc__(true);\
 [[maybe_unused]] const char* spaces_string__ = dc__.getSpaces();\
-[[maybe_unused]] const int iverb__ = param_obj->iverb;\
-[[maybe_unused]] const int ivdepth__ = param_obj->ivdepth;
+[[maybe_unused]] int iverb__ = param_obj->iverb;\
+[[maybe_unused]] int ivdepth__ = param_obj->ivdepth;
 
 
 #define GETVDEPTH(param_obj) [[maybe_unused]] DepthCounter dc__(false);\
 [[maybe_unused]] const char* spaces_string__ = dc__.getSpaces();\
-[[maybe_unused]] const int iverb__ = param_obj->iverb;\
-[[maybe_unused]] const int ivdepth__ = param_obj->ivdepth;
+[[maybe_unused]] int iverb__ = param_obj->iverb;\
+[[maybe_unused]] int ivdepth__ = param_obj->ivdepth;
 
 
 // ##__VA_ARGS__ deletes trailing comma if __VA_ARGS__ empty. C++20 has more 

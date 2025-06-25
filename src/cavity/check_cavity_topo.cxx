@@ -32,7 +32,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
 
 
   // Tag while checking no duplicates (hard error).
-  for(int tdim = 1; tdim <= 3; tdim++){
+  for(int tdim = 1; tdim <= msh.get_tdim(); tdim++){
     const intAr1& lcent = cav.lcent(tdim);
     intAr2& ent2tag = msh.ent2tag(tdim);
     const int nnode = msh.nnode(tdim);

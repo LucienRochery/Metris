@@ -25,7 +25,7 @@ namespace Metris{
 // ledge: seed edge in front mesh that t should lie on
 template<class MFT>
 void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen, 
-                    const double range[2], dblAr1 &lnewt, intAr1 &ledge){
+                    const double range[2], dblAr1 &lnewt, intWrkAr1 &ledge){
   GETVDEPTH(msh.param);
   const double tessltar = 0.1;
   // Get CAD parameter range
@@ -466,9 +466,9 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
 
 
 template void genPointsCurve<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, 
-  int iref, int icor0, double crvlen, const double range[2], dblAr1 &lnewt, intAr1& ledge);
+  int iref, int icor0, double crvlen, const double range[2], dblAr1 &lnewt, intWrkAr1& ledge);
 template void genPointsCurve<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, 
-  int iref, int icor0, double crvlen, const double range[2], dblAr1 &lnewt, intAr1& ledge);
+  int iref, int icor0, double crvlen, const double range[2], dblAr1 &lnewt, intWrkAr1& ledge);
 
 
 } //namespace Metris

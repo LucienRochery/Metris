@@ -372,8 +372,8 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
     }
   }else{ // general n -> 2(n-2) swap
     CPRINTF1(" - aux_swaptetedge general %d -> %d\n",nshell, 2*(nshell-2));
-    cav.usrwrk1.allocate(nshell);
-    cav.usrwrk1.set_n(0);
+    cav.iwrk1.allocate(nshell);
+    cav.iwrk1.set_n(0);
     msh.tag[ithrd1]++;
     for(int ielem : cav.lctet){
       for(int iver = 0; iver < 4; iver++){

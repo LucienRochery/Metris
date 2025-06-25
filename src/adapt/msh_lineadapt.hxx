@@ -12,7 +12,6 @@
 
 
 
-
 namespace Metris{
 
 class MshCavity;
@@ -30,11 +29,11 @@ void adaptGeoLines2(Mesh<MFT> &msh);
 
 template<class MFT>
 void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen, 
-                    const double range[2], dblAr1 &lnewt, intAr1& ledge);
+                    const double range[2], dblAr1 &lnewt, intWrkAr1& ledge);
 
 template<class MFT>
 void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lcorn,
-  const dblAr1 &lnewt, const intAr1 &ledge, int ithrd1, int ithrd2, int ithrd3);
+  const dblAr1 &lnewt, const intWrkAr1 &ledge, int ithrd1, int ithrd2, int ithrd3);
 /* ---------------------------------------------
 // Functions auxiliary to msh_lineadapt.hxx 
 // Functions that don't have a use outside of breaking up adaptGeoLines
