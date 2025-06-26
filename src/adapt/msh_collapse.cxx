@@ -30,16 +30,20 @@ namespace Metris{
 // Prints level 1 routine 
 template<class MFT, int gdim, int ideg>
 double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
-                          int ithrd1, int ithrd2, int ithrd3){
+                          int ithrd1, int ithrd2, int ithrd3, int ithrd4){
 
   GETVDEPTH(msh.param);
 
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd3 >= 0 && ithrd3 < METRIS_MAXTAGS);
+  METRIS_ASSERT(ithrd4 >= 0 && ithrd4 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd1 != ithrd2);
   METRIS_ASSERT(ithrd1 != ithrd3);
   METRIS_ASSERT(ithrd2 != ithrd3);
+  METRIS_ASSERT(ithrd4 != ithrd1);
+  METRIS_ASSERT(ithrd4 != ithrd2);
+  METRIS_ASSERT(ithrd4 != ithrd3);
 
   constexpr int nnmet = (gdim*(gdim+1))/2;
   const int tdim = msh.get_tdim();
@@ -318,7 +322,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
         int nent00 = msh.nentt(tdim);
         try{
-          ierro = colledgsurf(msh, tdim, ientt, ied, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
+          ierro = colledgsurf(msh, tdim, ientt, ied, qmax_suf, cav, work, lerror, ithrd2, ithrd3, ithrd4);
         }catch(const MetrisExcept &e){
           printf("## FATAL ERROR IN MSH_COLLAPSE\n");
           writeMesh("error_collapse.meshb",msh);
@@ -386,13 +390,13 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
 template double collapseShortEdges<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
-                           double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3);\
+                           double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3, int ithrd4);\
 template double collapseShortEdges<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,\
-                           double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3);\
+                           double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3, int ithrd4);\
 template double collapseShortEdges<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,\
-                           double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3);\
+                           double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3, int ithrd4);\
 template double collapseShortEdges<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,\
-                           double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3);
+                           double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3, int ithrd4);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

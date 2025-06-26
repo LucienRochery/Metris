@@ -105,6 +105,7 @@ void MetrisRunner::adaptMesh0(){
   const int ithrdfro = 0;
   const int ithrd1 = 1;
   const int ithrd2 = 2;
+  const int ithrd3 = 3;
   msh.tag[ithrdfro]++;
 
   if(msh.CAD() && msh.param->adp_line_adapt){
@@ -156,7 +157,7 @@ void MetrisRunner::adaptMesh0(){
     double stat;
     // 1. Collapse short edges
     t0 = get_wall_time();
-    stat  = collapseShortEdges<MFT,gdim,ideg>(msh, qmax_suf, &ncoll, ithrdfro, ithrd1, ithrd2);
+    stat  = collapseShortEdges<MFT,gdim,ideg>(msh, qmax_suf, &ncoll, ithrdfro, ithrd1, ithrd2, ithrd3);
     stat0 = MAX(stat0,stat);
     t1 = get_wall_time();
     tcollapse += t1-t0;

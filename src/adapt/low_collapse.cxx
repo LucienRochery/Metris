@@ -31,7 +31,7 @@ Cavity is passed in to reuse allocations
 template<class MFT>
 int colledgsurf(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf, 
                 MshCavity &cav, CavWrkArrs &work, 
-                intAr1 &lerro, int ithrd1, int ithrd2){
+                intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3){
 
   GETVDEPTH(msh.param);
 
@@ -235,7 +235,7 @@ int colledgsurf(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf,
 
         if(DOPRINTS2()) writeMeshCavity("collapse_cavity1.meshb", msh, cav);
 
-        //ierro = collrejcav_len(msh, cav, ithrd2);
+        //ierro = collrejcav_dens(msh, cav, ithrd2, ithrd3);
         //if(ierro > 0){
         //  CPRINTF1(" # reject cavity\n");
         //  continue;
@@ -309,11 +309,11 @@ int colledgsurf(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf,
 template int colledgsurf<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
                                           int tdim, int ientt, int iedl, double qmax_suf, 
                                           MshCavity &cav, CavWrkArrs &work, 
-                                          intAr1 &lerro, int ithrd1, int ithrd2);
+                                          intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
 template int colledgsurf<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
                                           int tdim, int ientt, int iedl, double qmax_suf, 
                                           MshCavity &cav, CavWrkArrs &work, 
-                                          intAr1 &lerro, int ithrd1, int ithrd2);
+                                          intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
 
 
 template<class MFT>
@@ -495,6 +495,10 @@ template<class MFT>
 int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
 
+  //printf("## DEBUG forced iverb = 5 ivdepth = 5\n");
+  //iverb__ = 5;
+  //ivdepth__ = 5;
+
   const int tdim = cav.lctet.get_n() > 0 ? 3 
                  : cav.lcfac.get_n() > 0 ? 2 
                                          : 1;
@@ -512,55 +516,138 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
   // To precompute element volumes
   cav.rwrk1.set_n(ncent);
   // To accumulate volumes per point
-  msh.rwork.allocate(msh.npoin);
-  msh.rwork.set_n(msh.npoin);
+  dblWrkAr1 volpoc = msh.get_rwork(msh.npoin);
 
   double met[6];
 
+  msh.tag[ithrd1]++;
+  int etag = msh.tag[ithrd1];
+
   // Tag cavity elements, compute volumes and zero out their point volumes
+  double voltot = 0;
   for(int icent = 0; icent < ncent; icent++){
     int ientt = lcent[icent];
-    ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
+    ent2tag(ithrd1,ientt) = etag;
 
     double volM;
     MSH_DIM_DEG0(msh)
     volM = getmeasent<MFT,gdim,ideg>(msh, ientt);
-    MSH_DIM_DEG1(msh)
+    MSH_DIM_DEG1()
 
     METRIS_ASSERT(volM > 0);
     cav.rwrk1[icent] = volM;
 
+    voltot += volM;
+
     // zero out point volumes, we'll accumulate in a later loop
     for(int iver = 0; iver < tdim + 1; iver++){
       int ipoin = ent2poi(ientt, iver);
-      msh.rwork[ipoin] = 0;
+      volpoc[ipoin] = 0;
     }
   }
 
-  // Tag points on cavity boundary, these are not internal
-  // Also compute their balls and volume 
+  // Tag points on cavity boundary, these are not internal 
+  // Also compute their cavity-internal impinging volume
   for(int icent = 0; icent < ncent; icent++){
     int ientt = lcent[icent];
     // Only consider cav boundary facets
     for(int ifa = 0; ifa < tdim + 1; ifa++){
       int ienei = ent2ent(ientt, ifa);
-      if(ienei >= 0 && ent2tag(ithrd1,ienei) >= msh.tag[ithrd1]) continue;
+      if(ienei >= 0 && ent2tag(ithrd1,ienei) >= etag) continue;
       // Accumulate volume at facet vertices
       for(int iver = 0; iver < tdim + 1; iver++){
         if(iver == ifa) continue;
         int ipoin = ent2poi(ientt, iver);
         if(msh.poi2tag(ithrd1, ipoin) == msh.tag[ithrd1]) continue;
         msh.poi2tag(ithrd1, ipoin) = msh.tag[ithrd1];
-        msh.rwork[ipoin] += cav.rwrk1[icent];
-
+        volpoc[ipoin] += cav.rwrk1[icent];
       }// for iver
     }// for ifa
+  }// for icent
+
+  // Loop again, this time compute their full ball volumes and count contributions
+  double nwpoi = 0;
+  msh.tag[ithrd1]++;
+  intAr1 dum;
+  intAr1 &lbfac = tdim == 2 ? cav.iwrk1 : dum;
+  intAr1 &lbtet = tdim == 3 ? cav.iwrk1 : dum;
+  intAr1 &lbent = tdim == 2 ? lbfac : lbtet;
+  cav.iwrk1.allocate(10);
+  for(int ientt : lcent){
+    INCVDEPTH(msh.param);
+    // Only consider cav boundary facets
+    for(int ifa = 0; ifa < tdim + 1; ifa++){
+      int ienei = ent2ent(ientt, ifa);
+      if(ienei >= 0 && ent2tag(ithrd1,ienei) >= etag) continue;
+      // Accumulate volume at facet vertices
+      for(int iver = 0; iver < tdim + 1; iver++){
+        if(iver == ifa) continue;
+        int ipoin = ent2poi(ientt, iver);
+        if(msh.poi2tag(ithrd1, ipoin) == msh.tag[ithrd1]) continue;
+        msh.poi2tag(ithrd1, ipoin) = msh.tag[ithrd1];
+
+        // Compute the ball and its volume
+        int iopen;
+        int ierro = ball(msh, ipoin, dum, lbfac, lbtet, &iopen, ithrd2);
+        METRIS_ASSERT(ierro == 0);
+        if(ierro != 0) return 1+ierro;
+
+        double volB = 0;
+        for(int ientt : lbent){
+          MSH_DIM_DEG0(msh)
+          volB += getmeasent<MFT,gdim,ideg>(msh, ientt);
+          MSH_DIM_DEG1()
+        }
+        CPRINTF1(" - cav bdry pt %d has tot vol %e, internal %e, counts as %e\n",
+                 ipoin, volB, volpoc[ipoin], volpoc[ipoin] / volB);
+        nwpoi += volpoc[ipoin] / volB;
+      }// for iver
+    }// for ifa
+  }// for icent
+
+  // Now count the internal points. Boundary points are tagged.
+  int nrempt = 0;
+  for(int icent = 0; icent < ncent; icent++){
+    int ientt = lcent[icent];
+    for(int iver = 0; iver < tdim + 1; iver++){
+      int ipoin = ent2poi(ientt,iver);
+      if(msh.poi2tag(ithrd1, ipoin) == msh.tag[ithrd1]) continue;
+      msh.poi2tag(ithrd1, ipoin) = msh.tag[ithrd1];
+      // An internal point, and one not seen yet.
+      nrempt++;
+    }
   }
 
+  double dens0 = (nrempt + nwpoi) / voltot;
+  double dens1 = nwpoi / voltot; 
 
+  CPRINTF1(" - counted nrempt = %d boundary points %f\n",nrempt,nwpoi);
+  CPRINTF1(" - initial cavity density = %e final = %e, nentt = %d\n",
+           dens0, dens1, ncent);
+
+  //if(nrempt > 5){
+  //  writeMeshCavity("collapse_cavity0.meshb", msh, cav);
+  //  printf("## DEBUG WAIT\n");
+  //  wait();
+  //}
+
+  // If initial is closer to optimal density than final, return.
+  double pi = 3.141592653589793238462643383279502884;
+  double opt_dens = msh.get_tdim() == 2 ? pi / 4 : 0.54;
+  if(abs(dens0 - opt_dens) < abs(dens1 - opt_dens)){
+    CPRINTF1(" # %e > %e -> reject\n",abs(dens1 - opt_dens), abs(dens0 - opt_dens));
+    return 1;
+  }
+
+  return 0;
 }
 
 
+
+template int collrejcav_dens<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, int ithrd1, int ithrd2);
+template int collrejcav_dens<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, int ithrd1, int ithrd2);
+
+#if 0
 // This idea is probably doomed to fail: 2 long edges do not mean 2 new points...
 // Reject proposed cavity based on edge length:
 // if more long edges are created than short edges are destroyed, reject
@@ -586,7 +673,7 @@ int collrejcav_len(Mesh<MFT>& msh, MshCavity &cav, int ithrd1){
   intAr2& ent2tag = msh.ent2tag(tdim);
 
   // Store here the edges whose length is not to be computed
-  std::unordered_set<std::pair<int,int>,tup2_hash::hash> nocomp;
+  std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp;
 
   // Tag cavity elements
   for(int ientt : lcent){
@@ -692,7 +779,7 @@ int collrejcav_len(Mesh<MFT>& msh, MshCavity &cav, int ithrd1){
 
 template int collrejcav_len<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, int ithrd1);
 template int collrejcav_len<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, int ithrd1);
-
+#endif
 
 
 } // end namespace

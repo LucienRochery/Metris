@@ -21,7 +21,7 @@ struct CavWrkArrs;
 template<class MFT>
 int colledgsurf(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf, 
                 MshCavity &cav, CavWrkArrs &work, 
-                intAr1 &lerro, int ithrd1, int ithrd2);
+                intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
 
 
 template<class MFT>
@@ -30,10 +30,14 @@ int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf,
                 intAr1 &lerro, int ithrd1, int ithrd2);
 
 
-// Reject proposed cavity based on edge length:
-// if more long edges are created than short edges are destroyed, reject
+
 template<class MFT>
-int collrejcav_len(Mesh<MFT>& msh, MshCavity &cav, int ithrd1);
+int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2);
+
+//// Reject proposed cavity based on edge length:
+//// if more long edges are created than short edges are destroyed, reject
+//template<class MFT>
+//int collrejcav_len(Mesh<MFT>& msh, MshCavity &cav, int ithrd1);
 
 } // end namespace
 
