@@ -32,7 +32,7 @@ if(USE_MULTIPRECISION)
     #FetchContent_Declare(
     #  fetch_multiprecision
     #  GIT_REPOSITORY https://github.com/boostorg/multiprecision.git
-    #  GIT_TAG master   
+    #  GIT_TAG master
     #  EXCLUDE_FROM_ALL
     #)
     #list(APPEND METRIS_DEPS_LIBRARIES Boost::multiprecision)
@@ -82,7 +82,7 @@ if (NOT EIGEN3_INCLUDE_DIRS)
     GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
     GIT_TAG bcce88c99ed687b756b7a537554cb7c1780b816e
     #GIT_TAG master
-    #FIND_PACKAGE_ARGS NAMES Eigen3 
+    #FIND_PACKAGE_ARGS NAMES Eigen3
     EXCLUDE_FROM_ALL
   )
   FetchContent_MakeAvailable(Eigen3)
@@ -163,7 +163,7 @@ if(USE_PETSC)
 
       list(APPEND PETSC_INCLUDE_DIRS ${PETSC_DIR}/${PETSC_ARCH}/include)
       list(APPEND PETSC_INCLUDE_DIRS ${MPI_INCLUDE_PATH})
-      
+
       set(ENV{PKG_CONFIG_PATH} ${PETSC_ARCH_DIR}/lib/pkgconfig)
       pkg_search_module(PETSC REQUIRED IMPORTED_TARGET PETSc)
       if(NOT PETSC_FOUND)
@@ -181,7 +181,7 @@ if(USE_PETSC)
 
     message("-- PETSC_INCLUDE_DIRS = ${PETSC_INCLUDE_DIRS}")
     message("-- PETSC_LIBRARIES    = ${PETSC_LIBRARIES}")
-    
+
     list(APPEND METRIS_DEPS_INCLUDE_DIRS ${PETSC_INCLUDE_DIRS})
     list(APPEND METRIS_DEPS_LIBRARIES    ${PETSC_LIBRARIES})
   endif()
@@ -260,7 +260,7 @@ if(USE_ABSL)
     fetch_absl
     #URL https://github.com/abseil/abseil-cpp/archive/e7fe9ec9ebfc6607765d489b76c9954e0a88c5d4.zip
     GIT_REPOSITORY https://github.com/abseil/abseil-cpp.git
-    #GIT_TAG e7fe9ec9ebfc6607765d489b76c9954e0a88c5d4  
+    #GIT_TAG e7fe9ec9ebfc6607765d489b76c9954e0a88c5d4
     #FIND_PACKAGE_ARGS NAMES absl
     EXCLUDE_FROM_ALL
   )
@@ -279,12 +279,14 @@ if(NOT(Boost_program_options_FOUND))
   FetchContent_Declare(
     fetch_program_options
     GIT_REPOSITORY https://github.com/boostorg/program_options.git
-    GIT_TAG master   
+    GIT_TAG master
     #GIT_SHALLOW TRUE
     #FIND_PACKAGE_ARGS NAMES Boost COMPONENTS program_options REQUIRED
     EXCLUDE_FROM_ALL
   )
   FetchContent_MakeAvailable(fetch_program_options)
+  list(APPEND METRIS_DEPS_LIBRARIES ${Boost_PROGRAM_OPTIONS_LIBRARY})
+else()
   list(APPEND METRIS_DEPS_LIBRARIES ${Boost_PROGRAM_OPTIONS_LIBRARY})
 endif()
 list(APPEND METRIS_DEPS_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
@@ -293,7 +295,7 @@ message("-- Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}")
 
 
 include(FetchContent)
-FetchContent_Declare(cmake_git_version_tracking                   
+FetchContent_Declare(cmake_git_version_tracking
   GIT_REPOSITORY https://github.com/andrew-hardin/cmake-git-version-tracking.git
   GIT_TAG 6c0cb87edd029ddfb403a8e24577c144a03605a6
 )
@@ -314,8 +316,8 @@ message(WARNING "Debug FETCH_ABSL_INCLUDE_DIRS = ${FETCH_ABSL_INCLUDE_DIRS}")
 message(WARNING "Debug FETCH_ABSL_LIBRARIES = ${FETCH_ABSL_LIBRARIES}")
 
 
-# This is necessary to make the sanitizer work correctly. Also we want to 
-# propagate flags. 
+# This is necessary to make the sanitizer work correctly. Also we want to
+# propagate flags.
 if(USE_ABSL)
   setMetrisFlags(absl_hash INTERFACE)
   setMetrisFlags(absl_flat_hash_map INTERFACE)
