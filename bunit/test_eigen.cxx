@@ -163,6 +163,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
 
         // ----- Test LAPACK
+        #ifdef USE_LAPACK
         double rwork[10];
         geteigsym_LAPACK<ndim>(met,10,rwork,eigva2,eigve2[0]);
 
@@ -190,6 +191,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
           err += abs(eigval[ii] - eigva2[ii])/abs(eigval[ii]);
         }
         erreicL += err;
+        #endif
 
 
 
@@ -253,9 +255,11 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       printf("   - eigvec error min = %e avg = %e max = %e (DSYEV)\n",erreigD.min(),erreigD.avg(),erreigD.max());
       printf("   - eigrel error min = %e avg = %e max = %e (DSYEV)\n",erreicD.min(),erreicD.avg(),erreicD.max());
 
+      #ifdef USE_LAPACK
       printf("   - metric error min = %e avg = %e max = %e (LAPACK)\n",errmetL.min(),errmetL.avg(),errmetL.max());
       printf("   - eigvec error min = %e avg = %e max = %e (LAPACK)\n",erreigL.min(),erreigL.avg(),erreigL.max());
       printf("   - eigrel error min = %e avg = %e max = %e (LAPACK)\n",erreicL.min(),erreicL.avg(),erreicL.max());
+      #endif
 
       printf("   - metric error min = %e avg = %e max = %e (Eigen)\n",errmetE.min(),errmetE.avg(),errmetE.max());
       printf("   - eigvec error min = %e avg = %e max = %e (Eigen)\n",erreigE.min(),erreigE.avg(),erreigE.max());
@@ -286,8 +290,9 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       double t1_DSYEVQ = get_wall_time();
 
 
+      double dum_LAPACK = 1;
+      #ifdef USE_LAPACK
       double t0_LAPACK = get_wall_time();
-      double dum_LAPACK = 0;
       int rwork[10];
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples(isamp, ii);
@@ -296,6 +301,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
         dum_LAPACK += eigva2[0];
       }
       double t1_LAPACK = get_wall_time();
+      #endif
 
 
       double t0_EIGEN = get_wall_time();
@@ -346,9 +352,11 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
       printf("  -- DONE benchmarks DSYEVQ time : %8.2e = %d op/s\n",
                   t1_DSYEVQ-t0_DSYEVQ,(int)(nerro_aniso/(t1_DSYEVQ-t0_DSYEVQ)));
+      #ifdef USE_LAPACK
       printf("                     LAPACK time : %8.2e = %d op/s, fac = %4.2fx\n",
                   t1_LAPACK-t0_LAPACK,(int)(nerro_aniso/(t1_LAPACK-t0_LAPACK)),
                   (t1_LAPACK-t0_LAPACK)/(t1_DSYEVQ-t0_DSYEVQ));
+      #endif
       printf("                      Eigen time : %8.2e = %d op/s, fac = %4.2fx\n",
                   t1_EIGEN-t0_EIGEN,(int)(nerro_aniso/(t1_EIGEN-t0_EIGEN)),
                   (t1_EIGEN-t0_EIGEN)/(t1_DSYEVQ-t0_DSYEVQ));
@@ -357,7 +365,9 @@ BOOST_AUTO_TEST_CASE(test_eigen)
                   (t1_EIGEN2-t0_EIGEN2)/(t1_DSYEVQ-t0_DSYEVQ));
 
       benchD[ndim-2] += nerro_aniso/(t1_DSYEVQ - t0_DSYEVQ);
+      #ifdef USE_LAPACK
       benchL[ndim-2] += nerro_aniso/(t1_LAPACK - t0_LAPACK);
+      #endif
       benchE[ndim-2] += nerro_aniso/(t1_EIGEN  - t0_EIGEN );
 
       #endif
@@ -383,14 +393,18 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       std::string errtype = iar == 0 ? "avg" : "max";
 
       errseigD[ndim][iar].finish();
+      #ifdef USE_LAPACK
       errseigL[ndim][iar].finish();
+      #endif
       errseigE[ndim][iar].finish();
       fil << errseigD[ndim][iar].str() << "\n";
       fil << errseigL[ndim][iar].str() << "\n";
       fil << errseigE[ndim][iar].str() << "\n";
       fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
       fil << "plt.loglog(aniso," << errseigD[ndim][iar].name()<<",label='DSYEVQ')\n";
+      #ifdef USE_LAPACK
       fil << "plt.loglog(aniso," << errseigL[ndim][iar].name()<<",label='LAPACK')\n";
+      #endif
       fil << "plt.loglog(aniso," << errseigE[ndim][iar].name()<<",label='Eigen')\n";
       fil << "plt.title('Eigenvalue vector relative error (" << errtype << "), dim "
           << std::to_string(ndim+2)<< "')\n";
@@ -403,14 +417,20 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
 
       errseicD[ndim][iar].finish();
+      #ifdef USE_LAPACK
       errseicL[ndim][iar].finish();
+      #endif
       errseicE[ndim][iar].finish();
       fil << errseicD[ndim][iar].str() << "\n";
+      #ifdef USE_LAPACK
       fil << errseicL[ndim][iar].str() << "\n";
+      #endif
       fil << errseicE[ndim][iar].str() << "\n";
       fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
       fil << "plt.loglog(aniso," << errseicD[ndim][iar].name()<<",label='DSYEVQ')\n";
+      #ifdef USE_LAPACK
       fil << "plt.loglog(aniso," << errseicL[ndim][iar].name()<<",label='LAPACK')\n";
+      #endif
       fil << "plt.loglog(aniso," << errseicE[ndim][iar].name()<<",label='Eigen')\n";
       fil << "plt.title('Eigenvalue coordinate-wise relative error (" << errtype << "), dim "
           << std::to_string(ndim+2)<< "')\n";
@@ -436,22 +456,31 @@ BOOST_AUTO_TEST_CASE(test_eigen)
   for(int ndim = 0; ndim < 2; ndim++){
 
     benchD[ndim].finish();
+    #ifdef USE_LAPACK
     benchL[ndim].finish();
+    #endif
     benchE[ndim].finish();
     fil << benchD[ndim].str() << "\n";
+    #ifdef USE_LAPACK
     fil << benchL[ndim].str() << "\n";
+    #endif
     fil << benchE[ndim].str() << "\n";
     fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
+    #ifdef USE_LAPACK
     fil << "plt.semilogx(aniso,np.array(" << benchD[ndim].name()<<")"
         << "/np.array(" << benchL[ndim].name() << ")" <<",label='DSYEVQ')\n";
     fil << "plt.semilogx(aniso,np.array(" << benchE[ndim].name()<<")"
         << "/np.array(" << benchL[ndim].name() << ")" <<",label='Eigen')\n";
-    //fil << "plt.semilogx(aniso," << benchD[ndim].name()<<",label='DSYEVQ')\n";
-    //fil << "plt.semilogx(aniso," << benchL[ndim].name()<<",label='LAPACK')\n";
-    //fil << "plt.semilogx(aniso," << benchE[ndim].name()<<",label='Eigen')\n";
-    fil << "plt.title('Benchmark dim "<< std::to_string(ndim+2)<< "')\n";
-    fil << "plt.xlabel('anisotropic ratio')\n";
     fil << "plt.ylabel('op/s divided by LAPACKs')\n";
+    #else
+    fil << "plt.semilogx(aniso,np.array(" << benchD[ndim].name()<<"))"
+        << ",label='DSYEVQ')\n";
+    fil << "plt.semilogx(aniso,np.array(" << benchE[ndim].name()<<"))"
+        << ",label='Eigen')\n";
+    fil << "plt.ylabel('op/s')\n";
+    #endif
+    fil << "plt.xlabel('anisotropic ratio')\n";
+    fil << "plt.title('Benchmark dim "<< std::to_string(ndim+2)<< "')\n";
     fil << "plt.legend()\n";
     fil << "plt.grid(True)\n";
     fil << "plt.savefig('bench_eigen_"<<std::to_string(ndim+2)<<".png')\n";

@@ -135,9 +135,11 @@ BOOST_AUTO_TEST_CASE(test_invspd)
 
 
         // --- Using LAPACK
+        #ifdef USE_LAPACK
         for(int ii = 0; ii < nnmet; ii++) met2[ii] = met[ii];
         invspd_LAPACK(ndim, met2);
         spd_errL += sqrt(geterrl2<nnmet>(invmet,met2) / getnrml2<nnmet>(invmet));
+        #endif
 
         // --- Using Eigen's LL^T
         ierro = invspd_Eigen<ndim,double>(met,met2);
@@ -155,11 +157,15 @@ BOOST_AUTO_TEST_CASE(test_invspd)
 
       spd_errsD[ndim-2] += spd_errD.max();
       spd_errsE[ndim-2] += spd_errE.max();
+      #ifdef USE_LAPACK
       spd_errsL[ndim-2] += spd_errL.max();
+      #endif
 
 
       printf("  -- DONE with aniso ratio %5.1e dim %d\n",anisorat,ndim);
+      #ifdef USE_LAPACK
       printf("   - error invspd min = %e avg = %e max = %e (LAPACK)\n",spd_errL.min(),spd_errL.avg(),spd_errL.max());
+      #endif
       printf("   - error invspd min = %e avg = %e max = %e (Eigen LLT)\n",spd_errE.min(),spd_errE.avg(),spd_errE.max());
       printf("   - error invspd min = %e avg = %e max = %e (DSYEVQ)\n",spd_errD.min(),spd_errD.avg(),spd_errD.max());
 
@@ -183,12 +189,14 @@ BOOST_AUTO_TEST_CASE(test_invspd)
 
 
         // --- Using LAPACK
+        #ifdef USE_LAPACK
         for(int ii = 0; ii < ndim*ndim; ii++) mat2[ii] = mat[ii];
         int ierroL = invmat_LAPACK(ndim, mat2);
         //METRIS_ENFORCE_MSG(ierro == 0, "invmat_LAPACK failed");
         //BOOST_CHECK(ierroL == 0);
         if(ierroL == 0)
           inv_errL += sqrt(geterrl2<nnmet>(imat,mat2) / getnrml2<nnmet>(imat));
+        #endif
 
         // --- Using Naive
         if constexpr(ndim == 2){
@@ -215,13 +223,17 @@ BOOST_AUTO_TEST_CASE(test_invspd)
 
       inv_errsFP[ndim-2] += inv_errFP.max();
       inv_errsPP[ndim-2] += inv_errPP.max();
+      #ifdef USE_LAPACK
       inv_errsL[ndim-2] += inv_errL.max();
+      #endif
       if(ndim == 2)
         inv_errsN[ndim-2] += inv_errN.max();
 
 
       printf("  -- DONE with aniso ratio %5.1e dim %d\n",anisorat,ndim);
+      #ifdef USE_LAPACK
       printf("   - error invmat min = %e avg = %e max = %e (LAPACK)\n",inv_errL.min(),inv_errL.avg(),inv_errL.max());
+      #endif
       printf("   - error invmat min = %e avg = %e max = %e (Eigen PP)\n",inv_errPP.min(),inv_errPP.avg(),inv_errPP.max());
       printf("   - error invmat min = %e avg = %e max = %e (Eigen FP)\n",inv_errFP.min(),inv_errFP.avg(),inv_errFP.max());
       if(ndim == 2) 
@@ -247,6 +259,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
     for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
 
       // --- Using LAPACK
+      #ifdef USE_LAPACK
       double t0_L = get_wall_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met2[ii] = met_samples[ndim-2](isamp, ii);
@@ -255,6 +268,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
         dumtot += met2[0];
       }
       double t1_L = get_wall_time();
+      #endif
 
       // --- Using Eigen's LL^T
       double t0_E = get_wall_time();
@@ -278,6 +292,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
       double t1_D = get_wall_time();
 
 
+      #ifdef USE_LAPACK
       printf("  -- DONE bench dim %1d aniso %5.1e LAPACK time : %8.2es = %dk op/s\n",
                   ndim,anisorat,
                   t1_L-t0_L,(int)(nsamp/(t1_L-t0_L)/1000));
@@ -288,6 +303,13 @@ BOOST_AUTO_TEST_CASE(test_invspd)
                   t1_D-t0_D,(int)(nsamp/(t1_D-t0_D)/1000),
                   (t1_D-t0_D)/(t1_L-t0_L));
       spd_benchL[ndim-2] += nsamp/(t1_L - t0_L);
+      #else
+      printf("  -- DONE bench dim %1d aniso %5.1e Eigen time : %8.2es = %dk op/s\n",
+                  ndim,anisorat,
+                  t1_E-t0_E,(int)(nsamp/(t1_E-t0_E)/1000));
+      printf("                                    DSYEVQ time : %8.2es = %dk op/s\n",
+                  t1_D-t0_D,(int)(nsamp/(t1_D-t0_D)/1000));
+      #endif
       spd_benchE[ndim-2] += nsamp/(t1_E - t0_E);
       spd_benchD[ndim-2] += nsamp/(t1_D - t0_D);
 
@@ -306,6 +328,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
     double dumtot = 0;
     for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
 
+      #ifdef USE_LAPACK
       // --- Using LAPACK
       double t0_L = get_wall_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
@@ -316,6 +339,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
         dumtot += mat2[0];
       }
       double t1_L = get_wall_time();
+      #endif
 
       // --- Using Eigen's LL^T
       double t0_PP = get_wall_time();
@@ -340,6 +364,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
       double t1_FP = get_wall_time();
 
 
+      #ifdef USE_LAPACK
       printf("  -- DONE invmat bench dim %1d aniso %5.1e LAPACK time : %8.2es = %dk op/s\n",
                   ndim,anisorat,
                   t1_L-t0_L,(int)(nsamp/(t1_L-t0_L)/1000));
@@ -350,6 +375,13 @@ BOOST_AUTO_TEST_CASE(test_invspd)
                   t1_PP-t0_PP,(int)(nsamp/(t1_PP-t0_PP)/1000),
                   (t1_PP-t0_PP)/(t1_L-t0_L));
       inv_benchL[ndim-2]  += nsamp/(t1_L - t0_L);
+      #else
+      printf("  -- DONE invmat bench dim %1d aniso %5.1e     FP time : %8.2es = %dk op/s\n",
+                  ndim,anisorat,
+                  t1_FP-t0_FP,(int)(nsamp/(t1_FP-t0_FP)/1000));
+      printf("                                               PP time : %8.2es = %dk op/s\n",
+                  t1_PP-t0_PP,(int)(nsamp/(t1_PP-t0_PP)/1000));
+      #endif
       inv_benchFP[ndim-2] += nsamp/(t1_FP - t0_FP);
       inv_benchPP[ndim-2] += nsamp/(t1_PP - t0_PP);
 
@@ -367,14 +399,20 @@ BOOST_AUTO_TEST_CASE(test_invspd)
   for(int ndim = 0; ndim < 2; ndim++){
     spd_errsD[ndim].finish();
     spd_errsE[ndim].finish();
+    #ifdef USE_LAPACK
     spd_errsL[ndim].finish();
+    #endif
     fil << spd_errsD[ndim].str() << "\n";
     fil << spd_errsE[ndim].str() << "\n";
+    #ifdef USE_LAPACK
     fil << spd_errsL[ndim].str() << "\n";
+    #endif
     fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
     fil << "plt.loglog(aniso," << spd_errsD[ndim].name()<<",label='DSYEVQ')\n";
-    fil << "plt.loglog(aniso," << spd_errsE[ndim].name()<<",label='Eigen1')\n";
-    fil << "plt.loglog(aniso," << spd_errsL[ndim].name()<<",label='Eigen2')\n";
+    fil << "plt.loglog(aniso," << spd_errsE[ndim].name()<<",label='Eigen')\n";
+    #ifdef USE_LAPACK
+    fil << "plt.loglog(aniso," << spd_errsL[ndim].name()<<",label='LAPACK')\n";
+    #endif
     fil << "plt.title('Output relative error (max), dim "
         << std::to_string(ndim+2)<< "')\n";
     fil << "plt.xlabel('anisotropic ratio')\n";
@@ -398,15 +436,21 @@ BOOST_AUTO_TEST_CASE(test_invspd)
   for(int ndim = 0; ndim < 2; ndim++){
     spd_benchD[ndim].finish();
     spd_benchE[ndim].finish();
+    #ifdef USE_LAPACK
     spd_benchL[ndim].finish();
+    #endif
     fil << spd_benchD[ndim].str() << "\n";
     fil << spd_benchE[ndim].str() << "\n";
+    #ifdef USE_LAPACK
     fil << spd_benchL[ndim].str() << "\n";
+    #endif
     fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
     fil << "plt.semilogx(aniso,np.array(" << spd_benchE[ndim].name()<<")"
-        << "/np.array(" << spd_benchD[ndim].name() << ")" <<",label='Eigen1')\n";
+        << "/np.array(" << spd_benchD[ndim].name() << ")" <<",label='Eigen')\n";
+    #ifdef USE_LAPACK
     fil << "plt.semilogx(aniso,np.array(" << spd_benchL[ndim].name()<<")"
-        << "/np.array(" << spd_benchD[ndim].name() << ")" <<",label='Eigen2')\n";
+        << "/np.array(" << spd_benchD[ndim].name() << ")" <<",label='LAPACK')\n";
+    #endif
     fil << "plt.title('Benchmark  dim "<< std::to_string(ndim+2)<< "')\n";
     fil << "plt.xlabel('anisotropic ratio')\n";
     fil << "plt.ylabel('op/s divided by DSYEVQs')\n";

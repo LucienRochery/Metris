@@ -15,12 +15,12 @@
 
 #include <boost/timer/progress_display.hpp>
 
-#include <aux_misc.hxx>
-#include <src/quality/low_metqua.hxx>
-#include <src/quality/low_metqua_d.hxx>
+#include "../src/utils/aux_misc.hxx"
+#include "../src/quality/low_metqua.hxx"
+#include "../src/quality/low_metqua_d.hxx"
 
-#include <SANS/Surreal/SurrealS.h>
-#include <SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h>
+#include "../SANS/Surreal/SurrealS.h"
+#include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
 
 #include <boost/hana.hpp> 

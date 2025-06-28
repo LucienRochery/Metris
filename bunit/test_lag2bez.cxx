@@ -8,9 +8,9 @@
 #include "common_setup.hxx"
 
 #include "../src/msh_lag2bez.hxx"
-#include "../src/mprintf.hxx"
+#include "../src/utils/mprintf.hxx"
 #include "../src/utils/CT_loop.hxx"
-#include "../src/aux_timer.hxx"
+#include "../src/utils/aux_timer.hxx"
 
 #include <cmath>
 

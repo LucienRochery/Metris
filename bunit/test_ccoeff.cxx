@@ -63,8 +63,9 @@ BOOST_AUTO_TEST_CASE(ccoef, * utf::tolerance(double(1.0e-6)) )
     #endif
       );
     
-    MeshTestSetup<MFT> f(arg.c, arg.v);
-    Mesh<MFT> &msh = *(f.msh);
+    MetrisRunner run(arg.c, arg.v);
+    Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
+    
     msh.cleanup();
 
     std::cout<<"\n\n-- Mesh "<<s<<" dim "<<msh.idim<<" deg "<<msh.curdeg<<"\n";

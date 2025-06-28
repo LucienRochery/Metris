@@ -134,10 +134,12 @@ BOOST_AUTO_TEST_CASE(test_eigen)
         err = abs( ((float8) det1) - det0 ) /det0;
         errN += (double) err;
 
+        #ifdef USE_LAPACK
         // ----- Test detsym_LAPACK which uses LAPACK in 3D (same as previous in 2D)
         double detL = detsym_LAPACK<ndim>(met);
         err = abs( ((float8) detL) - det0 ) /det0;
         errL += (double) err;
+        #endif
 
         // ----- Test detsym3 which does a kind of preconditioning 
         double det3 = detsym3<ndim>(met);
@@ -186,7 +188,9 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
       errsN[ndim-2] += errN.max();
       errsNf4[ndim-2] += errNf4.max();
+      #ifdef USE_LAPACK
       errsL[ndim-2] += errL.max();
+      #endif
       errsELLT[ndim-2] += errELLT.max();
       errsEdet[ndim-2] += errE2.max();
       errsELDLT[ndim-2] += errELDLT.max();
@@ -195,7 +199,9 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       printf("  -- DONE with aniso ratio %5.1e dim %d\n",anisorat,ndim);
       printf("   - det error min = %e avg = %e max = %e (Naive)\n",errN.min(),errN.avg(),errN.max());
       printf("   - det error min = %e avg = %e max = %e (Naive f4)\n",errNf4.min(),errNf4.avg(),errNf4.max());
+      #ifdef USE_LAPACK
       printf("   - det error min = %e avg = %e max = %e (LAPACK)\n",errL.min(),errL.avg(),errL.max());
+      #endif
       printf("   - det error min = %e avg = %e max = %e (Precond)\n",err3.min(),err3.avg(),err3.max());
       printf("   - det error min = %e avg = %e max = %e (DSYEVQ)\n",errD.min(),errD.avg(),errD.max());
       printf("   - det error min = %e avg = %e max = %e (Eigen LLT)\n",errELLT.min(),errELLT.avg(),errELLT.max());
@@ -252,8 +258,9 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       double t1_Nf4 = get_wall_time();
 
 
+      double dum_L = 1;
+      #ifdef USE_LAPACK
       double t0_L = get_wall_time();
-      double dum_L = 0;
       int rwork[10];
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
@@ -261,6 +268,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
         dum_L += det;
       }
       double t1_L = get_wall_time();
+      #endif
 
 
       double t0_ELLT = get_wall_time();
@@ -312,9 +320,11 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       printf("                     Naivef4   time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_Nf4-t0_Nf4,(int)(nsamp/(t1_Nf4-t0_Nf4)/1000),
                   (t1_Nf4-t0_Nf4)/(t1_N-t0_N));
+      #ifdef USE_LAPACK
       printf("                     LAPACK    time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_L-t0_L,(int)(nsamp/(t1_L-t0_L)/1000),
                   (t1_L-t0_L)/(t1_N-t0_N));
+      #endif
       printf("                      ELLT     time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_ELLT-t0_ELLT,(int)(nsamp/(t1_ELLT-t0_ELLT)/1000),
                   (t1_ELLT-t0_ELLT)/(t1_N-t0_N));
@@ -330,7 +340,9 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
       benchN[ndim-2] += nsamp/(t1_N - t0_N);
       benchNf4[ndim-2] += nsamp/(t1_Nf4 - t0_Nf4);
+      #ifdef USE_LAPACK
       benchL[ndim-2] += nsamp/(t1_L - t0_L);
+      #endif
       benchELLT[ndim-2] += nsamp/(t1_ELLT - t0_ELLT);
       benchEdet[ndim-2] += nsamp/(t1_Edet - t0_Edet);
       benchELDLT[ndim-2] += nsamp/(t1_ELDLT- t0_ELDLT);
@@ -351,18 +363,24 @@ BOOST_AUTO_TEST_CASE(test_eigen)
   int ifig = 0;
   for(int ndim = 0; ndim < 2; ndim++){
     errsN[ndim].finish();
+    #ifdef USE_LAPACK
     errsL[ndim].finish();
+    #endif
     errsELLT[ndim].finish();
     errsEdet[ndim].finish();
     errsELDLT[ndim].finish();
     fil << errsN[ndim].str() << "\n";
+    #ifdef USE_LAPACK
     fil << errsL[ndim].str() << "\n";
+    #endif
     fil << errsELLT[ndim].str() << "\n";
     fil << errsEdet[ndim].str() << "\n";
     fil << errsELDLT[ndim].str() << "\n";
     fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
     fil << "plt.loglog(aniso," << errsN[ndim].name()<<",'--o',label='Naive',)\n";
+    #ifdef USE_LAPACK
     fil << "plt.loglog(aniso," << errsL[ndim].name()<<",'--x',label='LAPACK')\n";
+    #endif
     fil << "plt.loglog(aniso," << errsELLT[ndim].name()<<",'--+',label='Eigen (LLT)')\n";
     fil << "plt.loglog(aniso," << errsELDLT[ndim].name()<<",'--o',label='Eigen (LDLT)')\n";
     fil << "plt.loglog(aniso," << errsEdet[ndim].name()<<",'--^',label='Eigen (det)')\n";
@@ -389,18 +407,24 @@ BOOST_AUTO_TEST_CASE(test_eigen)
   for(int ndim = 0; ndim < 2; ndim++){
 
     benchN[ndim].finish();
+    #ifdef USE_LAPACK
     benchL[ndim].finish();
+    #endif
     benchELLT[ndim].finish();
     benchEdet[ndim].finish();
     benchELDLT[ndim].finish();
     fil << benchN[ndim].str() << "\n";
+    #ifdef USE_LAPACK
     fil << benchL[ndim].str() << "\n";
+    #endif
     fil << benchELLT[ndim].str() << "\n";
     fil << benchEdet[ndim].str() << "\n";
     fil << benchELDLT[ndim].str() << "\n";
     fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
+    #ifdef USE_LAPACK
     fil << "plt.loglog(aniso,np.array(" << benchL[ndim].name()<<")"
         << "/np.array(" << benchN[ndim].name() << ")" <<",label='LAPACK')\n";
+    #endif
     fil << "plt.loglog(aniso,np.array(" << benchELLT[ndim].name()<<")"
         << "/np.array(" << benchN[ndim].name() << ")" <<",label='Eigen (LLT)')\n";
     fil << "plt.loglog(aniso,np.array(" << benchELDLT[ndim].name()<<")"

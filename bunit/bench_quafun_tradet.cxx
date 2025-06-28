@@ -4,8 +4,22 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 #define BOOST_TEST_MODULE My Test 
-
 #include <boost/test/included/unit_test.hpp> 
+
+#ifndef USE_MULTIPRECISION
+
+#warning "Unit test bench_quafun_tradet not compiled if USE_MULTIPRECISION=OFF"
+
+// main
+namespace Metris{
+BOOST_AUTO_TEST_CASE(bench_quafun_tradet) 
+{
+}
+}
+#else
+
+
+
 #include "common_setup.hxx"
 #include "gen_bary.hxx"
 
@@ -33,7 +47,7 @@ void quafun_tradet_nodet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
                          ftype*__restrict__ tra,
                          ftype*__restrict__ det);
 
-BOOST_AUTO_TEST_CASE(test_eigen) 
+BOOST_AUTO_TEST_CASE(bench_quafun_tradet) 
 {
 
   std::vector<std::string> meshes = 
@@ -411,3 +425,6 @@ void generate_frame<3>(float8* eigvec,
 
 
 }//namespace
+
+
+#endif

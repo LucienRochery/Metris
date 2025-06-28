@@ -9,7 +9,7 @@
 
 #include <random>
 #include "../src/adapt/low_delaunay.hxx"
-#include "../src/mprintf.hxx"
+#include "../src/utils/mprintf.hxx"
 
 #include <boost/hana.hpp> 
 namespace hana = boost::hana;
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(test_indelsphere)
     std::cout<<"------------------------------------------------\n";
 
 
-    INCVDEPTH(msh2D);
+    INCVDEPTH(msh2D.param);
 
     double hmet = 1;
     for(int iscal = 0; iscal < 10; iscal++){

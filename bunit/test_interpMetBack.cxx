@@ -18,6 +18,7 @@
 #include "../src/utils/mprintf.hxx"
 #include "../src/Localization/low_localization.hxx"
 #include "../src/low_ccoef.hxx"
+#include "../src/low_normal.hxx"
 #include "../src/linalg/invmat.hxx"
 
 #include <filesystem>
@@ -116,7 +117,7 @@ BOOST_AUTO_TEST_CASE(test_inveval)
       msh.param->ivdepth= 5;
     }
 
-    INCVDEPTH(msh);
+    INCVDEPTH(msh.param);
 
     msh.cleanup();
 

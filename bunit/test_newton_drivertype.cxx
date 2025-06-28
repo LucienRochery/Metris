@@ -10,7 +10,7 @@
 
 #include <boost/timer/progress_display.hpp>
 
-#include "../utils/aux_misc.hxx"
+#include "../src/utils/aux_misc.hxx"
 #include "../src/quality/low_metqua.hxx"
 #include "../SANS/Surreal/SurrealS.h"
 #include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
@@ -18,7 +18,7 @@
 #include "../src/low_geo.cxx"
 #include "../src/Localization/low_localization.hxx"
 
-#include "../src/opt_generic.hxx"
+#include "../src/Optimization/opt_generic.hxx"
 
 #include <boost/hana.hpp> 
 namespace hana = boost::hana;
@@ -76,7 +76,9 @@ BOOST_AUTO_TEST_CASE(test_eval3)
 	//double xopt[3], fopt;
 	//int ierro;
 
-  newton_drivertype_args<nvar> args;
+  MetrisParameters param;
+
+  newton_drivertype_args<nvar> args(&param);
   args.stpmin = 1.0e-12;
   args.ratnew = 0.5; // LS step decrease factor 
   args.iprt = 0;

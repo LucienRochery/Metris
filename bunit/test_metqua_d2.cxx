@@ -23,7 +23,7 @@
 #include "../src/quality/quafun_tradet.hxx"
 #include "../src/quality/quafun.hxx"
 
-#include "SANS/Surreal/SurrealS.h"
+#include "../SANS/Surreal/SurrealS.h"
 
 namespace Metris{
 
@@ -115,8 +115,8 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
         MPRINTF("-- Test 2.1: d_quafun_tradet_SurrealS derivatives (identity)\n");
         {// using
         constexpr int nvar = gdim;
-        auto d_quafun = d_quafun_tradet_SurrealS<MFT,gdim,tdim,gdim,ftype>;
-        auto   quafun =   quafun_tradet         <MFT,gdim,tdim,     ftype>;
+        auto d_quafun = d_quafun_tradet_SurrealS<MFT,gdim,tdim,gdim>;
+        auto   quafun =   quafun_tradet         <MFT,gdim,tdim,ftype>;
         SANS::DLA::MatrixS<gdim,nvar,double> dpoint = SANS::DLA::Identity();
         //for(int ii = 0; ii < gdim; ii++){
         //  for(int jj = 0; jj < gdim; jj++){
