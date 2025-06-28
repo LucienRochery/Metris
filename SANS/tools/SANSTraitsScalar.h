@@ -7,7 +7,7 @@
 #define SANSTRAITSSCALAR_H
 
 #include "../LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
-#include "src/types_scalar.hxx"
+#include "../../src/types_scalar.hxx"
 
 
 namespace SANS

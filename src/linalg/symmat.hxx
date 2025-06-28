@@ -8,7 +8,7 @@
 #define __METRIS_SYMMAT__
 
 #include "symidx.hxx"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "../../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
 
 namespace SANS::DLA{

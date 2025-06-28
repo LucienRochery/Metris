@@ -13,7 +13,7 @@
 
 
 #include "../Mesh/MeshFwd.hxx"
-#include "SANS/Surreal/SurrealS_fwd.h"
+#include "../../SANS/Surreal/SurrealS_fwd.h"
 
 namespace SANS::DLA{
   template<int n, int m, typename T> class MatrixS;

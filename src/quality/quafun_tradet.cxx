@@ -15,7 +15,7 @@
 
 #include "../utils/aux_pp_inc.hxx"
 
-#include "SANS/Surreal/SurrealS.h"
+#include "../../SANS/Surreal/SurrealS.h"
 
 namespace Metris{
 

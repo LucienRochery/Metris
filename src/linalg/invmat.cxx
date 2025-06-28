@@ -173,7 +173,13 @@ template<int ndim>
 int invmat(double *mat){
   // naive formula no less stable in dim 2 and much faster
   if constexpr(ndim <= 2) return invmat_naive<ndim>(mat);
-  else                    return invmat_EigenLUFP<ndim>(mat,mat);
+  else{
+    #ifdef USE_LAPACK
+    return invmat_LAPACK(ndim, mat);
+    #else
+    return invmat_EigenLUFP<ndim>(mat,mat);
+    #endif
+  }                   
 }
 template int invmat<1>(double *mat);
 template int invmat<2>(double *mat);

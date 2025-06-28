@@ -25,7 +25,7 @@ include(cmake/MetrisFlags.cmake)
 
 
 set(METRIS_DEPS_LIBRARIES "")
-set(METRIS_DEPS_INCLUDE_DIRS "")
+set(METRIS_DEPS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR})
 
 
 find_package(Git)
@@ -165,12 +165,21 @@ target_link_libraries(metris PUBLIC libMetris
 #endif()
 
 target_link_libraries(egads2lite PUBLIC libMetris 
-                                        libmeshb 
+                                        libmeshb
+                                        SANS 
+                                        ${ABSL_LIBRARIES}
+                                        ${LAPACK_LIBRARIES}
                                         ${EGADS_LIBRARIES} 
                                         ${EGADSLITE_LIBRARIES}
+                                        #nlopt
+#                                       LP.3
+                                        lplib3
                                         Boost::headers # yes this is weird
                                         ${Boost_LIBRARIES}
-                                        ${Boost_PROGRAM_OPTIONS_LIBRARY})
+                                        ${Boost_PROGRAM_OPTIONS_LIBRARY}
+                                        ${PETSC_LIBRARIES}
+                                        ${MPI_LIBRARIES}
+                                        ${BOOST_TRACELIBS})
 
 #For some reason, not specifying the full path does not work for EXISTS
 if(EXISTS ${CMAKE_SOURCE_DIR}/progs/scatter_rh.cxx)
@@ -259,8 +268,8 @@ if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME
   #  gtest_discover_tests(${d})
   #endforeach()
   
-  file (GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "bunit/*.cxx")
-  
+  file (GLOB TEST_SOURCES CONFIGURE_DEPENDS "bunit/*.cxx")
+
   # -- Boost/test
   find_package(Boost COMPONENTS unit_test_framework REQUIRED)
   #find_package(NLopt REQUIRED) 
