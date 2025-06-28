@@ -84,6 +84,21 @@ struct promote_Surreal< DLA::MatrixS<M,N,T1>, DLA::MatrixS<N,K,T2> >
   typedef DLA::MatrixS<N,K,T> type;
 };
 
+template <>
+struct promote_Surreal<unsigned long, double> {
+    typedef double type;
+};
+
+template <>
+struct promote_Surreal<double, unsigned long> {
+    typedef double type;
+};
+
+template <>
+struct promote_Surreal<unsigned long, unsigned long> {
+    typedef unsigned long type;
+};
+
 } //namespace SANS
 
 #endif //DLA_PROMOTE_SURREAL_H
