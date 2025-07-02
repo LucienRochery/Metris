@@ -148,20 +148,23 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
   }
 
 
-  for(int itetr : cav.lctet){
-    for(int ifa = 0; ifa < 4; ifa++){
-      int itet2 = msh.tet2tet(itetr, ifa);
-      if(itet2 < 0) continue;
-      if(msh.tet2tag(ithread,itet2) < msh.tag[ithread]) continue;
-      // Don't use refs here so we can support sheet bodies next (surface internal to single tet domain)
-      int ip1 = msh.tet2poi(itetr, lnofa3[ifa][0]);
-      int ip2 = msh.tet2poi(itetr, lnofa3[ifa][1]);
-      int ip3 = msh.tet2poi(itetr, lnofa3[ifa][2]);
-      int iface = getfacglo(msh, ip1, ip2, ip3);
-      if(iface < 0) continue;
-      if(msh.fac2tag(ithread,iface) < msh.tag[ithread]){
-        CPRINTF1("## face %d is internal but was not in cavity\n",iface);
-        return CAV_ERR_INTFAC;
+  // Look for cavity internal faces: only if mesh is non manifold (internal surfaces)
+  if(msh.is_nonmanifold()){
+    for(int itetr : cav.lctet){
+      for(int ifa = 0; ifa < 4; ifa++){
+        int itet2 = msh.tet2tet(itetr, ifa);
+        if(itet2 < 0) continue;
+        if(msh.tet2tag(ithread,itet2) < msh.tag[ithread]) continue;
+        // Don't use refs here so we can support sheet bodies next (surface internal to single tet domain)
+        int ip1 = msh.tet2poi(itetr, lnofa3[ifa][0]);
+        int ip2 = msh.tet2poi(itetr, lnofa3[ifa][1]);
+        int ip3 = msh.tet2poi(itetr, lnofa3[ifa][2]);
+        int iface = getfacglo(msh, ip1, ip2, ip3);
+        if(iface < 0) continue;
+        if(msh.fac2tag(ithread,iface) < msh.tag[ithread]){
+          CPRINTF1("## face %d is internal but was not in cavity\n",iface);
+          return CAV_ERR_INTFAC;
+        }
       }
     }
   }
