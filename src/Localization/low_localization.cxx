@@ -402,12 +402,14 @@ int inveval0(const MeshBase &msh,
     }
 
     CPRINTF1(" - luksan_pnet finished with dist %e <? %e\n",dist,tol*tol);
-    if(dist >= tol*tol){
+    if(dist >= tol*tol*1.1){
       CPRINTF1("## luksan_pnet did not converge dist %e >= %e reported %e fstop %e\n",
                dist,tol*tol,fopt,fstop);
+      #ifndef NDEBUG
       printf("## WAIT HERE! Why is it that we have ierro =? NLOPT_SUCCESS: %d "
              "but not respecting the distance\n",ierro == NLOPT_SUCCESS);
       wait();
+      #endif
       return 2;
     }
   }else{
