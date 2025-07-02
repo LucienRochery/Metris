@@ -304,6 +304,34 @@ void MeshBase::initialize(MetrisAPI *data,
     }
 
 
+
+    // Check if the domain is non-manifold (3D)
+    is_manifold = true;
+    for(int ielem = 0; ielem < nelem; ielem++){
+      if(isdeadent(ielem,tet2poi)) continue;
+      for(int ifa = 0; ifa < 4; ifa++){
+        int ienei = tet2tet(ielem,ifa);
+        if(ienei < 0) continue;
+        int ip1 = tet2poi(ielem, lnofa3[ifa][0]);
+        int ip2 = tet2poi(ielem, lnofa3[ifa][1]);
+        int ip3 = tet2poi(ielem, lnofa3[ifa][2]);
+        int iface = getfacglo(*this, ip1, ip2, ip3);
+        if(iface >= 0){
+          is_manifold = false;
+          break;
+        }
+      }
+      if(!is_manifold) break;
+    }
+
+    if(is_manifold){
+      CPRINTF1("-- Domain is manifold\n");
+    }else{
+      CPRINTF1("-- Domain is non-manifold\n");
+    }
+
+
+
     //METRIS_THROW_MSG(TODOExcept(), "Implement edge and triangle orientation in 3D")
   }
 

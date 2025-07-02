@@ -376,6 +376,8 @@ MeshBase& MeshBase::operator=(const MeshBase &inp){
   ibasis = inp.ibasis;
   idim   = inp.idim;
 
+  is_manifold = inp.is_manifold;
+
   set_npoin(inp.npoin);
   set_nedge(inp.nedge);
   set_nface(inp.nface);

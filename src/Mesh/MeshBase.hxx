@@ -272,6 +272,9 @@ public:
                                               tdimn == 1 ? isboundary_edges() :
                                               tdimn == 2 ? isboundary_faces() : false;}
 
+
+  bool is_nonmanifold() const {return !is_manifold;}
+
   // Lowest point topological dimension
   int getpoitdim(int ipoin) const;
 
@@ -383,6 +386,9 @@ protected:
   // 2: faces, normal
   // Deviation is 1 - abs(dtprd) 
   double geodev[2];  // Also in back mesh... 
+
+  // Store whether the mesh is non-manifold or not 
+  bool is_manifold;
 };
 
 
