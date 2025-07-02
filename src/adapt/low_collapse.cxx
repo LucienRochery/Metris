@@ -219,21 +219,15 @@ int colledgsurf(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf,
 
         if(DOPRINTS2()) writeMeshCavity("collapse_cavity0.meshb", msh, cav);
 
-        //static int nwarnprt = 0;
-        //if(nwarnprt++ < 10) printf("## PUT BACK DELAUNAY IN LOW COLLAPSE\n");
-        ierro = increase_cavity(msh, cav, true, ithrd1, ithrd2);
-        if(ierro != 0){
-          CPRINTF1("# increase_cavity error %d \n",ierro);
-          continue;
-        }
-        //// Increase cavity with Delaunay criterion
-        //ierro = increase_cavity_Delaunay(msh, cav, ithrd2, nrmal);
-        //if(ierro != 0) continue;
-        ////int nprem = increase_cavity_lenedg(msh,cav,ipins,ithrd2,ithrd3);
-        //ierro = increase_cavity_validity(msh,cav,ithrd2);
-        //if(ierro > 0) continue;
+        ////static int nwarnprt = 0;
+        ////if(nwarnprt++ < 10) printf("## PUT BACK DELAUNAY IN LOW COLLAPSE\n");
+        //ierro = increase_cavity(msh, cav, true, ithrd1, ithrd2);
+        //if(ierro != 0){
+        //  CPRINTF1("# increase_cavity error %d \n",ierro);
+        //  continue;
+        //}
 
-        if(DOPRINTS2()) writeMeshCavity("collapse_cavity1.meshb", msh, cav);
+        //if(DOPRINTS2()) writeMeshCavity("collapse_cavity1.meshb", msh, cav);
 
         //ierro = collrejcav_dens(msh, cav, ithrd2, ithrd3);
         //if(ierro > 0){

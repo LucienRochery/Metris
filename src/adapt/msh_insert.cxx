@@ -99,7 +99,6 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
   msh.tag[ithrd1]++;
   
-  // At most one edge in an insertion that doesn't collapse a point.
   MshCavity cav(100,100,1);
   CavWrkArrs work;
 

@@ -91,6 +91,8 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
   do{
     INCVDEPTH(msh.param);
 
+    
+
 
     int nerro1 = 0, nerro2 = 0, nerro3 = 0;
     int nedgt = 0;

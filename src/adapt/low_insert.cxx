@@ -55,7 +55,7 @@ int insertEdge(Mesh<MFT>& msh,
   opts.allow_topological_correction = true;
   opts.skip_topo_checks = false;
   opts.dryrun = false;
-  opts.allow_remove_points = false; // good for an infinite loop
+  opts.allow_remove_points = false; // potential for an infinite loop
   opts.allow_remove_points_superdim = true; // For boundary
   opts.qmax_nec = -1;
   opts.qmax_suf = -1;
@@ -275,17 +275,20 @@ int insertEdge(Mesh<MFT>& msh,
     CPRINTF1(" - initial cavity nedge %d nface %d nelem %d\n",
              cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
 
-    nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
-    if(nprem < 0){
-      ierro = INS2D_ERR_SHORTEDG;
-      CPRINTF1(" - with ops.allow_remove_points == false, short edge would be created\n");
-      goto fixpoint;
-    }
-    CPRINTF1(" - +len cavity size %d nprem = %d\n", cav.lcfac.get_n(),nprem); 
-    if(DOPRINTS2()){
-      writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr), 
-                                  msh,cav);
-    }
+    //if(!( opts.allow_remove_points 
+    //   || opts.allow_remove_points_superdim && tdimp < msh.get_tdim()) ){
+      nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
+      if(nprem < 0){
+        ierro = INS2D_ERR_SHORTEDG;
+        CPRINTF1(" - with ops.allow_remove_points == false, short edge would be created\n");
+        goto fixpoint;
+      }
+      CPRINTF1(" - +len cavity size %d nprem = %d\n", cav.lcfac.get_n(),nprem); 
+      if(DOPRINTS2()){
+        writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr), 
+                                    msh,cav);
+      }
+    //}
 
     //static int nwarnprt = 0;
     //if(nwarnprt++ < 10) printf("## PUT BACK DELAUNAY IN LOW INSERT\n");
