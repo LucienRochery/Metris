@@ -364,22 +364,22 @@ restart_cavity:
     goto restart_cavity;
   }
 
-  if(ierro == CAV_ERR_REMPT && irestart_cav && ncfa0 == 0){
-    printf("## DEBUG DESPITE RESTART CAVITY DOES NOT WORK\n");
-    writeMeshCavity("insert_cavity_fail1.meshb", 
-                                    msh,cav);
-    cav.lcedg.set_n(nced0);
-    cav.lcfac.set_n(ncfa0);
-    cav.lctet.set_n(ncte0);
-    writeMeshCavity("insert_cavity_fail0.meshb", 
-                                    msh,cav);
+  //if(ierro == CAV_ERR_REMPT && irestart_cav && ncfa0 == 0){
+  //  printf("## DEBUG DESPITE RESTART CAVITY DOES NOT WORK\n");
+  //  writeMeshCavity("insert_cavity_fail1.meshb", 
+  //                                  msh,cav);
+  //  cav.lcedg.set_n(nced0);
+  //  cav.lcfac.set_n(ncfa0);
+  //  cav.lctet.set_n(ncte0);
+  //  writeMeshCavity("insert_cavity_fail0.meshb", 
+  //                                  msh,cav);
 
-    int ierr2 = aux_movePointCav(msh, cav, tdimp, iseed, iref, algnd);
-    writeMeshCavity("insert_cavity_fail_move0.meshb", 
-                                    msh,cav);
+  //  int ierr2 = aux_movePointCav(msh, cav, tdimp, iseed, iref, algnd);
+  //  writeMeshCavity("insert_cavity_fail_move0.meshb", 
+  //                                  msh,cav);
 
-    wait();
-  }
+  //  wait();
+  //}
 
   if(ierro > 0) lerro[ierro-1]++;
   #ifndef NDEBUG
