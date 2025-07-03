@@ -36,7 +36,7 @@ cd ..
 
 cp -r $METRIS_DIR/jenkins $WORKSPACE/
 
-read  -n 1 -p "About to run Metris_Commit.sh" dummyvariable
+#read  -n 1 -p "About to run Metris_Commit.sh" dummyvariable
 
 cd $WORKSPACE/jenkins
 builddir="release_clang"
