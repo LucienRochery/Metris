@@ -11,6 +11,3 @@ $(UNIT_TESTS) metris:
 
 unit_build: $(UNIT_TESTS)
 	@cat $(patsubst %,%.out,$?)
-
-metris_build: metris
-	@cat $(patsubst %,%.out,$?)

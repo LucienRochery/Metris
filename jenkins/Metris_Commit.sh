@@ -19,6 +19,7 @@ source $WORKSPACE/jenkins/jenkins_env.sh
 
 CMAKEARGS=""
 
+
 time source $WORKSPACE/jenkins/cmake_jenkins.sh
 
 # Copy over the makefile that pipes parallel execution to files
@@ -33,8 +34,8 @@ echo "in directory $(pwd)"
 #time make -j $nproc -f Makefile.parallel meshBASIC
 #time make -j $nproc -f Makefile.parallel libMetris
 #time make -j $nproc -f Makefile.parallel metris
-time make -j $nproc -f Makefile.parallel metris_build
-time make -j $nproc -f Makefile.parallel unit_tests
+time make -j $nproc -f Makefile.parallel metris
+time make -j $nproc -f Makefile.parallel unit_build
 
 #Fail the build if any files were generated in source.
 #Count the number of files

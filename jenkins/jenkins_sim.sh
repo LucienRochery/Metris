@@ -28,10 +28,11 @@ else
     echo "Directory Metris was not created in $JENKINS_TEST_WORKSPACE."
     exit 1
   fi
-  cd Metris
-  git checkout LucienRochery/develop
-  cd ..
 fi
+
+cd Metris
+git checkout LucienRochery/develop
+cd ..
 
 cp -r $METRIS_DIR/jenkins $WORKSPACE/
 
