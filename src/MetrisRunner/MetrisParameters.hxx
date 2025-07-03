@@ -76,9 +76,6 @@ struct MetrisParameters{
   bool adp_line_adapt;
   double adp_stagn_stop; // stat threshold for stagnation (default 1e-3)
 
-  // lazy interpolation in insertion: use approximate metric for a priori checks
-  // and cavity building, only interpolate metric after successful operation.
-  bool ins_lazy_interp;
   // ----------------- END Adaptation options  
 
   // Metric min/max size control

@@ -42,10 +42,6 @@ MetrisParameters::MetrisParameters(){
   adp_opt_niter = 1;
   adp_line_adapt = false;
 
-  // Does not work currently, namely the lenedg increasecav criterion needs
-  // improving for this to work. 
-  ins_lazy_interp = false;
-
   // 0 is none, default
   // 3 is offsets followed by smoothing 
   // 4 is offsets then backtrack and stop there 
