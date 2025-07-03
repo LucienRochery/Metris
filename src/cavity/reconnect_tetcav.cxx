@@ -301,44 +301,14 @@ int reconnect_tetcav(Mesh<MFT> &msh,
 
           // Copy the nodes from the entity. Could be dimension 2 or 3. 
           if(tdimf == 2){
-            int idx[4] = {}; // value init to 0
-            // There is a permutation to figure out. 
-            // The parity of this permutation will also give us whether we're
-            // tet2fac 1 or 2. 
 
             CPRINTF1(" - bdry face nodes %d %d %d \n",msh.fac2poi(ielef,0)
                      ,msh.fac2poi(ielef,1),msh.fac2poi(ielef,2)); 
             CPRINTF1("   match with %d %d %d \n",msh.tet2poi(ielen,lnofa3[ifan][0])
               ,msh.tet2poi(ielen,lnofa3[ifan][1]),msh.tet2poi(ielen,lnofa3[ifan][2]));
 
-            int perm[3] = {-1, -1, -1};
-            // Loop over the face's nodes
-            for(int ii = 0; ii < 3; ii++){
-              // If ifan = 0, this would be [0, 1, 0, 0], then [0, 0, 1, 0]...
-              // Vertices are first so we don't actually need the ordering. 
-              int inod3 = lnofa3[ifan][ii];
-              for(int jj = 0; jj < 3; jj++){
-                if(msh.fac2poi(ielef,jj) != msh.tet2poi(ielen,inod3)) continue;
-                // Given tet face local index, return face index. 
-                perm[ii] = jj;
-              }
-            }
-            CPRINTF1(" - got perm = %d %d %d \n",perm[0],perm[1],perm[2]);
-            METRIS_ASSERT(perm[0] >= 0 && perm[1] >= 0 && perm[2] >= 0);
-            METRIS_ASSERT(perm[0] != perm[1] && perm[0] != perm[2] && perm[1] != perm[2]);
 
-            // Loop over non vertex face indices
-            for(int ii = 0; ii <= ideg-1; ii++){
-              for(int jj = (int)(ii == 0); jj <= ideg-1; jj++){
-                int kk = ideg - ii - jj;
-                idx[lnofa3[ifan][0]] = ii;
-                idx[lnofa3[ifan][1]] = jj;
-                idx[lnofa3[ifan][2]] = kk;
-                int inod3 = mul2nod(4,idx);
-                int inod2 = mul2nod(perm[ii],perm[jj],perm[kk]);
-                msh.tet2poi(ielen,inod3) = msh.fac2poi(ielef,inod2);
-              }
-            }
+            cpy_glofac2tetfac<ideg>(msh, ielef, ielen, ifan);
 
             // This is a new face. Update the fac2tet
             METRIS_ASSERT(ielef >= nfac0);
@@ -351,22 +321,6 @@ int reconnect_tetcav(Mesh<MFT> &msh,
             }else{
               METRIS_THROW_MSG(TopoExcept(), "New face points to dead element")
             }
-            // Disregard orientation. 
-            //// Sum inversions
-            //int persg = (perm[0] > perm[1]) 
-            //          + (perm[0] > perm[2]) 
-            //          + (perm[1] > perm[2]);
-            //CPRINTF1(" - update face %d perm sg %d \n",ielef,persg%2);
-            //// Could do away with if but this is more legible.
-            //if(persg%2 == 0){
-            //  // Same orientation face as tetrahedron
-            //  METRIS_ASSERT(msh.fac2tet(ielef,0) < 0);
-            //  msh.fac2tet(ielef,0) = ielen;
-            //}else{
-            //  // Opposite orientation
-            //  METRIS_ASSERT(msh.fac2tet(ielef,1) < 0);
-            //  msh.fac2tet(ielef,1) = ielen;
-            //}
 
           }else{
             METRIS_ASSERT(ielef >= nele0);
@@ -374,43 +328,9 @@ int reconnect_tetcav(Mesh<MFT> &msh,
             // the tet. 
             int ifaf = getfactet(msh, ielef, ip1, ip2, cav.ipins);
             METRIS_ASSERT(ifaf >= 0);
-            int idxn[4] = {}, idxf[4] = {};
 
-            // As for the triangle case, we need to match by a permutation
-            int perm[3] = {-1, -1, -1};
-            // Loop over the face's nodes
-            for(int ii = 0; ii < 3; ii++){
-              // If ifan = 0, this would be [0, 1, 0, 0], then [0, 0, 1, 0]...
-              // Vertices are first so we don't actually need the ordering. 
-              int inodn = lnofa3[ifan][ii];
-              for(int jj = 0; jj < 3; jj++){
-                int inodf = lnofa3[ifaf][jj];
-                if(msh.tet2poi(ielef,inodf) != msh.tet2poi(ielen,inodn)) continue;
-                // Match face local indices 
-                perm[ii] = jj;
-              }
-            }
-            METRIS_ASSERT(perm[0] >= 0 && perm[1] >= 0 && perm[2] >= 0);
-            METRIS_ASSERT(perm[0] != perm[1] && perm[0] != perm[2] && perm[1] != perm[2]);
-
-
-            for(int ii = 0; ii <= ideg-1; ii++){
-              for(int jj = (int)(ii == 0); jj <= ideg-1; jj++){
-                int kk = ideg - ii - jj;
-                idxn[lnofa3[ifan][0]] = ii;
-                idxn[lnofa3[ifan][1]] = jj;
-                idxn[lnofa3[ifan][2]] = kk;
-                int inodn = mul2nod(4,idxn);
-
-                idxf[lnofa3[ifaf][0]] = perm[ii];
-                idxf[lnofa3[ifaf][1]] = perm[jj];
-                idxf[lnofa3[ifaf][2]] = perm[kk];
-                int inodf = mul2nod(4,idxf);
-
-                msh.tet2poi(ielen,inodn) = msh.tet2poi(ielef,inodf);
-              }
-            }
-
+            cpy_tetfac2tetfac<ideg>(msh, ielef, ifaf, ielen, ifan);
+            
             // Also update the neighbour. This is a cavity interior face and both are
             // new elements. 
             msh.tet2tet(ielen,ifan) = ielef;

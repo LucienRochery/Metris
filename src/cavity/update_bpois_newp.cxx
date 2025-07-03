@@ -131,6 +131,7 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
     for(int ipoin = npoi0; ipoin < msh.npoin; ipoin++){
 
       int ibpoi = msh.poi2bpo[ipoin];
+      if(ibpoi < 0) continue;
       int ityp = msh.bpo2ibi(ibpoi,1);
       if(ityp >= 2) continue;
 
