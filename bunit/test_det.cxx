@@ -554,9 +554,10 @@ ftype detsym_Eigen_LDLT(const ftype *met){
 
 template  double detsym_Eigen_LDLT<2>(const double *met);
 template  double detsym_Eigen_LDLT<3>(const double *met);
+#ifdef USE_MULTIPRECISION
 template  float4 detsym_Eigen_LDLT<2>(const float4 *met);
 template  float4 detsym_Eigen_LDLT<3>(const float4 *met);
-
+#endif
 
 
 }
