@@ -1,4 +1,3 @@
-../../CMakeLists.txt
 # FetchContent_MakeAvailable is latest constraint:
 cmake_minimum_required(VERSION 3.14.0)
 set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
