@@ -57,7 +57,7 @@ int insertEdge(Mesh<MFT>& msh,
   opts.dryrun = false;
   opts.allow_remove_points = false; // potential for an infinite loop
   opts.allow_remove_points_superdim = true; // For boundary
-  opts.qmax_nec = -1;
+  opts.qmax_nec = -1;//qmax_nec
   opts.qmax_suf = -1;
   opts.qmax_iff = -1;
 
@@ -73,6 +73,7 @@ int insertEdge(Mesh<MFT>& msh,
   CPRINTF1("-- START insertEdge tdim = %d ientt = %d ied %d\n",tdim,ientt,iedl);
 
   int ierro = 0, nprem;
+  bool irestart_cav;
   int ip1 = ent2poi(ientt,lnoed[iedl][0]);
   int ip2 = ent2poi(ientt,lnoed[iedl][1]);
 
@@ -94,6 +95,9 @@ int insertEdge(Mesh<MFT>& msh,
   }
   #endif  
 
+  int nced0 = cav.lcedg.get_n();
+  int ncfa0 = cav.lcfac.get_n();
+  int ncte0 = cav.lctet.get_n();
 
   int tdimp = -1;
        if(cav.lcedg.get_n() > 0) tdimp = 1;
@@ -132,144 +136,148 @@ int insertEdge(Mesh<MFT>& msh,
   if(msh.CAD()) METRIS_ASSERT(obj != NULL 
                     || tdimp == 2 && !msh.isboundary_faces() || tdimp == 3);
 
+  int iverb0 = msh.param->iverb;
+  int ivdepth0 = msh.param->ivdepth;
+  //if(tdimp < msh.get_tdim() ){
+  //  printf("## DEBUG BOUNDARY INSERTION SET MAX PRINTS bar1 = %f\n",bar1);
+  //  msh.param->iverb = 5;
+  //  msh.param->ivdepth = 5;
+  //  iverb__ = 5;
+  //  ivdepth__ = 5;
+  //}
+
   CPRINTF1(" - create ipins %d tdim = %d seed %d ref %d\n",cav.ipins,tdimp,iseed,iref);
 
-  for(int ii = 0; ii < msh.idim; ii++) msh.coord(cav.ipins,ii) = coop[ii];
 
+  double bar1_min = 1.0e-6, bar1_max = 1 - 1.0e-6;
 
-  // Evaluate ipins on CAD, also get algnd for interpMetBack 
-  int ip[2] = {ent2poi(ientt,lnoed[iedl][0]),
-               ent2poi(ientt,lnoed[iedl][1])};
-  if(ibins >= 0 && msh.CAD()){
-    int ib[2];
-    // Correct ibs : attach to ref or edge/face as needed
-    for(int ii = 0; ii < 2; ii++){
-      ib[ii] = msh.poi2ebp(ip[ii],tdimp,iseed,iref);
-      METRIS_ASSERT(ib[ii] >= 0);
+  constexpr int mnode = getnnode(1,METRIS_MAX_DEG);
+  const int nnode = getnnode(1,msh.curdeg);
+  int edg2pol[mnode], edg2po2[2] = {cav.ipins, -1};
+  int idx[4] = {0};
+  int idx1[2];
+  for(int inoed = 0; inoed <= msh.curdeg; inoed++){
+    idx[lnoed[iedl][0]] = msh.curdeg - inoed;
+    idx[lnoed[iedl][1]] = inoed;
+    idx1[0] = msh.curdeg - inoed;
+    idx1[1] = inoed;
+    int inode_sup = mul2nod(tdim,idx);
+    int inode_sub = mul2nod(1,idx1);
+    edg2pol[inode_sub] = ent2poi(ientt,inode_sup);
+  }
+  
+
+  // Get bar1 s.t. new edges are not short. There can be other short edges, but 
+  // not from splitting the parent edge. 
+  bool fnd_len = false;
+  double bar1_opt = -1;
+  for(int ntry_len = 0; ntry_len < 10; ntry_len++)
+  {
+    INCVDEPTH(msh.param);
+    bar1 = (bar1_min + bar1_max) / 2;
+    double bar2[2] = {bar1, 1 - bar1};
+
+    // Evaluate ipins on CAD or element, also get algnd for interpMetBack 
+    if(ibins >= 0 && msh.CAD()){
+      int ib[2];
+      // Correct ibs : attach to ref or edge/face as needed
+      for(int ii = 0; ii < 2; ii++){
+        ib[ii] = msh.poi2ebp(edg2pol[ii],tdimp,iseed,iref);
+        METRIS_ASSERT(ib[ii] >= 0);
+      }
+
+      for(int ii = 0; ii < 2; ii++) msh.bpo2rbi(ibins,ii) = 
+          bar1*msh.bpo2rbi[ib[0]][ii] + (1.0 - bar1)*msh.bpo2rbi[ib[1]][ii];
+
+      double result[18];
+      METRIS_ASSERT(obj != NULL);
+      ierro = EG_evaluate(obj, msh.bpo2rbi[ibins], result);
+      if(ierro != 0){
+        ierro = INS2D_ERR_EGEVALUATE; 
+        goto cleanup;
+      }
+      for(int ii = 0; ii < msh.idim; ii++) msh.coord(cav.ipins,ii) = result[ii];
+
+      if(tdimp == 1){
+        for(int ii = 0; ii < msh.idim; ii++) algnd[ii] = result[3+ii];
+      }else{
+        vecprod(&result[3], &result[6], algnd);
+      }
+    }else if(ibins >= 0 && !msh.CAD()){ 
+      METRIS_ASSERT(tdimp <= 2);
+      // No reevaluation, but initialize algnd to edge tangent 
+      CPRINTF1(" - discrete algnd initialization tdimp %d \n",tdimp);
+      if(tdimp == 1){
+        double dum[2];
+        // To compute at higher degree, copy more vertices into ip
+        MSH_DIM_DEG0(msh){
+          eval1<gdim,ideg>(msh.coord, edg2pol,
+                           msh.getBasis(), DifVar::Bary, DifVar::None,
+                           bar2, msh.coord[cav.ipins], algnd, NULL);
+        }MSH_DIM_DEG1();
+      }else if(msh.idim == 3){
+        getnorfacP1(ent2poi[ientt],msh.coord,algnd);
+      }
+    }else{
+      MSH_DIM_DEG0(msh){
+        eval1<gdim,ideg>(msh.coord, edg2pol,
+                         msh.getBasis(), DifVar::None, DifVar::None,
+                         bar2, msh.coord[cav.ipins], NULL, NULL);
+      }MSH_DIM_DEG1();
     }
 
-    for(int ii = 0; ii < 2; ii++) msh.bpo2rbi(ibins,ii) = 
-        bar1*msh.bpo2rbi[ib[0]][ii] + (1.0 - bar1)*msh.bpo2rbi[ib[1]][ii];
-
-    double result[18];
-    METRIS_ASSERT(obj != NULL);
-    ierro = EG_evaluate(obj, msh.bpo2rbi[ibins], result);
+    ierro = msh.interpMetBack(cav.ipins, tdimp, iseed, iref, algnd);
     if(ierro != 0){
-      ierro = INS2D_ERR_EGEVALUATE; 
+      ierro = INS2D_ERR_INTERPMETBACK;
       goto cleanup;
     }
-    if(DOPRINTS2()){
-      CPRINTF2("EG_evaluate orig = ");
-      dblAr1(msh.idim,msh.coord[cav.ipins]).print();
-      CPRINTF2("new = ");
-      dblAr1(msh.idim,result).print();
-    }
-    for(int ii = 0; ii < msh.idim; ii++) msh.coord(cav.ipins,ii) = result[ii];
 
-    if(tdimp == 1){
-      for(int ii = 0; ii < msh.idim; ii++) algnd[ii] = result[3+ii];
+
+    double sz[2];
+    edg2po2[1] = ip1;
+    double len1 = msh.idim == 2 ? getlenedg_geosz<MFT,2,1>(msh,edg2po2,sz)
+                                : getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
+    edg2po2[1] = ip2;
+    double len2 = msh.idim == 2 ? getlenedg_geosz<MFT,2,1>(msh,edg2po2,sz)
+                                : getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
+    if(len1 <= 1/sqrt(2)){
+      bar1_max = bar1;
+    }else if(len2 <= 1/sqrt(2)){
+      bar1_min = bar1;
+    }else if(abs(len1-1) < abs(len2-1)){
+      bar1_max = bar1;
     }else{
-      vecprod(&result[3], &result[6], algnd);
+      bar1_min = bar1;
     }
 
-    //// If the point moved away from the initial cavity, increase it. 
-    //ierro = increase_cavity_validity(msh,cav,ithrd1);
+    CPRINTF1(" - %d bar1 = %e lens = %e %e valid %d %d dist %e %e\n",ntry_len,bar1,len1,len2,
+              len1 > 1/sqrt(2), len2 > 1/sqrt(2),
+              abs(len1-1), abs(len2-1));
 
-    //if(DOPRINTS2()){
-    //  writeMeshCavity("insert_cavity0.meshb", msh, cav);
-    //  CPRINTF2("increase_cavity_validity after EGADS  ierro %d ipins = %d \n",ierro,cav.ipins);
-    //}
-    //if(ierro != 0){
-    //  ierro = INS2D_ERR_INCCAV2D2;
-    //  goto cleanup;
-    //} 
-  }else if(ibins >= 0 && !msh.CAD()){ 
-    METRIS_ASSERT(tdimp <= 2);
-    // No reevaluation, but initialize algnd to edge tangent 
-    CPRINTF1(" - discrete algnd initialization tdimp %d \n",tdimp);
-    if(tdimp == 1){
-      double dum[2];
-      double bary[2] = {bar1, 1.0 - bar1};
-      // To compute at higher degree, copy more vertices into ip
-      //CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-        eval1<2,1>(msh.coord, ip,
-                   msh.getBasis(), DifVar::Bary, DifVar::None,
-                   bary, dum, algnd, NULL);
-      //}}CT_FOR1(ideg);
-    }else if(msh.idim == 3){
-      getnorfacP1(ent2poi[ientt],msh.coord,algnd);
+    if(len1 >= 1/sqrt(2) && len2 >= 1/sqrt(2)){
+      fnd_len = true;
+      // Once a viable is found, it is possible length distance to 1 will 
+      // make a couple of iterates not viable, so it's important to keep a viable
+      // bar1. 
+      bar1_opt = bar1;
     }
-  }
+  }// for ntry_len
 
-  try{
-
-  ierro = msh.interpMetBack(cav.ipins, tdimp, iseed, iref, algnd);
-  if(ierro != 0){
-    //printf("debug interpMetBack error %d\n",ierro);
-    //wait();
-    ierro = INS2D_ERR_INTERPMETBACK;
+  if(!fnd_len){
+    ierro = INS2D_ERR_SHORTEDG;
     goto cleanup;
   }
-
-  }catch(const MetrisExcept& e){
-
-    printf("Exception in interpMetBack from insertEdge\n");
-    printf(" insertion dim was %d\n",tdimp);
-    printf(" using iseed iref %d %d initial seed ientt %d tdim %d\n",
-           iseed,iref,ientt,tdim);
-    printf("ipins = %d\n",cav.ipins);
-    MPRINTF("-- cavity ncedg = %d ncfac = %d nctet = %d ipins = %d \n",
-             cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),cav.ipins);
-    MPRINTF("   npoin %d nedge %d nface %d nelem %d\n",msh.npoin,msh.nedge,msh.nface,msh.nelem);
-    if(cav.lcedg.get_n() > 0){
-      MPRINTF(" - Edge cavity: ");
-      cav.lcedg.print();
-    }
-    if(cav.lcfac.get_n() > 0){
-      MPRINTF(" - Face cavity: ");
-      cav.lcfac.print();
-    }
-    if(cav.lctet.get_n() > 0){
-      MPRINTF(" - Tetra cavity: ");
-      cav.lctet.print();
-    }
-
-    for(int tdimn = 1; tdimn <= 3; tdimn++){
-      intAr1 &lcent = cav.lcent(tdimn);
-      int ncent = lcent.get_n();
-      if(ncent <= 0) continue;
-      intAr2 &ent2poi = msh.ent2poi(tdimn);
-
-      if(tdimn == 1){
-        MPRINTF(" - Edge cavity: \n");
-      }else if(tdimn == 2){
-        MPRINTF(" - Face cavity: \n");
-      }else{
-        MPRINTF(" - Tetra cavity: \n");
-      }
-      int nnode = msh.nnode(tdimn);
-      for(int ientt : lcent){
-        MPRINTF("%d : ",ientt);
-        for(int ii = 0; ii < nnode; ii++){
-          printf(" %d ",ent2poi(ientt,ii));
-        }
-        printf("\n");
-      }
-    }
-    writeMeshCavity("inscavity1",msh,cav);
-    throw(e);
-  }
+  bar1 = bar1_opt;
 
   ncavcorr = 0;
   ierro = 0;
   do{
-
-    int nced0 = cav.lcedg.get_n();
-    int ncfa0 = cav.lcfac.get_n();
-    int ncte0 = cav.lctet.get_n();
    
-    if(DOPRINTS2()) writeMeshCavity("insert_cavity0."+std::to_string(ncavcorr), 
-                                  msh,cav);
+    if(DOPRINTS2()){
+      std::string fname = "insert_cavity0."+std::to_string(ncavcorr);
+      writeMeshCavity(fname,msh,cav);
+      msh.met.writeMetricFile(fname);
+    }
     CPRINTF1(" - initial cavity nedge %d nface %d nelem %d\n",
              cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
 
@@ -294,6 +302,8 @@ int insertEdge(Mesh<MFT>& msh,
       ierro = INS2D_ERR_INCCAV2D;
     }
 
+    //static int nwarnprt = 0;
+    //if(nwarnprt++ < 10) printf("## PUT BACK DELAUNAY IN LOW INSERT\n");
     ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
     if(ierro != 0){
       CPRINTF1(" - +cav error %d\n",ierro);
@@ -309,14 +319,9 @@ int insertEdge(Mesh<MFT>& msh,
     if(ierro <= 0) break;
 
     fixpoint:
-
     if(ibins >= 0){
       //ierro = INS2D_ERR_BDRYNOCORR; 
       CPRINTF1(" - Cannot correct boundary point in insertEdge\n");
-      if(msh.param->interactive){
-        printf("## WAIT HERE INS2D_ERR_BDRYNOCORR\n");
-        wait();
-      }
       goto cleanup;
     }
 
@@ -343,9 +348,38 @@ int insertEdge(Mesh<MFT>& msh,
   if(ierro > 0) goto cleanup;
 
 
+  irestart_cav = false;
+restart_cavity:
+  ierro = 0;
+  if(!irestart_cav) irestart_cav = true;
+
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
     ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd1);
   }}CT_FOR1(ideg);
+
+  if(ierro == CAV_ERR_REMPT && !irestart_cav){
+    cav.lcedg.set_n(nced0);
+    cav.lcfac.set_n(ncfa0);
+    cav.lctet.set_n(ncte0);
+    goto restart_cavity;
+  }
+
+  if(ierro == CAV_ERR_REMPT && irestart_cav && ncfa0 == 0){
+    printf("## DEBUG DESPITE RESTART CAVITY DOES NOT WORK\n");
+    writeMeshCavity("insert_cavity_fail1.meshb", 
+                                    msh,cav);
+    cav.lcedg.set_n(nced0);
+    cav.lcfac.set_n(ncfa0);
+    cav.lctet.set_n(ncte0);
+    writeMeshCavity("insert_cavity_fail0.meshb", 
+                                    msh,cav);
+
+    int ierr2 = aux_movePointCav(msh, cav, tdimp, iseed, iref, algnd);
+    writeMeshCavity("insert_cavity_fail_move0.meshb", 
+                                    msh,cav);
+
+    wait();
+  }
 
   if(ierro > 0) lerro[ierro-1]++;
   #ifndef NDEBUG
@@ -368,7 +402,73 @@ int insertEdge(Mesh<MFT>& msh,
 
   cleanup:
   msh.killpoint(cav.ipins);
+  #if 0
+  if(ierro != INS2D_ERR_CAVITYOPERATOR && DOPRINTS1()){
+    printf("## DEBUG WAIT HERE ierro = %d\n",ierro);
+    msh.param->iverb = 0;
+    msh.param->ivdepth = 0;
+    if(ierro == INS2D_ERR_SHORTEDG){
+      printf("Debug try many barys and compute length:\n");
+      int edg2pol[2] = {ip1, ip2};
+      int edg2po2[2] = {cav.ipins, -1};
+      for(int itry = 0; itry < 20; itry++){
+        bar1 = (itry + 1.0) / 21;
+        if(itry == 19) bar1 = 1 - 0.547745;
+        double bar2[2] = {bar1, 1 - bar1};
+        METRIS_ENFORCE(msh.idim == 3);
+        METRIS_ENFORCE(msh.curdeg == 1);
+        eval1<3,1>(msh.coord, edg2pol, msh.getBasis(), 
+                         DifVar::None, DifVar::None, 
+                         bar2, msh.coord[cav.ipins], NULL, NULL);
+        ierro = msh.interpMetBack(cav.ipins,tdimp,iseed,iref,algnd);
+        METRIS_ENFORCE(ierro == 0);
 
+        edg2po2[1] = ip1;
+        double sz[2];
+        double len1 = getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
+        edg2po2[1] = ip2;
+        double len2 = getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
+
+        printf("bar1 = %e lens = %e %e valid %d %d \n",bar1,len1,len2,
+          len1 > 1/sqrt(2), len2 > 1/sqrt(2));
+      }
+
+      // Try a bisection search, figure out number of iterations necessary
+      printf("-- bissection\n");
+      double bar1_min = 1.0e-6, bar1_max = 1 - 1.0e-6;
+      for(int itry = 0; itry < 20; itry++){
+        bar1 = (bar1_min + bar1_max)/2;
+        double bar2[2] = {bar1, 1 - bar1};
+        METRIS_ENFORCE(msh.idim == 3);
+        METRIS_ENFORCE(msh.curdeg == 1);
+        eval1<3,1>(msh.coord, edg2pol, msh.getBasis(), 
+                         DifVar::None, DifVar::None, 
+                         bar2, msh.coord[cav.ipins], NULL, NULL);
+        ierro = msh.interpMetBack(cav.ipins,tdimp,iseed,iref,algnd);
+        METRIS_ENFORCE(ierro == 0);
+
+        edg2po2[1] = ip1;
+        double sz[2];
+        double len1 = getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
+        edg2po2[1] = ip2;
+        double len2 = getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
+
+        printf("bar1 = %e lens = %e %e valid %d %d \n",bar1,len1,len2,
+          len1 > 1/sqrt(2), len2 > 1/sqrt(2));
+
+        if(len1 <= 1/sqrt(2)){
+          bar1_max = bar1;
+        }else if(len2 <= 1/sqrt(2)){
+          bar1_min = bar1;
+        }
+
+      }
+    }
+    wait();
+  }
+  #endif
+  msh.param->iverb = iverb0;
+  msh.param->ivdepth = ivdepth0;
   return ierro;
 }
 
