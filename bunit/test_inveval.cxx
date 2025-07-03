@@ -424,9 +424,11 @@ BOOST_AUTO_TEST_CASE(test_inveval)
           itest++;
 
           int ifun = 0;
-          for(auto inveval_fun : {inveval_badNewton<idim,ideg>, 
-                                  inveval<idim,ideg>, 
-                                  inveval_nloptD<idim,ideg>}){
+          using InvevalFunc = int (*)(MeshBase&, int, const double*, double*, double*, double);
+          std::vector<InvevalFunc> funcs = {&inveval_badNewton<idim, ideg>,
+                                            &inveval<idim, ideg>,
+                                            &inveval_nloptD<idim, ideg>};
+          for(auto inveval_fun : funcs){
             //printf("-- Testing function %d ",ifun);
             if(ifun == 0) printf(" - inveval_badNewton:");
             if(ifun == 1) printf(" - inveval          :");
