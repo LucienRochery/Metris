@@ -29,7 +29,7 @@ Guidelines:
 
 
 #define MSH_DIM_DEG0(msh) CT_FOR0_INC(2,3,gdim){if(msh.idim == gdim){\
-  CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-#define MSH_DIM_DEG1() }}CT_FOR1(ideg);}}CT_FOR1(gdim);
+  CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg)
+#define MSH_DIM_DEG1() }CT_FOR1(ideg);}}CT_FOR1(gdim)
 
 #endif

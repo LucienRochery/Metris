@@ -529,9 +529,9 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
     ent2tag(ithrd1,ientt) = etag;
 
     double volM;
-    MSH_DIM_DEG0(msh)
+    MSH_DIM_DEG0(msh){
     volM = getmeasent<MFT,gdim,ideg>(msh, ientt);
-    MSH_DIM_DEG1()
+    }MSH_DIM_DEG1();
 
     METRIS_ASSERT(volM > 0);
     cav.rwrk1[icent] = volM;
@@ -593,9 +593,9 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
 
         double volB = 0;
         for(int ientt : lbent){
-          MSH_DIM_DEG0(msh)
+          MSH_DIM_DEG0(msh){
           volB += getmeasent<MFT,gdim,ideg>(msh, ientt);
-          MSH_DIM_DEG1()
+          }MSH_DIM_DEG1();
         }
         CPRINTF1(" - cav bdry pt %d has tot vol %e, internal %e, counts as %e\n",
                  ipoin, volB, volpoc[ipoin], volpoc[ipoin] / volB);
