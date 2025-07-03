@@ -1,3 +1,4 @@
+../../CMakeLists.txt
 # FetchContent_MakeAvailable is latest constraint:
 cmake_minimum_required(VERSION 3.14.0)
 set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
@@ -120,8 +121,8 @@ endif()
 #endforeach()
 #list(REMOVE_DUPLICATES SRC_INCLUDE_DIRS)
 
-find_package(LAPACK REQUIRED)
-find_package(PkgConfig REQUIRED)
+#find_package(LAPACK REQUIRED)
+#find_package(PkgConfig REQUIRED)
 #find_package(NLopt REQUIRED)
 #find_package(Boost REQUIRED)
 #find_package(LPlib REQUIRED)
