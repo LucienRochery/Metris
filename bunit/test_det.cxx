@@ -233,55 +233,55 @@ BOOST_AUTO_TEST_CASE(test_eigen)
     double eigval[ndim],eigvec[ndim][ndim];
     double eigva2[ndim],eigve2[ndim][ndim];
     double met[nnmet], met2[nnmet];
+    #ifdef USE_MULTIPRECISION
     float4 met4[nnmet];
+    #endif
 
     for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
       // ------------------------------------------------------------ Benchmark
+      double dum_tot = 0;
+
       #ifdef NDEBUG
       double t0_N = get_wall_time();
-      double dum_N = 0;
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
         double det = detsym<ndim>(met);
-        dum_N += det;
+        dum_tot += det;
       }
       double t1_N = get_wall_time();
 
-
+      #ifdef USE_MULTIPRECISION
       double t0_Nf4 = get_wall_time();
-      double dum_Nf4 = 0;
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met4[ii] = (float4) met_samples[ndim-2](isamp, ii);
         float4 det = detsym<ndim,float4>(met4);
-        dum_Nf4 += (double) det;
+        dum_tot += (double) det;
       }
       double t1_Nf4 = get_wall_time();
+      #endif
 
 
-      double dum_L = 1;
       #ifdef USE_LAPACK
       double t0_L = get_wall_time();
       int rwork[10];
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
         double det = detsym_LAPACK<ndim>(met);
-        dum_L += det;
+        dum_tot += det;
       }
       double t1_L = get_wall_time();
       #endif
 
 
       double t0_ELLT = get_wall_time();
-      double dum_ELLT = 0;
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
         double det = detsym_Eigen_LLT<ndim>(met);
-        dum_ELLT += det;
+        dum_tot += det;
       }
       double t1_ELLT = get_wall_time();
 
       double t0_Edet = get_wall_time();
-      double dum_Edet = 0;
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
         
@@ -290,36 +290,38 @@ BOOST_AUTO_TEST_CASE(test_eigen)
           for(int jj = 0; jj < ndim; jj++) 
             met_Eigen(ii, jj) = met[sym2idx(ii,jj)];
         double det = met_Eigen.determinant();
-        dum_Edet += det;
+        dum_tot += det;
       }
       double t1_Edet = get_wall_time();
 
       double t0_ELDLT= get_wall_time();
-      double dum_ELDLT= 0;
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
         double det = detsym_Eigen_LDLT<ndim>(met);
-        dum_ELDLT+= det;
+        dum_tot+= det;
       }
       double t1_ELDLT= get_wall_time();
 
+      #ifdef USE_MULTIPRECISION
       double t0_ELDLTf4 = get_wall_time();
-      double dum_ELDLTf4= 0;
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met4[ii] = (float4) met_samples[ndim-2](isamp, ii);
         float4 det = detsym_Eigen_LDLT<ndim,float4>(met4);
-        dum_ELDLTf4+= (double) det;
+        dum_tot+= (double) det;
       }
       double t1_ELDLTf4 = get_wall_time();
+      #endif
 
 
       printf("  -- DONE bench dim %1d aniso %5.1e dum %5.0e\n",ndim,anisorat,
-             dum_N*dum_L/dum_ELLT/dum_Edet*dum_ELDLT/dum_ELDLTf4*dum_Nf4);
+             dum_tot);
       printf("  -- DONE benchmarks  Naive    time : %8.2e = %dk op/s\n",
                   t1_N-t0_N,(int)(nsamp/(t1_N-t0_N))/1000);
+      #ifdef USE_MULTIPRECISION
       printf("                     Naivef4   time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_Nf4-t0_Nf4,(int)(nsamp/(t1_Nf4-t0_Nf4)/1000),
                   (t1_Nf4-t0_Nf4)/(t1_N-t0_N));
+      #endif
       #ifdef USE_LAPACK
       printf("                     LAPACK    time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_L-t0_L,(int)(nsamp/(t1_L-t0_L)/1000),
@@ -334,19 +336,25 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       printf("                      ELDLT   time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_ELDLT-t0_ELDLT,(int)(nsamp/(t1_ELDLT-t0_ELDLT)/1000),
                   (t1_ELDLT-t0_ELDLT)/(t1_N-t0_N));
+      #ifdef USE_MULTIPRECISION
       printf("                      ELDLTf4 time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_ELDLTf4-t0_ELDLTf4,(int)(nsamp/(t1_ELDLTf4-t0_ELDLTf4)/1000),
                   (t1_ELDLTf4-t0_ELDLTf4)/(t1_N-t0_N));
+      #endif
 
       benchN[ndim-2] += nsamp/(t1_N - t0_N);
+      #ifdef USE_MULTIPRECISION
       benchNf4[ndim-2] += nsamp/(t1_Nf4 - t0_Nf4);
+      #endif
       #ifdef USE_LAPACK
       benchL[ndim-2] += nsamp/(t1_L - t0_L);
       #endif
       benchELLT[ndim-2] += nsamp/(t1_ELLT - t0_ELLT);
       benchEdet[ndim-2] += nsamp/(t1_Edet - t0_Edet);
       benchELDLT[ndim-2] += nsamp/(t1_ELDLT- t0_ELDLT);
+      #ifdef USE_MULTIPRECISION
       benchELDLTf4[ndim-2] += nsamp/(t1_ELDLTf4- t0_ELDLTf4);
+      #endif
 
       #endif
 
