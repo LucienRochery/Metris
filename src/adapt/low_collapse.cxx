@@ -235,6 +235,11 @@ int colledgsurf(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf,
         //  continue;
         //}
 
+        ierro = collrejcav_lenqua(msh, cav, ithrd2);
+        if(ierro > 0){
+          CPRINTF1(" # reject cavity\n");
+          continue;
+        }
 
         CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
           ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
@@ -640,6 +645,147 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
 
 template int collrejcav_dens<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, int ithrd1, int ithrd2);
 template int collrejcav_dens<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, int ithrd1, int ithrd2);
+
+
+
+// Reject proposed cavity based on edge length score same as in swaps. 
+template<class MFT>
+int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav, int ithrd1){
+
+
+  GETVDEPTH(msh.param);
+
+  //printf("## DEBUG forced iverb = 5 ivdepth = 5\n");
+  //iverb__ = 5;
+  //ivdepth__ = 5;
+
+  // Tag points that won't be deleted: there is at least one elt outside
+  // the cavity that has the point. 
+  int tdim = cav.lctet.get_n() > 0 ? 3 
+           : cav.lcfac.get_n() > 0 ? 2 
+                                   : 1;
+  const intAr1& lcent = cav.lcent(tdim);
+  const intAr2& ent2poi = msh.ent2poi(tdim);
+  const intAr2& ent2ent = msh.ent2ent(tdim);
+  intAr2& ent2tag = msh.ent2tag(tdim);
+
+  // Store here the edges whose length is not to be computed
+  std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp;
+
+  msh.tag[ithrd1]++;
+  // Tag cavity elements
+  for(int ientt : lcent){
+    ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
+  }
+
+
+  // Start by adding all edges on the cavity boundary to nocomp. 
+  // In 3D, this doesn't mean they're on a boundary face... so we need to separate
+  //auto ledfa = tdim == 2 ? ledfa2 : ledfa3;
+  //int nedfa = tdim == 2 ? 1 : 3;
+  if(tdim == 3){
+    for(int itetr : lcent){
+      for(int ifa = 0; ifa < tdim + 1; ifa++){
+        int itnei = msh.tet2tet(itetr,ifa);
+        if(itnei >= 0 && msh.tet2tag(ithrd1,itnei) == msh.tag[ithrd1]) continue;
+        // Edges on the cavity boundary:
+        for(int iedf = 0; iedf < 3; iedf++){
+          int ied = ledfa3[ifa][iedf];
+          int ipoi1 = msh.tet2poi(itetr, lnoed3[ied][0]);
+          int ipoi2 = msh.tet2poi(itetr, lnoed3[ied][1]);
+          auto key = stup2(ipoi1, ipoi2);
+          nocomp.insert(key);
+        }// for ied
+      }// for ifa
+    }// for itetr
+  }
+
+  // Compute lengths of internal edges in initial cavity 
+  const int nedl = (tdim*(tdim+1))/2;
+  double qua0 = -1;
+  const auto lnoed = tdim == 2 ? lnoed2 : lnoed3;
+  double len, sz[2];
+  for(int ientt : lcent){
+    for(int ied = 0; ied < nedl; ied++){
+      int ipoi1 = ent2poi(ientt, lnoed[ied][0]);
+      int ipoi2 = ent2poi(ientt, lnoed[ied][1]);
+
+      // In this case, we haven't added to nocomp
+      // Also seize opportunity to tag the points
+      if(tdim == 2){
+        int ifnei = msh.fac2fac(ientt,ied);
+        if(ifnei < 0 || msh.fac2tag(ithrd1,ifnei) < msh.tag[ithrd1]) continue;
+      }
+
+      auto key = stup2(ipoi1, ipoi2);
+
+      if(nocomp.find(key) != nocomp.end()) continue;
+
+      CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
+        len = msh.idim == 2 ? 
+          getlenedg_geosz<MFT,2,ideg>(msh,ientt,tdim,ied,sz) :
+          getlenedg_geosz<MFT,3,ideg>(msh,ientt,tdim,ied,sz);
+      }}CT_FOR1(ideg);
+
+      double quaed = len < 1.0 ? 1.0 - len 
+                               : 1.0 - 1.0 / len;
+
+      CPRINTF1(" ## DEBUG orig len = %e score %e \n",
+            len, quaed);
+      CPRINTF1(" met 1: %f %f %f met 2 : %f %f %f\n",msh.met(ipoi1,0),msh.met(ipoi1,1),msh.met(ipoi1,2)
+        ,msh.met(ipoi2,0),msh.met(ipoi2,1),msh.met(ipoi2,2));
+      qua0 = MAX(qua0, quaed);
+
+      nocomp.insert(key);
+    }// for ied
+  }// for ientt
+
+
+  // Compute lengths of internal edges in final cavity 
+  double qua1 = -1;
+  int edg2pol[2] = {cav.ipins, -1};
+  for(int ientt : lcent){
+    for(int ifa = 0; ifa < tdim + 1; ifa++){
+      int ienei = ent2ent(ientt,ifa);
+      if(ienei >= 0 && ent2tag(ithrd1,ienei) == msh.tag[ithrd1]) continue;
+      // Get points on face (3D) / edge (2D)
+      for(int ipfa = 0; ipfa < tdim; ipfa++){
+        int iver = tdim == 2 ? lnoed2[ifa][ipfa] : lnofa3[ifa][ipfa];
+        int ipoin = ent2poi(ientt, iver);
+        if(ipoin == cav.ipins) continue;
+        if(msh.poi2tag(ithrd1, ipoin) == msh.tag[ithrd1]) continue;
+        msh.poi2tag(ithrd1, ipoin) = msh.tag[ithrd1];
+
+        edg2pol[1] = ipoin;
+        //CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
+          len = msh.idim == 2 ? 
+            getlenedg_geosz<MFT,2,1>(msh,edg2pol,sz) :
+            getlenedg_geosz<MFT,3,1>(msh,edg2pol,sz);
+        //}}CT_FOR1(ideg);
+
+        double quaed = len < 1.0 ? 1.0 - len 
+                                 : 1.0 - 1.0 / len;
+
+        CPRINTF1(" ## DEBUG trying edg2pol = %d %d len = %e score %e \n",edg2pol[0],edg2pol[1],
+          len, quaed);
+      CPRINTF1(" met 1: %f %f %f met 2 : %f %f %f\n",msh.met(edg2pol[0],0),msh.met(edg2pol[0],1),msh.met(edg2pol[0],2)
+        ,msh.met(edg2pol[1],0),msh.met(edg2pol[1],1),msh.met(edg2pol[1],2));
+        qua1 = MAX(qua1, quaed);
+
+      }// for ipfa
+    }// for ifa
+  }// for ientt
+
+  CPRINTF1(" - collrejcav_lenqua got lenqua %e -> %e\n", qua0, qua1);
+
+  if(qua1 > qua0) return 1;
+  return 0;
+}
+
+template int collrejcav_lenqua<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, int ithrd1);
+template int collrejcav_lenqua<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, int ithrd1);
+
+
 
 #if 0
 // This idea is probably doomed to fail: 2 long edges do not mean 2 new points...
