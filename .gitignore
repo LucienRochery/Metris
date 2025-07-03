@@ -84,3 +84,8 @@ cases/2D/*
 !cases/2D/square.p1.10.meshb
 !cases/2D/square.circmet.5k.curved.meshb
 !cases/2D/square.circmet.50.curved.meshb
+
+!jenkins/cmake_jenkins.sh
+!jenkins/jenkins_env.sh
+!jenkins/jenkins_sim.sh
+!jenkins/Metris_Commit.sh
