@@ -105,10 +105,6 @@ int correct_cavity0(Mesh<MFT> &msh,
   int ptag0 = msh.tag[ithread];
   if constexpr(ideg > 1){
 
-    if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), 
-      "Implement Pk tetra correction in cavity")
-
-
     CPRINTF1("-- correct_cavity phase 1 : curve & project\n");
     // No HO curvature yet, just CAD projection
     if(!msh.CAD()){
@@ -236,8 +232,8 @@ int correct_cavity0(Mesh<MFT> &msh,
     double nrmal[3];
 
     int nent0 = tdim == 2 ? nfac0 : nele0;
-    int nentt = tdim == 2 ? msh.nface : msh.nelem;
-
+    int nentt = msh.nentt(tdim);
+    
     const intAr2& ent2poi = msh.ent2poi(tdim);
 
     for(int ientt = nent0; ientt < nentt; ientt++){
@@ -257,14 +253,6 @@ int correct_cavity0(Mesh<MFT> &msh,
           }else{
             CPRINTF1(" - %d tdim %d ientt %d meas %f iflat %d\n",
                      ientt-nent0,tdim,ientt,meas,iflat);
-          }
-        }
-        if(DOPRINTS2()){
-          if(iflat || meas < 0){
-            getnorfacP1(msh.fac2poi[ientt], msh.coord, nrmal);
-            normalize_vec<3>(nrmal);
-            CPRINTF2(" - discrete normal = ");
-            dblAr1(gdim,nrmal).print();
           }
         }
       }else{
