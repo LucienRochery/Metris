@@ -203,14 +203,12 @@ int insertEdge(Mesh<MFT>& msh,
 
   try{
 
-  if(!msh.param->ins_lazy_interp){
-    ierro = msh.interpMetBack(cav.ipins, tdimp, iseed, iref, algnd);
-    if(ierro != 0){
-      //printf("debug interpMetBack error %d\n",ierro);
-      //wait();
-      ierro = INS2D_ERR_INTERPMETBACK;
-      goto cleanup;
-    }
+  ierro = msh.interpMetBack(cav.ipins, tdimp, iseed, iref, algnd);
+  if(ierro != 0){
+    //printf("debug interpMetBack error %d\n",ierro);
+    //wait();
+    ierro = INS2D_ERR_INTERPMETBACK;
+    goto cleanup;
   }
 
   }catch(const MetrisExcept& e){
@@ -357,17 +355,6 @@ int insertEdge(Mesh<MFT>& msh,
 
   if(info.done){
 
-    if(msh.param->ins_lazy_interp){
-      ierro = msh.interpMetBack(cav.ipins, tdimp, iseed, iref, algnd);
-      if(ierro != 0){
-        printf("debug interpMetBack error %d\n",ierro);
-        wait();
-        //ierro = INS2D_ERR_INTERPMETBACK;
-        //goto cleanup;
-      }
-      METRIS_ENFORCE(ierro == 0);
-    }
-
     CPRINTF1("-- END insertEdge ipins = %d  \n",cav.ipins);
     #ifndef NDEBUG
       if(DOPRINTS2()) writeMesh("debug_insert1.meshb",msh);
@@ -454,13 +441,11 @@ int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav,
     return 0;
   }// if tdimp == msh.get_tdim()
 
-  if(!msh.param->ins_lazy_interp){
-    // reinterp metric. This is always interior case, no need for ref of bdry dir
-    ierro = msh.interpMetBack(cav.ipins,tdimp,iseed,iref,algnd);
-    if(ierro != 0){
-      CPRINTF1(" - interpMetBack failed ierro = %d \n",ierro);
-      ierro = INS2D_ERR_INTERPMETBACK;
-    }
+  // reinterp metric. This is always interior case, no need for ref of bdry dir
+  ierro = msh.interpMetBack(cav.ipins,tdimp,iseed,iref,algnd);
+  if(ierro != 0){
+    CPRINTF1(" - interpMetBack failed ierro = %d \n",ierro);
+    ierro = INS2D_ERR_INTERPMETBACK;
   }
   
   return ierro;
