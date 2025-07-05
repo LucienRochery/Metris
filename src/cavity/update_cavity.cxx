@@ -431,7 +431,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, const CavWrkArrs &work,
         CPRINTF1(" - edge neighbour = %d <? %d = nedg0 \n",iedge,nedg0);
 
         if(iedge < 0){
-          printf("## DEBUG iedge = 0\n");
+          printf("## DEBUG iedge < 0\n");
           cav.print(msh, 2);
           writeMeshCavity("cavity_bug",msh,cav);
           writeMesh("mesh_bug",msh);

@@ -25,7 +25,8 @@ enum insedgesuf_Errors {INS2D_NOERR = 0,
                         INS2D_ERR_BDRYNOCORR = 6,
                         INS2D_ERR_INCCAVDEL = 7,
                         INS2D_ERR_CAVITYOPERATOR = 8,
-                        INS2D_ERR_NERROR = 9
+                        INS2D_ERR_MOVEPT = 9,
+                        INS2D_ERR_NERROR = 10
                         };
 
 
@@ -33,7 +34,7 @@ enum insedgesuf_Errors {INS2D_NOERR = 0,
 // bar1 is t along the edge with 1 if lnoed[iedl][0]
 template<class MFT>
 int insertEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, 
-               double* coop, double bar1, 
+               double lenqua_short_max,
                MshCavity &cav, CavWrkArrs &work, 
                intAr1 &lerro, int ithrd1, int ithrd2);
 

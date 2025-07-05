@@ -45,8 +45,9 @@ void MetrisRunner::statMesh0(MeshStat* stat){
 
   intAr2 ilned, ilned_bdry;
   dblAr1 rlned, rlned_bdry;
-  getLengthEdges<MFT>(msh,tdim  ,-1,ilned     ,rlned     ,LenTyp::GeoSiz);
-  getLengthEdges<MFT>(msh,tdim-1,-1,ilned_bdry,rlned_bdry,LenTyp::GeoSiz);
+  lenStat lenstat;
+  getLengthEdges<MFT>(msh,tdim  ,-1,ilned     ,rlned     ,lenstat,LenTyp::GeoSiz);
+  getLengthEdges<MFT>(msh,tdim-1,-1,ilned_bdry,rlned_bdry,lenstat,LenTyp::GeoSiz);
 
   if(stat != NULL){
     stat->minlen = 1.0e30;

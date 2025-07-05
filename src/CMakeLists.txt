@@ -257,6 +257,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/adapt/msh_lineforce.cxx
     ${PROJECT_SOURCE_DIR}/src/adapt/low_delaunay.cxx
     ${PROJECT_SOURCE_DIR}/src/adapt/msh_reinsert_flat.cxx
+    ${PROJECT_SOURCE_DIR}/src/adapt/low_cavqual.cxx
     ${PROJECT_SOURCE_DIR}/src/smoothing/msh_smooball.cxx
     #${PROJECT_SOURCE_DIR}/src/smoothing/msh_smoofull.cxx
     #${PROJECT_SOURCE_DIR}/src/smoothing/msh_smoofull_TAO.cxx

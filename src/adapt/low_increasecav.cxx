@@ -62,7 +62,11 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
   }
 
 
-  CPRINTF1("-- START increase_cavity ipins %d list initial cavity:\n", cav.ipins);
+  int ibins = msh.poi2bpo[cav.ipins];
+  int pdim  = msh.get_tdim();
+  if(ibins >= 0) pdim = msh.bpo2ibi(ibins,1);
+
+  CPRINTF1("-- START increase_cavity ipins %d dim %d list initial cavity:\n", cav.ipins, pdim);
   if(DOPRINTS1()){
     if(cav.lcedg.get_n() > 0){
       CPRINTF1(" - Edge cavity: ");
@@ -96,10 +100,6 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
       }
     }
   }
-
-  int ibins = msh.poi2bpo[cav.ipins];
-  int pdim  = msh.get_tdim();
-  if(ibins >= 0) pdim = msh.bpo2ibi(ibins,1);
 
   int ent2pol[4];
   ent2pol[0] = cav.ipins;
@@ -143,7 +143,6 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
 
     int ient01[2] = {cav.lcfac.get_n(), cav.lctet.get_n()};
 
-    // Note the bound is reeval'd, can't use range based
     for(int tdim = 2; tdim <= msh.get_tdim(); tdim++){
 
       intAr1 &lcent = cav.lcent(tdim);
@@ -155,6 +154,7 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
       const intAr2 &sub2tag = msh.ent2tag(tdim-1);
 
 
+      // Note the bound is reeval'd, can't use range based
       for(int ientl = ient0[tdim-2]; ientl < lcent.get_n(); ientl++){
         INCVDEPTH(msh.param)
         int ientt = lcent[ientl];
@@ -292,6 +292,12 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
             // - ienei < 0, then the only hope of correction is adding this entity
             // Hence, in any case, if there is a subdim entity here, add it. 
             if(isube >= 0){
+              // If the point tdim is greater than this element's dim, it cannot
+              // be added.
+              if(pdim > tdim-1){
+                CPRINTF1("   - ientt %d dim %d < ipins dim %d\n",isube,tdim-1,pdim);
+                return 2;
+              }
               // Add the boundary entity, but only if in allowed refs. 
               int iref = msh.ent2ref(tdim-1)[isube];
               if(msh.ref2tag(tdim-1)(ithrd1,iref) < msh.tag[ithrd1]){

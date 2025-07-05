@@ -5,6 +5,7 @@
 
 
 #include "low_insert.hxx"
+#include "low_cavqual.hxx"
 #include "low_increasecav.hxx"
 
 #include "../Mesh/Mesh.hxx"
@@ -29,7 +30,7 @@ namespace Metris{
 template<class MFT>
 int insertEdge(Mesh<MFT>& msh, 
                int tdim, int ientt, int iedl, 
-               double *coop, double bar1, 
+               double lenqua_short_max, // maximum quality (error) a new short edge can have
                MshCavity &cav, CavWrkArrs &work, 
                intAr1 &lerro, int ithrd1, int ithrd2){
 
@@ -61,7 +62,7 @@ int insertEdge(Mesh<MFT>& msh,
   opts.qmax_suf = -1;
   opts.qmax_iff = -1;
 
-  int mcavcorr = 5, ncavcorr;
+  int mcavcorr = 1, ncavcorr;
 
   cav.lcedg.allocate(10);
   cav.lcfac.allocate(10);
@@ -69,6 +70,12 @@ int insertEdge(Mesh<MFT>& msh,
   cav.lcedg.set_n(0);
   cav.lcfac.set_n(0);
   cav.lctet.set_n(0);
+
+
+  // work for collrejcav_lenqua
+  static int nwarnprt = 0;
+  if(nwarnprt++ < 10) printf("## WARNING REMOVE STATI FROM NOCOMP\n");
+  static std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp;
 
   CPRINTF1("-- START insertEdge tdim = %d ientt = %d ied %d\n",tdim,ientt,iedl);
 
@@ -148,6 +155,7 @@ int insertEdge(Mesh<MFT>& msh,
 
   CPRINTF1(" - create ipins %d tdim = %d seed %d ref %d\n",cav.ipins,tdimp,iseed,iref);
 
+  bool imoved_point = false;
 
   double bar1_min = 1.0e-6, bar1_max = 1 - 1.0e-6;
 
@@ -165,12 +173,13 @@ int insertEdge(Mesh<MFT>& msh,
     int inode_sub = mul2nod(1,idx1);
     edg2pol[inode_sub] = ent2poi(ientt,inode_sup);
   }
-  
+  CPRINTF2(" - edg2pol = ");
+  if(DOPRINTS2()) intAr1(nnode,edg2pol).print();
 
   // Get bar1 s.t. new edges are not short. There can be other short edges, but 
   // not from splitting the parent edge. 
   bool fnd_len = false;
-  double bar1_opt = -1;
+  double bar1_opt = -1, bar1;
   for(int ntry_len = 0; ntry_len < 10; ntry_len++)
   {
     INCVDEPTH(msh.param);
@@ -215,8 +224,13 @@ int insertEdge(Mesh<MFT>& msh,
                            msh.getBasis(), DifVar::Bary, DifVar::None,
                            bar2, msh.coord[cav.ipins], algnd, NULL);
         }MSH_DIM_DEG1();
-      }else if(msh.idim == 3){
-        getnorfacP1(ent2poi[ientt],msh.coord,algnd);
+      }else{
+        MSH_DIM_DEG0(msh){
+          eval1<gdim,ideg>(msh.coord, edg2pol,
+                           msh.getBasis(), DifVar::None, DifVar::None,
+                           bar2, msh.coord[cav.ipins], NULL, NULL);
+        }MSH_DIM_DEG1();
+        if(msh.idim == 3) getnorfacP1(ent2poi[ientt],msh.coord,algnd);
       }
     }else{
       MSH_DIM_DEG0(msh){
@@ -281,19 +295,34 @@ int insertEdge(Mesh<MFT>& msh,
     CPRINTF1(" - initial cavity nedge %d nface %d nelem %d\n",
              cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
 
-    //if(!( opts.allow_remove_points 
-    //   || opts.allow_remove_points_superdim && tdimp < msh.get_tdim()) ){
-      nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
-      if(nprem < 0){
-        ierro = INS2D_ERR_SHORTEDG;
-        CPRINTF1(" - with ops.allow_remove_points == false, short edge would be created\n");
-        goto fixpoint;
-      }
-      CPRINTF1(" - +len cavity size %d nprem = %d\n", cav.lcfac.get_n(),nprem); 
-      if(DOPRINTS2()){
-        writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr), 
-                                    msh,cav);
-      }
+    //printf("Debug max prints for increase_cavity_lenedg\n");
+    //int iverb0 = msh.param->iverb;
+    //int ivdepth0 = msh.param->ivdepth;
+    //msh.param->iverb = 5;
+    //msh.param->ivdepth = 5;
+    ////if(!( opts.allow_remove_points 
+    ////   || opts.allow_remove_points_superdim && tdimp < msh.get_tdim()) ){
+    //  nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
+    //  if(nprem < 0){
+    //    ierro = INS2D_ERR_SHORTEDG;
+    //    CPRINTF1(" - with ops.allow_remove_points == false, short edge would be created\n");
+    //    goto fixpoint;
+    //  }
+    //  CPRINTF1(" - +len cavity size %d nprem = %d\n", cav.lcfac.get_n(),nprem); 
+    //  if(DOPRINTS2()){
+    //    writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr), 
+    //                                msh,cav);
+    //  }
+    ////}
+ 
+    //ierro = collrejcav_lenqua(msh, cav, true, false, ithrd2);
+    ////msh.param->iverb = iverb0;
+    ////msh.param->ivdepth = ivdepth0;
+    //if(ierro > 0){
+    //  ierro = INS2D_ERR_SHORTEDG;
+    //  CPRINTF1(" # collrejcav_lenqua rejects cavity, try fix\n");
+    //  CPRINTF1(" # reject cavity\n");
+    //  goto fixpoint;
     //}
 
     ierro = increase_cavity_Delaunay(msh, cav, ithrd1);
@@ -301,6 +330,7 @@ int insertEdge(Mesh<MFT>& msh,
       CPRINTF1(" - +del error %d\n",ierro);
       ierro = INS2D_ERR_INCCAV2D;
     }
+
 
     //static int nwarnprt = 0;
     //if(nwarnprt++ < 10) printf("## PUT BACK DELAUNAY IN LOW INSERT\n");
@@ -315,12 +345,25 @@ int insertEdge(Mesh<MFT>& msh,
       writeMeshCavity("insert_cavity2."+std::to_string(ncavcorr), 
                                   msh,cav);
     }
+ 
+    ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
+
+    //msh.param->iverb = iverb0;
+    //msh.param->ivdepth = ivdepth0;
+    if(ierro > 0){
+      ierro = INS2D_ERR_SHORTEDG;
+      CPRINTF1(" # collrejcav_lenqua rejects cavity, try fix\n");
+      CPRINTF1(" # reject cavity\n");
+      goto fixpoint;
+    }
    
     if(ierro <= 0) break;
 
     fixpoint:
-    if(ibins >= 0){
-      //ierro = INS2D_ERR_BDRYNOCORR; 
+    if(ncavcorr >= mcavcorr) break;
+
+    if(tdimp < msh.idim){
+      ierro = INS2D_ERR_BDRYNOCORR; 
       CPRINTF1(" - Cannot correct boundary point in insertEdge\n");
       goto cleanup;
     }
@@ -329,11 +372,15 @@ int insertEdge(Mesh<MFT>& msh,
     // Try relocate ipins to cavity barycenter using only lowest dim and CAD if
     // available. 
 
+    //writeMeshCavity("insertcavfail0.meshb", msh,cav);
+    //msh.met.writeMetricFile("insertcavfail0");
+
     cav.lcedg.set_n(nced0);
     cav.lcfac.set_n(ncfa0);
     cav.lctet.set_n(ncte0);
 
     int ierr2 = aux_movePointCav(msh, cav, tdimp, iseed, iref, algnd);
+    imoved_point = true;
 
     if(ierr2 != 0){
       ierro = INS2D_ERR_INTERPMETBACK;
@@ -344,7 +391,16 @@ int insertEdge(Mesh<MFT>& msh,
     if(DOPRINTS2()) writeMeshCavity("insert_cavity3."+std::to_string(ncavcorr)+".meshb", 
                                     msh,cav);
 
-  }while(ierro > 0 && ncavcorr++ < mcavcorr);
+    //printf("\n## DEBUG fixpoint used have ierro = %d ncavcorr = %d mcavcorr %d\n",
+    //       ierro,ncavcorr, mcavcorr);
+    //printf("Call was  tdim %d,  ientt %d,  iedl %d \n",tdim,ientt,iedl);
+    //writeMeshCavity("insertcavfail1.meshb", msh,cav);
+    //msh.met.writeMetricFile("insertcavfail1");
+
+    //wait();
+
+
+  }while(ierro > 0 && ncavcorr++ <= mcavcorr);
   if(ierro > 0) goto cleanup;
 
 
@@ -357,38 +413,54 @@ restart_cavity:
     ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd1);
   }}CT_FOR1(ideg);
 
-  if(ierro == CAV_ERR_REMPT && !irestart_cav){
+  if(ierro == CAV_ERR_REMPT && !irestart_cav && !imoved_point){
     cav.lcedg.set_n(nced0);
     cav.lcfac.set_n(ncfa0);
     cav.lctet.set_n(ncte0);
+    int ierr2 = aux_movePointCav(msh, cav, tdimp, iseed, iref, algnd);
+    imoved_point = true;
+    writeMeshCavity("insert_cavity_fail_move0.meshb", 
+                                    msh,cav);
+    if(ierr2 != 0){
+      ierro = INS2D_ERR_MOVEPT;
+      goto cleanup;
+    }
+    ierro = increase_cavity_Delaunay(msh, cav, ithrd1);
+    if(ierro != 0){
+      CPRINTF1(" - +cav error %d\n",ierro);
+      ierro = INS2D_ERR_INCCAV2D;
+      goto cleanup;
+    }
+    ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
+    if(ierro != 0){
+      CPRINTF1(" - +cav error %d\n",ierro);
+      ierro = INS2D_ERR_INCCAV2D;
+      goto cleanup;
+    }
+
     goto restart_cavity;
   }
-  
 
-  //if(ierro == CAV_ERR_REMPT && irestart_cav && ncfa0 == 0){
-  //  printf("## DEBUG DESPITE RESTART CAVITY DOES NOT WORK\n");
-  //  writeMeshCavity("insert_cavity_fail1.meshb", 
-  //                                  msh,cav);
-  //  cav.lcedg.set_n(nced0);
-  //  cav.lcfac.set_n(ncfa0);
-  //  cav.lctet.set_n(ncte0);
-  //  writeMeshCavity("insert_cavity_fail0.meshb", 
-  //                                  msh,cav);
+  #if 0
+  if(ierro == CAV_ERR_REMPT && irestart_cav && ncfa0 == 0){
+    printf("## DEBUG DESPITE RESTART CAVITY DOES NOT WORK\n");
+    writeMeshCavity("insert_cavity_fail1.meshb", 
+                                    msh,cav);
+    cav.lcedg.set_n(nced0);
+    cav.lcfac.set_n(ncfa0);
+    cav.lctet.set_n(ncte0);
+    writeMeshCavity("insert_cavity_fail0.meshb", 
+                                    msh,cav);
 
-  //  int ierr2 = aux_movePointCav(msh, cav, tdimp, iseed, iref, algnd);
-  //  writeMeshCavity("insert_cavity_fail_move0.meshb", 
-  //                                  msh,cav);
+    int ierr2 = aux_movePointCav(msh, cav, tdimp, iseed, iref, algnd);
+    writeMeshCavity("insert_cavity_fail_move0.meshb", 
+                                    msh,cav);
 
-  //  wait();
-  //}
-
-  if(ierro > 0) lerro[ierro-1]++;
-  #ifndef NDEBUG
-  if(ierro == CAV_ERR_NOBPO){
-    printf("## CAV_ERR_NOBPO error \n");
     wait();
   }
   #endif
+
+  if(ierro > 0) lerro[ierro-1]++;
 
   if(ierro != 0) ierro = INS2D_ERR_CAVITYOPERATOR;
 
@@ -476,11 +548,13 @@ restart_cavity:
 
 
 template int insertEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
-                         int tdim, int ientt, int iedl, double *coop, double bar1, 
+                         int tdim, int ientt, int iedl, 
+                         double lenqua_short_max,
                          MshCavity &cav, CavWrkArrs &work, 
                          intAr1 &lerro, int ithrd1, int ithrd2);
 template int insertEdge<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
-                         int tdim, int ientt, int iedl, double *coop, double bar1, 
+                         int tdim, int ientt, int iedl, 
+                         double lenqua_short_max,
                          MshCavity &cav, CavWrkArrs &work, 
                          intAr1 &lerro, int ithrd1, int ithrd2);
 

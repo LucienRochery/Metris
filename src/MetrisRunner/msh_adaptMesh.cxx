@@ -74,32 +74,18 @@ void MetrisRunner::adaptMesh0(){
 
   if(msh.param->dbgfull) check_topo(msh,1);
 
-  double pct_unit;
   int nswap, ninser, ncoll;
 
   intAr2 ilned;
   ilned.set_n(0);
   dblAr1 rlned;
   dblAr1 lenbds = {1.0/sqrt(2), sqrt(2)};
+  lenStat lenstat;
   if(DOPRINTS1()){
-    pct_unit = getLengthEdges<MFT>(msh,msh.get_tdim(),-1,ilned,rlned);
+    getLengthEdges<MFT>(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
     print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
   }
   double t0,t1;
-
-
-  //printf("\n\n\n## DEBUG stat surface ref 4\n");
-  //pct_unit = getLengthEdges<MFT>(msh,2,4,ilned,rlned,LenTyp::GeoSiz);
-  //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (GeoSiz)");
-  //pct_unit = getLengthEdges<MFT>(msh,2,4,ilned,rlned,LenTyp::Quad);
-  //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (Quad)");
-  //pct_unit = getLengthEdges<MFT>(msh,2,4,ilned,rlned,LenTyp::LogIntrp);
-  //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (LogIntrp)");
-  //pct_unit = getLengthEdges<MFT>(msh,2,4,ilned,rlned,LenTyp::BdryCor);
-  //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (BdryCor)");
-  //pct_unit = getLengthEdges<MFT>(msh,2,4,ilned,rlned,LenTyp::MetCrv);
-  //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (MetCrv)");
-  //wait();
 
   // This is the common thread for all routines. Tagged elements are ignored
   const int ithrdfro = 0;
@@ -118,7 +104,7 @@ void MetrisRunner::adaptMesh0(){
     if(DOPRINTS2()) msh.met.writeMetricFile("v2_geolines_adp");
 
     if(DOPRINTS1()){
-      pct_unit = getLengthEdges<MFT>(msh,1,-1,ilned,rlned);
+      getLengthEdges<MFT>(msh,1,-1,ilned,rlned,lenstat);
       print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (lines)");
     }
     
@@ -169,12 +155,16 @@ void MetrisRunner::adaptMesh0(){
     }
 
     if(DOPRINTS2()){
+      getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
+      CPRINTF1(" - Length qua short = %e\n",lenstat.qua_short);
+      CPRINTF1(" -            long  = %e\n",lenstat.qua_long);
+
       getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                          &iinva,&qmin,&qmax,&qavg,&lquae);
       CPRINTF1(" - Quality min = %15.7e \n",qmin);
       CPRINTF1("           max = %15.7e \n",qmax);
       CPRINTF1("           avg = %15.7e \n",qavg);
-      if(DOPRINTS2()) writeField("v2_collapsequa_adp"+ std::to_string(niter)+".solb",
+      writeField("v2_collapsequa_adp"+ std::to_string(niter)+".solb",
                                 msh,SolTyp::P0Elt,lquae);
       CPRINTF2("------------------------------------------------------------\n");
       CPRINTF2("- iteration %d collapse stat = %f time = %f \n",niter,stat,t1-t0);
@@ -197,6 +187,9 @@ void MetrisRunner::adaptMesh0(){
         writeBackLinks("v2_swap_adp_poi2bak" + std::to_string(niter), msh);
       }
       if(DOPRINTS2()){
+        getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
+        CPRINTF1(" - Length qua short = %e\n",lenstat.qua_short);
+        CPRINTF1(" -            long  = %e\n",lenstat.qua_long);
         getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                            &iinva,&qmin,&qmax,&qavg,&lquae);
         CPRINTF2(" - Quality min = %15.7e \n",qmin);
@@ -230,6 +223,9 @@ void MetrisRunner::adaptMesh0(){
       writeBackLinks("v2_insert_adp_poi2bak" + std::to_string(niter), msh);
     }
     if(DOPRINTS2()){
+      getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
+      CPRINTF1(" - Length qua short = %e\n",lenstat.qua_short);
+      CPRINTF1(" -            long  = %e\n",lenstat.qua_long);
       CPRINTF2("------------------------------------------------------------\n");
       CPRINTF2("- iteration %d insertions stat = %f time = %f \n",niter,stat,t1-t0);
       CPRINTF2("------------------------------------------------------------\n");
@@ -259,7 +255,7 @@ void MetrisRunner::adaptMesh0(){
 
 
 
-    pct_unit = 100*getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned);
+    getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
     int ndigit = ceil(log10((double)msh.npoin
                         + (double)msh.nelem
                         + (double)msh.nface
@@ -275,10 +271,10 @@ void MetrisRunner::adaptMesh0(){
     + "%7.2fpct unit, op stat = %f \n";
     // "-- Adp loop %3d / %3d inser %d coll %d swap %d, %fpct unit, op stat = %f \n"
     if(DOPRINTS1())printf(fmt.c_str(), spaces_string__, 
-             niter,miter, tloop1 - tloop0, ninser,ncoll,nswap, pct_unit,stat0);
-    if(pct_unit >= msh.param->adp_unit_stop){
+             niter,miter, tloop1 - tloop0, ninser,ncoll,nswap, 100*lenstat.prop_unit,stat0);
+    if(lenstat.prop_unit*100 >= msh.param->adp_unit_stop){
       CPRINTF1("------------------------------------------------------------\n");
-      CPRINTF1("- %7.2f%% edges unit exit threshold = %7.2f\n",pct_unit,
+      CPRINTF1("- %7.2f%% edges unit exit threshold = %7.2f\n",100*lenstat.prop_unit,
                 msh.param->adp_unit_stop);
       break;
     }

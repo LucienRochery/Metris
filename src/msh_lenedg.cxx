@@ -15,9 +15,13 @@
 namespace Metris{
 
 template<class MFT>
-double getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref, intAr2 &ilned, dblAr1 &rlned, LenTyp itype){
+void getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref, 
+                    intAr2 &ilned, dblAr1 &rlned, lenStat& stat, LenTyp itype){
   
   METRIS_ASSERT(tdim >= 1); // implement lnoed1
+
+  stat.qua_short = 0;
+  stat.qua_long = 0;
 
   //msh.met.setSpace(MetSpace::Log);
   //MetSpace ispac0 = msh.met.getSpace();
@@ -141,18 +145,25 @@ double getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref, intAr2 &ilned, d
       if(len >= 1.0/sqrt(2) && len <= sqrt(2)) ned_unit++;
       ned_totl++;
       rlned.stack(len);
+
+      if(len < 1.0){
+        stat.qua_short = MAX(stat.qua_short, 1 - len);
+      }else{
+        stat.qua_long  = MAX(stat.qua_long, 1 - 1/len);
+      }
     }
   }
 
-  //msh.met.setSpace(ispac0);
-  double pct_unit = ned_unit / (double) ned_totl;
-  return pct_unit;
+  stat.prop_unit = ned_unit / (double) ned_totl;
+  stat.qua_glo = MAX(stat.qua_short, stat.qua_long);
 }
 
-template double getLengthEdges<MetricFieldAnalytical>(MeshMetric<MetricFieldAnalytical> &msh, 
-                                int tdim,int iref,intAr2 &ilned, dblAr1 &rlned,LenTyp itype);
-template double getLengthEdges<MetricFieldFE        >(MeshMetric<MetricFieldFE        > &msh, 
-                                int tdim,int iref,intAr2 &ilned, dblAr1 &rlned,LenTyp itype);
+template void getLengthEdges<MetricFieldAnalytical>(MeshMetric<MetricFieldAnalytical> &msh, 
+                                int tdim,int iref,intAr2 &ilned, dblAr1 &rlned,
+                                lenStat& stat, LenTyp itype);
+template void getLengthEdges<MetricFieldFE        >(MeshMetric<MetricFieldFE        > &msh, 
+                                int tdim,int iref,intAr2 &ilned, dblAr1 &rlned,
+                                lenStat& stat, LenTyp itype);
 
 
 }// end namespace

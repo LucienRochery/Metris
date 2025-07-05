@@ -72,7 +72,7 @@ struct MetrisParameters{
   // ----------------- Adaptation options  
   int adp_opt_niter; // do smoothing/swapping in adaptation loop (expensive)
   int adp_niter;
-  double adp_unit_stop;
+  double adp_unit_stop; // threshold to consider mesh unit and stop everything 0 - 100
   bool adp_line_adapt;
   double adp_stagn_stop; // stat threshold for stagnation (default 1e-3)
 

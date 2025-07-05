@@ -43,7 +43,7 @@ namespace Defaults{
   const int opt_swap_pnorm = opt_pnorm;
   const double opt_swap_thres = 1.0e-16;
 
-  const double adp_stagn_stop = 1.0e-3;
+  const double adp_stagn_stop = 1.0e-2;
 
   // tolerance for surface snapping in intrinsic metric case
   const double met_snap_tol = 1.0e-3;
