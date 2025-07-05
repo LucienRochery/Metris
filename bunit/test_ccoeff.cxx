@@ -32,21 +32,18 @@ BOOST_AUTO_TEST_CASE(ccoef, * utf::tolerance(double(1.0e-6)) )
 
   // bool is whether straight
   std::vector<std::pair<std::string,bool>> meshes = {
-  {"../cases/2D/square.p1.100.meshb",true},
-  {"../cases/2D/square.circmet.5k.curved",false},
-  {"../cases/1200_p2.meshb",true},
+   {METRIS_CASES_DIR "/unit/2D/square/iso.p1.100k",true}
+  ,{METRIS_CASES_DIR "/unit/2D/square/circmet.p2.500",false}
+  ,{METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k",true}
+  ,{METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k -t 2",true}
+  ,{METRIS_CASES_DIR "/unit/3D/cube/curved.p2.2k",false}
   #if METRIS_MAX_DEG >= 3
-  {"../cases/1200_p3.meshb",true},
-  #endif
+  ,{METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k -t 3",true}
+  ,{METRIS_CASES_DIR "/unit/3D/cube/curved.p2.2k -t 3",false}
   #if METRIS_MAX_DEG >= 4
-  {"../cases/1200_p4.meshb",true},
+  ,{METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k -t 4",true}
+  ,{METRIS_CASES_DIR "/unit/3D/cube/curved.p2.2k -t 4",false}
   #endif
-  {"../cases/curved_p2.meshb",false}
-  #if METRIS_MAX_DEG >= 3
-  ,{"../cases/curved_p3.meshb",false}
-  #endif
-  #if METRIS_MAX_DEG >= 4
-  ,{"../cases/curved_p4.meshb",false}
   #endif
   };
 
@@ -65,7 +62,8 @@ BOOST_AUTO_TEST_CASE(ccoef, * utf::tolerance(double(1.0e-6)) )
     
     MetrisRunner run(arg.c, arg.v);
     Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
-    
+    // For those meshes that have a higher target degree than 1 (does nothing to the others)
+    run.degElevate();
     msh.cleanup();
 
     std::cout<<"\n\n-- Mesh "<<s<<" dim "<<msh.idim<<" deg "<<msh.curdeg<<"\n";

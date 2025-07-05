@@ -37,17 +37,16 @@ BOOST_AUTO_TEST_CASE(test_eval3)
 
   // bool is whether straight
   std::vector<std::pair<std::string,bool>> meshes = {
-     {"../cases/1200_p1.meshb",true}
-    ,{"../cases/1200_p2.meshb",true}
-    ,{"../cases/curved_p2.meshb",false}
-    ,{"../cases/square_adap.p2.meshb",true}
-    ,{"../cases/2D/square.circmet.5k.curved.meshb",false}
+     {METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k",true}
+    ,{METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k -t 2",true}
+    ,{METRIS_CASES_DIR "/unit/3D/cube/curved.p2.2k",false}
+    ,{METRIS_CASES_DIR "/unit/2D/square/circmet.p2.500",false}
     #if METRIS_MAX_DEG >= 3
-    ,{"../cases/1200_p3.meshb",true}
-    ,{"../cases/curved_p3.meshb",false}
+    ,{METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k -t 3",true}
+    ,{METRIS_CASES_DIR "/unit/3D/cube/curved.p2.2k -t 3",false}
     #if METRIS_MAX_DEG >= 4
-    ,{"../cases/1200_p4.meshb",true}
-    ,{"../cases/curved_p4.meshb",false}
+    ,{METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k -t 4",true}
+    ,{METRIS_CASES_DIR "/unit/3D/cube/curved.p2.2k -t 4",false}
     #endif
     #endif
     }; 

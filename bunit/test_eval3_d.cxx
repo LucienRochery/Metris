@@ -43,21 +43,23 @@ BOOST_AUTO_TEST_CASE(test_eval3_d)
   basname[(int)FEBasis::Lagrange] = "Lag";
 
   std::vector<std::string> meshes = {
-                                      "../cases/1200_p1.meshb"
-                                     ,"../cases/2D/square.p1.10"
-                                     ,"../cases/2D/square.circmet.5k.curved.meshb"
-                                     ,"../cases/2D/square.circmet.50.curved.meshb"
-                                     ,"../cases/1200_p2.meshb"
-                                     ,"../cases/curved_p2.meshb"
-                                     ,"../cases/2D/square.p2.100k"
+                                      METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k"
+                                     ,METRIS_CASES_DIR "/unit/2D/square/iso.p1.10k"
+                                     ,METRIS_CASES_DIR "/unit/2D/square/iso.p1.100k"
+                                     ,METRIS_CASES_DIR "/unit/2D/square/circmet.p2.500"
+                                     ,METRIS_CASES_DIR "/unit/2D/square/circmet.p2.5k"
+                                     ,METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k -t 2"
+                                     ,METRIS_CASES_DIR "/unit/3D/cube/curved.p2.2k"
                                      #if METRIS_MAX_DEG >= 3
-                                     ,"../cases/2D/square.circmet.50.curved.meshb -t 3"
-                                     ,"../cases/2D/square.circmet.5k.curved.meshb -t 3"
-                                     ,"../cases/1200_p3.meshb"
-                                     ,"../cases/curved_p3.meshb"
+                                     ,METRIS_CASES_DIR "/unit/2D/square/circmet.p2.500 -t 3"
+                                     ,METRIS_CASES_DIR "/unit/2D/square/circmet.p2.5k -t 3"
+                                     ,METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k -t 3"
+                                     ,METRIS_CASES_DIR "/unit/3D/cube/curved.p2.2k -t 3"
                                      #if METRIS_MAX_DEG >= 4
-                                     ,"../cases/1200_p4.meshb"
-                                     ,"../cases/curved_p4.meshb"
+                                     ,METRIS_CASES_DIR "/unit/2D/square/circmet.p2.500 -t 4"
+                                     ,METRIS_CASES_DIR "/unit/2D/square/circmet.p2.5k -t 4"
+                                     ,METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k -t 4"
+                                     ,METRIS_CASES_DIR "/unit/3D/cube/curved.p2.2k -t 4"
                                      #endif
                                      #endif
                                    };

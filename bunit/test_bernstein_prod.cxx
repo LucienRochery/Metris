@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE(interperr)
 {
 
 
-  std::vector<std::string> meshes = {"../cases/2D/square.p1.100.meshb"
+  std::vector<std::string> meshes = {METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k"
                                      //,"../cases/curved_p2.meshb"
                                     };
 

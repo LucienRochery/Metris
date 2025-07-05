@@ -108,11 +108,9 @@ BOOST_AUTO_TEST_CASE(interperr)
 {
 
 
-  std::vector<std::string> meshes = {"../cases/2tri2D.mesh"
-                                     //,"../cases/2D/square.p1.10.meshb"
-                                     //,"../cases/2D/square.p2lin.100.meshb"
-                                     ,"../cases/2D/out.p1.25k.meshb"
-                                     ,"../cases/2D/out.p1.25k.meshb -t 2"
+  std::vector<std::string> meshes = { METRIS_CASES_DIR "/unit/2D/misc/2tri2D.mesh"
+                                     ,METRIS_CASES_DIR "/unit/2D/square/iso.p1.10k"
+                                     ,METRIS_CASES_DIR "/unit/2D/square/iso.p1.10k -t 2"
                                     };
 
   constexpr int pnorm = 1;

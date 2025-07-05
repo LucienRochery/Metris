@@ -4,7 +4,7 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#define BOOST_TEST_MODULE MyTest 
+#define BOOST_TEST_MODULE test_inveval 
 
 
 #include <egads.h>
@@ -32,126 +32,6 @@ namespace Metris {
 typedef MetricFieldAnalytical MFT;
 
 
-
-
-#if 0
-template<int gdim, int ideg>
-void invevaltest(const MeshBase &msh,
-                 const int* ent2pol,
-                 const double* coor0, 
-                 double* __restrict__ coopr, 
-                 double* __restrict__ bary,
-                 double tol){
-
-  const double qstep = 0.95;
-  
-  constexpr int nhess = (gdim*(gdim+1))/2;
-  static_assert(gdim == 1 || gdim == 2 || gdim == 3);
-  constexpr int tdim = gdim;
-  constexpr auto evalf = tdim == 1 ? eval1<gdim,ideg> : 
-                         tdim == 2 ? eval2<gdim,ideg> : eval3<gdim,ideg>;
-  const int iverb = msh.param->iverb;
-
-  inventP1<gdim>(ent2pol, msh.coord, coor0, bary);
-
-  double gcur[gdim], hess[nhess];
-
-  //double wlfc1 = 0.3;
-  double wlfc1 = 1e-4;
-  double wlfc2 = 0.9;
-
-  for(int niter = 0; niter < 20; niter++){
-
-    double fun = invevalfun<gdim,ideg>(msh, ent2pol, msh.coord, coor0, bary, 1, coopr, gcur, hess);
-
-    double desc[gdim+1];
-    symXvec<gdim>(hess,gcur,&desc[1]);
-    desc[0] = 0;
-    for(int ii = 1; ii < gdim+1; ii++){
-      desc[ii] *= -1;
-      desc[0] -= desc[ii];
-    }
-
-    double eigval[gdim], eigvec[gdim][gdim];
-    geteigsym<gdim>(hess, eigval, eigvec[0]);
-    //printf("Hessian %23.15e %23.15e %23.15e \n",hess[0],hess[1],hess[2]);
-    printf("Hess eigval ");
-    dblAr1(gdim,eigval).print();
-    printf("-- eval f %f bary  ",fun);
-    dblAr1(gdim+1,bary).print();
-
-    double bar0[gdim+1];
-    for(int ii = 0; ii < gdim+1; ii++) bar0[ii] = bary[ii];
-
-    double dtpgd0 = getprdl2<gdim>(&desc[1],gcur);
-
-    double step = 1.0;
-    printf("-- LS start at %f dtpgd0 = %f \n",step,dtpgd0);
-
-    double stpopt = -1;
-    while(abs(step) >= 1.0e-6){
-      double dum[gdim];
-      for(int ii = 0; ii < gdim+1; ii++){
-        bary[ii] = bar0[ii] + step * desc[ii];
-      }
-      double funLS = invevalfun<gdim,ideg>(msh, ent2pol, msh.coord, coor0, bary, 0, coopr, dum, NULL);
-      double dtpgd1 = getprdl2<gdim>(&desc[1],dum);
-      double nrm1 = getnrml2<gdim>(dum);
-      bool cdt1 = (funLS <= fun + wlfc1*step*dtpgd0);
-      bool cdt2 = (dtpgd1  >= wlfc2*dtpgd0);
-      bool cdt3 = (abs(dtpgd1) <= wlfc2*abs(dtpgd0));
-      // dtpgd0 is negative 
-      double c1lim = (funLS - fun) / (step * dtpgd0);
-      double c2lim = dtpgd1 / dtpgd0;
-      printf(" - %12.7e : ratio %9.4e cdt %d %d %d c1 mx %9.4e c2 %9.4e nxt g nrm %e\n"
-        ,step,funLS/fun,cdt1,cdt2,cdt3,c1lim,c2lim,nrm1);
-      step *= qstep; 
-      if(cdt1 && cdt3 && stpopt < 0){
-        printf(" -> picked this one\n");
-        stpopt = step;
-        // but we carry on
-      }
-
-      //if(cdt1 && cdt3){
-      //  stpopt = step;
-      //  break;
-      //}
-    }
-    wait();
-
-    if(stpopt < 0){
-      printf("Failed LS\n");
-      break;
-    }
-
-    for(int ii = 0; ii < gdim+1; ii++){
-      bary[ii] = bar0[ii] + stpopt * desc[ii];
-    }
-
-
-  }
-
-  return;
-}
-
-// See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
-// Section A.4.1.2 Vertical Repetition
-#define BOOST_PP_LOCAL_MACRO(n)\
-template void invevaltest<2,n>(const MeshBase &msh,\
-                                 const int* ent2pol,\
-                                 const double* coor0, \
-                                 double* __restrict__ coopr, \
-                                 double* __restrict__ bary,\
-                                 double tol);\
-template void invevaltest<3,n>(const MeshBase &msh,\
-                 const int* ent2pol,\
-                 const double* coor0, \
-                 double* __restrict__ coopr, \
-                 double* __restrict__ bary,\
-                 double tol);
-#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
-#include BOOST_PP_LOCAL_ITERATE()
-#endif
 
 
 

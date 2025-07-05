@@ -27,7 +27,7 @@ BOOST_AUTO_TEST_CASE(test_indelsphere)
 
   // bool is whether straight
   std::vector<std::string> meshes = {
-    "../cases/public/adapt_square/square"
+    METRIS_CASES_DIR "/unit/2D/square/iso.p1.10k"
   }; 
 
 

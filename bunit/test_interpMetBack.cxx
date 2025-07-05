@@ -4,7 +4,7 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#define BOOST_TEST_MODULE MyTest 
+#define BOOST_TEST_MODULE test_interpMetBack 
 
 
 #include <egads.h>
@@ -28,7 +28,6 @@
 namespace hana = boost::hana;
 using namespace hana::literals;
 
-namespace utf = boost::unit_test;
 
 namespace Metris {
 
@@ -36,12 +35,16 @@ typedef MetricFieldAnalytical MFT;
 
 
 
-BOOST_AUTO_TEST_CASE(test_inveval) 
+BOOST_AUTO_TEST_CASE(test_interpMetBack) 
 {
   
   std::vector<std::string> meshes = {
     //"../cases/2D/square.circmet.50.curved.meshb",
     //"../cases/2D/square.circmet.5k.curved.meshb",
+    METRIS_CASES_DIR "/unit/2D/square/iso.p1.10k -back " 
+    METRIS_CASES_DIR "/unit/2D/square/iso.p1.100k",
+    METRIS_CASES_DIR "/unit/2D/square/iso.p1.100k -back " 
+    METRIS_CASES_DIR "/unit/2D/square/iso.p1.10k",
     "../cases/1200_p1.meshb -back ../cases/2400_p1.meshb",
     //"../cases/invevalP2_2",
   };
