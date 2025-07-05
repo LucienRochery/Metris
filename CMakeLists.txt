@@ -63,7 +63,6 @@ else()
   set(REQ_CODEGEN ON)
 endif()
 
-set(DO_UNITTESTS ON)
 
 add_compile_definitions(SURREAL_LAZY)
 
@@ -225,89 +224,55 @@ target_include_directories(egads2lite PRIVATE  "."
 setMetrisFlags(egads2lite PUBLIC)
 
 
-# icc having trouble with GTest on my system, figure this out later
-#if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME) AND "Debug" IN_LIST CMAKE_BUILD_TYPE)
-if(NOT("icc" IN_LIST SHORT_COMPILER_NAME OR "gcc-13" IN_LIST SHORT_COMPILER_NAME)  AND  DO_UNITTESTS)
+# --- Unit tests
 
-  if(DEFINED METRIS_CASES_DIR)
-    message("-- Using provided METRIS_CASES_DIR = ${METRIS_CASES_DIR}")
-  elseif(DEFINED ENV{METRIS_CASES_DIR})
-    set(METRIS_CASES_DIR $ENV{METRIS_CASES_DIR})
-    message("-- Using env var METRIS_CASES_DIR = ${METRIS_CASES_DIR}")
-  else()
-    set(METRIS_CASES_DIR "${CMAKE_SOURCE_DIR}/cases")
-    message("-- Using default METRIS_CASES_DIR = root/cases = ${METRIS_CASES_DIR}")
-  endif()
-  set(METRIS_CASES_DIR ${METRIS_CASES_DIR} CACHE PATH "Directory where Metris cases are found.")
-
-  #include(FetchContent)
-  #FetchContent_Declare(
-  #  googletest
-  #  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
-  #)
-  #FetchContent_MakeAvailable(googletest)
-
-  ## --- Testing
-  enable_testing()
-  #
-  ## -- Google tests
-  #include(FetchContent)
-  #FetchContent_Declare(
-  #  googletest
-  #  URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
-  #)
-  #FetchContent_MakeAvailable(googletest)
-  #
-  ## - Generate a different test target from each cxx file found in gunit
-  #include(GoogleTest)
-  #foreach (t ${TEST_SOURCES1})
-  #  get_filename_component(d ${t} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
-  #  add_executable(${d} ${t})
-  #  target_link_libraries(${d} PUBLIC GTest::gtest_main)
-  #  target_include_directories(${d} PRIVATE ${googletest_SOURCE_DIR}/googletest/include)
-  #  gtest_discover_tests(${d})
-  #endforeach()
-  
-  file (GLOB TEST_SOURCES CONFIGURE_DEPENDS "bunit/*.cxx")
-
-  # -- Boost/test
-  find_package(Boost COMPONENTS unit_test_framework REQUIRED)
-  #find_package(NLopt REQUIRED) 
-  #if(NLopt_FOUND)
-  #  message("NLOP in ${NLopt_INCLUDE_DIRS} ${NLopt_INCLUDE_DIRS}")
-  #else()
-  #  message(FATAL_ERROR "NLOPT NOT FOUND")
-  #endif()
-  
-  foreach (t ${TEST_SOURCES})
-    get_filename_component(d ${t} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
-    add_executable(${d} ${t})
-    setMetrisFlags(${d} PUBLIC)
-    target_compile_definitions(${d} PUBLIC METRIS_CASES_DIR="${METRIS_CASES_DIR}")
-    target_link_libraries(${d} PUBLIC libMetris)
-    target_link_libraries(${d} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-    target_link_libraries(${d} PUBLIC ${Boost_PROGRAM_OPTIONS_LIBRARY}
-                                      ${BOOST_TRACELIBS}
-                                      ${CLP_LIBRARIES}
-                                      ${PETSC_LIBRARIES}
-                                      ${ABSL_LIBRARIES}
-                                      lapack 
-                                      SANS
-                                      #libegads libegadslite 
-                                      #egads egadslite
-                                      ${EGADS_LIBRARIES} ${EGADSLITE_LIBRARIES} 
-                                      nlopt
-                                      libmeshb
-                                      pthread)
-    if(CLP_FOUND)
-      target_link_libraries(${d} PUBLIC ${CLP_LIBRARIES})
-    endif()
-                          
-    target_include_directories(${d} PUBLIC "."  ${PETSC_INCLUDE}  ${ABSL_INCLUDE_DIRS})
-  endforeach()
+# Fetch/set up cases directory.
+if(DEFINED METRIS_CASES_DIR)
+  message("-- Using provided METRIS_CASES_DIR = ${METRIS_CASES_DIR}")
+elseif(DEFINED ENV{METRIS_CASES_DIR})
+  set(METRIS_CASES_DIR $ENV{METRIS_CASES_DIR})
+  message("-- Using env var METRIS_CASES_DIR = ${METRIS_CASES_DIR}")
 else()
-  message("Skipping unit test targets (use clang)")
+  set(METRIS_CASES_DIR "${CMAKE_SOURCE_DIR}/cases")
+  message("-- Using default METRIS_CASES_DIR = root/cases = ${METRIS_CASES_DIR}")
 endif()
+set(METRIS_CASES_DIR ${METRIS_CASES_DIR} CACHE PATH "Directory where Metris cases are found.")
+message("-- Created directory ${METRIS_CASES_DIR} (unless it already existed)")
+make_directory(${METRIS_CASES_DIR})
+
+enable_testing()
+
+file (GLOB TEST_SOURCES CONFIGURE_DEPENDS "bunit/*.cxx")
+
+# -- Boost/test
+find_package(Boost COMPONENTS unit_test_framework REQUIRED)
+
+foreach (t ${TEST_SOURCES})
+  get_filename_component(d ${t} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
+  add_executable(${d} ${t})
+  setMetrisFlags(${d} PUBLIC)
+  target_compile_definitions(${d} PUBLIC METRIS_CASES_DIR="${METRIS_CASES_DIR}")
+  target_link_libraries(${d} PUBLIC libMetris)
+  target_link_libraries(${d} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+  target_link_libraries(${d} PUBLIC ${Boost_PROGRAM_OPTIONS_LIBRARY}
+                                    ${BOOST_TRACELIBS}
+                                    ${CLP_LIBRARIES}
+                                    ${PETSC_LIBRARIES}
+                                    ${ABSL_LIBRARIES}
+                                    lapack 
+                                    SANS
+                                    #libegads libegadslite 
+                                    #egads egadslite
+                                    ${EGADS_LIBRARIES} ${EGADSLITE_LIBRARIES} 
+                                    nlopt
+                                    libmeshb
+                                    pthread)
+  if(CLP_FOUND)
+    target_link_libraries(${d} PUBLIC ${CLP_LIBRARIES})
+  endif()
+                        
+  target_include_directories(${d} PUBLIC "."  ${PETSC_INCLUDE}  ${ABSL_INCLUDE_DIRS})
+endforeach()
     
 
 install(TARGETS metris DESTINATION ${CMAKE_BINARY_DIR})

@@ -84,13 +84,12 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES Clang)
   set(METRIS_CXX_FLAGS_DEBUG    -fconstexpr-steps=1000000000 -O0 -g  -Wall -Wextra -pedantic  -march=native  -fno-pie  -fPIC) # -S -fverbose-asm -rdynamic -ggdb3
   #set(METRIS_CXX_FLAGS_DEBUG  -fsanitize=address  -fconstexpr-steps=10000000 -O0 -g3  -march=native -fno-pie ) # -S -fverbose-asm
   set(METRIS_CXX_FLAGS_MEMCHECK   -fconstexpr-steps=1000000000 -Wall -fsanitize=address -O0 -g -fPIC) # -S -fverbose-asm
-  set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_CXX_RELEASE} -g)
+  set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_CXX_RELEASE} -g -fno-omit-frame-pointer)
 
-  #-fno-omit-frame-pointer
   set(METRIS_C_FLAGS_RELEASE  ${METRIS_CXX_FLAGS_RELEASE})
   set(METRIS_C_FLAGS_DEBUG ${METRIS_CXX_FLAGS_DEBUG})
   set(METRIS_C_FLAGS_MEMCHECK ${METRIS_CXX_FLAGS_MEMCHECK})
-  set(METRIS_C_FLAGS_RELWITHDEBINFO ${METRIS_C_RELEASE} -g)
+  set(METRIS_C_FLAGS_RELWITHDEBINFO ${METRIS_C_RELEASE} -g -fno-omit-frame-pointer)
 
 else()
   message(FATAL_ERROR "Unknown compiler ID = ${CMAKE_CXX_COMPILER_ID}, SHORT_COMPILER_NAME = ${SHORT_COMPILER_NAME}")

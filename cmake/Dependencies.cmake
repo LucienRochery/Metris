@@ -44,6 +44,23 @@ if(USE_MULTIPRECISION)
   #message("-- Boost_MULTIPRECISION_LIBRARIES = ${Boost_MULTIPRECISION_LIBRARIES}")
 endif()
 
+# Profiling tool
+if(USE_TRACY)
+  FetchContent_Declare(
+    Tracy_fetch
+    GIT_REPOSITORY https://github.com/wolfpld/tracy.git
+    GIT_TAG master
+    GIT_SHALLOW TRUE
+    GIT_PROGRESS TRUE
+  )
+  set(TRACY_ENABLE ON)
+  FetchContent_MakeAvailable(Tracy_fetch)
+  set(TRACY_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/tracy_fetch-src/public/tracy/")
+  #message("TRACY_INCLUDE_DIRS = ${TRACY_INCLUDE_DIRS}")
+  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${TRACY_INCLUDE_DIRS})
+  list(APPEND METRIS_DEPS_LIBRARIES Tracy::TracyClient)
+  add_compile_definitions(TRACY_ENABLE)
+endif()
 
 if(REQ_CODEGEN)
   if(NOT DEFINED ENV{GINAC_DIR} AND NOT (DEFINED GINAC_LIBRARIES AND DEFINED GINAC_INCLUDE_DIRS))
