@@ -19,15 +19,15 @@ struct CavWrkArrs;
 
 // Collapse edge iedl of triangle iface
 template<class MFT>
-int colledgsurf(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf, 
+int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf, 
                 MshCavity &cav, CavWrkArrs &work, 
                 intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
 
 
 template<class MFT>
-int collversurf(Mesh<MFT>& msh, int iface, int iver, double qmax_suf, 
-                MshCavity &cav, CavWrkArrs &work, 
-                intAr1 &lerro, int ithrd1, int ithrd2);
+int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf, 
+                   MshCavity &cav, CavWrkArrs &work, 
+                   intAr1 &lerro, int ithrd1, int ithrd2);
 
 
 

@@ -140,13 +140,11 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
 
       // Check edge does not already exist
       // This can happen when collapsing one point in 2 + 1 edge
-      {
-        int itmp = getedgglo(msh,cav.ipins,ipseed);
-        if(itmp >= 0){
-          if(msh.edg2tag(ithread,itmp) < msh.tag[ithread]){
-            ierro = CAV_ERR_DUPEDG;
-            goto cleanup; 
-          }
+      int itmp = getedgglo(msh,cav.ipins,ipseed);
+      if(itmp >= 0){
+        if(msh.edg2tag(ithread,itmp) < msh.tag[ithread]){
+          ierro = CAV_ERR_DUPEDG;
+          goto cleanup; 
         }
       }
 
@@ -161,41 +159,44 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
 
 
       for(int ii = 0; ii < 2; ii++){
-        int ip = msh.edg2poi(iedgn,ii);
-        int ib = msh.poi2bpo[ip];
-        METRIS_ASSERT(ib >= 0);
-        if(msh.bpo2ibi(ib,1) == 1){
-          int ied = msh.bpo2ibi(ib,2);
+        int ipoin = msh.edg2poi(iedgn,ii);
+        int ibpoi = msh.poi2bpo[ipoin];
+        METRIS_ASSERT(ibpoi >= 0);
+        if(msh.bpo2ibi(ibpoi,1) == 1){
+          int ied = msh.bpo2ibi(ibpoi,2);
           // if edge about to get deleted:
           if(msh.edg2tag(ithread,ied) >= msh.tag[ithread]){ 
-            if(msh.bpo2ibi(ib,3) != -1){
-              int ib2 = msh.bpo2ibi(ib,3);
+            if(msh.bpo2ibi(ibpoi,3) != -1){
+              int ib2 = msh.bpo2ibi(ibpoi,3);
+              METRIS_ASSERT_MSG(ib2 >= 0 && ib2 < msh.nbpoi, 
+                "ib2 = "<<ib2<<" out of range, iver = "<<ii<<" ipoin = "<<ipoin
+                <<" ipins = "<<cav.ipins)
               // This would only happen if we just added another edge here:
               if(msh.bpo2ibi(ib2,1) != 1){ 
                 // then create new bpo and copy the old uvs here
-                int ibn = msh.newbpotopo(ip,1,iedgn);
+                int ibn = msh.newbpotopo(ipoin,1,iedgn);
                 for(int jj = 0; jj < nrbi; jj++) 
-                  msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ib,jj);
-                CPRINTF2(" - (1) newbpo ip = %d ibn = %d from ib = %d, t = %f\n",
-                  ip,ibn,ib,msh.bpo2rbi(ibn,0));
+                  msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ibpoi,jj);
+                CPRINTF2(" - (1) newbpo ipoin = %d ibn = %d from ib = %d, t = %f\n",
+                  ipoin,ibn,ibpoi,msh.bpo2rbi(ibn,0));
               }
             }else{
               // then create new bpo and copy the old uvs here
-              int ibn = msh.newbpotopo(ip,1,iedgn);
+              int ibn = msh.newbpotopo(ipoin,1,iedgn);
               for(int jj = 0; jj < nrbi; jj++) 
-                msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ib,jj);
-              CPRINTF2(" - (2) newbpo ip = %d ibn = %d from ib = %d, t = %f\n",
-                ip,ibn,ib,msh.bpo2rbi(ibn,0));
+                msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ibpoi,jj);
+              CPRINTF2(" - (2) newbpo ipoin = %d ibn = %d from ib = %d, t = %f\n",
+                ipoin,ibn,ibpoi,msh.bpo2rbi(ibn,0));
             }
           }
         }else{ // Corner, if face something went wrong 
-          METRIS_ASSERT(msh.bpo2ibi(ib,1) == 0);
+          METRIS_ASSERT(msh.bpo2ibi(ibpoi,1) == 0);
 
           //// We're not in the business of adding nodes
-          //METRIS_ASSERT(ip == cav.ipins);
+          //METRIS_ASSERT(ipoin == cav.ipins);
 
-          int ibn = msh.newbpotopo(ip,1,iedgn);
-          CPRINTF2(" - (3) newbpo ip = %d ibn = %d CORNER case\n",ip,ibn);
+          int ibn = msh.newbpotopo(ipoin,1,iedgn);
+          CPRINTF2(" - (3) newbpo ipoin = %d ibn = %d CORNER case\n",ipoin,ibn);
 
           // Let's assume most likely, this is not a loop. 
           // Thus count same ref and, if nn == 1, let's go. 
@@ -203,7 +204,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
           // and do something more fancy
           int nn = 0; // count edges in the mesh of same ref this corner in
           int ib3 = -1;
-          for(int ib2 = ib; ib2 >= 0; ib2 = msh.bpo2ibi(ib2,3)){
+          for(int ib2 = ibpoi; ib2 >= 0; ib2 = msh.bpo2ibi(ib2,3)){
             if(msh.bpo2ibi(ib2,1) != 1) continue;
             // Skip the one we just created 
             if(msh.bpo2ibi(ib2,2) == iedgn) continue;
@@ -213,7 +214,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
                            && msh.bpo2ibi(ib2,2) < msh.nedge - 1,
               "ib2 pointing to invalid edge? msh.nedge = "<<msh.nedge
               <<" pts to "<<msh.bpo2ibi(ib2,2)<<" iedgn = "<<iedgn<<"\n"
-              <<" ip = "<<ip<<" ib = "<<ib<<" ib2 = "<<ib2);
+              <<" ipoin = "<<ipoin<<" ibpoi = "<<ibpoi<<" ib2 = "<<ib2);
             METRIS_ASSERT(iref2 >= 0 && iref2 < msh.CAD.ncaded); // Valgrind mostly
             if(iref2 == iref){
               nn++;
@@ -227,7 +228,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
           if(nn == 1){
             for(int jj = 0; jj < nrbi; jj++) 
               msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ib3,jj);
-            CPRINTF2(" - (3) CORNER (1) update from ib3 %d ip = %d t = %f\n",
+            CPRINTF2(" - (3) CORNER (1) update from ib3 %d ipoin = %d t = %f\n",
                      ib3,msh.bpo2ibi(ib3,0),msh.bpo2rbi(ib3,0));
 
           }else{ 
@@ -240,7 +241,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
             // the ibpoi associated to this new edge. 
 
             bool ifndg = false;
-            for(int ib2 = ib; ib2 >= 0; ib2 = msh.bpo2ibi(ib2,3)){
+            for(int ib2 = ibpoi; ib2 >= 0; ib2 = msh.bpo2ibi(ib2,3)){
               // Loop only over edge bpos
               if(msh.bpo2ibi(ib2,1) != 1) continue;
 
@@ -295,7 +296,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
 
           }
         }
-      }
+      }// for ii
 
 
       // Check geometric approximation and validity 
@@ -406,7 +407,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
       
 
 
-    }
+    }// for inei
   }
 
 

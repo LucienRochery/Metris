@@ -107,9 +107,6 @@ double getmeasentP1(const MetrisParameters *param,
 template <class MFT, int gdim, int ideg>
 double getmeasent(const MeshMetric<MFT> &msh, int ientt);
 
-template <class MFT, int idim>
-void getheightentP1_aniso(const Mesh<MFT> &msh, int ientt, double *heights);
-
 
 
 template <int gdim>

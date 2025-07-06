@@ -17,6 +17,13 @@ int projptfac(MeshBase &msh,
               double*__restrict__ bary,
               double*__restrict__ coopr);
 
+int projptfacP1(const double*__restrict__ coop, 
+                const double*__restrict__ coof1, 
+                const double*__restrict__ coof2, 
+                const double*__restrict__ coof3, 
+                double*__restrict__ bary,
+                double*__restrict__ coopr);
+
 
 // Project on P1 edge: no CAD used. 
 template <int gdim, int ideg>

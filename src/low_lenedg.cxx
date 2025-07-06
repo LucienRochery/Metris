@@ -12,6 +12,11 @@
 #include "low_normal.hxx"
 
 
+#ifdef TRACY_ENABLE
+#include "Tracy.hpp"
+#endif
+
+
 namespace Metris{
 
 // -----------------------------------------------------------------------------
@@ -130,8 +135,11 @@ template double getlenedg_log<3>(const double dx[], const double metl[],int mite
 // Geometric size interpolation 
 // metric given in metSpac format
 template<class MetricFieldType, int gdim, int ideg>
-double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
+double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,
                        int ientt, int tdimn, int iedg){
+  #ifdef TRACY_ENABLE
+  ZoneScopedN("getlenedg_geosz2");
+  #endif
   double sz[2];
   double len = getlenedg_geosz<MetricFieldType,gdim,ideg>(msh,ientt,tdimn,iedg,sz);
   return len;
@@ -140,18 +148,20 @@ double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
 
 // Same but also return the sizes (e.g. for insertion)
 template<class MetricFieldType, int gdim, int ideg>
-double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
+double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,
                        int ientt, int tdimn, int iedg, 
                        double *sz){
-
+  #ifdef TRACY_ENABLE
+  ZoneScopedN("getlenedg_geosz1");
+  #endif
   const int nedgl = (tdimn*(tdimn+1))/2;
 
   int lnoed1[1][2] = {{0, 1}};
   const intAr2 lnoed(nedgl,2,tdimn == 1 ? lnoed1[0] :
                              tdimn == 2 ? lnoed2[0] : lnoed3[0]);
 
-  intAr2 &ent2poi = tdimn == 1 ? msh.edg2poi : 
-                    tdimn == 2 ? msh.fac2poi : msh.tet2poi;
+  const intAr2 &ent2poi = tdimn == 1 ? msh.edg2poi : 
+                          tdimn == 2 ? msh.fac2poi : msh.tet2poi;
 
   int edg2pol[getnnod1(ideg)];
 
@@ -169,7 +179,10 @@ double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
 
 // Same but also return the sizes (e.g. for insertion)
 template<class MetricFieldType, int gdim, int ideg>
-double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,const int *edg2pol, double *sz){
+double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,const int *edg2pol, double *sz){
+  #ifdef TRACY_ENABLE
+  ZoneScopedN("getlenedg_geosz0");
+  #endif
   constexpr int nnmet = (gdim*(gdim+1))/2;
   double dum[nnmet],tang[gdim];
   double bar1[2];//,bary[tdimn+1];
@@ -218,7 +231,7 @@ double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,const int *edg2pol, doub
 // This version uses surface tangent directions to compute the metric size at 
 // the edge extremities. 
 template<class MetricFieldType, int gdim, int ideg>
-double getlenedg_geosz_plane(MeshMetric<MetricFieldType> &msh,
+double getlenedg_geosz_plane(const MeshMetric<MetricFieldType> &msh,
                              int ientt, int tdimn, int iedg, 
                              double *sz){
   static_assert(gdim == 3);
@@ -231,8 +244,8 @@ double getlenedg_geosz_plane(MeshMetric<MetricFieldType> &msh,
   const intAr2 lnoed(nedgl,2,tdimn == 1 ? lnoed1[0] :
                              tdimn == 2 ? lnoed2[0] : lnoed3[0]);
 
-  intAr2 &ent2poi = tdimn == 1 ? msh.edg2poi : 
-                    tdimn == 2 ? msh.fac2poi : msh.tet2poi;
+  const intAr2 &ent2poi = tdimn == 1 ? msh.edg2poi : 
+                          tdimn == 2 ? msh.fac2poi : msh.tet2poi;
 
   int edg2pol[getnnod1(ideg)];
 
@@ -253,7 +266,7 @@ double getlenedg_geosz_plane(MeshMetric<MetricFieldType> &msh,
 
 // Provide unit normals to project on plane. 
 template<class MetricFieldType, int gdim, int ideg>
-double getlenedg_geosz_plane(MeshMetric<MetricFieldType> &msh,
+double getlenedg_geosz_plane(const MeshMetric<MetricFieldType> &msh,
                              const int *edg2pol, double *nrmals, double *sz){
   constexpr int nnmet = (gdim*(gdim+1))/2;
   double dum[nnmet],tang[gdim];
@@ -317,37 +330,37 @@ double getlenedg_geosz_plane(MeshMetric<MetricFieldType> &msh,
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
 template double getlenedg_geosz<MetricFieldAnalytical, 2, n >(\
-        MeshMetric<MetricFieldAnalytical> &msh,int ientt, int tdimn, int iedg);\
+        const MeshMetric<MetricFieldAnalytical> &msh,int ientt, int tdimn, int iedg);\
 template double getlenedg_geosz<MetricFieldFE        , 2, n >(\
-        MeshMetric<MetricFieldFE        > &msh,int ientt, int tdimn, int iedg);\
+        const MeshMetric<MetricFieldFE        > &msh,int ientt, int tdimn, int iedg);\
 template double getlenedg_geosz<MetricFieldAnalytical, 3, n >(\
-        MeshMetric<MetricFieldAnalytical> &msh,int ientt, int tdimn, int iedg);\
+        const MeshMetric<MetricFieldAnalytical> &msh,int ientt, int tdimn, int iedg);\
 template double getlenedg_geosz<MetricFieldFE        , 3, n >(\
-        MeshMetric<MetricFieldFE        > &msh,int ientt, int tdimn, int iedg);\
+        const MeshMetric<MetricFieldFE        > &msh,int ientt, int tdimn, int iedg);\
 template double getlenedg_geosz<MetricFieldAnalytical, 2, n >(\
-        MeshMetric<MetricFieldAnalytical> &msh,int ientt, int tdimn, int iedg, double* sz);\
+        const MeshMetric<MetricFieldAnalytical> &msh,int ientt, int tdimn, int iedg, double* sz);\
 template double getlenedg_geosz<MetricFieldFE        , 2, n >(\
-        MeshMetric<MetricFieldFE        > &msh,int ientt, int tdimn, int iedg, double* sz);\
+        const MeshMetric<MetricFieldFE        > &msh,int ientt, int tdimn, int iedg, double* sz);\
 template double getlenedg_geosz<MetricFieldAnalytical, 3, n >(\
-        MeshMetric<MetricFieldAnalytical> &msh,int ientt, int tdimn, int iedg, double* sz);\
+        const MeshMetric<MetricFieldAnalytical> &msh,int ientt, int tdimn, int iedg, double* sz);\
 template double getlenedg_geosz<MetricFieldFE        , 3, n >(\
-        MeshMetric<MetricFieldFE        > &msh,int ientt, int tdimn, int iedg, double* sz);\
+        const MeshMetric<MetricFieldFE        > &msh,int ientt, int tdimn, int iedg, double* sz);\
 template double getlenedg_geosz<MetricFieldAnalytical, 2, n >(\
-        MeshMetric<MetricFieldAnalytical> &msh,const int *edg2pol, double *sz);\
+        const MeshMetric<MetricFieldAnalytical> &msh,const int *edg2pol, double *sz);\
 template double getlenedg_geosz<MetricFieldFE        , 2, n >(\
-        MeshMetric<MetricFieldFE        > &msh,const int *edg2pol, double *sz);\
+        const MeshMetric<MetricFieldFE        > &msh,const int *edg2pol, double *sz);\
 template double getlenedg_geosz<MetricFieldAnalytical, 3, n >(\
-        MeshMetric<MetricFieldAnalytical> &msh,const int *edg2pol, double *sz);\
+        const MeshMetric<MetricFieldAnalytical> &msh,const int *edg2pol, double *sz);\
 template double getlenedg_geosz<MetricFieldFE        , 3, n >(\
-        MeshMetric<MetricFieldFE        > &msh,const int *edg2pol, double *sz);\
+        const MeshMetric<MetricFieldFE        > &msh,const int *edg2pol, double *sz);\
 template double getlenedg_geosz_plane<MetricFieldAnalytical, 3, n >(\
-        MeshMetric<MetricFieldAnalytical> &msh,int ientt, int tdimn, int iedg, double* sz);\
+        const MeshMetric<MetricFieldAnalytical> &msh,int ientt, int tdimn, int iedg, double* sz);\
 template double getlenedg_geosz_plane<MetricFieldFE        , 3, n >(\
-        MeshMetric<MetricFieldFE        > &msh,int ientt, int tdimn, int iedg, double* sz);\
+        const MeshMetric<MetricFieldFE        > &msh,int ientt, int tdimn, int iedg, double* sz);\
 template double getlenedg_geosz_plane<MetricFieldAnalytical, 3, n >(\
-        MeshMetric<MetricFieldAnalytical> &msh,const int *edg2pol, double *nrmals, double *sz);\
+        const MeshMetric<MetricFieldAnalytical> &msh,const int *edg2pol, double *nrmals, double *sz);\
 template double getlenedg_geosz_plane<MetricFieldFE        , 3, n >(\
-        MeshMetric<MetricFieldFE        > &msh,const int *edg2pol, double *nrmals, double *sz);
+        const MeshMetric<MetricFieldFE        > &msh,const int *edg2pol, double *nrmals, double *sz);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

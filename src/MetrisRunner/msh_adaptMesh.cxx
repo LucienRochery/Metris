@@ -8,6 +8,7 @@
 #include "../adapt/msh_collapse.hxx"
 #include "../adapt/msh_swap.hxx"
 #include "../adapt/msh_insert.hxx"
+#include "../adapt/msh_reinsert_flat.hxx"
 
 #include "../Mesh/Mesh.hxx"
 #include "../utils/aux_misc.hxx"
@@ -72,7 +73,9 @@ void MetrisRunner::adaptMesh0(){
   double qmax_suf;
   bool iinva;
 
-  if(msh.param->dbgfull) check_topo(msh,1);
+  #ifndef NDEBUG
+  check_topo(msh,1);
+  #endif
 
   int nswap, ninser, ncoll;
 
@@ -110,7 +113,9 @@ void MetrisRunner::adaptMesh0(){
     
     swapMesh<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdfro, ithrd1, ithrd2);
 
-    if(msh.param->dbgfull) check_topo(msh,1);
+    #ifndef NDEBUG
+    check_topo(msh,1);
+    #endif
   }
 
 
@@ -170,7 +175,9 @@ void MetrisRunner::adaptMesh0(){
       CPRINTF2("- iteration %d collapse stat = %f time = %f \n",niter,stat,t1-t0);
       CPRINTF2("------------------------------------------------------------\n");
     }
-    if(msh.param->dbgfull) check_topo(msh,1);
+    #ifndef NDEBUG
+    check_topo(msh,1);
+    #endif
 
     // 2. Swaps
 
@@ -202,7 +209,9 @@ void MetrisRunner::adaptMesh0(){
         CPRINTF2("------------------------------------------------------------\n");
       }
     }
-    if(msh.param->dbgfull) check_topo(msh,1);
+    #ifndef NDEBUG
+    check_topo(msh,1);
+    #endif
 
     // 3. Insert on long edges 
 
@@ -213,9 +222,10 @@ void MetrisRunner::adaptMesh0(){
     t1 = get_wall_time();
     tinsert += t1-t0;
 
-    if(msh.param->dbgfull) check_topo(msh,1);
     msh.cleanup();
-    if(msh.param->dbgfull) check_topo(msh,1);
+    #ifndef NDEBUG
+    check_topo(msh,1);
+    #endif
 
     if(DOPRINTS2()){
       writeMesh("v2_insert_adp"+ std::to_string(niter)+".meshb",msh);
@@ -254,6 +264,29 @@ void MetrisRunner::adaptMesh0(){
 
 
 
+    if(msh.idim == msh.get_tdim()){
+      t0 = get_wall_time();
+      int noper = reinsertFlat<MFT,gdim,ideg>(msh);
+      t1 = get_wall_time();
+      msh.cleanup();
+      stat  = noper / (double) msh.nface; 
+      stat0 = MAX(stat0, stat);
+      if(DOPRINTS1()){
+        if(DOPRINTS2() && noper >= 0) writeMesh("v2_flat_opt"+ std::to_string(niter)+".meshb",msh);
+        if(DOPRINTS2() && noper >= 0) msh.met.writeMetricFile("v2_flat_opt"+ std::to_string(niter)+".solb");
+        CPRINTF1("------------------------------------------------------------\n");
+        CPRINTF1("- iteration %d flat collapse noper = %d stat = %f time = %f \n",niter,noper,stat,t1-t0);
+        CPRINTF1("------------------------------------------------------------\n");
+      }
+
+      #ifndef NDEBUG
+      check_topo(msh,0);
+      #endif
+
+    }else{
+      CPRINTF1("## reinsertFlat disabled in case gdim = %d tdim = %d \n", msh.idim, msh.get_tdim());
+    }
+    
 
     getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
     int ndigit = ceil(log10((double)msh.npoin

@@ -45,76 +45,9 @@ int projptfac(MeshBase &msh,
   int ipoi3 = msh.fac2poi(iface,2);
 
   if constexpr(ideg == 1){
-    // Compute barycentrics using normal norms
-    // First project coop in triangle plane
 
-    double nrmal[3];
-    getnorfacP1(msh.fac2poi[iface],msh.coord,nrmal);
-    double nrm123 = getnrml2<3>(nrmal);
-    if(nrm123 < Constants::vecNrmTol){
-      #ifndef NDEBUG
-      METRIS_THROW_MSG(GeomExcept(), "Degenerate face passed to projptfac");
-      #endif
-      return 1;
-    }
-
-    // Project coop in triangle's plane
-    for(int ii = 0; ii < 3; ii++)
-      coopr[ii] = coop[ii] - msh.coord(ipoi1,ii);
-    double dtprd = getprdl2<3>(coopr,nrmal) / nrm123; // note nrm123 is ^2
-    for(int ii = 0; ii < 3; ii++)
-      coopr[ii] = coop[ii] - nrmal[ii]*dtprd;
-
-    // Compute normal signed norms of P1, P2, P, etc. 
-    // signed norm = prod with face normal. (they are all colinear)
-    double nrmal1[3];
-    // Let n' be normal of subtriangle, n the unnormalized of whole
-    // Then (n',n/||n||) is the "norm" of n'
-    // We then get the bary by computing (n',n/||n||) / ||n||, ratio of sub to whole
-    // area. 
-    // XP2P3
-    vecprod_vdif(msh.coord[ipoi2],coopr,
-                 msh.coord[ipoi3],coopr,nrmal1);
-    bary[0] = getprdl2<3>(nrmal1,nrmal) / nrm123;
-    // P1XP3
-    vecprod_vdif(coopr           ,msh.coord[ipoi1],
-                 msh.coord[ipoi3],msh.coord[ipoi1],nrmal1);
-    bary[1] = getprdl2<3>(nrmal1,nrmal) / nrm123;
-    // P1P2X
-    vecprod_vdif(msh.coord[ipoi2],msh.coord[ipoi1],
-                 coopr           ,msh.coord[ipoi1],nrmal1);
-    bary[2] = getprdl2<3>(nrmal1,nrmal) / nrm123;
-
-    METRIS_ASSERT_MSG(abs(bary[0] + bary[1] + bary[2] - 1) 
-      < 1.0e-8*MAX(1,MAX(MAX(abs(bary[0]),abs(bary[1])),abs(bary[2]))),
-      "Triangle barycentrics dont sum to one: "<<bary[0]
-      <<" "<<bary[1]<<" "<<bary[2]<<" sum = "<<bary[0] + bary[1] + bary[2] 
-      <<" dif to 1 "<<abs(bary[0] + bary[1] + bary[2] - 1));
-
-    ierro = bary[0] < -Constants::baryTol || bary[0] > 1 + Constants::baryTol
-          ||bary[1] < -Constants::baryTol || bary[1] > 1 + Constants::baryTol
-          ||bary[2] < -Constants::baryTol || bary[2] > 1 + Constants::baryTol;
-
-    #if 0
-    if(ierro != 0){
-      // Truncate negative barys to stay on element. If one neg, this preserves
-      // ratio of non zero. If two neg, projects on vertex. 
-      double sum = 0;
-      for(int ii = 0; ii < 3; ii++){
-        bary[ii] = MAX(bary[ii],0);
-        sum += bary[ii];
-      }
-      METRIS_ASSERT(sum >= 0.99); // not a necessity, but something that should be true
-      for(int ii = 0; ii < 3; ii++) bary[ii] /= sum;
-
-      for(int ii = 0; ii < 3; ii++){
-        coopr[ii] = bary[0]*msh.coord(ipoi1,ii)
-                  + bary[1]*msh.coord(ipoi2,ii)
-                  + bary[2]*msh.coord(ipoi3,ii);
-      }
-    }
-    #endif
-
+    return projptfacP1(coop, msh.coord[ipoi1], msh.coord[ipoi2], msh.coord[ipoi3], bary, coopr);
+    
   }else{ // if ideg > 1
 
     METRIS_THROW_MSG(TODOExcept(), "ideg > 1 projptfac implement")
@@ -198,6 +131,71 @@ int projptfac<n>(MeshBase &msh, const double*__restrict__ coop, \
 
 
 
+
+int projptfacP1(const double*__restrict__ coop, 
+                const double*__restrict__ coof1, 
+                const double*__restrict__ coof2, 
+                const double*__restrict__ coof3, 
+                double*__restrict__ bary,
+                double*__restrict__ coopr){
+
+  constexpr int gdim = 3;
+  int ierro = 0;
+
+  // Compute barycentrics using normal norms
+  // First project coop in triangle plane
+
+  double nrmal[3];
+  //getnorfacP1(msh.fac2poi[iface],msh.coord,nrmal);
+  vecprod_vdif(coof2,coof1,
+               coof3,coof1,nrmal);
+  double nrm123 = getnrml2<3>(nrmal);
+  if(nrm123 < Constants::vecNrmTol){
+    #ifndef NDEBUG
+    METRIS_THROW_MSG(GeomExcept(), "Degenerate face passed to projptfacP1");
+    #endif
+    return 1;
+  }
+
+  // Project coop in triangle's plane
+  for(int ii = 0; ii < 3; ii++)
+    coopr[ii] = coop[ii] - coof1[ii];
+  double dtprd = getprdl2<3>(coopr,nrmal) / nrm123; // note nrm123 is ^2
+  for(int ii = 0; ii < 3; ii++)
+    coopr[ii] = coop[ii] - nrmal[ii]*dtprd;
+
+  // Compute normal signed norms of P1, P2, P, etc. 
+  // signed norm = prod with face normal. (they are all colinear)
+  double nrmal1[3];
+  // Let n' be normal of subtriangle, n the unnormalized of whole
+  // Then (n',n/||n||) is the "norm" of n'
+  // We then get the bary by computing (n',n/||n||) / ||n||, ratio of sub to whole
+  // area. 
+  // XP2P3
+  vecprod_vdif(coof2,coopr,
+               coof3,coopr,nrmal1);
+  bary[0] = getprdl2<3>(nrmal1,nrmal) / nrm123;
+  // P1XP3
+  vecprod_vdif(coopr,coof1,
+               coof3,coof1,nrmal1);
+  bary[1] = getprdl2<3>(nrmal1,nrmal) / nrm123;
+  // P1P2X
+  vecprod_vdif(coof2,coof1,
+               coopr,coof1,nrmal1);
+  bary[2] = getprdl2<3>(nrmal1,nrmal) / nrm123;
+
+  METRIS_ASSERT_MSG(abs(bary[0] + bary[1] + bary[2] - 1) 
+    < 1.0e-8*MAX(1,MAX(MAX(abs(bary[0]),abs(bary[1])),abs(bary[2]))),
+    "Triangle barycentrics dont sum to one: "<<bary[0]
+    <<" "<<bary[1]<<" "<<bary[2]<<" sum = "<<bary[0] + bary[1] + bary[2] 
+    <<" dif to 1 "<<abs(bary[0] + bary[1] + bary[2] - 1));
+
+  ierro = bary[0] < -Constants::baryTol || bary[0] > 1 + Constants::baryTol
+        ||bary[1] < -Constants::baryTol || bary[1] > 1 + Constants::baryTol
+        ||bary[2] < -Constants::baryTol || bary[2] > 1 + Constants::baryTol;
+
+  return ierro;
+}
 
 
 

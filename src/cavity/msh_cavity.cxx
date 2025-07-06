@@ -78,6 +78,7 @@ int cavity_operator(Mesh<MFT> &msh ,
                     CavOprInfo &info,
                     int ithread){
 
+
   try{
   INCVDEPTH(msh.param);
   info.done = false;
@@ -251,7 +252,9 @@ int cavity_operator(Mesh<MFT> &msh ,
   finish:
 
   msh.tag[ithread] = cav.maxtag;
+  
   if(ierro == 0 && msh.param->dbgfull) check_topo(msh,ithread);
+
 	return ierro;
   }catch(const MetrisExcept& e){
     printf("## EXCEPTION IN CAVITY \n");

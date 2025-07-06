@@ -163,6 +163,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/low_ccoef.cxx
     ${PROJECT_SOURCE_DIR}/src/low_eval.cxx
     ${PROJECT_SOURCE_DIR}/src/low_geo.cxx
+    ${PROJECT_SOURCE_DIR}/src/low_height.cxx
     ${PROJECT_SOURCE_DIR}/src/low_normal.cxx
     ${PROJECT_SOURCE_DIR}/src/low_lenedg.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_lenedg.cxx

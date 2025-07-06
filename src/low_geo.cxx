@@ -370,46 +370,6 @@ template double getmeasent<MetricFieldFE        ,3,n>(const MeshMetric<MetricFie
 
 
 
-template<class MFT, int tdim>
-void getheightentP1_aniso(const Mesh<MFT> &msh, int ientt,
-                          double *height){
-
-  METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
-  static_assert(tdim == 2);
-
-  constexpr int gdim = tdim;
-
-  for(int ied = 0; ied < tdim + 1; ied++){
-
-    int ipoi1 = msh.fac2poi(ientt,lnoed2[ied][0]);
-    int ipoi2 = msh.fac2poi(ientt,lnoed2[ied][1]);
-    double tan[gdim];
-    for(int ii = 0; ii < gdim; ii++) tan[ii] = msh.coord(ipoi2,ii)
-                                             - msh.coord(ipoi1,ii);
-
-    int ipoin = msh.fac2poi(ientt,ied);
-    double x0 =  getprdl2<gdim>(msh.coord[ipoi1], tan);
-    double x1 =  getprdl2<gdim>(msh.coord[ipoi2], tan);
-    double tp = (getprdl2<gdim>(msh.coord[ipoin], tan) - x0) / (x1 - x0);
-
-    //printf("Debug ied %d  x0 %f x1 %f xp %f tp %f ipoi1 %d ipoi2 %d ipoin %d\n",
-    //  ied,x0,x1,getprdl2<gdim>(msh.coord[ipoin], tan),tp, ipoi1, ipoi2, ipoin);
-
-    tp = MAX(0.0,MIN(1.0,tp));
-    double dp[2];
-    for(int ii = 0; ii < gdim; ii++) dp[ii] = (1.0 - tp) * msh.coord(ipoi1,ii)
-                                            +        tp  * msh.coord(ipoi2,ii)
-                                            -              msh.coord(ipoin,ii);
-    double len = getlenedgsq<gdim>(dp, msh.met[ipoin]);
-    height[ied] = sqrt(len);
-  }
-}
-template void getheightentP1_aniso<MetricFieldAnalytical, 2>(
-         const Mesh<MetricFieldAnalytical> &msh, int ientt, double *height);
-template void getheightentP1_aniso<MetricFieldFE        , 2>(
-         const Mesh<MetricFieldFE        > &msh, int ientt, double *height);
-
-
 template <int gdim>
 void getmeasentP1grad(const int *ent2pol, const dblAr2& coord, int idof, double *grad){
   if constexpr(gdim == 3){

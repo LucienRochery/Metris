@@ -30,25 +30,25 @@ double getlenedg_log(const double dx[], const double metl[], int miter = 100, do
 
 
 template<class MetricFieldType, int gdim, int ideg>
-double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
+double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,
                        int ientt, int tdimn, int iedg);
 // Same but also return the sizes (e.g. for insertion)
 template<class MetricFieldType, int gdim, int ideg>
-double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
+double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,
                        int ientt, int tdimn, int iedg, double *sz);
 template<class MetricFieldType, int gdim, int ideg>
-double getlenedg_geosz(MeshMetric<MetricFieldType> &msh,
+double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,
                        const int *edg2pol, double *sz);
 
 // This version uses surface tangent directions to compute the metric size at 
 // the edge extremities. 
 // ientt must be tdimn 2. 
 template<class MetricFieldType, int gdim, int ideg>
-double getlenedg_geosz_plane(MeshMetric<MetricFieldType> &msh,
+double getlenedg_geosz_plane(const MeshMetric<MetricFieldType> &msh,
                              int ientt, int tdimn, int iedg, double *sz);
 // Provide unit normals to project on plane. 
 template<class MetricFieldType, int gdim, int ideg>
-double getlenedg_geosz_plane(MeshMetric<MetricFieldType> &msh,
+double getlenedg_geosz_plane(const MeshMetric<MetricFieldType> &msh,
                              const int *edg2pol, double *nrmals, double *sz);
 
 // This one assumes lpoi of size ideg + 1

@@ -53,8 +53,6 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
   int ierro; 
 
   const bool ctrl_height = false;
-  // Bad:
-  const bool ctrl_small_bdry = false;
   const double isvolsmall = sqrt(3)/2 / 10;
 
   const int merror = CAV_ERR_NERROR;
@@ -63,7 +61,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
   msh.met.setSpace(MetSpace::Exp);
 
   //msh.met.setSpace(MetSpace::Log);
-  if(ctrl_height || ctrl_small_bdry){
+  if(ctrl_height){
     METRIS_ENFORCE_MSG(msh.met.getSpace() == MetSpace::Log,
       "Front metric in log space: is it faster in collapse with options?");
   }
@@ -172,7 +170,10 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
         // Ideal height is sqrt(3)/2
         // sqrt(3)/2 / sqrt(2) is the smallest admissible height
-        if(len > sqrt(3)/(2*sqrt(2))) continue;
+        if(tdim == 2 && len >= sqrt(3)/(2*sqrt(2))) continue;
+        // Ideal height is sqrt(2/3)
+        // sqrt(2/3) / sqrt(2) is the smallest admissible height
+        if(tdim == 3 && len >= sqrt(1.0/3)) continue;
 
 
         CPRINTF2(" - collapse flat %d height = %f \n",ientt,len);
@@ -184,7 +185,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
                     ent2poi(ientt,lnoed2[ied][1]), dd2s);
         }
         try{
-          ierro = collversurf(msh, ientt, ied, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
+          ierro = collapseVertex(msh, ipcol, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
         }catch(const MetrisExcept &e){
           printf("## FATAL ERROR IN MSH_COLLAPSE\n");
           writeMesh("error_collapse.meshb",msh);
@@ -202,81 +203,6 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
     }// for ientt
 
 
-
-    // Collapse small triangles (bad idea)
-    static int warn2 = 0;
-    if(warn2++ < 10 && ctrl_small_bdry) 
-      printf("## Disabled ctrl_small_bdry for tdim == 3\n");
-    for(int ientt = 0; ientt < nent0 && ctrl_small_bdry && tdim == 2; ientt++){
-      INCVDEPTH(msh.param);
-      if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
-      if(isdeadent(ientt,ent2poi)) continue;
-
-      // If an operation goes through, the element goes away, then this does nothing
-      // Otherwise, an operation does not happen, thus the element is inert.
-      ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
-
-
-      // Check at least one non boundary to collapse 
-      bool iskip = true;
-      int icol;
-      for(int ied = 0; ied < 3; ied++){
-        if(ent2ent(ientt,ied) >= 0) continue;
-        int ipoin = ent2poi(ientt,ied);
-        if(msh.poi2bpo[ipoin] >= 0) continue;
-
-        iskip = false;
-        icol  = ied;
-      }
-      if(iskip) continue;
-
-      bool iflat;
-      double bary[4];
-      for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim + 1);
-      double metl[nnmet];
-      double detm, volM;
-      double meas0 = tdim == 2 ? getmeasentP1<gdim,2>(msh, ent2poi[ientt], NULL, &iflat)
-                               : getmeasentP1<gdim,3>(msh, ent2poi[ientt], NULL, &iflat);
-      if(iflat) goto do_collapse;
-
-      // If not flat, compute volume 
-
-      msh.met.getMetBary(AsDeg::P1,DifVar::None, 
-                         msh.met.getSpace(), ent2poi[ientt], 
-                         tdim, bary, 
-                         metl, NULL) ;
-      
-      detm = detsym<gdim>(metl);
-      volM = meas0*sqrt(detm)/2/(tdim == 2 ? 1 : 3); // factorial tdim
-      
-      if(volM >= isvolsmall) continue;
-      CPRINTF2(" - collapse small triangle %d vol = %f \n",ientt,volM);
-      CPRINTF2(" - meas0 = %f detm = %f \n",meas0,detm);
-
-      do_collapse:
-
-      int nent00 = msh.nentt(tdim);
-      try{
-        ierro = collversurf(msh, ientt, icol, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
-      }catch(const MetrisExcept &e){
-        printf("## FATAL ERROR IN MSH_COLLAPSE\n");
-        writeMesh("error_collapse.meshb",msh);
-        throw(e);
-      }
-      if(ierro > 0){
-        nerro3 ++;
-      }else{
-        ncoll3 ++;
-        for(int ientn = nent00; ientn < msh.nentt(tdim); ientn++){
-          for(int ii = 0; ii < tdim + 1 ; ii++){
-            int ineig = ent2ent(ientn,ii);
-            if(ineig < 0) continue;
-            METRIS_ASSERT(!isdeadent(ineig,ent2poi));
-            ent2tag(ithrd1,ineig) = msh.tag[ithrd1] - 1;
-          }
-        }
-      }
-    }// for ientt
 
 
 
@@ -323,17 +249,12 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
         }
 
         int nent00 = msh.nentt(tdim);
-        try{
-          ierro = colledgsurf(msh, tdim, ientt, ied, qmax_suf, cav, work, lerror, ithrd2, ithrd3, ithrd4);
-        }catch(const MetrisExcept &e){
-          printf("## FATAL ERROR IN MSH_COLLAPSE\n");
-          writeMesh("error_collapse.meshb",msh);
-          throw(e);
-        }
+        ierro = collapseEdge(msh, tdim, ientt, ied, qmax_suf, cav, work, lerror, ithrd2, ithrd3, ithrd4);
 
 
         if(ierro > 0){
           nerro1 ++;
+          continue;
         }else{
           ncoll1 ++;
           for(int ientn = nent00; ientn < msh.nentt(tdim); ientn++){
@@ -401,6 +322,8 @@ template double collapseShortEdges<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE
                            double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3, int ithrd4);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
+
+
 
 
 

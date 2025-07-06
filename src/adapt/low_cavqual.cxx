@@ -14,6 +14,10 @@
 #include "../low_lenedg.hxx"
 #include "../low_geo.hxx"
 
+#ifdef TRACY_ENABLE
+#include "Tracy.hpp"
+#endif
+
 namespace Metris{
 
 
@@ -71,7 +75,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
   const auto lnoed = tdim == 2 ? lnoed2 : lnoed3;
   double len, sz[2];
 
-  {
+  {// tracy scope
   #ifdef TRACY_ENABLE
   ZoneScopedN("Initial cavity");
   #endif
@@ -90,7 +94,12 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
           int ipoi1 = msh.tet2poi(itetr, lnoed3[ied][0]);
           int ipoi2 = msh.tet2poi(itetr, lnoed3[ied][1]);
           auto key = stup2(ipoi1, ipoi2);
+          {
+          #ifdef TRACY_ENABLE
+          ZoneScopedN("nocomp insert 1");
+          #endif
           nocomp.insert(key);
+          }
         }// for ied
       }// for ifa
     }// for itetr
@@ -99,6 +108,10 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
   // Compute lengths of internal edges in initial cavity 
   for(int ientt : lcent){
     for(int ied = 0; ied < nedl; ied++){
+      #ifdef TRACY_ENABLE
+      ZoneScopedN("initial cav inner loop 2");
+      #endif
+
       int ipoi1 = ent2poi(ientt, lnoed[ied][0]);
       int ipoi2 = ent2poi(ientt, lnoed[ied][1]);
 
@@ -110,14 +123,23 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
       }
 
       auto key = stup2(ipoi1, ipoi2);
-
+      {
+      #ifdef TRACY_ENABLE
+      ZoneScopedN("nocomp find 1");
+      #endif
       if(nocomp.find(key) != nocomp.end()) continue;
+      }   
 
+      {
+      #ifdef TRACY_ENABLE
+      ZoneScopedN("initial cav lenedg");
+      #endif
       CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
         len = msh.idim == 2 ? 
           getlenedg_geosz<MFT,2,ideg>(msh,ientt,tdim,ied,sz) :
           getlenedg_geosz<MFT,3,ideg>(msh,ientt,tdim,ied,sz);
       }}CT_FOR1(ideg);
+      }
 
       double quaed = len < 1.0 ? 1.0 - len 
                                : 1.0 - 1.0 / len;
@@ -127,10 +149,15 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
       //  ,msh.met(ipoi2,0),msh.met(ipoi2,1),msh.met(ipoi2,2));
       qua0 = MAX(qua0, quaed);
 
+      {
+      #ifdef TRACY_ENABLE
+      ZoneScopedN("nocomp insert 2");
+      #endif
       nocomp.insert(key);
+      }
     }// for ied
   }// for ientt
-  }
+  }// tracy scope
 
 
   // Compute lengths of internal edges in final cavity 

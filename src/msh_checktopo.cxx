@@ -30,6 +30,11 @@ void check_topo(MeshBase &msh,
                 int nbpoi, int npoin, int nedge, int nface, int nelem, int ithread){
   GETVDEPTH(msh.param);
 
+  static int ncall_this = 0;
+  ncall_this++;
+
+  if(msh.param->iflag3 > 0 && ncall_this%msh.param->iflag3 != 0) return;
+
   try{
 
     if(DOPRINTS2()) printf("-- check_topo start \n");

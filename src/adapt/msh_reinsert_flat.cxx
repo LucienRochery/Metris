@@ -9,6 +9,7 @@
 
 #include "msh_reinsert_flat.hxx"
 #include "../low_geo.hxx"
+#include "../low_height.hxx"
 #include "../utils/mprintf.hxx"
 #include "../msh_structs.hxx"
 #include "../cavity/msh_cavity.hxx"
@@ -19,7 +20,7 @@
 
 namespace Metris{
 
-// Reinsert vertices that create almost flat elements. 
+// Reinsert vertices that create almost flat elements next to the boundary. 
 template<class MFT, int idim, int ideg>
 int reinsertFlat(Mesh<MFT> &msh){
   GETVDEPTH(msh.param);
@@ -27,11 +28,6 @@ int reinsertFlat(Mesh<MFT> &msh){
   constexpr int tdim = idim; 
   constexpr int nnmet = (gdim * (gdim + 1)) / 2;
 
-  if(tdim != 2){
-    static int nwarnprt = 0;
-    if(nwarnprt++ < 10)printf("\n\n## DISABLED REINSERTFLAT IN DIM 3\n\n\n");
-    return 0;
-  } 
 
   // For now, make it an option later 
   const double hgttol = 1.0e-8;
@@ -124,7 +120,7 @@ int reinsertFlat(Mesh<MFT> &msh){
 
         CPRINTF1(" - Collapse point %d \n", ipoin);
         // Just collapse the point. 
-        collversurf(msh,ientt,ifa,msh.param->iverb,cav,work,lerror, 0, 1);
+        collapseVertex(msh,ipoin,msh.param->iverb,cav,work,lerror, 0, 1);
         break;
 
         #if 0
