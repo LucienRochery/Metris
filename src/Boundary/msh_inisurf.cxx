@@ -146,6 +146,7 @@ doproj:
   // Double full loop is overkill but simplest to write and few involved. 
   int ndelay = 0;
   for(int irep = 0; irep < 2; irep++){
+    CPRINTF3("\n - proj outer rep %d/2\n",irep+1);
    for(int ibpoi = nbpo0; ibpoi < msh.nbpoi; ibpoi++){
       INCVDEPTH(msh.param);
       int ipoin = msh.bpo2ibi(ibpoi,0);
@@ -168,6 +169,9 @@ doproj:
 
       int iref = bdim == 1 ? msh.edg2ref[ientt] : msh.fac2ref[ientt];
       METRIS_ASSERT(iref >= 0);
+
+      CPRINTF3(" - try project point %d ibpoi %d ibpo0 %d bdim %d\n",
+              ipoin,ibpoi,ibpo0,bdim);
 
       // In this case, we produce a guess to the t or (u,v)
       if(pdim < bdim){
@@ -208,8 +212,13 @@ doproj:
         }
 
         if(delayp){
-          CPRINTF3(" -> delay \n");
-          if(irep == 1) lbad.stack(ibpoi);
+          CPRINTF3(" -> delay");
+          if(irep == 1){
+            lbad.stack(ibpoi);
+            if(DOPRINTS3())  printf(" and stack to lbad\n");
+          }else if(DOPRINTS3()){
+            printf("\n");
+          }
           ndelay++;
           continue;
         }
@@ -268,9 +277,137 @@ doproj:
   if(lbad.get_n() > 0) 
     CPRINTF2("-- End main loop %d bad points to fix \n",lbad.get_n());
 
-  int niter = 0;
   intAr1 lfacl(100);
   const int nnod2 = msh.nnode(2);
+  for(int niter = 0; niter < 100; niter++){
+    
+    int ncorr = 0;
+    int nbad = lbad.get_n();
+    for(int ibad = 0; ibad < nbad; ibad++){
+      INCVDEPTH(msh.param);
+      int ibpoi = lbad[ibad];
+
+      METRIS_ASSERT(msh.bpo2tag(ithrd,ibpoi) < btag);
+      int ipoin = msh.bpo2ibi(ibpoi,0);
+      METRIS_ASSERT(msh.poi2ent(ipoin,0) >= 0)
+
+      int ifac0 = msh.bpo2ibi(ibpoi,2);
+      int bdim  = msh.bpo2ibi(ibpoi,1);
+      // Corners can't end up here. Edges neither for now (we could change this, but doing irep above)
+      METRIS_ASSERT_MSG(bdim == 2,"Neither corners nor edge points can end up here");
+
+      int iref = msh.fac2ref[ifac0];
+      METRIS_ASSERT(iref >= 0);
+      obj = msh.CAD.cad2fac[iref];
+
+      CPRINTF3(" - try correct ibpoi %d ipoin %d ifac0 = %d\n",ibpoi,ipoin,ifac0);
+
+      // Seeing as this is face only case, we're going to go by the point's ball
+      // seeded by the ifac0 and that is not allowed to cross edges even if same
+      // ref (e.g. periodic)
+      lfacl.set_n(1);
+      lfacl[0] = ifac0;
+      msh.tag[ithrd]++;
+      bool solvedpt = false;
+      for(int ii = 0; ii < lfacl.get_n(); ii++){
+        INCVDEPTH(msh.param);
+        int iface = lfacl[ii];
+
+        int iver = -1;
+        for(int inode = 0; inode < nnod2; inode++){
+          int ipoi2 = msh.fac2poi(iface,inode);
+          if(ipoi2 == ipoin){
+            iver = inode;
+            continue;
+          }
+
+
+          int ibpo2 = msh.poi2ebp(ipoi2,2,iface,-1);
+          METRIS_ASSERT(ibpo2 >= 0);
+          CPRINTF3(" - try point seed %d ipoi2 with ibpo2 = %d tag %d <? %d\n",
+                  ipoi2,ibpo2,msh.bpo2tag(ithrd,ibpo2),btag);
+
+          if(msh.bpo2tag(ithrd,ibpo2) < btag) continue;
+          // Found one ! 
+          CPRINTF3(" - ibpoi %d ipoin %d ifac0 %d using guess face %d ibpo2 %d ipoi2 %d (u,v) = %f %f \n",
+                       ibpoi,ipoin,ifac0,iface,ibpo2,ipoi2,msh.bpo2rbi(ibpo2,0),msh.bpo2rbi(ibpo2,1));
+          
+          for(int ii = 0; ii < nrbi; ii++) 
+            msh.bpo2rbi(ibpoi,ii) = msh.bpo2rbi(ibpo2,ii);
+
+          ierro = EG_invEvaluateGuess(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
+
+          if(ierro == 0){
+            solvedpt = true;
+            msh.bpo2tag(ithrd,ibpoi) = btag;
+            if(updtX){
+              for(int ii = 0; ii < msh.idim && updtX; ii++) 
+                msh.coord(ipoin,ii) = result[ii];
+            }
+            CPRINTF3(" -> got (u,v) = %f %f \n",msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
+            break;
+          }else{
+            CPRINTF2("## EG_invEvaluateGuess error %d \n",ierro);
+          }
+        }// for inode
+
+        if(solvedpt) break;
+
+        METRIS_ASSERT(iver >= 0);
+
+        // We failed to find a good guess. Add neighbours that share ipoin 
+
+        for(int ied = 0; ied < 3; ied++){
+          // Only neighbours that contain ipoin
+          if(ied == iver) continue;
+          int ineil = msh.fac2fac(iface,ied);
+
+          // non-manifold
+          if(ineil < 0) continue; 
+
+          // Already seen
+          if(msh.fac2tag(ithrd,ineil) >= msh.tag[ithrd]) continue;
+          msh.fac2tag(ithrd,ineil) = msh.tag[ithrd];
+
+          // Other surf
+          int iref2 = msh.fac2ref[ineil];
+          if(iref2 != iref) continue;
+
+          // Sandwiched edge -> periodic case
+          int iedgl = msh.fac2edg(iface,ied);
+          if(iedgl >= 0) continue;
+
+          // Now ineil is same ref, same left/right neighb of edge if periodic
+          lfacl.stack(ineil);
+        } // for int ied
+
+      }
+
+      if(solvedpt){
+        lbad[ibad] = -1;
+        ncorr++;
+      }
+
+    }// for ibad
+
+    int ibad = 0;
+    while(ibad < lbad.get_n()){
+      int ibpoi = lbad[ibad];
+      if(ibpoi >= 0){
+        ibad++;
+        continue;
+      }
+
+      int ibpo1 = lbad.pop();
+      // edge case of array ends up empty
+      if(ibpo1 >= 0) lbad[ibad] = ibpo1;
+    }
+
+    CPRINTF1(" - corr loop %3d ncorr %d, %d remaining\n",niter,ncorr,lbad.get_n());
+    if(lbad.get_n() == 0) break;
+  }// for niter
+
+  #if 0
   while(lbad.get_n() > 0){
     INCVDEPTH(msh.param);
     if(niter++ > 100) METRIS_THROW_MSG(GeomExcept(), 
@@ -290,6 +427,8 @@ doproj:
     METRIS_ASSERT(iref >= 0);
     obj = msh.CAD.cad2fac[iref];
 
+    CPRINTF3(" - try correct ibpoi %d ipoin %d ifac0 = %d\n",ibpoi,ipoin,ifac0);
+
     // Seeing as this is face only case, we're going to go by the point's ball
     // seeded by the ifac0 and that is not allowed to cross edges even if same
     // ref (e.g. periodic)
@@ -297,6 +436,7 @@ doproj:
     lfacl[0] = ifac0;
     msh.tag[ithrd]++;
     for(int ii = 0; ii < lfacl.get_n(); ii++){
+      INCVDEPTH(msh.param);
       int iface = lfacl[ii];
 
       int iver = -1;
@@ -308,8 +448,11 @@ doproj:
           continue;
         }
 
+
         int ibpo2 = msh.poi2ebp(ipoi2,2,iface,-1);
         METRIS_ASSERT(ibpo2 >= 0);
+        CPRINTF3(" - try point seed %d ipoi2 with ibpo2 = %d tag %d <? %d\n",
+                ipoi2,ibpo2,msh.bpo2tag(ithrd,ibpo2),btag);
 
         if(msh.bpo2tag(ithrd,ibpo2) < btag) continue;
         // Found one ! 
@@ -367,8 +510,13 @@ doproj:
 
     }
 
+    if(!solvedpt){
+
+    }
+
 
   }
+  #endif
 
 
 
