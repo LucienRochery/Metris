@@ -132,13 +132,14 @@ BOOST_AUTO_TEST_CASE(test_inveval)
 // Case invevalP2 To loc:    6.492172113352532e-01   -1.913581807459048e-02
   std::vector<std::string> meshes = {
     //"../cases/square_adap.p2.meshb",
-    "../cases/2D/square.circmet.50.curved.meshb",
-    "../cases/2D/square.circmet.5k.curved.meshb",
-    "../cases/invevalP2.mesh",
+
+     METRIS_CASES_DIR "/unit/2D/square/circmet.p2.500" 
+    //,METRIS_CASES_DIR "/unit/2D/square/circmet.p2.5k" // takes too long with nloptD
+    ,METRIS_CASES_DIR "/unit/2D/misc/invevalP2.mesh",
     //"../cases/invevalP2_2",
   };
 
-  const int nsamp = 100;
+  const int nsamp = 10;
   dblAr2 bar1(nsamp,2),bar2(nsamp,3),bar3(nsamp,4);
   dblAr2 bar1_out(nsamp,2),bar2_out(nsamp,3),bar3_out(nsamp,4);
   std::uniform_real_distribution<double> unif(0.0,1.0);
@@ -189,7 +190,7 @@ BOOST_AUTO_TEST_CASE(test_inveval)
   for(auto s : meshes)
   {
     std::cout << "Mesh " << s << std::endl;
-    cargHandler arg("-in " + s + "  -anamet 1 -verb 1");
+    cargHandler arg("-in " + s + "  -anamet 1 -verb 0");
     MetrisRunner run(arg.c, arg.v);
     Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
 

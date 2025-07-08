@@ -41,12 +41,20 @@ BOOST_AUTO_TEST_CASE(test_interpMetBack)
   std::vector<std::string> meshes = {
     //"../cases/2D/square.circmet.50.curved.meshb",
     //"../cases/2D/square.circmet.5k.curved.meshb",
-    METRIS_CASES_DIR "/unit/2D/square/iso.p1.10k -back " 
-    METRIS_CASES_DIR "/unit/2D/square/iso.p1.100k",
-    METRIS_CASES_DIR "/unit/2D/square/iso.p1.100k -back " 
-    METRIS_CASES_DIR "/unit/2D/square/iso.p1.10k",
-    "../cases/1200_p1.meshb -back ../cases/2400_p1.meshb",
-    //"../cases/invevalP2_2",
+     METRIS_CASES_DIR "/unit/2D/square/iso.p1.10k -back " 
+      METRIS_CASES_DIR "/unit/2D/square/iso.p1.100k"
+    ,METRIS_CASES_DIR "/unit/2D/square/iso.p1.100k -back " 
+      METRIS_CASES_DIR "/unit/2D/square/iso.p1.10k"
+
+    ,METRIS_CASES_DIR "/unit/2D/square/circmet.p2.500 -back " 
+      METRIS_CASES_DIR "/unit/2D/square/circmet.p2.5k"
+    ,METRIS_CASES_DIR "/unit/2D/square/circmet.p2.5k -back " 
+      METRIS_CASES_DIR "/unit/2D/square/circmet.p2.500"
+
+    ,METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k -back "
+      METRIS_CASES_DIR "/unit/3D/cube/iso.p1.16k"
+    ,METRIS_CASES_DIR "/unit/3D/cube/iso.p1.16k -back "
+      METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k"
   };
 
   const int nsamp = 100;
@@ -111,14 +119,6 @@ BOOST_AUTO_TEST_CASE(test_interpMetBack)
     MetrisRunner run(arg.c, arg.v);
     Mesh<MetricFieldFE> &msh = *((Mesh<MetricFieldFE>*) run.msh_g);
 
-    if(msh.idim == 2){
-      msh.param->iverb = 0;
-      run.adaptMesh();
-      msh.param->iverb = iverb;
-    }else{
-      msh.param->iverb = 2;
-      msh.param->ivdepth= 5;
-    }
 
     INCVDEPTH(msh.param);
 

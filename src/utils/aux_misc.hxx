@@ -257,9 +257,6 @@ inline void gen_argv(int *argc, char **argv, std::string cmd){
 }
 
 
-double linearRegression(int n, double *x, double *y);
-
-
 
 
 //     iinter = 1 : linear progression between min and max value

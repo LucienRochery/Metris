@@ -73,8 +73,10 @@ int insertEdge(Mesh<MFT>& msh,
 
 
   // work for collrejcav_lenqua
+  #ifndef NDEBUG
   static int nwarnprt = 0;
   if(nwarnprt++ < 10) printf("## WARNING REMOVE STATI FROM NOCOMP\n");
+  #endif
   static std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp;
 
   CPRINTF1("-- START insertEdge tdim = %d ientt = %d ied %d\n",tdim,ientt,iedl);

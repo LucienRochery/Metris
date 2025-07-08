@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_eval_d
 
 #include <boost/test/included/unit_test.hpp> 
 #include "common_setup.hxx"
@@ -14,17 +14,13 @@
 #include "../src/low_eval_d_SurrealS.hxx"
 
 #include "../src/utils/CT_loop.hxx"
+#include "../src/utils/mprintf.hxx"
 #include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 #include "../src/Mesh/Mesh.hxx"
 
 #include "../src/low_eval_d.hxx"
 
 #include <random>
-#include <boost/hana.hpp> 
-namespace hana = boost::hana;
-using namespace hana::literals;
-
-namespace utf = boost::unit_test;
 
 
 namespace Metris{
@@ -32,7 +28,7 @@ namespace Metris{
 typedef  MetricFieldAnalytical MFT;
 
 // 1.0e-8 relative error -> 1.0e-6% utf::tolerance()
-BOOST_AUTO_TEST_CASE(test_eval3_d) 
+BOOST_AUTO_TEST_CASE(test_eval_d) 
 {
 //METRIS_MAX_DEG
 
@@ -72,21 +68,28 @@ BOOST_AUTO_TEST_CASE(test_eval3_d)
 
   double dum;
 
+  MetrisParameters prtparam;
+  prtparam.iverb = 5;
+  prtparam.ivdepth = 5;
+
   for(auto s : meshes)
   {
-    std::cout<<"\n\n\n -- CASE : Mesh "<<s<<std::endl;
 
     try{
 
-    cargHandler arg("-in " + s + "  -anamet 1");
+    cargHandler arg("-in " + s + "  -anamet 1 -verb 0");
     MetrisRunner run(arg.c, arg.v);
     Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
+
+    INCVDEPTH((&prtparam));
+    CPRINTF1("-- Mesh : %s\n",s.c_str());
 
     msh.cleanup();
 
     for(FEBasis ibasis : {FEBasis::Lagrange, FEBasis::Bezier}){
+      INCVDEPTH((&prtparam));
       msh.setBasis(ibasis);
-      printf("\n\n-- Running as FEBasis %s\n",basname[(int)ibasis].c_str());
+      CPRINTF1(" - Running as FEBasis %s\n",basname[(int)ibasis].c_str());
 
       CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
       CT_FOR0_INC(2,3,idim){if(idim == msh.idim){
@@ -129,7 +132,7 @@ BOOST_AUTO_TEST_CASE(test_eval3_d)
         dum = 0.0;
     
     
-        printf("\n-- 1. Test evaluation and jmat (not diff)\n\n");
+        CPRINTF1(" - 1. Test evaluation and jmat (not diff)\n");
         for(int ientt = 0; ientt < nentt; ientt++){
           if(isdeadent(ientt,ent2poi)) continue;
           constexpr int ivar = 0;
@@ -203,7 +206,7 @@ BOOST_AUTO_TEST_CASE(test_eval3_d)
         }// for ientt
     
 
-        printf("\n-- 2. Test eval derivatives\n\n");
+        CPRINTF1(" - 2. Test eval derivatives\n");
         // Test derivatives
         // Linear function: exactly given by diffs
         for(int ientt = 0; ientt < nentt; ientt++){
@@ -302,8 +305,9 @@ BOOST_AUTO_TEST_CASE(test_eval3_d)
         //int ntar = msh.idim == 3 ? 1e6 : 1e7;
         int ntar = 1e6;
     
-        printf("-- Start benchmarks ideg = %d ilag = %d n run > %8e \n",ideg,ibasis,(double)ntar);
-        printf("-1 No   dfld matrix\n");
+        CPRINTF1("-- Start benchmarks ideg = %d ilag = %d n run > %8e \n",ideg,ibasis,(double)ntar);
+
+        CPRINTF1("   - 1: No   dfld matrix\n");
         double ps1[2],ps2[2],ps3[2],ps4[2],ps5[2];
         for(int ijac = 0; ijac <= 1; ijac++){
           DifVar ideriv = ijac == 0 ? DifVar::None : DifVar::Bary;
@@ -370,43 +374,20 @@ BOOST_AUTO_TEST_CASE(test_eval3_d)
 
           double t4 = get_wall_time();
 
-
-          //if(ibasis == FEBasis::Bezier){
-          //  for(int irep = 0; irep < nrep; irep++)
-          //    for(int ientt = 0; ientt < nentt; ientt++){
-          //      if(isdeadent(ientt,ent2poi)) continue;
-          //      constexpr int ivar = 0;
-          //      for(int isamp = 0; isamp < nsamp; isamp++){
-          //        eval_d_SurrealS_bcast<idim,idim,ideg,ivar,1>(msh.coord,ent2poi[ientt],
-          //                                       ibasis, ideriv, DifVar::None, 
-          //                                       bary[isamp],eval,jmat,NULL,deval[0],djmat[0],NULL);
-          //        dum += eval[0]+eval[1];
-          //        if(abs(dum) > 1) dum = 1.0 / dum;
-          //      }
-          //    }
-          //}
-
-          //double t5 = get_wall_time();
-
           ps1[ijac] = (nentt*nrep*nsamp/(1e6 * (t1-t0)));
           ps2[ijac] = (nentt*nrep*nsamp/(1e6 * (t2-t1)));
           ps3[ijac] = (nentt*nrep*nsamp/(1e6 * (t3-t2)));
           ps4[ijac] = (nentt*nrep*nsamp/(1e6 * (t4-t3)));
-          //ps5[ijac] = (nentt*nrep*nsamp/(1e6 * (t5-t4)));
-          //printf("Debug t0, t1 %23.16e %23.16e diff %23.16e \n", t0, t1, t1-t0);
-    
-  //    writeMesh(std::string("ccoeff-in.1.") + std::to_string(ideg) + ".mesh",f.msh);
         }
 
         if(ibasis == FEBasis::Lagrange){
-          printf("(%1.0f) eval3/s = %6.1f/%6.1fM/s direct = %6.1f/%6.1fM/s Surreal = x\n",dum,ps1[0],ps1[1],ps2[0],ps2[1]);
+          CPRINTF1("    (%1.0f) eval3/s = %6.1f/%6.1fM/s direct = %6.1f/%6.1fM/s Surreal = x\n",dum,ps1[0],ps1[1],ps2[0],ps2[1]);
         }else{
-          //printf("(%1.0f) eval3/s = %6.1f/%6.1fM/s direct = %6.1f/%6.1fM/s Surreal = %6.1f/%6.1fM/s SSimple = %6.1f/%6.1fM/s Sbcast = %6.1f/%6.1fM/s\n",dum,ps1[0],ps1[1],ps2[0],ps2[1],ps3[0],ps3[1],ps4[0],ps4[1],ps5[0],ps5[1]);
-          printf("(%1.0f) eval3/s = %6.1f/%6.1fM/s direct = %6.1f/%6.1fM/s Surreal = %6.1f/%6.1fM/s SSimple = %6.1f/%6.1fM/s\n",dum,ps1[0],ps1[1],ps2[0],ps2[1],ps3[0],ps3[1],ps4[0],ps4[1]);
+          CPRINTF1("    (%1.0f) eval3/s = %6.1f/%6.1fM/s direct = %6.1f/%6.1fM/s Surreal = %6.1f/%6.1fM/s SSimple = %6.1f/%6.1fM/s\n",dum,ps1[0],ps1[1],ps2[0],ps2[1],ps3[0],ps3[1],ps4[0],ps4[1]);
         }
 
 
-        printf("-2 With dfld matrix\n");
+        CPRINTF1("   - 2: with dfld matrix\n");
         
         for(int ijac = 0; ijac <= 1; ijac++){
           DifVar ideriv = ijac == 0 ? DifVar::None : DifVar::Bary;
@@ -480,10 +461,9 @@ BOOST_AUTO_TEST_CASE(test_eval3_d)
         }
 
         if(ibasis == FEBasis::Lagrange){
-          printf("(%3.1f) eval3/s = %6.1f/%6.1fM/s direct = %6.1f/%6.1fM/s Surreal = x\n",dum,ps1[0],ps1[1],ps2[0],ps2[1]);
+          CPRINTF1("    (%3.1f) eval3/s = %6.1f/%6.1fM/s direct = %6.1f/%6.1fM/s Surreal = x\n",dum,ps1[0],ps1[1],ps2[0],ps2[1]);
         }else{
-          //printf("(%3.1f) eval3/s = %6.1f/%6.1fM/s direct = %6.1f/%6.1fM/s Surreal = %6.1f/%6.1fM/s\n",dum,ps1[0],ps1[1],ps2[0],ps2[1],ps3[0],ps3[1]);
-          printf("(%1.0f) eval3/s = %6.1f/%6.1fM/s direct = %6.1f/%6.1fM/s Surreal = %6.1f/%6.1fM/s SSimple = %6.1f/%6.1fM/s\n",dum,ps1[0],ps1[1],ps2[0],ps2[1],ps3[0],ps3[1],ps4[0],ps4[1]);
+          CPRINTF1("    (%1.0f) eval3/s = %6.1f/%6.1fM/s direct = %6.1f/%6.1fM/s Surreal = %6.1f/%6.1fM/s SSimple = %6.1f/%6.1fM/s\n",dum,ps1[0],ps1[1],ps2[0],ps2[1],ps3[0],ps3[1],ps4[0],ps4[1]);
         }
       }}CT_FOR1(idim);
       }}CT_FOR1(ideg);

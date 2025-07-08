@@ -139,6 +139,44 @@ private:
   bool iinit;
 };
 
+
+template<typename T = double>
+struct LinReg{
+public:
+  LinReg(int nn, T *x, T *y){
+    T s_x = 0, s_y = 0, s_xx = 0, s_xy = 0;
+    for(int ii = 0; ii < nn; ii++){
+      s_x += x[ii];
+      s_y += y[ii];
+      s_xx += x[ii]*x[ii];
+      s_xy += x[ii]*y[ii];
+    }
+    T det = s_xx*nn - s_x*s_x;
+    if(abs((double) det) < 1.0e-30){
+      printf("## linearRegression nan coeff a using n = %d sx = %e sy = %e\n",
+        nn,(double)s_x,(double)s_y);
+      printf(" s_xx %e s_xy %e\n",(double)s_xx,(double)s_xy);
+      printf("x : ");
+      MeshArray1D<T>(nn, x).print();
+      printf("y : ");
+      MeshArray1D<T>(nn, y).print();
+      METRIS_THROW(GeomExcept());
+    }
+
+    slope = (nn*s_xy - s_x*s_y)/det;
+    origin = (-s_x*s_xy + s_xx*s_y)/det;
+  }
+  LinReg(MeshArray1D<T> &x,MeshArray1D<T> &y) : LinReg(x.get_n(), &x[0], &y[0]) {}
+
+  T slope;
+  T origin;
+};
+
+double linearRegression(int nn, double *x, double *y){
+  LinReg linreg(nn, x, y);
+  return linreg.slope;
+}
+
 #if 0
 template<class MetricFieldType>
 struct 

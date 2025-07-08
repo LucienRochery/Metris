@@ -35,9 +35,9 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
 {
 
   std::vector<std::string> meshes = 
-  {METRIS_CASES_DIR "/2D/square.p1.10.meshb",
-   METRIS_CASES_DIR "/1200_p1.meshb",
-   METRIS_CASES_DIR "/2D/square.circmet.5k.curved.meshb",
+  {METRIS_CASES_DIR "/unit/2D/square/iso.p1.10k"
+  ,METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k"
+  ,METRIS_CASES_DIR "/unit/2D/square/circmet.p2.5k"
   };
 
 

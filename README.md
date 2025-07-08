@@ -6,35 +6,12 @@ Metris adapts simplex meshes provided an input metric field, and supports high-o
 Early 3D stages (05/25) with surface smoothing missing. 
 Relevant publications:
 
-- L. Rochery, M. Chiriac, M. C. Galbraith, D. L. Darmofal, S. Allmaras, "Metris: An Open-Source High-Order Metric-Based Remesher", AIAA SciTech 2025, https://arc.aiaa.org/doi/10.2514/6.2025-0779, [local file](docs/rochery-et-al-2025-metris-an-open-source-high-order-metric-based-remesher.pdf)
-- L. Rochery, M. C. Galbraith, D. L. Darmofal, S. Allmaras, "A Generalized Continuous Mesh Framework for Explicit Mesh Curving", AIAA SciTech 2024, https://doi.org/10.2514/6.2024-0787, [local file](docs/rochery-et-al-2024-a-generalized-continuous-mesh-framework-for-explicit-mesh-curving.pdf)
+- L. Rochery, M. Chiriac, M. C. Galbraith, D. L. Darmofal, S. Allmaras, "Metris: An Open-Source High-Order Metric-Based Remesher", AIAA SciTech 2025, [doi](https://arc.aiaa.org/doi/10.2514/6.2025-0779), [local file](docs/rochery-et-al-2025-metris-an-open-source-high-order-metric-based-remesher.pdf)
+- L. Rochery, M. C. Galbraith, D. L. Darmofal, S. Allmaras, "A Generalized Continuous Mesh Framework for Explicit Mesh Curving", AIAA SciTech 2024, [doi](https://doi.org/10.2514/6.2024-0787), [local file](docs/rochery-et-al-2024-a-generalized-continuous-mesh-framework-for-explicit-mesh-curving.pdf)
 
 ## Installing Metris 
 
 ### Dependencies 
-
-Install [LAPACK](https://www.netlib.org/lapack/) (lapacke.h required). Current version (12/24) from source:
-
-```
-git clone https://github.com/Reference-LAPACK/lapack.git 
-cd lapack
-mkdir build && cd build
-cmake -DLAPACKE=ON -DCMAKE_INSTALL_PREFIX=<preferred location> ..
-cmake --build . -j --target install
-```
-
-Run `cconfig .` before building to verify all LAPACKE related flags are set to ON. 
-When choosing install prefix, be wary that LAPACK already has an `INSTALL` directory.
-
-To help Metris find LAPACK:
-
- - Set environment variable LAPACK_DIR or pass -DLAPACK_DIR to directory containing lib/liblapack(e)\* and include/lapacke.h
- - or set variables -DLAPACK_INCLUDE_DIRS -DLAPACK_LIBRARIES either from a parent project or at CMake call time
- - or append to C_INCLUDE_PATH or CPLUS_INCLUDE_PATH where lapacke.h is found assuming the parent contains lib/liblapack(e)\*
-
-Failing that, default system directories will be tried. 
-
----
 
 Install Boost libraries. 
 On Ubuntu:

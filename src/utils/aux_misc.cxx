@@ -239,26 +239,6 @@ void stup2(uint32_t* key){
 //template std::tuple<int,int,int> stupn<3>(const int *ii);
 
 
-double linearRegression(int n, double *x, double *y) {
-  std::vector<double> v_x(n), v_y(n);
-  for(int i = 0; i < n; i++){
-    v_x[i] = x[i];
-    v_y[i] = y[i];
-  }
-  const auto s_x  = std::accumulate(v_x.begin(), v_x.end(), 0.0);
-  const auto s_y  = std::accumulate(v_y.begin(), v_y.end(), 0.0);
-  const auto s_xx = std::inner_product(v_x.begin(), v_x.end(), v_x.begin(), 0.0);
-  const auto s_xy = std::inner_product(v_x.begin(), v_x.end(), v_y.begin(), 0.0);
-  const auto a    = (n * s_xy - s_x * s_y) / (n * s_xx - s_x * s_x);
-  if(std::isnan(a)){
-    printf("## linearRegression nan coeff a using n = %d sx = %e sy = %e\n",
-      n,s_x,s_y);
-    printf(" s_xx %e s_xy %e\n",s_xx,s_xy);
-    METRIS_THROW(GeomExcept());
-  }
-  return a;
-}
-
 
 
 template <int ideg, int idim>

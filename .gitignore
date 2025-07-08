@@ -63,13 +63,35 @@ cases/public/*
 !cases/public/test_script.sh
 !cases/public/square.egads
 
+examples/*
+!examples/2D/
+examples/2D/*
+!examples/2D/gen_cases.sh
+!examples/2D/misc/
+examples2D/misc/*
+!examples/2D/misc/2tri2D.mesh
+!examples/2D/misc/invevalP2.mesh
+!examples/2D/square/
+examples2D/square/*
+!examples/2D/square/gen_circmet.p2.500.sh
+!examples/2D/square/gen_circmet.p2.5k.sh
+!examples/2D/square/gen_square.p1.100k.sh
+!examples/2D/square/gen_square.p1.10k.sh
+!examples/2D/square/square.egads
+!examples/2D/square/square.meshb
+!examples/2D/square/test_script.sh
+!examples/2D/square/test_scriptP2.sh
 
-examples/adapt_square/*
-!examples/adapt_square/test_script.sh
-!examples/adapt_square/test_scriptP2.sh
-!examples/adapt_square/square.meshb
-!examples/adapt_square/square.egads
-!examples/adapt_square/clean.sh
+!examples/3D/
+examples/3D/*
+!examples/3D/cube/
+examples3D/cube/*
+!examples/3D/cube/cube.egads
+!examples/3D/cube/cube.meshb
+!examples/3D/cube/gen_cube.p1.16k.sh
+!examples/3D/cube/gen_cube.p1.2k.sh
+!examples/3D/cube/gen_curved.p2.2k.sh
+
 
 !cases/unit/
 !cases/1200_p1.meshb

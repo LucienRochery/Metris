@@ -238,9 +238,8 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
     double t1 = get_wall_time();
     int ncallps = 1000*(int)((ninser1 / (t1-t0)) / 1000);
-    CPRINTF2(" - END t = %f nlong %d nskip %d nadded %d ninser %d = %d /s; nerro %d\n",
-              t1-t0,nlong,nskip,nadded,ninser1,ncallps,nerro);
-    printf("debug loop_count = %d \n",loop_count);
+    CPRINTF2(" - END t = %f nlong %d ntry %d nskip %d nadded %d ninser %d = %d /s; nerro %d\n",
+              t1-t0,nlong,loop_count,nskip,nadded,ninser1,ncallps,nerro);
     if(DOPRINTS2() && nerro > 0){
       CPRINTF2(" - cavity ierro list:\n");
       for(int ii = 0; ii < mcaverr; ii++){

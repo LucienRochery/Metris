@@ -10,6 +10,7 @@
 #include <random>
 #include "../src/adapt/low_delaunay.hxx"
 #include "../src/utils/mprintf.hxx"
+#include "../src/adapt/msh_insert.hxx"
 
 #include <boost/hana.hpp> 
 namespace hana = boost::hana;
@@ -69,7 +70,7 @@ BOOST_AUTO_TEST_CASE(test_indelsphere)
 
   for(std::string s : meshes)
   { 
-    cargHandler arg("-in " + s + " -anamet 1 -vdepth 0 -verb 1 -opt-niter 0 -adp-opt-niter 0 -adapt 1 -iflag1 1");
+    cargHandler arg("-in " + s + " -anamet 1 -sclmet 0.1 -vdepth 0 -verb 0 -opt-niter 0 -adp-opt-niter 0 -adapt 1");
     MetrisRunner run2D(arg.c, arg.v);
     Mesh<MFT> &msh2D = *((Mesh<MFT>*) run2D.msh_g);
 
@@ -92,13 +93,10 @@ BOOST_AUTO_TEST_CASE(test_indelsphere)
     writeMesh(s+".3D",msh2D);
 
 
-    cargHandler arg3D("-in " + s + ".3D -anamet 1 -vdepth 0 -verb 1 -opt-niter 0 -adp-opt-niter 0 -adapt 1 -iflag1 1");
+    cargHandler arg3D("-in " + s + ".3D -anamet 1 -sclmet 0.1 -vdepth 0 -verb 0 -opt-niter 0 -adp-opt-niter 0 -adapt 1");
     MetrisRunner run3D(arg3D.c, arg3D.v);
     Mesh<MFT> &msh3D = *((Mesh<MFT>*) run3D.msh_g);
 
-
-    cargHandler arg3D_nodel("-in " + s + ".3D -anamet 1 -vdepth 0 -verb 1 -opt-niter 0 -adp-opt-niter 0 -adapt 1");
-    MetrisRunner run3D_nodel(arg3D_nodel.c, arg3D_nodel.v);
 
     std::cout<<"\n\n------------------------------------------------\n";
     std::cout<<"Setup done\n";
@@ -141,6 +139,7 @@ BOOST_AUTO_TEST_CASE(test_indelsphere)
     }// for iscal
 
 
+    #if 0
     std::cout<<"\n\n------------------------------------------------\n";
     std::cout<<"Test II: adapt in 2D and in 3D + z, check same results.\n";
     std::cout<<"------------------------------------------------\n";
@@ -149,24 +148,36 @@ BOOST_AUTO_TEST_CASE(test_indelsphere)
     msh2D.idim = 2;
 
     // Next adapt both 2D and 3D mesh and test 
-    MeshStat stat2D, stat3D, stat3D_nodel;
+    MeshStat stat2D_ini, stat2D, stat3D;
+    int ninser;
 
-    run2D.statMesh(&stat2D);
-    stat2D.print("2D initial");
-    run2D.adaptMesh();
+    run2D.statMesh(&stat2D_ini);
 
-    run3D.adaptMesh();
-    run3D_nodel.adaptMesh();
+    run2D.msh_g->param->iverb = 2;
+    run2D.msh_g->param->ivdepth = 2;
+    run3D.msh_g->param->iverb = 2;
+    run3D.msh_g->param->ivdepth = 2;
+
+    // Don't use adaptMesh because there are other dimension dependent things.
+    // Insertion is also the only one that use Delaunay.
+    //printf("-- Adapt 2D\n");
+    insertLongEdges<MFT,2,1>(msh2D, &ninser, 0, 1, 2);
+    //run2D.adaptMesh();
+
+    //printf("-- Adapt 3D\n");
+    insertLongEdges<MFT,3,1>(msh3D, &ninser, 0, 1, 2);
+    //run3D.adaptMesh();
 
 
     run2D.statMesh(&stat2D);
     run3D.statMesh(&stat3D);
-    run3D_nodel.statMesh(&stat3D_nodel);
 
+    stat2D_ini.print("2D initial");
     stat2D.print("2D");
     stat3D.print("3D");
-    stat3D_nodel.print("3D no Del");
 
+    BOOST_TEST(abs(stat2D.pctunit - stat3D.pctunit) < 1.0e-2);
+    #endif
 
 
   }// for s

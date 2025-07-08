@@ -64,8 +64,10 @@ BOOST_AUTO_TEST_CASE(test_eigen)
     errseigD[ii][0].setName("erreig_avg_DSYEVQ"+std::to_string(ii+2));
     errseigD[ii][1].setName("erreig_max_DSYEVQ"+std::to_string(ii+2));
 
+    #ifdef USE_LAPACK
     errseigL[ii][0].setName("erreig_avg_LAPACK"+std::to_string(ii+2));
     errseigL[ii][1].setName("erreig_max_LAPACK"+std::to_string(ii+2));
+    #endif
 
     errseigE[ii][0].setName("erreig_avg_EIGEN"+std::to_string(ii+2));
     errseigE[ii][1].setName("erreig_max_EIGEN"+std::to_string(ii+2));
@@ -73,18 +75,28 @@ BOOST_AUTO_TEST_CASE(test_eigen)
     errseicD[ii][0].setName("erreic_avg_DSYEVQ"+std::to_string(ii+2));
     errseicD[ii][1].setName("erreic_max_DSYEVQ"+std::to_string(ii+2));
 
+    #ifdef USE_LAPACK
     errseicL[ii][0].setName("erreic_avg_LAPACK"+std::to_string(ii+2));
     errseicL[ii][1].setName("erreic_max_LAPACK"+std::to_string(ii+2));
+    #endif
 
     errseicE[ii][0].setName("erreic_avg_EIGEN"+std::to_string(ii+2));
     errseicE[ii][1].setName("erreic_max_EIGEN"+std::to_string(ii+2));
 
     benchD[ii].setName("time_DSYEVQ"+std::to_string(ii+2));
+    #ifdef USE_LAPACK
     benchL[ii].setName("time_LAPACK"+std::to_string(ii+2));
+    #endif
     benchE[ii].setName("time_EIGEN"+std::to_string(ii+2));
   }
 
 
+  // Tests
+  dblAr2 met_samples[4];
+  met_samples[2].allocate(nsamp,(2*(2+1))/2);
+  met_samples[2].set_n(nsamp);
+  met_samples[3].allocate(nsamp,(3*(3+1))/2);
+  met_samples[3].set_n(nsamp);
   CT_FOR0_INC(2,3,ndim){
     constexpr int nnmet = (ndim*(ndim+1))/2;
 
@@ -94,6 +106,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
     printf("-- Tests for dim = %d \n",ndim);
 
+    dblAr1 errD_series, aniso_series;
 
     for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
 
@@ -101,19 +114,15 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       MinMaxAvg erreigD, erreigL, erreigE;
       MinMaxAvg erreicD, erreicL, erreicE;
 
-      double nerro_aniso = 0;
-
       dblAr2 eigval_samples(nsamp, ndim);
       dblAr2 eigvec_samples(nsamp, ndim*ndim);
       eigval_samples.set_n(nsamp);
       eigvec_samples.set_n(nsamp);
 
-      dblAr2 met_samples(nsamp, nnmet);
 
       double err;
 
       for(int isamp = 0; isamp < nsamp; isamp++){
-        nerro_aniso++;
 
         generate_metric<ndim>(anisorat, eigval, eigvec, unif, rng);
         for(int ii = 0; ii < ndim; ii++){
@@ -125,7 +134,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
         // Generate metric from eigvecs, eigvals
         eig2met<ndim,double>(eigval,eigvec[0],met);
-        for(int ii = 0; ii < nnmet; ii++) met_samples(isamp, ii) = met[ii];
+        for(int ii = 0; ii < nnmet; ii++) met_samples[ndim](isamp, ii) = met[ii];
 
 
         // ----- Test geteigsym (SurrealS compatible dsyevq)
@@ -163,7 +172,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
 
         // ----- Test LAPACK
-        #ifdef USE_LAPACK
+      #ifdef USE_LAPACK
         double rwork[10];
         geteigsym_LAPACK<ndim>(met,10,rwork,eigva2,eigve2[0]);
 
@@ -191,7 +200,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
           err += abs(eigval[ii] - eigva2[ii])/abs(eigval[ii]);
         }
         erreicL += err;
-        #endif
+      #endif
 
 
 
@@ -275,106 +284,26 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       BOOST_TEST(erreigE <= tol);
 
 
-
-
-      // ------------------------------------------------------------ Benchmark
-      #ifdef NDEBUG
-      double t0_DSYEVQ = get_wall_time();
-      double dum_DSYEVQ = 0;
-      for(int isamp = 0; isamp < nsamp; isamp++){
-        for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples(isamp, ii);
-        double rwork[10];
-        geteigsym<ndim,double>(met,eigva2,eigve2[0]);
-        dum_DSYEVQ += eigva2[0];
-      }
-      double t1_DSYEVQ = get_wall_time();
-
-
-      double dum_LAPACK = 1;
-      #ifdef USE_LAPACK
-      double t0_LAPACK = get_wall_time();
-      int rwork[10];
-      for(int isamp = 0; isamp < nsamp; isamp++){
-        for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples(isamp, ii);
-        double rwork[10];
-        geteigsym_LAPACK<ndim>(met,10,rwork,eigva2,eigve2[0]);
-        dum_LAPACK += eigva2[0];
-      }
-      double t1_LAPACK = get_wall_time();
-      #endif
-
-
-      double t0_EIGEN = get_wall_time();
-      double dum_EIGEN = 0;
-      for(int isamp = 0; isamp < nsamp; isamp++){
-        for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples(isamp, ii);
-        typedef Eigen::Matrix<double,ndim,ndim> MatrixN;
-        typedef Eigen::Vector<double,ndim> VectorN;
-        MatrixN met_Eigen;
-
-        for(int ii = 0; ii < ndim; ii++) 
-          for(int jj = 0; jj < ndim; jj++) 
-            met_Eigen(ii, jj) = met[sym2idx(ii,jj)];
-
-        Eigen::SelfAdjointEigenSolver<MatrixN> solver(met_Eigen);
-
-        VectorN eigenvalues  = solver.eigenvalues();
-        MatrixN eigenvectors = solver.eigenvectors();
-        dum_EIGEN += eigenvalues[0];
-      }
-      double t1_EIGEN = get_wall_time();
-
-
-      double t0_EIGEN2 = get_wall_time();
-      double dum_EIGEN2 = 0;
-      typedef Eigen::Matrix<double,ndim,ndim> MatrixN;
-      typedef Eigen::Vector<double,ndim> VectorN;
-      MatrixN met_Eigen2;
-      VectorN eigenvalues;
-      MatrixN eigenvectors;
-      Eigen::SelfAdjointEigenSolver<MatrixN> solver;
-      for(int isamp = 0; isamp < nsamp; isamp++){
-        for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples(isamp, ii);
-
-        for(int ii = 0; ii < ndim; ii++) 
-          for(int jj = ii; jj < ndim; jj++) 
-            met_Eigen2(ii, jj) = met[sym2idx(ii,jj)];
-
-        solver.compute(met_Eigen2.template selfadjointView<Eigen::Upper>());
-        //Eigen::SelfAdjointEigenSolver<MatrixN> solver(met_Eigen2.template selfadjointView<Eigen::Upper>());
-
-        eigenvalues  = solver.eigenvalues();
-        eigenvectors = solver.eigenvectors();
-        dum_EIGEN2 += eigenvalues[0];
-      }
-      double t1_EIGEN2 = get_wall_time();
-
-
-      printf("  -- DONE benchmarks DSYEVQ time : %8.2e = %d op/s\n",
-                  t1_DSYEVQ-t0_DSYEVQ,(int)(nerro_aniso/(t1_DSYEVQ-t0_DSYEVQ)));
-      #ifdef USE_LAPACK
-      printf("                     LAPACK time : %8.2e = %d op/s, fac = %4.2fx\n",
-                  t1_LAPACK-t0_LAPACK,(int)(nerro_aniso/(t1_LAPACK-t0_LAPACK)),
-                  (t1_LAPACK-t0_LAPACK)/(t1_DSYEVQ-t0_DSYEVQ));
-      #endif
-      printf("                      Eigen time : %8.2e = %d op/s, fac = %4.2fx\n",
-                  t1_EIGEN-t0_EIGEN,(int)(nerro_aniso/(t1_EIGEN-t0_EIGEN)),
-                  (t1_EIGEN-t0_EIGEN)/(t1_DSYEVQ-t0_DSYEVQ));
-      printf("                     Eigen2 time : %8.2e = %d op/s, fac = %4.2fx\n",
-                  t1_EIGEN2-t0_EIGEN2,(int)(nerro_aniso/(t1_EIGEN2-t0_EIGEN2)),
-                  (t1_EIGEN2-t0_EIGEN2)/(t1_DSYEVQ-t0_DSYEVQ));
-
-      benchD[ndim-2] += nerro_aniso/(t1_DSYEVQ - t0_DSYEVQ);
-      #ifdef USE_LAPACK
-      benchL[ndim-2] += nerro_aniso/(t1_LAPACK - t0_LAPACK);
-      #endif
-      benchE[ndim-2] += nerro_aniso/(t1_EIGEN  - t0_EIGEN );
-
-      #endif
+      errD_series.stack(erreicD.avg());
+      aniso_series.stack(anisorat);
 
       printf("  -- DONE with aniso ratio %5.1e\n",anisorat);
     }// for anisorat
 
+
+    // Linear regression on dsyevq (what is used in Metris) 
+    // check O(aniso^2) as empirically observed (note matrix conditioning is aniso^2)
+    // and expected under 10^{-13} at aniso 10.
+    int nseries = errD_series.get_n();
+    for(int ii = 0; ii < nseries; ii++){
+      errD_series[ii] = log(errD_series[ii]);
+      aniso_series[ii] = log(aniso_series[ii]);
+    }
+    LinReg linreg(aniso_series,errD_series);
+    BOOST_TEST(linreg.slope <= 2.5);
+
+    double err10 = linreg.origin + linreg.slope*log(10);
+    BOOST_TEST(err10 < log(1.0e-13));
 
 
     printf("-- All tests done for ndim = %d \n",ndim);
@@ -444,6 +373,123 @@ BOOST_AUTO_TEST_CASE(test_eigen)
   }
   fil << "plt.show()\n";
   fil.close();
+
+
+
+  // ------------------------------------------------------------ Benchmark
+  CT_FOR0_INC(2,3,ndim){
+    constexpr int nnmet = (ndim*(ndim+1))/2;
+
+    double eigval[ndim],eigvec[ndim][ndim];
+    double eigva2[ndim],eigve2[ndim][ndim];
+    double met[nnmet], met2[nnmet];
+
+    printf("-- Tests for dim = %d \n",ndim);
+
+    dblAr1 errD_series, aniso_series;
+
+    for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
+
+
+      #ifdef NDEBUG
+      double t0_DSYEVQ = get_wall_time();
+      double dum_DSYEVQ = 0;
+      for(int isamp = 0; isamp < nsamp; isamp++){
+        for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim](isamp, ii);
+        double rwork[10];
+        geteigsym<ndim,double>(met,eigva2,eigve2[0]);
+        dum_DSYEVQ += eigva2[0];
+      }
+      double t1_DSYEVQ = get_wall_time();
+
+
+      double dum_LAPACK = 1;
+    #ifdef USE_LAPACK
+      double t0_LAPACK = get_wall_time();
+      int rwork[10];
+      for(int isamp = 0; isamp < nsamp; isamp++){
+        for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim](isamp, ii);
+        double rwork[10];
+        geteigsym_LAPACK<ndim>(met,10,rwork,eigva2,eigve2[0]);
+        dum_LAPACK += eigva2[0];
+      }
+      double t1_LAPACK = get_wall_time();
+    #endif
+
+
+      double t0_EIGEN = get_wall_time();
+      double dum_EIGEN = 0;
+      for(int isamp = 0; isamp < nsamp; isamp++){
+        for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim](isamp, ii);
+        typedef Eigen::Matrix<double,ndim,ndim> MatrixN;
+        typedef Eigen::Vector<double,ndim> VectorN;
+        MatrixN met_Eigen;
+
+        for(int ii = 0; ii < ndim; ii++) 
+          for(int jj = 0; jj < ndim; jj++) 
+            met_Eigen(ii, jj) = met[sym2idx(ii,jj)];
+
+        Eigen::SelfAdjointEigenSolver<MatrixN> solver(met_Eigen);
+
+        VectorN eigenvalues  = solver.eigenvalues();
+        MatrixN eigenvectors = solver.eigenvectors();
+        dum_EIGEN += eigenvalues[0];
+      }
+      double t1_EIGEN = get_wall_time();
+
+
+      double t0_EIGEN2 = get_wall_time();
+      double dum_EIGEN2 = 0;
+      typedef Eigen::Matrix<double,ndim,ndim> MatrixN;
+      typedef Eigen::Vector<double,ndim> VectorN;
+      MatrixN met_Eigen2;
+      VectorN eigenvalues;
+      MatrixN eigenvectors;
+      Eigen::SelfAdjointEigenSolver<MatrixN> solver;
+      for(int isamp = 0; isamp < nsamp; isamp++){
+        for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim](isamp, ii);
+
+        for(int ii = 0; ii < ndim; ii++) 
+          for(int jj = ii; jj < ndim; jj++) 
+            met_Eigen2(ii, jj) = met[sym2idx(ii,jj)];
+
+        solver.compute(met_Eigen2.template selfadjointView<Eigen::Upper>());
+        //Eigen::SelfAdjointEigenSolver<MatrixN> solver(met_Eigen2.template selfadjointView<Eigen::Upper>());
+
+        eigenvalues  = solver.eigenvalues();
+        eigenvectors = solver.eigenvectors();
+        dum_EIGEN2 += eigenvalues[0];
+      }
+      double t1_EIGEN2 = get_wall_time();
+
+
+      printf("  -- DONE benchmarks DSYEVQ time : %8.2e = %d op/s\n",
+                  t1_DSYEVQ-t0_DSYEVQ,(int)(nsamp/(t1_DSYEVQ-t0_DSYEVQ)));
+      #ifdef USE_LAPACK
+      printf("                     LAPACK time : %8.2e = %d op/s, fac = %4.2fx\n",
+                  t1_LAPACK-t0_LAPACK,(int)(nsamp/(t1_LAPACK-t0_LAPACK)),
+                  (t1_LAPACK-t0_LAPACK)/(t1_DSYEVQ-t0_DSYEVQ));
+      #endif
+      printf("                      Eigen time : %8.2e = %d op/s, fac = %4.2fx\n",
+                  t1_EIGEN-t0_EIGEN,(int)(nsamp/(t1_EIGEN-t0_EIGEN)),
+                  (t1_EIGEN-t0_EIGEN)/(t1_DSYEVQ-t0_DSYEVQ));
+      printf("                     Eigen2 time : %8.2e = %d op/s, fac = %4.2fx\n",
+                  t1_EIGEN2-t0_EIGEN2,(int)(nsamp/(t1_EIGEN2-t0_EIGEN2)),
+                  (t1_EIGEN2-t0_EIGEN2)/(t1_DSYEVQ-t0_DSYEVQ));
+
+      benchD[ndim-2] += nsamp/(t1_DSYEVQ - t0_DSYEVQ);
+      #ifdef USE_LAPACK
+      benchL[ndim-2] += nsamp/(t1_LAPACK - t0_LAPACK);
+      #endif
+      benchE[ndim-2] += nsamp/(t1_EIGEN  - t0_EIGEN );
+
+      #endif
+
+      printf("  -- DONE with aniso ratio %5.1e\n",anisorat);
+    }// for anisorat
+
+    printf("-- All tests done for ndim = %d \n",ndim);
+  }CT_FOR1(ndim);
 
   fname = "bench_eigen.py";
   fil.open(fname.c_str(), std::ios::out);

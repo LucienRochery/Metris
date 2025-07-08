@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_expmet
 
 #include <boost/test/included/unit_test.hpp> 
 #include "common_setup.hxx"
@@ -114,6 +114,7 @@ BOOST_AUTO_TEST_CASE(test_expmet)
       if(metspac == MetSpace::Exp) printf(" log\n");
       else                         printf(" exp\n");
 
+      dblAr1 err_series, aniso_series;
       for(double anisorat = 2; anisorat < aniso_max + 1; anisorat *= aniso_mul){
 
         MinMaxAvg errD, errE1, errE2;
@@ -202,11 +203,37 @@ BOOST_AUTO_TEST_CASE(test_expmet)
         printf("   - error min = %e avg = %e max = %e (Eigen direct)\n",errE1.min(),errE1.avg(),errE1.max());
         printf("   - error min = %e avg = %e max = %e (Eigen decomp)\n",errE2.min(),errE2.avg(),errE2.max());
 
-        BOOST_TEST(errD <= tol);
-        BOOST_TEST(errE1 <= tol);
-        BOOST_TEST(errE2 <= tol);
+        // exp function always has <= tol error. log is linear reg
+        if(metspac == MetSpace::Log){
+          BOOST_TEST(errD <= 1.0e-12);
+          BOOST_TEST(errE1 <= 1.0e-12);
+          BOOST_TEST(errE2 <= 1.0e-12);
+        }
+
+        // getlogmet_inp uses dsyevq
+        err_series.stack(errD.avg());
+        aniso_series.stack(anisorat);
 
       }// for anisorat
+
+      // only log is tested by linear regression
+      if(metspac == MetSpace::Exp){
+        // Linear regression on dsyevq (what is used in Metris) 
+        // check O(aniso^2) as empirically observed (note matrix conditioning is aniso^2)
+        // and expected under 10^{-13} at aniso 10.
+        int nseries = err_series.get_n();
+        for(int ii = 0; ii < nseries; ii++){
+          err_series[ii] = log(err_series[ii]);
+          aniso_series[ii] = log(aniso_series[ii]);
+        }
+        LinReg linreg(aniso_series,err_series);
+        BOOST_TEST(linreg.slope <= 2.5);
+
+        double err10 = linreg.origin + linreg.slope*log(10);
+        BOOST_TEST(err10 < log(1.0e-13));
+      }
+
+
     }// for MetSpace
  
   }CT_FOR1(ndim);

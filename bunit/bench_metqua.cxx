@@ -42,8 +42,8 @@ BOOST_AUTO_TEST_CASE(bench_metqua)
 
   // bool is whether straight
   std::vector<std::string> meshes = {
-    METRIS_CASES_DIR "/unit/3D/cube/p1.2k.meshb"
-    METRIS_CASES_DIR "/unit/2D/square/p1.100k.meshb"
+     METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k.meshb"
+    ,METRIS_CASES_DIR "/unit/2D/square/iso.p1.100k.meshb"
     };
 
   const int tarop = 1e6;

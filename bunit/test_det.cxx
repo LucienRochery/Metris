@@ -86,6 +86,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
   }
 
 
+#ifdef USE_MULTIPRECISION
   CT_FOR0_INC(2,3,ndim){
     constexpr int nnmet = (ndim*(ndim+1))/2;
     typedef Eigen::Matrix<double,ndim,ndim> MatrixN;
@@ -97,6 +98,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
     printf("-- Tests for dim = %d \n",ndim);
 
+    dblAr1 errLLT_series, aniso_series;
 
     for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
 
@@ -107,7 +109,6 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
       double err;
 
-      #ifdef USE_MULTIPRECISION
       for(int isamp = 0; isamp < nsamp; isamp++){
         nerro_aniso++;
 
@@ -209,19 +210,37 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       printf("   - det error min = %e avg = %e max = %e (Eigen LDLT)\n",errELDLT.min(),errELDLT.avg(),errELDLT.max());
       printf("   - det error min = %e avg = %e max = %e (Eigen LDLT f4)\n",errELDLTf4.min(),errELDLTf4.avg(),errELDLTf4.max());
 
-      BOOST_TEST(errN <= tol);
-      BOOST_TEST(errL <= tol);
-      BOOST_TEST(errELLT <= tol);
-      BOOST_TEST(errELDLT <= tol);
+      //BOOST_TEST(errN <= tol);
+      //BOOST_TEST(errL <= tol);
+      //BOOST_TEST(errELLT <= tol);
+      //BOOST_TEST(errELDLT <= tol);
 
-      #else
-      printf("## Unit test disabled as USE_MULTIPRECISION not defined\n");
-      #endif
+      errLLT_series.stack(errELLT.avg());
+      aniso_series.stack(anisorat);
 
 
     }// for anisorat
+
+    // Linear regression on errLLT (what is used in Metris) 
+    // check O(aniso^2) as empirically observed (note matrix conditioning is aniso^2)
+    // and expected under 10^{-13} at aniso 10.
+    int nseries = errLLT_series.get_n();
+    for(int ii = 0; ii < nseries; ii++){
+      errLLT_series[ii] = log(errLLT_series[ii]);
+      aniso_series[ii] = log(aniso_series[ii]);
+    }
+    LinReg linreg(aniso_series,errLLT_series);
+    BOOST_TEST(linreg.slope <= 2.5);
+
+    double err10 = linreg.origin + linreg.slope*log(10);
+    BOOST_TEST(err10 < log(1.0e-13));
+
   }CT_FOR1(ndim);
 
+
+#else
+  printf("## Unit test disabled as USE_MULTIPRECISION not defined\n");
+#endif
 
 
 

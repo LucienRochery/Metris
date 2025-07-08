@@ -3,18 +3,17 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_eval_bezierfunc 
 
 #include <boost/test/included/unit_test.hpp> 
 
 #include "../src/utils/CT_loop.hxx"
 #include "../src/low_eval.hxx"
-#include "../src/utils/aux_misc.hxx"
 
+#include "common_setup.hxx"
 
 #include <random>
 
-namespace utf = boost::unit_test;
 
 
 namespace Metris{

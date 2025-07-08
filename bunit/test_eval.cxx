@@ -76,14 +76,14 @@ BOOST_AUTO_TEST_CASE(test_eval3)
       bool istr8    = testcase.second;
 
       try{
-        cargHandler arg("-in " + s + "  -anamet 1");
+        cargHandler arg("-in " + s + "  -anamet 1 -verb 0");
         MetrisRunner run(arg.c, arg.v);
         Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
+        run.degElevate();
 
 
-        std::cout<<"\n\n------------------------------------------------\n";
-        std::cout<<"Mesh "<<s<<"\n";
         std::cout<<"------------------------------------------------\n";
+        std::cout<<"Mesh "<<s<<"\n";
 
 
         CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){

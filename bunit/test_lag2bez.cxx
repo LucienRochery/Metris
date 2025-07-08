@@ -23,20 +23,8 @@ typedef MetricFieldAnalytical MFT;
 BOOST_AUTO_TEST_CASE(lag2bez)  // , * utf::tolerance(double(1.0e-6)) 
 {//METRIS_MAX_DEG
 
-
-  //#if METRIS_MAX_DEG >= 4
-  //  std::vector<std::string> meshes = {"../cases/1200_p2.meshb","../cases/1200_p3.meshb","../cases/1200_p4.meshb",
-  //                                     "../cases/curved_p2.meshb","../cases/curved_p3.meshb","../cases/curved_p4.meshb"};
-  //#elif METRIS_MAX_DEG >= 3
-  //  std::vector<std::string> meshes = {"../cases/1200_p2.meshb","../cases/1200_p3.meshb",
-  //                                     "../cases/curved_p2.meshb","../cases/curved_p3.meshb"};
-  //#else
-  //  std::vector<std::string> meshes = {"../cases/1200_p2.meshb",
-  //                                     "../cases/curved_p2.meshb"};
-  //#endif
-  std::vector<std::string> meshes = {"../cases/1200_p2.meshb",
-                                     "../cases/curved_p2.meshb"};
-  //std::vector<std::string> meshes = {"cases/1200_p2.meshb","cases/1200_p3.meshb"};
+  std::vector<std::string> meshes = {METRIS_CASES_DIR "/unit/3D/cube/curved.p2.2k"
+                                    ,METRIS_CASES_DIR "/unit/3D/cube/iso.p1.16k"};
 
   double tol = 1.0e-14;
   int nconv = 200;
@@ -51,6 +39,7 @@ BOOST_AUTO_TEST_CASE(lag2bez)  // , * utf::tolerance(double(1.0e-6))
       cargHandler arg("-in " + s + " -anamet 1 -vdepth 0 -verb 0 -t" + std::to_string(ideg));
       MetrisRunner run(arg.c, arg.v);
       Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
+      run.degElevate();
 
 
       dblAr2 coor0(msh.npoin, msh.idim);
@@ -92,10 +81,8 @@ BOOST_AUTO_TEST_CASE(lag2bez)  // , * utf::tolerance(double(1.0e-6))
       }
       err2 /= npcomp*3;
       err2 = sqrt(err2);
-      #ifndef NDEBUG
-        BOOST_TEST(erri < tol);
-        BOOST_TEST(err2 < tol);
-      #endif
+      BOOST_TEST(erri < tol);
+      BOOST_TEST(err2 < tol);
       printf(" %d double conversion abs coord error: inf = %23.16e, l2 = %23.16e\n",
               nconv,erri,err2);
       printf(" Time = %f s = %f / conv = %e /conv.elt \n", t1-t0, (t1-t0)/nconv, (t1-t0)/((double)nconv * msh.nentt(msh.get_tdim())) );
