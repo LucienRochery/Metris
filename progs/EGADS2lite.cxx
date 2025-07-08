@@ -67,7 +67,7 @@ int main(int argc, char** argv){
     METRIS_THROW_MSG(TopoExcept(),"Failed to export model to stream.");
   }
 
-  printf("Stream of size %db \n",nbyte);
+  printf("Stream of size %zub \n",nbyte);
 
   std::string fname = param.cadFileName;
   //std::replace( fname.begin(), fname.end(), ".egads", ".legads"); 

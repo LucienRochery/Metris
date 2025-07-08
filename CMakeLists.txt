@@ -141,7 +141,6 @@ set_target_properties(metris PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 
 target_link_libraries(metris PUBLIC libMetris 
-                                    libmeshb
                                     SANS 
                                     ${ABSL_LIBRARIES}
                                     ${LAPACK_LIBRARIES}
@@ -149,7 +148,6 @@ target_link_libraries(metris PUBLIC libMetris
                                     ${EGADSLITE_LIBRARIES}
                                     #nlopt
 #                                   LP.3
-                                    lplib3
                                     Boost::headers # yes this is weird
                                     ${Boost_LIBRARIES}
                                     ${Boost_PROGRAM_OPTIONS_LIBRARY}
@@ -165,7 +163,6 @@ target_link_libraries(metris PUBLIC libMetris
 #endif()
 
 target_link_libraries(egads2lite PUBLIC libMetris 
-                                        libmeshb
                                         SANS 
                                         ${ABSL_LIBRARIES}
                                         ${LAPACK_LIBRARIES}
@@ -173,7 +170,6 @@ target_link_libraries(egads2lite PUBLIC libMetris
                                         ${EGADSLITE_LIBRARIES}
                                         #nlopt
 #                                       LP.3
-                                        lplib3
                                         Boost::headers # yes this is weird
                                         ${Boost_LIBRARIES}
                                         ${Boost_PROGRAM_OPTIONS_LIBRARY}
@@ -185,7 +181,6 @@ target_link_libraries(egads2lite PUBLIC libMetris
 if(EXISTS ${CMAKE_SOURCE_DIR}/progs/scatter_rh.cxx)
   add_executable(scatter_rh "progs/scatter_rh.cxx")
   target_link_libraries(scatter_rh PUBLIC libMetris 
-                                          libmeshb 
                                           #libegads libegadslite
                                           #egads egadslite
                                           ${EGADS_LIBRARIES} 
@@ -201,7 +196,6 @@ endif()
 if(EXISTS ${CMAKE_SOURCE_DIR}/progs/extract_surf.cxx)
   add_executable(extract_surf "progs/extract_surf.cxx")
   target_link_libraries(extract_surf PUBLIC libMetris 
-                                          libmeshb 
                                           #libegads libegadslite
                                           #egads egadslite
                                           ${EGADS_LIBRARIES} ${EGADSLITE_LIBRARIES}
@@ -298,13 +292,11 @@ foreach(test_file ${TEST_SOURCES})
   target_link_libraries(${test_target_build} PUBLIC libMetris)
   target_link_libraries(${test_target_build} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   target_link_libraries(${test_target_build} PUBLIC libMetris 
-                                              libmeshb
                                               SANS 
                                               ${ABSL_LIBRARIES}
                                               ${LAPACK_LIBRARIES}
                                               ${EGADS_LIBRARIES} 
                                               ${EGADSLITE_LIBRARIES}
-                                              lplib3
                                               Boost::headers # yes this is weird
                                               ${Boost_LIBRARIES}
                                               ${Boost_PROGRAM_OPTIONS_LIBRARY}
