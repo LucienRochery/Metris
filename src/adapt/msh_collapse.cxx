@@ -12,6 +12,7 @@
 
 #include "../low_lenedg.hxx"
 #include "../low_geo.hxx"
+#include "../low_height.hxx"
 #include "../aux_topo.hxx"
 #include "../io_libmeshb.hxx"
 #include "../utils/aux_timer.hxx"
@@ -52,7 +53,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
   double stat = 0; 
   int ierro; 
 
-  const bool ctrl_height = false;
+  const bool ctrl_height = true;
   const double isvolsmall = sqrt(3)/2 / 10;
 
   const int merror = CAV_ERR_NERROR;
@@ -60,11 +61,6 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
   msh.met.setSpace(MetSpace::Exp);
 
-  //msh.met.setSpace(MetSpace::Log);
-  if(ctrl_height){
-    METRIS_ENFORCE_MSG(msh.met.getSpace() == MetSpace::Log,
-      "Front metric in log space: is it faster in collapse with options?");
-  }
 
   const int miter = 10;
   int niter = 0;
@@ -85,6 +81,11 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
   intAr2& ent2ent = msh.ent2ent(tdim);
 
 
+  // 2D: Ideal height is sqrt(3)/2
+  // 3D: Ideal height is sqrt(2/3)
+  // h0 / sqrt(2) is the smallest admissible height
+  const double htmin = tdim == 2 ? sqrt(3.0/2)/2 : sqrt(1.0/3);
+
 
   do{
     INCVDEPTH(msh.param);
@@ -104,105 +105,74 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
     double t0 = get_wall_time();
 
 
-    // Don't do this for tdim == 3 (implement later)
-    static int warn1 = 0;
-    if(warn1++ < 10 && ctrl_height) 
-      printf("## Disabled ctrl_height for tdim == 3\n");
 
-    for(int ientt = 0; ientt < nent0 && ctrl_height && tdim == 2; ientt++){
+    double minht = 1.0e30;
+    // Try collapsing for small height against bdry edge now
+    // We don't have height control for surface yet (implement getheightentP1_aniso<gdim,tdim>)
+    for(int ientt = 0; ientt < nent0 && ctrl_height && tdim == gdim; ientt++){
       INCVDEPTH(msh.param);
       if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
       if(isdeadent(ientt,ent2poi)) continue;
 
-      // If an operation goes through, the element goes away, then this does nothing
-      // Otherwise, an operation does not happen, thus the element is inert.
-      ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
 
-
-      // Try collapsing for small height against bdry edge now
-      for(int ied = 0; ied < tdim + 1; ied++){
-
-        int ipcol = ent2poi(ientt,ied);
-        if(msh.poi2bpo[ipcol] >= 0){
-          // Skip corners.
-          if(msh.bpo2ibi[msh.poi2bpo[ipcol]][1] == 0) continue;
-        }
-
-        int ipoi1 = ent2poi(ientt,lnoed2[ied][0]);
-        if(msh.poi2bpo[ipoi1] < 0) continue;
-        int ipoi2 = ent2poi(ientt,lnoed2[ied][1]);
-        if(msh.poi2bpo[ipoi2] < 0) continue;
-
-        // Only if geometric edge 
-        if(getedgglo(msh,ipoi1,ipoi2) < 0) continue;
-
-
-        int ipoie = msh.newpoitopo(2,-1);
-
-        double bary[3] = {};
-        bary[lnoed2[ied][0]] = 0.5;
-        bary[lnoed2[ied][1]] = 0.5;
-
-        if(tdim == 2){
-          eval2<gdim,ideg>(msh.coord,ent2poi[ientt],msh.getBasis(),
-                           DifVar::None, DifVar::None, 
-                           bary, msh.coord[ipoie], NULL, NULL);
+      // Determine which pts are opposite bdry facets, if any
+      bool skipelt = true;
+      bool ibdry[4];
+      if(tdim == 3){
+        if(msh.is_nonmanifold()){
+          for(int ifa = 0; ifa < 4; ifa++){
+            ibdry[ifa] = false;
+            if(msh.tet2fac(ientt,ifa) < 0) continue;
+            ibdry[ifa] = true;
+            skipelt = false;
+          }
         }else{
-          if constexpr(gdim == 3){ // linker
-            eval3<gdim,ideg>(msh.coord,ent2poi[ientt],msh.getBasis(),
-                             DifVar::None, DifVar::None, 
-                             bary, msh.coord[ipoie], NULL, NULL);
+          for(int ifa = 0; ifa < 4; ifa++){
+            ibdry[ifa] = false;
+            if(msh.tet2tet(ientt,ifa) >= 0) continue;
+            ibdry[ifa] = true;
+            skipelt = false;
           }
         }
-
-
-        msh.met.getMetBary(AsDeg::P1,DifVar::None, 
-                           msh.met.getSpace(), ent2poi[ientt], 
-                           tdim, bary, 
-                           msh.met[ipoie], NULL) ;
-
-        int edg2pol[2] = {ipoie, ent2poi(ientt,ied)};
-
-        double sz[2];
-        double len = getlenedg_geosz<MFT,gdim,ideg>(msh,edg2pol,sz);
-
-        msh.set_npoin(msh.npoin-1);
-
-        // Ideal height is sqrt(3)/2
-        // sqrt(3)/2 / sqrt(2) is the smallest admissible height
-        if(tdim == 2 && len >= sqrt(3)/(2*sqrt(2))) continue;
-        // Ideal height is sqrt(2/3)
-        // sqrt(2/3) / sqrt(2) is the smallest admissible height
-        if(tdim == 3 && len >= sqrt(1.0/3)) continue;
-
-
-        CPRINTF2(" - collapse flat %d height = %f \n",ientt,len);
-        for(int ied2 = 0; ied2 < 3; ied2++){
-          int edg2po2[2] = {ent2poi(ientt,lnoed2[ied][0]), 
-                            ent2poi(ientt,lnoed2[ied][1])};
-          double dd2s = getlenedg_geosz<MFT,gdim,ideg>(msh,edg2po2,sz);
-          CPRINTF2(" - DEBUG ied = %d %d len = %f \n",ent2poi(ientt,lnoed2[ied][0]),
-                    ent2poi(ientt,lnoed2[ied][1]), dd2s);
+      }else{
+        for(int ied = 0; ied < 3; ied++){
+          ibdry[ied] = false;
+          if(msh.fac2edg(ientt,ied) < 0) continue;
+          ibdry[ied] = true;
+          skipelt = false;
         }
-        try{
-          ierro = collapseVertex(msh, ipcol, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
-        }catch(const MetrisExcept &e){
-          printf("## FATAL ERROR IN MSH_COLLAPSE\n");
-          writeMesh("error_collapse.meshb",msh);
-          throw(e);
-        }
+      }
+
+      if(skipelt) continue;
+
+      // Get heights
+      double height[4];
+      getheightentP1_aniso<MFT,gdim>(msh, ientt, height);
+
+      for(int iver = 0; iver < tdim + 1; iver++){
+        if(!ibdry[iver]) continue;
+
+        CPRINTF1(" - vertex %d height %e >=? h0 = %d\n",iver,height[iver],
+                 height[iver] >= htmin);
+        minht = MIN(minht, height[iver]);
+
+        if(height[iver] >= htmin) continue;
+
+        int ipcol = ent2poi(ientt,iver);
+        int pdim = msh.getpoitdim(ipcol);
+        if(pdim == 0) continue;
+
+        ierro = collapseVertex(msh, ipcol, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
         if(ierro > 0){
           nerro2 ++;
         }else{
           ncoll2 ++;
         }
-
-        break;
-      }// for ied
+      }
 
     }// for ientt
 
-
+    if(ctrl_height && tdim == gdim) CPRINTF1(" - min bdry height = %e\n",minht);
 
 
 

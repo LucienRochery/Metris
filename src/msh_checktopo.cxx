@@ -1019,14 +1019,22 @@ void check_topo(MeshBase &msh,
         double err = msh.idim == 2 ? geterrl2<2>(result, msh.coord[ipoin])
                                    : geterrl2<3>(result, msh.coord[ipoin]);
         if(err >= rbpoi[ipoin]*EG_tol){
-          printf("## ERROR PRINT all bpoi for ipoin %d \n",ipoin);
+          printf("## ERROR geo error %e PRINT all bpoi for ipoin %d \n",err,ipoin);
           for(int ibpo0 = msh.poi2bpo[ipoin]; ibpo0 >= 0; ibpo0 = msh.bpo2ibi(ibpo0,3)){
             int tdim1 = msh.bpo2ibi(ibpo0,1);
             int irefdbg = -1;
-            if(tdim1 > 0) irefdbg = msh.ent2ref(tdim1)[msh.bpo2ibi(ibpo0,2)];
-            printf("%d : %d %d %d ref %d; %e %e\n",ibpo0, msh.bpo2ibi(ibpo0,0), 
+            double err1 = 0;
+            if(tdim1 > 0){
+              irefdbg = msh.ent2ref(tdim1)[msh.bpo2ibi(ibpo0,2)];
+              ego obj1 = tdim1 == 1 ? msh.CAD.cad2edg[irefdbg] : msh.CAD.cad2fac[irefdbg];
+              EG_evaluate(obj1, msh.bpo2rbi[ibpo0], result);
+              err1 = msh.idim == 2 ? geterrl2<2>(result, msh.coord[ipoin])
+                                   : geterrl2<3>(result, msh.coord[ipoin]);
+            }
+
+            printf("%d : %d %d %d ref %d; %e %e; err = %e\n",ibpo0, msh.bpo2ibi(ibpo0,0), 
               msh.bpo2ibi(ibpo0,1), msh.bpo2ibi(ibpo0,2), irefdbg,
-              msh.bpo2rbi(ibpo0,0),msh.bpo2rbi(ibpo0,1));
+              msh.bpo2rbi(ibpo0,0),msh.bpo2rbi(ibpo0,1), err1);
           }
         }
         METRIS_ENFORCE_MSG(err < rbpoi[ipoin]*EG_tol, "High point surface error "<<

@@ -33,7 +33,6 @@ void square_bernstein(const dblAr2 &coef_inp, dblAr2 &coef_out,
 
   int ndiff = dcoef_inp.size();
 
-  constexpr int nhess = (gdim*(gdim+1))/2;
   constexpr int nnode = getnnode(tdim,  ideg);
   constexpr int nnod2 = getnnode(tdim,2*ideg);
   coef_out.set_n(nnod2);
