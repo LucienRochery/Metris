@@ -2,7 +2,7 @@
 .DEFAULT_GOAL := default
 
 # Extract unit test libraries
-UNIT_TESTS := $(shell make -f Makefile -qp | awk -F':' '/^[a-zA-Z0-9][^$$\#\/\t=]*:([^=]|$$)/ {split($$1,A,/ /);for(i in A)print A[i]}' | grep '^test_.*$$' | grep -v unit_build | xargs)
+UNIT_TESTS := $(shell make -f Makefile -qp | awk -F':' '/^[a-zA-Z0-9][^$$\#\/\t=]*:([^=]|$$)/ {split($$1,A,/ /);for(i in A)print A[i]}' | grep '^test_.*build$$' | grep -v unit_build | xargs)
 
 $(UNIT_TESTS) metris:
 	@echo "make $@ > $@.out"

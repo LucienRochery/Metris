@@ -156,6 +156,7 @@ target_link_libraries(metris PUBLIC libMetris
                                     ${PETSC_LIBRARIES}
                                     ${MPI_LIBRARIES}
                                     ${BOOST_TRACELIBS}
+                                    ${METRIS_DEPS_LIBRARIES}
                                     )
 
 #if(USE_PETSC STREQUAL "True")

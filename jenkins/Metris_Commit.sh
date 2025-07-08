@@ -2,6 +2,7 @@
 
 cd $WORKSPACE
 
+export METRIS_CASES_DIR=$WORKSPACE/examples/
 
 #Files might linger if a build was aborted
 echo "Removing any lingering untracked files"
