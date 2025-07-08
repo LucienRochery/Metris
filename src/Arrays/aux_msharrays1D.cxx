@@ -198,8 +198,7 @@ void MeshArray1D<T,INT1>::fill(T x){
 template<typename T,typename INT1>
 void MeshArray1D<T,INT1>::copyTo(MeshArray1D<T,INT1> &out, INT1 ncopy) const{
   if(ncopy < 0) ncopy = n1;
-  if(out.size() < ncopy) 
-    METRIS_THROW_MSG(DMemExcept(),"Increase out size or decrease ncopy");
+  out.set_n(ncopy);
   memcpy(&out[0],array,ncopy*sizeof(T));
 }
 

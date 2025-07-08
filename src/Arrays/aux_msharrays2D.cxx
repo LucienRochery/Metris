@@ -181,8 +181,7 @@ void MeshArray2D<T,INT1,INT2>::copyTo(MeshArray2D<T,INT1,INT2> &out, INT1 ncopy)
   METRIS_ASSERT(ncopy <= n1);
   if(out.get_stride() < stride) METRIS_THROW_MSG(WArgExcept(), 
                        "Out stride = " << out.get_stride()<<" this = "<<stride);
-  if(out.size()/out.get_stride() < ncopy) METRIS_THROW_MSG(DMemExcept(),
-                       "Increase out size or decrease ncopy");
+  out.set_n(ncopy);
   
   for(INT1 ii = 0; ii < ncopy; ii++){
     for(INT2 jj = 0; jj < stride; jj++){
