@@ -7,6 +7,8 @@ fi
 
 DIR0=$(pwd)
 
+cd $METRIS_CASES_DIR
+
 # For directories that don't contain a gen*sh
 shopt -s nullglob
 
@@ -18,7 +20,9 @@ do
 		echo "Running $scr"
 		./$scr
 	done
-	cd $DIR0
+	cd $METRIS_CASES_DIR
 done
+
+cd $DIR0
 
 shopt -u nullglob

@@ -247,31 +247,79 @@ file (GLOB TEST_SOURCES CONFIGURE_DEPENDS "bunit/*.cxx")
 # -- Boost/test
 find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 
-foreach (t ${TEST_SOURCES})
-  get_filename_component(d ${t} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
-  add_executable(${d} ${t})
-  setMetrisFlags(${d} PUBLIC)
-  target_compile_definitions(${d} PUBLIC METRIS_CASES_DIR="${METRIS_CASES_DIR}")
-  target_link_libraries(${d} PUBLIC libMetris)
-  target_link_libraries(${d} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-  target_link_libraries(${d} PUBLIC ${Boost_PROGRAM_OPTIONS_LIBRARY}
-                                    ${BOOST_TRACELIBS}
-                                    ${CLP_LIBRARIES}
-                                    ${PETSC_LIBRARIES}
-                                    ${ABSL_LIBRARIES}
-                                    lapack 
-                                    SANS
-                                    #libegads libegadslite 
-                                    #egads egadslite
-                                    ${EGADS_LIBRARIES} ${EGADSLITE_LIBRARIES} 
-                                    nlopt
-                                    libmeshb
-                                    pthread)
-  if(CLP_FOUND)
-    target_link_libraries(${d} PUBLIC ${CLP_LIBRARIES})
-  endif()
-                        
-  target_include_directories(${d} PUBLIC "."  ${PETSC_INCLUDE}  ${ABSL_INCLUDE_DIRS})
+# -- Get the required meshes
+set(METRIS_UNIT_TEST_MESHES "")
+foreach(test_file ${TEST_SOURCES})
+  file(READ ${test_file} CMAKE_FILE_CONTENT)
+
+  string(REGEX MATCHALL "METRIS_CASES_DIR +\"([a-zA-Z0-9\\.-_/]+)[\" ]" MATCHES_NOEXT ${CMAKE_FILE_CONTENT})
+  string(REGEX MATCHALL "METRIS_CASES_DIR +\"([a-zA-Z0-9\\.-_]+\\.mesh)" MATCHES_PMESH ${CMAKE_FILE_CONTENT})
+  string(REGEX MATCHALL "METRIS_CASES_DIR +\"([a-zA-Z0-9\\.-_]+\\.meshb)" MATCHES_PMESHB ${CMAKE_FILE_CONTENT})
+
+  foreach(match IN LISTS MATCHES_NOEXT)
+      string(REGEX REPLACE "METRIS_CASES_DIR +\"([a-zA-Z0-9\\.-_/]+)[\" ]" "\\1" meshname "${match}")
+      set(meshname "${meshname}.meshb")
+      set(meshname "${METRIS_CASES_DIR}/${meshname}")
+      if(NOT (${meshname} IN_LIST METRIS_UNIT_TEST_MESHES))
+        list(APPEND METRIS_UNIT_TEST_MESHES ${meshname})
+      endif()
+  endforeach()
+
+  foreach(match IN LISTS MATCHES_PMESH)
+      string(REGEX REPLACE "METRIS_CASES_DIR +\"([a-zA-Z0-9\\.-_]+\\.mesh)" "\\1" meshname "${match}")
+      set(meshname "${METRIS_CASES_DIR}/${meshname}")
+      if(NOT (${meshname} IN_LIST METRIS_UNIT_TEST_MESHES))
+        list(APPEND METRIS_UNIT_TEST_MESHES ${meshname})
+      endif()
+  endforeach()
+
+  foreach(match IN LISTS MATCHES_PMESHB)
+      string(REGEX REPLACE "METRIS_CASES_DIR +\"([a-zA-Z0-9\\.-_]+\\.meshb)" "\\1" meshname "${match}")
+      set(meshname "${METRIS_CASES_DIR}/${meshname}")
+      if(NOT (${meshname} IN_LIST METRIS_UNIT_TEST_MESHES))
+        list(APPEND METRIS_UNIT_TEST_MESHES ${meshname})
+      endif()
+  endforeach()
+endforeach()
+
+
+add_custom_command(OUTPUT ${METRIS_UNIT_TEST_MESHES}
+                   DEPENDS metris
+                   COMMAND ${METRIS_CASES_DIR}/gen_cases.sh)
+add_custom_target(deploy_cases DEPENDS ${METRIS_UNIT_TEST_MESHES})
+
+foreach(test_file ${TEST_SOURCES})
+  get_filename_component(test_target ${test_file} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
+  set(test_target_build "${test_target}_build")
+  add_executable(${test_target_build} ${test_file})
+  setMetrisFlags(${test_target_build} PUBLIC)
+  target_compile_definitions(${test_target_build} PUBLIC METRIS_CASES_DIR="${METRIS_CASES_DIR}")
+  target_link_libraries(${test_target_build} PUBLIC libMetris)
+  target_link_libraries(${test_target_build} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
+  target_link_libraries(${test_target_build} PUBLIC libMetris 
+                                              libmeshb
+                                              SANS 
+                                              ${ABSL_LIBRARIES}
+                                              ${LAPACK_LIBRARIES}
+                                              ${EGADS_LIBRARIES} 
+                                              ${EGADSLITE_LIBRARIES}
+                                              lplib3
+                                              Boost::headers # yes this is weird
+                                              ${Boost_LIBRARIES}
+                                              ${Boost_PROGRAM_OPTIONS_LIBRARY}
+                                              ${PETSC_LIBRARIES}
+                                              ${MPI_LIBRARIES}
+                                              ${BOOST_TRACELIBS})
+  #target_include_directories(${test_target} PUBLIC "."  ${PETSC_INCLUDE}  ${ABSL_INCLUDE_DIRS})
+
+
+  add_custom_target(${test_target}
+      DEPENDS ${test_target_build}
+      COMMAND ${test_target}
+  )
+
+  # Ensure that foo_build is built before foo
+  add_dependencies(${test_target} ${test_target_build} deploy_cases)
 endforeach()
     
 
