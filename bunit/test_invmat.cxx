@@ -327,7 +327,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
   printf("\n\n");
   CT_FOR0_INC(2,3,ndim){
     constexpr int nnmet = (ndim*(ndim+1))/2;
-    double mat[nnmet],mat2[nnmet];
+    double mat[ndim*ndim],mat2[ndim*ndim];
 
     double dumtot = 0;
     for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){

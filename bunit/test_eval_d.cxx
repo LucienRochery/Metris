@@ -305,7 +305,7 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
         //int ntar = msh.idim == 3 ? 1e6 : 1e7;
         int ntar = 1e6;
     
-        CPRINTF1("-- Start benchmarks ideg = %d ilag = %d n run > %8e \n",ideg,ibasis,(double)ntar);
+        CPRINTF1("-- Start benchmarks ideg = %d ilag = %d n run > %8e \n",ideg,(int)ibasis,(double)ntar);
 
         CPRINTF1("   - 1: No   dfld matrix\n");
         double ps1[2],ps2[2],ps3[2],ps4[2],ps5[2];
@@ -461,9 +461,11 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
         }
 
         if(ibasis == FEBasis::Lagrange){
-          CPRINTF1("    (%3.1f) eval3/s = %6.1f/%6.1fM/s direct = %6.1f/%6.1fM/s Surreal = x\n",dum,ps1[0],ps1[1],ps2[0],ps2[1]);
+          CPRINTF1("    (%3.1f) eval3/s = %6.1f/%6.1fM/s direct = %6.1f/%6.1fM/s Surreal = x\n",
+                   dum,ps1[0],ps1[1],ps2[0],ps2[1]);
         }else{
-          CPRINTF1("    (%1.0f) eval3/s = %6.1f/%6.1fM/s direct = %6.1f/%6.1fM/s Surreal = %6.1f/%6.1fM/s SSimple = %6.1f/%6.1fM/s\n",dum,ps1[0],ps1[1],ps2[0],ps2[1],ps3[0],ps3[1],ps4[0],ps4[1]);
+          CPRINTF1("    (%3.1f) eval3/s = %6.1f/%6.1fM/s direct = %6.1f/%6.1fM/s Surreal = %6.1f/%6.1fM/s SSimple = %6.1f/%6.1fM/s\n",
+                   dum,ps1[0],ps1[1],ps2[0],ps2[1],ps3[0],ps3[1],ps4[0],ps4[1]);
         }
       }}CT_FOR1(idim);
       }}CT_FOR1(ideg);
