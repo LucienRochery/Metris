@@ -328,11 +328,6 @@ FetchContent_MakeAvailable(${FETCH_LIST})
 
 
 
-
-message(WARNING "Debug FETCH_ABSL_INCLUDE_DIRS = ${FETCH_ABSL_INCLUDE_DIRS}")
-message(WARNING "Debug FETCH_ABSL_LIBRARIES = ${FETCH_ABSL_LIBRARIES}")
-
-
 # This is necessary to make the sanitizer work correctly. Also we want to
 # propagate flags.
 if(USE_ABSL)

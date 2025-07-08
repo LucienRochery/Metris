@@ -40,7 +40,7 @@ add_compile_definitions(METRIS_GIT_URL="${GITURL}")
 message("Metris using METRIS_GIT_URL = ${GITURL}")
 if(GITURL MATCHES "github.com")
   set(LIGHT_BUILD ON)
-  message(WARNING "Disabled codegen!")
+  message("-- Disabled codegen (max degree 2 supported).")
   set(REQ_CODEGEN OFF)
   set(CODEGEN_FILES ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.02.cxx
