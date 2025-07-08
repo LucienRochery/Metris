@@ -15,6 +15,13 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 STRING( TOUPPER ${CMAKE_BINARY_DIR} BIN_DIR_NAME )
 GET_FILENAME_COMPONENT( BIN_DIR_NAME ${BIN_DIR_NAME} NAME_WE )
 
+# Suppress nlopt warnings. NEW policy does not work with what nlopt is trying to do.
+set(CMAKE_POLICY_DEFAULT_CMP0148 OLD)
+
+# Version >= 3.30 Boost related
+cmake_policy(SET CMP0167 NEW)
+
+
 # This must come before project or we get an infinite loop.
 include(cmake/Compiler.cmake)
 
@@ -22,7 +29,7 @@ project(Metris)
 
 include(cmake/BuildType.cmake)
 include(cmake/MetrisFlags.cmake)
-
+ 
 
 set(METRIS_DEPS_LIBRARIES "")
 set(METRIS_DEPS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR})
