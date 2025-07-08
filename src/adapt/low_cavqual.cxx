@@ -50,11 +50,12 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
            filter_long,filter_short,grow_check);
 
 
-  // Tag points that won't be deleted: there is at least one elt outside
-  // the cavity that has the point. 
-  int tdim = cav.lctet.get_n() > 0 ? 3 
-           : cav.lcfac.get_n() > 0 ? 2 
-                                   : 1;
+  //// Tag points that won't be deleted: there is at least one elt outside
+  //// the cavity that has the point. 
+  //int tdim = cav.lctet.get_n() > 0 ? 3 
+  //         : cav.lcfac.get_n() > 0 ? 2 
+  //                                 : 1;
+  int tdim = MAX(1,msh.getpoitdim(cav.ipins));
   intAr1& lcent = cav.lcent(tdim);
   const intAr2& ent2poi = msh.ent2poi(tdim);
   const intAr2& ent2ent = msh.ent2ent(tdim);
@@ -72,7 +73,8 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
 
   const int nedl = (tdim*(tdim+1))/2;
   double qua0 = -1;
-  const auto lnoed = tdim == 2 ? lnoed2 : lnoed3;
+  const auto lnoed = tdim == 1 ? lnoed1 : 
+                     tdim == 2 ? lnoed2 : lnoed3;
   double len, sz[2];
 
   {// tracy scope
@@ -91,8 +93,8 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
         // Edges on the cavity boundary:
         for(int iedf = 0; iedf < 3; iedf++){
           int ied = ledfa3[ifa][iedf];
-          int ipoi1 = msh.tet2poi(itetr, lnoed3[ied][0]);
-          int ipoi2 = msh.tet2poi(itetr, lnoed3[ied][1]);
+          int ipoi1 = msh.tet2poi(itetr, lnoed[ied][0]);
+          int ipoi2 = msh.tet2poi(itetr, lnoed[ied][1]);
           auto key = stup2(ipoi1, ipoi2);
           {
           #ifdef TRACY_ENABLE
@@ -114,6 +116,8 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
 
       int ipoi1 = ent2poi(ientt, lnoed[ied][0]);
       int ipoi2 = ent2poi(ientt, lnoed[ied][1]);
+
+      CPRINTF1(" - debug check ientt %d ied %d\n",ientt,ied);
 
       // In this case, we haven't added to nocomp
       // Also seize opportunity to tag the points
@@ -187,7 +191,8 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
         if(ienei >= 0 && ent2tag(ithrd1,ienei) >= ent2tag(ithrd1,ientt)) continue;
         // Get points on face (3D) / edge (2D)
         for(int ipfa = 0; ipfa < tdim; ipfa++){
-          int iver = tdim == 2 ? lnoed2[ifa][ipfa] : lnofa3[ifa][ipfa];
+          int iver = tdim == 1 ? ipfa : 
+                     tdim == 2 ? lnoed2[ifa][ipfa] : lnofa3[ifa][ipfa];
           int ipoin = ent2poi(ientt, iver);
           if(ipoin == cav.ipins) continue;
           if(msh.poi2tag(ithrd1, ipoin) == msh.tag[ithrd1]) continue;
