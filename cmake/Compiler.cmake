@@ -104,7 +104,7 @@ IF( BIN_DIR_NAME MATCHES "GNU" OR BIN_DIR_NAME MATCHES "GCC")
 
   #If the specific version was not find, look for generic version
   IF( NOT GNU_C_COMPILER_FOUND OR NOT GNU_CXX_COMPILER_FOUND )
-    MESSAGE(WARNING "## Could not set requested GCC version as it was not found in the system: ${GNU_C_COMPILER} or ${GNU_CXX_COMPILER}")
+    MESSAGE("## Could not set requested GCC version as it was not found in the system: ${GNU_C_COMPILER} or ${GNU_CXX_COMPILER}")
     UNSET( GNU_C_COMPILER )
     UNSET( GNU_CXX_COMPILER )
     FIND_PROGRAM( GNU_C_COMPILER gnu )
