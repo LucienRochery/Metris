@@ -26,8 +26,8 @@ time source $WORKSPACE/jenkins/cmake_jenkins.sh
 # Copy over the makefile that pipes parallel execution to files
 cp $WORKSPACE/jenkins/Makefile.parallel .
 
-#Number of processors used in compile
-nproc=12
+# Number of processors used in compile
+nproc=1
 
 echo "in directory $(pwd)"
 
