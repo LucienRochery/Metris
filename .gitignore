@@ -64,6 +64,7 @@ cases/public/*
 !cases/public/square.egads
 
 examples/*
+!examples/gen_cases.sh
 !examples/2D/
 examples/2D/*
 !examples/2D/gen_cases.sh
@@ -84,6 +85,7 @@ examples2D/square/*
 
 !examples/3D/
 examples/3D/*
+!examples/3D/gen_cases.sh
 !examples/3D/cube/
 examples3D/cube/*
 !examples/3D/cube/cube.egads
