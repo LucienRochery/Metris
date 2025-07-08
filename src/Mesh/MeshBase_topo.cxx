@@ -22,6 +22,9 @@ int MeshBase::fac2edg(int iface, int iedl){
 }
 
 int MeshBase::tet2fac(int ielem, int ifal){
+  if(is_manifold){
+    if(tet2tet(ielem,ifal) >= 0) return -1;
+  }
   int ipoi1 = tet2poi(ielem,lnofa3[ifal][0]);
   int ipoi2 = tet2poi(ielem,lnofa3[ifal][1]);
   int ipoi3 = tet2poi(ielem,lnofa3[ifal][2]);
