@@ -16,11 +16,14 @@ STRING( TOUPPER ${CMAKE_BINARY_DIR} BIN_DIR_NAME )
 GET_FILENAME_COMPONENT( BIN_DIR_NAME ${BIN_DIR_NAME} NAME_WE )
 
 # Suppress nlopt warnings. NEW policy does not work with what nlopt is trying to do.
-set(CMAKE_POLICY_DEFAULT_CMP0148 OLD)
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.27)
+  set(CMAKE_POLICY_DEFAULT_CMP0148 OLD)
+endif()
 
 # Version >= 3.30 Boost related
-cmake_policy(SET CMP0167 NEW)
-
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.30.0)
+  cmake_policy(SET CMP0167 NEW)
+endif()
 
 # This must come before project or we get an infinite loop.
 include(cmake/Compiler.cmake)
