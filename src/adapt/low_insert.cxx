@@ -146,11 +146,12 @@ int insertEdge(Mesh<MFT>& msh,
   int iverb0 = msh.param->iverb;
   int ivdepth0 = msh.param->ivdepth;
   //if(tdimp < msh.get_tdim() ){
-  //  printf("## DEBUG BOUNDARY INSERTION SET MAX PRINTS bar1 = %f\n",bar1);
+  //  printf("\n\n## DEBUG BOUNDARY INSERTION SET MAX PRINTS\n");
   //  msh.param->iverb = 5;
   //  msh.param->ivdepth = 5;
   //  iverb__ = 5;
   //  ivdepth__ = 5;
+  //  writeMesh("debug_insert",msh);
   //}
 
   CPRINTF1(" - create ipins %d tdim = %d seed %d ref %d\n",cav.ipins,tdimp,iseed,iref);
@@ -179,9 +180,10 @@ int insertEdge(Mesh<MFT>& msh,
   // Get bar1 s.t. new edges are not short. There can be other short edges, but 
   // not from splitting the parent edge. 
   bool fnd_len = false;
-  double bar1_opt = -1, bar1;
-  for(int ntry_len = 0; ntry_len < 10; ntry_len++)
-  {
+  double bar1_opt = -1, err_opt = 1.0e30, bar1;
+  int npoi0 = msh.npoin;
+  int nbpo0 = msh.nbpoi;
+  for(int ntry_len = 0; ntry_len < 10; ntry_len++){
     INCVDEPTH(msh.param);
     bar1 = (bar1_min + bar1_max) / 2;
     double bar2[2] = {bar1, 1 - bar1};
@@ -197,6 +199,9 @@ int insertEdge(Mesh<MFT>& msh,
 
       for(int ii = 0; ii < 2; ii++) msh.bpo2rbi(ibins,ii) = 
           bar1*msh.bpo2rbi[ib[0]][ii] + (1.0 - bar1)*msh.bpo2rbi[ib[1]][ii];
+
+      CPRINTF1(" - boundary point new t/(u,v) = %f %f\n",
+               msh.bpo2rbi(ibins,0),msh.bpo2rbi(ibins,1));
 
       double result[18];
       METRIS_ASSERT(obj != NULL);
@@ -246,6 +251,14 @@ int insertEdge(Mesh<MFT>& msh,
       goto cleanup;
     }
 
+    if(DOPRINTS3()){
+      int ipnew = msh.newpoitopo(0);
+      int ibnew = msh.newbpotopo(ipnew, 0, ipnew);
+      const int nnmet = (msh.idim*(msh.idim+1))/2;
+      for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipnew, ii) = msh.coord(cav.ipins, ii);
+      for(int ii = 0; ii < nnmet; ii++) msh.met(ipnew, ii) = msh.met(cav.ipins, ii);
+    }
+
 
     double sz[2];
     edg2po2[1] = ip1;
@@ -254,34 +267,51 @@ int insertEdge(Mesh<MFT>& msh,
     edg2po2[1] = ip2;
     double len2 = msh.idim == 2 ? getlenedg_geosz<MFT,2,1>(msh,edg2po2,sz)
                                 : getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
-    if(len1 <= 1/sqrt(2)){
-      bar1_max = bar1;
-    }else if(len2 <= 1/sqrt(2)){
-      bar1_min = bar1;
-    }else if(abs(len1-1) < abs(len2-1)){
-      bar1_max = bar1;
-    }else{
-      bar1_min = bar1;
-    }
 
-    CPRINTF1(" - %d bar1 = %e lens = %e %e valid %d %d dist %e %e\n",ntry_len,bar1,len1,len2,
+    CPRINTF1(" - %d bar1 = %e lens = %e %e valid %d %d dist %e %e sumlen %e\n",
+              ntry_len,bar1,len1,len2,
               len1 > 1/sqrt(2), len2 > 1/sqrt(2),
-              abs(len1-1), abs(len2-1));
+              abs(len1-1), abs(len2-1),
+              len1+len2);
+
+    if(len1 > len2){
+      // make len1 shorter by increasing bar1 (pulling ipins towards ip1)
+      bar1_min = bar1;
+    }else{
+      bar1_max = bar1;
+    }
 
     if(len1 >= 1/sqrt(2) && len2 >= 1/sqrt(2)){
       fnd_len = true;
       // Once a viable is found, it is possible length distance to 1 will 
       // make a couple of iterates not viable, so it's important to keep a viable
       // bar1. 
-      bar1_opt = bar1;
+      double err = abs(abs(1-len1) - abs(1-len2));
+      if(err < err_opt){
+        err_opt = err;
+        bar1_opt = bar1;
+      }
+      CPRINTF1(" - config error %e \n",err);
+      if(err < 1.0e-2) break;
     }
   }// for ntry_len
+
+  //if(DOPRINTS3()){
+  //  writeMesh("debug_bisection",msh);
+  //  msh.met.writeMetricFile("debug_bisection");
+  //  for(int ii = npoi0; ii < msh.npoin; ii++){
+  //    msh.killpoint(ii);
+  //  }
+  //  msh.set_npoin(npoi0);
+  //  msh.set_nbpoi(nbpo0);
+  //}
 
   if(!fnd_len){
     ierro = INS2D_ERR_SHORTEDG;
     goto cleanup;
   }
   bar1 = bar1_opt;
+  CPRINTF1(" - end bisection using bar1 = %f\n",bar1);
 
   ncavcorr = 0;
   ierro = 0;
@@ -294,6 +324,17 @@ int insertEdge(Mesh<MFT>& msh,
     }
     CPRINTF1(" - initial cavity nedge %d nface %d nelem %d\n",
              cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
+
+    if(opts.allow_remove_points_superdim && tdimp < msh.get_tdim()){
+      // nprem < 0 is a rejection, but we don't care anymore as we use 
+      // collrejcav_lenqua.
+      nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
+      CPRINTF1(" - +len cavity size %d nprem = %d\n", cav.lcfac.get_n(),nprem); 
+      if(DOPRINTS2()){
+        writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr), 
+                                    msh,cav);
+      }
+    }
 
     //printf("Debug max prints for increase_cavity_lenedg\n");
     //int iverb0 = msh.param->iverb;
@@ -470,6 +511,8 @@ restart_cavity:
     #ifndef NDEBUG
       if(DOPRINTS2()) writeMesh("debug_insert1.meshb",msh);
     #endif
+    msh.param->iverb = iverb0;
+    msh.param->ivdepth = ivdepth0;
     return -1; // Return did op
   }
 
@@ -540,8 +583,10 @@ restart_cavity:
     wait();
   }
   #endif
-  msh.param->iverb = iverb0;
-  msh.param->ivdepth = ivdepth0;
+  //msh.param->iverb = iverb0;
+  //msh.param->ivdepth = ivdepth0;
+  //printf("## END OF OPERATION WAIT\n");
+  //wait();
   return ierro;
 }
 
