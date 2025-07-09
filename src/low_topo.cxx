@@ -46,9 +46,11 @@ int ball(MeshBase& msh, int ipoin,
   msh.tag[ithrd]++;
 
   if(append){
-    for(int iedge : lbedg) msh.edg2tag(ithrd,iedge) = msh.tag[ithrd];
-    for(int iedge : lbfac) msh.fac2tag(ithrd,iedge) = msh.tag[ithrd];
-    for(int iedge : lbtet) msh.tet2tag(ithrd,iedge) = msh.tag[ithrd];
+    CPRINTF1(" - append mode with: %d edges, %d faces, %d tetras\n",
+             lbedg.get_n(),lbfac.get_n(),lbtet.get_n());
+    for(int ientt : lbedg) msh.edg2tag(ithrd,ientt) = msh.tag[ithrd];
+    for(int ientt : lbfac) msh.fac2tag(ithrd,ientt) = msh.tag[ithrd];
+    for(int ientt : lbtet) msh.tet2tag(ithrd,ientt) = msh.tag[ithrd];
   }
 
   // In this case, we have boundary info that we can use.
@@ -63,6 +65,8 @@ int ball(MeshBase& msh, int ipoin,
       int ientt = msh.bpo2ibi(ibpoi,2);
       if(tdim == 1){
         iedg0 = ientt;
+        CPRINTF1(" - edge %d tagged %d <? %d = tag\n",
+                 ientt, msh.edg2tag(ithrd,ientt), msh.tag[ithrd]);
         if(msh.edg2tag(ithrd, ientt) < msh.tag[ithrd]){
           lbedg.stack(ientt);
           msh.edg2tag(ithrd, ientt) = msh.tag[ithrd];

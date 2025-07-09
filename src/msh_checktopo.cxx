@@ -91,7 +91,7 @@ void check_topo(MeshBase &msh,
     }}CT_FOR1(gdim);
 
 
-    aftervalidity:
+    //aftervalidity:
 
     // Check poi2ent 
     for(int tdim = 1; tdim <= msh.get_tdim(); tdim++){
@@ -121,7 +121,8 @@ void check_topo(MeshBase &msh,
       int ientt = msh.poi2ent(ipoin,0);
       if(ientt < 0) continue;
       int tdim = msh.poi2ent(ipoin,1);
-      METRIS_ENFORCE(1 <= tdim && tdim <= msh.get_tdim());
+      METRIS_ENFORCE_MSG(1 <= tdim && tdim <= msh.get_tdim(), 
+        "ipoin "<<ipoin<<" poi2ent = "<<ientt<<" "<<tdim);
       if(tdim >= 1){
         int iver = msh.getverent(ientt,tdim,ipoin);
         if(iver < 0){
@@ -192,7 +193,9 @@ void check_topo(MeshBase &msh,
         if(isdeadent(ielem,msh.tet2poi)) continue;
         METRIS_ENFORCE_MSG(msh.tet2tag(itag,ielem) <= msh.tag[itag],
           "Tetra "<<ielem<<" has tag = "<<msh.tet2tag(itag,ielem)<<" > tag = "
-          <<msh.tag[itag]<<" for itag = "<<itag);
+          <<msh.tag[itag]<<" for itag = "<<itag
+          <<" neighbours: "<<msh.tet2poi(ielem,0)<<" "<<msh.tet2poi(ielem,1)
+                      <<" "<<msh.tet2poi(ielem,2)<<" "<<msh.tet2poi(ielem,3));
       }
       for(int iface = 0; iface < nface; iface++){
         if(isdeadent(iface,msh.fac2poi)) continue;
