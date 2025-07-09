@@ -20,9 +20,13 @@ struct CavWrkArrs;
 // Collapse edge iedl of triangle iface
 template<class MFT>
 int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf, 
-                MshCavity &cav, CavWrkArrs &work, 
-                intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
+                 MshCavity &cav, CavWrkArrs &work, 
+                 intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
 
+template<class MFT>
+int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf, 
+                  MshCavity &cav, CavWrkArrs &work, 
+                  intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
 
 template<class MFT>
 int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf, 

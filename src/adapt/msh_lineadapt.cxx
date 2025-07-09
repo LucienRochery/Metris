@@ -891,7 +891,7 @@ template void adaptGeoLines<MetricFieldFE        >(Mesh<MetricFieldFE        > &
 // metric size interpolation (see getlenedg_geosz). The sizes are given by 
 // CAD unit tangent sizes in the metric. If no CAD, then discrete tangent. 
 template<class MFT>
-void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
+void getCADCurveLengths(Mesh<MFT> &msh, [[maybe_unused]] double tol, dblAr1 &crv_len){
   GETVDEPTH(msh.param);
 
   CPRINTF2(" - START getCADCurveLengths\n");
@@ -904,14 +904,11 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
   const int gdim = msh.idim;
 
   double result[18];
-  const int nnmet = (msh.idim*(msh.idim + 1)) / 2;
 
   // add two dummy points 
   int ipon[2]; 
   ipon[0] = msh.newpoitopo(-1,-1);
   ipon[1] = msh.newpoitopo(-1,-1);
-  int edg2pol[2] = {ipon[0], ipon[1]};
-  double sz[2];
 
 
   bool noCAD = !msh.CAD();
@@ -932,6 +929,7 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
       int ipoin = msh.edg2poi(iedge, iver);
       double tanp[3];
       int ierro = gettanpoiref(msh, ipoin, iref, tanp);
+      METRIS_ASSERT(ierro == 0);
       sz[iver] = gdim == 2 ? getlenedg<2>(tanp, msh.met[ipoin])
                            : getlenedg<3>(tanp, msh.met[ipoin]);
     }
@@ -942,7 +940,6 @@ void getCADCurveLengths(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
       for(int ii = 0; ii < gdim; ii++)
         tane[ii] = msh.coord(msh.edg2poi(iedge,0),ii) 
                  - msh.coord(msh.edg2poi(iedge,1),ii);
-      double tanp[3];
       lene = gdim == 2 ? sqrt(getnrml2<2>(tane))
                        : sqrt(getnrml2<3>(tane));
       METRIS_ASSERT(lene*lene >= Constants::vecNrmTol);

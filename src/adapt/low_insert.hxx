@@ -35,6 +35,7 @@ enum insedgesuf_Errors {INS2D_NOERR = 0,
 template<class MFT>
 int insertEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, 
                double lenqua_short_max,
+               bool icollapse,
                MshCavity &cav, CavWrkArrs &work, 
                intAr1 &lerro, int ithrd1, int ithrd2);
 

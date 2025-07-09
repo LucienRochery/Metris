@@ -31,8 +31,18 @@ template<class MFT>
 int insertEdge(Mesh<MFT>& msh, 
                int tdim, int ientt, int iedl, 
                double lenqua_short_max, // maximum quality (error) a new short edge can have
+               bool icollapse,
                MshCavity &cav, CavWrkArrs &work, 
                intAr1 &lerro, int ithrd1, int ithrd2){
+
+  int iverb0   = msh.param->iverb;
+  int ivdepth0 = msh.param->ivdepth;
+  //if(icollapse){
+  //  printf("## DEBUG SET MAX PRINTS \n");
+  //  wait();
+  //  msh.param->iverb  = 5;
+  //  msh.param->ivdepth= 5;
+  //}
 
   GETVDEPTH(msh.param);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
@@ -46,7 +56,8 @@ int insertEdge(Mesh<MFT>& msh,
   int nentt = msh.nentt(tdim);
 
   const intAr2 &ent2poi = msh.ent2poi(tdim);
-  const auto lnoed = tdim == 2 ? lnoed2 : lnoed3;
+  const auto lnoed = tdim == 1 ? lnoed1 : 
+                     tdim == 2 ? lnoed2 : lnoed3;
   METRIS_ASSERT(ientt >= 0 && ientt < nentt && !isdeadent(ientt, ent2poi));
 
   //if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement + tet nelem = "<<msh.nelem)
@@ -56,20 +67,18 @@ int insertEdge(Mesh<MFT>& msh,
   opts.allow_topological_correction = true;
   opts.skip_topo_checks = false;
   opts.dryrun = false;
-  opts.allow_remove_points = false; // potential for an infinite loop
+  opts.allow_remove_points = icollapse; 
   opts.allow_remove_points_superdim = true; // For boundary
-  opts.qmax_nec = -1;//qmax_nec
+  opts.qmax_nec = -1;
   opts.qmax_suf = -1;
   opts.qmax_iff = -1;
 
   int mcavcorr = 1, ncavcorr;
 
+  cav.reset();
   cav.lcedg.allocate(10);
   cav.lcfac.allocate(10);
   cav.lctet.allocate(10);
-  cav.lcedg.set_n(0);
-  cav.lcfac.set_n(0);
-  cav.lctet.set_n(0);
 
 
   // work for collrejcav_lenqua
@@ -86,6 +95,7 @@ int insertEdge(Mesh<MFT>& msh,
   int ip1 = ent2poi(ientt,lnoed[iedl][0]);
   int ip2 = ent2poi(ientt,lnoed[iedl][1]);
 
+  // The shell does not need pdim to gather elements: always use
   int iopen;
   shell(msh,ip1,ip2,tdim,ientt,cav.lcedg,cav.lcfac,cav.lctet,&iopen);
   CPRINTF1(" - cavity seed nedge %d nface %d ntetr %d\n",
@@ -109,9 +119,9 @@ int insertEdge(Mesh<MFT>& msh,
   int ncte0 = cav.lctet.get_n();
 
   int tdimp = -1;
-       if(cav.lcedg.get_n() > 0) tdimp = 1;
-  else if(cav.lcfac.get_n() > 0) tdimp = 2;
-  else                           tdimp = 3;
+       if(nced0 > 0) tdimp = 1;
+  else if(ncfa0 > 0) tdimp = 2;
+  else               tdimp = 3;
 
   int ibins = -1;
 
@@ -145,16 +155,14 @@ int insertEdge(Mesh<MFT>& msh,
   if(msh.CAD()) METRIS_ASSERT(obj != NULL 
                     || tdimp == 2 && !msh.isboundary_faces() || tdimp == 3);
 
-  int iverb0 = msh.param->iverb;
-  int ivdepth0 = msh.param->ivdepth;
-  //if(tdimp < msh.get_tdim() ){
-  //  printf("\n\n## DEBUG BOUNDARY INSERTION SET MAX PRINTS\n");
-  //  msh.param->iverb = 5;
-  //  msh.param->ivdepth = 5;
-  //  iverb__ = 5;
-  //  ivdepth__ = 5;
-  //  writeMesh("debug_insert",msh);
-  //}
+  // The point is well seeded for ball now
+  if(icollapse){
+    for(int ii = 0; ii < 2; ii++){
+      int ipoin = ent2poi(ientt, lnoed[iedl][ii]);
+      ball(msh, ipoin, cav.lcedg, cav.lcfac, cav.lctet, &iopen, true, ithrd1);
+    }
+  }
+
 
   CPRINTF1(" - create ipins %d tdim = %d seed %d ref %d\n",cav.ipins,tdimp,iseed,iref);
 
@@ -183,8 +191,6 @@ int insertEdge(Mesh<MFT>& msh,
   // not from splitting the parent edge. 
   bool fnd_len = false;
   double bar1_opt = -1, err_opt = 1.0e30, bar1;
-  int npoi0 = msh.npoin;
-  int nbpo0 = msh.nbpoi;
   for(int ntry_len = 0; ntry_len < 10; ntry_len++){
     INCVDEPTH(msh.param);
     bar1 = (bar1_min + bar1_max) / 2;
@@ -224,7 +230,6 @@ int insertEdge(Mesh<MFT>& msh,
       // No reevaluation, but initialize algnd to edge tangent 
       CPRINTF1(" - discrete algnd initialization tdimp %d \n",tdimp);
       if(tdimp == 1){
-        double dum[2];
         // To compute at higher degree, copy more vertices into ip
         MSH_DIM_DEG0(msh){
           eval1<gdim,ideg>(msh.coord, edg2pol,
@@ -255,7 +260,7 @@ int insertEdge(Mesh<MFT>& msh,
 
     if(DOPRINTS3()){
       int ipnew = msh.newpoitopo(0);
-      int ibnew = msh.newbpotopo(ipnew, 0, ipnew);
+      msh.newbpotopo(ipnew, 0, ipnew);
       const int nnmet = (msh.idim*(msh.idim+1))/2;
       for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipnew, ii) = msh.coord(cav.ipins, ii);
       for(int ii = 0; ii < nnmet; ii++) msh.met(ipnew, ii) = msh.met(cav.ipins, ii);
@@ -283,7 +288,9 @@ int insertEdge(Mesh<MFT>& msh,
       bar1_max = bar1;
     }
 
-    if(len1 >= 1/sqrt(2) && len2 >= 1/sqrt(2)){
+    bool ivalid = !icollapse ? len1 >= 1/sqrt(2) && len2 >= 1/sqrt(2) : true;
+
+    if(ivalid){
       fnd_len = true;
       // Once a viable is found, it is possible length distance to 1 will 
       // make a couple of iterates not viable, so it's important to keep a viable
@@ -327,69 +334,45 @@ int insertEdge(Mesh<MFT>& msh,
     CPRINTF1(" - initial cavity nedge %d nface %d nelem %d\n",
              cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
 
-    if(opts.allow_remove_points_superdim && tdimp < msh.get_tdim()){
-      // nprem < 0 is a rejection, but we don't care anymore as we use 
-      // collrejcav_lenqua.
-      nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
-      CPRINTF1(" - +len cavity size %d nprem = %d\n", cav.lcfac.get_n(),nprem); 
+    if(!icollapse){
+      if(opts.allow_remove_points_superdim && tdimp < msh.get_tdim()){
+        // nprem < 0 is a rejection, but we don't care anymore as we use 
+        // collrejcav_lenqua.
+        nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
+        CPRINTF1(" - +len cavity size %d nprem = %d\n", cav.lcfac.get_n(),nprem); 
+        if(DOPRINTS2()){
+          writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr), 
+                                      msh,cav);
+        }
+      }
+
+      ierro = increase_cavity_Delaunay(msh, cav, ithrd1);
+      if(ierro != 0){
+        CPRINTF1(" - +del error %d\n",ierro);
+        ierro = INS2D_ERR_INCCAV2D;
+      }
+
+
+      //static int nwarnprt = 0;
+      //if(nwarnprt++ < 10) printf("## PUT BACK DELAUNAY IN LOW INSERT\n");
+      ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
+      if(ierro != 0){
+        CPRINTF1(" - +cav error %d\n",ierro);
+        ierro = INS2D_ERR_INCCAV2D;
+      }
+      CPRINTF1(" - +cav nedge %d nface %d nelem %d\n",
+               cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
       if(DOPRINTS2()){
-        writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr), 
+        writeMeshCavity("insert_cavity2."+std::to_string(ncavcorr), 
                                     msh,cav);
       }
     }
-
-    //printf("Debug max prints for increase_cavity_lenedg\n");
-    //int iverb0 = msh.param->iverb;
-    //int ivdepth0 = msh.param->ivdepth;
-    //msh.param->iverb = 5;
-    //msh.param->ivdepth = 5;
-    ////if(!( opts.allow_remove_points 
-    ////   || opts.allow_remove_points_superdim && tdimp < msh.get_tdim()) ){
-    //  nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
-    //  if(nprem < 0){
-    //    ierro = INS2D_ERR_SHORTEDG;
-    //    CPRINTF1(" - with ops.allow_remove_points == false, short edge would be created\n");
-    //    goto fixpoint;
-    //  }
-    //  CPRINTF1(" - +len cavity size %d nprem = %d\n", cav.lcfac.get_n(),nprem); 
-    //  if(DOPRINTS2()){
-    //    writeMeshCavity("insert_cavity1."+std::to_string(ncavcorr), 
-    //                                msh,cav);
-    //  }
-    ////}
  
-    //ierro = collrejcav_lenqua(msh, cav, true, false, ithrd2);
-    ////msh.param->iverb = iverb0;
-    ////msh.param->ivdepth = ivdepth0;
-    //if(ierro > 0){
-    //  ierro = INS2D_ERR_SHORTEDG;
-    //  CPRINTF1(" # collrejcav_lenqua rejects cavity, try fix\n");
-    //  CPRINTF1(" # reject cavity\n");
-    //  goto fixpoint;
-    //}
-
-    ierro = increase_cavity_Delaunay(msh, cav, ithrd1);
-    if(ierro != 0){
-      CPRINTF1(" - +del error %d\n",ierro);
-      ierro = INS2D_ERR_INCCAV2D;
+    if(!icollapse){
+      ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
+    }else{
+      ierro = collrejcav_lenqua(msh, cav, false, false, false, -1, nocomp, ithrd2);
     }
-
-
-    //static int nwarnprt = 0;
-    //if(nwarnprt++ < 10) printf("## PUT BACK DELAUNAY IN LOW INSERT\n");
-    ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
-    if(ierro != 0){
-      CPRINTF1(" - +cav error %d\n",ierro);
-      ierro = INS2D_ERR_INCCAV2D;
-    }
-    CPRINTF1(" - +cav nedge %d nface %d nelem %d\n",
-             cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
-    if(DOPRINTS2()){
-      writeMeshCavity("insert_cavity2."+std::to_string(ncavcorr), 
-                                  msh,cav);
-    }
- 
-    ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
 
     //msh.param->iverb = iverb0;
     //msh.param->ivdepth = ivdepth0;
@@ -585,10 +568,12 @@ restart_cavity:
     wait();
   }
   #endif
-  //msh.param->iverb = iverb0;
-  //msh.param->ivdepth = ivdepth0;
-  //printf("## END OF OPERATION WAIT\n");
-  //wait();
+  if(DOPRINTS1()){
+    msh.param->iverb = iverb0;
+    msh.param->ivdepth = ivdepth0;
+    printf("## END OF OPERATION WAIT\n");
+    wait();
+  }
   return ierro;
 }
 
@@ -596,12 +581,12 @@ restart_cavity:
 
 template int insertEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
                          int tdim, int ientt, int iedl, 
-                         double lenqua_short_max,
+                         double lenqua_short_max, bool icollapse,
                          MshCavity &cav, CavWrkArrs &work, 
                          intAr1 &lerro, int ithrd1, int ithrd2);
 template int insertEdge<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
                          int tdim, int ientt, int iedl, 
-                         double lenqua_short_max,
+                         double lenqua_short_max, bool icollapse,
                          MshCavity &cav, CavWrkArrs &work, 
                          intAr1 &lerro, int ithrd1, int ithrd2);
 

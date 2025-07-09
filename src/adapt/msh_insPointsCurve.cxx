@@ -144,8 +144,8 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
           tedg[ii] = msh.bpo2rbi(ibpoi,0);
         }
         double tcur = lnewt[inewt];
-        bool inbd = tcur >= tedg[0] && tcur <= tedg[1]
-                 || tcur <= tedg[0] && tcur >= tedg[1];
+        bool inbd = (tcur >= tedg[0] && tcur <= tedg[1])
+                 || (tcur <= tedg[0] && tcur >= tedg[1]);
         nobd += !inbd;
         MPRINTF("inewt %d/%d seed %d tcur %f tedg %f %f inbd %d \n",inewt,ninsp+2,iseed,tcur,
                 tedg[0], tedg[1], inbd);
@@ -263,8 +263,8 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
             METRIS_ASSERT(ibpoi >= 0);
             CPRINTF1(" - iext %d ipoin %d t = %f against text %f \n",
                      it, ipoin, msh.bpo2rbi(ibpoi,0),text);
-            if(it == 0 && msh.bpo2rbi(ibpoi,0) >= text
-            || it == 1 && msh.bpo2rbi(ibpoi,0) <= text){
+            if((it == 0 && msh.bpo2rbi(ibpoi,0) >= text)
+            || (it == 1 && msh.bpo2rbi(ibpoi,0) <= text)){
               if(msh.edg2tag(ithrd1,ieext) < msh.tag[ithrd1]){
                 cav.lcedg.stack(ieext);
                 msh.edg2tag(ithrd1,ieext) = msh.tag[ithrd1];
@@ -524,8 +524,8 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
               tedg[jj] = msh.bpo2rbi(ibpoi,0);
             }// for jj
             CPRINTF1(" - seek t = %f tedg = %f %f \n",tother,tedg[0],tedg[1]);
-            if(tother >= tedg[0] && tother <= tedg[1]
-            || tother >= tedg[1] && tother <= tedg[0]){
+            if((tother >= tedg[0] && tother <= tedg[1])
+            || (tother >= tedg[1] && tother <= tedg[0])){
               ifnd = true;
               CPRINTF1(" - updated seed for it = %d: %d -> %d \n",iother,
                        t2sed[iother+1],iedge);

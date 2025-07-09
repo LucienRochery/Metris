@@ -4,6 +4,7 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 #include "low_collapse.hxx"
+#include "low_insert.hxx"
 #include "low_cavqual.hxx"
 
 #include "../Mesh/Mesh.hxx"
@@ -26,14 +27,38 @@
 
 namespace Metris{
 
+
 /*
 Collapse a vertex in short edge 
 Cavity is passed in to reuse allocations
 */
 template<class MFT>
 int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf, 
-                MshCavity &cav, CavWrkArrs &work, 
-                intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3){
+                 MshCavity &cav, CavWrkArrs &work, 
+                 intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3){
+  return insertEdge(msh, tdim, ientt, iedl, -1, true, cav, work, lerro, ithrd1, ithrd2);
+}
+
+template int collapseEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
+                                          int tdim, int ientt, int iedl, double qmax_suf, 
+                                          MshCavity &cav, CavWrkArrs &work, 
+                                          intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
+template int collapseEdge<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
+                                          int tdim, int ientt, int iedl, double qmax_suf, 
+                                          MshCavity &cav, CavWrkArrs &work, 
+                                          intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
+
+
+
+
+/*
+Collapse a vertex in short edge 
+Cavity is passed in to reuse allocations
+*/
+template<class MFT>
+int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf, 
+                  MshCavity &cav, CavWrkArrs &work, 
+                  intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3){
   METRIS_ASSERT(ientt >= 0);
   GETVDEPTH(msh.param);
 
@@ -229,11 +254,11 @@ int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf,
   return 1;
 }
 
-template int collapseEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
+template int collapseEdge2<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
                                           int tdim, int ientt, int iedl, double qmax_suf, 
                                           MshCavity &cav, CavWrkArrs &work, 
                                           intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
-template int collapseEdge<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
+template int collapseEdge2<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
                                           int tdim, int ientt, int iedl, double qmax_suf, 
                                           MshCavity &cav, CavWrkArrs &work, 
                                           intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
@@ -272,7 +297,7 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
 
   int iopen;
   ierro = ball(msh, ipcol, cav.lcedg, cav.lcfac, cav.lctet,
-               &iopen, ithrd1);
+               &iopen, false, ithrd1);
   CPRINTF1(" - try collapse poi = %d ball nface = %d nedge = %d \n",
                               ipcol,cav.lcfac.get_n(),cav.lcedg.get_n());
   METRIS_ASSERT(ierro == 0);

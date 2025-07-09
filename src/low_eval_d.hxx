@@ -260,7 +260,7 @@ void eval_d_direct(const dblAr2 & __restrict__ rfld,
              double * __restrict__   hmat,
              double * __restrict__  deval,
              double * __restrict__  djmat,
-             double * __restrict__  dhmat,
+             [[maybe_unused]] double * __restrict__  dhmat,
              const double * __restrict__  dfld){
 
   if constexpr(tdim == 3){

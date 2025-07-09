@@ -686,7 +686,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
 
             // If a subdim entity was sandwiched here, we need to add it
             // Also true if no neighbour -> add bdry entity. 
-            if(tdim == 2 && iedge >= 0 || tdim == 3 && iface >= 0){
+            if((tdim == 2 && iedge >= 0) || (tdim == 3 && iface >= 0)){
               if(tdim == 2){
                 cav.lcedg.stack(iedge);
                 msh.edg2tag(ithread,iedge) = msh.tag[ithread];
@@ -732,7 +732,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
 // Normal only needed in 3D case if cavity has faces
 template<class MFT>
 int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, 
-                             int ithread, double *nrmal){
+                             int ithread, [[maybe_unused]] double *nrmal){
 
   GETVDEPTH(msh.param);
 

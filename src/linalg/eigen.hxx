@@ -2,11 +2,10 @@
 //Copyright (C) 2023-2025, Massachusetts Institute of Technology
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
-
-
-
 #ifndef __METRIS_EIGEN__
 #define __METRIS_EIGEN__
+
+#include "../utils/aux_misc.hxx"
 
 namespace Metris{
 

@@ -73,8 +73,6 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
   int iflag = 0, ihess, ierro = 0;
   double  xcur[idim], coor0[idim], met0[nnmet], fcur;
-  double fpre; 
-  bool fpreset = false;
   bool iinva;
   double d1qua[idim], d2qua[nhess];
 

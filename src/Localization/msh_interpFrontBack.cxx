@@ -212,7 +212,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
       lentt[1].set_n(0);
       lentt[2].set_n(0);
       if(iver < tdime+1){
-        ierro = ball(msh, ipseed, lentt[0], lentt[1], lentt[2], &iopen, ithread);
+        ierro = ball(msh, ipseed, lentt[0], lentt[1], lentt[2], &iopen, false, ithread);
       }else{
         bool doshell = false;
         if(msh.curdeg <= 2){

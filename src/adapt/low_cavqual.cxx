@@ -180,7 +180,6 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
 
 
     int nadded = 0;
-    double qua1_prev = qua1;
     for(int icent = icen0; icent < icen1; icent++){
       INCVDEPTH(msh.param);
       int ientt = lcent[icent];
@@ -311,7 +310,6 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
   // To accumulate volumes per point
   dblWrkAr1 volpoc = msh.get_rwork(msh.npoin);
 
-  double met[6];
 
   msh.tag[ithrd1]++;
   int etag = msh.tag[ithrd1];
@@ -381,7 +379,7 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
 
         // Compute the ball and its volume
         int iopen;
-        int ierro = ball(msh, ipoin, dum, lbfac, lbtet, &iopen, ithrd2);
+        int ierro = ball(msh, ipoin, dum, lbfac, lbtet, &iopen, false, ithrd2);
         METRIS_ASSERT(ierro == 0);
         if(ierro != 0) return 1+ierro;
 

@@ -54,9 +54,6 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
   METRIS_ASSERT(ithrd1 != ithrd3);
   METRIS_ASSERT(ithrd2 != ithrd3);
 
-  bool ishort_conservative = false;
-
-  bool imovmet = true; 
 
   // Swap norm -1: length-based. 
   //swapOptions swapOpt(100, -1, 0.0);
@@ -70,9 +67,8 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
   CPRINTF2(" - Note: improve by generating several points per edge. Generated but not used cf loop nn/2 \n");
   CPRINTF2(" - Note: improve by filtering point propositions \n");
   #endif
-  int edg2pol[getnnod1(ideg)];
 
-  lenStat lenstat0,lenstat;
+  lenStat lenstat0;
   intAr2 ilned;
   dblAr1 rlned;
   dblAr1 lenbds = {1.0/sqrt(2), sqrt(2)};
@@ -91,9 +87,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
   const intAr2 lnoed(nedgl,2,tdim == 1 ? lnoed1[0] :
                              tdim == 2 ? lnoed2[0] : lnoed3[0]);
-  intAr2  &ent2poi = msh.ent2poi(tdim);
-  intAr2r &ent2tag = msh.ent2tag(tdim);
-  intAr2  &ent2ent = msh.ent2ent(tdim);
+  const intAr2 &ent2poi = msh.ent2poi(tdim);
 
   // Error counting:
   const int mcaverr = CAV_ERR_NERROR;
@@ -104,9 +98,6 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
   // Outer loop iterations:
   const int miter = 10;
 
-
-  double bar1[2] = {0.5,0.5};
-  double coop[gdim], t0;
   int ierro;
   *ninser = 0;
 
@@ -154,8 +145,6 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
     return 0;
   }
 
-  // To only clean up occasionally
-  int ninser0 = 0;
   for(int niter = 0; niter < miter; niter++){
     INCVDEPTH(msh.param);
     int nlong = ledge.size();
@@ -168,9 +157,8 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
     // Don't let the loop grow beyond initial size.
     const auto edge_it1 = ledge.end();
     double t0 = get_wall_time();
-    int loop_count = 0;
     for(auto edge_it = ledge.begin(); edge_it != edge_it1;){
-      loop_count++;
+      ntry++;
       INCVDEPTH(msh.param);
       std::tuple<int,int> key = edge_it->first;
       int ientt = edge_it->second;
@@ -190,7 +178,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
       CPRINTF1(" - enact ins ientt = %d ied = %d edg %d %d\n",ientt,ied,ip1,ip2);
       int nent0 = msh.nentt(tdim); 
-      ierro = insertEdge(msh,tdim,ientt,ied,lenqua_short_max,
+      ierro = insertEdge(msh,tdim,ientt,ied,lenqua_short_max,false,
                          cav,work,lcaverr,ithrd2,ithrd3);
 
       if(ierro <= 0){
@@ -239,7 +227,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
     double t1 = get_wall_time();
     int ncallps = 1000*(int)((ninser1 / (t1-t0)) / 1000);
     CPRINTF2(" - END t = %f nlong %d ntry %d nskip %d nadded %d ninser %d = %d /s; nerro %d\n",
-              t1-t0,nlong,loop_count,nskip,nadded,ninser1,ncallps,nerro);
+              t1-t0,nlong,ntry,nskip,nadded,ninser1,ncallps,nerro);
     if(DOPRINTS2() && nerro > 0){
       CPRINTF2(" - cavity ierro list:\n");
       for(int ii = 0; ii < mcaverr; ii++){
@@ -257,242 +245,9 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
 
     if(ninser1 == 0) break;
 
-    //if(ninser1 - ninser0 >= 0.1*msh.nentt(tdim)){
-    //  msh.cleanup();
-    //  ninser0 = ninser1;
-    //}
-
   }// for niter
   msh.cleanup();
   stat = (double) *ninser /(double)nedge_tot;
-
-  #if 0
-  int niter2 = 0;
-  int ninser2 = 1; // otherwise doesnt enter loop
-  for(niter2 = 0; niter2 < miter2 && ninser2 > 0; niter2++){
-    INCVDEPTH(msh.param);
-    ninser2 = 0;
-
-    lcaverr.fill(0);
-    linserr.fill(0);
-    int nedgt = 0;
-    int nlong = 0;
-    int nskip = 0;
-    int nerro = 0;
-
-    int max_nnewp = -1;
-    double avg_nnewp = 0;
-
-    int nent0 = msh.nentt(tdim);
-    t0 = get_wall_time();
-    for(int ientt = 0; ientt < nent0; ientt++){
-      INCVDEPTH(msh.param);
-      
-      if(isdeadent(ientt,ent2poi)) continue;
-      if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
-
-      bool dobrk = false;
-      // Whatever happens, this element will be tagged as inert. Indeed, 
-      // it is either going to give rise to an insertion (thus disappear)
-      // or it won't (thus become inert)
-      // The only exception is if an insertion is rejected due to short edge, 
-      // or other cavity extension routines, as neighbours influence this decision. 
-      ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
-      bool safe_continue = true;
-      for(int ied = 0; ied < nedgl; ied++){
-        // Forbid continues because of ledro management. Error must be set. 
-        METRIS_ASSERT(safe_continue);
-        safe_continue = false;
-
-        GETVDEPTH(msh.param);
-        nedgt++;
-
-        int ip1 = ent2poi(ientt, lnoed(ied,0));
-        int ip2 = ent2poi(ientt, lnoed(ied,1));
-        auto key = stup2(ip1,ip2);
-        auto tt  = ledro.find(key);
-        if(tt != ledro.end()){
-          CPRINTF2(" - ientt %d ied %d ip %d %d in hash tab -> skip\n",
-                   ientt, ied, ip1, ip2);
-          nskip++;
-          safe_continue = true;
-          continue;
-        }
-
-
-        double sz[2];
-        double len = getlenedg_geosz<MFT,gdim,ideg>(msh,ientt,tdim,ied,sz);
-        CPRINTF2(" - try ientt = %d ied = %d len = %f \n",ientt,ied,len);
-        if(len < sqrt(2)){
-          ledro[key] = -1;
-          safe_continue = true;
-          continue;
-        }
-        nlong++;
-
-        int nnewp;
-        if(ishort_conservative){
-          // Make no edges shorter than 1
-          // In this case, take the floor of length. 
-          nnewp = floor(len);
-        }else{
-          // Allow full range [1/sqrt(2),sqrt(2)]
-          bool ifnd = false;
-          // Distance to 1 decreases until it increases. 
-          for(nnewp = 1; nnewp < 1000; nnewp++){
-            // Length is 1 / (nnewp + 1)
-            double err1 = abs(len/(nnewp+1) - 1);
-            double err2 = abs(len/(nnewp+2) - 1);
-            if(err2 > err1){
-              ifnd = true;
-              break;
-            }
-          }
-          METRIS_ASSERT_MSG(ifnd, "Infinite length? "<<len);
-          METRIS_ASSERT_MSG(len/(nnewp+1) > 1/sqrt(2),
-            "with len = "<<len<<" got nnewp = "<<nnewp<<" each is "
-            <<len/nnewp);
-        }
-        avg_nnewp += nnewp;
-        max_nnewp = MAX(max_nnewp, nnewp);
-
-        edg2pol[0] = ent2poi(ientt,lnoed[ied][0]);
-        edg2pol[1] = ent2poi(ientt,lnoed[ied][1]);
-
-
-        CPRINTF2(" - No CAD link for this edge -> eval at element\n");
-        int idx0 = tdim + 1 + ied*(ideg-1);
-        for(int ii = 0; ii < ideg-1; ii++) edg2pol[2+ii] = ent2poi[ientt][idx0+ii];
-
-
-        // Note: no CAD use as insertEdge handles CAD eval. This routine only 
-        // generates points approximately. 
-        eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), 
-                         DifVar::None, DifVar::None, 
-                         bar1, coop, NULL, NULL);
-
-        if(DOPRINTS1()){
-          CPRINTF1(" - enact ins ientt = %d ied = %d len = %f edg %d %d coord = ",
-                  ientt,ied,len,edg2pol[0],edg2pol[1]);
-          dblAr1(msh.idim,coop).print();
-        }
-
-        // Try insert point coop
-        int nent00 = msh.nentt(tdim); 
-        int itry = 0;
-        //do{
-        //  if(DOPRINTS2()){
-        //    writeMesh("preins",msh);
-        //  }
-          ierro = insertEdge(msh,tdim,ientt,ied,coop,bar1[0],lenqua_short_max,
-                             cav,work,lcaverr,ithrd2,ithrd3);
-          
-          //printf("## DEBUG REMOVE THIS CALL\n");
-          //getLengthEdges<MFT>(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
-          //if(lenstat.qua_short > lenstat0.qua_short){
-          //  printf("## QUA SHORT DEGRADATION! %e -> %e\n",
-          //    lenstat0.qua_short,lenstat.qua_short);
-          //  writeMesh("quashort",msh);
-          //  msh.met.writeMetricFile("quashort");
-          //  wait();
-          //}
-
-
-        //  if(ierro <= 0) break;
-        //  itry++;
-        //  if(itry >= 1 + imovmet) break;
-        //  if(ierro == 0) CPRINTF2(" - After trying ierro = 0 \n");
-        //  if(ierro > 0 && (itry == 0 && imovmet)){
-        //    CPRINTF2(" -> insertEdge fail: try again w/ imovmet %d\n",imovmet);
-        //    if(DOPRINTS1()){
-        //      CPRINTF2(" - initial ipins = ");
-        //      dblAr1(gdim,coop).print();
-        //    }
-        //    if(imovmet && itry == 1){
-        //      CPRINTF2(" -> do imovmet\n");
-        //      // Do better than this, compute the Bézier offset for the metric and 
-        //      // place the point here -> follow curvature (even if P1)
-        //      double offset[gdim];
-        //      getBezOffsetsEdge<MFT,gdim,ideg>(msh,tdim,ent2poi[ientt],ied,offset);
-
-        //      double nrm1 = geterrl2<gdim>(msh.coord[edg2pol[0]],msh.coord[edg2pol[0]]);
-        //      double nrm2 = getnrml2<gdim>(offset);
-
-        //      // Maximum ratio -> dampen if more 
-        //      const double ratlen = 0.1;
-
-        //      double fac = 1;
-        //      if(nrm2 > ratlen*ratlen*nrm1){
-        //        fac = ratlen*sqrt(nrm1/nrm2);
-        //      }
-
-        //      for(int ii = 0; ii < gdim; ii++) coop[ii] += offset[ii]*fac;
-        //      for(int ii = 0; ii < gdim; ii++) coop[ii] = 0.25 * msh.coord(edg2pol[0],ii)
-        //        + 0.5 * coop[ii] + 0.25 * msh.coord(edg2pol[1],ii);
-        //    }
-        //    if(DOPRINTS1()){
-        //      CPRINTF2(" - final ipins = ");
-        //      dblAr1(gdim,coop).print();
-        //    }
-        //  }
-        //}while(ierro != 0);
-
-        if(ierro <= 0){
-          ninser2++;
-          dobrk = true;
-          int nent11 = msh.nentt(tdim);
-          for(int ientn = nent00; ientn < nent11; ientn++){
-            for(int ii = 0; ii < tdim + 1 ; ii++){
-              int ineig = ent2ent(ientn,ii);
-              if(ineig < 0) continue;
-              METRIS_ASSERT(!isdeadent(ineig,ent2poi));
-              ent2tag(ithrd1,ineig) = msh.tag[ithrd1] - 1;
-            }
-          }
-        }else{
-          CPRINTF2(" - insertion failed ierro = %d \n",ierro);
-          linserr[ierro - 1] ++;
-          nerro++;
-          ledro[key] = ierro;
-        }
-
-
-        if(msh.param->dbgfull) check_topo(msh,ithrd2);
-
-        if(dobrk) break;
-
-        safe_continue = true;
-      }// for ied
-
-    }// for ientt
-
-    avg_nnewp /= nlong;
-    double t1 = get_wall_time();
-    int ncallps = 1000*(int)((ninser2 / (t1-t0)) / 1000);
-    CPRINTF2(" - Loop 1 end t = %f nlong %d nskip %d ninser %d = %d /s; nerro %d; nnewp avg = %f, max = %d\n",
-              t1-t0,nlong,nskip,ninser2,ncallps,nerro,avg_nnewp, max_nnewp);
-    if(DOPRINTS2() && nerro > 0){
-      CPRINTF2(" - cavity ierro list:\n");
-      for(int ii = 0; ii < mcaverr; ii++){
-        if(lcaverr[ii] == 0) continue;
-        CPRINTF2("   ierro = %d : %d \n",ii+1,lcaverr[ii]);
-      }
-      CPRINTF2(" - inspoi ierro list:\n");
-      for(int ii = 0; ii < minserr; ii++){
-        if(linserr[ii] == 0) continue;
-        CPRINTF2("   ierro = %d : %d \n",ii+1,linserr[ii]);
-      }
-    }
-
-
-    msh.cleanup();
-
-    if(nedgt == 0) stat = MAX(stat, 0);
-    else           stat = MAX(stat, (double)ninser2/(double)nedgt);
-
-    *ninser += ninser2;
-  }// for niter2
-  #endif
 
   return stat;
 }

@@ -7,20 +7,9 @@
 #define __COMMON_SETUP_MSH__
 
 #include <string>
-#include "src/types.hxx"
-#include "src/io_libmeshb.hxx"
-#include "src/ho_constants.hxx"
-#include "src/aux_topo.hxx"
-#include "src/utils/aux_misc.hxx"
-#include "src/low_topo.hxx"
 
-#include "src/low_geo.hxx"
-#include "src/linalg/matprods.hxx"
-#include "src/msh_degelev.hxx"
-#include "src/aux_exceptions.hxx"
-#include "src/MetrisRunner/MetrisRunner.hxx"
+#include "../src/Metris.h"
 
-#include "src/main_adap.hxx"
 #include <fcntl.h>
 
 #include <boost/test/unit_test.hpp>
@@ -136,7 +125,6 @@ public:
 private:
   double min_, avg_, max_;
   unsigned long long int navg;
-  bool iinit;
 };
 
 

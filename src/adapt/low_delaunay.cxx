@@ -21,7 +21,7 @@ namespace Metris{
 template <int gdim, int tdim>
 bool indelsphere(const MeshBase &msh, const double *coop, const double *metl, 
                  const int *ent2pol){
-  static_assert(gdim == tdim || gdim == 3 && tdim == 2);
+  static_assert(gdim == tdim || (gdim == 3 && tdim == 2));
   //if(gdim > tdim){
   //  METRIS_ASSERT(nrmal != NULL);
   //}
