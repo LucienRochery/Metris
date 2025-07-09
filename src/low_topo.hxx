@@ -18,7 +18,7 @@ namespace Metris{
 // in that case, they will not be filled.
 int ball(MeshBase& msh, int ipoin,
          intAr1 &lbedg, intAr1 &lbfac, intAr1 &lbtet,
-         int *iopen, int ithrd);
+         int *iopen, bool append, int ithrd);
 
 int ball3(MeshBase& __restrict__ msh,
           int ipoin  ,int iele0, 

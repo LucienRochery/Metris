@@ -24,7 +24,7 @@ std::tuple<int,int,int> stup3(int i1,int i2,int i3);
 // in that case, they will not be filled. 
 int ball(MeshBase& msh, int ipoin,
          intAr1 &lbedg, intAr1 &lbfac, intAr1 &lbtet,
-         int *iopen, int ithrd){
+         int *iopen, bool append, int ithrd){
 
   GETVDEPTH(msh.param);
 
@@ -39,15 +39,22 @@ int ball(MeshBase& msh, int ipoin,
   CPRINTF1("-- START ball ipoin %d pdim %d gather edge %d face %d tetra %d \n",
            ipoin,pdim,doedg,dofac,dotet);
 
-  if(doedg) lbedg.set_n(0);
-  if(dofac) lbfac.set_n(0);
-  if(dotet) lbtet.set_n(0);
+  if(lbedg.size1() && !append) lbedg.set_n(0);
+  if(lbfac.size1() && !append) lbfac.set_n(0);
+  if(lbtet.size1() && !append) lbtet.set_n(0);
 
   msh.tag[ithrd]++;
 
+  if(append){
+    for(int iedge : lbedg) msh.edg2tag(ithrd,iedge) = msh.tag[ithrd];
+    for(int iedge : lbfac) msh.fac2tag(ithrd,iedge) = msh.tag[ithrd];
+    for(int iedge : lbtet) msh.tet2tag(ithrd,iedge) = msh.tag[ithrd];
+  }
+
   // In this case, we have boundary info that we can use.
-  if(pdim < msh.idim && (  doedg && msh.isboundary_edges() 
-                        || dofac && msh.isboundary_faces()) ){
+  if(pdim < msh.idim && (  (doedg && msh.isboundary_edges()) 
+                        || (dofac && msh.isboundary_faces())) ){
+    int iedg0;
     for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
       int tdim = msh.bpo2ibi(ibpoi,1);
       CPRINTF1(" - ibpoi %d tdim %d ientt %d \n",ibpoi,tdim,msh.bpo2ibi(ibpoi,2));
@@ -55,19 +62,23 @@ int ball(MeshBase& msh, int ipoin,
       if(tdim == 1 && !doedg) continue;
       int ientt = msh.bpo2ibi(ibpoi,2);
       if(tdim == 1){
-        lbedg.stack(ientt);
-        msh.edg2tag(ithrd, ientt) = msh.tag[ithrd];
+        iedg0 = ientt;
+        if(msh.edg2tag(ithrd, ientt) < msh.tag[ithrd]){
+          lbedg.stack(ientt);
+          msh.edg2tag(ithrd, ientt) = msh.tag[ithrd];
+        }
       }
       else{
-        lbfac.stack(ientt);
-        msh.fac2tag(ithrd, ientt) = msh.tag[ithrd];
+        if(msh.fac2tag(ithrd, ientt) < msh.tag[ithrd]){
+          lbfac.stack(ientt);
+          msh.fac2tag(ithrd, ientt) = msh.tag[ithrd];
+        }
       }
     }
 
     // If the point is dim 1, we still need the edges, but we're seeded
     if(pdim == 1 && doedg){
       METRIS_ASSERT(lbedg.get_n() > 0);
-      int iedg0 = lbedg[0];
       METRIS_ASSERT(iedg0 >= 0);
       METRIS_ASSERT(!isdeadent(iedg0,msh.edg2poi));
       int iver = msh.getveredg<1>(iedg0, ipoin);
@@ -79,19 +90,35 @@ int ball(MeshBase& msh, int ipoin,
           printf("%d : ",ibpoi);
           intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
         }
+        printf("lbedg = ");
+        lbedg.print();
+        for(int ii : lbedg){
+          printf("%d : ",ii);
+          intAr1(2,msh.edg2poi[ii]).print();
+        }
       }
       METRIS_ASSERT_MSG(iver >= 0,"got iver < 0 with iedg0 = "<<iedg0<<
         " ipoin = "<<ipoin);
       #endif
       int iedg1 = msh.edg2edg(iedg0,1-iver);
+      CPRINTF1(" - case pdim = 1 w/ edge, seed iedg0 = %d neighbour %d\n",iedg0,iedg1);
       if(iedg1 >= 0){
-        if(msh.edg2tag(ithrd,iedg1) < msh.tag[ithrd]) lbedg.stack(iedg1);
+        if(msh.edg2tag(ithrd,iedg1) < msh.tag[ithrd]){
+          msh.edg2tag(ithrd,iedg1) = msh.tag[ithrd];
+          lbedg.stack(iedg1);
+        }
       }else if(iedg1 < -1){
         int inei;
         iedg1 = -iedg1 - 2;
-        if(msh.edg2tag(ithrd,iedg1) < msh.tag[ithrd]) lbedg.stack(iedg1);
+        if(msh.edg2tag(ithrd,iedg1) < msh.tag[ithrd]){
+          msh.edg2tag(ithrd,iedg1) = msh.tag[ithrd];
+          lbedg.stack(iedg1);
+        }
         while(getnextedgnm(msh,iedg0,ipoin,&iedg1,&inei)){
-          if(msh.edg2tag(ithrd,iedg1) < msh.tag[ithrd]) lbedg.stack(iedg1);
+          if(msh.edg2tag(ithrd,iedg1) < msh.tag[ithrd]){
+            msh.edg2tag(ithrd,iedg1) = msh.tag[ithrd];
+            lbedg.stack(iedg1);
+          }
         }
       }
     }
@@ -115,11 +142,10 @@ int ball(MeshBase& msh, int ipoin,
   }
 
   if(dofac){
-    METRIS_ASSERT(lbfac.get_n() == 0 || msh.idim == 3)
     METRIS_ASSERT(iface >= 0);
     if(msh.fac2tag(ithrd,iface) < msh.tag[ithrd]){
-      lbfac.stack(iface);
       msh.fac2tag(ithrd,iface) = msh.tag[ithrd];
+      lbfac.stack(iface);
     }
   }
 
@@ -133,8 +159,10 @@ int ball(MeshBase& msh, int ipoin,
       itetr = msh.poi2ent(ipoin,0);
     }
     METRIS_ASSERT(itetr >= 0);
-    lbtet.stack(itetr);
-    msh.tet2tag(ithrd,itetr) = msh.tag[ithrd];
+    if(msh.tet2tag(ithrd,itetr) < msh.tag[ithrd]){
+      msh.tet2tag(ithrd,itetr) = msh.tag[ithrd];
+      lbtet.stack(itetr);
+    }
   }
 
   // Minimum tdim. 1 is done. 2 iff pdim > 1 or idim = 2
@@ -155,7 +183,15 @@ int ball(MeshBase& msh, int ipoin,
     int ibent = 0;
     while(ibent < lbent.get_n()){
       int ientt = lbent[ibent];
+
       ibent++;
+
+      // If appending, check the element containts the point.
+      if(append){
+        int iver = msh.getverent(ientt, tdim, ipoin);
+        if(iver < 0) continue;
+      }
+
       for(int inei = 0; inei < tdim + 1; inei++){
         // facet opposite ipoin does not contain ipoin
         if(ent2poi(ientt,inei) == ipoin) continue;
@@ -164,8 +200,8 @@ int ball(MeshBase& msh, int ipoin,
         if(ient2 >= 0 && ent2tag(ithrd,ient2) >= msh.tag[ithrd]) continue;
 
         if(ient2 >= 0){
-          lbent.stack(ient2);
           ent2tag(ithrd,ient2) = msh.tag[ithrd];
+          lbent.stack(ient2);
           continue;
         }
 
@@ -800,7 +836,7 @@ void shell(const MeshBase& msh,
   // Seed face. We need this only if:
   //  - dofac is true
   //  - dotet is true and tdim == 1 (if it is tdim 2, we already have the face)
-  if(ifac0 < 0 && (dofac || dotet && tdim == 1)){
+  if(ifac0 < 0 && (dofac || (dotet && tdim == 1))){
     if(iedg0 >= 0){
       ifac0 = msh.edg2fac[iedg0];
     }
