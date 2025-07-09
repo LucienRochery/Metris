@@ -1,4 +1,5 @@
 README.txt
+!.github/
 .obj
 *.lldb
 .lldbinit
