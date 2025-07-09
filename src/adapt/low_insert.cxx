@@ -22,6 +22,7 @@
 #include "../linalg/det.hxx"
 #include "../low_lenedg.hxx"
 
+#include "../msh_checktopo.hxx"
 
 namespace Metris{
 
@@ -39,7 +40,8 @@ int insertEdge(Mesh<MFT>& msh,
   int ivdepth0 = msh.param->ivdepth;
   //if(icollapse){
   //  printf("## DEBUG SET MAX PRINTS \n");
-  //  wait();
+  //  writeMesh("debug",msh);
+  //  //wait();
   //  msh.param->iverb  = 5;
   //  msh.param->ivdepth= 5;
   //}
@@ -88,19 +90,21 @@ int insertEdge(Mesh<MFT>& msh,
   #endif
   static std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp;
 
-  CPRINTF1("-- START insertEdge tdim = %d ientt = %d ied %d\n",tdim,ientt,iedl);
 
   int ierro = 0, nprem;
   bool irestart_cav;
   int ip1 = ent2poi(ientt,lnoed[iedl][0]);
   int ip2 = ent2poi(ientt,lnoed[iedl][1]);
 
+  CPRINTF1("-- START insertEdge tdim = %d ientt = %d ied %d = %d %d\n",tdim,ientt,iedl,ip1,ip2);
   // The shell does not need pdim to gather elements: always use
   int iopen;
   shell(msh,ip1,ip2,tdim,ientt,cav.lcedg,cav.lcfac,cav.lctet,&iopen);
   CPRINTF1(" - cavity seed nedge %d nface %d ntetr %d\n",
            cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
-
+  if(DOPRINTS2()){
+    cav.print(msh);
+  }
 
   METRIS_ASSERT(cav.lcedg.get_n() > 0 || cav.lcfac.get_n() > 0 || cav.lctet.get_n() > 0);
   #ifndef NDEBUG
@@ -258,13 +262,13 @@ int insertEdge(Mesh<MFT>& msh,
       goto cleanup;
     }
 
-    if(DOPRINTS3()){
-      int ipnew = msh.newpoitopo(0);
-      msh.newbpotopo(ipnew, 0, ipnew);
-      const int nnmet = (msh.idim*(msh.idim+1))/2;
-      for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipnew, ii) = msh.coord(cav.ipins, ii);
-      for(int ii = 0; ii < nnmet; ii++) msh.met(ipnew, ii) = msh.met(cav.ipins, ii);
-    }
+    //if(DOPRINTS3()){
+    //  int ipnew = msh.newpoitopo(0);
+    //  msh.newbpotopo(ipnew, 0, ipnew);
+    //  const int nnmet = (msh.idim*(msh.idim+1))/2;
+    //  for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipnew, ii) = msh.coord(cav.ipins, ii);
+    //  for(int ii = 0; ii < nnmet; ii++) msh.met(ipnew, ii) = msh.met(cav.ipins, ii);
+    //}
 
 
     double sz[2];
@@ -572,7 +576,7 @@ restart_cavity:
     msh.param->iverb = iverb0;
     msh.param->ivdepth = ivdepth0;
     printf("## END OF OPERATION WAIT\n");
-    wait();
+    //wait();
   }
   return ierro;
 }
