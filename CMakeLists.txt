@@ -297,9 +297,9 @@ foreach(test_file ${TEST_SOURCES})
   get_filename_component(test_target ${test_file} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
   set(test_target_build "${test_target}_build")
   add_executable(${test_target_build} ${test_file})
+  set_target_properties(${test_target_build} PROPERTIES OUTPUT_NAME ${test_target})
   setMetrisFlags(${test_target_build} PUBLIC)
   target_compile_definitions(${test_target_build} PUBLIC METRIS_CASES_DIR="${METRIS_CASES_DIR}")
-  target_link_libraries(${test_target_build} PUBLIC libMetris)
   target_link_libraries(${test_target_build} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   target_link_libraries(${test_target_build} PUBLIC libMetris 
                                               SANS 
