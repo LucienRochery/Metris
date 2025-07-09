@@ -55,7 +55,7 @@ void MshCavity::print(const MeshBase &msh, int iforce) const{
       }
       int nnode = msh.nnode(tdimn);
       for(int ientt : lcent){
-        MPRINTF("%d : ",ientt);
+        MPRINTF("  %d : ",ientt);
         for(int ii = 0; ii < nnode; ii++){
           printf(" %d ",ent2poi(ientt,ii));
         }
@@ -113,9 +113,11 @@ int cavity_operator(Mesh<MFT> &msh ,
 
   double qmax;
 
+  cav.maxtag = msh.tag[ithread];
+
   /*  --------------   Correctness checks -------------------- */
-	if(cav.lcedg.get_n() > 0 && msh.isboundary_edges() 
-  || cav.lcfac.get_n() > 0 && msh.isboundary_faces() ){
+	if((cav.lcedg.get_n() > 0 && msh.isboundary_edges())
+  || (cav.lcfac.get_n() > 0 && msh.isboundary_faces()) ){
 		int ibpoi = msh.poi2bpo[cav.ipins];
     if(ibpoi < 0){
       CPRINTF1("## ERROR CAV_ERR_NOBPO\n");
@@ -253,7 +255,8 @@ int cavity_operator(Mesh<MFT> &msh ,
 
   msh.tag[ithread] = cav.maxtag;
   
-  if(ierro == 0 && msh.param->dbgfull) check_topo(msh,ithread);
+  // cav.ipins may not be correctly in the mesh 
+  if(msh.param->dbgfull && ierro == 0) check_topo(msh,ithread);
 
 	return ierro;
   }catch(const MetrisExcept& e){
