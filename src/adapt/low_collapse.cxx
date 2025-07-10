@@ -36,7 +36,18 @@ template<class MFT>
 int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf, 
                  MshCavity &cav, CavWrkArrs &work, 
                  intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3){
-  return insertEdge(msh, tdim, ientt, iedl, -1, true, cav, work, lerro, ithrd1, ithrd2);
+  
+  const auto lnoed = tdim == 1 ? lnoed1 : 
+                     tdim == 2 ? lnoed2 : lnoed3;
+  const intAr2 &ent2poi = msh.ent2poi(tdim);
+  int ip1 = ent2poi(ientt,lnoed[iedl][0]);
+  int ip2 = ent2poi(ientt,lnoed[iedl][1]);
+
+  if(msh.getpoitdim(ip1) != msh.getpoitdim(ip2)){
+    return collapseEdge2(msh, tdim, ientt, iedl, qmax_suf, cav, work, lerro, ithrd1, ithrd2, ithrd3);
+  }else{
+    return insertEdge(msh, tdim, ientt, iedl, -1, true, cav, work, lerro, ithrd1, ithrd2);
+  }
 }
 
 template int collapseEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 

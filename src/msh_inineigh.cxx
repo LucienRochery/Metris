@@ -334,6 +334,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
     INCVDEPTH(msh.param);
     if(isdeadent(ielem,msh.tet2poi)) continue;
     for(int ifa1 = 0; ifa1 < 4; ifa1++){
+      INCVDEPTH(msh.param);
 
       int i1 = msh.tet2poi(ielem,lnofa3[ifa1][0]);
       int i2 = msh.tet2poi(ielem,lnofa3[ifa1][1]);

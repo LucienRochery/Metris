@@ -326,6 +326,9 @@ int insertEdge(Mesh<MFT>& msh,
   bar1 = bar1_opt;
   CPRINTF1(" - end bisection using bar1 = %f\n",bar1);
 
+  int ncave0, ncavf0, ncavt0;
+  int ncave1, ncavf1, ncavt1;
+  int ncave2, ncavf2, ncavt2;
   ncavcorr = 0;
   ierro = 0;
   do{
@@ -350,11 +353,17 @@ int insertEdge(Mesh<MFT>& msh,
         }
       }
 
-      ierro = increase_cavity_Delaunay(msh, cav, ithrd1);
+      ncave0 = cav.lcedg.get_n();
+      ncavf0 = cav.lcfac.get_n();
+      ncavt0 = cav.lctet.get_n();
+      ierro = increase_cavity_Delaunay(msh, cav, -1, ithrd1);
       if(ierro != 0){
         CPRINTF1(" - +del error %d\n",ierro);
         ierro = INS2D_ERR_INCCAV2D;
       }
+      ncave1 = cav.lcedg.get_n();
+      ncavf1 = cav.lcfac.get_n();
+      ncavt1 = cav.lctet.get_n();
 
 
       //static int nwarnprt = 0;
@@ -364,6 +373,9 @@ int insertEdge(Mesh<MFT>& msh,
         CPRINTF1(" - +cav error %d\n",ierro);
         ierro = INS2D_ERR_INCCAV2D;
       }
+      ncave2 = cav.lcedg.get_n();
+      ncavf2 = cav.lcfac.get_n();
+      ncavt2 = cav.lctet.get_n();
       CPRINTF1(" - +cav nedge %d nface %d nelem %d\n",
                cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
       if(DOPRINTS2()){
@@ -455,7 +467,7 @@ restart_cavity:
       ierro = INS2D_ERR_MOVEPT;
       goto cleanup;
     }
-    ierro = increase_cavity_Delaunay(msh, cav, ithrd1);
+    ierro = increase_cavity_Delaunay(msh, cav, -1, ithrd1);
     if(ierro != 0){
       CPRINTF1(" - +cav error %d\n",ierro);
       ierro = INS2D_ERR_INCCAV2D;
@@ -506,6 +518,27 @@ restart_cavity:
   }
 
   cleanup:
+  if(ierro > 0){
+    printf("## DEBUG seed %d %d %d cav0: %d %d %d cav1: %d %d %d cav2: %d %d %d\n", 
+           nced0, ncfa0, ncte0,
+           ncave0, ncavf0, ncavt0, 
+           ncave1, ncavf1, ncavt1, 
+           ncave2, ncavf2, ncavt2
+           );
+    for(int ngrow = 0; ngrow <= 5; ngrow++){
+      cav.lcedg.set_n(nced0);
+      cav.lcfac.set_n(ncfa0);
+      cav.lctet.set_n(ncte0);
+      ierro = increase_cavity_Delaunay(msh, cav, ngrow, ithrd1);
+      ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
+      int ncave3 = cav.lcedg.get_n();
+      int ncavf3 = cav.lcfac.get_n();
+      int ncavt3 = cav.lctet.get_n();
+      printf("  %d del = %d %d %d\n", ngrow,
+             ncave3, ncavf3, ncavt3
+             );
+    }
+  }
   msh.killpoint(cav.ipins);
   #if 0
   if(ierro != INS2D_ERR_CAVITYOPERATOR && DOPRINTS1()){

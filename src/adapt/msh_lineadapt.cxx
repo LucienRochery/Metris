@@ -170,7 +170,7 @@ void adaptGeoLines(Mesh<MFT> &msh){
     }
 
 
-    double result[18],  sz[2], len, nrmal[3];
+    double result[18],  sz[2], len;
     // Loop over CAD edges and remesh each one 
     for(int iCADed = 0; iCADed < nchild; iCADed++){
       INCVDEPTH(msh.param)
@@ -436,10 +436,7 @@ void adaptGeoLines(Mesh<MFT> &msh){
           // Proceed to insertion We have our ipins, edge cavity also. Now extend
           // triangle cavity from edg2fac seeds
 
-          if(msh.idim >= 3 && iface >= 0){
-            getnorfacP1(msh.fac2poi[iface],msh.coord,nrmal);
-          }
-          ierro = increase_cavity_Delaunay(msh, cav, ithrd1, nrmal);
+          ierro = increase_cavity_Delaunay(msh, cav, ithrd1, -1);
           if(ierro != 0) goto cleanup1;
  
           ierro = increase_cavity_validity(msh,cav,ithrd1);

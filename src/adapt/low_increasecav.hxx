@@ -36,7 +36,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread);
 // normal is only necessary if dimension 3 and cavity has faces
 template<class MFT>
 int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, 
-                             int ithread, double *nrmal = NULL);
+                             int ngrow, int ithread);
 
 // Increase cavity to avoid short edges (add pts to collapse)
 // return nprem ++points to collapse

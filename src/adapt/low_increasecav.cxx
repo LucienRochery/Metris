@@ -732,7 +732,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
 // Normal only needed in 3D case if cavity has faces
 template<class MFT>
 int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, 
-                             int ithread, [[maybe_unused]] double *nrmal){
+                             int ngrow, int ithread){
 
   GETVDEPTH(msh.param);
 
@@ -805,91 +805,101 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav,
     metl_p = msh.met[cav.ipins];
   }
 
-  for(int ii = 0; ii < lcent.get_n(); ii++){
-    int ientt = lcent[ii];
-    for(int jj = 0; jj < tdim + 1; jj++){
-      int ienei = ent2ent(ientt,jj);
-      if(ienei < 0) continue; // Non manifold skip
 
-      if(ent2tag(ithread,ienei) >= msh.tag[ithread]){
-        CPRINTF1("   - ienei = %d is tagged %d >= %d\n",
-                 ienei,ent2tag(ithread,ienei),msh.tag[ithread]);
-        continue;
-      }
+  int icen0 = 0, icen1 = lcent.get_n();
+  for(int igrow = 0; igrow < ngrow || ngrow < 0; igrow++){
 
-      int isube = -1;
-      if(tdim == 2){
-        int iref2 = msh.fac2ref[ienei];
-        if(msh.cfa2tag(ithread,iref2) < msh.tag[ithread] && msh.isboundary_faces()){
-          CPRINTF1("   - ienei = %d is wrong bdry ref %d\n",ienei,iref2);
+    for(int icent = icen0; icent < icen1; icent++){
+      int ientt = lcent[icent];
+      for(int jj = 0; jj < tdim + 1; jj++){
+        int ienei = ent2ent(ientt,jj);
+        if(ienei < 0) continue; // Non manifold skip
+
+        if(ent2tag(ithread,ienei) >= msh.tag[ithread]){
+          CPRINTF1("   - ienei = %d is tagged %d >= %d\n",
+                   ienei,ent2tag(ithread,ienei),msh.tag[ithread]);
           continue;
         }
-        int isube = msh.fac2edg(ientt,jj);
-        if(isube >= 0){
-          if(msh.edg2tag(ithread,isube) >= msh.tag[ithread]){
-            CPRINTF1("   - iface %d -> iedge %d is tagged, skip\n",ientt,isube);
-            continue;
-          }
-          int iref1 = msh.edg2ref[isube];
-          if(msh.ced2tag(ithread,iref1) < msh.tag[ithread] && msh.isboundary_edges()){
-            CPRINTF1("   - iface %d -> iedge %d is wrong bdry ref %d\n",ienei,isube,iref1);
-            continue;
-          }
-        }
-      }else{
-        if(msh.tet2ref[ienei] != msh.tet2ref[ientt]){
-          CPRINTF1("   - ienei %d ref = %d != ientt %d ref %d -> skip\n",
-                   ienei,msh.tet2ref[ienei],ientt,msh.tet2ref[ientt]);
-        }
-        int isube = msh.tet2fac(ientt,jj);
-        if(isube >= 0){
-          if(msh.fac2tag(ithread,isube) >= msh.tag[ithread]){
-            CPRINTF1("   - itetr %d -> iface %d is tagged, skip\n",ientt,isube);
-            continue;
-          }
-          int iref1 = msh.fac2ref[isube];
-          if(msh.ced2tag(ithread,iref1) < msh.tag[ithread]){
-            CPRINTF1("   - itetr %d -> iface %d is wrong bdry ref %d\n",ienei,isube,iref1);
-            continue;
-          }
-        }
-      }
 
-      ent2tag(ithread,ienei) = msh.tag[ithread];
-
-      bool isinsph;
-      if(tdim == 2){
-        if(msh.idim == 2){
-          isinsph = indelsphere<2,2>(msh, msh.coord[cav.ipins], metl_p, 
-                                     ent2poi[ienei]);
+        int isube = -1;
+        if(tdim == 2){
+          int iref2 = msh.fac2ref[ienei];
+          if(msh.cfa2tag(ithread,iref2) < msh.tag[ithread] && msh.isboundary_faces()){
+            CPRINTF1("   - ienei = %d is wrong bdry ref %d\n",ienei,iref2);
+            continue;
+          }
+          int isube = msh.fac2edg(ientt,jj);
+          if(isube >= 0){
+            if(msh.edg2tag(ithread,isube) >= msh.tag[ithread]){
+              CPRINTF1("   - iface %d -> iedge %d is tagged, skip\n",ientt,isube);
+              continue;
+            }
+            int iref1 = msh.edg2ref[isube];
+            if(msh.ced2tag(ithread,iref1) < msh.tag[ithread] && msh.isboundary_edges()){
+              CPRINTF1("   - iface %d -> iedge %d is wrong bdry ref %d\n",ienei,isube,iref1);
+              continue;
+            }
+          }
         }else{
-          isinsph = indelsphere<3,2>(msh, msh.coord[cav.ipins], metl_p, 
+          if(msh.tet2ref[ienei] != msh.tet2ref[ientt]){
+            CPRINTF1("   - ienei %d ref = %d != ientt %d ref %d -> skip\n",
+                     ienei,msh.tet2ref[ienei],ientt,msh.tet2ref[ientt]);
+          }
+          int isube = msh.tet2fac(ientt,jj);
+          if(isube >= 0){
+            if(msh.fac2tag(ithread,isube) >= msh.tag[ithread]){
+              CPRINTF1("   - itetr %d -> iface %d is tagged, skip\n",ientt,isube);
+              continue;
+            }
+            int iref1 = msh.fac2ref[isube];
+            if(msh.ced2tag(ithread,iref1) < msh.tag[ithread]){
+              CPRINTF1("   - itetr %d -> iface %d is wrong bdry ref %d\n",ienei,isube,iref1);
+              continue;
+            }
+          }
+        }
+
+        ent2tag(ithread,ienei) = msh.tag[ithread];
+
+        bool isinsph;
+        if(tdim == 2){
+          if(msh.idim == 2){
+            isinsph = indelsphere<2,2>(msh, msh.coord[cav.ipins], metl_p, 
+                                       ent2poi[ienei]);
+          }else{
+            isinsph = indelsphere<3,2>(msh, msh.coord[cav.ipins], metl_p, 
+                                       ent2poi[ienei]);
+          }
+        }else{
+          isinsph = indelsphere<3,3>(msh, msh.coord[cav.ipins], metl_p, 
                                      ent2poi[ienei]);
         }
-      }else{
-        isinsph = indelsphere<3,3>(msh, msh.coord[cav.ipins], metl_p, 
-                                   ent2poi[ienei]);
-      }
-      if(isinsph){
-        lcent.stack(ienei);
-        if(isube >= 0){
-          sub2tag(ithread,isube) = msh.tag[ithread];
-          lcsub.stack(isube);
+        if(isinsph){
+          lcent.stack(ienei);
+          if(isube >= 0){
+            sub2tag(ithread,isube) = msh.tag[ithread];
+            lcsub.stack(isube);
+          }
         }
-      }
-      
-    }// for j = 0,tdim
-  }
+        
+      }// for j = 0,tdim
+    }// for icent
 
+
+    icen0 = icen1;
+    icen1 = lcent.get_n();
+    CPRINTF1(" - del grow %d / %d + %d ent\n",igrow,ngrow,icen1-icen0);
+    if(icen1 == icen0) break;
+  }// for igrow
   //}// for tdim
 
   return 0;
 }
 
 template int increase_cavity_Delaunay(MeshMetric<MetricFieldAnalytical> &msh, 
-                                      MshCavity &cav, int ithread, double *nrmal);
+                                      MshCavity &cav, int ngrow, int ithread);
 template int increase_cavity_Delaunay(MeshMetric<MetricFieldFE        > &msh, 
-                                      MshCavity &cav, int ithread, double *nrmal);
+                                      MshCavity &cav, int ngrow, int ithread);
 
 
 
