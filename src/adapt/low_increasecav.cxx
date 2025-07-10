@@ -22,8 +22,129 @@
 namespace Metris{
 
 
-// Increase for validity and Delaunay (if idelaunay == true) both. 
+// Check if any removed points; only those > 1/sqrt(2) from ipins if chklen
+// This can possibly be reworked to be faster, for now we check everything every
+// time, even though this is called in iterative cavity building.
+template<class MFT>
+void check_cavity_rempoint(MeshMetric<MFT> &msh, MshCavity &cav, const CavOprOpt &opts,
+                           intAr1 &lrempoi, bool chklen, int ithrd1){
+  GETVDEPTH(msh.param);
 
+  if(opts.allow_remove_points) return;
+
+  lrempoi.set_n(0);
+
+  for(int ientt : cav.lcedg) msh.edg2tag(ithrd1,ientt) = msh.tag[ithrd1];
+  for(int ientt : cav.lcfac) msh.fac2tag(ithrd1,ientt) = msh.tag[ithrd1];
+  for(int ientt : cav.lctet) msh.tet2tag(ithrd1,ientt) = msh.tag[ithrd1];
+
+  // Points to be removed are those that are surrounded by only cavity elements.
+  // Hence, loop over cavity elements and tag any points that belong to a 
+  // non-cavity neighbour. 
+  // Lastly, count untagged vertices. 
+
+  // If it belongs to any lower dim elements, that should be in the cavity. 
+  // It suffice there is one, as if it doesnt belong to all, it would be tagged. 
+
+  int tdimn = cav.lctet.get_n() > 0 ? 3 
+            : cav.lcfac.get_n() > 0 ? 2 
+                                    : 1;
+  const intAr1&  lcent = cav.lcent(tdimn);
+  const intAr2&  ent2ent = msh.ent2ent(tdimn);
+  const intAr2&  ent2poi = msh.ent2poi(tdimn);
+  const intAr2r& ent2tag = msh.ent2tag(tdimn);
+
+  // ipins should always be seeded with a newbpotopo if it is going to be bdry
+  const int pdim_ipins = msh.getpoitdim(cav.ipins);
+  METRIS_ASSERT_MSG(pdim_ipins >= 0 && pdim_ipins <= msh.get_tdim(),
+                    "pdim_ipins = "<<pdim_ipins);
+
+  // Tag points that won't be deleted: there is at least one elt outside
+  // the cavity that has the point. 
+  for(int ientt : lcent){
+    for(int ii = 0; ii < tdimn + 1; ii++){
+      int ipoin = ent2poi(ientt,ii);
+      // Cycle neighbours that have ii (i.e. all but ii-th neighbour)
+      for(int jj = 0; jj < tdimn + 1; jj++){
+        if(jj == ii) continue;
+        int ient2 = ent2ent(ientt,jj);
+        if(ient2 < 0) continue;
+        // Tag point if the adjacent element is not in the cavity 
+        // This point is not set to be deleted. 
+        if(ent2tag(ithrd1,ient2) < msh.tag[ithrd1]){
+          msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1];
+          CPRINTF2("  - not rem point %d \n", ipoin);
+        }
+      }
+    }
+  }
+
+  // Go over elements, counting vertices that have not been tagged.
+  for(int ientt : lcent){
+    for(int ii = 0; ii < tdimn + 1; ii++){
+      int ipoin = ent2poi(ientt,ii);
+      if(ipoin == cav.ipins) continue;
+      if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
+      CPRINTF2("  - rem pt ? %d \n", ipoin);
+
+      // Check the point dimension wrt to option allow_remove_points_superdim
+      int pdim = msh.getpoitdim(ipoin);
+      if(pdim > pdim_ipins && opts.allow_remove_points_superdim){
+        CPRINTF1(" - point dim %d > %d = dim(ipins) " 
+                 "with allow_remove_points_superdim, skip check\n",
+                 pdim, pdim_ipins);
+        continue;
+      }
+
+      // point going to be deleted, but only if any existing lower dim entities
+      // are also in the cavity. 
+      if(tdimn == 3){
+        // If there is a face attached, check it is in the cavity.
+        int iface = getpoifac(msh, ipoin);
+        // If not, this point won't be removed. Continue. 
+        if(iface >= 0 && msh.fac2tag(ithrd1,iface) < msh.tag[ithrd1]) continue;
+      } 
+
+      if(tdimn >= 2){
+        // If there is an edge attached, check it is in the cavity.
+        int iedge = getpoiedg(msh,ipoin);
+        // If not, this point won't be removed. Continue. 
+        if(iedge >= 0 && msh.edg2tag(ithrd1,iedge) < msh.tag[ithrd1]) continue;
+      }
+
+      // If we're here, that means that there are either no attached lower dim
+      // or there are and they are all in the cavity; indeed, assume there exist
+      // at least one, and at least one not in the cav. Then the point is not
+      // tagged. Then we wouldn't be here. 
+
+      CPRINTF1(" ## point %d will be removed \n",ipoin);
+      // tag point so we don't check for it again
+      msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1];
+      if(chklen){
+        int edg2pol[2] = {cav.ipins, ipoin};
+        double sz[2];
+        double len = msh.idim == 2 ? getlenedg_geosz<MFT,2,1>(msh,edg2pol,sz)
+                                   : getlenedg_geosz<MFT,3,1>(msh,edg2pol,sz);
+        CPRINTF1(" -> found len = %e >? 1/sqrt(2): %d\n",len,len*sqrt(2) > 1);
+        if(len > 1.0/sqrt(2)) lrempoi.stack(ipoin);
+      }else{
+        lrempoi.stack(ipoin);
+      }
+    }
+  }
+
+  return;
+}
+
+template void check_cavity_rempoint<MetricFieldAnalytical>
+  (MeshMetric<MetricFieldAnalytical> &msh, MshCavity &cav, const CavOprOpt &opts,
+   intAr1 &lrempoi, bool chklen, int ithrd1);
+template void check_cavity_rempoint<MetricFieldFE        >
+  (MeshMetric<MetricFieldFE        > &msh, MshCavity &cav, const CavOprOpt &opts,
+   intAr1 &lrempoi, bool chklen, int ithrd1);
+
+
+// Increase for validity and Delaunay (if idelaunay == true) both. 
 template<class MFT>
 int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav, 
                     bool idelaunay, int ithrd1, int ithrd2){

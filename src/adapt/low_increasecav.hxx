@@ -7,7 +7,7 @@
 #define __METRIS_LOW_INCREASECAV__
 
 #include "../Mesh/MeshFwd.hxx"
-
+#include "../types_arrays.hxx"
 
 /*
 Cavity extension routines:
@@ -23,6 +23,13 @@ namespace Metris{
 
 class MshCavity;
 struct CavOprOpt;
+
+// Check if any removed points; only those > 1/sqrt(2) from ipins if chklen
+// This can possibly be reworked to be faster, for now we check everything every
+// time, even though this is called in iterative cavity building.
+template<class MFT>
+void check_cavity_rempoint(MeshMetric<MFT> &msh, MshCavity &cav, const CavOprOpt &opts,
+                           intAr1 &lrempoi, bool chklen, int ithrd1);
 
 // Increase for validity and Delaunay (if idelaunay == true) both. 
 template<class MFT>

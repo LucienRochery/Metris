@@ -251,8 +251,8 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2, int 
       msh.met.writeMetricFile("insert"+std::to_string(niter));
     }
 
-    printf("## WAIT HERE \n");
-    wait();
+    //printf("## WAIT HERE \n");
+    //wait();
 
     //int nswap;
     //if(msh.idim == 2) swapMesh<MFT,2,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrd1, ithrd2, ithrd3);
