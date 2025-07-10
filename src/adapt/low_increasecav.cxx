@@ -30,8 +30,6 @@ void check_cavity_rempoint(MeshMetric<MFT> &msh, MshCavity &cav, const CavOprOpt
                            intAr1 &lrempoi, bool chklen, int ithrd1){
   GETVDEPTH(msh.param);
 
-  if(opts.allow_remove_points) return;
-
   lrempoi.set_n(0);
 
   for(int ientt : cav.lcedg) msh.edg2tag(ithrd1,ientt) = msh.tag[ithrd1];

@@ -117,8 +117,6 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
       int ipoi1 = ent2poi(ientt, lnoed[ied][0]);
       int ipoi2 = ent2poi(ientt, lnoed[ied][1]);
 
-      CPRINTF1(" - debug check ientt %d ied %d\n",ientt,ied);
-
       // In this case, we haven't added to nocomp
       // Also seize opportunity to tag the points
       if(tdim == 2){

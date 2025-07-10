@@ -57,7 +57,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
   const double isvolsmall = sqrt(3)/2 / 10;
 
   const int merror = CAV_ERR_NERROR;
-  intAr1 lerror(merror);
+  intAr1 lerro1(merror), lerro2(merror);
 
   msh.met.setSpace(MetSpace::Exp);
 
@@ -67,7 +67,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
   CPRINTF2("-- START collapseShortEdges miter = %d \n",miter);
 
-  int ncoll1 = 0, ncoll2 = 0, ncoll3 = 0;
+  int ncoll1 = 0, ncoll2 = 0;
   *ncoll = 0;
 
   msh.tag[ithrd1]++;
@@ -93,11 +93,12 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
     
 
 
-    int nerro1 = 0, nerro2 = 0, nerro3 = 0;
+    int nerro1 = 0, nerro2 = 0;
     int nedgt = 0;
-    ncoll1 = ncoll2 = ncoll3 = 0;
+    ncoll1 = ncoll2 = 0;
     int nent0 = msh.nentt(tdim);
-    lerror.fill(0);
+    lerro1.fill(0);
+    lerro2.fill(0);
 
     double minl = 1.0e30;
     double maxl = -1.0;
@@ -162,7 +163,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
         int pdim = msh.getpoitdim(ipcol);
         if(pdim == 0) continue;
 
-        ierro = collapseVertex(msh, ipcol, qmax_suf, cav, work, lerror, ithrd2, ithrd3);
+        ierro = collapseVertex(msh, ipcol, qmax_suf, cav, work, lerro2, ithrd2, ithrd3);
         if(ierro > 0){
           nerro2 ++;
         }else{
@@ -219,7 +220,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
         }
 
         int nent00 = msh.nentt(tdim);
-        ierro = collapseEdge(msh, tdim, ientt, ied, qmax_suf, cav, work, lerror, ithrd2, ithrd3, ithrd4);
+        ierro = collapseEdge(msh, tdim, ientt, ied, qmax_suf, cav, work, lerro1, ithrd2, ithrd3, ithrd4);
 
 
         if(ierro > 0){
@@ -245,15 +246,22 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
     double t1 = get_wall_time();
     int ncallps = 1000*(int)(((ncoll1+ncoll2) / (t1-t0)) / 1000);
-    CPRINTF2(" - Loop end t = %f ncoll1 = %d ncoll2 = %d ncoll3 = %d tot =  %d /s; nerro1 %d nerro2 %d nerro3 %d\n",
-      t1-t0,ncoll1,ncoll2,ncoll3,ncallps,nerro1,nerro2,nerro3);
+    CPRINTF2(" - Loop end t = %f ncoll1 = %d ncoll2 = %d tot =  %d /s; nerro1 %d nerro2 %d\n",
+      t1-t0,ncoll1,ncoll2,ncallps,nerro1,nerro2);
     CPRINTF2(" %f < len < %f \n",minl,maxl);
     if(DOPRINTS2()){
-      if(nerro1 + nerro2 + nerro3 > 0){
-        CPRINTF2(" - ierro list:\n");
+      if(nerro1 > 0){
+        CPRINTF2(" - ierro list short edge:\n");
         for(int ii = 0; ii < merror; ii++){
-          if(lerror[ii] == 0) continue;
-          CPRINTF2(" ierro = %d : %d \n",ii+1,lerror[ii]);
+          if(lerro1[ii] == 0) continue;
+          CPRINTF2(" ierro = %d : %d \n",ii+1,lerro1[ii]);
+        }
+      }
+      if(nerro2 > 0){
+        CPRINTF2(" - ierro list low height bdry:\n");
+        for(int ii = 0; ii < merror; ii++){
+          if(lerro2[ii] == 0) continue;
+          CPRINTF2(" ierro = %d : %d \n",ii+1,lerro2[ii]);
         }
       }
     }

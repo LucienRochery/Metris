@@ -163,6 +163,7 @@ void MetrisRunner::adaptMesh0(){
       getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
       CPRINTF1(" - Length qua short = %e\n",lenstat.qua_short);
       CPRINTF1(" -            long  = %e\n",lenstat.qua_long);
+      if(DOPRINTS3()) print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
 
       getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                          &iinva,&qmin,&qmax,&qavg,&lquae);
@@ -197,6 +198,7 @@ void MetrisRunner::adaptMesh0(){
         getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
         CPRINTF1(" - Length qua short = %e\n",lenstat.qua_short);
         CPRINTF1(" -            long  = %e\n",lenstat.qua_long);
+        if(DOPRINTS3()) print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
         getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                            &iinva,&qmin,&qmax,&qavg,&lquae);
         CPRINTF2(" - Quality min = %15.7e \n",qmin);
@@ -236,6 +238,7 @@ void MetrisRunner::adaptMesh0(){
       getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
       CPRINTF1(" - Length qua short = %e\n",lenstat.qua_short);
       CPRINTF1(" -            long  = %e\n",lenstat.qua_long);
+      if(DOPRINTS3()) print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
       CPRINTF2("------------------------------------------------------------\n");
       CPRINTF2("- iteration %d insertions stat = %f time = %f \n",niter,stat,t1-t0);
       CPRINTF2("------------------------------------------------------------\n");

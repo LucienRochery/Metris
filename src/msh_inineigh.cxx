@@ -433,6 +433,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
     INCVDEPTH(msh.param);
 
     for(int ied1 = 0; ied1 < 3; ied1++){
+      INCVDEPTH(msh.param);
       int i1 = msh.fac2poi(iface,lnoed2[ied1][0]);
       int i2 = msh.fac2poi(iface,lnoed2[ied1][1]);
       auto key = stup2(i1,i2);
@@ -538,11 +539,11 @@ void iniMeshNeighbours3D(MeshBase &msh){
   for(int iedge = 0; iedge < msh.nedge; iedge++){
     if(isdeadent(iedge,msh.edg2poi)) continue;
     INCVDEPTH(msh.param);
-    CPRINTF3(" - iedge %d vertices %d %d \n",iedge, msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
 
     for(int ive1 = 0; ive1 < 2; ive1++){
+      INCVDEPTH(msh.param);
       int ip = msh.edg2poi(iedge,ive1);
-      CPRINTF3("  ive1 = %d ip = %d \n",ive1,ip);
+      CPRINTF3(" - iedge %d ive1 = %d ip = %d \n",iedge,ive1,ip);
 
       int iedge2 = msh.poi2tag(0,ip); 
       CPRINTF3("  iedge2 = %d \n",iedge2);

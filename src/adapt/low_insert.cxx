@@ -41,9 +41,12 @@ int insertEdge(Mesh<MFT>& msh,
   //if(icollapse){
   //  printf("## DEBUG SET MAX PRINTS \n");
   //  writeMesh("debug",msh);
-  //  //wait();
   //  msh.param->iverb  = 5;
   //  msh.param->ivdepth= 5;
+  //  if(lerro[19] > 0){
+  //    printf("## DEBUG START WITH LERRO[19] = %d \n",lerro[19]);
+  //    wait();
+  //  }
   //}
 
   GETVDEPTH(msh.param);
@@ -69,7 +72,8 @@ int insertEdge(Mesh<MFT>& msh,
   opts.allow_topological_correction = true;
   opts.skip_topo_checks = false;
   opts.dryrun = false;
-  opts.allow_remove_points = icollapse; 
+  //opts.allow_remove_points = icollapse; 
+  opts.allow_remove_points = true; 
   opts.allow_remove_points_superdim = true; // For boundary
   opts.qmax_nec = -1;
   opts.qmax_suf = -1;
@@ -120,7 +124,7 @@ int insertEdge(Mesh<MFT>& msh,
   }
   #endif  
 
-  
+
   int nced0 = cav.lcedg.get_n();
   int ncfa0 = cav.lcfac.get_n();
   int ncte0 = cav.lctet.get_n();
@@ -332,6 +336,7 @@ int insertEdge(Mesh<MFT>& msh,
 
 
   if(icollapse){
+    ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
     ierro = collrejcav_lenqua(msh, cav, false, false, false, -1, nocomp, ithrd2);
     if(ierro > 0){
       ierro = INS2D_ERR_SHORTEDG;
@@ -347,6 +352,7 @@ int insertEdge(Mesh<MFT>& msh,
         CPRINTF1(" - Failed to move point in insertEdge\n");
         goto cleanup;
       }
+      ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
       ierro = collrejcav_lenqua(msh, cav, false, false, false, -1, nocomp, ithrd2);
       if(ierro > 0){
         CPRINTF1(" # collrejcav_lenqua rejects cavity after fix\n");
@@ -384,6 +390,11 @@ int insertEdge(Mesh<MFT>& msh,
     //  }
     //}
 
+    //nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
+    //CPRINTF1(" - +remp nedge %d nface %d nelem %d\n",
+    //         cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
+    //if(DOPRINTS2()) writeMeshCavity("insert_cavity1."+std::to_string(ngrow),msh,cav);
+
     // -- 1 step Delaunay increase
     ierro = increase_cavity_Delaunay(msh, cav, 1, ithrd1);
     if(ierro != 0){
@@ -393,9 +404,7 @@ int insertEdge(Mesh<MFT>& msh,
     }
     CPRINTF1(" - +del nedge %d nface %d nelem %d\n",
              cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
-    if(DOPRINTS2())
-      writeMeshCavity("insert_cavity1."+std::to_string(ngrow), 
-                                  msh,cav);
+    if(DOPRINTS2()) writeMeshCavity("insert_cavity2."+std::to_string(ngrow),msh,cav);
 
 
     // -- increase for validity
@@ -407,9 +416,7 @@ int insertEdge(Mesh<MFT>& msh,
     }
     CPRINTF1(" - +cav nedge %d nface %d nelem %d\n",
              cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
-    if(DOPRINTS2())
-      writeMeshCavity("insert_cavity2."+std::to_string(ngrow), 
-                                  msh,cav);
+    if(DOPRINTS2()) writeMeshCavity("insert_cavity3."+std::to_string(ngrow),msh,cav);
  
     //ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
     //if(ierro > 0){
@@ -496,6 +503,14 @@ int insertEdge(Mesh<MFT>& msh,
 
   if(ierro > 0) goto cleanup;
 
+  //ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
+  //if(ierro > 0){
+  //  ierro = INS2D_ERR_SHORTEDG;
+  //  CPRINTF1(" # collrejcav_lenqua rejects cavity, try fix\n");
+  //  CPRINTF1(" # reject cavity\n");
+  //  goto cleanup;
+  //}
+
 
 call_cavity:
 
@@ -507,6 +522,19 @@ restart_cavity:
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
     ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd1);
   }}CT_FOR1(ideg);
+
+  if(DOPRINTS1()){
+    msh.param->iverb = iverb0;
+    msh.param->ivdepth = ivdepth0;
+    printf("## END OF OPERATION after cavity_operator wait\n");
+    printf("lerro:");
+    lerro.print();
+    wait();
+    if(ierro > 0){
+      printf("Error %d wait \n",ierro);
+      wait();
+    }
+  }
 
   if(ierro == CAV_ERR_REMPT && !irestart_cav && !imoved_point){
     cav.lcedg.set_n(nced0);
@@ -536,25 +564,6 @@ restart_cavity:
     goto restart_cavity;
   }
 
-  #if 0
-  if(ierro == CAV_ERR_REMPT && irestart_cav && ncfa0 == 0){
-    printf("## DEBUG DESPITE RESTART CAVITY DOES NOT WORK\n");
-    writeMeshCavity("insert_cavity_fail1.meshb", 
-                                    msh,cav);
-    cav.lcedg.set_n(nced0);
-    cav.lcfac.set_n(ncfa0);
-    cav.lctet.set_n(ncte0);
-    writeMeshCavity("insert_cavity_fail0.meshb", 
-                                    msh,cav);
-
-    int ierr2 = aux_movePointCav(msh, cav, tdimp, iseed, iref, algnd);
-    writeMeshCavity("insert_cavity_fail_move0.meshb", 
-                                    msh,cav);
-
-    wait();
-  }
-  #endif
-
   if(ierro > 0) lerro[ierro-1]++;
 
   if(ierro != 0) ierro = INS2D_ERR_CAVITYOPERATOR;
@@ -572,76 +581,13 @@ restart_cavity:
 
   cleanup:
   msh.killpoint(cav.ipins);
-  #if 0
-  if(ierro != INS2D_ERR_CAVITYOPERATOR && DOPRINTS1()){
-    printf("## DEBUG WAIT HERE ierro = %d\n",ierro);
-    msh.param->iverb = 0;
-    msh.param->ivdepth = 0;
-    if(ierro == INS2D_ERR_SHORTEDG){
-      printf("Debug try many barys and compute length:\n");
-      int edg2pol[2] = {ip1, ip2};
-      int edg2po2[2] = {cav.ipins, -1};
-      for(int itry = 0; itry < 20; itry++){
-        bar1 = (itry + 1.0) / 21;
-        if(itry == 19) bar1 = 1 - 0.547745;
-        double bar2[2] = {bar1, 1 - bar1};
-        METRIS_ENFORCE(msh.idim == 3);
-        METRIS_ENFORCE(msh.curdeg == 1);
-        eval1<3,1>(msh.coord, edg2pol, msh.getBasis(), 
-                         DifVar::None, DifVar::None, 
-                         bar2, msh.coord[cav.ipins], NULL, NULL);
-        ierro = msh.interpMetBack(cav.ipins,tdimp,iseed,iref,algnd);
-        METRIS_ENFORCE(ierro == 0);
-
-        edg2po2[1] = ip1;
-        double sz[2];
-        double len1 = getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
-        edg2po2[1] = ip2;
-        double len2 = getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
-
-        printf("bar1 = %e lens = %e %e valid %d %d \n",bar1,len1,len2,
-          len1 > 1/sqrt(2), len2 > 1/sqrt(2));
-      }
-
-      // Try a bisection search, figure out number of iterations necessary
-      printf("-- bissection\n");
-      double bar1_min = 1.0e-6, bar1_max = 1 - 1.0e-6;
-      for(int itry = 0; itry < 20; itry++){
-        bar1 = (bar1_min + bar1_max)/2;
-        double bar2[2] = {bar1, 1 - bar1};
-        METRIS_ENFORCE(msh.idim == 3);
-        METRIS_ENFORCE(msh.curdeg == 1);
-        eval1<3,1>(msh.coord, edg2pol, msh.getBasis(), 
-                         DifVar::None, DifVar::None, 
-                         bar2, msh.coord[cav.ipins], NULL, NULL);
-        ierro = msh.interpMetBack(cav.ipins,tdimp,iseed,iref,algnd);
-        METRIS_ENFORCE(ierro == 0);
-
-        edg2po2[1] = ip1;
-        double sz[2];
-        double len1 = getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
-        edg2po2[1] = ip2;
-        double len2 = getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
-
-        printf("bar1 = %e lens = %e %e valid %d %d \n",bar1,len1,len2,
-          len1 > 1/sqrt(2), len2 > 1/sqrt(2));
-
-        if(len1 <= 1/sqrt(2)){
-          bar1_max = bar1;
-        }else if(len2 <= 1/sqrt(2)){
-          bar1_min = bar1;
-        }
-
-      }
-    }
-    wait();
-  }
-  #endif
   if(DOPRINTS1()){
     msh.param->iverb = iverb0;
     msh.param->ivdepth = ivdepth0;
-    printf("## END OF OPERATION WAIT\n");
-    //wait();
+    printf("## END OF OPERATION WAIT ierro = %d\n",ierro);
+    printf("lerro:");
+    lerro.print();
+    wait();
   }
   return ierro;
 }

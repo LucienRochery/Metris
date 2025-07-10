@@ -146,8 +146,9 @@ doproj:
   // Double full loop is overkill but simplest to write and few involved. 
   int ndelay = 0;
   for(int irep = 0; irep < 2; irep++){
+    INCVDEPTH(msh.param);
     CPRINTF3("\n - proj outer rep %d/2\n",irep+1);
-   for(int ibpoi = nbpo0; ibpoi < msh.nbpoi; ibpoi++){
+    for(int ibpoi = nbpo0; ibpoi < msh.nbpoi; ibpoi++){
       INCVDEPTH(msh.param);
       int ipoin = msh.bpo2ibi(ibpoi,0);
       if(msh.poi2ent(ipoin,0) < 0) continue;
@@ -280,6 +281,7 @@ doproj:
   intAr1 lfacl(100);
   const int nnod2 = msh.nnode(2);
   for(int niter = 0; niter < 100; niter++){
+    INCVDEPTH(msh.param);
     
     int ncorr = 0;
     int nbad = lbad.get_n();
@@ -1134,6 +1136,7 @@ int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
     INCVDEPTH(msh.param);
 		if(isdeadent(iedge,msh.edg2poi)) continue;
 		for(int iver = 0; iver < getnnod1(ideg); iver++){
+      INCVDEPTH(msh.param);
 			int ipoin = msh.edg2poi(iedge,iver);
 			METRIS_ASSERT(ipoin >= 0 && ipoin < msh.npoin);
 			int ibpoi = msh.poi2bpo[ipoin];
@@ -1159,6 +1162,7 @@ int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
       INCVDEPTH(msh.param);
 			if(isdeadent(iface,msh.fac2poi)) continue;
 			for(int iver = 0; iver < getnnod2(ideg); iver++){
+        INCVDEPTH(msh.param);
 				int ipoin = msh.fac2poi(iface,iver);
 				METRIS_ASSERT(ipoin >= 0 && ipoin < msh.npoin);
 				int ibpoi = msh.poi2bpo[ipoin];

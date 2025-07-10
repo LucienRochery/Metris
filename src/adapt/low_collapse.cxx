@@ -44,7 +44,8 @@ int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf,
   int ip2 = ent2poi(ientt,lnoed[iedl][1]);
 
   if(msh.getpoitdim(ip1) != msh.getpoitdim(ip2)){
-    return collapseEdge2(msh, tdim, ientt, iedl, qmax_suf, cav, work, lerro, ithrd1, ithrd2, ithrd3);
+    //return collapseEdge2(msh, tdim, ientt, iedl, qmax_suf, cav, work, lerro, ithrd1, ithrd2, ithrd3);
+    return 0;
   }else{
     return insertEdge(msh, tdim, ientt, iedl, -1, true, cav, work, lerro, ithrd1, ithrd2);
   }

@@ -241,6 +241,7 @@ void MeshBack::initialize(MetrisAPI *data,
   if(this->CAD()){
 
     for(int tdim = 1; tdim <= 2; tdim++){
+      INCVDEPTH(this->param);
 
       if(tdim == 1 && !isboundary_edges()){
         CPRINTF1("-- Skipping edges: not linked to CAD\n");

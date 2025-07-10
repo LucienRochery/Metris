@@ -163,6 +163,7 @@ void MeshBase::initialize(MetrisAPI *data,
   // This is the same as saying the 1 -> 2 tangent's orthogonal in the 
   // clockwise direction is outgoing  
   if(idim == 2){
+    INCVDEPTH(this->param);
 
     for(int iedge = 0; iedge < nedge; iedge++){
       INCVDEPTH(this->param);
@@ -234,6 +235,8 @@ void MeshBase::initialize(MetrisAPI *data,
     }
 
   }else if(CAD()){ // dim == 3
+
+    INCVDEPTH(this->param);
 
     // Orient faces in 3D
     // The "natural" normal getnorfacP1 should be pointing outwards. 

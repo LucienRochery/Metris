@@ -247,11 +247,11 @@ int correct_cavity0(Mesh<MFT> &msh,
         double meas = getmeasentP1<gdim,tdim>(msh, ent2poi[ientt], nrmal, &iflat);
         if(DOPRINTS1()){
           if constexpr (tdim == 2){
-            CPRINTF1(" - %d tdim %d ientt %d meas %f iflat %d using normal ",
+            CPRINTF1(" - %d tdim %d ientt %d meas %e iflat %d using normal ",
                      ientt-nent0,tdim,ientt,meas,iflat);
             dblAr1(gdim,nrmal).print();
           }else{
-            CPRINTF1(" - %d tdim %d ientt %d meas %f iflat %d\n",
+            CPRINTF1(" - %d tdim %d ientt %d meas %e iflat %d\n",
                      ientt-nent0,tdim,ientt,meas,iflat);
           }
         }
