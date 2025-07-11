@@ -28,13 +28,14 @@ namespace Metris{
 
 // Return 0 if done nothing, 1 if error, -1 if done swap
 // bar1 is t along the edge with 1 if lnoed[iedl][0]
+// ithrdcst tracks constrained points. Only used if >= 0.
 template<class MFT>
 int insertEdge(Mesh<MFT>& msh, 
                int tdim, int ientt, int iedl, 
                double lenqua_short_max, // maximum quality (error) a new short edge can have
                bool icollapse,
                MshCavity &cav, CavWrkArrs &work, 
-               intAr1 &lerro, int ithrd1, int ithrd2){
+               intAr1 &lerro, int ithrdcst, int ithrd1, int ithrd2){
 
   int iverb0   = msh.param->iverb;
   int ivdepth0 = msh.param->ivdepth;
@@ -52,7 +53,9 @@ int insertEdge(Mesh<MFT>& msh,
   GETVDEPTH(msh.param);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
-  METRIS_ASSERT(ithrd1 != ithrd2);
+  METRIS_ASSERT(ithrdcst != ithrd1);
+  METRIS_ASSERT(ithrdcst != ithrd2);
+  METRIS_ASSERT(ithrd1   != ithrd2);
   METRIS_ASSERT(!isdeadent(ientt,msh.ent2poi(tdim)));
 
   const int nedgl = (tdim*(tdim+1))/2;
@@ -198,7 +201,7 @@ int insertEdge(Mesh<MFT>& msh,
   CPRINTF2(" - edg2pol = ");
   if(DOPRINTS2()) intAr1(nnode,edg2pol).print();
 
-
+restart_bisection:
   // Get bar1 s.t. new edges are not short. There can be other short edges, but 
   // not from splitting the parent edge. 
   bool fnd_len = false;
@@ -287,11 +290,13 @@ int insertEdge(Mesh<MFT>& msh,
     double len2 = msh.idim == 2 ? getlenedg_geosz<MFT,2,1>(msh,edg2po2,sz)
                                 : getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
 
-    CPRINTF1(" - %d bar1 = %e lens = %e %e valid %d %d dist %e %e sumlen %e\n",
+    CPRINTF1(" - %d bar1 = %e lens = %e %e valid %d %d (err = %e %e) dist %e %e sumlen %e err to sqrt(2) = %e\n",
               ntry_len,bar1,len1,len2,
               len1 > 1/sqrt(2), len2 > 1/sqrt(2),
+              abs(len1 - 1/sqrt(2)), abs(len2 - 1/sqrt(2)), 
               abs(len1-1), abs(len2-1),
-              len1+len2);
+              len1+len2,
+              abs(sqrt(2) - len1 - len2));
 
     if(len1 > len2){
       // make len1 shorter by increasing bar1 (pulling ipins towards ip1)
@@ -328,7 +333,20 @@ int insertEdge(Mesh<MFT>& msh,
   //}
 
   if(!fnd_len){
-    ierro = INS2D_ERR_SHORTEDG;
+    ierro = INS2D_ERR_BISECTION;
+    // An error here can happen easily in a mesh adapted to a curved metric field,
+    // this does not seem to be cause for alarm. 
+    //if(!DOPRINTS1()){
+    //  printf("## DEBUG BISECTION ERROR RESTART\n");
+    //  iverb__ = msh.param->iverb = 5;
+    //  ivdepth__ = msh.param->ivdepth = 5;
+    //  goto restart_bisection;
+    //}else{
+    //  printf("## WAIT HERE\n");
+    //  msh.param->iverb = iverb0;
+    //  msh.param->ivdepth = ivdepth0;
+    //  wait();
+    //}
     goto cleanup;
   }
   bar1 = bar1_opt;
@@ -362,8 +380,16 @@ int insertEdge(Mesh<MFT>& msh,
     goto call_cavity;
   }
 
-  // This section only if !icollapse
-  do{
+  // -- This section only if !icollapse
+
+  // Check any close constrained points
+  ierro = aux_findCloseConstrained(msh, cav, ithrdcst, ithrd1, ithrd2);
+  if(ierro > 0){
+    ierro = INS2D_ERR_SHORTCSTR;
+    goto cleanup;
+  }
+
+  for(int ngrow = 0; ngrow < mgrow; ngrow++){
 
     // If need to revert elements
     int nced1 = cav.lcedg.get_n();
@@ -390,10 +416,10 @@ int insertEdge(Mesh<MFT>& msh,
     //  }
     //}
 
-    //nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
-    //CPRINTF1(" - +remp nedge %d nface %d nelem %d\n",
-    //         cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
-    //if(DOPRINTS2()) writeMeshCavity("insert_cavity1."+std::to_string(ngrow),msh,cav);
+    nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
+    CPRINTF1(" - +remp nedge %d nface %d nelem %d\n",
+             cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
+    if(DOPRINTS2()) writeMeshCavity("insert_cavity1."+std::to_string(ngrow),msh,cav);
 
     // -- 1 step Delaunay increase
     ierro = increase_cavity_Delaunay(msh, cav, 1, ithrd1);
@@ -439,10 +465,24 @@ int insertEdge(Mesh<MFT>& msh,
 
     finish_grow_step:
     if(ierro > 0){
+      ierro = 0;
       if(lrempoi.get_n() == 0){
-        CPRINTF1(" # Unfixable cavity\n");
-        ierro = INS2D_ERR_MOVEPT;
-        goto cleanup;
+        CPRINTF1(" # Unfixable cavity: reset to: %d edges, %d faces, %d tetra and test\n",
+                 nced1, ncfa1, ncte1);
+        // The cavity can't be fixed to continue iterating. Simply stop it now.
+        cav.lcedg.set_n(nced1);
+        cav.lcfac.set_n(ncfa1);
+        cav.lctet.set_n(ncte1);
+
+        ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
+        if(ierro > 0){
+          ierro = INS2D_ERR_SHORTEDG;
+          CPRINTF1(" # collrejcav_lenqua rejects cavity, reject\n");
+          goto cleanup;
+        }
+
+        ierro = 0;
+        break;
       }
 
       // Now we need to remove all the newly added elements that contain 
@@ -498,18 +538,19 @@ int insertEdge(Mesh<MFT>& msh,
                || cav.lcfac.get_n() > ncfa1 
                || cav.lctet.get_n() > ncte1;
     if(!igrow) break;
+    if(ierro > 0) break;
 
-  }while(ierro > 0 && ngrow++ <= mgrow);
+  }// for ngrow
 
   if(ierro > 0) goto cleanup;
 
-  //ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
-  //if(ierro > 0){
-  //  ierro = INS2D_ERR_SHORTEDG;
-  //  CPRINTF1(" # collrejcav_lenqua rejects cavity, try fix\n");
-  //  CPRINTF1(" # reject cavity\n");
-  //  goto cleanup;
-  //}
+  ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
+  if(ierro > 0){
+    ierro = INS2D_ERR_LENQUA;
+    CPRINTF1(" # collrejcav_lenqua rejects cavity, try fix\n");
+    CPRINTF1(" # reject cavity\n");
+    goto cleanup;
+  }
 
 
 call_cavity:
@@ -584,10 +625,10 @@ restart_cavity:
   if(DOPRINTS1()){
     msh.param->iverb = iverb0;
     msh.param->ivdepth = ivdepth0;
-    printf("## END OF OPERATION WAIT ierro = %d\n",ierro);
-    printf("lerro:");
-    lerro.print();
-    wait();
+    //printf("## END OF OPERATION WAIT ierro = %d\n",ierro);
+    //printf("lerro:");
+    //lerro.print();
+    //wait();
   }
   return ierro;
 }
@@ -598,14 +639,85 @@ template int insertEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh,
                          int tdim, int ientt, int iedl, 
                          double lenqua_short_max, bool icollapse,
                          MshCavity &cav, CavWrkArrs &work, 
-                         intAr1 &lerro, int ithrd1, int ithrd2);
+                         intAr1 &lerro, int ithrdcst, int ithrd1, int ithrd2);
 template int insertEdge<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
                          int tdim, int ientt, int iedl, 
                          double lenqua_short_max, bool icollapse,
                          MshCavity &cav, CavWrkArrs &work, 
-                         intAr1 &lerro, int ithrd1, int ithrd2);
+                         intAr1 &lerro, int ithrdcst, int ithrd1, int ithrd2);
 
 
+
+template<class MFT>
+int aux_findCloseConstrained(Mesh<MFT>& msh, MshCavity &cav, 
+                             int ithrdcstr, int ithrd1, int ithrd2){
+  GETVDEPTH(msh.param);
+
+  if(ithrdcstr < 0) return 0;
+
+  int nced0 = cav.lcedg.get_n();
+  int ncfa0 = cav.lcfac.get_n();
+  int ncte0 = cav.lctet.get_n();
+
+  const int tdimm = msh.get_tdim();
+  const intAr1 &lcent = cav.lcent(tdimm);
+  const int ncen0 = tdimm == 1 ? nced0 : 
+                    tdimm == 2 ? ncfa0 : ncte0;
+  int edg2pol[2] = {cav.ipins, -1};
+  double sz[2];
+
+  int iice0 = 0, iice1 = ncen0;
+  // tag points whose dist to ipins and balls have been computed:
+  msh.tag[ithrd1]++; 
+  for(int niter = 0; niter < 2; niter++){
+    // Loop over current neighbourhood and check if points close.
+    for(int iicen = iice0; iicen < iice1; iicen++){
+      int icent = lcent[iicen];
+      for(int iver = 0; iver < tdimm + 1; iver++){
+        int ipoin = msh.ent2poi(tdimm)(icent,iver);
+        if(msh.poi2tag(ithrdcstr,ipoin) < msh.tag[ithrdcstr]) continue;
+        if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
+        // Points whose length has been computed are tagged itag.
+        msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1];
+        edg2pol[1] = ipoin;
+        double len = msh.idim == 2 ? getlenedg_geosz<MFT,2,1>(msh,edg2pol,sz)
+                                   : getlenedg_geosz<MFT,3,1>(msh,edg2pol,sz);
+        if(len >= 1.0/sqrt(2)) continue;
+        CPRINTF1(" # At least one close constrained point, stop here\n");
+        msh.tag[ithrd1]++;
+        return 1;
+      }
+    }
+    if(niter == 1) break;
+
+    // Next extend by point balls and restart
+    for(int iicen = 0; iicen < ncen0; iicen++){
+      int icent = lcent[iicen];
+      for(int iver = 0; iver < tdimm + 1; iver++){
+        int ipoin = msh.ent2poi(tdimm)(icent,iver);
+        if(msh.poi2tag(ithrd1,ipoin) > msh.tag[ithrd1]) continue;
+        // Points whose ball has been computed are tagged itag + 1.
+        msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1] + 1;
+        // Append ball
+        int iopen;
+        ball(msh, ipoin, cav.lcedg, cav.lcfac, cav.lctet, &iopen, true, ithrd2);
+      }
+    }
+
+    iice0 = iice1;
+    iice1 = lcent.get_n();
+  }
+
+  msh.tag[ithrd1]++;
+  cav.lcedg.set_n(nced0);
+  cav.lcfac.set_n(ncfa0);
+  cav.lctet.set_n(ncte0);
+  return 0;
+}
+template int aux_findCloseConstrained<MetricFieldAnalytical>(
+  Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, int ithrdcstr, int ithrd1, int ithrd2);
+template int aux_findCloseConstrained<MetricFieldFE       >(
+  Mesh<MetricFieldFE       >& msh, MshCavity &cav, int ithrdcstr, int ithrd1, int ithrd2);
 
 
 

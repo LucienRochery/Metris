@@ -75,7 +75,6 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
     double t02 = get_wall_time();
 
     for(int niter = 0; niter < miter; niter++){
-      bool onebad = false;
       int   ntry  = 0;
       //if(tdim == 3){
       //  static int nwarnprt1 = 0;
@@ -169,7 +168,6 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
             }// for ient1
           }// if tdim == 2
           nswap_niter++;
-          onebad = true;
         }
         ntry++; 
       }
@@ -180,12 +178,15 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
       else          stat  = MAX(stat, stat0);
 
       int ncallps_niter = 1000*(int)((nswap_niter / (t11-t01)) / 1000);
-      CPRINTF2(" - swaps full iter ntry = %d nswap %d = %d /s; nerro %d stat %f \n",
+      CPRINTF2(" - swaps full iter ntry = %d nswap %d = %d /s; nerro %d stat %f",
               ntry, nswap_niter, ncallps_niter,nerro_niter, stat0);
+      if(stat0 < msh.param->adp_stagn_stop && DOPRINTS2())  
+          printf(" < adp_stagn_stop = %f -> break.\n",msh.param->adp_stagn_stop);
+      else if(DOPRINTS2()) printf("\n");
       nswap_tdim += nswap_niter;
       nerro_tdim += nerro_niter;
 
-      if(!onebad) break;
+      if(stat0 < msh.param->adp_stagn_stop) break;
 
     }// for niter
 

@@ -186,8 +186,8 @@ void MeshBase::initialize(MetrisAPI *data,
       for(int ii = 0; ii < 3; ii++){
         int jpoi1 = fac2poi(iface,lnoed2[ii][0]);
         int jpoi2 = fac2poi(iface,lnoed2[ii][1]);
-        if(ipoi1 == jpoi1 && ipoi2 == jpoi2 || 
-           ipoi1 == jpoi2 && ipoi2 == jpoi1 ){
+        if((ipoi1 == jpoi1 && ipoi2 == jpoi2) || 
+           (ipoi1 == jpoi2 && ipoi2 == jpoi1) ){
           iver = ii;
           break;
         }
@@ -997,7 +997,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       // If in refineConvention, this will be a ref 1-n, otherwise an edge
       int iedge = param->refineConventionsInp ? -lgpoe(igpoe,1) 
                                               : (lgpoe(igpoe,1) - 1);
-      if(ipoin < 0 || iedge < 0 && !param->refineConventionsInp){
+      if(ipoin < 0 || (iedge < 0 && !param->refineConventionsInp)){
         printf("## WARNING invalid entry %d/%d in GmfVerticesOnGeometricEdges: %d %d \n",
           igpoe,ngpoe,ipoin,iedge);
         continue;

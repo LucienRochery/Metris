@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_DIRECT
 
 #include <boost/test/included/unit_test.hpp> 
 #include <math.h>
@@ -37,7 +37,7 @@ double funsq2(int idim, double *coop, double *coor0){
   else          return geterrl2<3>(coop,coor0);
 }
 
-BOOST_AUTO_TEST_CASE(test_DIBLOB) 
+BOOST_AUTO_TEST_CASE(test_DIRECT) 
 {
 
   auto costfun = funsq2;

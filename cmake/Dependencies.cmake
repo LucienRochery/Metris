@@ -62,6 +62,28 @@ if(USE_TRACY)
   add_compile_definitions(TRACY_ENABLE)
 endif()
 
+## Used for mlpack::BallTree
+#FetchContent_Declare(
+#  mlpack_fetch
+#  GIT_REPOSITORY https://github.com/mlpack/mlpack.git
+#  GIT_TAG master
+#  GIT_SHALLOW TRUE
+#  GIT_PROGRESS TRUE
+#)
+#set(BUILD_CLI_EXECUTABLES OFF CACHE BOOL "" FORCE)
+#set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+#set(BUILD_PYTHON_BINDINGS OFF CACHE BOOL "" FORCE)
+#set(BUILD_JULIA_BINDINGS OFF CACHE BOOL "" FORCE)
+#set(BUILD_GO_BINDINGS OFF CACHE BOOL "" FORCE)
+#set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
+#set(BUILD_MARKDOWN_BINDINGS OFF CACHE BOOL "" FORCE)
+#set(ARMA_USE_LAPACK OFF CACHE BOOL "" FORCE)
+#set(ARMA_USE_BLAS OFF CACHE BOOL "" FORCE)
+#FetchContent_MakeAvailable(mlpack_fetch)
+#set(MLPACK_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/mlpack_fetch-src/src/")
+#list(APPEND METRIS_DEPS_INCLUDE_DIRS ${MLPACK_INCLUDE_DIRS})
+#list(APPEND METRIS_DEPS_LIBRARIES Tracy::TracyClient)
+
 if(REQ_CODEGEN)
   if(NOT DEFINED ENV{GINAC_DIR} AND NOT (DEFINED GINAC_LIBRARIES AND DEFINED GINAC_INCLUDE_DIRS))
     message(FATAL_ERROR "Set environment variable GINAC_DIR to directory containing lib/libginac and include/ginac/ginac.h")

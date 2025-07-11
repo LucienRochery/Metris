@@ -46,7 +46,6 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
   METRIS_ASSERT(ithrd4 != ithrd2);
   METRIS_ASSERT(ithrd4 != ithrd3);
 
-  constexpr int nnmet = (gdim*(gdim+1))/2;
   const int tdim = msh.get_tdim();
   const int nedgl = (tdim*(tdim+1))/2;
 
@@ -54,7 +53,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
   int ierro; 
 
   const bool ctrl_height = true;
-  const double isvolsmall = sqrt(3)/2 / 10;
+  //const double isvolsmall = sqrt(3)/2 / 10;
 
   const int merror = CAV_ERR_NERROR;
   intAr1 lerro1(merror), lerro2(merror);

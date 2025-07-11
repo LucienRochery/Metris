@@ -787,8 +787,8 @@ void adaptGeoLines(Mesh<MFT> &msh){
                                    msh.bpo2rbi(ibpo0,0));
             // Corner is range[irnge]
             // If this point is away from initial corner respective to ipins
-            if(irnge == 0 && t > msh.bpo2rbi(ibpo0,0)
-            || irnge == 1 && t < msh.bpo2rbi(ibpo0,0)){
+            if((irnge == 0 && t > msh.bpo2rbi(ibpo0,0))
+            || (irnge == 1 && t < msh.bpo2rbi(ibpo0,0))){
               // Found our next seed: iedge
               iedg0 = iedge;
               break;
@@ -899,8 +899,6 @@ void getCADCurveLengths(Mesh<MFT> &msh, [[maybe_unused]] double tol, dblAr1 &crv
   crv_len.set_n(nref);
 
   const int gdim = msh.idim;
-
-  double result[18];
 
   // add two dummy points 
   int ipon[2]; 

@@ -54,12 +54,7 @@ BOOST_AUTO_TEST_CASE(ccoef, * utf::tolerance(double(1.0e-6)) )
     std::string s = testcase.first;
     bool istr8    = testcase.second;
 
-    cargHandler arg("-in " + s + "  -anamet 1" 
-    #ifdef NDEBUG 
-      +" -verb 0"
-    #endif
-      );
-    
+    cargHandler arg("-in " + s + "  -anamet 1 -verb 0");
     MetrisRunner run(arg.c, arg.v);
     Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
     // For those meshes that have a higher target degree than 1 (does nothing to the others)

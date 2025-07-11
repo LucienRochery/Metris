@@ -95,7 +95,9 @@ void MetrisRunner::adaptMesh0(){
   const int ithrd1 = 1;
   const int ithrd2 = 2;
   const int ithrd3 = 3;
+  const int ithrdcstr = 4; // constrained points (inserted)
   msh.tag[ithrdfro]++;
+  msh.tag[ithrdcstr]++;
 
   if(msh.CAD() && msh.param->adp_line_adapt){
 
@@ -219,7 +221,7 @@ void MetrisRunner::adaptMesh0(){
 
 
     t0 = get_wall_time();
-    stat  = insertLongEdges<MFT,gdim,ideg>(msh, &ninser, ithrdfro, ithrd1, ithrd2);
+    stat  = insertLongEdges<MFT,gdim,ideg>(msh, &ninser, ithrdcstr, ithrd1, ithrd2);
     stat0 = MAX(stat0,stat);
     t1 = get_wall_time();
     tinsert += t1-t0;
@@ -326,6 +328,8 @@ void MetrisRunner::adaptMesh0(){
 
     if(stagn){
       CPRINTF1(" - low stat = %e break or optimize\n",stat0);
+      //// Unconstrain all points !! this is bad
+      //msh.tag[ithrdcstr]++;
       if(niter >= miter -1) break;
       if(msh.param->opt_niter > 0 && 
         (iopt_niter < msh.param->adp_opt_niter|| msh.param->adp_opt_niter < 0)
