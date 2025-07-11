@@ -74,6 +74,7 @@ void Mesh<MetricFieldType>::cleanup(){
   // poi2bpo 
   // poi2bak 
   // poi2ent -> recompute 
+  // poi2tag -> because of constrained points. Could change in the future.
   const int idim = this->idim;
   const int nnmet = (idim*(idim+1))/2;
   int nponn = 0;
@@ -94,6 +95,8 @@ void Mesh<MetricFieldType>::cleanup(){
     
     this->poi2bpo[iponn] = this->poi2bpo[ipoin]; 
     this->poi2bak[iponn] = this->poi2bak[ipoin]; 
+    for(int ithrd = 0; ithrd < METRIS_MAXTAGS; ithrd++) 
+      this->poi2tag(ithrd,iponn) = this->poi2tag(ithrd,ipoin);
   }
 
   if(this->npoin == nponn) goto update_tetras; 
