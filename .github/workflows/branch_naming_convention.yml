@@ -15,8 +15,10 @@ jobs:
           echo "Using GITHUB_ACTOR = $GITHUB_ACTOR"
           echo "Using branch = $branch"
 
-          if [[ $GITHUB_ACTOR != "LucienRochery" ]]; then
-            if [[ "$branch" != "$GITHUB_ACTOR/"* ]]; then
+          if [[ $GITHUB_ACTOR != "LucienRochery" ]] ; then
+            if [[ "$branch" == "develop" && $GITHUB_ACTOR == "acdl-jenkins" ]] ; then
+              echo "Jenkins merge onto develop access"
+            elif [[ "$branch" != "$GITHUB_ACTOR/"* ]] ; then
               echo "Error: $GITHUB_ACTOR can only push to branches named $GITHUB_ACTOR/*"
               exit 1
             fi
