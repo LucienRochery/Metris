@@ -273,8 +273,8 @@ int getedgtet(const MeshBase &msh, int ielem,  int i1, int i2){
 int getedgent(const MeshBase &msh, int tdim, int ientt, int i1, int i2){
   if(tdim == 1){
     //METRIS_THROW_MSG(WArgExcept(), "getedgent called with tdim == 1: error?");
-    if(  msh.edg2poi(ientt,0) == i1 && msh.edg2poi(ientt,1) == i2
-      || msh.edg2poi(ientt,0) == i2 && msh.edg2poi(ientt,1) == i1){
+    if(  (msh.edg2poi(ientt,0) == i1 && msh.edg2poi(ientt,1) == i2)
+      || (msh.edg2poi(ientt,0) == i2 && msh.edg2poi(ientt,1) == i1)){
       return 0;
     }else{
       return -1;

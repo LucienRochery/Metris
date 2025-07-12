@@ -96,6 +96,7 @@ int MeshBase::newpoitopo(int tdimn, int ientt){
   poi2ent[npoin-1][0] = ientt;
   poi2ent[npoin-1][1] = tdimn;
   poi2bpo[npoin-1]    = -1;
+  poicstr[npoin-1]    = false;
   return npoin-1;
 }
 

@@ -47,8 +47,11 @@ int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf,
     //return collapseEdge2(msh, tdim, ientt, iedl, qmax_suf, cav, work, lerro, ithrd1, ithrd2, ithrd3);
     return 0;
   }else{
-    if(msh.poicstr[ip1] || msh.poicstr[ip2]) return 0;
-    return insertEdge(msh, tdim, ientt, iedl, -1, true, cav, work, lerro, ithrd1, ithrd2);
+    if(msh.poicstr[ip1] || msh.poicstr[ip2]) return 1;
+    int ierro = insertEdge(msh, tdim, ientt, iedl, -1, true, cav, work, lerro, ithrd1, ithrd2);
+    if(ierro < 0) return 0;
+    if(ierro == 0) return 1;
+    return ierro;
   }
 }
 

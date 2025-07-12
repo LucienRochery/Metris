@@ -329,7 +329,7 @@ void MetrisRunner::adaptMesh0(){
       if(niter >= miter -1) break;
       if(msh.param->opt_niter > 0 && 
         (iopt_niter < msh.param->adp_opt_niter|| msh.param->adp_opt_niter < 0)
-         && !msh.param->opt_unif){ 
+         && !msh.param->opt_unif){
         iopt_niter++;
         double tsmo0 = get_wall_time();
         stat = optimMesh();
@@ -345,6 +345,17 @@ void MetrisRunner::adaptMesh0(){
           CPRINTF1(" - low optim stat %e break\n",stat);
           break;
         }
+
+        // If we continue, unconstrain the points now
+        // We notice that the boundary in 3D, and the whole mesh in 2D 
+        // improves by unconstraining the points, but not the interior in 3D.
+        // So, regardless of dimension, we unconstrain only dim <= 2 points.
+        for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
+          if(msh.poi2ent(ipoin,0) < 0) continue;
+          if(msh.getpoitdim(ipoin) > 2) continue;
+          msh.poicstr[ipoin] = false;
+        }
+        //msh.poicstr.fill(false);
       }else{
         break;
       }
