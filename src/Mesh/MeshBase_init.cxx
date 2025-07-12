@@ -552,6 +552,7 @@ void MeshBase::zeroArrays(){
 
   if(idim >= 3) fac2tet.fill(-1);
 
+  poicstr.fill(false);
   poi2tag.fill(0);
   edg2tag.fill(0);
   fac2tag.fill(0);

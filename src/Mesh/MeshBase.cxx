@@ -389,6 +389,7 @@ MeshBase& MeshBase::operator=(const MeshBase &inp){
   if(inp.nbpoi > 0) inp.bpo2rbi.copyTo(bpo2rbi,inp.nbpoi);
   if(inp.npoin > 0) inp.poi2bpo.copyTo(poi2bpo,inp.npoin);
   if(inp.npoin > 0) inp.poi2ent.copyTo(poi2ent,inp.npoin);
+  if(inp.npoin > 0) inp.poicstr.copyTo(poicstr,inp.npoin);
                                                            
   if(inp.nedge > 0) inp.edg2edg.copyTo(edg2edg,inp.nedge);
   if(inp.nedge > 0) inp.edg2fac.copyTo(edg2fac,inp.nedge);
@@ -493,6 +494,9 @@ void MeshBase::set_npoin(int npoin, bool skipallocf){
 
   poi2tag.allocate(METRIS_MAXTAGS, mpoin);
   poi2tag.set_n(METRIS_MAXTAGS);
+
+  poicstr.allocate(mpoin);
+  poicstr.set_n(npoin);
 
   if(skipallocf) return;
 

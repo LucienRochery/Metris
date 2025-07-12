@@ -114,6 +114,7 @@ public:
 
 	intAr2  poi2ent;
 	intAr2r poi2tag; 
+  bolAr1  poicstr; // is point constrained
 	dblAr2  coord;
   const int &npoin = npoin_;
 

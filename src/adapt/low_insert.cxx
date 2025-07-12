@@ -28,14 +28,13 @@ namespace Metris{
 
 // Return 0 if done nothing, 1 if error, -1 if done swap
 // bar1 is t along the edge with 1 if lnoed[iedl][0]
-// ithrdcst tracks constrained points. Only used if >= 0.
 template<class MFT>
 int insertEdge(Mesh<MFT>& msh, 
                int tdim, int ientt, int iedl, 
                double lenqua_short_max, // maximum quality (error) a new short edge can have
                bool icollapse,
                MshCavity &cav, CavWrkArrs &work, 
-               intAr1 &lerro, int ithrdcst, int ithrd1, int ithrd2){
+               intAr1 &lerro, int ithrd1, int ithrd2){
 
   int iverb0   = msh.param->iverb;
   int ivdepth0 = msh.param->ivdepth;
@@ -53,8 +52,6 @@ int insertEdge(Mesh<MFT>& msh,
   GETVDEPTH(msh.param);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
-  METRIS_ASSERT(ithrdcst != ithrd1);
-  METRIS_ASSERT(ithrdcst != ithrd2);
   METRIS_ASSERT(ithrd1   != ithrd2);
   METRIS_ASSERT(!isdeadent(ientt,msh.ent2poi(tdim)));
 
@@ -383,7 +380,7 @@ restart_bisection:
   // -- This section only if !icollapse
 
   // Check any close constrained points
-  ierro = aux_findCloseConstrained(msh, cav, ithrdcst, ithrd1, ithrd2);
+  ierro = aux_findCloseConstrained(msh, cav, ithrd1, ithrd2);
   if(ierro > 0){
     ierro = INS2D_ERR_SHORTCSTR;
     goto cleanup;
@@ -639,21 +636,19 @@ template int insertEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh,
                          int tdim, int ientt, int iedl, 
                          double lenqua_short_max, bool icollapse,
                          MshCavity &cav, CavWrkArrs &work, 
-                         intAr1 &lerro, int ithrdcst, int ithrd1, int ithrd2);
+                         intAr1 &lerro, int ithrd1, int ithrd2);
 template int insertEdge<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
                          int tdim, int ientt, int iedl, 
                          double lenqua_short_max, bool icollapse,
                          MshCavity &cav, CavWrkArrs &work, 
-                         intAr1 &lerro, int ithrdcst, int ithrd1, int ithrd2);
+                         intAr1 &lerro, int ithrd1, int ithrd2);
 
 
 
 template<class MFT>
 int aux_findCloseConstrained(Mesh<MFT>& msh, MshCavity &cav, 
-                             int ithrdcstr, int ithrd1, int ithrd2){
+                             int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
-
-  if(ithrdcstr < 0) return 0;
 
   int nced0 = cav.lcedg.get_n();
   int ncfa0 = cav.lcfac.get_n();
@@ -666,6 +661,8 @@ int aux_findCloseConstrained(Mesh<MFT>& msh, MshCavity &cav,
   int edg2pol[2] = {cav.ipins, -1};
   double sz[2];
 
+  const int pdimins = msh.getpoitdim(cav.ipins);
+
   int iice0 = 0, iice1 = ncen0;
   // tag points whose dist to ipins and balls have been computed:
   msh.tag[ithrd1]++; 
@@ -675,8 +672,11 @@ int aux_findCloseConstrained(Mesh<MFT>& msh, MshCavity &cav,
       int icent = lcent[iicen];
       for(int iver = 0; iver < tdimm + 1; iver++){
         int ipoin = msh.ent2poi(tdimm)(icent,iver);
-        if(msh.poi2tag(ithrdcstr,ipoin) < msh.tag[ithrdcstr]) continue;
+        if(!msh.poicstr[ipoin]) continue;
         if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
+        // Only consider points of dimension <= of ipins
+        if(msh.getpoitdim(ipoin) > pdimins) continue;
+
         // Points whose length has been computed are tagged itag.
         msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1];
         edg2pol[1] = ipoin;
@@ -715,9 +715,9 @@ int aux_findCloseConstrained(Mesh<MFT>& msh, MshCavity &cav,
   return 0;
 }
 template int aux_findCloseConstrained<MetricFieldAnalytical>(
-  Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, int ithrdcstr, int ithrd1, int ithrd2);
+  Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, int ithrd1, int ithrd2);
 template int aux_findCloseConstrained<MetricFieldFE       >(
-  Mesh<MetricFieldFE       >& msh, MshCavity &cav, int ithrdcstr, int ithrd1, int ithrd2);
+  Mesh<MetricFieldFE       >& msh, MshCavity &cav, int ithrd1, int ithrd2);
 
 
 

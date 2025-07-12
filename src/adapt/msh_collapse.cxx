@@ -29,6 +29,7 @@ namespace Metris{
 // qmax_suf: quality threshold to accept collapses
 // Exterior to this as may depend on swaps, inserts etc. 
 // Prints level 1 routine 
+// ithrdcstr tracks constrained points
 template<class MFT, int gdim, int ideg>
 double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
                           int ithrd1, int ithrd2, int ithrd3, int ithrd4){

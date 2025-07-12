@@ -41,21 +41,17 @@ namespace Metris{
 // lpins work array sized dynamically by this routine ; it's an argument solely because this will be called several times, save on alloc
 // also: as iterations go, fewer and fewer edges are long, no use allocating more than once to maximum needed size (first iter)
 
-// ithrdcstr must not be used by other routines at the same level as where
 // insertLongEdges is called.
 template<class MFT, int gdim, int ideg>
-double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrdcstr, int ithrd2, int ithrd3){
+double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
   //printf("## DEBUG SET MAX PRINTS\n");
   //wait();
   //msh.param->iverb = 5;
   //msh.param->ivdepth = 5;
   GETVDEPTH(msh.param);
-  METRIS_ASSERT(ithrdcstr >= 0 && ithrdcstr < METRIS_MAXTAGS);
+  METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
-  METRIS_ASSERT(ithrd3 >= 0 && ithrd3 < METRIS_MAXTAGS);
-  METRIS_ASSERT(ithrdcstr != ithrd2);
-  METRIS_ASSERT(ithrdcstr != ithrd3);
-  METRIS_ASSERT(ithrd2 != ithrd3);
+  METRIS_ASSERT(ithrd1 != ithrd2);
 
 
   // Swap norm -1: length-based. 
@@ -181,12 +177,12 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrdcstr, int ithrd2, i
       CPRINTF1(" - enact ins ientt = %d ied = %d edg %d %d\n",ientt,ied,ip1,ip2);
       int nent0 = msh.nentt(tdim); 
       ierro = insertEdge(msh,tdim,ientt,ied,lenqua_short_max,false,
-                         cav,work,lcaverr,ithrdcstr,ithrd2,ithrd3);
+                         cav,work,lcaverr,ithrd1,ithrd2);
 
       if(ierro <= 0){
         ninser1++;
         // constrain point
-        msh.poi2tag(ithrdcstr,cav.ipins) = msh.tag[ithrdcstr];
+        msh.poicstr[cav.ipins] = true;
         // Remove the edge from the edge hash table.
         edge_it = ledge.erase(edge_it);
         int nent1 = msh.nentt(tdim);
@@ -261,10 +257,6 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrdcstr, int ithrd2, i
     //printf("## WAIT HERE \n");
     //wait();
 
-    //int nswap;
-    //if(msh.idim == 2) swapMesh<MFT,2,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdcstr, ithrd2, ithrd3);
-    //else swapMesh<MFT,3,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdcstr, ithrd2, ithrd3);
-    //CPRINTF1(" - swapped %d \n",nswap);
     
 
   }// for niter
@@ -277,13 +269,13 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrdcstr, int ithrd2, i
 
 #define BOOST_PP_LOCAL_MACRO(n)\
 template double insertLongEdges<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
-                                int* ninser, int ithrdcstr, int ithrd2, int ithrd3);\
+                                int* ninser, int ithrd1, int ithrd2);\
 template double insertLongEdges<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,\
-                                int* ninser, int ithrdcstr, int ithrd2, int ithrd3);\
+                                int* ninser, int ithrd1, int ithrd2);\
 template double insertLongEdges<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,\
-                                int* ninser, int ithrdcstr, int ithrd2, int ithrd3);\
+                                int* ninser, int ithrd1, int ithrd2);\
 template double insertLongEdges<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,\
-                                int* ninser, int ithrdcstr, int ithrd2, int ithrd3);
+                                int* ninser, int ithrd1, int ithrd2);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

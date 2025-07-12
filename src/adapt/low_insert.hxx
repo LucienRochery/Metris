@@ -40,7 +40,7 @@ int insertEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl,
                double lenqua_short_max,
                bool icollapse,
                MshCavity &cav, CavWrkArrs &work, 
-               intAr1 &lerro, int ithrdcst, int ithrd1, int ithrd2);
+               intAr1 &lerro, int ithrd1, int ithrd2);
 
 
 // Correct point location in case of cavity construction error (e.g. short edge)
@@ -50,7 +50,7 @@ int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav,
 
 template<class MFT>
 int aux_findCloseConstrained(Mesh<MFT>& msh, MshCavity &cav, 
-                             int ithrdcstr, int ithrd1, int ithrd2);
+                             int ithrd1, int ithrd2);
 
 } // end namespace
 
