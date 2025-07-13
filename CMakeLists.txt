@@ -46,8 +46,16 @@ execute_process(COMMAND "${GIT_EXECUTABLE}" config --get remote.origin.url
                 ERROR_QUIET
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+execute_process(COMMAND "${GIT_EXECUTABLE}" branch --show-current
+                WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" 
+                RESULT_VARIABLE dum
+                OUTPUT_VARIABLE GIT_BRANCH
+                ERROR_QUIET
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+
 add_compile_definitions(METRIS_GIT_URL="${GITURL}")
 message("Metris using METRIS_GIT_URL = ${GITURL}")
+message("In branch: ${GIT_BRANCH}")
 if(GITURL MATCHES "github.com")
   set(LIGHT_BUILD ON)
   message("-- Disabled codegen (max degree 2 supported).")

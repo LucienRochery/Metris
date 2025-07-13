@@ -134,6 +134,8 @@ message("EIGEN3_INCLUDE_DIRS = ${EIGEN3_INCLUDE_DIRS}")
 
 
 if(METRIS_USE_LAPACK)
+  message("METRIS_USE_LAPACK was set to ON")
+  
   add_compile_definitions(METRIS_USE_LAPACK)
 
   enable_language(Fortran)
