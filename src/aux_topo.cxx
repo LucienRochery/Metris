@@ -696,13 +696,16 @@ void cpy_tetedg2tetedg(MeshBase &msh, int iele1, int iede1, int iele2, int iede2
 	if constexpr(ideg == 1) return;
 
 	int ip1 = msh.tet2poi(iele1,lnoed3[iede1][0]);
-	int ip2 = msh.tet2poi(iele1,lnoed3[iede1][1]);
 
 	int jp1 = msh.tet2poi(iele2,lnoed3[iede2][0]);
-	int jp2 = msh.tet2poi(iele2,lnoed3[iede2][1]);
 
-	assert((ip1 == jp1 && ip2 == jp2) 
-		||   (ip2 == jp1 && ip1 == jp2) );
+  #ifndef NDEBUG
+	int jp2 = msh.tet2poi(iele2,lnoed3[iede2][1]);
+  int ip2 = msh.tet2poi(iele1,lnoed3[iede1][1]);
+
+	METRIS_ASSERT((ip1 == jp1 && ip2 == jp2) 
+		          ||(ip2 == jp1 && ip1 == jp2));
+  #endif
 
 	int irn2 = 4 + iede2*(getnnod1(ideg) - 2);
 	if(ip1 == jp1){
