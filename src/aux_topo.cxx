@@ -589,10 +589,14 @@ void cpy_gloedg2facedg(MeshBase &msh, int iedge, int iface, int iedfa){
 	if constexpr(ideg == 1) return;
 
 	int ip1 = msh.fac2poi(iface,lnoed2[iedfa][0]);
-	int ip2 = msh.fac2poi(iface,lnoed2[iedfa][1]);
 	int irn0 = 3 + iedfa*(getnnod1(ideg) - 2);
-	assert((ip1 == msh.edg2poi(iedge,0) && ip2 == msh.edg2poi(iedge,1)) 
-		||   (ip2 == msh.edg2poi(iedge,0) && ip1 == msh.edg2poi(iedge,1)) );
+
+  #ifndef NDEBUG
+  int ip2 = msh.fac2poi(iface,lnoed2[iedfa][1]);
+	METRIS_ASSERT((ip1 == msh.edg2poi(iedge,0) && ip2 == msh.edg2poi(iedge,1)) 
+		          ||(ip2 == msh.edg2poi(iedge,0) && ip1 == msh.edg2poi(iedge,1)) );
+  #endif
+
 	if(msh.edg2poi(iedge,0) == ip1){
 		for(int ii=0; ii < getnnod1(ideg)-2; ii++){
 			msh.fac2poi[iface][irn0 + ii] = msh.edg2poi[iedge][2+ii];
@@ -611,13 +615,14 @@ void cpy_facedg2facedg(MeshBase &msh, int ifac1, int iedf1, int ifac2, int iedf2
 	if constexpr(ideg == 1) return;
 	
 	int ip1 = msh.fac2poi(ifac1,lnoed2[iedf1][0]);
-	int ip2 = msh.fac2poi(ifac1,lnoed2[iedf1][1]);
-
 	int jp1 = msh.fac2poi(ifac2,lnoed2[iedf2][0]);
-	int jp2 = msh.fac2poi(ifac2,lnoed2[iedf2][1]);
 
-	assert((ip1 == jp1 && ip2 == jp2) 
-		||   (ip2 == jp1 && ip1 == jp2) );
+  #ifndef NDEBUG
+  int ip2 = msh.fac2poi(ifac1,lnoed2[iedf1][1]);
+  int jp2 = msh.fac2poi(ifac2,lnoed2[iedf2][1]);
+	METRIS_ASSERT((ip1 == jp1 && ip2 == jp2) 
+		          ||(ip2 == jp1 && ip1 == jp2) );
+  #endif
 
 	int irn2 = 3 + iedf2*(getnnod1(ideg) - 2);
 	if(ip1 == jp1){
@@ -643,10 +648,14 @@ void cpy_gloedg2tetedg(MeshBase &msh, int iedge, int ielem, int iedel){
 	if constexpr(ideg == 1) return;
 
 	int ip1 = msh.tet2poi(ielem,lnoed3[iedel][0]);
-	int ip2 = msh.tet2poi(ielem,lnoed3[iedel][1]);
 	int irn0 = 4 + iedel*(getnnod1(ideg) - 2);
-	assert((ip1 == msh.edg2poi(iedge,0) && ip2 == msh.edg2poi(iedge,1)) 
-		||   (ip2 == msh.edg2poi(iedge,0) && ip1 == msh.edg2poi(iedge,1)) );
+
+  #ifndef NDEBUG
+  int ip2 = msh.tet2poi(ielem,lnoed3[iedel][1]);
+	METRIS_ASSERT((ip1 == msh.edg2poi(iedge,0) && ip2 == msh.edg2poi(iedge,1)) 
+		          ||(ip2 == msh.edg2poi(iedge,0) && ip1 == msh.edg2poi(iedge,1)) );
+  #endif
+
 	if(msh.edg2poi(iedge,0) == ip1){
 		for(int ii=0; ii < getnnod1(ideg)-2; ii++){
 			msh.tet2poi[ielem][irn0 + ii] = msh.edg2poi[iedge][2+ii];
@@ -664,13 +673,14 @@ void cpy_facedg2tetedg(MeshBase &msh, int iface, int iedfa, int ielem, int iedel
 	if constexpr(ideg == 1) return;
 
 	int ip1 = msh.fac2poi(iface,lnoed2[iedfa][0]);
-	int ip2 = msh.fac2poi(iface,lnoed2[iedfa][1]);
-
 	int jp1 = msh.tet2poi(ielem,lnoed3[iedel][0]);
-	int jp2 = msh.tet2poi(ielem,lnoed3[iedel][1]);
 
-	assert((ip1 == jp1 && ip2 == jp2) 
-		||   (ip2 == jp1 && ip1 == jp2) );
+  #ifndef NDEBUG
+  int ip2 = msh.fac2poi(iface,lnoed2[iedfa][1]);
+  int jp2 = msh.tet2poi(ielem,lnoed3[iedel][1]);
+	METRIS_ASSERT((ip1 == jp1 && ip2 == jp2) 
+		          ||(ip2 == jp1 && ip1 == jp2) );
+  #endif
 
 	int irn2 = 4 + iedel*(getnnod1(ideg) - 2);
 	if(ip1 == jp1){
