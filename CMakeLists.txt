@@ -87,11 +87,6 @@ set(CMAKE_MACOSX_RPATH 1)
 include(${PROJECT_SOURCE_DIR}/cmake/Dependencies.cmake)
 
 
-#find_package(MPI REQUIRED)
-#set(CMAKE_CXX_COMPILER mpicxx)
-#message("Have CMAKE_CXX_COMPILER = ${CMAKE_CXX_COMPILER}")
-#message("Using CXX = ${CMAKE_CXX_COMPILER}")
-
 get_filename_component(SHORT_COMPILER_NAME ${CMAKE_C_COMPILER} NAME_WE)
 
 
@@ -117,29 +112,10 @@ endif()
 
 
 
-#file (GLOB_RECURSE SRC_HEADERS CONFIGURE_DEPENDS "src/*.cxx")
-#file (GLOB_RECURSE SRC_HEADERS CONFIGURE_DEPENDS "src/*.hxx")
-#file (GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS "bunit/*.cxx")
-#file (GLOB_RECURSE CGEN_SOURCES CONFIGURE_DEPENDS "tools/*.cxx")
-
-#set (SRC_INCLUDE_DIRS "")
-#foreach (h ${SRC_HEADERS})
-#  get_filename_component(d ${h} PATH)
-#  list (APPEND SRC_INCLUDE_DIRS ${d})
-#endforeach()
-#list(REMOVE_DUPLICATES SRC_INCLUDE_DIRS)
-
-#find_package(LAPACK REQUIRED)
-#find_package(PkgConfig REQUIRED)
-#find_package(NLopt REQUIRED)
-#find_package(Boost REQUIRED)
-#find_package(LPlib REQUIRED)
-
-
-# 2 --- Main program
 add_subdirectory(libs)
-add_subdirectory(src)
 add_subdirectory(SANS)
+# 2 --- Main program
+add_subdirectory(src)
 #add_subdirectory(libs/libkdtree)
 
 
@@ -149,22 +125,10 @@ add_executable(egads2lite "progs/EGADS2lite.cxx")
 set_target_properties(metris PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 
-
 target_link_libraries(metris PUBLIC libMetris 
-                                    SANS 
-                                    ${ABSL_LIBRARIES}
-                                    ${LAPACK_LIBRARIES}
-                                    ${EGADS_LIBRARIES} 
-                                    ${EGADSLITE_LIBRARIES}
-                                    #nlopt
-#                                   LP.3
+                                    ${METRIS_DEPS_LIBRARIES}
                                     Boost::headers # yes this is weird
                                     ${Boost_LIBRARIES}
-                                    ${Boost_PROGRAM_OPTIONS_LIBRARY}
-                                    ${PETSC_LIBRARIES}
-                                    ${MPI_LIBRARIES}
-                                    ${BOOST_TRACELIBS}
-                                    ${METRIS_DEPS_LIBRARIES}
                                     )
 
 #if(USE_PETSC STREQUAL "True")
@@ -173,31 +137,17 @@ target_link_libraries(metris PUBLIC libMetris
 #endif()
 
 target_link_libraries(egads2lite PUBLIC libMetris 
-                                        SANS 
-                                        ${ABSL_LIBRARIES}
-                                        ${LAPACK_LIBRARIES}
-                                        ${EGADS_LIBRARIES} 
-                                        ${EGADSLITE_LIBRARIES}
-                                        #nlopt
-#                                       LP.3
                                         Boost::headers # yes this is weird
                                         ${Boost_LIBRARIES}
-                                        ${Boost_PROGRAM_OPTIONS_LIBRARY}
-                                        ${PETSC_LIBRARIES}
-                                        ${MPI_LIBRARIES}
-                                        ${BOOST_TRACELIBS})
+                                        )
 
 #For some reason, not specifying the full path does not work for EXISTS
 if(EXISTS ${CMAKE_SOURCE_DIR}/progs/scatter_rh.cxx)
   add_executable(scatter_rh "progs/scatter_rh.cxx")
   target_link_libraries(scatter_rh PUBLIC libMetris 
-                                          #libegads libegadslite
-                                          #egads egadslite
-                                          ${EGADS_LIBRARIES} 
-                                          ${EGADSLITE_LIBRARIES}
                                           Boost::headers # yes this is weird
                                           ${Boost_LIBRARIES}
-                                          ${Boost_PROGRAM_OPTIONS_LIBRARY})
+                                          )
   target_include_directories(scatter_rh PRIVATE  "."
                              ${ESP_ROOT}/include)
   setMetrisFlags(scatter_rh PUBLIC)
@@ -206,12 +156,9 @@ endif()
 if(EXISTS ${CMAKE_SOURCE_DIR}/progs/extract_surf.cxx)
   add_executable(extract_surf "progs/extract_surf.cxx")
   target_link_libraries(extract_surf PUBLIC libMetris 
-                                          #libegads libegadslite
-                                          #egads egadslite
-                                          ${EGADS_LIBRARIES} ${EGADSLITE_LIBRARIES}
-                                          Boost::headers # yes this is weird
-                                          ${Boost_LIBRARIES}
-                                          ${Boost_PROGRAM_OPTIONS_LIBRARY})
+                                            Boost::headers # yes this is weird
+                                            ${Boost_LIBRARIES}
+                                            )
   target_include_directories(extract_surf PRIVATE  "."
                              ${ESP_ROOT}/include)
   setMetrisFlags(extract_surf PUBLIC)
@@ -302,17 +249,10 @@ foreach(test_file ${TEST_SOURCES})
   target_compile_definitions(${test_target_build} PUBLIC METRIS_CASES_DIR="${METRIS_CASES_DIR}")
   target_link_libraries(${test_target_build} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   target_link_libraries(${test_target_build} PUBLIC libMetris 
-                                              SANS 
-                                              ${ABSL_LIBRARIES}
-                                              ${LAPACK_LIBRARIES}
-                                              ${EGADS_LIBRARIES} 
-                                              ${EGADSLITE_LIBRARIES}
-                                              Boost::headers # yes this is weird
-                                              ${Boost_LIBRARIES}
-                                              ${Boost_PROGRAM_OPTIONS_LIBRARY}
-                                              ${PETSC_LIBRARIES}
-                                              ${MPI_LIBRARIES}
-                                              ${BOOST_TRACELIBS})
+                                                    ${METRIS_DEPS_LIBRARIES}
+                                                    Boost::headers # yes this is weird
+                                                    ${Boost_LIBRARIES}
+                                                    )
   #target_include_directories(${test_target} PUBLIC "."  ${PETSC_INCLUDE}  ${ABSL_INCLUDE_DIRS})
 
 

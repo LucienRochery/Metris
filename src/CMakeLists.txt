@@ -19,8 +19,8 @@ if(REQ_CODEGEN)
   setMetrisFlags(gen_lageval PUBLIC)
   target_link_libraries(gen_lageval PUBLIC  ${GINAC_LIBRARIES} 
                                             Boost::headers 
-                                            SANS 
-                                            ${BOOST_TRACELIBS})
+                                            libSANS_Metris 
+                                            )
   target_include_directories(gen_lageval PUBLIC 
                              ${PROJECT_SOURCE_DIR}
                              ${CLN_INCLUDE_DIRS}
@@ -56,7 +56,7 @@ if(REQ_CODEGEN)
                            ${PROJECT_SOURCE_DIR}/tools/gen_ccoef_d_coord.cxx 
                            ho_constants.hxx)
   setMetrisFlags(gen_ccoef PUBLIC)
-  target_link_libraries(gen_ccoef PUBLIC SANS ${BOOST_TRACELIBS})
+  target_link_libraries(gen_ccoef PUBLIC libSANS_Metris)
   target_include_directories(gen_ccoef PUBLIC 
                              ${PROJECT_SOURCE_DIR} 
                              ${Boost_INCLUDE_DIRS})
@@ -95,7 +95,6 @@ target_include_directories(meshBASIC PUBLIC
                            ${EIGEN3_INCLUDE_DIRS}
                            ${SRC_INCLUDE_DIRS})
 target_link_libraries(meshBASIC PUBLIC ${ABSL_LIBRARIES}
-                                       ${BOOST_TRACELIBS}
                                        ) 
 if(REQ_CODEGEN)
   add_dependencies(meshBASIC codegen1  gen_lageval)
@@ -105,8 +104,7 @@ if(REQ_CODEGEN)
   add_executable(gen_lag2bez ${PROJECT_SOURCE_DIR}/tools/gen_lag2bezfuncs.cxx)
   setMetrisFlags(gen_lag2bez PUBLIC)
   target_link_libraries(gen_lag2bez PUBLIC meshBASIC 
-                                           SANS
-                                           ${BOOST_TRACELIBS}
+                                           libSANS_Metris
                                            ${ABSL_LIBRARIES})
   target_include_directories(gen_lag2bez PUBLIC 
                              ${PROJECT_BINARY_DIR}
