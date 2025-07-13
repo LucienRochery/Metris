@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
         err = abs( ((float8) det1) - det0 ) /det0;
         errN += (double) err;
 
-        #ifdef USE_LAPACK
+        #ifdef METRIS_USE_LAPACK
         // ----- Test detsym_LAPACK which uses LAPACK in 3D (same as previous in 2D)
         double detL = detsym_LAPACK<ndim>(met);
         err = abs( ((float8) detL) - det0 ) /det0;
@@ -189,7 +189,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
       errsN[ndim-2] += errN.max();
       errsNf4[ndim-2] += errNf4.max();
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       errsL[ndim-2] += errL.max();
       #endif
       errsELLT[ndim-2] += errELLT.max();
@@ -200,7 +200,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       printf("  -- DONE with aniso ratio %5.1e dim %d\n",anisorat,ndim);
       printf("   - det error min = %e avg = %e max = %e (Naive)\n",errN.min(),errN.avg(),errN.max());
       printf("   - det error min = %e avg = %e max = %e (Naive f4)\n",errNf4.min(),errNf4.avg(),errNf4.max());
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       printf("   - det error min = %e avg = %e max = %e (LAPACK)\n",errL.min(),errL.avg(),errL.max());
       #endif
       printf("   - det error min = %e avg = %e max = %e (Precond)\n",err3.min(),err3.avg(),err3.max());
@@ -280,7 +280,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       #endif
 
 
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       double t0_L = get_wall_time();
       int rwork[10];
       for(int isamp = 0; isamp < nsamp; isamp++){
@@ -341,7 +341,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
                   t1_Nf4-t0_Nf4,(int)(nsamp/(t1_Nf4-t0_Nf4)/1000),
                   (t1_Nf4-t0_Nf4)/(t1_N-t0_N));
       #endif
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       printf("                     LAPACK    time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_L-t0_L,(int)(nsamp/(t1_L-t0_L)/1000),
                   (t1_L-t0_L)/(t1_N-t0_N));
@@ -365,7 +365,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       #ifdef USE_MULTIPRECISION
       benchNf4[ndim-2] += nsamp/(t1_Nf4 - t0_Nf4);
       #endif
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       benchL[ndim-2] += nsamp/(t1_L - t0_L);
       #endif
       benchELLT[ndim-2] += nsamp/(t1_ELLT - t0_ELLT);
@@ -390,14 +390,14 @@ BOOST_AUTO_TEST_CASE(test_eigen)
   int ifig = 0;
   for(int ndim = 0; ndim < 2; ndim++){
     errsN[ndim].finish();
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     errsL[ndim].finish();
     #endif
     errsELLT[ndim].finish();
     errsEdet[ndim].finish();
     errsELDLT[ndim].finish();
     fil << errsN[ndim].str() << "\n";
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     fil << errsL[ndim].str() << "\n";
     #endif
     fil << errsELLT[ndim].str() << "\n";
@@ -405,7 +405,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
     fil << errsELDLT[ndim].str() << "\n";
     fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
     fil << "plt.loglog(aniso," << errsN[ndim].name()<<",'--o',label='Naive',)\n";
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     fil << "plt.loglog(aniso," << errsL[ndim].name()<<",'--x',label='LAPACK')\n";
     #endif
     fil << "plt.loglog(aniso," << errsELLT[ndim].name()<<",'--+',label='Eigen (LLT)')\n";
@@ -434,21 +434,21 @@ BOOST_AUTO_TEST_CASE(test_eigen)
   for(int ndim = 0; ndim < 2; ndim++){
 
     benchN[ndim].finish();
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     benchL[ndim].finish();
     #endif
     benchELLT[ndim].finish();
     benchEdet[ndim].finish();
     benchELDLT[ndim].finish();
     fil << benchN[ndim].str() << "\n";
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     fil << benchL[ndim].str() << "\n";
     #endif
     fil << benchELLT[ndim].str() << "\n";
     fil << benchEdet[ndim].str() << "\n";
     fil << benchELDLT[ndim].str() << "\n";
     fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     fil << "plt.loglog(aniso,np.array(" << benchL[ndim].name()<<")"
         << "/np.array(" << benchN[ndim].name() << ")" <<",label='LAPACK')\n";
     #endif

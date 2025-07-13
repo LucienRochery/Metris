@@ -22,7 +22,7 @@ int invmat(double mat[]);
 // inp and out can be the same
 template<int ndim, typename T>
 int invspd_Eigen(T *inp, T *out);
-#ifdef USE_LAPACK
+#ifdef METRIS_USE_LAPACK
   int invspd_LAPACK(int n, double met[]);
 #endif
 
@@ -30,7 +30,7 @@ int invspd_Eigen(T *inp, T *out);
 // Ad-hoc one (dims 2 and 3)
 template<int n>
 int invmat_naive(double mat[]);
-#ifdef USE_LAPACK
+#ifdef METRIS_USE_LAPACK
   int invmat_LAPACK(int n, double *mat);
 #endif
 template<int ndim, typename T>

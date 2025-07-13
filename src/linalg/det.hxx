@@ -120,7 +120,7 @@ inline T subdetvec3(const T* __restrict__ v1,
 template<int ndim, typename ftype>
 ftype detsym_Eigen_LLT(const ftype *met);
 
-#ifdef USE_LAPACK
+#ifdef METRIS_USE_LAPACK
 template<int ndim>
 double detsym_LAPACK(const double* met);
 #endif
@@ -146,13 +146,13 @@ inline T detsym2(const T met[]){
   if constexpr(ndimn == 2){
     return met[0]*met[2] - met[1]*met[1];
   }else{
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     if constexpr (std::is_same<T,double>::value){
       return detsym_LAPACK<ndimn>(met);
     }else{
     #endif
       return detsym_Eigen_LLT<ndimn>(met);
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     }
     #endif
   }

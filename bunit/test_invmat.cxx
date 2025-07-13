@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
 
 
           // --- Using LAPACK
-          #ifdef USE_LAPACK
+          #ifdef METRIS_USE_LAPACK
           for(int ii = 0; ii < nnmet; ii++) met2[ii] = met[ii];
           invspd_LAPACK(ndim, met2);
           spd_errL += sqrt(geterrl2<nnmet>(invmet,met2) / getnrml2<nnmet>(invmet));
@@ -159,13 +159,13 @@ BOOST_AUTO_TEST_CASE(test_invspd)
 
         spd_errsD[ndim-2] += spd_errD.max();
         spd_errsE[ndim-2] += spd_errE.max();
-        #ifdef USE_LAPACK
+        #ifdef METRIS_USE_LAPACK
         spd_errsL[ndim-2] += spd_errL.max();
         #endif
 
 
         printf("  -- DONE with aniso ratio %5.1e dim %d\n",anisorat,ndim);
-        #ifdef USE_LAPACK
+        #ifdef METRIS_USE_LAPACK
         printf("   - error invspd min = %e avg = %e max = %e (LAPACK)\n",spd_errL.min(),spd_errL.avg(),spd_errL.max());
         #endif
         printf("   - error invspd min = %e avg = %e max = %e (Eigen LLT)\n",spd_errE.min(),spd_errE.avg(),spd_errE.max());
@@ -191,7 +191,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
 
 
           // --- Using LAPACK
-          #ifdef USE_LAPACK
+          #ifdef METRIS_USE_LAPACK
           for(int ii = 0; ii < ndim*ndim; ii++) mat2[ii] = mat[ii];
           int ierroL = invmat_LAPACK(ndim, mat2);
           //METRIS_ENFORCE_MSG(ierro == 0, "invmat_LAPACK failed");
@@ -225,7 +225,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
 
         inv_errsFP[ndim-2] += inv_errFP.max();
         inv_errsPP[ndim-2] += inv_errPP.max();
-        #ifdef USE_LAPACK
+        #ifdef METRIS_USE_LAPACK
         inv_errsL[ndim-2] += inv_errL.max();
         #endif
         if(ndim == 2)
@@ -233,7 +233,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
 
 
         printf("  -- DONE with aniso ratio %5.1e dim %d\n",anisorat,ndim);
-        #ifdef USE_LAPACK
+        #ifdef METRIS_USE_LAPACK
         printf("   - error invmat min = %e avg = %e max = %e (LAPACK)\n",inv_errL.min(),inv_errL.avg(),inv_errL.max());
         #endif
         printf("   - error invmat min = %e avg = %e max = %e (Eigen PP)\n",inv_errPP.min(),inv_errPP.avg(),inv_errPP.max());
@@ -263,7 +263,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
     for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
 
       // --- Using LAPACK
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       double t0_L = get_wall_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met2[ii] = met_samples[ndim-2](isamp, ii);
@@ -296,7 +296,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
       double t1_D = get_wall_time();
 
 
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       printf("  -- DONE bench dim %1d aniso %5.1e LAPACK time : %8.2es = %dk op/s\n",
                   ndim,anisorat,
                   t1_L-t0_L,(int)(nsamp/(t1_L-t0_L)/1000));
@@ -332,7 +332,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
     double dumtot = 0;
     for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
 
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       // --- Using LAPACK
       double t0_L = get_wall_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
@@ -368,7 +368,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
       double t1_FP = get_wall_time();
 
 
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       printf("  -- DONE invmat bench dim %1d aniso %5.1e LAPACK time : %8.2es = %dk op/s\n",
                   ndim,anisorat,
                   t1_L-t0_L,(int)(nsamp/(t1_L-t0_L)/1000));
@@ -403,18 +403,18 @@ BOOST_AUTO_TEST_CASE(test_invspd)
   for(int ndim = 0; ndim < 2; ndim++){
     spd_errsD[ndim].finish();
     spd_errsE[ndim].finish();
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     spd_errsL[ndim].finish();
     #endif
     fil << spd_errsD[ndim].str() << "\n";
     fil << spd_errsE[ndim].str() << "\n";
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     fil << spd_errsL[ndim].str() << "\n";
     #endif
     fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
     fil << "plt.loglog(aniso," << spd_errsD[ndim].name()<<",label='DSYEVQ')\n";
     fil << "plt.loglog(aniso," << spd_errsE[ndim].name()<<",label='Eigen')\n";
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     fil << "plt.loglog(aniso," << spd_errsL[ndim].name()<<",label='LAPACK')\n";
     #endif
     fil << "plt.title('Output relative error (max), dim "
@@ -440,18 +440,18 @@ BOOST_AUTO_TEST_CASE(test_invspd)
   for(int ndim = 0; ndim < 2; ndim++){
     spd_benchD[ndim].finish();
     spd_benchE[ndim].finish();
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     spd_benchL[ndim].finish();
     #endif
     fil << spd_benchD[ndim].str() << "\n";
     fil << spd_benchE[ndim].str() << "\n";
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     fil << spd_benchL[ndim].str() << "\n";
     #endif
     fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
     fil << "plt.semilogx(aniso,np.array(" << spd_benchE[ndim].name()<<")"
         << "/np.array(" << spd_benchD[ndim].name() << ")" <<",label='Eigen')\n";
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     fil << "plt.semilogx(aniso,np.array(" << spd_benchL[ndim].name()<<")"
         << "/np.array(" << spd_benchD[ndim].name() << ")" <<",label='LAPACK')\n";
     #endif

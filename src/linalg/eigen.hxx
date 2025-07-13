@@ -10,7 +10,7 @@
 namespace Metris{
 
 
-#ifdef USE_LAPACK
+#ifdef METRIS_USE_LAPACK
 template<int ndim>
 void geteigsym_LAPACK(const double* met,int nwork,double* rwork,double* eigval,double* eigvec);
 #endif

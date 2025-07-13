@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
     errseigD[ii][0].setName("erreig_avg_DSYEVQ"+std::to_string(ii+2));
     errseigD[ii][1].setName("erreig_max_DSYEVQ"+std::to_string(ii+2));
 
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     errseigL[ii][0].setName("erreig_avg_LAPACK"+std::to_string(ii+2));
     errseigL[ii][1].setName("erreig_max_LAPACK"+std::to_string(ii+2));
     #endif
@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
     errseicD[ii][0].setName("erreic_avg_DSYEVQ"+std::to_string(ii+2));
     errseicD[ii][1].setName("erreic_max_DSYEVQ"+std::to_string(ii+2));
 
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     errseicL[ii][0].setName("erreic_avg_LAPACK"+std::to_string(ii+2));
     errseicL[ii][1].setName("erreic_max_LAPACK"+std::to_string(ii+2));
     #endif
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
     errseicE[ii][1].setName("erreic_max_EIGEN"+std::to_string(ii+2));
 
     benchD[ii].setName("time_DSYEVQ"+std::to_string(ii+2));
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     benchL[ii].setName("time_LAPACK"+std::to_string(ii+2));
     #endif
     benchE[ii].setName("time_EIGEN"+std::to_string(ii+2));
@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
 
         // ----- Test LAPACK
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
         double rwork[10];
         geteigsym_LAPACK<ndim>(met,10,rwork,eigva2,eigve2[0]);
 
@@ -264,7 +264,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       printf("   - eigvec error min = %e avg = %e max = %e (DSYEV)\n",erreigD.min(),erreigD.avg(),erreigD.max());
       printf("   - eigrel error min = %e avg = %e max = %e (DSYEV)\n",erreicD.min(),erreicD.avg(),erreicD.max());
 
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       printf("   - metric error min = %e avg = %e max = %e (LAPACK)\n",errmetL.min(),errmetL.avg(),errmetL.max());
       printf("   - eigvec error min = %e avg = %e max = %e (LAPACK)\n",erreigL.min(),erreigL.avg(),erreigL.max());
       printf("   - eigrel error min = %e avg = %e max = %e (LAPACK)\n",erreicL.min(),erreicL.avg(),erreicL.max());
@@ -322,7 +322,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       std::string errtype = iar == 0 ? "avg" : "max";
 
       errseigD[ndim][iar].finish();
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       errseigL[ndim][iar].finish();
       #endif
       errseigE[ndim][iar].finish();
@@ -331,7 +331,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       fil << errseigE[ndim][iar].str() << "\n";
       fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
       fil << "plt.loglog(aniso," << errseigD[ndim][iar].name()<<",label='DSYEVQ')\n";
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       fil << "plt.loglog(aniso," << errseigL[ndim][iar].name()<<",label='LAPACK')\n";
       #endif
       fil << "plt.loglog(aniso," << errseigE[ndim][iar].name()<<",label='Eigen')\n";
@@ -346,18 +346,18 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
 
       errseicD[ndim][iar].finish();
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       errseicL[ndim][iar].finish();
       #endif
       errseicE[ndim][iar].finish();
       fil << errseicD[ndim][iar].str() << "\n";
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       fil << errseicL[ndim][iar].str() << "\n";
       #endif
       fil << errseicE[ndim][iar].str() << "\n";
       fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
       fil << "plt.loglog(aniso," << errseicD[ndim][iar].name()<<",label='DSYEVQ')\n";
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       fil << "plt.loglog(aniso," << errseicL[ndim][iar].name()<<",label='LAPACK')\n";
       #endif
       fil << "plt.loglog(aniso," << errseicE[ndim][iar].name()<<",label='Eigen')\n";
@@ -404,7 +404,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
 
       double dum_LAPACK = 1;
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
       double t0_LAPACK = get_wall_time();
       int rwork[10];
       for(int isamp = 0; isamp < nsamp; isamp++){
@@ -465,7 +465,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
       printf("  -- DONE benchmarks DSYEVQ time : %8.2e = %d op/s\n",
                   t1_DSYEVQ-t0_DSYEVQ,(int)(nsamp/(t1_DSYEVQ-t0_DSYEVQ)));
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       printf("                     LAPACK time : %8.2e = %d op/s, fac = %4.2fx\n",
                   t1_LAPACK-t0_LAPACK,(int)(nsamp/(t1_LAPACK-t0_LAPACK)),
                   (t1_LAPACK-t0_LAPACK)/(t1_DSYEVQ-t0_DSYEVQ));
@@ -478,7 +478,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
                   (t1_EIGEN2-t0_EIGEN2)/(t1_DSYEVQ-t0_DSYEVQ));
 
       benchD[ndim-2] += nsamp/(t1_DSYEVQ - t0_DSYEVQ);
-      #ifdef USE_LAPACK
+      #ifdef METRIS_USE_LAPACK
       benchL[ndim-2] += nsamp/(t1_LAPACK - t0_LAPACK);
       #endif
       benchE[ndim-2] += nsamp/(t1_EIGEN  - t0_EIGEN );
@@ -502,17 +502,17 @@ BOOST_AUTO_TEST_CASE(test_eigen)
   for(int ndim = 0; ndim < 2; ndim++){
 
     benchD[ndim].finish();
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     benchL[ndim].finish();
     #endif
     benchE[ndim].finish();
     fil << benchD[ndim].str() << "\n";
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     fil << benchL[ndim].str() << "\n";
     #endif
     fil << benchE[ndim].str() << "\n";
     fil << "plt.figure("<<std::to_string(++ifig)<<")\n";
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     fil << "plt.semilogx(aniso,np.array(" << benchD[ndim].name()<<")"
         << "/np.array(" << benchL[ndim].name() << ")" <<",label='DSYEVQ')\n";
     fil << "plt.semilogx(aniso,np.array(" << benchE[ndim].name()<<")"

@@ -31,7 +31,7 @@ ftype detsym_Eigen_LLT(const ftype *met){
 template  double detsym_Eigen_LLT<2>(const double *met);
 template  double detsym_Eigen_LLT<3>(const double *met);
 
-#ifdef USE_LAPACK
+#ifdef METRIS_USE_LAPACK
 template<int ndim>
 double detsym_LAPACK(const double* met){
   double A[ndim][ndim]; 

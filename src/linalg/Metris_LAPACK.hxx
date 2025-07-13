@@ -4,7 +4,7 @@
 
 // Unfortunately, some LAPACKE routines call malloc, and we use them for very
 // small matrices (2x2, 3x3...)
-#ifdef USE_LAPACK
+#ifdef METRIS_USE_LAPACK
 
 extern "C" {
 

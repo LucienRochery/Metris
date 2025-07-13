@@ -22,7 +22,7 @@ namespace Metris{
 
 // -----------------------------------------------------------------------------
 // met must be positive definite. Otherwise use inv3sym. 
-#ifdef USE_LAPACK
+#ifdef METRIS_USE_LAPACK
 int invspd_LAPACK(int nmat, double met[]){
 	char c = 'U';
 	int info;
@@ -64,7 +64,7 @@ template int invspd_Eigen<3,double>(double *inp, double *out);
 template<int ndim, typename T>
 int invspd(T* met){
   // LAPACK never worthwhile here
-  //#ifdef USE_LAPACK
+  //#ifdef METRIS_USE_LAPACK
   //return invspd_LAPACK(nmat, met);
   //#else 
   return invspd_Eigen<ndim>(met, met);
@@ -128,7 +128,7 @@ int invmat_EigenLUFP(T* mat, T* inv){
 template int invmat_EigenLUFP<2,double>(double *mat, double* inv);
 template int invmat_EigenLUFP<3,double>(double *mat, double* inv);
 
-#ifdef USE_LAPACK
+#ifdef METRIS_USE_LAPACK
   // Matrix stored line first in C fashion
   int invmat_LAPACK(int n, double mat[]){
   	METRIS_ENFORCE_MSG(n <= 3, "invmat expecting n <= 3");
@@ -174,7 +174,7 @@ int invmat(double *mat){
   // naive formula no less stable in dim 2 and much faster
   if constexpr(ndim <= 2) return invmat_naive<ndim>(mat);
   else{
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     return invmat_LAPACK(ndim, mat);
     #else
     return invmat_EigenLUFP<ndim>(mat,mat);

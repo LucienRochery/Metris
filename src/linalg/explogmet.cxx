@@ -37,7 +37,7 @@ void getlogmet_inp(T *met){
   
 	if(!iok){
 
-    #ifdef USE_LAPACK
+    #ifdef METRIS_USE_LAPACK
     if constexpr(std::is_same<T,double>::value){
       printf("## INVALID METRIC ! eigvals = ");
       dblAr1(ndim,eigval).print();
