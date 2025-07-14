@@ -768,7 +768,7 @@ rwork is reduced to 4 values:
  - rwork[3] : initial gradient norm for termination condition
 Previous iterate is no longer stored, and the descent direction is stored explicitely.
 */
-#ifdef USE_PETSC
+#ifdef METRIS_USE_PETSC
 int optim_newton_drivertype_PETSc(int nvar ,
                              Vec &XCUR   ,double *fcur  ,Vec &RHS, Mat &OJ, 
                              double xtol ,double stpmin, 

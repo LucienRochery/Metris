@@ -5,7 +5,7 @@
 
 #include "../src/main_adap.hxx"
 #include "../src/metris_options.hxx"
-#ifdef USE_PETSC
+#ifdef METRIS_USE_PETSC
   #include <petscsys.h>
 #endif
 
@@ -33,7 +33,7 @@ int main(int argc, char** argv){
   printf("\n");
 //  gen_argv(&argc2,argv2,"");
 
-  #ifdef USE_PETSC
+  #ifdef METRIS_USE_PETSC
     PetscFunctionBeginUser;
     //PetscCall(PetscInitialize(&arg2.c,&arg2.v,(char *)NULL, "Default help message"));
     PetscCall(PetscInitialize(&argc,&argv,(char *)NULL, "Default help message"));
@@ -44,7 +44,7 @@ int main(int argc, char** argv){
 
   int icod; 
   
-#ifdef USE_PETSC
+#ifdef METRIS_USE_PETSC
   if(MPI_Rank == 0){
 #endif
     //Mesh msh, bak;
@@ -62,10 +62,10 @@ int main(int argc, char** argv){
         std::cerr << "## Call stack: \n" << *tr;
     #endif
     }
-#ifdef USE_PETSC
+#ifdef METRIS_USE_PETSC
   }
 #endif
-  #ifdef USE_PETSC
+  #ifdef METRIS_USE_PETSC
     PetscCall(PetscFinalize());
   #endif
   //for(int ii = 0; ii < argc2; ii++) free(argv2[ii]);

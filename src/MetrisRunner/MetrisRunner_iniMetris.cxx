@@ -63,20 +63,20 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
     printf("\nDebug build.\n");
     #endif
 
-    bool use_petsc = false, use_absl=false;
+    bool METRIS_USE_PETSC = false, use_absl=false;
 
 
-    #ifdef USE_PETSC
-    use_petsc = true;
+    #ifdef METRIS_USE_PETSC
+    METRIS_USE_PETSC = true;
     #endif
 
     #ifdef USE_ABSL
     use_absl = true;
     #endif
 
-    if(use_petsc || use_absl){
+    if(METRIS_USE_PETSC || use_absl){
       std::cout<<"Compiled with libraries ";
-      if(use_petsc) std::cout<<"petsc ";
+      if(METRIS_USE_PETSC) std::cout<<"petsc ";
       if(use_absl) std::cout<<"absl";
       std::cout<<"\n";
     }

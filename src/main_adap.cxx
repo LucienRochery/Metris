@@ -13,7 +13,7 @@
 #include "msh_checktopo.hxx"
 #include "io_libmeshb.hxx"
 
-#ifdef USE_PETSC
+#ifdef METRIS_USE_PETSC
   #include <petscsys.h>
 #endif
 
@@ -24,7 +24,7 @@ namespace Metris{
 int main_metris(int argc, char** argv){ 
 
 
-  //#ifdef USE_PETSC
+  //#ifdef METRIS_USE_PETSC
   //  static char help_PETSc[] = "PETSc Metris instance.\n\n";
   //  char help[] = "ok\0";
   //  PetscCall(PetscInitialize(&argc, &argv, NULL, NULL));
@@ -89,7 +89,7 @@ int main_metris(int argc, char** argv){
 
     if(param.iverb >= 1) run.statMesh();
 
-    //#ifdef USE_PETSC
+    //#ifdef METRIS_USE_PETSC
     //  PetscCall(PetscFinalize());
     //#endif
   }catch(const MetrisExcept &e){

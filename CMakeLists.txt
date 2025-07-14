@@ -139,7 +139,7 @@ target_link_libraries(metris PUBLIC libMetris
                                     ${Boost_LIBRARIES}
                                     )
 
-#if(USE_PETSC STREQUAL "True")
+#if(METRIS_USE_PETSC STREQUAL "True")
 #  target_link_libraries(metris PUBLIC PkgConfig::PETSC ${MPI_C_LIBRARIES})
 #  #target_link_libraries(metris PUBLIC PETSc)
 #endif()

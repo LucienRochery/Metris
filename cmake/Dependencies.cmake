@@ -161,7 +161,7 @@ if(METRIS_USE_LAPACK)
 endif()
 
 
-if(USE_PETSC)
+if(METRIS_USE_PETSC)
   message("PETSC enabled")
 
   if(PETSC_FOUND AND NOT PETSC_PKGCONFIG)
@@ -218,7 +218,7 @@ if(USE_PETSC)
 
     endif()
 
-    add_compile_definitions(USE_PETSC)
+    add_compile_definitions(METRIS_USE_PETSC)
 
     message("-- PETSC_INCLUDE_DIRS = ${PETSC_INCLUDE_DIRS}")
     message("-- PETSC_LIBRARIES    = ${PETSC_LIBRARIES}")
