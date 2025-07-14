@@ -32,9 +32,6 @@ nproc=1
 echo "in directory $(pwd)"
 
 #Build basic Metris targets
-#time make -j $nproc -f Makefile.parallel meshBASIC
-#time make -j $nproc -f Makefile.parallel libMetris
-#time make -j $nproc -f Makefile.parallel metris
 time make -j $nproc -f Makefile.parallel metris
 time make -j $nproc -f Makefile.parallel unit_build
 
