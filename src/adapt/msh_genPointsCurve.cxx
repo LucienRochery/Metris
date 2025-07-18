@@ -118,8 +118,8 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
           METRIS_ASSERT(ibpoi >= 0);
           tedg[ii] = msh.bpo2rbi(ibpoi,0);
         }        
-        bool inbd = tval >= tedg[0] && tval <= tedg[1]
-                 || tval <= tedg[0] && tval >= tedg[1];
+        bool inbd = (tval >= tedg[0] && tval <= tedg[1])
+                 || (tval <= tedg[0] && tval >= tedg[1]);
         if(!inbd) MPRINTF(" (1) New t %f not in edge bounds %f %f \n",tval, 
                           tedg[0],tedg[1]);
         METRIS_ASSERT_MSG(inbd,"Ini tess point t not in edge t bounds.");
@@ -228,8 +228,8 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
           METRIS_ASSERT(ibpoi >= 0);
           tedg[ii] = msh.bpo2rbi(ibpoi,0);
         }        
-        bool inbd = tnewp >= tedg[0] && tnewp <= tedg[1]
-                 || tnewp <= tedg[0] && tnewp >= tedg[1];
+        bool inbd = (tnewp >= tedg[0] && tnewp <= tedg[1])
+                 || (tnewp <= tedg[0] && tnewp >= tedg[1]);
         if(!inbd){
           MPRINTF("New t %f not in edge bounds %f %f \n",tnewp, 
                           tedg[0],tedg[1]);

@@ -216,6 +216,23 @@ void check_topo(MeshBase &msh,
                         << ipoin <<" has "<<msh.poi2tag(itag,ipoin)<<
                         " tag is "<<msh.tag[itag]);
       }
+
+      for(int ii = 0; ii < msh.cfa2tag.get_stride(); ii++){
+        METRIS_ENFORCE(msh.cfa2tag(itag, ii) <= msh.tag[itag]);
+        msh.cfa2tag(ithread, ii) = 0;
+      }
+      for(int ii = 0; ii < msh.ced2tag.get_stride(); ii++){
+        METRIS_ENFORCE(msh.ced2tag(itag, ii) <= msh.tag[itag]);
+        msh.ced2tag(ithread, ii) = 0;
+      }
+      for(int ii = 0; ii < msh.cno2tag.get_stride(); ii++){
+        METRIS_ENFORCE(msh.cno2tag(itag, ii) <= msh.tag[itag]);
+        msh.cno2tag(ithread, ii) = 0;
+      }
+      for(int ii = 0; ii < msh.dom2tag.get_stride(); ii++){
+        METRIS_ENFORCE(msh.dom2tag(itag, ii) <= msh.tag[itag]);
+        msh.dom2tag(ithread, ii) = 0;
+      }
     }
 
     for(auto t : msh.edgHshTab){
@@ -858,7 +875,13 @@ void check_topo(MeshBase &msh,
       int ipoin = msh.bpo2ibi(ibpoi,0);
       if(ipoin < 0) continue;
       METRIS_ENFORCE_MSG(ipoin < npoin,"ibpoi = "<<ibpoi<<" points to ipoin = "<<ipoin<<" but npoin = "<<npoin);
-      METRIS_ENFORCE(msh.poi2bpo[ipoin] >= 0);
+      if(msh.poi2bpo[ipoin] < 0){
+        printf("ibpoi %d : ",ibpoi);
+        intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
+        printf("ipoin = %d poi2ent %d %d \n",ipoin,msh.poi2ent(ipoin,0),msh.poi2ent(ipoin,1));
+      }
+      METRIS_ENFORCE_MSG(msh.poi2bpo[ipoin] >= 0,"ibpoi = "<<ibpoi<<
+        " points to ipoin = "<<ipoin<<" but poi2bpo[ipoin] = "<<msh.poi2bpo[ipoin]);
       METRIS_ENFORCE(msh.bpo2ibi(msh.poi2bpo[ipoin],0) == ipoin);
       METRIS_ENFORCE(msh.poi2ent(ipoin,0) >= 0); 
 
@@ -866,8 +889,22 @@ void check_topo(MeshBase &msh,
       METRIS_ENFORCE(bdim == 0 || bdim == 1 || bdim == 2);
       if(bdim > 0){
         int ientt = msh.bpo2ibi(ibpoi,2);
+        if(ientt < 0){
+          printf("ibpoi = %d ipoin = %d bdim = %d\n",
+                 ibpoi,ipoin,bdim);
+          printf("Invalid entity %d \n",ientt);
+        }
         METRIS_ENFORCE(ientt >= 0);
         int iver = msh.getverent(ientt,bdim,ipoin);
+        if(iver < 0){
+          printf("ibpoi = %d ipoin = %d bdim = %d ientt = %d iref = %d\n",
+                 ibpoi,ipoin,bdim,ientt,msh.ent2ref(bdim)[ientt]);
+          printf("nbpoi = %d npoin = %d\n",msh.nbpoi,msh.npoin);
+          printf("poi2ent = %d %d \n",msh.poi2ent(ipoin,0),msh.poi2ent(ipoin,1));
+          printf("Nodes: ");
+          intAr1(bdim+1,msh.ent2poi(bdim)[ientt]).print();
+          printf("Vertex not found\n");
+        }
         METRIS_ENFORCE(iver>=0);
       }
 
@@ -941,6 +978,7 @@ void check_topo(MeshBase &msh,
 
     }
 
+
     // Check no duplicate entries in ibpoi.
     for(int itmp = 0; itmp < msh.nbpoi; itmp++){
       int ipoin = msh.bpo2ibi(itmp,0);
@@ -987,10 +1025,56 @@ void check_topo(MeshBase &msh,
       // This will be used as an epsilon.
       // Loop over highest dim boundary entities.
       const double EG_tol = 1.0e-10;
-      dblAr1 rbpoi(msh.npoin);
-      rbpoi.fill(1.0e30);
+      double result[18];
       int tdims = 1;
       if(msh.isboundary_faces() && msh.nface > 0) tdims = 2;
+      msh.tag[ithread]++;
+      for(int ientt = 0; ientt < msh.nentt(tdims); ientt++){
+        if(isdeadent(ientt, msh.ent2poi(tdims))) continue;
+        for(int iver = 0; iver < tdims+1; iver++){
+          int ipoin = msh.ent2poi(tdims)(ientt, iver);
+          msh.poi2tag(ithread,ipoin) = msh.tag[ithread];
+        }
+      }
+
+      for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
+        int ipoin = msh.bpo2ibi(ibpoi,0);
+        if(ipoin < 0) continue;
+        if(msh.poi2tag(ithread,ipoin) < msh.tag[ithread]) continue;
+        int tdim = msh.bpo2ibi(ibpoi,1);
+        if(tdim == 0) continue;
+        int ientt = msh.bpo2ibi(ibpoi,2);
+        int iref = msh.ent2ref(tdim)[ientt];
+        ego obj = tdim == 1 ? msh.CAD.cad2edg[iref] : msh.CAD.cad2fac[iref];
+        EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
+        double err = msh.idim == 2 ? geterrl2<2>(result, msh.coord[ipoin])
+                                   : geterrl2<3>(result, msh.coord[ipoin]);
+        if(err >= EG_tol){
+          printf("## geo error %e EG_tol %e PRINT all bpoi for ipoin %d \n",
+                 err,EG_tol,ipoin);
+          for(int ibpo0 = msh.poi2bpo[ipoin]; ibpo0 >= 0; ibpo0 = msh.bpo2ibi(ibpo0,3)){
+            int tdim1 = msh.bpo2ibi(ibpo0,1);
+            int irefdbg = -1;
+            double err1 = 0;
+            if(tdim1 > 0){
+              irefdbg = msh.ent2ref(tdim1)[msh.bpo2ibi(ibpo0,2)];
+              ego obj1 = tdim1 == 1 ? msh.CAD.cad2edg[irefdbg] : msh.CAD.cad2fac[irefdbg];
+              EG_evaluate(obj1, msh.bpo2rbi[ibpo0], result);
+              err1 = msh.idim == 2 ? geterrl2<2>(result, msh.coord[ipoin])
+                                   : geterrl2<3>(result, msh.coord[ipoin]);
+            }
+
+            printf("%d : %d %d %d ref %d; %e %e; err = %e\n",ibpo0, msh.bpo2ibi(ibpo0,0), 
+              msh.bpo2ibi(ibpo0,1), msh.bpo2ibi(ibpo0,2), irefdbg,
+              msh.bpo2rbi(ibpo0,0),msh.bpo2rbi(ibpo0,1), err1);
+          }
+        }
+        METRIS_ENFORCE(err <= EG_tol);
+      } 
+
+      #if 0 
+      dblAr1 rbpoi(msh.npoin);
+      rbpoi.fill(1.0e30);
       for(int ientt = 0; ientt < msh.nentt(tdims); ientt++){
         if(isdeadent(ientt, msh.ent2poi(tdims))) continue;
         for(int iver = 0; iver < msh.nnode(tdims); iver++){
@@ -1009,7 +1093,7 @@ void check_topo(MeshBase &msh,
         }
       }
 
-      double result[18];
+      bool ifail = false;
       for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
         int ipoin = msh.bpo2ibi(ibpoi,0);
         if(ipoin < 0) continue;
@@ -1021,8 +1105,10 @@ void check_topo(MeshBase &msh,
         EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
         double err = msh.idim == 2 ? geterrl2<2>(result, msh.coord[ipoin])
                                    : geterrl2<3>(result, msh.coord[ipoin]);
+
         if(err >= rbpoi[ipoin]*EG_tol){
-          printf("## ERROR geo error %e PRINT all bpoi for ipoin %d \n",err,ipoin);
+          printf("## geo error %e rbpoi %e EG_tol %e PRINT all bpoi for ipoin %d \n",
+                 err,rbpoi[ipoin],EG_tol,ipoin);
           for(int ibpo0 = msh.poi2bpo[ipoin]; ibpo0 >= 0; ibpo0 = msh.bpo2ibi(ibpo0,3)){
             int tdim1 = msh.bpo2ibi(ibpo0,1);
             int irefdbg = -1;
@@ -1040,14 +1126,38 @@ void check_topo(MeshBase &msh,
               msh.bpo2rbi(ibpo0,0),msh.bpo2rbi(ibpo0,1), err1);
           }
         }
-        METRIS_ENFORCE_MSG(err < rbpoi[ipoin]*EG_tol, "High point surface error "<<
-          err<<" with eps "<<rbpoi[ipoin]<<" bpoi "<<ibpoi<<" is dim "<<tdim<<" ientt "<<ientt
-          <<" iref "<<iref<<" rbi "<<msh.bpo2rbi(ibpoi,0)<<" "<<msh.bpo2rbi(ibpoi,1)
-          <<" ipoin = "<<ipoin)
-
+        if(err >= rbpoi[ipoin]*EG_tol){
+          std::cout<< "High point surface error "<<
+            err<<" with eps "<<rbpoi[ipoin]<<" bpoi "<<ibpoi<<" is dim "<<tdim<<" ientt "<<ientt
+            <<" iref "<<iref<<" rbi "<<msh.bpo2rbi(ibpoi,0)<<" "<<msh.bpo2rbi(ibpoi,1)
+            <<" ipoin = "<<ipoin<<"\n";
+          ifail = true;
+        }
       }
-    }
 
+      if(ifail){
+        int npoi0 = msh.npoin;
+        for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
+          int ipoin = msh.bpo2ibi(ibpoi,0);
+          if(ipoin < 0) continue;
+          int tdim = msh.bpo2ibi(ibpoi,1);
+          if(tdim == 0) continue;
+          int ientt = msh.bpo2ibi(ibpoi,2);
+          int iref = msh.ent2ref(tdim)[ientt];
+          ego obj = tdim == 1 ? msh.CAD.cad2edg[iref] : msh.CAD.cad2fac[iref];
+          EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
+          int ipnew = msh.newpoitopo(tdim, -1);
+          for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipnew,ii) = result[ii];
+          msh.newbpotopo(ipnew, 0, ipnew);
+        }
+        writeMesh("EGEvals",msh);
+        for(int ipoin = npoi0; ipoin < msh.npoin; ipoin++) msh.killpoint(ipoin);
+      }
+
+      METRIS_ENFORCE_MSG(!ifail,"High surface error (wrong ts/(u,v)s)");
+    #endif
+
+    }
 
   }catch(const MetrisExcept& e){
     printf("Check_topo failed, dumping mesh:\n");

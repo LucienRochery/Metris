@@ -464,8 +464,6 @@ int inveval(MeshBase &msh, int ientt,
   GETVDEPTH(msh.param);
   constexpr int tdim = gdim;
 
-  const int iverb = msh.param->iverb;
-
   double tol = tol0;
   if constexpr(ideg > 1){
     double eps = getepsent<gdim>(msh,gdim,ientt);

@@ -139,7 +139,6 @@ int projptfacP1(const double*__restrict__ coop,
                 double*__restrict__ bary,
                 double*__restrict__ coopr){
 
-  constexpr int gdim = 3;
   int ierro = 0;
 
   // Compute barycentrics using normal norms

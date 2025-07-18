@@ -26,7 +26,6 @@ int reinsertFlat(Mesh<MFT> &msh){
   GETVDEPTH(msh.param);
   constexpr int gdim = idim;
   constexpr int tdim = idim; 
-  constexpr int nnmet = (gdim * (gdim + 1)) / 2;
 
 
   // For now, make it an option later 

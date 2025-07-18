@@ -100,7 +100,10 @@ void quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   if constexpr (tdim == 3) *tra += J0tJtMJJ0_diag[2];
   
   // This is an actual exception that should never theoretically happen. 
-  if(*tra < 1.0e-16) METRIS_THROW_MSG(GeomExcept(),"Zero trace of spd matrix? "<<*tra);
+  if(*tra < 1.0e-16){
+    printf("Trace could be negative: %e\n",(double)*tra);
+    METRIS_THROW_MSG(GeomExcept(),"Zero trace of spd matrix? "<<*tra);
+  }
 
 
   if constexpr(tdim == gdim){

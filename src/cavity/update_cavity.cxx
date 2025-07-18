@@ -27,8 +27,8 @@ namespace Metris{
 // redge has info for the point that is not ipins
 // rface is dblAr3 as 2 nodes, each 2 parameters
 template<class MFT, int ideg>
-int update_cavity(Mesh<MFT> &msh, MshCavity &cav, const CavWrkArrs &work,
-                  int npoi0, int nedg0, int nfac0, int nele0, 
+int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkArrs &work,
+                  [[maybe_unused]] int npoi0, int nedg0, int nfac0, int nele0, 
                   int ithread){
 
   int ierro = 0;
@@ -311,6 +311,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, const CavWrkArrs &work,
     auto key = stup2(ip[0],ip[1]);
     msh.edgHshTab.insert({key,iedge});
   }
+
 
 
   // Internal neighbours are updated directly in reconnect_lincav. 
@@ -843,6 +844,25 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, const CavWrkArrs &work,
     }
   }
 
+  #if 0
+  // Kill points left hanging (poi2ent still -1)
+  const int tdimc = cav.get_tdim();
+  {// scope
+  const intAr1 &lcent = cav.lcent(tdimc);
+  intAr2 &ent2poi = msh.ent2poi(tdimc);
+  // The degree is not a template argument -> non constexpr 
+  int nnode = msh.nnode(tdimc); 
+
+  for(int ientt : lcent){
+    INCVDEPTH(msh.param);
+    for(int ii = 0; ii < nnode; ii++){
+      int ipoin = ent2poi(ientt,ii);
+      if(msh.poi2ent(ipoin,0) >= 0) continue;
+      msh.killpoint(ipoin);
+    }
+  }
+  }// scope
+  #endif
 
   // Deleting entities in the initial cavity. 
   for(int iedgl = 0; iedgl < ncedg; iedgl++){

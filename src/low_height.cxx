@@ -58,9 +58,10 @@ void getheightentP1_aniso(const Mesh<MFT> &msh, int ientt,
       double coopr[3];
       double bary[4];
       // ierro is whether point is inside face, but this doesn't matter. 
-      int ierro = 
+      //int ierro = 
       projptfacP1(msh.coord[ipoin], msh.coord[ipoi1], msh.coord[ipoi2], msh.coord[ipoi3],
                   bary, coopr);
+      //METRIS_ENFORCE_MSG(ierro == 0,"projptfacP1 failed");
 
 
       double dp[3];

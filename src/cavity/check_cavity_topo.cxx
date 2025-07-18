@@ -19,7 +19,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
                       CavOprOpt &opts, //RoutineWorkMemory<int> &iwrk, 
                       int ithread){
 
-  cav.maxtag = ++msh.tag[ithread];
+  cav.maxtag = MAX(cav.maxtag,++msh.tag[ithread]);
 
   GETVDEPTH(msh.param);
 

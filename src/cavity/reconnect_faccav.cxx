@@ -446,17 +446,25 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
     int ip, int ifacn, int ifac0, int ithread){
 
   GETVDEPTH(msh.param);
+  //static int warnprt = 0;
+  //if(warnprt++ < 10) printf("## DEBUG REMOVE PRINT IN aux_bpo_update_fac\n");
+  //if(ip == 4247){
+  //  printf("## DEBUG point 42247 full prints\n");
+  //  iverb__ = 5;
+  //  ivdepth__ = 10;
+  //}
 
-  CPRINTF1("-- START aux_bpo_update_fac ip = %d ifacn %d ifac0 %d ipins %d\n",
-            ip,ifacn,ifac0,cav.ipins);
 
   int ib = msh.poi2bpo[ip];
   METRIS_ASSERT_MSG(ib >= 0, "aux_bpo_update_fac called on non boundary point");
 
+  CPRINTF1("-- START aux_bpo_update_fac ip = %d ib = %d ifacn %d ifac0 %d ipins %d\n",
+            ip,ib,ifacn,ifac0,cav.ipins);
+
   // Easy case: same dim 
   if(msh.bpo2ibi(ib,1) == 2){
     int ifa = msh.bpo2ibi(ib,2);
-    CPRINTF2(" - update bpo ib dim 2 iface = %d tag = %d >=? %d",ifa,
+    CPRINTF2(" - update bpo ib %d dim 2 iface = %d tag = %d >=? %d\n",ib,ifa,
              msh.fac2tag(ithread,ifa), msh.tag[ithread]);
     if(msh.fac2tag(ithread,ifa) >= msh.tag[ithread] // if face about to get deleted
     && msh.bpo2ibi(ib,3) == -1){ // and have not yet done what we're about to do  || note unlike edges there is no higher tdim
@@ -472,6 +480,7 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
   // Edge or corner 
   // Depends whether new, or old edge. 
   int ibn = msh.newbpotopo(ip,2,ifacn);
+  CPRINTF2(" - new face ibpoi = %d\n",ibn);
 
   for(int jj = 0; jj < nrbi; jj++) msh.bpo2rbi(ibn,jj) = 0.0;
 
@@ -479,6 +488,8 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
   // Note, this may not exist, if we're not currently looking at the edge ifac0 gave ifacn. 
   ib = msh.poi2ebp(ip,2,ifac0,-1);
   //ib = getent2bpo(msh, ib, ifac0, 2);
+
+  CPRINTF2(" - mother face ib = %d\n",ib);
 
   if(ib >= 0){
     for(int jj = 0; jj < nrbi; jj++) msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ib,jj);
@@ -488,6 +499,8 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
   }
 
   if(ip == cav.ipins && cav.inewp) return; 
+
+  CPRINTF2(" - mother face ib not found, find in same connex component\n");
 
   // Get a face in same connex component as ifac0, which has ip. 
   ib = msh.poi2bpo[ip];
@@ -940,7 +953,8 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
     for(int iedge = nedg0; iedge < msh.nedge; iedge++){
       int jp1 = msh.edg2poi(iedge,0);
       int jp2 = msh.edg2poi(iedge,1);
-      if(jp1 == kp1 && jp2 == kp2 || jp1 == kp2 && jp2 == kp1){
+      if( (jp1 == kp1 && jp2 == kp2) 
+       || (jp1 == kp2 && jp2 == kp1) ){
         CPRINTF1(" previously created edge %d coincides with this edge",iedge);
         return CAV_ERR_DUPEDG2;
       }

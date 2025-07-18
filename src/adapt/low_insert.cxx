@@ -80,7 +80,6 @@ int insertEdge(Mesh<MFT>& msh,
   opts.qmax_iff = -1;
 
   int mgrow = 100;
-  int ngrow = 0;
   intWrkAr1 lrempoi = msh.get_iwork(10);
 
   cav.reset();
@@ -97,7 +96,7 @@ int insertEdge(Mesh<MFT>& msh,
   static std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp;
 
 
-  int ierro = 0, nprem;
+  int ierro = 0;
   bool irestart_cav;
   int ip1 = ent2poi(ientt,lnoed[iedl][0]);
   int ip2 = ent2poi(ientt,lnoed[iedl][1]);
@@ -198,7 +197,7 @@ int insertEdge(Mesh<MFT>& msh,
   CPRINTF2(" - edg2pol = ");
   if(DOPRINTS2()) intAr1(nnode,edg2pol).print();
 
-restart_bisection:
+//restart_bisection:
   // Get bar1 s.t. new edges are not short. There can be other short edges, but 
   // not from splitting the parent edge. 
   bool fnd_len = false;
@@ -413,9 +412,9 @@ restart_bisection:
     //  }
     //}
 
-    nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
-    CPRINTF1(" - +remp nedge %d nface %d nelem %d\n",
-             cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
+    int nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
+    CPRINTF1(" - +remp nedge %d nface %d nelem %d nprem = %d\n",
+             cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),nprem);
     if(DOPRINTS2()) writeMeshCavity("insert_cavity1."+std::to_string(ngrow),msh,cav);
 
     // -- 1 step Delaunay increase
@@ -493,7 +492,6 @@ restart_bisection:
         intAr1 &lcent = cav.lcent(tdimc);
         const int ncen0 = tdimc == 1 ? nced1 : 
                           tdimc == 2 ? ncfa1 : ncte1;
-        const int ncent = lcent.get_n();
         const intAr2& ent2poc = msh.ent2poi(tdimc);
         int nrem = 0;
         for(int ii = ncen0; ii < lcent.get_n();){
@@ -561,18 +559,18 @@ restart_cavity:
     ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd1);
   }}CT_FOR1(ideg);
 
-  if(DOPRINTS1()){
-    msh.param->iverb = iverb0;
-    msh.param->ivdepth = ivdepth0;
-    printf("## END OF OPERATION after cavity_operator wait\n");
-    printf("lerro:");
-    lerro.print();
-    wait();
-    if(ierro > 0){
-      printf("Error %d wait \n",ierro);
-      wait();
-    }
-  }
+  //if(DOPRINTS1()){
+  //  msh.param->iverb = iverb0;
+  //  msh.param->ivdepth = ivdepth0;
+  //  printf("## END OF OPERATION after cavity_operator wait\n");
+  //  printf("lerro:");
+  //  lerro.print();
+  //  wait();
+  //  if(ierro > 0){
+  //    printf("Error %d wait \n",ierro);
+  //    wait();
+  //  }
+  //}
 
   if(ierro == CAV_ERR_REMPT && !irestart_cav && !imoved_point){
     cav.lcedg.set_n(nced0);

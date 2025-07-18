@@ -42,6 +42,9 @@ void Mesh<MetricFieldType>::cleanup(){
     int ipoin = this->bpo2ibi(ibpoi,0); 
     if(ipoin < 0) continue;
 
+    METRIS_ASSERT_MSG(ipoin < this->npoin, "ibpoi = "<<ibpoi<<" nbpoi = "<<this->nbpoi<<
+      " points to ipoin = "<<ipoin<<" but npoin = "<<this->nbpoi);
+
     int ibpon = nbpon; 
     lentt[ibpoi] = ibpon; 
     nbpon++; 
@@ -302,6 +305,15 @@ void Mesh<MetricFieldType>::cleanup(){
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
     int ipoin = this->bpo2ibi(ibpoi,0); 
     if(ipoin < 0) continue;
+    if(ipoin >= this->npoin){
+      printf("ipoin = %d >= npoin = %d\n",ipoin,this->npoin);
+      printf("ibpoi = %d : ",ibpoi);
+      intAr1(nibi,this->bpo2ibi[ibpoi]).print();
+      for(int ibpo2 = this->bpo2ibi(ibpoi,3); ibpo2 >= 0; ibpo2 = this->bpo2ibi(ibpo2,3)){
+        printf("ibpo2 = %D : ",ibpo2);
+        intAr1(nibi,this->bpo2ibi[ibpo2]).print();
+      }
+    }
     METRIS_ASSERT(ipoin < this->npoin);
     int ityp = this->bpo2ibi(ibpoi,1); 
 

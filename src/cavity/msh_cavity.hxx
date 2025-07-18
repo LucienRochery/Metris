@@ -120,6 +120,13 @@ public:
     }
   }
 
+  int get_tdim() const{
+         if(lctet.get_n() > 0) return 3;
+    else if(lcfac.get_n() > 0) return 2;
+    else if(lcedg.get_n() > 0) return 1;
+    return 0;
+  }
+
   void print(const MeshBase &msh, int iforce = 0) const;
 
   /* User set data */

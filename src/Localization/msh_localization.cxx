@@ -505,8 +505,8 @@ int locMesh(MeshBase &msh, int *ientt,
               //  else        bmin = 1.0e30;
               //  //imin = ii;
               //}
-              if(sg != 0 && sg*bary[ii] > bmax
-              || bmax < -1.0e29){
+              if((sg != 0 && sg*bary[ii] > bmax)
+              || (bmax < -1.0e29)){
                 if(sg == 0) bmax = -1.0e30;
                 else        bmax = sg*bary[ii];
                 imax = ii;

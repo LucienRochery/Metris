@@ -115,6 +115,8 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
       if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
       if(isdeadent(ientt,ent2poi)) continue;
 
+      CPRINTF1("-- height check ientt %d dim %d\n",ientt,tdim);
+
 
       // Determine which pts are opposite bdry facets, if any
       bool skipelt = true;
@@ -151,6 +153,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
       getheightentP1_aniso<MFT,gdim>(msh, ientt, height);
 
       for(int iver = 0; iver < tdim + 1; iver++){
+        INCVDEPTH(msh.param);
         if(!ibdry[iver]) continue;
 
         CPRINTF1(" - vertex %d height %e >=? h0 = %d\n",iver,height[iver],
@@ -162,6 +165,8 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
         int ipcol = ent2poi(ientt,iver);
         int pdim = msh.getpoitdim(ipcol);
         if(pdim == 0) continue;
+
+        CPRINTF1(" - call collapseVertex ipcol %d pdim %d\n",ipcol,pdim);
 
         ierro = collapseVertex(msh, ipcol, qmax_suf, cav, work, lerro2, ithrd2, ithrd3);
         if(ierro > 0){

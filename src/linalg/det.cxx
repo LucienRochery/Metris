@@ -12,7 +12,6 @@ namespace Metris{
 template<int ndim,typename ftype>
 ftype detsym_Eigen_LLT(const ftype *met){
   typedef Eigen::Matrix<ftype,ndim,ndim> MatrixN;
-  typedef Eigen::Vector<ftype,ndim> VectorN;
 
   MatrixN met_Eigen;
   for(int ii = 0; ii < ndim; ii++) 

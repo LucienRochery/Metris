@@ -235,9 +235,9 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
   }
   // If the seed is ref unconstrained, we will simply use edg2fac and fac2tet.
   // This is either if no ref constraint, or if single ref of target dim.
-  if(iref < 0 || tdim == 1 && this->CAD.ncaded == 1
-              || tdim == 2 && this->CAD.ncadfa == 1
-              || tdim == 3 && this->ndomn == 1){
+  if(iref < 0 || (tdim == 1 && this->CAD.ncaded == 1)
+              || (tdim == 2 && this->CAD.ncadfa == 1)
+              || (tdim == 3 && this->ndomn      == 1)){
     if(pdim_seed == 1){
       ieleb = this->bak->edg2fac[ieleb];
       CPRINTF1(" - seed edge -> face = %d\n",ieleb);
@@ -279,8 +279,6 @@ ieleb_initialized:
 
   CPRINTF2(" - using ipseed %d bak elt seed = %d dim %d\n",ipseed,ieleb,tdim);
 
-
-  bool dbgdist = false;
 
   int ierro;
   double barb[4], coopr[3];

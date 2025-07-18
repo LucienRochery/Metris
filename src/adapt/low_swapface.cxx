@@ -22,6 +22,8 @@
 
 #include "../BezierOffsets/low_gaps.hxx"
 
+#include "../msh_checktopo.hxx"
+
 namespace Metris{
 
 
@@ -309,7 +311,24 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
         msh.bpo2rbi(ibpon, ii) = msh.bpo2rbi(ibpoo, ii);
       // ip4 (msh.fac2poi(ifac2,ie2))
       ibpoo = msh.poi2ebp(msh.fac2poi(ifac2,ie2), 2, ifac2, iref);
+      #ifndef NDEBUG
+      if(ibpoo < 0){
+        int ipoin = msh.fac2poi(ifac2,ie2);
+        printf("ifac2 = %d ie2 = %d iref = %d ipoin %d vertices :",
+          ifac2,ie2,iref,ipoin);
+        intAr1(3,msh.fac2poi[ifac2]).print();
+        printf("got ibpoo = %d \n",ibpoo);
+        printf("ibpoi %d\n",msh.poi2bpo[ipoin]);
+        for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+          printf("ibpoi %d : ",ibpoi);
+          intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
+        }
+        check_topo(msh,ithread);
+      }
+      #endif
+      METRIS_ASSERT(ibpoo >= 0);
       ibpon = msh.newbpotopo(msh.fac2poi(ifac2,ie2), 2, nfac0+1);
+      METRIS_ASSERT(ibpon >= 0);
       for(int ii = 0; ii < nrbi; ii++) 
         msh.bpo2rbi(ibpon, ii) = msh.bpo2rbi(ibpoo, ii);
 

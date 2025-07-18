@@ -67,7 +67,9 @@ void getlogmet_inp(T *met){
     METRIS_THROW_MSG(RealExcept(),"Negative eigenvalues");
   }
 
+#ifdef METRIS_USE_LAPACK
 fixed:
+#endif
 
 	for(int ii = 0; ii < ndim ; ii++) eigval[ii] = log(eigval[ii]);
 

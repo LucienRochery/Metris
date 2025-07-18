@@ -308,6 +308,13 @@ void MetrisRunner::adaptMesh0(){
     // "-- Adp loop %3d / %3d inser %d coll %d swap %d, %fpct unit, op stat = %f \n"
     if(DOPRINTS1())printf(fmt.c_str(), spaces_string__, 
              niter,miter, tloop1 - tloop0, ninser,ncoll,nswap, 100*lenstat.prop_unit,stat0);
+
+    //if(niter == 1){
+    //  printf("## DEBUG SET MAX PRINTS\n");
+    //  wait();
+    //  msh.param->iverb = 5;
+    //  msh.param->ivdepth = 5;
+    //}
     if(lenstat.prop_unit*100 >= msh.param->adp_unit_stop){
       CPRINTF1("------------------------------------------------------------\n");
       CPRINTF1("- %7.2f%% edges unit exit threshold = %7.2f\n",100*lenstat.prop_unit,
@@ -315,8 +322,8 @@ void MetrisRunner::adaptMesh0(){
       break;
     }
 
-    bool dosmoo_adp = (iopt_niter < msh.param->adp_opt_niter|| msh.param->adp_opt_niter < 0)
-                        && !msh.param->opt_unif;
+    //bool dosmoo_adp = (iopt_niter < msh.param->adp_opt_niter|| msh.param->adp_opt_niter < 0)
+    //                    && !msh.param->opt_unif;
     bool stagn = stat0 < msh.param->adp_stagn_stop
               || stat0 < minstat;
               //|| stat0 < 5.0e-2 && dosmoo_adp;

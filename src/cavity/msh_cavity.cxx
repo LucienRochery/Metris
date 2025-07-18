@@ -22,7 +22,8 @@ void MshCavity::print(const MeshBase &msh, int iforce) const{
 
   if(DOPRINTS1() || iforce >= 1){
 
-    MPRINTF(" - cavity ipins %d ncedg %d ncfac %d nctet %d\n",ipins,
+    MPRINTF(" - cavity ipins %d pdim %d ncedg %d ncfac %d nctet %d\n",ipins,
+            ipins >= 0 ? msh.getpoitdim(ipins) : -1,
             lcedg.get_n(),lcfac.get_n(),lctet.get_n());
 
     if(this->lcedg.get_n() > 0){
@@ -139,7 +140,7 @@ int cavity_operator(Mesh<MFT> &msh ,
 
 
   // The minimum value we need to set to (note right ++ is fine as we need only >=)
-  cav.maxtag = ++msh.tag[ithread];
+  cav.maxtag = MAX(cav.maxtag,++msh.tag[ithread]);
   
    /*  -------------- Generate final cavity -------------------- 
    		 For typent in (line|face|tetra) do 
@@ -257,6 +258,13 @@ int cavity_operator(Mesh<MFT> &msh ,
   
   // cav.ipins may not be correctly in the mesh 
   if(msh.param->dbgfull && ierro == 0) check_topo(msh,ithread);
+
+  //static int nwarnprt = 0;
+  //if(nwarnprt++ < 10) printf("## DEBUG REMOVE PRINT in msh_cavity\n");
+  //if(msh.npoin == 26240 && ierro == 0){
+  //  printf("## EXCEPTIONAL CHECK TOPO CALL\n");
+  //  check_topo(msh,ithread);
+  //}
 
 	return ierro;
   }catch(const MetrisExcept& e){

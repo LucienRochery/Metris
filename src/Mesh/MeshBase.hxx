@@ -398,7 +398,7 @@ template<typename T>
 class WorkArray1D{
 public:
   WorkArray1D(MeshBase& msh_, int ilock_, MeshArray1D<T>& array_) 
-    : msh(msh_), ilock(ilock_), array(array_) {}
+    : ilock(ilock_), array(array_), msh(msh_) {}
 
   ~WorkArray1D(){
     msh.free_work<T>(ilock);
@@ -421,7 +421,7 @@ public:
   const MeshArray1D<T>& get_array() const {return array;}
 
 private:
-  int ilock, itype;
+  int ilock;
   MeshArray1D<T>& array;
   MeshBase& msh;
 };

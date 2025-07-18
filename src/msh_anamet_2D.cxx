@@ -78,7 +78,7 @@ void anamet2D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
 
   SANS::SurrealS<2,double> metS[3];
   eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
-  getmet_SurS2dbl<2>(metS,met,dmet);
+  getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 }
 
 // Boundary-layer mesh 
@@ -110,7 +110,7 @@ void anamet2D_3([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
 
   SANS::SurrealS<2,double> metS[3];
   eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
-  getmet_SurS2dbl<2>(metS,met,dmet);
+  getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 }
 
 
@@ -143,7 +143,7 @@ void anamet2D_4([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
 
   SANS::SurrealS<2,double> metS[3];
   eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
-  getmet_SurS2dbl<2>(metS,met,dmet);
+  getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 }
 
 
@@ -197,7 +197,7 @@ void anamet2D_5([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   SANS::SurrealS<2,double> metS[3];
   eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
 
-  getmet_SurS2dbl<2>(metS,met,dmet);
+  getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 
   #ifndef NDEBUG
   if(idif1 > 0){
@@ -270,7 +270,7 @@ void anamet2D_6([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   SANS::SurrealS<2,double> metS[3];
   eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
 
-  getmet_SurS2dbl<2>(metS,met,dmet);
+  getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 }
 
 

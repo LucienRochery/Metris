@@ -33,9 +33,9 @@ Collapse a vertex in short edge
 Cavity is passed in to reuse allocations
 */
 template<class MFT>
-int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf, 
+int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, [[maybe_unused]] double qmax_suf, 
                  MshCavity &cav, CavWrkArrs &work, 
-                 intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3){
+                 intAr1 &lerro, int ithrd1, int ithrd2, [[maybe_unused]] int ithrd3){
   
   const auto lnoed = tdim == 1 ? lnoed1 : 
                      tdim == 2 ? lnoed2 : lnoed3;
@@ -74,7 +74,7 @@ Cavity is passed in to reuse allocations
 template<class MFT>
 int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf, 
                   MshCavity &cav, CavWrkArrs &work, 
-                  intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3){
+                  intAr1 &lerro, int ithrd1, int ithrd2, [[maybe_unused]] int ithrd3){
   METRIS_ASSERT(ientt >= 0);
   GETVDEPTH(msh.param);
 
@@ -115,8 +115,6 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
 
   tdimc = MAX(tdimp[0], tdimp[1]);
 
-  bool imani;
-  int  iopen;
   for(int iver = 0; iver < 2; iver++){
     // Collapse this one 
     int ipcol = ent2poi(ientt,lnoed[iedl][iver]);

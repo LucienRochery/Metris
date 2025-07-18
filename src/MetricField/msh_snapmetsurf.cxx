@@ -141,7 +141,7 @@ void snapMetSurf(MeshMetric<MetricFieldType> &msh,
           double dtpr2 = gdim == 2 ? getprdl2<2>(&eigvec[gdim*ivec2], &eigvec[gdim*ivec1])
                                    : getprdl2<3>(&eigvec[gdim*ivec2], &eigvec[gdim*ivec1]);
           #ifndef NDEBUG
-            double eigvec2_debug[gdim];
+            double eigvec2_debug[3];
           #endif
           for(int ii = 0; ii < gdim; ii++){
             #ifndef NDEBUG

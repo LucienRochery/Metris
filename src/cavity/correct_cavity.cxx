@@ -206,7 +206,7 @@ int correct_cavity0(Mesh<MFT> &msh,
       for(int ientt = nent0; ientt < nentt; ientt++){
         INCVDEPTH(msh.param);
         METRIS_ASSERT(!isdeadent(ientt,msh.ent2poi(tdim)));
-        int iref = msh.ent2ref(tdim)[ientt];
+        //int iref = msh.ent2ref(tdim)[ientt];
         for(int ii = tdim+1; ii < getnnode(tdim,ideg); ii++){
           INCVDEPTH(msh.param);
           int ipoin = msh.ent2poi(tdim)(ientt,ii);

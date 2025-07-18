@@ -33,14 +33,18 @@ int reconnect_tetcav(Mesh<MFT> &msh,
                 || (opts.qmax_suf > 0 && msh.get_tdim() == 3)
                 || (opts.qmax_iff > 0 && msh.get_tdim() == 3);
 
-  // When would we not though?
-  bool check_val = opts.fast_reject 
-                || opts.max_increase_cav_geo <= 0
-                || check_qua;
+  //// When would we not though?
+  //bool check_val = opts.fast_reject 
+  //              || opts.max_increase_cav_geo <= 0
+  //              || check_qua;
 
   const int qpnorm = msh.param->opt_pnorm;
   *qmax = -1;
   info.qcav3 = qpnorm == 0 ? -1 : 0;
+
+  // We need to increment this independently per element, avoid conflict with
+  // ithread
+  int cfatag = msh.tag[ithread];
 
 
   GETVDEPTH(msh.param);
@@ -168,15 +172,84 @@ int reconnect_tetcav(Mesh<MFT> &msh,
 
       // If the tet has all vertices on boundary, check faces orientations.
       if(pdim_ipins < 3){
+
         for(int ii = 0; ii < 3; ii++){
           int pdim = msh.getpoitdim(msh.tet2poi(ielen, lnofa3[ifa0][ii]));
-          if(pdim >= 3) goto check_bdry_done;
+          if(pdim < 3) continue;
+          CPRINTF1(" face point %d has dim 3 -> skip\n",msh.tet2poi(ielen, lnofa3[ifa0][ii]));
+          goto check_bdry_done;
         }
 
+        int itmp1 = iverb__;
+        int itmp2 = ivdepth__;
+        bool ipause = false;
+        //if(msh.tet2poi(ielen,0) == 30 && msh.tet2poi(ielen,1) == 478
+        //  && msh.tet2poi(ielen,0) == 29 && msh.tet2poi(ielen,1) == 118
+        //  || ielen == 4353){
+        //  printf("\n\n ## DEBUG 4 BDRY VERTEX TET CASE MAX PRINTS ielen %d vertices ",ielen);
+        //  intAr1(4,msh.tet2poi[ielen]).print();
+        //  writeMesh("debug",msh);
+        //  ipause = true;
+        //  iverb__ = 5;
+        //  ivdepth__ = 10;
+        //  wait();
+        //}
+
+        // The previous test was more lenient: it allowed tetrahedra to have
+        // all four vertices on the boundary, provided that the tet faces 
+        // were reverse oriented to the boundary faces they supported. 
+        // This meant the tet was inside the domain. 
+        // One issue is a tetrahedron could be created with only one (perhaps even none)
+        // face on the boundary, and later be "uncovered". 
+        // New criterion is more conservative but does not depend on future topology
+        // we simply check if no four vertices are on the same face reference.
+
+        // tag[ithread] has been incremented for other uses already, and no
+        // conflict with cfa2tag:
+        cfatag++;
+        cav.maxtag = MAX(cav.maxtag,cfatag + 4);
+        for(int iver = 0; iver < 4; iver++){
+          //INCVDEPTH(msh.param);
+          int ipoin = msh.tet2poi(ielen, iver);
+          for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+            int tdimb = msh.bpo2ibi(ibpoi,1);
+            if(tdimb != 2) continue;
+            int iface = msh.bpo2ibi(ibpoi,2);
+            int ireff = msh.fac2ref[iface];
+            int nseenm1 = msh.cfa2tag(ithread,ireff) - cfatag;
+            CPRINTF1(" - check ver %d ipoin %d face %d ref %d already seen %dx\n",
+                     iver,ipoin,iface,ireff,nseenm1+1);
+            // Same ref can be seen twice by same vertex, meaning it has already 
+            // been updated.
+            METRIS_ASSERT_MSG(nseenm1 <= iver, "nseenm1 = "<<nseenm1<<" iver = "<<iver);
+
+            // We must be careful to skip refs that have been skipped by at 
+            // least one prior point, because our method of counting is 
+            // setting tag to tag + iver. Otherwise, if only the last point sees
+            // a face ref, we'd think all did.
+            if(nseenm1 + 1 < iver && iver != 0){
+              CPRINTF1(" - inactive ref -> skip\n");
+              continue;
+            }
+
+            // If has already been seen 3 times before,
+            if(nseenm1 + 1 == 3 && iver == 3){
+              CPRINTF1(" # error 4 points on same face ref\n");
+              return CAV_ERR_BDRYTET2;
+            }
+            // An edge point can see the same face ref several times. We mustn't
+            // increment.
+            msh.cfa2tag(ithread,ireff) = cfatag + iver;
+          }
+        }
+        cfatag += 4;
+
+        #if 0
         // All vertices are on the boundary. Go over faces and compare orientation
         bool nogood = false;
         for(int ifal = 0; ifal < 4; ifal++){
           int iface = msh.tet2fac(ielen, ifal);
+          CPRINTF1(" - tet face %d -> glo face %d\n",ifal, iface);
           if(iface < 0) continue;
           if(msh.fac2tet(iface,0) >= 0 && msh.fac2tet(iface,1) >= 0){
             if(msh.param->dbgfull) 
@@ -191,8 +264,8 @@ int reconnect_tetcav(Mesh<MFT> &msh,
           int jp1 = msh.fac2poi(iface, 0);
           int jp2 = msh.fac2poi(iface, 1);
           int jp3 = msh.fac2poi(iface, 2);
-          CPRINTF1(" - tet face %d = %d %d %d matches glo face %d = %d %d %d: check orientation\n",
-                  ifal, ip1, ip2, ip3, iface, jp1, jp2, jp3);
+          CPRINTF1(" - glo face %d = %d %d %d: check opposite orientation\n",
+                  iface, jp1, jp2, jp3);
           if(ip1 == jp1){
             if(ip2 == jp2) nogood = true;
           }else if(ip1 == jp2){
@@ -207,6 +280,13 @@ int reconnect_tetcav(Mesh<MFT> &msh,
         if(nogood){
           CPRINTF1(" # REJECT: tet face matches glo face orientation\n");
           return CAV_ERR_BDRYTET;
+        }
+      #endif
+        if(ipause){
+          iverb__ = itmp1;
+          ivdepth__ = itmp2;
+          printf("## DEBUG CASE ACCEPTED \n\n");
+          wait();
         }
       }
       check_bdry_done:
