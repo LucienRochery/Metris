@@ -63,6 +63,7 @@
 #include "Mesh/MeshMetric.hxx"
 #include "SolutionField/SolutionField.hxx"
 #include "SolutionField/minInterpError.hxx"
+#include "SolutionField/interpError.hxx"
 #include "MetricField/MetricField.hxx"
 #include "MetricField/msh_checkmet.hxx"
 #include "MetricField/msh_explogmet.hxx"

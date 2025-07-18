@@ -1945,9 +1945,9 @@ int GmfGetBlock(  int64_t MshIdx, int KwdCod, int64_t BegIdx, int64_t EndIdx,
                printf("block      = %zd / %zd\n", b+1, NmbBlk+1);
                printf("size       = "INT64_T_FMT" lines\n", BlkNmbLin);
 #ifdef WITH_GMF_AIO
-               printf("aio_fildes = %d\n",aio.aio_fildes);
+               printf("aio_fildes = %d\n",(void*) aio.aio_fildes);
 #else
-               printf("aio_fildes = %p\n",aio.aio_fildes);
+               printf("aio_fildes = %p\n",(void*) aio.aio_fildes);
 #endif
                printf("aio_buf    = %p\n",aio.aio_buf);
                printf("aio_offset = " INT64_T_FMT "\n",(int64_t)aio.aio_offset);
@@ -2341,9 +2341,9 @@ int GmfSetBlock(  int64_t MshIdx, int KwdCod, int64_t BegIdx, int64_t EndIdx,
             if(my_aio_write(&aio) == -1)
             {
 #ifdef WITH_GMF_AIO
-               printf("aio_fildes = %d\n",aio.aio_fildes);
+               printf("aio_fildes = %d\n",(void*) aio.aio_fildes);
 #else
-               printf("aio_fildes = %p\n",aio.aio_fildes);
+               printf("aio_fildes = %p\n",(void*) aio.aio_fildes);
 #endif
                printf("aio_buf    = %p\n",aio.aio_buf);
                printf("aio_offset = " INT64_T_FMT "\n",(int64_t)aio.aio_offset);

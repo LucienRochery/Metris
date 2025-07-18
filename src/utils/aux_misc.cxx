@@ -184,10 +184,11 @@ char* itoa(int value, char* result, int base) {
 }
 
 void wait(){
-  fflush(stdout);
   char tmp;
   printf("Press key to continue ");
+  fflush(stdout);
   scanf("%c",&tmp);
+  printf("\n");
 }
 
 // Gets 2,..4 ints, returns sorted tuple (for hash keys)

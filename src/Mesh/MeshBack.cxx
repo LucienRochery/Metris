@@ -115,7 +115,8 @@ void MeshBack::initialize(MetrisAPI *data,
 
 
   // If no input file: 
-  if(!param.inpMet && data == NULL || (data != NULL && !data->imet)){
+  if(  (!param.inpMet && data == NULL) 
+    || (data != NULL && !data->imet)  ){
     // If analytical:
     if(param.anamet_ptr != NULL || param.ianamet >= 1){
 
@@ -136,6 +137,8 @@ void MeshBack::initialize(MetrisAPI *data,
       for(int ipoin = 0; ipoin < npoin; ipoin++){
         anamet(NULL, coord[ipoin], param.metScale, 0, met[ipoin], NULL);
       } 
+
+      if(DOPRINTS2()) met.writeMetricFile("backmet.solb");
       met.setSpace(MetSpace::Log, true);
 
     // Else intrinsic:
@@ -149,12 +152,12 @@ void MeshBack::initialize(MetrisAPI *data,
         if(DOPRINTS1()) t1 = get_wall_time();
         CPRINTF1("(back)  - Done time = %f\n",t1-t0);
 
+        if(DOPRINTS2()) met.writeMetricFile("backmet.solb");
         snapMetSurf<MetricFieldFE>(*this, 0);
 
       }}CT_FOR1(ideg);
     }
 
-    if(DOPRINTS2()) met.writeMetricFile("backmet.solb");
     #ifndef NDEBUG
       checkMet(*this);
     #endif
