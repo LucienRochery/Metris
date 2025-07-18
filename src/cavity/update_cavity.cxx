@@ -171,8 +171,10 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
         if(ibpoi >= 0){
           int curdi = msh.bpo2ibi(ibpoi,1);
           while(curdi <= mindi){
+            METRIS_ASSERT(curdi == mindi);
             int ibpon = msh.bpo2ibi(ibpoi,3);
             msh.bpo2ibi(ibpo0,3) = ibpon;
+            msh.bpo2ibi(ibpoi,0) = -1; // Kill the ibpoi left hanging.
             ibpoi = ibpon;
             if(ibpoi < 0) break; 
             curdi = msh.bpo2ibi(ibpoi,1);
