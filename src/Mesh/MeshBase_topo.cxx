@@ -102,25 +102,25 @@ int MeshBase::newpoitopo(int tdimn, int ientt){
 }
 
 void MeshBase::killpoint(int ipoin){
-  static int dbgprt = 0;
-  if(dbgprt++ < 10) printf("## DEBUG REMOVE THIS PRINT killpoint\n");
-  bool iprt = false;
-  if(ipoin == 4247) iprt = true;
-  if(iprt) printf("kill point %d poi2ent %d %d poi2bpo %d\n",
-    ipoin,poi2ent(ipoin,0),poi2ent(ipoin,1),poi2bpo[ipoin]);
+ //static int dbgprt = 0;
+ //if(dbgprt++ < 10) printf("## DEBUG REMOVE THIS PRINT killpoint\n");
+ //bool iprt = false;
+ //if(ipoin == 4247) iprt = true;
+ //if(iprt) printf("kill point %d poi2ent %d %d poi2bpo %d\n",
+ //  ipoin,poi2ent(ipoin,0),poi2ent(ipoin,1),poi2bpo[ipoin]);
   for(int ibpoi = poi2bpo[ipoin]; ibpoi >= 0; ibpoi = bpo2ibi(ibpoi,3)){
-    if(iprt) printf(" ipoin = %d ibpoi = %d kill\n",ipoin,ibpoi);
+  //  if(iprt) printf(" ipoin = %d ibpoi = %d kill\n",ipoin,ibpoi);
     bpo2ibi(ibpoi,0) = -1;
   }
   poi2bpo[ipoin] = -1;
   poi2ent(ipoin,0) = -1;
   poi2ent(ipoin,1) = -1;
-  if(iprt){
-    printf("killed %d wait\n",ipoin);
-    check_topo(*this,METRIS_MAXTAGS-1);
-    exit(1);
-    wait();
-  }
+  //if(iprt){
+  //  printf("killed %d wait\n",ipoin);
+  //  check_topo(*this,METRIS_MAXTAGS-1);
+  //  exit(1);
+  //  wait();
+  //}
 }
 
 // Create new face by copying from tetrahedron
