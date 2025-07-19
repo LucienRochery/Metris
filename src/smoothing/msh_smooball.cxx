@@ -311,6 +311,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
 
     #ifndef USE_LPLIB_SMOOTHINTERIOR
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
+      if(msh.poi2ent(ipoin, 0) < 0) continue;
       if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
       INCVDEPTH(msh.param);
 

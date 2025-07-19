@@ -28,7 +28,7 @@ namespace Metris{
 
 int getpoitet(const MeshBase &msh, int ipoin, int iprt){
 	//printf("Debug ipoin = %d \n",ipoin);
-	assert(ipoin >= 0 && ipoin < msh.npoin);
+	METRIS_ASSERT(ipoin >= 0 && ipoin < msh.npoin);
 
   if(msh.nelem <= 0) return -1;
 
@@ -38,6 +38,12 @@ int getpoitet(const MeshBase &msh, int ipoin, int iprt){
   
 	// Note: poi2bpo is not unique for ipoin. 
 	int ibpoi = msh.poi2bpo[ipoin];
+  #ifndef NDEBUG
+  if(ibpoi < 0){
+    printf("getpoitet error, ipoin = %d has no boundary link\n",ipoin);
+    printf("with poi2ent = %d %d \n",msh.poi2ent(ipoin,0),msh.poi2ent(ipoin,1));
+  }
+  #endif
   METRIS_ASSERT(ibpoi >= 0); 
 bdry:
 	int itype = msh.bpo2ibi(ibpoi,1);

@@ -524,6 +524,11 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
     ib2 = msh.bpo2ibi(ib2,3);
   }while(ib2 != ib && ib2 > 0);
 
+  printf("## Failed to find ib in old faces\n");
+  printf("inp: ip = %d ifacn = %d ifac0 = %d\n",ip,ifacn,ifac0);
+  printf("Full ip bpois:\n");
+  print_bpolist(msh,msh.poi2bpo[ip]);
+
   METRIS_THROW_MSG(TopoExcept(),"Failed to find ib in old faces");
 }
 

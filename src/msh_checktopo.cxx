@@ -38,8 +38,6 @@ void check_topo(MeshBase &msh,
   try{
 
     if(DOPRINTS2()) printf("-- check_topo start \n");
-    // Absolute difference CAD -> point
-    const double geotol = 1.0e+6;
 
     const int jdeg = msh.idim * (msh.curdeg - 1);
     dblAr1 ccoef(getnnode(msh.idim,jdeg));
@@ -866,11 +864,7 @@ void check_topo(MeshBase &msh,
     }
 
 
-
-
-
-    // Check non-duplication of lowest-dimensionality ibpoi
-    // + check link back to ipoin correct
+    // Check bpois link to points and back
     for(int ibpoi = 0; ibpoi < nbpoi; ibpoi++){
       int ipoin = msh.bpo2ibi(ibpoi,0);
       if(ipoin < 0) continue;
@@ -882,6 +876,31 @@ void check_topo(MeshBase &msh,
       }
       METRIS_ENFORCE_MSG(msh.poi2bpo[ipoin] >= 0,"ibpoi = "<<ibpoi<<
         " points to ipoin = "<<ipoin<<" but poi2bpo[ipoin] = "<<msh.poi2bpo[ipoin]);
+
+      bool ifnd = false;
+      // Check ibpoi is found in ipoin's list
+      for(int ibpo0 = msh.poi2bpo[ipoin]; ibpo0 >= 0; ibpo0 = msh.bpo2ibi(ibpo0,3)){
+        if(ibpo0 == ibpoi) ifnd = true;
+        // Check ibpoi in question is pointing to ipoin
+        METRIS_ENFORCE(msh.bpo2ibi(ibpo0,0) == ipoin);
+      }
+      if(!ifnd){
+        printf("ibpoi = %d links to ipoin %d but not found in its linked list\n",
+               ibpoi,ipoin);
+        printf("Full bpo list starting from ibpoi:\n");
+        print_bpolist(msh,ibpoi);
+        printf("Full bpo list starting from poi2bpo[ipoin] = %d:\n",msh.poi2bpo[ipoin]);
+        print_bpolist(msh,msh.poi2bpo[ipoin]);
+
+      }
+      METRIS_ENFORCE(ifnd);
+    }
+
+    // Check non-duplication of lowest-dimensionality ibpoi
+    // + check link back to ipoin correct
+    for(int ibpoi = 0; ibpoi < nbpoi; ibpoi++){
+      int ipoin = msh.bpo2ibi(ibpoi,0);
+      if(ipoin < 0) continue;
       METRIS_ENFORCE(msh.bpo2ibi(msh.poi2bpo[ipoin],0) == ipoin);
       METRIS_ENFORCE(msh.poi2ent(ipoin,0) >= 0); 
 
@@ -889,12 +908,7 @@ void check_topo(MeshBase &msh,
       METRIS_ENFORCE(bdim == 0 || bdim == 1 || bdim == 2);
       if(bdim > 0){
         int ientt = msh.bpo2ibi(ibpoi,2);
-        if(ientt < 0){
-          printf("ibpoi = %d ipoin = %d bdim = %d\n",
-                 ibpoi,ipoin,bdim);
-          printf("Invalid entity %d \n",ientt);
-        }
-        METRIS_ENFORCE(ientt >= 0);
+        METRIS_ENFORCE(!(ientt < 0 || ientt >= msh.nentt(bdim)));
         int iver = msh.getverent(ientt,bdim,ipoin);
         if(iver < 0){
           printf("ibpoi = %d ipoin = %d bdim = %d ientt = %d iref = %d\n",
@@ -905,77 +919,23 @@ void check_topo(MeshBase &msh,
           intAr1(bdim+1,msh.ent2poi(bdim)[ientt]).print();
           printf("Vertex not found\n");
         }
-        METRIS_ENFORCE(iver>=0);
+        METRIS_ENFORCE(iver >= 0);
       }
 
-      int ibpo2 = msh.poi2bpo[ipoin];
-      int minty = 3;
-      int nloop = 0;
-      do{
-        minty = minty < msh.bpo2ibi(ibpo2,1) ? minty : msh.bpo2ibi(ibpo2,1);
-        ibpo2 = msh.bpo2ibi(ibpo2,3);
-  //      printf("In loop ibpo2 = %d ibpoin = %d \n",ibpo2,ibpoi);
-        nloop++;
-        if(nloop > METRIS_MAX_WHILE){
-          METRIS_THROW_MSG(TopoExcept(),"LOOP TOO LONG ipoin = "<<ipoin);
-          break;
-        }
-      }while(ibpo2 >= 0 && ibpo2 != ibpoi);
-      if(nloop > METRIS_MAX_WHILE) break;
-
-      ibpo2 = msh.poi2bpo[ipoin];
-      int ninty = 0;
-      do{
-        ninty += (msh.bpo2ibi(ibpo2,1) == minty);
-        ibpo2 = msh.bpo2ibi(ibpo2,3);
-      }while(ibpo2 >= 0 && ibpo2 != ibpoi);
-      METRIS_ENFORCE_MSG(ninty==1,"ninty = "<<ninty<<" with minty = "<<minty<<
-        " ipoin = "<<msh.bpo2ibi(ibpoi,0)<<" ibpoi = "<<ibpoi<<"\n");
-
-      if(msh.CAD()){
-        double result[18];
-        ego obj;
-        int tdim  = msh.bpo2ibi(ibpoi,1);
-        int ientt = msh.bpo2ibi(ibpoi,2);
-        if(tdim == 1){
-          METRIS_ENFORCE_MSG(!isdeadent(ientt,msh.edg2poi),
-             "ipoin = "<<ipoin<<" ibpoi "<<ibpoi<<" points to dead edge "<<ientt);
-          int iref = msh.edg2ref[ientt];
-          obj = msh.CAD.cad2edg[iref];
-        }else if(tdim == 2){
-          if(isdeadent(ientt,msh.fac2poi)){
-            printf("ibpoi points to dead entity\n");
-            printf("tdim = %d ientt = %d ibpoi = %d ipoin = %d\n",
-              tdim, ientt, ibpoi, ipoin);
+      if(ibpoi == msh.poi2bpo[ipoin]){
+        // Check the first entry is the lowest dimensional
+        // Also check no other entries of the same dimension
+        // In other worst, check all other entries are dimension > bdim.
+        for(int ibpo2 = msh.bpo2ibi(ibpoi,3); ibpo2 >= 0; ibpo2 = msh.bpo2ibi(ibpo2,3)){
+          if(msh.bpo2ibi(ibpo2,1) <= bdim){
+            printf("ibpoi = %d bdim = %d ibpo2 = %d dim = %d\n",
+                   ibpoi,bdim,ibpo2,msh.bpo2ibi(ibpo2,1));
             printf("Full bpo list:\n");
-            for(int ibpo2 = msh.poi2bpo[ipoin]; ibpo2 >= 0; ibpo2 = msh.bpo2ibi(ibpo2,3)){
-              printf("%d : ",ibpo2);
-              intAr1(nibi, msh.bpo2ibi[ibpo2]).print();
-            }
-            printf("poi2ent = %d %d \n",msh.poi2ent(ipoin,0),msh.poi2ent(ipoin,1));
-            int ient2 = msh.poi2ent(ipoin,0);
-            int tdim2 = msh.poi2ent(ipoin,1);
-            if(ient2 >= 0) printf(" isdead? %d\n",isdeadent(ient2,msh.ent2poi(tdim2)));
+            print_bpolist(msh,ibpoi);
           }
-          METRIS_ENFORCE_MSG(!isdeadent(ientt,msh.fac2poi),"ibpoi points to non-dead entity");
-          int iref = msh.fac2ref[ientt];
-          obj = msh.CAD.cad2fac[iref];
-        }
-        if(tdim == 2 || tdim == 1){
-          int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
-          METRIS_ENFORCE_MSG(ierro==0, "EG_evaluate failed ierro = "<<ierro);
-          double nrm;
-          if(msh.idim == 3){
-            nrm = geterrl2<3>(result,msh.coord[ipoin]);
-          }else{
-            nrm = geterrl2<2>(result,msh.coord[ipoin]);
-          }
-          METRIS_ENFORCE_MSG(nrm < geotol*geotol,"large nrm = "<<nrm<<" point = "
-            <<ipoin<<" ibpoi = "<<ibpoi<<" type = "<<tdim<<
-            " uv = "<<msh.bpo2rbi(ibpoi,0)<<" "<<msh.bpo2rbi(ibpoi,1));
+          METRIS_ENFORCE(msh.bpo2ibi(ibpo2,1) > bdim);
         }
       }
-
     }
 
 
@@ -983,24 +943,7 @@ void check_topo(MeshBase &msh,
     for(int itmp = 0; itmp < msh.nbpoi; itmp++){
       int ipoin = msh.bpo2ibi(itmp,0);
       if(ipoin < 0) continue;
-      if(msh.tag[ithread] >= INT_MAX-10){
-        msh.tag[ithread] = 0;
-        for(int tdim = 1; tdim <= 3; tdim++){
-          for(int ientt = 0; ientt < msh.nentt(tdim); ientt++){
-            msh.ent2tag(tdim)(ithread, ientt) = 0;
-          }
-        }
-        for(int ipoin = 0; ipoin < msh.npoin; ipoin++)
-          msh.poi2tag(ithread, ipoin) = 0;
-        for(int ii = 0; ii < msh.cfa2tag.get_stride(); ii++) 
-          msh.cfa2tag(ithread, ii) = 0;
-        for(int ii = 0; ii < msh.ced2tag.get_stride(); ii++) 
-          msh.ced2tag(ithread, ii) = 0;
-        for(int ii = 0; ii < msh.cno2tag.get_stride(); ii++) 
-          msh.cno2tag(ithread, ii) = 0;
-        for(int ii = 0; ii < msh.dom2tag.get_stride(); ii++) 
-          msh.dom2tag(ithread, ii) = 0;
-      }
+
       msh.tag[ithread]++;
 
       bool icor = false;

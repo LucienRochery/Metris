@@ -257,7 +257,9 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
     //printf("## WAIT HERE \n");
     //wait();
 
-    
+    #ifndef NDEBUG
+    check_topo(msh,ithrd1);
+    #endif
 
   }// for niter
   msh.cleanup();
