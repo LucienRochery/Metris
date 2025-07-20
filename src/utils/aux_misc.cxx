@@ -187,7 +187,7 @@ void wait(){
   char tmp;
   printf("Press key to continue ");
   fflush(stdout);
-  scanf("%c",&tmp);
+  (void) scanf("%c",&tmp);
   printf("\n");
 }
 

@@ -310,7 +310,7 @@ void Mesh<MetricFieldType>::cleanup(){
       printf("ibpoi = %d : ",ibpoi);
       intAr1(nibi,this->bpo2ibi[ibpoi]).print();
       for(int ibpo2 = this->bpo2ibi(ibpoi,3); ibpo2 >= 0; ibpo2 = this->bpo2ibi(ibpo2,3)){
-        printf("ibpo2 = %D : ",ibpo2);
+        printf("ibpo2 = %d : ",ibpo2);
         intAr1(nibi,this->bpo2ibi[ibpo2]).print();
       }
     }

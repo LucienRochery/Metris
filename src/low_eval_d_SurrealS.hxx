@@ -324,12 +324,15 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
 
     if(dfld == NULL){
       METRIS_ASSERT(nvar == szfld);
-      for(int icmp = 0; icmp < szfld; icmp++){
-        smem[icmp].value() = rfld[lfld[ivar]][icmp];
-        for(int j = 0; j < nvar; j++){
-          smem[icmp].deriv(j) = 0;
+      // This is required to silence compiler warnings (iteration 2 invokes undefined behavior)
+      if constexpr (nvar == szfld){
+        for(int icmp = 0; icmp < szfld; icmp++){
+          smem[icmp].value() = rfld[lfld[ivar]][icmp];
+          for(int j = 0; j < nvar; j++){
+            smem[icmp].deriv(j) = 0;
+          }
+          smem[icmp].deriv(icmp) = 1;
         }
-        smem[icmp].deriv(icmp) = 1;
       }
     }else{
       for(int icmp = 0; icmp < szfld; icmp++){

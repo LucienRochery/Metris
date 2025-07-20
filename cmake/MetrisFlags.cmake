@@ -29,6 +29,7 @@ message("Metris using build type = ${CMAKE_BUILD_TYPE}")
 set(METRIS_WARNING_FLAGS -Wno-gnu-zero-variadic-macro-arguments  
                          -Wno-logical-op-parentheses
                          -Wno-gcc-compat 
+                         -Wunused-result
                          -Wno-variadic-macros)  
 set(METRIS_CXX_FLAGS ${METRIS_WARNING_FLAGS} -DMETRIS_GIT_URL="${GITURL}")
 if(USE_TRACELIBS)
