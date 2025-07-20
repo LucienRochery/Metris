@@ -358,32 +358,41 @@ elseif(DEFINED NLOPT_DIR OR DEFINED ENV{NLOPT_DIR})
   find_package(NLopt REQUIRED HINTS "${NLOPT_DIR}")
   
   message(STATUS "Found external NLopt: ${NLOPT_LIBRARIES}")
-  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${NLOPT_INCLUDE_DIRS})
-  list(APPEND METRIS_DEPS_LIBRARIES ${NLOPT_LIBRARIES})
 else()
-  # Lastly, fetch and build our own for standalone builds.
-  message(STATUS "Cloning NLopt.")
-  FetchContent_Declare(
-      nlopt_fetch
-      GIT_REPOSITORY https://github.com/stevengj/nlopt.git
-      GIT_TAG        019f61ac7253a537760d9cdd9febd927ec97320c
-  )
-  
-  set(NLOPT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+  # First try finding the package. If that fails, then clone and build.
 
-  FetchContent_MakeAvailable(nlopt_fetch)
-  
-  # After FetchContent, an 'nlopt' target is available.
-  # The generated config header (nlopt.h) is in the binary directory of the fetch.
-  FetchContent_GetProperties(nlopt_fetch)
-  if(nlopt_fetch_POPULATED)
-    list(APPEND METRIS_DEPS_INCLUDE_DIRS ${nlopt_fetch_BINARY_DIR})
-    list(APPEND METRIS_DEPS_LIBRARIES nlopt)
+  find_package(NLopt)
+
+  if(NLopt_FOUND)
+    message(STATUS "Found NLopt libraries: ${NLOPT_LIBRARIES}")
+    message(STATUS "Found NLopt include directories: ${NLOPT_INCLUDE_DIRS}")
   else()
-    message(FATAL_ERROR "NLopt was not fetched correctly.")
+    # Lastly, fetch and build our own for standalone builds.
+    message(STATUS "Cloning NLopt.")
+    FetchContent_Declare(
+        nlopt_fetch
+        GIT_REPOSITORY https://github.com/stevengj/nlopt.git
+        GIT_TAG        019f61ac7253a537760d9cdd9febd927ec97320c
+    )
+    
+    set(NLOPT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+
+    FetchContent_MakeAvailable(nlopt_fetch)
+    
+    # After FetchContent, an 'nlopt' target is available.
+    # The generated config header (nlopt.h) is in the binary directory of the fetch.
+    FetchContent_GetProperties(nlopt_fetch)
+    if(nlopt_fetch_POPULATED)
+      list(APPEND METRIS_DEPS_INCLUDE_DIRS ${nlopt_fetch_BINARY_DIR})
+      list(APPEND METRIS_DEPS_LIBRARIES nlopt)
+    else()
+      message(FATAL_ERROR "NLopt was not fetched correctly.")
+    endif()
   endif()
 endif()
 
+list(APPEND METRIS_DEPS_INCLUDE_DIRS ${NLOPT_INCLUDE_DIRS})
+list(APPEND METRIS_DEPS_LIBRARIES ${NLOPT_LIBRARIES})
 # --- End NLopt Dependency ---
 
 
