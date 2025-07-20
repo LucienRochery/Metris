@@ -2,7 +2,8 @@
 #define LUKSAN_H
 
 #include "nlopt.h"
-#include "../../util/nlopt-util.h"
+//#include "../../util/nlopt-util.h"
+#include "nlopt_internals.h"
 
 #ifdef __cplusplus
 extern "C"

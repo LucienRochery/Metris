@@ -3,10 +3,58 @@
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
-#include "luksan.h"
+#include "nlopt_luksan.h"
 
 #define MAX2(a,b) ((a) > (b) ? (a) : (b))
 #define MIN2(a,b) ((a) < (b) ? (a) : (b))
+
+// Copied from nlopt/src/stop.c
+
+static double sc(double x, double smin, double smax)
+{
+  return smin + x * (smax - smin);
+}
+
+static double vector_norm(unsigned n, const double *vec, const double *w, const double *scale_min, const double *scale_max)
+{
+  unsigned i;
+  double ret = 0;
+  if (scale_min && scale_max)
+  {
+    if (w)
+      for (i = 0; i < n; i++)
+        ret += w[i] * fabs(sc(vec[i], scale_min[i], scale_max[i]));
+    else
+      for (i = 0; i < n; i++)
+        ret += fabs(sc(vec[i], scale_min[i], scale_max[i]));
+  }
+  else
+  {
+    if (w)
+      for (i = 0; i < n; i++)
+        ret += w[i] * fabs(vec[i]);
+    else
+      for (i = 0; i < n; i++)
+        ret += fabs(vec[i]);
+  }
+  return ret;
+}
+
+static int nlopt_stop_dx(const nlopt_stopping *s, const double *x, const double *dx)
+{
+  unsigned i;
+  if (vector_norm(s->n, dx, s->x_weights, NULL, NULL) < s->xtol_rel * vector_norm(s->n, x, s->x_weights, NULL, NULL))
+    return 1;
+  if (!s->xtol_abs)
+    return 0;
+  for (i = 0; i < s->n; ++i)
+    if (fabs(dx[i]) >= s->xtol_abs[i])
+      return 0;
+  return 1;
+}
+
+// End copy
+
 
 /* Table of constant values */
 
@@ -293,7 +341,8 @@ static void pnet_(int *nf, int *nb, double *xcur, int *
     *f = objgrad(*nf, &xcur[1], &gf[1], objgrad_data);
     ++(*stop->nevals_p);
     ++stat_1->nfg;
-    if (nlopt_stop_time(stop)) { *iterm = 100; goto L11080; }
+    // Removed stop_time criterion because we won't use it and it's fewer things we have to import from NLopt internals.
+    //if (nlopt_stop_time(stop)) { *iterm = 100; goto L11080; }
     ld = kd;
 L11020:
     luksan_pytrcg__(nf, nf, &ix[1], &gf[1], &umax, gmax, &kbf, &iold);
@@ -305,7 +354,8 @@ L11020:
     if (*iterm != 0) {
 	goto L11080;
     }
-    if (nlopt_stop_time(stop)) { *iterm = 100; goto L11080; }
+    // Removed stop_time criterion because we won't use it and it's fewer things we have to import from NLopt internals.
+    //if (nlopt_stop_time(stop)) { *iterm = 100; goto L11080; }
     if (kbf > 0) {
 	luksan_pyrmc0__(nf, &n, &ix[1], &gn[1], &eps8, &umax, gmax, &rmax, &
 		iold, &irest);
@@ -497,7 +547,8 @@ L12560:
     if (*iterm != 0) {
 	goto L11080;
     }
-    if (nlopt_stop_time(stop)) { *iterm = 100; goto L11080; }
+    // Removed stop_time criterion because we won't use it and it's fewer things we have to import from NLopt internals.
+    //if (nlopt_stop_time(stop)) { *iterm = 100; goto L11080; }
     if (irest != 0) {
 	goto L11040;
     }

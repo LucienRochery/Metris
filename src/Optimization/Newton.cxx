@@ -13,13 +13,15 @@
 #include "low_geo.hxx"
 #include "utils/mprintf.hxx"
 
-#include "../libs/nlopt/src/util/nlopt-util.h"
-#include "../libs/nlopt/src/algs/luksan/luksan.h"
+#include "nlopt_internals.h"
+#include <nlopt.hpp>
 
+//#include "../libs/nlopt/src/util/nlopt-util.h"
+//#include "../libs/nlopt/src/algs/luksan/luksan.h"
 
 // the only function there is static
 extern "C" {
-#include "../libs/nlopt/src/algs/luksan/pnet.c"
+#include "nlopt_luksan_pnet.c"
 }
 
 namespace Metris{

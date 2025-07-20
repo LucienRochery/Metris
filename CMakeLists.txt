@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.14.0)
 set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-
 # 20 required for concepts
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -128,7 +127,7 @@ add_subdirectory(src)
 
 
 add_executable(metris "progs/main.cxx")
-add_executable(egads2lite "progs/EGADS2lite.cxx")
+add_executable(egads2lite EXCLUDE_FROM_ALL "progs/EGADS2lite.cxx")
 
 set_target_properties(metris PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
@@ -151,7 +150,7 @@ target_link_libraries(egads2lite PUBLIC libMetris
 
 #For some reason, not specifying the full path does not work for EXISTS
 if(EXISTS ${CMAKE_SOURCE_DIR}/progs/scatter_rh.cxx)
-  add_executable(scatter_rh "progs/scatter_rh.cxx")
+  add_executable(scatter_rh EXCLUDE_FROM_ALL "progs/scatter_rh.cxx")
   target_link_libraries(scatter_rh PUBLIC libMetris 
                                           Boost::headers # yes this is weird
                                           ${Boost_LIBRARIES}
@@ -162,7 +161,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/progs/scatter_rh.cxx)
 endif()
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/progs/extract_surf.cxx)
-  add_executable(extract_surf "progs/extract_surf.cxx")
+  add_executable(extract_surf EXCLUDE_FROM_ALL "progs/extract_surf.cxx")
   target_link_libraries(extract_surf PUBLIC libMetris 
                                             Boost::headers # yes this is weird
                                             ${Boost_LIBRARIES}
@@ -182,6 +181,24 @@ setMetrisFlags(metris PUBLIC)
 target_include_directories(egads2lite PRIVATE  "."
                            ${ESP_ROOT}/include)
 setMetrisFlags(egads2lite PUBLIC)
+
+
+
+# --- Install libMetris
+
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install CACHE PATH "Install destination" FORCE)
+endif()
+install(TARGETS libMetris EXPORT libMetrisTargets
+  RUNTIME  DESTINATION   ${CMAKE_INSTALL_BINDIR}
+           COMPONENT     runtime OPTIONAL
+  LIBRARY  DESTINATION   ${CMAKE_INSTALL_LIBDIR}
+           COMPONENT     runtime OPTIONAL
+           #NAMELINK_SKIP
+  #ARCHIVE  DESTINATION   ${CMAKE_INSTALL_LIBDIR}
+           #COMPONENT     Y
+  INCLUDES DESTINATION   ${CMAKE_INSTALL_INCLUDEDIR})
+
 
 
 # --- Unit tests
@@ -251,7 +268,7 @@ add_custom_target(deploy_cases DEPENDS ${METRIS_UNIT_TEST_MESHES})
 foreach(test_file ${TEST_SOURCES})
   get_filename_component(test_target ${test_file} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
   set(test_target_build "${test_target}_build")
-  add_executable(${test_target_build} ${test_file})
+  add_executable(${test_target_build} EXCLUDE_FROM_ALL ${test_file})
   set_target_properties(${test_target_build} PROPERTIES OUTPUT_NAME ${test_target})
   setMetrisFlags(${test_target_build} PUBLIC)
   target_compile_definitions(${test_target_build} PUBLIC METRIS_CASES_DIR="${METRIS_CASES_DIR}")
@@ -273,6 +290,4 @@ foreach(test_file ${TEST_SOURCES})
   add_dependencies(${test_target} ${test_target_build} deploy_cases)
 endforeach()
     
-
-install(TARGETS metris DESTINATION ${CMAKE_BINARY_DIR})
 

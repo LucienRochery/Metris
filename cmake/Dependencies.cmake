@@ -335,6 +335,58 @@ message("-- Boost_PROGRAM_OPTIONS_LIBRARY = ${Boost_PROGRAM_OPTIONS_LIBRARY}")
 message("-- Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}")
 
 
+
+# --- NLopt Dependency ---
+
+# A CMake project including Metris should prefer to find its own NLopt installation and provide
+# NLOPT_LIBRARIES and NLOPT_INCLUDE_DIRS.
+if(DEFINED NLOPT_LIBRARIES AND DEFINED NLOPT_INCLUDE_DIRS)
+  message(STATUS "Using provided NLOPT_LIBRARIES and NLOPT_INCLUDE_DIRS.")
+  message(STATUS "NLOPT_LIBRARIES = ${NLOPT_LIBRARIES}")
+  message(STATUS "NLOPT_INCLUDE_DIRS = ${NLOPT_INCLUDE_DIRS}")
+  list(APPEND METRIS_DEPS_LIBRARIES ${NLOPT_LIBRARIES})
+  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${NLOPT_INCLUDE_DIRS})
+elseif(DEFINED NLOPT_DIR OR DEFINED ENV{NLOPT_DIR})
+  # Otherwise, an NLOPT_DIR can be passed in which should include the relevant CMake configuration
+  # files (nloptConfig.cmake or nlopt-config.cmake).
+  if(NOT DEFINED NLOPT_DIR)
+    set(NLOPT_DIR $ENV{NLOPT_DIR})
+    message(STATUS "Using NLOPT_DIR from environment: ${NLOPT_DIR}")
+  endif()
+  message(STATUS "Attempting to find external NLopt using hint NLOPT_DIR=${NLOPT_DIR}...")
+  # find_package is the most robust way to do this. It will use NLOPT_DIR as a hint.
+  find_package(NLopt REQUIRED HINTS "${NLOPT_DIR}")
+  
+  message(STATUS "Found external NLopt: ${NLOPT_LIBRARIES}")
+  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${NLOPT_INCLUDE_DIRS})
+  list(APPEND METRIS_DEPS_LIBRARIES ${NLOPT_LIBRARIES})
+else()
+  # Lastly, fetch and build our own for standalone builds.
+  message(STATUS "Cloning NLopt.")
+  FetchContent_Declare(
+      nlopt_fetch
+      GIT_REPOSITORY https://github.com/stevengj/nlopt.git
+      GIT_TAG        019f61ac7253a537760d9cdd9febd927ec97320c
+  )
+  
+  set(NLOPT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+
+  FetchContent_MakeAvailable(nlopt_fetch)
+  
+  # After FetchContent, an 'nlopt' target is available.
+  # The generated config header (nlopt.h) is in the binary directory of the fetch.
+  FetchContent_GetProperties(nlopt_fetch)
+  if(nlopt_fetch_POPULATED)
+    list(APPEND METRIS_DEPS_INCLUDE_DIRS ${nlopt_fetch_BINARY_DIR})
+    list(APPEND METRIS_DEPS_LIBRARIES nlopt)
+  else()
+    message(FATAL_ERROR "NLopt was not fetched correctly.")
+  endif()
+endif()
+
+# --- End NLopt Dependency ---
+
+
 include(FetchContent)
 FetchContent_Declare(cmake_git_version_tracking
   GIT_REPOSITORY https://github.com/andrew-hardin/cmake-git-version-tracking.git

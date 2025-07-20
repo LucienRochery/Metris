@@ -27,12 +27,12 @@ list(APPEND METRIS_DEPS_INCLUDE_DIRS ${ALGLIB_INCLUDE_DIRS})
 
 
 
-add_subdirectory(${PROJECT_SOURCE_DIR}/libs/nlopt)
-# the nlopt_config.h file is found in here
-set(NLOPT_INCLUDE_DIRS ${PROJECT_BINARY_DIR}/libs/nlopt)
-message("-- NLOPT_INCLUDE_DIRS = ${NLOPT_INCLUDE_DIRS}")
-list(APPEND METRIS_DEPS_INCLUDE_DIRS ${NLOPT_INCLUDE_DIRS})
-list(APPEND METRIS_DEPS_LIBRARIES nlopt_Metris)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/libs/nlopt)
+## the nlopt_config.h file is found in here
+#set(NLOPT_INCLUDE_DIRS ${PROJECT_BINARY_DIR}/libs/nlopt)
+#message("-- NLOPT_INCLUDE_DIRS = ${NLOPT_INCLUDE_DIRS}")
+#list(APPEND METRIS_DEPS_INCLUDE_DIRS ${NLOPT_INCLUDE_DIRS})
+#list(APPEND METRIS_DEPS_LIBRARIES nlopt_Metris)
 
 
 set(METRIS_DEPS_INCLUDE_DIRS ${METRIS_DEPS_INCLUDE_DIRS} PARENT_SCOPE)
