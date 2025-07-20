@@ -8,6 +8,7 @@
 #define MAX2(a,b) ((a) > (b) ? (a) : (b))
 #define MIN2(a,b) ((a) < (b) ? (a) : (b))
 
+
 // Copied from nlopt/src/stop.c
 
 static double sc(double x, double smin, double smax)

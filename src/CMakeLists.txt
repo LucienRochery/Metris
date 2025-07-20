@@ -176,6 +176,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/msh_degelev.cxx
     ${PROJECT_SOURCE_DIR}/src/Optimization/Newton.cxx
     ${PROJECT_SOURCE_DIR}/src/Optimization/DIRECT.cxx
+    ${PROJECT_SOURCE_DIR}/src/Optimization/nlopt_luksan_mssubs.cxx
     ${PROJECT_SOURCE_DIR}/src/Localization/low_localization.cxx
     ${PROJECT_SOURCE_DIR}/src/Localization/msh_localization.cxx
     ${PROJECT_SOURCE_DIR}/src/Localization/msh_interpFrontBack.cxx
@@ -303,6 +304,7 @@ list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_BINARY_DIR}/src/ ${CMAKE_BINARY_DIR}/SAN
 # C Prepro target for debugging (optional)
 add_library(metrisPrepro STATIC ${SRC_SOURCES})
 set_property(TARGET metrisPrepro PROPERTY CXX_STANDARD 17)
+set_target_properties(metrisPrepro PROPERTIES EXCLUDE_FROM_ALL TRUE)
 target_compile_options(metrisPrepro PUBLIC ${METRIS_CXX_FLAGS} -E)
 target_include_directories(metrisPrepro PUBLIC  ${METRIS_DEPS_INCLUDE_DIRS} )
 if(REQ_CODEGEN)

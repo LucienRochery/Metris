@@ -200,6 +200,19 @@ install(TARGETS libMetris EXPORT libMetrisTargets
   INCLUDES DESTINATION   ${CMAKE_INSTALL_INCLUDEDIR})
 
 
+# Install all headers. We don't have any specific public headers, users can do anything (as we do in unit tests at times, for instance)
+install(
+  FILES ${PROJECT_SOURCE_DIR}/src/Metris.h
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(
+  DIRECTORY ${PROJECT_SOURCE_DIR}/src/
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  FILES_MATCHING
+    PATTERN "*.hxx"
+    PATTERN ".*" EXCLUDE
+)
+
 
 # --- Unit tests
 
