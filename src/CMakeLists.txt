@@ -177,6 +177,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/Optimization/Newton.cxx
     ${PROJECT_SOURCE_DIR}/src/Optimization/DIRECT.cxx
     ${PROJECT_SOURCE_DIR}/src/Optimization/nlopt_luksan_mssubs.cxx
+    ${PROJECT_SOURCE_DIR}/src/Optimization/nlopt_luksan_pssubs.cxx
     ${PROJECT_SOURCE_DIR}/src/Localization/low_localization.cxx
     ${PROJECT_SOURCE_DIR}/src/Localization/msh_localization.cxx
     ${PROJECT_SOURCE_DIR}/src/Localization/msh_interpFrontBack.cxx
