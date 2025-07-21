@@ -49,3 +49,5 @@ if [ $tmpfiles -ne 0 ]; then
   done
   exit 1
 fi
+
+time make -f Makefile.parallel install
