@@ -184,11 +184,8 @@ char* itoa(int value, char* result, int base) {
 }
 
 void wait(){
-  char tmp;
-  printf("Press key to continue ");
-  fflush(stdout);
-  (void) scanf("%c",&tmp);
-  printf("\n");
+  std::cout << "Press Enter to continue..." << std::flush;
+  std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
 // Gets 2,..4 ints, returns sorted tuple (for hash keys)
