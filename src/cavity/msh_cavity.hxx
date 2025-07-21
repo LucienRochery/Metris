@@ -62,12 +62,14 @@ public:
       lctet.set_n(0);
       lcfac.set_n(0);
       lcedg.set_n(0);
+      inewp = -1;
     }
   
 	void reset(){
-		ipins =-1;
+		ipins = -1;
 		nrempts = 0;
 		iremcor = -1;
+    inewp = -1;
     lcedg.set_n(0);
     lcfac.set_n(0);
     lctet.set_n(0);
@@ -152,7 +154,7 @@ public:
   // Internal use
 	// Store removed points, whether a corner is removed and if so which one (one at the most)
 	int nrempts, iremcor, maxtag;
-  bool inewp; // is ipins a whole new point or already in the mesh?
+  int inewp; // is ipins a whole new point or already in the mesh?
 
 
 };

@@ -289,6 +289,7 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
   METRIS_ASSERT(ithrd1 != ithrd2);
 
   cav.reset();
+  cav.inewp = 0;
 
   CavOprOpt  opts;
   CavOprInfo info;
@@ -320,81 +321,28 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
   // Try the cavity call with different ipins in neighbours of ipcol
   msh.tag[ithrd1]++;
   int tag0 = msh.tag[ithrd1]; // We'll reuse the tag for elements in subroutines
+
   // We'll stack on top of the ball, so we need to be able to prune to nbalf
   // with each attempt, as well as restrict search of ipins to ball 
   int nbalt = cav.lctet.get_n();
   int nbalf = cav.lcfac.get_n();
   int nbale = cav.lcedg.get_n();
-  int tdim = msh.get_tdim();
+  // Loop only over the lowest dimensional entities as they have the same refs as ipcol.
+  int tdim = nbale > 0 ? 1 :
+             nbalf > 0 ? 2 : 3;
   intAr2& ent2poi = msh.ent2poi(tdim);
   intAr1& lcent = cav.lcent(tdim);
   for(int icent : lcent){
     METRIS_ASSERT(!isdeadent(icent,ent2poi));
 
     // Doesn't change but easy to get it here 
-    for(int ive2 = 0; ive2 < msh.get_tdim() + 1; ive2 ++){
+    for(int ive2 = 0; ive2 < tdim + 1; ive2 ++){
       int ipins = ent2poi(icent,ive2);
       if(ipins == ipcol) continue;
       if(msh.poi2tag(ithrd1,ipins) >= tag0) continue;
       msh.poi2tag(ithrd1,ipins) = tag0;
 
-      // Check ipins has same (or lower) topological dimension as ipcol
-      // e.g. a triangle point can be collapsed and reconnection done to an edge
-      // point, but not to a volume point. 
-      if(msh.getpoitdim(ipins) > tdimp){
-        CPRINTF1(" - point %d dim %d > ipins dim %d -> reject reconnection\n",
-          ipins,msh.getpoitdim(ipins),tdimp);
-        continue;
-      }
-
-      // Check ipins has same ref in topo dim of ipcol.
-      // Counter-example: a boundary point, ball's boundary hits other surface refs. 
-      // This does not happen in the volume. Indeed, if a point's ball
-      // has two domain refs, then the point itself has two domain refs.
-      // Hence it was actually a boundary point. 
-      if(tdimp < msh.get_tdim()){
-        // As we never collapse a corner, the point's tdim is >= 1.
-        // Hence it has a unique ref to the lowest dim entity group. 
-        METRIS_ASSERT(cav.lcent(tdimp).get_n() > 0);
-        int iref = msh.ent2ref(tdimp)[cav.lcent(tdimp)[0]];
-        #ifndef NDEBUG
-        for(int ient1 : cav.lcent(tdimp)){
-          METRIS_ASSERT(iref == msh.ent2ref(tdimp)[ient1]);
-        }
-        #endif
-
-        if(msh.getpoitdim(ipins) == tdimp){
-          // Easy, just check seed reference
-          int ient1 = msh.poi2ent(ipins,0);
-          METRIS_ASSERT(msh.poi2ent(ipins,1) == tdimp);
-          int iref1 = msh.ent2ref(tdimp)[ient1];
-          if(iref1 != iref){
-            CPRINTF1(" - point %d dim %d = dim ipins but ref %d != %d\n",
-                     ipins,tdimp,iref1,iref);
-            continue;
-          }
-        }else{
-          // Use boundary info
-          bool ifnd = false;
-          for(int ibpoi = msh.poi2bpo[ipins]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
-            int tdim1 = msh.bpo2ibi(ibpoi,1);
-            if(tdim1 != tdimp) continue;
-            int ient1 = msh.bpo2ibi(ibpoi,2);
-            int iref1 = msh.ent2ref(tdimp)[ient1];
-            CPRINTF1(" - check entity %d dim %d ref %d ipcol ref = %d\n",
-                     ient1,tdim1,iref1,iref);
-            if(iref1 != iref) continue;
-            CPRINTF1(" -> found ref\n");
-            ifnd = true;
-            break;
-          }
-          if(!ifnd){
-            CPRINTF1(" - did not find ref %d dim %d of ipcol in ipins %d refs\n",
-                     iref,tdimp,ipins);
-            continue;
-          }
-        }
-      }// if tdimp < msh.get_tdim()
+      METRIS_ASSERT(msh.getpoitdim(ipins) <= tdimp);
 
       cav.ipins = ipins;
       cav.lctet.set_n(nbalt);

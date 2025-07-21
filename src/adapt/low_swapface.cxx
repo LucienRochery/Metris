@@ -93,6 +93,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   cav.lctet.set_n(0);
   cav.lcedg.allocate(1);
   cav.lcfac.allocate(2);
+  cav.inewp = 0;
   if(msh.get_tdim() >= 3) cav.lctet.allocate(10);
 
 

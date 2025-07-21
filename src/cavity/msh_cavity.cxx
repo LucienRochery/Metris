@@ -79,11 +79,11 @@ int cavity_operator(Mesh<MFT> &msh ,
                     CavOprInfo &info,
                     int ithread){
 
+  METRIS_ASSERT_MSG(cav.inewp == 0 || cav.inewp == 1, "Caller must set cav.inewp to 0 if new point, 1 otherwise.");
 
   try{
   INCVDEPTH(msh.param);
   info.done = false;
-  cav.inewp = true; // this will be updated by check_cavity_topo
 
   METRIS_ENFORCE_MSG(opts.max_increase_cav_geo <= 1,"Implement cavity correction")
 

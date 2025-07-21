@@ -32,6 +32,9 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
 
 
   // Tag while checking no duplicates (hard error).
+  #ifndef NDEBUG
+  bool inewp = true;
+  #endif
   for(int tdim = 1; tdim <= msh.get_tdim(); tdim++){
     const intAr1& lcent = cav.lcent(tdim);
     intAr2& ent2tag = msh.ent2tag(tdim);
@@ -40,14 +43,18 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
     for(int ientt : lcent){
       METRIS_ASSERT(ent2tag(ithread,ientt) < msh.tag[ithread]);
       ent2tag(ithread,ientt) = msh.tag[ithread];
-      if(!cav.inewp) continue;
+      #ifndef NDEBUG
+      if(!inewp) continue;
       // Check if ipins is present in the cavity elements.
       for(int inode = 0; inode < nnode; inode++){
         int ipoin = ent2poi(ientt, inode);
-        if(ipoin == cav.ipins) cav.inewp = false;
+        if(ipoin == cav.ipins) inewp = false;
       }
+      #endif
     }
   }
+
+  METRIS_ASSERT_MSG(inewp == (bool) cav.inewp, "cav provides inewp = "<< cav.inewp <<" but found "<< inewp);
 
   if(opts.skip_topo_checks){
     CPRINTF1(" - flag skip_topo_checks set: skipping topological checks.\n");

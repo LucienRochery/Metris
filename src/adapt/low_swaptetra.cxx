@@ -206,6 +206,7 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
   cav.lctet.set_n(0);
 
   cav.ipins = ipopp;
+  cav.inewp = 0;
 
   cav.lctet.stack(itetr);
   cav.lctet.stack(itet2);
@@ -279,6 +280,7 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
   cav.lcedg.allocate(1);
   cav.lcfac.allocate(10);
   cav.lctet.allocate(10);
+  cav.inewp = 0;
 
   int iopen;
   shell(msh, ipoi1, ipoi2, 3, itetr, cav.lcedg, cav.lcfac, cav.lctet, &iopen);

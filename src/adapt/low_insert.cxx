@@ -86,7 +86,7 @@ int insertEdge(Mesh<MFT>& msh,
   cav.lcedg.allocate(10);
   cav.lcfac.allocate(10);
   cav.lctet.allocate(10);
-
+  cav.inewp = 1;
 
   // work for collrejcav_lenqua
   #ifndef NDEBUG
