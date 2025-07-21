@@ -34,7 +34,7 @@ echo "in directory $(pwd)"
 #Build basic Metris targets
 time make -j $nproc -f Makefile.parallel metris
 time make -j $nproc -f Makefile.parallel unit_build
-time make -f Makefile.parallel install
+#time make -f Makefile.parallel install
 
 #Fail the build if any files were generated in source.
 #Count the number of files
