@@ -9,7 +9,7 @@
 
 //#include <nlopt.h>
 
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../utils/mprintf.hxx"
 #include "../Optimization/opt_generic.hxx"

@@ -13,14 +13,14 @@
 #include "../cavity/msh_cavity.hxx"
 #include "../aux_topo.hxx"
 #include "../low_topo.hxx"
-#include "../low_normal.hxx"
+#include "../low_geo/normal.hxx"
 #include "../utils/mprintf.hxx"
 #include "../msh_structs.hxx"
 #include "../io_libmeshb.hxx"
 #include "../msh_checktopo.hxx"
 #include "../adapt/low_increasecav.hxx"
-#include "../low_lenedg.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/lenedg.hxx"
+#include "../low_geo/misc.hxx"
 
 #include <unordered_set>
 

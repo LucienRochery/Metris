@@ -14,7 +14,7 @@
 #include "../aux_topo.hxx"
 #include "../Boundary/msh_inisurf.hxx"
 #include "../LPopt/msh_maxccoef.hxx"
-#include "../low_ccoef.hxx"
+#include "../low_geo/ccoef.hxx"
 #include "../BezierOffsets/msh_curve_offsets.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../utils/aux_timer.hxx"

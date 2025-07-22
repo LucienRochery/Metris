@@ -58,6 +58,7 @@ dbg_quality_diff.txt
 docs/quality/
 *.trace/
 
+src/linalg/intersect_met.*
 
 cases/public/*
 !cases/public/square.meshb

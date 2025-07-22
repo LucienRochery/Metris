@@ -10,7 +10,7 @@
 
 #include "../aux_topo.hxx"
 #include "../ho_constants.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/measure.hxx"
 #include "../quality/low_metqua.hxx"
 #include "../utils/mprintf.hxx"
 #include "../utils/aux_misc.hxx"

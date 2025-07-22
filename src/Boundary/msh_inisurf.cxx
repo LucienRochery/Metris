@@ -12,7 +12,7 @@
 #include "../ho_constants.hxx"
 #include "../aux_topo.hxx"
 #include "../low_topo.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../utils/mprintf.hxx"
 #include "../utils/CT_loop.hxx"
 #include "../io_libmeshb.hxx"

@@ -10,7 +10,7 @@
 #include "../../SANS/tools/minmax.h"
 #include "types.hxx"
 #include "Optimization/opt_generic.hxx"
-#include "low_geo.hxx"
+#include "low_geo/misc.hxx"
 #include "utils/mprintf.hxx"
 
 #include "nlopt_internals.h"

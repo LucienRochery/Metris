@@ -10,7 +10,7 @@
 
 #include "../aux_exceptions.hxx"
 
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../ho_quadrature.hxx"
 //#include "../low_eval_d.hxx"
 #include "../linalg/explogmet.hxx"
@@ -23,7 +23,7 @@ namespace Metris{
 //#include "../low_localization.hxx"
 
 //#include "../codegen_ccoef.hxx"
-//#include "../low_ccoef.hxx"
+//#include "../low_geo/ccoef.hxx"
 
 #if 0
 template <class MFT, int gdim, int tdim, int mshdeg, 

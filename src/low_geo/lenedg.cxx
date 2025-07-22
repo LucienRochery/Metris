@@ -3,13 +3,13 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#include "low_lenedg.hxx"
+#include "lenedg.hxx"
+#include "normal.hxx"
+#include "misc.hxx"
 
-#include "Mesh/MeshMetric.hxx"
-#include "linalg/symidx.hxx"
-#include "linalg/matprods.hxx"
-#include "low_geo.hxx"
-#include "low_normal.hxx"
+#include "../Mesh/MeshMetric.hxx"
+#include "../linalg/symidx.hxx"
+#include "../linalg/matprods.hxx"
 
 
 #ifdef TRACY_ENABLE

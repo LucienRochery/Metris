@@ -6,14 +6,17 @@
 #ifndef __LOW_NORMAL__
 #define __LOW_NORMAL__
 
-#include "types.hxx"
-#include "Mesh/MeshFwd.hxx"
+#include "../types.hxx"
+#include "../Mesh/MeshFwd.hxx"
 
 namespace Metris{
 
 enum class AsDeg;
 
 
+// ------------------------------------------------------------------------
+// Compute normals
+// ------------------------------------------------------------------------
 void getnorfacP1(const int *fac2pol, const dblAr2 &coord, double *nrmal);
 
 void getnorfac(const MeshBase &msh, int iface, 
@@ -41,6 +44,16 @@ void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi);
 // - if iedg0 >= 0 && iref0 < 0: get tangent from iedg0 side 
 //   (in CAD case, no difference if not corner)
 int gettanpoiref(const MeshBase &msh, int ipoin, int iref, double* tanpoi);
+
+
+
+// ------------------------------------------------------------------------
+// Compute normal deviation
+// ------------------------------------------------------------------------
+// Normalized dotprod difference to 1 of CAD/elt normals accumulated over the nodes
+template<int ideg>
+double getnordev(const MeshBase& msh, int iface);
+
 
 }// namespace
 

@@ -9,12 +9,13 @@
 #include "msh_checktopo.hxx"
 #include "aux_exceptions.hxx"
 #include "aux_topo.hxx"
-#include "low_geo.hxx"
+#include "low_geo/measure.hxx"
 #include "utils/aux_misc.hxx"
 #include "utils/CT_loop.hxx"
 #include "io_libmeshb.hxx"
-#include "low_ccoef.hxx"
-#include "low_normal.hxx"
+#include "low_geo/ccoef.hxx"
+#include "low_geo/nrml2.hxx"
+#include "low_geo/normal.hxx"
 #include "utils/mprintf.hxx"
 
 namespace Metris{

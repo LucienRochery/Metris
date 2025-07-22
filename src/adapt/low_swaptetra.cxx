@@ -14,9 +14,9 @@
 #include "../aux_topo.hxx"
 #include "../low_topo.hxx"
 #include "../utils/aux_misc.hxx"
-#include "../low_lenedg.hxx"
+#include "../low_geo/lenedg.hxx"
 #include "../utils/mprintf.hxx"
-#include "../low_normal.hxx"
+#include "../low_geo/normal.hxx"
 #include "../io_libmeshb.hxx"
 #include "../quality/low_metqua.hxx"
 

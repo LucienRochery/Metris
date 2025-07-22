@@ -10,8 +10,8 @@
 #include "../linalg/invmat.hxx"
 #include "../linalg/det.hxx"
 #include "../aux_exceptions.hxx"
-#include "../low_normal.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/normal.hxx"
+#include "../low_geo/misc.hxx"
 #include "../utils/mprintf.hxx"
 
 

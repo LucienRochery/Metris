@@ -13,7 +13,8 @@
 #include "../cavity/msh_cavity.hxx"
 
 #include "../utils/mprintf.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/measure.hxx"
+#include "../low_geo/nrml2.hxx"
 #include "../low_topo.hxx"
 #include "../io_libmeshb.hxx"
 

@@ -4,7 +4,7 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 #include "msh_lenedg.hxx"
-#include "low_lenedg.hxx"
+#include "low_geo/lenedg.hxx"
 
 #include "aux_topo.hxx"
 #include "utils/aux_misc.hxx"

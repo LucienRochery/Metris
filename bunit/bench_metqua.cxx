@@ -55,76 +55,90 @@ BOOST_AUTO_TEST_CASE(bench_metqua)
     Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
 
 
+    CT_FOR0_INC(1,3,gdim){if(gdim == msh.idim){
+      CT_FOR0_INC(2,gdim,tdim){
 
-    int idim = msh.idim;
-    METRIS_ASSERT(idim == msh.get_tdim());
+        int nentt = msh.nentt(tdim);
+        const int nloop = ceil(tarop / (double) nentt);
 
-    int nentt = msh.nentt(idim);
-    const int nloop = ceil(tarop / (double) nentt);
-    printf("-- Running mesh %s nloop = %d\n",meshname.c_str(), nloop);
+        // For slight mesh perturbations
+        std::uniform_real_distribution<double> unif(0.0,1.0);
+        std::default_random_engine rng(0);
+        // Accumulate into dummy to avoid optimizing out
+        double dum = 0;
+        
+        printf("-- Running mesh %s gdim %d tdim %d nloop = %d\n",meshname.c_str(), gdim, tdim, nloop);
 
-    // For slight mesh perturbations
-    std::uniform_real_distribution<double> unif(0.0,1.0);
-    std::default_random_engine rng(0);
+        msh.met.setSpace(MetSpace::Exp);
+        double tm0_exp = get_wall_time();
+        for(int iloop = 0; iloop < nloop; iloop++){
+          for(int ielem = 0; ielem < nentt; ielem++){
+            dum += metqua<MFT,gdim,tdim>(msh, AsDeg::Pk, AsDeg::Pk, ielem, 1);
+          }
+        }// for iloop
+        double tm1_exp = get_wall_time();
 
-    // Accumulate into dummy to avoid optimizing out
-    msh.met.setSpace(MetSpace::Log);
-    double dum1 = 0;
-    double t01 = get_wall_time();
-    for(int iloop = 0; iloop < nloop; iloop++){
-      for(int ielem = 0; ielem < nentt; ielem++){
-        if(idim == 2){
-          dum1 += metqua1<2>(msh, ielem, 1);
-        }else{
-          dum1 += metqua1<3>(msh, ielem, 1);
+        msh.met.setSpace(MetSpace::Log);
+        double tm0_log = get_wall_time();
+        for(int iloop = 0; iloop < nloop; iloop++){
+          for(int ielem = 0; ielem < nentt; ielem++){
+            dum += metqua<MFT,gdim,tdim>(msh, AsDeg::Pk, AsDeg::Pk, ielem, 1);
+          }
+        }// for iloop
+        double tm1_log = get_wall_time();
+
+        int psm_exp = (int) ((((double)nentt) * nloop) / (tm1_exp - tm0_exp) / 1000);
+        int psm_log = (int) ((((double)nentt) * nloop) / (tm1_log - tm0_log) / 1000);
+        printf("-- Test end prod metqua exp = %dk/s\n",psm_exp);
+        printf("                        log = %dk/s\n",psm_log);
+        
+        if constexpr (tdim == gdim){
+
+          msh.met.setSpace(MetSpace::Log);
+          double t01 = get_wall_time();
+          for(int iloop = 0; iloop < nloop; iloop++){
+            for(int ielem = 0; ielem < nentt; ielem++){
+              dum -= metqua1<gdim>(msh, ielem, 1);
+            }
+          }// for iloop
+          double t11 = get_wall_time();
+
+
+          msh.met.setSpace(MetSpace::Exp);
+          double t02 = get_wall_time();
+          for(int iloop = 0; iloop < nloop; iloop++){
+            for(int ielem = 0; ielem < nentt; ielem++){
+              dum += metqua2<gdim>(msh, ielem, 1);
+            }
+          }// for iloop
+          double t12 = get_wall_time();
+
+
+          // Accumulate into dummy to avoid optimizing out
+          msh.met.setSpace(MetSpace::Exp);
+          double t03 = get_wall_time();
+          for(int iloop = 0; iloop < nloop; iloop++){
+            for(int ielem = 0; ielem < nentt; ielem++){
+              dum -= metqua3<gdim>(msh, ielem, 1);
+            }
+          }// for iloop
+          double t13 = get_wall_time();
+
+          int ps1 = (int) ((((double)nentt) * nloop) / (t11 - t01) / 1000);
+          int ps2 = (int) ((((double)nentt) * nloop) / (t12 - t02) / 1000);
+          int ps3 = (int) ((((double)nentt) * nloop) / (t13 - t03) / 1000);
+
+
+            
+          printf("-- Test end prod metqua exp = %dk/s\n",psm_exp);
+          printf("              bench metqua1 = %dk/s\n",ps1);
+          printf("              bench metqua2 = %dk/s ratio 2/1 = %e\n",ps2, (t12 - t02) / (t11 - t01));
+          printf("              bench metqua3 = %dk/s ratio 3/1 = %e\n",ps3, (t13 - t03) / (t11 - t01));
         }
-      }
-    }// for iloop
-    double t11 = get_wall_time();
-
-
-    // Accumulate into dummy to avoid optimizing out
-    msh.met.setSpace(MetSpace::Exp);
-    double dum2 = 0;
-    double t02 = get_wall_time();
-    for(int iloop = 0; iloop < nloop; iloop++){
-      for(int ielem = 0; ielem < nentt; ielem++){
-        if(idim == 2){
-          dum2 += metqua2<2>(msh, ielem, 1);
-        }else{
-          dum2 += metqua2<3>(msh, ielem, 1);
-        }
-      }
-    }// for iloop
-    double t12 = get_wall_time();
-
-
-    // Accumulate into dummy to avoid optimizing out
-    msh.met.setSpace(MetSpace::Exp);
-    double dum3 = 0;
-    double t03 = get_wall_time();
-    for(int iloop = 0; iloop < nloop; iloop++){
-      for(int ielem = 0; ielem < nentt; ielem++){
-        if(idim == 2){
-          dum3 += metqua3<2>(msh, ielem, 1);
-        }else{
-          dum3 += metqua3<3>(msh, ielem, 1);
-        }
-      }
-    }// for iloop
-    double t13 = get_wall_time();
-
-    int ps1 = (int) ((((double)nentt) * nloop) / (t11 - t01) / 1000);
-    int ps2 = (int) ((((double)nentt) * nloop) / (t12 - t02) / 1000);
-    int ps3 = (int) ((((double)nentt) * nloop) / (t13 - t03) / 1000);
-
-    printf(" dum1 = %e dum2 = %e dum3 = %e\n",dum1,dum2,dum3);
-    printf("-- Test end metqua1 time = %e metqua2 = %e metqua3 = %e\n"
-           "ps 1: %dk/s %dk/s %dk/s\n"
-           "ratio 2/1 = %e 3/1 = %e\n\n\n",
-      t11 - t01, t12 - t02, t13 - t03, 
-      ps1, ps2, ps3,
-      (t12 - t02) / (t11 - t01), (t13 - t03) / (t11 - t01));
+      
+        printf(" dum = %e\n",dum);
+      }CT_FOR1(tdim);
+    }}CT_FOR1(gdim);
 
   }// for meshname : meshes
 

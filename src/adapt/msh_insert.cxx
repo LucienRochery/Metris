@@ -7,7 +7,7 @@
 #include "msh_insert.hxx"
 #include "low_insert.hxx"
 
-#include "../low_lenedg.hxx"
+#include "../low_geo/lenedg.hxx"
 #include "../aux_topo.hxx"
 #include "../io_libmeshb.hxx"
 #include "../utils/aux_timer.hxx"
@@ -15,7 +15,7 @@
 #include "../cavity/msh_cavity.hxx"
 #include "../adapt/msh_swap.hxx"
 #include "../BezierOffsets/low_gaps.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../Mesh/Mesh.hxx"
 #include "../msh_checktopo.hxx"
 #include "../aux_histogram.hxx"

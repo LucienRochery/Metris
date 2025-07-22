@@ -6,12 +6,15 @@
 #include "msh_intrinsicmet.hxx"
 
 ////#include "msh_metric.hxx"
-#include "low_normal.hxx"
-#include "low_geo.hxx"
+#include "low_geo/normal.hxx"
+#include "low_geo/measure.hxx"
 #include "linalg/explogmet.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include "io_libmeshb.hxx"
 #include "utils/mprintf.hxx"
+#include "aux_topo.hxx"
+
+#include "Mesh/MeshMetric.hxx"
 
 #include "../libs/lplib3.h"
 

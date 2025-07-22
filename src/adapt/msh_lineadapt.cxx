@@ -10,10 +10,10 @@
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 
-#include "../low_lenedg.hxx"
+#include "../low_geo/lenedg.hxx"
 #include "../msh_structs.hxx"
-#include "../low_geo.hxx"
-#include "../low_normal.hxx"
+#include "../low_geo/misc.hxx"
+#include "../low_geo/normal.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../msh_checktopo.hxx"
 #include "../aux_topo.hxx"

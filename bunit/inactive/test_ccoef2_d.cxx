@@ -8,7 +8,7 @@
 //#include <src/codegen_ccoef_d.hxx>
 
 #include <src/low_ccoef_d.hxx>
-#include <src/low_ccoef.hxx>
+#include <src/low_geo/ccoef.hxx>
 
 #include <boost/test/included/unit_test.hpp> 
 #include <bunit/common_setup.hxx>

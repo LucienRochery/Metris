@@ -17,7 +17,7 @@
 #include "../linalg/eigen.hxx"
 #include "../SANS/Surreal/SurrealS.h"
 
-#include "../low_ccoef.hxx"
+#include "../low_geo/ccoef.hxx"
 
 
 namespace Metris{

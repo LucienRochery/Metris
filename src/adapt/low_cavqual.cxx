@@ -11,8 +11,8 @@
 #include "../cavity/msh_cavity.hxx"
 
 #include "../low_topo.hxx"
-#include "../low_lenedg.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/lenedg.hxx"
+#include "../low_geo/measure.hxx"
 
 #ifdef TRACY_ENABLE
 #include "Tracy.hpp"
@@ -320,7 +320,7 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
 
     double volM;
     MSH_DIM_DEG0(msh){
-    volM = getmeasent<MFT,gdim,ideg>(msh, ientt);
+    volM = getmeasent_aniso<MFT,gdim,ideg>(msh, ientt);
     }MSH_DIM_DEG1();
 
     METRIS_ASSERT(volM > 0);
@@ -384,7 +384,7 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
         double volB = 0;
         for(int ientt : lbent){
           MSH_DIM_DEG0(msh){
-          volB += getmeasent<MFT,gdim,ideg>(msh, ientt);
+          volB += getmeasent_aniso<MFT,gdim,ideg>(msh, ientt);
           }MSH_DIM_DEG1();
         }
         CPRINTF1(" - cav bdry pt %d has tot vol %e, internal %e, counts as %e\n",

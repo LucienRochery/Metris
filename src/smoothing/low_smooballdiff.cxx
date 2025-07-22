@@ -22,8 +22,8 @@ Simplest possible approach.
 
 #include "../Optimization/opt_generic.hxx"
 #include "../quality/low_metqua_d.hxx"
-#include "../low_ccoef.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/ccoef.hxx"
+#include "../low_geo/measure.hxx"
 
 
 namespace Metris{

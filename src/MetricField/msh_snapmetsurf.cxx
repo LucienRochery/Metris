@@ -5,9 +5,9 @@
 
 #include "msh_snapmetsurf.hxx"
 #include "../Mesh/MeshMetric.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../utils/mprintf.hxx"
-#include "../low_normal.hxx"
+#include "../low_geo/normal.hxx"
 
 #include <unordered_set>
 

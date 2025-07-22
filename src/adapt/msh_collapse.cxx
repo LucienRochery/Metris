@@ -10,9 +10,9 @@
 
 #include "../Mesh/Mesh.hxx"
 
-#include "../low_lenedg.hxx"
-#include "../low_geo.hxx"
-#include "../low_height.hxx"
+#include "../low_geo/lenedg.hxx"
+#include "../low_geo/misc.hxx"
+#include "../low_geo/height.hxx"
 #include "../aux_topo.hxx"
 #include "../io_libmeshb.hxx"
 #include "../utils/aux_timer.hxx"

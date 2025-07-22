@@ -15,7 +15,7 @@
 #include "../src/quality/low_metqua.hxx"
 #include "../SANS/Surreal/SurrealS.h"
 #include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
-#include "../src/low_geo.hxx"
+#include "../src/low_geo/misc.hxx"
 
 #include <boost/hana.hpp> 
 namespace hana = boost::hana;

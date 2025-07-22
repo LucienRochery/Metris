@@ -7,9 +7,6 @@
 #include "../Mesh/MeshBase.hxx"
 #include "../utils/mprintf.hxx"
 
-#ifndef NDEBUG
-#include "../low_geo.hxx"
-#endif
 
 #include <sstream>
 #include <fstream>
@@ -526,12 +523,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
       for(int kk = 0; kk < 3; kk++)
         args.coorl(npoi0+ii,kk) = (args.coorl(ip1,kk) + args.coorl(ip2,kk) + args.coorl(ip3,kk))/3.0;
     }
-    #ifndef NDEBUG
-    bool checkvol = true;
-    bool iflat;
-    double meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 0 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
     // Middle point for the other tets
     int ipmid = args.coorl.get_n();
@@ -545,10 +536,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(ielem,2) = npoi0 + 2;
     args.ent2pol(ielem,3) = npoi0 + 3;
     args.ent2pol(ielem,4) = ilev  + 1;
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 1 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
 
     npoi0 = args.coorl.get_n();
@@ -568,10 +555,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+0,4) = ilev + 1;
     args.ent2pol(nele0+0,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 2 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
     args.ent2pol.inc_n();
     args.ent2pol(nele0+1,0) = ip1;
@@ -581,10 +564,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+1,4) = ilev + 1;
     args.ent2pol(nele0+1,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 3 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
     args.ent2pol.inc_n();
     args.ent2pol(nele0+2,0) = ip1;
@@ -594,10 +573,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+2,4) = ilev + 1;
     args.ent2pol(nele0+2,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 4 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
     args.ent2pol.inc_n();
     args.ent2pol(nele0+3,0) = ip1;
@@ -607,10 +582,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+3,4) = ilev + 1;
     args.ent2pol(nele0+3,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 5 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
   }else{// if ityp == 1
 
@@ -630,12 +601,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
       for(int kk = 0; kk < 3; kk++)
         args.coorl(npoi0+ii,kk) = (args.coorl(ip1,kk) + args.coorl(ip2,kk) + args.coorl(ip3,kk))/3.0;
     }
-    #ifndef NDEBUG
-    bool checkvol = true;
-    bool iflat;
-    double meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 0 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
     // Middle point for the other tets
     int ipmid = args.coorl.get_n();
@@ -649,10 +614,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(ielem,2) = ipf[2];
     args.ent2pol(ielem,3) = ipf[3];
     args.ent2pol(ielem,4) = ilev  + 1;
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 1 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
 
     npoi0 = args.coorl.get_n();
@@ -672,10 +633,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+0,4) = ilev + 1;
     args.ent2pol(nele0+0,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 2 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
     args.ent2pol.inc_n();
     args.ent2pol(nele0+1,0) = ipmid;
@@ -685,10 +642,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+1,4) = ilev + 1;
     args.ent2pol(nele0+1,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 2 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
     args.ent2pol.inc_n();
     args.ent2pol(nele0+2,0) = ipmid;
@@ -698,10 +651,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+2,4) = ilev + 1;
     args.ent2pol(nele0+2,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 2 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
 
 
@@ -713,10 +662,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+3,4) = ilev + 1;
     args.ent2pol(nele0+3,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 3 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
     args.ent2pol.inc_n();
     args.ent2pol(nele0+4,0) = ip1;
@@ -726,10 +671,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+4,4) = ilev + 1;
     args.ent2pol(nele0+4,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 3 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
     args.ent2pol.inc_n();
     args.ent2pol(nele0+5,0) = ip1;
@@ -739,10 +680,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+5,4) = ilev + 1;
     args.ent2pol(nele0+5,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 3 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
 
 
@@ -755,10 +692,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+6,4) = ilev + 1;
     args.ent2pol(nele0+6,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 4 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
     args.ent2pol.inc_n();
     args.ent2pol(nele0+7,0) = ip1;
@@ -768,10 +701,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+7,4) = ilev + 1;
     args.ent2pol(nele0+7,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 4 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
     args.ent2pol.inc_n();
     args.ent2pol(nele0+8,0) = ip1;
@@ -781,10 +710,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+8,4) = ilev + 1;
     args.ent2pol(nele0+8,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 4 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
 
 
@@ -796,10 +721,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+9,4) = ilev + 1;
     args.ent2pol(nele0+9,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 5 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
     args.ent2pol.inc_n();
     args.ent2pol(nele0+10,0) = ip1;
@@ -809,10 +730,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+10,4) = ilev + 1;
     args.ent2pol(nele0+10,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 5 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
     args.ent2pol.inc_n();
     args.ent2pol(nele0+11,0) = ip1;
@@ -822,10 +739,6 @@ void aux_DIRECT_splittet(DIBLOB_args &args, int ielem,int ieglo,int ilev){
     args.ent2pol(nele0+11,4) = ilev + 1;
     args.ent2pol(nele0+11,5) = ieglo;
     args.fminhist.stack(args.fminhist[ielem]);
-    #ifndef NDEBUG
-    meas0 = getmeasentP1<3,3>(args.param, args.ent2pol[ielem], args.coorl, NULL, &iflat);
-    METRIS_ENFORCE_MSG(!iflat || !checkvol, "element 5 negative " << meas0<< " iter "<<args.niter);
-    #endif
 
   }
 

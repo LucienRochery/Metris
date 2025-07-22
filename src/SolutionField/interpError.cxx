@@ -11,7 +11,7 @@
 #include "../ho_constants.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../utils/bernstein_prod.hxx"
-#include "../low_ccoef.hxx"
+#include "../low_geo/ccoef.hxx"
 #include "../linalg/det.hxx"
 
 #include "codegen_lag2bez.hxx"

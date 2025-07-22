@@ -8,8 +8,8 @@
 #ifndef __SRC_LOWCCOEF__
 #define __SRC_LOWCCOEF__
 
-#include "ho_constants.hxx"
-#include "types.hxx"
+#include "../ho_constants.hxx"
+#include "../types.hxx"
 #include <array>
 
 

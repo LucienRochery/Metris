@@ -10,7 +10,7 @@
 #include "../msh_lenedg.hxx"
 #include "../aux_histogram.hxx"
 #include "../quality/msh_metqua.hxx"
-#include "../low_ccoef.hxx"
+#include "../low_geo/ccoef.hxx"
 #include "../utils/mprintf.hxx"
 
 #include "../SolutionField/SolutionField.hxx"

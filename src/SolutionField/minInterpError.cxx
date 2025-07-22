@@ -14,12 +14,12 @@
 #include "../utils/mprintf.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../utils/bernstein_prod.hxx"
-#include "../low_ccoef.hxx"
+#include "../low_geo/ccoef.hxx"
+#include "../low_geo/measure.hxx"
 #include "../linalg/det.hxx"
 #include "../Optimization/opt_generic.hxx"
 #include "../low_topo.hxx"
 #include "../io_libmeshb.hxx"
-#include "../low_geo.hxx"
 
 #include "codegen_lag2bez.hxx"
 

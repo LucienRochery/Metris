@@ -42,7 +42,7 @@
 //#include "low_eval.hxx"
 //#include "low_topo.hxx"
 //
-#include "low_geo.hxx"
+#include "low_geo/misc.hxx"
 #include "linalg/matprods.hxx"
 //#include "aux_topo.hxx"
 //

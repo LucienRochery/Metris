@@ -7,8 +7,9 @@
 #include "msh_maxccoef.hxx"
 #include "LPsolver.hxx"
 
-#include "../low_ccoef.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/ccoef.hxx"
+#include "../low_geo/measure.hxx"
+
 #include "../ho_constants.hxx"
 #include "../io_libmeshb.hxx"
 

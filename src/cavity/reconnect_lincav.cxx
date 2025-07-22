@@ -10,7 +10,7 @@
 #include "../MetrisRunner/MetrisParameters.hxx"
 
 #include "../aux_topo.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../io_libmeshb.hxx"
 #include "../utils/mprintf.hxx"
 

@@ -11,11 +11,12 @@
 
 #include "../aux_topo.hxx"
 #include "../ho_constants.hxx"
-#include "../low_normal.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/normal.hxx"
+#include "../low_geo/measure.hxx"
 #include "../quality/low_metqua.hxx"
 #include "../utils/mprintf.hxx"
 #include "../utils/aux_misc.hxx"
+#include "../linalg/det.hxx"
 #include "../io_libmeshb.hxx"
 
 
@@ -238,7 +239,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
           }
 
           // Compute area of U1 U2 U3
-          double meas = det2_vdif(msh.bpo2rbi[ibf2], msh.bpo2rbi[ibf1],
+          double meas = detvdif2(msh.bpo2rbi[ibf2], msh.bpo2rbi[ibf1],
                                   msh.bpo2rbi[ibf3], msh.bpo2rbi[ibf1]);
           int isens = meas > 0 ? 1 : -1;
           edcco[icoco].stack(std::pair<int,int>(irefe, isens));

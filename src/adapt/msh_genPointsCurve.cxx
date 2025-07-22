@@ -10,9 +10,9 @@
 #include "../MetrisRunner/MetrisParameters.hxx"
 
 #include "../utils/aux_misc.hxx"
-#include "../low_lenedg.hxx"
+#include "../low_geo/lenedg.hxx"
 #include "../io_libmeshb.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../utils/mprintf.hxx"
 
 

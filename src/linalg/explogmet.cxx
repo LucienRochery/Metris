@@ -9,7 +9,7 @@
 #include "../linalg/eigen.hxx"
 #include "../aux_exceptions.hxx"
 
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../linalg/matprods.hxx"
 #include "../linalg/utils.hxx"
 

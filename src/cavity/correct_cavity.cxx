@@ -8,10 +8,10 @@
 
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../Mesh/Mesh.hxx"
-#include "../low_geo.hxx"
-#include "../low_normal.hxx"
+#include "../low_geo/measure.hxx"
+#include "../low_geo/normal.hxx"
 #include "../low_topo.hxx"
-#include "../low_ccoef.hxx"
+#include "../low_geo/ccoef.hxx"
 #include "../aux_topo.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../utils/CT_loop.hxx"

@@ -24,7 +24,7 @@
 #include "../linalg/det.hxx"
 #include "../utils/mprintf.hxx"
 
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 
 
 namespace Metris{

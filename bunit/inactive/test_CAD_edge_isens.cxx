@@ -115,7 +115,7 @@
       //printf("  ip %d ibe %d t = %e\n", ip3, ibe2, t2);
 
 
-      double meas = det2_vdif(msh.bpo2rbi[ibf2], msh.bpo2rbi[ibf1],
+      double meas = detvdif2(msh.bpo2rbi[ibf2], msh.bpo2rbi[ibf1],
                               msh.bpo2rbi[ibf3], msh.bpo2rbi[ibf1]);
       meas *= isens;
       int iori = meas > 0 ? 1 : -1;

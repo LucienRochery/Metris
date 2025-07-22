@@ -17,8 +17,8 @@
 #include "../src/utils/aux_pp_inc.hxx"
 #include "../src/utils/mprintf.hxx"
 #include "../src/Localization/low_localization.hxx"
-#include "../src/low_ccoef.hxx"
-#include "../src/low_normal.hxx"
+#include "../src/low_geo/ccoef.hxx"
+#include "../src/low_geo/normal.hxx"
 #include "../src/linalg/invmat.hxx"
 
 #include <filesystem>

@@ -6,8 +6,8 @@
 #include "low_metqua_d.hxx"
 #include "quafun.hxx"
 
-#include "../low_normal.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/normal.hxx"
+#include "../low_geo/misc.hxx"
 #include "../linalg/symidx.hxx"
 #include "../linalg/det.hxx"
 #include "../linalg/matprods.hxx"

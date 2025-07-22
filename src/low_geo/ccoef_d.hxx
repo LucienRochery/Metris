@@ -8,7 +8,7 @@
 #ifndef __SRC_LOWCCOEF_D__
 #define __SRC_LOWCCOEF_D__
 
-#include "types.hxx"
+#include "../types.hxx"
 
 namespace Metris{
 

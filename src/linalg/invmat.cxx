@@ -11,7 +11,7 @@
 #include "../linalg/symidx.hxx"
 
 #include "../aux_exceptions.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../metris_constants.hxx"
 
 #include "../SANS/Surreal/SurrealS.h"

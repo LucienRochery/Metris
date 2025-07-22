@@ -4,16 +4,17 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#include "low_normal.hxx"
-#include "low_eval.hxx"
-#include "low_geo.hxx"
-#include "linalg/det.hxx"
-#include "Mesh/MeshBase.hxx"
-#include "MetrisRunner/MetrisParameters.hxx"
-#include "utils/mprintf.hxx"
-#include "utils/CT_loop.hxx"
-#include "io_libmeshb.hxx"
-#include "metris_constants.hxx"
+#include "normal.hxx"
+#include "misc.hxx"
+
+#include "../low_eval.hxx"
+#include "../linalg/det.hxx"
+#include "../Mesh/MeshBase.hxx"
+#include "../MetrisRunner/MetrisParameters.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/CT_loop.hxx"
+#include "../io_libmeshb.hxx"
+#include "../metris_constants.hxx"
 
 namespace Metris{
 
@@ -488,6 +489,111 @@ int gettanpoiref(const MeshBase &msh, int ipoin, int iref, double* tanpoi){
 
   return 0;
 }
+
+
+
+// Normalized dotprod difference to 1 of CAD/elt normals accumulated over the nodes
+template<int ideg>
+double getnordev(const MeshBase& msh, int iface){
+  METRIS_ASSERT(msh.idim == 3);
+  constexpr int gdim = 3;
+  constexpr int tdim = 2;
+  constexpr int nnode = getnnode(tdim, ideg);
+
+  double result[18];
+  double norCAD[gdim], norelt[gdim];
+  const int iref = msh.fac2ref[iface];
+  METRIS_ASSERT(iref >= 0);
+  double *du = &result[3];
+  double *dv = &result[6];
+  const ego obj  = msh.CAD.cad2fac[iref];
+
+  // Even if we use CAD normals at all vertices, we can compute this one just once.
+  if constexpr (ideg == 1){
+    getnorfacP1(msh.fac2poi[iface], msh.coord, norelt);
+    if(normalize_vec<gdim>(norelt)){
+      writeMesh("debug_ibpoi",msh);
+      printf("norelt vanished iface = %d nodes ",iface);
+      intAr1(nnode, msh.fac2poi[iface]).print();
+      for(int ii = 0; ii < gdim; ii++) printf("%d: %23.15e\n",ii,norelt[ii]);
+      METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
+    }
+  }
+
+  double nordev = 0;
+  for(int inode = 0; inode < nnode; inode++){
+    int ipoin = msh.fac2poi(iface, inode);
+    int ibpoi = msh.poi2ebp(ipoin, tdim, iface, iref);
+    if(ibpoi < 0){
+      for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+        printf("ibpoi %d : ",ibpoi);
+        intAr1(nibi, msh.bpo2ibi[ibpoi]).print();
+      }
+      writeMesh("debug_ibpoi",msh);
+    }
+    METRIS_ASSERT_MSG(ibpoi >= 0 && ibpoi < msh.nbpoi, 
+      "iface = "<<iface<<" iref  "<<iref<<" inode = "<<inode
+      <<" ipoin = "<<ipoin<<" ibpoi = "<< ibpoi);
+    int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
+    METRIS_ENFORCE_MSG(ierro == 0, "metqua0 EG_evaluate error " << ierro);
+    vecprod(du,dv,norCAD);
+    if(normalize_vec<gdim>(norCAD)){
+      //printf("using tdim = %d iface = %d iref = %d \n",tdim, iface, iref);
+      // legitimate if e.g. cone tip.
+      if(msh.getpoitdim(ipoin) != 0){
+        printf("ipoin = %d point dim = %d",ipoin,msh.getpoitdim(ipoin));
+        printf("using ibpoi = %d : ",ibpoi);
+        intAr1(nibi, msh.bpo2ibi[ibpoi]).print();
+        int  idbgdim = msh.bpo2ibi(ibpoi,1);
+        int  idbgent = msh.bpo2ibi(ibpoi,2);
+        printf(" entity ref = %d \n", msh.ent2ref(idbgdim)[idbgent]);
+        printf("get du = ");
+        dblAr1(gdim, du).print();
+        printf("get dv = ");
+        dblAr1(gdim, dv).print();
+        printf("vecprod = ");
+        dblAr1(gdim, norCAD).print();
+
+        printf("(u,v) = %24.15e %24.15e\n", msh.bpo2rbi(ibpoi,0), msh.bpo2rbi(ibpoi,1));
+        printf("eval coop %24.15e %24.15e %24.15e \n",
+          result[0],result[1],result[2]);
+
+        double nrm = getnrml2<gdim>(norCAD);
+        printf("nrm = %24.15e\n",nrm);
+
+        METRIS_THROW_MSG(GeomExcept(), "Normal (CAD) vanishes at ipoin "<<ipoin);
+      }
+      nordev += 0;
+      continue;
+    }
+
+    if constexpr (ideg > 1){
+      constexpr auto ordelt = ORDELT(tdim);
+      double bary[tdim+1];
+      for(int ii = 0; ii < tdim + 1; ii++)
+        bary[ii] = ordelt[ideg][inode][ii]/((double) (ideg));
+      getnorfac(msh, iface, bary, AsDeg::Pk, norelt);
+      if(normalize_vec<gdim>(norelt)){
+        writeMesh("debug_ibpoi",msh);
+        printf("norelt vanished iface = %d node %d point %d nodes ",iface,inode,ipoin);
+        intAr1(nnode, msh.fac2poi[iface]).print();
+        for(int ii = 0; ii < gdim; ii++) printf("%d: %23.15e\n",ii,norelt[ii]);
+        METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
+      }
+    }
+
+    double dtprd = getprdl2<gdim>(norelt, norCAD);
+    double tmp = 1-abs(dtprd);
+    METRIS_ASSERT(tmp >= 0);
+    nordev += tmp*tmp;
+  }
+  return sqrt(nordev/nnode);
+}
+#define BOOST_PP_LOCAL_MACRO(n)\
+template double getnordev<n>(const MeshBase& msh, int iface);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
 
 
 }// namespace

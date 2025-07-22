@@ -6,7 +6,7 @@
 #ifndef __LOW_HEIGHT__
 #define __LOW_HEIGHT__
 
-#include "Mesh/MeshFwd.hxx"
+#include "../Mesh/MeshFwd.hxx"
 
 namespace Metris{
 

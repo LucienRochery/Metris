@@ -13,7 +13,7 @@
 #include "../linalg/det.hxx"
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 
 namespace Metris{
 

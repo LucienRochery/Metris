@@ -3,13 +3,13 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#include "low_geo.hxx"
-#include "low_height.hxx"
-#include "metris_constants.hxx"
-#include "low_lenedg.hxx"
-#include "Boundary/low_projsurf.hxx"
+#include "misc.hxx"
+#include "height.hxx"
+#include "lenedg.hxx"
 
-#include "Mesh/Mesh.hxx"
+#include "../metris_constants.hxx"
+#include "../Boundary/low_projsurf.hxx"
+#include "../Mesh/Mesh.hxx"
 
 namespace Metris{
 

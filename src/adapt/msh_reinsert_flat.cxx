@@ -8,8 +8,8 @@
 #include "../MetrisRunner/MetrisParameters.hxx"
 
 #include "msh_reinsert_flat.hxx"
-#include "../low_geo.hxx"
-#include "../low_height.hxx"
+#include "../low_geo/misc.hxx"
+#include "../low_geo/height.hxx"
 #include "../utils/mprintf.hxx"
 #include "../msh_structs.hxx"
 #include "../cavity/msh_cavity.hxx"

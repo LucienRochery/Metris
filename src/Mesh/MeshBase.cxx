@@ -15,9 +15,9 @@
 #include "../ho_constants.hxx"
 #include "../utils/CT_loop.hxx"
 #include "../msh_lag2bez.hxx"
-#include "../low_normal.hxx"
+#include "../low_geo/normal.hxx"
 #include "../linalg/det.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../utils/mprintf.hxx"
 
 namespace Metris{

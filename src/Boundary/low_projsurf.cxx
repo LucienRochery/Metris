@@ -9,8 +9,8 @@
 #include "../Mesh/MeshBase.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 
-#include "../low_normal.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/normal.hxx"
+#include "../low_geo/misc.hxx"
 #include "../io_libmeshb.hxx"
 #include "../aux_EGADSprinterr.hxx"
 #include "../Optimization/opt_generic.hxx"

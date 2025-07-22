@@ -7,16 +7,14 @@
 #define __METRIS_MSH_INTRINSICMET__
 
 
-#include "../utils/aux_misc.hxx"
-#include "../Mesh/MeshMetric.hxx"
+#include "../types_arrays.hxx"
 
-#include "../types.hxx"
-//#include "ho_constants.hxx"
-#include "../aux_topo.hxx"
-#include "../low_lenedg.hxx"
-
+#include "../Mesh/MeshFwd.hxx"
 
 namespace Metris{
+
+struct MetrisParameters;
+enum class FEBasis;
 
 // -----------------------------------------------------------------------------
 template<class MetricFieldType,int ideg>
@@ -25,97 +23,15 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
 
 template<class MetricFieldType, int gdim, int tdim, int ideg>
 void getMetMesh0_lplib(int ient0, int ient1,int ithread, 
-                       MeshMetric<MetricFieldType> *msh_, dblWrkAr1 *rwork,int poitag);
-
-//// This reoutine re-interpolates at edge extremities from the shell
-//template<int ideg,int ilag>
-//void get_met_shell(Mesh &msh, int ip1, int ip2, int ielem);
-
-
-
-// These are old routines that probably don't work as intended (pre metric refactor, gdim)
-// -----------------------------------------------------------------------------
-template <class MetricFieldType,int ideg>
-void getmshedglen(MeshMetric<MetricFieldType> &msh, HshTab_I2R &rlened, int nquad){
-	rlened.reserve((int)(6.5*msh.nelem/5.5));
-
-	int edg2pol[ideg+1];
-
-	for(int ielem = 0; ielem < msh.nelem; ielem++){
-		if(isdeadent(ielem,msh.tet2poi)) continue;
-		for(int ied = 0; ied < 3; ied++){
-			int ip1 = msh.tet2poi(ielem,lnoed3[ied][0]);
-			int ip2 = msh.tet2poi(ielem,lnoed3[ied][1]);
-
-			auto key = stup2(ip1,ip2);
-			auto t = rlened.find(key);
-			if(t != rlened.end()) continue;
-			edg2pol[0] = ip1;
-			edg2pol[1] = ip2;
-			int idx0 = 4 + ied*(ideg-1);
-			for(int i = 0; i < ideg-1; i++){
-				edg2pol[2+i] = msh.tet2poi[ielem][idx0+i];
-			}
-
-			double len = getlenedg_quad<MetricFieldType,3,ideg>(edg2pol,msh.coord,msh.met,nquad);
-
-			rlened.insert({key,len});
-		}
-	}
-}
-
-
+                       MeshMetric<MetricFieldType> *msh_, dblWrkAr1 *rwork, int poitag);
 
 // -----------------------------------------------------------------------------
-template <class MetricFieldType,int ideg>
-void getmshedglen_shell(MeshMetric<MetricFieldType> &msh, HshTab_I2R &rlened, int nquad){
-	rlened.reserve((int)(6.5*msh.nelem/5.5));
-	int edg2pol[ideg+1];
+template<int gdim, int tdim, int ideg>
+int getintmetxi(const dblAr2 &coord, const int* __restrict__ tet2pol, FEBasis ibasis,
+	               const double* bary,double* __restrict__ met);
 
-	for(int ielem = 0; ielem < msh.nelem; ielem++){
-		if(isdeadent(ielem,msh.tet2poi)) continue;
-		for(int ied = 0; ied < 3; ied++){
-			int ip1 = msh.tet2poi(ielem,lnoed3[ied][0]);
-			int ip2 = msh.tet2poi(ielem,lnoed3[ied][1]);
 
-			auto key = stup2(ip1,ip2);
-			auto t = rlened.find(key);
-			if(t != rlened.end()) continue;
 
-			//ierro = get_met_shell<ideg>(msh,nei,ip1,ip2,ielem);
-			//if(ierro > 0){
-			//	printf("## get_met_shell FAILED %d \n",ierro);
-			//	return 1;
-			//}
-
-			// Debug
-
-			edg2pol[0] = ip1;
-			edg2pol[1] = ip2;
-			int idx0 = 4 + ied*(ideg-1);
-			for(int i = 0; i < ideg-1; i++){
-				edg2pol[2+i] = msh.tet2poi[ielem][idx0+i];
-			}
-			for(int j = 0;j < 6; j++){
-				msh.met(ip1,j) = msh.met[msh.tet2poi(ielem,idx0)][j];
-				msh.met(ip2,j) = msh.met[msh.tet2poi(ielem,idx0)][j];
-			}
-
-			double len = getlenedg_quad<MetricFieldType,3,ideg>(edg2pol,msh.coord,msh.met,nquad);
-
-			rlened.insert({key,len});
-		}
-	}
-}
-
-//// Compute anisotropic quality tr/det of J_K^T M J_K. 
-//template <int ideg>
-//void getmshqua(MeshBase &msh, std::vector<double> &quael){
-//	quael.resize(msh.nelem);
-//	for(int ielem = 0; ielem < msh.nelem; ielem++){
-//
-//	}
-//}
 } // End namespace
 
 

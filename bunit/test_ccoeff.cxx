@@ -9,7 +9,7 @@
 
 #include "../src/Metris.h"
 //#include "../src/codegen_ccoef.hxx"
-//#include "../src/low_ccoef.hxx"
+//#include "../src/low_geo/ccoef.hxx"
 //#include "../src/msh_lag2bez.hxx"
 //#include "../src/linalg/det.hxx"
 
@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE(ccoef, * utf::tolerance(double(1.0e-6)) )
       for(int ielem = 0; ielem < nentt; ielem++){
         ccoef_genbez(ent2poi,msh.coord,ielem,ccoef);
         double vol = vol0 * getmeasentP1<idim>(ent2poi[ielem],msh.coord);
-        //double vol = det3_vdif(msh.coord[ent2poi(ielem,1)],msh.coord[ent2poi(ielem,0)]
+        //double vol = detvdif3(msh.coord[ent2poi(ielem,1)],msh.coord[ent2poi(ielem,0)]
         //                      ,msh.coord[ent2poi(ielem,2)],msh.coord[ent2poi(ielem,0)]
         //                      ,msh.coord[ent2poi(ielem,3)],msh.coord[ent2poi(ielem,0)]); 
         ccoef_eval<idim,idim,ideg>(msh.getBasis(),ent2poi,msh.coord,ielem,NULL,ccoef2);
@@ -243,7 +243,7 @@ BOOST_AUTO_TEST_CASE(ccoef, * utf::tolerance(double(1.0e-6)) )
       first = true;
       for(int ielem = 0; ielem < nentt; ielem++){
         double vol = vol0 * getmeasentP1<idim>(ent2poi[ielem],msh.coord);
-        //double vol = det3_vdif(msh.coord[ent2poi(ielem,1)],msh.coord[ent2poi(ielem,0)]
+        //double vol = detvdif3(msh.coord[ent2poi(ielem,1)],msh.coord[ent2poi(ielem,0)]
         //                      ,msh.coord[ent2poi(ielem,2)],msh.coord[ent2poi(ielem,0)]
         //                      ,msh.coord[ent2poi(ielem,3)],msh.coord[ent2poi(ielem,0)]); 
         ccoef_eval<idim,idim,ideg>(msh.getBasis(),ent2poi,msh.coord,ielem,NULL,ccoef2);

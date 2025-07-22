@@ -145,27 +145,13 @@ endif()
 
 
 set(SRC_SOURCES 
-    ${PROJECT_SOURCE_DIR}/src/utils/aux_misc.cxx
-    ${PROJECT_SOURCE_DIR}/src/utils/aux_timer.cxx
-    ${PROJECT_SOURCE_DIR}/src/utils/mprintf.cxx
-    ${PROJECT_SOURCE_DIR}/src/utils/binom.cxx
-    ${PROJECT_SOURCE_DIR}/src/utils/bernstein_prod.cxx
-    #${PROJECT_SOURCE_DIR}/src/utils/tuple_hashtable.cxx
-    ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays1D.cxx
-    ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays2D.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_hashtab.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_topo.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_histogram.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_EGADSprinterr.cxx
     ${PROJECT_SOURCE_DIR}/src/io_libmeshb.cxx
-    ${PROJECT_SOURCE_DIR}/src/low_ccoef.cxx
     ${PROJECT_SOURCE_DIR}/src/low_eval.cxx
-    ${PROJECT_SOURCE_DIR}/src/low_geo.cxx
-    ${PROJECT_SOURCE_DIR}/src/low_height.cxx
-    ${PROJECT_SOURCE_DIR}/src/low_normal.cxx
-    ${PROJECT_SOURCE_DIR}/src/low_lenedg.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_lenedg.cxx
-    ##${PROJECT_SOURCE_DIR}/src/low_subdivide.cxx
     ${PROJECT_SOURCE_DIR}/src/low_topo.cxx
     ${PROJECT_SOURCE_DIR}/src/main_adap.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_anamet_2D.cxx
@@ -174,21 +160,42 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/msh_lag2bez.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_checktopo.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_degelev.cxx
+
+    ${PROJECT_SOURCE_DIR}/src/utils/aux_misc.cxx
+    ${PROJECT_SOURCE_DIR}/src/utils/aux_timer.cxx
+    ${PROJECT_SOURCE_DIR}/src/utils/mprintf.cxx
+    ${PROJECT_SOURCE_DIR}/src/utils/binom.cxx
+    ${PROJECT_SOURCE_DIR}/src/utils/bernstein_prod.cxx
+    
+    #${PROJECT_SOURCE_DIR}/src/utils/tuple_hashtable.cxx
+    ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays1D.cxx
+    ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays2D.cxx
+
+    ${PROJECT_SOURCE_DIR}/src/low_geo/ccoef.cxx
+    ${PROJECT_SOURCE_DIR}/src/low_geo/measure.cxx
+    ${PROJECT_SOURCE_DIR}/src/low_geo/height.cxx
+    ${PROJECT_SOURCE_DIR}/src/low_geo/normal.cxx
+    ${PROJECT_SOURCE_DIR}/src/low_geo/misc.cxx
+    ${PROJECT_SOURCE_DIR}/src/low_geo/lenedg.cxx
+
     ${PROJECT_SOURCE_DIR}/src/Optimization/Newton.cxx
     ${PROJECT_SOURCE_DIR}/src/Optimization/DIRECT.cxx
     ${PROJECT_SOURCE_DIR}/src/Optimization/nlopt_luksan_mssubs.cxx
     ${PROJECT_SOURCE_DIR}/src/Optimization/nlopt_luksan_pssubs.cxx
+
     ${PROJECT_SOURCE_DIR}/src/Localization/low_localization.cxx
     ${PROJECT_SOURCE_DIR}/src/Localization/msh_localization.cxx
     ${PROJECT_SOURCE_DIR}/src/Localization/msh_interpFrontBack.cxx
+
     ${PROJECT_SOURCE_DIR}/src/Boundary/msh_inisurf.cxx
     ${PROJECT_SOURCE_DIR}/src/Boundary/low_projsurf.cxx
     #${PROJECT_SOURCE_DIR}/src/Boundary/msh_optsurf.cxx
     #${PROJECT_SOURCE_DIR}/src/Boundary/low_geosurf.cxx
+
     ${PROJECT_SOURCE_DIR}/src/BezierOffsets/msh_bez2gaps.cxx
     ${PROJECT_SOURCE_DIR}/src/BezierOffsets/low_gaps.cxx
-    #${PROJECT_SOURCE_DIR}/src/BezierOffsets/low_gaps_3D.cxx
     ${PROJECT_SOURCE_DIR}/src/BezierOffsets/msh_curve_offsets.cxx
+
     #${PROJECT_SOURCE_DIR}/src/quality/low_surfqua.cxx
     ${PROJECT_SOURCE_DIR}/src/quality/low_metqua.cxx
     ${PROJECT_SOURCE_DIR}/src/quality/quafun_distortion.cxx
@@ -196,12 +203,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/quality/quafun_tradet.cxx
     ${PROJECT_SOURCE_DIR}/src/quality/low_metqua_d.cxx
     ${PROJECT_SOURCE_DIR}/src/quality/msh_metqua.cxx
-    ##${PROJECT_SOURCE_DIR}/src/quality/low_metqua_2D.cxx
-    #${PROJECT_SOURCE_DIR}/src/quality/low_metqua_3D.cxx
-    #${PROJECT_SOURCE_DIR}/src/quality/opt_metqua_2D.cxx
-    #${PROJECT_SOURCE_DIR}/src/quality/opt_metqua_3D.cxx
-    #${PROJECT_SOURCE_DIR}/src/quality/opt_metqua_costfunc.cxx
-    #${PROJECT_SOURCE_DIR}/src/quality/opt_metqua_tests.cxx
+
     ${PROJECT_SOURCE_DIR}/src/linalg/det.cxx
     ${PROJECT_SOURCE_DIR}/src/linalg/dsyevq.cxx
     ${PROJECT_SOURCE_DIR}/src/linalg/dsytrd.cxx
@@ -210,6 +212,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/linalg/matprods.cxx
     ${PROJECT_SOURCE_DIR}/src/linalg/invmat.cxx
     ${PROJECT_SOURCE_DIR}/src/linalg/utils.cxx
+
     ${PROJECT_SOURCE_DIR}/src/cavity/check_cavity_topo.cxx
     ${PROJECT_SOURCE_DIR}/src/cavity/correct_cavity.cxx
     ${PROJECT_SOURCE_DIR}/src/cavity/msh_cavity.cxx
@@ -218,6 +221,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/cavity/reconnect_tetcav.cxx
     ${PROJECT_SOURCE_DIR}/src/cavity/update_bpois_newp.cxx
     ${PROJECT_SOURCE_DIR}/src/cavity/update_cavity.cxx
+
     ${PROJECT_SOURCE_DIR}/src/Mesh/CADInfo.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshBase.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshBase_init.cxx
@@ -227,6 +231,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh_interpMetBack.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh_cleanup.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh.cxx
+
     ${PROJECT_SOURCE_DIR}/src/MetricField/MetricFieldFE.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/MetricFieldAnalytical.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/MetricField_getMetNodes.cxx
@@ -234,11 +239,13 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/MetricField/msh_checkmet.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/msh_intrinsicmet.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/msh_snapmetsurf.cxx
+
     ${PROJECT_SOURCE_DIR}/src/SolutionField/interpError.cxx
     ${PROJECT_SOURCE_DIR}/src/SolutionField/minInterpError.cxx
     ${PROJECT_SOURCE_DIR}/src/SolutionField/SolutionField.cxx
     ${PROJECT_SOURCE_DIR}/src/SolutionField/anasol2D.cxx
     ${PROJECT_SOURCE_DIR}/src/SolutionField/anasol3D.cxx
+
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisParameters.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner_iniMetris.cxx
@@ -246,6 +253,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/msh_adaptMesh.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/msh_optimMesh.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/statMesh.cxx
+
     ${PROJECT_SOURCE_DIR}/src/adapt/msh_collapse.cxx
     ${PROJECT_SOURCE_DIR}/src/adapt/low_collapse.cxx
     ${PROJECT_SOURCE_DIR}/src/adapt/msh_swap.cxx
@@ -259,6 +267,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/adapt/low_delaunay.cxx
     ${PROJECT_SOURCE_DIR}/src/adapt/msh_reinsert_flat.cxx
     ${PROJECT_SOURCE_DIR}/src/adapt/low_cavqual.cxx
+
     ${PROJECT_SOURCE_DIR}/src/smoothing/msh_smooball.cxx
     #${PROJECT_SOURCE_DIR}/src/smoothing/msh_smoofull.cxx
     #${PROJECT_SOURCE_DIR}/src/smoothing/msh_smoofull_TAO.cxx
@@ -266,9 +275,9 @@ set(SRC_SOURCES
     #${PROJECT_SOURCE_DIR}/src/smoothing/msh_smoofull_costfun.cxx
     #${PROJECT_SOURCE_DIR}/src/smoothing/low_smoodirect.cxx
     ${PROJECT_SOURCE_DIR}/src/smoothing/low_smooballdiff.cxx
-    #${PROJECT_SOURCE_DIR}/src/smoothing/msh_uniformization.cxx
+
     ${PROJECT_SOURCE_DIR}/src/API/MetrisAPI.cxx
-    #${PROJECT_SOURCE_DIR}/src/low_ccoef_d.cxx
+    
     ${PROJECT_SOURCE_DIR}/src/LPopt/msh_maxccoef.cxx
     ${PROJECT_SOURCE_DIR}/src/LPopt/msh_maxmetLP.cxx
     ${PROJECT_SOURCE_DIR}/src/LPopt/msh_bezgapLP.cxx

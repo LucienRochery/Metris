@@ -11,8 +11,8 @@
 
 #include "../aux_topo.hxx"
 #include "../ho_constants.hxx"
-#include "../low_normal.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/normal.hxx"
+#include "../low_geo/misc.hxx"
 #include "../quality/low_metqua.hxx"
 #include "../utils/mprintf.hxx"
 #include "../utils/aux_misc.hxx"

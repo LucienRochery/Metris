@@ -10,14 +10,14 @@
 #include "../MetrisRunner/MetrisParameters.hxx"
 
 #include "../utils/aux_misc.hxx"
-#include "../low_lenedg.hxx"
+#include "../low_geo/lenedg.hxx"
 #include "../low_topo.hxx"
 #include "../io_libmeshb.hxx"
 #include "../adapt/low_increasecav.hxx"
 #include "../cavity/msh_cavity.hxx"
 #include "../Localization/msh_localization.hxx"
 #include "../linalg/det.hxx"
-#include "../low_normal.hxx"
+#include "../low_geo/normal.hxx"
 #include "../utils/mprintf.hxx"
 #include "../msh_checktopo.hxx"
 

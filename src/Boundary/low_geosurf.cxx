@@ -12,7 +12,7 @@
 
 #include "../utils/aux_misc.hxx"
 #include "../aux_exceptions.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 
 #include <egadsTypes.h>
 #include <egads.h>

@@ -12,7 +12,7 @@
 #include <random>
 
 //#include "../src/utils/aux_utils.hxx"
-#include "../src/low_geo.hxx"
+#include "../src/low_geo/misc.hxx"
 #include "../src/linalg/eigen.hxx"
 #include "../src/linalg/det.hxx"
 #include "../src/linalg/invmat.hxx"

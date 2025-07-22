@@ -15,7 +15,7 @@
 #include "../utils/aux_misc.hxx"
 #include "../utils/aux_timer.hxx"
 #include "../low_eval.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../utils/mprintf.hxx"
 #include "../io_libmeshb.hxx"
 #include "../API/MetrisAPI.hxx"

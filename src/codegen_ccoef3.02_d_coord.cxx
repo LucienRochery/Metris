@@ -8,7 +8,7 @@
 
 namespace Metris{
 
-double det3_vdif(const double* x1,const double* x2,
+double detvdif3(const double* x1,const double* x2,
                  const double* y1,const double* y2,
                  const double* z1,const double* z2);
 

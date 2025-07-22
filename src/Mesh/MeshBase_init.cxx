@@ -18,8 +18,10 @@
 #include "../aux_topo.hxx"
 #include "../utils/aux_timer.hxx"
 #include "../utils/mprintf.hxx"
-#include "../low_geo.hxx"
-#include "../low_normal.hxx"
+#include "../low_geo/measure.hxx"
+#include "../low_geo/nrml2.hxx"
+#include "../low_geo/normal.hxx"
+#include "../low_geo/misc.hxx"
 #include "../msh_inineigh.hxx"
 #include "../msh_checktopo.hxx"
 #include "../ho_constants.hxx"
@@ -843,10 +845,22 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
         nseen++;
         if(nseen >= 100 && !ineg) break;
         double meas;
+        bool iflat;
         if(!ineg){
-          meas = getmeasentP1<2>(fac2poi[iface], coord);
+          meas = idim == 2 ? getmeasentP1<2,2>(*this,fac2poi[iface], NULL, &iflat) :
+                             getmeasentP1<3,2>(*this,fac2poi[iface], NULL, &iflat) ;
         }
         if(ineg || meas < param->vtol){
+          if(!(ineg || nseen == 1)){
+            printf("With refineConventionsInp, ineg = %d nseen = %d, meas = %e\n",ineg,nseen,meas);
+            printf("iface = %d vertices = ",iface);
+            intAr1(3,fac2poi[iface]).print();
+            printf("Coords = \n");
+            for(int ii = 0; ii < 3; ii++){
+              dblAr1(idim,coord[fac2poi(iface,ii)]).print();
+            }
+            writeMesh("debugsurf",*this);
+          }
           METRIS_ENFORCE_MSG(ineg || nseen == 1, "## FIRST NEGATIVE ELEMENT IS RANK "<<nseen
             <<" meas "<<meas);
           ineg = true;

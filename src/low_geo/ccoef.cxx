@@ -5,19 +5,21 @@
 
 
 
-#include "low_ccoef.hxx"
-#include "codegen_ccoef.hxx"
-#include "codegen_ccoef_d.hxx"
+#include "ccoef.hxx"
+#include "misc.hxx"
+#include "measure.hxx"
 
-#include "types.hxx"
-#include "utils/aux_misc.hxx"
-#include "utils/fact_pow.hxx"
-#include "Mesh/MeshBase.hxx"
-#include "MetrisRunner/MetrisParameters.hxx"
-#include "linalg/det.hxx"
-#include "low_eval.hxx"
-#include "low_geo.hxx"
-#include "codegen_lag2bez.hxx"
+#include "../codegen_ccoef.hxx"
+#include "../codegen_ccoef_d.hxx"
+
+#include "../types.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../utils/fact_pow.hxx"
+#include "../Mesh/MeshBase.hxx"
+#include "../MetrisRunner/MetrisParameters.hxx"
+#include "../linalg/det.hxx"
+#include "../low_eval.hxx"
+#include "../codegen_lag2bez.hxx"
 //#include "utils/aux_misc.hxx"
 //#include "msh_structs.hxx"
 //#include "Mesh/Mesh.hxx"

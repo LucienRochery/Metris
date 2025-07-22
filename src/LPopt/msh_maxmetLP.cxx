@@ -8,8 +8,8 @@
 #include "LPsolver.hxx"
 
 #include "codegen_lag2bez.hxx"
-#include "../low_ccoef.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/ccoef.hxx"
+#include "../low_geo/measure.hxx"
 #include "../io_libmeshb.hxx"
 #include "../utils/aux_timer.hxx"
 #include "../utils/aux_misc.hxx"

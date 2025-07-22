@@ -16,11 +16,11 @@
 #include "../aux_topo.hxx"
 #include "../msh_structs.hxx"
 #include "../low_topo.hxx"
-#include "../low_normal.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/normal.hxx"
+#include "../low_geo/measure.hxx"
 #include "../io_libmeshb.hxx"
 #include "../linalg/det.hxx"
-#include "../low_lenedg.hxx"
+#include "../low_geo/lenedg.hxx"
 
 #include "../msh_checktopo.hxx"
 
