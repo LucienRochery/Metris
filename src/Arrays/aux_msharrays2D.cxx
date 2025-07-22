@@ -23,10 +23,11 @@ MeshArray2D<T,INT1,INT2>::MeshArray2D(){
 }
 template<typename T, typename INT1, typename INT2>
 MeshArray2D<T,INT1,INT2>::MeshArray2D(INT1 m, INT2 s){
-  METRIS_ENFORCE_MSG(m >= 0 && s > 0, "MeshArray2D initialized with m < 0 or s <= 0")
+  METRIS_ENFORCE_MSG(m >= 0 && s >= 0, "MeshArray2D initialized with m < 0 or s <= 0")
   stride  = s;
   m1 = n1 = m;
   nmemalc = ((INTL)m1)*((INTL)stride);
+  if(nmemalc == 0) return;
   array_sp = cpp17_make_shared<T[]>(nmemalc);
   array    = array_sp.get();
   array_ro = array; 
