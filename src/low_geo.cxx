@@ -215,15 +215,6 @@ double getmeasentP1(const MetrisParameters *param,
       // l1^(flat) x l2^(flat) = (det(l1^(2D) l2^(2D)) 0 0)
       // Thus we simply replace the 2D determinant with the norm of the normal 
       double norfac[3];
-      //double l1[gdim], l2[gdim];
-      //l1[0] = coord(ent2pol[1],0) - coord(ent2pol[0],0);
-      //l1[1] = coord(ent2pol[1],1) - coord(ent2pol[0],1);
-      //l1[2] = coord(ent2pol[1],2) - coord(ent2pol[0],2);
-
-      //l2[0] = coord(ent2pol[2],0) - coord(ent2pol[0],0);
-      //l2[1] = coord(ent2pol[2],1) - coord(ent2pol[0],1);
-      //l2[2] = coord(ent2pol[2],2) - coord(ent2pol[0],2);
-      //vecprod(l1,l2,norfac);
 
       getnorfacP1(ent2pol,coord,norfac);
       double nrm = getnrml2<3>(norfac);
@@ -231,12 +222,6 @@ double getmeasentP1(const MetrisParameters *param,
         *iflat = true;
         return 0;
       }
-      //printf("## DEBUG ent2pol ");
-      //intAr1(3,ent2pol).print();
-      //printf("## NORMAL = ");
-      //dblAr1(3,norfac).print();
-
-      //METRIS_ASSERT(norref != NULL);
 
       if(norref == NULL){
         det = getnrml2<3>(norfac);
@@ -247,8 +232,6 @@ double getmeasentP1(const MetrisParameters *param,
           *iflat = true;
           return 0;
         }
-        //METRIS_ASSERT_MSG(nrm >= Constants::vecNrmTol,
-        //  "Normal norm under tolerance = "<<nrm);
         nrm = 1.0 / sqrt(nrm);
 
         // norfac is l1 x l2 is already homo h^2 despite norref O(1)
@@ -304,6 +287,190 @@ template double getmeasentP1<3,3>(const MetrisParameters *msh,
 template double getmeasentP1<2,3>(const MetrisParameters *msh, 
                                   const int* ent2pol, const dblAr2 &coord,
                                   const double* norref, bool* iflat);//dummy
+
+// Normalized dotprod difference to 1 of CAD/elt normals accumulated over the nodes
+template<int ideg>
+double getnordev(const MeshBase& msh, int iface){
+  METRIS_ASSERT(msh.idim == 3);
+  constexpr int gdim = 3;
+  constexpr int tdim = 2;
+  constexpr int nnode = getnnode(tdim, ideg);
+
+  double result[18];
+  double norCAD[gdim], norelt[gdim];
+  double *du = &result[3];
+  double *dv = &result[6];
+  const int iref = msh.fac2ref[iface];
+  const ego obj  = msh.CAD.cad2fac[iref];
+
+  // Even if we use CAD normals at all vertices, we can compute this one just once.
+  if constexpr (ideg == 1){
+    getnorfacP1(msh.fac2poi[iface], msh.coord, norelt);
+    if(normalize_vec<gdim>(norelt)){
+      writeMesh("debug_ibpoi",msh);
+      printf("norelt vanished iface = %d nodes ",iface);
+      intAr1(nnode, msh.fac2poi[iface]).print();
+      for(int ii = 0; ii < gdim; ii++) printf("%d: %23.15e\n",ii,norelt[ii]);
+      METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
+    }
+  }
+
+  double nordev = 0;
+  for(int inode = 0; inode < nnode; inode++){
+    int ipoin = msh.fac2poi(iface, inode);
+    int ibpoi = msh.poi2ebp(ipoin, tdim, iface, iref);
+    if(ibpoi < 0){
+      for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+        printf("ibpoi %d : ",ibpoi);
+        intAr1(nibi, msh.bpo2ibi[ibpoi]).print();
+      }
+      writeMesh("debug_ibpoi",msh);
+    }
+    METRIS_ASSERT_MSG(ibpoi >= 0 && ibpoi < msh.nbpoi, 
+      "iface = "<<iface<<" iref  "<<iref<<" inode = "<<inode
+      <<" ipoin = "<<ipoin<<" ibpoi = "<< ibpoi);
+    int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
+    METRIS_ENFORCE_MSG(ierro == 0, "metqua0 EG_evaluate error " << ierro);
+    vecprod(du,dv,norCAD);
+    if(normalize_vec<gdim>(norCAD)){
+      //printf("using tdim = %d iface = %d iref = %d \n",tdim, iface, iref);
+      // legitimate if e.g. cone tip.
+      if(msh.getpoitdim(ipoin) != 0){
+        printf("ipoin = %d point dim = %d",ipoin,msh.getpoitdim(ipoin));
+        printf("using ibpoi = %d : ",ibpoi);
+        intAr1(nibi, msh.bpo2ibi[ibpoi]).print();
+        int  idbgdim = msh.bpo2ibi(ibpoi,1);
+        int  idbgent = msh.bpo2ibi(ibpoi,2);
+        printf(" entity ref = %d \n", msh.ent2ref(idbgdim)[idbgent]);
+        printf("get du = ");
+        dblAr1(gdim, du).print();
+        printf("get dv = ");
+        dblAr1(gdim, dv).print();
+        printf("vecprod = ");
+        dblAr1(gdim, norCAD).print();
+
+        printf("(u,v) = %24.15e %24.15e\n", msh.bpo2rbi(ibpoi,0), msh.bpo2rbi(ibpoi,1));
+        printf("eval coop %24.15e %24.15e %24.15e \n",
+          result[0],result[1],result[2]);
+
+        double nrm = getnrml2<gdim>(norCAD);
+        printf("nrm = %24.15e\n",nrm);
+
+        METRIS_THROW_MSG(GeomExcept(), "Normal (CAD) vanishes at ipoin "<<ipoin);
+      }
+      nordev += 0;
+      continue;
+    }
+
+    if constexpr (ideg > 1){
+      constexpr auto ordelt = ORDELT(tdim);
+      double bary[tdim+1];
+      for(int ii = 0; ii < tdim + 1; ii++)
+        bary[ii] = ordelt[ideg][inode][ii]/((double) (ideg));
+      getnorfac(msh, iface, bary, AsDeg::Pk, norelt);
+      if(normalize_vec<gdim>(norelt)){
+        writeMesh("debug_ibpoi",msh);
+        printf("norelt vanished iface = %d node %d point %d nodes ",iface,inode,ipoin);
+        intAr1(nnode, msh.fac2poi[iface]).print();
+        for(int ii = 0; ii < gdim; ii++) printf("%d: %23.15e\n",ii,norelt[ii]);
+        METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
+      }
+    }
+
+    double dtprd = getprdl2<gdim>(norelt, norCAD);
+    double tmp = 1-abs(dtprd);
+    METRIS_ASSERT(tmp >= 0);
+    nordev += tmp*tmp;
+  }
+  return sqrt(nordev/nnode);
+}
+#define BOOST_PP_LOCAL_MACRO(n)\
+template double getnordev<n>(const MeshBase& msh, int iface);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+
+
+template <int gdim, int tdim>
+bool isvalidelt(const MeshBase& msh, int ientt, const double* norref){
+
+  static_assert(gdim == 2 || gdim == 3);
+  static_assert(tdim <= gdim);
+
+  const intAr2 &ent2poi = msh.ent2poi(tdim);
+
+  double fac, det;
+  if constexpr (tdim == 2){
+
+    double nrm1 = geterrl2<gdim>(msh.coord[ent2poi(ientt,0)], msh.coord[ent2poi(ientt,1)]);
+    double nrm2 = geterrl2<gdim>(msh.coord[ent2poi(ientt,0)], msh.coord[ent2poi(ientt,2)]);
+    double nrm3 = geterrl2<gdim>(msh.coord[ent2poi(ientt,1)], msh.coord[ent2poi(ientt,2)]);
+
+    fac = 2 * std::cbrt(nrm1 * nrm2 * nrm3); // cubic root, homo to h^2
+
+    if constexpr (gdim == 2){
+      det = det2_vdif(msh.coord[ent2poi(ientt,1)], msh.coord[ent2poi(ientt,0)],
+                      msh.coord[ent2poi(ientt,2)], msh.coord[ent2poi(ientt,0)]);
+    }else{
+      // Measure of the face projected in the plane norCAD ^ orth. Could be zero
+      // Notice there exists rotation R st edges l1, l2 verify
+      // l1^(flat) = Rl1 = (0 l1^(2D)),
+      // l2^(flat) = Rl2 = (0 l2^(2D))
+      // Furthermore, notice that
+      // l1^(flat) x l2^(flat) = R(l1 x l2)
+      // where x is the vector product.
+      // Now the vector product of the "flattened" edges is simply
+      // l1^(flat) x l2^(flat) = (det(l1^(2D) l2^(2D)) 0 0)
+      // Thus we simply replace the 2D determinant with the norm of the normal
+      double norfac[3];
+
+      getnorfacP1(ent2poi[ientt], msh.coord, norfac);
+      double nrm = getnrml2<3>(norfac);
+      if (nrm < Constants::vecNrmTol) return false;
+
+      if (norref == NULL){
+        det = getnrml2<3>(norfac);
+        det = sqrt(det);
+      } else {
+        double nrm = getnrml2<3>(norref);
+        if (nrm < Constants::vecNrmTol) return false;
+        nrm = 1.0 / sqrt(nrm);
+
+        // norfac is l1 x l2 is already homo h^2 despite norref O(1)
+        det = getprdl2<3>(norfac, norref) * nrm;
+      }
+
+      // Additionally, check normal deviation
+      double nordev = getnordev<1>(msh,ientt);
+      
+
+    }
+    det /= 2;
+
+  } else if(tdim == 3){
+
+    double nrm1 = geterrl2<gdim>(msh.coord[ent2poi(ientt,0)], msh.coord[ent2poi(ientt,1)]);
+    double nrm2 = geterrl2<gdim>(msh.coord[ent2poi(ientt,0)], msh.coord[ent2poi(ientt,2)]);
+    double nrm3 = geterrl2<gdim>(msh.coord[ent2poi(ientt,0)], msh.coord[ent2poi(ientt,3)]);
+    double nrm4 = geterrl2<gdim>(msh.coord[ent2poi(ientt,1)], msh.coord[ent2poi(ientt,2)]);
+    double nrm5 = geterrl2<gdim>(msh.coord[ent2poi(ientt,1)], msh.coord[ent2poi(ientt,3)]);
+    double nrm6 = geterrl2<gdim>(msh.coord[ent2poi(ientt,2)], msh.coord[ent2poi(ientt,3)]);
+    // full prod is homo h^12; det only h^3
+    fac = 6 * sqrt(sqrt(nrm1 * nrm2 * nrm3 * nrm4 * nrm5 * nrm6));
+
+    det = det3_vdif(msh.coord[ent2poi(ientt,1)], msh.coord[ent2poi(ientt,0)],
+                    msh.coord[ent2poi(ientt,2)], msh.coord[ent2poi(ientt,0)],
+                    msh.coord[ent2poi(ientt,3)], msh.coord[ent2poi(ientt,0)]);
+    det /= 6;
+  }
+
+  return !((det < msh.param->vtol * fac) || fac < 1.0e-16);
+}
+
+template bool isvalidelt<2,2>(const MeshBase& msh, int ientt, const double* norref);
+template bool isvalidelt<3,2>(const MeshBase& msh, int ientt, const double* norref);
+template bool isvalidelt<3,3>(const MeshBase& msh, int ientt, const double* norref);
+
 
 
 
@@ -437,7 +604,10 @@ int getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis ib
     met[2] = 4*(jmat[2*0+1]*jmat[2*0+1] + jmat[2*1+1]*jmat[2*1+1])/3
            - 4* jmat[2*0+1]*jmat[2*1+1]/3;
     ierro = invspd<gdim>(met);
-  }else if(gdim == 3 && tdim == 3){
+  
+  // This constexpr would seem spurious but I get clang warnings about the size of jmat
+  // if I don't add it explicitely:
+  }else if constexpr(gdim == 3 && tdim == 3){
     met[0] = 3*(jmat[3*0+0]*jmat[3*0+0] + jmat[3*1+0]*jmat[3*1+0] + jmat[3*2+0]*jmat[3*2+0])/2
            -    jmat[3*0+0]*jmat[3*1+0]
            -    jmat[3*0+0]*jmat[3*2+0]

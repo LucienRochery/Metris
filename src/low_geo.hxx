@@ -103,6 +103,13 @@ double getmeasentP1(const MetrisParameters *param,
                     const dblAr2 &coord,
                     const double* norref, bool* iflat);
 
+
+template<int ideg>
+double getnordev(const MeshBase& msh, int iface);
+template <int gdim, int tdim>
+bool isvalidelt(const MeshBase& msh, int ientt, const double* norref);
+
+
 // Volume in the metric
 template <class MFT, int gdim, int ideg>
 double getmeasent(const MeshMetric<MFT> &msh, int ientt);
