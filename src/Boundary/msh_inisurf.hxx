@@ -53,7 +53,7 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
                                                  intAr2& lgpof, dblAr2& rgpof,
                             int incre = 0);
 
-int getNumCorners(MeshBase &msh); 
+int getNumCorners(const MeshBase &msh); 
 
 
 } // End namespace

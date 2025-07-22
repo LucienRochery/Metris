@@ -22,7 +22,7 @@
 
 namespace Metris{
 
-int getNumCorners(MeshBase &msh){
+int getNumCorners(const MeshBase &msh){
   int ret = 0;
   for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
     ret += msh.bpo2ibi(ibpoi,1) == 0;
