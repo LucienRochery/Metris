@@ -225,6 +225,7 @@ void getnorballref(MeshBase &msh, const intAr1 &lball, int iref, double* norpoi)
 // matching iref.
 void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
   METRIS_ASSERT(msh.idim == 3);
+  GETVDEPTH(msh.param);
 
   // Actually it's free when called from some cavity callers
   //if(msh.CAD()) METRIS_ASSERT(nball == 0); // We don't need this, bpos give us all
@@ -241,8 +242,11 @@ void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
 
   // Whether tdimp 2 or less, we can do this loop, it'll have 1 iter if tdimp == 2 !
   // This is mainly because of periodic surface
+  int pdim = -1;
+  ego obj;
   for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0 ; ibpoi = msh.bpo2ibi(ibpoi,3)){
     int bdim = msh.bpo2ibi(ibpoi,1);
+    if(pdim < 0) pdim = bdim;
     if(bdim != 2) continue;
 
     int iface = msh.bpo2ibi(ibpoi,2);
@@ -252,7 +256,7 @@ void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
     if(iref2 != iref && iref >= 0) continue;
 
     if(msh.CAD()){
-      ego obj = msh.CAD.cad2fac[iref2];
+      obj = msh.CAD.cad2fac[iref2];
 
       int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
       METRIS_ASSERT(ierro == 0);
@@ -272,7 +276,52 @@ void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
       getnorfac(msh, iface, bary, AsDeg::Pk, norfac);
     }
     
-    if(normalize_vec<3>(norfac)) METRIS_THROW_MSG(GeomExcept(), "## norfac vanishes");
+    if(normalize_vec<3>(norfac)){
+      // Attempt recovery by using a nearby point on the triangle.
+      bool irecovered = false;
+      if(msh.CAD() && pdim < 2){
+        double lbpo[3];
+        int iver = msh.template getverfac<1>(iface, ipoin);
+        METRIS_ASSERT(iver >= 0);
+        for(int ii = 0; ii < 3; ii++){
+          int ipoi2 = msh.fac2poi(iface, ii);
+          lbpo[ii] = msh.poi2ebp(ipoi2, 2, iface, -1);
+          METRIS_ASSERT(lbpo[ii] >= 0);
+        }
+        double uv[2];
+        for(int ii = 0; ii < 2; ii++){
+          uv[ii] = 0.9*msh.bpo2rbi(lbpo[iver], ii) 
+                 + 0.1*msh.bpo2rbi(lbpo[(iver+1)%3], ii)
+                 + 0.1*msh.bpo2rbi(lbpo[(iver+2)%3], ii);
+        }
+        int ierro = EG_evaluate(obj, uv, result);
+        METRIS_ASSERT(ierro == 0);
+
+        du = &result[3];
+        dv = &result[6];
+        vecprod(du,dv,norfac);
+
+        if(!normalize_vec<3>(norfac)){
+          irecovered = true;
+          CPRINTF3(" - recovered normal for ipoin %d, iref %d iface %d "
+                    "iver %d uv = %e %e\n", ipoin, iref, iface, iver,
+                    uv[0], uv[1]);
+        }
+      }
+
+      if(!irecovered){
+        printf("norfac vanishes in getnorpoiref for ipoin %d, iref %d\n", 
+              ipoin, iref);
+        printf("iface = %d nodes ",iface);
+        intAr1(getnnode(msh.curdeg,2),msh.fac2poi[iface]).print();
+
+        printf("IUsing msh.CAD() = %d\n",msh.CAD());
+        printf("result = ");
+        dblAr1(18,result).print();
+
+        METRIS_THROW_MSG(GeomExcept(), "## norfac vanishes");
+      }
+    }
 
     for(int ii = 0; ii < 3; ii++) norpoi[ii] += norfac[ii];
   }
