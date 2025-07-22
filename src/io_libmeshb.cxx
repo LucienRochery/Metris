@@ -11,11 +11,13 @@
 #include "ho_constants.hxx"                            // for edgnpps, facnpps
 #include "low_eval.hxx"                                // for hana
 #include "utils/mprintf.hxx"                                // for hana
+#include "utils/CT_loop.hxx"
 #include "metris_constants.hxx"                        // for METRIS_MAXTAGS
 #include "Mesh/Mesh.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include "cavity/msh_cavity.hxx"
 #include "Boundary/msh_inisurf.hxx"
+#include "msh_lag2bez.hxx"
 
 #include <cstdlib>
 
@@ -473,7 +475,7 @@ void debugInveval(std::string meshName_, MeshBase &msh, int tdim, int* ent2pol, 
 }
 
 
-void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
+void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
                int nedg0, int nfac0, int nele0){
   GETVDEPTH(msh.param);
 
@@ -484,8 +486,41 @@ void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
   MPRINTF("-- Write file %s npoin %d nedge %d nface %d tetra %d \n",
           eff_meshName.c_str(),msh.npoin,msh.nedge,msh.nface,msh.nelem);
 
-  FEBasis ibas0 = msh.getBasis();
-  msh.setBasis(msh.param->outbasis);
+  dblAr2 coord;
+  if(msh.getBasis() == msh.param->outbasis || msh.curdeg == 1){
+    coord = msh.coord;
+  }else{
+    // We need to convert the coordinates to the output basis.
+    // This is a bit of a hack, but it works for now.
+    coord.allocate(msh.npoin, msh.idim);
+    coord.set_n(msh.npoin);
+    for(int ii = 0; ii < msh.npoin; ii++){
+      for(int jj = 0; jj < msh.idim; jj++){
+        coord(ii,jj) = msh.coord(ii,jj);
+      }
+    }
+    int tdim = msh.get_tdim();
+    const intAr2 &ent2poi = msh.ent2poi(tdim);
+    MSH_DIM_DEG0(msh){ // defines ideg and idim as constexpr
+      if(msh.param->outbasis == FEBasis::Bezier){
+        auto lag2bez = tdim == 1 ? lag2bez1<ideg,gdim> :
+                       tdim == 2 ? lag2bez2<ideg,gdim> :
+                                   lag2bez3<ideg,gdim> ;
+        for(int ientt = 0; ientt < msh.nentt(tdim); ientt++){
+          if(isdeadent(ientt,ent2poi)) continue;
+          lag2bez(ent2poi[ientt], msh.coord, coord);
+        }
+      }else{
+        auto bez2lag = tdim == 1 ? bez2lag1<ideg,gdim> :
+                       tdim == 2 ? bez2lag2<ideg,gdim> :
+                                   bez2lag3<ideg,gdim> ;
+        for(int ientt = 0; ientt < msh.nentt(tdim); ientt++){
+          if(isdeadent(ientt,ent2poi)) continue;
+          bez2lag(ent2poi[ientt], msh.coord, coord);
+        }
+      }
+    }MSH_DIM_DEG1();
+  }
 
 
   int ierro = 0;
@@ -505,22 +540,30 @@ void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
   // this ensures all error messages are printed
   if(ierro > 0) METRIS_THROW(WArgExcept());
 
+  intAr1 edg2ref(msh.nedge), fac2ref(msh.nface), tet2ref(msh.nelem);
+  intAr2 edg2poi(msh.nedge, msh.edg2poi.get_stride()),
+         fac2poi(msh.nface, msh.fac2poi.get_stride()),
+         tet2poi(msh.nelem, msh.tet2poi.get_stride());
+  msh.edg2poi.copyTo(edg2poi);
+  msh.fac2poi.copyTo(fac2poi);
+  msh.tet2poi.copyTo(tet2poi);
+
   if(msh.idim >= 3){
     for(int i = nele0; i < msh.nelem;i++){
-      msh.tet2ref[i] += 1;
+      tet2ref[i] = msh.tet2ref[i] + 1;
       for(int j = 0; j < getnnod3(msh.curdeg); j++)
-        msh.tet2poi(i,j) += 1;
+        tet2poi(i,j) = msh.tet2poi(i,j) + 1;
     }
   }
   for(int i = nfac0; i < msh.nface;i++){
-    msh.fac2ref[i] += 1;
+    fac2ref[i] = msh.fac2ref[i] + 1;
     for(int j = 0; j < getnnod2(msh.curdeg); j++)
-      msh.fac2poi(i,j) += 1;
+      fac2poi(i,j) = msh.fac2poi(i,j) + 1;
   }
   for(int i = nedg0; i < msh.nedge; i++){
-    msh.edg2ref[i] += 1;
+    edg2ref[i] = msh.edg2ref[i] + 1;
     for(int j = 0; j < getnnod1(msh.curdeg); j++)
-      msh.edg2poi(i,j) += 1;
+      edg2poi(i,j) = msh.edg2poi(i,j) + 1;
   }
 
   int64_t libIdx;
@@ -552,8 +595,8 @@ void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
     }
     GmfSetKwd( libIdx, fKwd, msh.nedge - nedg0);
     GmfSetBlock(libIdx, fKwd, 1, msh.nedge - nedg0, 0, NULL, NULL,
-      GmfIntVec, npp, &msh.edg2poi(nedg0,0), &msh.edg2poi(msh.nedge-1,0),
-      GmfInt   ,      &msh.edg2ref[nedg0  ], &msh.edg2ref[msh.nedge-1  ]);
+      GmfIntVec, npp, &edg2poi(nedg0,0), &edg2poi(msh.nedge-1,0),
+      GmfInt   ,      &edg2ref[nedg0  ], &edg2ref[msh.nedge-1  ]);
 
     //CPRINTF2(" - DONE writing edges\n");
   }
@@ -583,8 +626,8 @@ void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
 
     GmfSetKwd( libIdx, fKwd, msh.nface - nfac0);
     GmfSetBlock(libIdx, fKwd, 1,  msh.nface - nfac0, 0, NULL, NULL,
-      GmfIntVec, nppf, &msh.fac2poi(nfac0,0), &msh.fac2poi[msh.nface-1][0],
-      GmfInt   ,       &msh.fac2ref[nfac0  ], &msh.fac2ref[msh.nface-1  ]);
+      GmfIntVec, nppf, &fac2poi(nfac0,0), &fac2poi(msh.nface-1,0),
+      GmfInt   ,       &fac2ref[nfac0  ], &fac2ref[msh.nface-1  ]);
 
     //CPRINTF2(" - DONE writing triangles\n");
   }
@@ -611,8 +654,8 @@ void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
     }
     GmfSetKwd( libIdx, eKwd, msh.nelem - nele0);
     GmfSetBlock(libIdx, eKwd, 1, msh.nelem - nele0, 0, NULL, NULL,
-                GmfIntVec, nppt, &msh.tet2poi(nele0,0), &msh.tet2poi[msh.nelem-1][0],
-                GmfInt   ,       &msh.tet2ref[nele0  ], &msh.tet2ref[msh.nelem-1   ]); //idx0 + nface[iDeg]-1
+                GmfIntVec, nppt, &tet2poi(nele0,0), &tet2poi(msh.nelem-1,0),
+                GmfInt   ,       &tet2ref[nele0  ], &tet2ref[msh.nelem-1   ]); //idx0 + nface[iDeg]-1
     //CPRINTF2(" - DONE writing tetrahedra\n");
   }
 
@@ -684,7 +727,7 @@ void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
 
       GmfSetKwd(libIdx, GmfVertices, msh.npoin);
       GmfSetBlock(libIdx, GmfVertices, 1, msh.npoin, 0, NULL, NULL,
-        GmfDoubleVec, msh.idim, &msh.coord(0,0), &msh.coord[msh.npoin-1][0],
+        GmfDoubleVec, msh.idim, &coord(0,0), &coord[msh.npoin-1][0],
         GmfInt                , &lpoic[0]      , &lpoic[msh.npoin-1]);
 
       if(ngpof > 0){
@@ -742,7 +785,7 @@ void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
 
     GmfSetKwd(libIdx, GmfVertices, msh.npoin);
     GmfSetBlock(libIdx, GmfVertices, 1, msh.npoin, 0, NULL, NULL,
-      GmfDoubleVec, msh.idim, &msh.coord(0,0), &msh.coord[msh.npoin-1][0],
+      GmfDoubleVec, msh.idim, &coord(0,0), &coord[msh.npoin-1][0],
       GmfInt                , &lpoic[0]      , &lpoic[msh.npoin-1]);
 
     if(ncorn > 0){
@@ -767,24 +810,6 @@ void writeMesh(std::string meshName, MeshBase &msh, bool iprefix,
 
   GmfCloseMesh( libIdx );
 
-  for(int i = nele0; i < msh.nelem;i++){
-    msh.tet2ref[i] -= 1;
-    for(int j =0;j<getnnod3(msh.curdeg);j++)
-      msh.tet2poi(i,j) -= 1;
-  }
-  for(int i = nfac0; i < msh.nface;i++){
-    msh.fac2ref[i] -= 1;
-    for(int j =0;j<getnnod2(msh.curdeg);j++)
-      msh.fac2poi(i,j) -= 1;
-  }
-  for(int i = nedg0; i < msh.nedge;i++){
-    msh.edg2ref[i] -= 1;
-    for(int j =0;j<getnnod1(msh.curdeg);j++)
-      msh.edg2poi(i,j) -= 1;
-  }
-
-  //std::cout<<" - Done  writing "<<meshName<<std::endl;
-  msh.setBasis(ibas0);
 }
 
 

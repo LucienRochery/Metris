@@ -8,6 +8,7 @@
 
 
 #include "low_eval.hxx"
+#include "codegen_lag2bez.hxx"
 
 
 namespace Metris{
