@@ -178,7 +178,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
       else          stat  = MAX(stat, stat0);
 
       int ncallps_niter = 1000*(int)((nswap_niter / (t11-t01)) / 1000);
-      CPRINTF2(" - swaps full iter ntry = %d nswap %d = %d /s; nerro %d stat %f",
+      CPRINTF2(" - swaps full iter %d ntry = %d nswap %d = %d /s; nerro %d stat %f",niter,
               ntry, nswap_niter, ncallps_niter,nerro_niter, stat0);
       if(stat0 < msh.param->adp_stagn_stop && DOPRINTS2())  
           printf(" < adp_stagn_stop = %f -> break.\n",msh.param->adp_stagn_stop);

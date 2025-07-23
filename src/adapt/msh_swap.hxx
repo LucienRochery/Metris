@@ -47,7 +47,7 @@ struct swapOptions{
 
 namespace Defaults{
   //const swapOptions swapOptAdapt(100, 0, 0.0);
-  const swapOptions swapOptAdapt(100, -1, 0.0);
+  const swapOptions swapOptAdapt(100, -1, 1.0e-6);
 }
 
 
