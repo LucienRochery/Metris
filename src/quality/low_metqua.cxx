@@ -93,12 +93,23 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
     METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
 
+    constexpr int nnmet = (gdim*(gdim+1))/2;
+    double metl[nnmet];
+
     for(int iquad = 0; iquad < nnode; iquad++){
       for(int ii = 0; ii < tdim + 1; ii++){
         bary[ii] = ordelt[ideg][iquad][ii]/((double) (ideg));
       }
       const int ipoin = ent2poi(ientt, iquad);
       ftype qua0 = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,msh.met[ipoin]);
+      // About 6x slower if MetSpace::Log: leave an assert here. 
+      //if(msh.met.getSpace() == MetSpace::Exp){
+      //  qua0 = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,msh.met[ipoin]);
+      //}else{
+      //  for(int ii = 0; ii < nnmet; ii++) metl[ii] = msh.met(ipoin,ii);
+      //  getexpmet_inp<gdim>(metl);
+      //  qua0 = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,metl);
+      //}
 
       // You'd think this wouldn't be a bottleneck but it eats up 20% of optimization
       // time to run pow() here even if pnorm = 2 or 1.

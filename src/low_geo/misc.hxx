@@ -72,11 +72,6 @@ void inventP1(const int*__restrict__ ent2pol, const dblAr2 &coord, const double*
 
 
 
-// -----------------------------------------------------------------------------
-template<int gdim, int tdim, int ideg>
-int getintmetxi(const dblAr2 &coord, const int* __restrict__ tet2pol, FEBasis ibasis,
-	               const double* bary,double* __restrict__ met);
-
 //// Discrete element quality defined as l^p sum of control polygon qualities
 //template<int ideg>
 //double geteltqua_disc(dblAr2 &coord, dblAr2 &met, int* __restrict__ tet2pol, int pnorm, int *ierro);

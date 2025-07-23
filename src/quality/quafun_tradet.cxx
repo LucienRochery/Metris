@@ -34,10 +34,9 @@ void quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   METRIS_ASSERT(gdim == msh.idim);
 
 
-
   // Only if metric interpolation is needed
   if(msh.met.getSpace() != MetSpace::Log && met_ == NULL) METRIS_THROW_MSG(WArgExcept(),
-      "## SET MESH METRIC TO LOG BEFORE CALLING metqua2_xi");
+      "## SET MESH METRIC TO LOG BEFORE CALLING quafun_tradet");
 
   constexpr int nnmet = (gdim*(gdim+1))/2;
 
