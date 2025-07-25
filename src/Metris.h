@@ -19,6 +19,7 @@
 #include "inc_hana.hxx"
 #include "io_libmeshb.hxx"
 #include "low_geo/ccoef.hxx"
+#include "low_geo/measure.hxx"
 #include "low_geo/ccoef_d.hxx"
 #include "low_eval.hxx"
 #include "low_evalS.hxx"

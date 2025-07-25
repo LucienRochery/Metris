@@ -13,6 +13,7 @@
 #include "../src/Optimization/DIRECT.hxx"
 #include "../src/types.hxx"
 #include "../src/low_geo/misc.hxx"
+#include "../src/low_geo/measure.hxx"
 #include "../src/io_libmeshb.hxx"
 #include "../src/low_eval.hxx"
 #include "../src/utils/mprintf.hxx"

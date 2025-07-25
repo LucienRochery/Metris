@@ -278,6 +278,9 @@ add_custom_command(OUTPUT ${METRIS_UNIT_TEST_MESHES}
                    COMMAND ${METRIS_CASES_DIR}/gen_cases.sh)
 add_custom_target(deploy_cases DEPENDS ${METRIS_UNIT_TEST_MESHES})
 
+set(METRIS_TARGET_TESTS "")
+set(METRIS_TARGET_TESTS_BUILD "")
+
 foreach(test_file ${TEST_SOURCES})
   get_filename_component(test_target ${test_file} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
   set(test_target_build "${test_target}_build")
@@ -299,8 +302,17 @@ foreach(test_file ${TEST_SOURCES})
       COMMAND ${test_target}
   )
 
+  list(APPEND METRIS_TARGET_TESTS ${test_target})
+  list(APPEND METRIS_TARGET_TESTS_BUILD ${test_target_build})
+
   # Ensure that foo_build is built before foo
   add_dependencies(${test_target} ${test_target_build} deploy_cases)
 endforeach()
-    
+  
+add_custom_target(metris_tests
+                  DEPENDS ${METRIS_TARGET_TESTS}
+                  )
 
+add_custom_target(metris_tests_build
+                  DEPENDS ${METRIS_TARGET_TESTS_BUILD}
+                  )

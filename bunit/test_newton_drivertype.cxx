@@ -15,7 +15,6 @@
 #include "../SANS/Surreal/SurrealS.h"
 #include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 //#include <src/msh_metric.hxx>
-#include "../src/low_geo.cxx"
 #include "../src/Localization/low_localization.hxx"
 
 #include "../src/Optimization/opt_generic.hxx"
