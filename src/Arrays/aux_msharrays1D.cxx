@@ -199,7 +199,7 @@ template<typename T,typename INT1>
 void MeshArray1D<T,INT1>::copyTo(MeshArray1D<T,INT1> &out, INT1 ncopy) const{
   if(ncopy < 0) ncopy = n1;
   out.set_n(ncopy);
-  memcpy(&out[0],array,ncopy*sizeof(T));
+  memcpy((void*)&out[0],array,ncopy*sizeof(T));
 }
 
 template<typename T,typename INT1>
