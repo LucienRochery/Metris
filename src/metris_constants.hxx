@@ -105,11 +105,9 @@ constexpr int ledfa3[4][3] = {{5,1,4},
 // Get array giving nodes of subdim facet (face of tet, edge of face)
 // opposite given index (e.g. face opposite node, vertex opposite node, node opposite node)
 template <int tdim>
-constexpr auto getlnosub(){
-  static_assert(tdim >= 1 && tdim <=3);
-  if constexpr(tdim == 1){ 
-    return dummy_lnoedopp;
-  }else if(tdim == 2){
+constexpr const int (&getlnosub())[tdim+1][tdim]{
+  static_assert(tdim >= 2 && tdim <= 3);
+  if constexpr (tdim == 2){
     return lnoed2;
   }else{
     return lnofa3;
