@@ -222,7 +222,10 @@ call_cavity:
 
   // Effects both insertions and collapses
   if(tdimp == 2 && msh.idim == 3){
-    if(rejcavnordev(msh,cav,ibins,ithrd1)) return INS2D_ERR_NORDEV;
+    if(rejcavnordev(msh,cav,ibins,ithrd1)){
+      ierro = INS2D_ERR_NORDEV;
+      goto cleanup;
+    }
   }
 
   irestart_cav = false;
