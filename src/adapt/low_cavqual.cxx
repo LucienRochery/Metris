@@ -43,6 +43,8 @@ bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1){
   int nfac0 = msh.nface;
   msh.set_nface(nfac0+1);
   msh.fac2poi(nfac0,0) = cav.ipins;
+  msh.fac2ref[nfac0] = msh.fac2ref[cav.lcfac[0]];
+  if(msh.getpoitdim(cav.ipins) != 2) METRIS_THROW_MSG(TODOExcept(), "Fix fac2ref handling in multi ref rejcavnordev")
   int ibins_fac = msh.bpo2ibi(ibins,2);
   msh.bpo2ibi(ibins,2) = nfac0;
 
@@ -64,7 +66,7 @@ bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1){
   msh.bpo2ibi(ibins,2) = ibins_fac;
   msh.set_nface(nfac0);
 
-  MPRINTF("-- END rejcavnordev nordev max = %f -> %f avg = %f -> %f\n",
+  CPRINTF1("-- END rejcavnordev nordev max = %f -> %f avg = %f -> %f\n",
            nordev0_max, nordev1_max, nordev0_avg, nordev1_avg);
 
   return nordev1_max > nordev0_max*1.01;
