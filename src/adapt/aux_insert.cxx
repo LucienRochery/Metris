@@ -114,8 +114,8 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
 
   ego obj = NULL;
   if(msh.CAD()){
-    obj = tdim == 1 ? msh.CAD.cad2edg[iref] :
-          tdim == 2 ? msh.CAD.cad2fac[iref] : NULL;
+    obj = tdimp == 1 && msh.isboundary_edges() ? msh.CAD.cad2edg[iref] :
+          tdimp == 2 && msh.isboundary_faces() ? msh.CAD.cad2fac[iref] : NULL;
   }
 
   int ip1 = ent2poi(ientt,lnoed[iedl][0]);

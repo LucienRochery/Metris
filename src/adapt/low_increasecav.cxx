@@ -34,8 +34,7 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav,
                         int miter, int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
   int tdim = msh.get_tdim();
-  double pi = 3.141592653589793238462643383279502884;
-  const double dens_ideal = msh.get_tdim() == 2 ? pi / 4 : 0.54;
+  //const double dens_ideal = msh.get_tdim() == 2 ? pi / 4 : 0.54;
   int ierro = 0;
   double dens0, dens1;
   const intAr1 &lcent = cav.lcent(tdim);
@@ -94,9 +93,7 @@ int setCavityInsertion2<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh,
 
 
 template<class MFT>
-int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, int tdimp, int iseed, int iref, int miter, int ithrd1){
-
-  const double damp = 0.1;
+int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, int tdimp, int iseed, [[maybe_unused]] int iref, int miter, int ithrd1){
 
   GETVDEPTH(msh.param);
 

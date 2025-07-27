@@ -75,6 +75,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   const int ideg = msh.curdeg;
   const int ideg_eff = asdmsh == AsDeg::P1 ? 1 : ideg;
   const int nnode = getnnode(tdim, ideg_eff);
+  constexpr int nnmet = (gdim*(gdim+1))/2;
 
   // Accumulate normal error at the nodes (depending on asdmsh)
   if(do_nordev){
@@ -93,8 +94,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
     METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
 
-    constexpr int nnmet = (gdim*(gdim+1))/2;
-    double metl[nnmet];
+    //double metl[nnmet];
 
     for(int iquad = 0; iquad < nnode; iquad++){
       for(int ii = 0; ii < tdim + 1; ii++){
@@ -169,7 +169,6 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
     #else
       METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
-      constexpr int nnmet = (gdim*(gdim+1))/2;
       double met[nnmet];
       for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim  + 1);
       for(int jj = 0; jj < nnmet; jj++) met[jj] = 0;

@@ -362,23 +362,27 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
                              : 1.0 - 1.0 / len;
       CPRINTF1(" - new config ied %d len = %e quality = %e \n",ied,len,qulen);
 
-      // Compute nordev related quality
-      double norfa2[3];
-      double qudev = -1;
-      for(int ifanw = nfac0 + 0; ifanw <= nfac0 + 1; ifanw++){
-        getnorfacP1(msh.fac2poi[ifanw], msh.coord, norfa2);
-        if(normalize_vec<3>(norfa2)){
-          CPRINTF1(" # face %d normal %f %f %f vanishes\n",ifanw,norfa2[0],norfa2[1],norfa2[2]);
-          skipswap = true;
-          break;
+      if(msh.idim == 2){
+        qnrm1 = qulen;
+      }else{
+        // Compute nordev related quality
+        double norfa2[3];
+        double qudev = -1;
+        for(int ifanw = nfac0 + 0; ifanw <= nfac0 + 1; ifanw++){
+          getnorfacP1(msh.fac2poi[ifanw], msh.coord, norfa2);
+          if(normalize_vec<3>(norfa2)){
+            CPRINTF1(" # face %d normal %f %f %f vanishes\n",ifanw,norfa2[0],norfa2[1],norfa2[2]);
+            skipswap = true;
+            break;
+          }
+          double dtprd = getprdl2<3>(norCAD[ied], norfa2);
+          CPRINTF1(" - new face %d nordev quality = %f \n",ifanw-nfac0,1-dtprd);
+          qudev = MAX(qudev,1-dtprd);
         }
-        double dtprd = getprdl2<3>(norCAD[ied], norfa2);
-        CPRINTF1(" - new face %d nordev quality = %f \n",ifanw-nfac0,1-dtprd);
-        qudev = MAX(qudev,1-dtprd);
+        if(skipswap) goto cleanup;
+        qnrm1 = qulen * msh.param->qua_surf_wt_quality
+              + qudev * msh.param->qua_surf_wt_normal;
       }
-      if(skipswap) goto cleanup;
-      qnrm1 = qulen * msh.param->qua_surf_wt_quality
-            + qudev * msh.param->qua_surf_wt_normal;
     }
 
     cleanup:
