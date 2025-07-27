@@ -8,6 +8,8 @@
 
 #include "../Mesh/MeshFwd.hxx"
 #include "../types_arrays.hxx"
+#include "../aux_hashtab.hxx"
+#include <unordered_set>
 
 /*
 Cavity extension routines:
@@ -23,6 +25,31 @@ namespace Metris{
 
 class MshCavity;
 struct CavOprOpt;
+
+
+template<class MFT>
+int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, int tdimp, int iseed, int iref, int miter, int ithrd1);
+
+template<class MFT>
+int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts, 
+                       int mgrow, double lenqua_short_max, 
+                       std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
+                       int ithrd1, int ithrd2);
+
+template<class MFT>
+int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, 
+                        int iseed,
+                        int miter, int ithrd1, int ithrd2);
+                        
+template<class MFT>
+int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts, 
+                       int mgrow, double lenqua_short_max, 
+                       std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
+                       int ithrd1, int ithrd2);
+
+template<class MFT>
+int movePointCavLen(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2);
+
 
 // Check if any removed points; only those > 1/sqrt(2) from ipins if chklen
 // This can possibly be reworked to be faster, for now we check everything every
@@ -55,10 +82,10 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav,
 //      and opts.allow_remove_points_superdim = true
 // to force a boundary operation except if it would conflict with boundary points.
 template<class MFT>
-int increase_cavity_lenedg(MeshMetric<MFT> &msh, MshCavity &cav, CavOprOpt &opts, 
+int increase_cavity_lenedg(MeshMetric<MFT> &msh, MshCavity &cav, const CavOprOpt &opts, 
                               int ipins, int ithrd1, int ithrd2);
 template<class MFT, int gdim>
-int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav, 
+int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav, const CavOprOpt &opts, 
                               int ipins, int ithrd1, int ithrd2);
 
 // Tag cav.ipins's surface references if any. Used to filter in the other routines

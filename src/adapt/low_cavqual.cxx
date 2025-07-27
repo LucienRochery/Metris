@@ -13,6 +13,7 @@
 #include "../low_topo.hxx"
 #include "../low_geo/lenedg.hxx"
 #include "../low_geo/measure.hxx"
+#include "../low_geo/normal.hxx"
 
 #ifdef TRACY_ENABLE
 #include "Tracy.hpp"
@@ -20,6 +21,141 @@
 
 namespace Metris{
 
+
+bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1){
+  GETVDEPTH(msh.param);
+  if(msh.get_tdim() != 3) return false;
+  if(cav.lcfac.get_n() == 0) return false;
+  // We don't yet have (u,v) for an ipins before cavity is called
+  if(msh.getpoitdim(cav.ipins) != 2) return false;
+
+  msh.tag[ithrd1]++;
+  double nordev0_max = -1, nordev0_avg = 0;
+  for(int iface : cav.lcfac){
+    double nordev = getnordev<1>(msh, iface);
+    nordev0_max = MAX(nordev0_max, nordev);
+    nordev0_avg += nordev;
+    // Also tag faces for final dev computation
+    msh.fac2tag(ithrd1,iface) = msh.tag[ithrd1];
+  }
+  nordev0_avg /= cav.lcfac.get_n();
+  
+  int nfac0 = msh.nface;
+  msh.set_nface(nfac0+1);
+  msh.fac2poi(nfac0,0) = cav.ipins;
+  int ibins_fac = msh.bpo2ibi(ibins,2);
+  msh.bpo2ibi(ibins,2) = nfac0;
+
+  double nordev1_max = -1, nordev1_avg = 0;
+  for(int iface : cav.lcfac){
+    for(int ied = 0; ied < 3; ied++){
+      int ifnei = msh.fac2fac(iface, ied);
+      if(ifnei >= 0 && msh.fac2tag(ithrd1,ifnei) == msh.tag[ithrd1]) continue;
+
+      msh.fac2poi(nfac0,1) = msh.fac2poi(iface, lnoed2[ied][0]);
+      msh.fac2poi(nfac0,2) = msh.fac2poi(iface, lnoed2[ied][1]);
+      double nordev = getnordev<1>(msh, nfac0);
+      nordev1_max = MAX(nordev1_max, nordev);
+      nordev1_avg += nordev;
+    }
+  }
+  nordev1_avg /= cav.lcfac.get_n();
+
+  msh.bpo2ibi(ibins,2) = ibins_fac;
+  msh.set_nface(nfac0);
+
+  MPRINTF("-- END rejcavnordev nordev max = %f -> %f avg = %f -> %f\n",
+           nordev0_max, nordev1_max, nordev0_avg, nordev1_avg);
+
+  return nordev1_max > nordev0_max*1.01;
+}
+
+template<class MFT, QuaFun iquaf>
+void getquacav(Mesh<MFT>& msh, MshCavity &cav, 
+               double *qumin0, double *qumin1,
+               double *qumax0, double *qumax1,
+               double *quavg0, double *quavg1, int ithrd1){
+  GETVDEPTH(msh.param);
+
+  const int tdim = cav.get_tdim();
+  const intAr1& lcent = cav.lcent(tdim);
+  intAr2& ent2poi = msh.ent2poi(tdim);
+  const intAr2& ent2ent = msh.ent2ent(tdim);
+  intAr2& ent2tag = msh.ent2tag(tdim);
+
+  // Get initial cavity quality
+  *qumin0 = 1.0e30;
+  *qumax0 = -1.0e30;
+  *quavg0 = 0;
+  for(int ientt : lcent){
+    double quael;
+    CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
+      CT_FOR0_INC(2,gdim,tdim_c){if(tdim_c == tdim){
+        quael = metqua<MFT,gdim,tdim_c,iquaf,double>(msh, AsDeg::Pk, AsDeg::Pk, ientt);
+      }}CT_FOR1(tdim_c);
+    }}CT_FOR1(gdim);
+
+    MPRINTF(" ientt %d nodes %d %d %d %d qua %e\n", ientt,
+            ent2poi(ientt,0), ent2poi(ientt,1), ent2poi(ientt,2), tdim == 3 ? ent2poi(ientt,3) : -1, quael);
+    if(quael < *qumin0) *qumin0 = quael;
+    if(quael > *qumax0) *qumax0 = quael;
+    *quavg0 += quael;
+    //printf(" - ientt %d qua %f\n",ientt,qua);
+  }
+
+  if(lcent.get_n() > 0) *quavg0 /= lcent.get_n();
+
+
+  // Get final cavity quality
+  msh.tag[ithrd1]++;
+  for(int ientt : lcent) ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
+  
+  *qumin1 = 1.0e30;
+  *qumax1 = -1.0e30;
+  *quavg1 = 0;
+  int iedum = ent2poi.get_n();
+  msh.set_nentt(tdim, ent2poi.get_n() + 1);
+  ent2poi(iedum, 0) = cav.ipins;
+  int nnewe = 0;
+  CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
+    CT_FOR0_INC(2,gdim,tdim_c){if(tdim_c == tdim){
+      constexpr auto lnosub = getlnosub<tdim_c>();
+      for(int ientt : lcent){
+        for(int inei = 0; inei < tdim + 1; inei++){
+          int ienei = ent2ent(ientt,inei);
+          if(ienei >= 0 && ent2tag(ithrd1,ienei) == msh.tag[ithrd1]) continue;
+          for(int iver = 0; iver < tdim; iver++){
+            ent2poi(iedum,1+iver) = ent2poi(ientt, lnosub[inei][iver]);
+          }
+          nnewe++;
+          double quael = metqua<MFT,gdim,tdim_c,iquaf,double>(msh, AsDeg::Pk, AsDeg::Pk, iedum);
+          MPRINTF(" ientt %d nei %d;  nodes %d %d %d %d qua %e\n",ientt,ienei,
+                  ent2poi(iedum,0), ent2poi(iedum,1), ent2poi(iedum,2), tdim == 3 ? ent2poi(iedum,3) : -1, quael);
+          if(quael < *qumin1) *qumin1 = quael;
+          if(quael > *qumax1) *qumax1 = quael;
+          *quavg1 += quael;
+        }
+      }
+    }}CT_FOR1(tdim_c);
+  }}CT_FOR1(gdim);
+  if(nnewe > 0) *quavg1 /= nnewe;
+
+  ent2poi(iedum,0) = -1;
+  msh.set_nentt(tdim, ent2poi.get_n() - 1);
+
+  CPRINTF1("-- END getquacav: min %f -> %f max %f -> %f avg %f -> %f\n",*qumin0,*qumin1,*qumax0,*qumax1,*quavg0,*quavg1);
+}
+
+template
+void getquacav<MetricFieldAnalytical, QuaFun::Distortion>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, 
+               double *qumin0, double *qumin1,
+               double *qumax0, double *qumax1,
+               double *quavg0, double *quavg1, int ithrd1);
+template
+void getquacav<MetricFieldFE        , QuaFun::Distortion>(Mesh<MetricFieldFE        >& msh, MshCavity &cav, 
+               double *qumin0, double *qumin1,
+               double *qumax0, double *qumax1,
+               double *quavg0, double *quavg1, int ithrd1);
 
 // Reject proposed cavity based on edge length score same as in swaps. 
 // If filter_long/short is set, then the output edges that are long/short
@@ -282,7 +418,7 @@ template int collrejcav_lenqua<MetricFieldFE        >(Mesh<MetricFieldFE        
 // Accelerate by using nentt sized work array
 // Implement getmeasent for surface
 template<class MFT>
-int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
+int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, double *dens0_, double *dens1_, int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
 
   //printf("## DEBUG forced iverb = 5 ivdepth = 5\n");
@@ -355,7 +491,7 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
   }// for icent
 
   // Loop again, this time compute their full ball volumes and count contributions
-  double nwpoi = 0;
+  double nbdrpt = 0;
   msh.tag[ithrd1]++;
   intAr1 dum;
   intAr1 &lbfac = tdim == 2 ? cav.iwrk1 : dum;
@@ -389,7 +525,7 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
         }
         CPRINTF1(" - cav bdry pt %d has tot vol %e, internal %e, counts as %e\n",
                  ipoin, volB, volpoc[ipoin], volpoc[ipoin] / volB);
-        nwpoi += volpoc[ipoin] / volB;
+        nbdrpt += volpoc[ipoin] / volB;
       }// for iver
     }// for ifa
   }// for icent
@@ -407,10 +543,15 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
     }
   }
 
-  double dens0 = (nrempt + nwpoi) / voltot;
-  double dens1 = nwpoi / voltot; 
+  const int ninspt = cav.inewp ? 1 : 0;
+  double dens0 = (nrempt + nbdrpt) / voltot;
+  double dens1 = (nbdrpt + ninspt) / voltot; 
+  printf("debug nrempt %d nbdrypt %f ninspt %d\n", nrempt, nbdrpt, ninspt);
 
-  CPRINTF1(" - counted nrempt = %d boundary points %f\n",nrempt,nwpoi);
+  *dens0_ = dens0;
+  *dens1_ = dens1;
+
+  CPRINTF1(" - counted nrempt = %d boundary points %f\n",nrempt,nbdrpt);
   CPRINTF1(" - initial cavity density = %e final = %e, nentt = %d\n",
            dens0, dens1, ncent);
 
@@ -433,8 +574,8 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2){
 
 
 
-template int collrejcav_dens<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, int ithrd1, int ithrd2);
-template int collrejcav_dens<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, int ithrd1, int ithrd2);
+template int collrejcav_dens<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, double *dens0_, double *dens1_, int ithrd1, int ithrd2);
+template int collrejcav_dens<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, double *dens0_, double *dens1_, int ithrd1, int ithrd2);
 
 
 

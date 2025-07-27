@@ -9,7 +9,7 @@
 #include <egads.h>
 #include <src/aux_EGADSprinterr.hxx>
 #include <fstream>
-#include "../libs/libmeshb.hxx"
+#include "libmeshb.hxx"
 #include <string>
 #include <algorithm>
 

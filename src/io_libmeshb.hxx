@@ -8,7 +8,7 @@
 
 
 #include <string>
-#include "../libs/libmeshb.hxx"
+#include "libmeshb.hxx"
 #include "Mesh/MeshFwd.hxx"
 #include "types.hxx"
 

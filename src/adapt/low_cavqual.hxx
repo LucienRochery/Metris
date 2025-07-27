@@ -9,6 +9,7 @@
 
 #include "../Mesh/MeshFwd.hxx"
 #include "../types.hxx"
+#include "../quality/low_metqua.hxx"
 
 #include <unordered_set>
 
@@ -17,6 +18,17 @@ namespace Metris{
 class MshCavity;
 struct CavWrkArrs;
 
+
+// Get initial and final cavity quality stats
+template<class MFT, QuaFun iquaf = QuaFun::Distortion>
+void getquacav(Mesh<MFT>& msh, MshCavity &cav, 
+               double *qumin0, double *qumin1,
+               double *qumax0, double *qumax1,
+               double *quavg0, double *quavg1, int ithrd1);
+
+
+bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1);
+               
 // Reject proposed cavity based on edge length score same as in swaps. 
 // If filter_long/short is set, then the output edges that are long/short
 // are ignored. In the case of an insertion, new long edges can be ignored. 
@@ -32,7 +44,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
 
 
 template<class MFT>
-int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2);
+int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, double *dens0_, double *dens1_, int ithrd1, int ithrd2);
 
 
 //// Reject proposed cavity based on edge length:

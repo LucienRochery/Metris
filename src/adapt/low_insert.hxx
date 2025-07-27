@@ -29,7 +29,8 @@ enum insedgesuf_Errors {INS2D_NOERR = 0,
                         INS2D_ERR_SHORTCSTR = 10,
                         INS2D_ERR_BISECTION = 11,
                         INS2D_ERR_LENQUA = 12,
-                        INS2D_ERR_NERROR = 13
+                        INS2D_ERR_NORDEV = 13,
+                        INS2D_ERR_NERROR = 14
                         };
 
 

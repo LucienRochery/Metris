@@ -267,6 +267,10 @@ struct CavWrkArrs{
   // Store normals for each connex component of the cavity.
   dblAr2 lnorf;
 
+  // -- Line cavity info, for update_cavity
+  intAr1 lseed; // store the seed edge (initially in the cavity) that lead to a new element
+  intAr1 lnewe; // store the final edge associated to this seed
+
   // Store edge (reference, sign) pairs 
   // for edges that bound a connex component of the face cavity. 
   MeshArray1D<MeshArray1D<std::pair<int,int>, int>, int> edcco;
@@ -314,7 +318,10 @@ int update_cavity(Mesh<MetricFieldType> &msh, MshCavity &cav, const CavWrkArrs &
 // point is included in the line cavity. 
 template<class MetricFieldType, int ideg>
 int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts, 
-                     int ithread);//,int mnwedg, int *nnwedg,int lnwedg[]);
+                     int ithread);
+template<class MetricFieldType, int ideg>
+int reconnect_lincav2(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts, 
+                     int ithread);
 
 
 // The boundary here is a set of edges. They will be reconnected to ipins. 

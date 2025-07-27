@@ -276,6 +276,7 @@ set(SRC_SOURCES
     #${PROJECT_SOURCE_DIR}/src/smoothing/msh_smoofull_costfun.cxx
     #${PROJECT_SOURCE_DIR}/src/smoothing/low_smoodirect.cxx
     ${PROJECT_SOURCE_DIR}/src/smoothing/low_smooballdiff.cxx
+    ${PROJECT_SOURCE_DIR}/src/smoothing/low_smoolen.cxx
 
     ${PROJECT_SOURCE_DIR}/src/API/MetrisAPI.cxx
     

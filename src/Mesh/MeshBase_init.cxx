@@ -12,7 +12,7 @@
 #include "../aux_exceptions.hxx"
 #include "../metris_constants.hxx"
 #include "../ho_constants.hxx"
-#include "../libs/libmeshb.hxx"
+#include "libmeshb.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../utils/CT_loop.hxx"
 #include "../aux_topo.hxx"

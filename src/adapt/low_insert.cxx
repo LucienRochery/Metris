@@ -81,7 +81,6 @@ int insertEdge(Mesh<MFT>& msh,
   opts.qmax_iff = -1;
 
   int mgrow = 100;
-  intWrkAr1 lrempoi = msh.get_iwork(10);
 
   cav.reset();
   cav.lcedg.allocate(10);
@@ -215,177 +214,16 @@ int insertEdge(Mesh<MFT>& msh,
 
   // -- This section only if !icollapse
 
-  // Check any close constrained points
-  ierro = aux_findCloseConstrained(msh, cav, ithrd1, ithrd2);
-  if(ierro > 0){
-    ierro = INS2D_ERR_SHORTCSTR;
-    goto cleanup;
-  }
-
-  for(int ngrow = 0; ngrow < mgrow; ngrow++){
-
-    // If need to revert elements
-    int nced1 = cav.lcedg.get_n();
-    int ncfa1 = cav.lcfac.get_n();
-    int ncte1 = cav.lctet.get_n();
-    ierro = 0;
-
-    if(DOPRINTS2()){
-      std::string fname = "insert_cavity0."+std::to_string(ngrow);
-      writeMeshCavity(fname,msh,cav);
-      msh.met.writeMetricFile(fname);
-    }
-    CPRINTF1(" - step %d cavity nedge %d nface %d nelem %d\n",ngrow,
-             cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
-
-    //if(opts.allow_remove_points_superdim && tdimp < msh.get_tdim()){
-    //  // nprem < 0 is a rejection, but we don't care anymore as we use 
-    //  // collrejcav_lenqua.
-    //  nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
-    //  CPRINTF1(" - +len cavity size %d nprem = %d\n", cav.lcfac.get_n(),nprem); 
-    //  if(DOPRINTS2()){
-    //    writeMeshCavity("insert_cavity1."+std::to_string(ngrow), 
-    //                                msh,cav);
-    //  }
-    //}
-
-    int nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
-    CPRINTF1(" - +remp nedge %d nface %d nelem %d nprem = %d\n",
-             cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),nprem);
-    if(DOPRINTS2()) writeMeshCavity("insert_cavity1."+std::to_string(ngrow),msh,cav);
-
-    // -- 1 step Delaunay increase
-    ierro = increase_cavity_Delaunay(msh, cav, 1, ithrd1);
-    if(ierro != 0){
-      CPRINTF1(" # +del error %d\n",ierro);
-      ierro = INS2D_ERR_INCCAV2D;
-      goto finish_grow_step;
-    }
-    CPRINTF1(" - +del nedge %d nface %d nelem %d\n",
-             cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
-    if(DOPRINTS2()) writeMeshCavity("insert_cavity2."+std::to_string(ngrow),msh,cav);
-
-
-    // -- increase for validity
-    ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
-    if(ierro != 0){
-      CPRINTF1(" # +cav error %d\n",ierro);
-      ierro = INS2D_ERR_INCCAV2D;
-      goto finish_grow_step;
-    }
-    CPRINTF1(" - +cav nedge %d nface %d nelem %d\n",
-             cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
-    if(DOPRINTS2()) writeMeshCavity("insert_cavity3."+std::to_string(ngrow),msh,cav);
- 
-    //ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
-    //if(ierro > 0){
-    //  ierro = INS2D_ERR_SHORTEDG;
-    //  CPRINTF1(" # collrejcav_lenqua rejects cavity, try fix\n");
-    //  CPRINTF1(" # reject cavity\n");
-    //  goto finish_grow_step;
-    //}
-
-    // Check if the cavity needs fixing.
-    // This is only if points are going to be removed, and they have length to 
-    // ipins too short. 
-
-    check_cavity_rempoint(msh, cav, opts, lrempoi.get_array(), true, ithrd1);
-    if(lrempoi.get_n() > 0){
-      ierro = INS2D_ERR_SHORTEDG;
-      CPRINTF1(" # error nrem point = %d\n",lrempoi.get_n());
-      goto finish_grow_step;
-    }
-
-    finish_grow_step:
-    if(ierro > 0){
-      ierro = 0;
-      if(lrempoi.get_n() == 0){
-        CPRINTF1(" # Unfixable cavity: reset to: %d edges, %d faces, %d tetra and test\n",
-                 nced1, ncfa1, ncte1);
-        // The cavity can't be fixed to continue iterating. Simply stop it now.
-        cav.lcedg.set_n(nced1);
-        cav.lcfac.set_n(ncfa1);
-        cav.lctet.set_n(ncte1);
-
-        ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
-        if(ierro > 0){
-          ierro = INS2D_ERR_SHORTEDG;
-          CPRINTF1(" # collrejcav_lenqua rejects cavity, reject\n");
-          goto cleanup;
-        }
-
-        ierro = 0;
-        break;
-      }
-
-      // Now we need to remove all the newly added elements that contain 
-      // one of the lrempoi.
-      msh.tag[ithrd1]++;
-      for(int ii = 0; ii < lrempoi.get_n(); ii++){
-        int ipoin = lrempoi[ii];
-        msh.poi2tag(ithrd1, ipoin) = msh.tag[ithrd1];
-      }
-      for(int tdimc = 1; tdimc <= msh.get_tdim(); tdimc++){
-        intAr1 &lcent = cav.lcent(tdimc);
-        const int ncen0 = tdimc == 1 ? nced1 : 
-                          tdimc == 2 ? ncfa1 : ncte1;
-        const intAr2& ent2poc = msh.ent2poi(tdimc);
-        int nrem = 0;
-        for(int ii = ncen0; ii < lcent.get_n();){
-          INCVDEPTH(msh.param);
-          int icent = lcent[ii];
-          bool remelt = false;
-          for(int iver = 0; iver < tdimc + 1; iver++){
-            int ipoin = ent2poc(icent,iver);
-            if(msh.poi2tag(ithrd1, ipoin) < msh.tag[ithrd1]) continue;
-            remelt = true;
-            break;
-          }// for iver
-          if(!remelt){
-            ii++;
-            continue;
-          }
-          CPRINTF1(" - remove %d from cavity dim %d\n",icent,tdimc);
-          int icend = lcent.pop();
-          // This can only happen if we're the last element. In that case we 
-          // shrank the array and can quit. 
-          if(icend == icent) break;
-          // otherwise place last here.
-          icent = icend;
-          nrem++;
-        }// for icent
-        CPRINTF1(" - removed %d dim %d cavity elements\n",nrem,tdimc);
-      }// for tdimc
-    }// if ierro > 0
-    
-    ierro = 0;
-
-    // Make sure not shrinking (would be a bug)
-    METRIS_ASSERT(cav.lcedg.get_n() >= nced1);
-    METRIS_ASSERT(cav.lcfac.get_n() >= ncfa1);
-    METRIS_ASSERT(cav.lctet.get_n() >= ncte1);
-
-    // Check if the cavity has grown; break if not
-    bool igrow =  cav.lcedg.get_n() > nced1 
-               || cav.lcfac.get_n() > ncfa1 
-               || cav.lctet.get_n() > ncte1;
-    if(!igrow) break;
-    if(ierro > 0) break;
-
-  }// for ngrow
-
-  if(ierro > 0) goto cleanup;
-
-  ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
-  if(ierro > 0){
-    ierro = INS2D_ERR_LENQUA;
-    CPRINTF1(" # collrejcav_lenqua rejects cavity, try fix\n");
-    CPRINTF1(" # reject cavity\n");
-    goto cleanup;
-  }
+  ierro = setCavityInsertion(msh,cav,opts,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);
+  if(ierro != 0) goto cleanup;
 
 
 call_cavity:
+
+  // Effects both insertions and collapses
+  if(tdimp == 2 && msh.idim == 3){
+    if(rejcavnordev(msh,cav,ibins,ithrd1)) return INS2D_ERR_NORDEV;
+  }
 
   irestart_cav = false;
 restart_cavity:
