@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF) # Otherwise get -std=gnu++17 messes with intel
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
+
 
 # Get the name of the binary directory
 STRING( TOUPPER ${CMAKE_BINARY_DIR} BIN_DIR_NAME )
@@ -24,7 +24,7 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.30.0)
   cmake_policy(SET CMP0167 NEW)
 endif()
 
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR NOT DEFINED CMAKE_INSTALL_PREFIX)
   set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install CACHE PATH "Install destination" FORCE)
 endif()
 
@@ -32,6 +32,7 @@ endif()
 include(cmake/Compiler.cmake)
 
 project(Metris VERSION 0.5.0)
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 
 include(cmake/BuildType.cmake)
 include(cmake/MetrisFlags.cmake)
@@ -362,6 +363,42 @@ write_basic_package_version_file(
     COMPATIBILITY AnyNewerVersion
 )
 
+
+
+set(METRIS_DEPS_EXPORT_CODE "")
+foreach(dep_entry ${METRIS_CONFIG_DEPENDENCIES})
+  message( "dep_entry = ${dep_entry}")
+  string(REPLACE "|" ";" dep_parts "${dep_entry}")
+  list(GET dep_parts 0 dep_type)
+  list(GET dep_parts 1 dep_name)
+  list(GET dep_parts 2 dep_components)
+  #message( "dep_type = ${dep_type}, dep_name = ${dep_name}, dep_components = ${dep_components}")
+  
+  if(dep_type STREQUAL "find_package")
+    if(dep_components)
+      string(APPEND METRIS_DEPS_EXPORT_CODE "find_dependency(${dep_name} REQUIRED COMPONENTS ${dep_components})\n")
+    else()
+      string(APPEND METRIS_DEPS_EXPORT_CODE "find_dependency(${dep_name} REQUIRED)\n")
+    endif()
+  elseif(dep_type STREQUAL "FetchContent")
+    # For FetchContent dependencies, we need a different approach
+    string(APPEND METRIS_DEPS_EXPORT_CODE "# ${dep_name} was built via FetchContent and is included in the exported targets\n")
+  elseif(dep_type STREQUAL "provided")
+    # Parse the space separated components into two items:
+    string(REPLACE " " ";" dep_components "${dep_components}")
+    list(GET dep_components 0 DEP_LIBRARIES)
+    list(GET dep_components 1 DEP_INCLUDE_DIRS)
+
+    # For provided dependencies, we can just export the variables
+    string(APPEND METRIS_DEPS_EXPORT_CODE "list(APPEND METRIS_LIBRARIES ${DEP_LIBRARIES})\n")
+    string(APPEND METRIS_DEPS_EXPORT_CODE "list(APPEND METRIS_INCLUDE_DIRS ${DEP_INCLUDE_DIRS})\n")
+  else()
+    message(FATAL_ERROR "Unknown dependency type: ${dep_type} for ${dep_name}")
+  endif()
+endforeach()
+
+#message(FATAL_ERROR "METRIS_DEPS_EXPORT_CODE = ${METRIS_DEPS_EXPORT_CODE}")
+
 configure_package_config_file(
     "${PROJECT_SOURCE_DIR}/cmake/MetrisConfig.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfig.cmake"
@@ -371,5 +408,6 @@ configure_package_config_file(
 install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfigVersion.cmake"
+    "${PROJECT_SOURCE_DIR}/cmake/FindNLopt.cmake"  # Install your custom finder
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Metris
 )

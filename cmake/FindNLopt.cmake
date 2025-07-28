@@ -1,37 +1,79 @@
-#
-#Find the NLopt includes and libraries
-#
-#Code taken from SANS https://darmofal.mit.edu/solution-adaptive-numerical-simulator-sans/
 
-IF(NOT DEFINED NLOPT_DIR)
-  PKG_CHECK_MODULES(NLOPT QUIET libnlopt)
+include(FindPackageHandleStandardArgs)
 
-  IF(NLOPT_FOUND)
-    SET(NLOPT_DEFINITIONS ${NLOPT_CFLAGS_OTHER})
-  ELSE()
-    FIND_PATH(NLOPT_INCLUDE_DIRS nlopt.h
-                  HINTS $ENV{NLOPT_DIR} /
-              include
-                  PATH_SUFFIXES nlopt)
+# Try pkg-config first
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+    pkg_check_modules(PC_NLOPT QUIET nlopt)
+    if(PC_NLOPT_FOUND)
+      # pkg-config succeeded, use its results directly
+      set(NLOPT_INCLUDE_DIRS ${PC_NLOPT_INCLUDE_DIRS})
+      set(NLOPT_LIBRARIES ${PC_NLOPT_LIBRARIES})
+      set(NLOPT_LIBRARY_DIRS ${PC_NLOPT_LIBRARY_DIRS})
+      set(NLOPT_VERSION ${PC_NLOPT_VERSION})
+      
+      # Create the imported target
+      if(NOT TARGET NLopt::nlopt)
+        add_library(NLopt::nlopt INTERFACE IMPORTED)
+        set_target_properties(NLopt::nlopt PROPERTIES
+            INTERFACE_INCLUDE_DIRECTORIES "${PC_NLOPT_INCLUDE_DIRS}"
+            INTERFACE_LINK_LIBRARIES "${PC_NLOPT_LIBRARIES}"
+            INTERFACE_LINK_DIRECTORIES "${PC_NLOPT_LIBRARY_DIRS}"
+        )
+        
+        if(PC_NLOPT_CFLAGS_OTHER)
+            set_target_properties(NLopt::nlopt PROPERTIES
+                INTERFACE_COMPILE_OPTIONS "${PC_NLOPT_CFLAGS_OTHER}"
+            )
+        endif()
+        # Mark as found and return early
+        find_package_handle_standard_args(NLopt
+            REQUIRED_VARS PC_NLOPT_LIBRARIES PC_NLOPT_INCLUDE_DIRS
+            VERSION_VAR PC_NLOPT_VERSION
+        )
+        mark_as_advanced(NLOPT_INCLUDE_DIRS NLOPT_LIBRARIES)
+        return()
+      endif()
+    endif()
+endif()
 
-    FIND_LIBRARY(NLOPT_LIBRARIES NAMES nlopt nlopt_cxx
-                    HINTS $ENV{NLOPT_DIR} /
-                lib)
-  ENDIF()
-ELSE()
-  FIND_PATH(NLOPT_INCLUDE_DIRS nlopt.h
-                HINTS ${NLOPT_DIR} /
-            include
-                PATH_SUFFIXES nlopt NO_DEFAULT_PATH)
+## Case where PkgConfig failed
 
-  FIND_LIBRARY(NLOPT_LIBRARIES NAMES nlopt nlopt_cxx
-                  HINTS ${NLOPT_DIR} /
-              lib NO_DEFAULT_PATH)
-ENDIF()
+# Find include directory
+find_path(NLOPT_INCLUDE_DIRS
+    NAMES nlopt.h
+    HINTS ${NLOPT_DIR} $ENV{NLOPT_DIR}
+    PATH_SUFFIXES include
+)
 
-INCLUDE(FindPackageHandleStandardArgs)
+# Find library
+find_library(NLOPT_LIBRARIES
+    NAMES nlopt nlopt_cxx
+    HINTS ${NLOPT_DIR} $ENV{NLOPT_DIR}
+    PATH_SUFFIXES lib lib64
+)
 
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(NLOPT DEFAULT_MSG
-                                      NLOPT_LIBRARIES NLOPT_INCLUDE_DIRS)
+# Handle standard arguments
+find_package_handle_standard_args(NLopt
+    REQUIRED_VARS NLOPT_LIBRARIES NLOPT_INCLUDE_DIRS
+)
 
-MARK_AS_ADVANCED(NLOPT_INCLUDE_DIRS NLOPT_LIBRARIES)
+if(NLopt_FOUND)
+  # Create modern imported target
+  if(NOT TARGET NLopt::nlopt)
+    add_library(NLopt::nlopt UNKNOWN IMPORTED)
+    set_target_properties(NLopt::nlopt PROPERTIES
+        IMPORTED_LOCATION "${NLOPT_LIBRARIES}"
+        INTERFACE_INCLUDE_DIRECTORIES "${NLOPT_INCLUDE_DIRS}"
+    )
+    
+    # Add any compile definitions from pkg-config
+    if(PC_NLOPT_CFLAGS_OTHER)
+      set_target_properties(NLopt::nlopt PROPERTIES
+          INTERFACE_COMPILE_OPTIONS "${PC_NLOPT_CFLAGS_OTHER}"
+      )
+    endif()
+  endif()
+endif()
+
+mark_as_advanced(NLOPT_INCLUDE_DIRS NLOPT_LIBRARIES)

@@ -304,7 +304,7 @@ set_target_properties(metrisPrepro PROPERTIES EXCLUDE_FROM_ALL TRUE)
 target_compile_options(metrisPrepro PUBLIC ${METRIS_CXX_FLAGS} -E)
 
 target_include_directories(metrisPrepro PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
-                                               $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/src>
+                                               $<INSTALL_INTERFACE:include/src>
                                                ${METRIS_EXTERNAL_INCLUDE_DIRS} )
 if(REQ_CODEGEN)
   add_dependencies(libMetris codegen1 codegen2)

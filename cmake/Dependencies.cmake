@@ -2,6 +2,16 @@ include(FetchContent)
 
 include(cmake/MetrisFlags.cmake)
 
+# Since some dependencies can use either find_package or FetchContent, we're going to track how they were imported.
+# This is ultimately so we can export to the MetrisConfig.cmake file for find_package(Metris) to work correctly.
+set(METRIS_CONFIG_DEPENDENCIES "")
+# Note: do not provide DEP_COMPONENTS as ;-separated list as this messes up iterating over METRIS_CONFIG_DEPENDENCIES.
+# Types can be "find_package", "FetchContent", or "provided".
+# If provided, add first the library, then the include dirs.
+function(metris_register_dependency IMPORT_TYPE DEP_NAME DEP_COMPONENTS)
+  list(APPEND METRIS_CONFIG_DEPENDENCIES "${IMPORT_TYPE}|${DEP_NAME}|${DEP_COMPONENTS}")
+  set(METRIS_CONFIG_DEPENDENCIES ${METRIS_CONFIG_DEPENDENCIES} PARENT_SCOPE)
+endfunction()
 
 if(USE_GMP)
   if(NOT DEFINED GMP_DIR)
@@ -13,6 +23,7 @@ if(USE_GMP)
   endif()
   set(USE_MULTIPRECISION ON)
   add_compile_definitions(USE_GMP)
+  add_compile_definitions(USE_MULTIPRECISION)
   set(GMP_INCLUDE_DIRS ${GMP_DIR}/include)
   find_library(GMP_LIBRARIES NAMES gmp
                HINTS $ENV{GMP_DIR}
@@ -24,25 +35,6 @@ if(USE_GMP)
   message("-- GMP_LIBRARIES    = ${GMP_LIBRARIES}")
 endif()
 
-if(USE_MULTIPRECISION)
-  find_package(Boost COMPONENTS headers)
-  if(NOT(Boost_headers_FOUND))
-    message(FATAL_ERROR "Boost headers not found: either clone all Boost libs here or install system wide")
-    #message(WARNING "find_package(Boost COMPONENTS multiprecision) failed, cloning")
-    #FetchContent_Declare(
-    #  fetch_multiprecision
-    #  GIT_REPOSITORY https://github.com/boostorg/multiprecision.git
-    #  GIT_TAG master
-    #  EXCLUDE_FROM_ALL
-    #)
-    #list(APPEND METRIS_DEPS_LIBRARIES Boost::multiprecision)
-    #FetchContent_MakeAvailable(fetch_multiprecision)
-  endif()
-  #list(APPEND METRIS_DEPS_LIBRARIES ${Boost_MULTIPRECISION_LIBRARY})
-  #message("-- Boost_LIBRARIES = ${Boost_LIBRARIES}")
-  #message("-- Boost_MULTIPRECISION_LIBRARY = ${Boost_MULTIPRECISION_LIBRARY}")
-  #message("-- Boost_MULTIPRECISION_LIBRARIES = ${Boost_MULTIPRECISION_LIBRARIES}")
-endif()
 
 # Profiling tool
 if(USE_TRACY)
@@ -318,25 +310,37 @@ if(USE_ABSL)
 endif()
 
 
-find_package(Boost COMPONENTS program_options exception math)
-if(NOT(Boost_program_options_FOUND))
-  FetchContent_Declare(
-    fetch_program_options
-    GIT_REPOSITORY https://github.com/boostorg/program_options.git
-    GIT_TAG master
-    #GIT_SHALLOW TRUE
-    #FIND_PACKAGE_ARGS NAMES Boost COMPONENTS program_options REQUIRED
-    EXCLUDE_FROM_ALL
-  )
-  FetchContent_MakeAvailable(fetch_program_options)
-  list(APPEND METRIS_DEPS_LIBRARIES ${Boost_PROGRAM_OPTIONS_LIBRARY})
-else()
-  list(APPEND METRIS_DEPS_LIBRARIES ${Boost_PROGRAM_OPTIONS_LIBRARY})
-endif()
-list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
-message("-- Boost_PROGRAM_OPTIONS_LIBRARY = ${Boost_PROGRAM_OPTIONS_LIBRARY}")
-message("-- Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}")
+##if(USE_MULTIPRECISION)
+##  list(APPEND METRIS_BOOST_COMPONENTS headers REQUIRED)
+##  if(NOT(Boost_headers_FOUND))
+##    message(FATAL_ERROR "Boost headers not found: either clone all Boost libs here or install system wide")
+##  endif()
+##endif()
 
+#find_package(Boost COMPONENTS program_options)
+#if(NOT(Boost_program_options_FOUND))
+#  FetchContent_Declare(
+#    fetch_program_options
+#    GIT_REPOSITORY https://github.com/boostorg/program_options.git
+#    GIT_TAG master
+#    #GIT_SHALLOW TRUE
+#    #FIND_PACKAGE_ARGS NAMES Boost COMPONENTS program_options REQUIRED
+#    EXCLUDE_FROM_ALL
+#  )
+#  FetchContent_MakeAvailable(fetch_program_options)
+#  list(APPEND METRIS_DEPS_LIBRARIES ${Boost_PROGRAM_OPTIONS_LIBRARY})
+#  metris_register_dependency("FetchContent" "Boost" "program_options")
+#else()
+#  list(APPEND METRIS_DEPS_LIBRARIES ${Boost_PROGRAM_OPTIONS_LIBRARY})
+#  metris_register_dependency("find_package" "Boost" "program_options")
+#endif()
+set(METRIS_BOOST_COMPONENTS "${METRIS_BOOST_COMPONENTS} exception math program_options")
+find_package(Boost REQUIRED COMPONENTS exception math program_options)
+#list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
+#message("-- Boost_PROGRAM_OPTIONS_LIBRARY = ${Boost_PROGRAM_OPTIONS_LIBRARY}")
+#message("-- Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}")
+metris_register_dependency("find_package" "Boost" "exception math program_options")
+list(APPEND METRIS_DEPS_LIBRARIES Boost::program_options)
 
 
 # --- NLopt Dependency ---
@@ -349,6 +353,7 @@ if(DEFINED NLOPT_LIBRARIES AND DEFINED NLOPT_INCLUDE_DIRS)
   message(STATUS "NLOPT_INCLUDE_DIRS = ${NLOPT_INCLUDE_DIRS}")
   list(APPEND METRIS_DEPS_LIBRARIES ${NLOPT_LIBRARIES})
   list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${NLOPT_INCLUDE_DIRS})
+  metris_register_dependency("provided" "NLopt" "${NLOPT_LIBRARIES} ${NLOPT_INCLUDE_DIRS}")
 elseif(DEFINED NLOPT_DIR OR DEFINED ENV{NLOPT_DIR})
   # Otherwise, an NLOPT_DIR can be passed in which should include the relevant CMake configuration
   # files (nloptConfig.cmake or nlopt-config.cmake).
@@ -361,6 +366,8 @@ elseif(DEFINED NLOPT_DIR OR DEFINED ENV{NLOPT_DIR})
   find_package(NLopt REQUIRED HINTS "${NLOPT_DIR}")
   
   message(STATUS "Found external NLopt: ${NLOPT_LIBRARIES}")
+
+  metris_register_dependency("find_package" "NLopt" "")
 else()
   # First try finding the package. If that fails, then clone and build.
 
@@ -369,9 +376,10 @@ else()
   if(NLopt_FOUND)
     message(STATUS "Found NLopt libraries: ${NLOPT_LIBRARIES}")
     message(STATUS "Found NLopt include directories: ${NLOPT_INCLUDE_DIRS}")
+    metris_register_dependency("find_package" "NLopt" "")
   else()
     # Lastly, fetch and build our own for standalone builds.
-    message(STATUS "Cloning NLopt.")
+    message(STATUS "find_package(NLopt) failed, cloning NLopt.")
     FetchContent_Declare(
         nlopt_fetch
         GIT_REPOSITORY https://github.com/stevengj/nlopt.git
@@ -385,14 +393,15 @@ else()
     # After FetchContent, an 'nlopt' target is available.
     # The generated config header (nlopt.h) is in the binary directory of the fetch.
     FetchContent_GetProperties(nlopt_fetch)
-    if(nlopt_fetch_POPULATED)
-      list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${nlopt_fetch_BINARY_DIR})
-      list(APPEND METRIS_DEPS_LIBRARIES nlopt)
-    else()
+    if(NOT nlopt_fetch_POPULATED)
       message(FATAL_ERROR "NLopt was not fetched correctly.")
     endif()
+    list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${nlopt_fetch_BINARY_DIR})
+    list(APPEND METRIS_DEPS_LIBRARIES nlopt)
+    metris_register_dependency("FetchContent" "NLopt" "")
   endif()
 endif()
+
 
 list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${NLOPT_INCLUDE_DIRS})
 list(APPEND METRIS_DEPS_LIBRARIES ${NLOPT_LIBRARIES})
