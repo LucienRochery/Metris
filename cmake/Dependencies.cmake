@@ -334,12 +334,12 @@ endif()
 #  list(APPEND METRIS_DEPS_LIBRARIES ${Boost_PROGRAM_OPTIONS_LIBRARY})
 #  metris_register_dependency("find_package" "Boost" "program_options")
 #endif()
-set(METRIS_BOOST_COMPONENTS "${METRIS_BOOST_COMPONENTS} exception math program_options")
+set(METRIS_BOOST_COMPONENTS "${METRIS_BOOST_COMPONENTS} exception  program_options") #math
 find_package(Boost REQUIRED COMPONENTS exception math program_options)
 #list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
 #message("-- Boost_PROGRAM_OPTIONS_LIBRARY = ${Boost_PROGRAM_OPTIONS_LIBRARY}")
 #message("-- Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}")
-metris_register_dependency("find_package" "Boost" "exception math program_options")
+metris_register_dependency("find_package" "Boost" "exception  program_options") #math
 list(APPEND METRIS_DEPS_LIBRARIES Boost::program_options)
 
 
