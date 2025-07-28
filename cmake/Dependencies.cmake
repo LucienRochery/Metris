@@ -396,8 +396,22 @@ else()
     if(NOT nlopt_fetch_POPULATED)
       message(FATAL_ERROR "NLopt was not fetched correctly.")
     endif()
-    list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${nlopt_fetch_BINARY_DIR})
-    list(APPEND METRIS_DEPS_LIBRARIES nlopt)
+    # We do this because find_package() uses this naming.
+    if(NOT TARGET NLopt::nlopt)
+      add_library(NLopt::nlopt ALIAS nlopt)
+    endif()
+    install(DIRECTORY ${nlopt_fetch_BINARY_DIR}
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+            FILES_MATCHING PATTERN "*.h*")
+    install(TARGETS nlopt
+            EXPORT libMetrisTargets
+            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+            # Install NLopt headers if using FetchContent
+    list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${nlopt_fetch_BINARY_DIR}>)
+    list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
+    list(APPEND METRIS_DEPS_LIBRARIES NLopt::nlopt)
     metris_register_dependency("FetchContent" "NLopt" "")
   endif()
 endif()
