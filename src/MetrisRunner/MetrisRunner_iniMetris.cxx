@@ -11,7 +11,6 @@
 #include "../metris_options.hxx"
 #include "../aux_exceptions.hxx"
 #include "../msh_checktopo.hxx"
-#include <git.h>
 
 namespace Metris{
 
@@ -47,17 +46,8 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
     "See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n\n"
     );
 
-    if(git_IsPopulated()){
-      printf("Metris Git repository URL " METRIS_GIT_URL "\n");
-      printf("commit SHA1 %s ",git_CommitSHA1());
-      if(git_AnyUncommittedChanges()){
-        printf("with uncommitted changes.\n");
-      }else{
-        printf("no uncommitted changes.\n");
-      }
-    }else{
-      printf("This build not in a Git repository.\n");
-    }
+    printf("Metris Git repository URL " METRIS_GIT_URL "\n");
+    printf("commit SHA1 %s ",METRIS_GIT_COMMIT_HASH);
 
     #ifndef NDEBUG
     printf("\nDebug build.\n");

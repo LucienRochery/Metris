@@ -37,6 +37,7 @@ bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1){
     nordev0_avg += nordev;
     // Also tag faces for final dev computation
     msh.fac2tag(ithrd1,iface) = msh.tag[ithrd1];
+    CPRINTF1(" - initial face %d nordev = %e\n",iface,nordev);
   }
   nordev0_avg /= cav.lcfac.get_n();
   
@@ -59,6 +60,7 @@ bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1){
       double nordev = getnordev<1>(msh, nfac0);
       nordev1_max = MAX(nordev1_max, nordev);
       nordev1_avg += nordev;
+      CPRINTF1(" - new face %d %d %d nordev = %e\n",msh.fac2poi(nfac0,0),msh.fac2poi(nfac0,1),msh.fac2poi(nfac0,2),nordev);
     }
   }
   nordev1_avg /= cav.lcfac.get_n();

@@ -24,35 +24,50 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.30.0)
   cmake_policy(SET CMP0167 NEW)
 endif()
 
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+  set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install CACHE PATH "Install destination" FORCE)
+endif()
+
 # This must come before project or we get an infinite loop.
 include(cmake/Compiler.cmake)
 
-project(Metris)
+project(Metris VERSION 0.5.0)
 
 include(cmake/BuildType.cmake)
 include(cmake/MetrisFlags.cmake)
  
 
 set(METRIS_DEPS_LIBRARIES "")
-set(METRIS_DEPS_INCLUDE_DIRS ${PROJECT_SOURCE_DIR})
+# INTERNAL_INCLUDE_DIRS paths are all relative to ${PROJECT_SOURCE_DIR}. The directory structure is replicated
+# in install/include 
+set(METRIS_INTERNAL_INCLUDE_DIRS "")
+# These are system-wide install paths only:
+set(METRIS_EXTERNAL_INCLUDE_DIRS "")
 
 
-find_package(Git)
-execute_process(COMMAND "${GIT_EXECUTABLE}" config --get remote.origin.url
-                WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" 
-                RESULT_VARIABLE dum
+find_package(Git REQUIRED)
+execute_process(COMMAND ${GIT_EXECUTABLE} config --get remote.origin.url
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} 
                 OUTPUT_VARIABLE GITURL
                 ERROR_QUIET
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-execute_process(COMMAND "${GIT_EXECUTABLE}" branch --show-current
-                WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}" 
-                RESULT_VARIABLE dum
+execute_process(COMMAND ${GIT_EXECUTABLE} branch --show-current
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} 
                 OUTPUT_VARIABLE GIT_BRANCH
                 ERROR_QUIET
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
+execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse HEAD
+    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET)
+
+
 add_compile_definitions(METRIS_GIT_URL="${GITURL}")
+add_compile_definitions(METRIS_GIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 message("Metris using METRIS_GIT_URL = ${GITURL}")
 message("In branch: ${GIT_BRANCH}")
 if(GITURL MATCHES "github.com")
@@ -184,51 +199,6 @@ setMetrisFlags(egads2lite PUBLIC)
 
 
 
-# --- Install libMetris
-
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install CACHE PATH "Install destination" FORCE)
-endif()
-install(TARGETS libMetris EXPORT libMetrisTargets
-  RUNTIME  DESTINATION   ${CMAKE_INSTALL_BINDIR}
-           COMPONENT     runtime OPTIONAL
-  LIBRARY  DESTINATION   ${CMAKE_INSTALL_LIBDIR}
-           COMPONENT     runtime OPTIONAL
-           #NAMELINK_SKIP
-  #ARCHIVE  DESTINATION   ${CMAKE_INSTALL_LIBDIR}
-           #COMPONENT     Y
-  INCLUDES DESTINATION   ${CMAKE_INSTALL_INCLUDEDIR})
-
-
-# Install all headers. We don't have any specific public headers, users can do anything (as we do in unit tests at times, for instance)
-install(
-  FILES ${PROJECT_SOURCE_DIR}/src/Metris.h
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/src/
-)
-install(
-  DIRECTORY ${PROJECT_SOURCE_DIR}/src/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/src/
-  FILES_MATCHING
-    PATTERN "*.hxx"
-    PATTERN ".*" EXCLUDE
-)
-
-install(
-  DIRECTORY ${PROJECT_SOURCE_DIR}/SANS/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/SANS/
-  FILES_MATCHING
-    PATTERN "*.h"
-    PATTERN ".*" EXCLUDE
-)
-
-install(
-  DIRECTORY ${PROJECT_SOURCE_DIR}/libs/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libs/
-  FILES_MATCHING
-    PATTERN "*.h*"
-    PATTERN ".*" EXCLUDE
-)
-
 
 
 # --- Unit tests
@@ -333,3 +303,73 @@ add_custom_target(metris_tests
 add_custom_target(metris_tests_build
                   DEPENDS ${METRIS_TARGET_TESTS_BUILD}
                   )
+
+
+
+
+# --- Install libMetris
+
+install(TARGETS libMetris libmeshb lplib3 libkdtree alglib libSANS_Metris EXPORT libMetrisTargets
+  RUNTIME  DESTINATION   ${CMAKE_INSTALL_BINDIR}
+           COMPONENT     runtime OPTIONAL
+  LIBRARY  DESTINATION   ${CMAKE_INSTALL_LIBDIR}
+           COMPONENT     runtime OPTIONAL
+           #NAMELINK_SKIP
+  #ARCHIVE  DESTINATION   ${CMAKE_INSTALL_LIBDIR}
+           #COMPONENT     Y
+  INCLUDES DESTINATION   ${CMAKE_INSTALL_INCLUDEDIR})
+
+
+# Install all headers. We don't have any specific public headers, users can do anything (as we do in unit tests at times, for instance)
+install(
+  FILES ${PROJECT_SOURCE_DIR}/src/Metris.h
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/src/
+)
+install(
+  DIRECTORY ${PROJECT_SOURCE_DIR}/src/
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/src/
+  FILES_MATCHING
+    PATTERN "*.hxx"
+    PATTERN ".*" EXCLUDE
+)
+
+install(
+  DIRECTORY ${PROJECT_SOURCE_DIR}/SANS/
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/SANS/
+  FILES_MATCHING
+    PATTERN "*.h"
+    PATTERN ".*" EXCLUDE
+)
+
+install(
+  DIRECTORY ${PROJECT_SOURCE_DIR}/libs/
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libs/
+  FILES_MATCHING
+    PATTERN "*.h*"
+    PATTERN ".*" EXCLUDE
+)
+
+install(EXPORT libMetrisTargets
+  FILE libMetrisTargets.cmake
+  NAMESPACE Metris::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Metris
+)
+
+include(CMakePackageConfigHelpers)
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfigVersion.cmake"
+    #VERSION ${PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+
+configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/cmake/MetrisConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Metris
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Metris
+)

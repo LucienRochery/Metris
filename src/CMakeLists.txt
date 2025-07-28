@@ -10,21 +10,15 @@
 #   - stage 2 codegen compiles the last codegen target 
 # -- 
 
-
-
 # 1 --- CODEGEN TARGETS
 # 1.1 - gen_lageval: generate Lagrange evaluation routines
 if(REQ_CODEGEN)
   add_executable(gen_lageval ${PROJECT_SOURCE_DIR}/tools/gen_lageval.cxx ho_constants.hxx)
   setMetrisFlags(gen_lageval PUBLIC)
-  target_link_libraries(gen_lageval PUBLIC  ${GINAC_LIBRARIES} 
-                                            Boost::headers 
+  target_link_libraries(gen_lageval PUBLIC  Boost::headers 
                                             libSANS_Metris 
                                             )
-  target_include_directories(gen_lageval PUBLIC 
-                             ${PROJECT_SOURCE_DIR}
-                             ${CLN_INCLUDE_DIRS}
-                             ${GINAC_INCLUDE_DIRS})
+  target_include_directories(gen_lageval PUBLIC ${PROJECT_SOURCE_DIR})
   add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/codegen_lagrange.hxx
                      DEPENDS gen_lageval
                      COMMAND make gen_lageval 
@@ -57,9 +51,8 @@ if(REQ_CODEGEN)
                            ho_constants.hxx)
   setMetrisFlags(gen_ccoef PUBLIC)
   target_link_libraries(gen_ccoef PUBLIC libSANS_Metris)
-  target_include_directories(gen_ccoef PUBLIC 
-                             ${PROJECT_SOURCE_DIR} 
-                             ${Boost_INCLUDE_DIRS})
+  target_include_directories(gen_ccoef PUBLIC ${METRIS_DEPS_INCLUDE_DIRS}
+                                              ${PROJECT_SOURCE_DIR} )
 
   add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/codegen_ccoef.hxx 
                             ${PROJECT_BINARY_DIR}/src/codegen_ccoef_d.hxx 
@@ -83,17 +76,10 @@ add_library(meshBASIC STATIC low_eval.cxx ho_constants.hxx
                              Arrays/aux_msharrays1D.cxx 
                              Arrays/aux_msharrays2D.cxx 
                              utils/aux_timer.cxx )
-target_include_directories(meshBASIC PRIVATE "." ".." )
 target_include_directories(meshBASIC PUBLIC 
-                           "libs"
-                           "/usr/local/include"
-                           ${LAPACK_INCLUDE_DIRS}
-                           ${ESP_ROOT}/include
-                           ${PETSC_INCLUDE}
-                           ${ABSL_INCLUDE_DIRS}
-                           ${Boost_INCLUDE_DIRS}
-                           ${EIGEN3_INCLUDE_DIRS}
-                           ${SRC_INCLUDE_DIRS})
+                           $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}> # For directories SANS/ libs/ etc.
+                           $<INSTALL_INTERFACE:include>
+                           ${METRIS_EXTERNAL_INCLUDE_DIRS})
 target_link_libraries(meshBASIC PUBLIC ${ABSL_LIBRARIES}
                                        ) 
 if(REQ_CODEGEN)
@@ -107,12 +93,7 @@ if(REQ_CODEGEN)
                                            libSANS_Metris
                                            ${ABSL_LIBRARIES})
   target_include_directories(gen_lag2bez PUBLIC 
-                             ${PROJECT_BINARY_DIR}
-                             ${ABSL_INCLUDE_DIRS}
-                             ${PROJECT_SOURCE_DIR}
-                             ${Boost_INCLUDE_DIRS}
-                             ${EIGEN3_INCLUDE_DIRS})
-  target_include_directories(gen_lag2bez PRIVATE ".")
+                             ${PROJECT_SOURCE_DIR})
 
   add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/codegen_lag2bez.hxx 
                             ${PROJECT_BINARY_DIR}/src/codegen_lag2bez.cxx
@@ -298,9 +279,12 @@ add_library(libMetris STATIC ${SRC_SOURCES})
 setMetrisFlags(libMetris PUBLIC)
 set_property(TARGET libMetris PROPERTY CXX_STANDARD 17)
 
-
-target_include_directories(libMetris PRIVATE "." "..")
-target_include_directories(libMetris PUBLIC  ${METRIS_DEPS_INCLUDE_DIRS} )
+message("-- METRIS_DEPS_INCLUDE_DIRS = ${METRIS_DEPS_INCLUDE_DIRS}")
+target_include_directories(libMetris PUBLIC  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
+                                             $<INSTALL_INTERFACE:include/src>
+                                             $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}> # For directories SANS/ libs/ etc.
+                                             $<INSTALL_INTERFACE:include>
+                                             ${METRIS_EXTERNAL_INCLUDE_DIRS} )
 
 target_link_libraries(libMetris PUBLIC ${METRIS_DEPS_LIBRARIES})
 
@@ -318,7 +302,10 @@ add_library(metrisPrepro STATIC ${SRC_SOURCES})
 set_property(TARGET metrisPrepro PROPERTY CXX_STANDARD 17)
 set_target_properties(metrisPrepro PROPERTIES EXCLUDE_FROM_ALL TRUE)
 target_compile_options(metrisPrepro PUBLIC ${METRIS_CXX_FLAGS} -E)
-target_include_directories(metrisPrepro PUBLIC  ${METRIS_DEPS_INCLUDE_DIRS} )
+
+target_include_directories(metrisPrepro PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
+                                               $<INSTALL_INTERFACE:${CMAKE_INSTALL_PREFIX}/include/src>
+                                               ${METRIS_EXTERNAL_INCLUDE_DIRS} )
 if(REQ_CODEGEN)
   add_dependencies(libMetris codegen1 codegen2)
 endif() 

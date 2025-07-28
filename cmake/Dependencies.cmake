@@ -19,7 +19,7 @@ if(USE_GMP)
                PATH_SUFFIXES lib)
 
   list(APPEND METRIS_DEPS_LIBRARIES ${GMP_LIBRARIES})
-  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${GMP_INCLUDE_DIRS})
+  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${GMP_INCLUDE_DIRS})
   message("-- GMP_INCLUDE_DIRS = ${GMP_INCLUDE_DIRS}")
   message("-- GMP_LIBRARIES    = ${GMP_LIBRARIES}")
 endif()
@@ -57,7 +57,7 @@ if(USE_TRACY)
   FetchContent_MakeAvailable(Tracy_fetch)
   set(TRACY_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/tracy_fetch-src/public/tracy/")
   #message("TRACY_INCLUDE_DIRS = ${TRACY_INCLUDE_DIRS}")
-  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${TRACY_INCLUDE_DIRS})
+  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${TRACY_INCLUDE_DIRS})
   list(APPEND METRIS_DEPS_LIBRARIES Tracy::TracyClient)
   add_compile_definitions(TRACY_ENABLE)
 endif()
@@ -81,7 +81,7 @@ endif()
 #set(ARMA_USE_BLAS OFF CACHE BOOL "" FORCE)
 #FetchContent_MakeAvailable(mlpack_fetch)
 #set(MLPACK_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/mlpack_fetch-src/src/")
-#list(APPEND METRIS_DEPS_INCLUDE_DIRS ${MLPACK_INCLUDE_DIRS})
+#list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${MLPACK_INCLUDE_DIRS})
 #list(APPEND METRIS_DEPS_LIBRARIES Tracy::TracyClient)
 
 if(REQ_CODEGEN)
@@ -110,7 +110,7 @@ if(REQ_CODEGEN)
   message("-- GINAC_LIBRARIES    = ${GINAC_LIBRARIES}")
 
   list(APPEND METRIS_DEPS_LIBRARIES ${GINAC_LIBRARIES})
-  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${GINAC_INCLUDE_DIRS} ${CLN_INCLUDE_DIRS})
+  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${GINAC_INCLUDE_DIRS} ${CLN_INCLUDE_DIRS})
 endif()
 
 
@@ -126,11 +126,14 @@ if (NOT EIGEN3_INCLUDE_DIRS)
   )
   FetchContent_MakeAvailable(Eigen3)
   set(EIGEN3_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/eigen3-src/")
+  install(DIRECTORY ${EIGEN3_INCLUDE_DIRS}/Eigen ${EIGEN3_INCLUDE_DIRS}/unsupported
+          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
   message("EIGEN3_INCLUDE_DIRS = ${EIGEN3_INCLUDE_DIRS}")
-  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIRS})
+  #list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIRS})
+  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIRS}>)
+  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
+  
 endif()
-
-message("EIGEN3_INCLUDE_DIRS = ${EIGEN3_INCLUDE_DIRS}")
 
 
 if(METRIS_USE_LAPACK)
@@ -195,7 +198,7 @@ if(METRIS_USE_PETSC)
       find_package(MPI)
       message("-- MPI_INCLUDE_DIRS = ${MPI_INCLUDE_DIRS}")
       message("-- MPI_LIBRARIES    = ${MPI_LIBRARIES}")
-      list(APPEND METRIS_DEPS_INCLUDE_DIRS ${MPI_INCLUDE_DIRS})
+      list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${MPI_INCLUDE_DIRS})
       list(APPEND METRIS_DEPS_LIBRARIES    ${MPI_LIBRARIES})
 
 
@@ -223,7 +226,7 @@ if(METRIS_USE_PETSC)
     message("-- PETSC_INCLUDE_DIRS = ${PETSC_INCLUDE_DIRS}")
     message("-- PETSC_LIBRARIES    = ${PETSC_LIBRARIES}")
 
-    list(APPEND METRIS_DEPS_INCLUDE_DIRS ${PETSC_INCLUDE_DIRS})
+    list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${PETSC_INCLUDE_DIRS})
     list(APPEND METRIS_DEPS_LIBRARIES    ${PETSC_LIBRARIES})
   endif()
 else()
@@ -276,7 +279,7 @@ list(APPEND CMAKE_INSTALL_RPATH ${CAS_ROOT}/lib/)
 set(EGADS_INCLUDE_DIRS ${ESP_ROOT}/include)
 
 list(APPEND METRIS_DEPS_LIBRARIES    ${EGADS_LIBRARIES})
-list(APPEND METRIS_DEPS_INCLUDE_DIRS ${EGADS_INCLUDE_DIRS})
+list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${EGADS_INCLUDE_DIRS})
 list(APPEND METRIS_DEPS_LIBRARIES    ${EGADSLITE_LIBRARIES})
 
 
@@ -287,7 +290,7 @@ if(USE_CLP)
     message(WARNING "CLP was not found on this system.")
   else()
     add_compile_definitions(USE_CLP)
-    list(APPEND METRIS_DEPS_INCLUDE_DIRS ${CLP_INCLUDE_DIRS})
+    list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${CLP_INCLUDE_DIRS})
     list(APPEND METRIS_DEPS_LIBRARIES    ${CLP_LIBRARIES})
   endif()
 endif()
@@ -308,7 +311,7 @@ if(USE_ABSL)
   FetchContent_MakeAvailable(fetch_absl)
   set(ABSL_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/fetch_absl-src/")
   set(ABSL_LIBRARIES absl::hash absl::flat_hash_map)
-  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${ABSL_INCLUDE_DIRS})
+  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${ABSL_INCLUDE_DIRS})
   list(APPEND METRIS_DEPS_LIBRARIES    ${ABSL_LIBRARIES})
   message("-- ABSL_INCLUDE_DIRS = ${ABSL_INCLUDE_DIRS}")
   message("-- ABSL_LIBRARIES = ${ABSL_LIBRARIES}")
@@ -330,7 +333,7 @@ if(NOT(Boost_program_options_FOUND))
 else()
   list(APPEND METRIS_DEPS_LIBRARIES ${Boost_PROGRAM_OPTIONS_LIBRARY})
 endif()
-list(APPEND METRIS_DEPS_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
+list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
 message("-- Boost_PROGRAM_OPTIONS_LIBRARY = ${Boost_PROGRAM_OPTIONS_LIBRARY}")
 message("-- Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}")
 
@@ -345,7 +348,7 @@ if(DEFINED NLOPT_LIBRARIES AND DEFINED NLOPT_INCLUDE_DIRS)
   message(STATUS "NLOPT_LIBRARIES = ${NLOPT_LIBRARIES}")
   message(STATUS "NLOPT_INCLUDE_DIRS = ${NLOPT_INCLUDE_DIRS}")
   list(APPEND METRIS_DEPS_LIBRARIES ${NLOPT_LIBRARIES})
-  list(APPEND METRIS_DEPS_INCLUDE_DIRS ${NLOPT_INCLUDE_DIRS})
+  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${NLOPT_INCLUDE_DIRS})
 elseif(DEFINED NLOPT_DIR OR DEFINED ENV{NLOPT_DIR})
   # Otherwise, an NLOPT_DIR can be passed in which should include the relevant CMake configuration
   # files (nloptConfig.cmake or nlopt-config.cmake).
@@ -383,7 +386,7 @@ else()
     # The generated config header (nlopt.h) is in the binary directory of the fetch.
     FetchContent_GetProperties(nlopt_fetch)
     if(nlopt_fetch_POPULATED)
-      list(APPEND METRIS_DEPS_INCLUDE_DIRS ${nlopt_fetch_BINARY_DIR})
+      list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${nlopt_fetch_BINARY_DIR})
       list(APPEND METRIS_DEPS_LIBRARIES nlopt)
     else()
       message(FATAL_ERROR "NLopt was not fetched correctly.")
@@ -391,22 +394,12 @@ else()
   endif()
 endif()
 
-list(APPEND METRIS_DEPS_INCLUDE_DIRS ${NLOPT_INCLUDE_DIRS})
+list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${NLOPT_INCLUDE_DIRS})
 list(APPEND METRIS_DEPS_LIBRARIES ${NLOPT_LIBRARIES})
 # --- End NLopt Dependency ---
 
 
 include(FetchContent)
-FetchContent_Declare(cmake_git_version_tracking
-  GIT_REPOSITORY https://github.com/andrew-hardin/cmake-git-version-tracking.git
-  GIT_TAG 6c0cb87edd029ddfb403a8e24577c144a03605a6
-)
-FetchContent_MakeAvailable(cmake_git_version_tracking)
-set(GITLIB_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/cmake_git_version_tracking-src/")
-list(APPEND METRIS_DEPS_INCLUDE_DIRS ${GITLIB_INCLUDE_DIRS})
-list(APPEND METRIS_DEPS_LIBRARIES cmake_git_version_tracking)
-message("-- GITLIB_INCLUDE_DIRS = ${GITLIB_INCLUDE_DIRS}")
-
 
 
 FetchContent_MakeAvailable(${FETCH_LIST})
