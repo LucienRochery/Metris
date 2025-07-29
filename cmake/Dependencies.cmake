@@ -376,6 +376,7 @@ else()
   if(NLopt_FOUND)
     message(STATUS "Found NLopt libraries: ${NLOPT_LIBRARIES}")
     message(STATUS "Found NLopt include directories: ${NLOPT_INCLUDE_DIRS}")
+    list(APPEND METRIS_DEPS_LIBRARIES NLopt::nlopt)
     metris_register_dependency("find_package" "NLopt" "")
   else()
     # Lastly, fetch and build our own for standalone builds.
