@@ -415,10 +415,6 @@ else()
     metris_register_dependency("FetchContent" "NLopt" "")
   endif()
 endif()
-
-
-list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${NLOPT_INCLUDE_DIRS})
-list(APPEND METRIS_DEPS_LIBRARIES ${NLOPT_LIBRARIES})
 # --- End NLopt Dependency ---
 
 
