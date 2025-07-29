@@ -376,7 +376,7 @@ foreach(dep_entry ${METRIS_CONFIG_DEPENDENCIES})
   
   if(dep_type STREQUAL "find_package")
     if(dep_components)
-      string(APPEND METRIS_DEPS_EXPORT_CODE "find_dependency(${dep_name} REQUIRED COMPONENTS ${dep_components})\n")
+      string(APPEND METRIS_DEPS_EXPORT_CODE "find_dependency(${dep_name} COMPONENTS ${dep_components})\n")
     else()
       string(APPEND METRIS_DEPS_EXPORT_CODE "find_dependency(${dep_name} REQUIRED)\n")
     endif()
@@ -411,3 +411,14 @@ install(FILES
     "${PROJECT_SOURCE_DIR}/cmake/FindNLopt.cmake"  # Install your custom finder
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Metris
 )
+
+message("=================================================================")
+message(STATUS "Metris configure script end, using "
+        "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}, \n"
+        "CMAKE_INSTALL_LIBDIR = ${CMAKE_INSTALL_LIBDIR}, \n"
+        "CMAKE_INSTALL_INCLUDEDIR = ${CMAKE_INSTALL_INCLUDEDIR}, \n"
+        "CMAKE_INSTALL_BINDIR = ${CMAKE_INSTALL_BINDIR}, \n"
+        "METRIS_DEPS_LIBRARIES = ${METRIS_DEPS_LIBRARIES}, \n"
+        "METRIS_INTERNAL_INCLUDE_DIRS = ${METRIS_INTERNAL_INCLUDE_DIRS}, \n"
+        "METRIS_EXTERNAL_INCLUDE_DIRS = ${METRIS_EXTERNAL_INCLUDE_DIRS}")
+message("=================================================================")

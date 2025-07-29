@@ -339,7 +339,7 @@ find_package(Boost REQUIRED COMPONENTS   program_options) #math exception
 #list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
 #message("-- Boost_PROGRAM_OPTIONS_LIBRARY = ${Boost_PROGRAM_OPTIONS_LIBRARY}")
 #message("-- Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}")
-metris_register_dependency("find_package" "Boost" "program_options") #math exception
+metris_register_dependency("find_package" "Boost REQUIRED" "program_options") #math exception
 list(APPEND METRIS_DEPS_LIBRARIES Boost::program_options)
 
 
@@ -366,8 +366,9 @@ elseif(DEFINED NLOPT_DIR OR DEFINED ENV{NLOPT_DIR})
   find_package(NLopt REQUIRED HINTS "${NLOPT_DIR}")
   
   message(STATUS "Found external NLopt: ${NLOPT_LIBRARIES}")
+  list(APPEND METRIS_DEPS_LIBRARIES NLopt::nlopt)
 
-  metris_register_dependency("find_package" "NLopt" "")
+  metris_register_dependency("find_package" "NLopt REQUIRED HINTS ${NLOPT_DIR}" "")
 else()
   # First try finding the package. If that fails, then clone and build.
 
@@ -377,7 +378,7 @@ else()
     message(STATUS "Found NLopt libraries: ${NLOPT_LIBRARIES}")
     message(STATUS "Found NLopt include directories: ${NLOPT_INCLUDE_DIRS}")
     list(APPEND METRIS_DEPS_LIBRARIES NLopt::nlopt)
-    metris_register_dependency("find_package" "NLopt" "")
+    metris_register_dependency("find_package REQUIRED" "NLopt" "")
   else()
     # Lastly, fetch and build our own for standalone builds.
     message(STATUS "find_package(NLopt) failed, cloning NLopt.")
