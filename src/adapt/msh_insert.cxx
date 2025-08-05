@@ -47,7 +47,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
   //printf("## DEBUG SET MAX PRINTS\n");
   //wait();
   //msh.param->iverb = 5;
-  //msh.param->ivdepth = 5;
+  //msh.param->ivdepth = 15;
   GETVDEPTH(msh.param);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
@@ -185,8 +185,19 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
         msh.poicstr[cav.ipins] = true;
         // Remove the edge from the edge hash table.
         edge_it = ledge.erase(edge_it);
+
+        //// Try to swap new elements
         int nent1 = msh.nentt(tdim);
+        //MSH_DIM_DEG0(msh){
+        //  swapMesh<MFT,gdim,ideg>(msh,opt_swap,&nswap,ithrd1,ithrd2,ithrd3,nent0);
+        //}MSH_DIM_DEG1();
+
+
+
+
+
         // Look for long edges in new elements.
+        nent1 = msh.nentt(tdim);
         for(int ientn = nent0; ientn < nent1; ientn++){
           INCVDEPTH(msh.param);
 
@@ -214,6 +225,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
             ledge[key] = ientn;
           }// for iedn
         }// for ientn
+
       }else{
         // Remove the edge from the edge hash table.
         edge_it = ledge.erase(edge_it);

@@ -146,7 +146,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
       if(iedge < 0) continue;
 
       if(msh.edg2tag(ithread,iedge) < msh.tag[ithread]){
-        CPRINTF1("## edge %d is internal but was not in cavity\n",iedge);
+        CPRINTF1("## edge %d = %d %d is internal but was not in cavity\n",iedge,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
         // This is not always an error in the sense of an assert.
         // The assert has proved useful to spot legitimate bugs but let's downgrade it now
         return CAV_ERR_INTEDG;

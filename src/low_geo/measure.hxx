@@ -24,22 +24,30 @@ double getmeasent_aniso(const MeshMetric<MFT> &msh, int ientt);
 // Checks whether element valid under the tolerances, also uses normal deviation checks for surface elements.
 // - inp norref (can be NULL) is a reference normal, e.g. from CAD
 // - output meas (can be NULL) is element isotropic measure
+// - inpute nordev_tol is maximum normal deviation, -1 for no check
 template <int gdim, int tdim>
-bool isvalidelt(const MeshBase& msh, int ientt, const double* norref, double *meas);
+bool isvalideltP1(const MeshBase&__restrict__ msh, int ientt, const double*__restrict__ norref = NULL, 
+                  double*__restrict__ meas = NULL, double nordev_tol = -1);
+template <int gdim, int tdim>
+bool isvalideltP1(const MeshBase&__restrict__ msh, int ientt, const int*__restrict__ nod2bpo, 
+                  const double*__restrict__ norref, double*__restrict__ meas, double nordev_tol);
+template <int gdim, int tdim>
+bool isvalideltP1(const MeshBase&__restrict__ msh, const int*__restrict__ ent2pol, const int*__restrict__ nod2bpo, 
+                  const double*__restrict__ norref, double*__restrict__ meas, double nordev_tol);
 
 
 
 // --- Others
-// Equivalent to isvalidelt with non-NULL meas. In practice, we very rarely care about the volume, only the validity.
+// Equivalent to isvalideltP1 with non-NULL meas. In practice, we very rarely care about the volume, only the validity.
 template <int gdim, int tdim>
-double getmeasentP1(const MeshBase &msh, const int* ent2pol, 
-                    const double *norref, bool *iflat);
+double getmeasentP1(const MeshBase&__restrict__ msh, int ientt, 
+                    const double*__restrict__ norref, bool*__restrict__ iflat, double nordev_tol = -1);
 
-template <int gdim, int tdim>
-double getmeasentP1(const MetrisParameters *param, 
-                    const int* ent2pol, 
-                    const dblAr2 &coord,
-                    const double* norref, bool* iflat);
+// This is only for unfinished elements:
+template<int gdim, int tdim>
+double getmeasentP1(const MeshBase&__restrict__ msh, const int*__restrict__ ent2pol, 
+                    const int*__restrict__ nod2bpo,
+                    const double*__restrict__ norref, bool*__restrict__ iflat, double nordev_tol);
 
 
 

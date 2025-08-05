@@ -500,7 +500,7 @@ int minimizeInterpErrloc_Newton(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
     iinva = false;
     if constexpr (ideg == 1){
       for(int ientt : lball){
-        getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iinva);
+        iinva = !isvalideltP1<idim,idim>(msh,ientt); 
         if(iinva) break;
       }
     }else{
@@ -551,7 +551,7 @@ int minimizeInterpErrloc_Newton(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
   #ifndef NDEBUG
   if constexpr (ideg == 1){
     for(int ientt : lball){
-      getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iinva);
+      iinva = !isvalideltP1<idim,idim>(msh,ientt); 
       if(iinva) break;
     }
   }else{
@@ -714,7 +714,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
       iinva = false;
       if constexpr (ideg == 1){
         for(int ientt : lball){
-          getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iinva);
+          iinva = !isvalideltP1<idim,idim>(msh,ientt);
           if(iinva) break;
         }
       }else{
@@ -768,7 +768,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
   iinva = false;
   if constexpr (ideg == 1){
     for(int ientt : lball){
-      getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iinva);
+      iinva = !isvalideltP1<idim,idim>(msh,ientt);
       if(iinva) break;
     }
   }else{

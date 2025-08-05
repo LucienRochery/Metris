@@ -26,7 +26,7 @@ namespace Metris{
 
 // Greedy swaps: if a swap improves, do it
 template<class MFT, int gdim, int ideg>
-double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int ithrd2, int ithrd3){
+double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int ithrd2, int ithrd3, int ient0){
   GETVDEPTH(msh.param);
 
   if(msh.param->opt_swap_niter <= 0){
@@ -89,7 +89,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
 
       double t01 = get_wall_time();
 
-      for(int ientt = 0; ientt < nent0; ientt++){
+      for(int ientt = ient0; ientt < nent0; ientt++){
         INCVDEPTH(msh.param);
         if(isdeadent(ientt,msh.ent2poi(tdim))) continue;
         //ntry++;
@@ -215,13 +215,13 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
 template double swapMesh<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
-                    swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2, int ithrd3);\
+                    swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2, int ithrd3, int ient0);\
 template double swapMesh<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,\
-                    swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2, int ithrd3);\
+                    swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2, int ithrd3, int ient0);\
 template double swapMesh<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,\
-                    swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2, int ithrd3);\
+                    swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2, int ithrd3, int ient0);\
 template double swapMesh<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,\
-                    swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2, int ithrd3);
+                    swapOptions swapOpt,int *nswap, int ithrd1, int ithrd2, int ithrd3, int ient0);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

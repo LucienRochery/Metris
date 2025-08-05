@@ -178,17 +178,17 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
   doubleS metS[nnmet];
   getmet_dbl2SurS<gdim,gdim>(met,dmet,metS);
 
-  if(msh.idbg[0] > 0){
-    printf("Metric: ");
-    for(int ii = 0; ii < nnmet; ii++) printf(" %f ",metS[ii].value());
-    printf("\n");
-    for(int jj = 0; jj < gdim; jj++){
-      printf("d%d: ",jj);
-      for(int ii = 0; ii < nnmet; ii++) printf(" %f ",metS[ii].deriv(jj));
-      printf("\n");
-    }
-    printf("\n");
-  }
+  //if(msh.idbg[0] > 0){
+  //  printf("Metric: ");
+  //  for(int ii = 0; ii < nnmet; ii++) printf(" %f ",metS[ii].value());
+  //  printf("\n");
+  //  for(int jj = 0; jj < gdim; jj++){
+  //    printf("d%d: ",jj);
+  //    for(int ii = 0; ii < nnmet; ii++) printf(" %f ",metS[ii].deriv(jj));
+  //    printf("\n");
+  //  }
+  //  printf("\n");
+  //}
 
 
   // Get M^{-1/2} into met12_m12

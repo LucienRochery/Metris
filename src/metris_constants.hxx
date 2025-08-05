@@ -235,9 +235,8 @@ namespace Constants{
   hana::make_map(
     hana::make_pair(hana::type_c<double>, r8invtJ_0)
     #ifdef USE_MULTIPRECISION
-    ,
-    hana::make_pair(hana::type_c<float4>, r16invtJ_0),
-    hana::make_pair(hana::type_c<float8>, r32invtJ_0)
+    ,hana::make_pair(hana::type_c<float4>, r16invtJ_0)
+    ,hana::make_pair(hana::type_c<float8>, r32invtJ_0)
     #endif
   );
 

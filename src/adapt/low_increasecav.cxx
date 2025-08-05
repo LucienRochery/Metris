@@ -145,13 +145,18 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
   GETVDEPTH(msh.param);
   int ierro;
 
+  CPRINTF1("-- START setCavityInsertion mgrow = %d\n",mgrow);
+
   intWrkAr1 lrempoi = msh.get_iwork(10);
 
   // Check any close constrained points
   ierro = aux_findCloseConstrained(msh, cav, ithrd1, ithrd2);
   if(ierro > 0) return INS2D_ERR_SHORTCSTR;
 
+
+
   for(int ngrow = 0; ngrow < mgrow; ngrow++){
+    INCVDEPTH(msh.param);
 
     // If need to revert elements
     int nced1 = cav.lcedg.get_n();
@@ -602,12 +607,19 @@ template void check_cavity_rempoint<MetricFieldFE        >
 
 
 // Increase for validity and Delaunay (if idelaunay == true) both. 
+// Argument ref2nordev is optional unless surface is involved. It need not be filled prior. 
 template<class MFT>
-int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav, 
+int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav, 
                     bool idelaunay, int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
   METRIS_ASSERT(ithrd1 != ithrd2);
   METRIS_ASSERT(cav.ipins >= 0 && cav.ipins < msh.npoin);
+
+  static int nwarnprt = 0;
+  if(nwarnprt++ < 10){
+    printf("## Could move nordev checks to increase_cavity. For this, we need to precompute the ccos as in reconnect_faccav.\n");
+  }
+
 
 
   //#ifdef NODELSURF
@@ -645,39 +657,46 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
   if(ibins >= 0) pdim = msh.bpo2ibi(ibins,1);
 
   CPRINTF1("-- START increase_cavity ipins %d dim %d list initial cavity:\n", cav.ipins, pdim);
-  if(DOPRINTS1()){
-    if(cav.lcedg.get_n() > 0){
-      CPRINTF1(" - Edge cavity: ");
-      cav.lcedg.print();
+  cav.print(msh);
+
+
+  // Get normal deviation of initial cavity.
+  if(msh.nperiodic_face != 0){
+    METRIS_THROW_MSG(TODOExcept(),"## CASE WITH PERIODIC FACES NOT HANDLED IN LOW_INCREASECAV")
+    // I think the way to generalize this is not to go all in on generality as in reconnect_faccav,
+    // but to keep this "happy path" centered approach and work around the exceptions locally. 
+    // It is rare in practice to have periodic faces and, even when some exist, most won't be, in real geoms.
+    // Moreover, dealing with this is price paid for each surface insertion, not just on edges. 
+    // We left place in ref2nordev for a second entry, only for periodic refs.
+  }
+
+  dblWrkAr1 ref2nordev_ = msh.get_rwork(2*msh.CAD.ncadfa);
+  dblAr2 ref2nordev(msh.CAD.ncadfa, 2, &ref2nordev_[0]);
+  ref2nordev.fill(-1);
+
+  if(msh.idim >= 3){
+    for(int iface : cav.lcfac){
+      INCVDEPTH(msh.param);
+      int iref = msh.fac2ref[iface];
+      double nordev;
+      CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
+        nordev = getnordev<ideg>(msh,iface,NULL);
+      }}CT_FOR1(ideg);
+      ref2nordev(iref,0) = MAX(ref2nordev(iref,0) , nordev);
+      CPRINTF1(" - iface %d nordev = %f\n",iface,nordev);
     }
-    if(cav.lcfac.get_n() > 0){
-      CPRINTF1(" - Face cavity: ");
-      cav.lcfac.print();
-    }
-    if(cav.lctet.get_n() > 0){
-      CPRINTF1(" - Tetra cavity: ");
-      cav.lctet.print();
+
+    if(DOPRINTS1()){
+      CPRINTF1(" - initial cavity nordev:\n");
+      for(int iref = 0; iref < msh.CAD.ncadfa; iref++){
+        double nordev = ref2nordev(iref,0);
+        if(nordev < 0) continue;
+        CPRINTF1(" - iref %d nordev = %e\n", iref, nordev);
+      }
     }
   }
-  if(DOPRINTS2()){
-    for(int tdim = 1; tdim <= 3; tdim++){
-      if(cav.lcent(tdim).get_n() <= 0) continue;
-      if(tdim == 1){
-        CPRINTF2(" - Edge cavity: \n");
-      }else if(tdim == 2){
-        CPRINTF2(" - Face cavity: \n");
-      }else{
-        CPRINTF2(" - Tetra cavity: \n");
-      }
-      for(int ientt : cav.lcent(tdim)){
-        CPRINTF2("%d : ",ientt);
-        for(int ii = 0; ii < msh.nnode(tdim); ii++){
-          printf(" %d ",msh.ent2poi(tdim)(ientt,ii));
-        }
-        printf("\n");
-      }
-    }
-  }
+
+
 
   int ent2pol[4];
   ent2pol[0] = cav.ipins;
@@ -731,6 +750,7 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
       intAr2 &ent2tag = msh.ent2tag(tdim);
       const intAr2 &sub2tag = msh.ent2tag(tdim-1);
 
+      CPRINTF1(" - inccav tdim %d ncent %d\n",tdim,lcent.get_n());
 
       // Note the bound is reeval'd, can't use range based
       for(int ientl = ient0[tdim-2]; ientl < lcent.get_n(); ientl++){
@@ -779,6 +799,8 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
             }
           }
 
+
+
           // tdim 2: if there's an edge here and it's in the cavity, then it will 
           // be split and we'll get no face from it. 
           // tdim 3: idem, faces. 
@@ -803,13 +825,23 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
             ent2pol[lnofa3[0][2]] = ent2poi(ientt,lnofa3[inei][2]);
           }
 
+          int nod2bpo[3];
+          double nordev_tol = -1;
+          if(msh.idim == 3 && tdim == 2){
+            int iref = msh.fac2ref[ientt];
+            nordev_tol = ref2nordev(iref,0);
+            nod2bpo[0] = pdim == 2 ? msh.poi2bpo[cav.ipins] : -1;
+            nod2bpo[1] = msh.poi2ebp(ent2pol[1], 2, ientt, iref);
+            nod2bpo[2] = msh.poi2ebp(ent2pol[2], 2, ientt, iref);
+            CPRINTF1(" - using nordevtol = %e for face ref %d\n", nordev_tol, iref);
+          }
+
           // First, check if this is a sliver
-          bool iflat;
           double meas0;
-          meas0 = msh.idim == 2 ? getmeasentP1<2,2>(msh, ent2pol, norCAD, &iflat)
-                :     tdim == 2 ? getmeasentP1<3,2>(msh, ent2pol, norCAD, &iflat)
-                                : getmeasentP1<3,3>(msh, ent2pol, norCAD, &iflat);
-          
+          bool ivalid = msh.idim == 2 ? isvalideltP1<2,2>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol) 
+                      :     tdim == 2 ? isvalideltP1<3,2>(msh, ent2pol, nod2bpo, NULL, &meas0, nordev_tol) 
+                                      : isvalideltP1<3,3>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol); // NORCAD
+          bool iflat = !ivalid;
           CPRINTF1("   - inccav pdim %d tdim %d ent %d = ",pdim,tdim,ientt);
           if(DOPRINTS1()){
             if(tdim == 2){
@@ -817,8 +849,9 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
             }else{
               printf(" %d %d %d %d ",ent2pol[0],ent2pol[1],ent2pol[2],ent2pol[3]);
             }
+            printf("\n");
           }
-          CPRINTF1(" w/ vtol = %f got iflat = %d meas0 = %15.7e neighbour = %d\n",
+          CPRINTF1("   - w/ vtol = %e got iflat = %d meas0 = %15.7e neighbour = %d\n",
                    msh.param->vtol,iflat,meas0,ienei);
 
           #if 0
@@ -958,6 +991,8 @@ int increase_cavity(MeshMetric<MFT> &msh, MshCavity &cav,
 
   }while(restart);
 
+  CPRINTF1("-- END increase_cavity final cavity:\n");
+  cav.print(msh);
   return 0;
 }
 
@@ -978,6 +1013,10 @@ template int increase_cavity(MeshMetric<MetricFieldFE        > &msh, MshCavity &
 int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
   GETVDEPTH(msh.param);
 
+  static int nwarnprt = 0;
+  if(nwarnprt++ < 10){
+    printf("## Could move nordev checks to increase_cavity. For this, we need to precompute the ccos as in reconnect_faccav.\n");
+  }
   METRIS_ASSERT(cav.ipins >= 0 && cav.ipins < msh.npoin);
 
   msh.tag[ithread]++;
@@ -1200,11 +1239,18 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
           }
 
           // First, check if this is a sliver
+          int nod2bpo[3];
+          if(msh.idim == 3 && tdim == 2){
+            int iref = msh.fac2ref[ientt];
+            nod2bpo[0] = ibins;
+            nod2bpo[1] = msh.poi2ebp(ent2pol[1], 2, ientt, iref);
+            nod2bpo[2] = msh.poi2ebp(ent2pol[2], 2, ientt, iref);
+          }
           bool iflat;
           double meas0;
-          meas0 = msh.idim == 2 ? getmeasentP1<2,2>(msh, ent2pol, norCAD, &iflat)
-                :     tdim == 2 ? getmeasentP1<3,2>(msh, ent2pol, norCAD, &iflat)
-                                : getmeasentP1<3,3>(msh, ent2pol, norCAD, &iflat);
+          meas0 = msh.idim == 2 ? getmeasentP1<2,2>(msh, ent2pol, nod2bpo, norCAD, &iflat, -1)
+                :     tdim == 2 ? getmeasentP1<3,2>(msh, ent2pol, nod2bpo, norCAD, &iflat, -1)
+                                : getmeasentP1<3,3>(msh, ent2pol, nod2bpo, norCAD, &iflat, -1);
           
           CPRINTF1("   - inccav pdim %d tdim %d ent %d = ",pdim,tdim,ientt);
           if(DOPRINTS1()){

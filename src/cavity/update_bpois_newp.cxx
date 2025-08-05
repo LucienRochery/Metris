@@ -99,8 +99,9 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
                                    tedg, msh.bpo2rbi[ibpoi]);
           CPRINTF1("   - new (u,v) = %e %e\n",
                    msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
-
           METRIS_ENFORCE_MSG(icode == 0,"EG_getEdgeUV error "<<icode);
+          
+          break;
         }
         if(found_update) break;
       }

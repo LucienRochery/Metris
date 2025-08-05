@@ -8,6 +8,7 @@
 #include "normal.hxx"
 
 #include "../linalg/det.hxx"
+#include "../utils/mprintf.hxx"
 
 #include "../Mesh/MeshMetric.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -32,55 +33,105 @@ double getmeasentP1(const int *ent2pol, const dblAr2& coord){
   }
 }
 
+template double getmeasentP1<1>(const int *ent2pol, const dblAr2 &coord);
+template double getmeasentP1<2>(const int *ent2pol, const dblAr2 &coord);
+template double getmeasentP1<3>(const int *ent2pol, const dblAr2 &coord);
+
 
 
 template <int gdim, int tdim>
-bool isvalidelt(const MeshBase& msh, int ientt, const double* norref, double *meas){
+bool isvalideltP1(const MeshBase&__restrict__ msh, int ientt, const double*__restrict__ norref, 
+                  double*__restrict__ meas, double nordev_tol){
   bool iflat;
-  double meas1 = getmeasentP1<gdim,tdim>(msh, msh.ent2poi(tdim)[ientt], norref, &iflat);
+  double meas1 = getmeasentP1<gdim,tdim>(msh, ientt, norref, &iflat, nordev_tol);
   if(meas != NULL) *meas = meas1;
-  return iflat;
+  return !iflat;
 }
 
-template bool isvalidelt<2,2>(const MeshBase& msh, int ientt, const double* norref, double* meas);
-template bool isvalidelt<3,2>(const MeshBase& msh, int ientt, const double* norref, double* meas);
-template bool isvalidelt<3,3>(const MeshBase& msh, int ientt, const double* norref, double* meas);
+template bool isvalideltP1<2,2>(const MeshBase&__restrict__ msh, int ientt, const double*__restrict__ norref, 
+                                double*__restrict__ meas, double nordev_tol);
+template bool isvalideltP1<3,2>(const MeshBase&__restrict__ msh, int ientt, const double*__restrict__ norref, 
+                                double*__restrict__ meas, double nordev_tol);
+template bool isvalideltP1<3,3>(const MeshBase&__restrict__ msh, int ientt, const double*__restrict__ norref, 
+                                double*__restrict__ meas, double nordev_tol);
 
 
+template <int gdim, int tdim>
+bool isvalideltP1(const MeshBase&__restrict__ msh, int ientt, const int*__restrict__ nod2bpo, 
+                  const double*__restrict__ norref, double*__restrict__ meas, double nordev_tol){
+  bool iflat;
+  double meas1 = getmeasentP1<gdim,tdim>(msh, msh.ent2poi(tdim)[ientt], nod2bpo, norref, &iflat, nordev_tol);
+  if(meas != NULL) *meas = meas1;
+  return !iflat;
+}
+
+template bool isvalideltP1<2,2>(const MeshBase&__restrict__ msh, int ientt, const int*__restrict__ nod2bpo, 
+                                const double*__restrict__ norref, double*__restrict__ meas, double nordev_tol);
+template bool isvalideltP1<3,2>(const MeshBase&__restrict__ msh, int ientt, const int*__restrict__ nod2bpo, 
+                                const double*__restrict__ norref, double*__restrict__ meas, double nordev_tol);
+template bool isvalideltP1<3,3>(const MeshBase&__restrict__ msh, int ientt, const int*__restrict__ nod2bpo, 
+                                const double*__restrict__ norref, double*__restrict__ meas, double nordev_tol);
+
+template <int gdim, int tdim>
+bool isvalideltP1(const MeshBase&__restrict__ msh, const int*__restrict__ ent2pol, const int*__restrict__ nod2bpo, 
+                  const double*__restrict__ norref, double*__restrict__ meas, double nordev_tol){
+  bool iflat;
+  double meas1 = getmeasentP1<gdim,tdim>(msh, ent2pol, nod2bpo, norref, &iflat, nordev_tol);
+  if(meas != NULL) *meas = meas1;
+  return !iflat;
+}
+
+template bool isvalideltP1<2,2>(const MeshBase&__restrict__ msh, const int*__restrict__ ent2pol, const int*__restrict__ nod2bpo, 
+                                const double*__restrict__ norref, double*__restrict__ meas, double nordev_tol);
+template bool isvalideltP1<3,2>(const MeshBase&__restrict__ msh, const int*__restrict__ ent2pol, const int*__restrict__ nod2bpo, 
+                                const double*__restrict__ norref, double*__restrict__ meas, double nordev_tol);
+template bool isvalideltP1<3,3>(const MeshBase&__restrict__ msh, const int*__restrict__ ent2pol, const int*__restrict__ nod2bpo, 
+                                const double*__restrict__ norref, double*__restrict__ meas, double nordev_tol);
+
+
+template<int gdim, int tdim>
+double getmeasentP1(const MeshBase &msh, int ientt, 
+                    const double* norref, bool*__restrict__ iflat, double nordev_tol){
+  int nod2bpo[3];
+  if constexpr(tdim == 2 && gdim == 3){
+    nod2bpo[0] = msh.poi2ebp(msh.fac2poi(ientt,0), 2, ientt, msh.fac2ref[ientt]);
+    nod2bpo[1] = msh.poi2ebp(msh.fac2poi(ientt,1), 2, ientt, msh.fac2ref[ientt]);
+    nod2bpo[2] = msh.poi2ebp(msh.fac2poi(ientt,2), 2, ientt, msh.fac2ref[ientt]);
+  }
+  return getmeasentP1<gdim,tdim>(msh, msh.ent2poi(tdim)[ientt], nod2bpo, norref, iflat, nordev_tol);
+}
+template double getmeasentP1<2,2>(const MeshBase&__restrict__ msh, int ientt, 
+                                  const double*__restrict__ norref, bool*__restrict__ iflat, double nordev_tol);
+template double getmeasentP1<3,2>(const MeshBase&__restrict__ msh, int ientt, 
+                                  const double*__restrict__ norref, bool*__restrict__ iflat, double nordev_tol);
+template double getmeasentP1<3,3>(const MeshBase&__restrict__ msh, int ientt, 
+                                  const double*__restrict__ norref, bool*__restrict__ iflat, double nordev_tol);
 
 // This variant returns whether above or below specified tolerance
 // nrmal only required if tdim == 2 and gdim == 3 (surface), can be NULL otherwise
 // norCAD can be computed discretely, it is just a reference normal pointing inwards
 template<int gdim, int tdim>
-double getmeasentP1(const MeshBase &msh, const int* ent2pol, 
-                    const double* norref, bool* iflat){
-  return getmeasentP1<gdim,tdim>(msh.param, ent2pol, msh.coord, norref, iflat);
-}
-
-// This variant returns whether above or below specified tolerance
-// nrmal only required if tdim == 2 and gdim == 3 (surface), can be NULL otherwise
-// norCAD can be computed discretely, it is just a reference normal pointing inwards
-template<int gdim, int tdim>
-double getmeasentP1(const MetrisParameters *param, 
-                    const int* ent2pol, 
-                    const dblAr2 &coord,
-                    const double* norref, bool* iflat){
-
+double getmeasentP1(const MeshBase&__restrict__ msh, const int*__restrict__ ent2pol, 
+                    const int*__restrict__ nod2bpo,
+                    const double*__restrict__ norref, bool*__restrict__ iflat, double nordev_tol){
+  GETVDEPTH(msh.param);
   static_assert(gdim == 2 || gdim == 3);
   static_assert(tdim <= gdim);
+
+  //const intAr2 &ent2poi = msh.ent2poi(tdim);
 
   double fac, det;
   if constexpr(tdim == 2){ 
 
-    double nrm1 = geterrl2<gdim>(coord[ent2pol[0]],coord[ent2pol[1]]);
-    double nrm2 = geterrl2<gdim>(coord[ent2pol[0]],coord[ent2pol[2]]);
-    double nrm3 = geterrl2<gdim>(coord[ent2pol[1]],coord[ent2pol[2]]);
+    double nrm1 = geterrl2<gdim>(msh.coord[ent2pol[0]],msh.coord[ent2pol[1]]);
+    double nrm2 = geterrl2<gdim>(msh.coord[ent2pol[0]],msh.coord[ent2pol[2]]);
+    double nrm3 = geterrl2<gdim>(msh.coord[ent2pol[1]],msh.coord[ent2pol[2]]);
 
     fac = 2*std::cbrt(nrm1*nrm2*nrm3); // cubic root, homo to h^2
 
     if constexpr(gdim == 2){
-      det = detvdif2(coord[ent2pol[1]],coord[ent2pol[0]],
-                      coord[ent2pol[2]],coord[ent2pol[0]]);
+      det = detvdif2(msh.coord[ent2pol[1]],msh.coord[ent2pol[0]],
+                     msh.coord[ent2pol[2]],msh.coord[ent2pol[0]]);
     }else{
       // Measure of the face projected in the plane norCAD ^ orth. Could be zero
       // Notice there exists rotation R st edges l1, l2 verify 
@@ -94,7 +145,7 @@ double getmeasentP1(const MetrisParameters *param,
       // Thus we simply replace the 2D determinant with the norm of the normal 
       double norfac[3];
 
-      getnorfacP1(ent2pol,coord,norfac);
+      getnorfacP1(ent2pol,msh.coord,norfac);
       double nrm = getnrml2<3>(norfac);
       if(nrm < Constants::vecNrmTol){
         *iflat = true;
@@ -117,52 +168,52 @@ double getmeasentP1(const MetrisParameters *param,
       }
 
       // Additionally, check normal deviation
-      // double nordev = getnordev<1>(msh,ientt);
+      if(nordev_tol >= 0){
+        double nordev = getnordev<1>(msh,ent2pol,nod2bpo,norfac);
+        CPRINTF1(" - getmeasentP1 got nordev = %e, tol = %e\n",nordev,nordev_tol);
+        if(nordev > nordev_tol){
+          //printf("## DEBUG nordev = %e > tol = %e\n",nordev,nordev_tol);
+          //printf("WAIT HERE nordev \n");
+          //wait();
+          *iflat = true;
+          return det/2;
+        }
+      }
 
     }
     det /= 2;
 
   }else if(tdim == 3){
 
-
-    double nrm1 = geterrl2<gdim>(coord[ent2pol[0]],coord[ent2pol[1]]);
-    double nrm2 = geterrl2<gdim>(coord[ent2pol[0]],coord[ent2pol[2]]);
-    double nrm3 = geterrl2<gdim>(coord[ent2pol[0]],coord[ent2pol[3]]);
-    double nrm4 = geterrl2<gdim>(coord[ent2pol[1]],coord[ent2pol[2]]);
-    double nrm5 = geterrl2<gdim>(coord[ent2pol[1]],coord[ent2pol[3]]);
-    double nrm6 = geterrl2<gdim>(coord[ent2pol[2]],coord[ent2pol[3]]);
+    double nrm1 = geterrl2<gdim>(msh.coord[ent2pol[0]],msh.coord[ent2pol[1]]);
+    double nrm2 = geterrl2<gdim>(msh.coord[ent2pol[0]],msh.coord[ent2pol[2]]);
+    double nrm3 = geterrl2<gdim>(msh.coord[ent2pol[0]],msh.coord[ent2pol[3]]);
+    double nrm4 = geterrl2<gdim>(msh.coord[ent2pol[1]],msh.coord[ent2pol[2]]);
+    double nrm5 = geterrl2<gdim>(msh.coord[ent2pol[1]],msh.coord[ent2pol[3]]);
+    double nrm6 = geterrl2<gdim>(msh.coord[ent2pol[2]],msh.coord[ent2pol[3]]);
     // full prod is homo h^12; det only h^3
     fac = 6*sqrt(sqrt(nrm1*nrm2*nrm3*nrm4*nrm5*nrm6));
 
-    det = detvdif3(coord[ent2pol[1]],coord[ent2pol[0]],
-                    coord[ent2pol[2]],coord[ent2pol[0]],
-                    coord[ent2pol[3]],coord[ent2pol[0]]);
+    det = detvdif3(msh.coord[ent2pol[1]],msh.coord[ent2pol[0]],
+                   msh.coord[ent2pol[2]],msh.coord[ent2pol[0]],
+                   msh.coord[ent2pol[3]],msh.coord[ent2pol[0]]);
     det /= 6; 
 
   } 
-  *iflat = (det < param->vtol * fac) || fac < 1.0e-16;
+  *iflat = (det < msh.param->vtol * fac) || fac < 1.0e-16;
+  //CPRINTF1("-- END getmeasentP1 got meas = %e, iflat = %d\n",det,*iflat);
   return det;
 }
 
-
-template double getmeasentP1<1>(const int *ent2pol, const dblAr2 &coord);
-template double getmeasentP1<2>(const int *ent2pol, const dblAr2 &coord);
-template double getmeasentP1<3>(const int *ent2pol, const dblAr2 &coord);
-template double getmeasentP1<2,2>(const MeshBase &msh, const int* ent2pol, 
-                                  const double* norref, bool* iflat);
-template double getmeasentP1<3,2>(const MeshBase &msh, const int* ent2pol, 
-                                  const double* norref, bool* iflat);
-template double getmeasentP1<3,3>(const MeshBase &msh, const int* ent2pol, 
-                                  const double* norref, bool* iflat);
-template double getmeasentP1<2,2>(const MetrisParameters *msh, 
-                                  const int* ent2pol, const dblAr2 &coord,
-                                  const double* norref, bool* iflat);
-template double getmeasentP1<3,2>(const MetrisParameters *msh, 
-                                  const int* ent2pol, const dblAr2 &coord,
-                                  const double* norref, bool* iflat);
-template double getmeasentP1<3,3>(const MetrisParameters *msh, 
-                                  const int* ent2pol, const dblAr2 &coord,
-                                  const double* norref, bool* iflat);
+template double getmeasentP1<2,2>(const MeshBase&__restrict__ msh, const int*__restrict__ ent2pol,
+                                  const int*__restrict__ nod2bpo, 
+                                  const double*__restrict__ norref, bool*__restrict__ iflat, double nordev_tol);
+template double getmeasentP1<3,2>(const MeshBase&__restrict__ msh, const int*__restrict__ ent2pol,
+                                  const int*__restrict__ nod2bpo, 
+                                  const double*__restrict__ norref, bool*__restrict__ iflat, double nordev_tol);
+template double getmeasentP1<3,3>(const MeshBase&__restrict__ msh, const int*__restrict__ ent2pol,
+                                  const int*__restrict__ nod2bpo, 
+                                  const double*__restrict__ norref, bool*__restrict__ iflat, double nordev_tol);
 
 
 

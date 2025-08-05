@@ -68,13 +68,8 @@ void check_topo(MeshBase &msh,
           getnorfacP1(msh.fac2poi[ientt], msh.coord, nrmal);
         }
 
-        bool iflat;
-        double meas = getmeasentP1<gdim,tdim>(msh,ent2poi[ientt],nrmal,&iflat);
-        if(iflat || meas <= 0){
-          printf("## FLAT ELEMENT %d \n",ientt);
-          writeMesh("flat"+std::to_string(ientt),msh);
-          METRIS_THROW(GeomExcept());
-        }
+        bool iflat = !isvalideltP1<gdim,tdim>(msh, ientt, nrmal, NULL, -1 );
+        METRIS_ENFORCE(!iflat);
         if(msh.curdeg > 1){
           CT_FOR0_INC(2,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
             getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,&ccoef[0],&iflat);

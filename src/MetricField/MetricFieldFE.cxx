@@ -14,6 +14,7 @@
 #include "../low_eval.hxx"
 #include "../io_libmeshb.hxx"
 #include "../utils/CT_loop.hxx"
+#include "../utils/mprintf.hxx"
 #include "../msh_structs.hxx"
 #include "../linalg/invmat.hxx"
 #include "../linalg/explogmet.hxx"
@@ -213,6 +214,8 @@ void MetricFieldFE::readMetricFile(std::string inpname){
 
 void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
 
+  GETVDEPTH(msh.param);
+
   // For now, always force writing as exp metric. 
   const MetSpace outspac = MetSpace::Exp;
 
@@ -221,8 +224,6 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
     std::cout<<"## Skip writeMetricFile = "<<outname<<"\n";
     return;
   }
-
-  int iverb = msh.param->iverb;
 
   dblAr2 buffer;
   if(outspac == this->ispace){
@@ -271,16 +272,13 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
     GmfSetLin(libIdx,GmfComments,buf);
   } 
 
-  std::cout<<"-- Write file "<<metName<<std::endl;
+  CPRINTF1("-- START writing file %s\n",metName.c_str());
 
 
- // if(iverb>0)std::cout<<"-- Start writing metrics: "<<msh.npoin<<std::endl;
   GmfSetKwd(libIdx, GmfSolAtVertices, msh.npoin, 1, &szfld);
   GmfSetBlock(libIdx, GmfSolAtVertices, 1, msh.npoin, 0, NULL, NULL,
-    GmfDoubleVec, nnmet, buffer[0], buffer[msh.npoin-1]);
- //               GmfDoubleVec, 3, &coord[0], &coord[npoin-1],
-//                GmfInt         , &poi2bpo[0], &poi2bpo[npoin-1]);
-  if(iverb >= 3) std::cout<<"-- Done  writing metric"<<std::endl;
+              GmfDoubleVec, nnmet, buffer[0], buffer[msh.npoin-1]);
+  CPRINTF1("-- END writing metric\n");
 
 
   GmfCloseMesh( libIdx );

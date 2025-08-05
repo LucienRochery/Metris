@@ -39,6 +39,7 @@ int insertEdge(Mesh<MFT>& msh,
 
   int iverb0   = msh.param->iverb;
   int ivdepth0 = msh.param->ivdepth;
+  int ierro_cavity = 0;
   //if(icollapse){
   //  printf("## DEBUG SET MAX PRINTS \n");
   //  writeMesh("debug",msh);
@@ -79,6 +80,7 @@ int insertEdge(Mesh<MFT>& msh,
   opts.qmax_nec = -1;
   opts.qmax_suf = -1;
   opts.qmax_iff = -1;
+  bool idbg = false;
 
   int mgrow = 100;
 
@@ -173,8 +175,17 @@ int insertEdge(Mesh<MFT>& msh,
     }
   }
 
+  //if(!icollapse && tdimp == 2 && iref == 4 && msh.idim == 3){
+  //  printf("## DEBUG MAX PRINTS\n");
+  //  iverb__ = 5;
+  //  ivdepth__ = 20;
+  //  msh.param->iverb = iverb__;
+  //  msh.param->ivdepth = ivdepth__;
+  //  writeMesh("debug_insert0",msh);
+  //}
 
-  CPRINTF1(" - create ipins %d tdim = %d seed %d ref %d\n",cav.ipins,tdimp,iseed,iref);
+
+  CPRINTF1(" - create ipins %d tdim = %d seed %d ref %d icollapse %d\n",cav.ipins,tdimp,iseed,iref,icollapse);
 
   bool imoved_point = false;
 
@@ -183,10 +194,11 @@ int insertEdge(Mesh<MFT>& msh,
     CPRINTF1(" # Failed aux_bisecPointLen ierro = %d\n",ierro);
     goto cleanup;
   }
+  // Seed the cavity properly
+  ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
 
 
   if(icollapse){
-    ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
     ierro = collrejcav_lenqua(msh, cav, false, false, false, -1, nocomp, ithrd2);
     if(ierro > 0){
       ierro = INS2D_ERR_SHORTEDG;
@@ -220,13 +232,32 @@ int insertEdge(Mesh<MFT>& msh,
 
 call_cavity:
 
+  // nordev is now checked in the cavity
+  #if 0
   // Effects both insertions and collapses
   if(tdimp == 2 && msh.idim == 3){
-    if(rejcavnordev(msh,cav,ibins,ithrd1)){
+    int iverb0 = msh.param->iverb;
+    int ivdepth0 = msh.param->ivdepth;
+    //if(msh.fac2ref[cav.lcfac[0]] == 4){
+    //  msh.param->iverb = 5;
+    //  msh.param->ivdepth = 10;
+    //  idbg = true;
+    //  printf("## DEBUG SET MAX PRINTS\n");
+    //  writeMesh("debug_insert.meshb",msh);
+    //}
+    bool irej = rejcavnordev(msh,cav,ibins,ithrd1);
+    msh.param->iverb = iverb0;
+    msh.param->ivdepth = ivdepth0;
+    //if(idbg && !irej){
+    //  printf("## DEBUG WAIT HERE irej = %d\n",irej);
+    //  wait();
+    //}
+    if(irej){
       ierro = INS2D_ERR_NORDEV;
       goto cleanup;
     }
   }
+  #endif
 
   irestart_cav = false;
 restart_cavity:
@@ -236,6 +267,8 @@ restart_cavity:
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
     ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd1);
   }}CT_FOR1(ideg);
+  ierro_cavity = ierro;
+
 
   //if(DOPRINTS1()){
   //  msh.param->iverb = iverb0;
@@ -280,10 +313,17 @@ restart_cavity:
 
   if(ierro > 0) lerro[ierro-1]++;
 
+
   if(ierro != 0) ierro = INS2D_ERR_CAVITYOPERATOR;
 
   if(info.done){
 
+    if(idbg){
+      printf("## CAVITY SUCCESSFUL inserted ipoin %d \n",cav.ipins);
+      writeMeshCavity("insert_cavity_success.meshb", msh, cav);
+      writeMesh("insert_mesh_success.meshb", msh);
+      wait();
+    }
     CPRINTF1("-- END insertEdge ipins = %d  \n",cav.ipins);
     #ifndef NDEBUG
       if(DOPRINTS2()) writeMesh("debug_insert1.meshb",msh);
@@ -295,13 +335,11 @@ restart_cavity:
 
   cleanup:
   msh.killpoint(cav.ipins);
-  if(DOPRINTS1()){
-    msh.param->iverb = iverb0;
-    msh.param->ivdepth = ivdepth0;
-    //printf("## END OF OPERATION WAIT ierro = %d\n",ierro);
-    //printf("lerro:");
-    //lerro.print();
-    //wait();
+  msh.param->iverb = iverb0;
+  msh.param->ivdepth = ivdepth0;
+  if(DOPRINTS1() && ierro_cavity > 0){
+    printf("## DEBUG IERRO = %d \n",ierro_cavity);
+    wait();
   }
   return ierro;
 }

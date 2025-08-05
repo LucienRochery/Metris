@@ -265,7 +265,8 @@ struct CavWrkArrs{
   intAr1 lfcco;
 
   // Store normals for each connex component of the cavity.
-  dblAr2 lnorf;
+  dblAr2 lnorcco;
+  dblAr1 lnordevcco;
 
   // -- Line cavity info, for update_cavity
   intAr1 lseed; // store the seed edge (initially in the cavity) that lead to a new element
@@ -283,7 +284,8 @@ struct CavWrkArrs{
 
     lfcco.allocate(100);
 
-    lnorf.allocate(10,3);
+    lnorcco.allocate(10,3);
+    lnordevcco.allocate(10);
     edcco.allocate(10);
   }
 

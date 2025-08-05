@@ -274,7 +274,7 @@ double getminccoef(MeshBase &msh){
     bool iflat;
     if(!(vol > 0.0)){
       printf("## FATAL vol = %15.7e \n", vol);
-      vol = getmeasentP1<gdim,gdim>(msh, ent2poi[ielem], NULL, &iflat);
+      vol = getmeasentP1<gdim,gdim>(msh, ielem, NULL, &iflat);
       printf("Recompute with tol %15.7e iflat %d \n",vol, iflat);
       printf("element is %d = ", ielem);
       intAr1(tdim + 1, ent2poi[ielem]).print();

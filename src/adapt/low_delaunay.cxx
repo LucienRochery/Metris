@@ -209,7 +209,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
     r1 = tvecXsymXvec<tdim>(buf,buf,metl);
   }
 
-  CPRINTF1("-- END indelsphere %d %d  r = %f r1 = %f centr ",gdim,tdim,r,r1);
+  CPRINTF1("-- END indelsphere<%d,%d> ? %d  r = %f r1 = %f centre = ",gdim,tdim,r1<r,r,r1);
   if(DOPRINTS1()){
     dblAr1(tdim,centr).print();
   }

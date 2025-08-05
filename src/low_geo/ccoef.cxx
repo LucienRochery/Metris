@@ -41,7 +41,7 @@ void getccoef(const MeshBase &msh, int ientt, double *nrmal, double *ccoef){
   // ccoef_genbez do not exist for ideg == 1 
   if constexpr(ideg == 1){
     bool iflat;
-    ccoef[0] = ifact<tdim>()*getmeasentP1<gdim,tdim>(msh, ent2poi[ientt], nrmal, &iflat);
+    ccoef[0] = ifact<tdim>()*getmeasentP1<gdim,tdim>(msh, ientt, nrmal, &iflat);
   }else if constexpr(ideg >= 4 || gdim != tdim){
     METRIS_ASSERT(nrmal != NULL);
     ccoef_eval<gdim,tdim,ideg>(msh.getBasis(),ent2poi,msh.coord,ientt,nrmal,ccoef);
@@ -76,8 +76,8 @@ void getsclccoef(const MeshBase &msh, int ientt, double *nrmal,
   constexpr int jdeg = tdim * (ideg - 1);
   constexpr int ncoef = tdim == 2 ? getnnod2(jdeg) 
                                   : getnnod3(jdeg);
-  const intAr2 &ent2poi = msh.ent2poi(tdim);
-  double meas = getmeasentP1<gdim,tdim>(msh,ent2poi[ientt],nrmal,iinva);
+  //const intAr2 &ent2poi = msh.ent2poi(tdim);
+  double meas = getmeasentP1<gdim,tdim>(msh,ientt,nrmal,iinva);
   constexpr int fact = ifact<tdim>();
 
   for(int icoef = 0; icoef < ncoef; icoef++){
@@ -128,8 +128,8 @@ void getccoef_dpoint(const MeshBase &msh, int ientt, int inode, double *ccoef, d
     int ifac = ifact<idim>();
     if(ccoef != NULL){
       bool iflat;
-      const intAr2& ent2poi = msh.ent2poi(idim);
-      ccoef[0] = ifac*getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iflat);
+      //const intAr2& ent2poi = msh.ent2poi(idim);
+      ccoef[0] = ifac*getmeasentP1<idim,idim>(msh, ientt, NULL, &iflat);
     } 
     if constexpr(idim == 2){
       // def (x y)^orth = (y -x)

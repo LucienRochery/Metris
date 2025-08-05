@@ -19,8 +19,12 @@ enum class AsDeg;
 // ------------------------------------------------------------------------
 void getnorfacP1(const int *fac2pol, const dblAr2 &coord, double *nrmal);
 
-void getnorfac(const MeshBase &msh, int iface, 
-               const double *bary, AsDeg asdmsh, double *nrmal);
+// This should be preferred if the face is in the mesh:
+void getnorfac(const MeshBase&__restrict__ msh, int iface, 
+               const double*__restrict__ bary, AsDeg asdmsh, double*__restrict__ nrmal);
+// This is only for temporary faces:
+void getnorfac(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol, 
+               const double*__restrict__ bary, AsDeg asdmsh, double*__restrict__ nrmal);
 
 // Average normals at the vertices
 // To compute the CAD normal, the safest is to average the vertex normals.
@@ -51,9 +55,15 @@ int gettanpoiref(const MeshBase &msh, int ipoin, int iref, double* tanpoi);
 // Compute normal deviation
 // ------------------------------------------------------------------------
 // Normalized dotprod difference to 1 of CAD/elt normals accumulated over the nodes
+// - norfac can be provided if already computed by caller, only works in P1 and not necessary.
 template<int ideg>
-double getnordev(const MeshBase& msh, int iface);
+double getnordev(const MeshBase&__restrict__ msh, int iface, const double*__restrict__ norfac = NULL);
 
+// This is only for temporary faces:
+// nod2bpo holds the ibpois for the element nodes
+template<int ideg>
+double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol,
+                 const int*__restrict__ nod2bpo, const double*__restrict__ norfac);
 
 }// namespace
 

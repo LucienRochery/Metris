@@ -234,7 +234,7 @@ int correct_cavity0(Mesh<MFT> &msh,
     int nent0 = tdim == 2 ? nfac0 : nele0;
     int nentt = msh.nentt(tdim);
     
-    const intAr2& ent2poi = msh.ent2poi(tdim);
+    //const intAr2& ent2poi = msh.ent2poi(tdim);
 
     for(int ientt = nent0; ientt < nentt; ientt++){
       INCVDEPTH(msh.param);
@@ -244,7 +244,7 @@ int correct_cavity0(Mesh<MFT> &msh,
 
       bool iflat = false;
       if constexpr(ideg == 1){
-        double meas = getmeasentP1<gdim,tdim>(msh, ent2poi[ientt], nrmal, &iflat);
+        double meas = getmeasentP1<gdim,tdim>(msh, ientt, nrmal, &iflat);
         if(DOPRINTS1()){
           if constexpr (tdim == 2){
             CPRINTF1(" - %d tdim %d ientt %d meas %e iflat %d using normal ",

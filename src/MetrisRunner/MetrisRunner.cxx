@@ -66,6 +66,7 @@ void MetrisRunner::degElevate0(){
 
   CT_FOR0_EXC(1,METRIS_MAX_DEG,ideg){
     CT_FOR0_INC(ideg+1,METRIS_MAX_DEG,tdeg){
+      INCVDEPTH(msh.param);
       if(ideg == ideg0 && tdeg == param_.usrTarDeg){
         CPRINTF1("-- Degree elevation %d -> %d \n",ideg,tdeg);  
         deg_elevate<MFT,ideg,tdeg>(msh);

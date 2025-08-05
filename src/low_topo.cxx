@@ -366,7 +366,7 @@ void ball3_nm(MeshBase& __restrict__ msh,
               int* __restrict__ nball_,
               int* __restrict__ nbfac_,
               intAr1&           lball,
-              intAr1&           lbfac, 
+              [[maybe_unused]] intAr1&           lbfac, 
               int* __restrict__ iopen,
               int ithread){
 	int iball,ielem,i,iele2,nball,nbfac;
@@ -404,15 +404,15 @@ void ball3_nm(MeshBase& __restrict__ msh,
 			// This face is opposite the vertex: ball boundary
 			if(iver == i) continue;
 
-			// The array was devised to avoid unnecessary hash table lookups
-			if(msh.tet2ftg[ielem]){
-				int iface = msh.tetfac2glo(ielem,i);
-				if(iface < 0 || iface >= msh.nface) 
-					METRIS_THROW_MSG(TopoExcept(),"Face missing or invalid in hash tab "<<iface<<"\n");
-       nbfac++; 
-				if(nbfac > lbfac.size1()) METRIS_THROW(SMemExcept());
-				lbfac[nbfac-1] = iface; 
-			}
+			//// The array was devised to avoid unnecessary hash table lookups
+			//if(msh.tet2ftg[ielem]){
+			//	int iface = msh.tetfac2glo(ielem,i);
+			//	if(iface < 0 || iface >= msh.nface) 
+			//		METRIS_THROW_MSG(TopoExcept(),"Face missing or invalid in hash tab "<<iface<<"\n");
+      //  nbfac++; 
+			//	if(nbfac > lbfac.size1()) METRIS_THROW(SMemExcept());
+			//	lbfac[nbfac-1] = iface; 
+			//}
 
 			iele2 = msh.tet2tet(ielem,i);
 			assert("Neighbour table correct " && iele2 >= -1);
@@ -806,7 +806,7 @@ void shell(const MeshBase& msh,
   if(dotet) lstet.set_n(0);
 
 
-  CPRINTF1("-- START shell3 seed %d dim %d edge %d %d doedg %d dofac %d dotet %d\n",
+  CPRINTF1("-- START shell seed %d dim %d edge %d %d doedg %d dofac %d dotet %d\n",
            iele0,tdim,ipoi1,ipoi2, doedg, dofac, dotet);
 
   // Skip straight to shell3-like; only if tet seeded and edge not requested
@@ -877,12 +877,12 @@ void shell(const MeshBase& msh,
 
     if(ifac1 >= 0){
       lsfac.stack(ifac1);
-      return;
+      goto endfun;
     }
 
     if(ifac1 == -1){
       *iopen = 1;
-      return;
+      goto endfun;
     }
 
     ifac1 = ifac0;
@@ -890,13 +890,13 @@ void shell(const MeshBase& msh,
       lsfac.stack(ifac1);
     }
     
-    return;
+    goto endfun;
   }
 
 
 
 
-  if(!dotet) return;
+  if(!dotet) goto endfun;
 
   doshell3:
 
@@ -944,6 +944,10 @@ void shell(const MeshBase& msh,
     }
     if(iele2 == itet0) break;
   }
+
+  endfun:
+  CPRINTF1("-- END shell nedge %d nface %d ntetr %d\n",
+           lsedg.get_n(), lsfac.get_n(), lstet.get_n());
 }
 
 

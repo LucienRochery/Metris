@@ -31,6 +31,8 @@ int aux_findCloseConstrained(Mesh<MFT>& msh, MshCavity &cav,
                              int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
 
+  int ierro = 0;
+  
   int nced0 = cav.lcedg.get_n();
   int ncfa0 = cav.lcfac.get_n();
   int ncte0 = cav.lctet.get_n();
@@ -66,7 +68,8 @@ int aux_findCloseConstrained(Mesh<MFT>& msh, MshCavity &cav,
         if(len >= 1.0/sqrt(2)) continue;
         CPRINTF1(" # At least one close constrained point, stop here\n");
         msh.tag[ithrd1]++;
-        return 1;
+        ierro = 1;
+        goto cleanup;
       }
     }
     if(niter == 1) break;
@@ -89,11 +92,12 @@ int aux_findCloseConstrained(Mesh<MFT>& msh, MshCavity &cav,
     iice1 = lcent.get_n();
   }
 
+  cleanup:
   msh.tag[ithrd1]++;
   cav.lcedg.set_n(nced0);
   cav.lcfac.set_n(ncfa0);
   cav.lctet.set_n(ncte0);
-  return 0;
+  return ierro;
 }
 template int aux_findCloseConstrained<MetricFieldAnalytical>(
   Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, int ithrd1, int ithrd2);
@@ -111,6 +115,8 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
   const auto lnoed = tdim == 1 ? lnoed1 : 
                      tdim == 2 ? lnoed2 : lnoed3;
   const intAr2 &ent2poi = msh.ent2poi(tdim);
+
+  CPRINTF1("-- START aux_bisecPointLen\n");
 
   ego obj = NULL;
   if(msh.CAD()){
@@ -296,7 +302,7 @@ int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav,
   // Interior and non-surface case, most straightforward
   if(tdimp == msh.idim){
     const intAr2 &ent2poi = msh.ent2poi(msh.get_tdim());
-    int tdim = tdimp;
+    const int tdim = tdimp;
 
     double bary[4];
     for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim + 1);
@@ -312,14 +318,14 @@ int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav,
       bool iflat;
       CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
         // gdim == tdim here
-        if constexpr(gdim == 2){
+        if constexpr (gdim == 2){
           eval2<gdim,1>(msh.coord,ent2poi[ientt],msh.getBasis(),DifVar::None,
                         DifVar::None,bary,eval,NULL,NULL);
-          wt = getmeasentP1<gdim,2>(msh, ent2poi[ientt], algnd, &iflat);
+          wt = getmeasentP1<gdim,2>(msh, ientt, algnd, &iflat);
         }else{
           eval3<gdim,1>(msh.coord,ent2poi[ientt],msh.getBasis(),DifVar::None,
                         DifVar::None,bary,eval,NULL,NULL);
-          wt = getmeasentP1<gdim,3>(msh, ent2poi[ientt], algnd, &iflat);
+          wt = getmeasentP1<gdim,3>(msh, ientt, algnd, &iflat);
         }
       }}CT_FOR1(gdim);
       if(iflat) continue;

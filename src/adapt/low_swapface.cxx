@@ -279,7 +279,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
     bool iflat = false;
     for(int ii = 0; ii <= 1; ii++){
-      getmeasentP1<gdim,2>(msh, msh.fac2poi[nfac0+ii], NULL, &iflat);
+      iflat = !isvalideltP1<gdim,2>(msh,nfac0+ii); 
       if(iflat){
         CPRINTF1(" - new face %d: %d %d %d would be flat",ii+1,msh.fac2poi(nfac0+ii,0),
           msh.fac2poi(nfac0+ii,1),msh.fac2poi(nfac0+ii,2));

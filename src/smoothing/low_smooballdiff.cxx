@@ -113,7 +113,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
       iinva = false;
       if constexpr (ideg == 1){
         for(int ientt : lball){
-          getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iinva);
+          iinva = !isvalideltP1<gdim,tdim>(msh,ientt);
           if(iinva) break;
         }
       }else{
@@ -142,8 +142,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
       for(int iball = 0; iball < nball && !iinva; iball++){
         int ient2 = lball[iball];
 
-        bool iflat;
-        getmeasentP1<idim,idim>(msh, ent2poi[ient2], NULL, &iflat);
+        bool iflat = !isvalideltP1<idim,idim>(msh,ient2);
         if(iflat){
           fcur = 1.0e10;
           break;
@@ -208,8 +207,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
     for(int iball = 0; iball < nball; iball++){
       int ient2 = lball[iball];
-      bool iflat;
-      getmeasentP1<idim,idim>(msh, ent2poi[ient2], NULL, &iflat);
+      bool iflat = !isvalideltP1<idim,idim>(msh,ient2);
       METRIS_ASSERT_MSG(!iflat,"## Flat iball "<<iball<<" elt "<<ient2);
     }
 
@@ -240,8 +238,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   if(msh.param->dbgfull){
     for(int ientt : lball){
       if constexpr (ideg == 1){
-        getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iinva);
-        METRIS_ENFORCE(!iinva);
+        METRIS_ENFORCE((isvalideltP1<idim,idim>(msh,ientt)));
       }else{
         constexpr int jdeg = tdim*(ideg - 1);
         constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
@@ -282,10 +279,8 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
       }
     }else{
       for(int ientt : lball){
-        bool iflat;
-        double meas0 = getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iflat);
-        if(!iflat && meas0 > 0) continue;
-          printf(" - 2 reject validity\n");
+        if(isvalideltP1<idim,idim>(msh,ientt)) continue;
+        printf(" - 2 reject validity\n");
         METRIS_THROW(GeomExcept());
       }
     }
@@ -349,11 +344,11 @@ double smooballdiff_fun([[maybe_unused]] unsigned int nvar,
 
   const auto quafun     = get_quafun<MFT,gdim,tdim>(iquaf);
   const auto d_quafun   = get_d_quafun<MFT,gdim,tdim>(iquaf);
-  const intAr2 &ent2poi = msh.ent2poi(idim);
+  //const intAr2 &ent2poi = msh.ent2poi(idim);
   bool iinva = false;
   if constexpr (ideg == 1){
     for(int ientt : lball){
-      getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iinva);
+      iinva = !isvalideltP1<idim,idim>(msh,ientt);
       if(iinva) break;
     }
   }else{
@@ -381,8 +376,7 @@ double smooballdiff_fun([[maybe_unused]] unsigned int nvar,
   for(int ii = 0; ii < idim && grad != NULL; ii++) grad[ii] = 0;
   for(int ientt : lball){
 
-    bool iflat;
-    getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iflat);
+    bool iflat = !isvalideltP1<idim,idim>(msh,ientt);
     if(iflat) METRIS_THROW_MSG(GeomExcept(), "Flat after check??");
 
     int ivar = -1;
@@ -570,10 +564,8 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
       }
     }else{
       for(int ientt : lball){
-        bool iflat;
-        double meas0 = getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iflat);
-        if(!iflat && meas0 > 0) continue;
-          printf(" - 2 reject validity\n");
+        if(isvalideltP1<idim,idim>(msh,ientt)) continue;
+        printf(" - 2 reject validity\n");
         METRIS_THROW(GeomExcept());
       }
     }

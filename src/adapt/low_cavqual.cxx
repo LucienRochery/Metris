@@ -21,7 +21,7 @@
 
 namespace Metris{
 
-
+// Compute normal deviation before and after, check no degradation.
 bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1){
   GETVDEPTH(msh.param);
   if(msh.get_tdim() != 3) return false;

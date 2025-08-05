@@ -126,8 +126,8 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
       for(int icfac : cav.lcfac){
         // Dummy normal 
         bool iflat;
-        if(msh.idim == 2) getmeasentP1<2,2>(msh, msh.fac2poi[icfac], NULL, &iflat);
-        else              getmeasentP1<3,2>(msh, msh.fac2poi[icfac], NULL, &iflat);
+        if(msh.idim == 2) iflat = !isvalideltP1<2,2>(msh,icfac); 
+        else              iflat = !isvalideltP1<3,2>(msh,icfac);
 
         if(iflat){
           ireins = true;

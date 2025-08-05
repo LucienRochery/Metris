@@ -158,16 +158,14 @@ int reconnect_tetcav(Mesh<MFT> &msh,
                ielen,iele0,ifa0,msh.tet2poi(ielen,0),msh.tet2poi(ielen,1),
                msh.tet2poi(ielen,2),msh.tet2poi(ielen,3));
 
-      bool iflat;
-      double meas0 = getmeasentP1<3,3>(msh, msh.tet2poi[ielen], NULL, &iflat);
-      if(iflat){
+      double meas0;
+      if(!isvalideltP1<3,3>(msh, ielen,NULL,&meas0)){
         CPRINTF1(" - iflat ! return ip1 ip2 ip3 ip4 = %d %d %d %d meas = %15.7e \n", 
                  msh.tet2poi(ielen,0),msh.tet2poi(ielen,1),msh.tet2poi(ielen,2),
                  msh.tet2poi(ielen,3),meas0); 
         return CAV_ERR_FLATTET;
-      }else if(DOPRINTS2()){
-        CPRINTF2(" - new tetra volume %e \n",meas0);
       }
+      CPRINTF2(" - new tetra volume %e \n",meas0);
 
 
       // If the tet has all vertices on boundary, check faces orientations.
