@@ -476,15 +476,19 @@ void debugInveval(std::string meshName_, MeshBase &msh, int tdim, int* ent2pol, 
 
 
 void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
-               int nedg0, int nfac0, int nele0){
+               int iedg0, int ifac0, int iele0,
+               int iedg1, int ifac1, int iele1){
   GETVDEPTH(msh.param);
 
+  if(iedg1 < 0) iedg1 = msh.nedge;
+  if(ifac1 < 0) ifac1 = msh.nface;
+  if(iele1 < 0) iele1 = msh.nelem;
 
   std::string eff_meshName = iprefix ? msh.param->outmPrefix + meshName
                                      : meshName;
 
   MPRINTF("-- Write file %s npoin %d nedge %d nface %d tetra %d \n",
-          eff_meshName.c_str(),msh.npoin,msh.nedge,msh.nface,msh.nelem);
+          eff_meshName.c_str(),msh.npoin,iedg1,ifac1,iele1);
 
   dblAr2 coord;
   if(msh.getBasis() == msh.param->outbasis || msh.curdeg == 1){
@@ -540,27 +544,27 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
   // this ensures all error messages are printed
   if(ierro > 0) METRIS_THROW(WArgExcept());
 
-  intAr1 edg2ref(msh.nedge), fac2ref(msh.nface), tet2ref(msh.nelem);
-  intAr2 edg2poi(msh.nedge, msh.edg2poi.get_stride()),
-         fac2poi(msh.nface, msh.fac2poi.get_stride()),
-         tet2poi(msh.nelem, msh.tet2poi.get_stride());
+  intAr1 edg2ref(iedg1), fac2ref(ifac1), tet2ref(iele1);
+  intAr2 edg2poi(iedg1, msh.edg2poi.get_stride()),
+         fac2poi(ifac1, msh.fac2poi.get_stride()),
+         tet2poi(iele1, msh.tet2poi.get_stride());
   msh.edg2poi.copyTo(edg2poi);
   msh.fac2poi.copyTo(fac2poi);
   msh.tet2poi.copyTo(tet2poi);
 
   if(msh.idim >= 3){
-    for(int i = nele0; i < msh.nelem;i++){
+    for(int i = iele0; i < iele1;i++){
       tet2ref[i] = msh.tet2ref[i] + 1;
       for(int j = 0; j < getnnod3(msh.curdeg); j++)
         tet2poi(i,j) = msh.tet2poi(i,j) + 1;
     }
   }
-  for(int i = nfac0; i < msh.nface;i++){
+  for(int i = ifac0; i < ifac1;i++){
     fac2ref[i] = msh.fac2ref[i] + 1;
     for(int j = 0; j < getnnod2(msh.curdeg); j++)
       fac2poi(i,j) = msh.fac2poi(i,j) + 1;
   }
-  for(int i = nedg0; i < msh.nedge; i++){
+  for(int i = iedg0; i < iedg1; i++){
     edg2ref[i] = msh.edg2ref[i] + 1;
     for(int j = 0; j < getnnod1(msh.curdeg); j++)
       edg2poi(i,j) = msh.edg2poi(i,j) + 1;
@@ -572,10 +576,10 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
 
   if(msh.getBasis() == FEBasis::Bezier) GmfSetKwd( libIdx, GmfBezierBasis, 1);
 
-  if(msh.nedge - nedg0 > 0){
+  if(iedg1 - iedg0 > 0){
   //   Note on edges: for some reason, libmeshb uses 1 index for edges
   // but the usual 3 for triangles, 4 for tets, etc.     
-    //CPRINTF2(" - START writing edges: %d -> %d \n",nedg0, msh.nedge);
+    //CPRINTF2(" - START writing edges: %d -> %d \n",iedg0, iedg1);
     constexpr int mppe = getnnod1(METRIS_MAX_DEG);
 
     int fKwd = libmeshb::edgeKwds[msh.curdeg];
@@ -593,18 +597,18 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
       GmfSetBlock(libIdx, libmeshb::edgeOrdKwds[msh.curdeg], 1, npp, 0, NULL, NULL,
         GmfIntVec, npp, &myOrd[0], &myOrd[(npp-1)]);
     }
-    GmfSetKwd( libIdx, fKwd, msh.nedge - nedg0);
-    GmfSetBlock(libIdx, fKwd, 1, msh.nedge - nedg0, 0, NULL, NULL,
-      GmfIntVec, npp, &edg2poi(nedg0,0), &edg2poi(msh.nedge-1,0),
-      GmfInt   ,      &edg2ref[nedg0  ], &edg2ref[msh.nedge-1  ]);
+    GmfSetKwd( libIdx, fKwd, iedg1- iedg0);
+    GmfSetBlock(libIdx, fKwd, 1, iedg1- iedg0, 0, NULL, NULL,
+      GmfIntVec, npp, &edg2poi(iedg0,0), &edg2poi(iedg1-1,0),
+      GmfInt   ,      &edg2ref[iedg0  ], &edg2ref[iedg1-1  ]);
 
     //CPRINTF2(" - DONE writing edges\n");
   }
 
 
 
-  if(msh.nface - nfac0 > 0){
-    //CPRINTF2(" - START writing triangles: %d \n",msh.nface);
+  if(ifac1 - ifac0 > 0){
+    //CPRINTF2(" - START writing triangles: %d \n",ifac1);
     constexpr int mppf = getnnod2(METRIS_MAX_DEG);
 
     int fKwd = libmeshb::faceKwds[msh.curdeg];
@@ -624,17 +628,17 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
 
     }
 
-    GmfSetKwd( libIdx, fKwd, msh.nface - nfac0);
-    GmfSetBlock(libIdx, fKwd, 1,  msh.nface - nfac0, 0, NULL, NULL,
-      GmfIntVec, nppf, &fac2poi(nfac0,0), &fac2poi(msh.nface-1,0),
-      GmfInt   ,       &fac2ref[nfac0  ], &fac2ref[msh.nface-1  ]);
+    GmfSetKwd( libIdx, fKwd, ifac1 - ifac0);
+    GmfSetBlock(libIdx, fKwd, 1,  ifac1 - ifac0, 0, NULL, NULL,
+      GmfIntVec, nppf, &fac2poi(ifac0,0), &fac2poi(ifac1-1,0),
+      GmfInt   ,       &fac2ref[ifac0  ], &fac2ref[ifac1-1  ]);
 
     //CPRINTF2(" - DONE writing triangles\n");
   }
 
   // Redundant but safer
-  if(msh.nelem - nele0 > 0 && msh.idim >= 3){
-    //CPRINTF2(" - START writing tetrahedra: %d \n",msh.nelem);
+  if(iele1 - iele0 > 0 && msh.idim >= 3){
+    //CPRINTF2(" - START writing tetrahedra: %d \n",iele1);
     constexpr int mppt = getnnod3(METRIS_MAX_DEG);
 
     int eKwd = libmeshb::elemKwds[msh.curdeg];
@@ -652,10 +656,10 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
       GmfSetBlock(libIdx, libmeshb::elemOrdKwds[msh.curdeg], 1, nppt, 0, NULL, NULL,
         GmfIntVec, nppt, &myOrd[0], &myOrd[4*(nppt-1)]);
     }
-    GmfSetKwd( libIdx, eKwd, msh.nelem - nele0);
-    GmfSetBlock(libIdx, eKwd, 1, msh.nelem - nele0, 0, NULL, NULL,
-                GmfIntVec, nppt, &tet2poi(nele0,0), &tet2poi(msh.nelem-1,0),
-                GmfInt   ,       &tet2ref[nele0  ], &tet2ref[msh.nelem-1   ]); //idx0 + nface[iDeg]-1
+    GmfSetKwd( libIdx, eKwd, iele1 - iele0);
+    GmfSetBlock(libIdx, eKwd, 1, iele1 - iele0, 0, NULL, NULL,
+                GmfIntVec, nppt, &tet2poi(iele0,0), &tet2poi(iele1-1,0),
+                GmfInt   ,       &tet2ref[iele0  ], &tet2ref[iele1-1   ]); //idx0 + nface[iDeg]-1
     //CPRINTF2(" - DONE writing tetrahedra\n");
   }
 

@@ -40,7 +40,8 @@ int64_t MetrisOpenMeshFile(std::string name, int *meshDim);
 
 void writeMeshCavity(std::string meshName, MeshBase &msh, const MshCavity& cav);
 void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix = true,
-               int nedg0 = 0, int nfac0 = 0, int nele0 = 0);
+               int iedg0 = 0, int ifac0 = 0, int iele0 = 0,
+               int iedg1 = -1, int ifac1 = -1, int iele1 = -1);
 
 template<class MFT>
 void writeBackLinks(std::string solName, Mesh<MFT>& msh);

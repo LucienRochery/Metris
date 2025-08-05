@@ -42,7 +42,7 @@ if(USE_METRIS_HASH)
   message("Using Metris hash tables")
   set(METRIS_CXX_FLAGS ${METRIS_CXX_FLAGS} -DUSE_METRIS_HASH)
 endif()
-
+ 
 #Somehow, a straight comparison with EQUAL icc or EQUAL icc doesn't register here. Perhaps there's a space in there. 
 if(SHORT_COMPILER_NAME STREQUAL icc OR SHORT_COMPILER_NAME STREQUAL icx OR CMAKE_CXX_COMPILER_ID STREQUAL IntelLLVM)
 
@@ -86,6 +86,10 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES Clang)
   #set(METRIS_CXX_FLAGS_DEBUG  -fsanitize=address  -fconstexpr-steps=10000000 -O0 -g3  -march=native -fno-pie ) # -S -fverbose-asm
   set(METRIS_CXX_FLAGS_MEMCHECK   -fconstexpr-steps=1000000000 -Wall -fsanitize=address -O0 -g -fPIC) # -S -fverbose-asm
   set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_CXX_RELEASE} -g -fno-omit-frame-pointer)
+
+  if(CBT_lower STREQUAL "memcheck")
+    remove_definitions(-DNDEBUG)
+  endif()
 
   set(METRIS_C_FLAGS_RELEASE  ${METRIS_CXX_FLAGS_RELEASE})
   set(METRIS_C_FLAGS_DEBUG ${METRIS_CXX_FLAGS_DEBUG})

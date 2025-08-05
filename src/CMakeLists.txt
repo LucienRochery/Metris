@@ -212,6 +212,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh_interpMetBack.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh_cleanup.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh.cxx
+    ${PROJECT_SOURCE_DIR}/src/Mesh/WorkArray.cxx
 
     ${PROJECT_SOURCE_DIR}/src/MetricField/MetricFieldFE.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/MetricFieldAnalytical.cxx

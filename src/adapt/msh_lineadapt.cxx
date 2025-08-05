@@ -76,10 +76,9 @@ void adaptGeoLines(Mesh<MFT> &msh){
   // Maximum number of iterations for length bisection 
   const int miter_bisection = 1000;
 
-  RoutineWorkMemory iwrk(msh.iwrkmem);
 
   // From each ref, point onto a corner that has an edge, of this ref, inciding
-  intAr1 ref2cor(msh.CAD.ncaded,iwrk.allocate(msh.CAD.ncaded));
+  intWrkAr1 ref2cor = msh.get_iwork(msh.CAD.ncaded);
 
   for(int iref = 0; iref < msh.CAD.ncaded; iref++) ref2cor[iref] = -1;
 
@@ -504,7 +503,7 @@ void adaptGeoLines(Mesh<MFT> &msh){
                                      cav.ipins,cav.lcedg.get_n(),cav.lcfac.get_n());
 
             if(DOPRINTS2() && msh.param->dbgfull){
-              intWrkAr1 refold = msh.get_iwork(msh.nface);
+              intWrkAr1 refold = msh.get_iwork(MeshSize::Face);
               refold.set_n(msh.nface);
               for(int ii = 0; ii < msh.nface; ii++){
                 refold[ii] = msh.fac2ref[ii];

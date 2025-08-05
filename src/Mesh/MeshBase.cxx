@@ -37,7 +37,6 @@ MeshBase::MeshBase(){
   //hasbak  = false;
   //ianamet = -1;
   idim    = 0;
-  for(int ii = 0; ii < 10; ii++) idbg[ii] = 0;
 }
 
 
@@ -106,18 +105,6 @@ int MeshBase::nentt(int tdimn) const {
   }
 }
 
-int MeshBase::mentt(int tdimn) const {
-  switch(tdimn){
-  case(1):
-    return medge;
-  case(2):
-    return mface;
-  case(3):
-    return melem;
-  default:
-    METRIS_THROW_MSG(WArgExcept(),"mentt tdimn not in range = "<<tdimn);
-  }
-}
 
 int MeshBase::nnode(int tdimn) const {
   switch(tdimn){
@@ -217,63 +204,6 @@ const intAr1& MeshBase::ent2ref(int tdimn) const{
   }
 }
 
-intAr2r& MeshBase::ent2tag(int tdimn){
-  switch(tdimn){
-  case(1):
-    return edg2tag;
-  case(2):
-    return fac2tag;
-  case(3):
-    return tet2tag;
-  default:
-    METRIS_THROW_MSG(WArgExcept(),"ent2tag (1) tdimn not in range = "<<tdimn);
-  }
-}
-
-const intAr2r& MeshBase::ent2tag(int tdimn) const{
-  switch(tdimn){
-  case(1):
-    return edg2tag;
-  case(2):
-    return fac2tag;
-  case(3):
-    return tet2tag;
-  default:
-    METRIS_THROW_MSG(WArgExcept(),"ent2tag (1) tdimn not in range = "<<tdimn);
-  }
-}
-
-
-template<int tdimn>
-      intAr2r& MeshBase::ent2tag(){
-  static_assert(tdimn >= 1 && tdimn <= 3);
-  if constexpr(tdimn == 1){
-    return edg2tag;
-  }else if(tdimn == 2){
-    return fac2tag;
-  }else{
-    return tet2tag;
-  }
-}
-template<int tdimn>
-const intAr2r& MeshBase::ent2tag() const{
-  static_assert(tdimn >= 1 && tdimn <= 3);
-  if constexpr(tdimn == 1){
-    return edg2tag;
-  }else if(tdimn == 2){
-    return fac2tag;
-  }else{
-    return tet2tag;
-  }
-}
-
-template intAr2r& MeshBase::ent2tag<1>();
-template intAr2r& MeshBase::ent2tag<2>();
-template intAr2r& MeshBase::ent2tag<3>();
-template const intAr2r& MeshBase::ent2tag<1>()const;
-template const intAr2r& MeshBase::ent2tag<2>()const;
-template const intAr2r& MeshBase::ent2tag<3>()const;
-
 
 intAr2& MeshBase::ent2ent(int tdimn){
   switch(tdimn){
@@ -334,30 +264,6 @@ template const intAr2& MeshBase::ent2ent<3>()const;
 
 
 
-  // points to ced2tag, cfa2tag or dom2tag
-intAr2r& MeshBase::ref2tag(int tdimn){
-  METRIS_ASSERT(tdimn >= 1 && tdimn <= 3);
-  if(tdimn == 1){
-    return ced2tag;
-  }else if(tdimn == 2){
-    return cfa2tag;
-  }else{
-    return dom2tag;
-  }
-}
-
-const intAr2r& MeshBase::ref2tag(int tdimn) const{
-  METRIS_ASSERT(tdimn >= 1 && tdimn <= 3);
-  if(tdimn == 1){
-    return ced2tag;
-  }else if(tdimn == 2){
-    return cfa2tag;
-  }else{
-    return dom2tag;
-  }
-}
-
-
 
 template<int tdimn> typename std::conditional<tdimn==1,HshTab_I2I,HshTab_I3I>::type &
 MeshBase::hshTab(){
@@ -402,7 +308,7 @@ MeshBase& MeshBase::operator=(const MeshBase &inp){
   if(inp.nface > 0) inp.fac2ref.copyTo(fac2ref,inp.nface);
   if(inp.nelem > 0) inp.tet2ref.copyTo(tet2ref,inp.nelem);
                                                            
-  if(inp.nelem > 0) inp.tet2ftg.copyTo(tet2ftg,inp.nelem);
+  //if(inp.nelem > 0) inp.tet2ftg.copyTo(tet2ftg,inp.nelem);
 
   for(int iedge = 0; iedge < inp.nedge; iedge++){
     for(int i = 0; i < getnnod1(curdeg); i++)
@@ -456,11 +362,26 @@ MeshBase& MeshBase::operator=(const MeshBase &inp){
   for(int itag = 0; itag < METRIS_MAXTAGS; itag++) tag[itag] = 0;
 
 
+
   return *this;
 }
 
 
 
+
+// Update work arrays currently locked to entity type point
+#define UPDATE_WORK_TYPE(DATATYPE, MESHTYPE, NAME)\
+{\
+  intAr1 &lwork_lock = lwork_lock_map<DATATYPE>();\
+  MeshArray1D<MeshArray1D<DATATYPE>> &lwork = lwork_map<DATATYPE>();\
+  int nwork = lwork.get_n();\
+  for(int iarray = 0; iarray < nwork; iarray++){\
+    int itype = lwork_lock[iarray];\
+    if(itype != (int)MeshSize::MESHTYPE) continue;\
+    lwork[iarray].allocate(m##NAME);\
+    lwork[iarray].set_n(n##NAME);\
+  }\
+}
 
 void MeshBase::set_nbpoi(int nbpoi){
   METRIS_ASSERT(Defaults::mem_growfac > 1); 
@@ -473,6 +394,21 @@ void MeshBase::set_nbpoi(int nbpoi){
 
   bpo2rbi.allocate(mbpoi, nrbi);
   bpo2rbi.set_n(nbpoi);
+
+  UPDATE_WORK_TYPE(int, BPoint, bpoi);
+  UPDATE_WORK_TYPE(double, BPoint, bpoi);
+
+  // Update tag arrays currently locked to entity type BPoint
+  int ntag = tagarrs.get_n();
+  for(int ii = 0; ii < ntag; ii++){
+    int itype = tagarr_locks[ii];
+    if(itype != (int)MeshSize::BPoint) continue;
+    tagarrs[ii].allocate(mbpoi);
+    int nn0 = tagarrs[ii].get_n();
+    tagarrs[ii].set_n(nbpoi);
+    int itag = itags[ii];
+    for(int jj = nn0; jj < nbpoi; jj++) tagarrs[ii][jj] = itag - 1;
+  }
 
   bpo2tag.allocate(METRIS_MAXTAGS, mbpoi);
   bpo2tag.set_n(METRIS_MAXTAGS);
@@ -495,6 +431,24 @@ void MeshBase::set_npoin(int npoin, bool skipallocf){
   poi2tag.allocate(METRIS_MAXTAGS, mpoin);
   poi2tag.set_n(METRIS_MAXTAGS);
 
+  UPDATE_WORK_TYPE(int, Point, poin);
+  UPDATE_WORK_TYPE(double, Point, poin);
+
+
+  // Update tag arrays currently locked to entity type point
+  int ntag = tagarrs.get_n();
+  for(int ii = 0; ii < ntag; ii++){
+    int itype = tagarr_locks[ii];
+    if(itype != (int)MeshSize::Point) continue;
+    tagarrs[ii].allocate(mpoin);
+    int nn0 = tagarrs[ii].get_n();
+    tagarrs[ii].set_n(npoin);
+    int itag = itags[ii];
+    for(int jj = nn0; jj < npoin; jj++) tagarrs[ii][jj] = itag - 1;
+  }
+
+  
+
   poicstr.allocate(mpoin);
   poicstr.set_n(npoin);
 
@@ -511,9 +465,24 @@ void MeshBase::set_nedge(int nedge, bool skipallocf){
   nedge_ = nedge;
   if(nedge > medge_) medge_ = MAX(nedge, medge_*Defaults::mem_growfac);
 
-  // Note: tags are important to copy !
   edg2tag.allocate(METRIS_MAXTAGS, medge);
   edg2tag.set_n(METRIS_MAXTAGS);
+
+
+  UPDATE_WORK_TYPE(int, Edge, edge);
+  UPDATE_WORK_TYPE(double, Edge, edge);
+  
+  // Update tag arrays currently locked to entity type Edge
+  int ntag = tagarrs.get_n();
+  for(int ii = 0; ii < ntag; ii++){
+    int itype = tagarr_locks[ii];
+    if(itype != (int)MeshSize::Edge) continue;
+    tagarrs[ii].allocate(medge);
+    int nn0 = tagarrs[ii].get_n();
+    tagarrs[ii].set_n(nedge);
+    int itag = itags[ii];
+    for(int jj = nn0; jj < nedge; jj++) tagarrs[ii][jj] = itag - 1;
+  }
 
   edg2edg.allocate(medge, 2);
   edg2edg.set_n(nedge);
@@ -541,6 +510,23 @@ void MeshBase::set_nface(int nface, bool skipallocf){
 
   fac2tag.allocate(METRIS_MAXTAGS, mface);
   fac2tag.set_n(METRIS_MAXTAGS); 
+
+
+  UPDATE_WORK_TYPE(int, Face, face);
+  UPDATE_WORK_TYPE(double, Face, face);
+
+  // Update tag arrays currently locked to entity type Face
+  int ntag = tagarrs.get_n();
+  for(int ii = 0; ii < ntag; ii++){
+    int itype = tagarr_locks[ii];
+    if(itype != (int)MeshSize::Face) continue;
+    tagarrs[ii].allocate(mface);
+    int nn0 = tagarrs[ii].get_n();
+    tagarrs[ii].set_n(nface);
+    int itag = itags[ii];
+    for(int jj = nn0; jj < nface; jj++) tagarrs[ii][jj] = itag - 1;
+  }
+
 
   fac2fac.allocate(mface, 3);
   fac2fac.set_n(nface);
@@ -570,14 +556,30 @@ void MeshBase::set_nelem(int nelem, bool skipallocf){
   nelem_ = nelem;
   if(nelem > melem_) melem_ = MAX(nelem, melem_*Defaults::mem_growfac);
 
-  tet2ftg.allocate(melem);
-  tet2ftg.set_n(nelem);
+
+  UPDATE_WORK_TYPE(int, Tetra, elem);
+  UPDATE_WORK_TYPE(double, Tetra, elem);
+
+  //tet2ftg.allocate(melem);
+  //tet2ftg.set_n(nelem);
+  tet2tag.allocate(METRIS_MAXTAGS, melem);
+  tet2tag.set_n(METRIS_MAXTAGS);
 
   tet2tet.allocate(melem, 4);
   tet2tet.set_n(nelem);
 
-  tet2tag.allocate(METRIS_MAXTAGS, melem);
-  tet2tag.set_n(METRIS_MAXTAGS);
+  // Update tag arrays currently locked to entity type Tetra
+  int ntag = tagarrs.get_n();
+  for(int ii = 0; ii < ntag; ii++){
+    int itype = tagarr_locks[ii];
+    if(itype != (int)MeshSize::Tetra) continue;
+    tagarrs[ii].allocate(melem);
+    int nn0 = tagarrs[ii].get_n();
+    tagarrs[ii].set_n(nelem);
+    int itag = itags[ii];
+    for(int jj = nn0; jj < nelem; jj++) tagarrs[ii][jj] = itag - 1;
+  }
+
 
   if(skipallocf) return;
 
@@ -610,6 +612,7 @@ void MeshBase::set_nentt(int tdimn, int nentt, bool skipallocf){
   }
 }
 
+#undef UPDATE_WORK_TYPE
 
 
 
@@ -647,65 +650,156 @@ void MeshBase::set_nentt(int tdimn, int nentt, bool skipallocf){
 //}
 
 
+void MeshBase::get_nMeshSize(MeshSize itype, int* nn, int* mm){
+  int nentt = -1, mentt = -1;
+  switch(itype){
+    case MeshSize::Point:
+      nentt = npoin;
+      mentt = mpoin;
+      break;
+    case MeshSize::Edge:
+      nentt = nedge;
+      mentt = medge;
+      break;
+    case MeshSize::Face:
+      nentt = nface;
+      mentt = mface;
+      break;
+    case MeshSize::Tetra:
+      nentt = nelem;
+      mentt = melem;
+      break;
+    case MeshSize::BPoint:
+      nentt = nbpoi;
+      mentt = mbpoi;
+      break;
+    case MeshSize::Domain:
+      nentt = ndomn;
+      mentt = ndomn;
+      break;
+    case MeshSize::CADNode:
+      nentt = CAD.ncadno;
+      mentt = CAD.ncadno;
+      break;
+    case MeshSize::CADEdge:
+      nentt = CAD.ncaded;
+      mentt = CAD.ncaded;
+      break;
+    case MeshSize::CADFace:
+      nentt = CAD.ncadfa;
+      mentt = CAD.ncadfa;
+      break;
+    default:
+      METRIS_THROW_MSG(WArgExcept(), "get_nMeshSize: invalid entity type = "<< (int) itype);
+  }
+  *nn = nentt;
+  *mm = mentt;
+}
 
-dblWrkAr1 MeshBase::get_rwork(int nn){
-  int nwork = rwork.get_n();
-  int ivalid = -1;
-  int iret = -1;
-  for(int ii = 0; ii < nwork; ii++){
-    if(rwork_lock[ii] > 0) continue;
-    ivalid = ii;
-    if(rwork[ii].size() >= nn){
-      iret = ii;
-      goto ret;
+// To be used both by get_iwork and get_tagarray
+// Returns the index of the locked array
+template<typename T>
+inline int get_locked_array(int nn, MeshArray1D<T> &array_pool, intAr1 &array_locks){
+  int npool = array_pool.get_n();
+  int ibest = -1, nbest = -1;
+  for(int iarray = 0; iarray < npool; iarray++){
+    if(array_locks[iarray] > 0) continue;
+    int array_size = array_pool[iarray].size();
+    if(array_size < nn) continue;
+
+    if(array_size < nbest || nbest < 0){
+      ibest = iarray;
+      nbest = array_size;
     }
   }
-  if(ivalid >= 0){
-    iret = ivalid;
-    goto ret;
-  }
-  // Create a new one
-  rwork.inc_n();
-  rwork_lock.inc_n();
-  iret = nwork;
-  goto ret;
 
-ret:
-  rwork[iret].allocate(nn);
-  rwork[iret].set_n(nn);
-  rwork_lock[iret] = 1;
-  return dblWrkAr1(*this, iret, rwork[iret]);
+  return ibest;
 }
+
+
+template<typename T>
+WorkArray1D<T> MeshBase::get_work(int nn){
+  int iarray = get_locked_array<MeshArray1D<T>>(nn, lwork_map<T>(), lwork_lock_map<T>());
+  if(iarray < 0){
+    iarray = lwork_map<T>().get_n();
+    lwork_map<T>().inc_n();
+    lwork_lock_map<T>().inc_n();
+    lwork_map<T>()[iarray].allocate(nn);
+  }
+  lwork_map<T>()[iarray].set_n(nn);
+  lwork_lock_map<T>()[iarray] = (int) MeshSize::Untracked;
+  return WorkArray1D<T>(*this, iarray, lwork_map<T>()[iarray]);
+}
+
+template intWrkAr1 MeshBase::get_work<int   >(int nn);
+template dblWrkAr1 MeshBase::get_work<double>(int nn);
+
+
+template<typename T>
+WorkArray1D<T> MeshBase::get_work(MeshSize itype){
+  int nentt = -1, mentt = -1;
+  get_nMeshSize(itype, &nentt, &mentt);
+
+  int iarray = get_locked_array<MeshArray1D<T>>(mentt, lwork_map<T>(), lwork_lock_map<T>());
+  if(iarray < 0){
+    iarray = lwork_map<T>().get_n();
+    lwork_map<T>().inc_n();
+    lwork_lock_map<T>().inc_n();
+    lwork_map<T>()[iarray].allocate(mentt);
+  }
+  lwork_map<T>()[iarray].set_n(nentt);
+  lwork_lock_map<T>()[iarray] = (int) itype;
+  return WorkArray1D<T>(*this, iarray, lwork_map<T>()[iarray]);
+}
+
+template intWrkAr1 MeshBase::get_work<int   >(MeshSize itype);
+template dblWrkAr1 MeshBase::get_work<double>(MeshSize itype);
+
 
 intWrkAr1 MeshBase::get_iwork(int nn){
-  int nwork = iwork.get_n();
-  int ivalid = -1;
-  int iret = -1;
-  for(int ii = 0; ii < nwork; ii++){
-    if(iwork_lock[ii] > 0) continue;
-    ivalid = ii;
-    if(iwork[ii].size() >= nn){
-      iret = ii;
-      goto ret;
-    }
-  }
-  if(ivalid >= 0){
-    iret = ivalid;
-    goto ret;
-  }
-  // Create a new one
-  iwork.inc_n();
-  iwork_lock.inc_n();
-  iret = nwork;
-  goto ret;
-
-ret:
-  iwork[iret].allocate(nn);
-  iwork[iret].set_n(nn);
-  iwork_lock[iret] = 1;
-  return intWrkAr1(*this, iret, iwork[iret]);
+  return get_work<int>(nn);
+}
+dblWrkAr1 MeshBase::get_rwork(int nn){
+  return get_work<double>(nn);
+}
+intWrkAr1 MeshBase::get_iwork(MeshSize size){
+  return get_work<int>(size);
+}
+dblWrkAr1 MeshBase::get_rwork(MeshSize size){
+  return get_work<double>(size);
 }
 
+
+TagArray MeshBase::get_tagarray(MeshSize itype){
+  METRIS_ASSERT((int) itype > 0);
+
+  int nentt = -1, mentt = -1;
+  get_nMeshSize(itype, &nentt, &mentt);
+  
+  int iarray = get_locked_array<intAr1>(mentt, tagarrs, tagarr_locks);
+  
+  printf("Got iarray = %d \n",iarray);
+  if(iarray < 0){
+    iarray = tagarrs.get_n();
+
+    tagarrs.inc_n();
+    tagarr_locks.inc_n();
+    itags.stack(0);
+
+    tagarrs[iarray].allocate(mentt);
+    tagarrs[iarray].set_n(nentt);
+    tagarrs[iarray].fill(0);
+
+    printf("Allocated iarray %d nmem %d size %d check : %d %d \n",iarray,mentt,nentt,
+           tagarrs[iarray].size(),tagarrs[iarray].get_n());
+  }
+
+  itags[iarray]++;
+  tagarr_locks[iarray] = (int) itype;
+  tagarrs[iarray].set_n(nentt); // could be originally larger than needed
+
+  return TagArray(*this, iarray, tagarrs[iarray], itags[iarray]);
+}
 
 
 
@@ -758,6 +852,87 @@ void MeshBase::setBezier(){
 }
 
 
+
+
+intAr2r& MeshBase::ent2tag(int tdimn){
+  switch(tdimn){
+  case(1):
+    return edg2tag;
+  case(2):
+    return fac2tag;
+  case(3):
+    return tet2tag;
+  default:
+    METRIS_THROW_MSG(WArgExcept(),"ent2tag (1) tdimn not in range = "<<tdimn);
+  }
+}
+
+const intAr2r& MeshBase::ent2tag(int tdimn) const{
+  switch(tdimn){
+  case(1):
+    return edg2tag;
+  case(2):
+    return fac2tag;
+  case(3):
+    return tet2tag;
+  default:
+    METRIS_THROW_MSG(WArgExcept(),"ent2tag (1) tdimn not in range = "<<tdimn);
+  }
+}
+
+
+template<int tdimn>
+      intAr2r& MeshBase::ent2tag(){
+  static_assert(tdimn >= 1 && tdimn <= 3);
+  if constexpr(tdimn == 1){
+    return edg2tag;
+  }else if(tdimn == 2){
+    return fac2tag;
+  }else{
+    return tet2tag;
+  }
+}
+template<int tdimn>
+const intAr2r& MeshBase::ent2tag() const{
+  static_assert(tdimn >= 1 && tdimn <= 3);
+  if constexpr(tdimn == 1){
+    return edg2tag;
+  }else if(tdimn == 2){
+    return fac2tag;
+  }else{
+    return tet2tag;
+  }
+}
+
+template intAr2r& MeshBase::ent2tag<1>();
+template intAr2r& MeshBase::ent2tag<2>();
+template intAr2r& MeshBase::ent2tag<3>();
+template const intAr2r& MeshBase::ent2tag<1>()const;
+template const intAr2r& MeshBase::ent2tag<2>()const;
+template const intAr2r& MeshBase::ent2tag<3>()const;
+
+  // points to ced2tag, cfa2tag or dom2tag
+intAr2r& MeshBase::ref2tag(int tdimn){
+  METRIS_ASSERT(tdimn >= 1 && tdimn <= 3);
+  if(tdimn == 1){
+    return ced2tag;
+  }else if(tdimn == 2){
+    return cfa2tag;
+  }else{
+    return dom2tag;
+  }
+}
+
+const intAr2r& MeshBase::ref2tag(int tdimn) const{
+  METRIS_ASSERT(tdimn >= 1 && tdimn <= 3);
+  if(tdimn == 1){
+    return ced2tag;
+  }else if(tdimn == 2){
+    return cfa2tag;
+  }else{
+    return dom2tag;
+  }
+}
 
 
 

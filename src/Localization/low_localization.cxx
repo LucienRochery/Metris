@@ -334,13 +334,12 @@ template int locMeshQuick<3>(MeshBase &msh, const double *coor0);
 //        1 if converged but outside
 //        2 if unconverged
 template<int gdim, int ideg> 
-int inveval0(const MeshBase &msh,
+int inveval0(MeshBase &msh,
              const int* ent2pol,
              const dblAr2 &coord,
              const double* coor0, 
              double* __restrict__ coopr, 
              double* __restrict__ bary,
-             dblWrkAr1 &work,
              double tol){
 /*nlopt::LD_TNEWTON_PRECOND_RESTART,
   nlopt::LD_TNEWTON_RESTART,
@@ -358,8 +357,7 @@ int inveval0(const MeshBase &msh,
   invevalfun_data mydata(msh,ent2pol,coord,coor0,coopr);
   double fopt; 
   int nwork = luksan_pnet_worksize(gdim);
-  work.allocate(nwork);
-  work.set_n(nwork);
+  dblWrkAr1 work = msh.get_rwork(nwork);
   double fstop = tol*tol;
   double ftol_rel = -1e30; 
   double ftol_abs = -1e30;
@@ -434,21 +432,19 @@ int inveval0(const MeshBase &msh,
 
 }
 #define BOOST_PP_LOCAL_MACRO(n)\
-template int inveval0<2,n>(const MeshBase &msh,\
+template int inveval0<2,n>(MeshBase &msh,\
                            const int* ent2pol,\
                            const dblAr2 &coord,\
                            const double* coor0,\
                            double* __restrict__ coopr,\
                            double* __restrict__ bary,\
-                           dblWrkAr1 &work,\
                            double tol);\
-template int inveval0<3,n>(const MeshBase &msh,\
+template int inveval0<3,n>(MeshBase &msh,\
                            const int* ent2pol,\
                            const dblAr2 &coord,\
                            const double* coor0,\
                            double* __restrict__ coopr,\
                            double* __restrict__ bary,\
-                           dblWrkAr1 &work,\
                            double tol);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
@@ -457,10 +453,10 @@ template int inveval0<3,n>(const MeshBase &msh,\
 
 template<int gdim, int ideg> 
 int inveval(MeshBase &msh, int ientt, 
-                  const double* coor0, 
-                  double* __restrict__ coopr, 
-                  double* __restrict__ bary,
-                  double tol0){
+            const double* coor0, 
+            double* __restrict__ coopr, 
+            double* __restrict__ bary,
+            double tol0){
   GETVDEPTH(msh.param);
   constexpr int tdim = gdim;
 
@@ -483,8 +479,7 @@ int inveval(MeshBase &msh, int ientt,
   
 
   const intAr2 &ent2poi = msh.ent2poi(tdim);
-  dblWrkAr1 work = msh.get_rwork();
-  int ierro = inveval0<gdim,ideg>(msh,ent2poi[ientt],msh.coord,coor0,coopr,bary,work,tol);
+  int ierro = inveval0<gdim,ideg>(msh,ent2poi[ientt],msh.coord,coor0,coopr,bary,tol);
   if(ierro < 2) return ierro;
   // Only if ideg > 1 should we be here 
   METRIS_ASSERT(ideg > 1);
@@ -523,7 +518,7 @@ int inveval(MeshBase &msh, int ientt,
 
   for(int ii = 0; ii < gdim ;ii++) dum[ii] = 0;
 
-  ierro = inveval0<gdim,ideg>(msh,ent2pol,coorl,dum,coopr,bary,work,tol);
+  ierro = inveval0<gdim,ideg>(msh,ent2pol,coorl,dum,coopr,bary,tol);
 
   // Bary is correct but coopr needs reevaluating
   constexpr auto evalf = tdim == 1 ? eval1<gdim,ideg> : 

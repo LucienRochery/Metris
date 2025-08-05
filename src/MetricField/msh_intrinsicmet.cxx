@@ -81,8 +81,7 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
   //printf("LP stat %f %f \n",LP_stat[0],LP_stat[1]);
 
 
-	// Placeholder
-  dblWrkAr1 rwork = msh.get_rwork(msh.npoin);
+  dblWrkAr1 rwork = msh.get_rwork(MeshSize::Point);
 	for(int ipoin = 0; ipoin < msh.npoin; ipoin++) rwork[ipoin] = 1.0;
 	
 
@@ -159,7 +158,7 @@ void getMetMesh0_lplib(int ient0, int ient1,
     if constexpr(tdim == 2 && gdim == 3) getnorfacP1(ent2poi[ientt], msh.coord, norfac);
 
 
-    meas0 = getmeasentP1<gdim,tdim>(msh,ent2poi[ientt],norfac,&iflat);
+    meas0 = getmeasentP1<gdim,tdim>(msh,ientt,norfac,&iflat);
 
     METRIS_ASSERT(!iflat);
 

@@ -8,7 +8,6 @@
 
 #include "../types.hxx"
 
-class dblWrkAr1;
 
 namespace Metris{
 
@@ -51,13 +50,12 @@ int inveval_badNewton0(const MeshBase &msh,
 //  0: in element
 //  1: converged to outside
 template<int gdim, int ideg> 
-int inveval0(const MeshBase &msh,
+int inveval0(MeshBase &msh,
              const int* ent2pol,
              const dblAr2 &coord,
              const double* coor0, 
              double* __restrict__ coopr, 
              double* __restrict__ bary,
-             dblWrkAr1 &work,
              double tol);
 
 

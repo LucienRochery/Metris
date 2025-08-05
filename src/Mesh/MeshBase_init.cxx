@@ -296,15 +296,6 @@ void MeshBase::initialize(MetrisAPI *data,
         fac2fac(iface,1) = tmp;
       }// endif dtprd
 
-      #ifndef NDEBUG
-      bool iflat;
-      double meas =  getmeasentP1<3,2>(*this,fac2poi[iface],norCAD,&iflat);
-      if(iflat || meas < 0){
-        printf("## DEBUG meas = %15.7e iflat %d \n",meas,iflat);
-        writeMesh("debugsurf",*this);
-        METRIS_THROW(GeomExcept());
-      }
-      #endif
 
     }
 
@@ -335,7 +326,35 @@ void MeshBase::initialize(MetrisAPI *data,
       CPRINTF1("-- Domain is non-manifold\n");
     }
 
+    // Check if there are periodic surfaces. It suffice to find edges with two same ref attached triangles.
+    isperiodic_face.allocate(CAD.ncadfa);
+    isperiodic_face.set_n(CAD.ncadfa);
+    isperiodic_face.fill(false);
+    for(int iedge = 0; iedge < nedge; iedge++){
+      if(isdeadent(iedge,edg2poi)) continue;
+      int ifac1 = edg2fac[iedge];
+      int iref1 = fac2ref[ifac1];
 
+      int ip1 = edg2poi(iedge,0);
+      int ip2 = edg2poi(iedge,1);
+
+      int ied1 = getedgfac(*this, ifac1, ip1, ip2);
+      METRIS_ASSERT(ied1 >= 0);
+
+      int ifac2 = fac2fac(ifac1, ied1);
+      if(ifac2 < 0) continue;
+
+      int iref2 = fac2ref[ifac2];
+      if(iref1 != iref2) continue; 
+
+      // Same ref triangles with sandwiched edge -> periodic ref.
+      if(!isperiodic_face[iref1]) CPRINTF1(" # CAD face %d is periodic along edge ref %d\n", iref1, edg2ref[iedge]);
+      isperiodic_face[iref1] = true;
+    }
+
+    nperiodic_face = 0;
+    for(bool isper : isperiodic_face) nperiodic_face += isper;
+    CPRINTF1("-- Found %d periodic CAD faces\n",nperiodic_face);
 
     //METRIS_THROW_MSG(TODOExcept(), "Implement edge and triangle orientation in 3D")
   }
@@ -559,7 +578,7 @@ void MeshBase::zeroArrays(){
   edg2tag.fill(0);
   fac2tag.fill(0);
   if(idim >= 3) tet2tag.fill(0);
-  if(idim >= 3) tet2ftg.fill(false);
+  //if(idim >= 3) tet2ftg.fill(false);
 
   for(int itag = 0; itag < METRIS_MAXTAGS; itag++) tag[itag] = 0;
 
@@ -847,8 +866,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
         double meas;
         bool iflat;
         if(!ineg){
-          meas = idim == 2 ? getmeasentP1<2,2>(*this,fac2poi[iface], NULL, &iflat) :
-                             getmeasentP1<3,2>(*this,fac2poi[iface], NULL, &iflat) ;
+          meas = idim == 2 ? getmeasentP1<2,2>(*this, iface, NULL, &iflat) :
+                             getmeasentP1<3,2>(*this, iface, NULL, &iflat) ;
         }
         if(ineg || meas < param->vtol){
           if(!(ineg || nseen == 1)){

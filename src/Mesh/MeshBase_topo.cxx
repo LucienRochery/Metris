@@ -73,7 +73,7 @@ int MeshBase::poi2ebp(int ipoin, int tdim, int ientt, int iref) const {
   return -1;
 }
 
-
+#if 0
 int MeshBase::poi2del(int ipoin, int tdim, int iref) const{
   METRIS_ASSERT(tdim != 0);
   int pdim = getpoitdim(ipoin);
@@ -89,6 +89,7 @@ int MeshBase::poi2del(int ipoin, int tdim, int iref) const{
   if(ibpoi < 0) return -1;
   return bpo2ibi(ibpoi,2);
 }
+#endif
 
 
 int MeshBase::newpoitopo(int tdimn, int ientt){
