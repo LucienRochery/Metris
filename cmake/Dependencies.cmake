@@ -288,7 +288,6 @@ if(USE_CLP)
 endif()
 
 # External libraries to be fetched
-
 find_package(fmt)
 if(NOT fmt_FOUND)
   message(STATUS "fmt lib not found, fetching")
@@ -297,8 +296,16 @@ if(NOT fmt_FOUND)
   FetchContent_Declare(
     fmt_fetch
     GIT_REPOSITORY https://github.com/fmtlib/fmt
-    GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281) # 10.2.1
+    GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281
+    EXCLUDE_FROM_ALL) # 10.2.1
   FetchContent_MakeAvailable(fmt_fetch)
+  install(TARGETS fmt
+          EXPORT libMetrisTargets
+          LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+          RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
+          INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+          PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 endif()
 list(APPEND METRIS_DEPS_LIBRARIES fmt::fmt)
 
