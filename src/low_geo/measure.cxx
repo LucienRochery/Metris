@@ -170,9 +170,9 @@ double getmeasentP1(const MeshBase&__restrict__ msh, const int*__restrict__ ent2
       // Additionally, check normal deviation
       if(nordev_tol >= 0){
         double nordev = getnordev<1>(msh,ent2pol,nod2bpo,norfac);
-        CPRINTF1(" - getmeasentP1 got nordev = %e, tol = %e\n",nordev,nordev_tol);
+        CPRINTF1(" - getmeasentP1 got nordev = {}, tol = {}\n",nordev,nordev_tol);
         if(nordev > nordev_tol){
-          //printf("## DEBUG nordev = %e > tol = %e\n",nordev,nordev_tol);
+          //printf("## DEBUG nordev = {} > tol = {}\n",nordev,nordev_tol);
           //printf("WAIT HERE nordev \n");
           //wait();
           *iflat = true;
@@ -201,7 +201,7 @@ double getmeasentP1(const MeshBase&__restrict__ msh, const int*__restrict__ ent2
 
   } 
   *iflat = (det < msh.param->vtol * fac) || fac < 1.0e-16;
-  //CPRINTF1("-- END getmeasentP1 got meas = %e, iflat = %d\n",det,*iflat);
+  //CPRINTF1("-- END getmeasentP1 got meas = {}, iflat = {}\n",det,*iflat);
   return det;
 }
 

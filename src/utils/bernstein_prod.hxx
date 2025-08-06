@@ -39,7 +39,7 @@ void prod_bernstein(const dblAr2 &coef_inp1, const dblAr2 &coef_inp2, dblAr2 &co
 
   //static bool iinit = false;
   //if(!iinit){
-  //  printf("instantiate prod %d %d %d %d \n",gdim,tdim,ideg1,ideg2);
+  //  printf("instantiate prod {} {} {} {} \n",gdim,tdim,ideg1,ideg2);
   //  iinit = true;
   //}
 

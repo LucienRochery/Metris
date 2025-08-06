@@ -44,10 +44,10 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
       }
     }
     if(!ok[0] || !ok[1] || !ok[2]){
-      printf("## Untagged cavity entities tag = %d \n",msh.tag[ithread]);
+      fmt::print("## Untagged cavity entities tag = {} \n",msh.tag[ithread]);
       for(int tdim = 1; tdim <= 3; tdim++){
         for(int ientt : cav.lcent(tdim)){
-          printf("tdim %d ientt %d tag %d \n",tdim,ientt,msh.ent2tag(tdim)(ithread,ientt));
+          fmt::print("tdim {} ientt {} tag {} \n",tdim,ientt,msh.ent2tag(tdim)(ithread,ientt));
         }
       }
       METRIS_THROW(TopoExcept());
@@ -81,10 +81,10 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
       }
     }
     if(!ok[0] || !ok[1] || !ok[2]){
-      printf("## 1 Untagged cavity entities tag = %d \n",msh.tag[ithread]);
+      fmt::print(LOGFILE__,"## 1 Untagged cavity entities tag = {} \n",msh.tag[ithread]);
       for(int tdim = 1; tdim <= 3; tdim++){
         for(int ientt : cav.lcent(tdim)){
-          printf("tdim %d ientt %d tag %d \n",tdim,ientt,msh.ent2tag(tdim)(ithread,ientt));
+          fmt::print(LOGFILE__,"tdim {} ientt {} tag {} \n",tdim,ientt,msh.ent2tag(tdim)(ithread,ientt));
         }
       }
       METRIS_THROW(TopoExcept());
@@ -105,7 +105,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
         if(msh.poi2tag(ithread,ip) >= ptag0) continue;
         msh.poi2tag(ithread,ip) = ptag0;
         if(DOPRINTS3()){
-          CPRINTF3(" - ip = %d clean bpo pre:\n",ip);
+          CPRINTF3(" - ip = {} clean bpo pre:\n",ip);
           print_bpolist(msh,msh.poi2bpo[ip]);
         }
         msh.rembpotag(ip,ithread);
@@ -131,10 +131,10 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
       }
     }
     if(!ok[0] || !ok[1] || !ok[2]){
-      printf("## 2 Untagged cavity entities tag = %d \n",msh.tag[ithread]);
+      fmt::print("## 2 Untagged cavity entities tag = {} \n",msh.tag[ithread]);
       for(int tdim = 1; tdim <= 3; tdim++){
         for(int ientt : cav.lcent(tdim)){
-          printf("tdim %d ientt %d tag %d \n",tdim,ientt,msh.ent2tag(tdim)(ithread,ientt));
+          fmt::print("tdim {} ientt {} tag {} \n",tdim,ientt,msh.ent2tag(tdim)(ithread,ientt));
         }
       }
       METRIS_THROW(TopoExcept());
@@ -160,7 +160,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
         if(msh.poi2tag(ithread,ip) >= ptag0) continue;
         msh.poi2tag(ithread,ip) = ptag0;
 
-        CPRINTF2(" - update bpo tdim %d ientt %d ipoin %d\n",tdim,ientt,ip);
+        CPRINTF2(" - update bpo tdim {} ientt {} ipoin {}\n",tdim,ientt,ip);
         // First link and minimum topo dimn
         int ibpo0 = msh.poi2bpo[ip];
         METRIS_ASSERT(ibpo0 >= 0); 
@@ -196,10 +196,10 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
       }
     }
     if(!ok[0] || !ok[1] || !ok[2]){
-      printf("## 3 Untagged cavity entities tag = %d \n",msh.tag[ithread]);
+      fmt::print("## 3 Untagged cavity entities tag = {} \n",msh.tag[ithread]);
       for(int tdim = 1; tdim <= 3; tdim++){
         for(int ientt : cav.lcent(tdim)){
-          printf("tdim %d ientt %d tag %d \n",tdim,ientt,msh.ent2tag(tdim)(ithread,ientt));
+          fmt::print("tdim {} ientt {} tag {} \n",tdim,ientt,msh.ent2tag(tdim)(ithread,ientt));
         }
       }
       METRIS_THROW(TopoExcept());
@@ -425,13 +425,13 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
       int jp1   = msh.fac2poi(ifanw,lnoed2[ii][0]);
       int jp2   = msh.fac2poi(ifanw,lnoed2[ii][1]);
 
-      CPRINTF1(" - ifanw = %d ii = %d ineigh = %d jp1 %d jp2 %d \n",
+      CPRINTF1(" - ifanw = {} ii = {} ineigh = {} jp1 {} jp2 {} \n",
                ifanw,ii,ifaca,jp1,jp2);
 
       if(ifaca < 0){ // Either surface boundary or non manifold
         int iedge = msh.facedg2glo(ifanw, ii); 
 
-        CPRINTF1(" - edge neighbour = %d <? %d = nedg0 \n",iedge,nedg0);
+        CPRINTF1(" - edge neighbour = {} <? {} = nedg0 \n",iedge,nedg0);
 
         if(iedge < 0){
           printf("## DEBUG iedge < 0\n");
@@ -452,7 +452,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
         // Start by getting face attached to edge. 
         int ifaed = msh.edg2fac[iedge];
         METRIS_ASSERT(ifaed >= 0);
-        CPRINTF1(" - already attached ifaed = %d dead ? %d \n",
+        CPRINTF1(" - already attached ifaed = {} dead ? {} \n",
                  ifaed,isdeadent(ifaed,msh.fac2poi));
         if(!isdeadent(ifaed,msh.fac2poi) && DOPRINTS1()){
           CPRINTF1(" - ifaed vertices: ");
@@ -462,7 +462,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
         // If an old cavity element, or a new one already updated
         if(isdeadent(ifaed,msh.fac2poi)
         || msh.fac2tag(ithread,ifaed) >= msh.tag[ithread]){
-          CPRINTF1(" - edg2fac link update iedge = %d : %d <- %d (new <- old)\n",
+          CPRINTF1(" - edg2fac link update iedge = {} : {} <- {} (new <- old)\n",
                     iedge,ifanw,msh.edg2fac[iedge]);
           msh.edg2fac[iedge] = ifanw;
           continue;
@@ -473,26 +473,26 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
         try{
           ieed = getedgfac(msh,ifaed,jp1,jp2);
         }catch(const MetrisExcept &e){
-          printf("### FATAL ERROR \n");
-          printf("Initial ifanw = %d nodes = %d %d %d ; current edge = %d %d \n",
+          fmt::print("### FATAL ERROR \n");
+          fmt::print("Initial ifanw = {} nodes = {} {} {} ; current edge = {} {} \n",
             ifanw,msh.fac2poi(ifanw,0),msh.fac2poi(ifanw,1),msh.fac2poi(ifanw,2),
             jp1,jp2);
           if(ifaca < -1){
-            printf("First neighbour (ifaca) = %d nodes = %d %d %d \n",ifaca,
+            fmt::print("First neighbour (ifaca) = {} nodes = {} {} {} \n",ifaca,
               msh.fac2poi[-ifaca-2][0],msh.fac2poi[-ifaca-2][1],msh.fac2poi[-ifaca-2][2]);
           }else{
-            printf("Boundary -> no first neighbour (ifaca = -1)\n");
+            fmt::print("Boundary -> no first neighbour (ifaca = -1)\n");
           }
-          printf("glo edge = %d nodes %d %d \n",iedge,msh.edg2poi(iedge,0)
+          fmt::print("glo edge = {} nodes {} {} \n",iedge,msh.edg2poi(iedge,0)
             ,msh.edg2poi(iedge,1));
-          printf("Edge points to ifaed = %d nodes = %d %d %d \n",ifaed
+          fmt::print("Edge points to ifaed = {} nodes = {} {} {} \n",ifaed
             ,msh.fac2poi(ifaed,0),msh.fac2poi(ifaed,1),msh.fac2poi(ifaed,2));
           throw(e);
         }
         METRIS_ASSERT(ieed >= 0);
         // Neighbour to the edge of the face originally attached to edge
         int ifanm = msh.fac2fac(ifaed,ieed);
-        CPRINTF1(" - original edge -> fac neighbour ifanm = %d \n",ifanm);
+        CPRINTF1(" - original edge -> fac neighbour ifanm = {} \n",ifanm);
 
         // If there was no neighbour, then edge was pointed to by single face. 
         // This is the easiest case. 
@@ -500,7 +500,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
           if(msh.fac2tag(ithread,ifaed) >= msh.tag[ithread]){
             msh.fac2fac(ifanw,ii) = -1; // Actually nothing to do here, for clarity and robustness. 
             msh.edg2fac[iedge] = ifanw;  // Update edge to face link. 
-            CPRINTF1(" - edg2fac link update iedge = %d : %d <- %d (new <- old)\n",
+            CPRINTF1(" - edg2fac link update iedge = {} : {} <- {} (new <- old)\n",
                      iedge,ifanw,msh.edg2fac[iedge]);
           }else{
             // Edge was pointed to by a single face, but this face was (and still is!!) outside the cavity... 
@@ -509,7 +509,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
           }
           // Only one to link to, no further info needed from previous face, do update now
           msh.edg2fac[iedge] = ifanw;
-          CPRINTF1(" - edg2fac link update iedge = %d : %d <- %d (new <- old)\n",
+          CPRINTF1(" - edg2fac link update iedge = {} : {} <- {} (new <- old)\n",
                    iedge,ifanw,msh.edg2fac[iedge]);
         }else{ // Non manifold case, leave to future self
           METRIS_THROW_MSG(TODOExcept(),"Implement non manifold neighbour update cavity")
@@ -531,46 +531,46 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
   // Edge case... quite litterally: 2 faces one = the other (flipped) become 1 edge
   if(msh.nface == nfac0 && ncfac > 0){
     if(msh.nedge != nedg0 + 1){
-      printf("## ERROR cavity ipins = %d \n",cav.ipins);
+      fmt::print(LOGFILE__,"## ERROR cavity ipins = {} \n",cav.ipins);
       if(cav.lcedg.get_n() > 0){
-        printf("## Edge cavity (%d): ",cav.lcedg.get_n());
+        fmt::print(LOGFILE__,"## Edge cavity ({}): ",cav.lcedg.get_n());
         for(int ii = 0; ii < cav.lcedg.get_n(); ii++){
-          printf("%d : %d = ",ii,cav.lcedg[ii]);
+          fmt::print(LOGFILE__,"{} : {} = ",ii,cav.lcedg[ii]);
           intAr1(getnnod1(ideg),msh.edg2poi[ii]).print();
         }
       }
       if(cav.lcfac.get_n() > 0){
-        printf("## Face cavity (%d): ",cav.lcfac.get_n());
+        fmt::print(LOGFILE__,"## Face cavity ({}): ",cav.lcfac.get_n());
         for(int ii = 0; ii < cav.lcfac.get_n(); ii++){
-          printf("%d : %d = ",ii,cav.lcfac[ii]);
+          fmt::print(LOGFILE__,"{} : {} = ",ii,cav.lcfac[ii]);
           intAr1(getnnod2(ideg),msh.fac2poi[ii]).print();
         }
       }
       if(cav.lctet.get_n() > 0){
-        printf("## tet  cavity (%d): ",cav.lctet.get_n());
+        fmt::print(LOGFILE__,"## tet  cavity ({}): ",cav.lctet.get_n());
         for(int ii = 0; ii < cav.lctet.get_n(); ii++){
-          printf("%d : %d = ",ii,cav.lctet[ii]);
+          fmt::print(LOGFILE__,"{} : {} = ",ii,cav.lctet[ii]);
           intAr1(getnnod3(ideg),msh.tet2poi[ii]).print();
         }
       }
       if(msh.nedge > nedg0){
-        printf("## nedg0 %d nedge %d\n",nedg0,msh.nedge);
+        fmt::print(LOGFILE__,"## nedg0 {} nedge {}\n",nedg0,msh.nedge);
         for(int ii = nedg0; ii < msh.nedge; ii++){
-          printf("%d = ",ii);
+          fmt::print(LOGFILE__,"{} = ",ii);
           intAr1(getnnod1(ideg),msh.edg2poi[ii]).print();
         }
       }
       if(msh.nface > nfac0){
-        printf("## nfac0 %d nface %d\n",nfac0,msh.nface);
+        fmt::print(LOGFILE__,"## nfac0 {} nface {}\n",nfac0,msh.nface);
         for(int ii = nfac0; ii < msh.nface; ii++){
-          printf("%d = ",ii);
+          fmt::print(LOGFILE__,"{} = ",ii);
           intAr1(getnnod2(ideg),msh.fac2poi[ii]).print();
         }
       }
       if(msh.nelem > nele0){
-        printf("## nele0 %d nelem %d\n",nele0,msh.nelem);
+        fmt::print(LOGFILE__,"## nele0 {} nelem {}\n",nele0,msh.nelem);
         for(int ii = nele0; ii < msh.nelem; ii++){
-          printf("%d = ",ii);
+          fmt::print(LOGFILE__,"{} = ",ii);
           intAr1(getnnod3(ideg),msh.tet2poi[ii]).print();
         }
       }
@@ -700,7 +700,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
       int iface = msh.tetfac2glo(ielem, ifa);
       if(iface < 0) continue;
 
-      CPRINTF1(" - tetra %d interior face %d = %d %d %d becomes boundary iface = %d \n",
+      CPRINTF1(" - tetra {} interior face {} = {} {} {} becomes boundary iface = {} \n",
         ielem, ifa, 
         msh.fac2poi(iface,0),msh.fac2poi(iface,1),msh.fac2poi(iface,2),iface);
       if(msh.fac2tet(iface,0) < 0 
@@ -717,7 +717,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
     if(iver < 0) continue;
     // Go over the other faces and see if they are cavity bdry 
     for(int ifa = 0; ifa < 4; ifa++){
-      //CPRINTF1("Debug consider ielem %d ifa %d\n",ielem,ifa);
+      //CPRINTF1("Debug consider ielem {} ifa {}\n",ielem,ifa);
       if(ifa == iver) continue;
       int iele2 = msh.tet2tet(ielem,ifa);
       if(iele2 < 0) continue; // this is handled next
@@ -725,7 +725,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
       int ip1 = msh.tet2poi(ielem,lnofa3[ifa][0]);
       int ip2 = msh.tet2poi(ielem,lnofa3[ifa][1]);
       int ip3 = msh.tet2poi(ielem,lnofa3[ifa][2]);
-      CPRINTF1(" - add %d to neighb hashtable %d %d %d from %d face %d \n",iele2,
+      CPRINTF1(" - add {} to neighb hashtable {} {} {} from {} face {} \n",iele2,
                ip1,ip2,ip3,ielem,ifa);
       auto key = stup3(ip1,ip2,ip3);
       facHsh[key] = iele2;
@@ -761,15 +761,15 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
           METRIS_ASSERT(if2 >= 0);
 
           msh.tet2tet(iele2, if2) = ielem;
-          CPRINTF1(" - tetra neighbour update %d -> %d\n",iele2,ielem);
+          CPRINTF1(" - tetra neighbour update {} -> {}\n",iele2,ielem);
         }
       }
 
       int iface = msh.tetfac2glo(ielem, ifa);
-      CPRINTF1(" - ielem %d ifa %d glo face? %d \n",ielem,ifa,iface);
+      CPRINTF1(" - ielem {} ifa {} glo face? {} \n",ielem,ifa,iface);
       if(iface >= 0 && msh.fac2tet(iface,0) != ielem 
                     && msh.fac2tet(iface,1) != ielem){
-        CPRINTF1(" - current fac2tet = %d %d \n",msh.fac2tet(iface,0),msh.fac2tet(iface,1));
+        CPRINTF1(" - current fac2tet = {} {} \n",msh.fac2tet(iface,0),msh.fac2tet(iface,1));
         if(msh.fac2tet(iface,0) < 0 
         || msh.tet2tag(ithread,msh.fac2tet(iface,0)) >= msh.tag[ithread]){
           // Nothing here yet
@@ -789,7 +789,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
         auto tt = facHsh.find(key);
         if(tt != facHsh.end()){
           int iele2 = tt->second;
-          CPRINTF1(" - found outside neighbour %d in hash tab\n",iele2);
+          CPRINTF1(" - found outside neighbour {} in hash tab\n",iele2);
           int ifa2 = getfactet(msh,iele2,ip1,ip2,ip3);
           METRIS_ASSERT(ifa2 >= 0);
           msh.tet2tet(ielem,ifa)  = iele2;

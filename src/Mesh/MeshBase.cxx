@@ -778,7 +778,7 @@ TagArray MeshBase::get_tagarray(MeshSize itype){
   
   int iarray = get_locked_array<intAr1>(mentt, tagarrs, tagarr_locks);
   
-  printf("Got iarray = %d \n",iarray);
+  fmt::print("Got iarray = {} \n",iarray);
   if(iarray < 0){
     iarray = tagarrs.get_n();
 
@@ -790,7 +790,7 @@ TagArray MeshBase::get_tagarray(MeshSize itype){
     tagarrs[iarray].set_n(nentt);
     tagarrs[iarray].fill(0);
 
-    printf("Allocated iarray %d nmem %d size %d check : %d %d \n",iarray,mentt,nentt,
+    fmt::print("Allocated iarray {} nmem {} size {} check : {} {} \n",iarray,mentt,nentt,
            tagarrs[iarray].size(),tagarrs[iarray].get_n());
   }
 

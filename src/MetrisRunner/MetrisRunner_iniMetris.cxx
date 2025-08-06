@@ -11,6 +11,7 @@
 #include "../metris_options.hxx"
 #include "../aux_exceptions.hxx"
 #include "../msh_checktopo.hxx"
+#include "../utils/mprintf.hxx"
 
 namespace Metris{
 
@@ -36,9 +37,11 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
 
   param_.checkParameters();
 
-  if(param_.iverb >= 1){
+  GETVDEPTH((&param_));
 
-    printf("\n\n"
+  if(DOPRINTS1()){
+
+    MPRINTF("\n\n"
     "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
     "Metris: high-order metric-based non-manifold tetrahedral remesher\n"
     "Copyright (C) 2023-2025, Massachusetts Institute of Technology\n"
@@ -46,11 +49,11 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
     "See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n\n"
     );
 
-    printf("Metris Git repository URL " METRIS_GIT_URL "\n");
-    printf("commit SHA1 %s ",METRIS_GIT_COMMIT_HASH);
+    MPRINTF("Metris Git repository URL " METRIS_GIT_URL "\n");
+    MPRINTF("commit SHA1 {} ",METRIS_GIT_COMMIT_HASH);
 
     #ifndef NDEBUG
-    printf("\nDebug build.\n");
+    MPRINTF("\nDebug build.\n");
     #endif
 
     bool METRIS_USE_PETSC = false, use_absl=false;
@@ -65,25 +68,27 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
     #endif
 
     if(METRIS_USE_PETSC || use_absl){
-      std::cout<<"Compiled with libraries ";
-      if(METRIS_USE_PETSC) std::cout<<"petsc ";
-      if(use_absl) std::cout<<"absl";
-      std::cout<<"\n";
+      MPRINTF("Compiled with libraries ");
+      if(METRIS_USE_PETSC) fmt::print(LOGFILE__,"petsc ");
+      if(use_absl) fmt::print(LOGFILE__,"absl");
+      fmt::print(LOGFILE__,"\n");
     }
 
     if(param_.dbgfull){
-      printf("\n\n##################################################\n");
-      printf("### FULL DEBUG -> VERY EXPENSIVE ! -dbgfull option\n");
-      printf("##################################################\n\n\n");
+      fmt::print(LOGFILE__,"\n\n");
+      MPRINTF("##################################################\n");
+      MPRINTF("### FULL DEBUG -> VERY EXPENSIVE ! -dbgfull option\n");
+      MPRINTF("##################################################\n");
+      fmt::print(LOGFILE__,"\n\n");
     }
 
     const char *OCCrev;
     int eg_imajor, eg_iminor;
     EG_revision(&eg_imajor, &eg_iminor, &OCCrev);
-    printf("\nCompiled with EGADS version %d.%d\n",eg_imajor,eg_iminor);
-    printf("              OCC revision: %s\n\n",OCCrev);
-
-    printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
+    fmt::print(LOGFILE__,"\n");
+    MPRINTF("\nCompiled with EGADS version {}.{}\n",eg_imajor,eg_iminor);
+    MPRINTF("              OCC revision: {}\n\n",OCCrev);
+    MPRINTF("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
   }
   
   if(data_front == NULL && data_back == NULL && !param_.inpBack && !param_.inpMesh) METRIS_THROW_MSG(WArgExcept(),
@@ -100,15 +105,11 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
 
   this->metricFE = !param_.anaMet;
   if(!metricFE){
-    if(param_.iverb >= 2){
-      printf(" - Initialization as MetricFieldAnalytical\n");
-    }
+    CPRINTF2(" - Initialization as MetricFieldAnalytical\n");
     msh_g = (MeshBase *) new Mesh<MetricFieldAnalytical>;
     iniMetris<MetricFieldAnalytical>(data_front,data_back);
   }else{
-    if(param_.iverb >= 2){
-      printf(" - Initialization as metricFE\n");
-    }
+    CPRINTF2(" - Initialization as metricFE\n");
     msh_g = (MeshBase *) new Mesh<MetricFieldFE        >;
     iniMetris<MetricFieldFE        >(data_front,data_back);
   }

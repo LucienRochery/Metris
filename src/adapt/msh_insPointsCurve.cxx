@@ -69,7 +69,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
   intAr1 lshell(10);
 
   // Assumptions used throughout: ninsp is ordered in increasing order, as is range
-  CPRINTF1("-- START insPointsCurve iref %d\n",iref);
+  CPRINTF1("-- START insPointsCurve iref {}\n",iref);
   METRIS_ENFORCE(lnewt[0] > range[0]);
   METRIS_ENFORCE_MSG(ninsp >= 1 || lnewt[1] > lnewt[0],
     "ninsp = "<<ninsp<<" lnewt = "<<lnewt[0]<<" "<<lnewt[1]);
@@ -130,7 +130,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       printf("## WRONG SEEDS, DUMP ALL\n");
       for(int inewt = 0; inewt < ninsp+2; inewt++){
         int iseed = t2sed[inewt];
-        MPRINTF("iseed %d ref %d vertices ",iseed,msh.edg2ref[iseed]);
+        MPRINTF("iseed {} ref {} vertices ",iseed,msh.edg2ref[iseed]);
         intAr1(getnnod1(msh.curdeg),msh.edg2poi[iseed]).print();
       }
       int nobd = 0;
@@ -147,10 +147,10 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
         bool inbd = (tcur >= tedg[0] && tcur <= tedg[1])
                  || (tcur <= tedg[0] && tcur >= tedg[1]);
         nobd += !inbd;
-        MPRINTF("inewt %d/%d seed %d tcur %f tedg %f %f inbd %d \n",inewt,ninsp+2,iseed,tcur,
+        MPRINTF("inewt {}/{} seed {} tcur {} tedg {} {} inbd {} \n",inewt,ninsp+2,iseed,tcur,
                 tedg[0], tedg[1], inbd);
       }
-      MPRINTF(" out of bounds %d / %d \n",nobd,ninsp);
+      MPRINTF(" out of bounds {} / {} \n",nobd,ninsp);
       throw(e);
     }
   #endif
@@ -181,7 +181,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
 
       double tcur = lnewt[inewt];
 
-      CPRINTF1(" - insert newt %d / %d at t = %f \n", inewt, ninsp, tcur);
+      CPRINTF1(" - insert newt {} / {} at t = {} \n", inewt, ninsp, tcur);
 
       if(msh.param->dbgfull) check_topo(msh,ithrd2);
 
@@ -225,7 +225,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
 
       ierro = msh.interpMetBack(cav.ipins,1,t2sed[inewt+1],iref,&result[3]);
       if(ierro != 0){
-        CPRINTF1(" - failed interpMetBack ierro = %d \n",ierro);
+        CPRINTF1(" - failed interpMetBack ierro = {} \n",ierro);
         lerro[CAV_ERR_NERROR+1]++;
         nerro++;
         goto cleanup;
@@ -261,7 +261,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
             int ipoin = msh.edg2poi(ieext,ii);
             int ibpoi = msh.poi2ebp(ipoin, 1, ieext, iref);
             METRIS_ASSERT(ibpoi >= 0);
-            CPRINTF1(" - iext %d ipoin %d t = %f against text %f \n",
+            CPRINTF1(" - iext {} ipoin {} t = {} against text {} \n",
                      it, ipoin, msh.bpo2rbi(ibpoi,0),text);
             if((it == 0 && msh.bpo2rbi(ibpoi,0) >= text)
             || (it == 1 && msh.bpo2rbi(ibpoi,0) <= text)){
@@ -299,7 +299,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       // from t2sed. Skip this one. 
       for(int icav = 0; icav < cav.lcedg.get_n(); icav++){
         int iedge = cav.lcedg[icav];
-        CPRINTF1(" - debug iedge %d = %d %d , seed skip %d \n",
+        CPRINTF1(" - debug iedge {} = {} {} , seed skip {} \n",
           iedge,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1),t2sed[inewt+1]);
         if(iedge == t2sed[inewt+1]) continue;
         int imin = -1;
@@ -309,7 +309,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
           int ibpoi = msh.poi2ebp(ipoin,1,iedge,iref);
           METRIS_ASSERT(ibpoi >= 0);
           double t = msh.bpo2rbi(ibpoi,0);
-          CPRINTF1(" - test edge %d ver %d = %d t = %f cur = %f\n",
+          CPRINTF1(" - test edge {} ver {} = {} t = {} cur = {}\n",
                    iedge,ii,ipoin,t,tcur);
           double dist = abs(t-tcur);
           if(dist < dmin){
@@ -320,7 +320,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
         METRIS_ASSERT(imin >= 0);
         // Neighbour against that t coordinate
         int ienei = msh.edg2edg(iedge,1-imin);
-        CPRINTF1(" - add neighb %d against %d = %d\n",ienei,1-imin,
+        CPRINTF1(" - add neighb {} against {} = {}\n",ienei,1-imin,
                  msh.edg2poi(iedge,imin));
         if(msh.edg2tag(ithrd1,ienei) < msh.tag[ithrd1]){
           cav.lcedg.stack(ienei);
@@ -418,7 +418,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       ierro = increase_cavity(msh, cav, idelaunay, ithrd2, ithrd3);
       if(DOPRINTS2()) writeMeshCavity("linecav4",msh,cav);
       if(ierro != 0){
-        CPRINTF1(" - failed increase_cavity ierro = %d \n",ierro);
+        CPRINTF1(" - failed increase_cavity ierro = {} \n",ierro);
         if(DOPRINTS2()) writeMeshCavity("linecav4",msh,cav);
         if(msh.param->interactive && DOPRINTS1()) wait();
         lerro[CAV_ERR_NERROR]++;
@@ -430,7 +430,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       ierro = increase_cavity_Delaunay(msh, cav, ithrd2, nrmal);
       if(DOPRINTS2()) writeMeshCavity("linecav4",msh,cav);
       if(ierro != 0){
-        CPRINTF1(" - failed increase_cavity_Delaunay ierro = %d \n",ierro);
+        CPRINTF1(" - failed increase_cavity_Delaunay ierro = {} \n",ierro);
         if(DOPRINTS2()) writeMeshCavity("linecav4",msh,cav);
         if(msh.param->interactive && DOPRINTS1()) wait();
         nerro++;
@@ -439,7 +439,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
 
       ierro = increase_cavity_validity(msh,cav,ithrd2);
       if(ierro != 0){
-        CPRINTF1(" - failed increase_cavity_validity ierro = %d \n",ierro);
+        CPRINTF1(" - failed increase_cavity_validity ierro = {} \n",ierro);
         if(DOPRINTS2()) writeMeshCavity("linecav3",msh,cav);
         if(msh.param->interactive && DOPRINTS1()) wait();
         nerro++;
@@ -456,12 +456,12 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       }}CT_FOR1(ideg);
 
       //if(ierro != 0){
-      //  printf("## WAIT: in insPointsCurve cavity ierro %d \n",ierro);
+      //  printf("## WAIT: in insPointsCurve cavity ierro {} \n",ierro);
       //  wait();
       //}
 
       if(ierro != 0){
-        CPRINTF1(" - failed cavity_operator ierro = %d \n",ierro);
+        CPRINTF1(" - failed cavity_operator ierro = {} \n",ierro);
         nerro++;
         lerro[ierro]++;
         if(msh.param->interactive && DOPRINTS2()) wait();
@@ -478,20 +478,20 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
 
       if(DOPRINTS2()) writeMesh("linestep",msh);
 
-      CPRINTF1(" - Debug us = %d left link = %d right = %d \n",
+      CPRINTF1(" - Debug us = {} left link = {} right = {} \n",
                inewt,t2lnk(inewt,0),t2lnk(inewt,1));
       // Rework the links. People who left link to further left than us should
       // link to us instead. Idem right. 
       for(int ii = 1; ii <= mdseed; ii++){
         // The right link of people to our left:
         if(inewt-ii >= 0 && t2lnk(inewt-ii,1) > inewt){
-          CPRINTF2(" - update right link of %d: %d -> %d \n",
+          CPRINTF2(" - update right link of {}: {} -> {} \n",
                    inewt-ii,t2lnk(inewt-ii,1),inewt);
           t2lnk(inewt-ii,1) = inewt;
         }
         // The left link of people to our right:
         if(inewt+ii < ninsp  && t2lnk(inewt+ii,0) < inewt){
-          CPRINTF2(" - update left link of %d: %d -> %d \n",
+          CPRINTF2(" - update left link of {}: {} -> {} \n",
                    inewt+ii,t2lnk(inewt+ii,0),inewt);
           t2lnk(inewt+ii,0) = inewt;
         }
@@ -510,7 +510,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
 
           double tother = iother >= 0 && iother < ninsp ? lnewt[iother]
                         : iother == -1 ? range[0] : range[1];
-          CPRINTF1(" - update seed for %d range = %f %f \n",iother,range[0],range[1]);
+          CPRINTF1(" - update seed for {} range = {} {} \n",iother,range[0],range[1]);
           bool ifnd = false;
           // This is in fact a very small loop (most often 2 elts)
           for(int iedge = nedg0; iedge < msh.nedge; iedge++){
@@ -523,11 +523,11 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
               METRIS_ASSERT(ibpoi >= 0);
               tedg[jj] = msh.bpo2rbi(ibpoi,0);
             }// for jj
-            CPRINTF1(" - seek t = %f tedg = %f %f \n",tother,tedg[0],tedg[1]);
+            CPRINTF1(" - seek t = {} tedg = {} {} \n",tother,tedg[0],tedg[1]);
             if((tother >= tedg[0] && tother <= tedg[1])
             || (tother >= tedg[1] && tother <= tedg[0])){
               ifnd = true;
-              CPRINTF1(" - updated seed for it = %d: %d -> %d \n",iother,
+              CPRINTF1(" - updated seed for it = {}: {} -> {} \n",iother,
                        t2sed[iother+1],iedge);
               t2sed[iother+1] = iedge;
             }
@@ -543,12 +543,12 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       msh.killpoint(cav.ipins);
     }// for inewt
 
-    CPRINTF1(" - insPoint ref %d iter %d inserted %d nerro %d\n",iref,niter,nsucc,nerro);
+    CPRINTF1(" - insPoint ref {} iter {} inserted {} nerro {}\n",iref,niter,nsucc,nerro);
     if(DOPRINTS2() && nerro > 0){
       printf(" - Error list:\n");
       for(int ii = 0; ii < ierro_max; ii++){
         if(lerro[ii] <= 0) continue;
-        CPRINTF2("   - %d : %d", ii, lerro[ii]);
+        CPRINTF2("   - {} : {}", ii, lerro[ii]);
         if(ii < CAV_ERR_NERROR) printf(" (cav)");
         printf("\n");
       }

@@ -10,16 +10,18 @@
 #include "../MetricField/msh_explogmet.hxx"
 #include "../Mesh/MeshBase.hxx"
 #include "../msh_lag2bez.hxx"
-#include "../utils/aux_misc.hxx"
 #include "../low_eval.hxx"
 #include "../io_libmeshb.hxx"
-#include "../utils/CT_loop.hxx"
-#include "../utils/mprintf.hxx"
 #include "../msh_structs.hxx"
 #include "../linalg/invmat.hxx"
 #include "../linalg/explogmet.hxx"
 #include "../linalg/utils.hxx"
 #include "../linalg/symidx.hxx"
+
+#include "../utils/CT_loop.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
+#include "../utils/aux_misc.hxx"
 
 #include "../Localization/msh_localization.hxx"
 
@@ -161,29 +163,31 @@ void MetricFieldFE::readMetricFile(std::string inpname){
 
   METRIS_ENFORCE_MSG(metdim == msh.idim, "Metric and mesh dimension must agree");
 
+  GETVDEPTH(msh.param);
 
   int ilag = 1 - GmfStatKwd(libIdx, GmfBezierBasis);
   if(ilag == 1){
-    std::cout<<"Metric in Lagrange format.\n";
+    CPRINTF1("Metric in Lagrange format.\n");
     this->ibasis = FEBasis::Lagrange;
   }else{
-    std::cout<<"Metric in Bézier format.\n";
+    CPRINTF1("Metric in Bézier format.\n");
     this->ibasis = FEBasis::Bezier;
   }
 
   this->ispace = MetSpace::Exp;
   int ncom = GmfStatKwd(libIdx, GmfComments);
-  if(ncom) std::cout<<"Metric file contains "<<ncom<<" comments\n";
+  if(ncom) CPRINTF1("Metric file contains {} comments\n", ncom);
+
   char buff[257];
   GmfGotoKwd(libIdx, GmfComments);  
   for(int icom = 0; icom < ncom; icom++){
     GmfGetLin(libIdx, GmfComments, buff);
     std::string strbuf(buff);
     if(strbuf.find("log") != std::string::npos){
-      std::cout<<"log-Metric supplied.\n";
+      CPRINTF1("log-Metric supplied.\n");
       this->ispace = MetSpace::Log;
     }else{
-      std::cout<<"## UNKNOWN COMMENT LINE: "<<strbuf<<"\n";
+      PRINTF("## UNKNOWN COMMENT LINE: {}\n", strbuf);
       METRIS_THROW_MSG(TODOExcept(),
         "Known bug: Comments works in binary file but not plaintext after transmesh.\n")
     }
@@ -272,13 +276,12 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
     GmfSetLin(libIdx,GmfComments,buf);
   } 
 
-  CPRINTF1("-- START writing file %s\n",metName.c_str());
+  CPRINTF1("-- Write file file {} npoin {}\n",metName,msh.npoin);
 
 
   GmfSetKwd(libIdx, GmfSolAtVertices, msh.npoin, 1, &szfld);
   GmfSetBlock(libIdx, GmfSolAtVertices, 1, msh.npoin, 0, NULL, NULL,
               GmfDoubleVec, nnmet, buffer[0], buffer[msh.npoin-1]);
-  CPRINTF1("-- END writing metric\n");
 
 
   GmfCloseMesh( libIdx );
@@ -318,6 +321,7 @@ void MetricFieldFE::correctMetric(){
 
   double eigval[3], eigvec[9];
   for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
+    INCVDEPTH(msh.param);
     if(msh.poi2ent(ipoin,0) < 0) continue;
     if(msh.idim == 2){
       geteigsym<2,double>(rfld[ipoin],eigval,eigvec);
@@ -325,10 +329,8 @@ void MetricFieldFE::correctMetric(){
       geteigsym<3,double>(rfld[ipoin],eigval,eigvec);
     }
     for(int ii = 0; ii < msh.idim; ii++){
-      if(eigval[ii] < 1.0e-32){
-        printf("## CORRECTED SMALL OR NEGATIVE EIGVALS: ");
-        dblAr1(msh.idim,eigval).print();
-      }
+      if(eigval[ii] < 1.0e-32)
+        PRINTF("## CORRECTED SMALL OR NEGATIVE EIGVALS: {}\n",dblAr1(msh.idim,eigval));
       eigval[ii] = abs(eigval[ii]);
     }
     if(msh.idim == 2){
@@ -374,12 +376,13 @@ void MetricFieldFE::getMetBary(AsDeg asdmet,
   }}CT_FOR1(gdim);
 
   if(std::isnan(metl[0])){
-    printf("## DEBUG NAN METRIC IN GETMETBARY\n");
-    printf("bary = ");
+    GETVDEPTH(msh.param);
+    PRINTF("## DEBUG NAN METRIC IN GETMETBARY\n");
+    PRINTF("bary = ");
     dblAr1(msh.idim+1,bary).print();
     for(int inode = 0; inode < getnnode(msh.idim,msh.curdeg); inode++){
-      printf("elt node %d met = ",ent2pol[inode]);
-      dblAr1((msh.idim*(msh.idim+1))/2, this->rfld[ent2pol[inode]]).print();
+      PRINTF("elt node {} met = {}\n",ent2pol[inode],
+             dblAr1((msh.idim*(msh.idim+1))/2, this->rfld[ent2pol[inode]]));
     }
   }
 

@@ -7,6 +7,9 @@
 #include "normal.hxx"
 #include "misc.hxx"
 
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
+
 #include "../Mesh/MeshMetric.hxx"
 #include "../linalg/symidx.hxx"
 #include "../linalg/matprods.hxx"
@@ -301,10 +304,10 @@ double getlenedg_geosz_plane(const MeshMetric<MetricFieldType> &msh,
     for(int jj = 0; jj < gdim; jj++) tan1[jj] = tang[jj] - dtpr1*nrmals[gdim*0 + jj];
     for(int jj = 0; jj < gdim; jj++) tan2[jj] = tang[jj] - dtpr2*nrmals[gdim*1 + jj];
 
-    //printf("Debug dtpr1 = %e dtpr2 = %e\n",dtpr1, dtpr2);
-    //printf("Debug tang = %f %f %f\n",tang[0],tang[1],tang[2]);
-    //printf("Debug nrmal1 = %f %f %f\n",nrmals[gdim*0+0],nrmals[gdim*0+1],nrmals[gdim*0+2]);
-    //printf("Debug nrmal2 = %f %f %f\n",nrmals[gdim*1+0],nrmals[gdim*1+1],nrmals[gdim*1+2]);
+    //printf("Debug dtpr1 = {} dtpr2 = {}\n",dtpr1, dtpr2);
+    //printf("Debug tang = {} {} {}\n",tang[0],tang[1],tang[2]);
+    //printf("Debug nrmal1 = {} {} {}\n",nrmals[gdim*0+0],nrmals[gdim*0+1],nrmals[gdim*0+2]);
+    //printf("Debug nrmal2 = {} {} {}\n",nrmals[gdim*1+0],nrmals[gdim*1+1],nrmals[gdim*1+2]);
 
     if(msh.met.getSpace() == MetSpace::Log){
       sz[0] = getlenedg_log<gdim>(tan1,msh.met[edg2pol[0]],100,1.0e-6);
@@ -481,13 +484,12 @@ double getlenedg_quad(MeshMetric<MetricFieldType> &msh,
 
     #ifndef NDEBUG
     if(std::isnan(len)){
-      printf("## DEBUG nan len increment in getlenedg_quad\n");
-      printf("ientt %d tdim %d iedg %d nquad %d gdim %d ideg %d \n",
+      GETVDEPTH(msh.param);
+      PRINTF("## DEBUG nan len increment in getlenedg_quad\n");
+      PRINTF("ientt {} tdim {} iedg {} nquad {} gdim {} ideg {} \n",
              ientt, tdimn, iedg, nquad, gdim, ideg);
-      printf("dx = %e, tang = ",dx);
-      dblAr1(gdim, tang).print();
-      printf("metl = ");
-      dblAr1(nnmet,metl).print();
+      PRINTF("dx = {}, tang = {}\n",dx,dblAr1(gdim,tang));
+      PRINTF("metl = {}\n",dblAr1(nnmet,metl));
       METRIS_THROW(GeomExcept());
     }
     #endif

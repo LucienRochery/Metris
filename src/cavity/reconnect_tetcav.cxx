@@ -48,7 +48,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
 
 
   GETVDEPTH(msh.param);
-  CPRINTF1(" - START reconnect_tetcav check_qua = %d qpnorm %d qpower %d\n",
+  CPRINTF1(" - START reconnect_tetcav check_qua = {} qpnorm {} qpower {}\n",
             check_qua,qpnorm,msh.param->opt_power);
 
   const int nele0 = msh.nelem;
@@ -104,7 +104,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
     for(int ifa0 = 0; ifa0 < 4; ifa0++){
       int ienei = msh.tet2tet(iele0,ifa0);
       if(ienei >= 0 && msh.tet2tag(ithread,ienei) >= msh.tag[ithread]){
-        CPRINTF1(" - skip tetra creation from %d face %d due to cavity neighbour %d \n",
+        CPRINTF1(" - skip tetra creation from {} face {} due to cavity neighbour {} \n",
                  iele0, ifa0, ienei);
         continue;
       }
@@ -117,7 +117,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
         break;
       }
       if(iskip){
-        CPRINTF1(" - skip tetra creation from %d face %d which contains ipins\n",
+        CPRINTF1(" - skip tetra creation from {} face {} which contains ipins\n",
                  iele0, ifa0);
         continue;
       }
@@ -132,7 +132,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
         if(tt != msh.facHshTab.end()){
           int iface = tt->second;
           if(msh.fac2tag(ithread,iface) >= msh.tag[ithread]){
-            CPRINTF1(" - skip tetra creation from %d face %d is glo face %d in cavity\n",
+            CPRINTF1(" - skip tetra creation from {} face {} is glo face {} in cavity\n",
                      iele0, ifa0 ,iface);
             continue;
           }
@@ -154,18 +154,18 @@ int reconnect_tetcav(Mesh<MFT> &msh,
       msh.tet2poi(ielen, lnofa3[ifa0][1]) = msh.tet2poi(iele0, lnofa3[ifa0][1]);
       msh.tet2poi(ielen, lnofa3[ifa0][2]) = msh.tet2poi(iele0, lnofa3[ifa0][2]);
       
-      CPRINTF1(" - new tetra = %d from iele0 = %d ifa = %d vertices: %d %d %d %d\n",
+      CPRINTF1(" - new tetra = {} from iele0 = {} ifa = {} vertices: {} {} {} {}\n",
                ielen,iele0,ifa0,msh.tet2poi(ielen,0),msh.tet2poi(ielen,1),
                msh.tet2poi(ielen,2),msh.tet2poi(ielen,3));
 
       double meas0;
       if(!isvalideltP1<3,3>(msh, ielen,NULL,&meas0)){
-        CPRINTF1(" - iflat ! return ip1 ip2 ip3 ip4 = %d %d %d %d meas = %15.7e \n", 
+        CPRINTF1(" - iflat ! return ip1 ip2 ip3 ip4 = {} {} {} {} meas = {:15.7e} \n", 
                  msh.tet2poi(ielen,0),msh.tet2poi(ielen,1),msh.tet2poi(ielen,2),
                  msh.tet2poi(ielen,3),meas0); 
         return CAV_ERR_FLATTET;
       }
-      CPRINTF2(" - new tetra volume %e \n",meas0);
+      CPRINTF2(" - new tetra volume {} \n",meas0);
 
 
       // If the tet has all vertices on boundary, check faces orientations.
@@ -174,7 +174,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
         for(int ii = 0; ii < 3; ii++){
           int pdim = msh.getpoitdim(msh.tet2poi(ielen, lnofa3[ifa0][ii]));
           if(pdim < 3) continue;
-          CPRINTF1(" face point %d has dim 3 -> skip\n",msh.tet2poi(ielen, lnofa3[ifa0][ii]));
+          CPRINTF1(" face point {} has dim 3 -> skip\n",msh.tet2poi(ielen, lnofa3[ifa0][ii]));
           goto check_bdry_done;
         }
 
@@ -184,7 +184,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
         //if(msh.tet2poi(ielen,0) == 30 && msh.tet2poi(ielen,1) == 478
         //  && msh.tet2poi(ielen,0) == 29 && msh.tet2poi(ielen,1) == 118
         //  || ielen == 4353){
-        //  printf("\n\n ## DEBUG 4 BDRY VERTEX TET CASE MAX PRINTS ielen %d vertices ",ielen);
+        //  printf("\n\n ## DEBUG 4 BDRY VERTEX TET CASE MAX PRINTS ielen {} vertices ",ielen);
         //  intAr1(4,msh.tet2poi[ielen]).print();
         //  writeMesh("debug",msh);
         //  ipause = true;
@@ -215,7 +215,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
             int iface = msh.bpo2ibi(ibpoi,2);
             int ireff = msh.fac2ref[iface];
             int nseenm1 = msh.cfa2tag(ithread,ireff) - cfatag;
-            CPRINTF1(" - check ver %d ipoin %d face %d ref %d already seen %dx\n",
+            CPRINTF1(" - check ver {} ipoin {} face {} ref {} already seen {}x\n",
                      iver,ipoin,iface,ireff,nseenm1+1);
             // Same ref can be seen twice by same vertex, meaning it has already 
             // been updated.
@@ -247,12 +247,12 @@ int reconnect_tetcav(Mesh<MFT> &msh,
         bool nogood = false;
         for(int ifal = 0; ifal < 4; ifal++){
           int iface = msh.tet2fac(ielen, ifal);
-          CPRINTF1(" - tet face %d -> glo face %d\n",ifal, iface);
+          CPRINTF1(" - tet face {} -> glo face {}\n",ifal, iface);
           if(iface < 0) continue;
           if(msh.fac2tet(iface,0) >= 0 && msh.fac2tet(iface,1) >= 0){
             if(msh.param->dbgfull) 
               METRIS_THROW_MSG(TODOExcept(), "Handle internal surface case here");
-            CPRINTF1(" # REJECT: tet face %d matches glo face %d which is internal\n",
+            CPRINTF1(" # REJECT: tet face {} matches glo face {} which is internal\n",
               ifal, iface);
             return CAV_ERR_BDRYTET2;
           }
@@ -262,7 +262,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
           int jp1 = msh.fac2poi(iface, 0);
           int jp2 = msh.fac2poi(iface, 1);
           int jp3 = msh.fac2poi(iface, 2);
-          CPRINTF1(" - glo face %d = %d %d %d: check opposite orientation\n",
+          CPRINTF1(" - glo face {} = {} {} {}: check opposite orientation\n",
                   iface, jp1, jp2, jp3);
           if(ip1 == jp1){
             if(ip2 == jp2) nogood = true;
@@ -307,7 +307,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
         }else{
           quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
         }
-        CPRINTF1(" - new tetra %d = %d %d %d %d from %d conf error = %f \n",
+        CPRINTF1(" - new tetra {} = {} {} {} {} from {} conf error = {} \n",
            ielen,
            msh.tet2poi(ielen,0), msh.tet2poi(ielen,1), msh.tet2poi(ielen,2),
            msh.tet2poi(ielen,3) ,iele0,quael);
@@ -318,7 +318,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
           info.qcav3 += pow(abs(quael), qpnorm);
         }
         if(quael > opts.qmax_nec && opts.qmax_nec > 0.0){
-          CPRINTF1(" # quael = %e > %e = qmax_nec -> reject\n",quael, opts.qmax_nec);
+          CPRINTF1(" # quael = {} > {} = qmax_nec -> reject\n",quael, opts.qmax_nec);
           return CAV_ERR_QMAXNEC; // Run rejected
         }
         if(quael > opts.qmax_iff && opts.qmax_iff > 0.0) return CAV_ERR_QMAXIFF; // Run rejected
@@ -358,10 +358,10 @@ int reconnect_tetcav(Mesh<MFT> &msh,
         // This makes the face opposite ifa + ied. 
         int ifan = (ifa0 + ied + 1)%4;
 
-        CPRINTF1(" - with ifa0 %d have ifan %d \n",ifa0, ifan);
-        //CPRINTF1(" debug face ifa0 %d %d %d \n",msh.tet2poi(ielen,lnofa3[ifa0][0])
+        CPRINTF1(" - with ifa0 {} have ifan {} \n",ifa0, ifan);
+        //CPRINTF1(" debug face ifa0 {} {} {} \n",msh.tet2poi(ielen,lnofa3[ifa0][0])
         //      ,msh.tet2poi(ielen,lnofa3[ifa0][1]),msh.tet2poi(ielen,lnofa3[ifa0][2]));
-        //CPRINTF1(" debug face ifan %d %d %d \n",msh.tet2poi(ielen,lnofa3[ifan][0])
+        //CPRINTF1(" debug face ifan {} {} {} \n",msh.tet2poi(ielen,lnofa3[ifan][0])
         //      ,msh.tet2poi(ielen,lnofa3[ifan][1]),msh.tet2poi(ielen,lnofa3[ifan][2]));
 
 
@@ -374,15 +374,15 @@ int reconnect_tetcav(Mesh<MFT> &msh,
           int ielef = hshfac.second;
           METRIS_ASSERT(ielef >= 0 && ielef < msh.nentt(tdimf));
 
-          CPRINTF1(" - found internal or new boundary face tdim %d entt %d \n",
+          CPRINTF1(" - found internal or new boundary face tdim {} entt {} \n",
                    tdimf,ielef);
 
           // Copy the nodes from the entity. Could be dimension 2 or 3. 
           if(tdimf == 2){
 
-            CPRINTF1(" - bdry face nodes %d %d %d \n",msh.fac2poi(ielef,0)
+            CPRINTF1(" - bdry face nodes {} {} {} \n",msh.fac2poi(ielef,0)
                      ,msh.fac2poi(ielef,1),msh.fac2poi(ielef,2)); 
-            CPRINTF1("   match with %d %d %d \n",msh.tet2poi(ielen,lnofa3[ifan][0])
+            CPRINTF1("   match with {} {} {} \n",msh.tet2poi(ielen,lnofa3[ifan][0])
               ,msh.tet2poi(ielen,lnofa3[ifan][1]),msh.tet2poi(ielen,lnofa3[ifan][2]));
 
 
@@ -471,7 +471,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
 
   if(check_qua && qpnorm > 0){
     info.qcav3 = pow(info.qcav3, 1.0 / qpnorm);
-    CPRINTF1(" - Final tetra cavity quality = %.3f\n",info.qcav3);
+    CPRINTF1(" - Final tetra cavity quality = {:.3f}\n",info.qcav3);
   }
 
 

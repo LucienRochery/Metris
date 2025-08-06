@@ -56,22 +56,22 @@ bool isintetP1(const double *p1, const double *p2,
   vol = detvdif3(p2,pp
                  ,p3,pp
                  ,p4,pp);
-                 //printf("Debug vol vol0 %15.7e %15.7e (1) \n",vol,vol0);
+                 //printf("Debug vol vol0 {:15.7e} {:15.7e} (1) \n",vol,vol0);
   if(vol < -tol*vol0) return false;
   vol = detvdif3(pp,p1
                  ,p3,p1
                  ,p4,p1);
-                 //printf("Debug vol vol0 %15.7e %15.7e (2) \n",vol,vol0);
+                 //printf("Debug vol vol0 {:15.7e} {:15.7e} (2) \n",vol,vol0);
   if(vol < -tol*vol0) return false;
   vol = detvdif3(p2,p1
                  ,pp,p1
                  ,p4,p1);
-                 //printf("Debug vol vol0 %15.7e %15.7e (3) \n",vol,vol0);
+                 //printf("Debug vol vol0 {:15.7e} {:15.7e} (3) \n",vol,vol0);
   if(vol < -tol*vol0) return false;
   vol = detvdif3(p2,p1
                  ,p3,p1
                  ,pp,p1);
-                 //printf("Debug vol vol0 %15.7e %15.7e (4) \n",vol,vol0);
+                 //printf("Debug vol vol0 {:15.7e} {:15.7e} (4) \n",vol,vol0);
   if(vol < -tol*vol0) return false;
 
   return true;

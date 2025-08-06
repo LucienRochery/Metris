@@ -64,7 +64,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
   constexpr int tdim = idim;
   //constexpr int gdim = idim;
   if(ideg > idim + 1){
-    printf("## SMOOTHING DISABLED FOR DEGREE %d and dim %d \n",ideg,idim);
+    PRINTF("## SMOOTHING DISABLED FOR DEGREE {} and dim {} \n",ideg,idim);
     return -1.0;
   }
 
@@ -81,12 +81,12 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
     int nthread = GetNumberOfCores();
     if(nthread <= 0){
       CPRINTF1("## WARNING: LPlib function GetNumberOfCores() returned " 
-               "negative threads. Set to default %d.\n",METRIS_MAXTAGS);
+               "negative threads. Set to default {}.\n",METRIS_MAXTAGS);
       nthread = METRIS_MAXTAGS;
     }else{
-      CPRINTF2("-- LPlib found ncore = %d \n",nthread);
+      CPRINTF2("-- LPlib found ncore = {} \n",nthread);
       if(nthread > METRIS_MAXTAGS){
-        CPRINTF1("## WARNING: must verify nthread <= METRIS_MAXTAGS = %d." 
+        CPRINTF1("## WARNING: must verify nthread <= METRIS_MAXTAGS = {}." 
                 " Increase in metris_constants.hxx.\n", METRIS_MAXTAGS);
         nthread = METRIS_MAXTAGS;
       }
@@ -178,10 +178,10 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
 
     qnrm /= navg;
     double t0 = get_wall_time();
-    CPRINTF1(" - smoo iter %3d init %10.6e < q < %10.6e (at %d), avg = %10.6e " 
-                   "(p = %d)\n",niter,qmin,qmax,imax,qnrm,msh.param->opt_pnorm);
+    CPRINTF1(" - smoo iter {:3} init {:10.6e} < q < {:10.6e} (at {}), avg = {:10.6e} " 
+                   "(p = {})\n",niter,qmin,qmax,imax,qnrm,msh.param->opt_pnorm);
     //if(iverb >= 2 && qmax >= 1e10){
-    //  printf("## HIGH QMAX mshdeg = %d \n",msh.curdeg);
+    //  printf("## HIGH QMAX mshdeg = {} \n",msh.curdeg);
     //  std::string fname = "qmax"+std::to_string(imax);
     //  writeMesh(fname,msh);
     //  //wait();
@@ -219,10 +219,10 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         //double qpoin = rpoqe[ipoin] / ipone[ipoin];
         //if(qpoin > qnrm / qrthr){
           if(iverb >= 3){
-            //printf("   - smoo pt %d seed elt %d quapt = %10.6e" 
-            //  " qthrs = %10.6e qnrm = %10.6e\n",
+            //printf("   - smoo pt {} seed elt {} quapt = {:10.6e}" 
+            //  " qthrs = {:10.6e} qnrm = {:10.6e}\n",
             //  ipoin,ientt,qpoin,qrthr * qnrm,qnrm);
-            printf("   - smoo pt %d seed elt %d \n", ipoin,ientt);
+            printf("   - smoo pt {} seed elt {} \n", ipoin,ientt);
           }
 
           int iopen;
@@ -251,7 +251,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
                                    &qnrm0,&qmax0,&qnrm1,&qmax1);//maxinc_worst,
             if(qmax1 > *qmax){
               if(iverb >= 2) printf("  - reject move, worst above last worst "
-                " %15.7e > %15.7e\n", qmax1, *qmax);
+                " {:15.7e} > {:15.7e}\n", qmax1, *qmax);
               for(int ii = 0; ii < idim; ii++) 
                 msh->coord(ipoin,ii) = coor0[ii];
               for(int ii = 0; ii < nnmet;ii++) 
@@ -265,8 +265,8 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
           }
           if(ierro == 0){
             (*nsuccthr)[ithread]++;
-            if(iverb >= 3) printf("   - success smoothing %d q avg" 
-                                     " %10.6e -> %10.6e max %10.6e -> %10.6e\n",
+            if(iverb >= 3) printf("   - success smoothing {} q avg" 
+                                     " {:10.6e} -> {:10.6e} max {:10.6e} -> {:10.6e}\n",
                                      ipoin,qnrm0,qnrm1,qmax0,qmax1);
 
             bool imov = false;
@@ -299,7 +299,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
                                        &msh, itag_shared, ithrd2, &qmax, 
                                        &nsuccthr, &nmovthr, 
                                        tolavg, tolmax);
-    CPRINTF1("Smoothing accel = %f \n",acc);
+    CPRINTF1("Smoothing accel = {} \n",acc);
     for(int ii = 0; ii < nthread; ii++){
       nsucc += nsuccthr[ii];
       nmov  += nmovthr[ii];
@@ -325,7 +325,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
       METRIS_ASSERT(iver >= 0);
 
 
-      CPRINTF1(" - smoo pt %d seed elt %d \n", ipoin,ientt);
+      CPRINTF1(" - smoo pt {} seed elt {} \n", ipoin,ientt);
       int ierro = 0;
 
       if(iver < tdim+1){
@@ -383,21 +383,21 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
                                      &qnrm0,&qmax0,&qnrm1,&qmax1,work,iquaf);
         }
         if(qmax1 > qmax){
-          CPRINTF1(" - reject move, worst above last worst %15.7e > %15.7e\n", 
+          CPRINTF1(" - reject move, worst above last worst {:15.7e} > {:15.7e}\n", 
                    qmax1, qmax);
           for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
           for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
           ierro = 1;
         }
       }catch(const MetrisExcept &e){
-        printf("## FAILED  smooballdirect\n");
+        PRINTF("## FAILED  smooballdirect\n");
         writeMesh("smooth_error.meshb",msh);
         throw(e);
       }
       if(ierro == 0){
         nsucc++;
-        CPRINTF1(" - success smoothing %d q avg %10.6e -> %10.6e " 
-                 "max %10.6e -> %10.6e\n",ipoin,qnrm0,qnrm1,qmax0,qmax1);
+        CPRINTF1(" - success smoothing {} q avg {:10.6e} -> {:10.6e} " 
+                 "max {:10.6e} -> {:10.6e}\n",ipoin,qnrm0,qnrm1,qmax0,qmax1);
 
         bool imov = false;
         // qnrm1 should be < qnrm0 for there to be progress 
@@ -423,7 +423,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
     #endif
 
     double t1 = get_wall_time();
-    CPRINTF1(" - Iteration end t = %f nsuccess = %d nmov = %d \n",
+    CPRINTF1(" - Iteration end time = {:.2e}s nsuccess = {} nmov = {} \n",
                           t1-t0,nsucc,nmov);
     noper += nmov;
     if(nmov == 0) break;

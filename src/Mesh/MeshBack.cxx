@@ -150,7 +150,7 @@ void MeshBack::initialize(MetrisAPI *data,
         if(DOPRINTS1()) t0 = get_wall_time();
         getMetMesh<MetricFieldFE,ideg>(param,*this);
         if(DOPRINTS1()) t1 = get_wall_time();
-        CPRINTF1("(back)  - Done time = %f\n",t1-t0);
+        CPRINTF1("(back)  - Done time = {:.2e}s\n",t1-t0);
 
         if(DOPRINTS2()) met.writeMetricFile("backmet.solb");
         snapMetSurf<MetricFieldFE>(*this, 0);
@@ -164,7 +164,7 @@ void MeshBack::initialize(MetrisAPI *data,
 
   }else if(param.inpMet){
     
-    CPRINTF1("(back)  - Get metric from file %s\n",param.metFileName.c_str());
+    CPRINTF1("(back)  - Get metric from file {}\n",param.metFileName.c_str());
     METRIS_ENFORCE_MSG(data == NULL || !data->imet, 
                        "Metric specified both in data and file");
 
@@ -194,7 +194,7 @@ void MeshBack::initialize(MetrisAPI *data,
   met.setBasis(FEBasis::Bezier);
 
   if(param.scaleMet){
-    CPRINTF1("-- Back scaling metric by %15.7e\n", param.metScale);
+    CPRINTF1("-- Back scaling metric by {:15.7e}\n", param.metScale);
     met.normalize(param.metScale);
   }
 
@@ -295,7 +295,7 @@ void MeshBack::initialize(MetrisAPI *data,
             dirCAD = buf;
           }
 
-          //CPRINTF3("ientt %d iref %d ipoin = %d ibpoi = %d : ",ientt,iref,ipoin,ibpoi);
+          //CPRINTF3("ientt {} iref {} ipoin = {} ibpoi = {} : ",ientt,iref,ipoin,ibpoi);
           //if(DOPRINTS1()) intAr1(nibi,bpo2ibi[ibpoi]).print();
 
           // Get elt direction (tangent if dim = 1, normal otherwise)
@@ -342,7 +342,7 @@ void MeshBack::initialize(MetrisAPI *data,
           if(iCADsing){
             if(poi2tag(0,ipoin) >= tag[0]) continue;
             poi2tag(0,ipoin) = tag[0];
-            CPRINTF1("## CAD normal singular at point %d \n",ipoin);
+            CPRINTF1("## CAD normal singular at point {} \n",ipoin);
             nCADsing++;
             continue;
           }
@@ -356,7 +356,7 @@ void MeshBack::initialize(MetrisAPI *data,
           dtprd = abs(dtprd);
 
           if(DOPRINTS3()){
-            CPRINTF3(" - ientt %d ipoin %d mtype %d dtprd %f dirCAD = ",ientt,ipoin,mtype,dtprd);
+            CPRINTF3(" - ientt {} ipoin {} mtype {} dtprd {} dirCAD = ",ientt,ipoin,mtype,dtprd);
             dblAr1(idim,dirCAD).print();
             CPRINTF3(" - dirent = ");
             dblAr1(idim,dirent).print();
@@ -365,9 +365,9 @@ void MeshBack::initialize(MetrisAPI *data,
             if(1 - abs(dtprd) >= 0.9){
               CPRINTF3("## LARGE GEODEV \n");
               for(int ibpo0 = poi2bpo[ipoin]; ibpo0 >= 0; ibpo0 = bpo2ibi(ibpo0,3)){
-                CPRINTF3("   - ibpoi %d : ",ibpo0);
+                CPRINTF3("   - ibpoi {} : ",ibpo0);
                 intAr1(nibi,bpo2ibi[ibpo0]).print();
-                MPRINTF(" (u,v) = %f %f \n",bpo2rbi(ibpo0,0),bpo2rbi(ibpo0,1));
+                MPRINTF(" (u,v) = {} {} \n",bpo2rbi(ibpo0,0),bpo2rbi(ibpo0,1));
               }
             }
           }
@@ -385,10 +385,10 @@ void MeshBack::initialize(MetrisAPI *data,
           }
 
         }// for int ii 
-        CPRINTF3(" - ientt %d final dev = %15.7e \n",ientt,ent2dev[ientt]);
+        CPRINTF3(" - ientt {} final dev = {:15.7e} \n",ientt,ent2dev[ientt]);
 
       }
-      CPRINTF1("-- %d singular CAD normals / tangents at topo dim %d entities\n",nCADsing,tdim);
+      CPRINTF1("-- {} singular CAD normals / tangents at topo dim {} entities\n",nCADsing,tdim);
     }
 
   }// if CAD()
@@ -397,7 +397,7 @@ void MeshBack::initialize(MetrisAPI *data,
     geodev[1] = 1;
   }
   
-  CPRINTF1("-- Computed max geodev, edges: %15.7e at %d faces %15.7e at %d\n",
+  CPRINTF1("-- Computed max geodev, edges: {:15.7e} at {} faces {:15.7e} at {}\n",
                                geodev[0], imax[0], geodev[1], imax[1]);
 
 

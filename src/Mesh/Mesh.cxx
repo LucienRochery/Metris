@@ -52,7 +52,7 @@ void Mesh<MetricFieldAnalytical>::initialize(MetrisAPI *data, MeshBack &bak,
   }
   
   if(param.scaleMet){
-    CPRINTF1("-- Front scaling metric by %15.7e\n", param.metScale);
+    CPRINTF1("-- Front scaling metric by {:15.7e}\n", param.metScale);
     met.normalize(param.metScale);
   }
 

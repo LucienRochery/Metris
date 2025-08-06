@@ -12,7 +12,9 @@
 #include "../aux_exceptions.hxx"
 #include "../low_geo/normal.hxx"
 #include "../low_geo/misc.hxx"
+
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 
 namespace Metris{
@@ -55,7 +57,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
       for(int jj = 0; jj < gdim; jj++) 
         buf[jj] = msh.coord(ent2pol[ii+1],jj) - msh.coord(ent2pol[0],jj);
       symXvec<gdim>(metl,buf,mat[ii]);
-      //CPRINTF1(" - buf %f %f \n",buf[0],buf[1]);
+      //CPRINTF1(" - buf {} {} \n",buf[0],buf[1]);
     }
   }else{
     static_assert(gdim == 3);
@@ -88,11 +90,9 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
     double nrmn = sqrt(getnrml2<gdim>(nrmal));
     METRIS_ASSERT(nrmn > orthTol);
     if(getprdl2<gdim>(tau1,nrmal) >= orthTol*nrmn){
-      printf("## Normal norm %15.7e prod w tau1 %15.7e  \n",nrmn,getprdl2<gdim>(tau1,nrmal));
-      printf(" normal: ");
-      dblAr1(3,nrmal).print();
-      printf(" tau1: ");
-      dblAr1(3,tau1).print();
+      PRINTF("## Normal norm {:15.7e} prod w tau1 {:15.7e}  \n",nrmn,getprdl2<gdim>(tau1,nrmal));
+      PRINTF(" normal: {}\n",dblAr1(3,nrmal));
+      PRINTF(" tau1: {}\n",dblAr1(3,tau1));
       METRIS_THROW(GeomExcept());
     }
     #endif
@@ -105,22 +105,20 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
     METRIS_ASSERT(getprdl2<gdim>(tau1,tau2) < orthTol);
     #ifndef NDEBUG
     if(getprdl2<gdim>(tau2,nrmal) >= orthTol*nrmn){
-      printf("## Normal norm %15.7e prod w tau2 %15.7e rat %15.7e \n",
+      PRINTF("## Normal norm {:15.7e} prod w tau2 {:15.7e} rat {:15.7e} \n",
         nrmn,getprdl2<gdim>(tau2,nrmal),getprdl2<gdim>(tau2,nrmal)/nrmn);
-      printf(" normal: ");
-      dblAr1(3,nrmal).print();
-      printf(" tau2: ");
-      dblAr1(3,tau2).print();
+      PRINTF(" normal: {}\n",dblAr1(3,nrmal));
+      PRINTF(" tau2: {}\n",dblAr1(3,tau2));
 
       double dtprd = getprdl2<gdim>(tau2,nrmal);
       for(int ii = 0; ii < gdim ;ii++) tau2[ii] -= dtprd*nrmal[ii]/nrmn;
-      printf("## -> prod w tau2 %15.7e  \n",getprdl2<gdim>(tau2,nrmal));
+      PRINTF("## -> prod w tau2 {:15.7e}  \n",getprdl2<gdim>(tau2,nrmal));
 
       METRIS_THROW(GeomExcept());
     }
     #endif
 
-    CPRINTF1(" - indelsphere nrmal %f %f %f tau1 = %f %f %f tau2 %f %f %f\n",
+    CPRINTF1(" - indelsphere nrmal {} {} {} tau1 = {} {} {} tau2 {} {} {}\n",
       nrmal[0],nrmal[1],nrmal[2],tau1[0],tau1[1],tau1[2],tau2[0],tau2[1],tau2[2]);
 
 
@@ -132,7 +130,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
     met2[2] = tvecXsymXvec<gdim>(tau2,tau2,metl);
 
 
-    CPRINTF1(" - indelsphere metl %f %f %f %f %f %f det = %15.7e met2 %f %f %f det = %15.7e \n",
+    CPRINTF1(" - indelsphere metl {} {} {} {} {} {} det = {:15.7e} met2 {} {} {} det = {:15.7e} \n",
       metl[0],metl[1],metl[2],metl[3],metl[4],metl[5],detsym<3>(metl),met2[0],met2[1],met2[2],detsym<2>(met2));
 
     // Compute t1^T P as the components instead of straight P
@@ -142,17 +140,17 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
       buf[0] = getprdl2<gdim>(tau1,buf1);
       buf[1] = getprdl2<gdim>(tau2,buf1);
       symXvec<tdim>(met2,buf,mat[ii]);
-      CPRINTF1(" - buf1 = %f %f buf %f %f \n",buf1[0],buf1[1],buf[0],buf[1]);
+      CPRINTF1(" - buf1 = {} {} buf {} {} \n",buf1[0],buf1[1],buf[0],buf[1]);
     }
 
   }
 
   if(DOPRINTS1()){
     if constexpr (tdim == 2){
-      CPRINTF1(" - indelsphere mat %f %f %f %f det = %15.7e\n",
+      CPRINTF1(" - indelsphere mat {} {} {} {} det = {:15.7e}\n",
         mat[0][0],mat[0][1],mat[1][0],mat[1][1],detmat<2>(mat[0]));
     }else{
-      CPRINTF1(" - indelsphere mat %f %f %f ; %f %f %f ; %f %f %f det = %15.7e\n",
+      CPRINTF1(" - indelsphere mat {} {} {} ; {} {} {} ; {} {} {} det = {:15.7e}\n",
         mat[0][0],mat[0][1],mat[0][2],
         mat[1][0],mat[1][1],mat[1][2],
         mat[2][0],mat[2][1],mat[2][2],detmat<3>(mat[0]));
@@ -209,7 +207,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
     r1 = tvecXsymXvec<tdim>(buf,buf,metl);
   }
 
-  CPRINTF1("-- END indelsphere<%d,%d> ? %d  r = %f r1 = %f centre = ",gdim,tdim,r1<r,r,r1);
+  CPRINTF1("-- END indelsphere<{},{}> ? {}  r = {} r1 = {} centre = ",gdim,tdim,r1<r,r,r1);
   if(DOPRINTS1()){
     dblAr1(tdim,centr).print();
   }

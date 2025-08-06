@@ -9,6 +9,7 @@
 #include "aux_topo.hxx"
 #include "utils/aux_misc.hxx"
 #include "utils/CT_loop.hxx"
+#include "utils/mprintf.hxx"
 #include "Mesh/MeshMetric.hxx"
 #include "BezierOffsets/low_gaps.hxx"
 
@@ -17,7 +18,7 @@ namespace Metris{
 template<class MFT>
 void getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref, 
                     intAr2 &ilned, dblAr1 &rlned, lenStat& stat, LenTyp itype){
-  
+  GETVDEPTH(msh.param);
   METRIS_ASSERT(tdim >= 1); // implement lnoed1
 
   stat.qua_short = 0;
@@ -133,8 +134,8 @@ void getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref,
         }}CT_FOR1(ideg);
       }}CT_FOR1(gdim);
       if(std::isnan(len)){
-        printf("## DEBUG NAN LEN EDGE !\n");
-        printf("ientt = %d tdim = %d edge %d itype == GeoSiz? %d\n",
+        MPRINTF("## DEBUG NAN LEN EDGE !\n");
+        MPRINTF("ientt = {} tdim = {} edge {} itype == GeoSiz? {}\n",
                ientt,tdim,iedgl,itype == LenTyp::GeoSiz);
       }
       int iedgg = ilned.get_n();

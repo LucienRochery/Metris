@@ -13,6 +13,8 @@
 #include "../cavity/msh_cavity.hxx"
 
 #include "../utils/mprintf.hxx"
+#include "../utils/EGADSprinterr.hxx"
+
 #include "../low_geo/measure.hxx"
 #include "../low_geo/nrml2.hxx"
 #include "../low_topo.hxx"
@@ -76,7 +78,7 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
       // Proceed to reinsertion? First test distance. 
       int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
       if(ierro != 0){
-        printf("  ## EG_getRange failed %d \n",ierro);
+        PRINTF("## EG_getRange failed {}\n",EG_err2str(ierro));
         METRIS_THROW_MSG(GeomExcept()," EG_Evaluate failed")  
       }
 
@@ -90,8 +92,8 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
       if(dst < geotol*geotol) continue;
 
       // Not on geometry, reinsert 
-      CPRINTF1(" - Point %d not on geom dim %d ref %d, dist = %15.7e > "
-                                  "%15.7e = tol\n", ipoin, pdim, iref,sqrt(dst), geotol);
+      CPRINTF1(" - Point {} not on geom dim {} ref {}, dist = {:15.7e} > "
+                                  "{:15.7e} = tol\n", ipoin, pdim, iref,sqrt(dst), geotol);
       if(DOPRINTS2()){
 
         int ipdbg = msh.newpoitopo(-1,-1);
@@ -139,8 +141,8 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
 
       ierro = increase_cavity_validity(msh,cav,ithrd2);
       if(ierro != 0 && DOPRINTS2()){
-        CPRINTF2(" # increase_cavity_validity failed ierro %d \n",ierro);
-        CPRINTF2("Trying to reinsert ipoin %d iedge = %d iedg1 %d iface %d iref %d \n",
+        CPRINTF2(" # increase_cavity_validity failed ierro {} \n",ierro);
+        CPRINTF2("Trying to reinsert ipoin {} iedge = {} iedg1 {} iface {} iref {} \n",
                  cav.ipins, iedge, iedg1, iface, iref);
         writeMesh("increase_fail", msh);
         writeMeshCavity("increase_cav2D_fail", msh, cav);

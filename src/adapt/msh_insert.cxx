@@ -10,8 +10,6 @@
 #include "../low_geo/lenedg.hxx"
 #include "../aux_topo.hxx"
 #include "../io_libmeshb.hxx"
-#include "../utils/aux_timer.hxx"
-#include "../utils/mprintf.hxx"
 #include "../cavity/msh_cavity.hxx"
 #include "../adapt/msh_swap.hxx"
 #include "../BezierOffsets/low_gaps.hxx"
@@ -20,6 +18,9 @@
 #include "../msh_checktopo.hxx"
 #include "../aux_histogram.hxx"
 #include "../msh_lenedg.hxx"
+
+#include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
 
 #include <cmath>
 
@@ -72,10 +73,10 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
   dblAr1 rlned;
   dblAr1 lenbds = {1.0/sqrt(2), sqrt(2)};
   getLengthEdges<MFT>(msh,msh.get_tdim(),-1,ilned,rlned,lenstat0);
-  CPRINTF1(" - Length qua short = %e\n",lenstat0.qua_short);
-  CPRINTF1(" -            long  = %e\n",lenstat0.qua_long);
+  CPRINTF1(" - Length qua short = {}\n",lenstat0.qua_short);
+  CPRINTF1(" -            long  = {}\n",lenstat0.qua_long);
   double lenqua_short_max = (lenstat0.qua_short + lenstat0.qua_long)/2;
-  CPRINTF1(" - pct unit %e using qua threshold %e\n",lenstat0.prop_unit*100,lenqua_short_max);
+  CPRINTF1(" - {}% unit using qua threshold {}\n",lenstat0.prop_unit*100,lenqua_short_max);
 
 
   double stat = 0;
@@ -130,12 +131,12 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
       ledge[key] = ientt;
 
       // New long edge, add to stack
-      CPRINTF1(" + long edge %d %d seed %d len = %e\n",ip1,ip2,ientt,len);
+      CPRINTF1(" + long edge {} {} seed {} len = {}\n",ip1,ip2,ientt,len);
 
     }// for ied
   }// for ientt
   double t1s = get_wall_time();
-  printf(" - init time %f nlong = %d\n",t1s-t0s,(int)ledge.size());
+  CPRINTF1(" - init time {:.2e}s nlong = {}\n",t1s-t0s,(int)ledge.size());
 
   if(ledge.size() == 0){
     CPRINTF1(" - END insertLongEdges: no long edges\n");
@@ -146,7 +147,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
   for(int niter = 0; niter < miter; niter++){
     INCVDEPTH(msh.param);
     int nlong = ledge.size();
-    CPRINTF1(" - START ins loop %d/%d nlong = %d\n",niter+1,miter,nlong);
+    CPRINTF1(" - START ins loop {}/{} nlong = {}\n",niter+1,miter,nlong);
 
     int nskip = 0, ntry = 0, ninser1 = 0, nerro = 0, nadded = 0;
     lcaverr.fill(0);
@@ -162,7 +163,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
       int ientt = edge_it->second;
       METRIS_ASSERT(ientt >= 0);
       if(isdeadent(ientt,ent2poi)){
-        CPRINTF1(" - ientt %d dead, skip\n",ientt);
+        CPRINTF1(" - ientt {} dead, skip\n",ientt);
         nskip++;
         // Remove the edge from the hash table.
         edge_it = ledge.erase(edge_it);
@@ -174,7 +175,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
       int ied = getedgent(msh, tdim, ientt, ip1, ip2);
       METRIS_ASSERT(ied >= 0);
 
-      CPRINTF1(" - enact ins ientt = %d ied = %d edg %d %d\n",ientt,ied,ip1,ip2);
+      CPRINTF1(" - enact ins ientt = {} ied = {} edg {} {}\n",ientt,ied,ip1,ip2);
       int nent0 = msh.nentt(tdim); 
       ierro = insertEdge(msh,tdim,ientt,ied,lenqua_short_max,false,
                          cav,work,lcaverr,ithrd1,ithrd2);
@@ -221,7 +222,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
             nadded++;
 
             // New long edge, add to stack
-            CPRINTF1(" - + long edge %d %d seed %d len = %e\n",jp1,jp2,ientn,len);
+            CPRINTF1(" - + long edge {} {} seed {} len = {}\n",jp1,jp2,ientn,len);
             ledge[key] = ientn;
           }// for iedn
         }// for ientn
@@ -230,7 +231,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
         // Remove the edge from the edge hash table.
         edge_it = ledge.erase(edge_it);
         //edge_it++;
-        CPRINTF2(" # insertion failed ierro = %d \n",ierro);
+        CPRINTF2(" # insertion failed ierro = {} \n",ierro);
         linserr[ierro - 1] ++;
         nerro++;
       }
@@ -240,18 +241,18 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
 
     double t1 = get_wall_time();
     int ncallps = 1000*(int)((ninser1 / (t1-t0)) / 1000);
-    CPRINTF2(" - END t = %f nlong %d ntry %d nskip %d nadded %d ninser %d = %d /s; nerro %d stat %f\n",
+    CPRINTF2(" - END time = {:.2e}s nlong {} ntry {} nskip {} nadded {} ninser {} = {} /s; nerro {} stat {:.2e}\n",
               t1-t0,nlong,ntry,nskip,nadded,ninser1,ncallps,nerro,stat0);
     if(DOPRINTS2() && nerro > 0){
       CPRINTF2(" - cavity ierro list:\n");
       for(int ii = 0; ii < mcaverr; ii++){
         if(lcaverr[ii] == 0) continue;
-        CPRINTF2("   ierro = %d : %d \n",ii+1,lcaverr[ii]);
+        CPRINTF2("   ierro = {} : {} \n",ii+1,lcaverr[ii]);
       }
       CPRINTF2(" - inspoi ierro list:\n");
       for(int ii = 0; ii < minserr; ii++){
         if(linserr[ii] == 0) continue;
-        CPRINTF2("   ierro = %d : %d \n",ii+1,linserr[ii]);
+        CPRINTF2("   ierro = {} : {} \n",ii+1,linserr[ii]);
       }
     }
 

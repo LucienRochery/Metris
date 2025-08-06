@@ -34,10 +34,11 @@ int main_metris(int argc, char** argv){
   MetrisParameters &param = run.param_;
   MetrisOptions opt = run.opt;
 
-  bool iprt = param.iverb > 0;
+  GETVDEPTH((&param));
+
 
   double t0, t1;
-  if(iprt) t0 = get_wall_time();
+  t0 = get_wall_time();
 
 
   try{
@@ -105,10 +106,8 @@ int main_metris(int argc, char** argv){
     throw(e);
   }
 
-  if(iprt){
-    t1 = get_wall_time();
-    printf("\n-- END Metris total runtime %e\n",t1-t0);
-  }
+  t1 = get_wall_time();
+  MPRINTF("\n-- END Metris total runtime {:.2e}s\n",t1-t0);
 
   return 0;
 }

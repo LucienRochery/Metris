@@ -57,14 +57,14 @@ constexpr std::array<int,METRIS_MAX_DEG_JACOBIAN+1> msubtet{[]() constexpr{
               for(int sg2 = -1; sg2 <= 1; sg2++){
                 for(int sg3 = -1; sg3 <= 1; sg3++){
                   int sg4 = - (sg1 + sg2 + sg3); 
-                  ////if(iprt > 0) printf("Step %d %d %d %d \n",sg1,sg2,sg3,sg4);
+                  ////if(iprt > 0) printf("Step {} {} {} {} \n",sg1,sg2,sg3,sg4);
                   if((sg4 == -1 || sg4 == 1 || sg4 == 0)
                     && (sg1 != 0 || sg2 != 0 || sg3 != 0 || sg4 != 0)){
                     idx[0] = i + sg1;
                     idx[1] = j + sg2;
                     idx[2] = k + sg3;
                     idx[3] = l + sg4;
-                    ////if(iprt > 0) printf("Admissible idx = %d %d %d %d \n",idx[0],idx[1],idx[2],idx[3]);
+                    ////if(iprt > 0) printf("Admissible idx = {} {} {} {} \n",idx[0],idx[1],idx[2],idx[3]);
                     if(idx[0] >= 0 && idx[0] <= ideg 
                     && idx[1] >= 0 && idx[1] <= ideg
                     && idx[2] >= 0 && idx[2] <= ideg
@@ -124,7 +124,7 @@ struct subref_constructor{
           // Rank will be used to verify we do not duplicate triangles. 
           int irnk = mul2nod(i,j,k);
 
-          ////if(iprt > 0) printf("ideg %d i j k %d %d %d \n",ideg,i,j,k);
+          ////if(iprt > 0) printf("ideg {} i j k {} {} {} \n",ideg,i,j,k);
 
           // The neighbours of the node are: 
           //  e^1 - e^3, e^2 - e^3, e^2 - e^1, e^3 - e^1, e^3 - e^2, e^1 - e^2
@@ -201,7 +201,7 @@ struct subref_constructor{
             irns[5] = mul2nod(ip,jp,kp);
           }
           
-          ////if(iprt > 0) printf("neighbours %d %d %d %d %d %d \n",irns[0],irns[1],irns[2],irns[3],irns[4],irns[5]);
+          ////if(iprt > 0) printf("neighbours {} {} {} {} {} {} \n",irns[0],irns[1],irns[2],irns[3],irns[4],irns[5]);
 
           // Go over all two consecutive ranks and form triangles with those yet to be seen. 
           for(int i = 0; i < 6; i++){
@@ -270,7 +270,7 @@ struct subref_constructor{
       ntet[ideg] = 0;
 
       int mhead = MAX(1,msubtet[ideg]/3), mlist = 4*msubtet[ideg];
-      //printf("\n\n start ideg = %d mlist = %d mhead %d expect %d \n\n\n",ideg,mlist,mhead,msubtet[ideg]);
+      //printf("\n\n start ideg = {} mlist = {} mhead {} expect {} \n\n\n",ideg,mlist,mhead,msubtet[ideg]);
       int nlist = 0;
       // Store ORIENTED face idx then next in line
 
@@ -280,7 +280,7 @@ struct subref_constructor{
       // Loop over possible multi-indices. 
       for(int irnk = 0; irnk < getnnod3(ideg); irnk++){
 
-            //if(iprt > 0) printf("Start loop ideg %d irnk %d \n",ideg,irnk);
+            //if(iprt > 0) printf("Start loop ideg {} irnk {} \n",ideg,irnk);
             int i = ordtet.s[ideg][irnk][0];
             int j = ordtet.s[ideg][irnk][1];
             int k = ordtet.s[ideg][irnk][2];
@@ -302,14 +302,14 @@ struct subref_constructor{
               for(int sg2 = -1; sg2 <= 1; sg2++){
                 for(int sg3 = -1; sg3 <= 1; sg3++){
                   int sg4 = - (sg1 + sg2 + sg3); 
-                  ////if(iprt > 0) printf("Step %d %d %d %d \n",sg1,sg2,sg3,sg4);
+                  ////if(iprt > 0) printf("Step {} {} {} {} \n",sg1,sg2,sg3,sg4);
                   if((sg4 == -1 || sg4 == 1 || sg4 == 0)
                     && (sg1 != 0 || sg2 != 0 || sg3 != 0 || sg4 != 0)){
                     idx[0] = i + sg1;
                     idx[1] = j + sg2;
                     idx[2] = k + sg3;
                     idx[3] = l + sg4;
-                    ////if(iprt > 0) printf("Admissible idx = %d %d %d %d \n",idx[0],idx[1],idx[2],idx[3]);
+                    ////if(iprt > 0) printf("Admissible idx = {} {} {} {} \n",idx[0],idx[1],idx[2],idx[3]);
                     if(idx[0] >= 0 && idx[0] <= ideg 
                     && idx[1] >= 0 && idx[1] <= ideg
                     && idx[2] >= 0 && idx[2] <= ideg
@@ -323,9 +323,9 @@ struct subref_constructor{
             }
 
             //if(iprt > 0){
-              //printf("Rank %d (F%d) nneigh %d \n",irnk,irnk+1,inei);
+              //printf("Rank {} (F{}) nneigh {} \n",irnk,irnk+1,inei);
               //for(int i = 0; i < inei; i++){
-              //  printf(" %d ",irns[i]);
+              //  printf(" {} ",irns[i]);
               //}
               //printf("\n");
             //}
@@ -340,7 +340,7 @@ struct subref_constructor{
                   int irn2 = irns[jj];
                   int irn3 = irns[kk]; 
 
-                  //if(iprt > 0) printf("Pick neighbours %d %d %d \n",irn1,irn2,irn3);
+                  //if(iprt > 0) printf("Pick neighbours {} {} {} \n",irn1,irn2,irn3);
 
                   // Check they are allowed to form a tetrahedron
                   for(int i = 0; i < 4; i++){
@@ -390,7 +390,7 @@ struct subref_constructor{
                   if(dot == 0) continue;
 
 
-                  //if(iprt > 0) printf("Volume sign %d \n",dot);
+                  //if(iprt > 0) printf("Volume sign {} \n",dot);
 
 
                   if(dot < 0){
@@ -427,13 +427,13 @@ struct subref_constructor{
                     }
                     int ikey = (irl1 + irl2 + irl3) % mhead;
                     int inext = head[ikey];
-                    //if(iprt > 0) printf("  Pick new tet face %d %d %d ikey = %d -> %d \n",irl1,irl2,irl3,ikey,inext);
+                    //if(iprt > 0) printf("  Pick new tet face {} {} {} ikey = {} -> {} \n",irl1,irl2,irl3,ikey,inext);
                     while(inext != -1){
                       int jrn1 = list[inext][0];
                       int jrn2 = list[inext][1];
                       int jrn3 = list[inext][2];
 
-                      //if(iprt > 0) printf("    In list check face %d %d %d inext %d \n",jrn1,jrn2,jrn3,list[inext][3]);
+                      //if(iprt > 0) printf("    In list check face {} {} {} inext {} \n",jrn1,jrn2,jrn3,list[inext][3]);
 
                       // Compare up to cycle (preserves sign)
                       if(jrn1 == irl1 && jrn2 == irl2 && jrn3 && irl3 ||
@@ -451,7 +451,7 @@ struct subref_constructor{
                   if(!maketet) continue;
 
                   // None of the faces have been found. 
-                  //if(iprt > 0) printf("Create tetra %d %d %d %d N = %d \n",irnk,irn1,irn2,irn3,ntet[ideg]+1);
+                  //if(iprt > 0) printf("Create tetra {} {} {} {} N = {} \n",irnk,irn1,irn2,irn3,ntet[ideg]+1);
                   tet[ideg][ntet[ideg]][0] = irnk;
                   tet[ideg][ntet[ideg]][1] = irn1;
                   tet[ideg][ntet[ideg]][2] = irn2;
@@ -472,7 +472,7 @@ struct subref_constructor{
                     int ikey = (irl1 + irl2 + irl3) % mhead;
                     if(head[ikey] == -1){
                       head[ikey] = nlist;
-                      //if(iprt > 0) printf("  Add %d %d %d to head %d \n ",irl1,irl2,irl3,ikey);
+                      //if(iprt > 0) printf("  Add {} {} {} to head {} \n ",irl1,irl2,irl3,ikey);
                     }else{
                       int inext = head[ikey];
                       int iprev = inext; 
@@ -481,7 +481,7 @@ struct subref_constructor{
                         inext = list[inext][3];
                       }
                       list[iprev][3] = nlist;
-                      //if(iprt > 0) printf("  Add %d %d %d after list %d \n",irl1,irl2,irl3,iprev);
+                      //if(iprt > 0) printf("  Add {} {} {} after list {} \n",irl1,irl2,irl3,iprev);
                     }
 
                     list[nlist][0] = irl1; 
@@ -526,9 +526,9 @@ struct subref_constructor{
             //        ttag[kk] = true;
             //        ntet++;
             //        if(iprt == 1){
-            //          printf("ntet = F%d (C%d) done with irnk = %d (%d%d%d%d)\n",ntet,ntet-1,irnk,i,j,k,l);
-            //          printf("ii, jj, kk  %d %d %d irn1 irn2 irn3 %d %d %d\n",ii,jj,kk,irn1,irn2,irn3);
-            //          printf("%d%d%d%d, %d%d%d%d, %d%d%d%d\n",
+            //          printf("ntet = F{} (C{}) done with irnk = {} ({}{}{}{})\n",ntet,ntet-1,irnk,i,j,k,l);
+            //          printf("ii, jj, kk  {} {} {} irn1 irn2 irn3 {} {} {}\n",ii,jj,kk,irn1,irn2,irn3);
+            //          printf("{}{}{}{}, {}{}{}{}, {}{}{}{}\n",
             //             ordtet.s[ideg][irn1][0],ordtet.s[ideg][irn1][1]
             //            ,ordtet.s[ideg][irn1][2],ordtet.s[ideg][irn1][3]
             //            ,ordtet.s[ideg][irn2][0],ordtet.s[ideg][irn2][1]

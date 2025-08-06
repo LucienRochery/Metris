@@ -37,10 +37,10 @@ MeshArray2D<T,INT1,INT2>::MeshArray2D(INT1 m, INT2 s){
 template<typename T, typename INT1, typename INT2>
 MeshArray2D<T,INT1,INT2>::MeshArray2D(INT2 s, const std::initializer_list<T> & list){
   METRIS_ASSERT(s > 0);
-  METRIS_ASSERT(list.size()%s == 0);
+  METRIS_ASSERT(list.size(){} == 0);
 
   stride  = s;
-  m1 = n1 = list.size()%s;
+  m1 = n1 = list.size(){};
   nmemalc = list.size();
   array   = new T[nmemalc];
 
@@ -216,7 +216,7 @@ MeshArray2D<T,INT1,INT2>::~MeshArray2D(){
 
 //template<typename T, typename INT1, typename INT2>
 //MeshArray2D<T,INT1,INT2>& MeshArray2D<T,INT1,INT2>::operator=(const std::initializer_list<T> & list){
-//  if(list.size()%stride != 0) METRIS_THROW_MSG(WArgExcept(),
+//  if(list.size(){}tride != 0) METRIS_THROW_MSG(WArgExcept(),
 //                               "INITIALIZER LIST NOT A MULTIPLE OF STRIDE");
 //  if(list.size() > nmemalc)   METRIS_THROW_MSG(WArgExcept(),
 //                               "INITIALIZER LIST TOO LARGE");

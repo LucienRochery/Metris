@@ -245,7 +245,7 @@ double LPsolver::updateCoord(MeshBase &msh, const intAr1 &idx_point, int icoor, 
     if(irank < 0) continue;
     msh.coord(ipoin,icoor) += fac*dx[irank];
     nrmdx += dx[irank]*dx[irank];
-    //printf("DEBUG dx[%d] = %15.6e\n",irank,dx[irank]);
+    //printf("DEBUG dx[{}] = {:15.6e}\n",irank,dx[irank]);
   }
   return sqrt(nrmdx); 
 }

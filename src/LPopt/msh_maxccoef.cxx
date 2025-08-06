@@ -12,6 +12,7 @@
 #include "../io_libmeshb.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
 
 #include "../Mesh/MeshBase.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -32,6 +33,7 @@ namespace Metris{
  
 template<int gdim, int tdim, int ideg>
 double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
+  GETVDEPTH(msh.param);
   // METRIS_THROW_MSG(TODOExcept(), "maximizeCcoef not implemented for ideg = "<<ideg);
   msh.setBasis(FEBasis::Bezier); // Vizir assumes Lagrange
   constexpr int jdeg = tdim * (ideg - 1);
@@ -46,7 +48,7 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
   const intAr2 &ent2poi = tdim == 2 ? msh.fac2poi : msh.tet2poi;
         dblAr2 &coord   = msh.coord;
 
-  if(msh.param->iverb >= 2){
+  if(DOPRINTS2()){
     FEBasis ibas0 = msh.getBasis();
     msh.setBasis(FEBasis::Lagrange);
     writeMesh("maximizeCcoef.inp", msh);
@@ -64,10 +66,10 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
   double ccoef[ncoef];
   double min_ccoef = getminccoef<gdim,ideg>(msh);
 
-  printf("-- Enter maximizeCcoef with jtol = %e min ccoef = %e \n",
+  MPRINTF("-- Enter maximizeCcoef with jtol = {} min ccoef = {} \n",
          jtol,min_ccoef);
   if(min_ccoef >= jtol){
-    printf(" - Nothing to do: exit\n");
+    MPRINTF(" - Nothing to do: exit\n");
     return min_ccoef;
   }
 
@@ -103,7 +105,7 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
       }
     }
   }
-  printf("\n NUMBER OF OPTIM = %d \n", noptim_points);
+  MPRINTF("NUMBER OF OPTIM = {} \n", noptim_points);
 
   // Virtual variable t, and 1 variable (coordinate) per point 
   int ncol = 1 * noptim_points + 1;
@@ -174,7 +176,7 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
 
       double t2 = get_wall_time();
 
-      printf(" - CPU time assembly %f solve %f \n",t1-t0,t2-t1);
+      MPRINTF(" - CPU time assembly {} solve {} \n",t1-t0,t2-t1);
 
       double min_ccoef_before = getminccoef<gdim,ideg>(msh);
       solver.updateCoord(msh, idx_point, icoor, qupdt);
@@ -182,11 +184,11 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
 
       min_ccoef = min_ccoef_after;
 
-      printf(" %d - %d : ccoef %f -> %f\n",niter,icoor,min_ccoef_before/vol0,min_ccoef_after/vol0);
+      MPRINTF(" {} - {} : ccoef {} -> {}\n",niter,icoor,min_ccoef_before/vol0,min_ccoef_after/vol0);
       mxdNm = MAX(mxdNm,abs(min_ccoef_after - min_ccoef_before));
 
       if(min_ccoef_after > jtol && min_ccoef_before < jtol){
-        printf(" - gone over threshold\n");
+        MPRINTF(" - gone over threshold\n");
         
         // reset update 
         double t0s = get_wall_time();
@@ -205,7 +207,7 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
           solver.updateCoord(msh, idx_point, icoor, qp);
 
           min_ccoef = getminccoef<gdim,ideg>(msh);
-          printf(" - bisection iter %d / %d q = %e min = %e \n",niters,miters,qp,min_ccoef);
+          MPRINTF(" - bisection iter {} / {} q = {} min = {} \n",niters,miters,qp,min_ccoef);
 
           if(min_ccoef >= jtol && min_ccoef < jtol*(1.0 + tol0)){
             iok = true;
@@ -221,20 +223,20 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
 
         } // for niters
         double t1s = get_wall_time();
-        printf("Bisection time %f \n",t1s-t0s);
+        MPRINTF("Bisection time {:.2e}s \n",t1s-t0s);
 
         if(!iok) METRIS_THROW(AlgoExcept());
 
         // Got a good correction
         double t1_tot = get_wall_time();
-        printf(" - Backtract exit min ccoef = %e > %e = jtol total time = %f \n",
+        MPRINTF(" - Backtract exit min ccoef = {} > {} = jtol total time = {:.2e}s \n",
                                                   min_final,jtol,t1_tot-t0_tot);
         return min_final;
       }
     } // for icoor 
 
     if(mxdNm < dNtol){
-      printf("-> min ccoef changes too small = %e, exit\n",mxdNm);
+      MPRINTF("-> min ccoef changes too small = {}, exit\n",mxdNm);
       return min_ccoef;
     }
   } // for niter 
@@ -252,6 +254,7 @@ template double maximizeCcoef<3,3,ideg>(MeshBase &msh, OptDoF idofs, LPMethod me
 
 template<int gdim, int ideg>
 double getminccoef(MeshBase &msh){
+  GETVDEPTH(msh.param);
   constexpr int tdim = gdim;
   constexpr int jdeg = tdim * (ideg - 1);
   constexpr int ncoef = tdim == 2 ? getnnod2(jdeg) : getnnod3(jdeg);
@@ -264,19 +267,19 @@ double getminccoef(MeshBase &msh){
     if(isdeadent(ielem, ent2poi)) continue;
     double vol = getmeasentP1<gdim>(ent2poi[ielem], msh.coord);
     //if(vol < msh.param->vtol){
-    //  printf(" NEGATIVE VOLUME ? vol = %23.15e vtol = %15.7e",vol,msh.param->vtol);
+    //  printf(" NEGATIVE VOLUME ? vol = {:23.15e} vtol = {:15.7e}",vol,msh.param->vtol);
 
     //  bool iflat;
     //  vol = getmeasentP1<gdim,tdim>(ent2poi[ielem],msh.coord,msh.param->vtol, 
     //                NULL, &iflat);
-    //  printf(" recomp vol = %23.15e iflat %d",vol,iflat);
+    //  printf(" recomp vol = {:23.15e} iflat {}",vol,iflat);
     //}
     bool iflat;
     if(!(vol > 0.0)){
-      printf("## FATAL vol = %15.7e \n", vol);
+      MPRINTF("## FATAL vol = {:15.7e} \n", vol);
       vol = getmeasentP1<gdim,gdim>(msh, ielem, NULL, &iflat);
-      printf("Recompute with tol %15.7e iflat %d \n",vol, iflat);
-      printf("element is %d = ", ielem);
+      MPRINTF("Recompute with tol {:15.7e} iflat {} \n",vol, iflat);
+      MPRINTF("element is {} = ", ielem);
       intAr1(tdim + 1, ent2poi[ielem]).print();
       writeMesh("debug_vol", msh);
     }

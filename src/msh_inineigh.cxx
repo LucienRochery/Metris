@@ -168,7 +168,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
     }
     //if(iprt > 0) std::cout<<"iter end  "<<iface<<" print all nei"<<std::endl;
   }
-  if(ncree > 0)CPRINTF1(" - created %d edges \n",ncree);
+  if(ncree > 0)CPRINTF1(" - created {} edges \n",ncree);
   //if(iprt > 0)printf("-- Faces finished\n");
 
 
@@ -187,12 +187,12 @@ void iniMeshNeighbours2D(MeshBase &msh){
 
   for(int iedge = 0; iedge < msh.nedge; iedge++){
     if(isdeadent(iedge,msh.edg2poi)) continue;
-    //if(iprt > 0) printf("Start iedge = %d vertices = %d %d \n",iedge,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
+    //if(iprt > 0) printf("Start iedge = {} vertices = {} {} \n",iedge,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
     for(int ive1 = 0; ive1 < 2; ive1++){
       int ip = msh.edg2poi(iedge,ive1);
-      //if(iprt>0)printf("  ive1 = %d ip = %d \n",ive1,ip);
+      //if(iprt>0)printf("  ive1 = {} ip = {} \n",ive1,ip);
       int iedge2 = msh.poi2tag(0,ip); 
-      //if(iprt>0)printf("  iedge2 = %d \n",iedge2);
+      //if(iprt>0)printf("  iedge2 = {} \n",iedge2);
 
       // Case no neighbour yet
       if(iedge2 == -1){
@@ -208,13 +208,13 @@ void iniMeshNeighbours2D(MeshBase &msh){
         // Fetch neighbour to this edge
         int                           ive2 = 0;
         if(msh.edg2poi(iedge2,1) == ip) ive2 = 1;
-        //if(iprt > 0)printf("  msh.edg2poi iedge2: %d %d \n",msh.edg2poi(iedge2,0),msh.edg2poi(iedge2,1));
+        //if(iprt > 0)printf("  msh.edg2poi iedge2: {} {} \n",msh.edg2poi(iedge2,0),msh.edg2poi(iedge2,1));
         assert(("Hash table (1)" && msh.edg2poi(iedge2,ive2) == ip));
         int iedge3 = msh.edg2edg[iedge2][1-ive2];
 
         if(iedge3 == -1){ 
           // There is a neighbour but the point is still manifold
-          //if(iprt>0)printf("  Initialize neighbour (%d,%d) -> %d and (%d,%d) -> %d \n",
+          //if(iprt>0)printf("  Initialize neighbour ({},{}) -> {} and ({},{}) -> {} \n",
           //  iedge2,1-ive2,iedge,iedge,1-ive1,iedge2);
           msh.edg2edg[iedge2][1-ive2] = iedge  ;
           msh.edg2edg[iedge ][1-ive1] = iedge2 ;
@@ -226,7 +226,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
           inewc = 1;
           assert(("Skipped msh.poi2tag[0] update" && iedge3 > -1));
 
-          //if(iprt>0)printf("  Found neighbour %d \n",iedge3);
+          //if(iprt>0)printf("  Found neighbour {} \n",iedge3);
 
           assert(("Array corruption" && iedge3 != iedge)); 
 
@@ -237,7 +237,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
 
           assert(("Hash table (2)" && msh.edg2poi(iedge3,ive3) == ip));
 
-          //if(iprt>0)printf("  Update using 1,2,3 = (%d,%d) (%d,%d) (%d,%d)\n",
+          //if(iprt>0)printf("  Update using 1,2,3 = ({},{}) ({},{}) ({},{})\n",
           //                              iedge,1-ive1,iedge2,1-ive2,iedge3,1-ive3);
           msh.edg2edg[iedge2][1-ive2] = -(iedge3+2) ;
           msh.edg2edg[iedge3][1-ive3] = -(iedge +2) ;
@@ -245,7 +245,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
 
           // We must update the value in the hash table to reflect this. 
           // This should certainly not lead to an insertion.
-          //if(iprt>0)printf("  Update ip = %d tag to %d \n",ip,-iedge3-1);
+          //if(iprt>0)printf("  Update ip = {} tag to {} \n",ip,-iedge3-1);
           msh.poi2tag(0,ip) =  -(iedge3+2);
         }
       }else{
@@ -253,7 +253,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
         iedge2 = - (iedge2 + 2) ; 
         assert(("Array corruption" && iedge2 != iedge));
 
-        //if(iprt>0)printf("Already non manifold edge, get iedge2 = %d (For)\n",iedge2+1);
+        //if(iprt>0)printf("Already non manifold edge, get iedge2 = {} (For)\n",iedge2+1);
 
         int ive2 = -1;
         if(msh.edg2poi(iedge2,0) == ip) ive2 = 0;
@@ -265,7 +265,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
 
         iedge3 = - (iedge3 + 2);
 
-        //if(iprt>0)printf("  Got iedge3 = %d \n",iedge3);
+        //if(iprt>0)printf("  Got iedge3 = {} \n",iedge3);
 
         msh.edg2edg[iedge2][1-ive2] = -(iedge  + 2);
         msh.edg2edg[iedge ][1-ive1] = -(iedge3 + 2);
@@ -325,11 +325,11 @@ void iniMeshNeighbours3D(MeshBase &msh){
   //  int ip1 = 124, ip2 = 316, ip3 = 71;
   //  int ifa = getfactet(msh,ielem,ip1,ip2,ip3);
   //  if(ifa >= 0){
-  //    printf("## DEBUG FOUND IELEM %d ifa = %d \n",ielem,ifa);
+  //    printf("## DEBUG FOUND IELEM {} ifa = {} \n",ielem,ifa);
   //  }
   //}
   //wait();
-  CPRINTF2("-- Start tetra loop nelem = %d \n",msh.nelem);
+  CPRINTF2("-- Start tetra loop nelem = {} \n",msh.nelem);
   for(int ielem = 0; ielem < msh.nelem; ielem++){
     INCVDEPTH(msh.param);
     if(isdeadent(ielem,msh.tet2poi)) continue;
@@ -342,7 +342,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
 
       auto key = stup3(i1,i2,i3);
 
-      CPRINTF3(" - tetra %d face %d points %d %d %d \n",ielem,ifa1,i1,i2,i3);
+      CPRINTF3(" - tetra {} face {} points {} {} {} \n",ielem,ifa1,i1,i2,i3);
 
       int iintf = 0, ielem2 = -1;
       auto s = intfHshTab.extract(key);
@@ -353,7 +353,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
         // Previous face who saw this edge is manifold, may or may not already have neighbour
         // Fetch neighbour to this edge
         int ifa2 = getfactetOpp(msh,ielem2,i1,i2,i3);
-        CPRINTF3(" - Found ielem2 = %d ifa2 = %d \n",ielem2,ifa2);
+        CPRINTF3(" - Found ielem2 = {} ifa2 = {} \n",ielem2,ifa2);
         if(ifa2 < 0){
           std::cout<<" (2) ## SOME PROBLEM WITH THIS HASH TABLE33 !"<<std::endl;
           std::cout<<"Did not find face in ielem2 of verts "<<
@@ -437,7 +437,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
       int i1 = msh.fac2poi(iface,lnoed2[ied1][0]);
       int i2 = msh.fac2poi(iface,lnoed2[ied1][1]);
       auto key = stup2(i1,i2);
-      CPRINTF3(" - face %d edge %d points %d %d \n",iface,ied1,i1,i2);
+      CPRINTF3(" - face {} edge {} points {} {} \n",iface,ied1,i1,i2);
       int inewe = 0;
 
       auto t = edgeHshTab.find(key);
@@ -446,7 +446,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
         edgeHshTab.insert({key,iface}); 
       }else{
         int ifac2 = t->second;
-        CPRINTF3(" - found ifac2 = %d\n",ifac2);
+        CPRINTF3(" - found ifac2 = {}\n",ifac2);
         if(ifac2 >= 0){
 
           // Previous face who saw this edge is manifold, may or may not already have neighbour
@@ -455,7 +455,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
 //          assert("Triangle has expected edge " && ied2 > -1);
 
           int ifac3  = msh.fac2fac(ifac2,ied2);
-          CPRINTF3(" - found ifac3 = %d\n",ifac3);
+          CPRINTF3(" - found ifac3 = {}\n",ifac3);
           if(ifac3 == -1){
             // In this case, the previous edge did not yet have a neighbour. 
             msh.fac2fac(ifac2,ied2) = iface ;
@@ -513,13 +513,13 @@ void iniMeshNeighbours3D(MeshBase &msh){
         msh.newedgtopo<ideg>(iface,ied1,iref_dum);
         msh.edg2fac[msh.nedge-1] = iface;
 //        #ifndef NDEBUG
-//          printf("Debug created edge ideg = %d iface = %d ied1 = %d \n",
+//          printf("Debug created edge ideg = {} iface = {} ied1 = {} \n",
 //                   ideg,iface,ied1);
 //        #endif
       }
     }
   }
-  if(ncree > 0) CPRINTF2("-- Created %d edges \n",ncree);
+  if(ncree > 0) CPRINTF2("-- Created {} edges \n",ncree);
   CPRINTF3("-- Faces finished\n");
 
   iniMeshBdryEdges<ideg>(msh);
@@ -543,17 +543,17 @@ void iniMeshNeighbours3D(MeshBase &msh){
     for(int ive1 = 0; ive1 < 2; ive1++){
       INCVDEPTH(msh.param);
       int ip = msh.edg2poi(iedge,ive1);
-      CPRINTF3(" - iedge %d ive1 = %d ip = %d \n",iedge,ive1,ip);
+      CPRINTF3(" - iedge {} ive1 = {} ip = {} \n",iedge,ive1,ip);
 
       int iedge2 = msh.poi2tag(0,ip); 
-      CPRINTF3("  iedge2 = %d \n",iedge2);
+      CPRINTF3("  iedge2 = {} \n",iedge2);
 
       // Case no neighbour yet
       if(iedge2 == -1){
         msh.poi2tag(0,ip) = iedge; 
         continue;
       }
-      CPRINTF3(" - found iedge2 = %d \n",iedge2);
+      CPRINTF3(" - found iedge2 = {} \n",iedge2);
 
       int inewc = 0;
       // If iedge2 >= 0, that point has already seen another edge (iedge2). 
@@ -562,13 +562,13 @@ void iniMeshNeighbours3D(MeshBase &msh){
         // Fetch neighbour to this edge
         int                           ive2 = 0;
         if(msh.edg2poi(iedge2,1) == ip) ive2 = 1;
-        CPRINTF3("  msh.edg2poi iedge2: %d %d \n",msh.edg2poi(iedge2,0),msh.edg2poi(iedge2,1));
+        CPRINTF3("  msh.edg2poi iedge2: {} {} \n",msh.edg2poi(iedge2,0),msh.edg2poi(iedge2,1));
         assert(("Hash table (1)" && msh.edg2poi(iedge2,ive2) == ip));
         int iedge3 = msh.edg2edg[iedge2][1-ive2];
 
         if(iedge3 == -1){ 
           // There is a neighbour but the point is still manifold
-          CPRINTF3("  Initialize neighbour (%d,%d) -> %d and (%d,%d) -> %d \n",
+          CPRINTF3("  Initialize neighbour ({},{}) -> {} and ({},{}) -> {} \n",
                    iedge2,1-ive2,iedge,iedge,1-ive1,iedge2);
           msh.edg2edg[iedge2][1-ive2] = iedge  ;
           msh.edg2edg[iedge ][1-ive1] = iedge2 ;
@@ -580,7 +580,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
           inewc = 1;
           assert(("Skipped msh.poi2tag[0] update" && iedge3 > -1));
 
-          CPRINTF3("  Found neighbour %d \n",iedge3);
+          CPRINTF3("  Found neighbour {} \n",iedge3);
 
           assert(("Array corruption" && iedge3 != iedge)); 
 
@@ -591,7 +591,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
 
           assert(("Hash table (2)" && msh.edg2poi(iedge3,ive3) == ip));
 
-          CPRINTF3("  Update using 1,2,3 = (%d,%d) (%d,%d) (%d,%d)\n",
+          CPRINTF3("  Update using 1,2,3 = ({},{}) ({},{}) ({},{})\n",
                                         iedge,1-ive1,iedge2,1-ive2,iedge3,1-ive3);
                                         msh.edg2edg[iedge2][1-ive2] = -(iedge3+2) ;
           msh.edg2edg[iedge3][1-ive3] = -(iedge +2) ;
@@ -599,7 +599,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
 
           // We must update the value in the hash table to reflect this. 
           // This should certainly not lead to an insertion.
-          CPRINTF3("  Update ip = %d tag to %d \n",ip,-iedge3-1);
+          CPRINTF3("  Update ip = {} tag to {} \n",ip,-iedge3-1);
           msh.poi2tag(0,ip) =  -(iedge3+2);
         }
       }else{
@@ -607,7 +607,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
         iedge2 = - (iedge2 + 2) ; 
         assert(("Array corruption" && iedge2 != iedge));
 
-        CPRINTF3("Already non manifold edge, get iedge2 = %d (For)\n",iedge2+1);
+        CPRINTF3("Already non manifold edge, get iedge2 = {} (For)\n",iedge2+1);
 
         int ive2 = -1;
         if(msh.edg2poi(iedge2,0) == ip) ive2 = 0;
@@ -619,7 +619,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
 
         iedge3 = - (iedge3 + 2);
 
-        CPRINTF3("  Got iedge3 = %d \n",iedge3);
+        CPRINTF3("  Got iedge3 = {} \n",iedge3);
 
         msh.edg2edg[iedge2][1-ive2] = -(iedge  + 2);
         msh.edg2edg[iedge ][1-ive1] = -(iedge3 + 2);
@@ -708,7 +708,7 @@ void iniMeshNeighbours0(MeshBase &msh){
             }else{
               inei2 = getfactetOpp(msh,ient2,idxsub[0],idxsub[1],idxsub[2]);
             }
-            CPRINTF3(" - tdim %d found ient2 = %d inei2 = %d \n",ielem2,inei2);
+            CPRINTF3(" - tdim {} found ient2 = {} inei2 = {} \n",ielem2,inei2);
             METRIS_ASSERT(inei2 >= 0);
 
             ent2ent(ient2, inei2) = ientt;

@@ -61,7 +61,7 @@ double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
           "GT 1 quality with tdim = "<<tdim_c<<" gdim = "<<msh.idim<<" quent = "
           <<quent)
         //if(quent > 1 + 1.0e-15){
-        //  printf("## DEBUG QUENT > 1 tdim = %d tdim_c = %d gdim = %d quent %e dif %e\n",
+        //  printf("## DEBUG QUENT > 1 tdim = {} tdim_c = {} gdim = {} quent {} dif {}\n",
         //    tdim,tdim_c,msh.idim,quent,quent-1);
         //  exit(1);
         //}
@@ -72,7 +72,7 @@ double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
       qtot += quent;
       (*qmin) = MIN(*qmin,quent);
       (*qmax) = MAX(*qmax,quent);
-      CPRINTF3(" - getmetquamesh ientt %d dim %d qual = %e\n",ientt,tdim,quent);
+      CPRINTF3(" - getmetquamesh ientt {} dim {} qual = {}\n",ientt,tdim,quent);
     }
   }}CT_FOR1(tdim_c);
   }}CT_FOR1(ideg);

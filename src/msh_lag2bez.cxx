@@ -31,7 +31,7 @@ template<int ideg>
 void setMeshBezier(Mesh &msh, int nwork, double *rwork){
 	METRIS_THROW_MSG(TODOExcept(),"Replace this call with msh.setBezier");
 	if(msh.ilag == 0) return;
-  printf("-- Converting mesh to Bézier ideg = %d idim = %d .\n",ideg,msh.idim);
+  printf("-- Converting mesh to Bézier ideg = {} idim = {} .\n",ideg,msh.idim);
 
   if(msh.idim == 2){
 		setFieldBezier<ideg,2>(msh,msh.coord,nwork,rwork);
@@ -45,7 +45,7 @@ template<int ideg>
 void setMeshLagrange(Mesh &msh, int nwork, double *rwork){
 	METRIS_THROW_MSG(TODOExcept(),"Replace this call with msh.setBezier");
 	if(msh.ilag == 1) return;
-  printf("-- Converting mesh to Lagrange ideg = %d.\n",ideg);
+  printf("-- Converting mesh to Lagrange ideg = {}.\n",ideg);
   if(msh.idim == 2){
 		setFieldLagrange<ideg,2>(msh,msh.coord,nwork,rwork);
   }else{

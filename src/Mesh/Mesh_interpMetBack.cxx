@@ -15,7 +15,9 @@
 #include "../low_geo/misc.hxx"
 #include "../low_geo/normal.hxx"
 #include "../low_geo/ccoef.hxx"
+
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 #include "../utils/aux_misc.hxx"
 
 #include "../Localization/msh_localization.hxx"
@@ -41,7 +43,7 @@ int Mesh<MFT>::interpMetBack(int ipoin){
   int iref = this->ent2ref(tdim)[iseed];
   METRIS_ASSERT(iref >= 0);
 
-  CPRINTF2("-- START interpMetBack ipoin %d pdim %d iseed %d iref %d poi2bak %d\n",
+  CPRINTF2("-- START interpMetBack ipoin {} pdim {} iseed {} iref {} poi2bak {}\n",
            ipoin,tdim,iseed,iref,this->poi2bak[ipoin]);
 
   // Get algnd
@@ -51,7 +53,7 @@ int Mesh<MFT>::interpMetBack(int ipoin){
   // First try seeding point with itself, if already initialized. 
   if(this->poi2bak[ipoin] >= 0){
     if(this->interpMetBack00(ipoin, tdim, iref, ipoin, algnd) == 0) return 0;
-    CPRINTF1(" - self-seeded interpmet back failed, retry with seed %d \n", iseed);
+    CPRINTF1(" - self-seeded interpmet back failed, retry with seed {} \n", iseed);
   }
 
   return this->interpMetBack(ipoin,tdim,iseed,iref,algnd);
@@ -79,7 +81,7 @@ int Mesh<MFT>::interpMetBack(int ipoin, int tdim, int iseed,
   int pdim = this->getpoitdim(ipoin);
   METRIS_ASSERT(pdim == tdim);
 
-  CPRINTF1("-- START interpMetBack ipoin = %d iseed = %d tdim %d \n",ipoin,
+  CPRINTF1("-- START interpMetBack ipoin = {} iseed = {} tdim {} \n",ipoin,
            iseed,tdim);
 
   METRIS_ASSERT_MSG(tdim == this->idim || (algnd != NULL && iref >= 0),
@@ -91,7 +93,7 @@ int Mesh<MFT>::interpMetBack(int ipoin, int tdim, int iseed,
   int ierro = this->interpMetBack0(ipoin, tdim, iseed, iref, algnd);
 
   if(DOPRINTS1()){
-    CPRINTF1("-- END interpMetBack ipoin = %d ierro %d met = ",ipoin,ierro);
+    CPRINTF1("-- END interpMetBack ipoin = {} ierro {} met = ",ipoin,ierro);
     dblAr1((this->idim*(this->idim+1))/2, this->met[ipoin]).print();
   }
 
@@ -134,7 +136,7 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,int tdim, int iseed, int iref,
       for(int iskiplow = 0; iskiplow <= 1; iskiplow++){
         if(iskiplow == 1 && !iskipped_lowdim) break;
 
-        CPRINTF2(" - interpMetBack pass %d/%d (reject 0/accept 1: ref mismatch/low dim)\n",itry_ref,iskiplow);
+        CPRINTF2(" - interpMetBack pass {}/{} (reject 0/accept 1: ref mismatch/low dim)\n",itry_ref,iskiplow);
 
         for(int ii = 0; ii < nnode; ii++){
           //int ipoin = this->fac2poi(iseed,ii);
@@ -142,7 +144,7 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,int tdim, int iseed, int iref,
           int pdim  = this->getpoitdim(ipseed);
           //if( (pdim > tdim) || (pdim < tdim && !iskipped_lowdim) ){
           if( (pdim > tdim) || (pdim < tdim && iskiplow == 0) ){
-            CPRINTF2(" - skip seed pt %d dim = %d != %d\n",
+            CPRINTF2(" - skip seed pt {} dim = {} != {}\n",
                      ipseed, pdim, tdim);
             if(pdim < tdim) iskipped_lowdim = true;
             continue;
@@ -184,16 +186,16 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
     return 0;
   }
 
-  CPRINTF1("-- START interpMetBack00 ipoi0 %d tdim %d iref %d ipseed %d\n",
+  CPRINTF1("-- START interpMetBack00 ipoi0 {} tdim {} iref {} ipseed {}\n",
            ipoi0,tdim,iref,ipseed);
 
   int ieleb = poi2bak[ipseed];
   if(ieleb < 0){
-    CPRINTF2(" - skip seed %d < 0\n",ieleb);
+    CPRINTF2(" - skip seed {} < 0\n",ieleb);
     return 2; // Happens when called from the cavity operator.
   }
 
-  CPRINTF2(" - init ieleb = %d\n",ieleb);
+  CPRINTF2(" - init ieleb = {}\n",ieleb);
 
   int pdim_seed;
 
@@ -203,16 +205,16 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
   pdim_seed = this->getpoitdim(ipseed);
 
   if(pdim_seed > tdim){
-    CPRINTF2(" - seed has dim %d > %d = point dim, skip\n",pdim_seed,tdim);
+    CPRINTF2(" - seed has dim {} > {} = point dim, skip\n",pdim_seed,tdim);
     return 3;
   }
 
-  CPRINTF1(" - seed point dim %d initial bak seed %d\n",pdim_seed,ieleb);
+  CPRINTF1(" - seed point dim {} initial bak seed {}\n",pdim_seed,ieleb);
 
   if(pdim_seed == tdim){
     // Easiest case, ieleb is already the one, and we just need to check ref.
     if(iref >= 0 && this->bak->ent2ref(tdim)[ieleb] != iref){
-      CPRINTF1(" # provided seed has ref %d != %d \n",this->bak->ent2ref(tdim)[ieleb],iref);
+      CPRINTF1(" # provided seed has ref {} != {} \n",this->bak->ent2ref(tdim)[ieleb],iref);
       return 4;
     }
     goto ieleb_initialized;
@@ -224,13 +226,13 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
     // in the back mesh. 
     int ibpob = this->bak->poi2ebp(ieleb, tdim, -1, iref);
     if(ibpob < 0){
-      CPRINTF1(" # could not find seed element dim %d ref %d from point %d\n",
+      CPRINTF1(" # could not find seed element dim {} ref {} from point {}\n",
                tdim, iref, poi2bak[ipseed]);
       return 5;
     }
     ieleb = this->bak->bpo2ibi(ibpob,2);
     METRIS_ASSERT(this->bak->ent2ref(tdim)[ieleb] == iref);
-    CPRINTF1(" - corner seed tdim %d element %d\n",tdim, ieleb);
+    CPRINTF1(" - corner seed tdim {} element {}\n",tdim, ieleb);
     goto ieleb_initialized;
   }
   // If the seed is ref unconstrained, we will simply use edg2fac and fac2tet.
@@ -240,12 +242,12 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
               || (tdim == 3 && this->ndomn      == 1)){
     if(pdim_seed == 1){
       ieleb = this->bak->edg2fac[ieleb];
-      CPRINTF1(" - seed edge -> face = %d\n",ieleb);
+      CPRINTF1(" - seed edge -> face = {}\n",ieleb);
     }
     if(pdim_seed <= 2 && tdim == 3){
       ieleb = this->bak->fac2tet(ieleb,0);
       if(ieleb < 0) ieleb = this->bak->fac2tet(ieleb,1);
-      CPRINTF1(" - seed face -> tetra = %d\n",ieleb);
+      CPRINTF1(" - seed face -> tetra = {}\n",ieleb);
     }
     METRIS_ASSERT(ieleb >= 0);
     goto ieleb_initialized;
@@ -259,7 +261,7 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
       int ipoib = this->bak->ent2poi(pdim_seed)(ieleb, inode);
       int ibpob = this->bak->poi2ebp(ipoib, tdim, -1, iref);
       if(ibpob < 0) continue;
-      CPRINTF1(" - back seed elt %d vertex %d = %d points to back elt %d of ref %d\n",
+      CPRINTF1(" - back seed elt {} vertex {} = {} points to back elt {} of ref {}\n",
                ieleb, inode, ipoib, this->bak->bpo2ibi(ibpob, 2), iref);
       ieleb = this->bak->bpo2ibi(ibpob, 2);
       METRIS_ASSERT(ieleb >= 0 && ieleb < this->bak->nentt(this->get_tdim()));
@@ -277,7 +279,7 @@ ieleb_initialized:
   METRIS_ASSERT_MSG(ieleb >= 0 && ieleb < bak->nentt(tdim),
     "with tdim = "<<tdim<<" got ieleb = "<<ieleb<<" ipseed = "<<ipseed);
 
-  CPRINTF2(" - using ipseed %d bak elt seed = %d dim %d\n",ipseed,ieleb,tdim);
+  CPRINTF2(" - using ipseed {} bak elt seed = {} dim {}\n",ipseed,ieleb,tdim);
 
 
   int ierro;
@@ -322,11 +324,11 @@ ieleb_initialized:
   }}CT_FOR1(bdeg);
 
 
-  CPRINTF1(" - locMesh return ierro %d ieleb = %d tdim %d \n",ierro, ieleb, tdim);
+  CPRINTF1(" - locMesh return ierro {} ieleb = {} tdim {} \n",ierro, ieleb, tdim);
 
   #ifndef NDEBUG
   }catch(const MetrisExcept &e){
-    printf("## EXCEPTION THROWN IN LOCMESH, RERUN WITH PRINTS:\n");
+    PRINTF("## EXCEPTION THROWN IN LOCMESH, RERUN WITH PRINTS:\n");
     this->param->iverb   = 10;
     this->param->ivdepth = 20;
 
@@ -341,7 +343,7 @@ ieleb_initialized:
       this->bak->coord(ipdb2,ii) = coopr[ii];
 
 
-    printf("Try to localize coop %d = ",ipdbg);
+    PRINTF("Try to localize coop {} = ",ipdbg);
     dblAr1(this->idim,this->coord[ipoi0]).print();
     dblAr1(this->idim,this->bak->coord[ipdbg]).print();
     writeMesh("debug-localization.meshb", *(this->bak));
@@ -351,7 +353,7 @@ ieleb_initialized:
 
     writeMesh("debug-front.meshb", *(this));
 
-    printf("WAIT HERE before throw\n");
+    PRINTF("WAIT HERE before throw\n");
     wait();
     throw(e);
   }// catch
@@ -369,9 +371,7 @@ ieleb_initialized:
       this->bak->coord(ipdb2,ii) = coopr[ii];
 
 
-    printf("Try to localize coop %d = ",ipdbg);
-    dblAr1(this->idim,this->coord[ipoi0]).print();
-    dblAr1(this->idim,this->bak->coord[ipdbg]).print();
+    PRINTF("Try to localize coop {} = {}, bak ipdbg = {} = {}\n",ipdbg,dblAr1(this->idim,this->coord[ipoi0]), ipdbg, dblAr1(this->idim,this->bak->coord[ipdbg]));
     writeMesh("debug-localization.meshb", *(this->bak));
     this->bak->bpo2ibi(ibdbg,0)  = -1;
     this->bak->killpoint(ipdbg);
@@ -402,7 +402,7 @@ ieleb_initialized:
   #ifdef NDEBUG
   if(ierro == 0){
     if(DOPRINTS2()){
-      CPRINTF2(" - interpMetBack loc in %d dim %d bary = ",ieleb,tdim);
+      CPRINTF2(" - interpMetBack loc in {} dim {} bary = ",ieleb,tdim);
       dblAr1(tdim+1,barb).print();
       CPRINTF2(" - metric = ");
       dblAr1( (this->idim*(this->idim+1))/2,this->met[ipoi0]).print();
@@ -433,12 +433,12 @@ ieleb_initialized:
   }
 
   if(DOPRINTS2()){
-    CPRINTF2("- localization outside? len = %15.7e w tang ",len);
+    CPRINTF2("- localization outside? len = {:15.7e} w tang ",len);
     dblAr1(this->idim,tang).print();
     int nnmet = (this->idim*(this->idim+1))/2;
     CPRINTF2(" using metl = ");
     dblAr1(nnmet,this->met[ipoi0]).print();
-    CPRINTF2(" in iele = %d bary ",ieleb);
+    CPRINTF2(" in iele = {} bary ",ieleb);
     dblAr1(tdim+1,barb).print();
     double sum = abs(barb[0]) + abs(barb[1]);
     if(tdim >= 2) sum += abs(barb[2]);
@@ -448,18 +448,18 @@ ieleb_initialized:
     }
     intAr2 &ent2pob = this->bak->ent2poi(tdim);
     for(int ii = 0; ii < tdim + 1; ii++){
-      CPRINTF2("vertex %d metric = ",ent2pob(ieleb,ii));
+      CPRINTF2("vertex {} metric = ",ent2pob(ieleb,ii));
       dblAr1(nnmet,this->bak->met[ent2pob(ieleb,ii)]).print();
     }
   }
   if(len < 0.5){
     if(DOPRINTS2()){
-      CPRINTF2("-> len %15.7e < 0.5 keep w met = ",len);
+      CPRINTF2("-> len {:15.7e} < 0.5 keep w met = ",len);
       dblAr1( (this->idim*(this->idim+1))/2,this->met[ipoi0]).print();
     }
     ierro = 0;
   }else{
-    CPRINTF1("# Large length %e \n",len);
+    CPRINTF1("# Large length {} \n",len);
     if(DOPRINTS2()){
       CPRINTF2("- proj point ");
       dblAr1(this->idim, coopr).print();

@@ -12,7 +12,7 @@
 #include "codegen_lagrange.hxx"
 
 #include <boost/preprocessor/iteration/local.hpp>
-
+#include "fmt/format.h"
 
 namespace Metris{
 
@@ -149,7 +149,7 @@ void eval2(const dblAr2 & __restrict__  rfld,
     eval2_lagrange<szfld,ideg>(rfld, lfld, idif1, bary, eval, jmat); 
     #ifndef NDEBUG
     }catch(const MetrisExcept& e){
-      printf("eval2_lagrange exception szfld %d ideg %d \n",szfld,ideg);
+      fmt::print("eval2_lagrange exception szfld {} ideg {} \n",szfld,ideg);
       intAr1(getnnod2(ideg),lfld).print();
       throw(e);
     }
@@ -322,7 +322,7 @@ double eval_bezierfunc(const int * __restrict__ idx,
         METRIS_ASSERT(ider == 0); // Not implemented yet, just fill with 0
       }
     }else{
-      printf("## DIMENSION > 3 NOT SUPPORTED \n");
+      fmt::print("## DIMENSION > 3 NOT SUPPORTED \n");
     }
 
     //double coef = eval; // Used for derivative
@@ -411,10 +411,8 @@ double eval_lagrangefunc(const int * __restrict__ idx,
     double fac,eval,dd,d1,eval_lagrange;
     double ev[1+idim];
     int i,j,k;
-    if(idim != 2 && idim != 3){
-        printf("Only dimensions 2 and 3 supported, %d supplied\n",idim);
-        exit(1);
-    }
+    METRIS_ASSERT_MSG(idim == 2 || idim == 3, 
+                      "Only dimensions 2 and 3 supported, supplied "<<idim)
 
     if(ider <= 0){
         fac = 1.0;
@@ -462,9 +460,9 @@ double eval_lagrangefunc(const int * __restrict__ idx,
     }
 //      - Finalize by multiplying by the constant (w.r.t. \xi_1) factor
 //      We can shave off one product by not *fac'ing this yet. 
-    if(idim == 3){
+    if constexpr(idim == 3){
       d1 *= ev[1]*ev[2]*ev[3];
-    } else{
+    }else{
       d1 *= ev[1]*ev[2];
     }
     

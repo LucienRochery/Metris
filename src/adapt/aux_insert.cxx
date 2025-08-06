@@ -170,7 +170,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
       for(int ii = 0; ii < 2; ii++) msh.bpo2rbi(ibins,ii) = 
           bar1*msh.bpo2rbi[ib[0]][ii] + (1.0 - bar1)*msh.bpo2rbi[ib[1]][ii];
 
-      CPRINTF1(" - boundary point new t/(u,v) = %f %f\n",
+      CPRINTF1(" - boundary point new t/(u,v) = {} {}\n",
                msh.bpo2rbi(ibins,0),msh.bpo2rbi(ibins,1));
 
       double result[18];
@@ -188,7 +188,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
     }else if(ibins >= 0 && !msh.CAD()){ 
       METRIS_ASSERT(tdimp <= 2);
       // No reevaluation, but initialize algnd to edge tangent 
-      CPRINTF1(" - discrete algnd initialization tdimp %d \n",tdimp);
+      CPRINTF1(" - discrete algnd initialization tdimp {} \n",tdimp);
       if(tdimp == 1){
         // To compute at higher degree, copy more vertices into ip
         MSH_DIM_DEG0(msh){
@@ -232,7 +232,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
     double len2 = msh.idim == 2 ? getlenedg_geosz<MFT,2,1>(msh,edg2po2,sz)
                                 : getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
 
-    CPRINTF1(" - %d bar1 = %e lens = %e %e valid %d %d (err = %e %e) dist %e %e sumlen %e err to sqrt(2) = %e\n",
+    CPRINTF1(" - {} bar1 = {} lens = {} {} valid {} {} (err = {} {}) dist {} {} sumlen {} err to sqrt(2) = {}\n",
               ntry_len,bar1,len1,len2,
               len1 > 1/sqrt(2), len2 > 1/sqrt(2),
               abs(len1 - 1/sqrt(2)), abs(len2 - 1/sqrt(2)), 
@@ -259,7 +259,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
         err_opt = err;
         bar1_opt = bar1;
       }
-      CPRINTF1(" - config error %e \n",err);
+      CPRINTF1(" - config error {} \n",err);
       if(err < 1.0e-2) break;
     }
   }// for ntry_len
@@ -276,7 +276,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
 
   if(!fnd_len) return 1;
 
-  CPRINTF1("-- END aux_bisecPointLen w/ bar1 = %f\n",bar1_opt);
+  CPRINTF1("-- END aux_bisecPointLen w/ bar1 = {}\n",bar1_opt);
   return 0;
 }
 
@@ -353,7 +353,7 @@ int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav,
   // reinterp metric. This is always interior case, no need for ref of bdry dir
   ierro = msh.interpMetBack(cav.ipins,tdimp,iseed,iref,algnd);
   if(ierro != 0){
-    CPRINTF1(" - interpMetBack failed ierro = %d \n",ierro);
+    CPRINTF1(" - interpMetBack failed ierro = {} \n",ierro);
     ierro = INS2D_ERR_INTERPMETBACK;
   }
   

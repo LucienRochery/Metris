@@ -330,7 +330,7 @@ OLD IMPLEMENTATIONS
 //  // Note, our jmat is transposed:
 //  // jmat[3*i+j] = d_i F_j
 //
-//  //printf("Debug ilag %d ideg %d jmat :\n",ilag,ideg);
+//  //printf("Debug ilag {} ideg {} jmat :\n",ilag,ideg);
 //  //dblAr2(3,3,jmat).print();
 //
 //

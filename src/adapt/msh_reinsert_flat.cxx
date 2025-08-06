@@ -79,7 +79,7 @@ int reinsertFlat(Mesh<MFT> &msh){
   int nent1 = msh.nentt(tdim);
   for(int niter = 0; niter < miter; niter++){
     INCVDEPTH(msh.param);
-    CPRINTF1(" - niter %d / %d nent0 -> nent1 %d -> %d\n",niter,miter,nent0,nent1);
+    CPRINTF1(" - niter {} / {} nent0 -> nent1 {} -> {}\n",niter,miter,nent0,nent1);
     int noper  = 0;
     int nerro = 0;
     for(int ientt = nent0; ientt < nent1; ientt++){
@@ -104,7 +104,7 @@ int reinsertFlat(Mesh<MFT> &msh){
       getheightentP1_aniso<MFT,gdim>(msh, ientt, height);
 
       if(DOPRINTS1()){
-        MPRINTF(" - ientt %d heights ",ientt);
+        MPRINTF(" - ientt {} heights ",ientt);
         dblAr1(tdim + 1, height).print();
       }
 
@@ -117,7 +117,7 @@ int reinsertFlat(Mesh<MFT> &msh){
         // Low height element: insert itself and neighbour in cavity, as well 
         // as all points in ball of ipoin 
 
-        CPRINTF1(" - Collapse point %d \n", ipoin);
+        CPRINTF1(" - Collapse point {} \n", ipoin);
         // Just collapse the point. 
         collapseVertex(msh,ipoin,msh.param->iverb,cav,work,lerror, 0, 1);
         break;
@@ -127,8 +127,8 @@ int reinsertFlat(Mesh<MFT> &msh){
         if(ifnei >= 0 && ibdryonly) continue;
 
 
-        if(iverb >= 1) printf("   - Reinsert pt %d face %d (%d,%d,%d)" 
-                              "ied %d height = %15.7e\n",ipoin, ientt,
+        if(iverb >= 1) printf("   - Reinsert pt {} face {} ({},{},{})" 
+                              "ied {} height = {:15.7e}\n",ipoin, ientt,
                                msh.fac2poi(ientt,0), msh.fac2poi(ientt,1),
                                msh.fac2poi(ientt,2), ifa, height[ifa]);
  
@@ -159,7 +159,7 @@ int reinsertFlat(Mesh<MFT> &msh){
                                        iedge, msh.bpo2rbi[ibins], bary, coopr);
             if(ierro > 0){
               if(iverb >= 2) 
-                printf(" ## msh_reinsert_flat projptedg ierro %d \n",ierro);
+                printf(" ## msh_reinsert_flat projptedg ierro {} \n",ierro);
               nerro++;
               continue;
             }
@@ -167,13 +167,13 @@ int reinsertFlat(Mesh<MFT> &msh){
             if(dist > 1.0e-12){
 
               //#ifndef NDEBUG 
-              printf("Large dist ? %15.7e \n",dist);
+              printf("Large dist ? {:15.7e} \n",dist);
               for(int ii = 0; ii < msh.idim; ii++){
-                printf(" %15.7e ",coopr[ii]);
+                printf(" {:15.7e} ",coopr[ii]);
               }
               printf("\n");
               for(int ii = 0; ii < msh.idim; ii++){
-                printf(" %15.7e ",msh.coord(cav.ipins,ii));
+                printf(" {:15.7e} ",msh.coord(cav.ipins,ii));
               }
               printf("\n");
 
@@ -190,7 +190,7 @@ int reinsertFlat(Mesh<MFT> &msh){
 
               METRIS_THROW_MSG(GeomExcept(),"LArge dist "<<dist);
               //#else
-              //if(iverb >= 3) printf("  - Large dist %f continue \n",dist);
+              //if(iverb >= 3) printf("  - Large dist {} continue \n",dist);
               //continue;
               //#endif
 
@@ -237,16 +237,16 @@ int reinsertFlat(Mesh<MFT> &msh){
 
     nent0 = nent1;
     nent1 = msh.nentt(tdim);
-    CPRINTF1(" - iter %d noper = %d nerro = %d \n", niter, noper, nerro);
+    CPRINTF1(" - iter {} noper = {} nerro = {} \n", niter, noper, nerro);
 
   }// for(int niter)
 
-  CPRINTF1(" - End noper = %d nerro = %d \n", noper_tot, nerro_tot);
+  CPRINTF1(" - End noper = {} nerro = {} \n", noper_tot, nerro_tot);
   if(DOPRINTS2() && nerro_tot > 0){
     CPRINTF1(" - ierro list:\n");
     for(int ii = 0; ii < merror; ii++){
       if(lerror[ii] == 0) continue;
-      CPRINTF1("   - ierro = %d : %d \n",ii+1,lerror[ii]);
+      CPRINTF1("   - ierro = {} : {} \n",ii+1,lerror[ii]);
     }
   }
 

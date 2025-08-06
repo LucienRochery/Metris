@@ -20,7 +20,7 @@ namespace Metris{
 template<int nvar>
 struct newton_drivertype_args{
   double xtol, stpmin, wlfc1, wlfc2, ratnew, ftol;
-  int niter, maxit, iprt, isym;
+  int niter, maxit, isym;
   int iwork[3];
   double rwork[4 + nvar*10];
   double xopt[nvar]; 
@@ -41,7 +41,6 @@ struct newton_drivertype_args{
 
     niter = 0;
     maxit = 50;
-    iprt  = 0;
     isym  = 1;
   }
 
@@ -59,11 +58,12 @@ struct truncated_newton_work{
   dblAr1 pmajor;
 };
 
-void optim_newton_drivertype(int nvar ,
+void optim_newton_drivertype(const MetrisParameters &params, 
+                             int nvar ,
                              double *xcur ,double *fcur  ,double *gcur   ,double *hess ,
                              double xtol ,double stpmin,int isym,
                              double wlfc1,double wlfc2 ,double ratnew ,
-                             int *niter,int maxit ,int iprt   ,
+                             int *niter,int maxit ,
                              int *iflag,int *ihess , 
                              int nrwrk,double *rwork ,
                              int niwrk,int *iwork ,
@@ -97,7 +97,8 @@ int optim_newton_drivertype_PETSc(int nvar ,
 
 
 template<int ndim>
-int truncated_newton_iteration(truncated_newton_work &work, 
+int truncated_newton_iteration(const MetrisParameters *params, 
+                               truncated_newton_work &work, 
                                int outer_iter,
                                const double *gcur, const double *hcur,
                                double *desc);

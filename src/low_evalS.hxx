@@ -124,8 +124,8 @@ struct eval3S_bezier<szfld,1,idif1,idif2,di,dj,dk,dl>{
     constexpr int i0010 = mul2nod(0+di,0+dj,1+dk,0+dl);
     constexpr int i0001 = mul2nod(0+di,0+dj,0+dk,1+dl);
 
-//          printf("  - ideg = %d with (di,dj,dk,dl) = (%d,%d,%d,%d)\n",ideg,di,dj,dk,dl);
-//          printf("  - Vertex indices %d %d %d %d \n",i1000,i0100,i0010,i0001);
+//          printf("  - ideg = {} with (di,dj,dk,dl) = ({},{},{},{})\n",ideg,di,dj,dk,dl);
+//          printf("  - Vertex indices {} {} {} {} \n",i1000,i0100,i0010,i0001);
 
     for(int i = 0; i < szfld; i++){
       eval[i] = bary[0]*rfld[lfld[i1000]][i]

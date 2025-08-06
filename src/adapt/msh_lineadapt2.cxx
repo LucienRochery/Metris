@@ -21,6 +21,7 @@
 #include "../adapt/low_increasecav.hxx"
 #include "../cavity/msh_cavity.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/EGADSprinterr.hxx"
 
 
 namespace Metris{
@@ -105,7 +106,7 @@ void adaptGeoLines2(Mesh<MFT> &msh){
   double t0 = get_wall_time();
   getCADCurveLengths(msh, (lentolfac - 1.0), crv_lens);
   double t1 = get_wall_time();
-  CPRINTF1(" - getCADCurveLengths time %f \n",t1-t0);
+  CPRINTF1(" - getCADCurveLengths time {:.2e}s \n",t1-t0);
   }
 
 
@@ -140,7 +141,7 @@ void adaptGeoLines2(Mesh<MFT> &msh){
     int ierro = EG_getTopology(loop,&geom,&oclass,&mtype,NULL,
                            &nchild,&lchild,&senses);
     if(ierro != 0){
-      print_EGADS_error("EG_getTopology (LOOP)",ierro);
+      MPRINTF("EG_getTopology (LOOP) error : {}",EG_err2str(ierro));
       METRIS_THROW(TopoExcept());
     }
     METRIS_ENFORCE_MSG(nchild == msh.CAD.ncaded || msh.CAD.ncadlp > 1," nchild = "<<nchild);
@@ -161,19 +162,19 @@ void adaptGeoLines2(Mesh<MFT> &msh){
       int iref = CADedg2ref[obj];
       int icor0 = ref2cor(iref,0);
       if(icor0 < 0){
-        CPRINTF1(" - Loop %d line %d / %d is degenerate -> skip\n",
+        CPRINTF1(" - Loop {} line {} / {} is degenerate -> skip\n",
                  iloop, iref+1, msh.CAD.ncaded);
         continue;
       }
 
-      CPRINTF1(" - Loop %d adapt line %d / %d \n", iloop, iref+1, msh.CAD.ncaded);
+      CPRINTF1(" - Loop {} adapt line {} / {} \n", iloop, iref+1, msh.CAD.ncaded);
 
       //double range[2];
       //ego CADed = msh.CAD.cad2edg[iref];
       //int iperi;
       //int ierro = EG_getRange(CADed,range,&iperi);
       //if(ierro != 0){
-      //  printf("  ## EG_getRange failed %d \n",ierro);
+      //  printf("  ## EG_getRange failed {} \n",ierro);
       //  METRIS_ASSERT(ierro == 0);
       //  return;
       //}
@@ -187,7 +188,7 @@ void adaptGeoLines2(Mesh<MFT> &msh){
       genPointsCurve<MFT>(msh, iref, icor0, crv_lens[iref], ref2rng[iref], lnewt, ledge);
 
       if(lnewt.get_n() == 0){
-        CPRINTF1(" # Warning line %d with len %f -> no points to insert\n",
+        CPRINTF1(" # Warning line {} with len {} -> no points to insert\n",
                   iref, crv_lens[iref]);
         continue;
       }

@@ -59,7 +59,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   || msh.fac2poi(iface,2) == 2137 && msh.fac2poi(iface,0) == 2152 && msh.fac2poi(iface,1) == 2139
   || msh.fac2poi(iface,2) == 2137 && msh.fac2poi(iface,1) == 2152 && msh.fac2poi(iface,0) == 2139
      ){
-    printf("\n\n\n## DEBUG SET MAX PRINTS iface = %d vertices %d %d %d\n",iface,
+    printf("\n\n\n## DEBUG SET MAX PRINTS iface = {} vertices {} {} {}\n",iface,
       msh.fac2poi(iface,0),msh.fac2poi(iface,1),msh.fac2poi(iface,2));
     msh.param->iverb = 5;
     msh.param->ivdepth = 5;
@@ -116,12 +116,12 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   }
 
 
-  CPRINTF1("-- START swapface iface = %d verts %d %d %d",iface
+  CPRINTF1("-- START swapface iface = {} verts {} {} {}",iface
     ,msh.fac2poi(iface,0),msh.fac2poi(iface,1),msh.fac2poi(iface,2));
-  if(DOPRINTS1() && spnorm >= 0){
-    printf(" initial quality = %f \n",quae1);
+  if(spnorm >= 0 && DOPRINTS1()){
+    PRINTF(" initial quality = {}\n",quae1);
   }else if(DOPRINTS1()){
-    printf("\n");
+    PRINTF("\n");
   }
 
   int iref = msh.fac2ref[iface];
@@ -135,7 +135,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   if(gdim >= 3 && spnorm < 0){
     getnorfacP1(msh.fac2poi[iface], msh.coord, norfac);
     if(normalize_vec<3>(norfac)){
-      CPRINTF1(" # face %d normal %f %f %f vanishes\n",iface,norfac[0],norfac[1],norfac[2]);
+      CPRINTF1(" # face {} normal {} {} {} vanishes\n",iface,norfac[0],norfac[1],norfac[2]);
       return 1;
     }
   }
@@ -175,7 +175,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
                              : 1.0 - 1.0 / len;
 
 
-      CPRINTF1(" - ied %d faces %d %d len score %e\n",ied,iface,ifac2,
+      CPRINTF1(" - ied {} faces {} {} len score {}\n",ied,iface,ifac2,
                quaol[ied]);
 
       // To this, we want to add a normal deviation term in 3D
@@ -184,7 +184,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
         double norfa2[3];
         getnorfacP1(msh.fac2poi[ifac2], msh.coord, norfa2);
         if(normalize_vec<3>(norfa2)){
-          CPRINTF1(" # face %d normal %f %f %f vanishes\n",ifac2,norfa2[0],norfa2[1],norfa2[2]);
+          CPRINTF1(" # face {} normal {} {} {} vanishes\n",ifac2,norfa2[0],norfa2[1],norfa2[2]);
           return 1;
         }
 
@@ -197,14 +197,14 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
         ego obj = msh.CAD.cad2fac[iref];
         int ierro = EG_evaluate(obj, uv, eval);
         if(ierro > 0) {
-          CPRINTF1(" # EG_evaluate failed for face %d at uv %f %f ierro = %d\n",iref,uv[0],uv[1],ierro);
+          CPRINTF1(" # EG_evaluate failed for face {} at uv {} {} ierro = {}\n",iref,uv[0],uv[1],ierro);
           quaol[ied] = -1;
           continue;
         }
 
         vecprod(&eval[3], &eval[6], norCAD[ied]);
         if(normalize_vec<3>(norCAD[ied])){
-          CPRINTF1(" # CAD normal %f %f %f vanishes\n",norCAD[ied][0],norCAD[ied][1],norCAD[ied][2]);
+          CPRINTF1(" # CAD normal {} {} {} vanishes\n",norCAD[ied][0],norCAD[ied][1],norCAD[ied][2]);
           return 1;
         }
 
@@ -212,17 +212,17 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
         double dtpr2 = abs(getprdl2<3>(norfa2, norCAD[ied]));
         double qndev = 1 - MIN(dtpr1, dtpr2);
 
-        CPRINTF1(" - ied %d faces %d %d nordevs %e %e nordev qual = %e\n",ied,iface,ifac2,
+        CPRINTF1(" - ied {} faces {} {} nordevs {} {} nordev qual = {}\n",ied,iface,ifac2,
                  1-dtpr1,1-dtpr2,qndev);
 
         quaol[ied] = msh.param->qua_surf_wt_quality*quaol[ied]
                    + msh.param->qua_surf_wt_normal*qndev;
       }
 
-      CPRINTF1(" - edge %d length %f quality %15.7e\n",ied,len, quaol[ied]);
+      CPRINTF1(" - edge {} length {} quality {:15.7e}\n",ied,len, quaol[ied]);
 
     }
-    CPRINTF1(" - candidate neighbour %d has qual %e\n",ifac2,quaol[ied]);
+    CPRINTF1(" - candidate neighbour {} has qual {}\n",ifac2,quaol[ied]);
   }
   
 
@@ -242,9 +242,9 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     if(quae2 < 0) continue;
 
     if(spnorm >= 0){
-      CPRINTF1(" - consider swap qface = %f qneigh = %f \n", quae1,quae2);
+      CPRINTF1(" - consider swap qface = {} qneigh = {} \n", quae1,quae2);
     }else{
-      CPRINTF1(" - consider swap lenqua init = %f\n",quae2);
+      CPRINTF1(" - consider swap lenqua init = {}\n",quae2);
     }
 
     // Quality of previous configuration 
@@ -281,7 +281,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     for(int ii = 0; ii <= 1; ii++){
       iflat = !isvalideltP1<gdim,2>(msh,nfac0+ii); 
       if(iflat){
-        CPRINTF1(" - new face %d: %d %d %d would be flat",ii+1,msh.fac2poi(nfac0+ii,0),
+        CPRINTF1(" - new face {}: {} {} {} would be flat",ii+1,msh.fac2poi(nfac0+ii,0),
           msh.fac2poi(nfac0+ii,1),msh.fac2poi(nfac0+ii,2));
         break;
       }
@@ -332,7 +332,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       for(int ifanw = nfac0+0; ifanw < nfac0+2; ifanw++){
         //qunw1 = metqua0<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,fac2pol[0],1.0);
         qunw[ifanw-nfac0] = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,ifanw,1.0);
-        CPRINTF1(" - new face %d quality = %f \n",ifanw-nfac0,qunw[ifanw-nfac0]);
+        CPRINTF1(" - new face {} quality = {} \n",ifanw-nfac0,qunw[ifanw-nfac0]);
         // Can skip already if using max
         if(spnorm == 0 && qunw[ifanw-nfac0] + opt.swap_thres > qnrm0){
           skipswap = true;
@@ -360,7 +360,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       len = getlenedg_geosz<MFT,gdim,ideg>(msh, edg2pol, sz);
       double qulen = len < 1 ? 1.0 - len 
                              : 1.0 - 1.0 / len;
-      CPRINTF1(" - new config ied %d len = %e quality = %e \n",ied,len,qulen);
+      CPRINTF1(" - new config ied {} len = {} quality = {} \n",ied,len,qulen);
 
       if(msh.idim == 2){
         qnrm1 = qulen;
@@ -371,12 +371,12 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
         for(int ifanw = nfac0 + 0; ifanw <= nfac0 + 1; ifanw++){
           getnorfacP1(msh.fac2poi[ifanw], msh.coord, norfa2);
           if(normalize_vec<3>(norfa2)){
-            CPRINTF1(" # face %d normal %f %f %f vanishes\n",ifanw,norfa2[0],norfa2[1],norfa2[2]);
+            CPRINTF1(" # face {} normal {} {} {} vanishes\n",ifanw,norfa2[0],norfa2[1],norfa2[2]);
             skipswap = true;
             break;
           }
           double dtprd = getprdl2<3>(norCAD[ied], norfa2);
-          CPRINTF1(" - new face %d nordev quality = %f \n",ifanw-nfac0,1-dtprd);
+          CPRINTF1(" - new face {} nordev quality = {} \n",ifanw-nfac0,1-dtprd);
           qudev = MAX(qudev,1-dtprd);
         }
         if(skipswap) goto cleanup;
@@ -411,12 +411,12 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     }
 
     if(spnorm >= 0){
-      CPRINTF1(" - enact swap ||(%f,%f)|| = %f -> ||(%f,%f)|| = %f \n ",
+      CPRINTF1(" - enact swap ||({},{})|| = {} -> ||({},{})|| = {} \n ",
                                              quae1,quae2,qnrm0,qunw[0],qunw[1],qnrm1);
     }else{
-      CPRINTF1(" - enact swap %f -> %f improvement %e\n ",qnrm0,qnrm1,qnrm1 - qnrm0);
+      CPRINTF1(" - enact swap {} -> {} improvement {}\n ",qnrm0,qnrm1,qnrm1 - qnrm0);
     }
-    if(tdim == 3) CPRINTF1(" - cavity ntetr %d \n",cav.lctet.get_n());
+    if(tdim == 3) CPRINTF1(" - cavity ntetr {} \n",cav.lctet.get_n());
 
     int ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithread);
   
@@ -433,7 +433,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     }
     #endif
     if(info.done && ierro == 0){
-      CPRINTF1("-- END swapface did %d - %d -> %d - %d \n",iface,
+      CPRINTF1("-- END swapface did {} - {} -> {} - {} \n",iface,
                                                  ifac2,msh.nface-2,msh.nface-1);
       return -1; // Return did op
     }

@@ -12,6 +12,7 @@
 #include "../metris_options.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 
+#include "fmt/format.h"
 
 namespace Metris{
 
@@ -50,11 +51,11 @@ struct MeshStat{
         && abs(this->avgqua_bdry - rhs.avgqua_bdry ) < 1.0e-3 ;
   }
   void print(std::string name = ""){
-    printf("-- Mesh stat summary %s:\n",name.c_str());
-    printf(" - Length       : %f%% unit w/ %f < l ~= %f < %f \n",pctunit,minlen,avglen,maxlen);
-    printf(" - Length (bdry): %f%% unit w/ %f < l ~= %f < %f \n",pctunit_bdry,minlen_bdry,avglen_bdry,maxlen_bdry);
-    printf(" - Conf. err.       : %f < q ~= %f < %f \n",minqua,avgqua,maxqua);
-    printf(" - Conf. err. (bdry): %f < q ~= %f < %f \n",minqua_bdry,avgqua_bdry,maxqua_bdry);
+    fmt::print("-- Mesh stat summary {}:\n",name.c_str());
+    fmt::print(" - Length       : {}% unit w/ {} < l ~= {} < {} \n",pctunit,minlen,avglen,maxlen);
+    fmt::print(" - Length (bdry): {}% unit w/ {} < l ~= {} < {} \n",pctunit_bdry,minlen_bdry,avglen_bdry,maxlen_bdry);
+    fmt::print(" - Conf. err.       : {} < q ~= {} < {} \n",minqua,avgqua,maxqua);
+    fmt::print(" - Conf. err. (bdry): {} < q ~= {} < {} \n",minqua_bdry,avgqua_bdry,maxqua_bdry);
   }
 };
 

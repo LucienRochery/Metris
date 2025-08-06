@@ -52,6 +52,9 @@ struct MetrisOptions{
       ("nocleanup", "Disable cleanup (debug)"   )
       ("nproc"  , po::value<int>(), "Maximum number of CPU cores for multi-threading"   );
 
+    s.add_options()
+      ("log", po::value<std::string>(),
+       "Log file name, default stdout");
 
     s.add_options()
       ("refine-conventions-inp", "Adopt Refine conventions for VerticesOnGeometricX");
@@ -122,6 +125,7 @@ struct MetrisOptions{
       ("qua-surf-wt-normal", po::value<double>(),
                     "Weight of normal deviation in surface quality.");
 
+    
 
     // ----------------- Generic flags. Used for quick debugging
     s.add_options()  

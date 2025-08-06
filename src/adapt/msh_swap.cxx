@@ -116,19 +116,19 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
         #ifndef NDEBUG
           if(msh.param->dbgfull)  check_topo(msh,ithrd2);
           }catch(MetrisExcept &e){
-            printf("Caught exception in swapface, writing mesh:\n");
+            fmt::print(stderr,"Caught exception in swapface, writing mesh:\n");
             writeMesh("swap_except.meshb",msh);
             msh.met.writeMetricFile("swap_except.solb");
             writeMesh("swap_except_back", *(msh.bak));
             msh.bak->met.writeMetricFile("swap_except_back.solb");
             std::string CADname = msh.param->outmPrefix + "swap_except_CAD.egads";
             EG_saveModel(msh.CAD.EGADS_model, CADname.c_str());
-            std::cout<<"Wrote CAD file "<<CADname<<"\n";
+            fmt::print(stderr,"Wrote CAD file {}\n",CADname);
             throw(e);
           }
         #endif
 
-        //CPRINTF2(" - swap try entity %d info = %d \n",ientt, info);
+        //CPRINTF2(" - swap try entity {} info = {} \n",ientt, info);
 
 
         if(info == 0){ // Nothing done 
@@ -178,11 +178,11 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
       else          stat  = MAX(stat, stat0);
 
       int ncallps_niter = 1000*(int)((nswap_niter / (t11-t01)) / 1000);
-      CPRINTF2(" - swaps full iter %d ntry = %d nswap %d = %d /s; nerro %d stat %f",niter,
+      CPRINTF2(" - swaps full iter {} ntry = {} nswap {} = {} /s; nerro {} stat {:.2e}",niter,
               ntry, nswap_niter, ncallps_niter,nerro_niter, stat0);
       if(stat0 < msh.param->adp_stagn_stop && DOPRINTS2())  
-          printf(" < adp_stagn_stop = %f -> break.\n",msh.param->adp_stagn_stop);
-      else if(DOPRINTS2()) printf("\n");
+        fmt::print(LOGFILE__," < adp_stagn_stop = {} -> break.\n",msh.param->adp_stagn_stop);
+      else if(DOPRINTS2()) fmt::print(LOGFILE__,"\n");
       nswap_tdim += nswap_niter;
       nerro_tdim += nerro_niter;
 
@@ -194,9 +194,9 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
     double t12 = get_wall_time();
     int ncallps_tdim = 1000*(int)((nswap_tdim / (t12-t02)) / 1000);
     if(tdim == 2){
-      CPRINTF2(" - swaps dim %d time %e swapped %d = %d /s nerro %d\n",tdim,t12-t02,nswap_tdim,ncallps_tdim,nerro_tdim)
+      CPRINTF2(" - swaps dim {} time {:.2e}s swapped {} = {} /s nerro {}\n",tdim,t12-t02,nswap_tdim,ncallps_tdim,nerro_tdim)
     }else{
-      CPRINTF2(" - swaps dim %d time %e swapped %d = %d /s nerro %d edge = %d face = %d\n",
+      CPRINTF2(" - swaps dim {} time {:.2e}s swapped {} = {} /s nerro {} edge = {} face = {}\n",
                tdim,t12-t02,nswap_tdim,ncallps_tdim,nerro_tdim,nswap3ed,nswap3fa);
     }
     *nswap += nswap_tdim;

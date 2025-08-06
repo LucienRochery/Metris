@@ -48,7 +48,7 @@ void check_topo(MeshBase &msh,
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
       for(int ii = 0; ii < msh.idim; ii++){
         if(std::isnan(msh.coord(ipoin,ii))){
-          printf("## NAN COORDINATE FOR ipoin %d ",ipoin);
+          MPRINTF("## NAN COORDINATE FOR ipoin {} ",ipoin);
           dblAr1(msh.idim,msh.coord[ipoin]).print();
         }
         METRIS_ENFORCE(!std::isnan(msh.coord(ipoin,ii)))
@@ -75,7 +75,7 @@ void check_topo(MeshBase &msh,
             getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,&ccoef[0],&iflat);
           }}CT_FOR1(ideg);
           if(iflat){
-            printf("## NEGATIVE JACOBIAN %d \n ",ientt);
+            MPRINTF("## NEGATIVE JACOBIAN {} \n ",ientt);
             writeMesh("inva"+std::to_string(ientt),msh);
             METRIS_THROW(GeomExcept());
           }
@@ -120,10 +120,10 @@ void check_topo(MeshBase &msh,
       if(tdim >= 1){
         int iver = msh.getverent(ientt,tdim,ipoin);
         if(iver < 0){
-          printf("failed to find ipoin in its poi2ent. ipoin = %d ientt %d tdim %d ",
-            ipoin, ientt, tdim);
+          MPRINTF("failed to find ipoin in its poi2ent. ipoin = {} ientt {} tdim {} ",
+                   ipoin, ientt, tdim);
           const intAr2 &ent2poi = msh.ent2poi(tdim);
-          printf("vertices: ");
+          MPRINTF("vertices: ");
           intAr1(tdim+1,ent2poi[ientt]).print();
         }
         METRIS_ENFORCE_MSG(iver >= 0, "did not find ipoin = "<<ipoin<<" poi2ent "<<
@@ -149,29 +149,29 @@ void check_topo(MeshBase &msh,
 
         int pdim = msh.getpoitdim(ipoin);
         if(pdim < 0 || pdim > msh.get_tdim()){
-          printf(" ## INVLIAD pdim %d \n",pdim);
-          printf("iopin = %d \n",ipoin);
+          MPRINTF(" ## INVALID pdim {} \n",pdim);
+          MPRINTF("iopin = {} \n",ipoin);
           writeMesh("debug_checktopo",msh);
           METRIS_THROW(TopoExcept());
         }
         if(pdim == 0) continue;
         int iebak = poi2bak[ipoin];
         if(iebak < 0){
-          printf("ipoin %d pdim %d poi2bak %d negative\n",ipoin,pdim,iebak);
+          MPRINTF("ipoin {} pdim {} poi2bak {} negative\n",ipoin,pdim,iebak);
         }
         METRIS_ENFORCE(iebak >= 0);
         int nentb = msh.metricClass() == MetricClass::MetricFieldFE ?  
           ((Mesh<MetricFieldFE> *)(&msh))->bak->nentt(pdim):
           ((Mesh<MetricFieldAnalytical> *)(&msh))->bak->nentt(pdim);
         if(iebak >= nentb){
-          printf("ipoin %d pdim %d poi2bak %d >= nentb %d\n",ipoin,pdim,iebak,nentb);
+          MPRINTF("ipoin {} pdim {} poi2bak {} >= nentb {}\n",ipoin,pdim,iebak,nentb);
         }
         METRIS_ENFORCE(iebak < nentb);
         const intAr2& ent2pob = msh.metricClass() == MetricClass::MetricFieldFE ?  
           ((Mesh<MetricFieldFE> *)(&msh))->bak->ent2poi(pdim):
           ((Mesh<MetricFieldAnalytical> *)(&msh))->bak->ent2poi(pdim);
         if(isdeadent(iebak,ent2pob)){
-          printf("Point %d tdim %d has dead back seed %d \n",ipoin,pdim,iebak);
+          MPRINTF("Point {} tdim {} has dead back seed {} \n",ipoin,pdim,iebak);
         }
         METRIS_ENFORCE_MSG(!isdeadent(iebak,ent2pob),
           "Point "<<ipoin<<" tdim "<<pdim<<" has back seed "<<iebak<<" which is dead");
@@ -264,7 +264,7 @@ void check_topo(MeshBase &msh,
         iedl = getedgfac(msh,iface,ip1,ip2);
         METRIS_ENFORCE(iedl >= 0);
       }catch(const MetrisExcept &e){
-        printf("edge not in triangle (edg2fac link)\n");
+        MPRINTF("edge not in triangle (edg2fac link)\n");
         throw(e);
       }
     }
@@ -330,10 +330,10 @@ void check_topo(MeshBase &msh,
       if(ibpoi >= 0) tdimn = msh.bpo2ibi(ibpoi,1);
 
       if(!(tdimn == msh.poi2ent(ipoin,1) || tdimn == 0)){
-        printf("ipoin = %d poi2ent = %d %d",ipoin,msh.poi2ent(ipoin,0)
+        MPRINTF("ipoin = {} poi2ent = {} {}",ipoin,msh.poi2ent(ipoin,0)
                ,msh.poi2ent(ipoin,1));
         for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
-          printf("ibpoi %d : ",ibpoi);
+          MPRINTF("ibpoi {} : ",ibpoi);
           intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
         }
       }
@@ -347,31 +347,31 @@ void check_topo(MeshBase &msh,
       intAr2 &ent2poi = msh.ent2poi(tdimn);
       int nentt = msh.nentt(tdimn);
       if(ientt >= nentt){
-        printf("poi2ent link defective? ipoin = %d ibpoi = %d ientt = %d  tdimn = %d \n",ipoin,ibpoi,ientt,tdimn);
-        printf("nedge = %d nface = %d nelem = %d \n",msh.nedge,msh.nface,msh.nelem);
+        MPRINTF("poi2ent link defective? ipoin = {} ibpoi = {} ientt = {}  tdimn = {} \n",ipoin,ibpoi,ientt,tdimn);
+        MPRINTF("nedge = {} nface = {} nelem = {} \n",msh.nedge,msh.nface,msh.nelem);
 
-        printf("face nodes: \n");
+        MPRINTF("face nodes: \n");
         int nnod2 = getnnod2(msh.curdeg);
         intAr1(nnod2,msh.fac2poi[ientt]).print();
 
         int ibpo2 = ibpoi;
         while(ibpo2 >= 0){
-          printf("ibpoi %d : ",ibpo2);
+          MPRINTF("ibpoi {} : ",ibpo2);
           intAr1(nibi,msh.bpo2ibi[ibpo2]).print();
           ibpo2 = msh.bpo2ibi(ibpo2,3);
         }
 
         if(ibpoi>=0){
-          printf("bpo2ibi = ");
+          MPRINTF("bpo2ibi = ");
           intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
         }
-        printf("ientt = %d nodes = ",ientt);
+        MPRINTF("ientt = {} nodes = ",ientt);
         int nnode = msh.nnode(tdimn);
         intAr1(nnode,ent2poi[ientt]).print();
         for(int tdim2 = 1; tdim2 <= msh.get_tdim(); tdim2++){
           int nnod2 = msh.nnode(tdim2);
           intAr2 &ent2po2 = msh.ent2poi(tdim2);
-          printf("idim %d entt nodes ",tdim2);
+          MPRINTF("idim {} entt nodes ",tdim2);
           intAr1(nnod2,ent2po2[ientt]).print();
         }
       }
@@ -386,18 +386,18 @@ void check_topo(MeshBase &msh,
         }
       }
       if(!ifnd){
-        printf("2 poi2ent link defective? ipoin = %d ibpoi = %d tdimn = %d \n",
+        MPRINTF("2 poi2ent link defective? ipoin = {} ibpoi = {} tdimn = {} \n",
                ipoin,ibpoi,tdimn);
         if(ibpoi>=0){
-          printf("bpo2ibi = ");
+          MPRINTF("bpo2ibi = ");
           intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
         }
-        printf("ientt = %d nodes = ",ientt);
+        MPRINTF("ientt = {} nodes = ",ientt);
         intAr1(nnode,ent2poi[ientt]).print();
         for(int tdim2 = 1; tdim2 <= msh.get_tdim(); tdim2++){
           int nnod2 = msh.nnode(tdim2);
           intAr2 &ent2po2 = msh.ent2poi(tdim2);
-          printf("idim %d entt nodes ",tdim2);
+          MPRINTF("idim {} entt nodes ",tdim2);
           intAr1(nnod2,ent2po2[ientt]).print();
         }
       }
@@ -421,10 +421,10 @@ void check_topo(MeshBase &msh,
         int ielem = msh.fac2tet(iface,ii);
         if(ielem < 0) continue;
         if(isdeadent(ielem,msh.tet2poi)){
-          printf("## iface %d points to dead tetra = %d\n",iface,ielem);
-          printf("Nodes: ");
+          MPRINTF("## iface {} points to dead tetra = {}\n",iface,ielem);
+          MPRINTF("Nodes: ");
           intAr1(3,msh.fac2poi[iface]).print();
-          printf("fac2tet %d %d \n",msh.fac2tet(iface,0),msh.fac2tet(iface,1));
+          MPRINTF("fac2tet {} {} \n",msh.fac2tet(iface,0),msh.fac2tet(iface,1));
         }
         METRIS_ENFORCE(!isdeadent(ielem,msh.tet2poi));
       }
@@ -452,7 +452,7 @@ void check_topo(MeshBase &msh,
         if(iele2 == -1 || msh.tet2ref[iele2] != msh.tet2ref[ielem]){
           int iface = msh.tetfac2glo(ielem,ifa);
           if(iface < 0 || iface >= nface){
-            printf("No tet neighbour and no bface. ielem = %d ifa = %d iface %d\n",
+            MPRINTF("No tet neighbour and no bface. ielem = {} ifa = {} iface {}\n",
                    ielem,ifa,iface);
           }
           METRIS_ENFORCE_MSG(iface >= 0 && iface < nface,"No neighbour means neighbour is a bface");
@@ -463,16 +463,16 @@ void check_topo(MeshBase &msh,
           METRIS_ENFORCE_MSG(ifal == ifa,"Face neighbour has same vertices as local face ");
           if(iele2 == -1){
             if(msh.fac2tet(iface,0) != ielem && msh.fac2tet(iface,1) != ielem){
-              printf(" fac2tet does not match. iface %d ielem %d \n",iface,ielem);
-              printf("face: ");
+              MPRINTF(" fac2tet does not match. iface {} ielem {} \n",iface,ielem);
+              MPRINTF("face: ");
               intAr1(3,msh.fac2poi[iface]).print();
-              printf("tetra: ");
+              MPRINTF("tetra: ");
               intAr1(4,msh.tet2poi[ielem]).print();
-              printf("fac2tet : %d %d \n",msh.fac2tet(iface,0),msh.fac2tet(iface,1));
+              MPRINTF("fac2tet : {} {} \n",msh.fac2tet(iface,0),msh.fac2tet(iface,1));
               for(int ii = 0; ii < 2; ii++){
                 iele2 = msh.fac2tet(iface,ii);
                 if(iele2 < 0) continue;
-                printf("iele %d : ",iele2);
+                MPRINTF("iele {} : ",iele2);
                 intAr1(4,msh.tet2poi[iele2]).print();
               }
             }
@@ -487,8 +487,8 @@ void check_topo(MeshBase &msh,
 
         int ifa2 = getfactetOpp(msh,iele2,i1,i2,i3);
         if(ifa2 < 0){
-          printf("## Did not find face %d %d %d in tet.",i1,i2,i3);
-          printf(" ielem = %d vertices:",iele2);
+          MPRINTF("## Did not find face {} {} {} in tet.",i1,i2,i3);
+          MPRINTF(" ielem = {} vertices:",iele2);
           intAr1(4,msh.tet2poi[iele2]).print();
         }
         METRIS_ENFORCE_MSG(ifa2 >= 0 && ifa2 < 4,"Returned face within 0-3 range");
@@ -530,19 +530,19 @@ void check_topo(MeshBase &msh,
         if(iedg[0] + iedg[1] + iedg[2] == 3){
           for(int jj = 0; jj < msh.ced2tag.get_stride(); jj++){
             if(msh.ced2tag(0,jj) == 3){
-              printf("## All triangle vertices on same edge ref %d \n",jj);
-              printf("Triangle %d vertices ",iface);
+              MPRINTF("## All triangle vertices on same edge ref {} \n",jj);
+              MPRINTF("Triangle {} vertices ",iface);
               intAr1(3,msh.fac2poi[iface]).print();
 
               for(int ii = 0; ii < 3; ii++){
                 int ipoin = msh.fac2poi(iface,ii);
-                printf(" ipoin %d : \n",ipoin);
+                MPRINTF(" ipoin {} : \n",ipoin);
                 for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
                   int bdim = msh.bpo2ibi(ibpoi,1);
                   if(bdim != 1) continue;
                   int ientt = msh.bpo2ibi(ibpoi,2);
                   int iref  = msh.edg2ref[ientt];
-                  printf(" edge bpoi %d ientt %d iref %d \n",ibpoi,ientt,iref);
+                  MPRINTF(" edge bpoi {} ientt {} iref {} \n",ibpoi,ientt,iref);
                 }
               }
               METRIS_THROW(TopoExcept());
@@ -580,7 +580,7 @@ void check_topo(MeshBase &msh,
         if(t != hshTab2.end()){
           int ifac2 = t->second;
           if(msh.fac2fac(iface,ied) != ifac2){
-            printf("iface = %d i1 %d i2 %d found ifac2 = %d but not in mesh neighbour table\n",
+            MPRINTF("iface = {} i1 {} i2 {} found ifac2 = {} but not in mesh neighbour table\n",
               iface,i1,i2,ifac2);
           }
           METRIS_ENFORCE(msh.fac2fac(iface,ied) == ifac2);
@@ -641,13 +641,13 @@ void check_topo(MeshBase &msh,
           while(ifac2 != iface){
             METRIS_ENFORCE_MSG(msh.fac2tag(ithread,ifac2) < msh.tag[ithread],"First time seeing this face");
             if(msh.fac2tag(ithread,ifac2) >= msh.tag[ithread]){
-              printf("Failure with face %d nface %d fac2tag[ithread] = %d tag = %d \n",ifac2,nface,msh.fac2tag(ithread,ifac2),msh.tag[ithread]);
-              printf("Debug print non-manifold neighbours\n");
+              MPRINTF("Failure with face {} nface {} fac2tag[ithread] = {} tag = {} \n",ifac2,nface,msh.fac2tag(ithread,ifac2),msh.tag[ithread]);
+              MPRINTF("Debug print non-manifold neighbours\n");
               int ifacd0=iface;
               do{
                 int ied0;
                 METRIS_TRY0(ied0 = getedgfac(msh,ifacd0,i1,i2);)
-                printf("Iface %d neighbour %d \n",ifacd0,msh.fac2fac(ifacd0,ied0));
+                MPRINTF("Iface {} neighbour {} \n",ifacd0,msh.fac2fac(ifacd0,ied0));
                 ifacd0 = - msh.fac2fac(ifacd0,ied0) - 2;
               }while(ifacd0 != iface);
             }
@@ -696,7 +696,7 @@ void check_topo(MeshBase &msh,
             int ifac2 = msh.bpo2ibi(ib,2);
             METRIS_ENFORCE(ifac2 >= 0 && ifac2 < msh.nface);
             if(msh.fac2ref[ifac2] != msh.fac2ref[iface]){
-              printf("Missing bpo entries ? for ip = %d ib = %d \n",ip,ib);
+              MPRINTF("Missing bpo entries ? for ip = {} ib = {} \n",ip,ib);
               print_bpolist(msh,ib);
             }
             METRIS_ENFORCE(msh.fac2ref[ifac2] == msh.fac2ref[iface]);
@@ -719,7 +719,7 @@ void check_topo(MeshBase &msh,
               ib2 = msh.bpo2ibi(ib2,3);
             }while(ib2 >= 0 && ib2 != ib);
             if(!ifnd){
-              printf("Failed to find face in bpoi. face = %d ip = %d ib = %d \n",iface,ip,ib);
+              MPRINTF("Failed to find face in bpoi. face = {} ip = {} ib = {} \n",iface,ip,ib);
               print_bpolist(msh,ib);
             }
             METRIS_ENFORCE_MSG(ifnd == true, "face "<<iface<<" not found in ipoin "<<ip<<" bpois");
@@ -825,7 +825,7 @@ void check_topo(MeshBase &msh,
                 int iver = msh.getveredg<ideg>(iedg2, ip);
                 METRIS_ENFORCE(iver >= 0);
               }catch(const MetrisExcept& e){
-                printf("ip = %d ib = %d not in edge %d = (%d,%d) from iedge = %d \n",
+                MPRINTF("ip = {} ib = {} not in edge {} = ({},{}) from iedge = {} \n",
                   ip,ib,iedg2,
                   msh.edg2poi(iedg2,0),msh.edg2poi(iedg2,1),iedge);
                 throw(e);
@@ -850,7 +850,7 @@ void check_topo(MeshBase &msh,
               ib2 = msh.bpo2ibi(ib2,3);
             }while(ib2 >= 0 && ib2 != ib);
             if(!ifnd){
-              printf("Failed to find edge in bpoi. edge = %d ip = %d ib = %d \n",iedge,ip,ib);
+              MPRINTF("Failed to find edge in bpoi. edge = {} ip = {} ib = {} \n",iedge,ip,ib);
               print_bpolist(msh,ib);
             }
             METRIS_ENFORCE_MSG(ifnd == true, "Found edge in point bpois");
@@ -866,9 +866,9 @@ void check_topo(MeshBase &msh,
       if(ipoin < 0) continue;
       METRIS_ENFORCE_MSG(ipoin < npoin,"ibpoi = "<<ibpoi<<" points to ipoin = "<<ipoin<<" but npoin = "<<npoin);
       if(msh.poi2bpo[ipoin] < 0){
-        printf("ibpoi %d : ",ibpoi);
+        MPRINTF("ibpoi {} : ",ibpoi);
         intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
-        printf("ipoin = %d poi2ent %d %d \n",ipoin,msh.poi2ent(ipoin,0),msh.poi2ent(ipoin,1));
+        MPRINTF("ipoin = {} poi2ent {} {} \n",ipoin,msh.poi2ent(ipoin,0),msh.poi2ent(ipoin,1));
       }
       METRIS_ENFORCE_MSG(msh.poi2bpo[ipoin] >= 0,"ibpoi = "<<ibpoi<<
         " points to ipoin = "<<ipoin<<" but poi2bpo[ipoin] = "<<msh.poi2bpo[ipoin]);
@@ -881,11 +881,11 @@ void check_topo(MeshBase &msh,
         METRIS_ENFORCE(msh.bpo2ibi(ibpo0,0) == ipoin);
       }
       if(!ifnd){
-        printf("ibpoi = %d links to ipoin %d but not found in its linked list\n",
+        MPRINTF("ibpoi = {} links to ipoin {} but not found in its linked list\n",
                ibpoi,ipoin);
-        printf("Full bpo list starting from ibpoi:\n");
+        MPRINTF("Full bpo list starting from ibpoi:\n");
         print_bpolist(msh,ibpoi);
-        printf("Full bpo list starting from poi2bpo[ipoin] = %d:\n",msh.poi2bpo[ipoin]);
+        MPRINTF("Full bpo list starting from poi2bpo[ipoin] = {}:\n",msh.poi2bpo[ipoin]);
         print_bpolist(msh,msh.poi2bpo[ipoin]);
 
       }
@@ -907,13 +907,13 @@ void check_topo(MeshBase &msh,
         METRIS_ENFORCE(!(ientt < 0 || ientt >= msh.nentt(bdim)));
         int iver = msh.getverent(ientt,bdim,ipoin);
         if(iver < 0){
-          printf("ibpoi = %d ipoin = %d bdim = %d ientt = %d iref = %d\n",
+          MPRINTF("ibpoi = {} ipoin = {} bdim = {} ientt = {} iref = {}\n",
                  ibpoi,ipoin,bdim,ientt,msh.ent2ref(bdim)[ientt]);
-          printf("nbpoi = %d npoin = %d\n",msh.nbpoi,msh.npoin);
-          printf("poi2ent = %d %d \n",msh.poi2ent(ipoin,0),msh.poi2ent(ipoin,1));
-          printf("Nodes: ");
+          MPRINTF("nbpoi = {} npoin = {}\n",msh.nbpoi,msh.npoin);
+          MPRINTF("poi2ent = {} {} \n",msh.poi2ent(ipoin,0),msh.poi2ent(ipoin,1));
+          MPRINTF("Nodes: ");
           intAr1(bdim+1,msh.ent2poi(bdim)[ientt]).print();
-          printf("Vertex not found\n");
+          MPRINTF("Vertex not found\n");
         }
         METRIS_ENFORCE(iver >= 0);
       }
@@ -924,9 +924,9 @@ void check_topo(MeshBase &msh,
         // In other worst, check all other entries are dimension > bdim.
         for(int ibpo2 = msh.bpo2ibi(ibpoi,3); ibpo2 >= 0; ibpo2 = msh.bpo2ibi(ibpo2,3)){
           if(msh.bpo2ibi(ibpo2,1) <= bdim){
-            printf("ibpoi = %d bdim = %d ibpo2 = %d dim = %d\n",
+            MPRINTF("ibpoi = {} bdim = {} ibpo2 = {} dim = {}\n",
                    ibpoi,bdim,ibpo2,msh.bpo2ibi(ibpo2,1));
-            printf("Full bpo list:\n");
+            MPRINTF("Full bpo list:\n");
             print_bpolist(msh,ibpoi);
           }
           METRIS_ENFORCE(msh.bpo2ibi(ibpo2,1) > bdim);
@@ -989,7 +989,7 @@ void check_topo(MeshBase &msh,
         double err = msh.idim == 2 ? geterrl2<2>(result, msh.coord[ipoin])
                                    : geterrl2<3>(result, msh.coord[ipoin]);
         if(err >= EG_tol){
-          printf("## geo error %e EG_tol %e PRINT all bpoi for ipoin %d \n",
+          MPRINTF("## geo error {} EG_tol {} PRINT all bpoi for ipoin {} \n",
                  err,EG_tol,ipoin);
           for(int ibpo0 = msh.poi2bpo[ipoin]; ibpo0 >= 0; ibpo0 = msh.bpo2ibi(ibpo0,3)){
             int tdim1 = msh.bpo2ibi(ibpo0,1);
@@ -1003,7 +1003,7 @@ void check_topo(MeshBase &msh,
                                    : geterrl2<3>(result, msh.coord[ipoin]);
             }
 
-            printf("%d : %d %d %d ref %d; %e %e; err = %e\n",ibpo0, msh.bpo2ibi(ibpo0,0), 
+            MPRINTF("{} : {} {} {} ref {}; {} {}; err = {}\n",ibpo0, msh.bpo2ibi(ibpo0,0), 
               msh.bpo2ibi(ibpo0,1), msh.bpo2ibi(ibpo0,2), irefdbg,
               msh.bpo2rbi(ibpo0,0),msh.bpo2rbi(ibpo0,1), err1);
           }
@@ -1023,7 +1023,7 @@ void check_topo(MeshBase &msh,
             double dst = msh.idim == 2 ? geterrl2<2>(msh.coord[ipoi1], msh.coord[ipoi2])
                                        : geterrl2<3>(msh.coord[ipoi1], msh.coord[ipoi2]);
             if(dst < 1.0e-16){
-              printf(" ## DEBUG < 1.0e-16 DISt = %e ipoi1 = %d ipoi2 = %d\n",dst,
+              MPRINTF(" ## DEBUG < 1.0e-16 DISt = {} ipoi1 = {} ipoi2 = {}\n",dst,
                      ipoi1,ipoi2);
             }
             rbpoi[ipoi1] = MIN(rbpoi[ipoi1], dst);
@@ -1046,7 +1046,7 @@ void check_topo(MeshBase &msh,
                                    : geterrl2<3>(result, msh.coord[ipoin]);
 
         if(err >= rbpoi[ipoin]*EG_tol){
-          printf("## geo error %e rbpoi %e EG_tol %e PRINT all bpoi for ipoin %d \n",
+          MPRINTF("## geo error {} rbpoi {} EG_tol {} PRINT all bpoi for ipoin {} \n",
                  err,rbpoi[ipoin],EG_tol,ipoin);
           for(int ibpo0 = msh.poi2bpo[ipoin]; ibpo0 >= 0; ibpo0 = msh.bpo2ibi(ibpo0,3)){
             int tdim1 = msh.bpo2ibi(ibpo0,1);
@@ -1060,7 +1060,7 @@ void check_topo(MeshBase &msh,
                                    : geterrl2<3>(result, msh.coord[ipoin]);
             }
 
-            printf("%d : %d %d %d ref %d; %e %e; err = %e\n",ibpo0, msh.bpo2ibi(ibpo0,0), 
+            MPRINTF("{} : {} {} {} ref {}; {} {}; err = {}\n",ibpo0, msh.bpo2ibi(ibpo0,0), 
               msh.bpo2ibi(ibpo0,1), msh.bpo2ibi(ibpo0,2), irefdbg,
               msh.bpo2rbi(ibpo0,0),msh.bpo2rbi(ibpo0,1), err1);
           }
@@ -1099,9 +1099,9 @@ void check_topo(MeshBase &msh,
     }
 
   }catch(const MetrisExcept& e){
-    printf("Check_topo failed, dumping mesh:\n");
+    MPRINTF("Check_topo failed, dumping mesh:\n");
     writeMesh("check_topo_fail.meshb",msh);
-    printf("DONE \n");
+    MPRINTF("DONE \n");
     throw(e);
   }
   //if(stopend){

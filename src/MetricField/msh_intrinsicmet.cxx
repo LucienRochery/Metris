@@ -45,17 +45,17 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
 
   int nthread = GetNumberOfCores();
   if(nthread <= 0){
-    CPRINTF1("## WARNING: LPlib function GetNumberOfCores() returned negative threads. Set to default %d.\n",METRIS_MAXTAGS);
+    CPRINTF1("## WARNING: LPlib function GetNumberOfCores() returned negative threads. Set to default {}.\n",METRIS_MAXTAGS);
     nthread = METRIS_MAXTAGS;
   }else{
-    CPRINTF2("-- LPlib found ncore = %d \n",nthread);
+    CPRINTF2("-- LPlib found ncore = {} \n",nthread);
     if(nthread > METRIS_MAXTAGS){
-      CPRINTF1("## WARNING: must verify nthread <= METRIS_MAXTAGS = %d. Increase in metris_constants.hxx.\n",METRIS_MAXTAGS);
+      CPRINTF1("## WARNING: must verify nthread <= METRIS_MAXTAGS = {}. Increase in metris_constants.hxx.\n",METRIS_MAXTAGS);
       nthread = METRIS_MAXTAGS;
     }
   }
   if(nproc > 0) nthread = MIN(nthread, nproc);
-  CPRINTF1(" - running intrinsic metric with nproc = %d \n",nthread);
+  CPRINTF1(" - running intrinsic metric with nproc = {} \n",nthread);
 
 
   int tdim = msh.get_tdim();
@@ -78,7 +78,7 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
     for(int ii = 0; ii < tdim + 1; ii++) AddDependency(LibIdx, ientt+1, ent2poi(ientt,ii)+1);
   }
   EndDependency(LibIdx, LP_stat);
-  //printf("LP stat %f %f \n",LP_stat[0],LP_stat[1]);
+  //printf("LP stat {:.2e} {} \n",LP_stat[0],LP_stat[1]);
 
 
   dblWrkAr1 rwork = msh.get_rwork(MeshSize::Point);
@@ -110,10 +110,10 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
    }}CT_FOR1(tdim_);
   }}CT_FOR1(gdim);
 
-  CPRINTF2(" - intrinsic metric accel 1 = %f \n",acc);
+  CPRINTF2(" - intrinsic metric accel 1 = {} \n",acc);
   acc = LaunchParallelMultiArg(LibIdx, LP_poi, 0, (void*)metcomp2_LPlib, 
                                3, &msh, &rwork, lbdmin, lbdmax);
-  CPRINTF2(" - intrinsic metric accel 2 = %f \n",acc);
+  CPRINTF2(" - intrinsic metric accel 2 = {} \n",acc);
 
 	if(ibas0 == FEBasis::Bezier) msh.met.setBasis(FEBasis::Bezier);
 	

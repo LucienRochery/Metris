@@ -12,10 +12,10 @@
 #include "../low_geo/normal.hxx"
 #include "../low_geo/misc.hxx"
 #include "../io_libmeshb.hxx"
-#include "../aux_EGADSprinterr.hxx"
 #include "../Optimization/opt_generic.hxx"
 #include "../low_eval.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/EGADSprinterr.hxx"
 #include "../linalg/det.hxx"
 
 namespace Metris{
@@ -56,7 +56,6 @@ int projptfac(MeshBase &msh,
     tol0 = sqrt(tol0);
     newton_drivertype_args<1> args(msh.param);
     args.stpmin = 1.0e-12;
-    args.iprt = msh.param->iverb - 1;
     int iflag = 0, ihess;
     double xcur, fcur, gcur, hcur;
 
@@ -67,10 +66,10 @@ int projptfac(MeshBase &msh,
 
       ierro = optim_newton_drivertype<1>(args, &xcur, &fcur, &gcur, &hcur, &iflag, &ihess);
       
-      CPRINTF1(" - newton ret ierro %d iflag %d xcur %f \n",ierro,iflag,xcur);
+      CPRINTF1(" - newton ret ierro {} iflag {} xcur {} \n",ierro,iflag,xcur);
 
       if(ierro > 0){
-        CPRINTF1(" # optim_newton_drivertype error %d\n",ierro);
+        CPRINTF1(" # optim_newton_drivertype error {}\n",ierro);
         return ierro;
       }
       if(iflag <= 0) {
@@ -89,14 +88,14 @@ int projptfac(MeshBase &msh,
       gcur = getprdl2<gdim>(d1F, coop)  
            - getprdl2<gdim>(d1F, coopr);
       if(abs(gcur) < tol0 * Constants::projedgTol){
-        CPRINTF1(" - grad = %15.7e < %15.7e = tol\n",
+        CPRINTF1(" - grad = {:15.7e} < {:15.7e} = tol\n",
                               abs(gcur), tol0*Constants::projedgTol);
         return 0;
       }
       if(ihess > 0) hcur = getprdl2<gdim>(d2F, coopr)
                          - getprdl2<gdim>(d2F, coop)
                          + getnrml2<gdim>(d1F);
-      CPRINTF1(" - projptfac bary %f dist = %15.7e gcur %f \n",xcur,fcur,gcur);
+      CPRINTF1(" - projptfac bary {} dist = {:15.7e} gcur {} \n",xcur,fcur,gcur);
 
     }
 
@@ -210,8 +209,8 @@ int projptedg(MeshBase &msh, const double*__restrict__ coop,
               int iedge, 
               double*__restrict__ bary,
               double*__restrict__ coopr){
+  GETVDEPTH(msh.param);
   int ierro = 0;
-  const int iverb = msh.param->iverb;
 
   int ipoi1 = msh.edg2poi(iedge,0);
   int ipoi2 = msh.edg2poi(iedge,1);
@@ -244,7 +243,6 @@ int projptedg(MeshBase &msh, const double*__restrict__ coop,
     tol0 = sqrt(tol0);
     newton_drivertype_args<1> args(msh.param);
     args.stpmin = 1.0e-12;
-    args.iprt = msh.param->iverb - 1;
     int iflag = 0, ihess;
     double xcur, fcur, gcur, hcur;
 
@@ -255,14 +253,14 @@ int projptedg(MeshBase &msh, const double*__restrict__ coop,
 
       ierro = optim_newton_drivertype<1>(args, &xcur, &fcur, &gcur, &hcur, &iflag, &ihess);
       
-      if(iverb >= 3) printf("     - newton ret ierro %d iflag %d xcur %f \n",ierro,iflag,xcur);
+      CPRINTF1(" - newton ret ierro {} iflag {} xcur {} \n",ierro,iflag,xcur);
 
       if(ierro > 0){
-        if(iverb >= 1) printf("  ## optim_newton_drivertype error %d\n",ierro);
+        CPRINTF1("## optim_newton_drivertype error {}\n",ierro);
         return ierro;
       }
       if(iflag <= 0) {
-        if(iverb >= 3) printf("   - iflag = 0 termination\n");
+        CPRINTF1(" - iflag = 0 termination\n");
         break;
       }
 
@@ -277,14 +275,14 @@ int projptedg(MeshBase &msh, const double*__restrict__ coop,
       gcur = getprdl2<gdim>(d1F, coop)  
            - getprdl2<gdim>(d1F, coopr);
       if(abs(gcur) < tol0 * Constants::projedgTol){
-        if(iverb >= 3) printf("    - grad = %15.7e < %15.7e = tol\n",
+        CPRINTF1(" - grad = {:15.7e} < {:15.7e} = tol\n",
                               abs(gcur), tol0*Constants::projedgTol);
         return 0;
       }
       if(ihess > 0) hcur = getprdl2<gdim>(d2F, coopr)
                          - getprdl2<gdim>(d2F, coop)
                          + getnrml2<gdim>(d1F);
-      if(iverb >= 3) printf("     - projptedg bary %f dist = %15.7e gcur %f \n",xcur,fcur,gcur);
+      CPRINTF1(" - projptedg bary {} dist = {:15.7e} gcur {} \n",xcur,fcur,gcur);
 
     }
 
@@ -338,9 +336,8 @@ int projptedgCAD(MeshBase &msh, const double*__restrict__ coop, double tol,
                  int iedge, 
                  double*__restrict__ param, double*__restrict__ bary,
                  double*__restrict__ coopr){
+  GETVDEPTH(msh.param);
   int iref = msh.edg2ref[iedge];
-  // Parameters from above
-  const int iverb = msh.param->iverb;
   // Specific parameters
   const int miter = 100;
 
@@ -377,7 +374,7 @@ int projptedgCAD(MeshBase &msh, const double*__restrict__ coop, double tol,
   double x0 = getprdl2<gdim>(msh.coord[ipoi1], tan);
   double x1 = getprdl2<gdim>(msh.coord[ipoi2], tan);
   double tp = (getprdl2<gdim>(coop, tan) - x0) / (x1 - x0);
-  if(iverb >= 3) printf("   - projptedg ipoi1 %d ipoi2 %d x0 %f x1 %f tp %f\n",
+  CPRINTF1(" - projptedg ipoi1 {} ipoi2 {} x0 {} x1 {} tp {}\n",
                         ipoi1,ipoi2,x0,x1,tp);
   // If outside, return index of nearest +1:
   // t = 1 iff coop = coord(ipoi1,:)
@@ -401,7 +398,7 @@ int projptedgCAD(MeshBase &msh, const double*__restrict__ coop, double tol,
 
     int ierro = EG_evaluate(obj, param, result);
     if(ierro > 0){
-      print_EGADS_error("EG_evaluate", ierro);
+      MPRINTF("EG_evaluate error : {}",EG_err2str(ierro));
       METRIS_THROW_MSG(GeomExcept(), "EGADS error");
     }
 
@@ -410,20 +407,19 @@ int projptedgCAD(MeshBase &msh, const double*__restrict__ coop, double tol,
 
     double t = (getprdl2<gdim>(result, tan) - x0) / (x1 - x0);
     if(abs(t-tp) < tol){
-      if(iverb >= 3) 
-        printf("  -- projptedg success |t - tp| = %15.7e < tol %15.7e * %15.7e\n",
+      CPRINTF1("-- END projptedg success |t - tp| = {:15.7e} < tol {:15.7e} * {:15.7e}\n",
                abs(t-tp),tol,nrm0);
       //bary[0] = tp;
       //bary[1] = 1.0 - tp;
       return 0;
     }
-    if(iverb >= 3) printf("   - projptedg %d / %d param = %f t = %f tp %f u1 %f u2 %f\n",
-                          niter,miter,*param,t,tp,u1,u2);
+    CPRINTF1(" - projptedg {} / {} param = {} t = {} tp {} u1 {} u2 {}\n",
+             niter,miter,*param,t,tp,u1,u2);
     if(t >= 1+tol) return 1;
     if(t <   -tol) return 2;
 
     // If EG evaluated point is closer to ipoi1n update u2
-    printf("Debug t %f tp %f t > tp %d \n ",t,tp,t>tp);
+    //CPRINTF1("Debug t {} tp {} t > tp {} \n ",t,tp,t>tp);
     if(t > tp && iflip){
       u2 = *param;
     }else{
@@ -442,7 +438,7 @@ int projptedgCAD(MeshBase &msh, const double*__restrict__ coop, double tol,
   for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipoin,ii) = coop[ii];
   writeMesh("dbg_projptedg.meshb",msh);
 
-  printf("Failed to proj on edge %d %d \n",msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
+  CPRINTF1("## Failed to proj on edge {} {} \n",msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
 
   METRIS_THROW_MSG(AlgoExcept(), "Too many iterations projptedg")
 }

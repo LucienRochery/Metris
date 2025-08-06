@@ -9,7 +9,10 @@
 #include "../Boundary/msh_inisurf.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/EGADSprinterr.hxx"
 #include "../io_libmeshb.hxx"
+
+#include "fmt/format.h"
 
 namespace Metris{
 
@@ -24,7 +27,7 @@ void CADInfo::iniEGADSModel(){
   ego *bodies;
   ierro = EG_getTopology(EGADS_model,&geom,&oclass,&mtype,NULL,&nbody,&bodies,&dum);
   if(ierro != 0){
-    print_EGADS_error("EG_getTopology",ierro);
+    fmt::print(stderr,"EG_getTopology error : {}",EG_err2str(ierro));
     METRIS_THROW(TopoExcept());
   }
   if(nbody == 0) METRIS_THROW_MSG(TopoExcept(),"CAD has nbody = "<<nbody);
@@ -35,13 +38,13 @@ void CADInfo::iniEGADSModel(){
   ego *buff; 
   ierro = EG_getBodyTopos(body,NULL,FACE,&ncadfa,&buff);
   if(ierro != 0){
-    print_EGADS_error("EG_getBodyTopos (FACE)",ierro);
+    fmt::print(stderr,"EG_getBodyTopos (FACE) error : {}",EG_err2str(ierro));
     METRIS_THROW(TopoExcept());
   }
   if(ncadfa == 0){
     printf("WARNING: Body with no faces !\n");
   }else{
-    //printf("  body has %d faces \n",ncadfa);
+    //printf("  body has {} faces \n",ncadfa);
   }
   // We can define the shared_ptr destructor from outside the array class
   // then pass it in so the last instance being destroyed calls EG_free. 
@@ -58,7 +61,7 @@ void CADInfo::iniEGADSModel(){
 
   ierro = EG_getBodyTopos(body,NULL,EDGE,&ncaded,&buff);
   if(ierro != 0){
-    print_EGADS_error("EG_getBodyTopos (EDGE)",ierro);
+    fmt::print(stderr,"EG_getBodyTopos (EDGE) error : {}",EG_err2str(ierro));
     METRIS_THROW(TopoExcept());
   }
   if(ncaded == 0){
@@ -66,7 +69,7 @@ void CADInfo::iniEGADSModel(){
   }
   //if(DOPRINTS1()){
   {
-    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);printf("-- CAD edges freed\n");});
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);fmt::print("-- CAD edges freed\n");});
     cad2edg.set_sp(ncaded,buff_sp); 
   }
   //}else{
@@ -78,15 +81,15 @@ void CADInfo::iniEGADSModel(){
 
   ierro = EG_getBodyTopos(body,NULL,LOOP,&ncadlp,&buff);
   if(ierro != 0){
-    print_EGADS_error("EG_getBodyTopos (LOOP)",ierro);
+    fmt::print(stderr,"EG_getBodyTopos (LOOP) error : {}",EG_err2str(ierro));
     METRIS_THROW(TopoExcept());
   }
-  if(ncaded == 0){
-    printf("## WARNING: Body with no loops !\n");
+  if(ncadlp == 0){
+    fmt::print("## WARNING: Body with no loops !\n");
   }
   //if(DOPRINTS1()){
   {
-    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);printf("-- CAD loops freed\n");});
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);fmt::print("-- CAD loops freed\n");});
     cad2lop.set_sp(ncadlp,buff_sp); 
   }
   //}else{
@@ -97,15 +100,15 @@ void CADInfo::iniEGADSModel(){
 
   ierro = EG_getBodyTopos(body,NULL,NODE,&ncadno,&buff);
   if(ierro != 0){
-    print_EGADS_error("EG_getBodyTopos (NODE)",ierro);
+    fmt::print(stderr,"EG_getBodyTopos (NODE) error : {}",EG_err2str(ierro));
     METRIS_THROW(TopoExcept());
   }
   if(ncadno == 0){
-    printf("## WARNING: Body with no nodes !\n");
+    fmt::print("## WARNING: Body with no nodes !\n");
   }
   //if(DOPRINTS1()){
   {
-    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);printf("-- CAD nodes freed\n");});
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);fmt::print("-- CAD nodes freed\n");});
     cad2nod.set_sp(ncadno,buff_sp); 
   }
   //}else{
@@ -141,23 +144,23 @@ void CADInfo::setModel(ego EGADS_context_, ego EGADS_model_){
 
 void CADInfo::setModel(size_t nbyte, char* stream){
 //  METRIS_THROW_MSG(TODOExcept(), "Fix CAD stream\n");
-  printf("## DEBUG STREAM AS INT:\n");
+  fmt::print("## DEBUG STREAM AS INT:\n");
   int *ptr = (int*)stream;
   for(int ii = 0; ii < (int) MIN(10,nbyte / sizeof(int)); ii++){
-    printf("%d : %d \n",ii,*ptr);
+    fmt::print("{} : {} \n",ii,*ptr);
     ptr++;
   }
   int *nbodyptr = (int*) (&stream[0] + 3*sizeof(int) + 6*sizeof(double));
-  printf("## DEBUG NBODY FROM STREAM %d \n",*nbodyptr);
+  fmt::print("## DEBUG NBODY FROM STREAM {} \n",*nbodyptr);
 
   int ierro = EG_open(&EGADS_context);
   if(ierro != 0){
-    print_EGADS_error("EG_open",ierro);
+    fmt::print(stderr,"EG_open error : {}",EG_err2str(ierro));
     METRIS_THROW(TopoExcept());
   }
   ierro = EG_importModel(EGADS_context, nbyte, stream, &EGADS_model);
   if(ierro != 0){
-    print_EGADS_error("EG_importModel",ierro);
+    fmt::print(stderr,"EG_importModel error : {}",EG_err2str(ierro));
     METRIS_THROW(TopoExcept());
   }
 
@@ -167,7 +170,7 @@ void CADInfo::setModel(size_t nbyte, char* stream){
   ego *bodies;
   nbody = 0;
   ierro = EG_getTopology(EGADS_model,&geom,&oclass,&mtype,NULL,&nbody,&bodies,&dum);
-  printf("## DEBUG READING CHECK NBODY = %d \n",nbody);
+  fmt::print("## DEBUG READING CHECK NBODY = {} \n",nbody);
 
 
   //size_t nbyte2;
@@ -177,7 +180,7 @@ void CADInfo::setModel(size_t nbyte, char* stream){
   //  print_EGADS_error("EG_exportModel",ierro);
   //  METRIS_THROW_MSG(TopoExcept(),"Failed to export model to stream2.");
   //}
-  //printf(" - Stream2 of size %db \n",nbyte2);
+  //printf(" - Stream2 of size {}b \n",nbyte2);
 
 
   iniEGADSModel();
@@ -192,10 +195,10 @@ void CADInfo::iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0
     if(param.inpCAD){
       /* -------------- CAD File handling -------------- */
       // Throw out exceptions as these are not fatal. 
-      CPRINTF1("-- Read CAD file %s and project.\n",param.cadFileName.c_str());
+      CPRINTF1("-- Read CAD file {} and project.\n",param.cadFileName.c_str());
       int ierro = EG_open(&EGADS_context);
       if(ierro != 0){
-        print_EGADS_error("EG_open",ierro);
+        fmt::print(stderr,"EG_open error : {}",EG_err2str(ierro));
         METRIS_THROW(TopoExcept());
       }
       std::shared_ptr<ego> buff_sp1(&EGADS_context, [](ego *pp) {EG_close(*pp);});
@@ -206,7 +209,7 @@ void CADInfo::iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0
       int bitFlag = 0; 
       ierro = EG_loadModel(EGADS_context,bitFlag,param.cadFileName.c_str(),&EGADS_model);
       if(ierro != 0){
-        print_EGADS_error("EG_loadModel",ierro);
+        fmt::print(stderr,"EG_loadModel error : {}",EG_err2str(ierro));
         METRIS_THROW_MSG(WArgExcept(),"CAD Projection will not be available");
       }
 
@@ -276,7 +279,7 @@ void CADInfo::iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0
     ncadfa++;
     ncaded++; 
 
-    if(param.iverb >= 1) printf("-- Counted refs node = %d edge = %d triangle = %d \n",ncadno,ncaded,ncadfa);
+    CPRINTF1("-- Counted refs node = {} edge = {} triangle = {} \n",ncadno,ncaded,ncadfa);
 
   }else{
 

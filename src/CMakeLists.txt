@@ -129,7 +129,6 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/aux_hashtab.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_topo.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_histogram.cxx
-    ${PROJECT_SOURCE_DIR}/src/aux_EGADSprinterr.cxx
     ${PROJECT_SOURCE_DIR}/src/io_libmeshb.cxx
     ${PROJECT_SOURCE_DIR}/src/low_eval.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_lenedg.cxx
@@ -147,6 +146,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/utils/mprintf.cxx
     ${PROJECT_SOURCE_DIR}/src/utils/binom.cxx
     ${PROJECT_SOURCE_DIR}/src/utils/bernstein_prod.cxx
+    ${PROJECT_SOURCE_DIR}/src/utils/EGADSprinterr.cxx
     
     #${PROJECT_SOURCE_DIR}/src/utils/tuple_hashtable.cxx
     ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays1D.cxx
@@ -306,6 +306,8 @@ target_compile_options(metrisPrepro PUBLIC ${METRIS_CXX_FLAGS} -E)
 
 target_include_directories(metrisPrepro PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
                                                $<INSTALL_INTERFACE:include/src>
+                                               $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}> # For directories SANS/ libs/ etc.
+                                               $<INSTALL_INTERFACE:include>
                                                ${METRIS_EXTERNAL_INCLUDE_DIRS} )
 if(REQ_CODEGEN)
   add_dependencies(libMetris codegen1 codegen2)

@@ -74,7 +74,7 @@ public:
                                             * ifact(ordtet.s[ideg][inode][2])
                                             * ifact(ordtet.s[ideg][inode][3]);
       }
-      //printf("## fact mulidxcache miss %d %d %d value %llu \n",idim-1,ideg,inode,
+      //printf("## fact mulidxcache miss {} {} {} value %llu \n",idim-1,ideg,inode,
       //  instance.cache[idim-1][ideg][inode]);
     }
 

@@ -65,7 +65,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
   const int miter = 10;
   int niter = 0;
 
-  CPRINTF2("-- START collapseShortEdges miter = %d \n",miter);
+  CPRINTF2("-- START collapseShortEdges miter = {} \n",miter);
 
   int ncoll1 = 0, ncoll2 = 0;
   *ncoll = 0;
@@ -115,7 +115,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
       if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
       if(isdeadent(ientt,ent2poi)) continue;
 
-      CPRINTF1("-- height check ientt %d dim %d\n",ientt,tdim);
+      CPRINTF1("-- height check ientt {} dim {}\n",ientt,tdim);
 
 
       // Determine which pts are opposite bdry facets, if any
@@ -156,7 +156,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
         INCVDEPTH(msh.param);
         if(!ibdry[iver]) continue;
 
-        CPRINTF1(" - vertex %d height %e >=? h0 = %d\n",iver,height[iver],
+        CPRINTF1(" - vertex {} height {} >=? h0 = {}\n",iver,height[iver],
                  height[iver] >= htmin);
         minht = MIN(minht, height[iver]);
 
@@ -166,7 +166,7 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
         int pdim = msh.getpoitdim(ipcol);
         if(pdim == 0) continue;
 
-        CPRINTF1(" - call collapseVertex ipcol %d pdim %d\n",ipcol,pdim);
+        CPRINTF1(" - call collapseVertex ipcol {} pdim {}\n",ipcol,pdim);
 
         ierro = collapseVertex(msh, ipcol, qmax_suf, cav, work, lerro2, ithrd2, ithrd3);
         if(ierro > 0){
@@ -178,14 +178,14 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
     }// for ientt
 
-    if(ctrl_height && tdim == gdim) CPRINTF1(" - min bdry height = %e\n",minht);
+    if(ctrl_height && tdim == gdim) CPRINTF1(" - min bdry height = {}\n",minht);
 
 
 
     // Collapse short edges 
     for(int ientt = 0; ientt < nent0; ientt++){
       INCVDEPTH(msh.param);
-      CPRINTF2(" - debug ientt %d tag %d <? %d \n",ientt,ent2tag(ithrd1,ientt),msh.tag[ithrd1]);
+      CPRINTF2(" - debug ientt {} tag {} <? {} \n",ientt,ent2tag(ithrd1,ientt),msh.tag[ithrd1]);
       if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
       if(isdeadent(ientt,ent2poi)) continue;
 
@@ -217,10 +217,10 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
         if(len >= 1.0/sqrt(2)) continue;  
 
         if(tdim == 2){
-          CPRINTF2(" - found short edge %d %d len = %f \n",
+          CPRINTF2(" - found short edge {} {} len = {} \n",
             ent2poi(ientt,lnoed2[ied][0]),ent2poi(ientt,lnoed2[ied][1]),len);
         }else{
-          CPRINTF2(" - found short edge %d %d len = %f \n",
+          CPRINTF2(" - found short edge {} {} len = {} \n",
             ent2poi(ientt,lnoed3[ied][0]),ent2poi(ientt,lnoed3[ied][1]),len);
         }
 
@@ -251,22 +251,22 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
     double t1 = get_wall_time();
     int ncallps = 1000*(int)(((ncoll1+ncoll2) / (t1-t0)) / 1000);
-    CPRINTF2(" - Loop end t = %f ncoll1 = %d ncoll2 = %d tot =  %d /s; nerro1 %d nerro2 %d\n",
+    CPRINTF2(" - Loop end t = {} ncoll1 = {} ncoll2 = {} tot =  {} /s; nerro1 {} nerro2 {}\n",
       t1-t0,ncoll1,ncoll2,ncallps,nerro1,nerro2);
-    CPRINTF2(" %f < len < %f \n",minl,maxl);
+    CPRINTF2(" {} < len < {} \n",minl,maxl);
     if(DOPRINTS2()){
       if(nerro1 > 0){
         CPRINTF2(" - ierro list short edge:\n");
         for(int ii = 0; ii < merror; ii++){
           if(lerro1[ii] == 0) continue;
-          CPRINTF2(" ierro = %d : %d \n",ii+1,lerro1[ii]);
+          CPRINTF2(" ierro = {} : {} \n",ii+1,lerro1[ii]);
         }
       }
       if(nerro2 > 0){
         CPRINTF2(" - ierro list low height bdry:\n");
         for(int ii = 0; ii < merror; ii++){
           if(lerro2[ii] == 0) continue;
-          CPRINTF2(" ierro = %d : %d \n",ii+1,lerro2[ii]);
+          CPRINTF2(" ierro = {} : {} \n",ii+1,lerro2[ii]);
         }
       }
     }

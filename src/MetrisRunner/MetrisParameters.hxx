@@ -12,6 +12,7 @@
 #include "../SolutionField/anasol.hxx"
 #include <string>
 
+#include <cstdio>
 
 namespace Metris{
 
@@ -28,6 +29,12 @@ struct MetrisParameters{
   MetrisParameters();
 
   MetrisParameters(MetrisOptions &opt);
+
+  ~MetrisParameters(){
+    if(logFile && logFile != stdout && logFile != stderr){
+      fclose(logFile);
+    }
+  }
 
   void checkParameters();
 
@@ -152,6 +159,8 @@ struct MetrisParameters{
   int interp_err_min_algo;
 
   FEBasis outbasis;
+
+  FILE* logFile;
 
   friend class MetrisRunner;
   friend class MetrisAPI;

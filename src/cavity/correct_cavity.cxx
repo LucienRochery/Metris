@@ -175,7 +175,7 @@ int correct_cavity0(Mesh<MFT> &msh,
             //  err = geterrl2<gdim>(msh.coord[ipoin],result);
             //  if(err > nrm0){
             //    #ifndef NDEBUG
-            //      printf("## DEBUG high CAD gap = %f nrm0 = %f\n",err,nrm0);
+            //      printf("## DEBUG high CAD gap = {} nrm0 = {}\n",err,nrm0);
             //      wait();
             //    #else
             //      return CAV_ERR_CADFAR;
@@ -202,7 +202,7 @@ int correct_cavity0(Mesh<MFT> &msh,
       int nent0 = tdim == 1 ? nedg0 
                 : tdim == 2 ? nfac0 : nele0;
       int nentt = msh.nentt(tdim);
-      CPRINTF1(" - Update HO points dim %d entities %d <= i < %d\n",tdim,nent0,nentt);
+      CPRINTF1(" - Update HO points dim {} entities {} <= i < {}\n",tdim,nent0,nentt);
       for(int ientt = nent0; ientt < nentt; ientt++){
         INCVDEPTH(msh.param);
         METRIS_ASSERT(!isdeadent(ientt,msh.ent2poi(tdim)));
@@ -210,12 +210,12 @@ int correct_cavity0(Mesh<MFT> &msh,
         for(int ii = tdim+1; ii < getnnode(tdim,ideg); ii++){
           INCVDEPTH(msh.param);
           int ipoin = msh.ent2poi(tdim)(ientt,ii);
-          CPRINTF1(" - ipoin = %d tag = %d <? %d\n",ipoin,msh.poi2tag(ithread,ipoin),ptag0);
+          CPRINTF1(" - ipoin = {} tag = {} <? {}\n",ipoin,msh.poi2tag(ithread,ipoin),ptag0);
           if(ipoin < npoi0) continue;
           if(msh.poi2tag(ithread,ipoin) >= ptag0) continue;
           msh.poi2tag(ithread,ipoin) = ptag0;
 
-          CPRINTF1("- update HO pt %d interp seed %d dim %d \n",ipoin,ientt,tdim);
+          CPRINTF1("- update HO pt {} interp seed {} dim {} \n",ipoin,ientt,tdim);
           if(msh.interpMetBack(ipoin) != 0) return CAV_ERR_INTERPMETBACK;
         }// for ii = tdim+1
       }// for ientt
@@ -224,7 +224,7 @@ int correct_cavity0(Mesh<MFT> &msh,
 
 
 
-  CPRINTF1("-- correct_cavity phase %d : verify validity\n",1+ideg>1);
+  CPRINTF1("-- correct_cavity phase {} : verify validity\n",1+ideg>1);
 
   //double quael;
   CT_FOR0_INC(2,gdim,tdim){
@@ -247,11 +247,11 @@ int correct_cavity0(Mesh<MFT> &msh,
         double meas = getmeasentP1<gdim,tdim>(msh, ientt, nrmal, &iflat);
         if(DOPRINTS1()){
           if constexpr (tdim == 2){
-            CPRINTF1(" - %d tdim %d ientt %d meas %e iflat %d using normal ",
+            CPRINTF1(" - {} tdim {} ientt {} meas {} iflat {} using normal ",
                      ientt-nent0,tdim,ientt,meas,iflat);
             dblAr1(gdim,nrmal).print();
           }else{
-            CPRINTF1(" - %d tdim %d ientt %d meas %e iflat %d\n",
+            CPRINTF1(" - {} tdim {} ientt {} meas {} iflat {}\n",
                      ientt-nent0,tdim,ientt,meas,iflat);
           }
         }

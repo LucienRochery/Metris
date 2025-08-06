@@ -76,7 +76,7 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
                              SANS::DLA::VectorS<     szfld,SANS::SurrealS<nvar,double>> *eval, 
                              SANS::DLA::MatrixS<tdim,szfld,SANS::SurrealS<nvar,double>> *jmat, 
                              SANS::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat){
-  //printf("Debug surreal0 bary = %f %f %f %f field:\n",bary[0]
+  //printf("Debug surreal0 bary = {} {} {} {} field:\n",bary[0]
   //  ,bary[1],bary[2],bary[3]);
   //std::cout<<"0: "<<rfld[boost::hana::int_c<0>][0]<<" "<<rfld[boost::hana::int_c<0>][1]<<" "
   //                <<rfld[boost::hana::int_c<0>][2]<<std::endl;
@@ -251,7 +251,7 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
 
   //hana::while_(hana::less.than(hana::int_c<nrfld>), boost::hana::int_c<0>, [&](auto i_c){
   //  constexpr int i = i_c;
-  //  printf("Debug rfld[%d] = \n",i);
+  //  printf("Debug rfld[{}] = \n",i);
   //  std::cout<<"0:"<<w_op[i_c][0]<<std::endl;
   //  std::cout<<"1:"<<w_op[i_c][1]<<std::endl;
   //  std::cout<<"2:"<<w_op[i_c][2]<<std::endl;
@@ -453,7 +453,7 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
 
   //hana::while_(hana::less.than(hana::int_c<nrfld>), boost::hana::int_c<0>, [&](auto i_c){
   //  constexpr int i = i_c;
-  //  printf("Debug rfld[%d] = \n",i);
+  //  printf("Debug rfld[{}] = \n",i);
   //  std::cout<<"0:"<<w_op[i_c][0]<<std::endl;
   //  std::cout<<"1:"<<w_op[i_c][1]<<std::endl;
   //  std::cout<<"2:"<<w_op[i_c][2]<<std::endl;

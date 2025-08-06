@@ -12,7 +12,10 @@
 #include "../SANS/Surreal/SurrealS.h"
 #include "../aux_exceptions.hxx"
 #include "../ho_constants.hxx"
+
 #include "../utils/aux_misc.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 #include "../linalg/eigen.hxx"
 #include "../linalg/det.hxx"
@@ -51,6 +54,8 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
   METRIS_ASSERT(ideg == msh.curdeg || ideg == 1);
   METRIS_ASSERT(tdim == 2 || tdim == 3);
 
+  GETVDEPTH(msh.param);
+
   double dedg0[gdim],dedg1[gdim];
 
 
@@ -68,13 +73,9 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
   }
 
   #ifndef NDEBUG
-  if(msh.param->iverb >= 4){
-    printf("-- getBezOffsetsEdge debug points:\n");
-    printf("ipoi1 = %d : ",ipoi1);
-    dblAr1(gdim,msh.coord[ipoi1]).print();
-    printf("ipoi2 = %d : ",ipoi2);
-    dblAr1(gdim,msh.coord[ipoi2]).print();
-  }
+  CPRINTF1("-- getBezOffsetsEdge debug points:\n");
+  CPRINTF1("ipoi1 = {} : {}\n",ipoi1, dblAr1(gdim,msh.coord[ipoi1]));
+  CPRINTF1("ipoi2 = {} : {}\n",ipoi2, dblAr1(gdim,msh.coord[ipoi2]));
   #endif
 
   // If metric field analytical, we can get derivative just from edge
@@ -103,18 +104,14 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
   }
   #ifndef NDEBUG
     if(std::isnan(met[0]) || std::isnan(met[1]) || std::isnan(met[2])){
-      printf("## DEBUG tdim %d iedgl %d ent2pol: ",tdim,iedgl);
-      intAr1(tdim+1,ent2pol).print();
-      printf("NaN met = ");
-      dblAr1(nnmet,met).print();
-      printf("entity mets dump:\n");
+      PRINTF("## DEBUG tdim {} iedgl {} ent2pol: {}\n",tdim,iedgl, intAr1(tdim+1,ent2pol));
+      PRINTF("NaN met = {}\n", dblAr1(nnmet,met));
+      PRINTF("entity mets dump:\n");
       for(int ii = 0; ii < tdim + 1; ii++){
         int ipdbg = ent2pol[ii];
-        printf("%d : ",ipdbg);
-        dblAr1(nnmet,msh.met[ipdbg]).print();
+        PRINTF("{} : {}\n",ipdbg, dblAr1(nnmet,msh.met[ipdbg]));
       }
-      printf("bary = ");
-      dblAr1(tdim+1,bary).print();
+      PRINTF("bary = {}\n", dblAr1(tdim+1,bary));
     }
   #endif
 
@@ -137,58 +134,22 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
 
 
   #ifndef NDEBUG
-  if(msh.param->iverb >= 4){
-    //printf("scale = %f \n",scale);
-    printf("dedg0 : ");
-    dblAr1(gdim,dedg0).print();
-    printf("dedg1 : ");
-    dblAr1(gdim,dedg1).print();
-    printf("-- getBezOffsetsEdge debug print met:\n");
-    dblAr1(nnmet,met).print();
-    printf("-- getBezOffsetsEdge debug print d1met:\n");
-    dblAr1(nnmet,&dmet[0]).print();
-    printf("-- getBezOffsetsEdge debug print d2met:\n");
-    dblAr1(nnmet,&dmet[nnmet]).print();
-    printf("-- getBezOffsetsEdge debug print met^{1/2}:\n");
-    dblAr1(nnmet,met_p12).print();
-  }
+  CPRINTF2("dedg0 : {}\n", dblAr1(gdim,dedg0));
+  CPRINTF2("dedg1 : {}\n", dblAr1(gdim,dedg1));
+  CPRINTF2("-- getBezOffsetsEdge debug print met:\n");
+  CPRINTF2("met : {}\n", dblAr1(nnmet,met));
+  CPRINTF2("-- getBezOffsetsEdge debug print d1met:\n");
+  CPRINTF2("d1met : {}\n", dblAr1(nnmet,&dmet[0]));
+  CPRINTF2("-- getBezOffsetsEdge debug print d2met:\n");
+  CPRINTF2("d2met : {}\n", dblAr1(nnmet,&dmet[nnmet]));
+  CPRINTF2("-- getBezOffsetsEdge debug print met^{1/2}: {}\n", dblAr1(nnmet,met_p12));
   #endif
 
-  //#ifndef NDEBUG
-  //  bool havenan = false;
-  //  for(int ii = 0; ii < nnmet; ii++){
-  //    if(isnan(met[ii])) havenan = true;
-  //    for(int jj = 0; jj < gdim; jj++){
-  //      if(isnan(dmet[ii*gdim+jj])) havenan = true;
-  //    }
-  //  }
-
-  //  if(havenan){
-  //    printf("## NAN METRICS IN getBezOffsetsEdge\n");
-  //    printf("gdim = %d ideg = %d tdim = %d iedgl = %d edg2pol:",gdim,ideg,tdim,iedgl);
-  //    intAr1(getnnod1(ideg),edg2pol).print();
-  //    printf("met = ");
-  //    dblAr1(nnmet,met).print();
-  //    printf("dmet = ");
-  //    dblAr1(gdim*nnmet,dmet).print();
-  //  }
-  //#endif
 
   typedef SANS::SurrealS<gdim,double> doubleS; 
   doubleS metS[nnmet];
   getmet_dbl2SurS<gdim,gdim>(met,dmet,metS);
 
-  //if(msh.idbg[0] > 0){
-  //  printf("Metric: ");
-  //  for(int ii = 0; ii < nnmet; ii++) printf(" %f ",metS[ii].value());
-  //  printf("\n");
-  //  for(int jj = 0; jj < gdim; jj++){
-  //    printf("d%d: ",jj);
-  //    for(int ii = 0; ii < nnmet; ii++) printf(" %f ",metS[ii].deriv(jj));
-  //    printf("\n");
-  //  }
-  //  printf("\n");
-  //}
 
 
   // Get M^{-1/2} into met12_m12
@@ -201,18 +162,8 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
   eig2met<gdim, doubleS>(eigvalS, eigvecS, met_m12);
 
   #ifndef NDEBUG
-  if(msh.param->iverb >= 4){
-    printf("-- getBezOffsetsEdge debug print met^{-1/2}:\n");
-    printf("M^{-1/2}: ");
-    for(int ii = 0; ii < nnmet; ii++) printf(" %f ",met_m12[ii].value());
-    printf("\n");
-    for(int jj = 0; jj < gdim; jj++){
-      printf("d%d: ",jj);
-      for(int ii = 0; ii < nnmet; ii++) printf(" %f ",met_m12[ii].deriv(jj));
-      printf("\n");
-    }
-    printf("\n");
-  }
+  CPRINTF2("-- getBezOffsetsEdge debug print met^{-1/2}:\n");
+  CPRINTF2("M^{-1/2}: {}\n", MeshArray1D<doubleS>(nnmet,met_m12));
   #endif
 
 
@@ -235,12 +186,12 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
     }
   }
   #ifndef NDEBUG
-  if(msh.param->iverb >= 4){
-    printf("-- getBezOffsetsEdge debug print tensor T^M:\n");
+  CPRINTF2("-- getBezOffsetsEdge debug print tensor T^M:\n");
+  if(DOPRINTS2()){
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = 0; jj < gdim; jj++){
         for(int kk = jj; kk < gdim; kk++){
-          printf("%d%d%d = %f\n",ii,jj,kk,tens[ii*nnmet + sym2idx(jj,kk)]);
+          CPRINTF2("{}{}{} = {}\n",ii,jj,kk,tens[ii*nnmet + sym2idx(jj,kk)]);
         }
       }
     }
@@ -286,6 +237,7 @@ void scalrotJ0(const MeshBase &msh, int ielem  ,
                 double* __restrict__ stJ0tR  ){
 
   static_assert(gdim == 2 || gdim == 3);
+  GETVDEPTH(msh.param);
 
 
   const intAr2& ent2poi = gdim == 2 ? msh.fac2poi : msh.tet2poi;
@@ -306,7 +258,7 @@ void scalrotJ0(const MeshBase &msh, int ielem  ,
   }
   double detJ1 = detmat<gdim>(jmat[0]);
   double detJ0 = gdim == 2 ? sqrt(3)/2 : 1 / sqrt(2);
-  printf("Not sqrt(3)??\n");
+  MPRINTF("Not sqrt(3)??\n");
   wait();
   
 
@@ -317,7 +269,7 @@ void scalrotJ0(const MeshBase &msh, int ielem  ,
 
 
   stJ0tR[2*0+0] = jmat[0][0]*srmet[0] + jmat[0][1]*srmet[1];
-  printf("Recomputed %15.7e\n",stJ0tR[2*0+0]);
+  MPRINTF("Recomputed {:15.7e}\n",stJ0tR[2*0+0]);
 
 
 

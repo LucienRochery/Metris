@@ -16,7 +16,7 @@ class MeshBase;
 	
 
 // Get a tetrahedron point belongs to. 
-int getpoitet(const MeshBase &msh, int ipoin, int iprt=0);
+int getpoitet(const MeshBase &msh, int ipoin);
 // Get a triangle point belongs to even if tet attached. 
 int getpoifac(const MeshBase &msh, int ipoin);
 // Get an edge point belongs to even if tet or tri attached. 

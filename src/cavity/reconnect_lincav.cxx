@@ -154,7 +154,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
       msh.edg2poi(iedgn,0) = cav.ipins;
       msh.edg2poi(iedgn,1) = ipseed;
 
-      CPRINTF1(" - new edge %d = %d %d    \n",iedgn,
+      CPRINTF1(" - new edge {} = {} {}    \n",iedgn,
                 msh.edg2poi(iedgn,0), msh.edg2poi(iedgn,1) );
 
 
@@ -177,7 +177,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
                 int ibn = msh.newbpotopo(ipoin,1,iedgn);
                 for(int jj = 0; jj < nrbi; jj++) 
                   msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ibpoi,jj);
-                CPRINTF2(" - (1) newbpo ipoin = %d ibn = %d from ib = %d, t = %f\n",
+                CPRINTF2(" - (1) newbpo ipoin = {} ibn = {} from ib = {}, t = {}\n",
                   ipoin,ibn,ibpoi,msh.bpo2rbi(ibn,0));
               }
             }else{
@@ -185,7 +185,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
               int ibn = msh.newbpotopo(ipoin,1,iedgn);
               for(int jj = 0; jj < nrbi; jj++) 
                 msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ibpoi,jj);
-              CPRINTF2(" - (2) newbpo ipoin = %d ibn = %d from ib = %d, t = %f\n",
+              CPRINTF2(" - (2) newbpo ipoin = {} ibn = {} from ib = {}, t = {}\n",
                 ipoin,ibn,ibpoi,msh.bpo2rbi(ibn,0));
             }
           }
@@ -196,7 +196,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
           //METRIS_ASSERT(ipoin == cav.ipins);
 
           int ibn = msh.newbpotopo(ipoin,1,iedgn);
-          CPRINTF2(" - (3) newbpo ipoin = %d ibn = %d CORNER case\n",ipoin,ibn);
+          CPRINTF2(" - (3) newbpo ipoin = {} ibn = {} CORNER case\n",ipoin,ibn);
 
           // Let's assume most likely, this is not a loop. 
           // Thus count same ref and, if nn == 1, let's go. 
@@ -223,12 +223,12 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
 
           }
 
-          CPRINTF2(" - (3) CORNER step 1 ib3 = %d nn = %d\n",ib3, nn);
+          CPRINTF2(" - (3) CORNER step 1 ib3 = {} nn = {}\n",ib3, nn);
 
           if(nn == 1){
             for(int jj = 0; jj < nrbi; jj++) 
               msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ib3,jj);
-            CPRINTF2(" - (3) CORNER (1) update from ib3 %d ipoin = %d t = %f\n",
+            CPRINTF2(" - (3) CORNER (1) update from ib3 {} ipoin = {} t = {}\n",
                      ib3,msh.bpo2ibi(ib3,0),msh.bpo2rbi(ib3,0));
 
           }else{ 
@@ -286,7 +286,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
                 for(int ii = 0; ii < nrbi; ii++) 
                   msh.bpo2rbi(ibn,ii) = msh.bpo2rbi(ib2,ii);
                 ifndg = true;
-                CPRINTF2(" - (3) CORNER (2) update from ib2 = %d t = %f \n",
+                CPRINTF2(" - (3) CORNER (2) update from ib2 = {} t = {} \n",
                          ib2, msh.bpo2rbi(ib2,0));
                 break;
               }
@@ -306,7 +306,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
                              : geterrl2<3>(msh.coord[cav.ipins], msh.coord[ipseed]);
 
         if(nrm1 < Defaults::ltol * Defaults::ltol){
-          CPRINTF1(" - small edge len = %f ! return ip1 ip2 = %d %d \n",
+          CPRINTF1(" - small edge len = {} ! return ip1 ip2 = {} {} \n",
                    sqrt(nrm1),cav.ipins,ipseed); 
           return CAV_ERR_FLATEDG;
         }
@@ -328,10 +328,10 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
                                             msh.coord[ip1      ], msh.coord[ip2  ])
                               : getprdl2<3>(msh.coord[cav.ipins], msh.coord[ipseed],
                                             msh.coord[ip1      ], msh.coord[ip2  ]);
-        CPRINTF2(" - iedge old %d new %d dtprd %f \n",iedge,iedgn,dtprd*nrm1*nrm2);
+        CPRINTF2(" - iedge old {} new {} dtprd {} \n",iedge,iedgn,dtprd*nrm1*nrm2);
 
         if(dtprd*nrm1*nrm2 < 1 - opts.geodev1){
-          CPRINTF1(" ## GEODEV REJECT dtprd = %f ipins %d ipseed %d ip1 %d ip2 %d \n",
+          CPRINTF1(" ## GEODEV REJECT dtprd = {} ipins {} ipseed {} ip1 {} ip2 {} \n",
                    dtprd,cav.ipins, ipseed, ip1, ip2);
           return CAV_ERR_GEODEVLIN;
         }

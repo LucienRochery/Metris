@@ -49,7 +49,7 @@ double MetrisRunner::optimMesh0(){
   if(param->anaSol && param->smoo_type == 1){
     CPRINTF1("-- Analytical solution provided\n");
     if(param->usrTarDeg > msh.curdeg){
-      CPRINTF1("-> skip until after degree elevation %d -> %d\n",
+      CPRINTF1("-> skip until after degree elevation {} -> {}\n",
                msh.curdeg,param->usrTarDeg);
       return 0;
     }
@@ -91,7 +91,7 @@ double MetrisRunner::optimMesh0(){
   const int miter = param_.opt_niter;
   swapOptions swapOpt(*(msh.param));
   if(msh.get_tdim() >= 3){
-    printf("## In dim 3, set swap norm L^inf, requested %d\n", msh.param->opt_swap_pnorm);
+    MPRINTF("## In dim 3, set swap norm L^inf, requested {}\n", msh.param->opt_swap_pnorm);
     swapOpt.swap_norm = 0;
   }
 
@@ -114,9 +114,9 @@ double MetrisRunner::optimMesh0(){
 
     getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                        &iinva,&qmin,&qmax,&qavg,NULL);
-    CPRINTF1(" - Quality min = %15.7e \n",qmin);
-    CPRINTF1("           max = %15.7e \n",qmax);
-    CPRINTF1("           avg = %15.7e \n",qavg);
+    CPRINTF1(" - Quality min = {:15.7e} \n",qmin);
+    CPRINTF1("           max = {:15.7e} \n",qmax);
+    CPRINTF1("           avg = {:15.7e} \n",qavg);
   }
 
   double stat0 = 1;
@@ -138,7 +138,7 @@ double MetrisRunner::optimMesh0(){
     //    if(DOPRINTS2()) writeMesh("debug_rebalance_glo"+ std::to_string(niter)+".meshb",msh);
     //    if(DOPRINTS2()) msh.met.writeMetricFile("debug_rebalance_glo"+ std::to_string(niter)+".solb");    
     //    CPRINTF1("------------------------------------------------------------\n");
-    //    CPRINTF1("- iteration %d rebalance stat = %f time = %f \n",niter,stat,t1-t0);
+    //    CPRINTF1("- iteration {} rebalance stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
     //    CPRINTF1("------------------------------------------------------------\n");
     //  }
     //}
@@ -155,12 +155,12 @@ double MetrisRunner::optimMesh0(){
     //  if(DOPRINTS2()) writeMesh("debug_unit_glo"+ std::to_string(niter)+".meshb",msh);
     //  if(DOPRINTS2()) msh.met.writeMetricFile("debug_unit_glo"+ std::to_string(niter)+".solb");    
     //  CPRINTF1("------------------------------------------------------------\n");
-    //  CPRINTF1("- iteration %d smooth unit stat = %f time = %f \n",niter,stat,t1-t0);
+    //  CPRINTF1("- iteration {} smooth unit stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
     //  CPRINTF1("------------------------------------------------------------\n");
     //  getmetquamesh<MFT,2,AsDeg::P1>(msh,&iinva,&qmin,&qmax,&qavg,NULL);
-    //  CPRINTF1(" - Quality min = %15.7e \n",qmin);
-    //  CPRINTF1("           max = %15.7e \n",qmax);
-    //  CPRINTF1("           avg = %15.7e \n",qavg);
+    //  CPRINTF1(" - Quality min = {:15.7e} \n",qmin);
+    //  CPRINTF1("           max = {:15.7e} \n",qmax);
+    //  CPRINTF1("           avg = {:15.7e} \n",qavg);
     //}
 
     //if(msh.param->dbgfull) check_topo(msh,0);
@@ -178,18 +178,18 @@ double MetrisRunner::optimMesh0(){
         if(DOPRINTS2()) writeMesh("v2_smooth_opt"+ std::to_string(niter)+".meshb",msh);
         if(DOPRINTS2()) msh.met.writeMetricFile("v2_smooth_opt"+ std::to_string(niter)+".solb");    
         CPRINTF1("------------------------------------------------------------\n");
-        CPRINTF1("- iteration %d smooth ball stat = %f time = %f \n",niter,stat,t1-t0);
+        CPRINTF1("- iteration {} smooth ball stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
         CPRINTF1("------------------------------------------------------------\n");
         getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                            &iinva,&qmin,&qmax,&qavg,NULL);
-        CPRINTF1(" - Quality min = %15.7e \n",qmin);
-        CPRINTF1("           max = %15.7e \n",qmax);
-        CPRINTF1("           avg = %15.7e \n",qavg);
+        CPRINTF1(" - Quality min = {:15.7e} \n",qmin);
+        CPRINTF1("           max = {:15.7e} \n",qmax);
+        CPRINTF1("           avg = {:15.7e} \n",qavg);
       }
       if(msh.param->dbgfull) check_topo(msh,0);
 
     }else{
-      CPRINTF1("## Smoothing disabled in case gdim = %d tdim = %d \n", msh.idim, msh.get_tdim());
+      CPRINTF1("## Smoothing disabled in case gdim = {} tdim = {} \n", msh.idim, msh.get_tdim());
     }
 
 
@@ -207,12 +207,12 @@ double MetrisRunner::optimMesh0(){
       if(DOPRINTS2()) writeMesh("debug_smooth_glo"+ std::to_string(niter)+".meshb",msh);
       if(DOPRINTS2()) msh.met.writeMetricFile("debug_smooth_glo"+ std::to_string(niter)+".solb");    
       CPRINTF1("------------------------------------------------------------\n");
-      CPRINTF1("- iteration %d smooth full stat = %15.7e time = %f \n",niter,stat,t1-t0);
+      CPRINTF1("- iteration {} smooth full stat = {:15.7e} time = {:.2e}s \n",niter,stat,t1-t0);
       CPRINTF1("------------------------------------------------------------\n");
       getmetquamesh<MFT,2,AsDeg::P1>(msh,&iinva,&qmin,&qmax,&qavg,NULL);
-      CPRINTF1(" - Quality min = %15.7e \n",qmin);
-      CPRINTF1("           max = %15.7e \n",qmax);
-      CPRINTF1("           avg = %15.7e \n",qavg);
+      CPRINTF1(" - Quality min = {:15.7e} \n",qmin);
+      CPRINTF1("           max = {:15.7e} \n",qmax);
+      CPRINTF1("           avg = {:15.7e} \n",qavg);
     }
     #endif
 
@@ -227,14 +227,14 @@ double MetrisRunner::optimMesh0(){
         if(DOPRINTS2() && noper >= 0) writeMesh("v2_flat_opt"+ std::to_string(niter)+".meshb",msh);
         if(DOPRINTS2() && noper >= 0) msh.met.writeMetricFile("v2_flat_opt"+ std::to_string(niter)+".solb");
         CPRINTF1("------------------------------------------------------------\n");
-        CPRINTF1("- iteration %d flat collapse noper = %d stat = %f time = %f \n",niter,noper,stat,t1-t0);
+        CPRINTF1("- iteration {} flat collapse noper = {} stat = {:.2e} time = {:.2e}s \n",niter,noper,stat,t1-t0);
         CPRINTF1("------------------------------------------------------------\n");
       }
 
       if(msh.param->dbgfull) check_topo(msh,0);
 
     }else{
-      CPRINTF1("## reinsertFlat disabled in case gdim = %d tdim = %d \n", msh.idim, msh.get_tdim());
+      CPRINTF1("## reinsertFlat disabled in case gdim = {} tdim = {} \n", msh.idim, msh.get_tdim());
     }
     //getmetquamesh<MFT,gdim,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
     //print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality (As Pk)");
@@ -253,19 +253,19 @@ double MetrisRunner::optimMesh0(){
       if(DOPRINTS2()) writeMesh("v2_swap_opt"+ std::to_string(niter)+".meshb",msh);
       if(DOPRINTS2()) msh.met.writeMetricFile("v2_swap_opt"+ std::to_string(niter)+".solb");
       CPRINTF1("------------------------------------------------------------\n");
-      CPRINTF1("- iteration %d swaps stat = %f time = %f \n",niter,stat,t1-t0);
+      CPRINTF1("- iteration {} swaps stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
       CPRINTF1("------------------------------------------------------------\n");
       getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                            &iinva,&qmin,&qmax,&qavg,NULL);
-      CPRINTF1(" - Quality min = %15.7e \n",qmin);
-      CPRINTF1("           max = %15.7e \n",qmax);
-      CPRINTF1("           avg = %15.7e \n",qavg);
+      CPRINTF1(" - Quality min = {:15.7e} \n",qmin);
+      CPRINTF1("           max = {:15.7e} \n",qmax);
+      CPRINTF1("           avg = {:15.7e} \n",qavg);
     }
 
-    CPRINTF1("-- END OPTIM LOOP %d / %d, op stat = %15.7e \n",niter,miter,stat0);
+    CPRINTF1("-- END OPTIM LOOP {} / {}, op stat = {:15.7e} \n",niter,miter,stat0);
     if(stat0 < 1.0e-8){
       CPRINTF1("------------------------------------------------------------\n");
-      CPRINTF1(" - low stat = %e break \n",stat0);
+      CPRINTF1(" - low stat = {:.2e} break \n",stat0);
       break;
     }
 
@@ -273,7 +273,7 @@ double MetrisRunner::optimMesh0(){
 
   double t11 = get_wall_time();
 
-  CPRINTF1("-- OptimMesh end runtime = %fs \n",t11-t01);
+  CPRINTF1("-- OptimMesh end runtime = {:.2e}ss \n",t11-t01);
   return stat0;
 }
 

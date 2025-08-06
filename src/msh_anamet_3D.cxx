@@ -97,9 +97,9 @@ void anamet3D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   
   //std::cout<<"norm"<<nrm<<"\n";
   //for(int idif = 0; idif < 3; idif++){
-  //  printf("d%d phi\n",idif);
+  //  printf("d{} phi\n",idif);
   //  for(int i = 0; i< 3; i++){
-  //    printf(" %15.7e ",phi[i].deriv(idif));
+  //    printf(" {:15.7e} ",phi[i].deriv(idif));
   //  }
   //  printf("\n");
   //}
@@ -109,10 +109,10 @@ void anamet3D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   eigvec[2][2] = d3phi3/nrm;
 
   //for(int idif = 0; idif < 3; idif ++){
-  //printf("Debug eigvec d%d: \n",idif);
+  //printf("Debug eigvec d{}: \n",idif);
   //for(int i = 0; i < 3; i++){
   //  for(int j = 0; j < 3; j++){
-  //    printf(" %15.7e ",eigvec[i][j].deriv(idif));
+  //    printf(" {:15.7e} ",eigvec[i][j].deriv(idif));
   //  }
   //  printf("\n");
   //}

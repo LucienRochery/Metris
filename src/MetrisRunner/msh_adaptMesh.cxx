@@ -60,7 +60,7 @@ void MetrisRunner::adaptMesh0(){
 
   msh.cleanup();
 
-  CPRINTF1("-- START adaptMesh with miter = %d \n",miter);
+  CPRINTF1("-- START adaptMesh with miter = {} \n",miter);
   if(DOPRINTS1()){
     writeMesh("debug_adapt_inp", msh);
     msh.met.writeMetricFile("debug_adapt_inp");
@@ -102,7 +102,7 @@ void MetrisRunner::adaptMesh0(){
     t0 = get_wall_time();
     adaptGeoLines<MFT>(msh);
     t1 = get_wall_time();
-    CPRINTF1(" - adaptGeoLines time = %fs \n",t1-t0);
+    CPRINTF1(" - adaptGeoLines time = {:.2e}ss \n",t1-t0);
     if(DOPRINTS2()) writeMesh("v2_geolines_adp",msh);
     if(DOPRINTS2()) msh.met.writeMetricFile("v2_geolines_adp");
 
@@ -161,19 +161,19 @@ void MetrisRunner::adaptMesh0(){
 
     if(DOPRINTS2()){
       getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
-      CPRINTF1(" - Length qua short = %e\n",lenstat.qua_short);
-      CPRINTF1(" -            long  = %e\n",lenstat.qua_long);
+      CPRINTF1(" - Length qua short = {}\n",lenstat.qua_short);
+      CPRINTF1(" -            long  = {}\n",lenstat.qua_long);
       if(DOPRINTS3()) print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
 
       getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                          &iinva,&qmin,&qmax,&qavg,&lquae);
-      CPRINTF1(" - Quality min = %15.7e \n",qmin);
-      CPRINTF1("           max = %15.7e \n",qmax);
-      CPRINTF1("           avg = %15.7e \n",qavg);
+      CPRINTF1(" - Quality min = {:15.7e} \n",qmin);
+      CPRINTF1("           max = {:15.7e} \n",qmax);
+      CPRINTF1("           avg = {:15.7e} \n",qavg);
       writeField("v2_collapsequa_adp"+ std::to_string(niter)+".solb",
                                 msh,SolTyp::P0Elt,lquae);
       CPRINTF2("------------------------------------------------------------\n");
-      CPRINTF2("- iteration %d collapse stat = %f time = %f \n",niter,stat,t1-t0);
+      CPRINTF2("- iteration {} collapse stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
       CPRINTF2("------------------------------------------------------------\n");
     }
     #ifndef NDEBUG
@@ -196,18 +196,18 @@ void MetrisRunner::adaptMesh0(){
       }
       if(DOPRINTS2()){
         getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
-        CPRINTF1(" - Length qua short = %e\n",lenstat.qua_short);
-        CPRINTF1(" -            long  = %e\n",lenstat.qua_long);
+        CPRINTF1(" - Length qua short = {}\n",lenstat.qua_short);
+        CPRINTF1(" -            long  = {}\n",lenstat.qua_long);
         if(DOPRINTS3()) print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
         getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                            &iinva,&qmin,&qmax,&qavg,&lquae);
-        CPRINTF2(" - Quality min = %15.7e \n",qmin);
-        CPRINTF2("           max = %15.7e \n",qmax);
-        CPRINTF2("           avg = %15.7e \n",qavg);
+        CPRINTF2(" - Quality min = {:15.7e} \n",qmin);
+        CPRINTF2("           max = {:15.7e} \n",qmax);
+        CPRINTF2("           avg = {:15.7e} \n",qavg);
         if(DOPRINTS2()) writeField("v2_swapqua_adp"+ std::to_string(niter)+".solb",
                                  msh,SolTyp::P0Elt,lquae);
         CPRINTF2("------------------------------------------------------------\n");
-        CPRINTF2("- iteration %d swaps stat = %f time = %f \n",niter,stat,t1-t0);
+        CPRINTF2("- iteration {} swaps stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
         CPRINTF2("------------------------------------------------------------\n");
       }
     }
@@ -236,11 +236,11 @@ void MetrisRunner::adaptMesh0(){
     }
     if(DOPRINTS2()){
       getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
-      CPRINTF1(" - Length qua short = %e\n",lenstat.qua_short);
-      CPRINTF1(" -            long  = %e\n",lenstat.qua_long);
+      CPRINTF1(" - Length qua short = {}\n",lenstat.qua_short);
+      CPRINTF1(" -            long  = {}\n",lenstat.qua_long);
       if(DOPRINTS3()) print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
       CPRINTF2("------------------------------------------------------------\n");
-      CPRINTF2("- iteration %d insertions stat = %f time = %f \n",niter,stat,t1-t0);
+      CPRINTF2("- iteration {} insertions stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
       CPRINTF2("------------------------------------------------------------\n");
     }
 
@@ -255,13 +255,13 @@ void MetrisRunner::adaptMesh0(){
       if(DOPRINTS2()) writeBackLinks("v2_unif_adp_poi2bak" + std::to_string(niter), msh);
       if(DOPRINTS2()){
         CPRINTF2("------------------------------------------------------------\n");
-        CPRINTF2("- iteration %d unif ball stat = %f time = %f \n",niter,stat,t1-t0);
+        CPRINTF2("- iteration {} unif ball stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
         CPRINTF2("------------------------------------------------------------\n");
         getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                            &iinva,&qmin,&qmax,&qavg,&lquae);
-        CPRINTF2(" - Quality min = %15.7e \n",qmin);
-        CPRINTF2("           max = %15.7e \n",qmax);
-        CPRINTF2("           avg = %15.7e \n",qavg);
+        CPRINTF2(" - Quality min = {:15.7e} \n",qmin);
+        CPRINTF2("           max = {:15.7e} \n",qmax);
+        CPRINTF2("           avg = {:15.7e} \n",qavg);
       }
     }
 
@@ -278,7 +278,7 @@ void MetrisRunner::adaptMesh0(){
         if(DOPRINTS2() && noper >= 0) writeMesh("v2_flat_opt"+ std::to_string(niter)+".meshb",msh);
         if(DOPRINTS2() && noper >= 0) msh.met.writeMetricFile("v2_flat_opt"+ std::to_string(niter)+".solb");
         CPRINTF1("------------------------------------------------------------\n");
-        CPRINTF1("- iteration %d flat collapse noper = %d stat = %f time = %f \n",niter,noper,stat,t1-t0);
+        CPRINTF1("- iteration {} flat collapse noper = {} stat = {:.2e} time = {:.2e}s \n",niter,noper,stat,t1-t0);
         CPRINTF1("------------------------------------------------------------\n");
       }
 
@@ -287,7 +287,7 @@ void MetrisRunner::adaptMesh0(){
       #endif
 
     }else{
-      CPRINTF1("## reinsertFlat disabled in case gdim = %d tdim = %d \n", msh.idim, msh.get_tdim());
+      CPRINTF1("## reinsertFlat disabled in case gdim = {} tdim = {} \n", msh.idim, msh.get_tdim());
     }
     
 
@@ -300,13 +300,16 @@ void MetrisRunner::adaptMesh0(){
     double tloop1 = get_wall_time();
 
     std::string fmt = 
-    "%s-- Adp loop %3d / %3d time %fs " 
-    "%" + std::to_string(ndigit) + "d inser "
-    "%" + std::to_string(ndigit) + "d coll "
-    "%" + std::to_string(ndigit) + "d swap, "
-    + "%7.2fpct unit, op stat = %f \n";
-    // "-- Adp loop %3d / %3d inser %d coll %d swap %d, %fpct unit, op stat = %f \n"
-    if(DOPRINTS1())printf(fmt.c_str(), spaces_string__, 
+    "{}-- Adp loop {:3} / {:3} time {:.2e}ss " 
+    "{:" + std::to_string(ndigit) + "} inser "
+    "{:" + std::to_string(ndigit) + "} coll "
+    "{:" + std::to_string(ndigit) + "} swap, "
+    + "{:7.2f}% unit, op stat = {:.2e} \n";
+    // "-- Adp loop {:3} / {:3} inser {} coll {} swap {}, {}% unit, op stat = {:.2e} \n"
+    //CPRINTF1(fmt.c_str(), niter, miter, tloop1 - tloop0,
+    //         msh.npoin, ninser, ncoll, nswap,
+    //         100*lenstat.prop_unit, stat0);
+    if(DOPRINTS1()) fmt::print(LOGFILE__, fmt.c_str(), spaces_string__, 
              niter,miter, tloop1 - tloop0, ninser,ncoll,nswap, 100*lenstat.prop_unit,stat0);
 
     //if(niter == 1){
@@ -317,7 +320,7 @@ void MetrisRunner::adaptMesh0(){
     //}
     if(lenstat.prop_unit*100 >= msh.param->adp_unit_stop){
       CPRINTF1("------------------------------------------------------------\n");
-      CPRINTF1("- %7.2f%% edges unit exit threshold = %7.2f\n",100*lenstat.prop_unit,
+      CPRINTF1("- {:7.2f}% edges unit exit threshold = {:7.2f}\n",100*lenstat.prop_unit,
                 msh.param->adp_unit_stop);
       break;
     }
@@ -332,7 +335,7 @@ void MetrisRunner::adaptMesh0(){
     //stat_prev = stat0;
 
     if(stagn){
-      CPRINTF1(" - low stat = %e break or optimize\n",stat0);
+      CPRINTF1(" - low stat = {:.2e} break or optimize\n",stat0);
       if(niter >= miter -1) break;
       if(msh.param->opt_niter > 0 && 
         (iopt_niter < msh.param->adp_opt_niter|| msh.param->adp_opt_niter < 0)
@@ -349,7 +352,7 @@ void MetrisRunner::adaptMesh0(){
           writeBackLinks("v2_optim_adp_poi2bak" + std::to_string(niter), msh);
         }
         if(stat < minstat){
-          CPRINTF1(" - low optim stat %e break\n",stat);
+          CPRINTF1(" - low optim stat {:.2e} break\n",stat);
           break;
         }
 
@@ -375,11 +378,11 @@ void MetrisRunner::adaptMesh0(){
 
   msh.cleanup();
 
-  CPRINTF1("-- Adaptation end total time = %f \n",ttotal);
-  CPRINTF1(" - insertion time = %f \n",tinsert);
-  CPRINTF1(" -  collapse time = %f \n",tcollapse);
-  CPRINTF1(" -      swap time = %f \n",tswap);
-  CPRINTF1(" - smoothing time = %f \n",tsmooth);
+  CPRINTF1("-- Adaptation end total time = {:.2e}s \n",ttotal);
+  CPRINTF1(" - insertion time = {:.2e}s \n",tinsert);
+  CPRINTF1(" -  collapse time = {:.2e}s \n",tcollapse);
+  CPRINTF1(" -      swap time = {:.2e}s \n",tswap);
+  CPRINTF1(" - smoothing time = {:.2e}s \n",tsmooth);
 
   if(DOPRINTS1() || DOPRINTS3()){
     writeMesh("adapt_end.meshb",msh);
@@ -401,11 +404,11 @@ void MetrisRunner::adaptMesh0(){
     if(msh.poi2ent(ipoin,0) < 0) continue;
     npvol ++;
   }
-  printf("-- Point density = %e ; vol = %e np = %d\n",voltot/npvol, voltot, npvol);
+  printf("-- Point density = {} ; vol = {} np = {}\n",voltot/npvol, voltot, npvol);
   const double pi = 3.141592653589793238462643383279502884;
   //double dens0 = msh.get_tdim() == 2 ? pi / 4 : 2*pi/3;
   double dens0 = msh.get_tdim() == 2 ? pi / 4 : 1.0/sqrt(2);
-  printf(" - expected = %e err = %e\n",dens0,abs(dens0 - voltot/npvol));
+  printf(" - expected = {} err = {}\n",dens0,abs(dens0 - voltot/npvol));
   wait();
   #endif
 }

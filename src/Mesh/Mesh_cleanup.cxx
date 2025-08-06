@@ -60,7 +60,7 @@ void Mesh<MetricFieldType>::cleanup(){
 
   if(nbpon != this->nbpoi){
 
-    CPRINTF3(" - cleanup bdry links %d -> %d \n",this->nbpoi,nbpon);
+    CPRINTF3(" - cleanup bdry links {} -> {} \n",this->nbpoi,nbpon);
 
     // Update link to next 
     for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
@@ -103,7 +103,7 @@ void Mesh<MetricFieldType>::cleanup(){
 
   if(this->npoin == nponn) goto update_tetras; 
 
-  CPRINTF3(" - cleanup vertices %d -> %d \n",this->npoin,nponn);
+  CPRINTF3(" - cleanup vertices {} -> {} \n",this->npoin,nponn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
     int ipoin = this->bpo2ibi(ibpoi,0); 
@@ -143,7 +143,7 @@ void Mesh<MetricFieldType>::cleanup(){
   
   if(nelen == this->nelem) goto update_faces;
 
-  CPRINTF3(" - cleanup tetras %d -> %d \n",this->nelem,nelen);
+  CPRINTF3(" - cleanup tetras {} -> {} \n",this->nelem,nelen);
 
   for(int iface = 0; iface < this->nface; iface++){
     for(int ii = 0; ii < 2; ii++){
@@ -213,7 +213,7 @@ void Mesh<MetricFieldType>::cleanup(){
 
   if(nfacn == this->nface) goto update_edges;
 
-  CPRINTF3(" - cleanup faces %d -> %d \n",this->nface,nfacn);
+  CPRINTF3(" - cleanup faces {} -> {} \n",this->nface,nfacn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
     int ipoin = this->bpo2ibi(ibpoi,0); 
@@ -300,17 +300,17 @@ void Mesh<MetricFieldType>::cleanup(){
   if(nedgn == this->nedge) goto update_final; 
 
 
-  CPRINTF3(" - cleanup edges %d -> %d \n",this->nedge,nedgn);
+  CPRINTF3(" - cleanup edges {} -> {} \n",this->nedge,nedgn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
     int ipoin = this->bpo2ibi(ibpoi,0); 
     if(ipoin < 0) continue;
     if(ipoin >= this->npoin){
-      printf("ipoin = %d >= npoin = %d\n",ipoin,this->npoin);
-      printf("ibpoi = %d : ",ibpoi);
+      fmt::print("ipoin = {} >= npoin = {}\n",ipoin,this->npoin);
+      fmt::print("ibpoi = {} : ",ibpoi);
       intAr1(nibi,this->bpo2ibi[ibpoi]).print();
       for(int ibpo2 = this->bpo2ibi(ibpoi,3); ibpo2 >= 0; ibpo2 = this->bpo2ibi(ibpo2,3)){
-        printf("ibpo2 = %d : ",ibpo2);
+        fmt::print("ibpo2 = {} : ",ibpo2);
         intAr1(nibi,this->bpo2ibi[ibpo2]).print();
       }
     }

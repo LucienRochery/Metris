@@ -137,8 +137,8 @@ void metquaS_xi(const Mesh &msh, int ielem, int power,
     matXtmat<3>(tmpMat2[0],invtJ_0tJ_K,J0tJtMJJ02);
 
     ftype det1 = detmat<3,ftype>(invtJ_0tJ_K);
-    printf("Got det = %15.7e as 3x3 = %15.7e",(double)det,(double)detmat<3,ftype>(tmpMat[0]));
-    printf(" as product of dets = %15.7e as 3x3 using matXmat<3> %15.7e\n",
+    printf("Got det = {:15.7e} as 3x3 = {:15.7e}",(double)det,(double)detmat<3,ftype>(tmpMat[0]));
+    printf(" as product of dets = {:15.7e} as 3x3 using matXmat<3> {:15.7e}\n",
      (double)(det1*det1*detsym<3>(met)),(double)detmat<3,ftype>(J0tJtMJJ02));
 
     printf("J0tJtMJJ0 original:\n");
@@ -148,7 +148,7 @@ void metquaS_xi(const Mesh &msh, int ielem, int power,
     printf("Debug diff between original and recomputed \n");
     //for(int i = 0; i < 3; i++){
     //	for(int j = 0 ; j < 3; j++){
-    //		printf("%15.7e \n",tmpMat[i][j] - J0tJtMJJ02[3*i+j]);
+    //		printf("{:15.7e} \n",tmpMat[i][j] - J0tJtMJJ02[3*i+j]);
     //	}
     //}
 

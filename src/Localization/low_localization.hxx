@@ -19,31 +19,9 @@ class MeshBase;
 //  0: in element
 //  1: converged to outside
 template<int gdim, int ideg> 
-int inveval_badNewton(MeshBase &msh, int ientt, const double*__restrict__ coor0, 
-                      double*__restrict__ coopr, double*__restrict__ bary,
-                      double tol);
-
-// tol: absolute tolerance on 2-norm between coor0 and coopr
-// Return value: 
-//  0: in element
-//  1: converged to outside
-template<int gdim, int ideg> 
 int inveval(MeshBase &msh, int ientt, const double*__restrict__ coor0, 
             double*__restrict__ coopr, double*__restrict__ bary,
             double tol);
-
-// tol: absolute tolerance on 2-norm between coor0 and coopr
-// Return value: 
-//  0: in element
-//  1: converged to outside
-//  2: error or unconverged 
-template<int gdim, int ideg> 
-int inveval_badNewton0(const MeshBase &msh,
-                       const int* ent2pol,
-                       const dblAr2 &coord,
-                       const double* coor0, 
-                       double* __restrict__ coopr, double* __restrict__ bary,
-                       double tol);
 
 // tol: absolute tolerance on 2-norm between coor0 and coopr
 // Return value: 

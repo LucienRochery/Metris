@@ -16,15 +16,16 @@ Simplest possible approach.
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../quality/low_metqua.hxx"
 #include "../aux_topo.hxx"
-#include "../utils/aux_timer.hxx"
 #include "../io_libmeshb.hxx"
-#include "../utils/mprintf.hxx"
 
 #include "../Optimization/opt_generic.hxx"
 #include "../quality/low_metqua_d.hxx"
 #include "../low_geo/ccoef.hxx"
 #include "../low_geo/measure.hxx"
 
+#include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 namespace Metris{
 
@@ -38,7 +39,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
   GETVDEPTH(msh.param);
 
-  CPRINTF1("-- START smooballdiff ipoin = %d nball %d\n",ipoin,lball.get_n());
+  CPRINTF1("-- START smooballdiff ipoin = {} nball {}\n",ipoin,lball.get_n());
 
   constexpr int tdim = idim;
   constexpr int gdim = idim;
@@ -69,7 +70,6 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   nargs.ratnew= 0.5;
   nargs.maxit = 50;
   nargs.ftol  = ftol;
-  nargs.iprt = DOPRINTS2();
 
   int iflag = 0, ihess, ierro = 0;
   double  xcur[idim], coor0[idim], met0[nnmet], fcur;
@@ -93,14 +93,14 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
       //  fpre = fcur; 
       //}else{
       //  if(abs(fpre - fcur) < ftol * abs(fpre)){
-      //    CPRINTF1(" - Relative decrease %15.7e < %15.7e end\n",
+      //    CPRINTF1(" - Relative decrease {:15.7e} < {:15.7e} end\n",
       //                          abs(fpre - fcur) / abs(fpre), ftol);
       //    break;
       //  }
       //  fpre = fcur;
       //}
       if(ierro > 0){
-        CPRINTF1(" # optim_newton_drivertype error %d\n",ierro);
+        CPRINTF1(" # optim_newton_drivertype error {}\n",ierro);
         goto finish;
       }
       if(iflag <= 0) {
@@ -172,13 +172,13 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
         }
       }// for iball
       if(DOPRINTS1()){
-        CPRINTF1(" - Newton iter %d fcur = %e xcur = %e %e",nargs.niter,fcur,xcur[0],xcur[1]);
-        if(idim == 3) printf(" %e\n",xcur[2]);
-        else          printf("\n");
-        if(DOPRINTS2()){
-          CPRINTF2(" - grad = ");
-          dblAr1(idim,d1qua).print();
+        CPRINTF1(" - Newton iter {} fcur = {} xcur = {} {}",nargs.niter,fcur,xcur[0],xcur[1]);
+        if(idim == 3){
+          PRINTF(" {}\n",xcur[2]);
+        }else{
+          PRINTF("\n");
         }
+        CPRINTF2(" - grad = {}\n",dblAr1(idim,d1qua));
       }
 
     } // end while true
@@ -188,10 +188,13 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
     finish:
     if(DOPRINTS1()){
-      CPRINTF1(" -- END smooballdiff fopt = %e xopt = %e %e ",
-        nargs.fopt,nargs.xopt[0],nargs.xopt[1]);
-      if(idim == 3) printf(" %e\n",nargs.xopt[2]);
-      else          printf("\n");
+      CPRINTF1(" -- END smooballdiff fopt = {} xopt = {} {} ",
+               nargs.fopt,nargs.xopt[0],nargs.xopt[1]);
+      if(idim == 3){
+        PRINTF(" {}\n",nargs.xopt[2]);
+      }else{
+        PRINTF("\n");
+      }
 
     }
     for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = nargs.xopt[ii];
@@ -200,7 +203,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
     ierro = msh.interpMetBack(ipoin);
     if(ierro > 0){
-      CPRINTF1(" # smooballdiff interpMetBack failure ierro = %d \n",ierro);
+      CPRINTF1(" # smooballdiff interpMetBack failure ierro = {} \n",ierro);
       goto cleanup;
     }
 
@@ -221,17 +224,17 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
       *qnrm1 += quael; 
       *qmax1  = MAX(quael,*qmax1);
     }
-    CPRINTF1(" - Newton update initial quality avg %15.7e " 
-                          "max %15.7e \n",*qnrm0,*qmax0);
-    CPRINTF1(" -                 final quality avg %15.7e " 
-                          "max %15.7e \n",*qnrm1,*qmax1);
+    CPRINTF1(" - Newton update initial quality avg {:15.7e} " 
+                          "max {:15.7e} \n",*qnrm0,*qmax0);
+    CPRINTF1(" -                 final quality avg {:15.7e} " 
+                          "max {:15.7e} \n",*qnrm1,*qmax1);
   }
 
 
   if(*qnrm1 > *qnrm0){
     ierro = 2;
     CPRINTF1(" # Local smoo reject: quality norm increase "
-               "%f -> %f \n", *qnrm0, *qnrm1);
+               "{} -> {} \n", *qnrm0, *qnrm1);
     goto cleanup;
   }
 
@@ -272,7 +275,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
         getccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef); 
         for(int ii = 0; ii < ncoef; ii++){
           if(ccoef[ii] >= jtol * vol) continue;
-          printf(" - 1 reject validity coef %15.7e scaled %15.7e \n",
+          MPRINTF(" - 1 reject validity coef {:15.7e} scaled {:15.7e} \n",
                   ccoef[ii], ccoef[ii]/vol);
           METRIS_THROW(GeomExcept());
         }
@@ -280,7 +283,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
     }else{
       for(int ientt : lball){
         if(isvalideltP1<idim,idim>(msh,ientt)) continue;
-        printf(" - 2 reject validity\n");
+        MPRINTF(" - 2 reject validity\n");
         METRIS_THROW(GeomExcept());
       }
     }
@@ -493,7 +496,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
                                work,
                                fstop , ftol_rel, ftol_abs);
 
-    CPRINTF1(" - end luksan_pnetS got ierro = %d \n",ierro);
+    CPRINTF1(" - end luksan_pnetS got ierro = {} \n",ierro);
     if(ierro == NLOPT_STOPVAL_REACHED
     || ierro == NLOPT_FTOL_REACHED
     || ierro == NLOPT_XTOL_REACHED) ierro = NLOPT_SUCCESS;
@@ -522,11 +525,11 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
     if(*qnrm1 > *qnrm0){
       ierro = 2;
       CPRINTF1(" # Local smoo reject: quality norm increase "
-                 "%f -> %f \n", *qnrm0, *qnrm1);
+                 "{} -> {} \n", *qnrm0, *qnrm1);
       goto cleanup;
     }
 
-    CPRINTF1(" - local smoothing quality %f -> %f \n", *qnrm0, *qnrm1);
+    CPRINTF1(" - local smoothing quality {} -> {} \n", *qnrm0, *qnrm1);
 
 
     for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
@@ -557,7 +560,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
         getccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef); 
         for(int ii = 0; ii < ncoef; ii++){
           if(ccoef[ii] >= jtol * vol) continue;
-          printf(" - 1 reject validity coef %15.7e scaled %15.7e \n",
+          MPRINTF(" - 1 reject validity coef {:15.7e} scaled {:15.7e} \n",
                   ccoef[ii], ccoef[ii]/vol);
           METRIS_THROW(GeomExcept());
         }
@@ -565,7 +568,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
     }else{
       for(int ientt : lball){
         if(isvalideltP1<idim,idim>(msh,ientt)) continue;
-        printf(" - 2 reject validity\n");
+        MPRINTF(" - 2 reject validity\n");
         METRIS_THROW(GeomExcept());
       }
     }

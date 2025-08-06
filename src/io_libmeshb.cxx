@@ -109,15 +109,15 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav)
 
   std::string meshName = msh.param->outmPrefix + meshName_;
 
-  MPRINTF("-- Write cavity filename = %s\n",meshName.c_str());
+  MPRINTF("-- Write cavity filename = {}\n",meshName.c_str());
 
   int ierro = 0;
   if(msh.curdeg < 1){
-    MPRINTF("## Invalid maximum degree %d in readMesh !",msh.curdeg);
+    MPRINTF("## Invalid maximum degree {} in readMesh !",msh.curdeg);
     ierro = 1;
   }
   if(msh.curdeg > __MAX_LIBMESHB_DEG__){
-    MPRINTF("## Maximum degree supported by libmeshb = %d passed %d \n",
+    MPRINTF("## Maximum degree supported by libmeshb = {} passed {} \n",
              __MAX_LIBMESHB_DEG__,msh.curdeg);
     ierro = 1;
   }
@@ -231,7 +231,7 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav)
     //printf("Debug cav.lcfac = ");
     //cav.lcfac.print();
     //for(int iface : cav.lcfac){
-    //  printf(" %d : ",iface);
+    //  printf(" {} : ",iface);
     //  intAr1(npp, msh.fac2poi[iface]).print();
     //}
 
@@ -487,7 +487,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
   std::string eff_meshName = iprefix ? msh.param->outmPrefix + meshName
                                      : meshName;
 
-  MPRINTF("-- Write file %s npoin %d nedge %d nface %d tetra %d \n",
+  MPRINTF("-- Write file {} npoin {} nedge {} nface {} tetra {} \n",
           eff_meshName.c_str(),msh.npoin,iedg1,ifac1,iele1);
 
   dblAr2 coord;
@@ -533,7 +533,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
     ierro = 1;
   }
   if(msh.curdeg > __MAX_LIBMESHB_DEG__){
-    MPRINTF("## Maximum degree supported by libmeshb = %d passed %d\n",
+    MPRINTF("## Maximum degree supported by libmeshb = {} passed {}\n",
              __MAX_LIBMESHB_DEG__,msh.curdeg);
     ierro = 1;
   }
@@ -579,7 +579,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
   if(iedg1 - iedg0 > 0){
   //   Note on edges: for some reason, libmeshb uses 1 index for edges
   // but the usual 3 for triangles, 4 for tets, etc.     
-    //CPRINTF2(" - START writing edges: %d -> %d \n",iedg0, iedg1);
+    //CPRINTF2(" - START writing edges: {} -> {} \n",iedg0, iedg1);
     constexpr int mppe = getnnod1(METRIS_MAX_DEG);
 
     int fKwd = libmeshb::edgeKwds[msh.curdeg];
@@ -608,7 +608,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
 
 
   if(ifac1 - ifac0 > 0){
-    //CPRINTF2(" - START writing triangles: %d \n",ifac1);
+    //CPRINTF2(" - START writing triangles: {} \n",ifac1);
     constexpr int mppf = getnnod2(METRIS_MAX_DEG);
 
     int fKwd = libmeshb::faceKwds[msh.curdeg];
@@ -638,7 +638,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
 
   // Redundant but safer
   if(iele1 - iele0 > 0 && msh.idim >= 3){
-    //CPRINTF2(" - START writing tetrahedra: %d \n",iele1);
+    //CPRINTF2(" - START writing tetrahedra: {} \n",iele1);
     constexpr int mppt = getnnod3(METRIS_MAX_DEG);
 
     int eKwd = libmeshb::elemKwds[msh.curdeg];
@@ -667,7 +667,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
 
 
 
-  //CPRINTF2(" - START writing point: %d \n",msh.npoin);
+  //CPRINTF2(" - START writing point: {} \n",msh.npoin);
   //  printf("Debug now bpo2ibi:\n");
   //  msh.bpo2ibi.print(msh.nbpoi);
   /*
@@ -686,7 +686,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
       //  print_EGADS_error("EG_exportModel",ierro);
       //  METRIS_THROW_MSG(TopoExcept(),"Failed to export model to stream.");
       //}
-      //if(iverb > 0) printf(" - Stream of size %db \n",nbyte);
+      //if(iverb > 0) printf(" - Stream of size {}b \n",nbyte);
       //GmfWriteByteFlow(libIdx, stream, (int) nbyte);
 
       //CADInfo CAD2;
@@ -698,7 +698,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
 
       //int* dbgptr = (int*)stream;
       //for(int ii = 0; ii < MIN(10,nbyte / sizeof(int)); ii++){
-      //  printf(" DEBUG STREAM AS INT: %d = %d \n",ii,*dbgptr);
+      //  printf(" DEBUG STREAM AS INT: {} = {} \n",ii,*dbgptr);
       //  dbgptr++;
       //}
 
@@ -706,10 +706,10 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
       //int oclass,mtype,nbody,*dum;
       //ego *bodies;
       //ierro = EG_getTopology(msh.CAD.EGADS_model,&geom,&oclass,&mtype,NULL,&nbody,&bodies,&dum);
-      //printf("## DEBUG WRITING CHECK NBODY = %d \n",nbody);
+      //printf("## DEBUG WRITING CHECK NBODY = {} \n",nbody);
 
       //int *nbodyptr = (int*) (&stream[0] + 3*sizeof(int) + 6*sizeof(double));
-      //printf("## DEBUG NBODY FROM STREAM %d \n",*nbodyptr);
+      //printf("## DEBUG NBODY FROM STREAM {} \n",*nbodyptr);
 
 
       int mcorn = getNumCorners(msh);
@@ -785,7 +785,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
       lpoic[ipoin] = lcorn.get_n();
     }
     int ncorn = lcorn.get_n();
-    CPRINTF1(" - counted %d corners in mesh\n",ncorn);
+    CPRINTF1(" - counted {} corners in mesh\n",ncorn);
 
     GmfSetKwd(libIdx, GmfVertices, msh.npoin);
     GmfSetBlock(libIdx, GmfVertices, 1, msh.npoin, 0, NULL, NULL,
@@ -845,8 +845,8 @@ void writeField(std::string outname, const MeshBase &msh, SolTyp stype, dblAr1 &
   else if(stype == SolTyp::P0Elt) ndof = msh.nentt(msh.get_tdim());
   else METRIS_THROW_MSG(TODOExcept(), "Sol typ not implemented ndof")
   if(rfld.get_n() / ndim != ndof){
-    printf("## WARNING rfld.get_n / ndim = %d ndof %d \n",
-      rfld.get_n() / ndim, ndof);
+    CPRINTF1("## WARNING rfld.get_n / ndim = {} ndof {} \n",
+             rfld.get_n() / ndim, ndof);
     return;
   }
 
@@ -857,7 +857,7 @@ void writeField(std::string outname, const MeshBase &msh, SolTyp stype, dblAr1 &
   libIdx = MetrisOpenMeshFile<GmfWrite>(metName, tdimn);
 
 
-  MPRINTF("-- Write file %s\n",metName.c_str());
+  MPRINTF("-- Write file {}\n",metName.c_str());
 
   int solKwd = 0;
   bool iHO = false;
@@ -949,9 +949,9 @@ void writeBackLinks(std::string solName, Mesh<MFT>& msh){
 
     //int nentb = msh.bak->nentt(tdim);
     //if(ientt >= nentb){
-    //  printf("## IENTT >= NENTB tdim = %d \n",tdim);
+    //  printf("## IENTT >= NENTB tdim = {} \n",tdim);
     //  for(int ii = 1; ii <= 3; ii++){
-    //    printf("%d : %d %d \n", ii, msh.poi2bak(ientt,))
+    //    printf("{} : {} {} \n", ii, msh.poi2bak(ientt,))
     //  }
     //  wait();
     //}
@@ -1221,7 +1221,7 @@ void writeMeshVecs(std::string meshName, MeshBase &msh, const dblAr2 &poi2vec){
       //  print_EGADS_error("EG_exportModel",ierro);
       //  METRIS_THROW_MSG(TopoExcept(),"Failed to export model to stream.");
       //}
-      //if(iverb > 0) printf(" - Stream of size %db \n",nbyte);
+      //if(iverb > 0) printf(" - Stream of size {}b \n",nbyte);
       //GmfWriteByteFlow(libIdx, stream, (int) nbyte);
 
       //CADInfo CAD2;
@@ -1233,7 +1233,7 @@ void writeMeshVecs(std::string meshName, MeshBase &msh, const dblAr2 &poi2vec){
 
       //int* dbgptr = (int*)stream;
       //for(int ii = 0; ii < MIN(10,nbyte / sizeof(int)); ii++){
-      //  printf(" DEBUG STREAM AS INT: %d = %d \n",ii,*dbgptr);
+      //  printf(" DEBUG STREAM AS INT: {} = {} \n",ii,*dbgptr);
       //  dbgptr++;
       //}
 
@@ -1241,10 +1241,10 @@ void writeMeshVecs(std::string meshName, MeshBase &msh, const dblAr2 &poi2vec){
       //int oclass,mtype,nbody,*dum;
       //ego *bodies;
       //ierro = EG_getTopology(msh.CAD.EGADS_model,&geom,&oclass,&mtype,NULL,&nbody,&bodies,&dum);
-      //printf("## DEBUG WRITING CHECK NBODY = %d \n",nbody);
+      //printf("## DEBUG WRITING CHECK NBODY = {} \n",nbody);
 
       //int *nbodyptr = (int*) (&stream[0] + 3*sizeof(int) + 6*sizeof(double));
-      //printf("## DEBUG NBODY FROM STREAM %d \n",*nbodyptr);
+      //printf("## DEBUG NBODY FROM STREAM {} \n",*nbodyptr);
 
 
       int mcorn = getNumCorners(msh);

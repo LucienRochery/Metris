@@ -36,7 +36,7 @@ void getheightentP1_aniso(const Mesh<MFT> &msh, int ientt,
       double x1 =  getprdl2<gdim>(msh.coord[ipoi2], tan);
       double tp = (getprdl2<gdim>(msh.coord[ipoin], tan) - x0) / (x1 - x0);
 
-      //printf("Debug ied %d  x0 %f x1 %f xp %f tp %f ipoi1 %d ipoi2 %d ipoin %d\n",
+      //printf("Debug ied {}  x0 {} x1 {} xp {} tp {} ipoi1 {} ipoi2 {} ipoin {}\n",
       //  ied,x0,x1,getprdl2<gdim>(msh.coord[ipoin], tan),tp, ipoi1, ipoi2, ipoin);
 
       tp = MAX(0.0,MIN(1.0,tp));

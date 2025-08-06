@@ -8,6 +8,7 @@
 #include "../metris_defaults.hxx"
 #include "../metris_constants.hxx"
 #include "../io_libmeshb.hxx"
+#include "../utils/mprintf.hxx"
 #include <string>
 
 namespace Metris{
@@ -89,11 +90,42 @@ MetrisParameters::MetrisParameters(){
   scaleMet  = false;
   outbasis  = FEBasis::Lagrange;
 
+  logFile = stdout;
+
   iflag1 = iflag2 = iflag3 = 0;
   interp_err_min_algo = 1; // 1 for Newton, 0 for DIRECT
 }
 
 MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
+
+  if(opt.count("help")) { 
+    fmt::print("Flag --help:\n");
+    std::cout << opt.s << std::endl;
+    exit(0);
+  }
+
+  // These need to be first, or subsequent prints will be ill-defined.
+  if(opt.count("verb")){
+    iverb = opt.m["verb"].template as<int>();
+  }
+  if(opt.count("vdepth")){
+    ivdepth = opt.m["vdepth"].template as<int>();
+  }
+  if(opt.count("log")){
+    if(opt.m["log"].template as<std::string>() == "stdout"){
+      logFile = stdout;
+    }else if(opt.m["log"].template as<std::string>() == "stderr"){
+      logFile = stderr;
+    }else{
+      logFile = fopen(opt.m["log"].template as<std::string>().c_str(), "w");
+      if(!logFile){
+        fmt::print(stderr, "Error opening log file {}\n", opt.m["log"].template as<std::string>());
+        METRIS_THROW(WArgExcept());
+      }
+    }
+  }
+
+  GETVDEPTH(this);
 
   if(opt.count("refine-conventions-inp")){
     refineConventionsInp = true;
@@ -102,31 +134,21 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     refineConventionsOut = true;
   }
   
-  if(opt.count("help")) { 
-    std::cout << "Cf MetrisOptions class" <<"\n";
-    exit(1);
-  }
-  if(opt.count("verb")){
-    iverb = opt.m["verb"].template as<int>();
-  }
-  if(opt.count("vdepth")){
-    ivdepth = opt.m["vdepth"].template as<int>();
-  }
 
   if(opt.count("opt-unif")){
     opt_unif = true;
-    if(iverb >= 1) std::cout << "-- Set opt-unif \n";
+    CPRINTF1("-- Set opt-unif\n");
   }
 
   if(opt.count("in")){
     inpMesh = true;
     meshFileName = correctExtension_meshb(opt.m["in"].template as<std::string>());
-    if(iverb >= 1) std::cout << "-- Read input mesh name " << meshFileName << "\n";
+    CPRINTF1("-- Read input mesh name {}\n", meshFileName.c_str());
   }
 
   if(opt.count("prefix")){
     outmPrefix = opt.m["prefix"].template as<std::string>();
-    if(iverb >= 1) std::cout << "-- File prefix: " << outmPrefix << "\n";
+    CPRINTF1("-- File prefix: {}\n", outmPrefix.c_str());
   }
   if(opt.count("main-in-prefix")){
     main_in_prefix = true;
@@ -134,16 +156,16 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
 
   if(opt.count("bez")){
     outbasis = FEBasis::Bezier;
-    if(iverb >= 1) std::cout << "-- Bézier output basis\n";
+    CPRINTF1("-- Bézier output basis\n");
   }
 
 
   if(opt.count("out")) { 
     setMeshOut(opt.m["out"].template as<std::string>());
-    if(iverb >= 1) std::cout << "-- Read output file name " << outmFileName << ".\n";
+    CPRINTF1("-- Read output file name {}.\n", outmFileName.c_str());
   }else{
-    if(iverb >= 1) std::cout << "# Output mesh file name not set. Use --out or -o <filename>.\n";
-    if(iverb >= 1) std::cout << "# Running but skipping mesh output."<<"\n";
+    CPRINTF1("# Output mesh file name not set. Use --out or -o <filename>.\n");
+    CPRINTF1("# Running but skipping mesh output.\n");
   }
 
   // usrMaxDeg is the very maximum the user is allowing for storage. It is hard bounded by the constant METRIS_MAX_DEG
@@ -154,7 +176,7 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
 
   if(opt.count("nproc")){
     nproc = opt.m["nproc"].template as<int>();
-    if(iverb >= 1) printf("-- Running with nproc = %d \n",nproc);
+    CPRINTF1("-- Running with nproc = {} \n",nproc);
   }
 
   if(opt.count("cad")){
@@ -163,22 +185,22 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   }
 
   if(opt.count("dbgfull")){
-    if(iverb >= 1) printf("-- Full debugs activated\n");
+    CPRINTF1("-- Full debugs activated\n");
     dbgfull = true;
   }
   if(opt.count("interactive")){
-    if(iverb >= 1) printf("-- Wait calls activated\n");
+    CPRINTF1("-- Wait calls activated\n");
     interactive = true;
   }
   if(opt.count("nocleanup")){
-    if(iverb >= 1) printf("-- Cleanup calls deactivated\n");
+    CPRINTF1("-- Cleanup calls deactivated\n");
     nocleanup = true;
   }
 
   if(opt.count("back")){
     inpBack = true;
     backFileName = correctExtension_meshb(opt.m["back"].template as<std::string>());
-    if(iverb >= 1) std::cout<<" - Read back mesh name "<<backFileName<<"\n";
+    CPRINTF1(" - Read back mesh name {}\n", backFileName.c_str());
   }
 
   if(opt.count("met")){
@@ -188,12 +210,12 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
 
   if(opt.count("anamet")){
     setAnalyticalMetric(opt.m["anamet"].template as<int>());
-    if(iverb >= 1) printf("Using analytical metric %d \n", ianamet);
+    CPRINTF1("Using analytical metric {} \n", ianamet);
   }
 
   if(opt.count("anasol")){
     setAnalyticalSolution(opt.m["anasol"].template as<int>());
-    if(iverb >= 1) printf("Using analytical metric %d \n", ianamet);
+    CPRINTF1("Using analytical metric {} \n", ianamet);
   }
 
   if(opt.count("intp-pdeg")){

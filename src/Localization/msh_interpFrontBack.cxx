@@ -91,7 +91,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     if(bak.bpo2ibi(ibpoi,1) != 0) continue;
     int ipoin = bak.bpo2ibi(ibpoi,0);
     lcorb.stack(ipoin);
-    CPRINTF1(" - back corner point %d \n",ipoin);
+    CPRINTF1(" - back corner point {} \n",ipoin);
   }
   METRIS_ASSERT_MSG(lcorb.get_n() == lcorf.get_n(),
     "Found back cor n = "<<lcorb.get_n()<<" front n = "<<lcorf.get_n());
@@ -115,7 +115,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
       }
     }
     int ipoib = lcorb[imin];
-    CPRINTF1(" - Corner match %d (back) with %d (front) distance %e \n",
+    CPRINTF1(" - Corner match {} (back) with {} (front) distance {} \n",
              ipoib,ipoif,sqrt(dmin));
     msh.poi2bak[ipoif] = ipoib;
     for(int ii = 0; ii < nnmet; ii++)
@@ -123,7 +123,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     // Make unmatchable
     lcorb[imin] = -1;
   }
-  CPRINTF1("-- Matched %d back <-> front corners\n",lcorf.get_n());
+  CPRINTF1("-- Matched {} back <-> front corners\n",lcorf.get_n());
 
 
 
@@ -179,7 +179,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     msh.tag[ithread]++;
     int ptag = msh.tag[ithread];
     if(DOPRINTS2()){
-      CPRINTF2(" - Init front with %d points",lpfro.get_n());
+      CPRINTF2(" - Init front with {} points",lpfro.get_n());
       if(lpfro.get_n() <= 10){
         printf(": ");
         lpfro.print();
@@ -246,14 +246,14 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
       }
       METRIS_ASSERT(ierro == 0);
 
-      CPRINTF1(" - front point %d ball nedge %d nface %d ntetr %d\n",ipseed,
+      CPRINTF1(" - front point {} ball nedge {} nface {} ntetr {}\n",ipseed,
                lentt[0].get_n(),lentt[1].get_n(),lentt[2].get_n());
 
       double algnd_[3];
       for(int tdim = 1; tdim <= msh.get_tdim(); tdim++){
         for(int ientt : lentt[tdim-1]){
           INCVDEPTH(msh.param);
-          CPRINTF1(" - ball dim %d entity %d check for new points\n",tdim,ientt);
+          CPRINTF1(" - ball dim {} entity {} check for new points\n",tdim,ientt);
           METRIS_ASSERT_MSG(ientt >= 0 && ientt < msh.nentt(tdim),
             "front point "<<ipseed
             <<"\nseed edg "<<lentt[0]
@@ -271,7 +271,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
             // Corner not to be localized but matched prior
             if(pdim == 0) continue;
             if(pdim < psdim){
-              CPRINTF1(" - point dim %d < seed dim = %d -> skip\n",pdim, psdim);
+              CPRINTF1(" - point dim {} < seed dim = {} -> skip\n",pdim, psdim);
               continue;
             }
 
@@ -294,7 +294,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
 
             nsucc++;
 
-            CPRINTF1(" - added point %d dim %d to front\n",ipoin,pdim);
+            CPRINTF1(" - added point {} dim {} to front\n",ipoin,pdim);
             lpfro.stack(ipoin);
             msh.poi2tag(ithread,ipoin) = ptag;
           }
@@ -303,17 +303,17 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
 
     }// while lpfro
     if(nsucc != msh.npoin){
-      MPRINTF("## Failed %d points\n",msh.npoin - nsucc);
+      MPRINTF("## Failed {} points\n",msh.npoin - nsucc);
       for(int ipoin = ipoi0; ipoin < msh.npoin; ipoin++){
         if(msh.poi2tag(ithread,ipoin) >= ptag) continue;
-        printf("Failed point %d \n",ipoin);
+        MPRINTF("Failed point {} \n",ipoin);
       }
       METRIS_THROW(GeomExcept());
     }
   //}
 
   double t1 = get_wall_time();
-  CPRINTF1("-- Interp Back -> Front time %f pt/s %d nerror %d \n",t1-t0,
+  CPRINTF1("-- Interp Back -> Front time {:.2e}s pt/s {} nerror {} \n",t1-t0,
                                         (int)(msh.npoin/(t1-t0)),lerro.get_n());
 
   if(lerro.get_n() == 0) return;
@@ -400,17 +400,19 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     }
 
     double t2 = get_wall_time();
-    printf("-- Interp Back -> Front phase 2 time %f nfix %d nerror %d \n",t2-t1,
-      nfix, nerro);
+    CPRINTF1("-- Interp Back -> Front phase 2 time {:.2e}s nfix {} nerror {} \n",t2-t1,
+            nfix, nerro);
   }while(nerro > 0 && nfix > 0);
 
   if(nerro == 0) return;
 
-  printf("## ERROR EXIT DUMP ERROR POINTS \n");
-  int ii = 0;
-  for(int ipoin : lerro){
-    if(msh.poi2tag(0,ipoin) < msh.tag[0]) continue;
-    printf("%d : ipoin = %d \n",ii++,ipoin);
+  CPRINTF1("## ERROR EXIT DUMP ERROR POINTS \n");
+  if(DOPRINTS1()){
+    int ii = 0;
+    for(int ipoin : lerro){
+      if(msh.poi2tag(0,ipoin) < msh.tag[0]) continue;
+      CPRINTF1("{} : ipoin = {} \n",ii++,ipoin);
+    }
   }
 }
 

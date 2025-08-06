@@ -14,6 +14,7 @@
 #include "../linalg/det.hxx"
 
 #include "../utils/aux_pp_inc.hxx"
+#include "../utils/mprintf.hxx"
 
 #include "../../SANS/Surreal/SurrealS.h"
 
@@ -32,6 +33,7 @@ void quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   static_assert(tdim <= gdim); 
 
   METRIS_ASSERT(gdim == msh.idim);
+  
 
 
   // Only if metric interpolation is needed
@@ -100,7 +102,8 @@ void quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   
   // This is an actual exception that should never theoretically happen. 
   if(*tra < 1.0e-16){
-    printf("Trace could be negative: %e\n",(double)*tra);
+    GETVDEPTH(msh.param);
+    MPRINTF("## Trace could be negative: {:e}\n",(double)*tra);
     METRIS_THROW_MSG(GeomExcept(),"Zero trace of spd matrix? "<<*tra);
   }
 

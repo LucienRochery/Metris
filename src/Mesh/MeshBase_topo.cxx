@@ -107,17 +107,17 @@ void MeshBase::killpoint(int ipoin){
  //if(dbgprt++ < 10) printf("## DEBUG REMOVE THIS PRINT killpoint\n");
  //bool iprt = false;
  //if(ipoin == 4247) iprt = true;
- //if(iprt) printf("kill point %d poi2ent %d %d poi2bpo %d\n",
+ //if(iprt) printf("kill point {} poi2ent {} {} poi2bpo {}\n",
  //  ipoin,poi2ent(ipoin,0),poi2ent(ipoin,1),poi2bpo[ipoin]);
   for(int ibpoi = poi2bpo[ipoin]; ibpoi >= 0; ibpoi = bpo2ibi(ibpoi,3)){
-  //  if(iprt) printf(" ipoin = %d ibpoi = %d kill\n",ipoin,ibpoi);
+  //  if(iprt) printf(" ipoin = {} ibpoi = {} kill\n",ipoin,ibpoi);
     bpo2ibi(ibpoi,0) = -1;
   }
   poi2bpo[ipoin] = -1;
   poi2ent(ipoin,0) = -1;
   poi2ent(ipoin,1) = -1;
   //if(iprt){
-  //  printf("killed %d wait\n",ipoin);
+  //  printf("killed {} wait\n",ipoin);
   //  check_topo(*this,METRIS_MAXTAGS-1);
   //  exit(1);
   //  wait();
@@ -360,7 +360,7 @@ void MeshBase::rembpotag(int ipoin, int ithread){
     }
     int ibpon = bpo2ibi(ibpoc,3); // next
 
-    CPRINTF2(" - rembpotag ip %d ib %d entity %d dim %d remove ? %d ent tag %d tag %d\n",
+    CPRINTF2(" - rembpotag ip {} ib {} entity {} dim {} remove ? {} ent tag {} tag {}\n",
              ipoin, ibpoc, ientt, tdim, rement, ietag, itag);
     
     if(rement){ // Remove this entry 

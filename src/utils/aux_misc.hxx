@@ -38,11 +38,6 @@
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
-template<typename _Ty1, typename _Ty2>
-std::ostream& operator<<(std::ostream& _os, const std::pair<_Ty1, _Ty2>& _p) {
-    _os << '(' << _p.first << ',' << _p.second << ')';
-    return _os;
-}
 
 namespace Metris{
 
@@ -57,8 +52,6 @@ void wait();
 
 void print_ordering_tet(int ideg);
 void print_ordering_fac(int ideg);
-
-void print_EGADS_error(std::string fname, int ierro);
 
 
 // sortupto8_dec implemented using optimal sorting networks
@@ -255,22 +248,6 @@ inline void gen_argv(int *argc, char **argv, std::string cmd){
     (*argc)++;
   }
 }
-
-
-
-
-//     iinter = 1 : linear progression between min and max value
-//     iinter = 2 ; geometric
-//     nlist: input size
-//     rlist: values
-//     llist: indices ; for instance, if rlist pertains to edges, perhaps
-//                      min and max should print llist(imin) and llist(imax)
-//                      instead
-//     if llist = NULL, simply index 0 ... nlist - 1
-// T is any hash table type with an iterator that has a ->first and ->second double field
-void generic_hist(double *rlist,int nlist, int *llist,double vlo,double vhi,
-                  const char *vname,const char *title,int iinter);
-
 
 
 

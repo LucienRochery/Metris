@@ -578,7 +578,7 @@ constexpr  int idx_invord_tab_tet(int i,int j,int k,int l){
     return 0;
   }
   else{
-//        printf("Debug d-i=%d j = %d k = %d l = %d fac = %d \n",d-i,j,k,l,idx_invord_tab_fac(d-i,j,k,l));
+//        printf("Debug d-i={} j = {} k = {} l = {} fac = {} \n",d-i,j,k,l,idx_invord_tab_fac(d-i,j,k,l));
     return idx_invord_tab_fac(j,k,l) + getnnod3(j+k+l-1);
   }
 
@@ -675,17 +675,17 @@ struct cbzedg_constructor{
     for(int ideg = 1; ideg <= METRIS_MAX_DEG_EVAL; ideg++){
       int npp = getnnod1(ideg-1);
       // Loop over previous degree multiply each by B_{e_1}+ .. and accumulate
-//      printf("\nDebug ideg = %d \n",ideg);
+//      printf("\nDebug ideg = {} \n",ideg);
       for(int i=0;i<npp;i++){
         int i1 = ordedg.s[ideg-1][i][0];
         int i2 = ordedg.s[ideg-1][i][1];
-//        printf("Debug i = %d i1, i2 = %d %d, ",i,i1,i2);
+//        printf("Debug i = {} i1, i2 = {} {}, ",i,i1,i2);
         int irnk = mul2nod(1+i1,i2);
-//        printf("irnk1 = %d ",irnk);
+//        printf("irnk1 = {} ",irnk);
         s[ideg][irnk] += s[ideg-1][i];
 
         irnk = mul2nod(i1,1+i2);
-//        printf("irnk2 = %d \n",irnk);
+//        printf("irnk2 = {} \n",irnk);
         s[ideg][irnk] += s[ideg-1][i];
       }
     }

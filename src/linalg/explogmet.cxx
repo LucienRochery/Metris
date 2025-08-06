@@ -13,9 +13,12 @@
 #include "../linalg/matprods.hxx"
 #include "../linalg/utils.hxx"
 
+#include "../utils/mprintf.hxx"
+
 #include <cmath>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <Eigen/Dense>
+#include "fmt/format.h"
 
 namespace Metris{
 
@@ -50,19 +53,12 @@ void getlogmet_inp(T *met){
     }
     #endif
 
-    printf("Invalid metric: \n");
+    fmt::print("Invalid metric: ");
     int nnmet = (ndim*(ndim+1))/2;
-    if constexpr (std::is_same<T, double>::value){
-      for(int ii = 0 ; ii < nnmet; ii++) printf(" %23.15e ",met[ii]); 
-    }else{
-      for(int ii = 0 ; ii < nnmet; ii++) std::cout<<met[ii]<<" ";
-    }
-    std::cout<<"\n";
+    MeshArray1D<T, int>(nnmet,met).print();
 
-    if constexpr(std::is_same<T,double>::value){
-      std::cout<<"eigvals:";
-      dblAr1(ndim,eigval).print();
-    }
+    fmt::print("eigvals:");
+    MeshArray1D<T, int>(ndim,eigval).print();
 
     METRIS_THROW_MSG(RealExcept(),"Negative eigenvalues");
   }

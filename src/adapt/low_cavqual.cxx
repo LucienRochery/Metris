@@ -37,7 +37,7 @@ bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1){
     nordev0_avg += nordev;
     // Also tag faces for final dev computation
     msh.fac2tag(ithrd1,iface) = msh.tag[ithrd1];
-    CPRINTF1(" - initial face %d nordev = %e\n",iface,nordev);
+    CPRINTF1(" - initial face {} nordev = {}\n",iface,nordev);
   }
   nordev0_avg /= cav.lcfac.get_n();
   
@@ -60,7 +60,7 @@ bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1){
       double nordev = getnordev<1>(msh, nfac0);
       nordev1_max = MAX(nordev1_max, nordev);
       nordev1_avg += nordev;
-      CPRINTF1(" - new face %d %d %d nordev = %e\n",msh.fac2poi(nfac0,0),msh.fac2poi(nfac0,1),msh.fac2poi(nfac0,2),nordev);
+      CPRINTF1(" - new face {} {} {} nordev = {}\n",msh.fac2poi(nfac0,0),msh.fac2poi(nfac0,1),msh.fac2poi(nfac0,2),nordev);
     }
   }
   nordev1_avg /= cav.lcfac.get_n();
@@ -68,7 +68,7 @@ bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1){
   msh.bpo2ibi(ibins,2) = ibins_fac;
   msh.set_nface(nfac0);
 
-  CPRINTF1("-- END rejcavnordev nordev max = %f -> %f avg = %f -> %f\n",
+  CPRINTF1("-- END rejcavnordev nordev max = {} -> {} avg = {} -> {}\n",
            nordev0_max, nordev1_max, nordev0_avg, nordev1_avg);
 
   return nordev1_max > nordev0_max*1.01;
@@ -99,12 +99,12 @@ void getquacav(Mesh<MFT>& msh, MshCavity &cav,
       }}CT_FOR1(tdim_c);
     }}CT_FOR1(gdim);
 
-    MPRINTF(" ientt %d nodes %d %d %d %d qua %e\n", ientt,
+    MPRINTF(" ientt {} nodes {} {} {} {} qua {}\n", ientt,
             ent2poi(ientt,0), ent2poi(ientt,1), ent2poi(ientt,2), tdim == 3 ? ent2poi(ientt,3) : -1, quael);
     if(quael < *qumin0) *qumin0 = quael;
     if(quael > *qumax0) *qumax0 = quael;
     *quavg0 += quael;
-    //printf(" - ientt %d qua %f\n",ientt,qua);
+    //printf(" - ientt {} qua {}\n",ientt,qua);
   }
 
   if(lcent.get_n() > 0) *quavg0 /= lcent.get_n();
@@ -133,7 +133,7 @@ void getquacav(Mesh<MFT>& msh, MshCavity &cav,
           }
           nnewe++;
           double quael = metqua<MFT,gdim,tdim_c,iquaf,double>(msh, AsDeg::Pk, AsDeg::Pk, iedum);
-          MPRINTF(" ientt %d nei %d;  nodes %d %d %d %d qua %e\n",ientt,ienei,
+          MPRINTF(" ientt {} nei {};  nodes {} {} {} {} qua {}\n",ientt,ienei,
                   ent2poi(iedum,0), ent2poi(iedum,1), ent2poi(iedum,2), tdim == 3 ? ent2poi(iedum,3) : -1, quael);
           if(quael < *qumin1) *qumin1 = quael;
           if(quael > *qumax1) *qumax1 = quael;
@@ -147,7 +147,7 @@ void getquacav(Mesh<MFT>& msh, MshCavity &cav,
   ent2poi(iedum,0) = -1;
   msh.set_nentt(tdim, ent2poi.get_n() - 1);
 
-  CPRINTF1("-- END getquacav: min %f -> %f max %f -> %f avg %f -> %f\n",*qumin0,*qumin1,*qumax0,*qumax1,*quavg0,*quavg1);
+  CPRINTF1("-- END getquacav: min {} -> {} max {} -> {} avg {} -> {}\n",*qumin0,*qumin1,*qumax0,*qumax1,*quavg0,*quavg1);
 }
 
 template
@@ -186,7 +186,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
   //iverb__ = 5;
   //ivdepth__ = 5;
 
-  CPRINTF1("-- START collrejcav_lenqua filter long %d short %d grow %d\n",
+  CPRINTF1("-- START collrejcav_lenqua filter long {} short {} grow {}\n",
            filter_long,filter_short,grow_check);
 
 
@@ -286,8 +286,8 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
       double quaed = len < 1.0 ? 1.0 - len 
                                : 1.0 - 1.0 / len;
 
-      CPRINTF1(" - 0 orig len = %e score %e \n", len, quaed);
-      //CPRINTF1(" met 1: %f %f %f met 2 : %f %f %f\n",msh.met(ipoi1,0),msh.met(ipoi1,1),msh.met(ipoi1,2)
+      CPRINTF1(" - 0 orig len = {} score {} \n", len, quaed);
+      //CPRINTF1(" met 1: {} {} {} met 2 : {} {} {}\n",msh.met(ipoi1,0),msh.met(ipoi1,1),msh.met(ipoi1,2)
       //  ,msh.met(ipoi2,0),msh.met(ipoi2,1),msh.met(ipoi2,2));
       qua0 = MAX(qua0, quaed);
 
@@ -345,7 +345,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
           double quaed = len < 1.0 ? 1.0 - len 
                                    : 1.0 - 1.0 / len;
 
-          CPRINTF1(" - %d new edg2pol = %d %d len = %e score %e \n",ngrow+1,edg2pol[0],edg2pol[1],
+          CPRINTF1(" - {} new edg2pol = {} {} len = {} score {} \n",ngrow+1,edg2pol[0],edg2pol[1],
             len, quaed);
           if(len > sqrt(2) && filter_long){
             CPRINTF1(" -> skip long edge (filter_long)\n");
@@ -354,7 +354,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
             CPRINTF1(" -> skip short edge (filter_short)\n");
             continue;
           }
-        //CPRINTF1(" met 1: %f %f %f met 2 : %f %f %f\n",msh.met(edg2pol[0],0),msh.met(edg2pol[0],1),msh.met(edg2pol[0],2)
+        //CPRINTF1(" met 1: {} {} {} met 2 : {} {} {}\n",msh.met(edg2pol[0],0),msh.met(edg2pol[0],1),msh.met(edg2pol[0],2)
         //  ,msh.met(edg2pol[1],0),msh.met(edg2pol[1],1),msh.met(edg2pol[1],2));
           qua1 = MAX(qua1, quaed);
 
@@ -379,9 +379,9 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
     icen0 = icen1;
     icen1 = lcent.get_n();
     // Also captures case flag is off
-    CPRINTF1(" - cavity grown by %d new qua1 = %e\n",nadded,qua1);
+    CPRINTF1(" - cavity grown by {} new qua1 = {}\n",nadded,qua1);
     //if(abs(qua1 - qua1_prev) > 1.0e-6 && qua1_prev > 0){
-    //  printf("## DEBUG AN UPDATE IN QUA1 %e -> %e iter %d\n",qua1_prev, qua1,ngrow);
+    //  printf("## DEBUG AN UPDATE IN QUA1 {} -> {} iter {}\n",qua1_prev, qua1,ngrow);
     //  wait();
     //}
     if(nadded == 0) break;
@@ -392,11 +392,11 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
   msh.tag[ithrd1] = maxtag;
   lcent.set_n(ncent0);
 
-  CPRINTF1(" - END collrejcav_lenqua got lenqua %e -> %e\n", qua0, qua1);
+  CPRINTF1(" - END collrejcav_lenqua got lenqua {} -> {}\n", qua0, qua1);
 
   if(qua1 >= 0.99*qua0) return 1;
   if(filter_long && qua1 >= lenqua_short_max){
-    CPRINTF1(" # reject due to qua1 >= lenqua_short_max: %e >= %e\n",qua1,lenqua_short_max);
+    CPRINTF1(" # reject due to qua1 >= lenqua_short_max: {} >= {}\n",qua1,lenqua_short_max);
     return 2;
   }
   return 0;
@@ -527,7 +527,7 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, double *dens0_, double *dens
           volB += getmeasent_aniso<MFT,gdim,ideg>(msh, ientt);
           }MSH_DIM_DEG1();
         }
-        CPRINTF1(" - cav bdry pt %d has tot vol %e, internal %e, counts as %e\n",
+        CPRINTF1(" - cav bdry pt {} has tot vol {}, internal {}, counts as {}\n",
                  ipoin, volB, volpoc[ipoin], volpoc[ipoin] / volB);
         nbdrpt += volpoc[ipoin] / volB;
       }// for iver
@@ -550,13 +550,13 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, double *dens0_, double *dens
   const int ninspt = cav.inewp ? 1 : 0;
   double dens0 = (nrempt + nbdrpt) / voltot;
   double dens1 = (nbdrpt + ninspt) / voltot; 
-  printf("debug nrempt %d nbdrypt %f ninspt %d\n", nrempt, nbdrpt, ninspt);
+  CPRINTF2(" - debug nrempt {} nbdrypt {} ninspt {}\n", nrempt, nbdrpt, ninspt);
 
   *dens0_ = dens0;
   *dens1_ = dens1;
 
-  CPRINTF1(" - counted nrempt = %d boundary points %f\n",nrempt,nbdrpt);
-  CPRINTF1(" - initial cavity density = %e final = %e, nentt = %d\n",
+  CPRINTF1(" - counted nrempt = {} boundary points {}\n",nrempt,nbdrpt);
+  CPRINTF1(" - initial cavity density = {} final = {}, nentt = {}\n",
            dens0, dens1, ncent);
 
   //if(nrempt > 5){
@@ -569,7 +569,7 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, double *dens0_, double *dens
   double pi = 3.141592653589793238462643383279502884;
   double opt_dens = msh.get_tdim() == 2 ? pi / 4 : 0.54;
   if(abs(dens0 - opt_dens) < abs(dens1 - opt_dens)){
-    CPRINTF1(" # %e > %e -> reject\n",abs(dens1 - opt_dens), abs(dens0 - opt_dens));
+    CPRINTF1(" # {} > {} -> reject\n",abs(dens1 - opt_dens), abs(dens0 - opt_dens));
     return 1;
   }
 
@@ -698,7 +698,7 @@ int collrejcav_len(Mesh<MFT>& msh, MshCavity &cav, int ithrd1){
     }// for ifa
   }// for ientt
 
-  CPRINTF1(" - collrejcav_len got short %d -> %d, long %d -> %d\n",
+  CPRINTF1(" - collrejcav_len got short {} -> {}, long {} -> {}\n",
            nshort0,nshort1,nlong0,nlong1);
 
   writeMeshCavity("collapse_cavity0.meshb", msh, cav);

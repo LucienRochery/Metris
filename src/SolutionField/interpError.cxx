@@ -421,12 +421,12 @@ double interpErr(const SolutionFieldAnalytical &sol, int ielem,
   // Hence nnode x int(any Bernstein) = int_(^K) 1 = 1/d!. 
   double err_tot = 0;
   for(int inode = 0; inode < nnode_intgd; inode++){
-    //printf("debug inode %d coef %e \n",inode,rfld_intgd(inode,0));
+    //printf("debug inode {} coef {} \n",inode,rfld_intgd(inode,0));
     err_tot += rfld_intgd(inode,0);
 
     if(nderiv == 0) continue;
     for(int ii = 0; ii < idim; ii++){
-      //printf("debug inode %d ii %d add %f \n",inode,ii,d1err[ii]);
+      //printf("debug inode {} ii {} add {} \n",inode,ii,d1err[ii]);
       d1err[ii] += d1fld_intgd(inode,ii);
     }
 

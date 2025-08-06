@@ -13,6 +13,8 @@
 #include "aux_exceptions.hxx"
 #include <cmath>
 
+#include "fmt/format.h"
+
 
 namespace Metris{
 
@@ -67,7 +69,7 @@ void anamet2D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   }
 
   if(ctx != NULL){
-    printf("anamet2D_2 debug r = %.6f theta = %.6f\n", r.value(), theta.value());
+    fmt::print("anamet2D_2 debug r = {:.6f} theta = {:.6f}\n", r.value(), theta.value());
   }
 
   // eig2met is in R^T D R format. Worst case we are using -theta. 
@@ -185,7 +187,7 @@ void anamet2D_5([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   }
 
   if(ctx != NULL){
-    printf("anamet2D_2 debug r = %.6f theta = %.6f\n", r.value(), theta.value());
+    fmt::print("anamet2D_2 debug r = {:.6f} theta = {:.6f}\n", r.value(), theta.value());
   }
 
   // eig2met is in R^T D R format. Worst case we are using -theta. 
@@ -201,11 +203,11 @@ void anamet2D_5([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
 
   #ifndef NDEBUG
   if(idif1 > 0){
-    //printf("debug r = %15.7e theta = %15.7e print met = %15.7e %15.7e %15.7e \n",
+    //fmt::print("debug r = {:15.7e} theta = {:15.7e} print met = {:15.7e} {:15.7e} {:15.7e} \n",
     //  r.value(), theta.value(), met[0],met[1],met[2]);
     for(int ii = 0; ii < 6; ii++){
       if(std::isnan(dmet[ii])){
-        printf("## NAN METRIS IN ANAMET 5 ! coop = %f %f \n",crd[0],crd[1]);
+        fmt::print("## NAN METRIS IN ANAMET 5 ! coop = {} {} \n",crd[0],crd[1]);
         METRIS_THROW(GeomExcept());
       }
     }
@@ -258,7 +260,7 @@ void anamet2D_6([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   }
 
   if(ctx != NULL){
-    printf("anamet2D_2 debug r = %.6f theta = %.6f\n", r.value(), theta.value());
+    fmt::print("anamet2D_2 debug r = {:.6f} theta = {:.6f}\n", r.value(), theta.value());
   }
 
   // eig2met is in R^T D R format. Worst case we are using -theta. 

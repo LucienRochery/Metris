@@ -46,7 +46,7 @@ int insertEdge(Mesh<MFT>& msh,
   //  msh.param->iverb  = 5;
   //  msh.param->ivdepth= 5;
   //  if(lerro[19] > 0){
-  //    printf("## DEBUG START WITH LERRO[19] = %d \n",lerro[19]);
+  //    printf("## DEBUG START WITH LERRO[19] = {} \n",lerro[19]);
   //    wait();
   //  }
   //}
@@ -103,11 +103,11 @@ int insertEdge(Mesh<MFT>& msh,
   int ip1 = ent2poi(ientt,lnoed[iedl][0]);
   int ip2 = ent2poi(ientt,lnoed[iedl][1]);
 
-  CPRINTF1("-- START insertEdge tdim = %d ientt = %d ied %d = %d %d\n",tdim,ientt,iedl,ip1,ip2);
+  CPRINTF1("-- START insertEdge tdim = {} ientt = {} ied {} = {} {}\n",tdim,ientt,iedl,ip1,ip2);
   // The shell does not need pdim to gather elements: always use
   int iopen;
   shell(msh,ip1,ip2,tdim,ientt,cav.lcedg,cav.lcfac,cav.lctet,&iopen);
-  CPRINTF1(" - cavity seed nedge %d nface %d ntetr %d\n",
+  CPRINTF1(" - cavity seed nedge {} nface {} ntetr {}\n",
            cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
   if(DOPRINTS2()){
     cav.print(msh);
@@ -185,13 +185,13 @@ int insertEdge(Mesh<MFT>& msh,
   //}
 
 
-  CPRINTF1(" - create ipins %d tdim = %d seed %d ref %d icollapse %d\n",cav.ipins,tdimp,iseed,iref,icollapse);
+  CPRINTF1(" - create ipins {} tdim = {} seed {} ref {} icollapse {}\n",cav.ipins,tdimp,iseed,iref,icollapse);
 
   bool imoved_point = false;
 
   ierro = aux_bisecPointLen(msh, tdim, ientt, iedl, ibins, tdimp, iseed, iref, icollapse, cav);
   if(ierro != 0){
-    CPRINTF1(" # Failed aux_bisecPointLen ierro = %d\n",ierro);
+    CPRINTF1(" # Failed aux_bisecPointLen ierro = {}\n",ierro);
     goto cleanup;
   }
   // Seed the cavity properly
@@ -249,7 +249,7 @@ call_cavity:
     msh.param->iverb = iverb0;
     msh.param->ivdepth = ivdepth0;
     //if(idbg && !irej){
-    //  printf("## DEBUG WAIT HERE irej = %d\n",irej);
+    //  printf("## DEBUG WAIT HERE irej = {}\n",irej);
     //  wait();
     //}
     if(irej){
@@ -278,7 +278,7 @@ restart_cavity:
   //  lerro.print();
   //  wait();
   //  if(ierro > 0){
-  //    printf("Error %d wait \n",ierro);
+  //    printf("Error {} wait \n",ierro);
   //    wait();
   //  }
   //}
@@ -297,13 +297,13 @@ restart_cavity:
     }
     ierro = increase_cavity_Delaunay(msh, cav, -1, ithrd1);
     if(ierro != 0){
-      CPRINTF1(" - +cav error %d\n",ierro);
+      CPRINTF1(" - +cav error {}\n",ierro);
       ierro = INS2D_ERR_INCCAV2D;
       goto cleanup;
     }
     ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
     if(ierro != 0){
-      CPRINTF1(" - +cav error %d\n",ierro);
+      CPRINTF1(" - +cav error {}\n",ierro);
       ierro = INS2D_ERR_INCCAV2D;
       goto cleanup;
     }
@@ -319,12 +319,12 @@ restart_cavity:
   if(info.done){
 
     if(idbg){
-      printf("## CAVITY SUCCESSFUL inserted ipoin %d \n",cav.ipins);
+      PRINTF("## CAVITY SUCCESSFUL inserted ipoin {} \n",cav.ipins);
       writeMeshCavity("insert_cavity_success.meshb", msh, cav);
       writeMesh("insert_mesh_success.meshb", msh);
       wait();
     }
-    CPRINTF1("-- END insertEdge ipins = %d  \n",cav.ipins);
+    CPRINTF1("-- END insertEdge ipins = {}  \n",cav.ipins);
     #ifndef NDEBUG
       if(DOPRINTS2()) writeMesh("debug_insert1.meshb",msh);
     #endif
@@ -337,10 +337,10 @@ restart_cavity:
   msh.killpoint(cav.ipins);
   msh.param->iverb = iverb0;
   msh.param->ivdepth = ivdepth0;
-  if(DOPRINTS1() && ierro_cavity > 0){
-    printf("## DEBUG IERRO = %d \n",ierro_cavity);
-    wait();
-  }
+  //if(DOPRINTS1() && ierro_cavity > 0){
+  //  printf("## DEBUG IERRO = {} \n",ierro_cavity);
+  //  wait();
+  //}
   return ierro;
 }
 

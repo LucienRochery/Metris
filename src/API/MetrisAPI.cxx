@@ -309,7 +309,7 @@ void MetrisAPI::setDegree(int tardeg){
     }//elseif ideg 
 
     if(ndead[tdim-1] > 0) 
-      printf("# Warning: %d dead tdim %d elements in API\n",
+      fmt::print("# Warning: {} dead tdim {} elements in API\n",
              ndead[tdim-1], tdim);
   }//for tdim
   ideg = tardeg;

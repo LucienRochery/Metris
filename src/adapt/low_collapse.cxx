@@ -95,7 +95,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
   int ip2 = ent2poi(ientt,lnoed[iedl][1]);
 
 
-  CPRINTF1("-- START collapseEdge ientt = %d tdim %d iedl = %d = (%d,%d) \n",
+  CPRINTF1("-- START collapseEdge ientt = {} tdim {} iedl = {} = ({},{}) \n",
            ientt,tdim,iedl,ip1,ip2);
   if(DOPRINTS2()) writeMesh("debug_collapse0.meshb",msh);
 
@@ -105,13 +105,13 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
     int ipoin = ent2poi(ientt,lnoed[iedl][ii]);
     tdimp[ii] = msh.getpoitdim(ipoin);
     if(DOPRINTS2() && tdimp[ii] == 0){
-      CPRINTF2("Topo dim 0 point %d \n",ipoin);
+      CPRINTF2("Topo dim 0 point {} \n",ipoin);
       int ib = msh.poi2bpo[ipoin];
-      CPRINTF2("poi2bpo = %d bpo2ibi = ",ib);
+      CPRINTF2("poi2bpo = {} bpo2ibi = ",ib);
       intAr1(nibi,msh.bpo2ibi[ib]).print();
     }
   }
-  CPRINTF1(" - topo dims %d %d \n",tdimp[0],tdimp[1]);
+  CPRINTF1(" - topo dims {} {} \n",tdimp[0],tdimp[1]);
 
   tdimc = MAX(tdimp[0], tdimp[1]);
 
@@ -134,7 +134,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
 
     ierro = ball(msh, ipcol, cav.lcedg, cav.lcfac, cav.lctet,
                  &iopen, ithrd1);
-    CPRINTF1(" - try collapse poi = %d seed ntetr = %d nface = %d nedge = %d \n",
+    CPRINTF1(" - try collapse poi = {} seed ntetr = {} nface = {} nedge = {} \n",
                     ipcol,cav.lctet.get_n(),cav.lcfac.get_n(),cav.lcedg.get_n());
     //METRIS_ASSERT(iopen == 0); // open won't collapse
     METRIS_ASSERT(ierro == 0);
@@ -163,7 +163,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
         // e.g. a triangle point can be collapsed and reconnection done to an edge
         // point, but not to a volume point. 
         if(msh.getpoitdim(ipins) > tdimp[iver]){
-          CPRINTF1(" - point %d dim %d > ipins dim %d -> reject reconnection\n",
+          CPRINTF1(" - point {} dim {} > ipins dim {} -> reject reconnection\n",
             ipins,msh.getpoitdim(ipins),tdimp[iver]);
           continue;
         }
@@ -190,7 +190,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
             METRIS_ASSERT(msh.poi2ent(ipins,1) == tdimp[iver]);
             int iref1 = msh.ent2ref(tdimp[iver])[ient1];
             if(iref1 != iref){
-              CPRINTF1(" - point %d dim %d = dim ipins but ref %d != %d\n",
+              CPRINTF1(" - point {} dim {} = dim ipins but ref {} != {}\n",
                        ipins,tdimp[iver],iref1,iref);
               continue;
             }
@@ -202,7 +202,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
               if(tdim1 != tdimp[iver]) continue;
               int ient1 = msh.bpo2ibi(ibpoi,2);
               int iref1 = msh.ent2ref(tdimp[iver])[ient1];
-              CPRINTF1(" - check entity %d dim %d ref %d ipcol ref = %d\n",
+              CPRINTF1(" - check entity {} dim {} ref {} ipcol ref = {}\n",
                        ient1,tdim1,iref1,iref);
               if(iref1 != iref) continue;
               CPRINTF1(" -> found ref\n");
@@ -210,7 +210,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
               break;
             }
             if(!ifnd){
-              CPRINTF1(" - did not find ref %d dim %d of ipcol in ipins %d refs\n",
+              CPRINTF1(" - did not find ref {} dim {} of ipcol in ipins {} refs\n",
                        iref,tdimp[iver],ipins);
               continue;
             }
@@ -221,7 +221,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
         cav.lctet.set_n(nbalt);
         cav.lcfac.set_n(nbalf); // Revert to simple ball 
         cav.lcedg.set_n(nbale); // Revert 
-        CPRINTF1(" - try reinsert point %d tag = %d vs %d \n",
+        CPRINTF1(" - try reinsert point {} tag = {} vs {} \n",
                              ipins,msh.poi2tag(ithrd1,ipins),tag0);
 
         if(DOPRINTS2()) writeMeshCavity("collapse_cavity0.meshb", msh, cav);
@@ -242,7 +242,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
         //printf("Debug wait;\n");
         // If operation was done, out
         if(info.done){
-          CPRINTF1("-- END collapseEdge successful using ipcol = %d ipins = %d \n",ipcol,ipins);
+          CPRINTF1("-- END collapseEdge successful using ipcol = {} ipins = {} \n",ipcol,ipins);
           if(DOPRINTS2()) writeMesh("debug_collapse1.meshb",msh);
           msh.poi2ent(ipcol,0) = -1;
           msh.poi2ent(ipcol,1) = -1;
@@ -252,7 +252,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
         }
         if(info.done) return 0;
 
-        CPRINTF1(" - return qmax = %f \n",info.qmax_end);
+        CPRINTF1(" - return qmax = {} \n",info.qmax_end);
         if(info.qmax_end < qmabest && ierro == 0){
           CPRINTF1(" - new best quality !\n");
           qmabest = info.qmax_end;
@@ -307,13 +307,13 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
   int tdimp = msh.getpoitdim(ipcol);
   if(tdimp == 0) return 1;
 
-  CPRINTF1("-- START collapseVertex ipcol = %d tdimp = %d\n",ipcol,tdimp);
+  CPRINTF1("-- START collapseVertex ipcol = {} tdimp = {}\n",ipcol,tdimp);
 
 
   int iopen;
   ierro = ball(msh, ipcol, cav.lcedg, cav.lcfac, cav.lctet,
                &iopen, false, ithrd1);
-  CPRINTF1(" - try collapse poi = %d ball nface = %d nedge = %d \n",
+  CPRINTF1(" - try collapse poi = {} ball nface = {} nedge = {} \n",
                               ipcol,cav.lcfac.get_n(),cav.lcedg.get_n());
   METRIS_ASSERT(ierro == 0);
 
@@ -348,7 +348,7 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
       cav.lctet.set_n(nbalt);
       cav.lcfac.set_n(nbalf); // Revert to simple ball 
       cav.lcedg.set_n(nbale); // Revert 
-      CPRINTF1(" - try reinsert point %d tag = %d vs %d \n",
+      CPRINTF1(" - try reinsert point {} tag = {} vs {} \n",
                            ipins,msh.poi2tag(ithrd1,ipins),tag0);
 
       if(DOPRINTS2()) writeMeshCavity("collapse_cavity0.meshb", msh, cav);
@@ -369,13 +369,13 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
       //printf("Debug wait;\n");
       // If operation was done, out
       if(info.done){
-        CPRINTF1("-- END collapseEdge successful using ipcol = %d ipins = %d \n",ipcol,ipins);
+        CPRINTF1("-- END collapseEdge successful using ipcol = {} ipins = {} \n",ipcol,ipins);
         if(DOPRINTS2()) writeMesh("debug_collapse1.meshb",msh);
         msh.killpoint(ipcol);
       }
       if(info.done) return 0;
 
-      CPRINTF1(" - cavity return qmax = %f \n",info.qmax_end);
+      CPRINTF1(" - cavity return qmax = {} \n",info.qmax_end);
     }// for ive2
   }// for icent
   return 1;

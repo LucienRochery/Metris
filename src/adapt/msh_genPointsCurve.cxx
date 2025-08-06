@@ -35,7 +35,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
   int nnewp = MAX(round(crvlen) - 1, 2);
   double tarlen = crvlen / nnewp;
 
-  CPRINTF1(" - edge ref %d cor0 %d range = (%f,%f), length %f, creating %d points for tarlen %f\n",
+  CPRINTF1(" - edge ref {} cor0 {} range = ({},{}), length {}, creating {} points for tarlen {}\n",
                         iref,icor0,range[0],range[1],crvlen,nnewp,tarlen);
 
 
@@ -75,9 +75,9 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
     tspoi[0] = range[1];
   }
 
-  CPRINTF1(" - init tess point 0 t = %f range[0] = %f range[1] = %f\n",
+  CPRINTF1(" - init tess point 0 t = {} range[0] = {} range[1] = {}\n",
            tspoi[0],range[0],range[1]);
-  CPRINTF1(" - ibcr0 = %d from icor0 = %d has bpo2rbi = %f %f\n",
+  CPRINTF1(" - ibcr0 = {} from icor0 = {} has bpo2rbi = {} {}\n",
             ibcr0,icor0,msh.bpo2rbi(ibcr0,0),msh.bpo2rbi(ibcr0,1));
 
 
@@ -120,7 +120,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
         }        
         bool inbd = (tval >= tedg[0] && tval <= tedg[1])
                  || (tval <= tedg[0] && tval >= tedg[1]);
-        if(!inbd) MPRINTF(" (1) New t %f not in edge bounds %f %f \n",tval, 
+        if(!inbd) MPRINTF(" (1) New t {} not in edge bounds {} {} \n",tval, 
                           tedg[0],tedg[1]);
         METRIS_ASSERT_MSG(inbd,"Ini tess point t not in edge t bounds.");
       #endif
@@ -140,12 +140,12 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
       }
 
 
-      CPRINTF1(" - new tess pt %d t = %f new edge %d = %d %d orig mesh edge %d ",ntpoi,tval,
+      CPRINTF1(" - new tess pt {} t = {} new edge {} = {} {} orig mesh edge {} ",ntpoi,tval,
                ntedg,ntpoi-1,ntpoi,iedge);
       #ifndef NDEBUG
-      if(DOPRINTS1()) printf(" ts = %f %f \n",tedg[0],tedg[1]);
+      if(DOPRINTS1()) PRINTF(" ts = {} {} \n",tedg[0],tedg[1]);
       #else
-      if(DOPRINTS1()) printf("\n");
+      if(DOPRINTS1()) PRINTF("\n");
       #endif
 
       ierro = EG_evaluate(CADed, &tval, result);
@@ -166,7 +166,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
       ipprv = ipnxt;
       iedge = msh.edg2edg(iedge,iver);
     }// while true
-    CPRINTF1(" - Phase 1 tess npoin = %d\n",tspoi.get_n());
+    CPRINTF1(" - Phase 1 tess npoin = {}\n",tspoi.get_n());
     msh.met.setSpace(ispac0);
 
     // Now go over tessellation edges, compute lengths and split if needed
@@ -189,7 +189,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
 
       double len = sqrt(met1) * abs(tspoi[itpo1] - tspoi[itpo2]);
 
-      CPRINTF3(" - edge %d / %d verts %d %d sz %f %f len %f mesh edge %d \n",
+      CPRINTF3(" - edge {} / {} verts {} {} sz {} {} len {} mesh edge {} \n",
                itsed,tsedg.get_n(),itpo1,itpo2,sz1,sz2,len,tsbke[itsed]);
 
       if(len <= tessltar){
@@ -231,11 +231,11 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
         bool inbd = (tnewp >= tedg[0] && tnewp <= tedg[1])
                  || (tnewp <= tedg[0] && tnewp >= tedg[1]);
         if(!inbd){
-          MPRINTF("New t %f not in edge bounds %f %f \n",tnewp, 
+          MPRINTF("New t {} not in edge bounds {} {} \n",tnewp, 
                           tedg[0],tedg[1]);
-          MPRINTF("Edge is %d vertices %d %d \n",iseed,msh.edg2poi(iseed,0)
+          MPRINTF("Edge is {} vertices {} {} \n",iseed,msh.edg2poi(iseed,0)
                   ,msh.edg2poi(iseed,1));
-          MPRINTF("itpo1 = %d itpo2 = %d tspoi = %f %f\n",itpo1,itpo2,
+          MPRINTF("itpo1 = {} itpo2 = {} tspoi = {} {}\n",itpo1,itpo2,
                    tspoi[itpo1],tspoi[itpo2]);
           writeMesh("debug_t",msh);
         }
@@ -265,10 +265,10 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
         }else if(ted2ed(inei1,1) == itsed){
           ted2ed(inei1,1) = ienew;
         }else{
-          printf("## inei1 does not point to old edge!\n");
-          printf("itsed %d inei1 %d \n",itsed,inei1);
+          MPRINTF("## inei1 does not point to old edge!\n");
+          MPRINTF("itsed {} inei1 {} \n",itsed,inei1);
           for(int itse2 = 0; itse2 < tsedg.get_n(); itse2++){
-            printf(" %d : %d %d neighbours %d %d \n",itse2,tsedg(itse2,0),tsedg(itse2,1),
+            MPRINTF(" {} : {} {} neighbours {} {} \n",itse2,tsedg(itse2,0),tsedg(itse2,1),
               ted2ed(itse2,0),ted2ed(itse2,1));
           }
           wait();
@@ -280,7 +280,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
     }// while itsed
 
     double adjusted_tarlen = lentes / (MAX(round(lentes) - 1,1));
-    CPRINTF1(" - Phase 2 tess npoin = %d new length %f tarlen %f -> %f \n",
+    CPRINTF1(" - Phase 2 tess npoin = {} new length {} tarlen {} -> {} \n",
              tspoi.get_n(),lentes,tarlen,adjusted_tarlen);
     tarlen = adjusted_tarlen;
   }
@@ -325,13 +325,13 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
           double met1 = sqrt(sze * lastmet);
           double reslen = sqrt(met1) * abs(tspoi[itpoe] - tlastp);
 
-          CPRINTF1("-- reached end: len to last = %e to corner = %e w/ range %f %f \n",
+          CPRINTF1("-- reached end: len to last = {} to corner = {} w/ range {} {} \n",
             lastlen, reslen, range[0],range[1]);
-          CPRINTF1(" using tlast = %f tend = %f sz1 = %e sz2 = %e\n",tlastp, tspoi[itpoe],
+          CPRINTF1(" using tlast = {} tend = {} sz1 = {} sz2 = {}\n",tlastp, tspoi[itpoe],
             sze,lastmet);
           if(reslen < tarlen / sqrt(2)){
             lastlen += reslen;
-            CPRINTF1("-- prune last point reslen = %e < %e / sqrt(2), new lastlen = %e\n",
+            CPRINTF1("-- prune last point reslen = {} < {} / sqrt(2), new lastlen = {}\n",
               reslen,tarlen,lastlen);
             //if(DOPRINTS2()){
             //  double result[18];
@@ -370,7 +370,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
       double lento0 = lentot;
       lentot += len;
 
-      CPRINTF1(" - edge %d / %d points %d %d sz %f %f len %f tot %f tar %f\n",itsed,tsedg.get_n(),
+      CPRINTF1(" - edge {} / {} points {} {} sz {} {} len {} tot {} tar {}\n",itsed,tsedg.get_n(),
                 itpo1,itpo2,sz1,sz2,len,lentot,tarlen);
 
       // In any case, whether new pt or not, we'll need to walk to the next edge. 
@@ -382,7 +382,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
         ipprv = itpo1;
         itsed = ted2ed(itsed,1);
       }else{
-        printf("## FAILED TO find ipprv = %d ",ipprv);
+        MPRINTF("## FAILED TO find ipprv = {} ",ipprv);
         METRIS_THROW(TopoExcept())
       }
 
@@ -412,7 +412,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
           METRIS_ASSERT(ibpoi >= 0);
           tedg[ii] = msh.bpo2rbi(ibpoi,0);
         }
-        CPRINTF1(" -> new point %d w theta = %f t = %f seed edg = %d, tedg %f %f \n",
+        CPRINTF1(" -> new point {} w theta = {} t = {} seed edg = {}, tedg {} {} \n",
                  lnewt.get_n()-1,theta,tnewp,iseed,tedg[0],tedg[1]);
         METRIS_ASSERT_MSG(tnewp >= tedg[0] && tnewp <= tedg[1]
                        || tnewp <= tedg[0] && tnewp >= tedg[1],
@@ -420,7 +420,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
                        <<tspoi[itpo1]<<" "<<tspoi[itpo2]<<
                        "tess points "<<itpo1<<" "<<itpo2);
       #else
-        CPRINTF1(" -> new point %d w theta = %f t = %f seed edg = %d\n",
+        CPRINTF1(" -> new point {} w theta = {} t = {} seed edg = {}\n",
                  lnewt.get_n()-1,theta,tnewp,iseed);
       #endif
       
@@ -437,8 +437,8 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
     int nnewp1 = lnewt.get_n();
     double adjusted_tarlen = tarlen + (lastlen - tarlen) / (nnewp1 + 1);
     
-    CPRINTF1(" - generated %d / %d points along curve last len %f "
-           " tarlen %f -> %f \n",nnewp1,nnewp,lastlen,tarlen,adjusted_tarlen);
+    CPRINTF1(" - generated {} / {} points along curve last len {} "
+           " tarlen {} -> {} \n",nnewp1,nnewp,lastlen,tarlen,adjusted_tarlen);
     if(DOPRINTS2() && lnewt.get_n() > 0){
       double result[18];
       ego obj = msh.CAD.cad2edg[iref]; 
@@ -450,7 +450,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
         msh.newbpotopo(ipnew,0,ipnew);
         for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipnew,ii) = result[ii];
       }
-      CPRINTF3(" - First gen point %d t = %f \n",npoi0,lnewt[0]);
+      CPRINTF3(" - First gen point {} t = {} \n",npoi0,lnewt[0]);
       writeMesh("genPoints_ref"+std::to_string(iref),msh);
       for(int ipoin = npoi0; ipoin < msh.npoin;ipoin++){
         msh.killpoint(ipoin);

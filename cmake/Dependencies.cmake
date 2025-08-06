@@ -289,6 +289,18 @@ endif()
 
 # External libraries to be fetched
 
+find_package(fmt)
+if(NOT fmt_FOUND)
+  message(STATUS "fmt lib not found, fetching")
+  # fmt library: std::format precursor with better performance
+  # and pre-C++20 support.
+  FetchContent_Declare(
+    fmt_fetch
+    GIT_REPOSITORY https://github.com/fmtlib/fmt
+    GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281) # 10.2.1
+  FetchContent_MakeAvailable(fmt_fetch)
+endif()
+list(APPEND METRIS_DEPS_LIBRARIES fmt::fmt)
 
 if(USE_ABSL)
   message("Enabled absl")

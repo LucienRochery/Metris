@@ -58,13 +58,13 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov, const intAr1 &lpoin, int miter, int td
     double quaed = len < 1.0 ? 1.0 - len 
                               : 1.0 - 1.0 / len;
     lenqua = MAX(quaed, lenqua);
-    CPRINTF1(" - initial ipoin %d len %f weight %f\n",ipoin,len,fact);
+    CPRINTF1(" - initial ipoin {} len {} weight {}\n",ipoin,len,fact);
   }
   avglen /= npoil;
   avglen_opt = avglen;
   minlen_opt = minlen;
   maxlen_opt = maxlen;
-  CPRINTF1(" - initial avglen = %f min %f max %f cost = %e qua %e\n",avglen,minlen,maxlen,wt_ini,lenqua);
+  CPRINTF1(" - initial avglen = {} min {} max {} cost = {} qua {}\n",avglen,minlen,maxlen,wt_ini,lenqua);
   lenqua_opt = lenqua;
 
   for(int niter = 0; niter < miter; niter++){
@@ -91,12 +91,12 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov, const intAr1 &lpoin, int miter, int td
       double quaed = len < 1.0 ? 1.0 - len 
                                : 1.0 - 1.0 / len;
       lenqua = MAX(quaed, lenqua);
-      CPRINTF1(" - iter %d ipoin %d len %f weight %f\n",niter,ipoin,len,rpoin[ii]);
+      CPRINTF1(" - iter {} ipoin {} len {} weight {}\n",niter,ipoin,len,rpoin[ii]);
     }
     avglen /= npoil;
 
     if(lenqua_opt > lenqua){
-      CPRINTF1(" - iter %d new optimum cost %e -> %e\n",niter, lenqua_opt, lenqua);
+      CPRINTF1(" - iter {} new optimum cost {} -> {}\n",niter, lenqua_opt, lenqua);
       lenqua_opt = lenqua;
       minlen_opt = minlen;
       maxlen_opt = maxlen;
@@ -113,14 +113,14 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov, const intAr1 &lpoin, int miter, int td
         coorn[jj] += msh.coord(ipoin,jj) * rpoin[ii] / wttot;
       }
     }
-    CPRINTF1(" - iter %d avglen = %f min %f max %f cost %e lenqua %e\n",niter,
+    CPRINTF1(" - iter {} avglen = {} min {} max {} cost {} lenqua {}\n",niter,
              avglen,minlen,maxlen,wttot,lenqua);
     for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipmov,ii) = (1-damp)*msh.coord(ipmov,ii)
                                                                  + damp * coorn[ii];
 
     int ierro = msh.interpMetBack(ipmov,tdimp,iseed,iref,NULL);
     if(ierro != 0){
-      CPRINTF1(" # interpMetBack failed ierro = %d \n",ierro);
+      CPRINTF1(" # interpMetBack failed ierro = {} \n",ierro);
       return 2;
     }
   }
@@ -129,7 +129,7 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov, const intAr1 &lpoin, int miter, int td
   for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipmov,ii) = coord_opt[ii];
   for(int ii = 0; ii < nnmet; ii++)    msh.met(ipmov,ii) = met_opt[ii];
 
-  CPRINTF1("-- END movePointCavLen: lenqua %e avglen %f minlen %f maxlen %f\n",
+  CPRINTF1("-- END movePointCavLen: lenqua {} avglen {} minlen {} maxlen {}\n",
           lenqua_opt, avglen_opt, minlen_opt, maxlen_opt);
 
   return 0;

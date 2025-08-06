@@ -26,6 +26,7 @@
 
 #include "../aux_exceptions.hxx"
 
+
 #include <iostream>
 #include <algorithm>
 #include <cstdio>
@@ -189,8 +190,8 @@ public:
   MeshArray1D<T,INT1>& operator=(MeshArray1D &&mve); 
   
 
-  void print(INT1 n) const;
-  void print() const;
+  void print(INT1 n, FILE* logfile = stdout) const;
+  void print(FILE* logfile = stdout) const;
   std::ostream& print(std::ostream& _os) const;
 
   //operator const T*() const {return array;}
@@ -485,11 +486,11 @@ public:
     void print(int n) const {
         int m = n < (nmemalc/s1/s2) ? n : (nmemalc/s1/s2);
         for(int i = 0; i < m; i++){
-            std::printf("%4d: ",i);
+            std::printf("{:4}: ",i);
             for(int j = 0; j < s1; j++){
-                std::printf("%4d:",j);
+                std::printf("{:4}:",j);
                 for(int k = 0; k < s2; k++){
-                    std::printf(" %d",array[i*s1*s2+j*s2+k]);
+                    std::printf(" {}",array[i*s1*s2+j*s2+k]);
                 }
                 std::printf("\n      ");
             }

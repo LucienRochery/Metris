@@ -11,6 +11,7 @@
 #include "../io_libmeshb.hxx"
 #include "../utils/aux_pp_inc.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 #include "../msh_checktopo.hxx"
 
 
@@ -22,21 +23,18 @@ void MshCavity::print(const MeshBase &msh, int iforce) const{
 
   if(DOPRINTS1() || iforce >= 1){
 
-    MPRINTF(" - cavity ipins %d pdim %d ncedg %d ncfac %d nctet %d\n",ipins,
+    MPRINTF(" - cavity ipins {} pdim {} ncedg {} ncfac {} nctet {}\n",ipins,
             ipins >= 0 ? msh.getpoitdim(ipins) : -1,
             lcedg.get_n(),lcfac.get_n(),lctet.get_n());
 
     if(this->lcedg.get_n() > 0){
-      MPRINTF(" - Edge cavity: ");
-      this->lcedg.print();
+      MPRINTF(" - Edge cavity: {}\n",this->lcedg);
     }
     if(this->lcfac.get_n() > 0){
-      MPRINTF(" - Face cavity: ");
-      this->lcfac.print();
+      MPRINTF(" - Face cavity: {}\n",this->lcfac);
     }
     if(this->lctet.get_n() > 0){
-      MPRINTF(" - Tetra cavity: ");
-      this->lctet.print();
+      MPRINTF(" - Tetra cavity: {}\n",this->lctet);
     }
   }
 
@@ -56,11 +54,7 @@ void MshCavity::print(const MeshBase &msh, int iforce) const{
       }
       int nnode = msh.nnode(tdimn);
       for(int ientt : lcent){
-        MPRINTF("  %d : ",ientt);
-        for(int ii = 0; ii < nnode; ii++){
-          printf(" %d ",ent2poi(ientt,ii));
-        }
-        printf("\n");
+        MPRINTF("  {} : {}\n",ientt,intAr1(nnode,ent2poi[ientt]));
       }
     }
   }
@@ -81,15 +75,22 @@ int cavity_operator(Mesh<MFT> &msh ,
 
   METRIS_ASSERT_MSG(cav.inewp == 0 || cav.inewp == 1, "Caller must set cav.inewp to 0 if new point, 1 otherwise.");
 
+
   try{
   INCVDEPTH(msh.param);
   info.done = false;
 
+  //static int nwarnprt = 0;
+  //if(nwarnprt++ < 10){
+  //  printf("## WARNING REMOVE THIS FILE WRITE\n");
+  //  if(DOPRINTS3()) writeMesh("cavinifull",msh);
+  //}
+
   METRIS_ENFORCE_MSG(opts.max_increase_cav_geo <= 1,"Implement cavity correction")
 
-  CPRINTF1("-- START cavity_operator ncedg = %d ncfac = %d nctet = %d ipins = %d \n",
+  CPRINTF1("-- START cavity_operator ncedg = {} ncfac = {} nctet = {} ipins = {} \n",
            cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),cav.ipins);
-  CPRINTF1("   npoin %d nedge %d nface %d nelem %d\n",msh.npoin,msh.nedge,msh.nface,msh.nelem);
+  CPRINTF1("   npoin {} nedge {} nface {} nelem {}\n",msh.npoin,msh.nedge,msh.nface,msh.nelem);
 
   cav.print(msh);
 
@@ -150,20 +151,20 @@ int cavity_operator(Mesh<MFT> &msh ,
 
 	ierro = reconnect_lincav<MFT, ideg>(msh, cav, opts, ithread);
 	if(ierro > 0) goto cleanup;
-  CPRINTF1("-- reconnect_lincav done nedg0 = %d nedge = %d npoi0 = %d npoin = %d\n",
+  CPRINTF1("-- reconnect_lincav done nedg0 = {} nedge = {} npoi0 = {} npoin = {}\n",
            nedg0,msh.nedge,npoi0,msh.npoin);
 
 
 	ierro = reconnect_faccav<MFT, ideg>(msh, cav, opts, work, nedg0, &qmax, ithread);
   if(msh.get_tdim() == 2) info.qmax_end = qmax;
 	if(ierro > 0) goto cleanup;
-  CPRINTF1("-- reconnect_faccav done nfac0 = %d nface = %d \n",nfac0,msh.nface);
+  CPRINTF1("-- reconnect_faccav done nfac0 = {} nface = {} \n",nfac0,msh.nface);
 
 
 	ierro = reconnect_tetcav<MFT, ideg>(msh, cav, opts, info, nfac0, &qmax, ithread);
   if(ierro > 0) goto cleanup; 
   if(msh.get_tdim() == 3) info.qmax_end = qmax;
-  CPRINTF1("-- reconnect_tetcav done nele0 = %d nelem = %d \n",nele0,msh.nelem);
+  CPRINTF1("-- reconnect_tetcav done nele0 = {} nelem = {} \n",nele0,msh.nelem);
 
   // Update ibpois in case surface for new points (HO and ipins if new and dim < 2)
   try{
@@ -190,7 +191,7 @@ int cavity_operator(Mesh<MFT> &msh ,
     }
   }
   if(opts.qmax_nec > 0 && qmax > opts.qmax_nec){
-    CPRINTF1(" # specified qmax_nec = %e and got qmax = %e -> reject\n",
+    CPRINTF1(" # specified qmax_nec = {} and got qmax = {} -> reject\n",
              opts.qmax_nec,qmax);
     ierro = CAV_ERR_DRYFAIL2;
     goto cleanup;
@@ -204,13 +205,18 @@ int cavity_operator(Mesh<MFT> &msh ,
 
 
   CPRINTF1("-- Cavity successful exit\n");
+  //if(msh.nface >= 13326){
+  //  printf("## DEBUG WAIT AT 13326 creation\n");
+  //  writeMesh("13326",msh);
+  //  wait();
+  //}
 	goto finish;
 
 
   //-------- cleanup (error case)
 	cleanup:
   msh.tag[ithread] = cav.maxtag;
-  CPRINTF1("-- Cavity error ierro = %d \n",ierro);
+  CPRINTF1("-- Cavity error ierro = {} \n",ierro);
   if(DOPRINTS2()){
     // Write out the cavity. 
     writeMesh("cavenderr",msh,true,nedg0,nfac0,nele0);
@@ -239,7 +245,7 @@ int cavity_operator(Mesh<MFT> &msh ,
     int ip = msh.bpo2ibi(ibpoi,0);
     if( ip < 0 ) continue;
     if(msh.poi2tag(ithread,ip) >= msh.tag[ithread]) continue;
-    CPRINTF1(" - remove ipoin %d bpois of new entities\n",ip);
+    CPRINTF1(" - remove ipoin {} bpois of new entities\n",ip);
     msh.poi2tag(ithread,ip) = msh.tag[ithread];
     msh.rembpotag(ip,ithread);
   }

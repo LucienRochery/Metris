@@ -15,7 +15,7 @@ void reoderHilbert(MeshBase &msh){
 //  int nthread = MAX(GetNumberOfCores(),4);
   int nthread = GetNumberOfCores();
   if(msh.nproc > 0) nthread = MIN(nthread,msh.nproc);
-  printf("Running Hilbert with %d threads\n",nthread);
+  printf("Running Hilbert with {} threads\n",nthread);
   
   uint64_t LPlibIdx = InitParallel(nthread);
   double bbLPlib[6];
@@ -50,7 +50,7 @@ void reoderHilbert(MeshBase &msh){
   t0 = get_wall_time();
   HilbertRenumbering(LPlibIdx, msh.npoin, bbLPlib, &crd[-3], &lorder[-2]);
   t1 = get_wall_time();
-  printf("HilbertRenumbering() call time %f \n",t1-t0);
+  printf("HilbertRenumbering() call time {:.2e}s \n",t1-t0);
 
   int *invord = NULL;
   bool iallo2 = false;
@@ -98,14 +98,14 @@ void reoderHilbert(MeshBase &msh){
     for(int kk = 0; kk < 3; kk++) msh.coord(idx1,kk) = msh.coord(idx0,kk); 
     msh.poi2bpo[idx1] = msh.poi2bpo[idx0];
     msh.poi2ent[idx1] = msh.poi2ent[idx0];
-    //if(idx1 == 2) printf(" (beg) Point 2 replaced by %d \n",idx0);
+    //if(idx1 == 2) printf(" (beg) Point 2 replaced by {} \n",idx0);
 
-    //printf("Debug chain start at %d idx0 id1 %d %d \n",ii,idx0,idx1);
+    //printf("Debug chain start at {} idx0 id1 {} {} \n",ii,idx0,idx1);
 
     // We now want the ii that yields idx0 as its idx1. 
     int jp, jj = invord[idx0]; 
 
-    //printf("Debug init ii idx0 idx1 %d %d %d first jj = %d \n",ii,idx0,idx1,jj);fflush(stdout);
+    //printf("Debug init ii idx0 idx1 {} {} {} first jj = {} \n",ii,idx0,idx1,jj);fflush(stdout);
     //int idx0_n, idx1_n;
     int nchain = 0;
     do{
@@ -122,9 +122,9 @@ void reoderHilbert(MeshBase &msh){
       for(int kk = 0; kk < 3; kk++) msh.coord(idx1,kk) = msh.coord(idx0,kk); 
       msh.poi2bpo[idx1] = msh.poi2bpo[idx0];
       msh.poi2ent[idx1] = msh.poi2ent[idx0];
-      //if(idx1 == 2) printf(" (mid) Point 2 replaced by %d \n",idx0);
+      //if(idx1 == 2) printf(" (mid) Point 2 replaced by {} \n",idx0);
 
-      //printf("Debug loop jj idx0 idx1 %d %d %d \n",jj,idx0,idx1);fflush(stdout);
+      //printf("Debug loop jj idx0 idx1 {} {} {} \n",jj,idx0,idx1);fflush(stdout);
 
       jp = jj;
       jj = invord[idx0]; 
@@ -224,26 +224,26 @@ void reoderHilbert(MeshBase &msh){
   float acc; 
   acc = LaunchParallelMultiArg(LPlibIdx, LP_tet, 0, (void*) tet_loop,
                                3, &msh, invord, lorder);
-  printf("Acceleration factor (tet) %f \n",acc);
+  printf("Acceleration factor (tet) {} \n",acc);
   //tet_loop(1,msh.nelem,0,&msh,invord,lorder);
   if(msh.nface > 100000){
     acc = LaunchParallelMultiArg(LPlibIdx, LP_fac, 0, (void*) fac_loop,
                                  3, &msh, invord, lorder);
-    printf("Acceleration factor (fac) %f \n",acc);
+    printf("Acceleration factor (fac) {} \n",acc);
   }else{
     fac_loop(1,msh.nface,0,&msh,invord,lorder);
   }
   if(msh.nedge > 100000){
     acc = LaunchParallelMultiArg(LPlibIdx, LP_edg, 0, (void*) edg_loop,
                                  3, &msh, invord, lorder);
-    printf("Acceleration factor (edg) %f \n",acc);
+    printf("Acceleration factor (edg) {} \n",acc);
   }else{
     edg_loop(1,msh.nedge,0,&msh,invord,lorder);
   }
   
   acc = LaunchParallelMultiArg(LPlibIdx, LP_poi, 0, (void*) bpo_loop,
                                1, &msh);
-  printf("Acceleration factor (bpo) %f \n",acc);
+  printf("Acceleration factor (bpo) {} \n",acc);
 
 
 
@@ -325,7 +325,7 @@ void reoderHilbert(MeshBase &msh){
     }
 
 //    printf("Debug first 10 entries in vect \n");
-//    for(int i = 0; i < 10; i++) printf("%d %d (%d %d ...)\n",i,vect[i],ent2poi[vect[i]][0]
+//    for(int i = 0; i < 10; i++) printf("{} {} ({} {} ...)\n",i,vect[i],ent2poi[vect[i]][0]
 //      ,ent2poi[vect[i]][1]);
 
     msh.tag[0]++;
@@ -345,7 +345,7 @@ void reoderHilbert(MeshBase &msh){
       ent2ref[ient0] = ent2ref[ient1];
       for(int inode = 0; inode < nnode; inode++) 
         ent2poi(ient0,inode) = ent2poi(ient1,inode);
-//      printf("Debug start chain from iele0 %d iele1 = %d (%d %d ...) \n",ient0,ient1,
+//      printf("Debug start chain from iele0 {} iele1 = {} ({} {} ...) \n",ient0,ient1,
 //        ent2poi(ient1,0),ent2poi(ient1,1));
 //      if(ient0 == 1) printf("Found 1 in start\n");
       int nchain = 0;
@@ -354,7 +354,7 @@ void reoderHilbert(MeshBase &msh){
         assert(ent2tag(0,ient1) != msh.tag[0]);
         ent2tag(0,ient1) = msh.tag[0];
         int ient2 = vect[ient1];
-//        printf("   next chain from iele1 %d iele2 = %d \n",ient1,ient2);
+//        printf("   next chain from iele1 {} iele2 = {} \n",ient1,ient2);
 //        if(ient1 == 1) printf("Found 1 in mid\n");
   
         ent2ref[ient1] = ent2ref[ient2];
@@ -367,7 +367,7 @@ void reoderHilbert(MeshBase &msh){
       }while(ient1 != ient0);
     
 //      if(ientp == 1) printf("Found 1 in end\n");
-//      printf("   end chain at %d \n",ientp);
+//      printf("   end chain at {} \n",ientp);
       ent2ref[ientp] = iref0;
       for(int inode = 0; inode < nnode; inode++) ent2poi(ientp,inode) = lnode[inode];
     }

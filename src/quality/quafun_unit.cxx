@@ -66,7 +66,7 @@ ftype quafun_unit(Mesh<MFT> &msh,
     }else{
       y = 1.0 / det - 1.0;
     }
-    //printf("Debug x = %15.7e y = %15.7e tra = %15.7e det = %15.7e \n",
+    //printf("Debug x = {:15.7e} y = {:15.7e} tra = {:15.7e} det = {:15.7e} \n",
     //  (double)x,(double)y,(double)tra,(double)det);
     quael = coef_tra * exp(powr_tra * x)
           + coef_det * exp(powr_det * y);

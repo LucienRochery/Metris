@@ -45,7 +45,7 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
 
   static int nwarnprt = 0;
   if(nwarnprt++ < 10 && opt.swap_norm != msh.param->opt_power) 
-    CPRINTF1("## WARNING forced qpnorm = %d, provided %d\n",msh.param->opt_pnorm,opt.swap_norm);
+    CPRINTF1("## WARNING forced qpnorm = {}, provided {}\n",msh.param->opt_pnorm,opt.swap_norm);
 
   CavOprOpt opts;
   opts.allow_topological_correction = false;
@@ -64,7 +64,7 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
                    msh.tet2poi(itetr,2),msh.tet2poi(itetr,3));
   cav.qtetr[key] = quael;
 
-  CPRINTF1("-- START swaptetra itetr %d quael %e ilazy %d\n", itetr, quael,ilazy);
+  CPRINTF1("-- START swaptetra itetr {} quael {} ilazy {}\n", itetr, quael,ilazy);
 
   if(ilazy){
     // In case lazy, simply set a quality threshold. 
@@ -79,14 +79,12 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
   for(int ifa = 0; ifa < 4; ifa++){
     int ierro = aux_swaptetface<MFT,ideg>(msh, opt, itetr, ifa, quael, cav, opts, work, 
                                           qnrm0_, qnrm1_, ithrd1);
-    CPRINTF1(" - tried face %d ierro %d got qual %e -> %e\n",ifa, ierro, *qnrm0_, *qnrm1_);
+    CPRINTF1(" - tried face {} ierro {} got qual {} -> {}\n",ifa, ierro, *qnrm0_, *qnrm1_);
     if(ierro < 0){
-      CPRINTF1(" - Accepted tet %d swap face %d quality %e -> %e\n",
+      CPRINTF1(" - Accepted tet {} swap face {} quality {} -> {}\n",
                itetr, ifa, *qnrm0_, *qnrm1_);
       return -1;
     }
-    //printf("## DEBUG WAIT AFTER aux_swaptetfac\n");
-    //wait();
   }
 
   if(!msh.param->opt_swap_tet_expensive) return 0;
@@ -94,14 +92,12 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
   for(int ied = 0; ied < 6; ied++){
     int ierro = aux_swaptetedge<MFT,ideg>(msh, opt, itetr, ied, quael, cav, opts, work, 
                                           qnrm0_, qnrm1_, ithrd1, ithrd2);
-    CPRINTF1(" - tried edge %d ierro %d got qual %e -> %e\n",ied, ierro, *qnrm0_, *qnrm1_);
+    CPRINTF1(" - tried edge {} ierro {} got qual {} -> {}\n",ied, ierro, *qnrm0_, *qnrm1_);
     if(ierro < 0){
-      CPRINTF1(" - Accepted tet %d swap edge %d quality %e -> %e\n",
+      CPRINTF1(" - Accepted tet {} swap edge {} quality {} -> {}\n",
                itetr, ied, *qnrm0_, *qnrm1_);
       return -2;
     }
-    //printf("## DEBUG WAIT AFTER aux_swaptetfac\n");
-    //wait();
   }
 
   return 0;
@@ -134,7 +130,7 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
 
   static int nwarnprt = 0;
   if(nwarnprt++ < 10 && opt.swap_norm != msh.param->opt_pnorm) 
-    CPRINTF1("## WARNING forced qpnorm = %d, provided %d\n",msh.param->opt_pnorm,opt.swap_norm);
+    CPRINTF1("## WARNING forced qpnorm = {}, provided {}\n",msh.param->opt_pnorm,opt.swap_norm);
 
 
   double &qnrm0 = *qnrm0_;
@@ -148,7 +144,7 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
 
   int idom1 = msh.tet2ref[itetr];
   if(idom1 != msh.tet2ref[itet2]){
-    CPRINTF1("# END aux_swaptetface: crosses refs %d != %d\n",idom1, msh.tet2ref[itet2]);
+    CPRINTF1("# END aux_swaptetface: crosses refs {} != {}\n",idom1, msh.tet2ref[itet2]);
     return 1;
   }
 
@@ -158,9 +154,9 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
                              msh.tet2poi(itetr,lnofa3[ifacl][1]),
                              msh.tet2poi(itetr,lnofa3[ifacl][2]));
   if(iface >= 0){
-    printf("# END aux_swaptetface: found face between two same-domn elements\n");
-    printf(" itet1 = %d itet2 = %d, doms %d, %d",itetr, itet2, idom1, msh.tet2ref[itet2]);
-    printf(" iface = %d\n",iface);
+    PRINTF("# END aux_swaptetface: found face between two same-domn elements\n");
+    PRINTF(" itet1 = {} itet2 = {}, doms {}, {}",itetr, itet2, idom1, msh.tet2ref[itet2]);
+    PRINTF(" iface = {}\n",iface);
     METRIS_THROW(TopoExcept());
     return 1;
   }
@@ -179,7 +175,7 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
   double quae2;
   if(tt != cav.qtetr.end()){
     quae2 = tt->second;
-    CPRINTF2(" - found cached quality for neighbour tet %d: %e\n",itet2,quae2);
+    CPRINTF2(" - found cached quality for neighbour tet {}: {}\n",itet2,quae2);
   }else{
     quae2 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,itet2,1.0);
     cav.qtetr[key] = quae2;
@@ -215,7 +211,7 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
   CavOprInfo info;
   int ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithread);
   qnrm1 = info.qmax_end;
-  CPRINTF1("- aux_swaptetface called cavity, ierro = %d info.done = %d qnrm1 = %e\n",
+  CPRINTF1("- aux_swaptetface called cavity, ierro = {} info.done = {} qnrm1 = {}\n",
            ierro,info.done,qnrm1);
 
   if(info.done) return -1;
@@ -257,7 +253,7 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
 
   static int nwarnprt = 0;
   if(nwarnprt++ < 10 && opt.swap_norm != msh.param->opt_pnorm) 
-    CPRINTF1("## WARNING forced qpnorm = %d, provided %d\n",msh.param->opt_pnorm,opt.swap_norm);
+    CPRINTF1("## WARNING forced qpnorm = {}, provided {}\n",msh.param->opt_pnorm,opt.swap_norm);
 
 
   double &qnrm0 = *qnrm0_;
@@ -269,7 +265,7 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
   auto skey = stup2(ipoi1, ipoi2);
   auto tt = msh.edgHshTab.find(skey);
   if(tt != msh.edgHshTab.end()){
-    CPRINTF1("# END aux_swaptetedge: edge %d %d is geometric\n",ipoi1,ipoi2);
+    CPRINTF1("# END aux_swaptetedge: edge {} {} is geometric\n",ipoi1,ipoi2);
     return 1;
   }
 
@@ -289,7 +285,7 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
     return 2;
   }
   if(cav.lcedg.get_n() > 0 || cav.lcfac.get_n() > 0){
-    CPRINTF1("# END aux_swaptetedge: %d edges and %d faces in shell\n",
+    CPRINTF1("# END aux_swaptetedge: {} edges and {} faces in shell\n",
       cav.lcedg.get_n(), cav.lcfac.get_n());
     return 4;
   }
@@ -298,7 +294,7 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
   for(int ielem : cav.lctet){
     int idom2 = msh.tet2ref[ielem];
     if(idom2 != idom1){
-      CPRINTF1("# END aux_swaptetedge: multi-ref shell %d != %d\n",idom1,idom2);
+      CPRINTF1("# END aux_swaptetedge: multi-ref shell {} != {}\n",idom1,idom2);
       return 3;
     }
   }
@@ -314,10 +310,10 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
     auto tt = cav.qtetr.find(key);
     if(tt != cav.qtetr.end()){
       quael = tt->second;
-      CPRINTF2(" - found cached quality for shell tet %d: %e\n",ielem,quael);
+      CPRINTF2(" - found cached quality for shell tet {}: {}\n",ielem,quael);
     }else{
       quael = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,ielem,1.0);
-      CPRINTF2(" - computed quality for shell tet %d: %e\n",ielem,quael);
+      CPRINTF2(" - computed quality for shell tet {}: {}\n",ielem,quael);
       cav.qtetr[key] = quael;
     }
     qnrm0 = MAX(qnrm0, quael);
@@ -345,7 +341,7 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
       break;
     }
     ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
-    CPRINTF1("- aux_swaptetedge called cavity, ierro = %d info.done = %d qnrm1 = %e\n",
+    CPRINTF1("- aux_swaptetedge called cavity, ierro = {} info.done = {} qnrm1 = {}\n",
              ierro,info.done,qnrm1);
     qnrm1 = info.qmax_end;
     if(info.done) return -1;
@@ -361,19 +357,19 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
     }
     METRIS_ASSERT(iedgo >= 0 && iedgo < 6);
 
-    CPRINTF1(" - aux_swaptetedge special case 4 -> 4, candidates %d %d\n",
+    CPRINTF1(" - aux_swaptetedge special case 4 -> 4, candidates {} {}\n",
       msh.tet2poi(itetr, lnoed3[iedgo][0]),msh.tet2poi(itetr, lnoed3[iedgo][1]));
     // Two possible configs, using either point.
     for(int icfg = 0; icfg < 2; icfg++){
       cav.ipins = msh.tet2poi(itetr, lnoed3[iedgo][icfg]);
       ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
-      CPRINTF1("- aux_swaptetedge called cavity, ierro = %d info.done = %d qnrm1 = %e\n",
+      CPRINTF1("- aux_swaptetedge called cavity, ierro = {} info.done = {} qnrm1 = {}\n",
                ierro,info.done,qnrm1);
       qnrm1 = info.qmax_end;
       if(info.done) return -1;
     }
   }else{ // general n -> 2(n-2) swap
-    CPRINTF1(" - aux_swaptetedge general %d -> %d\n",nshell, 2*(nshell-2));
+    CPRINTF1(" - aux_swaptetedge general {} -> {}\n",nshell, 2*(nshell-2));
     cav.iwrk1.allocate(nshell);
     cav.iwrk1.set_n(0);
     msh.tag[ithrd1]++;
@@ -384,10 +380,10 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
         if(ipoin == ipoi2) continue;
         if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
         msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1];
-        CPRINTF1(" - %d -> %d swap try point %d from elt %d\n",nshell, 2*(nshell-2), ipoin,ielem);
+        CPRINTF1(" - {} -> {} swap try point {} from elt {}\n",nshell, 2*(nshell-2), ipoin,ielem);
         cav.ipins = ipoin;
         ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
-        CPRINTF1("- aux_swaptetedge called cavity, ierro = %d info.done = %d qnrm1 = %e\n",
+        CPRINTF1("- aux_swaptetedge called cavity, ierro = {} info.done = {} qnrm1 = {}\n",
                  ierro,info.done,qnrm1);
         qnrm1 = info.qmax_end;
         if(info.done) return -1;

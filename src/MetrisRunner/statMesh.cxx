@@ -107,7 +107,7 @@ void MetrisRunner::statMesh0(MeshStat* stat){
     }}CT_FOR1(pnorm);
     }}CT_FOR1(ideg);
     //}}CT_FOR1(idim);
-    CPRINTF1("-- Analytical solution interpolation error pnorm %d pdeg %d: %e\n",
+    CPRINTF1("-- Analytical solution interpolation error pnorm {} pdeg {}: {}\n",
              param->intp_pdeg, param->intp_pnorm, errGlo);
   } 
 
@@ -136,13 +136,13 @@ void MetrisRunner::statMesh0(MeshStat* stat){
     stat->avgqua_bdry = qavg_bdry;
   }
   if(DOPRINTS1()){
-    CPRINTF1(" - Quality (as P1     ) min = %15.7e \n",qmin);
-    CPRINTF1("                        max = %15.7e \n",qmax);
-    CPRINTF1("                        avg = %15.7e \n",qavg);
+    CPRINTF1(" - Quality (as P1     ) min = {:15.7e} \n",qmin);
+    CPRINTF1("                        max = {:15.7e} \n",qmax);
+    CPRINTF1("                        avg = {:15.7e} \n",qavg);
     if(tdim >= 3){
-      CPRINTF1(" - Quality (as P1 bdry) min = %15.7e \n",qmin_bdry);
-      CPRINTF1("                        max = %15.7e \n",qmax_bdry);
-      CPRINTF1("                        avg = %15.7e \n",qavg_bdry);
+      CPRINTF1(" - Quality (as P1 bdry) min = {:15.7e} \n",qmin_bdry);
+      CPRINTF1("                        max = {:15.7e} \n",qmax_bdry);
+      CPRINTF1("                        avg = {:15.7e} \n",qavg_bdry);
     }
   }
   if(DOPRINTS2()){

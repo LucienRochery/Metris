@@ -189,9 +189,9 @@ static void pnet_(int *nf, int *nb, double *xcur, int *
     int i__1;
     double d__1, d__2;
 
-    //printf("## DEBUG pnet params nf %d nb %d xaddr %llu \n",*nf,*nb,xcur);
-    //printf("ix %d %d xl %f %f xu %f %f \n",ix[0],ix[1],xl[0],xl[1],xu[0],xu[1]);
-    //printf("mit %d mfg %d iest %d mos1 %d mos2 %d mf %d iterm %d \n",
+    //printf("## DEBUG pnet params nf {} nb {} xaddr %llu \n",*nf,*nb,xcur);
+    //printf("ix {} {} xl {} {} xu {} {} \n",ix[0],ix[1],xl[0],xl[1],xu[0],xu[1]);
+    //printf("mit {} mfg {} iest {} mos1 {} mos2 {} mf {} iterm {} \n",
     //          *mit,*mfg,*iest,*mos1,*mos2,*mf,*iterm);
     /* Builtin functions */
 

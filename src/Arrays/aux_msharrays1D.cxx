@@ -8,6 +8,7 @@
 #include "../SurrealS_inc.hxx"
 #include "../metris_constants.hxx"
 #include "../utils/aux_misc.hxx"
+#include "../utils/fmt_formatters.hxx"
 #include <egads.h>
 #include <memory>
 
@@ -209,24 +210,34 @@ MeshArray1D<T,INT1>::~MeshArray1D(){
 
 
 template<typename T,typename INT1>
-void MeshArray1D<T,INT1>::print(INT1 n) const{
+void MeshArray1D<T,INT1>::print(INT1 n, FILE* logfile) const{
   INT1 m = n < m1 ? n : m1;
-  for(INT1 i = 0; i < m; i++){
-    std::cout<<array_ro[i]<<" ";
+  fmt::print(logfile, "[");
+  for(INT1 i = 0; i < m-1; i++){
+    if constexpr(std::is_same_v<ego,T>){
+      fmt::print(logfile, "{} ", (void*)array_ro[i]);
+    }else{
+      fmt::print(logfile, "{} ", array_ro[i]);
+    }
   }
-  std::cout<<"\n";
+  if constexpr(std::is_same_v<ego,T>){
+    fmt::print(logfile, "{}]\n", (void*)array_ro[m-1]);
+  }else{
+    fmt::print(logfile, "{}]\n", array_ro[m-1]);
+  }
 }
 template<typename T,typename INT1>
-void MeshArray1D<T,INT1>::print() const{
-  this->print(n1);
+void MeshArray1D<T,INT1>::print(FILE* logfile) const{
+  this->print(n1, logfile);
 }
 
 template<typename T,typename INT1>
 std::ostream& MeshArray1D<T,INT1>::print(std::ostream& _os) const{
-  for(INT1 ii = 0; ii < n1; ii++){
+  _os<<"[";
+  for(INT1 ii = 0; ii < n1-1; ii++){
     _os<<array_ro[ii]<<" ";
   }
-  _os<<"\n";
+  _os<<array_ro[n1-1]<<"]";
   return _os;
 }
 

@@ -107,13 +107,13 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
     redpct1 = 100*(errGlo0-errGlo)/errGlo0;
 
     if(DOPRINTS1() || getErrGlo){
-      CPRINTF1("-- START iter %d/%d error %e ",niter,miter,errGlo);
-      if(niter == 0 && DOPRINTS1()) printf("\n");
-      else if(DOPRINTS1()) printf(" red %% %f\n",redpct1);
+      CPRINTF1("-- START iter {}/{} error {} ",niter,miter,errGlo);
+      if(niter == 0 && DOPRINTS1()) fmt::print(LOGFILE__,"\n");
+      else if(DOPRINTS1()) fmt::print(LOGFILE__," red % {}\n",redpct1);
     }
 
     if(abs(redpct1-redpct2) < 1.0e-3 && niter > 1){
-      CPRINTF1("-- STOP percent reduction too small %e -> %e \n",redpct1, redpct2);
+      CPRINTF1("-- STOP percent reduction too small {} -> {} \n",redpct1, redpct2);
       break;
     }
 
@@ -168,7 +168,7 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
         }
 
         if(DOPRINTS2()){
-          CPRINTF2(" - ientt %d inode %d ipoin %d ball size %d\n",ientt,inode,ipoin,lball.get_n());
+          CPRINTF2(" - ientt {} inode {} ipoin {} ball size {}\n",ientt,inode,ipoin,lball.get_n());
           CPRINTF2(" ball:");
           lball.print();
           CPRINTF2(" lnode:");
@@ -182,18 +182,18 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
       : minimizeInterpErrloc_DIRECT<MFT,idim,ideg,pdeg>(msh, sol, pnorm, lball, lnode, &errLp0, &errLp1);
         METRIS_ASSERT(errLp1 <= errLp0 || ierro);
         if(ierro != 0){
-          CPRINTF1(" - returned ierro %d \n",ierro);
+          CPRINTF1(" - returned ierro {} \n",ierro);
           nerro++;
           continue;
         }else{
-          CPRINTF1(" - min interp err loc success %e -> %e, decrease %f%% \n",
+          CPRINTF1(" - min interp err loc success {} -> {}, decrease {}% \n",
                    errLp0, errLp1, (errLp1-errLp0)/errLp0*100);
           nsucc++;
         }
 
       }// for inode
     }// for ientt 
-    CPRINTF1(" - END iter %d/%d nerro %d nsucc %d \n",niter,miter,nerro,nsucc);
+    CPRINTF1(" - END iter {}/{} nerro {} nsucc {} \n",niter,miter,nerro,nsucc);
   }// for niter
 
   if(DOPRINTS1()){
@@ -202,8 +202,8 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
     errGlo1 = errGlo;
     double red = (errGlo0 - errGlo1) / errGlo0 * 100;
     double t1 = get_wall_time();
-    CPRINTF1("-- END minimizeInterpErrglo error %e -> %e reduced%% %f \n",errGlo0,errGlo1,red);
-    CPRINTF1("-- time = %f = %d elt/s\n",t1-t0,(int)(nentt/(t1-t0)));
+    CPRINTF1("-- END minimizeInterpErrglo error {} -> {} reduced% {} \n",errGlo0,errGlo1,red);
+    CPRINTF1("-- time = {:.2e}s = {} elt/s\n",t1-t0,(int)(nentt/(t1-t0)));
   }
 
   msh.setBasis(ibas0);
@@ -312,9 +312,9 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
       double errGlo = pnorm == 1 ? interpErrGlo<idim,ideg,pdeg,1,true>(sol)
                                  : interpErrGlo<idim,ideg,pdeg,2,true>(sol);
       if(niter == 0) errGlo0 = errGlo;
-      CPRINTF1("-- START iter %d/%d error %e ",niter,miter,errGlo);
+      CPRINTF1("-- START iter {}/{} error {} ",niter,miter,errGlo);
       if(niter == 0 && DOPRINTS1()) printf("\n");
-      else if(DOPRINTS1()) printf(" red %% %f\n",100*(errGlo0-errGlo)/errGlo0);
+      else if(DOPRINTS1()) printf(" red % {}\n",100*(errGlo0-errGlo)/errGlo0);
     }
 
     msh.tag[ithrd1]++;
@@ -368,7 +368,7 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
         }
 
         if(DOPRINTS2()){
-          CPRINTF2(" - ientt %d inode %d ipoin %d ball size %d\n",ientt,inode,ipoin,lball.get_n());
+          CPRINTF2(" - ientt {} inode {} ipoin {} ball size {}\n",ientt,inode,ipoin,lball.get_n());
           CPRINTF2(" ball:");
           lball.print();
           CPRINTF2(" lnode:");
@@ -381,18 +381,18 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
         minimizeInterpErrloc<MFT,idim,ideg,pdeg>(msh, sol, pnorm, lball, lnode, &errLp0, &errLp1);
         METRIS_ASSERT(errLp1 <= errLp0 || ierro);
         if(ierro != 0){
-          CPRINTF1(" - returned ierro %d \n",ierro);
+          CPRINTF1(" - returned ierro {} \n",ierro);
           nerro++;
           continue;
         }else{
-          CPRINTF1(" - min interp err loc success %e -> %e, decrease %f%% \n",
+          CPRINTF1(" - min interp err loc success {} -> {}, decrease {}% \n",
                    errLp0, errLp1, (errLp1-errLp0)/errLp0*100);
           nsucc++;
         }
 
       }// for inode
     }// for ientt 
-    CPRINTF1(" - END iter %d/%d nerro %d nsucc %d \n",niter,miter,nerro,nsucc);
+    CPRINTF1(" - END iter {}/{} nerro {} nsucc {} \n",niter,miter,nerro,nsucc);
   }// for niter
 
   if(DOPRINTS1()){
@@ -401,8 +401,8 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
     errGlo1 = errGlo;
     double red = (errGlo0 - errGlo1) / errGlo0 * 100;
     double t1 = get_wall_time();
-    CPRINTF1("-- END minimizeInterpErrglo error %e -> %e reduced%% %f \n",errGlo0,errGlo1,red);
-    CPRINTF1("-- time = %f = %d elt/s\n",t1-t0,(int)(nentt/(t1-t0)));
+    CPRINTF1("-- END minimizeInterpErrglo error {} -> {} reduced% {} \n",errGlo0,errGlo1,red);
+    CPRINTF1("-- time = {:.2e}s = {} elt/s\n",t1-t0,(int)(nentt/(t1-t0)));
   }
 
   msh.setBasis(ibas0);
@@ -481,10 +481,10 @@ int minimizeInterpErrloc_Newton(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
 
     ierro = optim_newton_drivertype<idim>(args, xcur, &fcur, gcur, hess, &iflag, &ihess);
     
-    CPRINTF1(" - newton ret ierro %d iflag %d xcur %f %f \n",ierro,iflag,xcur[0],xcur[1]);
+    CPRINTF1(" - newton ret ierro {} iflag {} xcur {} {} \n",ierro,iflag,xcur[0],xcur[1]);
 
     if(ierro > 0){
-      CPRINTF1(" ## optim_newton_drivertype error %d\n",ierro);
+      CPRINTF1(" ## optim_newton_drivertype error {}\n",ierro);
       goto cleanup;
     }
     if(iflag <= 0){
@@ -510,7 +510,7 @@ int minimizeInterpErrloc_Newton(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
       }
     }
     if(iinva){
-      CPRINTF1(" - invalid config, ihess = %d \n",ihess);
+      CPRINTF1(" - invalid config, ihess = {} \n",ihess);
       // Otherwise we got an invalid update. 
       METRIS_ASSERT(ihess == 0);
       if(ihess != 0){
@@ -542,7 +542,7 @@ int minimizeInterpErrloc_Newton(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
 
     if(niter == 0) *errLp0 = fcur;
 
-    CPRINTF1(" - computed errLp ball = %e \n",fcur);
+    CPRINTF1(" - computed errLp ball = {} \n",fcur);
   }// for niter
 
   *errLp1 = args.fopt;
@@ -588,7 +588,7 @@ int minimizeInterpErrloc_Newton(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
   //  CPRINTF1("-- Gave up on relaxation")
   //  for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii] + args.xopt[ii];
   //}else{
-  //  CPRINTF1("-- Final relaxation factor %f \n",qfac1)
+  //  CPRINTF1("-- Final relaxation factor {} \n",qfac1)
   //}
 
 
@@ -668,7 +668,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
 
   args.fscale = *errLp0;
 
-  CPRINTF1("-- START minimizeInterpErrloc_DIRECT nball %d initial err %e\n",
+  CPRINTF1("-- START minimizeInterpErrloc_DIRECT nball {} initial err {}\n",
            lball.get_n(), *errLp0)
 
 
@@ -692,7 +692,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
 
 
     int neval = leval.get_n();
-    CPRINTF1(" - DIBLOB iflag %d neval %d\n",args.iflag,neval);
+    CPRINTF1(" - DIBLOB iflag {} neval {}\n",args.iflag,neval);
 
     if(args.iflag <= 0){
       CPRINTF1(" - iflag = 0 termination\n");
@@ -724,7 +724,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
         }
       }
       if(iinva){
-        CPRINTF1(" - eval %d invalid config\n",ieval);
+        CPRINTF1(" - eval {} invalid config\n",ieval);
         // Otherwise we got an invalid update. 
         feval[ieval] = 1.0e30;
         goto loop_cleanup;
@@ -736,7 +736,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
         feval[ieval] = interpErrBall<idim, ideg, pdeg, 2, iexact>(sol, lball, lnode, {});
       }// if pnorm
 
-      CPRINTF1(" - eval %d errLp ball = %e \n",ieval,feval[ieval]);
+      CPRINTF1(" - eval {} errLp ball = {} \n",ieval,feval[ieval]);
 
       loop_cleanup:
       for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
@@ -744,7 +744,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
 
   }// for niter
 
-  CPRINTF1("-- END minimizeInterpErrloc_DIRECT ifmin %d fun %e -> %e barmin ",
+  CPRINTF1("-- END minimizeInterpErrloc_DIRECT ifmin {} fun {} -> {} barmin ",
            ifmin, *errLp0, fopt);
   if(DOPRINTS1()) dblAr1(idim+1,barmin).print();
 
@@ -793,7 +793,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
     }else{
       fnew = interpErrBall<idim, ideg, pdeg, 2, iexact>(sol, lball, lnode, {});
     }// if pnorm
-    CPRINTF1("DEBUG: recomputed fnew = %e errLp1 = %e\n",fnew,*errLp1);
+    CPRINTF1("DEBUG: recomputed fnew = {} errLp1 = {}\n",fnew,*errLp1);
   }
 
 
