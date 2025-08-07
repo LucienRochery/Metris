@@ -16,6 +16,7 @@
 #include "../utils/aux_misc.hxx"
 #include "../utils/aux_pp_inc.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 namespace Metris{
 
@@ -96,8 +97,8 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
         getnorfac(msh, ientt, bary, asdmsh, norelt);
         if(normalize_vec<gdim>(norelt)){
           GETVDEPTH(msh.param);
-          MPRINTF("norelt vanished ientt = {} node {} point {} nodes ",ientt,inode,ipoin);
-          intAr1(nnode, ent2poi[ientt]).print();
+          MPRINTF("norelt vanished ientt = {} node {} point {} nodes {}\n",
+                  ientt,inode,ipoin,intAr1(nnode, ent2poi[ientt]));
           for(int ii = 0; ii < gdim; ii++) MPRINTF("{}: {:23.15e}\n",ii,norelt[ii]);
           METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
         }

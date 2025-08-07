@@ -9,17 +9,18 @@
 #include "low_localization.hxx"
 
 #include "../msh_lag2bez.hxx"
-#include "../utils/aux_misc.hxx"
 #include "../linalg/det.hxx"
 #include "../low_topo.hxx"
 #include "../low_geo/normal.hxx"
 #include "../low_geo/misc.hxx"
-#include "../utils/mprintf.hxx"
-#include "../utils/aux_timer.hxx"
-#include "../utils/mprintf.hxx"
 //#include "msh_metric.hxx"
 #include "../io_libmeshb.hxx"
 #include "../Boundary/low_projsurf.hxx"
+
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
+#include "../utils/aux_timer.hxx"
+#include "../utils/aux_misc.hxx"
 
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -93,11 +94,8 @@ int locMesh(MeshBase &msh, int *ientt,
 	if(tdim == gdim && locMeshQuick<gdim>(msh,coop)) return LOC_ERR_OUTBB;
 
 
-  if(DOPRINTS1()){
-    CPRINTF1("-- START locMesh gdim {} tdim {} ideg = {} guess {} "
-                         "search coor0 = ",gdim,tdim,ideg,*ientt);
-    dblAr1(gdim,coop).print();
-  }
+  CPRINTF1("-- START locMesh gdim {} tdim {} ideg = {} guess {} "
+            "search coor0 = {}\n",gdim,tdim,ideg,*ientt,dblAr1(gdim,coop));
 
 
 	if constexpr(ideg > 1){
@@ -107,8 +105,7 @@ int locMesh(MeshBase &msh, int *ientt,
 
     if(DOPRINTS1()){
       double dist = geterrl2<gdim>(coopr,coop);
-      CPRINTF1(" -> P1 loc done ientt = {} bary = ",*ientt);
-      dblAr1(tdim+1,bary).print();
+      CPRINTF1(" -> P1 loc done ientt = {} bary = {}\n",*ientt,dblAr1(tdim+1,bary));
       CPRINTF1(" - dist = {:15.7e}\n",dist);
     }
     
@@ -163,13 +160,9 @@ int locMesh(MeshBase &msh, int *ientt,
           INCVDEPTH(msh.param);
           ierro = inveval<gdim,ideg>(msh,*ientt,coop,coopr,bary,tolcur);
           }
-          CPRINTF2(" - called inveval dim {} deg {} ientt {} tol {} got ierro {} bary = ",
-                   gdim,ideg,*ientt,tolcur,ierro);
-          if(DOPRINTS2()){
-            dblAr1(gdim+1,bary).print();
-            CPRINTF2(" got coopr ");
-            dblAr1(gdim,coopr).print();
-          }
+          CPRINTF2(" - called inveval dim {} deg {} ientt {} tol {} got ierro {} bary = "
+                   "{} & coopr {}\n",
+                   gdim,ideg,*ientt,tolcur,ierro,dblAr1(tdim+1,bary),dblAr1(gdim,coopr));
 
         }else if(tdim == 2){
 
@@ -217,14 +210,12 @@ int locMesh(MeshBase &msh, int *ientt,
               ibpo1 = msh.poi2bpo[ipoi1];
               MPRINTF(" - ipoi1 = {} dump all ibpo1 start at {} \n",ipoi1,ibpo1);
               for(ibpo1 =  msh.poi2bpo[ipoi1]; ibpo1 >= 0; ibpo1 =  msh.bpo2ibi(ibpo1,3)){
-                MPRINTF(" {} :",ibpo1);
-                intAr1(nibi,msh.bpo2ibi[ibpo1]).print();
+                MPRINTF(" {} : {}\n",ibpo1,intAr1(nibi,msh.bpo2ibi[ibpo1]));
               }
               ibpo2 = msh.poi2bpo[ipoi2];
               MPRINTF(" ipoi2 = {} dump all ibpo2 start at {} \n",ipoi2,ibpo2);
               for(ibpo2 =  msh.poi2bpo[ipoi2]; ibpo2 >= 0; ibpo2 =  msh.bpo2ibi(ibpo2,3)){
-                MPRINTF(" {} :",ibpo2);
-                intAr1(nibi,msh.bpo2ibi[ibpo2]).print();
+                MPRINTF(" {} : {}\n",ibpo2,intAr1(nibi,msh.bpo2ibi[ibpo2]));
               }
               METRIS_THROW(TopoExcept());
             }
@@ -328,17 +319,14 @@ int locMesh(MeshBase &msh, int *ientt,
 
 
         if(ierro == 0){
-          if(DOPRINTS1()){
-            CPRINTF1("  - END niter = {} ierro {} ientt {} tdim {} bary ",niter,ierro,*ientt,tdim);
-            dblAr1(tdim+1,bary).print();
-          } 
+          CPRINTF1("  - END niter = {} ierro {} ientt {} tdim {} bary {}\n",
+                    niter,ierro,*ientt,tdim,dblAr1(tdim+1,bary));
           ifnd = 1;
           break;
         }
 
 
-        CPRINTF1(" - not in {} got bary = ",*ientt);
-        if(DOPRINTS1()) dblAr1(tdim + 1,bary).print();
+        CPRINTF1(" - not in {} got bary = {}\n",*ientt,dblAr1(tdim + 1,bary));
 
         // Initially, we were using minimum barycentric coordinate as the criterion.
         // This is ok for isotropic elements. But highly anisotropic means 
@@ -379,10 +367,7 @@ int locMesh(MeshBase &msh, int *ientt,
               for(int ii = 0; ii < gdim; ii++) 
                 nrm1[ii] = msh.coord(ent2poi(*ientt,1),ii) 
                          - msh.coord(ent2poi(*ientt,0),ii);
-              if(DOPRINTS2()){
-                CPRINTF2(" - using nrm1 = ");
-                dblAr1(gdim,nrm1).print();
-              }
+              CPRINTF2(" - using nrm1 = {}\n",dblAr1(gdim,nrm1));
             }else{
               getnorfacP1(msh.fac2poi[*ientt], msh.coord, nrm1);
               METRIS_ENFORCE(!normalize_vec<3>(nrm1));
@@ -412,10 +397,7 @@ int locMesh(MeshBase &msh, int *ientt,
                 for(int ii = 0; ii < gdim; ii++) 
                   nrm2[ii] = msh.coord(ent2poi(ienei,0),ii) 
                            - msh.coord(ent2poi(ienei,1),ii);
-                if(DOPRINTS2()){
-                  CPRINTF2(" - using nrm2 = ");
-                  dblAr1(gdim,nrm2).print();
-                }
+                CPRINTF2(" - using nrm2 = {}\n",dblAr1(gdim,nrm2));
               }else{
                 getnorfacP1(msh.fac2poi[*ientt], msh.coord, nrm2);
                 METRIS_ENFORCE(!normalize_vec<3>(nrm2));
@@ -462,10 +444,7 @@ int locMesh(MeshBase &msh, int *ientt,
                 edg2[jj] = coom[jj] - coopr[jj];
 
 
-              if(DOPRINTS1()){
-                CPRINTF1(" - dbg edg2 nrm {} = ",getnrml2<gdim>(edg2));
-                dblAr1(gdim,edg2).print();
-              }
+              CPRINTF1(" - dbg edg2 nrm {} = {}\n",getnrml2<gdim>(edg2),dblAr1(gdim,edg2));
               METRIS_ENFORCE(!normalize_vec<gdim>(edg2));
 
 

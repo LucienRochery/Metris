@@ -10,10 +10,14 @@
 #include "../Mesh/MeshMetric.hxx"
 
 #include "../msh_anamet.hxx"
-#include "../utils/aux_misc.hxx"
 #include "../low_eval.hxx"
 #include "../linalg/utils.hxx"
 #include "../linalg/explogmet.hxx"
+
+#include "../utils/aux_misc.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
+
 
 #include <cmath>
 
@@ -173,8 +177,8 @@ void MetricFieldAnalytical::
       #ifndef NDEBUG
       for(int ii = 0; ii < nnmet; ii++){
         if(std::isnan(metl[ii])){
-          printf("NaN analytical metric at ");
-          dblAr1(gdim,coop).print();
+          GETVDEPTH(this->msh.param);
+          PRINTF("NaN analytical metric at {}\n", dblAr1(gdim,coop));
           METRIS_THROW(GeomExcept());
         }
       }

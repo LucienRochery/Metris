@@ -4,19 +4,21 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
+#include "msh_reinsert_flat.hxx"
+
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 
-#include "msh_reinsert_flat.hxx"
 #include "../low_geo/misc.hxx"
 #include "../low_geo/height.hxx"
-#include "../utils/mprintf.hxx"
 #include "../msh_structs.hxx"
-#include "../cavity/msh_cavity.hxx"
 #include "../io_libmeshb.hxx"
+#include "../cavity/msh_cavity.hxx"
 #include "../adapt/low_collapse.hxx"
 //#include "../Boundary/low_projsurf.hxx"
 
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 namespace Metris{
 
@@ -103,10 +105,7 @@ int reinsertFlat(Mesh<MFT> &msh){
       //getheightentP1_aniso<gdim>(ent2poi[ientt], msh.coord, metl, height);
       getheightentP1_aniso<MFT,gdim>(msh, ientt, height);
 
-      if(DOPRINTS1()){
-        MPRINTF(" - ientt {} heights ",ientt);
-        dblAr1(tdim + 1, height).print();
-      }
+      CPRINTF1(" - ientt {} heights {}\n",ientt,dblAr1(tdim + 1, height));
 
 
       for(int ifa = 0; ifa < tdim + 1; ifa++){

@@ -321,7 +321,6 @@ void print_bpolist(MeshBase &msh, int ibpoi){
       int ientt = msh.bpo2ibi(ibpo2,2);
       MPRINTF("  - entity {} nodes: {}\n",ientt,intAr1(getnnode(tdim,msh.curdeg),msh.ent2poi(tdim)[ientt]));
     }
-		ibpo2 = msh.bpo2ibi(ibpo2,3);
 	}
 }
 

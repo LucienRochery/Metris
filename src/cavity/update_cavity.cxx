@@ -10,6 +10,7 @@
 #include "../io_libmeshb.hxx"
 #include "../utils/CT_loop.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 #include "../linalg/det.hxx"
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -433,14 +434,6 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
 
         CPRINTF1(" - edge neighbour = {} <? {} = nedg0 \n",iedge,nedg0);
 
-        if(iedge < 0){
-          printf("## DEBUG iedge < 0\n");
-          cav.print(msh, 2);
-          writeMeshCavity("cavity_bug",msh,cav);
-          writeMesh("mesh_bug",msh);
-          wait();
-        }
-
         // Check valid AND not a new edge otherwise what happened??
         METRIS_ENFORCE_MSG(iedge >= 0,"ifanw = "<<ifanw<<" ifaca = "<<ifaca<<" iedg = "<<ii);
 
@@ -455,8 +448,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
         CPRINTF1(" - already attached ifaed = {} dead ? {} \n",
                  ifaed,isdeadent(ifaed,msh.fac2poi));
         if(!isdeadent(ifaed,msh.fac2poi) && DOPRINTS1()){
-          CPRINTF1(" - ifaed vertices: ");
-          intAr1(getnnod2(ideg),msh.fac2poi[ifaed]).print();
+          CPRINTF1(" - ifaed vertices: {}\n",intAr1(getnnod2(ideg),msh.fac2poi[ifaed]));
         }
 
         // If an old cavity element, or a new one already updated
@@ -531,47 +523,25 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
   // Edge case... quite litterally: 2 faces one = the other (flipped) become 1 edge
   if(msh.nface == nfac0 && ncfac > 0){
     if(msh.nedge != nedg0 + 1){
-      fmt::print(LOGFILE__,"## ERROR cavity ipins = {} \n",cav.ipins);
-      if(cav.lcedg.get_n() > 0){
-        fmt::print(LOGFILE__,"## Edge cavity ({}): ",cav.lcedg.get_n());
-        for(int ii = 0; ii < cav.lcedg.get_n(); ii++){
-          fmt::print(LOGFILE__,"{} : {} = ",ii,cav.lcedg[ii]);
-          intAr1(getnnod1(ideg),msh.edg2poi[ii]).print();
-        }
-      }
-      if(cav.lcfac.get_n() > 0){
-        fmt::print(LOGFILE__,"## Face cavity ({}): ",cav.lcfac.get_n());
-        for(int ii = 0; ii < cav.lcfac.get_n(); ii++){
-          fmt::print(LOGFILE__,"{} : {} = ",ii,cav.lcfac[ii]);
-          intAr1(getnnod2(ideg),msh.fac2poi[ii]).print();
-        }
-      }
-      if(cav.lctet.get_n() > 0){
-        fmt::print(LOGFILE__,"## tet  cavity ({}): ",cav.lctet.get_n());
-        for(int ii = 0; ii < cav.lctet.get_n(); ii++){
-          fmt::print(LOGFILE__,"{} : {} = ",ii,cav.lctet[ii]);
-          intAr1(getnnod3(ideg),msh.tet2poi[ii]).print();
-        }
-      }
+      PRINTF("## ERROR cavity ipins = {} \n",cav.ipins);
+      PRINTF("Cavity:\n");
+      cav.print(msh,10);
       if(msh.nedge > nedg0){
-        fmt::print(LOGFILE__,"## nedg0 {} nedge {}\n",nedg0,msh.nedge);
+        PRINTF("## nedg0 {} nedge {}\n",nedg0,msh.nedge);
         for(int ii = nedg0; ii < msh.nedge; ii++){
-          fmt::print(LOGFILE__,"{} = ",ii);
-          intAr1(getnnod1(ideg),msh.edg2poi[ii]).print();
+          PRINTF("{} = {}\n",ii,intAr1(getnnod1(ideg),msh.edg2poi[ii]));
         }
       }
       if(msh.nface > nfac0){
-        fmt::print(LOGFILE__,"## nfac0 {} nface {}\n",nfac0,msh.nface);
+        PRINTF("## nfac0 {} nface {}\n",nfac0,msh.nface);
         for(int ii = nfac0; ii < msh.nface; ii++){
-          fmt::print(LOGFILE__,"{} = ",ii);
-          intAr1(getnnod2(ideg),msh.fac2poi[ii]).print();
+          PRINTF("{} = {}\n",ii,intAr1(getnnod2(ideg),msh.fac2poi[ii]));
         }
       }
       if(msh.nelem > nele0){
-        fmt::print(LOGFILE__,"## nele0 {} nelem {}\n",nele0,msh.nelem);
+        PRINTF("## nele0 {} nelem {}\n",nele0,msh.nelem);
         for(int ii = nele0; ii < msh.nelem; ii++){
-          fmt::print(LOGFILE__,"{} = ",ii);
-          intAr1(getnnod3(ideg),msh.tet2poi[ii]).print();
+          PRINTF("{} = {}\n",ii,intAr1(getnnod3(ideg),msh.tet2poi[ii]));
         }
       }
       writeMesh("fatal",msh);

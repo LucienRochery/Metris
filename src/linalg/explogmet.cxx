@@ -14,6 +14,7 @@
 #include "../linalg/utils.hxx"
 
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 #include <cmath>
 #include <unsupported/Eigen/MatrixFunctions>
@@ -53,12 +54,9 @@ void getlogmet_inp(T *met){
     }
     #endif
 
-    fmt::print("Invalid metric: ");
     int nnmet = (ndim*(ndim+1))/2;
-    MeshArray1D<T, int>(nnmet,met).print();
-
-    fmt::print("eigvals:");
-    MeshArray1D<T, int>(ndim,eigval).print();
+    fmt::print(stderr,"Invalid metric: {}\n", MeshArray1D<T, int>(nnmet, met));
+    fmt::print(stderr,"eigvals: {}\n",MeshArray1D<T, int>(ndim,eigval));
 
     METRIS_THROW_MSG(RealExcept(),"Negative eigenvalues");
   }

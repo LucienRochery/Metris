@@ -18,8 +18,10 @@
 #include "../Localization/msh_localization.hxx"
 #include "../linalg/det.hxx"
 #include "../low_geo/normal.hxx"
-#include "../utils/mprintf.hxx"
 #include "../msh_checktopo.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
+
 
 
 namespace Metris{
@@ -130,8 +132,8 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       printf("## WRONG SEEDS, DUMP ALL\n");
       for(int inewt = 0; inewt < ninsp+2; inewt++){
         int iseed = t2sed[inewt];
-        MPRINTF("iseed {} ref {} vertices ",iseed,msh.edg2ref[iseed]);
-        intAr1(getnnod1(msh.curdeg),msh.edg2poi[iseed]).print();
+        MPRINTF("iseed {} ref {} vertices {}\n",
+                iseed,msh.edg2ref[iseed],intAr1(getnnod1(msh.curdeg),msh.edg2poi[iseed]));
       }
       int nobd = 0;
       for(int inewt = 0; inewt < ninsp; inewt++){

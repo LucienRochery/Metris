@@ -43,10 +43,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
   // Only for case gdim > tdim
   double tau1[3], tau2[3], met2[3], buf1[3];
 
-  CPRINTF1("-- Start indelsphere ent2pol = ");
-  if(DOPRINTS1()){
-    intAr1(tdim+1,ent2pol).print();
-  }
+  CPRINTF1("-- START indelsphere ent2pol = {}\n",intAr1(tdim+1,ent2pol));
 
 
   // Matrix is (P2-P1)^TM
@@ -207,10 +204,8 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
     r1 = tvecXsymXvec<tdim>(buf,buf,metl);
   }
 
-  CPRINTF1("-- END indelsphere<{},{}> ? {}  r = {} r1 = {} centre = ",gdim,tdim,r1<r,r,r1);
-  if(DOPRINTS1()){
-    dblAr1(tdim,centr).print();
-  }
+  CPRINTF1("-- END indelsphere<{},{}> ? {}  r = {} r1 = {} centre = {}\n",
+           gdim,tdim,r1<r,r,r1,dblAr1(tdim,centr));
 
   return r1 < r;
 }

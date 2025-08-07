@@ -16,6 +16,8 @@
 #include "../linalg/det.hxx"
 
 #include "../utils/aux_pp_inc.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 
 namespace Metris{
@@ -153,8 +155,8 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       qutet = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,NULL);
       #ifndef NDEBUG
         }catch(const MetrisExcept &e){
-          printf("## metqua ent2pol \n");
-          intAr1(getnnode(tdim,ideg), ent2poi[ientt]).print();
+          printf("## metqua ent2pol {}\n",
+                 intAr1(getnnode(tdim,ideg), ent2poi[ientt]));
           throw(e);
         }
       #endif

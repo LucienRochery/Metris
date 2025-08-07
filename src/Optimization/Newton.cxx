@@ -12,6 +12,7 @@
 #include "Optimization/opt_generic.hxx"
 #include "low_geo/misc.hxx"
 #include "utils/mprintf.hxx"
+#include "utils/fmt_formatters.hxx"
 
 #include "nlopt_internals.h"
 #include <nlopt.hpp>
@@ -187,10 +188,8 @@ void optim_newton_drivertype(const MetrisParameters &param,
     }
 
 
-    if(DOPRINTS2()){
-      CPRINTF2("-- start LS step = {:15.7e} dir = ",rwork[1]);
-      dblAr1(nvar,&rwork[2*nvar+3]).print();
-    } 
+    CPRINTF2("-- start LS step = {:15.7e} dir = {}\n",rwork[1],
+              dblAr1(nvar,&rwork[2*nvar+3]));
 
     rwork[2] = 0.0;
     for(int ii = 0; ii < nvar; ii++){
@@ -226,11 +225,8 @@ void optim_newton_drivertype(const MetrisParameters &param,
       &&   abs(dot)  <=  wc2*abs(rwork[2])             ) 
       //||  (rwork[0] - *fcur)/rwork[0] > 0.05  
       ) {
-      if(DOPRINTS2()){
-        CPRINTF2(" ++ strong Wolfe conditions ok at xcur = ");
-        dblAr1(nvar,xcur).print();
-        CPRINTF2("  relative decrease = {}\n",(*fcur - rwork[0])/rwork[0]);
-      }
+      CPRINTF2(" ++ strong Wolfe conditions ok at xcur = {}\n",dblAr1(nvar,xcur));
+      CPRINTF2("  relative decrease = {}\n",(*fcur - rwork[0])/rwork[0]);
       *ierro = -1;
       if(*ihess <= 0) {
         *iflag = 1;
@@ -409,10 +405,8 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
     //args.rwork[1] = alpha0;
 
 
-    if(DOPRINTS1()){
-      CPRINTF1("-- start LS step = {:15.7e} dir = ",args.rwork[1]);
-      dblAr1(nvar,&args.rwork[2*nvar+3]).print();
-    } 
+    CPRINTF1("-- start LS step = {:15.7e} dir = {}\n",args.rwork[1],
+              dblAr1(nvar,&args.rwork[2*nvar+3]));
 
     args.rwork[2] = 0.0;
     for(int ii = 0; ii < nvar; ii++){
@@ -460,12 +454,10 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
     //  &&   abs(dot)  <=  wc2*abs(args.rwork[2])             )  )
     if(cdt1 && cdt2)
       //||  (args.rwork[0] - *fcur)/args.rwork[0] > 0.05  
-      {
-      if(DOPRINTS1()){
-        CPRINTF1(" ++ strong Wolfe conditions ok at xcur = ");
-        dblAr1(nvar,xcur).print();
-        CPRINTF1("  relative decrease = {}\n",(*fcur - args.rwork[0])/args.rwork[0]);
-      }
+    {
+      CPRINTF1(" ++ strong Wolfe conditions ok at xcur = {}\n", 
+                dblAr1(nvar,xcur));
+      CPRINTF1("  relative decrease = {}\n",(*fcur - args.rwork[0])/args.rwork[0]);
       ierro = -1;
       if(*ihess <= 0) {
         *iflag = 1;
@@ -621,10 +613,8 @@ int optim_newton_drivertype_TNCG(newton_drivertype_args<nvar> &args,
     //args.rwork[1] = alpha0;
 
 
-    if(DOPRINTS1()){
-      CPRINTF1("-- start LS step = {:15.7e} dir = ",args.rwork[1]);
-      dblAr1(nvar,&args.rwork[2*nvar+3]).print();
-    } 
+    CPRINTF1("-- start LS step = {:15.7e} dir = {}\n",args.rwork[1],
+             dblAr1(nvar,&args.rwork[2*nvar+3]));
 
     args.rwork[2] = 0.0;
     for(int ii = 0; ii < nvar; ii++){
@@ -673,11 +663,8 @@ int optim_newton_drivertype_TNCG(newton_drivertype_args<nvar> &args,
     if(cdt1 && cdt2)
       //||  (args.rwork[0] - *fcur)/args.rwork[0] > 0.05  
       {
-      if(DOPRINTS1()){
-        MPRINTF(" ++ strong Wolfe conditions ok at xcur = ");
-        dblAr1(nvar,xcur).print();
-        MPRINTF("  relative decrease = {}\n",(*fcur - args.rwork[0])/args.rwork[0]);
-      }
+      CPRINTF1(" ++ strong Wolfe conditions ok at xcur = {}\n",dblAr1(nvar,xcur));
+      CPRINTF1("  relative decrease = {}\n",(*fcur - args.rwork[0])/args.rwork[0]);
       ierro = -1;
       if(*ihess <= 0) {
         *iflag = 1;
@@ -1029,15 +1016,14 @@ int truncated_newton_iteration(const MetrisParameters* param,
     // p <- p + alpha d
     for(int ii = 0; ii < ndim; ii++) work.pminor[ii] += alpha*work.dminor[ii];
 
-    CPRINTF1(" - alpha = {:15.7e} pminor = ",alpha);
-    if(DOPRINTS1()) work.pminor.print();
+    CPRINTF1(" - alpha = {:15.7e} pminor = {}\n",alpha,work.pminor);
 
     double rnorm1 = sqrt(getnrml2<ndim>(&work.rminor[0]));
     for(int ii = 0; ii < ndim; ii++) work.rminor[ii] -= alpha*work.qminor[ii];
     double rnorm2 = sqrt(getnrml2<ndim>(&work.rminor[0]));
 
-    CPRINTF1(" - rnorm1 = {:15.7e} rnorm2 = {:15.7e} rminor = ",rnorm1,rnorm2);
-    if(DOPRINTS1()) work.rminor.print();
+    CPRINTF1(" - rnorm1 = {:15.7e} rnorm2 = {:15.7e} rminor = {}\n",
+             rnorm1,rnorm2,work.rminor);
 
     CPRINTF1(" - rnorm / gnorm = {:15.7e} <? {:15.7e}\n",rnorm2/gnorm,eta);
     if(rnorm2/gnorm < eta){
@@ -1050,8 +1036,8 @@ int truncated_newton_iteration(const MetrisParameters* param,
     for(int ii = 0; ii < ndim; ii++) 
       work.dminor[ii] = work.rminor[ii] + beta*work.dminor[ii];
     delta = rnorm2 + beta*beta*delta;
-    CPRINTF1(" - beta {:15.7e} delta {:15.7e} dminor",beta,delta);
-    if(DOPRINTS1()) work.dminor.print();
+    CPRINTF1(" - beta {:15.7e} delta {:15.7e} dminor {}\n",
+             beta,delta,work.dminor);
   }
   
   if(!cvged) CPRINTF1("## DID NOT CONVERGE\n");

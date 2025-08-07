@@ -31,6 +31,8 @@ void getnorfac(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol,
 // This is because taking the average of the (u,v)'s can send us just about
 // anywhere.
 int getnorfacCAD(const MeshBase &msh, int iface, double *nrmal);
+int getnorfacCAD(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol,
+                 const int*__restrict__ nod2bpo, double*__restrict__ nrmal);
 
 // Return outgoing normal of edge (2D only). 
 int getnorpoiCAD1(const MeshBase &msh, int ipoin, std::map<ego,int> &edgorient, 

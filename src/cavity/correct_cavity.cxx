@@ -13,11 +13,12 @@
 #include "../low_topo.hxx"
 #include "../low_geo/ccoef.hxx"
 #include "../aux_topo.hxx"
+#include "../linalg/det.hxx"
+
 #include "../utils/aux_misc.hxx"
 #include "../utils/CT_loop.hxx"
 #include "../utils/mprintf.hxx"
-#include "../linalg/det.hxx"
-
+#include "../utils/fmt_formatters.hxx"
 
 namespace Metris{
 
@@ -247,9 +248,8 @@ int correct_cavity0(Mesh<MFT> &msh,
         double meas = getmeasentP1<gdim,tdim>(msh, ientt, nrmal, &iflat);
         if(DOPRINTS1()){
           if constexpr (tdim == 2){
-            CPRINTF1(" - {} tdim {} ientt {} meas {} iflat {} using normal ",
-                     ientt-nent0,tdim,ientt,meas,iflat);
-            dblAr1(gdim,nrmal).print();
+            CPRINTF1(" - {} tdim {} ientt {} meas {} iflat {} using normal {}\n",
+                     ientt-nent0,tdim,ientt,meas,iflat,dblAr1(gdim,nrmal));
           }else{
             CPRINTF1(" - {} tdim {} ientt {} meas {} iflat {}\n",
                      ientt-nent0,tdim,ientt,meas,iflat);

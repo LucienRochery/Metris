@@ -14,6 +14,7 @@
 #include "../low_topo.hxx"
 #include "../low_geo/misc.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 #include "../utils/CT_loop.hxx"
 #include "../io_libmeshb.hxx"
 
@@ -575,12 +576,6 @@ void iniMeshBdryTriangles(MeshBase &msh, HshTab_I3I &intfHshTab){
       msh.newfactopo<ideg>(ielem, ifa, 0);
       ncref ++;
     }
-#ifndef NDEBUG 
-    if(DOPRINTS1()){  
-      CPRINTF1("-- Debug print triangles:\n");
-      msh.fac2poi.print(msh.nface < 10 ? msh.nface : 10);
-    }
-#endif
   }
 
   // This is the case where either part of the faces were provided or, more likely, interior faces were
@@ -1159,11 +1154,6 @@ int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
 					msh.newbpotopo(ipoin,2,iface);
 					ntry2++;
           CPRINTF3(" - new face bpo ipoin = {} iface = {} ntry2 = {}\n",ipoin,iface,ntry2);
-          //for(int ibpo2 = msh.poi2bpo[ipoin]; ibpo2 >= 0; ibpo2 = msh.bpo2ibi(ibpo2,3)){
-          //  printf("debug ibpo2 {} :",ibpo2);
-          //  intAr1(nibi,msh.bpo2ibi[ibpo2]).print();
-          //}
-          //wait();
 					continue;
 				}
 			}
@@ -1279,8 +1269,7 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
     if(ipoin >= msh.npoin){
       MPRINTF("ipoin = {} >= npoin = {} \n",ipoin,msh.npoin);
       MPRINTF("poi2ent = {} tdim {} \n",msh.poi2ent(ipoin,0),msh.poi2ent(ipoin,1));
-      MPRINTF("ibpoi = {} :\n",ibpoi);
-      intAr1(nibi,msh.bpo2ibi[ibpoi]).print();
+      MPRINTF("ibpoi = {} : {}\n",ibpoi,intAr1(nibi,msh.bpo2ibi[ibpoi]));
       MPRINTF("ipoin = {} \n",ipoin);
       METRIS_THROW(TopoExcept());
     }

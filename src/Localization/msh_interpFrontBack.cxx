@@ -9,16 +9,17 @@
 #include "msh_interpFrontBack.hxx"
 
 #include "../msh_lag2bez.hxx"
-#include "../utils/aux_misc.hxx"
 #include "../linalg/det.hxx"
 #include "../low_topo.hxx"
 #include "../low_geo/normal.hxx"
 #include "../low_geo/misc.hxx"
-#include "../utils/mprintf.hxx"
-#include "../utils/aux_timer.hxx"
-#include "../utils/mprintf.hxx"
 #include "../io_libmeshb.hxx"
 #include "../Boundary/low_projsurf.hxx"
+
+#include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
+#include "../utils/aux_misc.hxx"
 
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -180,12 +181,8 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     int ptag = msh.tag[ithread];
     if(DOPRINTS2()){
       CPRINTF2(" - Init front with {} points",lpfro.get_n());
-      if(lpfro.get_n() <= 10){
-        printf(": ");
-        lpfro.print();
-      }else{
-        printf("\n");
-      }
+      if(lpfro.get_n() <= 10) PRINTF(": {}",lpfro);
+      PRINTF("\n");
     }
     for(int ipoin : lpfro){
       msh.poi2tag(ithread,ipoin) = ptag;

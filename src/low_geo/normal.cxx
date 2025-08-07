@@ -12,6 +12,7 @@
 #include "../Mesh/MeshBase.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 #include "../utils/CT_loop.hxx"
 #include "../io_libmeshb.hxx"
 #include "../metris_constants.hxx"
@@ -56,15 +57,26 @@ void getnorfac(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol,
 // This is because taking the average of the (u,v)'s can send us just about
 // anywhere.
 int getnorfacCAD(const MeshBase &msh, int iface, double *nrmal){
+  int nod2bpo[3];
+  nod2bpo[0] = msh.poi2ebp(msh.fac2poi(iface,0), 2, iface, msh.fac2ref[iface]);
+  nod2bpo[1] = msh.poi2ebp(msh.fac2poi(iface,1), 2, iface, msh.fac2ref[iface]);
+  nod2bpo[2] = msh.poi2ebp(msh.fac2poi(iface,2), 2, iface, msh.fac2ref[iface]);
+
+  return getnorfacCAD(msh, msh.fac2poi[iface], nod2bpo, nrmal);
+}
+
+int getnorfacCAD(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol,
+                 const int*__restrict__ nod2bpo, double*__restrict__ nrmal){
   GETVDEPTH(msh.param);
   bool oneOK = false;
   for(int ii = 0; ii < 3; ii++) nrmal[ii] = 0;
   for(int iver = 0; iver < 3; iver++){
     INCVDEPTH(msh.param);
-    int ipoin = msh.fac2poi(iface,iver);
-    int ibpoi = msh.poi2ebp(ipoin,2,iface,-1);
-    CPRINTF2(" - getnorfacCAD iface {} iver {} ipoin {} ibpoi {}\n", iface, iver, ipoin, ibpoi);
-    METRIS_ASSERT_MSG(ibpoi >= 0," boundary point "<<ipoin<<" has no ibpoi");
+    int ibpoi = nod2bpo[iver];
+    if(ibpoi < 0) continue;
+
+    int ipoin = fac2pol[iver];
+    CPRINTF2(" - getnorfacCAD iver {} ipoin {} ibpoi {}\n", iver, ipoin, ibpoi);
 
     double dum[3];
     static int warning_print_CADnor = 0;
@@ -76,11 +88,9 @@ int getnorfacCAD(const MeshBase &msh, int iface, double *nrmal){
       continue;
     }
 
-    if(DOPRINTS3()){
-      CPRINTF3(" - ipoin {} ibpoi {} (u,v) = {} {} +nor ",ipoin,ibpoi,
-               msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
-      dblAr1(3,dum).print();
-    }
+    CPRINTF3(" - ipoin {} ibpoi {} (u,v) = {} {} +nor {} {} {}\n",ipoin,ibpoi,
+             msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1),
+             dum[0],dum[1],dum[2]);
     oneOK = true;
     for(int ii = 0; ii < 3; ii++) nrmal[ii] += dum[ii];
   }
@@ -320,12 +330,11 @@ void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
       if(!irecovered){
         MPRINTF("norfac vanishes in getnorpoiref for ipoin {}, iref {}\n", 
               ipoin, iref);
-        MPRINTF("iface = {} nodes ",iface);
-        intAr1(getnnode(msh.curdeg,2),msh.fac2poi[iface]).print();
+        MPRINTF("iface = {} nodes {}\n",iface,
+                intAr1(getnnode(msh.curdeg,2),msh.fac2poi[iface]));
 
         MPRINTF("Using msh.CAD() = {}\n",msh.CAD());
-        MPRINTF("result = ");
-        dblAr1(18,result).print();
+        MPRINTF("result = {}\n",dblAr1(18,result));
 
         METRIS_THROW_MSG(GeomExcept(), "## norfac vanishes");
       }
@@ -525,12 +534,9 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
   CPRINTF1("-- START getnordev fac2pol = {} {} {} nod2bpo = {} {} {}\n",fac2pol[0],fac2pol[1],fac2pol[2],
            nod2bpo[0],nod2bpo[1],nod2bpo[2]);
   if(DOPRINTS2()){
-    CPRINTF2(" - ibpoi {} : ",nod2bpo[0]);
-    intAr1(nibi,msh.bpo2ibi[nod2bpo[0]]).print();
-    CPRINTF2(" - ibpoi {} : ",nod2bpo[1]);
-    intAr1(nibi,msh.bpo2ibi[nod2bpo[1]]).print();
-    CPRINTF2(" - ibpoi {} : ",nod2bpo[2]);
-    intAr1(nibi,msh.bpo2ibi[nod2bpo[2]]).print();
+    if(nod2bpo[0] >= 0) CPRINTF2(" - nod2bpo[0] = ibpoi {} : {}\n",nod2bpo[0],intAr1(nibi,msh.bpo2ibi[nod2bpo[0]]));
+    if(nod2bpo[1] >= 0) CPRINTF2(" - nod2bpo[1] = ibpoi {} : {}\n",nod2bpo[1],intAr1(nibi,msh.bpo2ibi[nod2bpo[1]]));
+    if(nod2bpo[2] >= 0) CPRINTF2(" - nod2bpo[2] = ibpoi {} : {}\n",nod2bpo[2],intAr1(nibi,msh.bpo2ibi[nod2bpo[2]]));
   }
 
   constexpr int gdim = 3;
@@ -571,8 +577,7 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
     getnorfacP1(fac2pol, msh.coord, norelt);
     if(normalize_vec<gdim>(norelt)){
       writeMesh("debug_ibpoi",msh);
-      MPRINTF("norfac vanished face nodes ");
-      intAr1(nnode, fac2pol).print();
+      MPRINTF("norfac vanished face nodes {}\n", intAr1(nnode, fac2pol));
       for(int ii = 0; ii < gdim; ii++) MPRINTF("{}: {:23.15e}\n",ii,norelt[ii]);
       METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
     }
@@ -636,8 +641,8 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
       getnorfac(msh, fac2pol, bary, AsDeg::Pk, norelt);
       if(normalize_vec<gdim>(norelt)){
         writeMesh("debug_ibpoi",msh);
-        MPRINTF("norfac vanished face node {} point {} nodes ",inode,ipoin);
-        intAr1(nnode, fac2pol).print();
+        MPRINTF("norfac vanished face node {} point {} nodes {}\n",inode,ipoin,
+                intAr1(nnode, fac2pol));
         for(int ii = 0; ii < gdim; ii++) MPRINTF("{}: {:23.15e}\n",ii,norelt[ii]);
         METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
       }

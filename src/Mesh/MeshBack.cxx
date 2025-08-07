@@ -12,15 +12,16 @@
 
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../ho_constants.hxx"
-#include "../utils/aux_misc.hxx"
-#include "../utils/aux_timer.hxx"
 #include "../low_eval.hxx"
 #include "../low_geo/misc.hxx"
-#include "../utils/mprintf.hxx"
 #include "../io_libmeshb.hxx"
 #include "../API/MetrisAPI.hxx"
 #include "../linalg/det.hxx"
 
+#include "../utils/aux_misc.hxx"
+#include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 namespace Metris{
 
@@ -356,17 +357,14 @@ void MeshBack::initialize(MetrisAPI *data,
           dtprd = abs(dtprd);
 
           if(DOPRINTS3()){
-            CPRINTF3(" - ientt {} ipoin {} mtype {} dtprd {} dirCAD = ",ientt,ipoin,mtype,dtprd);
-            dblAr1(idim,dirCAD).print();
-            CPRINTF3(" - dirent = ");
-            dblAr1(idim,dirent).print();
-            CPRINTF3(" - (u,v) = ");
-            dblAr1(nrbi,bpo2rbi[ibpoi]).print();
+            CPRINTF3(" - ientt {} ipoin {} mtype {} dtprd {} dirCAD = {}\n",
+                     ientt,ipoin,mtype,dtprd,dblAr1(idim,dirCAD));
+            CPRINTF3(" - dirent = {}\n",dblAr1(idim,dirent));
+            CPRINTF3(" - (u,v) = {} {}\n",bpo2rbi(ibpoi,0),bpo2rbi(ibpoi,1));
             if(1 - abs(dtprd) >= 0.9){
               CPRINTF3("## LARGE GEODEV \n");
               for(int ibpo0 = poi2bpo[ipoin]; ibpo0 >= 0; ibpo0 = bpo2ibi(ibpo0,3)){
-                CPRINTF3("   - ibpoi {} : ",ibpo0);
-                intAr1(nibi,bpo2ibi[ibpo0]).print();
+                CPRINTF3("   - ibpoi {} : {}\n",ibpo0,intAr1(nibi,bpo2ibi[ibpo0]));
                 MPRINTF(" (u,v) = {} {} \n",bpo2rbi(ibpo0,0),bpo2rbi(ibpo0,1));
               }
             }

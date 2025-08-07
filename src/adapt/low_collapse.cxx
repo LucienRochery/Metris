@@ -15,7 +15,7 @@
 #include "../low_topo.hxx"
 #include "../low_geo/normal.hxx"
 #include "../utils/mprintf.hxx"
-#include "../msh_structs.hxx"
+#include "../utils/fmt_formatters.hxx"
 #include "../io_libmeshb.hxx"
 #include "../msh_checktopo.hxx"
 #include "../adapt/low_increasecav.hxx"
@@ -107,8 +107,8 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
     if(DOPRINTS2() && tdimp[ii] == 0){
       CPRINTF2("Topo dim 0 point {} \n",ipoin);
       int ib = msh.poi2bpo[ipoin];
-      CPRINTF2("poi2bpo = {} bpo2ibi = ",ib);
-      intAr1(nibi,msh.bpo2ibi[ib]).print();
+      CPRINTF2("poi2bpo = {} bpo2ibi = {}\n",ib,
+               intAr1(nibi,msh.bpo2ibi[ib]));
     }
   }
   CPRINTF1(" - topo dims {} {} \n",tdimp[0],tdimp[1]);

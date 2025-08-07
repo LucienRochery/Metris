@@ -10,15 +10,16 @@
 #include "../MetrisRunner/MetrisParameters.hxx"
 
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 #include "../cavity/msh_cavity.hxx"
 #include "../aux_topo.hxx"
 #include "../msh_structs.hxx"
 #include "../low_topo.hxx"
 #include "../low_geo/normal.hxx"
 #include "../low_geo/measure.hxx"
+#include "../low_geo/lenedg.hxx"
 #include "../io_libmeshb.hxx"
 #include "../linalg/det.hxx"
-#include "../low_geo/lenedg.hxx"
 
 #include "../msh_checktopo.hxx"
 
@@ -144,8 +145,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
     int inode_sub = mul2nod(1,idx1);
     edg2pol[inode_sub] = ent2poi(ientt,inode_sup);
   }
-  CPRINTF2(" - edg2pol = ");
-  if(DOPRINTS2()) intAr1(nnode,edg2pol).print();
+  CPRINTF2(" - edg2pol = {}\n",intAr1(nnode,edg2pol));
 
   int ierro;
 //restart_bisection:

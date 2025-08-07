@@ -13,6 +13,7 @@
 #include "../utils/aux_misc.hxx"
 #include "../utils/aux_timer.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 #include "../Mesh/MeshBase.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -279,8 +280,7 @@ double getminccoef(MeshBase &msh){
       MPRINTF("## FATAL vol = {:15.7e} \n", vol);
       vol = getmeasentP1<gdim,gdim>(msh, ielem, NULL, &iflat);
       MPRINTF("Recompute with tol {:15.7e} iflat {} \n",vol, iflat);
-      MPRINTF("element is {} = ", ielem);
-      intAr1(tdim + 1, ent2poi[ielem]).print();
+      MPRINTF("element is {} = {}\n", ielem, intAr1(tdim + 1, ent2poi[ielem]));
       writeMesh("debug_vol", msh);
     }
     METRIS_ENFORCE_MSG(vol>0.0,"vol = "<<vol);

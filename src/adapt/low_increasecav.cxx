@@ -1057,16 +1057,13 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
   CPRINTF1("-- START increase_cavity_validity ipins {} list initial cavity:\n", cav.ipins);
   if(DOPRINTS1()){
     if(cav.lcedg.get_n() > 0){
-      CPRINTF1(" - Edge cavity: ");
-      cav.lcedg.print();
+      CPRINTF1(" - Edge cavity: {}\n",cav.lcedg);
     }
     if(cav.lcfac.get_n() > 0){
-      CPRINTF1(" - Face cavity: ");
-      cav.lcfac.print();
+      CPRINTF1(" - Face cavity: {}\n",cav.lcfac);
     }
     if(cav.lctet.get_n() > 0){
-      CPRINTF1(" - Tetra cavity: ");
-      cav.lctet.print();
+      CPRINTF1(" - Tetra cavity: {}\n",cav.lctet);
     }
   }
   if(DOPRINTS2()){

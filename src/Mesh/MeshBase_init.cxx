@@ -425,10 +425,8 @@ void MeshBase::initialize(MetrisAPI *data,
         dtprd = abs(dtprd);
 
         if(iverb >= 3){
-          printf("  - iedge {} ipoin {} dtprd {} tanCAD = ",ipoin,iedge,dtprd);
-          dblAr1(idim,tanCAD).print();
-          printf("  - tanedg = ");
-          dblAr1(idim,tanedg).print();
+          printf("  - iedge {} ipoin {} dtprd {} tanCAD = {}\n",ipoin,iedge,dtprd,dblAr1(idim,tanCAD));
+          printf("  - tanedg = {}\n",dblAr1(idim,tanedg));
         }
 
         METRIS_ASSERT_MSG(dtprd >= 1.0e-16,"zero dtprd = "<<dtprd);
@@ -877,9 +875,10 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
           if(!(ineg || nseen == 1)){
             MPRINTF("With refineConventionsInp, ineg = {} nseen = {}, meas = {}\n",ineg,nseen,meas);
             MPRINTF("iface = {} vertices = {}\n",iface,intAr1(3,fac2poi[iface]));
-            MPRINTF("Coords = \n");
-            for(int ii = 0; ii < 3; ii++)
-              dblAr1(idim,coord[fac2poi(iface,ii)]).print();
+            MPRINTF("Coords =\n0: {}\n1: {}\n2: {}\n",
+                    dblAr1(idim,coord[fac2poi(iface,0)]),
+                    dblAr1(idim,coord[fac2poi(iface,1)]),
+                    dblAr1(idim,coord[fac2poi(iface,2)]));
             writeMesh("debugsurf",*this);
           }
           METRIS_ENFORCE_MSG(ineg || nseen == 1, "## FIRST NEGATIVE ELEMENT IS RANK "<<nseen

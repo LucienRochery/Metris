@@ -14,10 +14,11 @@
 #include "../low_geo/normal.hxx"
 #include "../low_geo/misc.hxx"
 #include "../quality/low_metqua.hxx"
-#include "../utils/mprintf.hxx"
-#include "../utils/aux_misc.hxx"
 #include "../io_libmeshb.hxx"
 
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
+#include "../utils/aux_misc.hxx"
 
 namespace Metris{
 
@@ -58,9 +59,8 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
       METRIS_ASSERT(icoco < work.lfcco.get_n());
       METRIS_ASSERT_MSG(edcco[icoco].get_n() > 0,"edcco[icoco] empty in update_bpois_newp");
       if(edcco[icoco].get_n() <= 0){
-        printf("edcco :\n");
-        edcco.print();
-        printf("## DEBUG FATAL\n");
+        PRINTF("edcco : {}\n",edcco);
+        PRINTF("## DEBUG FATAL\n");
         METRIS_THROW(TODOExcept());
       }
       int ireff = msh.fac2ref[iface];

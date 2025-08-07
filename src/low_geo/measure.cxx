@@ -152,20 +152,26 @@ double getmeasentP1(const MeshBase&__restrict__ msh, const int*__restrict__ ent2
         return 0;
       }
 
+      
+      double norCAD[3];
       if(norref == NULL){
-        det = getnrml2<3>(norfac);
-        det = sqrt(det);
-      }else{
-        double nrm = getnrml2<3>(norref);
-        if(nrm < Constants::vecNrmTol){
-          *iflat = true;
-          return 0;
+        norref = norCAD;
+        if(msh.CAD()){
+          int ierro = getnorfacCAD(msh,ent2pol,nod2bpo,norCAD);
+          METRIS_ASSERT_MSG(ierro == 0, "getnorfacCAD failed ierro = " << ierro);
+        }else{
+          getnorfacP1(ent2pol,msh.coord,norCAD);
         }
-        nrm = 1.0 / sqrt(nrm);
-
-        // norfac is l1 x l2 is already homo h^2 despite norref O(1)
-        det = getprdl2<3>(norfac,norref)*nrm;
       }
+      
+      double nrm2 = getnrml2<3>(norref);
+      if(nrm2 < Constants::vecNrmTol){
+        *iflat = true;
+        return 0;
+      }
+
+      // norfac is l1 x l2 is already homo h^2 despite norref O(1)
+      det = getprdl2<3>(norfac,norref)/sqrt(nrm2);
 
       // Additionally, check normal deviation
       if(nordev_tol >= 0){

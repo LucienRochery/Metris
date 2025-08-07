@@ -122,10 +122,8 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
   // a) Get intrinsic metric and physical derivatives
   METRIS_ENFORCE(!getintmetxi<gdim,gdim,ideg>(msh.coord,msh.tet2poi[ielem],
                                               msh.getBasis(),bary,intmetS));
-  if(DOPRINTS1()){
-    MPRINTF("1. print intmetS and derivatives\n");
-    MeshArray1D<SANS::SurrealS<3,double>>(6,intmetS).print();
-  }
+  CPRINTF1("1. print intmetS and derivatives:\n{}\n",
+           MeshArray1D<SANS::SurrealS<3,double>>(6,intmetS));
     // State is now intmetS = M
   // b) Get Jacobian to compute scale
 	double eval[3], jmat[9];

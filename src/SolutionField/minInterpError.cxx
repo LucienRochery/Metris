@@ -10,16 +10,18 @@
 
 #include "../Mesh/Mesh.hxx"
 #include "../ho_constants.hxx"
-#include "../utils/aux_timer.hxx"
-#include "../utils/mprintf.hxx"
-#include "../utils/aux_misc.hxx"
-#include "../utils/bernstein_prod.hxx"
 #include "../low_geo/ccoef.hxx"
 #include "../low_geo/measure.hxx"
 #include "../linalg/det.hxx"
 #include "../Optimization/opt_generic.hxx"
 #include "../low_topo.hxx"
 #include "../io_libmeshb.hxx"
+
+#include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../utils/bernstein_prod.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 #include "codegen_lag2bez.hxx"
 
@@ -167,13 +169,9 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
           METRIS_THROW_MSG(TODOExcept(), "Interior 2D/3D or face in 3D");
         }
 
-        if(DOPRINTS2()){
-          CPRINTF2(" - ientt {} inode {} ipoin {} ball size {}\n",ientt,inode,ipoin,lball.get_n());
-          CPRINTF2(" ball:");
-          lball.print();
-          CPRINTF2(" lnode:");
-          lnode.print();
-        }
+        CPRINTF2(" - ientt {} inode {} ipoin {} ball size {}\n",ientt,inode,ipoin,lball.get_n());
+        CPRINTF2(" ball: {}\n",lball);
+        CPRINTF2(" lnode: {}\n",lnode);
 
         // We now have lball list of elements, lnode index of ipoin in these
         double errLp0, errLp1;
@@ -369,10 +367,8 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
 
         if(DOPRINTS2()){
           CPRINTF2(" - ientt {} inode {} ipoin {} ball size {}\n",ientt,inode,ipoin,lball.get_n());
-          CPRINTF2(" ball:");
-          lball.print();
-          CPRINTF2(" lnode:");
-          lnode.print();
+          CPRINTF2(" ball: {}\n",lball);
+          CPRINTF2(" lnode: {}\n",lnode);
         }
 
         // We now have lball list of elements, lnode index of ipoin in these
@@ -744,9 +740,8 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
 
   }// for niter
 
-  CPRINTF1("-- END minimizeInterpErrloc_DIRECT ifmin {} fun {} -> {} barmin ",
-           ifmin, *errLp0, fopt);
-  if(DOPRINTS1()) dblAr1(idim+1,barmin).print();
+  CPRINTF1("-- END minimizeInterpErrloc_DIRECT ifmin {} fun {} -> {} barmin {}\n",
+           ifmin, *errLp0, fopt, dblAr1(idim+1,barmin));
 
 
   if(fopt >= *errLp0){
@@ -778,8 +773,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
     }
   }
   if(iinva){
-    printf("Invalid configuration, dump mesh. ball = ");
-    lball.print();
+    PRINTF("Invalid configuration, dump mesh. ball = {}\n",lball);
     writeMesh("debugDIBLOB_intp.meshb",msh);
   }
   METRIS_ASSERT(!iinva);

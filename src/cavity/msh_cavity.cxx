@@ -272,6 +272,16 @@ int cavity_operator(Mesh<MFT> &msh ,
   //  check_topo(msh,ithread);
   //}
 
+
+  //static int nafter600 = 0;
+  //if(msh.nface >= 600){
+  //  nafter600++;
+  //  PRINTF("## DEBUG 600 faces + {} op, write mesh\n",nafter600);
+  //  writeMesh("iface600_" + std::to_string(nafter600),msh);
+  //  if(nafter600 == 7) exit(0);
+  //  //wait();
+  //}
+
 	return ierro;
   }catch(const MetrisExcept& e){
     printf("## EXCEPTION IN CAVITY \n");

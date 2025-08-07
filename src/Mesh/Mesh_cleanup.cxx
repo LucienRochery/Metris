@@ -9,6 +9,7 @@
 #include "../msh_checktopo.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 
 namespace Metris{
@@ -307,11 +308,9 @@ void Mesh<MetricFieldType>::cleanup(){
     if(ipoin < 0) continue;
     if(ipoin >= this->npoin){
       fmt::print("ipoin = {} >= npoin = {}\n",ipoin,this->npoin);
-      fmt::print("ibpoi = {} : ",ibpoi);
-      intAr1(nibi,this->bpo2ibi[ibpoi]).print();
+      fmt::print("ibpoi = {} : {}\n",ibpoi,intAr1(nibi,this->bpo2ibi[ibpoi]));
       for(int ibpo2 = this->bpo2ibi(ibpoi,3); ibpo2 >= 0; ibpo2 = this->bpo2ibi(ibpo2,3)){
-        fmt::print("ibpo2 = {} : ",ibpo2);
-        intAr1(nibi,this->bpo2ibi[ibpo2]).print();
+        fmt::print("ibpo2 = {} : {}\n",ibpo2,intAr1(nibi,this->bpo2ibi[ibpo2]));
       }
     }
     METRIS_ASSERT(ipoin < this->npoin);

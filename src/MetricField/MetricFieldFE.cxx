@@ -378,8 +378,7 @@ void MetricFieldFE::getMetBary(AsDeg asdmet,
   if(std::isnan(metl[0])){
     GETVDEPTH(msh.param);
     PRINTF("## DEBUG NAN METRIC IN GETMETBARY\n");
-    PRINTF("bary = ");
-    dblAr1(msh.idim+1,bary).print();
+    PRINTF("bary = {}\n",dblAr1(msh.idim+1,bary));
     for(int inode = 0; inode < getnnode(msh.idim,msh.curdeg); inode++){
       PRINTF("elt node {} met = {}\n",ent2pol[inode],
              dblAr1((msh.idim*(msh.idim+1))/2, this->rfld[ent2pol[inode]]));

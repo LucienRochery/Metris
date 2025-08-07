@@ -10,13 +10,15 @@
 #include "aux_exceptions.hxx"
 #include "aux_topo.hxx"
 #include "low_geo/measure.hxx"
-#include "utils/aux_misc.hxx"
-#include "utils/CT_loop.hxx"
 #include "io_libmeshb.hxx"
 #include "low_geo/ccoef.hxx"
 #include "low_geo/nrml2.hxx"
 #include "low_geo/normal.hxx"
+
 #include "utils/mprintf.hxx"
+#include "utils/fmt_formatters.hxx"
+#include "utils/aux_misc.hxx"
+#include "utils/CT_loop.hxx"
 
 namespace Metris{
 
@@ -35,10 +37,10 @@ void check_topo(MeshBase &msh,
   ncall_this++;
 
   if(msh.param->iflag3 > 0 && ncall_this%msh.param->iflag3 != 0) return;
-
+    
   try{
 
-    if(DOPRINTS2()) printf("-- check_topo start \n");
+    CPRINTF2("-- START check_topo\n");
 
     const int jdeg = msh.idim * (msh.curdeg - 1);
     dblAr1 ccoef(getnnode(msh.idim,jdeg));
@@ -63,12 +65,7 @@ void check_topo(MeshBase &msh,
       for(int ientt = 0; ientt < nentt; ientt++){
         if(isdeadent(ientt,ent2poi)) continue;
 
-        double nrmal[3];
-        if constexpr(tdim == 2 && gdim == 3){
-          getnorfacP1(msh.fac2poi[ientt], msh.coord, nrmal);
-        }
-
-        bool iflat = !isvalideltP1<gdim,tdim>(msh, ientt, nrmal, NULL, -1 );
+        bool iflat = !isvalideltP1<gdim,tdim>(msh, ientt, NULL, NULL, -1 );
         METRIS_ENFORCE(!iflat);
         if(msh.curdeg > 1){
           CT_FOR0_INC(2,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
@@ -729,6 +726,19 @@ void check_topo(MeshBase &msh,
       }
     }
 
+    
+    // Check closed surface in 3D and manifold
+    if(!msh.is_nonmanifold() && msh.idim == 3){
+      for(int iface = 0; iface < nface; iface++){
+        for(int ied = 0; ied < 3; ied++){
+          int ifnei = msh.fac2fac(iface,ied);
+          if(ifnei >= 0) continue;
+          METRIS_ENFORCE(ifnei == -1);
+          int iedge = msh.fac2edg(iface, ied);
+          METRIS_ENFORCE(iedge >= 0 && iedge < nedge);
+        }
+      }
+    }
 
     if(nface > 0){
       for(int iedge = 0; iedge < nedge; iedge++){
@@ -1109,6 +1119,7 @@ void check_topo(MeshBase &msh,
   //  METRIS_ENFORCE(boost::unit_test::results_collector.results(test_id).passed());
   //}
 
+  CPRINTF2("-- END check_topo\n");
 }
 
 

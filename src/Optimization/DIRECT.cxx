@@ -6,6 +6,7 @@
 #include "DIRECT.hxx"
 #include "../Mesh/MeshBase.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 
 #include <sstream>
@@ -376,8 +377,7 @@ void DIBLOB(DIBLOB_args &args,
     if(ielem < 0){
       MPRINTF("## VERY STRANGE !\n");
       MPRINTF("niter = {} \n",args.niter);
-      MPRINTF("hull is: ");
-      args.lhull.print();
+      MPRINTF("hull is: {}\n",args.lhull);
       METRIS_THROW(TopoExcept())
     }
 
@@ -841,11 +841,8 @@ void aux_DIRECT_newevals(DIBLOB_args &args, int idim, int nele0, int ilev, int i
 
   for(int ielem = nele0; ielem < args.ent2pol.get_n(); ielem++){
     int ieval = peval.get_n();
-    CPRINTF1("   - ask new eval iele loc {} glo {} lev {} split {} nodes ", 
-             ielem, ieglo,ilev,ielem);
-    if(DOPRINTS1()){
-      intAr1(idim+1,args.ent2pol[ielem]).print();
-    }
+    CPRINTF1("   - ask new eval iele loc {} glo {} lev {} split {} nodes {}\n", 
+             ielem, ieglo,ilev,ielem,intAr1(idim+1,args.ent2pol[ielem]));
     peval.inc_n();
     leval.inc_n();
     feval.inc_n();

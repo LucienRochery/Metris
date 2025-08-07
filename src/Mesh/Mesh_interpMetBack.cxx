@@ -93,8 +93,8 @@ int Mesh<MFT>::interpMetBack(int ipoin, int tdim, int iseed,
   int ierro = this->interpMetBack0(ipoin, tdim, iseed, iref, algnd);
 
   if(DOPRINTS1()){
-    CPRINTF1("-- END interpMetBack ipoin = {} ierro {} met = ",ipoin,ierro);
-    dblAr1((this->idim*(this->idim+1))/2, this->met[ipoin]).print();
+    CPRINTF1("-- END interpMetBack ipoin = {} ierro {} met = {}\n",
+             ipoin,ierro,dblAr1((this->idim*(this->idim+1))/2, this->met[ipoin]));
   }
 
   return ierro;
@@ -343,9 +343,7 @@ ieleb_initialized:
       this->bak->coord(ipdb2,ii) = coopr[ii];
 
 
-    PRINTF("Try to localize coop {} = ",ipdbg);
-    dblAr1(this->idim,this->coord[ipoi0]).print();
-    dblAr1(this->idim,this->bak->coord[ipdbg]).print();
+    PRINTF("Try to localize coop {} = {}, bak ipdbg = {}\n",ipdbg,dblAr1(this->idim,this->coord[ipoi0]),dblAr1(this->idim,this->bak->coord[ipdbg]));
     writeMesh("debug-localization.meshb", *(this->bak));
     this->bak->bpo2ibi(ibdbg,0)  = -1;
     this->bak->killpoint(ipdbg);
@@ -433,13 +431,10 @@ ieleb_initialized:
   }
 
   if(DOPRINTS2()){
-    CPRINTF2("- localization outside? len = {:15.7e} w tang ",len);
-    dblAr1(this->idim,tang).print();
+    CPRINTF2("- localization outside? len = {:15.7e} w tang {}\n",len,dblAr1(this->idim,tang));
     int nnmet = (this->idim*(this->idim+1))/2;
-    CPRINTF2(" using metl = ");
-    dblAr1(nnmet,this->met[ipoi0]).print();
-    CPRINTF2(" in iele = {} bary ",ieleb);
-    dblAr1(tdim+1,barb).print();
+    CPRINTF2(" using metl = {}\n",dblAr1(nnmet,this->met[ipoi0]));
+    CPRINTF2(" in iele = {} bary {}\n",ieleb,dblAr1(tdim+1,barb));
     double sum = abs(barb[0]) + abs(barb[1]);
     if(tdim >= 2) sum += abs(barb[2]);
     if(tdim >= 3) sum += abs(barb[3]);
@@ -448,24 +443,17 @@ ieleb_initialized:
     }
     intAr2 &ent2pob = this->bak->ent2poi(tdim);
     for(int ii = 0; ii < tdim + 1; ii++){
-      CPRINTF2("vertex {} metric = ",ent2pob(ieleb,ii));
-      dblAr1(nnmet,this->bak->met[ent2pob(ieleb,ii)]).print();
+      CPRINTF2("vertex {} metric = {}\n",ent2pob(ieleb,ii),
+               dblAr1(nnmet,this->bak->met[ent2pob(ieleb,ii)]));
     }
   }
   if(len < 0.5){
-    if(DOPRINTS2()){
-      CPRINTF2("-> len {:15.7e} < 0.5 keep w met = ",len);
-      dblAr1( (this->idim*(this->idim+1))/2,this->met[ipoi0]).print();
-    }
+    CPRINTF2("-> len {:15.7e} < 0.5 keep w met = {}\n",len,dblAr1((this->idim*(this->idim+1))/2,this->met[ipoi0]));
     ierro = 0;
   }else{
     CPRINTF1("# Large length {} \n",len);
-    if(DOPRINTS2()){
-      CPRINTF2("- proj point ");
-      dblAr1(this->idim, coopr).print();
-      CPRINTF2("- loc  point ");
-      dblAr1(this->idim, this->coord[ipoi0]).print();
-    }
+    CPRINTF2("- proj point {}\n",dblAr1(this->idim,coopr));
+    CPRINTF2("- loc  point {}\n",dblAr1(this->idim, this->coord[ipoi0]));
     ierro = 1;
   }
 
