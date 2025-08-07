@@ -31,7 +31,7 @@ void check_topo(MeshBase &msh, int ithread){
 
 void check_topo(MeshBase &msh, 
                 int nbpoi, int npoin, int nedge, int nface, int nelem, int ithread){
-  GETVDEPTH(msh.param);
+  INCVDEPTH(msh.param);
 
   static int ncall_this = 0;
   ncall_this++;

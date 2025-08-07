@@ -224,7 +224,69 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     finish_grow_step:
     if(ierro > 0){
       ierro = 0;
-      if(lrempoi.get_n() == 0){
+
+      bool unfixable = false;
+      if(lrempoi.get_n() > 0){
+        // Now we need to remove all the newly added elements that contain 
+        // one of the lrempoi.
+        CPRINTF2(" # Fix cavity, lrempoi = {}\n", lrempoi.get_n());
+        msh.tag[ithrd1]++;
+        for(int ii = 0; ii < lrempoi.get_n(); ii++){
+          int ipoin = lrempoi[ii];
+          msh.poi2tag(ithrd1, ipoin) = msh.tag[ithrd1];
+        }
+        for(int tdimc = 1; tdimc <= msh.get_tdim(); tdimc++){
+          intAr1 &lcent = cav.lcent(tdimc);
+          const int ncen0 = tdimc == 1 ? nced1 : 
+                            tdimc == 2 ? ncfa1 : ncte1;
+          const intAr2& ent2poc = msh.ent2poi(tdimc);
+          int nrem = 0;
+          for(int ii = ncen0; ii < lcent.get_n();){
+            INCVDEPTH(msh.param);
+            int icent = lcent[ii];
+            bool remelt = false;
+            for(int iver = 0; iver < tdimc + 1; iver++){
+              int ipoin = ent2poc(icent,iver);
+              if(msh.poi2tag(ithrd1, ipoin) < msh.tag[ithrd1]) continue;
+              remelt = true;
+              break;
+            }// for iver
+            if(!remelt){
+              ii++;
+              continue;
+            }
+            CPRINTF1(" - remove {} from cavity dim {}\n",icent,tdimc);
+            int icend = lcent.pop();
+            // This can only happen if we're the last element. In that case we 
+            // shrank the array and can quit. 
+            if(icend == icent) break;
+            // otherwise place last here.
+            icent = icend;
+            nrem++;
+          }// for icent
+          CPRINTF1(" - removed {} dim {} cavity elements\n",nrem,tdimc);
+        }// for tdimc
+
+        // Try correcting cavity for validity then rechecking
+        ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
+        if(ierro != 0){
+          CPRINTF1(" # +cav error after fix {}\n",ierro);
+          unfixable = true;
+          goto finish_correction;
+        }
+
+        check_cavity_rempoint(msh, cav, opts, lrempoi.get_array(), true, ithrd1);
+        if(lrempoi.get_n() > 0){
+          ierro = INS2D_ERR_SHORTEDG;
+          CPRINTF1(" # error nrem point = {} after fix\n",lrempoi.get_n());
+          unfixable = true;
+          goto finish_correction;
+        }
+
+      }
+
+      finish_correction:
+      if(lrempoi.get_n() == 0 || unfixable){
         CPRINTF1(" # Unfixable cavity: reset to: {} edges, {} faces, {} tetra and test\n",
                  nced1, ncfa1, ncte1);
         // The cavity can't be fixed to continue iterating. Simply stop it now.
@@ -238,45 +300,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
         ierro = 0;
         break;
       }
-
-      // Now we need to remove all the newly added elements that contain 
-      // one of the lrempoi.
-      msh.tag[ithrd1]++;
-      for(int ii = 0; ii < lrempoi.get_n(); ii++){
-        int ipoin = lrempoi[ii];
-        msh.poi2tag(ithrd1, ipoin) = msh.tag[ithrd1];
-      }
-      for(int tdimc = 1; tdimc <= msh.get_tdim(); tdimc++){
-        intAr1 &lcent = cav.lcent(tdimc);
-        const int ncen0 = tdimc == 1 ? nced1 : 
-                          tdimc == 2 ? ncfa1 : ncte1;
-        const intAr2& ent2poc = msh.ent2poi(tdimc);
-        int nrem = 0;
-        for(int ii = ncen0; ii < lcent.get_n();){
-          INCVDEPTH(msh.param);
-          int icent = lcent[ii];
-          bool remelt = false;
-          for(int iver = 0; iver < tdimc + 1; iver++){
-            int ipoin = ent2poc(icent,iver);
-            if(msh.poi2tag(ithrd1, ipoin) < msh.tag[ithrd1]) continue;
-            remelt = true;
-            break;
-          }// for iver
-          if(!remelt){
-            ii++;
-            continue;
-          }
-          CPRINTF1(" - remove {} from cavity dim {}\n",icent,tdimc);
-          int icend = lcent.pop();
-          // This can only happen if we're the last element. In that case we 
-          // shrank the array and can quit. 
-          if(icend == icent) break;
-          // otherwise place last here.
-          icent = icend;
-          nrem++;
-        }// for icent
-        CPRINTF1(" - removed {} dim {} cavity elements\n",nrem,tdimc);
-      }// for tdimc
+      if(DOPRINTS2()) writeMeshCavity("insert_cavity4."+std::to_string(ngrow),msh,cav);
     }// if ierro > 0
     
     ierro = 0;
