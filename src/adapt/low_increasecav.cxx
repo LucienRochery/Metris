@@ -147,6 +147,11 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
   GETVDEPTH(msh.param);
   int ierro;
 
+  bool filter_long = true;
+  
+  static int nwarnprt = 0;
+  if(nwarnprt++ < 10 && !filter_long) printf("## FILTER_LONG SET TO TRUE\n");
+
   CPRINTF1("-- START setCavityInsertion mgrow = {}\n",mgrow);
 
   intWrkAr1 lrempoi = msh.get_iwork(10);
@@ -183,7 +188,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     ierro = increase_cavity_Delaunay(msh, cav, 1, ithrd1);
     if(ierro != 0){
       CPRINTF1(" # +del error {}\n",ierro);
-      ierro = INS2D_ERR_INCCAV2D;
+      ierro = INS2D_ERR_INCCAVDEL;
       goto finish_grow_step;
     }
     CPRINTF1(" - +del nedge {} nface {} nelem {}\n",
@@ -195,7 +200,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
     if(ierro != 0){
       CPRINTF1(" # +cav error {}\n",ierro);
-      ierro = INS2D_ERR_INCCAV2D;
+      ierro = INS2D_ERR_INCCAVVAL1;
       goto finish_grow_step;
     }
     CPRINTF1(" - +cav nedge {} nface {} nelem {}\n",
@@ -294,7 +299,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
         cav.lcfac.set_n(ncfa1);
         cav.lctet.set_n(ncte1);
 
-        ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
+        ierro = collrejcav_lenqua(msh, cav, filter_long, false, true, lenqua_short_max, nocomp, ithrd2);
         if(ierro > 0) return INS2D_ERR_SHORTEDG;
 
         ierro = 0;
@@ -321,7 +326,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
 
   if(ierro > 0) return ierro;
 
-  ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
+  ierro = collrejcav_lenqua(msh, cav, filter_long, false, true, lenqua_short_max, nocomp, ithrd2);
   if(ierro > 0) return INS2D_ERR_LENQUA;
 
   return 0;
@@ -379,7 +384,7 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     ierro = increase_cavity_Delaunay(msh, cav, 1, ithrd1);
     if(ierro != 0){
       CPRINTF1(" # +del error {}\n",ierro);
-      ierro = INS2D_ERR_INCCAV2D;
+      ierro = INS2D_ERR_INCCAVDEL;
       goto finish_grow_step;
     }
     CPRINTF1(" - +del nedge {} nface {} nelem {}\n",
@@ -391,7 +396,7 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
     if(ierro != 0){
       CPRINTF1(" # +cav error {}\n",ierro);
-      ierro = INS2D_ERR_INCCAV2D;
+      ierro = INS2D_ERR_INCCAVVAL2;
       goto finish_grow_step;
     }
     CPRINTF1(" - +cav nedge {} nface {} nelem {}\n",
@@ -1787,6 +1792,7 @@ template int increase_cavity_lenedg0<MetricFieldFE        ,3>(
 
 void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread){
   GETVDEPTH(msh.param);
+  METRIS_ASSERT_MSG(ithread >= 0, "ithread = "<<ithread<<" < 0")
   for(int iedge : cav.lcedg){
     int iref = msh.edg2ref[iedge];
     METRIS_ASSERT(iref >= 0);

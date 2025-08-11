@@ -30,35 +30,17 @@
 namespace Metris{
 
 
-void MetrisRunner::adaptMesh(){
-  CT_FOR0_INC(2,3,gdim){if(gdim == msh_g->idim){
-    CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh_g->curdeg == ideg){
-      if(this->metricFE){
-        adaptMesh0<MetricFieldFE        ,gdim,ideg>(msh_g->get_tdim());
-      }else{
-        adaptMesh0<MetricFieldAnalytical,gdim,ideg>(msh_g->get_tdim());
-      }
-    }}CT_FOR1(ideg);
-  }}CT_FOR1(gdim);
-}
-
-
 void MetrisRunner::adaptMesh2(){
   CT_FOR0_INC(2,3,gdim){if(gdim == msh_g->idim){
     CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh_g->curdeg == ideg){
-      for(int tdim = 1; tdim <= msh_g->get_tdim(); tdim++){
+      for(int tdim = 1; tdim <= msh.get_tdim(); tdim++){
         INCVDEPTH(this->param);
         if(this->metricFE){
-          adaptMesh0<MetricFieldFE        ,gdim,ideg>(tdim);
+          adaptMesh2_0<MetricFieldFE        ,gdim,ideg>(tdim);
         }else{
-          adaptMesh0<MetricFieldAnalytical,gdim,ideg>(tdim);
+          adaptMesh2_0<MetricFieldAnalytical,gdim,ideg>(tdim);
         }
         CPRINTF1("\n\n");
-        //if(tdim == 1){
-        //  printf("\n\n## DEBUG BREAK AT TDIM = 1\n\n\n");
-        //  wait();
-        //  break;
-        //}
       }
     }}CT_FOR1(ideg);
   }}CT_FOR1(gdim);
@@ -67,7 +49,7 @@ void MetrisRunner::adaptMesh2(){
 
 // Profiling is attrocious if the template parameters are unrolled within the function
 template<class MFT,int gdim,int ideg>
-void MetrisRunner::adaptMesh0(int tdim){
+void MetrisRunner::adaptMesh2_0(int tdim){
   if(tdim > gdim) return;
 
   if(param->adp_niter == 0) return;
@@ -140,11 +122,6 @@ void MetrisRunner::adaptMesh0(int tdim){
     #ifndef NDEBUG
     check_topo(msh,1);
     #endif
-
-    if(tdim == 1){
-      if(DOPRINTS1()) statMesh(tdim);
-      return;
-    }
   }
 
 
@@ -253,9 +230,6 @@ void MetrisRunner::adaptMesh0(int tdim){
     t1 = get_wall_time();
     tinsert += t1-t0;
 
-    //printf("Debug wait here\n");
-    //wait();
-
     msh.cleanup();
     #ifndef NDEBUG
     check_topo(msh,1);
@@ -276,7 +250,7 @@ void MetrisRunner::adaptMesh0(int tdim){
       CPRINTF2("------------------------------------------------------------\n");
     }
 
-    if(msh.param->opt_unif && tdim == msh.get_tdim()){
+    if(msh.param->opt_unif){
       // 4. Smoothing (heuristic) -> fast but bad; improve
       t0 = get_wall_time();
       double stat = smoothInterior_Ball<MFT>(msh,QuaFun::Unit,ithrd1,ithrd2);
@@ -332,7 +306,7 @@ void MetrisRunner::adaptMesh0(int tdim){
     double tloop1 = get_wall_time();
 
     std::string fmt = 
-    "{}-- Adp loop {:3} / {:3} dim {} time {:.2e}s " 
+    "{}-- Adp loop {:3} / {:3} time {:.2e}s " 
     "{:" + std::to_string(ndigit) + "} inser "
     "{:" + std::to_string(ndigit) + "} coll "
     "{:" + std::to_string(ndigit) + "} swap, "
@@ -342,7 +316,7 @@ void MetrisRunner::adaptMesh0(int tdim){
     //         msh.npoin, ninser, ncoll, nswap,
     //         100*lenstat.prop_unit, stat0);
     if(DOPRINTS1()) fmt::print(LOGFILE__, fmt.c_str(), spaces_string__, 
-             niter,miter, tdim, tloop1 - tloop0, ninser,ncoll,nswap, 100*lenstat.prop_unit,stat0);
+             niter,miter, tloop1 - tloop0, ninser,ncoll,nswap, 100*lenstat.prop_unit,stat0);
 
     //if(niter == 1){
     //  printf("## DEBUG SET MAX PRINTS\n");
@@ -370,7 +344,6 @@ void MetrisRunner::adaptMesh0(int tdim){
       CPRINTF1(" - low stat = {:.2e} break or optimize\n",stat0);
       if(niter >= miter -1) break;
       if(msh.param->opt_niter > 0 && 
-        tdim == msh.get_tdim() &&
         (iopt_niter < msh.param->adp_opt_niter|| msh.param->adp_opt_niter < 0)
          && !msh.param->opt_unif){
         iopt_niter++;
@@ -411,24 +384,23 @@ void MetrisRunner::adaptMesh0(int tdim){
 
   msh.cleanup();
 
-  CPRINTF1("-- Adaptation dim {} end total time = {:.2e}s \n",tdim,ttotal);
+  CPRINTF1("-- Adaptation end total time = {:.2e}s \n",ttotal);
   CPRINTF1(" - insertion time = {:.2e}s \n",tinsert);
   CPRINTF1(" -  collapse time = {:.2e}s \n",tcollapse);
   CPRINTF1(" -      swap time = {:.2e}s \n",tswap);
   CPRINTF1(" - smoothing time = {:.2e}s \n",tsmooth);
 
   if(DOPRINTS1() || DOPRINTS3()){
-    std::string fname = "adapt_end_" + std::to_string(tdim);
-    writeMesh(fname + ".meshb",msh);
-    msh.met.writeMetricFile(fname + ".solb");
-    //if(DOPRINTS3()){
-    //  getmetquamesh<MFT>(msh,tdim,AsDeg::P1,AsDeg::P1,
-    //                     &iinva,&qmin,&qmax,&qavg,&lquae);
-    //  writeField("adapt_end_" + std::to_string(tdim) + ".qua.solb",msh,SolTyp::P0Elt,lquae);
-    //}
+    writeMesh("adapt_end.meshb",msh);
+    msh.met.writeMetricFile("adapt_end.solb");
+    if(DOPRINTS3()){
+      getmetquamesh<MFT>(msh,tdim,AsDeg::P1,AsDeg::P1,
+                         &iinva,&qmin,&qmax,&qavg,&lquae);
+      writeField("adapt_end.qua.solb",msh,SolTyp::P0Elt,lquae);
+    }
   }
 
-  if(DOPRINTS1()) statMesh(tdim);
+  if(DOPRINTS1()) statMesh();
 
   #if 0
   printf("## DEBUG REMOVE THIS\n");

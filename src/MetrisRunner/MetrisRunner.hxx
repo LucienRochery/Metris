@@ -52,8 +52,8 @@ struct MeshStat{
   }
   void print(std::string name = ""){
     fmt::print("-- Mesh stat summary {}:\n",name.c_str());
-    fmt::print(" - Length       : {}% unit w/ {} < l ~= {} < {} \n",pctunit,minlen,avglen,maxlen);
-    fmt::print(" - Length (bdry): {}% unit w/ {} < l ~= {} < {} \n",pctunit_bdry,minlen_bdry,avglen_bdry,maxlen_bdry);
+    fmt::print(" - Length       : {:.2f}% unit w/ {} < l ~= {} < {} \n",pctunit,minlen,avglen,maxlen);
+    fmt::print(" - Length (bdry): {:.2f}% unit w/ {} < l ~= {} < {} \n",pctunit_bdry,minlen_bdry,avglen_bdry,maxlen_bdry);
     fmt::print(" - Conf. err.       : {} < q ~= {} < {} \n",minqua,avgqua,maxqua);
     fmt::print(" - Conf. err. (bdry): {} < q ~= {} < {} \n",minqua_bdry,avgqua_bdry,maxqua_bdry);
   }
@@ -82,6 +82,7 @@ public:
   //   -anamet <int> (cf src/anamet.hxx and anamet2D.cxx anamet3D.cxx)
   //   -met <fname.sol(b)> 
   void adaptMesh();
+  void adaptMesh2();
 
   double optimMesh();
 
@@ -89,7 +90,7 @@ public:
   void curveMesh();
 
   // Print mesh statistics 
-  void statMesh(MeshStat *stat = NULL);
+  void statMesh(int tdim = 0, MeshStat *stat = NULL);
 
   // -out <fname(.mesh(b))>
   void writeOutputs();
@@ -116,7 +117,7 @@ private:
   void degElevate0();
 
   template<class MetricFieldType, int gdim, int ideg>
-  void adaptMesh0();
+  void adaptMesh0(int tdim);
   
   template<class MetricFieldType, int gdim, int ideg>
   double optimMesh0();
@@ -125,7 +126,7 @@ private:
   void curveMesh0();
 
   template<class MetricFieldType>
-  void statMesh0(MeshStat *stat);
+  void statMesh0(int tdim, MeshStat *stat);
 
   template<class MetricFieldType>
   void writeOutputs0();

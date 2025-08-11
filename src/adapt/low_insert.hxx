@@ -17,20 +17,27 @@ class MshCavity;
 struct CavWrkArrs;
 
 enum insedgesuf_Errors {INS2D_NOERR = 0, 
-                        INS2D_ERR_INTERPMETBACK = 1,
-                        INS2D_ERR_EGEVALUATE = 2,
-                        INS2D_ERR_INCCAV2D = 3,
-                        INS2D_ERR_INCCAV2D2 = 4,
-                        INS2D_ERR_SHORTEDG = 5,
-                        INS2D_ERR_BDRYNOCORR = 6,
-                        INS2D_ERR_INCCAVDEL = 7,
-                        INS2D_ERR_CAVITYOPERATOR = 8,
-                        INS2D_ERR_MOVEPT = 9,
-                        INS2D_ERR_SHORTCSTR = 10,
-                        INS2D_ERR_BISECTION = 11,
-                        INS2D_ERR_LENQUA = 12,
-                        INS2D_ERR_NORDEV = 13,
-                        INS2D_ERR_NERROR = 14
+                        INS2D_ERR_INTERPMETBACK1 = 1,
+                        INS2D_ERR_INTERPMETBACK2 = 2,
+                        INS2D_ERR_EGEVALUATE = 3,
+                        INS2D_ERR_INCCAVVAL1 = 4,
+                        INS2D_ERR_INCCAVVAL2 = 5,
+                        INS2D_ERR_INCCAVVAL3 = 6,
+                        INS2D_ERR_SHORTEDG = 7,
+                        INS2D_ERR_BDRYNOCORR = 8,
+                        INS2D_ERR_INCCAVDEL = 9,
+                        INS2D_ERR_CAVITYOPERATOR = 10,
+                        INS2D_ERR_MOVEPT = 11,
+                        INS2D_ERR_SHORTCSTR = 12,
+                        INS2D_ERR_BISECTION = 13,
+                        INS2D_ERR_LENQUA = 14,
+                        INS2D_ERR_NORDEV = 15,
+                        INS2D_ERR_BISECLEN = 16,
+                        INS2D_ERR_NOOPERATION = 17,
+                        INS2D_ERR_NOOPERATION2 = 18,
+                        INS2D_ERR_COLPDIM = 19,
+                        INS2D_ERR_COLCORNER = 20,
+                        INS2D_ERR_NERROR = 21
                         };
 
 

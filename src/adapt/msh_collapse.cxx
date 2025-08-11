@@ -4,9 +4,10 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#include "../adapt/msh_collapse.hxx"
-#include "../adapt/low_collapse.hxx"
-#include "../adapt/msh_swap.hxx"
+#include "msh_collapse.hxx"
+#include "low_collapse.hxx"
+#include "msh_swap.hxx"
+#include "low_insert.hxx"
 
 #include "../Mesh/Mesh.hxx"
 
@@ -31,7 +32,7 @@ namespace Metris{
 // Prints level 1 routine 
 // ithrdcstr tracks constrained points
 template<class MFT, int gdim, int ideg>
-double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
+double collapseShortEdges(Mesh<MFT> &msh, int tdim, double qmax_suf, int *ncoll,
                           int ithrd1, int ithrd2, int ithrd3, int ithrd4){
 
   GETVDEPTH(msh.param);
@@ -47,17 +48,20 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
   METRIS_ASSERT(ithrd4 != ithrd2);
   METRIS_ASSERT(ithrd4 != ithrd3);
 
-  const int tdim = msh.get_tdim();
   const int nedgl = (tdim*(tdim+1))/2;
+  const intAr2 lnoed(nedgl,2,tdim == 1 ? lnoed1[0] :
+                             tdim == 2 ? lnoed2[0] : lnoed3[0]);
 
   double stat = 0; 
   int ierro; 
 
-  const bool ctrl_height = true;
+  const bool ctrl_height = true && tdim >= 2;
   //const double isvolsmall = sqrt(3)/2 / 10;
 
-  const int merror = CAV_ERR_NERROR;
-  intAr1 lerro1(merror), lerro2(merror);
+  const int mcaverr = CAV_ERR_NERROR;
+  intAr1 lcaver1(mcaverr), lcaver2(mcaverr);
+  const int mcolerr = INS2D_ERR_NERROR;
+  intAr1 lcoler1(mcolerr), lcoler2(mcolerr);
 
   msh.met.setSpace(MetSpace::Exp);
 
@@ -90,15 +94,14 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
   do{
     INCVDEPTH(msh.param);
 
-    
-
-
     int nerro1 = 0, nerro2 = 0;
     int nedgt = 0;
     ncoll1 = ncoll2 = 0;
     int nent0 = msh.nentt(tdim);
-    lerro1.fill(0);
-    lerro2.fill(0);
+    lcoler1.fill(0);
+    lcaver1.fill(0);
+    lcoler2.fill(0);
+    lcaver2.fill(0);
 
     double minl = 1.0e30;
     double maxl = -1.0;
@@ -168,11 +171,11 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
         CPRINTF1(" - call collapseVertex ipcol {} pdim {}\n",ipcol,pdim);
 
-        ierro = collapseVertex(msh, ipcol, qmax_suf, cav, work, lerro2, ithrd2, ithrd3);
+        ierro = collapseVertex(msh, ipcol, qmax_suf, cav, work, lcaver2, ithrd2, ithrd3);
         if(ierro > 0){
-          nerro2 ++;
+          nerro2++;
         }else{
-          ncoll2 ++;
+          ncoll2++;
         }
       }
 
@@ -218,21 +221,36 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
         if(tdim == 2){
           CPRINTF2(" - found short edge {} {} len = {} \n",
-            ent2poi(ientt,lnoed2[ied][0]),ent2poi(ientt,lnoed2[ied][1]),len);
+            ent2poi(ientt,lnoed(ied,0)),ent2poi(ientt,lnoed(ied,1)),len);
         }else{
           CPRINTF2(" - found short edge {} {} len = {} \n",
-            ent2poi(ientt,lnoed3[ied][0]),ent2poi(ientt,lnoed3[ied][1]),len);
+            ent2poi(ientt,lnoed(ied,0)),ent2poi(ientt,lnoed(ied,1)),len);
         }
 
         int nent00 = msh.nentt(tdim);
-        ierro = collapseEdge(msh, tdim, ientt, ied, qmax_suf, cav, work, lerro1, ithrd2, ithrd3, ithrd4);
+
+        int icorner = -1;
+        if(msh.getpoitdim(ent2poi(ientt,lnoed(ied,0))) == 0) icorner = 0;
+        if(msh.getpoitdim(ent2poi(ientt,lnoed(ied,1))) == 0) icorner = 1;
+        
+        if(icorner < 0){
+          ierro = collapseEdge(msh, tdim, ientt, ied, qmax_suf, cav, work, lcaver1, ithrd2, ithrd3, ithrd4);
+        }else{
+          CPRINTF1(" # collapseEdge vertex {} = {} is corner, call collapseVertex\n",
+                   icorner,ent2poi(ientt,lnoed(ied,icorner)));
+          int ipcol = ent2poi(ientt,lnoed(ied,1-icorner));
+          ierro = collapseVertex(msh, ipcol, qmax_suf, cav, work, lcaver1, ithrd2, ithrd3);
+        }
 
 
         if(ierro > 0){
-          nerro1 ++;
+          lcoler1[ierro - 1]++;
+          nerro1++;
+          //fmt::print("# DEBUG IERRO = {}", ierro);
+          //wait();
           continue;
         }else{
-          ncoll1 ++;
+          ncoll1++;
           for(int ientn = nent00; ientn < msh.nentt(tdim); ientn++){
             for(int ii = 0; ii < tdim + 1 ; ii++){
               int ineig = ent2ent(ientn,ii);
@@ -251,22 +269,32 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 
     double t1 = get_wall_time();
     int ncallps = 1000*(int)(((ncoll1+ncoll2) / (t1-t0)) / 1000);
-    CPRINTF2(" - Loop end t = {} ncoll1 = {} ncoll2 = {} tot =  {} /s; nerro1 {} nerro2 {}\n",
+    CPRINTF2(" - Loop end t = {:.2e} ncoll1 = {} ncoll2 = {} tot =  {} /s; nerro1 {} nerro2 {}\n",
       t1-t0,ncoll1,ncoll2,ncallps,nerro1,nerro2);
     CPRINTF2(" {} < len < {} \n",minl,maxl);
     if(DOPRINTS2()){
       if(nerro1 > 0){
-        CPRINTF2(" - ierro list short edge:\n");
-        for(int ii = 0; ii < merror; ii++){
-          if(lerro1[ii] == 0) continue;
-          CPRINTF2(" ierro = {} : {} \n",ii+1,lerro1[ii]);
+        CPRINTF2(" - short edge cavity ierro list:\n");
+        for(int ii = 0; ii < mcaverr; ii++){
+          if(lcaver1[ii] == 0) continue;
+          CPRINTF2("   ierro = {} : {} \n",ii+1,lcaver1[ii]);
+        }
+        CPRINTF2(" - short edge inspoi ierro list:\n");
+        for(int ii = 0; ii < mcolerr; ii++){
+          if(lcoler1[ii] == 0) continue;
+          CPRINTF2("   ierro = {} : {} \n",ii+1,lcoler1[ii]);
         }
       }
       if(nerro2 > 0){
-        CPRINTF2(" - ierro list low height bdry:\n");
-        for(int ii = 0; ii < merror; ii++){
-          if(lerro2[ii] == 0) continue;
-          CPRINTF2(" ierro = {} : {} \n",ii+1,lerro2[ii]);
+        CPRINTF2(" - low height cavity ierro list:\n");
+        for(int ii = 0; ii < mcaverr; ii++){
+          if(lcaver2[ii] == 0) continue;
+          CPRINTF2("   ierro = {} : {} \n",ii+1,lcaver2[ii]);
+        }
+        CPRINTF2(" - low height inspoi ierro list:\n");
+        for(int ii = 0; ii < mcolerr; ii++){
+          if(lcoler2[ii] == 0) continue;
+          CPRINTF2("   ierro = {} : {} \n",ii+1,lcoler2[ii]);
         }
       }
     }
@@ -295,13 +323,13 @@ double collapseShortEdges(Mesh<MFT> &msh, double qmax_suf, int *ncoll,
 // See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
-template double collapseShortEdges<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
+template double collapseShortEdges<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,int tdim,\
                            double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3, int ithrd4);\
-template double collapseShortEdges<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,\
+template double collapseShortEdges<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,int tdim,\
                            double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3, int ithrd4);\
-template double collapseShortEdges<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,\
+template double collapseShortEdges<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,int tdim,\
                            double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3, int ithrd4);\
-template double collapseShortEdges<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,\
+template double collapseShortEdges<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,int tdim,\
                            double qmax_suf, int* ncoll, int ithrd1, int ithrd2, int ithrd3, int ithrd4);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()

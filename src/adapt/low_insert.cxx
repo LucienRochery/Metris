@@ -210,8 +210,9 @@ int insertEdge(Mesh<MFT>& msh,
       imoved_point = true;
 
       if(ierro != 0){
-        ierro = INS2D_ERR_INTERPMETBACK;
         CPRINTF1(" - Failed to move point in insertEdge\n");
+        PRINTF("## DEBUG WAIT HERE\n");
+        wait();
         goto cleanup;
       }
       ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
@@ -298,13 +299,13 @@ restart_cavity:
     ierro = increase_cavity_Delaunay(msh, cav, -1, ithrd1);
     if(ierro != 0){
       CPRINTF1(" - +cav error {}\n",ierro);
-      ierro = INS2D_ERR_INCCAV2D;
+      ierro = INS2D_ERR_INCCAVDEL;
       goto cleanup;
     }
     ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
     if(ierro != 0){
       CPRINTF1(" - +cav error {}\n",ierro);
-      ierro = INS2D_ERR_INCCAV2D;
+      ierro = INS2D_ERR_INCCAVVAL3;
       goto cleanup;
     }
 

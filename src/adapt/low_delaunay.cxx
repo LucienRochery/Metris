@@ -27,7 +27,8 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
   //if(gdim > tdim){
   //  METRIS_ASSERT(nrmal != NULL);
   //}
-
+  constexpr int nnmet = (gdim*(gdim+1))/2;
+  METRIS_ASSERT_MSG(getnrml2<nnmet>(metl) > 1.0e-15, "Zero metric provided to indelsphere: maybe not initialized?")
   GETVDEPTH(msh.param);
 
   const double orthTol = 1.0e-15; // VecNrmTol = 1.0e-16 doesn't cut it
@@ -43,16 +44,17 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
   // Only for case gdim > tdim
   double tau1[3], tau2[3], met2[3], buf1[3];
 
-  CPRINTF1("-- START indelsphere ent2pol = {}\n",intAr1(tdim+1,ent2pol));
-
+  CPRINTF1("-- START indelsphere gdim {} tdim {} ent2pol = {} metl = {}\n", gdim, tdim, intAr1(tdim+1,ent2pol),dblAr1(nnmet,metl));
+                
 
   // Matrix is (P2-P1)^TM
   //           (P3-P1)^TM
   //   (if 3D) (P4-P1)^TM
   if constexpr(tdim == gdim){
     for(int ii = 0; ii < tdim; ii++){
-      for(int jj = 0; jj < gdim; jj++) 
+      for(int jj = 0; jj < gdim; jj++)
         buf[jj] = msh.coord(ent2pol[ii+1],jj) - msh.coord(ent2pol[0],jj);
+      CPRINTF2(" - {} : buf = {} {}\n",ii,buf[0],buf[1]);
       symXvec<gdim>(metl,buf,mat[ii]);
       //CPRINTF1(" - buf {} {} \n",buf[0],buf[1]);
     }
@@ -66,6 +68,8 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
     double nrmal[3];
     getnorfacP1(ent2pol, msh.coord, nrmal);
 
+    CPRINTF2(" - norfacP1 = {}\n",dblAr1(3,nrmal));
+
     int imax = -1;
     double rmax = -1;
     for(int ii = 0; ii < gdim; ii++){
@@ -74,12 +78,16 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
         imax = ii;
       }
     }
+    CPRINTF2(" - pivot imax = {} rmax = {:15.7e} nrmal = {} {} {}\n",imax,rmax);
+
     // Use the max value as pivot
     tau1[(imax+1)%3] =  nrmal[imax];
     tau1[ imax     ] = -nrmal[(imax+1)%3];
     tau1[(imax+2)%3] =  0;
 
+
     double nrm = sqrt(getnrml2<gdim>(tau1));
+    CPRINTF1(" - tau1 = {} {} {}, norm = {:e}\n",tau1[0],tau1[1],tau1[2],nrm);
     tau1[0] /= nrm;
     tau1[1] /= nrm;
     tau1[2] /= nrm;
@@ -96,6 +104,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
 
     vecprod(nrmal,tau1,tau2);
     double nrm2 = sqrt(getnrml2<gdim>(tau2));
+    CPRINTF1(" - tau2 = {} {} {}, norm = {:e}\n",tau2[0],tau2[1],tau2[2],nrm2);
     tau2[0] /= nrm2;
     tau2[1] /= nrm2;
     tau2[2] /= nrm2;
@@ -142,16 +151,14 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
 
   }
 
-  if(DOPRINTS1()){
-    if constexpr (tdim == 2){
-      CPRINTF1(" - indelsphere mat {} {} {} {} det = {:15.7e}\n",
-        mat[0][0],mat[0][1],mat[1][0],mat[1][1],detmat<2>(mat[0]));
-    }else{
-      CPRINTF1(" - indelsphere mat {} {} {} ; {} {} {} ; {} {} {} det = {:15.7e}\n",
-        mat[0][0],mat[0][1],mat[0][2],
-        mat[1][0],mat[1][1],mat[1][2],
-        mat[2][0],mat[2][1],mat[2][2],detmat<3>(mat[0]));
-    }
+  if constexpr (tdim == 2){
+    CPRINTF1(" - indelsphere mat {} {} {} {} det = {:15.7e}\n",
+      mat[0][0],mat[0][1],mat[1][0],mat[1][1],detmat<2>(mat[0]));
+  }else{
+    CPRINTF1(" - indelsphere mat {} {} {} ; {} {} {} ; {} {} {} det = {:15.7e}\n",
+      mat[0][0],mat[0][1],mat[0][2],
+      mat[1][0],mat[1][1],mat[1][2],
+      mat[2][0],mat[2][1],mat[2][2],detmat<3>(mat[0]));
   }
 
 
@@ -180,6 +187,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
   //invmat(gdim, mat[0]);
   if(invmat<tdim>(mat[0])){
     #ifndef NDEBUG
+    fmt::print("## Failed to invert {}\n", dblAr2(tdim,tdim,mat[0]));
     METRIS_THROW_MSG(GeomExcept(), "Invmat failed Delaunay")
     #endif
     return false;

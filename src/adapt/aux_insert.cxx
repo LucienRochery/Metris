@@ -117,7 +117,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
                      tdim == 2 ? lnoed2 : lnoed3;
   const intAr2 &ent2poi = msh.ent2poi(tdim);
 
-  CPRINTF1("-- START aux_bisecPointLen\n");
+  CPRINTF1("-- START aux_bisecPointLen tdimp = {} ipins = {} ibins = {}\n", tdimp, cav.ipins, ibins);
 
   ego obj = NULL;
   if(msh.CAD()){
@@ -127,6 +127,10 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
 
   int ip1 = ent2poi(ientt,lnoed[iedl][0]);
   int ip2 = ent2poi(ientt,lnoed[iedl][1]);
+  const int nnmet = (msh.idim*(msh.idim+1))/2;
+  CPRINTF2(" - using ends {} = {} met = {}, {} = {} met = {}\n",
+           ip1, dblAr1(msh.idim,msh.coord[ip1]), dblAr1(nnmet,msh.met[ip1]),
+           ip2, dblAr1(msh.idim,msh.coord[ip2]), dblAr1(nnmet,msh.met[ip2]));
 
   double bar1_min = 1.0e-6, bar1_max = 1 - 1.0e-6;
   double algnd[3];
@@ -164,19 +168,23 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
       // Correct ibs : attach to ref or edge/face as needed
       for(int ii = 0; ii < 2; ii++){
         ib[ii] = msh.poi2ebp(edg2pol[ii],tdimp,iseed,iref);
+        CPRINTF2(" - ib[{}] = {} : {}, (u,v) = {} {}\n",ii,ib[ii],intAr1(nibi,msh.bpo2ibi[ib[ii]]),
+                 msh.bpo2rbi(ib[ii],0),msh.bpo2rbi(ib[ii],1));
         METRIS_ASSERT(ib[ii] >= 0);
       }
 
       for(int ii = 0; ii < 2; ii++) msh.bpo2rbi(ibins,ii) = 
           bar1*msh.bpo2rbi[ib[0]][ii] + (1.0 - bar1)*msh.bpo2rbi[ib[1]][ii];
 
-      CPRINTF1(" - boundary point new t/(u,v) = {} {}\n",
-               msh.bpo2rbi(ibins,0),msh.bpo2rbi(ibins,1));
+      CPRINTF1(" - boundary point bar1 {:.2e} new t/(u,v) = {:.2f} {:.2f} using ib1 = {} : {:.2f} {:.2f} ib2 = {} : {:.2f} {:.2f}\n",bar1,
+               msh.bpo2rbi(ibins,0),msh.bpo2rbi(ibins,1),
+               ib[0],msh.bpo2rbi(ib[0],0),msh.bpo2rbi(ib[0],1),
+               ib[1],msh.bpo2rbi(ib[1],0),msh.bpo2rbi(ib[1],1));
 
       double result[18];
       METRIS_ASSERT(obj != NULL);
       ierro = EG_evaluate(obj, msh.bpo2rbi[ibins], result);
-      if(ierro != 0) return ierro;
+      if(ierro != 0) return INS2D_ERR_EGEVALUATE;
 
       for(int ii = 0; ii < msh.idim; ii++) msh.coord(cav.ipins,ii) = result[ii];
 
@@ -213,7 +221,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
     }
 
     ierro = msh.interpMetBack(cav.ipins, tdimp, iseed, iref, algnd);
-    if(ierro != 0) return INS2D_ERR_INTERPMETBACK;
+    if(ierro != 0) return INS2D_ERR_INTERPMETBACK1;
 
     //if(DOPRINTS3()){
     //  int ipnew = msh.newpoitopo(0);
@@ -223,16 +231,19 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
     //  for(int ii = 0; ii < nnmet; ii++) msh.met(ipnew, ii) = msh.met(cav.ipins, ii);
     //}
 
-
     double sz[2];
     edg2po2[1] = ip1;
+    CPRINTF2(" - edge 1 ends {} = {} met = {}, {} = {} met = {}\n",
+             edg2po2[0], dblAr1(msh.idim,msh.coord[edg2po2[0]]), dblAr1(nnmet,msh.met[edg2po2[0]]),
+             edg2po2[1], dblAr1(msh.idim,msh.coord[edg2po2[1]]), dblAr1(nnmet,msh.met[edg2po2[1]]));
+
     double len1 = msh.idim == 2 ? getlenedg_geosz<MFT,2,1>(msh,edg2po2,sz)
                                 : getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
     edg2po2[1] = ip2;
     double len2 = msh.idim == 2 ? getlenedg_geosz<MFT,2,1>(msh,edg2po2,sz)
                                 : getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
 
-    CPRINTF1(" - {} bar1 = {} lens = {} {} valid {} {} (err = {} {}) dist {} {} sumlen {} err to sqrt(2) = {}\n",
+    CPRINTF1(" - {} bar1 = {:.2e} lens = {:.2f} {:.2f} valid {} {} (err = {:.2e} {:.2e}) dist {:.2e} {:.2e} sumlen {:.2f} err to sqrt(2) = {:.2e}\n",
               ntry_len,bar1,len1,len2,
               len1 > 1/sqrt(2), len2 > 1/sqrt(2),
               abs(len1 - 1/sqrt(2)), abs(len2 - 1/sqrt(2)), 
@@ -274,7 +285,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
   //  msh.set_nbpoi(nbpo0);
   //}
 
-  if(!fnd_len) return 1;
+  if(!fnd_len) return INS2D_ERR_BISECLEN;
 
   CPRINTF1("-- END aux_bisecPointLen w/ bar1 = {}\n",bar1_opt);
   return 0;
@@ -354,7 +365,7 @@ int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav,
   ierro = msh.interpMetBack(cav.ipins,tdimp,iseed,iref,algnd);
   if(ierro != 0){
     CPRINTF1(" - interpMetBack failed ierro = {} \n",ierro);
-    ierro = INS2D_ERR_INTERPMETBACK;
+    ierro = INS2D_ERR_INTERPMETBACK2;
   }
   
   return ierro;

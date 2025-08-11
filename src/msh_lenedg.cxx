@@ -138,6 +138,9 @@ void getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref,
         MPRINTF("ientt = {} tdim = {} edge {} itype == GeoSiz? {}\n",
                ientt,tdim,iedgl,itype == LenTyp::GeoSiz);
       }
+      if(len > 1000){
+        fmt::print("## DEBUG WAIT HERE LEN = {} ip1 = {} ip2 = {} ientt = {}\n",len,ip1,ip2,ientt);
+      }
       int iedgg = ilned.get_n();
       ilned.inc_n();
       ilned(iedgg,0) = std::get<0>(key);

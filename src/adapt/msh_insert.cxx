@@ -44,7 +44,7 @@ namespace Metris{
 
 // insertLongEdges is called.
 template<class MFT, int gdim, int ideg>
-double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
+double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int ithrd2){
   //printf("## DEBUG SET MAX PRINTS\n");
   //wait();
   //msh.param->iverb = 5;
@@ -62,7 +62,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
   //msh.met.setSpace(MetSpace::Log);
   msh.met.setSpace(MetSpace::Exp);
 
-  CPRINTF2("-- insertLongEdges start \n");
+  CPRINTF2("-- START insertLongEdges\n");
   #ifndef NDEBUG
   CPRINTF2(" - Note: improve by generating several points per edge. Generated but not used cf loop nn/2 \n");
   CPRINTF2(" - Note: improve by filtering point propositions \n");
@@ -72,16 +72,15 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
   intAr2 ilned;
   dblAr1 rlned;
   dblAr1 lenbds = {1.0/sqrt(2), sqrt(2)};
-  getLengthEdges<MFT>(msh,msh.get_tdim(),-1,ilned,rlned,lenstat0);
+  getLengthEdges<MFT>(msh,tdim,-1,ilned,rlned,lenstat0);
   CPRINTF1(" - Length qua short = {}\n",lenstat0.qua_short);
   CPRINTF1(" -            long  = {}\n",lenstat0.qua_long);
   double lenqua_short_max = (lenstat0.qua_short + lenstat0.qua_long)/2;
-  CPRINTF1(" - {}% unit using qua threshold {}\n",lenstat0.prop_unit*100,lenqua_short_max);
+  CPRINTF1(" - {:.2f}% unit using qua threshold {}\n",lenstat0.prop_unit*100,lenqua_short_max);
 
 
   double stat = 0;
 
-  const int tdim = msh.get_tdim();
 
   const int nedgl = (tdim*(tdim+1))/2;
 
@@ -92,7 +91,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
   // Error counting:
   const int mcaverr = CAV_ERR_NERROR;
   intAr1 lcaverr(mcaverr);
-  const int minserr = 100;
+  const int minserr = INS2D_ERR_NERROR;
   intAr1 linserr(minserr);
 
   // Outer loop iterations:
@@ -148,7 +147,6 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
     INCVDEPTH(msh.param);
     int nlong = ledge.size();
     CPRINTF1(" - START ins loop {}/{} nlong = {}\n",niter+1,miter,nlong);
-
     int nskip = 0, ntry = 0, ninser1 = 0, nerro = 0, nadded = 0;
     lcaverr.fill(0);
     linserr.fill(0);
@@ -179,6 +177,11 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
       int nent0 = msh.nentt(tdim); 
       ierro = insertEdge(msh,tdim,ientt,ied,lenqua_short_max,false,
                          cav,work,lcaverr,ithrd1,ithrd2);
+      //if(ierro > 0){
+      //  printf("## DEBUG WAIT \n");
+      //  writeMesh("insertError",msh);
+      //  wait();
+      //}
 
       if(ierro <= 0){
         ninser1++;
@@ -232,7 +235,7 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
         edge_it = ledge.erase(edge_it);
         //edge_it++;
         CPRINTF2(" # insertion failed ierro = {} \n",ierro);
-        linserr[ierro - 1] ++;
+        linserr[ierro - 1]++;
         nerro++;
       }
     }// for edge_it
@@ -283,13 +286,13 @@ double insertLongEdges(Mesh<MFT> &msh, int *ninser, int ithrd1, int ithrd2){
 
 
 #define BOOST_PP_LOCAL_MACRO(n)\
-template double insertLongEdges<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
+template double insertLongEdges<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh, int tdim,\
                                 int* ninser, int ithrd1, int ithrd2);\
-template double insertLongEdges<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,\
+template double insertLongEdges<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh, int tdim,\
                                 int* ninser, int ithrd1, int ithrd2);\
-template double insertLongEdges<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,\
+template double insertLongEdges<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh, int tdim,\
                                 int* ninser, int ithrd1, int ithrd2);\
-template double insertLongEdges<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,\
+template double insertLongEdges<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh, int tdim,\
                                 int* ninser, int ithrd1, int ithrd2);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()

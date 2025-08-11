@@ -8,6 +8,7 @@
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 #include "../cavity/msh_cavity.hxx"
 
 #include "../low_topo.hxx"
@@ -186,8 +187,6 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
   //iverb__ = 5;
   //ivdepth__ = 5;
 
-  CPRINTF1("-- START collrejcav_lenqua filter long {} short {} grow {}\n",
-           filter_long,filter_short,grow_check);
 
 
   //// Tag points that won't be deleted: there is at least one elt outside
@@ -196,10 +195,14 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
   //         : cav.lcfac.get_n() > 0 ? 2 
   //                                 : 1;
   int tdim = MAX(1,msh.getpoitdim(cav.ipins));
+  CPRINTF1("-- START collrejcav_lenqua filter long {} short {} grow {} tdim {}\n",
+           filter_long,filter_short,grow_check,tdim);
   intAr1& lcent = cav.lcent(tdim);
   const intAr2& ent2poi = msh.ent2poi(tdim);
   const intAr2& ent2ent = msh.ent2ent(tdim);
   intAr2& ent2tag = msh.ent2tag(tdim);
+
+  CPRINTF2(" - lcent = {}\n",lcent);
 
   // Store here the edges whose length is not to be computed
   nocomp.clear();
@@ -286,7 +289,8 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
       double quaed = len < 1.0 ? 1.0 - len 
                                : 1.0 - 1.0 / len;
 
-      CPRINTF1(" - 0 orig len = {} score {} \n", len, quaed);
+      CPRINTF1(" - orig edge {} {} len = {} score {} \n",
+               ipoi1,ipoi2, len,quaed);
       //CPRINTF1(" met 1: {} {} {} met 2 : {} {} {}\n",msh.met(ipoi1,0),msh.met(ipoi1,1),msh.met(ipoi1,2)
       //  ,msh.met(ipoi2,0),msh.met(ipoi2,1),msh.met(ipoi2,2));
       qua0 = MAX(qua0, quaed);
@@ -325,11 +329,13 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
         int ienei = ent2ent(ientt,ifa);
         // If no growth is allowed, ent2tag(ithrd1,ientt) is simply tag[ithrd1]
         // Otherwise, it is tag + generation. 
+        CPRINTF2(" - ientt {} ifa {} ienei {} vertices {} tagged {} >=? {}\n",
+                  ientt,ifa,ienei,intAr1(tdim+1,ent2poi[ienei]),
+                  ent2tag(ithrd1,ienei),ent2tag(ithrd1,ientt));
         if(ienei >= 0 && ent2tag(ithrd1,ienei) >= ent2tag(ithrd1,ientt)) continue;
         // Get points on face (3D) / edge (2D)
         for(int ipfa = 0; ipfa < tdim; ipfa++){
-          int iver = tdim == 1 ? ipfa : 
-                     tdim == 2 ? lnoed2[ifa][ipfa] : lnofa3[ifa][ipfa];
+          int iver = lnosub(tdim, ifa, ipfa);
           int ipoin = ent2poi(ientt, iver);
           if(ipoin == cav.ipins) continue;
           if(msh.poi2tag(ithrd1, ipoin) == msh.tag[ithrd1]) continue;
@@ -392,7 +398,8 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
   msh.tag[ithrd1] = maxtag;
   lcent.set_n(ncent0);
 
-  CPRINTF1(" - END collrejcav_lenqua got lenqua {} -> {}\n", qua0, qua1);
+  CPRINTF1(" - END collrejcav_lenqua got lenqua {} -> {} >=? {}\n", 
+           qua0, qua1,0.99*qua0);
 
   if(qua1 >= 0.99*qua0) return 1;
   if(filter_long && qua1 >= lenqua_short_max){

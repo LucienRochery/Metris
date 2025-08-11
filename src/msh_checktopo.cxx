@@ -134,7 +134,7 @@ void check_topo(MeshBase &msh,
       }
     }
 
-
+    // Check poi2bak in case MetricFieldFE
     if(msh.meshClass() == MeshClass::Mesh && msh.metricClass() == MetricClass::MetricFieldFE){
       const intAr1 &poi2bak = msh.metricClass() == MetricClass::MetricFieldFE ? 
        ((Mesh<MetricFieldFE> *)(&msh))->poi2bak 
@@ -174,6 +174,23 @@ void check_topo(MeshBase &msh,
           "Point "<<ipoin<<" tdim "<<pdim<<" has back seed "<<iebak<<" which is dead");
 
         //METRIS_ENFORCE(iebak < msh_->bak->nentt(pdim));
+      }
+    }
+
+    // Check metric in case analytical
+    
+    if(msh.meshClass() == MeshClass::Mesh && msh.metricClass() == MetricClass::MetricFieldAnalytical){
+      Mesh<MetricFieldAnalytical>& msh_a = (Mesh<MetricFieldAnalytical>&)msh;
+      for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
+        if(msh.poi2ent(ipoin,0) < 0) continue;
+        double metl[6];
+        msh_a.met.getMetPhys(DifVar::None, msh_a.met.getSpace(),
+                             msh.coord[ipoin], metl, NULL);
+        double errmet = msh.idim == 2 ? geterrl2<3>(metl, msh_a.met[ipoin]) :
+                                        geterrl2<6>(metl, msh_a.met[ipoin]);
+        double nrm1 = msh.idim == 2 ? getnrml2<3>(msh_a.met[ipoin]) :
+                                      getnrml2<6>(msh_a.met[ipoin]);
+        METRIS_ENFORCE_MSG(errmet < 1.0E-15*nrm1, "Large metric error\n");
       }
     }
 

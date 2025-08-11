@@ -273,7 +273,7 @@ double MetrisRunner::optimMesh0(){
 
   double t11 = get_wall_time();
 
-  CPRINTF1("-- OptimMesh end runtime = {:.2e}ss \n",t11-t01);
+  CPRINTF1("-- OptimMesh end runtime = {:.2e}s \n",t11-t01);
   return stat0;
 }
 

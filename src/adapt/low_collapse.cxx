@@ -45,12 +45,12 @@ int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, [[maybe_unused]]
 
   if(msh.getpoitdim(ip1) != msh.getpoitdim(ip2)){
     //return collapseEdge2(msh, tdim, ientt, iedl, qmax_suf, cav, work, lerro, ithrd1, ithrd2, ithrd3);
-    return 0;
+    return INS2D_ERR_COLPDIM;
   }else{
     if(msh.poicstr[ip1] || msh.poicstr[ip2]) return 1;
     int ierro = insertEdge(msh, tdim, ientt, iedl, -1, true, cav, work, lerro, ithrd1, ithrd2);
     if(ierro < 0) return 0;
-    if(ierro == 0) return 1;
+    if(ierro == 0) return INS2D_ERR_NOOPERATION;
     return ierro;
   }
 }
@@ -305,9 +305,10 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
   std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp;
 
   int tdimp = msh.getpoitdim(ipcol);
-  if(tdimp == 0) return 1;
 
   CPRINTF1("-- START collapseVertex ipcol = {} tdimp = {}\n",ipcol,tdimp);
+  if(tdimp == 0) return INS2D_ERR_COLCORNER;
+
 
 
   int iopen;
@@ -378,7 +379,7 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
       CPRINTF1(" - cavity return qmax = {} \n",info.qmax_end);
     }// for ive2
   }// for icent
-  return 1;
+  return INS2D_ERR_NOOPERATION2;
 }
 
 

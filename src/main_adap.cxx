@@ -43,7 +43,7 @@ int main_metris(int argc, char** argv){
 
   try{
 
-    if(param.iverb >= 1) run.statMesh();
+    if(DOPRINTS1()) run.statMesh();
 
     if(param.dbgfull) check_topo(*run.msh_g,0);
 
@@ -61,7 +61,7 @@ int main_metris(int argc, char** argv){
     //}
 
 
-    run.adaptMesh();
+    run.adaptMesh2();
 
 
     if(param.usrTarDeg > 1 || run.msh_g->curdeg > 1){
@@ -88,7 +88,7 @@ int main_metris(int argc, char** argv){
     run.writeOutputs();
 
 
-    if(param.iverb >= 1) run.statMesh();
+    if(DOPRINTS1()) run.statMesh();
 
     //#ifdef METRIS_USE_PETSC
     //  PetscCall(PetscFinalize());
