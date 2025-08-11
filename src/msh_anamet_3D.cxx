@@ -414,8 +414,8 @@ void anamet3D_7([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
 UGAWG (https://github.com/UGAWG/adapt-benchmarks/tree/master/cube) 
 cube-cylinder polar-2:
 A modified polar-1 metric that is easier to satisfy with high-quality elements by refining along theta near the layer,
-d = (0.6 - r) * 10
-h_t = (d < 0) ? (0.1) : (d * (1 / 40) + (1 - d) * 0.1)
+d = (0.6 - r)*10
+h_t = (d < 0) ? (0.1) : (d*(1 / 40) + (1 - d)*0.1)
 */
 void anamet3D_8([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
@@ -438,10 +438,10 @@ void anamet3D_8([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   SANS::SurrealS<3,double> t = atan2(y,x);
 
   double hz = 0.1*scale;
-  SANS::SurrealS<3,double> d = (0.6 - r) * 10;
+  SANS::SurrealS<3,double> d = (0.6 - r)*10;
   SANS::SurrealS<3,double> ht;
   if(d < 0) ht = 0.1;
-  else      ht = d / 40 + (1 - d) * 0.1;
+  else      ht = d / 40 + (1 - d)*0.1;
   ht *= scale;
   const double h0 = 0.001;
   SANS::SurrealS<3,double> hr = (h0 + 2*(0.1-h0)*abs(r-0.5))*scale;
@@ -468,6 +468,56 @@ void anamet3D_8([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   eig2met<3,SANS::SurrealS<3,double>>(eigval, eigvec[0], metS);
 
   getmet_SurS2dbl<3>(metS,met,idif1 > 0 ? dmet : NULL);
+}
+
+
+// Boundary-layer along x centered at 0
+void anamet3D_9([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+
+  SANS::SurrealS<3,double> X[3];
+  const double x0 = 0.0;
+  X[0] = abs(crd[0] - x0);
+  X[0].deriv(0) = crd[0] >= x0 ? 1 : -1;
+  X[0].deriv(1) = 0;
+  X[0].deriv(2) = 0;
+
+  X[1] = crd[1];
+  X[1].deriv(0) = 0;
+  X[1].deriv(1) = 1;
+  X[1].deriv(2) = 0;
+
+  X[2] = crd[2];
+  X[2].deriv(0) = 0;
+  X[2].deriv(1) = 0;
+  X[2].deriv(2) = 1;
+
+
+  double hx_min = 0.001;
+  double hx_max = 0.1;
+  SANS::SurrealS<3,double> hx = scale*(X[0]*(hx_max - hx_min) + hx_min);
+  double hy = scale*0.1;
+  double hz = scale*0.1;
+
+
+  SANS::SurrealS<3,double> eigval[3] = {1.0/(hx*hx), 1.0/(hy*hy), 1.0/(hz*hz)};
+  SANS::SurrealS<3,double> eigvec[9];
+
+  eigvec[0] = 1.0;
+  eigvec[1] = 0.0; 
+  eigvec[2] = 0.0; 
+
+  eigvec[3] = 0.0;
+  eigvec[4] = 1.0;
+  eigvec[5] = 0.0;
+
+  eigvec[6] = 0.0;
+  eigvec[7] = 0.0;
+  eigvec[8] = 1.0;
+
+  SANS::SurrealS<3,double> metS[6];
+  eig2met<3,SANS::SurrealS<3,double>>(eigval,eigvec,metS);
+  getmet_SurS2dbl<3>(metS,met,idif1 > 0 ? dmet : NULL);
+
 }
 
 } // End namespace

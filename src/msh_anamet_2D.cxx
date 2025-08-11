@@ -83,12 +83,12 @@ void anamet2D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 }
 
-// Boundary-layer mesh 
+// Boundary-layer along x centered at 0.5
 void anamet2D_3([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
   SANS::SurrealS<2,double> X[2];
-  X[0] = crd[0];
-  X[0].deriv(0) = 1;
+  X[0] = abs(crd[0] - 0.5);
+  X[0].deriv(0) = crd[0] >= 0.5 ? 1 : -1;
   X[0].deriv(1) = 0;
 
   X[1] = crd[1];
@@ -96,10 +96,10 @@ void anamet2D_3([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   X[1].deriv(1) = 1;
 
 
-  double hy_min = 0.001;
-  double hy_max = 0.1;
-  double hx = scale*0.5;
-  SANS::SurrealS<2,double> hy = scale * (X[1] * hy_max + (1 - X[1] + 0.0) * hy_min);
+  double hx_min = 0.001;
+  double hx_max = 0.1;
+  SANS::SurrealS<2,double> hx = scale*(X[0]*(hx_max - hx_min) + hx_min);
+  double hy = scale*0.1;
 
 
   SANS::SurrealS<2,double> eigval[2] = {1.0/(hx*hx), 1.0/(hy*hy)};
@@ -132,7 +132,7 @@ void anamet2D_4([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   double hy_min = 0.001;
   double hy_max = 0.1;
   double hx = scale*0.5;
-  SANS::SurrealS<2,double> hy = scale * (X * hy_max + (1 - X + 0.0) * hy_min);
+  SANS::SurrealS<2,double> hy = scale*(X*hy_max + (1 - X + 0.0)*hy_min);
 
 
   SANS::SurrealS<2,double> eigval[2] = {1.0/(hx*hx), 1.0/(hy*hy)};
@@ -172,7 +172,7 @@ void anamet2D_5([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   double hy_min = 0.001;
   double hy_max = 0.1;
   double hx = scale*0.5;
-  SANS::SurrealS<2,double> hy = scale * (abs(r)*hy_max + (1 - abs(r))*hy_min);
+  SANS::SurrealS<2,double> hy = scale*(abs(r)*hy_max + (1 - abs(r))*hy_min);
 
 
   SANS::SurrealS<2,double> eigval[2] = {1.0/(hy*hy), 1.0/(hx*hx)};
@@ -246,7 +246,7 @@ void anamet2D_6([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
   SANS::SurrealS<2,double> r = sqrt(X[0]*X[0] + X[1]*X[1]) + 0.01;
   SANS::SurrealS<2,double> y[2] = {X[0] / r, X[1] / r};
 
-  SANS::SurrealS<2,double> h2 = h2_ * (1 + 10*r);
+  SANS::SurrealS<2,double> h2 = h2_*(1 + 10*r);
 
   SANS::SurrealS<2,double> eigval[2] = {1.0/(h1*h1), 1.0/(h2*h2)};
   //SANS::SurrealS<2,double> eigval[2] = {h1, h2};
