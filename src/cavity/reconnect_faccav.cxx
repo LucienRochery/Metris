@@ -787,7 +787,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
 
   double nordev_tol = MAX(work.lnordevcco[icoco], 1.0e-12);
   static int nwarnprt1 = 0;
-  if(nwarnprt1++ < 10) PRINTF("## PUT BACK NORDEV TOL\n");
+  if(nwarnprt1++ < 4) PRINTF("## PUT BACK NORDEV TOL\n");
   nordev_tol = MAX(nordev_tol, 1.0e-1);
   //if(nordev_tol > 1.0e-11){
   //  printf("## DEBUG nordev_tol != 0 = {}\n",nordev_tol);

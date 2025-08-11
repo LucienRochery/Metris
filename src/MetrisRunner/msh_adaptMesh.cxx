@@ -121,7 +121,7 @@ void MetrisRunner::adaptMesh0(int tdim){
   const int ithrd3 = 3;
   msh.tag[ithrdfro]++;
 
-  if(msh.CAD() && msh.param->adp_line_adapt){
+  if(msh.CAD() && msh.param->adp_line_adapt && tdim == 1){
 
     t0 = get_wall_time();
     adaptGeoLines<MFT>(msh);
@@ -129,6 +129,10 @@ void MetrisRunner::adaptMesh0(int tdim){
     CPRINTF1(" - adaptGeoLines time = {:.2e}s \n",t1-t0);
     if(DOPRINTS2()) writeMesh("v2_geolines_adp",msh);
     if(DOPRINTS2()) msh.met.writeMetricFile("v2_geolines_adp");
+
+
+    //fmt::print("## WAIT HERE \n");
+    //wait();
 
     if(DOPRINTS1()){
       getLengthEdges<MFT>(msh,1,-1,ilned,rlned,lenstat);
@@ -141,10 +145,12 @@ void MetrisRunner::adaptMesh0(int tdim){
     check_topo(msh,1);
     #endif
 
+
     if(tdim == 1){
       if(DOPRINTS1()) statMesh(tdim);
       return;
     }
+
   }
 
 

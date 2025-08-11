@@ -195,7 +195,10 @@ void adaptGeoLines2(Mesh<MFT> &msh){
       // Insert them 
       insPointsCurve<MFT>(msh, iref, ref2rng[iref], ref2cor[iref], lnewt, ledge, ithrd1, ithrd2, ithrd3);
 
-      if(DOPRINTS2()) writeMesh("lineadapt" + std::to_string(iref),msh);
+      if(DOPRINTS2()){
+        writeMesh("lineadapt" + std::to_string(iref),msh);
+        msh.met.writeMetricFile("lineadapt" + std::to_string(iref));
+      }
     } // for iCADed
   } // for iloop
 

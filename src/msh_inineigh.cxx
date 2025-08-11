@@ -333,6 +333,8 @@ void iniMeshNeighbours3D(MeshBase &msh){
   for(int ielem = 0; ielem < msh.nelem; ielem++){
     INCVDEPTH(msh.param);
     if(isdeadent(ielem,msh.tet2poi)) continue;
+    CPRINTF3(" - tet {} points {} {} {} {}\n",ielem,
+      msh.tet2poi(ielem,0),msh.tet2poi(ielem,1),msh.tet2poi(ielem,2),msh.tet2poi(ielem,3));
     for(int ifa1 = 0; ifa1 < 4; ifa1++){
       INCVDEPTH(msh.param);
 

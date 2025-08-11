@@ -76,13 +76,13 @@ int getnorfacCAD(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
     if(ibpoi < 0) continue;
 
     int ipoin = fac2pol[iver];
-    CPRINTF2(" - getnorfacCAD iver {} ipoin {} ibpoi {}\n", iver, ipoin, ibpoi);
+    CPRINTF3(" - getnorfacCAD iver {} ipoin {} ibpoi {}\n", iver, ipoin, ibpoi);
 
     double dum[3];
     static int warning_print_CADnor = 0;
     if(getnorpoiCAD2(msh,ibpoi,dum)){
       if(warning_print_CADnor++ < 10){
-        CPRINTF2(" # ibpoi {} ipoin {} skipped, possible singularity\n",ibpoi,ipoin);
+        CPRINTF3(" # ibpoi {} ipoin {} skipped, possible singularity\n",ibpoi,ipoin);
         if(warning_print_CADnor >= 10) CPRINTF2(" # suppressing print\n");
       }
       continue;

@@ -27,7 +27,7 @@ template<class MFT>
 void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen, 
                     const double range[2], dblAr1 &lnewt, intWrkAr1 &ledge){
   GETVDEPTH(msh.param);
-  const double tessltar = 0.1;
+  const double tessltar = 0.02;
   // Get CAD parameter range
   ego CADed = msh.CAD.cad2edg[iref];
   int ierro;
@@ -35,7 +35,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
   int nnewp = MAX(round(crvlen) - 1, 2);
   double tarlen = crvlen / nnewp;
 
-  CPRINTF1(" - edge ref {} cor0 {} range = ({},{}), length {}, creating {} points for tarlen {}\n",
+  CPRINTF1("-- START genPointsCurve ref {} cor0 {} range = ({},{}), length {}, creating {} points for tarlen {}\n",
                         iref,icor0,range[0],range[1],crvlen,nnewp,tarlen);
 
 
@@ -189,7 +189,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
 
       double len = sqrt(met1) * abs(tspoi[itpo1] - tspoi[itpo2]);
 
-      CPRINTF3(" - edge {} / {} verts {} {} sz {} {} len {} mesh edge {} \n",
+      CPRINTF3(" - edge {} / {} verts {} {} sz {:.2e} {:.2e} len {:.2f} mesh edge {} \n",
                itsed,tsedg.get_n(),itpo1,itpo2,sz1,sz2,len,tsbke[itsed]);
 
       if(len <= tessltar){
@@ -370,7 +370,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
       double lento0 = lentot;
       lentot += len;
 
-      CPRINTF1(" - edge {} / {} points {} {} sz {} {} len {} tot {} tar {}\n",itsed,tsedg.get_n(),
+      CPRINTF1(" - edge {} / {} points {} {} sz {:.2e} {:.2e} len {:.2f} tot {:.2f} tar {:.2f}\n",itsed,tsedg.get_n(),
                 itpo1,itpo2,sz1,sz2,len,lentot,tarlen);
 
       // In any case, whether new pt or not, we'll need to walk to the next edge. 
@@ -412,16 +412,16 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
           METRIS_ASSERT(ibpoi >= 0);
           tedg[ii] = msh.bpo2rbi(ibpoi,0);
         }
-        CPRINTF1(" -> new point {} w theta = {} t = {} seed edg = {}, tedg {} {} \n",
-                 lnewt.get_n()-1,theta,tnewp,iseed,tedg[0],tedg[1]);
+        CPRINTF1(" -> new point {} w theta = {:.2f} t = {:.2f} lentot = {:.2f} seed edg = {}, tedg {:.2f} {:.2f} \n",
+                 lnewt.get_n()-1,theta,tnewp,lentot,iseed,tedg[0],tedg[1]);
         METRIS_ASSERT_MSG(tnewp >= tedg[0] && tnewp <= tedg[1]
                        || tnewp <= tedg[0] && tnewp >= tedg[1],
                        "New point t not in edge t bounds. Using tspoi: "
                        <<tspoi[itpo1]<<" "<<tspoi[itpo2]<<
                        "tess points "<<itpo1<<" "<<itpo2);
       #else
-        CPRINTF1(" -> new point {} w theta = {} t = {} seed edg = {}\n",
-                 lnewt.get_n()-1,theta,tnewp,iseed);
+        CPRINTF1(" -> new point {} w theta = {:.2f} t = {:.2f} lentot = {:.2f} seed edg = {}\n",
+                 lnewt.get_n()-1,theta,tnewp,lentot,iseed);
       #endif
       
 

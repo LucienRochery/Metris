@@ -148,7 +148,7 @@ doproj:
   int ndelay = 0;
   for(int irep = 0; irep < 2; irep++){
     INCVDEPTH(msh.param);
-    CPRINTF3("\n - proj outer rep {}/2\n",irep+1);
+    CPRINTF3(" - prjMeshPoints outer rep {}/2\n",irep+1);
     for(int ibpoi = nbpo0; ibpoi < msh.nbpoi; ibpoi++){
       INCVDEPTH(msh.param);
       int ipoin = msh.bpo2ibi(ibpoi,0);
