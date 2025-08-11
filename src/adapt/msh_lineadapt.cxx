@@ -368,6 +368,7 @@ void adaptGeoLines(Mesh<MFT> &msh){
           cav.lcfac.set_n(0);
           cav.lcedg.set_n(0);
           cav.ipins = -1;
+          cav.inewp = -1;
 
           // Walk from edge to edge until the target length is reached. 
           bool ifin, inewp;
@@ -396,6 +397,8 @@ void adaptGeoLines(Mesh<MFT> &msh){
                                   &adjusted_tarlen,&len,&nEGrro);
             if(ierro != 0) goto cleanup1;
 
+            cav.inewp = 1;
+
           }else{ // Both len <= tar and ifin, then reinsert corner with this cavity. 
 
             cav.ipins = edg2pol[1];
@@ -408,6 +411,8 @@ void adaptGeoLines(Mesh<MFT> &msh){
               writeMesh(fname,msh);
             }
 
+            cav.inewp = 0;
+
           }
 
           if(DOPRINTS2()) writeMeshCavity("debug_lineadap0_cav",msh,cav);
@@ -415,7 +420,7 @@ void adaptGeoLines(Mesh<MFT> &msh){
           // Proceed to insertion We have our ipins, edge cavity also. Now extend
           // triangle cavity from edg2fac seeds
 
-          ierro = increase_cavity_Delaunay(msh, cav, ithrd1, -1);
+          ierro = increase_cavity_Delaunay(msh, cav, -1, ithrd1);
           if(ierro != 0) goto cleanup1;
  
           ierro = increase_cavity_validity(msh,cav,ithrd1);
@@ -479,8 +484,8 @@ void adaptGeoLines(Mesh<MFT> &msh){
           // First insertion is regular. 
           for(int isteiner = 0; isteiner <= 1; isteiner++){
 
-            CPRINTF1(" - Starting insert ipins = {} cav ncedg = {} ncfac = {} \n",    
-                                     cav.ipins,cav.lcedg.get_n(),cav.lcfac.get_n());
+            CPRINTF1(" - Starting insert ipins = {} cav ncedg = {} ncfac = {} Steiner? {}\n",    
+                                     cav.ipins,cav.lcedg.get_n(),cav.lcfac.get_n(),(bool)isteiner);
 
             if(DOPRINTS2() && msh.param->dbgfull){
               intWrkAr1 refold = msh.get_iwork(MeshSize::Face);
@@ -600,7 +605,9 @@ void adaptGeoLines(Mesh<MFT> &msh){
                                   norpoi[0],norpoi[1],len2,edgorient[obj]);
 
             int ipins_old = cav.ipins;
+            int inewp_old = cav.inewp;
             cav.ipins = msh.newpoitopo(msh.get_tdim(), -1);
+            cav.inewp = 1;
 
             int ncedg = cav.lcedg.get_n();
             cav.lcedg.set_n(0);
@@ -658,6 +665,7 @@ void adaptGeoLines(Mesh<MFT> &msh){
               cav.lcedg.set_n(ncedg);
               cav.lcfac.set_n(0);
               cav.ipins = ipins_old;
+              cav.inewp = inewp_old;
               // Now get the faces from the edges 
               msh.tag[ithrd2]++;
               for(int iedgc : cav.lcedg){
