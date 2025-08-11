@@ -207,6 +207,7 @@ double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,const int *edg2pol
 
     }
   }else{// ideg == 1
+    //GETVDEPTH(msh.param);
     for(int ii = 0; ii < gdim; ii++) tang[ii] = msh.coord(edg2pol[1],ii)
                                               - msh.coord(edg2pol[0],ii);
     if(msh.met.getSpace() == MetSpace::Log){
@@ -216,7 +217,11 @@ double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,const int *edg2pol
       sz[0] = getlenedg<gdim>(tang,msh.met[edg2pol[0]]);
       sz[1] = getlenedg<gdim>(tang,msh.met[edg2pol[1]]);
     }
+    //CPRINTF2(" - getlenedg_geosz tang = {}, sz = {} {}\n",
+    //         dblAr1(gdim,tang), sz[0], sz[1]);
   }
+
+  if(abs(sz[1]) < Defaults::ltol) return 0;
 
   double a = sz[0]/sz[1];
   double len = -1;
