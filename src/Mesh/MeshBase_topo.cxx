@@ -296,6 +296,7 @@ int MeshBase::newbpotopo(int ipoin, int tdim, int ientt){
     // Create new ibpoi
     set_nbpoi(nbpoi+1);
     bpo2ibi(ibpon,3) = ibpoi; // Link to next
+
     
   }else{
     // If not then after all tdim <= current passed and check ientt not already
@@ -324,6 +325,7 @@ int MeshBase::newbpotopo(int ipoin, int tdim, int ientt){
   bpo2ibi(ibpon,0) = ipoin; 
   bpo2ibi(ibpon,1) = tdim;  // Type
   bpo2ibi(ibpon,2) = ientt; // Ref
+
 
   for(int i = 0; i < nrbi ;i++) bpo2rbi(ibpon,i) = 0;
 

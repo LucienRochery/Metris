@@ -312,9 +312,9 @@ public:
 
   void copyTo(MeshArray2D<T,INT1,INT2> &out, INT1 ncopy = -1) const;
 
-  void print(INT1 n) const;
-  void print() const;
-
+  void print(INT1 n, FILE* logfile = stdout) const;
+  void print(FILE* logfile = stdout) const;
+  std::ostream& print(std::ostream& _os) const;
 
 
   ~MeshArray2D();
@@ -577,5 +577,9 @@ std::ostream& operator<<(std::ostream& _os, const Metris::MeshArray1D<T, INT1> &
   return arr.print(_os);
 }
 
+template<class T, class INT1, class INT2>
+std::ostream& operator<<(std::ostream& _os, const Metris::MeshArray2D<T, INT1, INT2> &arr){
+  return arr.print(_os);
+}
 
 #endif

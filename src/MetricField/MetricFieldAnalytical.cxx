@@ -75,10 +75,10 @@ void MetricFieldAnalytical::normalize(double coeff){
 void MetricFieldAnalytical::getMetPhys(DifVar idiff, MetSpace tarspac, 
                                        const double*__restrict__ coop, 
                                        double*__restrict__ metl, 
-                                       double*__restrict__ dmet) {
-    CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
-      getMetPhys0<gdim>(idiff,tarspac,coop,metl,dmet);
-    }}CT_FOR1(gdim);
+                                       double*__restrict__ dmet) const {
+  CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
+    getMetPhys0<gdim>(idiff,tarspac,coop,metl,dmet);
+  }}CT_FOR1(gdim);
 }
 
 
@@ -154,7 +154,7 @@ void MetricFieldAnalytical::
   getMetPhys0(DifVar idiff, MetSpace tarspac, 
               const double*__restrict__  coop,  
               double*__restrict__ metl, 
-              double*__restrict__ dmet){
+              double*__restrict__ dmet) const {
 	METRIS_ASSERT(gdim == msh.idim);
 	int idifa = 0;
 	if(idiff != DifVar::None) idifa = 1;
@@ -166,7 +166,7 @@ void MetricFieldAnalytical::
 	if(tarspac != MetSpace::Exp){
     // This is undesireable but we rather prepare for it. 
     // Let's log that it happened.
-    this->nspace_miss++;
+    //this->nspace_miss++;
 
     if(idiff != DifVar::None){
       SANS::SurrealS<gdim,double> metS[nnmet];
@@ -205,11 +205,11 @@ template void MetricFieldAnalytical::getMetBary0<3,ideg>\
 template void MetricFieldAnalytical::getMetPhys0<2>
                             (DifVar idiff, MetSpace tarspac, 
                             const double*__restrict__ coop, 
-                                  double*__restrict__ metl, double*__restrict__ dmet) ;
+                                  double*__restrict__ metl, double*__restrict__ dmet) const ;
 template void MetricFieldAnalytical::getMetPhys0<3>
                             (DifVar idiff, MetSpace tarspac, 
                             const double*__restrict__ coop, 
-                                  double*__restrict__ metl, double*__restrict__ dmet) ;
+                                  double*__restrict__ metl, double*__restrict__ dmet) const ;
 
 
 } // End namespace

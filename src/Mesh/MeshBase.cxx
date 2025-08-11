@@ -13,12 +13,13 @@
 #include "../aux_exceptions.hxx"
 #include "../metris_constants.hxx"
 #include "../ho_constants.hxx"
-#include "../utils/CT_loop.hxx"
 #include "../msh_lag2bez.hxx"
 #include "../low_geo/normal.hxx"
 #include "../linalg/det.hxx"
 #include "../low_geo/misc.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
+#include "../utils/CT_loop.hxx"
 
 namespace Metris{
 
@@ -283,6 +284,8 @@ MeshBase& MeshBase::operator=(const MeshBase &inp){
   idim   = inp.idim;
 
   is_manifold = inp.is_manifold;
+  inp.isperiodic_face.copyTo(isperiodic_face);
+  nperiodic_face = inp.nperiodic_face;
 
   set_npoin(inp.npoin);
   set_nedge(inp.nedge);

@@ -108,13 +108,13 @@ public:
 	void getMetBary(AsDeg asdmet,
                   DifVar idiff, MetSpace tarspac, 
                   const int*__restrict__ ent2pol, 
-                  int tdimn,  const double* __restrict__ bary, 
+                  int tdimn,  const double*__restrict__ bary, 
                   double*__restrict__ metl, double*__restrict__ dmet);
 
   #if 0
 	void getMetPhys(AsDeg metdeg, DifVar idiff, MetSpace tarspac, 
                   int *ieleg, 
-		              const double* __restrict__ coop, 
+		              const double*__restrict__ coop, 
 		              double*__restrict__ metl, 
                   double*__restrict__ dmet, int ithread) ;
   #endif
@@ -123,14 +123,14 @@ public:
                       DifVar idiff, MetSpace tarspac, 
                       const int*__restrict__ ent2pol, 
                       int tdimn, 
-											const double* __restrict__ bary, 
-                      const double* __restrict__ coop, 
+											const double*__restrict__ bary, 
+                      const double*__restrict__ coop, 
 											double*__restrict__ metl, 
                       double*__restrict__ dmet) ;
 
 	//// Differentiated, see low_eval_d, for instance with respect to control point position. 
 	//void getMetBary_d(const MeshBase &msh, int ientt, int tdimn, DifVar idiff, 
-	//	                double* __restrict__ bary, double*__restrict__ metl, double*__restrict__ dmet);
+	//	                double*__restrict__ bary, double*__restrict__ metl, double*__restrict__ dmet);
 
 public: 
 	dblAr2 rfld;
@@ -158,7 +158,7 @@ protected:
 private:
 	//template<int gdim, int metdeg>
 	//void getMetFullinfo0(const MeshBase &msh, int ientt, int tdimn, DifVar idiff, 
-	//										double* __restrict__ bary, double* __restrict__ coop, double*__restrict__ metl, double*__restrict__ dmet);
+	//										double*__restrict__ bary, double*__restrict__ coop, double*__restrict__ metl, double*__restrict__ dmet);
 	template<int gdim, int ideg>
 	void getMetBary0(DifVar idiff, MetSpace tarspac, const int*__restrict__ ent2pol, 
                    int tdimn, const double*__restrict__ bary, 
@@ -201,20 +201,20 @@ public:
   void getMetBary(AsDeg asdmet,
                   DifVar idiff, MetSpace tarspac, 
                   const int*__restrict__ ent2pol, 
-                  int tdimn,  const double* __restrict__ bary, 
+                  int tdimn,  const double*__restrict__ bary, 
                   double*__restrict__ metl, double*__restrict__ dmet);
 
   void getMetPhys(DifVar idiff, MetSpace tarspac,
-                  const double* __restrict__ coop, 
+                  const double*__restrict__ coop, 
                   double*__restrict__ metl, 
-                  double*__restrict__ dmet) ;
+                  double*__restrict__ dmet) const ;
 
   void getMetFullinfo(AsDeg asdmet,
                       DifVar idiff, MetSpace tarspac, 
                       const int*__restrict__ ent2pol, 
                       int tdimn, 
-                      const double* __restrict__ bary, 
-                      const double* __restrict__ coop, 
+                      const double*__restrict__ bary, 
+                      const double*__restrict__ coop, 
                       double*__restrict__ metl, 
                       double*__restrict__ dmet) ;
 
@@ -231,8 +231,9 @@ protected:
                    double*__restrict__ metl, double*__restrict__ dmet) ;
 	template<int gdim>
 	void getMetPhys0(DifVar idiff, MetSpace tarspac, 
-		               const double* __restrict__ coop, 
-		                     double*__restrict__ metl, double*__restrict__ dmet) ;
+		               const double*__restrict__ coop, 
+		                     double*__restrict__ metl, 
+                         double*__restrict__ dmet) const;
 };
 
 

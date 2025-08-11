@@ -169,6 +169,13 @@ void MeshBase::initialize(MetrisAPI *data,
   if(idim == 2){
     INCVDEPTH(this->param);
 
+    is_manifold = true;
+    isperiodic_face.allocate(CAD.ncadfa);
+    isperiodic_face.set_n(CAD.ncadfa);
+    isperiodic_face.fill(false);
+    nperiodic_face = 0;
+    
+
     for(int iedge = 0; iedge < nedge; iedge++){
       INCVDEPTH(this->param);
       if(isdeadent(iedge,edg2poi)) continue;

@@ -7,6 +7,8 @@
 #include "../SANS/Surreal/SurrealS.h"
 #include "../metris_constants.hxx"
 
+#include "../utils/fmt_formatters.hxx"
+
 
 namespace Metris{
 
@@ -192,21 +194,53 @@ void MeshArray2D<T,INT1,INT2>::copyTo(MeshArray2D<T,INT1,INT2> &out, INT1 ncopy)
 }
 
 template<typename T, typename INT1, typename INT2>
-void MeshArray2D<T,INT1,INT2>::print(INT1 n) const{
-  INT1 m = n < (nmemalc/stride) ? n : (nmemalc/stride);
+void MeshArray2D<T,INT1,INT2>::print(INT1 n, FILE* logfile) const{
+  INT1 m = n*stride <= nmemalc ? n : n1;
+  constexpr bool isptr = std::is_same<T,ego>::value;
+
+  fmt::print(logfile, "[");
   for(INT1 ii = 0; ii < m; ii++){
-      std::cout<<ii<<":";
-      for(INT2 jj = 0; jj < stride; jj++){
-          std::cout<<" "<<array_ro[ii*stride+jj]<<" ";
+    fmt::print(logfile, "[");
+    fmt::print(logfile, "{}: [", ii);
+    for(INT2 jj = 0; jj < stride-1; jj++){
+      if constexpr(isptr){
+        fmt::print(logfile, "{} ", (void*) array_ro[ii*stride+jj]);
+      }else{
+        fmt::print(logfile, "{} ", array_ro[ii*stride+jj]); 
       }
-      std::cout<<"\n";
+    }
+    if constexpr(isptr){
+      fmt::print(logfile, "{}]", (void*) array_ro[ii*stride+stride-1]);
+    }else{
+      fmt::print(logfile, "{}]", array_ro[ii*stride+stride-1]);
+    }
+    if(ii < m-1) fmt::print(logfile, ",\n ");
   }
+  fmt::print(logfile, "]");
 }
 template<typename T, typename INT1, typename INT2>
-void MeshArray2D<T,INT1,INT2>::print() const{
-  this->print(nmemalc); 
+void MeshArray2D<T,INT1,INT2>::print(FILE* logfile) const{
+  this->print(n1, logfile); 
 }
 
+template<typename T, typename INT1, typename INT2>
+std::ostream& MeshArray2D<T,INT1,INT2>::print(std::ostream& _os) const{
+  if(n1 <= 0) return _os;
+
+  _os << "[";
+  for(INT1 ii = 0; ii < n1; ii++){
+    _os << "[";
+    _os << ii << ": [";
+    for(INT2 jj = 0; jj < stride-1; jj++){
+      _os << array_ro[ii*stride+jj] << " ";
+    }
+    _os << array_ro[ii*stride+stride-1] << "]";
+    if(ii < n1 - 1) _os << ",\n ";
+  }
+  _os << "]";
+
+  return _os;
+}
 
 
 template<typename T, typename INT1, typename INT2>
