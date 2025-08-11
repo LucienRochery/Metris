@@ -114,6 +114,16 @@ constexpr const int (&getlnosub())[tdim+1][tdim]{
   }
 }
 
+constexpr int lnosub(int tdim, int ifact, int iver){
+  if(tdim == 1){
+    return 1 - ifact;
+  }else if(tdim == 2){
+    return lnoed2[ifact][iver];
+  }else{
+    return lnofa3[ifact][iver];
+  }
+}
+
 
 namespace Constants{
 
