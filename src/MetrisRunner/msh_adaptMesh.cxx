@@ -47,7 +47,7 @@ void MetrisRunner::adaptMesh2(){
   CT_FOR0_INC(2,3,gdim){if(gdim == msh_g->idim){
     CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh_g->curdeg == ideg){
       for(int tdim = 1; tdim <= msh_g->get_tdim(); tdim++){
-        INCVDEPTH(this->param);
+        GETVDEPTH(this->param);
         if(this->metricFE){
           adaptMesh0<MetricFieldFE        ,gdim,ideg>(tdim);
         }else{
@@ -376,7 +376,6 @@ void MetrisRunner::adaptMesh0(int tdim){
       CPRINTF1(" - low stat = {:.2e} break or optimize\n",stat0);
       if(niter >= miter -1) break;
       if(msh.param->opt_niter > 0 && 
-        tdim == msh.get_tdim() &&
         (iopt_niter < msh.param->adp_opt_niter|| msh.param->adp_opt_niter < 0)
          && !msh.param->opt_unif){
         iopt_niter++;

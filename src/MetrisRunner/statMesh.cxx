@@ -84,7 +84,7 @@ void MetrisRunner::statMesh0(int tdim, MeshStat* stat){
 
   if(DOPRINTS1()){
     dblAr1 lenbds = {1.0/sqrt(2), sqrt(2)};
-    print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length (geometric)");
+    print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length ("+std::to_string(tdim)+"D)");
     //print_histogram(msh,rlned_bdry,IntrpTyp::Linear,lenbds,"l","Edge length (geo, bdry)");
 
     //if(DOPRINTS3()){
