@@ -14,7 +14,7 @@
 #include "../msh_structs.hxx"
 #include "../io_libmeshb.hxx"
 #include "../cavity/msh_cavity.hxx"
-#include "../adapt/low_collapse.hxx"
+#include "../Adaptation/low_collapse.hxx"
 //#include "../Boundary/low_projsurf.hxx"
 
 #include "../utils/mprintf.hxx"

@@ -7,7 +7,7 @@
 #define __METRIS_MSH_INSERT2D__
 
 
-#include "../Mesh/MeshFwd.hxx"
+#include "../../Mesh/MeshFwd.hxx"
 
 
 namespace Metris{

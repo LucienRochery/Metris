@@ -5,23 +5,24 @@
 
 #include "aux_insert.hxx"
 #include "low_insert.hxx" // for error codes
+#include "seed_edge.hxx"
 
-#include "../Mesh/Mesh.hxx"
-#include "../MetrisRunner/MetrisParameters.hxx"
+#include "../../Mesh/Mesh.hxx"
+#include "../../MetrisRunner/MetrisParameters.hxx"
 
-#include "../utils/mprintf.hxx"
-#include "../utils/fmt_formatters.hxx"
-#include "../cavity/msh_cavity.hxx"
-#include "../aux_topo.hxx"
-#include "../msh_structs.hxx"
-#include "../low_topo.hxx"
-#include "../low_geo/normal.hxx"
-#include "../low_geo/measure.hxx"
-#include "../low_geo/lenedg.hxx"
-#include "../io_libmeshb.hxx"
-#include "../linalg/det.hxx"
+#include "../../utils/mprintf.hxx"
+#include "../../utils/fmt_formatters.hxx"
+#include "../../cavity/msh_cavity.hxx"
+#include "../../aux_topo.hxx"
+#include "../../msh_structs.hxx"
+#include "../../low_topo.hxx"
+#include "../../low_geo/normal.hxx"
+#include "../../low_geo/measure.hxx"
+#include "../../low_geo/lenedg.hxx"
+#include "../../io_libmeshb.hxx"
+#include "../../linalg/det.hxx"
 
-#include "../msh_checktopo.hxx"
+#include "../../msh_checktopo.hxx"
 
 
 namespace Metris{
@@ -108,25 +109,20 @@ template int aux_findCloseConstrained<MetricFieldFE       >(
 
 template<class MFT>
 int aux_bisecPointLen(Mesh<MFT> &msh, 
-                      int tdim, int ientt, int iedl,
-                      int ibins, int tdimp, int iseed, int iref, 
+                      const EdgeSeed &insertionSeed,
+                      int ibins, 
                       bool icollapse, 
                       const MshCavity &cav){
   GETVDEPTH(msh.param);
-  const auto lnoed = tdim == 1 ? lnoed1 : 
-                     tdim == 2 ? lnoed2 : lnoed3;
-  const intAr2 &ent2poi = msh.ent2poi(tdim);
+  const auto lnoed = insertionSeed.tdimp == 1 ? lnoed1 : 
+                     insertionSeed.tdimp == 2 ? lnoed2 : lnoed3;
+  const intAr2 &ent2poi = msh.ent2poi(insertionSeed.tdimp);
 
-  CPRINTF1("-- START aux_bisecPointLen tdimp = {} ipins = {} ibins = {}\n", tdimp, cav.ipins, ibins);
+  CPRINTF1("-- START aux_bisecPointLen tdimp = {} ipins = {} ibins = {}\n", insertionSeed.tdimp, cav.ipins, ibins);
 
-  ego obj = NULL;
-  if(msh.CAD()){
-    obj = tdimp == 1 && msh.isboundary_edges() ? msh.CAD.cad2edg[iref] :
-          tdimp == 2 && msh.isboundary_faces() ? msh.CAD.cad2fac[iref] : NULL;
-  }
 
-  int ip1 = ent2poi(ientt,lnoed[iedl][0]);
-  int ip2 = ent2poi(ientt,lnoed[iedl][1]);
+  int ip1 = insertionSeed.ipedg[0];
+  int ip2 = insertionSeed.ipedg[1];
   const int nnmet = (msh.idim*(msh.idim+1))/2;
   CPRINTF2(" - using ends {} = {} met = {}, {} = {} met = {}\n",
            ip1, dblAr1(msh.idim,msh.coord[ip1]), dblAr1(nnmet,msh.met[ip1]),
@@ -140,14 +136,15 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
   int edg2pol[mnode], edg2po2[2] = {cav.ipins, -1};
   int idx[4] = {0};
   int idx1[2];
+  const int iedl = getedgent(msh, insertionSeed.tdimp, insertionSeed.iseed, ip1, ip2);
   for(int inoed = 0; inoed <= msh.curdeg; inoed++){
     idx[lnoed[iedl][0]] = msh.curdeg - inoed;
     idx[lnoed[iedl][1]] = inoed;
     idx1[0] = msh.curdeg - inoed;
     idx1[1] = inoed;
-    int inode_sup = mul2nod(tdim,idx);
+    int inode_sup = mul2nod(insertionSeed.tdimp,idx);
     int inode_sub = mul2nod(1,idx1);
-    edg2pol[inode_sub] = ent2poi(ientt,inode_sup);
+    edg2pol[inode_sub] = ent2poi(insertionSeed.iseed,inode_sup);
   }
   CPRINTF2(" - edg2pol = {}\n",intAr1(nnode,edg2pol));
 
@@ -167,7 +164,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
       int ib[2];
       // Correct ibs : attach to ref or edge/face as needed
       for(int ii = 0; ii < 2; ii++){
-        ib[ii] = msh.poi2ebp(edg2pol[ii],tdimp,iseed,iref);
+        ib[ii] = msh.poi2ebp(edg2pol[ii],insertionSeed.tdimp,insertionSeed.iseed,insertionSeed.iref);
         CPRINTF2(" - ib[{}] = {} : {}, (u,v) = {} {}\n",ii,ib[ii],intAr1(nibi,msh.bpo2ibi[ib[ii]]),
                  msh.bpo2rbi(ib[ii],0),msh.bpo2rbi(ib[ii],1));
         METRIS_ASSERT(ib[ii] >= 0);
@@ -182,22 +179,22 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
                ib[1],msh.bpo2rbi(ib[1],0),msh.bpo2rbi(ib[1],1));
 
       double result[18];
-      METRIS_ASSERT(obj != NULL);
-      ierro = EG_evaluate(obj, msh.bpo2rbi[ibins], result);
+      METRIS_ASSERT(insertionSeed.obj != NULL);
+      ierro = EG_evaluate(insertionSeed.obj, msh.bpo2rbi[ibins], result);
       if(ierro != 0) return INS2D_ERR_EGEVALUATE;
 
       for(int ii = 0; ii < msh.idim; ii++) msh.coord(cav.ipins,ii) = result[ii];
 
-      if(tdimp == 1){
+      if(insertionSeed.tdimp == 1){
         for(int ii = 0; ii < msh.idim; ii++) algnd[ii] = result[3+ii];
       }else{
         vecprod(&result[3], &result[6], algnd);
       }
     }else if(ibins >= 0 && !msh.CAD()){ 
-      METRIS_ASSERT(tdimp <= 2);
-      // No reevaluation, but initialize algnd to edge tangent 
-      CPRINTF1(" - discrete algnd initialization tdimp {} \n",tdimp);
-      if(tdimp == 1){
+      METRIS_ASSERT(insertionSeed.tdimp <= 2);
+      // No reevaluation, but initialize algnd to edge tangent
+      CPRINTF1(" - discrete algnd initialization tdimp {} \n",insertionSeed.tdimp);
+      if(insertionSeed.tdimp == 1){
         // To compute at higher degree, copy more vertices into ip
         MSH_DIM_DEG0(msh){
           eval1<gdim,ideg>(msh.coord, edg2pol,
@@ -210,7 +207,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
                            msh.getBasis(), DifVar::None, DifVar::None,
                            bar2, msh.coord[cav.ipins], NULL, NULL);
         }MSH_DIM_DEG1();
-        if(msh.idim == 3) getnorfacP1(ent2poi[ientt],msh.coord,algnd);
+        if(msh.idim == 3) getnorfacP1(ent2poi[insertionSeed.iseed],msh.coord,algnd);
       }
     }else{
       MSH_DIM_DEG0(msh){
@@ -220,7 +217,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
       }MSH_DIM_DEG1();
     }
 
-    ierro = msh.interpMetBack(cav.ipins, tdimp, iseed, iref, algnd);
+    ierro = msh.interpMetBack(cav.ipins, insertionSeed.tdimp, insertionSeed.iseed, insertionSeed.iref, algnd);
     if(ierro != 0) return INS2D_ERR_INTERPMETBACK1;
 
     //if(DOPRINTS3()){
@@ -292,13 +289,13 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
 }
 
 template int aux_bisecPointLen<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, 
-                                                      int tdim, int ientt, int iedl,
-                                                      int ibins, int tdimp, int iseed, int iref,
+                                                      const EdgeSeed &insertionSeed,
+                                                      int ibins,
                                                       bool icollapse,
                                                       const MshCavity &cav);
 template int aux_bisecPointLen<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, 
-                                                      int tdim, int ientt, int iedl,
-                                                      int ibins, int tdimp, int iseed, int iref,
+                                                      const EdgeSeed &insertionSeed,  
+                                                      int ibins,
                                                       bool icollapse,
                                                       const MshCavity &cav);
 

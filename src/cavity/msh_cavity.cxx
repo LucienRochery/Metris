@@ -21,6 +21,8 @@ namespace Metris{
 void MshCavity::print(const MeshBase &msh, int iforce) const{
   GETVDEPTH(msh.param);
 
+  if(!DOPRINTS1() && iforce <= 0) return;
+
   if(DOPRINTS1() || iforce >= 1){
 
     MPRINTF(" - cavity ipins {} pdim {} ncedg {} ncfac {} nctet {}\n",ipins,

@@ -7,18 +7,19 @@
 #ifndef __METRIS_AUX_INSERT__
 #define __METRIS_AUX_INSERT__
 
-#include "../Mesh/MeshFwd.hxx"
-#include "../types.hxx"
+#include "../../Mesh/MeshFwd.hxx"
+#include "../../types.hxx"
 
 namespace Metris{
 
 class MshCavity;
 struct CavWrkArrs;
+struct EdgeSeed;
 
 template<class MFT>
 int aux_bisecPointLen(Mesh<MFT> &msh, 
-                      int tdim, int ientt, int iedl,
-                      int ibins, int tdimp, int iseed, int iref,
+                      const EdgeSeed &insertionSeed,
+                      int ibins,
                       bool icollapse,
                       const MshCavity &cav);
 

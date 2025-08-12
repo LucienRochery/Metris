@@ -18,7 +18,7 @@
 #include "../msh_checktopo.hxx"
 #include "../aux_topo.hxx"
 #include "../io_libmeshb.hxx"
-#include "../adapt/low_increasecav.hxx"
+#include "../Adaptation/low_increasecav.hxx"
 #include "../cavity/msh_cavity.hxx"
 #include "../utils/mprintf.hxx"
 #include "../utils/EGADSprinterr.hxx"

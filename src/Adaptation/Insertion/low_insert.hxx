@@ -7,14 +7,15 @@
 #ifndef __METRIS_LOW_INSERT__
 #define __METRIS_LOW_INSERT__
 
-#include "../Mesh/MeshFwd.hxx"
-#include "../types.hxx"
+#include "../../Mesh/MeshFwd.hxx"
+#include "../../types.hxx"
 
 
 namespace Metris{
 
 class MshCavity;
 struct CavWrkArrs;
+struct EdgeSeed;
 
 enum insedgesuf_Errors {INS2D_NOERR = 0, 
                         INS2D_ERR_INTERPMETBACK1 = 1,
@@ -44,7 +45,8 @@ enum insedgesuf_Errors {INS2D_NOERR = 0,
 // Collapse edge iedl of triangle iface
 // bar1 is t along the edge with 1 if lnoed[iedl][0]
 template<class MFT>
-int insertEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, 
+int insertEdge(Mesh<MFT>& msh, 
+               const EdgeSeed &insertionSeed,
                double lenqua_short_max,
                bool icollapse,
                MshCavity &cav, CavWrkArrs &work, 

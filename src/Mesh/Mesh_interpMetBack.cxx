@@ -72,6 +72,7 @@ int Mesh<MFT>::interpMetBack(int ipoin, int tdim, int iseed,
   METRIS_ASSERT_MSG(tdim == this->getpoitdim(ipoin) || this->getpoitdim(ipoin) == 0,
     "seed is dim "<<tdim<<" point is "<<this->getpoitdim(ipoin)
     << " ipoin = "<<ipoin );
+  METRIS_ASSERT_MSG(iseed >= 0 && iseed < this->nentt(tdim), "interpMetBack provided invalid seed index "<<iseed);
   METRIS_ASSERT_MSG(!isdeadent(iseed,tdim == 1 ? this->edg2poi :
                                      tdim == 2 ? this->fac2poi : this->tet2poi),
                     "Dead seed passed to interpMetBack");

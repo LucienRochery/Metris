@@ -5,24 +5,24 @@
 
 #include "MetrisRunner.hxx"
 
-#include "../adapt/msh_collapse.hxx"
-#include "../adapt/msh_swap.hxx"
-#include "../adapt/msh_insert.hxx"
-#include "../adapt/msh_reinsert_flat.hxx"
+#include "../Adaptation/msh_collapse.hxx"
+#include "../Adaptation/msh_swap.hxx"
+#include "../Adaptation/Insertion/msh_insert.hxx"
+#include "../Adaptation/msh_reinsert_flat.hxx"
+#include "../Adaptation/msh_lineadapt.hxx"
 
 #include "../Mesh/Mesh.hxx"
-#include "../utils/aux_misc.hxx"
-#include "../utils/aux_timer.hxx"
 #include "../quality/msh_metqua.hxx"
 #include "../io_libmeshb.hxx"
-#include "../adapt/msh_lineadapt.hxx"
 #include "../smoothing/msh_smooball.hxx"
 #include "../msh_checktopo.hxx"
 #include "../aux_histogram.hxx"
-#include "../utils/CT_loop.hxx"
 #include "../msh_lenedg.hxx"
 #include "../linalg/det.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/CT_loop.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../utils/aux_timer.hxx"
 
 #include "../low_geo/misc.hxx"
 

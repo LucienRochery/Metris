@@ -236,20 +236,21 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/msh_optimMesh.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/statMesh.cxx
 
-    ${PROJECT_SOURCE_DIR}/src/adapt/msh_collapse.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/low_collapse.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/msh_swap.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/low_swapface.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/low_swaptetra.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/msh_insert.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/low_insert.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/aux_insert.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/low_increasecav.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/msh_lineadapt.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/msh_lineforce.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/low_delaunay.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/msh_reinsert_flat.cxx
-    ${PROJECT_SOURCE_DIR}/src/adapt/low_cavqual.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/msh_collapse.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/low_collapse.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/msh_swap.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/low_swapface.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/low_swaptetra.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/low_increasecav.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/msh_lineadapt.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/msh_lineforce.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/low_delaunay.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/msh_reinsert_flat.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/low_cavqual.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/Insertion/msh_insert.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/Insertion/low_insert.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/Insertion/aux_insert.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/Insertion/seed_edge.cxx
 
     ${PROJECT_SOURCE_DIR}/src/smoothing/msh_smooball.cxx
     #${PROJECT_SOURCE_DIR}/src/smoothing/msh_smoofull.cxx
@@ -268,12 +269,12 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/LPopt/LPsolver.cxx
     ${CODEGEN_OUT_SRC}
 )
-if(EXISTS ${PROJECT_SOURCE_DIR}/src/adapt/msh_lineadapt2.cxx)
+if(EXISTS ${PROJECT_SOURCE_DIR}/src/Adaptation/msh_lineadapt2.cxx)
   set(SRC_SOURCES 
       ${SRC_SOURCES}
-      ${PROJECT_SOURCE_DIR}/src/adapt/msh_lineadapt2.cxx
-      ${PROJECT_SOURCE_DIR}/src/adapt/msh_genPointsCurve.cxx
-      ${PROJECT_SOURCE_DIR}/src/adapt/msh_insPointsCurve.cxx
+      ${PROJECT_SOURCE_DIR}/src/Adaptation/msh_lineadapt2.cxx
+      ${PROJECT_SOURCE_DIR}/src/Adaptation/msh_genPointsCurve.cxx
+      ${PROJECT_SOURCE_DIR}/src/Adaptation/msh_insPointsCurve.cxx
   )
 endif()
 add_library(libMetris STATIC ${SRC_SOURCES})

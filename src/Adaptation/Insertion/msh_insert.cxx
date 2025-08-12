@@ -6,21 +6,22 @@
 
 #include "msh_insert.hxx"
 #include "low_insert.hxx"
+#include "seed_edge.hxx"
 
-#include "../low_geo/lenedg.hxx"
-#include "../aux_topo.hxx"
-#include "../io_libmeshb.hxx"
-#include "../cavity/msh_cavity.hxx"
-#include "../adapt/msh_swap.hxx"
-#include "../BezierOffsets/low_gaps.hxx"
-#include "../low_geo/misc.hxx"
-#include "../Mesh/Mesh.hxx"
-#include "../msh_checktopo.hxx"
-#include "../aux_histogram.hxx"
-#include "../msh_lenedg.hxx"
+#include "../../low_geo/lenedg.hxx"
+#include "../../aux_topo.hxx"
+#include "../../io_libmeshb.hxx"
+#include "../../cavity/msh_cavity.hxx"
+#include "../../Adaptation/msh_swap.hxx"
+#include "../../BezierOffsets/low_gaps.hxx"
+#include "../../low_geo/misc.hxx"
+#include "../../Mesh/Mesh.hxx"
+#include "../../msh_checktopo.hxx"
+#include "../../aux_histogram.hxx"
+#include "../../msh_lenedg.hxx"
 
-#include "../utils/aux_timer.hxx"
-#include "../utils/mprintf.hxx"
+#include "../../utils/aux_timer.hxx"
+#include "../../utils/mprintf.hxx"
 
 #include <cmath>
 
@@ -175,7 +176,11 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
 
       CPRINTF1(" - enact ins ientt = {} ied = {} edg {} {}\n",ientt,ied,ip1,ip2);
       int nent0 = msh.nentt(tdim); 
-      ierro = insertEdge(msh,tdim,ientt,ied,lenqua_short_max,false,
+      int iSteiner = -1;
+    try_insert:
+      iSteiner++;
+      EdgeSeed insertionSeed(msh, cav, tdim, ientt, ied);
+      ierro = insertEdge(msh,insertionSeed,lenqua_short_max,false,
                          cav,work,lcaverr,ithrd1,ithrd2);
       //if(ierro > 0){
       //  printf("## DEBUG WAIT \n");
@@ -195,9 +200,6 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
         //MSH_DIM_DEG0(msh){
         //  swapMesh<MFT,gdim,ideg>(msh,opt_swap,&nswap,ithrd1,ithrd2,ithrd3,nent0);
         //}MSH_DIM_DEG1();
-
-
-
 
 
         // Look for long edges in new elements.
@@ -231,10 +233,14 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
         }// for ientn
 
       }else{
+        CPRINTF2(" # insertion failed ierro = {} \n",ierro);
+        if(iSteiner == 0 && tdim > 1){
+          CPRINTF1(" -> try Steiner point insertion\n");
+          
+        }
         // Remove the edge from the edge hash table.
         edge_it = ledge.erase(edge_it);
         //edge_it++;
-        CPRINTF2(" # insertion failed ierro = {} \n",ierro);
         linserr[ierro - 1]++;
         nerro++;
       }

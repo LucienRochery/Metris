@@ -6,8 +6,8 @@
 
 #include "low_increasecav.hxx"
 #include "low_delaunay.hxx"
-#include "low_insert.hxx" // for error codes
-#include "aux_insert.hxx" 
+#include "Insertion/low_insert.hxx" // for error codes
+#include "Insertion/aux_insert.hxx" 
 #include "low_cavqual.hxx"
 
 #include "../MetrisRunner/MetrisParameters.hxx"

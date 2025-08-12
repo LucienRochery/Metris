@@ -5,8 +5,8 @@
 
 #include "../MetrisRunner/MetrisRunner.hxx"
 #include "../Mesh/Mesh.hxx"
-#include "../adapt/msh_swap.hxx"
-#include "../adapt/msh_reinsert_flat.hxx"
+#include "../Adaptation/msh_swap.hxx"
+#include "../Adaptation/msh_reinsert_flat.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../utils/aux_timer.hxx"
 #include "../quality/msh_metqua.hxx"

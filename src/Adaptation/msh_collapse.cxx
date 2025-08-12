@@ -7,7 +7,7 @@
 #include "msh_collapse.hxx"
 #include "low_collapse.hxx"
 #include "msh_swap.hxx"
-#include "low_insert.hxx"
+#include "Insertion/low_insert.hxx"
 
 #include "../Mesh/Mesh.hxx"
 

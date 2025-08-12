@@ -34,8 +34,9 @@
 #include "msh_lag2bez.hxx"
 #include "msh_lenedg.hxx"
 #include "msh_structs.hxx"
-#include "Optimization/opt_generic.hxx"
 #include "types.hxx"
+
+#include "Optimization/opt_generic.hxx"
 
 #include "low_geo/misc.hxx"
 #include "low_geo/lenedg.hxx"
@@ -55,35 +56,43 @@
 
 #include "API/MetrisAPI.hxx"
 #include "Arrays/aux_msharrays.hxx"
+
 #include "Boundary/low_geosurf.hxx"
 #include "Boundary/low_projsurf.hxx"
 #include "Boundary/msh_inisurf.hxx"
+
 #include "LPopt/msh_maxccoef.hxx"
+
 #include "Mesh/CADInfo.hxx"
 #include "Mesh/Mesh.hxx"
 #include "Mesh/MeshBack.hxx"
 #include "Mesh/MeshBase.hxx"
 #include "Mesh/MeshFwd.hxx"
 #include "Mesh/MeshMetric.hxx"
+
 #include "SolutionField/SolutionField.hxx"
 #include "SolutionField/minInterpError.hxx"
 #include "SolutionField/interpError.hxx"
+
 #include "MetricField/MetricField.hxx"
 #include "MetricField/msh_checkmet.hxx"
 #include "MetricField/msh_explogmet.hxx"
 #include "MetricField/msh_intrinsicmet.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include "MetrisRunner/MetrisRunner.hxx"
-#include "adapt/low_collapse.hxx"
-#include "adapt/low_delaunay.hxx"
-#include "adapt/low_increasecav.hxx"
-#include "adapt/low_insert.hxx"
-#include "adapt/low_swap.hxx"
-#include "adapt/msh_collapse.hxx"
-#include "adapt/msh_insert.hxx"
-#include "adapt/msh_lineadapt.hxx"
-#include "adapt/msh_swap.hxx"
+
+#include "Adaptation/low_collapse.hxx"
+#include "Adaptation/low_delaunay.hxx"
+#include "Adaptation/low_increasecav.hxx"
+#include "Adaptation/low_swap.hxx"
+#include "Adaptation/msh_collapse.hxx"
+#include "Adaptation/msh_lineadapt.hxx"
+#include "Adaptation/msh_swap.hxx"
+#include "Adaptation/Insertion/msh_insert.hxx"
+#include "Adaptation/Insertion/low_insert.hxx"
+
 #include "cavity/msh_cavity.hxx"
+
 #include "linalg/det.hxx"
 #include "linalg/dsyevq.hxx"
 #include "linalg/dsytrd.hxx"
@@ -93,12 +102,16 @@
 #include "linalg/matprods.hxx"
 #include "linalg/symidx.hxx"
 #include "linalg/utils.hxx"
+
 #include "Localization/low_localization.hxx"
 #include "Localization/msh_localization.hxx"
+
 #include "BezierOffsets/low_gaps.hxx"
 #include "BezierOffsets/msh_bez2gaps.hxx"
+
 #include "quality/low_metqua.hxx"
 #include "quality/low_metqua_d.hxx"
+
 #include "smoothing/low_smooballNewton.hxx"
 #include "smoothing/low_smooballdiff.hxx"
 #include "smoothing/msh_smooball.hxx"

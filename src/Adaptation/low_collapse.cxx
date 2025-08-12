@@ -4,8 +4,9 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 #include "low_collapse.hxx"
-#include "low_insert.hxx"
 #include "low_cavqual.hxx"
+#include "Insertion/low_insert.hxx"
+#include "Insertion/seed_edge.hxx"
 
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -18,7 +19,7 @@
 #include "../utils/fmt_formatters.hxx"
 #include "../io_libmeshb.hxx"
 #include "../msh_checktopo.hxx"
-#include "../adapt/low_increasecav.hxx"
+#include "../Adaptation/low_increasecav.hxx"
 #include "../low_geo/lenedg.hxx"
 #include "../low_geo/misc.hxx"
 
@@ -48,7 +49,8 @@ int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, [[maybe_unused]]
     return INS2D_ERR_COLPDIM;
   }else{
     if(msh.poicstr[ip1] || msh.poicstr[ip2]) return 1;
-    int ierro = insertEdge(msh, tdim, ientt, iedl, -1, true, cav, work, lerro, ithrd1, ithrd2);
+    EdgeSeed insertionSeed(msh, cav, tdim, ientt, iedl);
+    int ierro = insertEdge(msh, insertionSeed, -1, true, cav, work, lerro, ithrd1, ithrd2);
     if(ierro < 0) return 0;
     if(ierro == 0) return INS2D_ERR_NOOPERATION;
     return ierro;

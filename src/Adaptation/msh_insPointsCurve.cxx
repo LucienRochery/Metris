@@ -13,7 +13,7 @@
 #include "../low_geo/lenedg.hxx"
 #include "../low_topo.hxx"
 #include "../io_libmeshb.hxx"
-#include "../adapt/low_increasecav.hxx"
+#include "../Adaptation/low_increasecav.hxx"
 #include "../cavity/msh_cavity.hxx"
 #include "../Localization/msh_localization.hxx"
 #include "../linalg/det.hxx"
@@ -190,6 +190,8 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       int ipnew = msh.newpoitopo(1, -1);
       int ibnew = msh.newbpotopo(ipnew,1,t2sed[inewt+1]);
       cav.ipins = ipnew;
+      cav.inewp = 1;
+      
       int ierro = EG_evaluate(obj, &tcur, result);
       METRIS_ASSERT(ierro == 0);
       for(int ii = 0; ii < msh.idim; ii++) msh.coord(cav.ipins,ii) = result[ii];

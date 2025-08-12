@@ -6,31 +6,31 @@
 
 #include "low_insert.hxx"
 #include "aux_insert.hxx"
-#include "low_cavqual.hxx"
-#include "low_increasecav.hxx"
+#include "../low_cavqual.hxx"
+#include "../low_increasecav.hxx"
 
-#include "../Mesh/Mesh.hxx"
-#include "../MetrisRunner/MetrisParameters.hxx"
+#include "../../Mesh/Mesh.hxx"
+#include "../../MetrisRunner/MetrisParameters.hxx"
 
-#include "../utils/mprintf.hxx"
-#include "../cavity/msh_cavity.hxx"
-#include "../aux_topo.hxx"
-#include "../msh_structs.hxx"
-#include "../low_topo.hxx"
-#include "../low_geo/normal.hxx"
-#include "../low_geo/measure.hxx"
-#include "../io_libmeshb.hxx"
-#include "../linalg/det.hxx"
-#include "../low_geo/lenedg.hxx"
+#include "../../utils/mprintf.hxx"
+#include "../../cavity/msh_cavity.hxx"
+#include "../../aux_topo.hxx"
+#include "../../msh_structs.hxx"
+#include "../../low_topo.hxx"
+#include "../../low_geo/normal.hxx"
+#include "../../low_geo/measure.hxx"
+#include "../../io_libmeshb.hxx"
+#include "../../linalg/det.hxx"
+#include "../../low_geo/lenedg.hxx"
 
-#include "../msh_checktopo.hxx"
+#include "../../msh_checktopo.hxx"
 
 namespace Metris{
 
 // Return 0 if done nothing, 1 if error, -1 if done swap
 // bar1 is t along the edge with 1 if lnoed[iedl][0]
 template<class MFT>
-int insertEdge(Mesh<MFT>& msh, 
+int insertSteiner(Mesh<MFT>& msh, 
                int tdim, int ientt, int iedl, 
                double lenqua_short_max, // maximum quality (error) a new short edge can have
                bool icollapse,
@@ -103,7 +103,7 @@ int insertEdge(Mesh<MFT>& msh,
   int ip1 = ent2poi(ientt,lnoed[iedl][0]);
   int ip2 = ent2poi(ientt,lnoed[iedl][1]);
 
-  CPRINTF1("-- START insertEdge tdim = {} ientt = {} ied {} = {} {}\n",tdim,ientt,iedl,ip1,ip2);
+  CPRINTF1("-- START insertSteiner tdim = {} ientt = {} ied {} = {} {}\n",tdim,ientt,iedl,ip1,ip2);
   // The shell does not need pdim to gather elements: always use
   int iopen;
   shell(msh,ip1,ip2,tdim,ientt,cav.lcedg,cav.lcfac,cav.lctet,&iopen);
@@ -210,7 +210,7 @@ int insertEdge(Mesh<MFT>& msh,
       imoved_point = true;
 
       if(ierro != 0){
-        CPRINTF1(" - Failed to move point in insertEdge\n");
+        CPRINTF1(" - Failed to move point in insertSteiner\n");
         PRINTF("## DEBUG WAIT HERE\n");
         wait();
         goto cleanup;
@@ -325,7 +325,7 @@ restart_cavity:
       writeMesh("insert_mesh_success.meshb", msh);
       wait();
     }
-    CPRINTF1("-- END insertEdge ipins = {}  \n",cav.ipins);
+    CPRINTF1("-- END insertSteiner ipins = {}  \n",cav.ipins);
     #ifndef NDEBUG
       if(DOPRINTS2()) writeMesh("debug_insert1.meshb",msh);
     #endif
@@ -347,16 +347,16 @@ restart_cavity:
 
 
 
-template int insertEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
-                         int tdim, int ientt, int iedl, 
-                         double lenqua_short_max, bool icollapse,
-                         MshCavity &cav, CavWrkArrs &work, 
-                         intAr1 &lerro, int ithrd1, int ithrd2);
-template int insertEdge<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
-                         int tdim, int ientt, int iedl, 
-                         double lenqua_short_max, bool icollapse,
-                         MshCavity &cav, CavWrkArrs &work, 
-                         intAr1 &lerro, int ithrd1, int ithrd2);
+template int insertSteiner<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
+                          int tdim, int ientt, int iedl, 
+                          double lenqua_short_max, bool icollapse,
+                          MshCavity &cav, CavWrkArrs &work, 
+                          intAr1 &lerro, int ithrd1, int ithrd2);
+template int insertSteiner<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
+                          int tdim, int ientt, int iedl, 
+                          double lenqua_short_max, bool icollapse,
+                          MshCavity &cav, CavWrkArrs &work, 
+                          intAr1 &lerro, int ithrd1, int ithrd2);
 
 
 
