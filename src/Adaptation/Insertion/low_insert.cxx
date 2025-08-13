@@ -6,7 +6,7 @@
 
 #include "low_insert.hxx"
 #include "aux_insert.hxx"
-#include "seed_edge.hxx"
+#include "EdgeSeed.hxx"
 
 #include "../low_cavqual.hxx"
 #include "../low_increasecav.hxx"
@@ -52,7 +52,6 @@ int insertEdge(Mesh<MFT>& msh,
   opts.allow_topological_correction = true;
   opts.skip_topo_checks = false;
   opts.dryrun = false;
-  //opts.allow_remove_points = icollapse; 
   opts.allow_remove_points = true; 
   opts.allow_remove_points_superdim = true; // For boundary
   opts.qmax_nec = -1;
@@ -153,7 +152,7 @@ int insertEdge(Mesh<MFT>& msh,
 
   // -- This section only if !icollapse
 
-  ierro = setCavityInsertion(msh,cav,opts,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);
+  ierro = setCavityInsertion(msh,cav,opts,insertionSeed,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);
   if(ierro != 0) goto cleanup;
 
 
@@ -222,7 +221,7 @@ restart_cavity:
       ierro = INS2D_ERR_MOVEPT;
       goto cleanup;
     }
-    ierro = increase_cavity_Delaunay(msh, cav, -1, ithrd1);
+    ierro = increase_cavity_Delaunay(msh, cav, insertionSeed.tdim_adp, -1, ithrd1);
     if(ierro != 0){
       CPRINTF1(" - +cav error {}\n",ierro);
       ierro = INS2D_ERR_INCCAVDEL;

@@ -250,7 +250,8 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/Adaptation/Insertion/msh_insert.cxx
     ${PROJECT_SOURCE_DIR}/src/Adaptation/Insertion/low_insert.cxx
     ${PROJECT_SOURCE_DIR}/src/Adaptation/Insertion/aux_insert.cxx
-    ${PROJECT_SOURCE_DIR}/src/Adaptation/Insertion/seed_edge.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/Insertion/EdgeSeed.cxx
+    ${PROJECT_SOURCE_DIR}/src/Adaptation/Insertion/low_Steiner.cxx
 
     ${PROJECT_SOURCE_DIR}/src/smoothing/msh_smooball.cxx
     #${PROJECT_SOURCE_DIR}/src/smoothing/msh_smoofull.cxx

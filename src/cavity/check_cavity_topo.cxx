@@ -41,7 +41,17 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
     const int nnode = msh.nnode(tdim);
     const intAr2 &ent2poi = msh.ent2poi(tdim);
     for(int ientt : lcent){
-      METRIS_ASSERT(ent2tag(ithread,ientt) < msh.tag[ithread]);
+      #ifndef NDEBUG
+      if(!(ent2tag(ithread,ientt) < msh.tag[ithread])){
+        printf("## ERROR PRINT CAVITY\n");
+        cav.print(msh,2);
+      }
+      #endif
+      METRIS_ASSERT_MSG(ent2tag(ithread,ientt) < msh.tag[ithread],
+    "Cavity entity "<<ientt<<" already tagged in thread "<<ithread
+    <<", tag = "<<ent2tag(ithread,ientt)<<" >= "<< msh.tag[ithread]
+    <<" tdim = "<<tdim);
+
       ent2tag(ithread,ientt) = msh.tag[ithread];
       #ifndef NDEBUG
       if(!inewp) continue;

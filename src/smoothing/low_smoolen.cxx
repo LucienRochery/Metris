@@ -8,35 +8,52 @@
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 #include "../low_geo/lenedg.hxx"
 
 namespace Metris{
 
 template<class MFT>
 int smoopoilen(Mesh<MFT>& msh, int ipmov, const intAr1 &lpoin, int miter, int tdimp, int iseed){
+
+  const double damp = 0.1;
+
   GETVDEPTH(msh.param);
 
   if(tdimp < 0) tdimp = msh.getpoitdim(ipmov);
   if(iseed < 0) iseed = msh.poi2ent(ipmov,0);
 
-  if(tdimp != msh.get_tdim()){
-    CPRINTF1(" # smoopoilen only implemented for interior points\n");
-    return 3;
-  }
+  CPRINTF1("-- START smoopoilen ipmov {} lpoin.n = {}\n",ipmov,lpoin.get_n());
+
 
   int iref = msh.ent2ref(tdimp)[iseed];
-  
-  const double damp = 0.1;
+  ego obj = NULL;
+  int ibmov = -1;
+  bool use_uv = false;
+  if(msh.isboundary_tdim(tdimp)){
+    ibmov = msh.poi2ebp(ipmov,tdimp,iseed,iref);
+    METRIS_ASSERT(ibmov >= 0);
+    if(msh.CAD()){
+      obj = tdimp == 1 ? msh.CAD.cad2edg[iref]
+                       : msh.CAD.cad2fac[iref] ;
+      use_uv = true;
+    }
+  }
+  int ndof = use_uv ? tdimp : msh.idim;
+  int ipdof = use_uv ? ibmov : ipmov;
+  dblAr2 &mshdof = use_uv ? msh.bpo2rbi : msh.coord;
 
   
+
   const int npoil = lpoin.get_n();
   dblWrkAr1 rpoin = msh.get_rwork(npoil);
   int edg2pol[2] = {ipmov, -1};
-  double sz[2];
-  double coord_opt[3], met_opt[6];
+  double sz[2], result[18];
+  double coord_opt[3], uv_opt[2], met_opt[6];
   const int nnmet = (msh.idim*(msh.idim + 1)) / 2;
   for(int ii = 0; ii < msh.idim; ii++) coord_opt[ii] = msh.coord(ipmov,ii);
-  for(int ii = 0; ii < nnmet; ii++) met_opt[ii] = msh.met(ipmov,ii);
+  for(int ii = 0; ii < 2       ; ii++) uv_opt[ii]    = msh.bpo2rbi(ibmov,ii);
+  for(int ii = 0; ii < nnmet   ; ii++) met_opt[ii]   = msh.met(ipmov,ii);
   
   // Initialize optimal cost at initial cost, check no regression
   double wt_ini = 0, avglen = 0, minlen = 1.0e30, maxlen = -1;
@@ -102,21 +119,32 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov, const intAr1 &lpoin, int miter, int td
       maxlen_opt = maxlen;
       avglen_opt = avglen;
       for(int ii = 0; ii < msh.idim; ii++) coord_opt[ii] = msh.coord(ipmov,ii);
-      for(int ii = 0; ii < nnmet; ii++) met_opt[ii] = msh.met(ipmov,ii);
+      for(int ii = 0; ii < 2       ; ii++) uv_opt[ii]    = msh.bpo2rbi(ibmov,ii);
+      for(int ii = 0; ii < nnmet   ; ii++) met_opt[ii]   = msh.met(ipmov,ii);
     }
 
-    double coorn[3];
-    for(int ii = 0; ii < msh.idim; ii++) coorn[ii] = 0;
+    double pdofn[3];
+    for(int ii = 0; ii < ndof; ii++) pdofn[ii] = 0;
     for(int ii = 0; ii < npoil; ii++){
       int ipoin = lpoin[ii];
-      for(int jj = 0; jj < msh.idim; jj++){
-        coorn[jj] += msh.coord(ipoin,jj) * rpoin[ii] / wttot;
-      }
+      int idof = ipoin;
+      if(use_uv) idof = msh.poi2ebp(ipoin,tdimp,iseed,iref);
+      for(int jj = 0; jj < ndof; jj++)
+        pdofn[jj] += mshdof(idof,jj) * rpoin[ii] / wttot;
     }
-    CPRINTF1(" - iter {} avglen = {} min {} max {} cost {} lenqua {}\n",niter,
-             avglen,minlen,maxlen,wttot,lenqua);
-    for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipmov,ii) = (1-damp)*msh.coord(ipmov,ii)
-                                                                 + damp * coorn[ii];
+    CPRINTF1(" - iter {} avglen = {} min {} max {} cost {} lenqua {} new dof {}\n",niter,
+             avglen,minlen,maxlen,wttot,lenqua,dblAr1(ndof,pdofn));
+    for(int ii = 0; ii < ndof; ii++) mshdof(ipdof,ii) = (1-damp)*mshdof(ipdof,ii)
+                                                         + damp *pdofn[ii];
+    if(use_uv){
+      // In this case, mshdof was bpo2rbi and we need to call EG_evaluate
+      int ierro = EG_evaluate(obj, mshdof[ipdof], result);
+      if(ierro != 0){
+        CPRINTF1(" # EG_evaluate error {}\n",ierro);
+        return 3;
+      }
+      for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipmov,ii) = result[ii];
+    }
 
     int ierro = msh.interpMetBack(ipmov,tdimp,iseed,iref,NULL);
     if(ierro != 0){
@@ -125,9 +153,11 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov, const intAr1 &lpoin, int miter, int td
     }
   }
 
-
+  if(use_uv){
+    for(int ii = 0; ii < 2; ii++) msh.bpo2rbi(ibmov,ii) = uv_opt[ii];
+  }
   for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipmov,ii) = coord_opt[ii];
-  for(int ii = 0; ii < nnmet; ii++)    msh.met(ipmov,ii) = met_opt[ii];
+  for(int ii = 0; ii < nnmet; ii++)    msh.met(ipmov,ii)   = met_opt[ii];
 
   CPRINTF1("-- END movePointCavLen: lenqua {} avglen {} minlen {} maxlen {}\n",
           lenqua_opt, avglen_opt, minlen_opt, maxlen_opt);

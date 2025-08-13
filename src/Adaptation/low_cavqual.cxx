@@ -289,7 +289,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
       double quaed = len < 1.0 ? 1.0 - len 
                                : 1.0 - 1.0 / len;
 
-      CPRINTF1(" - orig edge {} {} len = {} score {} \n",
+      CPRINTF1(" - orig edge {} {} len = {} score {} \n",
                ipoi1,ipoi2, len,quaed);
       //CPRINTF1(" met 1: {} {} {} met 2 : {} {} {}\n",msh.met(ipoi1,0),msh.met(ipoi1,1),msh.met(ipoi1,2)
       //  ,msh.met(ipoi2,0),msh.met(ipoi2,1),msh.met(ipoi2,2));
@@ -304,6 +304,8 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
     }// for ied
   }// for ientt
   }// tracy scope
+
+  CPRINTF1(" - initial cavity lenqua = {:.2e}\n",qua0);
 
 
   // Compute lengths of internal edges in final cavity 

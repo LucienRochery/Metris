@@ -189,8 +189,8 @@ void MetrisRunner::adaptMesh0(int tdim){
     tcollapse += t1-t0;
 
     if(DOPRINTS2()){
-      writeMesh("v2_collapse_adp"+ std::to_string(niter)+".meshb",msh);
-      msh.met.writeMetricFile("v2_collapse_adp"+ std::to_string(niter)+".solb");
+      writeMesh("v2_collapse_adp" + std::to_string(tdim) + "D"+ std::to_string(niter) + ".meshb",msh);
+      msh.met.writeMetricFile("v2_collapse_adp" + std::to_string(tdim) + "D" + std::to_string(niter)+".solb");
       writeBackLinks("v2_collapse_adp_poi2bak" + std::to_string(niter), msh);
     }
 
@@ -205,7 +205,7 @@ void MetrisRunner::adaptMesh0(int tdim){
       CPRINTF1(" - Quality min = {:15.7e} \n",qmin);
       CPRINTF1("           max = {:15.7e} \n",qmax);
       CPRINTF1("           avg = {:15.7e} \n",qavg);
-      writeField("v2_collapsequa_adp"+ std::to_string(niter)+".solb",
+      writeField("v2_collapsequa_adp" + std::to_string(tdim) + "D" + std::to_string(niter)+".solb",
                                 msh,SolTyp::P0Elt,lquae);
       CPRINTF2("------------------------------------------------------------\n");
       CPRINTF2("- iteration {} collapse stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
@@ -225,8 +225,8 @@ void MetrisRunner::adaptMesh0(int tdim){
       tswap += t1-t0;
 
       if(DOPRINTS2()){
-        writeMesh("v2_swap_adp"+ std::to_string(niter)+".meshb",msh);
-        msh.met.writeMetricFile("v2_swap_adp"+ std::to_string(niter)+".solb");
+        writeMesh("v2_swap_adp" + std::to_string(tdim) + "D" + std::to_string(niter)+".meshb",msh);
+        msh.met.writeMetricFile("v2_swap_adp" + std::to_string(tdim) + "D" + std::to_string(niter)+".solb");
         writeBackLinks("v2_swap_adp_poi2bak" + std::to_string(niter), msh);
       }
       if(DOPRINTS2()){
@@ -239,7 +239,7 @@ void MetrisRunner::adaptMesh0(int tdim){
         CPRINTF2(" - Quality min = {:15.7e} \n",qmin);
         CPRINTF2("           max = {:15.7e} \n",qmax);
         CPRINTF2("           avg = {:15.7e} \n",qavg);
-        if(DOPRINTS2()) writeField("v2_swapqua_adp"+ std::to_string(niter)+".solb",
+        if(DOPRINTS2()) writeField("v2_swapqua_adp" + std::to_string(tdim) + "D" + std::to_string(niter)+".solb",
                                  msh,SolTyp::P0Elt,lquae);
         CPRINTF2("------------------------------------------------------------\n");
         CPRINTF2("- iteration {} swaps stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
@@ -268,8 +268,8 @@ void MetrisRunner::adaptMesh0(int tdim){
     #endif
 
     if(DOPRINTS2()){
-      writeMesh("v2_insert_adp"+ std::to_string(niter)+".meshb",msh);
-      msh.met.writeMetricFile("v2_insert_adp"+std::to_string(niter)+".solb");
+      writeMesh("v2_insert_adp"  + std::to_string(tdim) + "D" + std::to_string(niter)+".meshb",msh);
+      msh.met.writeMetricFile("v2_insert_adp" + std::to_string(tdim) + "D" + std::to_string(niter)+".solb");
       writeBackLinks("v2_insert_adp_poi2bak" + std::to_string(niter), msh);
     }
     if(DOPRINTS2()){
@@ -313,8 +313,8 @@ void MetrisRunner::adaptMesh0(int tdim){
       stat  = noper / (double) msh.nface; 
       stat0 = MAX(stat0, stat);
       if(DOPRINTS1()){
-        if(DOPRINTS2() && noper >= 0) writeMesh("v2_flat_opt"+ std::to_string(niter)+".meshb",msh);
-        if(DOPRINTS2() && noper >= 0) msh.met.writeMetricFile("v2_flat_opt"+ std::to_string(niter)+".solb");
+        if(DOPRINTS2() && noper >= 0) writeMesh("v2_flat_opt" + std::to_string(tdim) + "D" + std::to_string(niter)+".meshb",msh);
+        if(DOPRINTS2() && noper >= 0) msh.met.writeMetricFile("v2_flat_opt" + std::to_string(tdim) + "D" + std::to_string(niter)+".solb");
         CPRINTF1("------------------------------------------------------------\n");
         CPRINTF1("- iteration {} flat collapse noper = {} stat = {:.2e} time = {:.2e}s \n",niter,noper,stat,t1-t0);
         CPRINTF1("------------------------------------------------------------\n");
@@ -385,8 +385,8 @@ void MetrisRunner::adaptMesh0(int tdim){
         tsmooth += tsmo1 - tsmo0;
         msh.tag[ithrdfro]++;
         if(DOPRINTS2()){
-          writeMesh("v2_optim_adp" + std::to_string(iopt_niter), msh);
-          msh.met.writeMetricFile("v2_optim_adp" + std::to_string(iopt_niter));
+          writeMesh("v2_optim_adp" + std::to_string(tdim) + "D" + std::to_string(iopt_niter), msh);
+          msh.met.writeMetricFile("v2_optim_adp" + std::to_string(tdim) + "D" + std::to_string(iopt_niter));
           writeBackLinks("v2_optim_adp_poi2bak" + std::to_string(niter), msh);
         }
         if(stat < minstat){

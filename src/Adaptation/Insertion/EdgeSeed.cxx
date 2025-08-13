@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#include "seed_edge.hxx"
+#include "EdgeSeed.hxx"
 
 #include "../../Mesh/MeshBase.hxx"
 #include "../../cavity/msh_cavity.hxx"
@@ -16,7 +16,7 @@ namespace Metris{
 
 class MshCavity;
 
-EdgeSeed::EdgeSeed(MeshBase& msh, MshCavity& cav_, int tdim, int ientt, int iedl) : cav(cav_){
+EdgeSeed::EdgeSeed(MeshBase& msh, MshCavity& cav_, int tdim_adp_, int tdim_ent, int ientt, int iedl) : tdim_adp(tdim_adp_), cav(cav_){
   
   obj = NULL;
   tdimp = -1;
@@ -28,14 +28,14 @@ EdgeSeed::EdgeSeed(MeshBase& msh, MshCavity& cav_, int tdim, int ientt, int iedl
   cav.lcfac.allocate(10);
   if(msh.get_tdim() >= 3) cav.lctet.allocate(10);
 
-  const auto lnoed = tdim == 1 ? lnoed1 : 
-                      tdim == 2 ? lnoed2 : lnoed3;
+  const auto lnoed = tdim_ent == 1 ? lnoed1 : 
+                     tdim_ent == 2 ? lnoed2 : lnoed3;
 
-  ipedg[0] = msh.ent2poi(tdim)(ientt,lnoed[iedl][0]);
-  ipedg[1] = msh.ent2poi(tdim)(ientt,lnoed[iedl][1]);
+  ipedg[0] = msh.ent2poi(tdim_ent)(ientt,lnoed[iedl][0]);
+  ipedg[1] = msh.ent2poi(tdim_ent)(ientt,lnoed[iedl][1]);
 
   int iopen;
-  shell(msh,ipedg[0],ipedg[1],tdim,ientt,cav.lcedg,cav.lcfac,cav.lctet,&iopen);
+  shell(msh,ipedg[0],ipedg[1],tdim_ent,ientt,cav.lcedg,cav.lcfac,cav.lctet,&iopen);
 
 
   tdimp = -1;
@@ -71,7 +71,7 @@ EdgeSeed::EdgeSeed(MeshBase& msh, MshCavity& cav_, int tdim, int ientt, int iedl
     PRINTF("## EdgeSeed failed: tdimp = {} iseed = {} iref = {}\n",
            tdimp,iseed,iref);
     PRINTF("Called with tdim = {} ientt = {} iedl = {}\n",
-           tdim,ientt,iedl);
+           tdim_ent,ientt,iedl);
     METRIS_THROW(TopoExcept());
   }
   #endif

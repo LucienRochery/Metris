@@ -819,8 +819,8 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
   bool ivalid = msh.idim == 2 ? isvalideltP1<2,2>(msh, ifacn, NULL, &meas)
                               : isvalideltP1<3,2>(msh, ifacn, nod2bpo, NULL, &meas, nordev_tol);  // work.lnorcco[icoco]
   if(!ivalid){
-    CPRINTF1(" # invalid new face {} {} {} using normal {} {} {} nordev tolerance {}\n",cav.ipins,ip1,ip2,
-             work.lnorcco[icoco][0],work.lnorcco[icoco][1],work.lnorcco[icoco][2],work.lnordevcco[icoco]);
+    CPRINTF1(" # invalid new face {} {} {} using normal {} {} {} nordev tolerance {:.2e} measure = {:.2e}\n",cav.ipins,ip1,ip2,
+             work.lnorcco[icoco][0],work.lnorcco[icoco][1],work.lnorcco[icoco][2],work.lnordevcco[icoco],meas);
     //printf("Debug wait here\n");
     //wait();
     //if(work.lnordevcco[icoco] > 1.0e-12){

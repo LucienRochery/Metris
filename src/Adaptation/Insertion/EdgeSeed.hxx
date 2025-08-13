@@ -16,8 +16,9 @@ class MeshBase;
 struct EdgeSeed{
 
   EdgeSeed() = delete;
-  EdgeSeed(MeshBase& msh, MshCavity& cav, int tdim, int ientt, int iedl);
+  EdgeSeed(MeshBase& msh, MshCavity& cav, int tdim_adp, int tdim_ent, int ientt, int iedl);
 
+  int tdim_adp; // Context of insertion
   int tdimp; // Topo dim of a point on this edge
   int iseed; // Lowest dimensional entity that contains edge
   int iref;  // Ref of iseed  

@@ -217,7 +217,7 @@ double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,const int *edg2pol
       sz[0] = getlenedg<gdim>(tang,msh.met[edg2pol[0]]);
       sz[1] = getlenedg<gdim>(tang,msh.met[edg2pol[1]]);
     }
-    //CPRINTF2(" - getlenedg_geosz tang = {}, sz = {} {}\n",
+    //CPRINTF2(" - getlenedg_geosz tang = {}, sz = {} {}\n",
     //         dblAr1(gdim,tang), sz[0], sz[1]);
   }
 

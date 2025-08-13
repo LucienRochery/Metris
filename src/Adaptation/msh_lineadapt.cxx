@@ -420,7 +420,7 @@ void adaptGeoLines(Mesh<MFT> &msh){
           // Proceed to insertion We have our ipins, edge cavity also. Now extend
           // triangle cavity from edg2fac seeds
 
-          ierro = increase_cavity_Delaunay(msh, cav, -1, ithrd1);
+          ierro = increase_cavity_Delaunay(msh, cav, msh.get_tdim(), -1, ithrd1);
           if(ierro != 0) goto cleanup1;
  
           ierro = increase_cavity_validity(msh,cav,ithrd1);

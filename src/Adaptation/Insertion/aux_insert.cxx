@@ -5,7 +5,7 @@
 
 #include "aux_insert.hxx"
 #include "low_insert.hxx" // for error codes
-#include "seed_edge.hxx"
+#include "EdgeSeed.hxx"
 
 #include "../../Mesh/Mesh.hxx"
 #include "../../MetrisRunner/MetrisParameters.hxx"
@@ -131,9 +131,9 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
   double bar1_min = 1.0e-6, bar1_max = 1 - 1.0e-6;
   double algnd[3];
 
-  constexpr int mnode = getnnode(1,METRIS_MAX_DEG);
-  const int nnode = getnnode(1,msh.curdeg);
-  int edg2pol[mnode], edg2po2[2] = {cav.ipins, -1};
+  constexpr int mnod1 = getnnode(1,METRIS_MAX_DEG);
+  const int nnod1 = getnnode(1,msh.curdeg);
+  int edg2pol[mnod1], edg2po2[2] = {cav.ipins, -1};
   int idx[4] = {0};
   int idx1[2];
   const int iedl = getedgent(msh, insertionSeed.tdimp, insertionSeed.iseed, ip1, ip2);
@@ -146,7 +146,8 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
     int inode_sub = mul2nod(1,idx1);
     edg2pol[inode_sub] = ent2poi(insertionSeed.iseed,inode_sup);
   }
-  CPRINTF2(" - edg2pol = {}\n",intAr1(nnode,edg2pol));
+  CPRINTF2(" - edg2pol = {} copied from entity {}\n",
+           intAr1(nnod1,edg2pol),intAr1(getnnode(insertionSeed.tdimp,msh.curdeg),ent2poi[insertionSeed.iseed]));
 
   int ierro;
 //restart_bisection:
@@ -165,7 +166,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
       // Correct ibs : attach to ref or edge/face as needed
       for(int ii = 0; ii < 2; ii++){
         ib[ii] = msh.poi2ebp(edg2pol[ii],insertionSeed.tdimp,insertionSeed.iseed,insertionSeed.iref);
-        CPRINTF2(" - ib[{}] = {} : {}, (u,v) = {} {}\n",ii,ib[ii],intAr1(nibi,msh.bpo2ibi[ib[ii]]),
+        CPRINTF2(" - ib[{}] = {} : {}, (u,v) = {} {}\n",ii,ib[ii],intAr1(nibi,msh.bpo2ibi[ib[ii]]),
                  msh.bpo2rbi(ib[ii],0),msh.bpo2rbi(ib[ii],1));
         METRIS_ASSERT(ib[ii] >= 0);
       }
@@ -229,14 +230,14 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
     //}
 
     double sz[2];
-    edg2po2[1] = ip1;
+    edg2po2[1] = edg2pol[0]; // this can be flipped from ip1/ip2
     CPRINTF2(" - edge 1 ends {} = {} met = {}, {} = {} met = {}\n",
              edg2po2[0], dblAr1(msh.idim,msh.coord[edg2po2[0]]), dblAr1(nnmet,msh.met[edg2po2[0]]),
              edg2po2[1], dblAr1(msh.idim,msh.coord[edg2po2[1]]), dblAr1(nnmet,msh.met[edg2po2[1]]));
 
     double len1 = msh.idim == 2 ? getlenedg_geosz<MFT,2,1>(msh,edg2po2,sz)
                                 : getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
-    edg2po2[1] = ip2;
+    edg2po2[1] = edg2pol[msh.curdeg-1];
     double len2 = msh.idim == 2 ? getlenedg_geosz<MFT,2,1>(msh,edg2po2,sz)
                                 : getlenedg_geosz<MFT,3,1>(msh,edg2po2,sz);
 

@@ -6,7 +6,8 @@
 
 #include "msh_insert.hxx"
 #include "low_insert.hxx"
-#include "seed_edge.hxx"
+#include "low_Steiner.hxx"
+#include "EdgeSeed.hxx"
 
 #include "../../low_geo/lenedg.hxx"
 #include "../../aux_topo.hxx"
@@ -19,6 +20,7 @@
 #include "../../msh_checktopo.hxx"
 #include "../../aux_histogram.hxx"
 #include "../../msh_lenedg.hxx"
+#include "../../low_topo.hxx"
 
 #include "../../utils/aux_timer.hxx"
 #include "../../utils/mprintf.hxx"
@@ -55,6 +57,8 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd1 != ithrd2);
 
+  int iverb0 = msh.param->iverb;
+  int ivdepth0 = msh.param->ivdepth;
 
   // Swap norm -1: length-based. 
   //swapOptions swapOpt(100, -1, 0.0);
@@ -148,7 +152,13 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
     INCVDEPTH(msh.param);
     int nlong = ledge.size();
     CPRINTF1(" - START ins loop {}/{} nlong = {}\n",niter+1,miter,nlong);
-    int nskip = 0, ntry = 0, ninser1 = 0, nerro = 0, nadded = 0;
+    //if(niter+1 == 2){
+    //  printf("## DEBUG SET MAX PRINTS\n");
+    //  wait();
+    //  msh.param->iverb = 3;
+    //  msh.param->ivdepth = 15;
+    //}
+    int nskip = 0, ntry = 0, ninser1 = 0, ninser1S = 0, nerro = 0, nadded = 0, nSteiner = 0, nerroSteiner = 0;
     lcaverr.fill(0);
     linserr.fill(0);
 
@@ -179,17 +189,20 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
       int iSteiner = -1;
     try_insert:
       iSteiner++;
-      EdgeSeed insertionSeed(msh, cav, tdim, ientt, ied);
+      EdgeSeed insertionSeed(msh, cav, msh.get_tdim(), tdim, ientt, ied);
       ierro = insertEdge(msh,insertionSeed,lenqua_short_max,false,
                          cav,work,lcaverr,ithrd1,ithrd2);
-      //if(ierro > 0){
-      //  printf("## DEBUG WAIT \n");
-      //  writeMesh("insertError",msh);
+      msh.param->iverb = iverb0;
+      msh.param->ivdepth = ivdepth0;
+      //if(ierro > 0 && iSteiner == 1){
+      //  printf("## DEBUG WAIT error after Steiner = %d\n",ierro);
       //  wait();
       //}
 
       if(ierro <= 0){
         ninser1++;
+        if(iSteiner == 1) ninser1S++;
+
         // constrain point
         msh.poicstr[cav.ipins] = true;
         // Remove the edge from the edge hash table.
@@ -234,9 +247,35 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
 
       }else{
         CPRINTF2(" # insertion failed ierro = {} \n",ierro);
-        if(iSteiner == 0 && tdim > 1){
+        if(iSteiner == 0 && tdim <= 2 && insertionSeed.tdimp <= tdim && insertionSeed.tdimp < msh.get_tdim()){
+          static int nwarnprt = 5;
+          if(insertionSeed.tdimp == 1 && nwarnprt --> 0) 
+            PRINTF("## Once insertSteiner is implemented for tdimp = 1, update this call site");
           CPRINTF1(" -> try Steiner point insertion\n");
-          
+
+
+          int ierro_Steiner = insertSteiner(msh, insertionSeed, cav, work, lcaverr, ithrd1, ithrd2);
+          if(ierro_Steiner == -1){
+            CPRINTF1(" - insertSteiner succeeded, continue\n");
+            ierro = 0;
+            nSteiner++;
+
+
+            // Refill the tet cavity
+            int iopen;
+            intAr1 dum;
+            shell(msh,insertionSeed.ipedg[0],insertionSeed.ipedg[1],tdim,ientt,dum,dum,cav.lctet,&iopen);
+            METRIS_ASSERT(cav.lctet.get_n() > 0);
+
+            //printf("## DEBUG SET MAX PRINTS\n");
+            //msh.param->iverb = 3;
+            //msh.param->ivdepth = 15;
+            
+
+            goto try_insert;
+          }
+          nerroSteiner++;
+          CPRINTF1(" # insertSteiner failed ierro {}\n", ierro_Steiner);
         }
         // Remove the edge from the edge hash table.
         edge_it = ledge.erase(edge_it);
@@ -250,8 +289,8 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
 
     double t1 = get_wall_time();
     int ncallps = 1000*(int)((ninser1 / (t1-t0)) / 1000);
-    CPRINTF2(" - END time = {:.2e}s nlong {} ntry {} nskip {} nadded {} ninser {} = {} /s; nerro {} stat {:.2e}\n",
-              t1-t0,nlong,ntry,nskip,nadded,ninser1,ncallps,nerro,stat0);
+    CPRINTF2(" - END time = {:.2e}s nlong {} ntry {} nskip {} nadded {} ninser {} = {} /s, nerro {}; nSteiner {} nerro {} helped {}; stat {:.2e}\n",
+              t1-t0,nlong,ntry,nskip,nadded,ninser1,ncallps,nerro,nSteiner,nerroSteiner,ninser1S,stat0);
     if(DOPRINTS2() && nerro > 0){
       CPRINTF2(" - cavity ierro list:\n");
       for(int ii = 0; ii < mcaverr; ii++){

@@ -25,20 +25,21 @@ namespace Metris{
 
 class MshCavity;
 struct CavOprOpt;
+struct EdgeSeed;
 
 
 template<class MFT>
-int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, int tdimp, int iseed, int iref, int miter, int ithrd1);
+int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, const EdgeSeed &insertionSeed, int miter, int ithrd1);
 
 template<class MFT>
 int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts, 
-                       int mgrow, double lenqua_short_max, 
+                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max, 
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2);
 
 template<class MFT>
 int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, 
-                        int iseed,
+                        const EdgeSeed &insertionSeed,
                         int miter, int ithrd1, int ithrd2);
                         
 template<class MFT>
@@ -70,7 +71,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread);
 // normal is only necessary if dimension 3 and cavity has faces
 template<class MFT>
 int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, 
-                             int ngrow, int ithread);
+                             int tdim, int ngrow, int ithread);
 
 // Increase cavity to avoid short edges (add pts to collapse)
 // return nprem ++points to collapse

@@ -6,7 +6,7 @@
 #include "low_collapse.hxx"
 #include "low_cavqual.hxx"
 #include "Insertion/low_insert.hxx"
-#include "Insertion/seed_edge.hxx"
+#include "Insertion/EdgeSeed.hxx"
 
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -49,7 +49,7 @@ int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, [[maybe_unused]]
     return INS2D_ERR_COLPDIM;
   }else{
     if(msh.poicstr[ip1] || msh.poicstr[ip2]) return 1;
-    EdgeSeed insertionSeed(msh, cav, tdim, ientt, iedl);
+    EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, iedl);
     int ierro = insertEdge(msh, insertionSeed, -1, true, cav, work, lerro, ithrd1, ithrd2);
     if(ierro < 0) return 0;
     if(ierro == 0) return INS2D_ERR_NOOPERATION;

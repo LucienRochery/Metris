@@ -8,6 +8,7 @@
 #include "low_delaunay.hxx"
 #include "Insertion/low_insert.hxx" // for error codes
 #include "Insertion/aux_insert.hxx" 
+#include "Insertion/EdgeSeed.hxx" 
 #include "low_cavqual.hxx"
 
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -32,46 +33,50 @@ namespace Metris{
 
 template<class MFT>
 int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, 
-                        int iseed,
+                        const EdgeSeed &insertionSeed,
                         int miter, int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
-  int tdim = msh.get_tdim();
   //const double dens_ideal = msh.get_tdim() == 2 ? pi / 4 : 0.54;
   int ierro = 0;
   double dens0, dens1;
-  const intAr1 &lcent = cav.lcent(tdim);
 
-  int ncent_prev = lcent.get_n(), ncent;
+  int ncent1_prev = cav.lcedg.get_n(), ncent1;
+  int ncent2_prev = cav.lcfac.get_n(), ncent2;
+  int ncent3_prev = cav.lctet.get_n(), ncent3;
   for(int niter = 0; niter < miter; niter++){
 
     int ncedg0 = cav.lcedg.get_n();
     int ncfac0 = cav.lcfac.get_n();
     int nctet0 = cav.lctet.get_n();
 
-    ierro = movePointCavLen<MFT>(msh,cav,tdim,iseed,msh.ent2ref(tdim)[iseed],5,0);
+    ierro = movePointCavLen<MFT>(msh, cav, insertionSeed, 5, ithrd1);
     if(ierro != 0) goto cleanup_loop;
 
-    ierro = increase_cavity_Delaunay(msh, cav, -1, ithrd1);
+    ierro = increase_cavity_Delaunay(msh, cav, insertionSeed.tdimp, -1, ithrd1);
     if(ierro != 0) goto cleanup_loop;
 
     ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
     if(ierro != 0) goto cleanup_loop;
 
     collrejcav_dens(msh,cav,&dens0,&dens1,ithrd1,ithrd2);
-    ncent = lcent.get_n();
-    CPRINTF1(" - iter {} + del, dens0 {} dens1 {} ncent {}\n",niter,dens0,dens1,ncent);
+    ncent1 = cav.lcedg.get_n();
+    ncent2 = cav.lcfac.get_n();
+    ncent3 = cav.lctet.get_n();
+    CPRINTF1(" - iter {} + del, dens0 {} dens1 {} ncent {} {} {}\n",niter,dens0,dens1,ncent1,ncent2,ncent3);
 
     if(dens1 < dens0){
       CPRINTF1(" # insertion is leading to lower density: {} -> {}, reject\n",dens0,dens1);
       goto cleanup_loop;
     }
 
-    if(ncent == ncent_prev){
+    if(ncent1 == ncent1_prev && ncent2 == ncent2_prev && ncent3 == ncent3_prev){
       CPRINTF1(" - no change in cavity, stopping\n");
       return 0;
     }
 
-    ncent_prev = ncent;
+    ncent1_prev = ncent1;
+    ncent2_prev = ncent2;
+    ncent3_prev = ncent3;
 
     continue;
     cleanup_loop:
@@ -86,21 +91,24 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav,
 
 template
 int setCavityInsertion2<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, 
-                        int iseed,
+                        const EdgeSeed &insertionSeed,
                         int miter, int ithrd1, int ithrd2);
 template
 int setCavityInsertion2<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, 
-                        int iseed,
+                        const EdgeSeed &insertionSeed,
                         int miter, int ithrd1, int ithrd2);
 
 
+// TODO: if used, this routine's preprocessing can be moved out.
 template<class MFT>
-int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, int tdimp, int iseed, [[maybe_unused]] int iref, int miter, int ithrd1){
+int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav,
+                    const EdgeSeed &insertionSeed,
+                    int miter, int ithrd1){
 
   GETVDEPTH(msh.param);
 
-
-  int tdim = cav.get_tdim();
+  // Work with lowest dimensional entities.
+  int tdim = MAX(insertionSeed.tdimp, 1);
   const intAr1 &lcent = cav.lcent(tdim);
   intAr2 &ent2tag = msh.ent2tag(tdim);
   const intAr2 &ent2poi = msh.ent2poi(tdim);
@@ -129,30 +137,37 @@ int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, int tdimp, int iseed, 
   // Now we have our list of cavity boundary points.
   // The smoothing is a simple weighted average
 
-  return smoopoilen(msh, cav.ipins, lpoin.get_array(), miter, tdimp, iseed);
+  return smoopoilen(msh, cav.ipins, lpoin.get_array(), miter, insertionSeed.tdimp, insertionSeed.iseed);
 }
 
 template
 int movePointCavLen<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
-  const MshCavity &cav, int tdimp, int iseed, int iref, int miter, int ithrd1);
+  const MshCavity &cav, const EdgeSeed &insertionSeed, int miter, int ithrd1);
 template
 int movePointCavLen<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
-  const MshCavity &cav, int tdimp, int iseed, int iref, int miter, int ithrd1);
+  const MshCavity &cav, const EdgeSeed &insertionSeed, int miter, int ithrd1);
+
 
 template<class MFT>
 int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts, 
-                       int mgrow, double lenqua_short_max, 
+                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max, 
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
   int ierro;
+
+  const int tdim  = insertionSeed.tdim_adp;
+  const int tdimp = insertionSeed.tdimp;
+  const int iseed = insertionSeed.iseed;
+  const int iref  = insertionSeed.iref;
+  const int nnmet = (msh.idim*(msh.idim+1))/2;
 
   bool filter_long = true;
   
   static int nwarnprt = 0;
   if(nwarnprt++ < 10 && !filter_long) printf("## FILTER_LONG SET TO TRUE\n");
 
-  CPRINTF1("-- START setCavityInsertion mgrow = {}\n",mgrow);
+  CPRINTF1("-- START setCavityInsertion tdim = {} mgrow = {}\n",tdim,mgrow);
 
   intWrkAr1 lrempoi = msh.get_iwork(10);
 
@@ -160,8 +175,10 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
   ierro = aux_findCloseConstrained(msh, cav, ithrd1, ithrd2);
   if(ierro > 0) return INS2D_ERR_SHORTCSTR;
 
+  const int ibins = msh.poi2ebp(cav.ipins,tdimp,iseed,iref);
 
-
+  int nprem;
+  double coor0[3], met0[6], uv0[2];
   for(int ngrow = 0; ngrow < mgrow; ngrow++){
     INCVDEPTH(msh.param);
 
@@ -169,8 +186,11 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     int nced1 = cav.lcedg.get_n();
     int ncfa1 = cav.lcfac.get_n();
     int ncte1 = cav.lctet.get_n();
-    ierro = 0;
+    for(int ii = 0; ii < msh.idim; ii++) coor0[ii] = msh.coord(cav.ipins, ii);
+    for(int ii = 0; ii < nnmet   ; ii++) met0[ii] = msh.met(cav.ipins, ii);
+    for(int ii = 0; ii < 2       ; ii++) uv0[ii] = msh.bpo2rbi(ibins, ii);
 
+    ierro = 0;
     if(DOPRINTS2()){
       std::string fname = "insert_cavity0."+std::to_string(ngrow);
       writeMeshCavity(fname,msh,cav);
@@ -179,13 +199,27 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     CPRINTF1(" - step {} cavity nedge {} nface {} nelem {}\n",ngrow,
              cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
 
-    int nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
+    ierro = movePointCavLen<MFT>(msh, cav, insertionSeed, 5, ithrd1);
+    if(DOPRINTS2()){
+      writeMeshCavity("insert_cavity1."+std::to_string(ngrow),msh,cav);
+      msh.met.writeMetricFile("insert_cavity1."+std::to_string(ngrow));
+    }
+    if(ierro != 0){
+      CPRINTF1(" # movePointCavLen error {}\n",ierro);
+      ierro = INS2D_ERR_MOVPTCAVLEN;
+      goto finish_grow_step;
+    }
+
+    nprem = increase_cavity_lenedg(msh,cav,opts,cav.ipins,ithrd1,ithrd2);
     CPRINTF1(" - +remp nedge {} nface {} nelem {} nprem = {}\n",
              cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),nprem);
-    if(DOPRINTS2()) writeMeshCavity("insert_cavity1."+std::to_string(ngrow),msh,cav);
+    if(DOPRINTS2()){
+      writeMeshCavity("insert_cavity2."+std::to_string(ngrow),msh,cav);
+      msh.met.writeMetricFile("insert_cavity2."+std::to_string(ngrow));
+    }
 
     // -- 1 step Delaunay increase
-    ierro = increase_cavity_Delaunay(msh, cav, 1, ithrd1);
+    ierro = increase_cavity_Delaunay(msh, cav, tdim, 1, ithrd1);
     if(ierro != 0){
       CPRINTF1(" # +del error {}\n",ierro);
       ierro = INS2D_ERR_INCCAVDEL;
@@ -193,7 +227,10 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     }
     CPRINTF1(" - +del nedge {} nface {} nelem {}\n",
              cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
-    if(DOPRINTS2()) writeMeshCavity("insert_cavity2."+std::to_string(ngrow),msh,cav);
+    if(DOPRINTS2()){
+      writeMeshCavity("insert_cavity3."+std::to_string(ngrow),msh,cav);
+      msh.met.writeMetricFile("insert_cavity3."+std::to_string(ngrow));
+    }
 
 
     // -- increase for validity
@@ -205,7 +242,10 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     }
     CPRINTF1(" - +cav nedge {} nface {} nelem {}\n",
              cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
-    if(DOPRINTS2()) writeMeshCavity("insert_cavity3."+std::to_string(ngrow),msh,cav);
+    if(DOPRINTS2()){
+      writeMeshCavity("insert_cavity4."+std::to_string(ngrow),msh,cav);
+      msh.met.writeMetricFile("insert_cavity4."+std::to_string(ngrow));
+    }
  
     //ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
     //if(ierro > 0){
@@ -229,6 +269,11 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     finish_grow_step:
     if(ierro > 0){
       ierro = 0;
+
+
+      for(int ii = 0; ii < msh.idim; ii++) msh.coord(cav.ipins, ii) = coor0[ii];
+      for(int ii = 0; ii < nnmet   ; ii++) msh.met(cav.ipins, ii)   = met0[ii];
+      for(int ii = 0; ii < 2       ; ii++) msh.bpo2rbi(ibins, ii)   = uv0[ii];
 
       bool unfixable = false;
       if(lrempoi.get_n() > 0){
@@ -334,12 +379,12 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
 
 template
 int setCavityInsertion<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, const CavOprOpt &opts, 
-                       int mgrow, double lenqua_short_max, 
+                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max, 
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2);
 template
 int setCavityInsertion<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, const CavOprOpt &opts, 
-                       int mgrow, double lenqua_short_max, 
+                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max, 
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2);
 
@@ -354,6 +399,8 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
   int ierro;
 
   intWrkAr1 lrempoi = msh.get_iwork(10);
+
+  const int tdim = msh.get_tdim();
 
   // Check any close constrained points
   ierro = aux_findCloseConstrained(msh, cav, ithrd1, ithrd2);
@@ -381,7 +428,7 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     if(DOPRINTS2()) writeMeshCavity("insert_cavity1."+std::to_string(ngrow),msh,cav);
 
     // -- 1 step Delaunay increase
-    ierro = increase_cavity_Delaunay(msh, cav, 1, ithrd1);
+    ierro = increase_cavity_Delaunay(msh, cav, tdim, 1, ithrd1);
     if(ierro != 0){
       CPRINTF1(" # +del error {}\n",ierro);
       ierro = INS2D_ERR_INCCAVDEL;
@@ -1359,7 +1406,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
 // Increase cavity for Delaunay criterion on ipoin 
 // Normal only needed in 3D case if cavity has faces
 template<class MFT>
-int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, 
+int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
                              int ngrow, int ithread){
 
   GETVDEPTH(msh.param);
@@ -1380,8 +1427,6 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav,
   // Simply disable surface Delaunay for now 
 
   int nnmet = (msh.idim * (msh.idim + 1)) / 2;
-
-  int tdim = cav.lctet.get_n() > 0 ? 3 : 2;
 
   msh.tag[ithread]++;
 
@@ -1525,9 +1570,9 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav,
 }
 
 template int increase_cavity_Delaunay(MeshMetric<MetricFieldAnalytical> &msh, 
-                                      MshCavity &cav, int ngrow, int ithread);
+                                      MshCavity &cav, int tdim, int ngrow, int ithread);
 template int increase_cavity_Delaunay(MeshMetric<MetricFieldFE        > &msh, 
-                                      MshCavity &cav, int ngrow, int ithread);
+                                      MshCavity &cav, int tdim, int ngrow, int ithread);
 
 
 
@@ -1677,23 +1722,25 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
         lbedg.set_n(0);
         lbfac.set_n(0);
         lbtet.set_n(0);
-        if(cdim == 2){
-          ball2(msh,ipoin,ientt,lbfac,lbedg,&iopen,&imani,ithrd2);
-        }else{
-          ball3(msh,ipoin,ientt,lbtet,&iopen,ithrd2);
-          if(pdim <= 2){
-            // Also get ball2 of point
-            int iface = -1;
-            if(pdim == 1){
-              int iedge = msh.poi2ent(ipoin,0);
-              iface = msh.edg2fac[iedge];
-            }else{
-              iface = msh.poi2ent(ipoin,0);
-            }
-            METRIS_ASSERT(iface >= 0 && iface < msh.nface);
-            ball2(msh,ipoin,iface,lbfac,lbedg,&iopen,&imani,ithrd2);
-          }
-        }
+        // ball can append while avoiding duplicates
+        ball(msh, ipoin, lbedg, lbfac, lbtet, &iopen, true, ithrd2);
+        //if(cdim == 2){
+        //  ball2(msh,ipoin,ientt,lbfac,lbedg,&iopen,&imani,ithrd2);
+        //}else{
+        //  ball3(msh,ipoin,ientt,lbtet,&iopen,ithrd2);
+        //  if(pdim <= 2){
+        //    // Also get ball2 of point
+        //    int iface = -1;
+        //    if(pdim == 1){
+        //      int iedge = msh.poi2ent(ipoin,0);
+        //      iface = msh.edg2fac[iedge];
+        //    }else{
+        //      iface = msh.poi2ent(ipoin,0);
+        //    }
+        //    METRIS_ASSERT(iface >= 0 && iface < msh.nface);
+        //    ball2(msh,ipoin,iface,lbfac,lbedg,&iopen,&imani,ithrd2);
+        //  }
+        //}
         int ncel0 = cav.lctet.get_n();
         int ncfa0 = cav.lcfac.get_n();
         int nced0 = cav.lcedg.get_n();

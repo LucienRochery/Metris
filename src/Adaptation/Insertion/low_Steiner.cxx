@@ -4,8 +4,11 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#include "low_insert.hxx"
+#include "low_Steiner.hxx"
 #include "aux_insert.hxx"
+#include "insert_errors.hxx"
+#include "EdgeSeed.hxx"
+
 #include "../low_cavqual.hxx"
 #include "../low_increasecav.hxx"
 
@@ -13,350 +16,257 @@
 #include "../../MetrisRunner/MetrisParameters.hxx"
 
 #include "../../utils/mprintf.hxx"
+#include "../../utils/fmt_formatters.hxx"
+
+#include "../../Localization/msh_localization.hxx"
+
+
+
 #include "../../cavity/msh_cavity.hxx"
 #include "../../aux_topo.hxx"
 #include "../../msh_structs.hxx"
 #include "../../low_topo.hxx"
 #include "../../low_geo/normal.hxx"
 #include "../../low_geo/measure.hxx"
+#include "../../low_geo/lenedg.hxx"
+#include "../../low_geo/misc.hxx"
 #include "../../io_libmeshb.hxx"
 #include "../../linalg/det.hxx"
-#include "../../low_geo/lenedg.hxx"
 
 #include "../../msh_checktopo.hxx"
 
 namespace Metris{
 
-// Return 0 if done nothing, 1 if error, -1 if done swap
-// bar1 is t along the edge with 1 if lnoed[iedl][0]
+// Return 0 if done nothing, 1 if error, -1 if inserted new point
 template<class MFT>
 int insertSteiner(Mesh<MFT>& msh, 
-               int tdim, int ientt, int iedl, 
-               double lenqua_short_max, // maximum quality (error) a new short edge can have
-               bool icollapse,
-               MshCavity &cav, CavWrkArrs &work, 
-               intAr1 &lerro, int ithrd1, int ithrd2){
-
-  int iverb0   = msh.param->iverb;
-  int ivdepth0 = msh.param->ivdepth;
-  int ierro_cavity = 0;
-  //if(icollapse){
-  //  printf("## DEBUG SET MAX PRINTS \n");
-  //  writeMesh("debug",msh);
-  //  msh.param->iverb  = 5;
-  //  msh.param->ivdepth= 5;
-  //  if(lerro[19] > 0){
-  //    printf("## DEBUG START WITH LERRO[19] = {} \n",lerro[19]);
-  //    wait();
-  //  }
-  //}
-
+                  const EdgeSeed &insertionSeed,
+                  MshCavity &cav, CavWrkArrs &work, 
+                  intAr1 &lcaverr, int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
-  METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
-  METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
-  METRIS_ASSERT(ithrd1   != ithrd2);
-  METRIS_ASSERT(!isdeadent(ientt,msh.ent2poi(tdim)));
+  const int ntry = 5;
+  
+  const int iseed = insertionSeed.iseed;
+  const int tdimp = insertionSeed.tdimp;
+  const int iref  = insertionSeed.iref ;
 
-  const int nedgl = (tdim*(tdim+1))/2;
-  METRIS_ASSERT(iedl >= 0 && iedl < nedgl);
+  if(msh.get_tdim() == tdimp) return 0;
 
-  int nentt = msh.nentt(tdim);
+  //fmt::print("## DEBUG SET MAX PRINTS\n");
+  //msh.param->iverb = 10;
+  //msh.param->ivdepth = 15;
+  //iverb__ = 10;
+  //ivdepth__ = 15;
 
-  const intAr2 &ent2poi = msh.ent2poi(tdim);
-  const auto lnoed = tdim == 1 ? lnoed1 : 
-                     tdim == 2 ? lnoed2 : lnoed3;
-  METRIS_ASSERT(ientt >= 0 && ientt < nentt && !isdeadent(ientt, ent2poi));
 
-  //if(msh.nelem > 0) METRIS_THROW_MSG(TODOExcept(), "Implement + tet nelem = "<<msh.nelem)
+  CPRINTF1("-- START insertSteiner iseed {} tdimp {} ipedg {} {}\n",
+           iseed, tdimp, insertionSeed.ipedg[0], insertionSeed.ipedg[1]);
 
-  CavOprOpt opts;
+
+  int ierro = 0;
   CavOprInfo info;
+  CavOprOpt opts;
+
+  static int nwarnprt = 5;
+  if(tdimp != 2){
+    if(nwarnprt --> 0) fmt::print("## insertSteiner only implemented for tdim = 2");
+    return 0;
+  }
+  
+
+  int ipoi1 = insertionSeed.ipedg[0];
+  int ipoi2 = insertionSeed.ipedg[1];
+
+
+  // Get the seed's normal, as well as its neighbour.
+  // Note getnorfacP1 gives outgoing normals.
+  double noredg[3] = {0,0,0};
+  double norfac[3];
+
+  getnorfacP1(msh.fac2poi[iseed], msh.coord, norfac);
+  for(int ii = 0; ii < msh.idim; ii++) noredg[ii] += norfac[ii];
+
+  const int iedl = getedgent(msh, tdimp, iseed, 
+                             ipoi1, ipoi2);
+  int isee2 = msh.fac2fac(iseed,iedl);
+  METRIS_ASSERT(isee2 >= 0);
+  getnorfacP1(msh.fac2poi[isee2], msh.coord, norfac);
+  for(int ii = 0; ii < msh.idim; ii++) noredg[ii] += norfac[ii];
+
+  if(normalize_vec<3>(noredg)) return INS2D_ERR_STEINER0NORMAL;
+
+  CPRINTF1(" - noredg {} {} {}\n",noredg[0],noredg[1],noredg[2]);
+
+  // Now we extrude along noredg. 
+  // For this, let's use the edge end metrics to get an average size
+  
+  METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+  double h1 = getlenedg<3>(noredg, msh.met[ipoi1]);
+  METRIS_ASSERT(h1 > 0);
+  double h2 = getlenedg<3>(noredg, msh.met[ipoi2]);
+  METRIS_ASSERT(h2 > 0);
+  double hh = sqrt(h1*h2);
+
+  CPRINTF1(" - using h1 = {:.2e} h2 = {:.2e} hh = {:.2e}\n",h1,h2,hh);
+
+  // Now we have a characteristic metric size for the direction
+  // we'll be putting a point in.
+
+  // Get rid of cavity entities of dim above tdimp
+  cav.lctet.set_n(0);
+  int ielem = msh.fac2tet(iseed, 0);
+  METRIS_ASSERT(ielem >= 0);
+  METRIS_ASSERT_MSG(msh.fac2tet(iseed,1) < 0, "tdimp = "<<tdimp<<" iseed = "<<iseed<<" fac2tet = "<<msh.fac2tet(iseed,0)<<" "<<msh.fac2tet(iseed,1)); 
+  int iref_sup = msh.tet2ref[ielem];
+  cav.lctet.stack(ielem);
+
+  // Save off the other cavity entities. This Steiner insertion
+  // will not affect them, and the overarching insertion does need
+  // them again.
+  // Theoretically, the data is still there in the array
+  // and we don't even need to save it off. 
+  intWrkAr1 lcedg = msh.get_iwork(cav.lcedg.get_n());
+  intWrkAr1 lcfac = msh.get_iwork(cav.lcfac.get_n());
+  cav.lcedg.copyTo(lcedg.get_array());
+  cav.lcfac.copyTo(lcfac.get_array());
+
+
+
+  cav.ipins = msh.newpoitopo(tdimp+1, -1);
+
+  double step = 1;
+  double *uvsrf = NULL; // will be useful when we implement tdimp = 1
+  double *algnd = NULL; // idem
+  for(int itry = 1; itry <= ntry; itry++, step /= 2){
+    INCVDEPTH(msh.param);
+
+
+    for(int ii = 0; ii < msh.idim; ii++)
+      msh.coord(cav.ipins,ii) = (msh.coord(ipoi1,ii) + msh.coord(ipoi2,ii))/2
+                              - step*noredg[ii]/hh;
+    CPRINTF2(" - try {}/{} step {:.2e} ipins coord {} loc seed {}\n",
+             itry,ntry,step,dblAr1(msh.idim,msh.coord[cav.ipins]),ielem);
+
+    if(DOPRINTS3()){
+      int ipdbg = msh.newpoitopo(0, -1);
+      msh.newbpotopo(ipdbg, 0, ipdbg);
+      for(int ii = 0; ii < msh.idim; ii++)
+        msh.coord(ipdbg,ii) = msh.coord(cav.ipins,ii);
+      writeMesh("Steiner_locMesh_" + std::to_string(itry),msh);
+      msh.met.writeMetricFile("Steiner_locMesh_" + std::to_string(itry));
+      msh.killpoint(ipdbg);
+    }
+
+    double coopr[3], bary[4];
+    ielem = cav.lctet[0];
+    MSH_DIM_DEG0(msh){
+      if constexpr (gdim == 3)
+        ierro = locMesh<gdim,3,ideg>(msh, &ielem, msh.coord[cav.ipins], 
+                                     tdimp, uvsrf,
+                                     iref_sup, algnd, 
+                                     coopr, bary);
+      else ierro = 1;
+    }MSH_DIM_DEG1();
+
+    //printf("## DEBUG REMOVE THIS\n");
+    //check_topo(msh,msh.nbpoi,msh.npoin-1,msh.nedge,msh.nface,msh.nelem,ithrd1);
+
+    
+    if(ierro == 0){
+      CPRINTF1(" - locMesh succeeded on try {}\n",itry);
+      break;
+    }
+
+    CPRINTF2(" # locMesh error {} final element {}\n",ierro,ielem);
+
+  }
+
+  if(ierro != 0){
+    CPRINTF1("## END insertSteiner: all {} localizations failed\n",ntry);
+    ierro = INS2D_ERR_LOCALIZATION;
+    goto cleanup;
+  }
+
+  if(ielem != cav.lctet[0]) cav.lctet.stack(ielem);
+  msh.poi2ent(cav.ipins, 0) = ielem;
+  msh.poi2ent(cav.ipins, 1) = 3;
+
+  ierro = msh.interpMetBack(cav.ipins, tdimp+1, ielem, iref_sup, algnd);
+  if(ierro != 0){
+    CPRINTF1("## END insertSteiner: interpMetBack ierro {}\n", ierro);
+    ierro = INS2D_ERR_INTERPMETBACK3;
+    goto cleanup;
+  }
+
+  //printf("## DEBUG REMOVE THIS\n");
+  //check_topo(msh,msh.nbpoi,msh.npoin-1,msh.nedge,msh.nface,msh.nelem,ithrd1);
+
+  ierro = increase_cavity_validity(msh, cav, ithrd1);
+  if(ierro != 0){
+    CPRINTF1("## END insertSteiner: increase_cavity_validity ierro {}\n", ierro);
+    ierro = INS2D_ERR_STEINERINCCAV;
+    goto cleanup;
+  }
+  //printf("## DEBUG REMOVE THIS\n");
+  //check_topo(msh,msh.nbpoi,msh.npoin-1,msh.nedge,msh.nface,msh.nelem,ithrd1);
+
+  // Only after increase_cavity_validity do we remove the 
+  // boundary cavity. This ensures all elements between
+  // original boundary elements and the Steiner point
+  // are destroyed. 
+  cav.lcedg.set_n(0);
+  cav.lcfac.set_n(0);
+
+  
   opts.allow_topological_correction = true;
   opts.skip_topo_checks = false;
   opts.dryrun = false;
-  //opts.allow_remove_points = icollapse; 
   opts.allow_remove_points = true; 
   opts.allow_remove_points_superdim = true; // For boundary
   opts.qmax_nec = -1;
   opts.qmax_suf = -1;
   opts.qmax_iff = -1;
-  bool idbg = false;
-
-  int mgrow = 100;
-
-  cav.reset();
-  cav.lcedg.allocate(10);
-  cav.lcfac.allocate(10);
-  cav.lctet.allocate(10);
-  cav.inewp = 1;
-
-  // work for collrejcav_lenqua
-  #ifndef NDEBUG
-  static int nwarnprt = 0;
-  if(nwarnprt++ < 10) printf("## WARNING REMOVE STATI FROM NOCOMP\n");
-  #endif
-  static std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp;
-
-
-  int ierro = 0;
-  bool irestart_cav;
-  int ip1 = ent2poi(ientt,lnoed[iedl][0]);
-  int ip2 = ent2poi(ientt,lnoed[iedl][1]);
-
-  CPRINTF1("-- START insertSteiner tdim = {} ientt = {} ied {} = {} {}\n",tdim,ientt,iedl,ip1,ip2);
-  // The shell does not need pdim to gather elements: always use
-  int iopen;
-  shell(msh,ip1,ip2,tdim,ientt,cav.lcedg,cav.lcfac,cav.lctet,&iopen);
-  CPRINTF1(" - cavity seed nedge {} nface {} ntetr {}\n",
-           cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
-  if(DOPRINTS2()){
-    cav.print(msh);
-  }
-
-  METRIS_ASSERT(cav.lcedg.get_n() > 0 || cav.lcfac.get_n() > 0 || cav.lctet.get_n() > 0);
-  #ifndef NDEBUG
-  if(msh.get_tdim() == 2) METRIS_ASSERT(cav.lcfac.get_n() > 0);
-  if(msh.get_tdim() == 3) METRIS_ASSERT(cav.lctet.get_n() > 0);
-  if(msh.param->dbgfull){
-    for(int ientt : cav.lcent(msh.get_tdim())){
-      METRIS_ASSERT_MSG(!isdeadent(ientt,msh.ent2poi(msh.get_tdim())),
-        "Shell element dead");
-    }
-  }
-  #endif  
-
-
-  int nced0 = cav.lcedg.get_n();
-  int ncfa0 = cav.lcfac.get_n();
-  int ncte0 = cav.lctet.get_n();
-
-  int tdimp = -1;
-       if(nced0 > 0) tdimp = 1;
-  else if(ncfa0 > 0) tdimp = 2;
-  else               tdimp = 3;
-
-  int ibins = -1;
-
-  // Create the point, set info for localization 
-  int iseed, iref;
-  ego obj = NULL;
-  double algnd[3];
-  if(tdimp == 1){
-    int iedge = cav.lcedg[0];
-    METRIS_ASSERT(iedge >= 0);
-    cav.ipins = msh.newpoitopo(1,iedge);
-    ibins = msh.newbpotopo(cav.ipins,1,iedge);
-    iseed = iedge;
-    iref = msh.edg2ref[iedge];
-    if(msh.CAD()) obj  = msh.CAD.cad2edg[iref];
-  }else if(tdimp == 2){
-    int iface = cav.lcfac[0];
-    METRIS_ASSERT(iface >= 0);
-    cav.ipins = msh.newpoitopo(2,iface);
-    iseed = iface;
-    iref  = msh.fac2ref[iface];
-    if(msh.isboundary_faces()){
-      ibins = msh.newbpotopo(cav.ipins,2,iface);
-      if(msh.CAD()) obj = msh.CAD.cad2fac[iref];
-    }
-  }else{
-    cav.ipins = msh.newpoitopo(3,ientt);
-    iseed = ientt;
-    iref = msh.tet2ref[ientt];
-  }
-  if(msh.CAD()) METRIS_ASSERT(obj != NULL 
-                    || tdimp == 2 && !msh.isboundary_faces() || tdimp == 3);
-
-  // The point is well seeded for ball now
-  if(icollapse){
-    for(int ii = 0; ii < 2; ii++){
-      int ipoin = ent2poi(ientt, lnoed[iedl][ii]);
-      ball(msh, ipoin, cav.lcedg, cav.lcfac, cav.lctet, &iopen, true, ithrd1);
-    }
-  }
-
-  //if(!icollapse && tdimp == 2 && iref == 4 && msh.idim == 3){
-  //  printf("## DEBUG MAX PRINTS\n");
-  //  iverb__ = 5;
-  //  ivdepth__ = 20;
-  //  msh.param->iverb = iverb__;
-  //  msh.param->ivdepth = ivdepth__;
-  //  writeMesh("debug_insert0",msh);
-  //}
-
-
-  CPRINTF1(" - create ipins {} tdim = {} seed {} ref {} icollapse {}\n",cav.ipins,tdimp,iseed,iref,icollapse);
-
-  bool imoved_point = false;
-
-  ierro = aux_bisecPointLen(msh, tdim, ientt, iedl, ibins, tdimp, iseed, iref, icollapse, cav);
-  if(ierro != 0){
-    CPRINTF1(" # Failed aux_bisecPointLen ierro = {}\n",ierro);
-    goto cleanup;
-  }
-  // Seed the cavity properly
-  ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
-
-
-  if(icollapse){
-    ierro = collrejcav_lenqua(msh, cav, false, false, false, -1, nocomp, ithrd2);
-    if(ierro > 0){
-      ierro = INS2D_ERR_SHORTEDG;
-      CPRINTF1(" # collrejcav_lenqua rejects cavity, try fix\n");
-      CPRINTF1(" # reject cavity\n");
-
-      // Skeptical but keeping it for now to keep collapses unchanged
-      ierro = aux_movePointCav(msh, cav, tdimp, iseed, iref, algnd);
-      imoved_point = true;
-
-      if(ierro != 0){
-        CPRINTF1(" - Failed to move point in insertSteiner\n");
-        PRINTF("## DEBUG WAIT HERE\n");
-        wait();
-        goto cleanup;
-      }
-      ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
-      ierro = collrejcav_lenqua(msh, cav, false, false, false, -1, nocomp, ithrd2);
-      if(ierro > 0){
-        CPRINTF1(" # collrejcav_lenqua rejects cavity after fix\n");
-        goto cleanup;
-      }
-    }
-    goto call_cavity;
-  }
-
-  // -- This section only if !icollapse
-
-  ierro = setCavityInsertion(msh,cav,opts,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);
-  if(ierro != 0) goto cleanup;
-
-
-call_cavity:
-
-  // nordev is now checked in the cavity
-  #if 0
-  // Effects both insertions and collapses
-  if(tdimp == 2 && msh.idim == 3){
-    int iverb0 = msh.param->iverb;
-    int ivdepth0 = msh.param->ivdepth;
-    //if(msh.fac2ref[cav.lcfac[0]] == 4){
-    //  msh.param->iverb = 5;
-    //  msh.param->ivdepth = 10;
-    //  idbg = true;
-    //  printf("## DEBUG SET MAX PRINTS\n");
-    //  writeMesh("debug_insert.meshb",msh);
-    //}
-    bool irej = rejcavnordev(msh,cav,ibins,ithrd1);
-    msh.param->iverb = iverb0;
-    msh.param->ivdepth = ivdepth0;
-    //if(idbg && !irej){
-    //  printf("## DEBUG WAIT HERE irej = {}\n",irej);
-    //  wait();
-    //}
-    if(irej){
-      ierro = INS2D_ERR_NORDEV;
-      goto cleanup;
-    }
-  }
-  #endif
-
-  irestart_cav = false;
-restart_cavity:
-  ierro = 0;
-  if(!irestart_cav) irestart_cav = true;
-
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
     ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd1);
   }}CT_FOR1(ideg);
-  ierro_cavity = ierro;
 
+  //printf("## DEBUG REMOVE THIS\n");
+  //check_topo(msh,msh.nbpoi,msh.npoin - (ierro > 0),msh.nedge,msh.nface,msh.nelem,ithrd1);
 
-  //if(DOPRINTS1()){
-  //  msh.param->iverb = iverb0;
-  //  msh.param->ivdepth = ivdepth0;
-  //  printf("## END OF OPERATION after cavity_operator wait\n");
-  //  printf("lerro:");
-  //  lerro.print();
-  //  wait();
-  //  if(ierro > 0){
-  //    printf("Error {} wait \n",ierro);
-  //    wait();
-  //  }
-  //}
-
-  if(ierro == CAV_ERR_REMPT && !irestart_cav && !imoved_point){
-    cav.lcedg.set_n(nced0);
-    cav.lcfac.set_n(ncfa0);
-    cav.lctet.set_n(ncte0);
-    int ierr2 = aux_movePointCav(msh, cav, tdimp, iseed, iref, algnd);
-    imoved_point = true;
-    writeMeshCavity("insert_cavity_fail_move0.meshb", 
-                                    msh,cav);
-    if(ierr2 != 0){
-      ierro = INS2D_ERR_MOVEPT;
-      goto cleanup;
-    }
-    ierro = increase_cavity_Delaunay(msh, cav, -1, ithrd1);
-    if(ierro != 0){
-      CPRINTF1(" - +cav error {}\n",ierro);
-      ierro = INS2D_ERR_INCCAVDEL;
-      goto cleanup;
-    }
-    ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
-    if(ierro != 0){
-      CPRINTF1(" - +cav error {}\n",ierro);
-      ierro = INS2D_ERR_INCCAVVAL3;
-      goto cleanup;
-    }
-
-    goto restart_cavity;
+  if(ierro != 0){
+    CPRINTF1("## END insertSteiner: increase_cavity_validity ierro {}\n", ierro);
+    ierro = INS2D_ERR_STEINERCAVOPR;
+    lcaverr[ierro - 1]++;
+    goto cleanup;
   }
-
-  if(ierro > 0) lerro[ierro-1]++;
-
-
-  if(ierro != 0) ierro = INS2D_ERR_CAVITYOPERATOR;
 
   if(info.done){
-
-    if(idbg){
-      PRINTF("## CAVITY SUCCESSFUL inserted ipoin {} \n",cav.ipins);
-      writeMeshCavity("insert_cavity_success.meshb", msh, cav);
-      writeMesh("insert_mesh_success.meshb", msh);
-      wait();
-    }
-    CPRINTF1("-- END insertSteiner ipins = {}  \n",cav.ipins);
-    #ifndef NDEBUG
-      if(DOPRINTS2()) writeMesh("debug_insert1.meshb",msh);
-    #endif
-    msh.param->iverb = iverb0;
-    msh.param->ivdepth = ivdepth0;
-    return -1; // Return did op
+    CPRINTF1(" - cavity operator did operation\n");
+    ierro = -1;
   }
 
+
+
   cleanup:
-  msh.killpoint(cav.ipins);
-  msh.param->iverb = iverb0;
-  msh.param->ivdepth = ivdepth0;
-  //if(DOPRINTS1() && ierro_cavity > 0){
-  //  printf("## DEBUG IERRO = {} \n",ierro_cavity);
-  //  wait();
-  //}
+  lcedg.get_array().copyTo(cav.lcedg);
+  lcfac.get_array().copyTo(cav.lcfac);
+  if(ierro > 0) msh.killpoint(cav.ipins);
+  cav.lctet.set_n(0);
+
+
   return ierro;
 }
 
 
 
 template int insertSteiner<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
-                          int tdim, int ientt, int iedl, 
-                          double lenqua_short_max, bool icollapse,
-                          MshCavity &cav, CavWrkArrs &work, 
-                          intAr1 &lerro, int ithrd1, int ithrd2);
+                         const EdgeSeed &insertionSeed,
+                         MshCavity &cav, CavWrkArrs &work, 
+                         intAr1 &lerro, int ithrd1, int ithrd2);
 template int insertSteiner<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
-                          int tdim, int ientt, int iedl, 
-                          double lenqua_short_max, bool icollapse,
-                          MshCavity &cav, CavWrkArrs &work, 
-                          intAr1 &lerro, int ithrd1, int ithrd2);
+                         const EdgeSeed &insertionSeed,
+                         MshCavity &cav, CavWrkArrs &work, 
+                         intAr1 &lerro, int ithrd1, int ithrd2);
 
 
 
