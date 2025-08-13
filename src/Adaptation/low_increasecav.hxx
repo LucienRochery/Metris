@@ -29,6 +29,8 @@ struct EdgeSeed;
 
 
 template<class MFT>
+int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, int tdim, int iseed, int miter, int ithrd1);
+template<class MFT>
 int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, const EdgeSeed &insertionSeed, int miter, int ithrd1);
 
 template<class MFT>
@@ -47,9 +49,6 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
                        int mgrow, double lenqua_short_max, 
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2);
-
-template<class MFT>
-int movePointCavLen(Mesh<MFT>& msh, MshCavity &cav, int ithrd1, int ithrd2);
 
 
 // Check if any removed points; only those > 1/sqrt(2) from ipins if chklen

@@ -51,7 +51,7 @@ MetrisParameters::MetrisParameters(){
 
   opt_unif = false;
 
-  iverb     = 1;
+  iverb     = 0;
   ivdepth   = 0;
 
   interactive = dbgfull = nocleanup = false;

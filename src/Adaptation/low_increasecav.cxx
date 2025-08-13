@@ -99,16 +99,24 @@ int setCavityInsertion2<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh,
                         int miter, int ithrd1, int ithrd2);
 
 
-// TODO: if used, this routine's preprocessing can be moved out.
 template<class MFT>
 int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav,
                     const EdgeSeed &insertionSeed,
+                    int miter, int ithrd1){
+  return movePointCavLen(msh, cav, 
+                         insertionSeed.tdimp, insertionSeed.iseed, 
+                         miter, ithrd1);
+}
+
+// TODO: if used, this routine's preprocessing can be moved out.
+template<class MFT>
+int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav,
+                    int tdim, int iseed, 
                     int miter, int ithrd1){
 
   GETVDEPTH(msh.param);
 
   // Work with lowest dimensional entities.
-  int tdim = MAX(insertionSeed.tdimp, 1);
   const intAr1 &lcent = cav.lcent(tdim);
   intAr2 &ent2tag = msh.ent2tag(tdim);
   const intAr2 &ent2poi = msh.ent2poi(tdim);
@@ -137,7 +145,7 @@ int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav,
   // Now we have our list of cavity boundary points.
   // The smoothing is a simple weighted average
 
-  return smoopoilen(msh, cav.ipins, lpoin.get_array(), miter, insertionSeed.tdimp, insertionSeed.iseed);
+  return smoopoilen(msh, cav.ipins, lpoin.get_array(), miter, tdim, iseed);
 }
 
 template
@@ -146,6 +154,13 @@ int movePointCavLen<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh,
 template
 int movePointCavLen<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
   const MshCavity &cav, const EdgeSeed &insertionSeed, int miter, int ithrd1);
+
+template
+int movePointCavLen<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
+  const MshCavity &cav, int tdim, int iseed, int miter, int ithrd1);
+template
+int movePointCavLen<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
+  const MshCavity &cav, int tdim, int iseed, int miter, int ithrd1);
 
 
 template<class MFT>
@@ -695,7 +710,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
 
   static int nwarnprt = 0;
   if(nwarnprt++ < 4){
-    PRINTF("## Could move nordev checks to increase_cavity. For this, we need to precompute the ccos as in reconnect_faccav.\n");
+    if(msh.param->iverb > 0) PRINTF("## Could move nordev checks to increase_cavity. For this, we need to precompute the ccos as in reconnect_faccav.\n");
   }
 
 
@@ -1086,7 +1101,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
 
   static int nwarnprt = 0;
   if(nwarnprt++ < 4){
-    PRINTF("## Could move nordev checks to increase_cavity. For this, we need to precompute the ccos as in reconnect_faccav.\n");
+    if(msh.param->iverb > 0) PRINTF("## Could move nordev checks to increase_cavity. For this, we need to precompute the ccos as in reconnect_faccav.\n");
   }
   METRIS_ASSERT(cav.ipins >= 0 && cav.ipins < msh.npoin);
 
@@ -1410,6 +1425,7 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
                              int ngrow, int ithread){
 
   GETVDEPTH(msh.param);
+  METRIS_ASSERT(tdim <= cav.get_tdim());
 
   //#ifdef NODELSURF
   //static int nwarn = 0;
@@ -1457,7 +1473,7 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
   //if(lcent.get_n() == 0) continue;
   intAr1 &lcsub = cav.lcent(tdim-1);
 
-  CPRINTF1(" - Delaunay dim {}\n",tdim);
+  CPRINTF1("-- START increase_cavity_Delaunay {}\n",tdim);
   const intAr2&  ent2ent = msh.ent2ent(tdim);
   const intAr2&  ent2poi = msh.ent2poi(tdim);
         intAr2r& ent2tag = msh.ent2tag(tdim);
@@ -1840,11 +1856,12 @@ template int increase_cavity_lenedg0<MetricFieldFE        ,3>(
 void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread){
   GETVDEPTH(msh.param);
   METRIS_ASSERT_MSG(ithread >= 0, "ithread = "<<ithread<<" < 0")
+  CPRINTF2("-- START aux_taginsrefs\n");
   for(int iedge : cav.lcedg){
     int iref = msh.edg2ref[iedge];
     METRIS_ASSERT(iref >= 0);
     if(msh.ced2tag(ithread,iref) < msh.tag[ithread]){
-      CPRINTF1(" - ipins has edge ref {} \n",iref);
+      CPRINTF3(" - ipins has edge ref {} \n",iref);
     }
     msh.ced2tag(ithread,iref) = msh.tag[ithread];
   }
@@ -1852,7 +1869,7 @@ void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread){
     int iref = msh.fac2ref[iface];
     METRIS_ASSERT(iref >= 0);
     if(msh.ced2tag(ithread,iref) < msh.tag[ithread]){
-      CPRINTF1(" - ipins has face ref {} \n",iref);
+      CPRINTF3(" - ipins has face ref {} \n",iref);
     }
     msh.cfa2tag(ithread,iref) = msh.tag[ithread];
   }
@@ -1860,7 +1877,7 @@ void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread){
     int iref = msh.tet2ref[ielem];
     METRIS_ASSERT_MSG(iref >= 0, "ielem = "<<ielem<<" invalid iref = "<<iref);
     if(msh.dom2tag(ithread,iref) < msh.tag[ithread]){
-      CPRINTF1(" - ipins has tetra ref {} \n",iref);
+      CPRINTF3(" - ipins has tetra ref {} \n",iref);
     }
     msh.dom2tag(ithread,iref) = msh.tag[ithread];
   }

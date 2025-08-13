@@ -78,7 +78,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
         imax = ii;
       }
     }
-    CPRINTF2(" - pivot imax = {} rmax = {:15.7e} nrmal = {} {} {}\n",imax,rmax);
+    CPRINTF2(" - pivot imax = {} rmax = {:15.7e}\n",imax,rmax);
 
     // Use the max value as pivot
     tau1[(imax+1)%3] =  nrmal[imax];

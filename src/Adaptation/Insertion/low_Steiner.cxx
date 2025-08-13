@@ -42,13 +42,13 @@ template<class MFT>
 int insertSteiner(Mesh<MFT>& msh, 
                   const EdgeSeed &insertionSeed,
                   MshCavity &cav, CavWrkArrs &work, 
-                  intAr1 &lcaverr, int ithrd1, int ithrd2){
+                  intAr1 &lcaverr, int ithrd1, [[maybe_unused]] int ithrd2){
   GETVDEPTH(msh.param);
   const int ntry = 5;
   
   const int iseed = insertionSeed.iseed;
   const int tdimp = insertionSeed.tdimp;
-  const int iref  = insertionSeed.iref ;
+  //const int iref  = insertionSeed.iref ;
 
   if(msh.get_tdim() == tdimp) return 0;
 

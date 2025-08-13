@@ -9,6 +9,7 @@
 #include "fmt/format.h"
 
 #include <egads.h>
+#include "../types_arrays.hxx"
 #include "Surreal/SurrealS.h"
 
 template<typename T1, typename T2>
