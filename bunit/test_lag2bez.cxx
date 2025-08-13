@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_lag2bez
 
 #include "common_setup.hxx"
 
@@ -20,7 +20,7 @@ using namespace Metris;
 typedef MetricFieldAnalytical MFT;
 
 // 1.0e-8 relative error -> 1.0e-6% utf::tolerance()
-BOOST_AUTO_TEST_CASE(lag2bez)  // , * utf::tolerance(double(1.0e-6)) 
+BOOST_AUTO_TEST_CASE(test_lag2bez)  // , * utf::tolerance(double(1.0e-6)) 
 {//METRIS_MAX_DEG
 
   std::vector<std::string> meshes = {METRIS_CASES_DIR "/unit/3D/cube/curved.p2.2k"

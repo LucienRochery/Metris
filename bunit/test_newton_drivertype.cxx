@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_newton_drivertype
 
 #include <boost/test/included/unit_test.hpp> 
 #include "common_setup.hxx"
@@ -63,7 +63,7 @@ double func(double *xcur, int ihess, double *gcur, double *hess){
 	return fcur;
 }
 
-BOOST_AUTO_TEST_CASE(test_eval3) 
+BOOST_AUTO_TEST_CASE(test_newton_drivertype) 
 {//METRIS_MAX_DEG
 	constexpr int nvar = 3;
 	double fcur, xcur[3], gcur[3], hess[6];
@@ -76,11 +76,11 @@ BOOST_AUTO_TEST_CASE(test_eval3)
 	//int ierro;
 
   MetrisParameters param;
+  param.iverb = 0;
 
   newton_drivertype_args<nvar> args(&param);
   args.stpmin = 1.0e-12;
   args.ratnew = 0.5; // LS step decrease factor 
-  args.iprt = 0;
   args.maxit = 500;
   args.wlfc1 = 1e-1;
   args.wlfc2 = 0.9;
@@ -124,7 +124,8 @@ BOOST_AUTO_TEST_CASE(test_eval3)
   truncated_newton_work work(nvar,buf);
 
   args.niter = 0;
-  args.iprt =5;
+  //param.iverb = 3;
+  //param.ivdepth = 5;
 
   iflag = 0;
   for(int ii = 0; ii < 3; ii++) xcur[ii] = 1;

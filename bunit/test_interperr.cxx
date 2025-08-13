@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_interperr
 
 #include "common_setup.hxx"
 
@@ -104,7 +104,7 @@ double interpErr_debug(const SolutionFieldAnalytical &sol, int ielem){
 #endif
 
 
-BOOST_AUTO_TEST_CASE(interperr) 
+BOOST_AUTO_TEST_CASE(test_interperr) 
 {
 
 

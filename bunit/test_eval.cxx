@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_eval
 
 #include <boost/test/included/unit_test.hpp> 
 #include <bunit/common_setup.hxx>
@@ -32,7 +32,7 @@ typedef MetricFieldAnalytical MFT;
 // In non constant metric fields, derivatives only defined for DoFs in back element
 // interiors... 
 
-BOOST_AUTO_TEST_CASE(test_eval3) 
+BOOST_AUTO_TEST_CASE(test_eval) 
 {
 
   // bool is whether straight

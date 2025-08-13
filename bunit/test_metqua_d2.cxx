@@ -4,7 +4,7 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_metqua_d2
 
 #include <boost/test/included/unit_test.hpp> 
 #include <random>
@@ -31,7 +31,7 @@ typedef MetricFieldAnalytical MFT;
 typedef double ftype;
 typedef std::pair<AsDeg,AsDeg> AsDegPair;
 
-BOOST_AUTO_TEST_CASE(test_metqua_d) 
+BOOST_AUTO_TEST_CASE(test_metqua_d2) 
 {
 
   std::vector<std::string> meshes = 

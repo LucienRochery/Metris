@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_invmat
 
 #include <boost/test/included/unit_test.hpp> 
 #include "common_setup.hxx"
@@ -37,7 +37,7 @@ void generate_metric(double aniso, double eigval[ndim], double eigvec[ndim][ndim
   MetSpace metspac,
   std::uniform_real_distribution<double>& unif, std::default_random_engine& rng);
 
-BOOST_AUTO_TEST_CASE(test_invspd) 
+BOOST_AUTO_TEST_CASE(test_invmat) 
 {//METRIS_MAX_DEG
 
   const int nsamp = 1e5;

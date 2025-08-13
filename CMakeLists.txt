@@ -290,8 +290,19 @@ foreach(test_file ${TEST_SOURCES})
       COMMAND ${test_target}
   )
 
-  list(APPEND METRIS_TARGET_TESTS ${test_target})
-  list(APPEND METRIS_TARGET_TESTS_BUILD ${test_target_build})
+  
+
+  # Note: CMake uses regexp, not  bash-style globs. 
+  # Hence _* would match to any number of '_', but not to any number of any characters...
+  if(test_target MATCHES "^test_.*")
+    list(APPEND METRIS_TARGET_TESTS ${test_target})
+    list(APPEND METRIS_TARGET_TESTS_BUILD ${test_target_build})
+    add_test(
+      NAME ${test_target}
+      COMMAND ${test_target}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+  endif()
 
   # Ensure that foo_build is built before foo
   add_dependencies(${test_target} ${test_target_build} deploy_cases)

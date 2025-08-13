@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_det
 
 #include <boost/test/included/unit_test.hpp> 
 #include "common_setup.hxx"
@@ -18,6 +18,9 @@
 #include "../src/linalg/eigen.hxx"
 #include "../src/linalg/explogmet.hxx"
 
+//#ifdef NDEBUG 
+#define DO_BENCHMARKS
+//#endif
 
 #include <Eigen/Dense>
 
@@ -37,7 +40,7 @@ template<int ndim>
 void generate_metric(double aniso, double eigval[ndim], double eigvec[ndim][ndim],
   std::uniform_real_distribution<double>& unif, std::default_random_engine& rng);
 
-BOOST_AUTO_TEST_CASE(test_eigen) 
+BOOST_AUTO_TEST_CASE(test_det) 
 {//METRIS_MAX_DEG
 
   const int nsamp = 1e5;
@@ -240,6 +243,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
 #else
   printf("## Unit test disabled as USE_MULTIPRECISION not defined\n");
+  BOOST_TEST(true);
 #endif
 
 
@@ -260,7 +264,15 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       // ------------------------------------------------------------ Benchmark
       double dum_tot = 0;
 
-      #ifdef NDEBUG
+      for(int isamp = 0; isamp < nsamp; isamp++){
+        generate_metric<ndim>(anisorat, eigval, eigvec, unif, rng);
+
+        // Generate metric from eigvecs, eigvals
+        eig2met<ndim,double>(eigval,eigvec[0],met);
+        for(int ii = 0; ii < nnmet; ii++) met_samples[ndim-2](isamp, ii) = met[ii];
+      }
+
+      #ifdef DO_BENCHMARKS
       double t0_N = get_wall_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
@@ -352,7 +364,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       printf("                      Edet     time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_Edet-t0_Edet,(int)(nsamp/(t1_Edet-t0_Edet)/1000),
                   (t1_Edet-t0_Edet)/(t1_N-t0_N));
-      printf("                      ELDLT   time : %8.2e = %dk op/s, fac = %4.2fx\n",
+      printf("                      ELDLT    time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_ELDLT-t0_ELDLT,(int)(nsamp/(t1_ELDLT-t0_ELDLT)/1000),
                   (t1_ELDLT-t0_ELDLT)/(t1_N-t0_N));
       #ifdef USE_MULTIPRECISION

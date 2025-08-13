@@ -486,7 +486,6 @@ int inveval_badNewton0(const MeshBase &msh,
     newton_drivertype_args<gdim> args(msh.param);
     args.stpmin = 1.0e-12;
     args.ratnew = 0.5; // LS step decrease factor 
-    args.iprt = msh.param->iverb - 1;
     args.maxit = 500;
     args.wlfc1 = 1e-4;
     args.wlfc2 = 0.9;

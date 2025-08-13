@@ -3,14 +3,14 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_indelsphere
 
 #include "common_setup.hxx"
 
 #include <random>
-#include "../src/adapt/low_delaunay.hxx"
+#include "../src/Adaptation/low_delaunay.hxx"
 #include "../src/utils/mprintf.hxx"
-#include "../src/adapt/msh_insert.hxx"
+#include "../src/Adaptation/Insertion/msh_insert.hxx"
 
 #include <boost/hana.hpp> 
 namespace hana = boost::hana;

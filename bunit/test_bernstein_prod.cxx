@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE bernstein_prod
 
 #include "common_setup.hxx"
 
@@ -18,7 +18,7 @@ namespace utf = boost::unit_test;
 using namespace Metris;
 typedef MetricFieldAnalytical MFT;
 
-BOOST_AUTO_TEST_CASE(interperr) 
+BOOST_AUTO_TEST_CASE(bernstein_prod) 
 {
 
 

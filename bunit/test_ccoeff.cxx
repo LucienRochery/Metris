@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_ccoeff
 
 #include "common_setup.hxx"
 
@@ -27,7 +27,7 @@ using namespace Metris;
 typedef MetricFieldAnalytical MFT;
 
 // 1.0e-8 relative error -> 1.0e-6% utf::tolerance()
-BOOST_AUTO_TEST_CASE(ccoef, * utf::tolerance(double(1.0e-6)) ) 
+BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) ) 
 { 
 
   // bool is whether straight
