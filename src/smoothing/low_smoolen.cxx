@@ -10,8 +10,54 @@
 #include "../utils/mprintf.hxx"
 #include "../utils/fmt_formatters.hxx"
 #include "../low_geo/lenedg.hxx"
+#include "../low_topo.hxx"
+#include "../cavity/msh_cavity.hxx"
+#include "../Adaptation/Insertion/EdgeSeed.hxx"
 
 namespace Metris{
+
+template<class MFT>
+int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav,
+                    const EdgeSeed &insertionSeed,
+                    int miter, int ithrd1){
+  return movePointCavLen(msh, cav, 
+                         insertionSeed.tdimp, insertionSeed.iseed, 
+                         miter, ithrd1);
+}
+
+// TODO: if used, this routine's preprocessing can be moved out.
+template<class MFT>
+int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav,
+                    int tdim, int iseed, 
+                    int miter, int ithrd1){
+
+  GETVDEPTH(msh.param);
+
+  const intAr1 &lcent = cav.lcent(tdim);
+  intWrkAr1 lpoin = msh.get_iwork(lcent.get_n());
+  poi2poi(msh, cav.ipins, tdim, lcent, lpoin.get_array(), ithrd1);
+
+  // Now we have our list of cavity boundary points.
+  // The smoothing is a simple weighted average
+  return smoopoilen(msh, cav.ipins, lpoin.get_array(), miter, tdim, iseed);
+}
+
+template
+int movePointCavLen<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
+  const MshCavity &cav, const EdgeSeed &insertionSeed, int miter, int ithrd1);
+template
+int movePointCavLen<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
+  const MshCavity &cav, const EdgeSeed &insertionSeed, int miter, int ithrd1);
+
+template
+int movePointCavLen<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
+  const MshCavity &cav, int tdim, int iseed, int miter, int ithrd1);
+template
+int movePointCavLen<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
+  const MshCavity &cav, int tdim, int iseed, int miter, int ithrd1);
+
+
+
 
 template<class MFT>
 int smoopoilen(Mesh<MFT>& msh, int ipmov, const intAr1 &lpoin, int miter, int tdimp, int iseed){

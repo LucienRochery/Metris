@@ -21,7 +21,9 @@ Simplest possible approach.
 #include "../quality/low_metqua.hxx"
 #include "../io_libmeshb.hxx"
 
-//#include "../libs/lplib3.h"
+#include "libs/lplib3/lplib3.h"
+
+#undef USE_LPLIB_SMOOTHINTERIOR 
 
 
 namespace Metris{
@@ -73,7 +75,6 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
   const intAr2 &ent2poi = msh.ent2poi(tdim); 
   const intAr2 &ent2ent = msh.ent2ent(tdim); 
 
-  #undef USE_LPLIB_SMOOTHINTERIOR 
 
   #ifdef USE_LPLIB_SMOOTHINTERIOR
     // LPlib init

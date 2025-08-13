@@ -29,11 +29,6 @@ struct EdgeSeed;
 
 
 template<class MFT>
-int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, int tdim, int iseed, int miter, int ithrd1);
-template<class MFT>
-int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, const EdgeSeed &insertionSeed, int miter, int ithrd1);
-
-template<class MFT>
 int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts, 
                        const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max, 
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,

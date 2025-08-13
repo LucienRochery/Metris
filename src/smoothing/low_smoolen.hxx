@@ -10,6 +10,13 @@
 
 namespace Metris{
 
+class MshCavity;
+struct EdgeSeed;
+
+template<class MFT>
+int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, int tdim, int iseed, int miter, int ithrd1);
+template<class MFT>
+int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, const EdgeSeed &insertionSeed, int miter, int ithrd1);
 
 template<class MFT>
 int smoopoilen(Mesh<MFT>& msh, int ipmov, const intAr1 &lpoin, int miter, int tdimp = -1, int iseed = -1);

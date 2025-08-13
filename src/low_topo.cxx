@@ -21,6 +21,66 @@ namespace Metris{
 
 std::tuple<int,int,int> stup3(int i1,int i2,int i3);
 
+// Get the points surrounding a point, among dimension tdim elements.
+int poi2poi(MeshBase& msh, int ipoin, int tdim, intAr1 &lpoin, int ithrd1){
+  if(tdim <= 0) tdim = msh.get_tdim();
+
+  int medge = 0, mface = 0, mtetr = 0;
+  if(tdim == 1) medge = 10;
+  if(tdim == 2) mface = 30;
+  if(tdim == 3) mtetr = 100;
+
+  intWrkAr1 lbedg_ = msh.get_iwork(medge);
+  intWrkAr1 lbfac_ = msh.get_iwork(mface);
+  intWrkAr1 lbtet_ = msh.get_iwork(mtetr);
+
+  intAr1 dum;
+  intAr1 &lbedg = tdim == 1 ? lbedg_.get_array() : dum;
+  intAr1 &lbfac = tdim == 2 ? lbfac_.get_array() : dum;
+  intAr1 &lbtet = tdim == 3 ? lbtet_.get_array() : dum;
+
+  int iopen;
+  int ierro = ball(msh, ipoin, lbedg, lbfac, lbtet, &iopen, false, ithrd1);
+  if(ierro != 0) return ierro;
+
+  intAr1 &lbent = tdim == 1 ? lbedg :
+                  tdim == 2 ? lbfac : lbtet;
+  poi2poi(msh, ipoin, tdim, lbent, lpoin, ithrd1);
+
+  return 0;
+}
+
+
+// Get the points surrounding a point, among dimension tdim elements.
+// Caller provides ball lbent.
+void poi2poi(MeshBase& msh, int ipoin, int tdim, const intAr1 &lbent, intAr1 &lpoin, int ithrd1){
+
+  intAr2 &ent2tag = msh.ent2tag(tdim);
+  const intAr2 &ent2poi = msh.ent2poi(tdim);
+  const intAr2 &ent2ent = msh.ent2ent(tdim);
+
+  lpoin.allocate(lbent.get_n());
+  lpoin.set_n(0);
+
+  msh.tag[ithrd1]++;
+  for(int ientt : lbent) ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
+
+  for(int ientt : lbent){
+    for(int ifact = 0; ifact < tdim + 1; ifact++){
+      int ient2 = ent2ent(ientt, ifact);
+      if(ient2 >= 0 && ent2tag(ithrd1,ient2) >= msh.tag[ithrd1]) continue;
+      for(int iver = 0; iver < tdim + 1; iver++){
+        if(iver == ifact) continue;
+        int ipoi2 = ent2poi(ientt,iver);
+        if(msh.poi2tag(ithrd1,ipoi2) >= msh.tag[ithrd1]) continue;
+        msh.poi2tag(ithrd1,ipoi2) = msh.tag[ithrd1];
+        lpoin.stack(ipoi2);
+      }
+    }
+  }
+
+}
+
 // lbedg, lbfac and lbtet can be size 0 (allocated to 0)
 // in that case, they will not be filled. 
 int ball(MeshBase& msh, int ipoin,

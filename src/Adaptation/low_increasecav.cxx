@@ -99,69 +99,6 @@ int setCavityInsertion2<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh,
                         int miter, int ithrd1, int ithrd2);
 
 
-template<class MFT>
-int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav,
-                    const EdgeSeed &insertionSeed,
-                    int miter, int ithrd1){
-  return movePointCavLen(msh, cav, 
-                         insertionSeed.tdimp, insertionSeed.iseed, 
-                         miter, ithrd1);
-}
-
-// TODO: if used, this routine's preprocessing can be moved out.
-template<class MFT>
-int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav,
-                    int tdim, int iseed, 
-                    int miter, int ithrd1){
-
-  GETVDEPTH(msh.param);
-
-  // Work with lowest dimensional entities.
-  const intAr1 &lcent = cav.lcent(tdim);
-  intAr2 &ent2tag = msh.ent2tag(tdim);
-  const intAr2 &ent2poi = msh.ent2poi(tdim);
-  const intAr2 &ent2ent = msh.ent2ent(tdim);
-
-  int ncent = lcent.get_n();
-  intWrkAr1 lpoin = msh.get_iwork(ncent);
-  lpoin.set_n(0);
-
-  msh.tag[ithrd1]++;
-  for(int ientt : lcent) ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
-
-  for(int ientt : lcent){
-    for(int ifact = 0; ifact < tdim + 1; ifact++){
-      int ient2 = ent2ent(ientt, ifact);
-      if(ient2 >= 0 && ent2tag(ithrd1,ient2) >= msh.tag[ithrd1]) continue;
-      for(int iver = 0; iver < tdim + 1; iver++){
-        if(iver == ifact) continue;
-        int ipoin = ent2poi(ientt,iver);
-        if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
-        msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1];
-        lpoin.stack(ipoin);
-      }
-    }
-  }
-  // Now we have our list of cavity boundary points.
-  // The smoothing is a simple weighted average
-
-  return smoopoilen(msh, cav.ipins, lpoin.get_array(), miter, tdim, iseed);
-}
-
-template
-int movePointCavLen<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
-  const MshCavity &cav, const EdgeSeed &insertionSeed, int miter, int ithrd1);
-template
-int movePointCavLen<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
-  const MshCavity &cav, const EdgeSeed &insertionSeed, int miter, int ithrd1);
-
-template
-int movePointCavLen<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
-  const MshCavity &cav, int tdim, int iseed, int miter, int ithrd1);
-template
-int movePointCavLen<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
-  const MshCavity &cav, int tdim, int iseed, int miter, int ithrd1);
-
 
 template<class MFT>
 int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts, 
