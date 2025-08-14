@@ -51,12 +51,16 @@ enum class MeshSize{
   ,CADNode = 8
   ,CADEdge = 9
   ,CADFace = 10
+  ,nTrackedType = 11
 };
 
 class MeshBase{
 public: 
   friend class MetricFieldFE;
   friend class MetricFieldAnalytical;
+  template<typename T>
+  friend class WorkArray1D;
+  friend class TagArray;
 
   // ---- Connectivity arrays:
 	intAr2  edg2poi, fac2poi, tet2poi; // (ientt,inode) -> ipoin
@@ -264,6 +268,50 @@ protected:
   MeshArray1D<dblAr1> rwork;
   intAr1 iwork_lock, rwork_lock;
 
+  // Track reference to underlying MeshArray1D
+  // of WorkArrays that track mesh sizes. 
+  // This is so we can reallocate them. 
+  MeshArray1D<intAr1*> iwork_Point, 
+                       iwork_Edge,
+                       iwork_Face,
+                       iwork_Tetra,
+                       iwork_BPoint;
+  MeshArray1D<dblAr1*> rwork_Point, 
+                       rwork_Edge,
+                       rwork_Face,
+                       rwork_Tetra,
+                       rwork_BPoint;  
+  // Returns arrays iwork_Point, etc. 
+  MeshArray1D<intAr1*> &get_iwork_tracked(MeshSize itype);
+  MeshArray1D<dblAr1*> &get_rwork_tracked(MeshSize itype);
+  template<typename T> 
+  auto& get_work_tracked(MeshSize itype){
+    static_assert(std::is_same_v<T,int> || std::is_same_v<T,double>);
+    if constexpr(std::is_same_v<T,int>) return get_iwork_tracked(itype);
+    else                                return get_rwork_tracked(itype);
+  }
+
+
+  // Count how many currently tracked, so we can reset the
+  // arrays (i|r)work_Point, etc. 
+  int n_iwork_tracked[(int) MeshSize::nTrackedType];
+  int n_rwork_tracked[(int) MeshSize::nTrackedType];
+
+  template<typename T> 
+  constexpr auto n_work_tracked(){
+    if constexpr (std::is_same_v<T,int>) return n_iwork_tracked;
+    else                                 return n_rwork_tracked;
+  }
+public: // for debug purposes only
+  // We are made to give it a unique name, otherwise the 
+  // different scopes make this const version invisible.
+  template<typename T> 
+  constexpr const int* debug_n_work_tracked() const {
+    if constexpr (std::is_same_v<T,int>) return n_iwork_tracked;
+    else                                 return n_rwork_tracked;
+  }
+
+protected:
   template<typename T> 
   MeshArray1D<MeshArray1D<T>>& lwork_map(){
     static_assert(std::is_same<T,double>::value || std::is_same<T,int>::value);
@@ -284,27 +332,24 @@ protected:
     }
   }
 
+  // For untracked work
+  template<typename T>
+  void free_work(int ii);
+
+  // For work arrays tracking mesh sizes
+  template<typename T>
+  void free_work(int ii, WorkArray1D<T>* obj);
+
+  void free_tag(int ii){
+    tagarr_locks[ii] = 0;
+  }
+
 protected:
   MeshArray1D<intAr1> tagarrs;
   intAr1 tagarr_locks;
   intAr1 itags;
 
 public:
-  // Request rwork/iwork sized nn
-  // No need to call these.
-  template<typename T>
-  void free_work(int ii){
-    static_assert(std::is_same<T,double>::value || std::is_same<T,int>::value);
-    if(std::is_same<T,double>::value){
-      rwork_lock[ii] = 0;
-    }else if(std::is_same<T,int>::value){
-      iwork_lock[ii] = 0;
-    }
-  }
-
-  void free_tag(int ii){
-    tagarr_locks[ii] = 0;
-  }
 
   // Flag skipallocf determines whether main data (found in file) should be 
   // allocated or not. This is for initialization from API, to use std::move. 
@@ -390,6 +435,10 @@ public:
   const intAr1 &debug_get_rwork_lock() const {return rwork_lock;}
   const MeshArray1D<intAr1> &debug_get_iwork() const {return iwork;}
   const MeshArray1D<dblAr1> &debug_get_rwork() const {return rwork;}
+  intAr1 &debug_get_iwork_lock() {return iwork_lock;}
+  intAr1 &debug_get_rwork_lock() {return rwork_lock;}
+  MeshArray1D<intAr1> &debug_get_iwork() {return iwork;}
+  MeshArray1D<dblAr1> &debug_get_rwork() {return rwork;}
 private:
   void get_nMeshSize(MeshSize itype, int* nn, int* mm);
 };

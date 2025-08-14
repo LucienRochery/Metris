@@ -186,6 +186,7 @@ public:
 
   ~MeshArray1D();
 
+  // Soft copy: copies pointer and sizes and frees self.
   MeshArray1D<T,INT1>& operator=(const MeshArray1D &cpy); 
   MeshArray1D<T,INT1>& operator=(MeshArray1D &&mve); 
   

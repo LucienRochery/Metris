@@ -38,6 +38,10 @@ MeshBase::MeshBase(){
   //hasbak  = false;
   //ianamet = -1;
   idim    = 0;
+  for(int ii = 0; ii < (int) MeshSize::nTrackedType; ii++){
+    n_iwork_tracked[ii] = 0;
+    n_rwork_tracked[ii] = 0;
+  }
 }
 
 
@@ -371,7 +375,7 @@ MeshBase& MeshBase::operator=(const MeshBase &inp){
 
 
 
-
+#if 0
 // Update work arrays currently locked to entity type point
 #define UPDATE_WORK_TYPE(DATATYPE, MESHTYPE, NAME)\
 {\
@@ -380,11 +384,23 @@ MeshBase& MeshBase::operator=(const MeshBase &inp){
   int nwork = lwork.get_n();\
   for(int iarray = 0; iarray < nwork; iarray++){\
     int itype = lwork_lock[iarray];\
+    printf("Debug " #MESHTYPE " data " #DATATYPE " iarray %d / %d itype %d lf %d \n",iarray,nwork,itype,(int)MeshSize::MESHTYPE);\
     if(itype != (int)MeshSize::MESHTYPE) continue;\
     lwork[iarray].allocate(m##NAME);\
     lwork[iarray].set_n(n##NAME);\
   }\
 }
+#endif
+
+
+#define UPDATE_WORK_TYPE(DATATYPE, MESHTYPE, NAME)\
+  for(auto wrkArMem : get_work_tracked<DATATYPE>(MeshSize::MESHTYPE)){\
+    if(wrkArMem == NULL) continue;\
+    wrkArMem->allocate(m##NAME);\
+    wrkArMem->set_n(n##NAME);\
+  }
+
+
 
 void MeshBase::set_nbpoi(int nbpoi){
   METRIS_ASSERT(Defaults::mem_growfac > 1); 
@@ -698,113 +714,6 @@ void MeshBase::get_nMeshSize(MeshSize itype, int* nn, int* mm){
   *nn = nentt;
   *mm = mentt;
 }
-
-// To be used both by get_iwork and get_tagarray
-// Returns the index of the locked array
-template<typename T>
-inline int get_locked_array(int nn, MeshArray1D<T> &array_pool, intAr1 &array_locks){
-  int npool = array_pool.get_n();
-  int ibest = -1, nbest = -1;
-  for(int iarray = 0; iarray < npool; iarray++){
-    if(array_locks[iarray] > 0) continue;
-    int array_size = array_pool[iarray].size();
-    if(array_size < nn) continue;
-
-    if(array_size < nbest || nbest < 0){
-      ibest = iarray;
-      nbest = array_size;
-    }
-  }
-
-  return ibest;
-}
-
-
-template<typename T>
-WorkArray1D<T> MeshBase::get_work(int nn){
-  int iarray = get_locked_array<MeshArray1D<T>>(nn, lwork_map<T>(), lwork_lock_map<T>());
-  if(iarray < 0){
-    iarray = lwork_map<T>().get_n();
-    lwork_map<T>().inc_n();
-    lwork_lock_map<T>().inc_n();
-    lwork_map<T>()[iarray].allocate(nn);
-  }
-  lwork_map<T>()[iarray].set_n(nn);
-  lwork_lock_map<T>()[iarray] = (int) MeshSize::Untracked;
-  return WorkArray1D<T>(*this, iarray, lwork_map<T>()[iarray]);
-}
-
-template intWrkAr1 MeshBase::get_work<int   >(int nn);
-template dblWrkAr1 MeshBase::get_work<double>(int nn);
-
-
-template<typename T>
-WorkArray1D<T> MeshBase::get_work(MeshSize itype){
-  int nentt = -1, mentt = -1;
-  get_nMeshSize(itype, &nentt, &mentt);
-
-  int iarray = get_locked_array<MeshArray1D<T>>(mentt, lwork_map<T>(), lwork_lock_map<T>());
-  if(iarray < 0){
-    iarray = lwork_map<T>().get_n();
-    lwork_map<T>().inc_n();
-    lwork_lock_map<T>().inc_n();
-    lwork_map<T>()[iarray].allocate(mentt);
-  }
-  lwork_map<T>()[iarray].set_n(nentt);
-  lwork_lock_map<T>()[iarray] = (int) itype;
-  return WorkArray1D<T>(*this, iarray, lwork_map<T>()[iarray]);
-}
-
-template intWrkAr1 MeshBase::get_work<int   >(MeshSize itype);
-template dblWrkAr1 MeshBase::get_work<double>(MeshSize itype);
-
-
-intWrkAr1 MeshBase::get_iwork(int nn){
-  return get_work<int>(nn);
-}
-dblWrkAr1 MeshBase::get_rwork(int nn){
-  return get_work<double>(nn);
-}
-intWrkAr1 MeshBase::get_iwork(MeshSize size){
-  return get_work<int>(size);
-}
-dblWrkAr1 MeshBase::get_rwork(MeshSize size){
-  return get_work<double>(size);
-}
-
-
-TagArray MeshBase::get_tagarray(MeshSize itype){
-  METRIS_ASSERT((int) itype > 0);
-
-  int nentt = -1, mentt = -1;
-  get_nMeshSize(itype, &nentt, &mentt);
-  
-  int iarray = get_locked_array<intAr1>(mentt, tagarrs, tagarr_locks);
-  
-  fmt::print("Got iarray = {} \n",iarray);
-  if(iarray < 0){
-    iarray = tagarrs.get_n();
-
-    tagarrs.inc_n();
-    tagarr_locks.inc_n();
-    itags.stack(0);
-
-    tagarrs[iarray].allocate(mentt);
-    tagarrs[iarray].set_n(nentt);
-    tagarrs[iarray].fill(0);
-
-    fmt::print("Allocated iarray {} nmem {} size {} check : {} {} \n",iarray,mentt,nentt,
-           tagarrs[iarray].size(),tagarrs[iarray].get_n());
-  }
-
-  itags[iarray]++;
-  tagarr_locks[iarray] = (int) itype;
-  tagarrs[iarray].set_n(nentt); // could be originally larger than needed
-
-  return TagArray(*this, iarray, tagarrs[iarray], itags[iarray]);
-}
-
-
 
 
 

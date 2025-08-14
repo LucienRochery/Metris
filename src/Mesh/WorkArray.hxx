@@ -20,7 +20,9 @@ enum class MeshSize;
 template<typename T>
 class WorkArray1D{
 public:
+friend class MeshBase;
   WorkArray1D(MeshBase& msh_, int ilock_, MeshArray1D<T>& array_);
+  WorkArray1D(MeshBase& msh_, int ilock_, MeshArray1D<T>& array_, MeshSize itype_, int iref_tracked_);
   ~WorkArray1D();
 
   ALWAYS_INLINE T &operator[](const int &ii){
@@ -43,8 +45,10 @@ public:
 
 private:
   int ilock;
-  MeshArray1D<T>& array;
+  MeshArray1D<T> array;
   MeshBase& msh;
+  MeshSize itype;
+  int iref_tracked;
 };
 
 

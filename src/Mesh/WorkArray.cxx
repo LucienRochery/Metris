@@ -10,11 +10,24 @@ namespace Metris{
 
 template<typename T>
 WorkArray1D<T>::WorkArray1D(MeshBase& msh_, int ilock_, MeshArray1D<T>& array_) 
-    : ilock(ilock_), array(array_), msh(msh_) {}
+    : ilock(ilock_), msh(msh_), itype(MeshSize::Untracked), iref_tracked(-1) {
+  array = array_;
+}
+
+
+template<typename T>
+WorkArray1D<T>::WorkArray1D(MeshBase& msh_, int ilock_, MeshArray1D<T>& array_, MeshSize itype_, int iref_tracked) 
+    : ilock(ilock_), msh(msh_), itype(itype_), iref_tracked(iref_tracked) {
+  array = array_;
+}
 
 template<typename T>
 WorkArray1D<T>::~WorkArray1D(){
-  msh.free_work<T>(ilock);
+  if(itype == MeshSize::Untracked){
+    msh.free_work<T>(ilock);
+  }else{
+    msh.free_work<T>(ilock,this);
+  }
 }
 
 template class WorkArray1D<double>;

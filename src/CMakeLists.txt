@@ -207,6 +207,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshBase.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshBase_init.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshBase_topo.cxx
+    ${PROJECT_SOURCE_DIR}/src/Mesh/MeshBase_Work.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshBack.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshMetric.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh_interpMetBack.cxx
@@ -254,6 +255,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/Adaptation/Insertion/low_Steiner.cxx
 
     ${PROJECT_SOURCE_DIR}/src/smoothing/msh_smooball.cxx
+    ${PROJECT_SOURCE_DIR}/src/smoothing/msh_smoolen.cxx
     #${PROJECT_SOURCE_DIR}/src/smoothing/msh_smoofull.cxx
     #${PROJECT_SOURCE_DIR}/src/smoothing/msh_smoofull_TAO.cxx
     #${PROJECT_SOURCE_DIR}/src/smoothing/msh_smoofull_custom.cxx

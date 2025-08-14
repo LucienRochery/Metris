@@ -12,6 +12,7 @@ using namespace Metris;
 
 typedef MetricFieldAnalytical MFT;
 
+
 BOOST_AUTO_TEST_CASE(test_WorkArray) 
 {
 
@@ -24,10 +25,23 @@ BOOST_AUTO_TEST_CASE(test_WorkArray)
   
   // Begin by checking all work arrays are unlocked if not 
   // within a routine that uses any. 
-  const intAr1& msh_iwork_lock = msh.debug_get_iwork_lock();
-  const intAr1& msh_rwork_lock = msh.debug_get_rwork_lock();
+  intAr1& msh_iwork_lock = msh.debug_get_iwork_lock();
+  intAr1& msh_rwork_lock = msh.debug_get_rwork_lock();
   for(int ilock : msh_iwork_lock) BOOST_REQUIRE(ilock == 0);
   for(int ilock : msh_rwork_lock) BOOST_REQUIRE(ilock == 0);
+
+  // Create a work array, then force a reallocation. Ensure the initial 
+  // work array remains valid.
+
+  {
+    MeshArray1D<intAr1>& msh_iwork = msh.debug_get_iwork();
+    intWrkAr1 wrkar0 = msh.get_iwork(100);
+    msh_iwork_lock.inc_n();
+    msh_iwork.inc_n();
+    BOOST_REQUIRE(wrkar0.size() == 100);
+    BOOST_REQUIRE(wrkar0.get_n() == 100);
+  }
+  
 
   
   #define TEST_WORK_TYPE1(T)\
@@ -103,7 +117,7 @@ BOOST_AUTO_TEST_CASE(test_WorkArray)
 \
       auto itype_work = msh.get_work<DATATYPE>(itype);\
       BOOST_REQUIRE(itype_work.get_n() == nentt);\
-      BOOST_REQUIRE(itype_work.size() >= mentt);\
+      BOOST_REQUIRE(itype_work.size() + 1 >= mentt + 1);\
 \
       MeshArray1D<DATATYPE> save_itype_work(nentt);\
       int nent0 = nentt;\
@@ -115,7 +129,10 @@ BOOST_AUTO_TEST_CASE(test_WorkArray)
       int ment0 = mentt;\
       set_nentt(mentt + 1);\
       BOOST_REQUIRE(mentt > ment0);\
-      BOOST_REQUIRE(itype_work.size() >= mentt);\
+      if(itype_work.size() + 2 < mentt + 2){\
+        printf("work type %s ment0 = %d mentt = %d, itype_work.size() = %d\n",work_type_names[itype].c_str(),ment0,mentt,itype_work.size());\
+      }\
+      BOOST_REQUIRE(itype_work.size() + 2 >= mentt + 2);\
       BOOST_REQUIRE(itype_work.get_n() == nentt);\
       for(int ii = 0; ii < nent0; ii++){\
         BOOST_REQUIRE(itype_work[ii] == save_itype_work[ii]);\
@@ -127,5 +144,26 @@ BOOST_AUTO_TEST_CASE(test_WorkArray)
   TEST_WORK_TYPE2(double);
   #undef TEST_WORK_TYPE2
 
+  // Test currently n_iwork_tracked and n_rwork_tracked are all 
+  // zeroes, since no tracked work arrays currently alive. 
+  const int* n_iwork_tracked = msh.debug_n_work_tracked<int>();
+  const int* n_rwork_tracked = msh.debug_n_work_tracked<double>();
+  for(int ii = 0; ii < (int) MeshSize::nTrackedType; ii++){
+    BOOST_REQUIRE(n_iwork_tracked[ii] == 0);
+    BOOST_REQUIRE(n_rwork_tracked[ii] == 0);
+  }
+
+  // Create two tracked arrays and check the corresponding
+  // entry is two.
+  {
+    auto iwork1 = msh.get_iwork(MeshSize::Point);
+    auto iwork2 = msh.get_iwork(MeshSize::Point);
+    BOOST_REQUIRE(iwork1.get_n() == msh.npoin);
+    BOOST_REQUIRE(iwork2.get_n() == msh.npoin);
+
+    // Check the tracked work arrays are now two.
+    BOOST_REQUIRE(n_iwork_tracked[(int) MeshSize::Point] == 2);
+  }
+  BOOST_REQUIRE(n_iwork_tracked[(int) MeshSize::Point] == 0);
 
 }// end boost test case
