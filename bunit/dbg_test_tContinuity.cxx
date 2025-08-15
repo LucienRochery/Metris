@@ -36,21 +36,17 @@ BOOST_AUTO_TEST_CASE(test_tContinuity)
 
     HshTab_I2I ledge;
     ledge.reserve(nentt);
-
-
     for(int ientt = 0; ientt < nentt; ientt++){
       if(isdeadent(ientt,ent2poi)) continue;
       for(int ied = 0; ied < nedgl; ied++){
-
-        // Check edge already seen
         int ip1 = ent2poi(ientt, lnoed(ied,0));
         int ip2 = ent2poi(ientt, lnoed(ied,1));
         auto key = stup2(ip1,ip2);
+        
+        // Check edge already seen
         if(ledge.find(key) != ledge.end()) continue;
-
-
+        
         ledge[key] = ientt;
-
       }
     }
 
