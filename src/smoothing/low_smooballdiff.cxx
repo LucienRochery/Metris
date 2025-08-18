@@ -4,9 +4,9 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 /*
-Low level routine for "direct" P1 ball smoothing. 
-From each (facet, metric) pair, generate remaining vertex to be unit. Then average over ball. 
-Simplest possible approach. 
+Low level routine for "direct" P1 ball smoothing.
+From each (facet, metric) pair, generate remaining vertex to be unit. Then average over ball.
+Simplest possible approach.
 */
 
 
@@ -30,9 +30,9 @@ namespace Metris{
 
 // inorm <= infi norm , p > 0 L^p norm (over ball)
 template<class MFT, int idim, int ideg>
-int smooballdiff(Mesh<MFT>& msh, int ipoin, 
-                   const intAr1 &lball, 
-                   double*__restrict__ qnrm0, double*__restrict__ qmax0, 
+int smooballdiff(Mesh<MFT>& msh, int ipoin,
+                   const intAr1 &lball,
+                   double*__restrict__ qnrm0, double*__restrict__ qmax0,
                    double*__restrict__ qnrm1, double*__restrict__ qmax1,
                    QuaFun iquaf){
 
@@ -46,7 +46,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   constexpr int nnmet = (idim*(idim+1))/2;
   constexpr int nhess = nnmet;
 
-  const intAr2& ent2poi = msh.ent2poi(idim); 
+  const intAr2& ent2poi = msh.ent2poi(idim);
 
   const auto quafun = get_quafun<MFT,gdim,tdim>(iquaf);
   const auto d_quafun = get_d_quafun<MFT,gdim,tdim>(iquaf);
@@ -56,10 +56,10 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   *qnrm0 = 0;
   *qmax0 = -1.0e30;
 
-  // Optimization doesn't reinterpolate metric 
+  // Optimization doesn't reinterpolate metric
   int miter1 = MAX(1,msh.param->iflag1);
 
-  // Relative decrease tolerance 
+  // Relative decrease tolerance
   const double ftol = 1.0e-2;
 
   newton_drivertype_args<idim> nargs(msh.param);
@@ -83,6 +83,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   for(int niter1 = 0; niter1 < miter1; niter1++){
 
     for(int ii = 0; ii < idim; ii++) xcur[ii]  = msh.coord(ipoin,ii);
+    bool one_update = false;
     while(true){
       INCVDEPTH(msh.param);
 
@@ -90,7 +91,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
       //if(!fpreset){
       //  fpreset = true;
-      //  fpre = fcur; 
+      //  fpre = fcur;
       //}else{
       //  if(abs(fpre - fcur) < ftol * abs(fpre)){
       //    CPRINTF1(" - Relative decrease %15.7e < %15.7e end\n",
@@ -122,18 +123,22 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
                                         : getnnod3(jdeg);
         double ccoef[ncoef];
         for(int ientt : lball){
-          getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva); 
+          getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva);
           if(iinva) break;
         }
       }
 
       if(iinva){
         fcur = 1.0e10;
-        // radical solution for now 
+        // radical solution for now
         CPRINTF1("# invalid config -> finish");
-        goto finish;
+        if (one_update)
+          goto finish;
+        else
+          goto cleanup;
       }
 
+      one_update = true;
 
       fcur = 0;
       double dqelt[idim], hqelt[nhess];
@@ -168,7 +173,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
           for(int ii = 0; ii < nhess;ii++) d2qua[ii] += hqelt[ii];
 
         if(nargs.niter == 1 && niter1 == 0){
-          *qnrm0 += quael; 
+          *qnrm0 += quael;
           *qmax0  = MAX(quael,*qmax0);
         }
       }// for iball
@@ -210,7 +215,11 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
       int ient2 = lball[iball];
       bool iflat;
       getmeasentP1<idim,idim>(msh, ent2poi[ient2], NULL, &iflat);
-      METRIS_ASSERT_MSG(!iflat,"## Flat iball "<<iball<<" elt "<<ient2);
+      // METRIS_ASSERT_MSG(!iflat,"## Flat iball "<<iball<<" elt "<<ient2);
+      if (iflat){
+        ierro = 10;
+        goto cleanup;
+      }
     }
 
     *qnrm1 = 0;
@@ -220,12 +229,12 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
       double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,
                             ient2,1);
 
-      *qnrm1 += quael; 
+      *qnrm1 += quael;
       *qmax1  = MAX(quael,*qmax1);
     }
-    CPRINTF1(" - Newton update initial quality avg %15.7e " 
+    CPRINTF1(" - Newton update initial quality avg %15.7e "
                           "max %15.7e \n",*qnrm0,*qmax0);
-    CPRINTF1(" -                 final quality avg %15.7e " 
+    CPRINTF1(" -                 final quality avg %15.7e "
                           "max %15.7e \n",*qnrm1,*qmax1);
   }
 
@@ -248,7 +257,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
                                         : getnnod3(jdeg);
         double ccoef[ncoef];
         for(int ientt : lball){
-          getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva); 
+          getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva);
           METRIS_ENFORCE(!iinva);
         }
       }
@@ -272,7 +281,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
       double ccoef[ncoef];
       for(int ientt : lball){
         double vol = getmeasentP1<idim>(ent2poi[ientt], msh.coord);
-        getccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef); 
+        getccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef);
         for(int ii = 0; ii < ncoef; ii++){
           if(ccoef[ii] >= jtol * vol) continue;
           printf(" - 1 reject validity coef %15.7e scaled %15.7e \n",
@@ -327,8 +336,8 @@ template int smooballdiff<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>
 
 
 template<class MFT, int idim, int ideg>
-double smooballdiff_fun([[maybe_unused]] unsigned int nvar, 
-                        const double *xcur, 
+double smooballdiff_fun([[maybe_unused]] unsigned int nvar,
+                        const double *xcur,
                         double *grad, void *f_data){
   constexpr int gdim = idim;
   constexpr int tdim = idim;
@@ -362,7 +371,7 @@ double smooballdiff_fun([[maybe_unused]] unsigned int nvar,
                                     : getnnod3(jdeg);
     double ccoef[ncoef];
     for(int ientt : lball){
-      getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva); 
+      getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva);
       if(iinva) break;
     }
   }
@@ -396,11 +405,11 @@ double smooballdiff_fun([[maybe_unused]] unsigned int nvar,
     for(int ii = 0; ii < idim && grad != NULL; ii++) grad[ii] += dqelt[ii];
 
     //if(!mydata->iqset){
-    //  mydata->qnrm0 += quael; 
+    //  mydata->qnrm0 += quael;
     //  mydata->qmax0  = MAX(quael,mydata->qmax0);
     //}
   }
-  
+
   //mydata->iqset = true;
 
   if(mydata->fopt > fcur){
@@ -425,9 +434,9 @@ template double smooballdiff_fun<MetricFieldFE        ,3,n>(unsigned int nvar, \
 
 // inorm <= infi norm , p > 0 L^p norm (over ball)
 template<class MFT, int idim, int ideg>
-int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin, 
+int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
                         const intAr1 &lball,
-                        double*__restrict__ qnrm0, double*__restrict__ qmax0, 
+                        double*__restrict__ qnrm0, double*__restrict__ qmax0,
                         double*__restrict__ qnrm1, double*__restrict__ qmax1,
                         dblAr1 &work,
                         QuaFun iquaf){
@@ -442,15 +451,15 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
 
 
   const auto quafun = get_quafun<MFT,gdim,tdim>(iquaf);
-  const intAr2& ent2poi = msh.ent2poi(idim); 
+  const intAr2& ent2poi = msh.ent2poi(idim);
 
   int ierro = 0;
 
   *qnrm0 = 0;
   *qmax0 = -1.0e30;
-  //auto quafun 
+  //auto quafun
   //  = QuaFunList<MFT,gdim,tdim,ideg,AsDeg::Pk,AsDeg::Pk>{}.quafun(iquaf);
-  //auto d_quafun 
+  //auto d_quafun
   //  = QuaFunList<MFT,gdim,tdim,ideg,AsDeg::Pk,AsDeg::Pk>{}.d_quafun(iquaf);
 
   double xopt[gdim];
@@ -459,7 +468,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
   work.allocate(nwork);
   work.set_n(nwork);
   double fstop = -1.0;
-  double ftol_rel = 1.0e-9; 
+  double ftol_rel = 1.0e-9;
   double ftol_abs = -1e30;
   double lb[gdim], ub[gdim];
 
@@ -482,7 +491,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
   for(int ientt : lball){
     double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ientt,1);
 
-    *qnrm0 += quael; 
+    *qnrm0 += quael;
     *qmax0  = MAX(quael,*qmax0);
   }
 
@@ -521,7 +530,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
     for(int ientt : lball){
       double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ientt,1);
 
-      *qnrm1 += quael; 
+      *qnrm1 += quael;
       *qmax1  = MAX(quael,*qmax1);
     }
 
@@ -560,7 +569,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
       double ccoef[ncoef];
       for(int ientt : lball){
         double vol = getmeasentP1<idim>(ent2poi[ientt], msh.coord);
-        getccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef); 
+        getccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef);
         for(int ii = 0; ii < ncoef; ii++){
           if(ccoef[ii] >= jtol * vol) continue;
           printf(" - 1 reject validity coef %15.7e scaled %15.7e \n",

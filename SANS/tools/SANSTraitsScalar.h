@@ -50,7 +50,7 @@ struct Scalar< DLA::VectorS<M,T> >
 
 // C++ 20 required
 //template<typename T>
-//concept real_type = std::is_floating_point_v<T> 
+//concept real_type = std::is_floating_point_v<T>
 //                  || requires(T a){
 //  std::is_same<T,float4>::value == true || std::is_same<T,float8>::value == true;
 //};
