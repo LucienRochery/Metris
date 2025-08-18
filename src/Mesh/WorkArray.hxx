@@ -43,6 +43,14 @@ friend class MeshBase;
   MeshArray1D<T>& get_array(){return array;}
   const MeshArray1D<T>& get_array() const {return array;}
 
+
+  // Internal use:
+  WorkArray1D(const WorkArray1D& other);
+  WorkArray1D(WorkArray1D&& other);
+
+  WorkArray1D& operator=(WorkArray1D&& other);
+  WorkArray1D& operator=(const WorkArray1D& other);
+
 private:
   int ilock;
   MeshArray1D<T> array;

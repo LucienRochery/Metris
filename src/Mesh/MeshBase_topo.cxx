@@ -363,7 +363,7 @@ void MeshBase::rembpotag(int ipoin, int ithread){
     }
     int ibpon = bpo2ibi(ibpoc,3); // next
 
-    CPRINTF2(" - rembpotag ip {} ib {} entity {} dim {} remove ? {} ent tag {} tag {}\n",
+    CPRINTF3(" - rembpotag ip {} ib {} entity {} dim {} remove ? {} ent tag {} tag {}\n",
              ipoin, ibpoc, ientt, tdim, rement, ietag, itag);
     
     if(rement){ // Remove this entry 

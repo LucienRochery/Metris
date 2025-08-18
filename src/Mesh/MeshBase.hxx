@@ -271,19 +271,19 @@ protected:
   // Track reference to underlying MeshArray1D
   // of WorkArrays that track mesh sizes. 
   // This is so we can reallocate them. 
-  MeshArray1D<intAr1*> iwork_Point, 
-                       iwork_Edge,
-                       iwork_Face,
-                       iwork_Tetra,
-                       iwork_BPoint;
-  MeshArray1D<dblAr1*> rwork_Point, 
-                       rwork_Edge,
-                       rwork_Face,
-                       rwork_Tetra,
-                       rwork_BPoint;  
+  MeshArray1D<intWrkAr1*> iwork_Point, 
+                          iwork_Edge,
+                          iwork_Face,
+                          iwork_Tetra,
+                          iwork_BPoint;
+  MeshArray1D<dblWrkAr1*> rwork_Point, 
+                          rwork_Edge,
+                          rwork_Face,
+                          rwork_Tetra,
+                          rwork_BPoint;  
   // Returns arrays iwork_Point, etc. 
-  MeshArray1D<intAr1*> &get_iwork_tracked(MeshSize itype);
-  MeshArray1D<dblAr1*> &get_rwork_tracked(MeshSize itype);
+  MeshArray1D<intWrkAr1*> &get_iwork_tracked(MeshSize itype);
+  MeshArray1D<dblWrkAr1*> &get_rwork_tracked(MeshSize itype);
   template<typename T> 
   auto& get_work_tracked(MeshSize itype){
     static_assert(std::is_same_v<T,int> || std::is_same_v<T,double>);
@@ -309,6 +309,12 @@ public: // for debug purposes only
   constexpr const int* debug_n_work_tracked() const {
     if constexpr (std::is_same_v<T,int>) return n_iwork_tracked;
     else                                 return n_rwork_tracked;
+  }
+  template<typename T> 
+  auto& debug_get_work_tracked(MeshSize itype){
+    static_assert(std::is_same_v<T,int> || std::is_same_v<T,double>);
+    if constexpr(std::is_same_v<T,int>) return get_iwork_tracked(itype);
+    else                                return get_rwork_tracked(itype);
   }
 
 protected:
@@ -343,6 +349,8 @@ protected:
   void free_tag(int ii){
     tagarr_locks[ii] = 0;
   }
+
+  void update_tracked_work_arrays(MeshSize itype, int mentt, int nentt);
 
 protected:
   MeshArray1D<intAr1> tagarrs;
@@ -435,10 +443,30 @@ public:
   const intAr1 &debug_get_rwork_lock() const {return rwork_lock;}
   const MeshArray1D<intAr1> &debug_get_iwork() const {return iwork;}
   const MeshArray1D<dblAr1> &debug_get_rwork() const {return rwork;}
+  template<typename T>
+  const auto &debug_get_work() const {
+    if constexpr (std::is_same_v<T,int>) return iwork;
+    else                                 return rwork;
+  }
+  template<typename T>
+  const auto &debug_get_work_lock() const {
+    if constexpr (std::is_same_v<T,int>) return iwork_lock;
+    else                                 return rwork_lock;
+  }
   intAr1 &debug_get_iwork_lock() {return iwork_lock;}
   intAr1 &debug_get_rwork_lock() {return rwork_lock;}
   MeshArray1D<intAr1> &debug_get_iwork() {return iwork;}
   MeshArray1D<dblAr1> &debug_get_rwork() {return rwork;}
+  template<typename T>
+  auto &debug_get_work(){
+    if constexpr (std::is_same_v<T,int>) return iwork;
+    else                                 return rwork;
+  }
+  template<typename T>
+  auto &debug_get_work_lock(){
+    if constexpr (std::is_same_v<T,int>) return iwork_lock;
+    else                                 return rwork_lock;
+  }
 private:
   void get_nMeshSize(MeshSize itype, int* nn, int* mm);
 };

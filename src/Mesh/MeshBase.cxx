@@ -393,15 +393,6 @@ MeshBase& MeshBase::operator=(const MeshBase &inp){
 #endif
 
 
-#define UPDATE_WORK_TYPE(DATATYPE, MESHTYPE, NAME)\
-  for(auto wrkArMem : get_work_tracked<DATATYPE>(MeshSize::MESHTYPE)){\
-    if(wrkArMem == NULL) continue;\
-    wrkArMem->allocate(m##NAME);\
-    wrkArMem->set_n(n##NAME);\
-  }
-
-
-
 void MeshBase::set_nbpoi(int nbpoi){
   METRIS_ASSERT(Defaults::mem_growfac > 1); 
 
@@ -414,8 +405,7 @@ void MeshBase::set_nbpoi(int nbpoi){
   bpo2rbi.allocate(mbpoi, nrbi);
   bpo2rbi.set_n(nbpoi);
 
-  UPDATE_WORK_TYPE(int, BPoint, bpoi);
-  UPDATE_WORK_TYPE(double, BPoint, bpoi);
+  update_tracked_work_arrays(MeshSize::BPoint, mbpoi, nbpoi);
 
   // Update tag arrays currently locked to entity type BPoint
   int ntag = tagarrs.get_n();
@@ -450,8 +440,8 @@ void MeshBase::set_npoin(int npoin, bool skipallocf){
   poi2tag.allocate(METRIS_MAXTAGS, mpoin);
   poi2tag.set_n(METRIS_MAXTAGS);
 
-  UPDATE_WORK_TYPE(int, Point, poin);
-  UPDATE_WORK_TYPE(double, Point, poin);
+
+  update_tracked_work_arrays(MeshSize::Point, mpoin, npoin);
 
 
   // Update tag arrays currently locked to entity type point
@@ -488,9 +478,9 @@ void MeshBase::set_nedge(int nedge, bool skipallocf){
   edg2tag.set_n(METRIS_MAXTAGS);
 
 
-  UPDATE_WORK_TYPE(int, Edge, edge);
-  UPDATE_WORK_TYPE(double, Edge, edge);
-  
+  update_tracked_work_arrays(MeshSize::Edge, medge, nedge);
+
+
   // Update tag arrays currently locked to entity type Edge
   int ntag = tagarrs.get_n();
   for(int ii = 0; ii < ntag; ii++){
@@ -531,8 +521,8 @@ void MeshBase::set_nface(int nface, bool skipallocf){
   fac2tag.set_n(METRIS_MAXTAGS); 
 
 
-  UPDATE_WORK_TYPE(int, Face, face);
-  UPDATE_WORK_TYPE(double, Face, face);
+  update_tracked_work_arrays(MeshSize::Face, mface, nface);
+
 
   // Update tag arrays currently locked to entity type Face
   int ntag = tagarrs.get_n();
@@ -576,8 +566,8 @@ void MeshBase::set_nelem(int nelem, bool skipallocf){
   if(nelem > melem_) melem_ = MAX(nelem, melem_*Defaults::mem_growfac);
 
 
-  UPDATE_WORK_TYPE(int, Tetra, elem);
-  UPDATE_WORK_TYPE(double, Tetra, elem);
+  update_tracked_work_arrays(MeshSize::Tetra, melem, nelem);
+
 
   //tet2ftg.allocate(melem);
   //tet2ftg.set_n(nelem);
