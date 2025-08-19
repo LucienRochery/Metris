@@ -22,7 +22,10 @@ namespace Metris{
 std::tuple<int,int,int> stup3(int i1,int i2,int i3);
 
 // Get the points surrounding a point, among dimension tdim elements.
-int poi2poi(MeshBase& msh, int ipoin, int tdim, intAr1 &lpoin, int ithrd1){
+// Optionally fills lbent the ball of ipoin. 
+int poi2poi(MeshBase& msh, int ipoin, int tdim, intAr1 &lpoin, intAr1 *lbent, int ithrd1){
+  GETVDEPTH(msh.param);
+
   if(tdim <= 0) tdim = msh.get_tdim();
 
   int medge = 0, mface = 0, mtetr = 0;
@@ -35,17 +38,27 @@ int poi2poi(MeshBase& msh, int ipoin, int tdim, intAr1 &lpoin, int ithrd1){
   intWrkAr1 lbtet_ = msh.get_iwork(mtetr);
 
   intAr1 dum;
-  intAr1 &lbedg = tdim == 1 ? lbedg_.get_array() : dum;
-  intAr1 &lbfac = tdim == 2 ? lbfac_.get_array() : dum;
-  intAr1 &lbtet = tdim == 3 ? lbtet_.get_array() : dum;
+  intAr1 &lbedg = tdim == 1 ? (lbent == NULL ? lbedg_.get_array() : *lbent) : dum;
+  intAr1 &lbfac = tdim == 2 ? (lbent == NULL ? lbfac_.get_array() : *lbent) : dum;
+  intAr1 &lbtet = tdim == 3 ? (lbent == NULL ? lbtet_.get_array() : *lbent) : dum;
+
 
   int iopen;
   int ierro = ball(msh, ipoin, lbedg, lbfac, lbtet, &iopen, false, ithrd1);
   if(ierro != 0) return ierro;
 
-  intAr1 &lbent = tdim == 1 ? lbedg :
-                  tdim == 2 ? lbfac : lbtet;
-  poi2poi(msh, ipoin, tdim, lbent, lpoin, ithrd1);
+  CPRINTF1(" - ball gathered edge {} face {} tetra {}\n",
+           lbedg.get_n(), lbfac.get_n(), lbtet.get_n());
+
+  intAr1 *lbent_ = lbent;
+  if(lbent == NULL){
+    lbent_ = tdim == 1 ? &lbedg :
+             tdim == 2 ? &lbfac : &lbtet; 
+  }else{
+    CPRINTF1(" - using provided lbent with size {}\n",
+             lbent_->get_n());
+  }
+  poi2poi(msh, ipoin, tdim, *lbent_, lpoin, ithrd1);
 
   return 0;
 }
@@ -54,28 +67,27 @@ int poi2poi(MeshBase& msh, int ipoin, int tdim, intAr1 &lpoin, int ithrd1){
 // Get the points surrounding a point, among dimension tdim elements.
 // Caller provides ball lbent.
 void poi2poi(MeshBase& msh, int ipoin, int tdim, const intAr1 &lbent, intAr1 &lpoin, int ithrd1){
-
-  intAr2 &ent2tag = msh.ent2tag(tdim);
+  GETVDEPTH(msh.param);
   const intAr2 &ent2poi = msh.ent2poi(tdim);
-  const intAr2 &ent2ent = msh.ent2ent(tdim);
 
   lpoin.allocate(lbent.get_n());
   lpoin.set_n(0);
 
-  msh.tag[ithrd1]++;
-  for(int ientt : lbent) ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
+  const int nnode = getnnode(tdim,msh.curdeg);
 
+  
+  CPRINTF1("-- START poi2poi lbent.n = {}\n",lbent.get_n());
+
+  msh.tag[ithrd1]++;
   for(int ientt : lbent){
-    for(int ifact = 0; ifact < tdim + 1; ifact++){
-      int ient2 = ent2ent(ientt, ifact);
-      if(ient2 >= 0 && ent2tag(ithrd1,ient2) >= msh.tag[ithrd1]) continue;
-      for(int iver = 0; iver < tdim + 1; iver++){
-        if(iver == ifact) continue;
-        int ipoi2 = ent2poi(ientt,iver);
-        if(msh.poi2tag(ithrd1,ipoi2) >= msh.tag[ithrd1]) continue;
-        msh.poi2tag(ithrd1,ipoi2) = msh.tag[ithrd1];
-        lpoin.stack(ipoi2);
-      }
+    INCVDEPTH(msh.param);
+    for(int inode = 0; inode < nnode; inode++){
+      int ipoi2 = ent2poi(ientt,inode);
+      if(ipoi2 == ipoin) continue;
+      if(msh.poi2tag(ithrd1,ipoi2) >= msh.tag[ithrd1]) continue;
+      msh.poi2tag(ithrd1,ipoi2) = msh.tag[ithrd1];
+      lpoin.stack(ipoi2);
+      CPRINTF1(" - point {} shares element {} with {}\n",ipoi2,ientt,ipoin);
     }
   }
 
@@ -227,10 +239,14 @@ int ball(MeshBase& msh, int ipoin,
     }
   }
 
+  if(!dofac && !dotet) return 0;
+
   // Minimum tdim. 1 is done. 2 iff pdim > 1 or idim = 2
   int tdi0 = ((pdim > 1 || msh.idim == 2) && dofac) ? 2 : 3;
   int tdi1 = msh.get_tdim();
-  METRIS_ASSERT(tdi0 <= tdi1);
+  if(tdi1 == 3 && !dotet) tdi1 = 2;
+  //METRIS_ASSERT_MSG(tdi0 <= tdi1,
+  //  "## BALL() error tdi0 = "<<tdi0<<" tdi1 = "<<tdi1<<" with pdim "<<pdim<<" dofac "<<dofac<<" doedg "<<doedg<<" dotet "<<dotet);
 
   for(int tdim = tdi0; tdim <= tdi1; tdim++){
 
@@ -239,6 +255,8 @@ int ball(MeshBase& msh, int ipoin,
           intAr2 &ent2tag = msh.ent2tag(tdim);
 
     intAr1 &lbent = tdim == 2 ? lbfac : lbtet;
+    METRIS_ASSERT_MSG(lbent.get_n() > 0,"lbent is empty with tdim = "<<tdim<<
+      " do_edge = "<<doedg<<" do_face = "<<dofac<<" do_tetra = "<<dotet);
 
     ent2tag(ithrd, lbent[0]) = msh.tag[ithrd];
 

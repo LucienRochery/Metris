@@ -66,7 +66,7 @@ void check_topo(MeshBase &msh,
         if(isdeadent(ientt,ent2poi)) continue;
 
         bool iflat = !isvalideltP1<gdim,tdim>(msh, ientt, NULL, NULL, -1 );
-        METRIS_ENFORCE(!iflat);
+        METRIS_ENFORCE_MSG(!iflat,"invalid element tdim "<<tdim<<" ientt "<<ientt);
         if(msh.curdeg > 1){
           CT_FOR0_INC(2,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
             getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,&ccoef[0],&iflat);

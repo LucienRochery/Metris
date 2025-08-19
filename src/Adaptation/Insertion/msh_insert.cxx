@@ -48,14 +48,18 @@ namespace Metris{
 // insertLongEdges is called.
 template<class MFT, int gdim, int ideg>
 double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int ithrd2){
-  //printf("## DEBUG SET MAX PRINTS\n");
-  //wait();
-  //msh.param->iverb = 5;
-  //msh.param->ivdepth = 15;
+  //if(tdim == 2){
+  //  printf("## DEBUG SET MAX PRINTS\n");
+  //  wait();
+  //  msh.param->iverb = 5;
+  //  msh.param->ivdepth = 15;
+  //}
   GETVDEPTH(msh.param);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd1 != ithrd2);
+
+  const bool doSteiner = false;
 
   int iverb0 = msh.param->iverb;
   int ivdepth0 = msh.param->ivdepth;
@@ -189,13 +193,16 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
       int iSteiner = -1;
     try_insert:
       iSteiner++;
-      EdgeSeed insertionSeed(msh, cav, msh.get_tdim(), tdim, ientt, ied);
+      EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, ied);
       ierro = insertEdge(msh,insertionSeed,lenqua_short_max,false,
                          cav,work,lcaverr,ithrd1,ithrd2);
-      msh.param->iverb = iverb0;
-      msh.param->ivdepth = ivdepth0;
       //if(ierro > 0 && iSteiner == 1){
       //  printf("## DEBUG WAIT error after Steiner = %d\n",ierro);
+      //  wait();
+      //}
+
+      //if(ierro == 10 && DOPRINTS1()){
+      //  CPRINTF1(" ## DEBUG WAIT HERE ierro = {}\n",ierro);
       //  wait();
       //}
 
@@ -205,6 +212,9 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
 
         // constrain point
         msh.poicstr[cav.ipins] = true;
+        //static int nwarnprt1 = 5;
+        //if(nwarnprt1 --> 0) PRINTF("## NOT CONSTRAINING POINTS\n");
+
         // Remove the edge from the edge hash table.
         edge_it = ledge.erase(edge_it);
 
@@ -247,7 +257,7 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
 
       }else{
         CPRINTF2(" # insertion failed ierro = {} \n",ierro);
-        if(iSteiner == 0 && tdim <= 2 && insertionSeed.tdimp <= tdim && insertionSeed.tdimp < msh.get_tdim()){
+        if(doSteiner && iSteiner == 0 && tdim <= 2 && insertionSeed.tdimp <= tdim && insertionSeed.tdimp < msh.get_tdim()){
           static int nwarnprt = 5;
           if(insertionSeed.tdimp == 1 && nwarnprt --> 0) 
             PRINTF("## Once insertSteiner is implemented for tdimp = 1, update this call site");
@@ -286,6 +296,9 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
     }// for edge_it
 
     double stat0 = ninser1 / (double) nedge_tot;
+    // Empirically about 30x more edges as points. We can't use msh.npoin if not msh.cleanup().
+    if(tdim == 3) stat0 *= 32;
+    if(tdim == 2) stat0 *= 5;
 
     double t1 = get_wall_time();
     int ncallps = 1000*(int)((ninser1 / (t1-t0)) / 1000);
@@ -324,7 +337,7 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
 
   }// for niter
   msh.cleanup();
-  stat = (double) *ninser /(double) nedge_tot;
+  stat = (double) *ninser / (double) msh.npoin;
 
   return stat;
 }

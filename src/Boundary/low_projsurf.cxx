@@ -150,6 +150,20 @@ int projptfacP1(const double*__restrict__ coop,
   double nrm123 = getnrml2<3>(nrmal);
   if(nrm123 < Constants::vecNrmTol){
     #ifndef NDEBUG
+    fmt::print("## projptfacP1: degenerate face, nrm123 = {:15.7e}\n",nrm123);
+    fmt::print("nrmal = {} {} {}\n",nrmal[0], nrmal[1], nrmal[2]);
+    fmt::print("coof1 = {} {} {}\n",coof1[0], coof1[1], coof1[2]);
+    fmt::print("coof2 = {} {} {}\n",coof2[0], coof2[1], coof2[2]);
+    fmt::print("coof3 = {} {} {}\n",coof3[0], coof3[1], coof3[2]);
+    
+    vecprod_vdif(coof3,coof2,
+                 coof1,coof2,nrmal);
+    nrm123 = getnrml2<3>(nrmal);
+    fmt::print("## order 2 3 1 nrm = {:15.7e}\n",nrm123);
+    vecprod_vdif(coof1,coof3,
+                 coof2,coof3,nrmal);
+    nrm123 = getnrml2<3>(nrmal);
+    fmt::print("## order 3 1 2 nrm = {:15.7e}\n",nrm123);
     METRIS_THROW_MSG(GeomExcept(), "Degenerate face passed to projptfacP1");
     #endif
     return 1;

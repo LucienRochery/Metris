@@ -15,6 +15,7 @@
 #include "../quality/msh_metqua.hxx"
 #include "../io_libmeshb.hxx"
 #include "../smoothing/msh_smooball.hxx"
+#include "../smoothing/msh_smoolen.hxx"
 #include "../msh_checktopo.hxx"
 #include "../aux_histogram.hxx"
 #include "../msh_lenedg.hxx"
@@ -53,9 +54,9 @@ void MetrisRunner::adaptMesh2(){
         }else{
           adaptMesh0<MetricFieldAnalytical,gdim,ideg>(tdim);
         }
-        CPRINTF1("\n\n");
-        //if(tdim == 1){
-        //  printf("\n\n## DEBUG BREAK AT TDIM = 1\n\n\n");
+        //CPRINTF1("\n\n");
+        //if(tdim == 2){
+        //  printf("\n\n## DEBUG BREAK AT TDIM = 2\n\n\n");
         //  wait();
         //  break;
         //}
@@ -303,6 +304,31 @@ void MetrisRunner::adaptMesh0(int tdim){
       }
     }
 
+
+    if(msh.param->adp_smoo_len){
+      t0 = get_wall_time();
+      smoothMeshLength(msh, tdim, ithrd1, ithrd2);
+      t1 = get_wall_time();
+
+      if(DOPRINTS2()){
+        writeMesh("v2_smoolen_adp"  + std::to_string(tdim) + "D" + std::to_string(niter)+".meshb",msh);
+        msh.met.writeMetricFile("v2_smoolen_adp" + std::to_string(tdim) + "D" + std::to_string(niter)+".solb");
+        writeBackLinks("v2_smoolen_adp_poi2bak" + std::to_string(niter), msh);
+      }
+      if(DOPRINTS2()){
+        getLengthEdges(msh,tdim,-1,ilned,rlned,lenstat);
+        CPRINTF1(" - Length qua short = {}\n",lenstat.qua_short);
+        CPRINTF1(" -            long  = {}\n",lenstat.qua_long);
+        if(DOPRINTS3()) print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
+        CPRINTF2("------------------------------------------------------------\n");
+        CPRINTF2("- iteration {} length smoothing stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
+        CPRINTF2("------------------------------------------------------------\n");
+      }
+
+      #ifndef NDEBUG
+      check_topo(msh,0);
+      #endif
+    }
 
 
     if(msh.idim == tdim){

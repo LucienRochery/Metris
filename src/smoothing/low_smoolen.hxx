@@ -14,12 +14,18 @@ class MshCavity;
 struct EdgeSeed;
 
 template<class MFT>
-int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, int tdim, int iseed, int miter, int ithrd1);
-template<class MFT>
-int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, const EdgeSeed &insertionSeed, int miter, int ithrd1);
+int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav, int miter, int ithrd1);
 
 template<class MFT>
-int smoopoilen(Mesh<MFT>& msh, int ipmov, const intAr1 &lpoin, int miter, int tdimp = -1, int iseed = -1);
+int movePointBallLen(Mesh<MFT>& msh, int ipmov, int miter, 
+                    double *qlen0 = NULL, double *qlen1 = NULL, int ithrd1 = -1);
+
+template<class MFT>
+int smoopoilen(Mesh<MFT>& msh, int ipmov, 
+               const intAr1 &lpoin, 
+               const intAr1* lbedg, const intAr1* lbfac, const intAr1* lbtet, 
+               int miter, 
+               double *qlen0 = NULL, double *qlen1 = NULL);
 
 }//namespace Metris
 #endif

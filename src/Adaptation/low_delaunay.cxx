@@ -185,12 +185,32 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
 
   // C is solution of mat*C = rhs
   //invmat(gdim, mat[0]);
+  // This is not necessarily an error... however draconian our element
+  // validity criteria, we can't control what metric will be used here.
   if(invmat<tdim>(mat[0])){
+    #if 0
     #ifndef NDEBUG
-    fmt::print("## Failed to invert {}\n", dblAr2(tdim,tdim,mat[0]));
-    METRIS_THROW_MSG(GeomExcept(), "Invmat failed Delaunay")
+    fmt::print("## Failed to invert:\n");
+    for(int ii = 0; ii < tdim; ii++){
+      for(int jj = 0; jj < tdim; jj++){
+        fmt::print(" {:25.16f} ",mat[ii][jj]);
+      }
+      fmt::print("\n");
+    }
+    fmt::print("Manual detmat = {:25.16e}\n",detmat<tdim>(mat[0]));
+    int ierro2 = invmat_naive<tdim>(mat[0]);
+    fmt::print("Naive detmat ierro = {} invmat:\n",ierro2);
+    for(int ii = 0; ii < tdim; ii++){
+      for(int jj = 0; jj < tdim; jj++){
+        fmt::print(" {:25.16f} ",mat[ii][jj]);
+      }
+      fmt::print("\n");
+    }
+
+    METRIS_THROW_MSG(GeomExcept(), "Invmat failed Delaunay ent2pol = "<<intAr1(tdim+1,ent2pol))
     #endif
-    return false;
+    #endif
+    return true; // basically a sliver with infinite Delaunay radius
   }
   matXvec<tdim>(mat[0], rhs, centr);
 

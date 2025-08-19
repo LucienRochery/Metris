@@ -149,6 +149,34 @@ template int invmat_EigenLUFP<3,double>(double *mat, double* inv);
 #endif
 
 template<>
+int invmat_naive<3>(double *mat){
+  // Calculate determinant
+  double det = detmat<3>(mat);
+  if(abs(det) < Constants::detTol) return 1;
+
+  double invdet = 1.0 / det;
+  
+  // Calculate cofactor matrix and transpose to get adjugate
+  double inv[9];
+  inv[0] =  (mat[4]*mat[8] - mat[5]*mat[7]) * invdet;
+  inv[1] = -(mat[1]*mat[8] - mat[2]*mat[7]) * invdet;
+  inv[2] =  (mat[1]*mat[5] - mat[2]*mat[4]) * invdet;
+  inv[3] = -(mat[3]*mat[8] - mat[5]*mat[6]) * invdet;
+  inv[4] =  (mat[0]*mat[8] - mat[2]*mat[6]) * invdet;
+  inv[5] = -(mat[0]*mat[5] - mat[2]*mat[3]) * invdet;
+  inv[6] =  (mat[3]*mat[7] - mat[4]*mat[6]) * invdet;
+  inv[7] = -(mat[0]*mat[7] - mat[1]*mat[6]) * invdet;
+  inv[8] =  (mat[0]*mat[4] - mat[1]*mat[3]) * invdet;
+  
+  // Copy result back to input matrix
+  for(int i = 0; i < 9; i++){
+    mat[i] = inv[i];
+  }
+  
+  return 0;
+}
+
+template<>
 int invmat_naive<2>(double *mat){
   double det = mat[0]*mat[3] - mat[1]*mat[2];
   if(abs(det) < Constants::detTol) return 1; 

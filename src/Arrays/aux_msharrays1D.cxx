@@ -153,7 +153,8 @@ bool MeshArray1D<T,INT1>::allocate(INT1 m){
   std::shared_ptr<T[]> new_array_sp = cpp17_make_shared<T[]>(m);
   T* new_array = new_array_sp.get();
 
-  METRIS_ASSERT(array != NULL || n1 <= 0);
+  METRIS_ASSERT_MSG(array != NULL || n1 <= 0,
+  "n1 = "<<n1<<" and array = "<<array);
     
   for(int ii = 0; ii < n1; ii++) new_array[ii] = array[ii];
   
@@ -215,7 +216,9 @@ template<typename T,typename INT1>
 void MeshArray1D<T,INT1>::print(INT1 n, FILE* logfile) const{
   constexpr bool isptr = std::is_same_v<T,ego>
                        || std::is_same_v<T,intAr1*>
-                       || std::is_same_v<T,dblAr1*>;
+                       || std::is_same_v<T,dblAr1*>
+                       || std::is_same_v<T,intWrkAr1*>
+                       || std::is_same_v<T,dblWrkAr1*>;
   INT1 m = n < m1 ? n : n1;
   if(m == 0) return;
   fmt::print(logfile, "[");
@@ -286,6 +289,8 @@ template class MeshArray1D<MeshArray1D<double,int>,int>;
 template class MeshArray1D<MeshArray1D<int   ,int>,int>;
 template class MeshArray1D<intAr1*,int>;
 template class MeshArray1D<dblAr1*,int>;
+template class MeshArray1D<intWrkAr1*,int>;
+template class MeshArray1D<dblWrkAr1*,int>;
 
 //template MeshArray1D<bool,int32_t>::MeshArray1D<bool,int32_t,int32_t>(MeshArray2D<bool,int32_t,int32_t> &arr2);
 //

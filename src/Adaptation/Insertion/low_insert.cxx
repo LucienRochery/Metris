@@ -126,7 +126,7 @@ int insertEdge(Mesh<MFT>& msh,
   if(icollapse){
     ierro = collrejcav_lenqua(msh, cav, false, false, false, -1, nocomp, ithrd2);
     if(ierro > 0){
-      ierro = INS2D_ERR_SHORTEDG;
+      ierro = INS2D_ERR_SHORTEDG6;
       CPRINTF1(" # collrejcav_lenqua rejects cavity, try fix\n");
       CPRINTF1(" # reject cavity\n");
 

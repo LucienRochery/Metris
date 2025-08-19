@@ -10,6 +10,7 @@
 //#include <nlopt.h>
 
 #include "../low_geo/misc.hxx"
+#include "../low_geo/measure.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../utils/mprintf.hxx"
 #include "../Optimization/opt_generic.hxx"
@@ -84,7 +85,16 @@ int inveval0(MeshBase &msh,
   double ftol_abs = -1e30;
   double lb[gdim], ub[gdim];
 
-  inventP1<gdim>(ent2pol, coord, coor0, bary);
+  try{
+    inventP1<gdim>(ent2pol, coord, coor0, bary);
+  }catch(const MetrisExcept& e){
+    if constexpr (gdim >= 2){
+      double meas;
+      bool ivalid = isvalideltP1<gdim,gdim>(msh, ent2pol, NULL, NULL, &meas, -1);
+      fmt::print("inventP1 failed element valid? {} meas {:.2e}\n",ivalid,meas);
+    }
+    throw(e);
+  }
 
   if constexpr(ideg > 1){
     for(int ii = 0; ii < gdim; ii++){

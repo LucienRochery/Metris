@@ -8,7 +8,9 @@
 #include "normal.hxx"
 
 #include "../linalg/det.hxx"
+#include "../linalg/invmat.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 #include "../Mesh/MeshMetric.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -127,6 +129,12 @@ double getmeasentP1(const MeshBase&__restrict__ msh, const int*__restrict__ ent2
     double nrm2 = geterrl2<gdim>(msh.coord[ent2pol[0]],msh.coord[ent2pol[2]]);
     double nrm3 = geterrl2<gdim>(msh.coord[ent2pol[1]],msh.coord[ent2pol[2]]);
 
+    if(nrm1 < Constants::vecNrmTol || nrm2 < Constants::vecNrmTol ||
+       nrm3 < Constants::vecNrmTol){
+      *iflat = true;
+      return 0;
+    }
+
     fac = 2*std::cbrt(nrm1*nrm2*nrm3); // cubic root, homo to h^2
 
     if constexpr(gdim == 2){
@@ -197,6 +205,27 @@ double getmeasentP1(const MeshBase&__restrict__ msh, const int*__restrict__ ent2
     double nrm4 = geterrl2<gdim>(msh.coord[ent2pol[1]],msh.coord[ent2pol[2]]);
     double nrm5 = geterrl2<gdim>(msh.coord[ent2pol[1]],msh.coord[ent2pol[3]]);
     double nrm6 = geterrl2<gdim>(msh.coord[ent2pol[2]],msh.coord[ent2pol[3]]);
+
+    if(nrm1 < Constants::vecNrmTol || nrm2 < Constants::vecNrmTol ||
+       nrm3 < Constants::vecNrmTol || nrm4 < Constants::vecNrmTol ||
+       nrm5 < Constants::vecNrmTol || nrm6 < Constants::vecNrmTol){
+      *iflat = true;
+      return 0;
+    }
+
+    // Check the Jacobian is invertible
+    double jmat[gdim][gdim];
+    for(int ii = 0; ii < gdim; ii++){
+      jmat[0][ii] = msh.coord(ent2pol[1],ii) - msh.coord(ent2pol[0],ii);
+      jmat[1][ii] = msh.coord(ent2pol[2],ii) - msh.coord(ent2pol[0],ii);
+      jmat[2][ii] = msh.coord(ent2pol[3],ii) - msh.coord(ent2pol[0],ii);
+    }
+    if(invmat<gdim>(jmat[0])){
+      *iflat = true;
+      return 0;
+    }
+    
+    
     // full prod is homo h^12; det only h^3
     fac = 6*sqrt(sqrt(nrm1*nrm2*nrm3*nrm4*nrm5*nrm6));
 

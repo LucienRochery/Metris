@@ -8,11 +8,16 @@ Routine for "direct" smoothing as P1. From each (facet, metric) pair, generate r
 Simplest possible approach.
 */
 
+#include "low_smoolen.hxx"
+
+
 #include "../Mesh/Mesh.hxx" 
 #include "../MetrisRunner/MetrisParameters.hxx"
 
 #include "../smoothing/msh_smooball.hxx"
 #include "../smoothing/low_smooballdiff.hxx"
+
+#include "../low_geo/lenedg.hxx"
 
 #include "../aux_topo.hxx"
 #include "../utils/aux_timer.hxx"
@@ -20,6 +25,7 @@ Simplest possible approach.
 #include "../utils/mprintf.hxx"
 #include "../quality/low_metqua.hxx"
 #include "../io_libmeshb.hxx"
+#include "../msh_checktopo.hxx"
 
 #include "libs/lplib3/lplib3.h"
 
@@ -28,28 +34,32 @@ Simplest possible approach.
 namespace Metris{
 
 
-// idim: gdim = tdim
 template<class MFT>
-double smoothMeshLength(Mesh<MFT> &msh,int ithrd1, int ithrd2){
+double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
 
-  constexpr int tdim = idim;
-  //constexpr int gdim = idim;
-  if(ideg > idim + 1){
-    PRINTF("## SMOOTHING DISABLED FOR DEGREE {} and dim {} \n",ideg,idim);
-    return -1.0;
+  if(tdim == 1){
+    CPRINTF1(" # smoothMeshLength tdim = 1 not implemented as it requires nordev to ensure validity\n");
+    return 0;
   }
 
+  //printf("## DEBUG SET MAX prints\n");
+  //msh.param->iverb = 3;
+  //msh.param->ivdepth = 15;
+  //wait();
+  
 
-  int nentt = msh.nentt(tdim);
+  const int nedgl = (tdim*(tdim+1))/2;
+  const intAr2 lnoed(nedgl,2,tdim == 1 ? lnoed1[0] :
+                             tdim == 2 ? lnoed2[0] : lnoed3[0]);
+
+  const int nentt = msh.nentt(tdim);
   const intAr2 &ent2poi = msh.ent2poi(tdim); 
-  const intAr2 &ent2ent = msh.ent2ent(tdim); 
+
+  CPRINTF1("-- START smoothMeshLength tdim = {}\n",tdim);
 
 
 
-  // Eventually move all constants to MetrisParameters 
-  // L2 conformity error from 0 to 1 
-  const double difto = 1.0;
   const int miter = msh.param->opt_smoo_niter;
   //const double maxwt = 20.0;
   //const double qrthr = 2.0;
@@ -64,11 +74,9 @@ double smoothMeshLength(Mesh<MFT> &msh,int ithrd1, int ithrd2){
   // 1 -> no maximum quality increase allowed 
   //const double maxinc_worst = 1.00;
 
-  constexpr int nnmet = (idim*(idim+1))/2;
+  const int nnmet = (msh.idim*(msh.idim+1))/2;
 
   METRIS_ENFORCE(msh.param->opt_power < 0); // Otherwise rework the mins / maxs
-  // Otherwise not only edge nodes 
-  METRIS_ENFORCE(ideg <= tdim + 1); 
 
 
   const int mball = 100;
@@ -76,35 +84,62 @@ double smoothMeshLength(Mesh<MFT> &msh,int ithrd1, int ithrd2){
 
   msh.tag[ithrd1]++;
 
-  auto quafun = get_quafun<MFT,idim,idim>(iquaf);
+  const int medge = tdim == 2 ? msh.nface : msh.nelem;
+  HshTab_I2I ledge;
+  ledge.reserve(medge);
 
+  double t0s = get_wall_time();
+  int nedge_tot = 0;
+  for(int ientt = 0; ientt < msh.nentt(tdim); ientt++){
+    INCVDEPTH(msh.param);
+    if(isdeadent(ientt,ent2poi)) continue;
+    for(int ied = 0; ied < nedgl; ied++){
+      INCVDEPTH(msh.param);
+
+      // Check edge already seen
+      int ip1 = ent2poi(ientt, lnoed(ied,0));
+      int ip2 = ent2poi(ientt, lnoed(ied,1));
+      auto key = stup2(ip1,ip2);
+      if(ledge.find(key) != ledge.end()) continue;
+
+      nedge_tot++;
+      
+      ledge[key] = ientt;
+    }// for ied
+  }// for ientt
+  double t1s = get_wall_time();
+  CPRINTF1(" - init time {:.2e}s nlong = {}\n",t1s-t0s,(int)ledge.size());
+
+
+  intWrkAr1 lpoin = msh.get_iwork(100);
   double noper = 0;
   for(int niter = 0; niter < miter; niter++){
     INCVDEPTH(msh.param);
 
-    double qmin = 1.0e30,qmax = -1.0e30, qnrm = 0.0;
+    double qmin = 1.0e30, qmax = -1.0e30, qavg = 0.0;
     int imax = -1;
     int navg = 0;
-    for(int ientt = 0; ientt < nentt; ientt++){
+    for(auto iedge : ledge){
+      int ip1 = std::get<0>(iedge.first);
+      int ip2 = std::get<1>(iedge.first);
 
-      if(isdeadent(ientt,ent2poi)) continue;
+      double sz[2];
+      int edg2pol[2] = {ip1, ip2};
+      double len = msh.idim == 2 ? getlenedg_geosz<MFT,2,1>(msh,edg2pol,sz)
+                                 : getlenedg_geosz<MFT,3,1>(msh,edg2pol,sz);
 
-      navg++;
+      double quaed = len < 1.0 ? 1.0 - len 
+                               : 1.0 - 1.0 / len;
 
-      double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ientt,difto);
-
-      qnrm += quael;
-      qmin = MIN(qmin,quael);
-      if(qmax < quael){
-        imax = ientt;
-        qmax = quael;
-      }
+      qmin = MIN(qmin, quaed);
+      qmax = MAX(qmax, quaed);
+      qavg += quaed;
     }
 
-    qnrm /= navg;
+    qavg /= ledge.size();
     double t0 = get_wall_time();
-    CPRINTF1(" - smoo iter {:3} init {:10.6e} < q < {:10.6e} (at {}), avg = {:10.6e} " 
-                   "(p = {})\n",niter,qmin,qmax,imax,qnrm,msh.param->opt_pnorm);
+    CPRINTF1(" - smoo iter {:3} init {:10.6e} < q < {:10.6e} (at {}), avg = {:10.6e}\n",
+             niter,qmin,qmax,imax,qavg,msh.param->opt_pnorm);
     //if(iverb >= 2 && qmax >= 1e10){
     //  printf("## HIGH QMAX mshdeg = {} \n",msh.curdeg);
     //  std::string fname = "qmax"+std::to_string(imax);
@@ -120,103 +155,36 @@ double smoothMeshLength(Mesh<MFT> &msh,int ithrd1, int ithrd2){
       if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
       INCVDEPTH(msh.param);
 
-      int ib = msh.poi2bpo[ipoin];
-      if(ib >= 0) continue;
-
-      int ientt = getpoient(msh, ipoin, tdim);  
-      int iver = tdim == 2 ? msh.template getverfac<ideg>(ientt, ipoin)
-                           : msh.template getvertet<ideg>(ientt, ipoin);
-
-      METRIS_ASSERT(iver >= 0);
-
-
-      CPRINTF1(" - smoo pt {} seed elt {} \n", ipoin,ientt);
-      int ierro = 0;
-
-      if(iver < tdim+1){
-        int iopen;
-        // Vertex case 
-        if constexpr (idim == 2){
-          intAr1 dum; 
-          bool imani = false;
-          ierro = ball2(msh,ipoin,ientt,lball,dum,&iopen,&imani,ithrd2);
-          METRIS_ASSERT(imani == true);
-        }else{
-          ierro = ball3(msh,ipoin,ientt,lball,&iopen,ithrd2);
-        }
-        METRIS_ASSERT(iopen == 0);
-      }else{
-        // HO node
-        int nppe = getnnod1(ideg) - 2;
-        int ied = (iver - (tdim + 1)) / nppe;
-        if constexpr (tdim == 2){
-          lball.set_n(0);
-          lball.stack(ientt);
-          METRIS_ASSERT(ied < 4);
-
-          int ifnei = ent2ent(ientt,ied);
-          // nm not impl yet and bdry should never happen
-          METRIS_ASSERT(ifnei >= 0);
-
-          lball.stack(ifnei);
-        }else{
-          int ip1 = msh.tet2poi(ientt, lnoed3[ied][0]);
-          int ip2 = msh.tet2poi(ientt, lnoed3[ied][1]);
-          static intAr1 dum;
-          int iopen;
-          shell3(msh, ip1, ip2, ientt, lball, dum, &iopen);
-          METRIS_ASSERT(iopen < 0);
-        }
-
+      if(msh.getpoitdim(ipoin) != tdim){
+        msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1];
+        continue;
       }
-      METRIS_ASSERT(ierro == 0); 
 
-      double coor0[idim];
-      double met0[nnmet];
-      for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
-      for(int ii = 0; ii < nnmet; ii++) met0[ii] = msh.met(ipoin,ii);
-      double qnrm0, qmax0, qnrm1, qmax1;
-      ierro = movePointCavLen(msh, cav, tdim, ientt, miter, ithrd1);
-      try{
-        //ierro = smooballdirect<MFT,idim,ideg>(msh,ipoin,lball,qball,
-        //                       &qnrm0,&qmax0,&qnrm1,&qmax1,
-        //                       qpower,qpnorm,difto,maxwt,inorm,iverb,ithrd2);
-        if(msh.param->iflag2 == 0){
-          ierro = smooballdiff<MFT,idim,ideg>(msh,ipoin,lball,
-                                 &qnrm0,&qmax0,&qnrm1,&qmax1,iquaf);
-        }else{
-          ierro = smooballdiff_luksan<MFT,idim,ideg>(msh,ipoin,lball,
-                                     &qnrm0,&qmax0,&qnrm1,&qmax1,work,iquaf);
-        }
-        if(qmax1 > qmax){
-          CPRINTF1(" - reject move, worst above last worst {:15.7e} > {:15.7e}\n", 
-                   qmax1, qmax);
-          for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
-          for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
-          ierro = 1;
-        }
-      }catch(const MetrisExcept &e){
-        PRINTF("## FAILED  smooballdirect\n");
-        writeMesh("smooth_error.meshb",msh);
-        throw(e);
-      }
-      if(ierro == 0){
+      double qnrm0, qnrm1;
+      int ierro = movePointBallLen(msh, ipoin, 10, &qnrm0, &qnrm1, ithrd2);
+
+        //PRINTF("## DEBUG PAUSE HERE ierro = {} \n",ierro);
+        //writeMesh("debug_movepointball",msh);
+        //wait();
+
+      if(ierro < 0){
         nsucc++;
-        CPRINTF1(" - success smoothing {} q avg {:10.6e} -> {:10.6e} " 
-                 "max {:10.6e} -> {:10.6e}\n",ipoin,qnrm0,qnrm1,qmax0,qmax1);
+        CPRINTF1(" - success smoothing ipoin {} q max {:10.6e} -> {:10.6e}\n",ipoin,qnrm0,qnrm1);
+
 
         bool imov = false;
         // qnrm1 should be < qnrm0 for there to be progress 
         if(qnrm0 - qnrm1 > tolavg) imov = true;
-        // idem qmax 
-        if(qmax0 - qmax1 > tolmax) imov = true;
+        //// idem qmax 
+        //if(qmax0 - qmax1 > tolmax) imov = true;
         if(imov){
           nmov ++;
-          for(int iele2 : lball){
-            for(int ii = 0; ii < idim+1; ii++){
-              int ipoi2 = ent2poi(iele2,ii);
-              msh.poi2tag(ithrd1,ipoi2) = msh.tag[ithrd1] - 1; // reactivate
-            }
+          // We have no choice but to recompute as movePointBallLen
+          // uses lowest-dim, but we need to tag all.
+          ierro = poi2poi(msh, ipoin, -1, lpoin.get_array(), NULL, ithrd2);
+          METRIS_ENFORCE(ierro == 0);
+          for(int ipoi2 : lpoin.get_array()){
+            msh.poi2tag(ithrd1,ipoi2) = msh.tag[ithrd1] - 1; // reactivate
           }
         }else{
           msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1]; // deactivate
@@ -224,8 +192,7 @@ double smoothMeshLength(Mesh<MFT> &msh,int ithrd1, int ithrd2){
       }else{
         msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1]; // deactivate
       }
-
-    } // for ipoin // for ientt
+    }
 
     double t1 = get_wall_time();
     CPRINTF1(" - Iteration end time = {:.2e}s nsuccess = {} nmov = {} \n",
@@ -239,9 +206,9 @@ double smoothMeshLength(Mesh<MFT> &msh,int ithrd1, int ithrd2){
 
 
 template double smoothMeshLength<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh,
-                                        int ithrd1, int ithrd2);
+                                 int tdim, int ithrd1, int ithrd2);
 template double smoothMeshLength<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh,
-                                        int ithrd1, int ithrd2);
+                                 int tdim, int ithrd1, int ithrd2);
 
 
 } // end namespace

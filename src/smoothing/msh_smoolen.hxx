@@ -14,8 +14,8 @@ namespace Metris{
 
 // Returns double stat
 template<class MetricFieldType>
-double smoothMeshLength(Mesh<MetricFieldType> &msh, 
-                        int ithrd1, int ithrd);
+double smoothMeshLength(Mesh<MetricFieldType> &msh, int tdim,
+                        int ithrd1, int ithrd2);
 
 
 } // end namespace

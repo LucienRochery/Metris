@@ -22,8 +22,9 @@ int ball(MeshBase& msh, int ipoin,
 
 
 // Get the points surrounding a point, among dimension tdim elements.
-// Give <= 0 for all points.
-int poi2poi(MeshBase& msh, int ipoin, int tdim, intAr1 &lpoin, int ithrd1);
+// Optionally fills lbent the ball of ipoin. 
+int poi2poi(MeshBase& msh, int ipoin, int tdim, intAr1 &lpoin, intAr1 *lbent, int ithrd1);
+
 // Get the points surrounding a point, among dimension tdim elements.
 // Caller provides ball lbent.
 void poi2poi(MeshBase& msh, int ipoin, int tdim, const intAr1 &lbent, intAr1 &lpoin, int ithrd1);

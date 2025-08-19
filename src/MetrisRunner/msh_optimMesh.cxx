@@ -105,18 +105,21 @@ double MetrisRunner::optimMesh0(){
   double t0,t1;
 
   if(DOPRINTS1()){
-    getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
-    print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
+    //getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
+    //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
   
     getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,
-                       &iinva,&qmin,&qmax,&qavg,&lquae);
-    print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality (As Pk)");
+                      &iinva,&qmin,&qmax,&qavg,&lquae);
+    if(DOPRINTS2()){
+      print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality (As Pk)");
+    }else{
+      CPRINTF1(" - Quality min = {:15.7e} \n",qmin);
+      CPRINTF1("           max = {:15.7e} \n",qmax);
+      CPRINTF1("           avg = {:15.7e} \n",qavg);
+    }
 
-    getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
-                       &iinva,&qmin,&qmax,&qavg,NULL);
-    CPRINTF1(" - Quality min = {:15.7e} \n",qmin);
-    CPRINTF1("           max = {:15.7e} \n",qmax);
-    CPRINTF1("           avg = {:15.7e} \n",qavg);
+    //getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
+    //                   &iinva,&qmin,&qmax,&qavg,NULL);
   }
 
   double stat0 = 1;

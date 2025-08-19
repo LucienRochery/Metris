@@ -49,7 +49,7 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav,
     int ncfac0 = cav.lcfac.get_n();
     int nctet0 = cav.lctet.get_n();
 
-    ierro = movePointCavLen<MFT>(msh, cav, insertionSeed, 5, ithrd1);
+    ierro = movePointCavLen<MFT>(msh, cav, 5, ithrd1);
     if(ierro != 0) goto cleanup_loop;
 
     ierro = increase_cavity_Delaunay(msh, cav, insertionSeed.tdimp, -1, ithrd1);
@@ -120,12 +120,13 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
   if(nwarnprt++ < 10 && !filter_long) printf("## FILTER_LONG SET TO TRUE\n");
 
   CPRINTF1("-- START setCavityInsertion tdim = {} mgrow = {}\n",tdim,mgrow);
-
   intWrkAr1 lrempoi = msh.get_iwork(10);
+  lrempoi.set_n(0);
 
-  // Check any close constrained points
-  ierro = aux_findCloseConstrained(msh, cav, ithrd1, ithrd2);
-  if(ierro > 0) return INS2D_ERR_SHORTCSTR;
+  // Try commenting this out since we now move the point.
+  //// Check any close constrained points
+  //ierro = aux_findCloseConstrained(msh, cav, ithrd1, ithrd2);
+  //if(ierro > 0) return INS2D_ERR_SHORTCSTR;
 
   const int ibins = msh.poi2ebp(cav.ipins,tdimp,iseed,iref);
 
@@ -140,7 +141,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     int ncte1 = cav.lctet.get_n();
     for(int ii = 0; ii < msh.idim; ii++) coor0[ii] = msh.coord(cav.ipins, ii);
     for(int ii = 0; ii < nnmet   ; ii++) met0[ii] = msh.met(cav.ipins, ii);
-    for(int ii = 0; ii < 2       ; ii++) uv0[ii] = msh.bpo2rbi(ibins, ii);
+    if(ibins >= 0) for(int ii = 0; ii < 2       ; ii++) uv0[ii] = msh.bpo2rbi(ibins, ii);
 
     ierro = 0;
     if(DOPRINTS2()){
@@ -151,12 +152,12 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     CPRINTF1(" - step {} cavity nedge {} nface {} nelem {}\n",ngrow,
              cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
 
-    ierro = movePointCavLen<MFT>(msh, cav, insertionSeed, 5, ithrd1);
+    ierro = movePointCavLen<MFT>(msh, cav, 5, ithrd1);
     if(DOPRINTS2()){
       writeMeshCavity("insert_cavity1."+std::to_string(ngrow),msh,cav);
       msh.met.writeMetricFile("insert_cavity1."+std::to_string(ngrow));
     }
-    if(ierro != 0){
+    if(ierro > 0){
       CPRINTF1(" # movePointCavLen error {}\n",ierro);
       ierro = INS2D_ERR_MOVPTCAVLEN;
       goto finish_grow_step;
@@ -213,7 +214,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
 
     check_cavity_rempoint(msh, cav, opts, lrempoi.get_array(), true, ithrd1);
     if(lrempoi.get_n() > 0){
-      ierro = INS2D_ERR_SHORTEDG;
+      ierro = INS2D_ERR_SHORTEDG1;
       CPRINTF1(" # error nrem point = {}\n",lrempoi.get_n());
       goto finish_grow_step;
     }
@@ -225,7 +226,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
 
       for(int ii = 0; ii < msh.idim; ii++) msh.coord(cav.ipins, ii) = coor0[ii];
       for(int ii = 0; ii < nnmet   ; ii++) msh.met(cav.ipins, ii)   = met0[ii];
-      for(int ii = 0; ii < 2       ; ii++) msh.bpo2rbi(ibins, ii)   = uv0[ii];
+      if(ibins >= 0) for(int ii = 0; ii < 2       ; ii++) msh.bpo2rbi(ibins, ii)   = uv0[ii];
 
       bool unfixable = false;
       if(lrempoi.get_n() > 0){
@@ -279,7 +280,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
 
         check_cavity_rempoint(msh, cav, opts, lrempoi.get_array(), true, ithrd1);
         if(lrempoi.get_n() > 0){
-          ierro = INS2D_ERR_SHORTEDG;
+          ierro = INS2D_ERR_SHORTEDG2;
           CPRINTF1(" # error nrem point = {} after fix\n",lrempoi.get_n());
           unfixable = true;
           goto finish_correction;
@@ -297,7 +298,10 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
         cav.lctet.set_n(ncte1);
 
         ierro = collrejcav_lenqua(msh, cav, filter_long, false, true, lenqua_short_max, nocomp, ithrd2);
-        if(ierro > 0) return INS2D_ERR_SHORTEDG;
+        if(ierro > 0){
+          CPRINTF1(" # collrejcav_lenqua rejects cavity\n");
+          return INS2D_ERR_SHORTEDG3;
+        }
 
         ierro = 0;
         break;
@@ -356,7 +360,7 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
 
   // Check any close constrained points
   ierro = aux_findCloseConstrained(msh, cav, ithrd1, ithrd2);
-  if(ierro > 0) return INS2D_ERR_SHORTCSTR;
+  if(ierro > 0) return INS2D_ERR_SHORTCSTR2;
 
   for(int ngrow = 0; ngrow < mgrow; ngrow++){
 
@@ -416,7 +420,7 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
 
     check_cavity_rempoint(msh, cav, opts, lrempoi.get_array(), true, ithrd1);
     if(lrempoi.get_n() > 0){
-      ierro = INS2D_ERR_SHORTEDG;
+      ierro = INS2D_ERR_SHORTEDG4;
       CPRINTF1(" # error nrem point = {}\n",lrempoi.get_n());
       goto finish_grow_step;
     }
@@ -433,7 +437,7 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
         cav.lctet.set_n(ncte1);
 
         ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
-        if(ierro > 0) return INS2D_ERR_SHORTEDG;
+        if(ierro > 0) return INS2D_ERR_SHORTEDG5;
 
         ierro = 0;
         break;
@@ -969,17 +973,27 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
 
             // Check if Delaunay 
             bool isinsph;
-            if(tdim == 2){
-              if(msh.idim == 2){
-                isinsph = indelsphere<2,2>(msh, msh.coord[cav.ipins], metl_p, 
-                                           ent2poi[ienei]);
+            try{
+              if(tdim == 2){
+                if(msh.idim == 2){
+                  isinsph = indelsphere<2,2>(msh, msh.coord[cav.ipins], metl_p, 
+                                            ent2poi[ienei]);
+                }else{
+                  isinsph = indelsphere<3,2>(msh, msh.coord[cav.ipins], metl_p, 
+                                            ent2poi[ienei]);
+                }
               }else{
-                isinsph = indelsphere<3,2>(msh, msh.coord[cav.ipins], metl_p, 
-                                           ent2poi[ienei]);
+                isinsph = indelsphere<3,3>(msh, msh.coord[cav.ipins], metl_p, 
+                                          ent2poi[ienei]);
               }
-            }else{
-              isinsph = indelsphere<3,3>(msh, msh.coord[cav.ipins], metl_p, 
-                                         ent2poi[ienei]);
+            }catch(const MetrisExcept& e){
+              fmt::print("indelsphere call threw exception\n");
+              fmt::print("with ienei = {} nodes {} ipins {}\n",
+                         ienei,intAr1(tdim+1,ent2poi[ienei]),cav.ipins);
+              //double meas0;
+              //bool ivalid = isvalideltP1<3,3>(msh, ienei, NULL, &meas0);
+              //fmt::print("elt measure {} valid {}\n",meas0,ivalid);
+              throw(e);
             }
 
             if(isinsph){
@@ -1361,6 +1375,8 @@ template<class MFT>
 int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
                              int ngrow, int ithread){
 
+  if(tdim <= 1) return 0;
+
   GETVDEPTH(msh.param);
   METRIS_ASSERT(tdim <= cav.get_tdim());
 
@@ -1485,26 +1501,48 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
           }
         }
 
+
         ent2tag(ithread,ienei) = msh.tag[ithread];
 
         bool isinsph;
-        if(tdim == 2){
-          if(msh.idim == 2){
-            isinsph = indelsphere<2,2>(msh, msh.coord[cav.ipins], metl_p, 
-                                       ent2poi[ienei]);
+        try{
+          if(tdim == 2){
+            if(msh.idim == 2){
+              isinsph = indelsphere<2,2>(msh, msh.coord[cav.ipins], metl_p, 
+                                        ent2poi[ienei]);
+            }else{
+              isinsph = indelsphere<3,2>(msh, msh.coord[cav.ipins], metl_p, 
+                                        ent2poi[ienei]);
+            }
           }else{
-            isinsph = indelsphere<3,2>(msh, msh.coord[cav.ipins], metl_p, 
-                                       ent2poi[ienei]);
+            isinsph = indelsphere<3,3>(msh, msh.coord[cav.ipins], metl_p, 
+                                      ent2poi[ienei]);
           }
-        }else{
-          isinsph = indelsphere<3,3>(msh, msh.coord[cav.ipins], metl_p, 
-                                     ent2poi[ienei]);
+        }catch(const MetrisExcept& e){
+          fmt::print("indelsphere call threw exception\n");
+          fmt::print("with ienei = {} nodes {} ipins {}\n",
+                     ienei,intAr1(tdim+1,ent2poi[ienei]),cav.ipins);
+          //double meas0;
+          //bool ivalid = isvalideltP1<3,3>(msh, ienei, NULL, &meas0);
+          //fmt::print("elt measure {} valid {}\n",meas0,ivalid);
+          throw(e);
         }
         if(isinsph){
           lcent.stack(ienei);
+          CPRINTF1(" - stack dim {} ienei {}\n",tdim,ienei);
           if(isube >= 0){
+            CPRINTF1(" - stack dim {} subent {}\n",tdim-1,isube);
             sub2tag(ithread,isube) = msh.tag[ithread];
             lcsub.stack(isube);
+          }
+          if(tdim == 2 && msh.get_tdim() >= 3){
+            for(int ii = 0; ii < 2; ii++){
+              int isupe = msh.fac2tet(ienei, ii);
+              if(isupe < 0) continue;
+              CPRINTF1(" - stack dim {} supent {}\n",tdim+1,isupe);
+              msh.tet2tag(ithread,isupe) = msh.tag[ithread];
+              cav.lctet.stack(isupe);
+            }
           }
         }
         

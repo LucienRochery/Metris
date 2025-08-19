@@ -437,8 +437,8 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
     int nnewp1 = lnewt.get_n();
     double adjusted_tarlen = tarlen + (lastlen - tarlen) / (nnewp1 + 1);
     
-    CPRINTF1(" - generated {} / {} points along curve last len {} "
-           " tarlen {} -> {} \n",nnewp1,nnewp,lastlen,tarlen,adjusted_tarlen);
+    CPRINTF1(" - generated {} / {} points along curve last len {:.2f} "
+           " tarlen {:.2f} -> {:.2f} \n",nnewp1,nnewp,lastlen,tarlen,adjusted_tarlen);
     if(DOPRINTS2() && lnewt.get_n() > 0){
       double result[18];
       ego obj = msh.CAD.cad2edg[iref]; 

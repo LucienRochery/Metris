@@ -301,6 +301,10 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
   opts.dryrun   = false;
   opts.qmax_suf = qmax_suf;
 
+  cav.lcedg.allocate(10);
+  cav.lcfac.allocate(100);
+  cav.lctet.allocate(msh.get_tdim() >= 3 ? 100 : 0);
+
   int ierro = 0;
 
   // work for collrejcav_lenqua

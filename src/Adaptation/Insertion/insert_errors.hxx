@@ -14,7 +14,7 @@ enum insedgesuf_Errors {INS2D_NOERR = 0,
                         INS2D_ERR_INCCAVVAL1 = 4,
                         INS2D_ERR_INCCAVVAL2 = 5,
                         INS2D_ERR_INCCAVVAL3 = 6,
-                        INS2D_ERR_SHORTEDG = 7,
+                        INS2D_ERR_SHORTEDG1 = 7,
                         INS2D_ERR_BDRYNOCORR = 8,
                         INS2D_ERR_INCCAVDEL = 9,
                         INS2D_ERR_CAVITYOPERATOR = 10,
@@ -34,7 +34,13 @@ enum insedgesuf_Errors {INS2D_NOERR = 0,
                         INS2D_ERR_STEINERCAVOPR = 24,
                         INS2D_ERR_INTERPMETBACK3 = 25,
                         INS2D_ERR_MOVPTCAVLEN = 26,
-                        INS2D_ERR_NERROR = 27
+                        INS2D_ERR_SHORTCSTR2 = 27,
+                        INS2D_ERR_SHORTEDG2 = 28,
+                        INS2D_ERR_SHORTEDG3 = 29,
+                        INS2D_ERR_SHORTEDG4 = 30,
+                        INS2D_ERR_SHORTEDG5 = 31,
+                        INS2D_ERR_SHORTEDG6 = 32,
+                        INS2D_ERR_NERROR = 33
                         };
 
 } // end namespace Metris

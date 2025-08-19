@@ -811,7 +811,7 @@ void adaptGeoLines(Mesh<MFT> &msh){
 
         //break;
 
-        CPRINTF1(" - iter {} last len {}, |err| = {}, tol = {}, ninser {} nerro {} nstein {}\n",
+        CPRINTF1(" - iter {} last len {:.2f}, |err| = {:.2e}, tol = {:.2e}, ninser {} nerro {} nstein {}\n",
           nedgit,len,len-tarlen,abs(1.0 - lentolfac),ninser,nerror,nstein);
 
         //if(abs(tarlen - tarle0) > abs(1.0 - lentolfac)){
