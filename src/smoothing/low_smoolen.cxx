@@ -9,6 +9,7 @@
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../utils/mprintf.hxx"
 #include "../utils/fmt_formatters.hxx"
+#include "../utils/fact_pow.hxx"
 #include "../low_geo/lenedg.hxx"
 #include "../low_geo/measure.hxx"
 #include "../low_topo.hxx"
@@ -144,7 +145,7 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov,
   for(int ii = 0; ii < nnmet   ; ii++) met0[ii] = met_opt[ii] = msh.met(ipmov,ii);
   
   // Initialize optimal cost at initial cost, check no regression
-  double wt_ini = 0, avglen = 0, minlen = 1.0e30, maxlen = -1;
+  double avglen = 0, minlen = 1.0e30, maxlen = -1;
   double avglen_opt, minlen_opt, maxlen_opt;
   double lenqua = -1, lenqua_opt = -1;
   for(int ii = 0; ii < npoil; ii++){
@@ -158,18 +159,16 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov,
     maxlen = MAX(maxlen, len);
     // Lengths above 1 are weighted more strongly, such that ipins is drawn towards those points
     // Lengths below 1 are weighted weakly, to repel ipins
-    double fact = len < 1 ? pow(len, 4) : pow(len, 4);
-    wt_ini += fact;
     double quaed = len < 1.0 ? 1.0 - len 
                              : 1.0 - 1.0 / len;
     lenqua = MAX(quaed, lenqua);
-    CPRINTF1(" - initial ipoin {} len {} weight {}\n",ipoin,len,fact);
+    CPRINTF1(" - initial ipoin {} len {:.2f} qualen {:.2e}\n",ipoin,len,quaed);
   }
   avglen /= npoil;
   avglen_opt = avglen;
   minlen_opt = minlen;
   maxlen_opt = maxlen;
-  CPRINTF1(" - initial avglen = {} min {} max {} cost = {} qua {}\n",avglen,minlen,maxlen,wt_ini,lenqua);
+  CPRINTF1(" - initial avglen = {:.2f} min {:.2f} max {:.2f} lenqua {:.2e}\n",avglen,minlen,maxlen,lenqua);
   lenqua_opt = lenqua;
   if(qlen0 != NULL) *qlen0 = lenqua;
 
@@ -192,7 +191,7 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov,
       maxlen = MAX(maxlen, len);
       // Lengths above 1 are weighted more strongly, such that ipins is drawn towards those points
       // Lengths below 1 are weighted weakly, to repel ipins
-      rpoin[ii] = len < 1 ? pow(len, 8) : pow(len, 4);
+      rpoin[ii] = len < 1 ? idpow<4>(len) : idpow<4>(len); // was 8, 4
       wttot += rpoin[ii];
       double quaed = len < 1.0 ? 1.0 - len 
                                : 1.0 - 1.0 / len;
@@ -201,42 +200,46 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov,
     }
     avglen /= npoil;
 
-    bool ivalid = true;
-    CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
-      if(!ivalid) CT_CONTINUE(gdim);
-      CT_FOR0_INC(2,gdim,tdim){if(tdim <= msh.get_tdim()){
-        if(!ivalid) CT_CONTINUE(tdim);
-        const intAr1* lbent = tdim == 1 ? lbedg
-                            : tdim == 2 ? lbfac
-                                        : lbtet;
-        if(lbent == NULL){
-          CPRINTF1(" # no lbent for tdim {}\n",tdim);
-          CT_CONTINUE(tdim);
-        }
-        for(int ientt : *lbent){
-          bool ieval;
-          ieval = isvalideltP1<gdim,tdim>(msh, ientt, NULL, NULL, nordev);
-          CPRINTF2(" - tdim {} ball elt {} valid = {}\n", tdim, ientt, ieval);
-          if(ieval) continue;
-          CPRINTF1(" - dim {} element {} became invalid -> reject iteration\n",tdim,ientt);
-          ivalid = false;
-          break;
-        }
-      }}CT_FOR1(tdim);
-    }}CT_FOR1(gdim);
 
-    CPRINTF1(" - valid {} update new lenqua {:.2e} opt = {:.2e}\n",ivalid,lenqua,lenqua_opt);
+    CPRINTF1(" - iter {} lenqua {:.2e} opt = {:.2e}\n",niter,lenqua,lenqua_opt);
 
-    if(lenqua_opt > lenqua && ivalid){
-      CPRINTF1(" - iter {} new optimum cost {} -> {}\n",niter, lenqua_opt, lenqua);
-      lenqua_opt = lenqua;
-      minlen_opt = minlen;
-      maxlen_opt = maxlen;
-      avglen_opt = avglen;
-      for(int ii = 0; ii < msh.idim; ii++) coord_opt[ii] = msh.coord(ipmov,ii);
-      if(use_uv) for(int ii = 0; ii < 2       ; ii++) uv_opt[ii]    = msh.bpo2rbi(ibmov,ii);
-      for(int ii = 0; ii < nnmet   ; ii++) met_opt[ii]   = msh.met(ipmov,ii);
-      one_update = true;
+    if(lenqua_opt > lenqua){
+      CPRINTF1(" - iter {} new optimum qualen {:.2e} -> {:.2e}\n",niter, lenqua_opt, lenqua);
+
+      bool ivalid = true;
+      CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
+        if(!ivalid) CT_CONTINUE(gdim);
+        CT_FOR0_INC(2,gdim,tdim){if(tdim <= msh.get_tdim()){
+          if(!ivalid) CT_CONTINUE(tdim);
+          const intAr1* lbent = tdim == 1 ? lbedg
+                              : tdim == 2 ? lbfac
+                                          : lbtet;
+          if(lbent == NULL){
+            CPRINTF1(" # no lbent for tdim {}\n",tdim);
+            CT_CONTINUE(tdim);
+          }
+          for(int ientt : *lbent){
+            bool ieval;
+            ieval = isvalideltP1<gdim,tdim>(msh, ientt, NULL, NULL, nordev);
+            CPRINTF2(" - tdim {} ball elt {} valid = {}\n", tdim, ientt, ieval);
+            if(ieval) continue;
+            CPRINTF1(" - dim {} element {} became invalid -> reject iteration\n",tdim,ientt);
+            ivalid = false;
+            break;
+          }
+        }}CT_FOR1(tdim);
+      }}CT_FOR1(gdim);
+
+      if(ivalid){
+        lenqua_opt = lenqua;
+        minlen_opt = minlen;
+        maxlen_opt = maxlen;
+        avglen_opt = avglen;
+        for(int ii = 0; ii < msh.idim; ii++) coord_opt[ii] = msh.coord(ipmov,ii);
+        if(use_uv) for(int ii = 0; ii < 2       ; ii++) uv_opt[ii]    = msh.bpo2rbi(ibmov,ii);
+        for(int ii = 0; ii < nnmet   ; ii++) met_opt[ii]   = msh.met(ipmov,ii);
+        one_update = true;
+      }
     }
 
     if(niter == miter - 1) break;
@@ -259,7 +262,7 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov,
       for(int jj = 0; jj < ndof; jj++)
         pdofn[jj] += mshdof(idof,jj) * rpoin[ii] / wttot;
     }
-    CPRINTF1(" - iter {} avglen = {} min {} max {} cost {} lenqua {} new dof {}\n",niter,
+    CPRINTF1(" - iter {} avglen = {:.2f} min {:.2f} max {:.2f} cost {:.2e} lenqua {:.2e} new dof {}\n",niter,
              avglen,minlen,maxlen,wttot,lenqua,dblAr1(ndof,pdofn));
     for(int ii = 0; ii < ndof; ii++) mshdof(ipdof,ii) = (1-damp)*mshdof(ipdof,ii)
                                                          + damp *pdofn[ii];

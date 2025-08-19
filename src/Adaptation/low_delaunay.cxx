@@ -54,7 +54,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
     for(int ii = 0; ii < tdim; ii++){
       for(int jj = 0; jj < gdim; jj++)
         buf[jj] = msh.coord(ent2pol[ii+1],jj) - msh.coord(ent2pol[0],jj);
-      CPRINTF2(" - {} : buf = {} {}\n",ii,buf[0],buf[1]);
+      //CPRINTF3(" - {} : buf = {} {}\n",ii,buf[0],buf[1]);
       symXvec<gdim>(metl,buf,mat[ii]);
       //CPRINTF1(" - buf {} {} \n",buf[0],buf[1]);
     }
@@ -68,7 +68,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
     double nrmal[3];
     getnorfacP1(ent2pol, msh.coord, nrmal);
 
-    CPRINTF2(" - norfacP1 = {}\n",dblAr1(3,nrmal));
+    //CPRINTF2(" - norfacP1 = {}\n",dblAr1(3,nrmal));
 
     int imax = -1;
     double rmax = -1;

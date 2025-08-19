@@ -213,17 +213,18 @@ double getmeasentP1(const MeshBase&__restrict__ msh, const int*__restrict__ ent2
       return 0;
     }
 
+    // Good criterion but much too expensive:
     // Check the Jacobian is invertible
-    double jmat[gdim][gdim];
-    for(int ii = 0; ii < gdim; ii++){
-      jmat[0][ii] = msh.coord(ent2pol[1],ii) - msh.coord(ent2pol[0],ii);
-      jmat[1][ii] = msh.coord(ent2pol[2],ii) - msh.coord(ent2pol[0],ii);
-      jmat[2][ii] = msh.coord(ent2pol[3],ii) - msh.coord(ent2pol[0],ii);
-    }
-    if(invmat<gdim>(jmat[0])){
-      *iflat = true;
-      return 0;
-    }
+    //double jmat[gdim][gdim];
+    //for(int ii = 0; ii < gdim; ii++){
+    //  jmat[0][ii] = msh.coord(ent2pol[1],ii) - msh.coord(ent2pol[0],ii);
+    //  jmat[1][ii] = msh.coord(ent2pol[2],ii) - msh.coord(ent2pol[0],ii);
+    //  jmat[2][ii] = msh.coord(ent2pol[3],ii) - msh.coord(ent2pol[0],ii);
+    //}
+    //if(invmat<gdim>(jmat[0])){
+    //  *iflat = true;
+    //  return 0;
+    //}
     
     
     // full prod is homo h^12; det only h^3

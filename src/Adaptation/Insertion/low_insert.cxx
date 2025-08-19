@@ -60,7 +60,7 @@ int insertEdge(Mesh<MFT>& msh,
   bool idbg = false;
   cav.inewp = 1;
 
-  int mgrow = 100;
+  int mgrow = 5;
 
   CPRINTF1("-- START insertEdge tdimp = {} iseed = {}\n",
            insertionSeed.tdimp,insertionSeed.iseed);
@@ -152,7 +152,7 @@ int insertEdge(Mesh<MFT>& msh,
 
   // -- This section only if !icollapse
 
-  ierro = setCavityInsertion(msh,cav,opts,insertionSeed,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);
+  ierro = setCavityInsertion3(msh,cav,opts,insertionSeed,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);
   if(ierro != 0) goto cleanup;
 
 

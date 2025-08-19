@@ -48,7 +48,7 @@ namespace Metris{
 // insertLongEdges is called.
 template<class MFT, int gdim, int ideg>
 double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int ithrd2){
-  //if(tdim == 2){
+  //if(tdim == 3){
   //  printf("## DEBUG SET MAX PRINTS\n");
   //  wait();
   //  msh.param->iverb = 5;
@@ -201,6 +201,10 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
       //  wait();
       //}
 
+      if(DOPRINTS1()){
+        CPRINTF1(" ## DEBUG WAIT HERE ierro = {}\n",ierro);
+        wait();
+      }
       //if(ierro == 10 && DOPRINTS1()){
       //  CPRINTF1(" ## DEBUG WAIT HERE ierro = {}\n",ierro);
       //  wait();

@@ -40,7 +40,8 @@ enum insedgesuf_Errors {INS2D_NOERR = 0,
                         INS2D_ERR_SHORTEDG4 = 30,
                         INS2D_ERR_SHORTEDG5 = 31,
                         INS2D_ERR_SHORTEDG6 = 32,
-                        INS2D_ERR_NERROR = 33
+                        INS2D_ERR_INCCAVLEN = 33,
+                        INS2D_ERR_NERROR = 34
                         };
 
 } // end namespace Metris
