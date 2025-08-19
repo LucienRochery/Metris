@@ -42,6 +42,7 @@ MetrisParameters::MetrisParameters(){
   adp_stagn_stop = Defaults::adp_stagn_stop;
   adp_opt_niter = 1;
   adp_line_adapt = false;
+  adp_smoo_len   = false;
 
   // 0 is none, default
   // 3 is offsets followed by smoothing 
@@ -241,6 +242,10 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("adp-stat-stop")){
     adp_stagn_stop = opt.m["adp-stat-stop"].as<double>();
   }
+  if(opt.count("adp-smoo-len")){
+    adp_smoo_len = true;
+  }
+  
   if(opt.count("do-line-adp")){
     adp_line_adapt = true; 
   }

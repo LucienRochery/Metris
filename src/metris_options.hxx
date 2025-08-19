@@ -90,6 +90,8 @@ struct MetrisOptions{
         "Smoothing in adaptation: -1 unlimited, N > 0 number of iter")
       ("do-line-adp",
         "Use adaptGeoLines (not very robust if boundary very coarse)")
+      ("adp-smoo-len",
+        "Use length-based smoothing in adaptation loop")
       ("opt-unif" , 
         "Shape preserving uniformization")
       ("geo-lentolfac", po::value<double>()->default_value(Defaults::geo_lentolfac),

@@ -82,6 +82,7 @@ struct MetrisParameters{
   double adp_unit_stop; // threshold to consider mesh unit and stop everything 0 - 100
   bool adp_line_adapt;
   double adp_stagn_stop; // stat threshold for stagnation (default 1e-3)
+  bool adp_smoo_len; // use len-based smoothing in adaptation loop
 
   // ----------------- END Adaptation options  
 
