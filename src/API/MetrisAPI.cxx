@@ -451,6 +451,14 @@ void MetrisAPI::setNTetrahedra(int nelem_){
   tet2ref.allocate(nelem);
   tet2ref.set_n(nelem);
 }
+void MetrisAPI::setNElements(int tdimn, int nentt){
+  METRIS_ENFORCE(tdimn >= 1 && tdimn <= 3);
+  if(tdimn == 1) setNEdges(nentt);
+  if(tdimn == 2) setNFaces(nentt);
+  if(tdimn == 3) setNTetrahedra(nentt);
+  return;
+}
+
 void MetrisAPI::setNCorners(int ncorn_){
   // Only wrong program flow would lead to this, so assert 
   METRIS_ASSERT(flagsInit);
@@ -543,6 +551,18 @@ void MetrisAPI::copyCAD(MetrisAPI *into) const{
   into->CAD_ = CAD;
 }
 
+void MetrisAPI::copyElements(int tdimn, MetrisAPI *into) const{
+  METRIS_ENFORCE(tdimn >= 1 && tdimn <= 3);
+  const int nentt = tdimn == 1 ? nedge :
+                    tdimn == 2 ? nface : nelem;
+  into->setNElements(tdimn, nentt);
+  if(nentt == 0) return;
+  const intAr2& ent2poi = tdimn == 1 ? edg2poi :
+                          tdimn == 2 ? fac2poi : tet2poi;
+  const intAr1& ent2ref = tdimn == 1 ? edg2ref :
+                          tdimn == 2 ? fac2ref : tet2ref;
+  into->setElement(tdimn, 0, nentt, ent2poi[0], &ent2ref[0]);
+}
 
 
 

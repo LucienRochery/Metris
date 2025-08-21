@@ -129,6 +129,7 @@ public:
   //int  getNFaces() const;
   void setNTetrahedra(int nelem_);
   //int  getNTetrahedra() const;
+  void setNElements(int tdimn, int nentt);
 
   void setElement(int tdimn, int ielem, const int* lnode, int iref);
   void setElement(int tdimn, int iele1, int iele2, const int* lnode, const int* lref);
@@ -137,6 +138,8 @@ public:
   void getElement(int tdimn, int ielem, int* lnode, int* iref) const;
   void getElement(int tdimn, int iele1, int iele2, int* lnode, int* lref) const;
   void getElementRef(int tdimn, int ielem, int *iref) const;
+
+  void copyElements(int tdimn, MetrisAPI *into) const;
 
 
   /* Corners (geometric nodes) */
@@ -148,6 +151,7 @@ public:
 
   void getCorner(int icorn, int *ipoin) const;
   void getCorner(int icor1, int icor2, int* lpoin) const;
+
   void copyCorners(MetrisAPI *into) const;
 
 

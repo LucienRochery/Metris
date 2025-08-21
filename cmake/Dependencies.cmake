@@ -288,7 +288,7 @@ if(USE_CLP)
 endif()
 
 # External libraries to be fetched
-find_package(fmt)
+find_package(fmt QUIET)
 if(NOT fmt_FOUND)
   message(STATUS "fmt lib not found, fetching")
   # fmt library: std::format precursor with better performance
