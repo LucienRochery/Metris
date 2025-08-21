@@ -331,10 +331,11 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
         int ienei = ent2ent(ientt,ifa);
         // If no growth is allowed, ent2tag(ithrd1,ientt) is simply tag[ithrd1]
         // Otherwise, it is tag + generation. 
-        CPRINTF2(" - ientt {} ifa {} ienei {} vertices {} tagged {} >=? {}\n",
-                  ientt,ifa,ienei,intAr1(tdim+1,ent2poi[ienei]),
-                  ent2tag(ithrd1,ienei),ent2tag(ithrd1,ientt));
+        CPRINTF2(" - ientt {} ifa {} ienei {} tagged {} >=? {}\n",
+                  ientt,ifa,ienei,
+                  ienei >= 0 ? ent2tag(ithrd1,ienei) : -1, ent2tag(ithrd1,ientt));
         if(ienei >= 0 && ent2tag(ithrd1,ienei) >= ent2tag(ithrd1,ientt)) continue;
+        if(ienei >= 0) CPRINTF3(" - ienei vertices {}\n", intAr1(tdim+1,ent2poi[ienei]));
         // Get points on face (3D) / edge (2D)
         for(int ipfa = 0; ipfa < tdim; ipfa++){
           int iver = lnosub(tdim, ifa, ipfa);

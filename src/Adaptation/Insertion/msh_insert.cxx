@@ -201,10 +201,10 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
       //  wait();
       //}
 
-      if(DOPRINTS1()){
-        CPRINTF1(" ## DEBUG WAIT HERE ierro = {}\n",ierro);
-        wait();
-      }
+      //if(DOPRINTS1()){
+      //  CPRINTF1(" ## DEBUG WAIT HERE ierro = {}\n",ierro);
+      //  wait();
+      //}
       //if(ierro == 10 && DOPRINTS1()){
       //  CPRINTF1(" ## DEBUG WAIT HERE ierro = {}\n",ierro);
       //  wait();

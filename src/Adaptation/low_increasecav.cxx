@@ -1599,13 +1599,14 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
   for(int igrow = 0; igrow < ngrow || ngrow < 0; igrow++){
 
     for(int icent = icen0; icent < icen1; icent++){
+      INCVDEPTH(msh.param);
       int ientt = lcent[icent];
       for(int jj = 0; jj < tdim + 1; jj++){
         int ienei = ent2ent(ientt,jj);
         if(ienei < 0) continue; // Non manifold skip
-
+        CPRINTF1(" - check ienei = {} Delaunay\n",ienei);
         if(ent2tag(ithread,ienei) >= msh.tag[ithread]){
-          CPRINTF1("   - ienei = {} is tagged {} >= {}\n",
+          CPRINTF1(" - ienei = {} is tagged {} >= {}\n",
                    ienei,ent2tag(ithread,ienei),msh.tag[ithread]);
           continue;
         }
@@ -1614,35 +1615,35 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
         if(tdim == 2){
           int iref2 = msh.fac2ref[ienei];
           if(msh.cfa2tag(ithread,iref2) < msh.tag[ithread] && msh.isboundary_faces()){
-            CPRINTF1("   - ienei = {} is wrong bdry ref {}\n",ienei,iref2);
+            CPRINTF1(" - ienei = {} is wrong bdry ref {}\n",ienei,iref2);
             continue;
           }
           int isube = msh.fac2edg(ientt,jj);
           if(isube >= 0){
             if(msh.edg2tag(ithread,isube) >= msh.tag[ithread]){
-              CPRINTF1("   - iface {} -> iedge {} is tagged, skip\n",ientt,isube);
+              CPRINTF1(" - iface {} -> iedge {} is tagged, skip\n",ientt,isube);
               continue;
             }
             int iref1 = msh.edg2ref[isube];
             if(msh.ced2tag(ithread,iref1) < msh.tag[ithread] && msh.isboundary_edges()){
-              CPRINTF1("   - iface {} -> iedge {} is wrong bdry ref {}\n",ienei,isube,iref1);
+              CPRINTF1(" - iface {} -> iedge {} is wrong bdry ref {}\n",ienei,isube,iref1);
               continue;
             }
           }
         }else{
           if(msh.tet2ref[ienei] != msh.tet2ref[ientt]){
-            CPRINTF1("   - ienei {} ref = {} != ientt {} ref {} -> skip\n",
+            CPRINTF1(" - ienei {} ref = {} != ientt {} ref {} -> skip\n",
                      ienei,msh.tet2ref[ienei],ientt,msh.tet2ref[ientt]);
           }
           int isube = msh.tet2fac(ientt,jj);
           if(isube >= 0){
             if(msh.fac2tag(ithread,isube) >= msh.tag[ithread]){
-              CPRINTF1("   - itetr {} -> iface {} is tagged, skip\n",ientt,isube);
+              CPRINTF1(" - itetr {} -> iface {} is tagged, skip\n",ientt,isube);
               continue;
             }
             int iref1 = msh.fac2ref[isube];
             if(msh.ced2tag(ithread,iref1) < msh.tag[ithread]){
-              CPRINTF1("   - itetr {} -> iface {} is wrong bdry ref {}\n",ienei,isube,iref1);
+              CPRINTF1(" - itetr {} -> iface {} is wrong bdry ref {}\n",ienei,isube,iref1);
               continue;
             }
           }
@@ -1686,6 +1687,7 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
             for(int ii = 0; ii < 2; ii++){
               int isupe = msh.fac2tet(ienei, ii);
               if(isupe < 0) continue;
+              if(msh.tet2tag(ithread,isupe) >= msh.tag[ithread]) continue;
               CPRINTF1(" - stack dim {} supent {}\n",tdim+1,isupe);
               msh.tet2tag(ithread,isupe) = msh.tag[ithread];
               cav.lctet.stack(isupe);
