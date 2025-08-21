@@ -366,10 +366,15 @@ int setCavityInsertion3(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
   const int iref  = insertionSeed.iref;
   const int nnmet = (msh.idim*(msh.idim+1))/2;
 
-  bool filter_long = true;
+  const bool filter_long = true;
   
   static int nwarnprt = 0;
   if(nwarnprt++ < 10 && !filter_long) printf("## FILTER_LONG SET TO TRUE\n");
+
+
+  int nced1 = cav.lcedg.get_n();
+  int ncfa1 = cav.lcfac.get_n();
+  int ncte1 = cav.lctet.get_n();
 
   CPRINTF1("-- START setCavityInsertion tdim = {} mgrow = {}\n",tdim,mgrow);
   intWrkAr1 lrempoi = msh.get_iwork(10);
@@ -392,15 +397,84 @@ int setCavityInsertion3(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     return INS2D_ERR_MOVPTCAVLEN;
   }
 
-  ierro = increase_cavity(msh,cav,true,ithrd1,ithrd2);
+  ierro = increase_cavity_Delaunay(msh,cav,tdim,5,ithrd1);
   if(DOPRINTS2()){
     writeMeshCavity("insert_cavity1",msh,cav);
   }
   if(ierro > 0){
-    CPRINTF1(" # increase_cavity error {}\n",ierro);
+    CPRINTF1(" # increase_cavity_Delaunay error {}\n",ierro);
+    return INS2D_ERR_INCCAVDEL;
+  }
+
+  ierro = increase_cavity_validity(msh,cav,ithrd1);
+  if(DOPRINTS2()){
+    writeMeshCavity("insert_cavity2",msh,cav);
+  }
+  if(ierro > 0){
+    CPRINTF1(" # increase_cavity_validity error {}\n",ierro);
     return INS2D_ERR_INCCAVVAL1;
   }
 
+  // Check if the cavity needs fixing.
+  check_cavity_rempoint(msh, cav, opts, lrempoi.get_array(), true, ithrd1);
+  if(lrempoi.get_n() == 0) goto finish_cavity;
+
+  // Now we need to remove all the newly added elements that contain 
+  // one of the lrempoi.
+  CPRINTF2(" # Fix cavity, lrempoi = {}\n", lrempoi.get_n());
+  msh.tag[ithrd1]++;
+  for(int ii = 0; ii < lrempoi.get_n(); ii++){
+    int ipoin = lrempoi[ii];
+    msh.poi2tag(ithrd1, ipoin) = msh.tag[ithrd1];
+  }
+  for(int tdimc = 1; tdimc <= msh.get_tdim(); tdimc++){
+    intAr1 &lcent = cav.lcent(tdimc);
+    const int ncen0 = tdimc == 1 ? nced1 : 
+                      tdimc == 2 ? ncfa1 : ncte1;
+    const intAr2& ent2poc = msh.ent2poi(tdimc);
+    int nrem = 0;
+    for(int ii = ncen0; ii < lcent.get_n();){
+      INCVDEPTH(msh.param);
+      int icent = lcent[ii];
+      bool remelt = false;
+      for(int iver = 0; iver < tdimc + 1; iver++){
+        int ipoin = ent2poc(icent,iver);
+        if(msh.poi2tag(ithrd1, ipoin) < msh.tag[ithrd1]) continue;
+        remelt = true;
+        break;
+      }// for iver
+      if(!remelt){
+        ii++;
+        continue;
+      }
+      CPRINTF1(" - remove {} from cavity dim {}\n",icent,tdimc);
+      int icend = lcent.pop();
+      // This can only happen if we're the last element. In that case we 
+      // shrank the array and can quit. 
+      if(icend == icent) break;
+      // otherwise place last here.
+      icent = icend;
+      nrem++;
+    }// for icent
+    CPRINTF1(" - removed {} dim {} cavity elements\n",nrem,tdimc);
+  }// for tdimc
+
+  // Try correcting cavity for validity then rechecking
+  ierro = increase_cavity_validity(msh,cav,ithrd1);
+  if(ierro != 0){
+    CPRINTF1(" # +cav error after fix {}\n",ierro);
+    return INS2D_ERR_INCCAVVAL2;
+  }
+
+  check_cavity_rempoint(msh, cav, opts, lrempoi.get_array(), true, ithrd1);
+  if(lrempoi.get_n() > 0){
+    CPRINTF1(" # error nrem point = {} after fix\n",lrempoi.get_n());
+    return INS2D_ERR_SHORTEDG2;
+  }
+
+  
+finish_cavity:
+  
   ierro = collrejcav_lenqua(msh, cav, filter_long, false, true, lenqua_short_max, nocomp, ithrd2);
   if(ierro > 0) return INS2D_ERR_LENQUA;
 

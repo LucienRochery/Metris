@@ -399,7 +399,21 @@ void MetrisRunner::adaptMesh0(int tdim){
     //stat_prev = stat0;
 
     if(stagn){
+      // If we continue, unconstrain the points now
+      // We notice that the boundary in 3D, and the whole mesh in 2D 
+      // improves by unconstraining the points, but not the interior in 3D.
+      // So, regardless of dimension, we unconstrain only dim <= 2 points.
+      bool uncstr = false;
+      for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
+        if(msh.poi2ent(ipoin,0) < 0) continue;
+        if(msh.getpoitdim(ipoin) > 2) continue;
+        msh.poicstr[ipoin] = false;
+        uncstr = true;
+      }
+
       CPRINTF1(" - low stat = {:.2e} break or optimize\n",stat0);
+      if(uncstr) CPRINTF1(" - unconstrained points\n");
+      
       if(niter >= miter -1) break;
       if(msh.param->opt_niter > 0 && 
         (iopt_niter < msh.param->adp_opt_niter|| msh.param->adp_opt_niter < 0)
@@ -420,17 +434,8 @@ void MetrisRunner::adaptMesh0(int tdim){
           break;
         }
 
-        // If we continue, unconstrain the points now
-        // We notice that the boundary in 3D, and the whole mesh in 2D 
-        // improves by unconstraining the points, but not the interior in 3D.
-        // So, regardless of dimension, we unconstrain only dim <= 2 points.
-        for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-          if(msh.poi2ent(ipoin,0) < 0) continue;
-          if(msh.getpoitdim(ipoin) > 2) continue;
-          msh.poicstr[ipoin] = false;
-        }
         //msh.poicstr.fill(false);
-      }else{
+      }else if (!uncstr){
         break;
       }
     }

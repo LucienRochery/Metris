@@ -215,9 +215,9 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
         if(iSteiner == 1) ninser1S++;
 
         // constrain point
-        msh.poicstr[cav.ipins] = true;
-        //static int nwarnprt1 = 5;
-        //if(nwarnprt1 --> 0) PRINTF("## NOT CONSTRAINING POINTS\n");
+        msh.poicstr[cav.ipins] = false;
+        static int nwarnprt1 = 5;
+        if(nwarnprt1 --> 0) PRINTF("## NOT CONSTRAINING POINTS\n");
 
         // Remove the edge from the edge hash table.
         edge_it = ledge.erase(edge_it);
