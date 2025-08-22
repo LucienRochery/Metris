@@ -134,6 +134,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/msh_lenedg.cxx
     ${PROJECT_SOURCE_DIR}/src/low_topo.cxx
     ${PROJECT_SOURCE_DIR}/src/main_adap.cxx
+    ${PROJECT_SOURCE_DIR}/src/msh_anamet_context.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_anamet_2D.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_anamet_3D.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_inineigh.cxx

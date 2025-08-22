@@ -13,12 +13,13 @@
 #include "aux_exceptions.hxx"
 #include <cmath>
 
+
 #include "fmt/format.h"
 
 
 namespace Metris{
 
-void anamet2D_1([[maybe_unused]] void *ctx, 
+void anamet2D_1([[maybe_unused]] const AnaMetCtx* ctx, 
                 [[maybe_unused]] const double*__restrict__ crd, 
                 double scale, int idif1, double *met, double *dmet){
   // Not too coarse at the scale of 1  
@@ -38,7 +39,7 @@ void anamet2D_1([[maybe_unused]] void *ctx,
 }
 
 // circle
-void anamet2D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet2D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   const double pi = 3.141592653589793238462643383279502884;
   SANS::SurrealS<2,double> X[2];
   X[0] = crd[0] - 0.5;
@@ -84,7 +85,7 @@ void anamet2D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
 }
 
 // Boundary-layer along x centered at 0.5
-void anamet2D_3([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet2D_3([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
   SANS::SurrealS<2,double> X[2];
   X[0] = abs(crd[0] - 0.5);
@@ -117,7 +118,7 @@ void anamet2D_3([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
 
 
 // Boundary-layer mesh, slanted, wall = { x + y - 0.5 = 0 }
-void anamet2D_4([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet2D_4([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
   SANS::SurrealS<2,double> X;
   X = crd[0] + crd[1] - 0.5;
@@ -152,7 +153,7 @@ void anamet2D_4([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
 
 
 // circle BL
-void anamet2D_5([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, 
+void anamet2D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, 
   double *met, double *dmet){
   const double pi = 3.141592653589793238462643383279502884;
   double x0 = 0.01;
@@ -227,7 +228,7 @@ void anamet2D_5([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
 
 
 // circle centered on 0 
-void anamet2D_6([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet2D_6([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   const double pi = 3.141592653589793238462643383279502884;
   SANS::SurrealS<2,double> X[2];
   X[0] = crd[0] + 0.01;

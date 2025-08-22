@@ -8,9 +8,10 @@
 #ifndef __METRIS_METRIS_RUNNER__
 #define __METRIS_METRIS_RUNNER__
 
+#include "MetrisParameters.hxx"
+
 #include "../Mesh/MeshBack.hxx"
 #include "../metris_options.hxx"
-#include "../MetrisRunner/MetrisParameters.hxx"
 
 #include "fmt/format.h"
 

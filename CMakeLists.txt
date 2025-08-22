@@ -187,6 +187,17 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/progs/extract_surf.cxx)
   setMetrisFlags(extract_surf PUBLIC)
 endif()
 
+if(EXISTS ${CMAKE_SOURCE_DIR}/progs/offset_coord.cxx)
+  add_executable(offset_coord EXCLUDE_FROM_ALL "progs/offset_coord.cxx")
+  target_link_libraries(offset_coord PUBLIC libMetris 
+                                            Boost::headers # yes this is weird
+                                            ${Boost_LIBRARIES}
+                                            )
+  target_include_directories(offset_coord PRIVATE  "."
+                             ${ESP_ROOT}/include)
+  setMetrisFlags(offset_coord PUBLIC)
+endif()
+
 # Note on includes: the src lib target (libMetris) already includes publicly everything that we need
 # The main.cxx itself only needs main.hxx additionally. 
 target_include_directories(metris PRIVATE "progs/main.hxx"

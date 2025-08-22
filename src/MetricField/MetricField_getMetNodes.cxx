@@ -93,7 +93,7 @@ void MetricFieldAnalytical::getMetNodes(int ientt, double *metnod) const{
     }
     eval(msh.coord,ent2poi[ientt],msh.getBasis(),DifVar::None,
                                  DifVar::None,bary,coop,NULL,NULL);
-    anamet(NULL,coop,scale,0,&metnod[nnmet*irnk],NULL);
+    anamet(&ctx,coop,scale,0,&metnod[nnmet*irnk],NULL);
   }
 
   // Convert to log if log format expected

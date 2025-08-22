@@ -29,6 +29,7 @@ MetrisParameters::MetrisParameters(){
   metScale  = 1;
   hmin = 1.0e-30;
   hmax = 1.0e30;
+  anamet_dx = anamet_dy = anamet_dz = 0.0;
   met_snap_tol = Defaults::met_snap_tol;
 
   anasol_ptr= NULL;
@@ -94,6 +95,7 @@ MetrisParameters::MetrisParameters(){
   logFile = stdout;
 
   iflag1 = iflag2 = iflag3 = 0;
+  rflag1 = rflag2 = rflag3 = 0.0;
   interp_err_min_algo = 1; // 1 for Newton, 0 for DIRECT
 }
 
@@ -288,6 +290,18 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("hmax")){
     hmax = opt.m["hmax"].as<double>();
   }
+  
+  if(opt.count("mdx")){
+    anamet_dx = opt.m["mdx"].as<double>();
+  }
+  if(opt.count("mdy")){
+    anamet_dy = opt.m["mdy"].as<double>();
+  }
+  if(opt.count("mdz")){
+    anamet_dz = opt.m["mdz"].as<double>();
+  }
+  
+
   if(opt.count("met-snap-tol")){
     met_snap_tol = opt.m["met-snap-tol"].as<double>();
   }
@@ -335,6 +349,16 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   }
   if(opt.count("iflag3")){
     iflag3 = opt.m["iflag3"].as<int>();
+  }
+
+  if(opt.count("rflag1")){
+    rflag1 = opt.m["rflag1"].as<double>();
+  }
+  if(opt.count("rflag2")){
+    rflag2 = opt.m["rflag2"].as<double>();
+  }
+  if(opt.count("rflag3")){
+    rflag3 = opt.m["rflag3"].as<double>();
   }
 
   if(opt.count("interp-err-min-algo")){

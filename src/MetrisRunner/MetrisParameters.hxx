@@ -89,6 +89,7 @@ struct MetrisParameters{
   // Metric min/max size control
   double hmin, hmax;
   double met_snap_tol; // tolerance for surface snapping in intrinsic metric case
+  double anamet_dx, anamet_dy, anamet_dz;
 
   // options: "curve"
   // Defaults to 0 (no curve), 1 for offsets followed by ccoef max, 2 for 
@@ -115,6 +116,7 @@ struct MetrisParameters{
 
   // Generic integer flags
   int iflag1, iflag2, iflag3;
+  double rflag1, rflag2, rflag3;
 
   bool refineConventionsInp;
   bool refineConventionsOut;

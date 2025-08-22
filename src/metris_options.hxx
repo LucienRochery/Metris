@@ -68,7 +68,10 @@ struct MetrisOptions{
       ("sclmet" , po::value<double>(), 
         "Analytical metric scaling") 
       ("hmin" , po::value<double>(), "Minimum metric size"   )
-      ("hmax" , po::value<double>(), "Maximum metric size"   );
+      ("hmax" , po::value<double>(), "Maximum metric size"   )
+      ("mdx" , po::value<double>(), "Analytical metric x offset"   )
+      ("mdy" , po::value<double>(), "Analytical metric y offset"   )
+      ("mdz" , po::value<double>(), "Analytical metric z offset"   );
 
     s.add_options()
       ("anasol" , po::value<int>(), 
@@ -134,6 +137,9 @@ struct MetrisOptions{
       ("iflag1", po::value<int>(), "Generic integer flag")
       ("iflag2", po::value<int>(), "Generic integer flag")
       ("iflag3", po::value<int>(), "Generic integer flag")
+      ("rflag1", po::value<double>(), "Generic real flag")
+      ("rflag2", po::value<double>(), "Generic real flag")
+      ("rflag3", po::value<double>(), "Generic real flag")
       ("interp-err-min-algo", po::value<int>(), 
         "Interpolation error minimization algo: 0 for Newton, 1 for DIRECT");
   }

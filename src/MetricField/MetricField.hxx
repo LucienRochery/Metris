@@ -18,9 +18,8 @@
 
 namespace Metris{
 
-
 class MeshBase;
-
+struct MetrisParameters;
 
 enum class MetricClass{None, MetricFieldFE, MetricFieldAnalytical};
 
@@ -188,7 +187,6 @@ public:
   void setAnalyticalMetric(int ianamet_);
 	void setAnalyticalMetric(anamet_proto fptr);
 
-
 	MetricFieldAnalytical &operator=(const MetricFieldAnalytical& inp);
 
 	void normalize(double coeff);
@@ -220,8 +218,9 @@ public:
 
 protected:
 	int ianamet;
-  void (*anamet)(void* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet);
+  void (*anamet)(const AnaMetCtx*, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet);
   double scale;
+  const AnaMetCtx ctx;
   //const MeshMetric<MetricFieldAnalytical> &msh;
   
 	// Physical derivatives

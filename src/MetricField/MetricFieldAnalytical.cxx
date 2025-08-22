@@ -5,7 +5,10 @@
 
 
 
-#include "../MetricField/MetricField.hxx"
+#include "MetricField.hxx"
+
+#include "../MetrisRunner/MetrisParameters.hxx"
+
 #include "../Mesh/MeshBase.hxx"
 #include "../Mesh/MeshMetric.hxx"
 
@@ -27,7 +30,7 @@ namespace Metris{
 
 
 MetricFieldAnalytical::MetricFieldAnalytical(MeshBase &msh) 
-:MetricFieldFE(msh){
+:MetricFieldFE(msh),ctx(*(msh.param)){
 	ianamet = -1;
 	anamet = NULL;
 	scale = 1.0;
@@ -54,6 +57,7 @@ void MetricFieldAnalytical::setAnalyticalMetric(anamet_proto anamet_ptr){
   this->ianamet = -1;
   this->anamet  = anamet_ptr;
 }
+
  
 MetricFieldAnalytical &MetricFieldAnalytical::operator=(const MetricFieldAnalytical& inp){
 	MetricFieldFE::operator=(inp);
@@ -159,7 +163,7 @@ void MetricFieldAnalytical::
 	int idifa = 0;
 	if(idiff != DifVar::None) idifa = 1;
 
-	anamet(NULL,coop,scale,idifa,metl,dmet);
+	anamet(&ctx,coop,scale,idifa,metl,dmet);
 
 	constexpr int nnmet = (gdim*(gdim+1))/2;
 	

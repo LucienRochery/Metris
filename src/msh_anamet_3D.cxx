@@ -3,10 +3,12 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
+#include "msh_anamet.hxx"
 
 #include "linalg/eigen.hxx"
 #include "linalg/utils.hxx"
 #include "../SANS/Surreal/SurrealS.h"
+
 
 #include <cmath>
 
@@ -20,7 +22,7 @@
 namespace Metris{
 
 
-void anamet3D_1([[maybe_unused]] void *ctx, [[maybe_unused]] const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet3D_1([[maybe_unused]] const AnaMetCtx* ctx, [[maybe_unused]] const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   // Not too coarse at the scale of 1  
   double h0 = 0.05;
 
@@ -46,7 +48,7 @@ void anamet3D_1([[maybe_unused]] void *ctx, [[maybe_unused]] const double*__rest
 Sinusoidal BL cf "HIGH-ORDER METRIC INTERPOLATION FOR CURVED R-ADAPTION BY DISTORTION MINIMIZATION" 
 Guillermo Aparicio-Estrems Abel Gargallo-Peiro Xevi Roca
 */
-void anamet3D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet3D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   double x0 = 0;
   double y0 = 0;
   double z0 = 0;
@@ -191,7 +193,7 @@ void anamet3D_2([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
 Cylindrical around axis z 
 Centered around -1, -1, -1 to avoid singularity on common cube cases 
 */
-void anamet3D_3([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet3D_3([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   double x0 = -0.6;
   double y0 = -0.6;
 
@@ -242,7 +244,7 @@ void anamet3D_3([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
 Cylindrical around axis z 
 Centered around -1, -1, -1 to avoid singularity on common cube cases 
 */
-void anamet3D_4([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet3D_4([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   double x0 = 0;
   double y0 = 0;
   double z0 = 0;
@@ -288,7 +290,7 @@ h_x = 0.1
 h_y = 0.1
 h_z = 0.1
 */
-void anamet3D_5([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet3D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
   const double h0 = 0.001;
 
@@ -322,7 +324,7 @@ h_y = 0.1
 h_z = h0 + 2*(0.1-h0)*abs(z-0.5)
 h0 = 0.001
 */
-void anamet3D_6([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet3D_6([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
   const double h0 = 0.001;
 
@@ -360,19 +362,23 @@ h0 = 0.001
 # t is in the theta direction
 # r is radial direction
 */
-void anamet3D_7([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet3D_7([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
-  SANS::SurrealS<3,double> x = crd[0];
+  double dx = ctx == NULL ? 0 : ctx->dx;
+  double dy = ctx == NULL ? 0 : ctx->dy;
+  double dz = ctx == NULL ? 0 : ctx->dz;
+
+  SANS::SurrealS<3,double> x = crd[0] + dx;
   x.deriv(0) = 1;
   x.deriv(1) = 0;
   x.deriv(2) = 0;
 
-  SANS::SurrealS<3,double> y = crd[1];
+  SANS::SurrealS<3,double> y = crd[1] + dy;
   y.deriv(0) = 0;
   y.deriv(1) = 1;
   y.deriv(2) = 0;
 
-  SANS::SurrealS<3,double> z = crd[2];
+  SANS::SurrealS<3,double> z = crd[2] + dz;
   z.deriv(0) = 0;
   z.deriv(1) = 0;
   z.deriv(2) = 1;
@@ -417,7 +423,7 @@ A modified polar-1 metric that is easier to satisfy with high-quality elements b
 d = (0.6 - r)*10
 h_t = (d < 0) ? (0.1) : (d*(1 / 40) + (1 - d)*0.1)
 */
-void anamet3D_8([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet3D_8([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
   SANS::SurrealS<3,double> x = crd[0];
   x.deriv(0) = 1;
@@ -472,7 +478,7 @@ void anamet3D_8([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
 
 
 // Boundary-layer along x centered at 0
-void anamet3D_9([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet3D_9([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
   SANS::SurrealS<3,double> X[3];
   const double x0 = 0.0;
@@ -522,7 +528,7 @@ void anamet3D_9([[maybe_unused]] void *ctx, const double*__restrict__ crd, doubl
 
 // Boundary-layer along x centered at 0.5
 // Merge with previous once (if) ctx is implemented.
-void anamet3D_10([[maybe_unused]] void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+void anamet3D_10([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
   SANS::SurrealS<3,double> X[3];
   const double x0 = 0.5;
