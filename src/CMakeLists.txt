@@ -76,11 +76,16 @@ add_library(meshBASIC STATIC low_eval.cxx ho_constants.hxx
                              Arrays/aux_msharrays1D.cxx 
                              Arrays/aux_msharrays2D.cxx 
                              utils/aux_timer.cxx )
+setMetrisFlags(meshBASIC PUBLIC)
+set_property(TARGET meshBASIC PROPERTY CXX_STANDARD 17)
 target_include_directories(meshBASIC PUBLIC 
+                           $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
+                           $<INSTALL_INTERFACE:include/src>
                            $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}> # For directories SANS/ libs/ etc.
                            $<INSTALL_INTERFACE:include>
                            ${METRIS_EXTERNAL_INCLUDE_DIRS})
 target_link_libraries(meshBASIC PUBLIC ${ABSL_LIBRARIES}
+ ${METRIS_DEPS_LIBRARIES}
                                        ) 
 if(REQ_CODEGEN)
   add_dependencies(meshBASIC codegen1  gen_lageval)

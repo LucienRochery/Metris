@@ -299,13 +299,25 @@ if(NOT fmt_FOUND)
     GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281
     EXCLUDE_FROM_ALL) # 10.2.1
   FetchContent_MakeAvailable(fmt_fetch)
+
   install(TARGETS fmt
           EXPORT libMetrisTargets
           LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
           ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
           RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
-          INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
           PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+  FetchContent_GetProperties(fmt_fetch)
+  if(NOT fmt_fetch_POPULATED)
+    message(FATAL_ERROR "fmt was not fetched correctly.")
+  endif()
+  install(DIRECTORY ${fmt_fetch_SOURCE_DIR}/include/
+          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+          FILES_MATCHING PATTERN "*.h*")
+
+
+  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${fmt_fetch_BINARY_DIR}>)
+  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
   metris_register_dependency("FetchContent" "fmt" "")
 endif()
 list(APPEND METRIS_DEPS_LIBRARIES fmt::fmt)

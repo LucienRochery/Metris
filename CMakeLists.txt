@@ -26,6 +26,9 @@ endif()
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR NOT DEFINED CMAKE_INSTALL_PREFIX)
   set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install CACHE PATH "Install destination" FORCE)
+  message(STATUS "Using default install prefix ${CMAKE_INSTALL_PREFIX}")
+else()
+  message(STATUS "Using provided install prefix ${CMAKE_INSTALL_PREFIX}")
 endif()
 
 # This must come before project or we get an infinite loop.
@@ -149,7 +152,6 @@ set_target_properties(metris PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 
 target_link_libraries(metris PUBLIC libMetris 
-                                    ${METRIS_DEPS_LIBRARIES}
                                     Boost::headers # yes this is weird
                                     ${Boost_LIBRARIES}
                                     )
