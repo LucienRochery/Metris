@@ -368,20 +368,20 @@ void anamet3D_7([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double dy = ctx == NULL ? 0 : ctx->dy;
   double dz = ctx == NULL ? 0 : ctx->dz;
 
-  SANS::SurrealS<3,double> x = crd[0] + dx;
-  x.deriv(0) = 1;
+  SANS::SurrealS<3,double> x = abs(crd[0] + dx);
+  x.deriv(0) = crd[0] + dx > 0 ? 1 : -1;
   x.deriv(1) = 0;
   x.deriv(2) = 0;
 
-  SANS::SurrealS<3,double> y = crd[1] + dy;
+  SANS::SurrealS<3,double> y = abs(crd[1] + dy);
   y.deriv(0) = 0;
-  y.deriv(1) = 1;
+  y.deriv(1) = crd[1] + dy > 0 ? 1 : -1;
   y.deriv(2) = 0;
 
-  SANS::SurrealS<3,double> z = crd[2] + dz;
+  SANS::SurrealS<3,double> z = abs(crd[2] + dz);
   z.deriv(0) = 0;
   z.deriv(1) = 0;
-  z.deriv(2) = 1;
+  z.deriv(2) = crd[2] + dz > 0 ? 1 : -1;
 
   SANS::SurrealS<3,double> r = sqrt(x*x + y*y);
   SANS::SurrealS<3,double> t = atan2(y,x);
@@ -425,20 +425,24 @@ h_t = (d < 0) ? (0.1) : (d*(1 / 40) + (1 - d)*0.1)
 */
 void anamet3D_8([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
-  SANS::SurrealS<3,double> x = crd[0];
-  x.deriv(0) = 1;
+  double dx = ctx == NULL ? 0 : ctx->dx;
+  double dy = ctx == NULL ? 0 : ctx->dy;
+  double dz = ctx == NULL ? 0 : ctx->dz;
+  
+  SANS::SurrealS<3,double> x = abs(crd[0] + dx);
+  x.deriv(0) = crd[0] + dx > 0 ? 1 : -1;
   x.deriv(1) = 0;
   x.deriv(2) = 0;
 
-  SANS::SurrealS<3,double> y = crd[1];
+  SANS::SurrealS<3,double> y = abs(crd[1] + dy);
   y.deriv(0) = 0;
-  y.deriv(1) = 1;
+  y.deriv(1) = crd[1] + dy > 0 ? 1 : -1;
   y.deriv(2) = 0;
 
-  SANS::SurrealS<3,double> z = crd[2];
+  SANS::SurrealS<3,double> z = abs(crd[2] + dz);
   z.deriv(0) = 0;
   z.deriv(1) = 0;
-  z.deriv(2) = 1;
+  z.deriv(2) = crd[2] + dz > 0 ? 1 : -1;
 
   SANS::SurrealS<3,double> r = sqrt(x*x + y*y);
   SANS::SurrealS<3,double> t = atan2(y,x);

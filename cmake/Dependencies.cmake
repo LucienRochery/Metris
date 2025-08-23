@@ -306,6 +306,7 @@ if(NOT fmt_FOUND)
           RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
           INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
           PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  metris_register_dependency("FetchContent" "fmt" "")
 endif()
 list(APPEND METRIS_DEPS_LIBRARIES fmt::fmt)
 

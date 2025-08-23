@@ -8,7 +8,7 @@
 
 namespace Metris{
 
-AnaMetCtx::AnaMetCtx(const MetrisParameters& param){
+void AnaMetCtx::setFromParam(const MetrisParameters& param){
   dx = param.anamet_dx;
   dy = param.anamet_dy;
   dz = param.anamet_dz;

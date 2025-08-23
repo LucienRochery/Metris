@@ -26,7 +26,7 @@ namespace Metris{
 struct MetrisParameters;
 typedef struct AnaMetCtx{
   AnaMetCtx():dx(0),dy(0),dz(0){}
-  AnaMetCtx(const MetrisParameters& param);
+  void setFromParam(const MetrisParameters& param);
   // Passed in using options -mdx -mdy -mdz
   double dx, dy, dz;
 } AnaMetCtx;

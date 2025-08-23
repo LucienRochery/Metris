@@ -184,9 +184,12 @@ public:
 	MetricFieldAnalytical(MeshBase &msh_);
   virtual ~MetricFieldAnalytical() = default;
 
+  void setAnalyticalMetric(const MetrisParameters& param);
+protected:
   void setAnalyticalMetric(int ianamet_);
 	void setAnalyticalMetric(anamet_proto fptr);
 
+public:
 	MetricFieldAnalytical &operator=(const MetricFieldAnalytical& inp);
 
 	void normalize(double coeff);
@@ -220,7 +223,7 @@ protected:
 	int ianamet;
   void (*anamet)(const AnaMetCtx*, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet);
   double scale;
-  const AnaMetCtx ctx;
+  AnaMetCtx ctx;
   //const MeshMetric<MetricFieldAnalytical> &msh;
   
 	// Physical derivatives

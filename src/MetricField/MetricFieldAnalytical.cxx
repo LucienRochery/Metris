@@ -30,7 +30,7 @@ namespace Metris{
 
 
 MetricFieldAnalytical::MetricFieldAnalytical(MeshBase &msh) 
-:MetricFieldFE(msh),ctx(*(msh.param)){
+:MetricFieldFE(msh){
 	ianamet = -1;
 	anamet = NULL;
 	scale = 1.0;
@@ -39,6 +39,15 @@ MetricFieldAnalytical::MetricFieldAnalytical(MeshBase &msh)
   #endif
 }
 
+void MetricFieldAnalytical::setAnalyticalMetric(const MetrisParameters& param){
+  if(param.ianamet >= 0){
+    this->setAnalyticalMetric(param.ianamet);
+  }else{
+    METRIS_ASSERT(param.anamet_ptr != NULL);
+    this->setAnalyticalMetric(param.anamet_ptr);
+  }
+  ctx.setFromParam(param);
+}
 
 void MetricFieldAnalytical::setAnalyticalMetric(int ianamet_){
 	int idim = msh.idim;

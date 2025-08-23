@@ -43,7 +43,7 @@ public:
 
   MeshClass meshClass() const override { return MeshClass::MeshMetric; }
 
-	MeshMetric() : MeshBase(), met(*this){}
+	MeshMetric() : MeshBase(), met(*this) {}
 
 
   void set_npoin(int npoin, bool skipallocf = false) override; 

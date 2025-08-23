@@ -44,12 +44,7 @@ void Mesh<MetricFieldAnalytical>::initialize(MetrisAPI *data, MeshBack &bak,
 
   GETVDEPTH(this->param);
 
-  if(param.ianamet >= 0){
-    met.setAnalyticalMetric(param.ianamet);
-  }else{
-    METRIS_ASSERT(param.anamet_ptr != NULL);
-    met.setAnalyticalMetric(param.anamet_ptr);
-  }
+  met.setAnalyticalMetric(param);
 
   if(param.scaleMet){
     CPRINTF1("-- Front scaling metric by {:15.7e}\n", param.metScale);
