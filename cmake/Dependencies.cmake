@@ -300,23 +300,30 @@ if(NOT fmt_FOUND)
     EXCLUDE_FROM_ALL) # 10.2.1
   FetchContent_MakeAvailable(fmt_fetch)
 
+  FetchContent_GetProperties(fmt_fetch)
+  if(NOT fmt_fetch_POPULATED)
+    message(FATAL_ERROR "fmt was not fetched correctly.")
+  endif()
+
+  install(DIRECTORY ${fmt_fetch_SOURCE_DIR}/include/
+          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+          FILES_MATCHING PATTERN "*.h*")
+
+  # This is to suppress the warning that PUBLIC_HEADER exists but not
+  # being installed. For some reason, we can't get that to install 
+  # correctly, and are installing headers manually. 
+  set_target_properties(fmt PROPERTIES PUBLIC_HEADER "")
+
   install(TARGETS fmt
           EXPORT libMetrisTargets
           LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
           ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
           RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
-          PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-
-  FetchContent_GetProperties(fmt_fetch)
-  if(NOT fmt_fetch_POPULATED)
-    message(FATAL_ERROR "fmt was not fetched correctly.")
-  endif()
-  install(DIRECTORY ${fmt_fetch_SOURCE_DIR}/include/
-          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-          FILES_MATCHING PATTERN "*.h*")
+          #PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+          )
 
 
-  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${fmt_fetch_BINARY_DIR}>)
+  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${fmt_fetch_SOURCE_DIR}/include>)
   list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
   metris_register_dependency("FetchContent" "fmt" "")
 endif()
