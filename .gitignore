@@ -76,6 +76,7 @@ examples2D/misc/*
 !examples/2D/misc/invevalP2.mesh
 !examples/2D/square/
 examples2D/square/*
+!examples/2D/square/gen_CAD.sh
 !examples/2D/square/gen_circmet.p2.500.sh
 !examples/2D/square/gen_circmet.p2.5k.sh
 !examples/2D/square/gen_square.p1.100k.sh
@@ -95,6 +96,7 @@ examples3D/cube/*
 !examples/3D/cube/gen_cube.p1.16k.sh
 !examples/3D/cube/gen_cube.p1.2k.sh
 !examples/3D/cube/gen_curved.p2.2k.sh
+!examples/3D/cube/gen_CAD.sh
 
 
 !cases/unit/

@@ -69,9 +69,9 @@ void anamet2D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
     theta = pi + atan(y[1]/y[0]);
   }
 
-  if(ctx != NULL){
-    fmt::print("anamet2D_2 debug r = {:.6f} theta = {:.6f}\n", r.value(), theta.value());
-  }
+  //if(ctx != NULL){
+  //  fmt::print("anamet2D_2 debug r = {:.6f} theta = {:.6f}\n", r.value(), theta.value());
+  //}
 
   // eig2met is in R^T D R format. Worst case we are using -theta. 
   eigvec[0] =  cos(theta);
@@ -187,9 +187,9 @@ void anamet2D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
     theta = pi + atan(y[1]/y[0]);
   }
 
-  if(ctx != NULL){
-    fmt::print("anamet2D_2 debug r = {:.6f} theta = {:.6f}\n", r.value(), theta.value());
-  }
+  //if(ctx != NULL){
+  //  fmt::print("anamet2D_2 debug r = {:.6f} theta = {:.6f}\n", r.value(), theta.value());
+  //}
 
   // eig2met is in R^T D R format. Worst case we are using -theta. 
   eigvec[0] =  cos(theta);
@@ -260,9 +260,9 @@ void anamet2D_6([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
     theta = pi + atan(y[1]/y[0]);
   }
 
-  if(ctx != NULL){
-    fmt::print("anamet2D_2 debug r = {:.6f} theta = {:.6f}\n", r.value(), theta.value());
-  }
+  //if(ctx != NULL){
+  //  fmt::print("anamet2D_2 debug r = {:.6f} theta = {:.6f}\n", r.value(), theta.value());
+  //}
 
   // eig2met is in R^T D R format. Worst case we are using -theta. 
   eigvec[0] =  cos(theta);
