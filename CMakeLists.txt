@@ -276,7 +276,9 @@ endforeach()
 
 add_custom_command(OUTPUT ${METRIS_UNIT_TEST_MESHES}
                    DEPENDS metris
-                   COMMAND ${METRIS_CASES_DIR}/gen_cases.sh)
+                   COMMAND ${CMAKE_COMMAND} -E env 
+                           METRIS_CASES_DIR=${METRIS_CASES_DIR}
+                           ${METRIS_CASES_DIR}/gen_cases.sh)
 add_custom_target(deploy_cases DEPENDS ${METRIS_UNIT_TEST_MESHES})
 
 set(METRIS_TARGET_TESTS "")
