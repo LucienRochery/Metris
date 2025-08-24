@@ -1,7 +1,7 @@
 
 # arg1: target name 
 # arg2: scope (PUBLIC INTERFACE etc)
-function(setMetrisFlags arg1 arg2)
+function(setMetrisCXXFlags arg1 arg2)
   target_compile_options(${arg1} ${arg2} $<$<CONFIG:MEMCHECK>:${METRIS_CXX_FLAGS_MEMCHECK}>)
   target_compile_options(${arg1} ${arg2} $<$<CONFIG:DEBUG>:${METRIS_CXX_FLAGS_DEBUG}>)
   target_compile_options(${arg1} ${arg2} $<$<CONFIG:RELEASE>:${METRIS_CXX_FLAGS_RELEASE}>)
@@ -11,6 +11,17 @@ function(setMetrisFlags arg1 arg2)
   target_link_options(${arg1} ${arg2} $<$<CONFIG:DEBUG>:${METRIS_CXX_FLAGS_DEBUG}>)
   target_link_options(${arg1} ${arg2} $<$<CONFIG:RELEASE>:${METRIS_CXX_FLAGS_RELEASE}>)
   target_link_options(${arg1} ${arg2} $<$<CONFIG:RELWITHDEBINFO>:${METRIS_CXX_FLAGS_RELWITHDEBINFO}>)
+endfunction()
+function(setMetrisCFlags arg1 arg2)
+  target_compile_options(${arg1} ${arg2} $<$<CONFIG:MEMCHECK>:${METRIS_C_FLAGS_MEMCHECK}>)
+  target_compile_options(${arg1} ${arg2} $<$<CONFIG:DEBUG>:${METRIS_C_FLAGS_DEBUG}>)
+  target_compile_options(${arg1} ${arg2} $<$<CONFIG:RELEASE>:${METRIS_C_FLAGS_RELEASE}>)
+  target_compile_options(${arg1} ${arg2} $<$<CONFIG:RELWITHDEBINFO>:${METRIS_C_FLAGS_RELWITHDEBINFO}>)
+
+  target_link_options(${arg1} ${arg2} $<$<CONFIG:MEMCHECK>:${METRIS_C_FLAGS_MEMCHECK}>)
+  target_link_options(${arg1} ${arg2} $<$<CONFIG:DEBUG>:${METRIS_C_FLAGS_DEBUG}>)
+  target_link_options(${arg1} ${arg2} $<$<CONFIG:RELEASE>:${METRIS_C_FLAGS_RELEASE}>)
+  target_link_options(${arg1} ${arg2} $<$<CONFIG:RELWITHDEBINFO>:${METRIS_C_FLAGS_RELWITHDEBINFO}>)
 endfunction()
 
 

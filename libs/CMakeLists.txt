@@ -4,11 +4,12 @@ list(APPEND METRIS_INTERNAL_INCLUDE_DIRS libs/)
 # -- libMeshb and LPlib
 if(NOT TARGET libmeshb)
   add_library(libmeshb STATIC libmeshb7/libmeshb7.c)
-  setMetrisFlags(libmeshb PUBLIC)
+  setMetrisCFlags(libmeshb PUBLIC)
 endif()
 list(APPEND METRIS_DEPS_LIBRARIES libmeshb)
 
 add_library(lplib3 STATIC lplib3/lplib3.c)
+setMetrisCFlags(lplib3 PUBLIC)
 target_link_libraries(lplib3 PUBLIC pthread)
 list(APPEND METRIS_DEPS_LIBRARIES lplib3)
 

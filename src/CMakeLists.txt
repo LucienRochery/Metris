@@ -14,7 +14,7 @@
 # 1.1 - gen_lageval: generate Lagrange evaluation routines
 if(REQ_CODEGEN)
   add_executable(gen_lageval ${PROJECT_SOURCE_DIR}/tools/gen_lageval.cxx ho_constants.hxx)
-  setMetrisFlags(gen_lageval PUBLIC)
+  setMetrisCXXFlags(gen_lageval PUBLIC)
   target_link_libraries(gen_lageval PUBLIC  Boost::headers 
                                             libSANS_Metris 
                                             )
@@ -49,7 +49,7 @@ if(REQ_CODEGEN)
                            ${PROJECT_SOURCE_DIR}/tools/gen_ccoef_d_pt.cxx 
                            ${PROJECT_SOURCE_DIR}/tools/gen_ccoef_d_coord.cxx 
                            ho_constants.hxx)
-  setMetrisFlags(gen_ccoef PUBLIC)
+  setMetrisCXXFlags(gen_ccoef PUBLIC)
   target_link_libraries(gen_ccoef PUBLIC libSANS_Metris)
   target_include_directories(gen_ccoef PUBLIC ${METRIS_DEPS_INCLUDE_DIRS}
                                               ${PROJECT_SOURCE_DIR} )
@@ -76,7 +76,7 @@ add_library(meshBASIC STATIC low_eval.cxx ho_constants.hxx
                              Arrays/aux_msharrays1D.cxx 
                              Arrays/aux_msharrays2D.cxx 
                              utils/aux_timer.cxx )
-setMetrisFlags(meshBASIC PUBLIC)
+setMetrisCXXFlags(meshBASIC PUBLIC)
 set_property(TARGET meshBASIC PROPERTY CXX_STANDARD 17)
 target_include_directories(meshBASIC PUBLIC 
                            $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
@@ -93,7 +93,7 @@ if(REQ_CODEGEN)
   # 3 --- CODEGEN TARGETS 2
   # gen_lag2bez: generate Lagrange-to-Bézier conversion routines
   add_executable(gen_lag2bez ${PROJECT_SOURCE_DIR}/tools/gen_lag2bezfuncs.cxx)
-  setMetrisFlags(gen_lag2bez PUBLIC)
+  setMetrisCXXFlags(gen_lag2bez PUBLIC)
   target_link_libraries(gen_lag2bez PUBLIC meshBASIC 
                                            libSANS_Metris
                                            ${ABSL_LIBRARIES})
@@ -287,7 +287,7 @@ if(EXISTS ${PROJECT_SOURCE_DIR}/src/Adaptation/msh_lineadapt2.cxx)
   )
 endif()
 add_library(libMetris STATIC ${SRC_SOURCES})
-setMetrisFlags(libMetris PUBLIC)
+setMetrisCXXFlags(libMetris PUBLIC)
 set_property(TARGET libMetris PROPERTY CXX_STANDARD 17)
 
 message("-- METRIS_DEPS_INCLUDE_DIRS = ${METRIS_DEPS_INCLUDE_DIRS}")

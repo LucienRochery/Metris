@@ -175,7 +175,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/progs/scatter_rh.cxx)
                                           )
   target_include_directories(scatter_rh PRIVATE  "."
                              ${ESP_ROOT}/include)
-  setMetrisFlags(scatter_rh PUBLIC)
+  setMetrisCXXFlags(scatter_rh PUBLIC)
 endif()
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/progs/extract_surf.cxx)
@@ -186,7 +186,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/progs/extract_surf.cxx)
                                             )
   target_include_directories(extract_surf PRIVATE  "."
                              ${ESP_ROOT}/include)
-  setMetrisFlags(extract_surf PUBLIC)
+  setMetrisCXXFlags(extract_surf PUBLIC)
 endif()
 
 if(EXISTS ${CMAKE_SOURCE_DIR}/progs/offset_coord.cxx)
@@ -197,7 +197,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/progs/offset_coord.cxx)
                                             )
   target_include_directories(offset_coord PRIVATE  "."
                              ${ESP_ROOT}/include)
-  setMetrisFlags(offset_coord PUBLIC)
+  setMetrisCXXFlags(offset_coord PUBLIC)
 endif()
 
 # Note on includes: the src lib target (libMetris) already includes publicly everything that we need
@@ -205,11 +205,11 @@ endif()
 target_include_directories(metris PRIVATE "progs/main.hxx"
                                   PUBLIC ${METRIS_DEPS_INCLUDE_DIRS}
                                   )
-setMetrisFlags(metris PUBLIC)
+setMetrisCXXFlags(metris PUBLIC)
 
 target_include_directories(egads2lite PRIVATE  "."
                            ${ESP_ROOT}/include)
-setMetrisFlags(egads2lite PUBLIC)
+setMetrisCXXFlags(egads2lite PUBLIC)
 
 
 
@@ -287,7 +287,7 @@ foreach(test_file ${TEST_SOURCES})
   set(test_target_build "${test_target}_build")
   add_executable(${test_target_build} EXCLUDE_FROM_ALL ${test_file})
   set_target_properties(${test_target_build} PROPERTIES OUTPUT_NAME ${test_target})
-  setMetrisFlags(${test_target_build} PUBLIC)
+  setMetrisCXXFlags(${test_target_build} PUBLIC)
   target_compile_definitions(${test_target_build} PUBLIC METRIS_CASES_DIR="${METRIS_CASES_DIR}")
   target_link_libraries(${test_target_build} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   target_link_libraries(${test_target_build} PUBLIC libMetris 
