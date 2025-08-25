@@ -13,6 +13,10 @@ if(PkgConfig_FOUND)
       set(NLOPT_LIBRARY_DIRS ${PC_NLOPT_LIBRARY_DIRS})
       set(NLOPT_VERSION ${PC_NLOPT_VERSION})
 
+      message(STATUS "NLOPT_INCLUDE_DIRS: ${NLOPT_INCLUDE_DIRS}")
+      message(STATUS "NLOPT_LIBRARIES: ${NLOPT_LIBRARIES}")
+      message(STATUS "NLOPT_LIBRARY_DIRS: ${NLOPT_LIBRARY_DIRS}")
+
       # Create the imported target
       if(NOT TARGET NLopt::nlopt)
         add_library(NLopt::nlopt INTERFACE IMPORTED)
