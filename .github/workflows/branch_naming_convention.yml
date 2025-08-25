@@ -32,7 +32,8 @@ jobs:
             echo "$changed_files" | readarray -t files_array
 
             echo "Changed files: $changed_files"
-            
+            echo "Changed files array: ${files_array[@]}"
+
             # Check all changed files are in docs/
             non_docs_files=()
             # Array expansion via [@] is necessary otherwise for only goes over first...
