@@ -42,7 +42,8 @@ set(METRIS_WARNING_FLAGS -Wno-gnu-zero-variadic-macro-arguments
                          -Wno-gcc-compat 
                          -Wunused-result
                          -Wno-variadic-macros)  
-set(METRIS_FLAGS ${METRIS_WARNING_FLAGS} -DMETRIS_GIT_URL="${GITURL}")
+#set(METRIS_FLAGS ${METRIS_WARNING_FLAGS} -DMETRIS_GIT_URL="${GITURL}")
+set(METRIS_FLAGS ${METRIS_WARNING_FLAGS})
 if(USE_TRACELIBS)
   set(METRIS_FLAGS ${METRIS_FLAGS} -DBOOST_STACKTRACE_USE_ADDR2LINE)
 endif()
