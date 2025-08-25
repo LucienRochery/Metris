@@ -11,6 +11,11 @@ jobs:
   check-branch:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history so we can access any commit SHA
+
       - name: Check branch name matches user/*
         run: |
           branch="${GITHUB_REF#refs/heads/}"
