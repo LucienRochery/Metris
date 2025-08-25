@@ -1,3 +1,5 @@
+# https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#github-context
+
 name: Enforce Branch Naming
 
 on:
@@ -18,6 +20,33 @@ jobs:
           if [[ $GITHUB_ACTOR != "LucienRochery" ]] ; then
             if [[ "$branch" == "develop" && $GITHUB_ACTOR == "acdl-jenkins" ]] ; then
               echo "Jenkins merge onto develop access"
+            elif [[ "$branch" == "documentation" ]] ; then
+              echo "In documentation branch, checking only docs/ was changed"
+
+              changed_files=$(git diff --name-only HEAD~1 HEAD)
+
+              # changed_files is newline separated... convert to bash array
+              echo "$changed_files" | readarray -t files_array
+
+              echo "Changed files: $changed_files"
+              
+              # Check all changed files are in docs/
+              non_docs_files=()
+              # Array expansion via [@] is necessary otherwise for only goes over first...
+              for changed_file in "${files_array[@]}"; do
+                if [[ -n "$changed_file" && ! "$changed_file" =~ ^docs/ ]]; then
+                  non_docs_files+=("$changed_file")
+                fi
+              done
+              
+              if [[ ${#non_docs_files[@]} -gt 0 ]]; then
+                echo "Error: $GITHUB_ACTOR can only modify files in docs/ directory on documentation branch"
+                echo "Non-docs files found:"
+                printf '%s\n' "${non_docs_files[@]}"
+                exit 1
+              else
+                echo "All changes are in docs/ directory -> push OK"
+              fi
             elif [[ "$branch" != "$GITHUB_ACTOR/"* ]] ; then
               echo "Error: $GITHUB_ACTOR can only push to branches named $GITHUB_ACTOR/*"
               exit 1
