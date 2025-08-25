@@ -20,7 +20,8 @@ jobs:
           if [[ "$branch" == "documentation" ]] ; then
             echo "In documentation branch, checking only docs/ was changed"
 
-            changed_files=$(git diff --name-only HEAD~1 HEAD)
+            # Using HEAD~1 doesn't work in GitHub Actions
+            changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
 
             # changed_files is newline separated... convert to bash array
             echo "$changed_files" | readarray -t files_array
