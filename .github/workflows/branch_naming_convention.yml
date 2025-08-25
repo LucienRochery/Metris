@@ -37,6 +37,7 @@ jobs:
             non_docs_files=()
             # Array expansion via [@] is necessary otherwise for only goes over first...
             for changed_file in "${files_array[@]}"; do
+              echo "Testing file $changed_file"
               if [[ -n "$changed_file" && ! "$changed_file" =~ ^docs/ ]]; then
                 non_docs_files+=("$changed_file")
               fi
