@@ -314,7 +314,7 @@ foreach(test_file ${TEST_SOURCES})
     list(APPEND METRIS_TARGET_TESTS_BUILD ${test_target_build})
     add_test(
       NAME ${test_target}
-      COMMAND ${test_target}
+      COMMAND $<TARGET_FILE:${test_target_build}>
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
   endif()
