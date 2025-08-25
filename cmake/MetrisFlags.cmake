@@ -37,9 +37,7 @@ endif()
 
 message("Metris using build type = ${CMAKE_BUILD_TYPE}")
 
-set(METRIS_WARNING_FLAGS -Wno-gnu-zero-variadic-macro-arguments  
-                         -Wno-logical-op-parentheses
-                         -Wno-gcc-compat 
+set(METRIS_WARNING_FLAGS -Wno-logical-op-parentheses
                          -Wunused-result
                          -Wno-variadic-macros)  
 #set(METRIS_FLAGS ${METRIS_WARNING_FLAGS} -DMETRIS_GIT_URL="${GITURL}")
@@ -97,6 +95,14 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES Clang)
   message("Using Clang ${CMAKE_C_COMPILER} ${SHORT_COMPILER_NAME}")
 
   set(METRIS_CXX_ONLY_FLAGS -fconstexpr-steps=1000000000)
+  set(METRIS_CLANG_FLAGS -Wno-misleading-indentation 
+                         -Wno-gnu-zero-variadic-macro-arguments 
+                         -Wno-gcc-compat )
+
+  set(METRIS_C_FLAGS_RELEASE        ${METRIS_CLANG_FLAGS})
+  set(METRIS_C_FLAGS_DEBUG          ${METRIS_CLANG_FLAGS})
+  set(METRIS_C_FLAGS_MEMCHECK       ${METRIS_CLANG_FLAGS})
+  set(METRIS_C_FLAGS_RELWITHDEBINFO ${METRIS_CLANG_FLAGS})
 
   #set(METRIS_CXX_FLAGS_RELEASE -DNDEBUG  -march=native -O3 -fPIC)
   set(METRIS_C_FLAGS_RELEASE -DNDEBUG  -march=native -O3 -ftree-vectorize -fPIC)

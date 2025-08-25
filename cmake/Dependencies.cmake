@@ -289,7 +289,11 @@ endif()
 
 # External libraries to be fetched
 find_package(fmt QUIET)
-if(NOT fmt_FOUND)
+#message(WARNING "Disabled find fmt")
+if(fmt_FOUND)
+  message(STATUS "fmt lib found: ${fmt_VERSION}")
+  metris_register_dependency("find_package" "fmt REQUIRED" "")
+else()
   message(STATUS "fmt lib not found, fetching")
   # fmt library: std::format precursor with better performance
   # and pre-C++20 support.
@@ -322,6 +326,9 @@ if(NOT fmt_FOUND)
           #PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
           )
 
+  if(NOT TARGET fmt::fmt)
+    add_library(fmt::fmt ALIAS fmt)
+  endif()
 
   list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${fmt_fetch_SOURCE_DIR}/include>)
   list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
