@@ -9,4 +9,5 @@ Related scripts are found in bunit/doc_*.cxx. They may eventually be moved to a 
 
 - [ball](exercises/ball.md): gather set of elements surrounding a vertex. 
 - [cavity boundary](exercises/cavity_boundary.md): gather facets of cavity (list of elements) boundary. 
+- [structured mesh](exercises/structured_mesh.md): generate a structured mesh 
 
