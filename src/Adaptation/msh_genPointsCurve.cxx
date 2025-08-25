@@ -299,7 +299,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
     double lentot = 0;
     int ipprv = 0; // 0 is always the leftmost point as we always leave the old 
     // edge left and only change its 1-th entry
-    int itsep, itsed = 0;
+    int itsep = -1, itsed = 0;
     double lastlen, lastmet = -1;
     lnewt.set_n(0);
     ledge.set_n(0);
