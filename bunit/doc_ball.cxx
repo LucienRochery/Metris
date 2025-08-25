@@ -1,0 +1,1 @@
+// testing ability to create scripts in bunit with the doc_*.cxx convention
