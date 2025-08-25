@@ -8,14 +8,15 @@
 #include "common_setup.hxx"
 
 
+
 using namespace Metris;
 
 typedef MetricFieldAnalytical MFT;
 
 namespace utf = boost::unit_test;
 // 1.0e-8 relative error -> 1.0e-6% utf::tolerance()
-BOOST_AUTO_TEST_CASE(bench_ccoef, * utf::tolerance(double(1.0e-6)) )  
-{ 
+BOOST_AUTO_TEST_CASE(bench_ccoef, * utf::tolerance(double(1.0e-6)) )
+{
   #ifdef NDEBUG
 
   // bool is whether straight
@@ -97,7 +98,7 @@ BOOST_AUTO_TEST_CASE(bench_ccoef, * utf::tolerance(double(1.0e-6)) )
         BOOST_TEST(jmin == 1.0);
         BOOST_TEST(jmax == 1.0);
       }
-    
+
       printf("--- Manual compute at nodes \n");
       jmin = 1.0e30;
       jmax =-1.0e30;
@@ -116,12 +117,12 @@ BOOST_AUTO_TEST_CASE(bench_ccoef, * utf::tolerance(double(1.0e-6)) )
       ps /= 1000;
       printf(" %2.0f P%d Full elt coefs %dk/s \n",dum[0],ideg,ps);
       printf("   %15.8e < J_K < %15.8e \n",jmin,jmax);
-      
+
 
     }}CT_FOR1(idim);
     }}CT_FOR1(ideg);
   }
-  
+
 
   #else
 
