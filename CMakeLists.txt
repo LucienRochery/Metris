@@ -270,7 +270,7 @@ foreach(test_file ${TEST_SOURCES})
 
   add_custom_target(${test_target}
       DEPENDS ${test_target_build}
-      COMMAND ${test_target}
+      COMMAND $<TARGET_FILE:${test_target_build}> 
   )
 
   
@@ -288,7 +288,7 @@ foreach(test_file ${TEST_SOURCES})
   endif()
 
   # Ensure that foo_build is built before foo
-  add_dependencies(${test_target} ${test_target_build} deploy_cases)
+  add_dependencies(${test_target}  deploy_cases)
 endforeach()
   
 add_custom_target(metris_tests

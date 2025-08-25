@@ -9,7 +9,7 @@ endif()
 list(APPEND METRIS_DEPS_LIBRARIES libmeshb)
 
 add_library(lplib3 STATIC lplib3/lplib3.c)
-setMetrisCFlags(lplib3 PUBLIC)
+#setMetrisCFlags(lplib3 PUBLIC)
 target_link_libraries(lplib3 PUBLIC pthread)
 list(APPEND METRIS_DEPS_LIBRARIES lplib3)
 

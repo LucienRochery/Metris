@@ -90,6 +90,8 @@ BOOST_AUTO_TEST_CASE(test_newton_drivertype)
 
 	for(int ii = 0; ii < 3; ii++) xcur[ii] = 1;
 
+  fmt::print("-- Test basic Newton\n");
+  bool istopped = false;
 	do{
 		//optim_newton_drivertype(nvar ,
 		//                                  xcur ,&fcur  ,gcur   ,hess ,
@@ -102,23 +104,29 @@ BOOST_AUTO_TEST_CASE(test_newton_drivertype)
 		//                                  xopt ,&fopt ,&ierro);
     ierro = optim_newton_drivertype<nvar>(args, 
                                        xcur, &fcur, gcur, hess, &iflag, &ihess);
-		if(ierro > 0){
-			printf("ERROR %d\n",ierro);
-			exit(1);
-		}
+
+    BOOST_CHECK(ierro <= 0);
+    if(ierro > 0) break;
+    
 		if(iflag <= 0){
-			printf("Stop\n");
+			//printf("Stop\n");
+      istopped = true;
 			break;
 		}
 
 		fcur = func(xcur,ihess,gcur,hess);
-		printf("-- Iteration %d flag %d value = %e opt = %f \n",args.niter,iflag,fcur,args.fopt);
-		printf("  - debug xcur %f %f %f grad %f %f %f \n",xcur[0],xcur[1],xcur[2]
-			,gcur[0],gcur[1],gcur[2]);
+		//printf("-- Iteration %d flag %d value = %e opt = %f \n",args.niter,iflag,fcur,args.fopt);
+		//printf("  - debug xcur %f %f %f grad %.2e %.2e %.2e \n",xcur[0],xcur[1],xcur[2]
+		//	,gcur[0],gcur[1],gcur[2]);
 	}while(iflag > 0);
 
+  BOOST_CHECK(istopped);
+  double err = getnrml2<nvar>(args.xopt);
+  BOOST_CHECK_SMALL(err,1.0e-12);
+  BOOST_CHECK_SMALL(args.fopt,1.0e-12);
 
-  printf("\n\n-- Newton TNCG\n");
+
+  fmt::print("-- Test TNCG Newton\n");
   double buff[200];
   dblAr1 buf(200,buff);
   truncated_newton_work work(nvar,buf);
@@ -129,23 +137,30 @@ BOOST_AUTO_TEST_CASE(test_newton_drivertype)
 
   iflag = 0;
   for(int ii = 0; ii < 3; ii++) xcur[ii] = 1;
-
+  istopped = false;
   do{
     optim_newton_drivertype_TNCG<nvar>(args ,work, xcur, &fcur, gcur, hess, &iflag, &ihess);
-    if(ierro > 0){
-      printf("ERROR %d\n",ierro);
-      exit(1);
-    }
+    
+    BOOST_CHECK(ierro <= 0);
+    if(ierro > 0) break;
+
     if(iflag <= 0){
-      printf("Stop\n");
+      istopped = true;
       break;
     }
 
     fcur = func(xcur,ihess,gcur,hess);
-    printf("-- Iteration %d flag %d value = %e opt = %f \n",args.niter,iflag,fcur,fopt);
-    printf("  - debug xcur %f %f %f grad %f %f %f \n",xcur[0],xcur[1],xcur[2]
-      ,gcur[0],gcur[1],gcur[2]);
+    //printf("-- Iteration %d flag %d value = %e opt = %f \n",args.niter,iflag,fcur,fopt);
+    //printf("  - debug xcur %f %f %f grad %.2e %.2e %.2e \n",xcur[0],xcur[1],xcur[2]
+    //  ,gcur[0],gcur[1],gcur[2]);
   }while(iflag > 0);
+
+  BOOST_CHECK(istopped);
+  double err_TNCG = getnrml2<nvar>(args.xopt);
+  BOOST_CHECK_SMALL(err_TNCG,1.0e-5);
+  BOOST_CHECK_SMALL(args.fopt,1.0e-5);
+
+  fmt::print("-- END Newton tests final x error: basic {:.2e}, TNCG = {:.2e}\n", err, err_TNCG);
 
 }
 

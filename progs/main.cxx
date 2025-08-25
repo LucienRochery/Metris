@@ -26,11 +26,11 @@ int main(int argc, char** argv){
   //gen_argv(&argc2,argv2,"-ksp_monitor -start_in_debugger --with-strict-petscerrorcode");
   Metris::cargHandler arg2("-ksp_monitor -start_in_debugger --with-strict-petscerrorcode");
 
-  printf("Call: ");
-  for(int ii = 0; ii < argc; ii++){
-    printf(" %s ",argv[ii]);
-  }
-  printf("\n");
+  //printf("Call: ");
+  //for(int ii = 0; ii < argc; ii++){
+  //  printf(" %s ",argv[ii]);
+  //}
+  //printf("\n");
 //  gen_argv(&argc2,argv2,"");
 
   #ifdef METRIS_USE_PETSC

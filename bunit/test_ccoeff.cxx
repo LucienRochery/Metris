@@ -7,25 +7,11 @@
 
 #include "common_setup.hxx"
 
-#include "../src/Metris.h"
-//#include "../src/codegen_ccoef.hxx"
-//#include "../src/low_geo/ccoef.hxx"
-//#include "../src/msh_lag2bez.hxx"
-//#include "../src/linalg/det.hxx"
-
-
-#include <boost/hana.hpp> 
-#include <boost/test/included/unit_test.hpp> 
-#include <cmath>
-namespace hana = boost::hana;
-using namespace hana::literals;
-
-namespace utf = boost::unit_test;
-
 using namespace Metris;
 
 typedef MetricFieldAnalytical MFT;
 
+namespace utf = boost::unit_test;
 // 1.0e-8 relative error -> 1.0e-6% utf::tolerance()
 BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) ) 
 { 
@@ -81,60 +67,6 @@ BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) )
       constexpr auto ccoef_genbez = idim == 2 ? ccoef_genbez2<ideg> : ccoef_genbez3<ideg>;
       constexpr auto evalf =  idim == 2 ? eval2<idim,ideg> : eval3<idim,ideg>;
       constexpr auto evalj =  idim == 2 ? eval2<1   ,jdeg> : eval3<1   ,jdeg>;
-
-      #ifdef NDEBUG
-        printf("-- Release target: benchmarks\n");
-        std::cout<<"Mesh "<<s<<"\n";
-        double t0,t1,dum[3]={0.0};
-        double jmin,jmax;
-
-        printf("--- Codegen \n");
-        jmin = 1.0e30;
-        jmax =-1.0e30;
-        t0 = get_wall_time();
-        for(int ielem = 0; ielem < nentt; ielem++){
-          ccoef_genbez(ent2poi,msh.coord,ielem,ccoef);
-          dum[0] += ccoef[0];
-          double vol = getmeasentP1<idim>(ent2poi[ielem],msh.coord)*vol0;
-          for(int i = 0; i < nnodj; i++){
-            jmin = MIN(ccoef[i] / vol, jmin);
-            jmax = MAX(ccoef[i] / vol, jmax);
-          }
-        }
-        t1 = get_wall_time();
-        ps = (int)(nentt/(t1-t0));
-        ps /= 1000;
-        printf(" %2.0f P%d Full elt coefs %dk/s \n",dum[0],ideg,ps);
-        printf("   %15.8e < J_K < %15.8e \n",jmin,jmax);
-        if(istr8){
-          BOOST_TEST(jmin == 1.0);
-          BOOST_TEST(jmax == 1.0);
-        }
-      
-        printf("--- Manual compute at nodes \n");
-        jmin = 1.0e30;
-        jmax =-1.0e30;
-        t0 = get_wall_time();
-        for(int ielem = 0; ielem < nentt; ielem++){
-          ccoef_eval<idim,idim,ideg>(msh.getBasis(),ent2poi,msh.coord,ielem,NULL,ccoef);
-          dum[0] += ccoef[0];
-          double vol = getmeasentP1<idim>(ent2poi[ielem],msh.coord)*vol0;
-          for(int i = 0; i < nnodj; i++){
-            jmin = MIN(ccoef[i] / vol, jmin);
-            jmax = MAX(ccoef[i] / vol, jmax);
-          }
-        }
-        t1 = get_wall_time();
-        ps = (int)(nentt/(t1-t0));
-        ps /= 1000;
-        printf(" %2.0f P%d Full elt coefs %dk/s \n",dum[0],ideg,ps);
-        printf("   %15.8e < J_K < %15.8e \n",jmin,jmax);
-        if(istr8){
-          BOOST_TEST(jmin == 1.0);
-          BOOST_TEST(jmax == 1.0);
-        }
-      #endif
-
 
 
       bool first = true;

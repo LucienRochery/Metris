@@ -21,6 +21,14 @@ opt(argc,argv),
 param_(opt),
 param(&param_){
   METRIS_ENFORCE_MSG(!(opt.count("met") && opt.count("anamet")),"Contradictory options: -back or -met and -anamet");
+  GETVDEPTH(param);
+  if(DOPRINTS1()){
+    printf("Call: ");
+    for(int ii = 0; ii < argc; ii++){
+      printf(" %s ",argv[ii]);
+    }
+    printf("\n");
+  }
   constructorCommon(NULL,NULL);
 }
 

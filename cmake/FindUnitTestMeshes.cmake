@@ -82,9 +82,16 @@ foreach(meshname ${METRIS_UNIT_TEST_MESHES})
   if(NOT EXISTS ${gen_script})
     message(FATAL_ERROR "No generation script found for unit test mesh ${meshname}.\nExpected: ${gen_script}")
   endif()
+
   
+  if(NOT EXISTS ${meshname})
+    set(MESH_DEPENDS metris)
+  else()
+    set(MESH_DEPENDS "")
+  endif()
+
   add_custom_command(OUTPUT ${meshname}
-                     DEPENDS metris
+                     DEPENDS ${MESH_DEPENDS}
                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/examples/${meshdir_relative}
                      COMMAND ${CMAKE_COMMAND} -E env 
                              METRIS_CASES_DIR=${METRIS_CASES_DIR}

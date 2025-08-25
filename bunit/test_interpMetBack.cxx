@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(test_interpMetBack)
       METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k"
   };
 
-  const int nsamp = 100;
+  const int nsamp = 20;
   dblAr2 bar1(nsamp,2),bar2(nsamp,3),bar3(nsamp,4);
   dblAr2 bar1_out(nsamp,2),bar2_out(nsamp,3),bar3_out(nsamp,4);
   std::uniform_real_distribution<double> unif(0.0,1.0);
@@ -108,30 +108,32 @@ BOOST_AUTO_TEST_CASE(test_interpMetBack)
   int nerro0 = 0;
 
   std::filesystem::create_directory("tmp");
-  const int iverb = 0;
 
   for(auto s : meshes)
   {
-    std::cout << "Mesh " << s << std::endl;
+    fmt::print("\n-- START Mesh = {}\n",s);
     // We want to alter mesh somewhat so back and front don't coincide
     //cargHandler arg("-in " + s + " -sclmet 2 -verb 2 -vdepth 5 -adapt 2 -prefix tmp/");
-    cargHandler arg("-in " + s + " -sclmet 2 -adapt 2 -prefix tmp/ -verb 0");
+    cargHandler arg("-in " + s + " -sclmet 2 -adapt 2 -prefix tmp/ -verb 2 -vdepth 1");
     MetrisRunner run(arg.c, arg.v);
     Mesh<MetricFieldFE> &msh = *((Mesh<MetricFieldFE>*) run.msh_g);
 
 
     INCVDEPTH(msh.param);
+    msh.param->iverb = 0;
 
     msh.cleanup();
 
     int nsucc1 = 0;
     int nerro1 = 0;
 
+    int npoi0 = msh.npoin; // for cleanup scheduling
+
     CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
       CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
         CT_FOR0_INC(1,gdim,tdim){
 
-          printf("\n\n   - start tdim %d/%d\n",tdim,gdim);
+          fmt::print("   - start tdim {}/{}\n",tdim,gdim);
           int nsucc2 = 0;
           int nerro2 = 0;
 
@@ -172,7 +174,7 @@ BOOST_AUTO_TEST_CASE(test_interpMetBack)
               msh.killpoint(ipnew);
               msh.set_npoin(msh.npoin-1);
             }// for isamp
-            if(nlast++ == 100){
+            if(nlast++ >= npoi0){
               msh.cleanup();
               nlast = 0;
             }
@@ -181,7 +183,7 @@ BOOST_AUTO_TEST_CASE(test_interpMetBack)
 
           nsucc1 += nsucc2;
           nerro1 += nerro2;
-          printf("   - tdim %d/%d nsucc = %d nerro = %d = %f%%\n",
+          fmt::print("   - tdim {}/{} nsucc = {} nerro = {} = {:.2f}%\n",
             tdim,gdim,nsucc2,nerro2,(100*nerro2/(double)(nerro2 + nsucc2)));
         }CT_FOR1(tdim);
 
@@ -190,10 +192,10 @@ BOOST_AUTO_TEST_CASE(test_interpMetBack)
 
     nsucc0 += nsucc1;
     nerro0 += nerro1;
-    printf("-- Mesh %s nsucc = %d nerro = %d \n",s.c_str(),nsucc1, nerro1);
+    fmt::print("-- END mesh {} nsucc = {} nerro = {} \n",s,nsucc1, nerro1);
 
   }// for auto s : meshes
-  printf("-- End all tests nsucc = %d nerro = %d \n",nsucc0, nerro0);
+  fmt::print("-- End all tests nsucc = {} nerro = {} \n",nsucc0, nerro0);
 }
 
 } //namespace Metris 

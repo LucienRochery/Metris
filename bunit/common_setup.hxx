@@ -17,6 +17,13 @@
 #include <boost/timer/progress_display.hpp>
 
 #include <sstream>
+#include <random>
+
+// Copied from SANS: SANS_CHECK_CLOSE
+#define METRIS_CHECK_CLOSE( expectedTruth, actualComputed, small_tol, close_tol ) \
+  if ( std::abs(expectedTruth) < small_tol ) BOOST_CHECK_SMALL( actualComputed, small_tol ); \
+  else BOOST_CHECK_CLOSE( expectedTruth, actualComputed, close_tol );
+
 
 namespace Metris{
 

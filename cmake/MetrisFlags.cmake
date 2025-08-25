@@ -85,39 +85,43 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
   set(METRIS_C_FLAGS_MEMCHECK  -fPIC -O0 -g -fsanitize=address -fno-omit-frame-pointer)
   set(METRIS_C_FLAGS_RELWITHDEBINFO ${METRIS_CXX_RELEASE} -g)
 
-  set(METRIS_CXX_FLAGS_RELEASE  ${METRIS_C_FLAGS_RELEASE} ${METRIS_CXX_ONLY_FLAGS})
-  set(METRIS_C_FLAGS_DEBUG ${METRIS_C_FLAGS_DEBUG} ${METRIS_CXX_ONLY_FLAGS})
-  set(METRIS_C_FLAGS_MEMCHECK ${METRIS_C_FLAGS_MEMCHECK} ${METRIS_CXX_ONLY_FLAGS})
+  set(METRIS_CXX_FLAGS_RELEASE        ${METRIS_C_FLAGS_RELEASE} ${METRIS_CXX_ONLY_FLAGS})
+  set(METRIS_CXX_FLAGS_DEBUG          ${METRIS_C_FLAGS_DEBUG} ${METRIS_CXX_ONLY_FLAGS})
+  set(METRIS_CXX_FLAGS_MEMCHECK       ${METRIS_C_FLAGS_MEMCHECK} ${METRIS_CXX_ONLY_FLAGS})
   set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_C_FLAGS_RELWITHDEBINFO} ${METRIS_CXX_ONLY_FLAGS})
 
 elseif(CMAKE_CXX_COMPILER_ID MATCHES Clang)
 
   message("Using Clang ${CMAKE_C_COMPILER} ${SHORT_COMPILER_NAME}")
 
-  set(METRIS_CXX_ONLY_FLAGS -fconstexpr-steps=1000000000)
   set(METRIS_CLANG_FLAGS -Wno-misleading-indentation 
                          -Wno-gnu-zero-variadic-macro-arguments 
-                         -Wno-gcc-compat )
+                         -Wno-gcc-compat 
+                         -Wno-cast-function-type-mismatch)
 
-  set(METRIS_C_FLAGS_RELEASE        ${METRIS_CLANG_FLAGS})
-  set(METRIS_C_FLAGS_DEBUG          ${METRIS_CLANG_FLAGS})
-  set(METRIS_C_FLAGS_MEMCHECK       ${METRIS_CLANG_FLAGS})
-  set(METRIS_C_FLAGS_RELWITHDEBINFO ${METRIS_CLANG_FLAGS})
 
   #set(METRIS_CXX_FLAGS_RELEASE -DNDEBUG  -march=native -O3 -fPIC)
-  set(METRIS_C_FLAGS_RELEASE -DNDEBUG  -march=native -O3 -ftree-vectorize -fPIC)
-  set(METRIS_C_FLAGS_DEBUG     -O0 -g  -Wall -Wextra -pedantic  -march=native  -fno-pie  -fPIC) # -S -fverbose-asm -rdynamic -ggdb3
+  set(METRIS_C_FLAGS_RELEASE           -DNDEBUG  -march=native -O3 -ftree-vectorize -fPIC)
+  set(METRIS_C_FLAGS_DEBUG               -O0 -g  -Wall -Wextra -pedantic  -march=native  -fno-pie  -fPIC) # -S -fverbose-asm -rdynamic -ggdb3
   #set(METRIS_C_FLAGS_DEBUG  -fsanitize=address  -fconstexpr-steps=10000000 -O0 -g3  -march=native -fno-pie ) # -S -fverbose-asm
-  set(METRIS_C_FLAGS_MEMCHECK    -Wall -fsanitize=address -O0 -g -fPIC) # -S -fverbose-asm
-  set(METRIS_C_FLAGS_RELWITHDEBINFO ${METRIS_CXX_RELEASE} -g -fno-omit-frame-pointer)
+  set(METRIS_C_FLAGS_MEMCHECK            -Wall -fsanitize=address -O0 -g -fPIC) # -S -fverbose-asm
+  set(METRIS_C_FLAGS_RELWITHDEBINFO  ${METRIS_C_FLAGS_RELEASE} -g -fno-omit-frame-pointer)
+
+  set(METRIS_C_FLAGS_RELEASE        ${METRIS_C_FLAGS_RELEASE}        ${METRIS_CLANG_FLAGS})
+  set(METRIS_C_FLAGS_DEBUG          ${METRIS_C_FLAGS_DEBUG}          ${METRIS_CLANG_FLAGS})
+  set(METRIS_C_FLAGS_MEMCHECK       ${METRIS_C_FLAGS_MEMCHECK}       ${METRIS_CLANG_FLAGS})
+  set(METRIS_C_FLAGS_RELWITHDEBINFO ${METRIS_C_FLAGS_RELWITHDEBINFO} ${METRIS_CLANG_FLAGS})
+
 
   if(CBT_lower STREQUAL "memcheck")
     remove_definitions(-DNDEBUG)
   endif()
 
+  set(METRIS_CXX_ONLY_FLAGS -fconstexpr-steps=1000000000)
+
   set(METRIS_CXX_FLAGS_RELEASE  ${METRIS_C_FLAGS_RELEASE} ${METRIS_CXX_ONLY_FLAGS})
-  set(METRIS_C_FLAGS_DEBUG ${METRIS_C_FLAGS_DEBUG} ${METRIS_CXX_ONLY_FLAGS})
-  set(METRIS_C_FLAGS_MEMCHECK ${METRIS_C_FLAGS_MEMCHECK} ${METRIS_CXX_ONLY_FLAGS})
+  set(METRIS_CXX_FLAGS_DEBUG ${METRIS_C_FLAGS_DEBUG} ${METRIS_CXX_ONLY_FLAGS})
+  set(METRIS_CXX_FLAGS_MEMCHECK ${METRIS_C_FLAGS_MEMCHECK} ${METRIS_CXX_ONLY_FLAGS})
   set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_C_FLAGS_RELWITHDEBINFO} ${METRIS_CXX_ONLY_FLAGS})
 
 else()
@@ -131,3 +135,5 @@ set(METRIS_CXX_FLAGS_MEMCHECK       ${METRIS_FLAGS} ${METRIS_CXX_FLAGS_MEMCHECK}
 set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_FLAGS} ${METRIS_CXX_FLAGS_RELWITHDEBINFO})
 
 
+message(STATUS "METRIS_FLAGS: ${METRIS_FLAGS}")
+message(STATUS "METRIS_CXX_FLAGS_DEBUG: ${METRIS_CXX_FLAGS_DEBUG}")
