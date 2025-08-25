@@ -21,9 +21,19 @@ if(PkgConfig_FOUND)
       if(NOT TARGET NLopt::nlopt)
         add_library(NLopt::nlopt INTERFACE IMPORTED)
         set_target_properties(NLopt::nlopt PROPERTIES
-            INTERFACE_INCLUDE_DIRECTORIES "${PC_NLOPT_INCLUDE_DIRS}"
-            INTERFACE_LINK_LIBRARIES "${PC_NLOPT_LIBRARIES}"
+            INTERFACE_LINK_LIBRARIES "${PC_NLOPT_LIBRARIES}")
+        # When NLopt is installed in system directories,
+        # PC doesn't bother telling us where the headers are, 
+        # since compilers will work it out themselves.
+        if(PC_NLOPT_INCLUDE_DIRS)
+          set_target_properties(NLopt::nlopt PROPERTIES
+              INTERFACE_INCLUDE_DIRECTORIES "${PC_NLOPT_INCLUDE_DIRS}")
+        endif()
+        # Same goes for LIBRARY_DIRS
+        if(PC_NLOPT_LIBRARY_DIRS)
+          set_target_properties(NLopt::nlopt PROPERTIES
             INTERFACE_LINK_DIRECTORIES "${PC_NLOPT_LIBRARY_DIRS}")
+        endif()
         
         if(PC_NLOPT_CFLAGS_OTHER)
             set_target_properties(NLopt::nlopt PROPERTIES
@@ -31,7 +41,7 @@ if(PkgConfig_FOUND)
         endif()
         # Mark as found and return early
         find_package_handle_standard_args(NLopt
-            REQUIRED_VARS PC_NLOPT_LIBRARIES PC_NLOPT_INCLUDE_DIRS
+            REQUIRED_VARS PC_NLOPT_LIBRARIES
             VERSION_VAR PC_NLOPT_VERSION)
         mark_as_advanced(NLOPT_INCLUDE_DIRS NLOPT_LIBRARIES)
         return()
