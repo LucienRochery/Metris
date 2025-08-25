@@ -22,6 +22,23 @@ jobs:
           echo "Using GITHUB_ACTOR = $GITHUB_ACTOR"
           echo "Using branch = $branch"
 
+
+          if [[ $GITHUB_ACTOR == "LucienRochery" ]] ; then
+            echo "User $GITHUB_ACTOR can push to any branch"
+            exit 0
+          fi
+
+          if [[ "$branch" == "develop" && $GITHUB_ACTOR == "acdl-jenkins" ]] ; then
+            echo "Jenkins merge onto develop access"
+            exit 0
+          fi
+          
+          if [[ "$branch" == "$GITHUB_ACTOR/"* ]] ; then
+            echo "$GITHUB_ACTOR can push to branches named $GITHUB_ACTOR/*"
+            exit 0
+          fi
+
+
           if [[ "$branch" == "documentation" ]] ; then
             echo "In documentation branch, checking only docs/ was changed"
 
@@ -58,11 +75,6 @@ jobs:
             fi
           fi
 
-          if [[ $GITHUB_ACTOR != "LucienRochery" ]] ; then
-            if [[ "$branch" == "develop" && $GITHUB_ACTOR == "acdl-jenkins" ]] ; then
-              echo "Jenkins merge onto develop access"
-            elif [[ "$branch" != "$GITHUB_ACTOR/"* ]] ; then
-              echo "Error: $GITHUB_ACTOR can only push to branches named $GITHUB_ACTOR/*"
-              exit 1
-            fi
-          fi
+          echo "Error: $GITHUB_ACTOR can only push to branches named $GITHUB_ACTOR/* or documentation if only docs/ was changed."
+          exit 1
+
