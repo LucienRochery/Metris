@@ -29,7 +29,10 @@ jobs:
             changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
 
             # changed_files is newline separated... convert to bash array
-            echo "$changed_files" | readarray -t files_array
+            #echo "$changed_files" | readarray -t files_array
+            # Piping is no good as it runs in subshell, the result is lost
+            # < is basically a $ but, instead of returning a string, it returns a file. 
+            readarray -t files_array < <(echo "$changed_files")
 
             echo "Changed files: $changed_files"
             echo "Changed files array: ${files_array[@]}"
