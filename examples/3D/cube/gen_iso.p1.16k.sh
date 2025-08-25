@@ -8,10 +8,10 @@ fi
 OUTDIR=$METRIS_CASES_DIR/unit/3D/cube/
 OUTFIL=$OUTDIR/iso.p1.16k.meshb
 
-if [ -f $OUTFIL ]; then
-	echo "File $OUTFIL already exists, skipping."
-	exit 0
-fi
+#if [ -f $OUTFIL ]; then
+#	echo "File $OUTFIL already exists, skipping."
+#	exit 0
+#fi
 
 mkdir -p $OUTDIR
 mkdir -p tmp/

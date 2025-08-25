@@ -8,10 +8,10 @@ fi
 OUTDIR=$METRIS_CASES_DIR/unit/2D/square/
 OUTFIL=$OUTDIR/square.egads
 
-if [ -f $OUTFIL ]; then
-	echo "File $OUTFIL already exists, skipping."
-	exit 0
-fi
+#if [ -f $OUTFIL ]; then
+#	echo "File $OUTFIL already exists, skipping."
+#	exit 0
+#fi
 
 mkdir -p $OUTDIR
 mkdir -p tmp/

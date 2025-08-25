@@ -6,14 +6,15 @@ if [[ -z "$METRIS_CASES_DIR" ]]; then
 fi
 
 OUTDIR=$METRIS_CASES_DIR/unit/2D/square/
+mkdir -p $OUTDIR
 OUTFIL=$OUTDIR/iso.p1.100k.meshb
 
-if [ -f $OUTFIL ]; then
-	echo "File $OUTFIL already exists, skipping."
-	exit 0
-fi
-
+#if [ -f $OUTFIL ]; then
+#	echo "File $OUTFIL already exists, skipping."
+#	exit 0
+#fi
 
 mkdir -p $OUTDIR
 mkdir -p tmp/
+echo "In working dir: $(pwd)"
 metris -in square -cad square -anamet 1 -sclmet 0.07 -prefix tmp/ -out $OUTFIL -adapt 20

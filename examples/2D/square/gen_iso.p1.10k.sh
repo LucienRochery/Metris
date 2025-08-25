@@ -6,13 +6,13 @@ if [[ -z "$METRIS_CASES_DIR" ]]; then
 fi
 
 OUTDIR=$METRIS_CASES_DIR/unit/2D/square/
-mkdir -p OUTDIR
+mkdir -p $OUTDIR
 OUTFIL=$OUTDIR/iso.p1.10k.meshb
 
-if [ -f $OUTFIL ]; then
-	echo "File $OUTFIL already exists, skipping."
-	exit 0
-fi
+#if [ -f $OUTFIL ]; then
+#	echo "File $OUTFIL already exists, skipping."
+#	exit 0
+#fi
 
 mkdir -p $OUTDIR
 mkdir -p tmp/

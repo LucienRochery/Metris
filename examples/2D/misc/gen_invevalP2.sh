@@ -5,8 +5,8 @@ if [[ -z "$METRIS_CASES_DIR" ]]; then
     exit 1
 fi
 
-OUTDIR=$METRIS_CASES_DIR/unit/3D/cube/
-OUTFIL=$OUTDIR/curved.p2.2k.meshb
+OUTDIR=$METRIS_CASES_DIR/unit/2D/misc/
+OUTFIL=$OUTDIR/invevalP2.mesh
 
 #if [ -f $OUTFIL ]; then
 #	echo "File $OUTFIL already exists, skipping."
@@ -16,4 +16,4 @@ OUTFIL=$OUTDIR/curved.p2.2k.meshb
 mkdir -p $OUTDIR
 mkdir -p tmp/
 
-rmetris -in cube -cad cube.egads -prefix tmp/ -opt-niter 20 -anamet 2 -out $OUTFIL -t 2
+cp invevalP2.mesh $OUTFIL

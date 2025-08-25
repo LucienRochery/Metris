@@ -239,47 +239,15 @@ file (GLOB TEST_SOURCES CONFIGURE_DEPENDS "bunit/*.cxx")
 find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 
 # -- Get the required meshes by reading bunit/test_ files
-set(METRIS_UNIT_TEST_MESHES "")
-foreach(test_file ${TEST_SOURCES})
-  file(READ ${test_file} CMAKE_FILE_CONTENT)
-
-  string(REGEX MATCHALL "METRIS_CASES_DIR +\"([a-zA-Z0-9\\.-_/]+)[\" ]" MATCHES_NOEXT ${CMAKE_FILE_CONTENT})
-  string(REGEX MATCHALL "METRIS_CASES_DIR +\"([a-zA-Z0-9\\.-_]+\\.mesh)" MATCHES_PMESH ${CMAKE_FILE_CONTENT})
-  string(REGEX MATCHALL "METRIS_CASES_DIR +\"([a-zA-Z0-9\\.-_]+\\.meshb)" MATCHES_PMESHB ${CMAKE_FILE_CONTENT})
-
-  foreach(match IN LISTS MATCHES_NOEXT)
-    string(REGEX REPLACE "METRIS_CASES_DIR +\"([a-zA-Z0-9\\.-_/]+)[\" ]" "\\1" meshname "${match}")
-    set(meshname "${meshname}.meshb")
-    set(meshname "${METRIS_CASES_DIR}/${meshname}")
-    if(NOT (${meshname} IN_LIST METRIS_UNIT_TEST_MESHES))
-      list(APPEND METRIS_UNIT_TEST_MESHES ${meshname})
-    endif()
-  endforeach()
-
-  foreach(match IN LISTS MATCHES_PMESH)
-    string(REGEX REPLACE "METRIS_CASES_DIR +\"([a-zA-Z0-9\\.-_]+\\.mesh)" "\\1" meshname "${match}")
-    set(meshname "${METRIS_CASES_DIR}/${meshname}")
-    if(NOT (${meshname} IN_LIST METRIS_UNIT_TEST_MESHES))
-      list(APPEND METRIS_UNIT_TEST_MESHES ${meshname})
-    endif()
-  endforeach()
-
-  foreach(match IN LISTS MATCHES_PMESHB)
-    string(REGEX REPLACE "METRIS_CASES_DIR +\"([a-zA-Z0-9\\.-_]+\\.meshb)" "\\1" meshname "${match}")
-    set(meshname "${METRIS_CASES_DIR}/${meshname}")
-    if(NOT (${meshname} IN_LIST METRIS_UNIT_TEST_MESHES))
-      list(APPEND METRIS_UNIT_TEST_MESHES ${meshname})
-    endif()
-  endforeach()
-endforeach()
+include(cmake/FindUnitTestMeshes.cmake)
 
 
-add_custom_command(OUTPUT ${METRIS_UNIT_TEST_MESHES}
-                   DEPENDS metris
-                   COMMAND ${CMAKE_COMMAND} -E env 
-                           METRIS_CASES_DIR=${METRIS_CASES_DIR}
-                           ${METRIS_CASES_DIR}/gen_cases.sh)
-add_custom_target(deploy_cases DEPENDS ${METRIS_UNIT_TEST_MESHES})
+#add_custom_command(OUTPUT ${METRIS_UNIT_TEST_MESHES}
+#                   DEPENDS metris
+#                   COMMAND ${CMAKE_COMMAND} -E env 
+#                           METRIS_CASES_DIR=${METRIS_CASES_DIR}
+#                           ${METRIS_CASES_DIR}/gen_cases.sh)
+#add_custom_target(deploy_cases DEPENDS ${METRIS_UNIT_TEST_MESHES})
 
 set(METRIS_TARGET_TESTS "")
 set(METRIS_TARGET_TESTS_BUILD "")
