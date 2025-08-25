@@ -331,7 +331,7 @@ template<int ideg,int tdim>
 void getbpois(const MeshBase &msh, int ientt, int *lbpoi){
 
 
-  for(int irnk = 0; irnk < getnnod1(ideg); irnk++){
+  for(int irnk = 0; irnk < getnnode(tdim,ideg); irnk++){
     int ipoin = tdim == 1 ? msh.edg2poi(ientt,irnk) : msh.fac2poi(ientt,irnk);
     METRIS_ASSERT(ipoin >= 0 && ipoin < msh.npoin);
     lbpoi[irnk] = msh.poi2ebp(ipoin, tdim, ientt, -1);
