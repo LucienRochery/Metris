@@ -9,9 +9,9 @@ Note: in all exercises, a `MeshBase& msh` object can be taken in instead of only
 # Topological functions
 
 - [ball](exercises/ball.md): gather set of elements surrounding a vertex. 
-- [cavity boundary](exercises/cavity_boundary.md): gather facets of cavity (list of elements) boundary. 
+- [cavity boundary](exercises/cavity_boundary.md): gather facets of cavity (list of elements) boundary.
 - [structured mesh](exercises/structured_mesh.md): generate a structured mesh 
-- [neighbors constructione](exercises/neighbors_construction.md): generate the neighbors arrays using hash tables
+- [neighbors construction](exercises/neighbors_construction.md): generate the neighbors arrays using hash tables
 
 # Geometry functions
 
@@ -19,4 +19,8 @@ Note: in all exercises, a `MeshBase& msh` object can be taken in instead of only
 
 # Classic algorithms
 
-- [mesh localization](exercises/mesh_localization.md): find which mesh element a point (not vertex) lies in
+- [mesh localization](exercises/mesh_localization.md): find which mesh element a point (not vertex) lies in. 
+
+# High-order meshes
+
+- [degree elevation](exercises/degree_elevation.md): add degrees of freedom to a degree 1 mesh to make it a higher degree. 
