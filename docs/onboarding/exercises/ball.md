@@ -2,11 +2,11 @@
 
 # Ball Function
 
-The **ball** of a vertex is the set of elements that contain it. 
-This is not stored as it would bring needless complexity: vertices have different sized balls, and these would need updating each time mesh topology is changed. 
-Instead, we gather the ball again each time it's needed, this is very quick to do. 
-In Metris, `ball()` is implemented in the file `low_topo.hxx`. 
-A similar concept is the **shell** of an edge, the set of elements that contain the edge. 
+The **ball** of a vertex is the set of elements that contain it.
+This is not stored as it would bring needless complexity: vertices have different sized balls, and these would need updating each time mesh topology is changed.
+Instead, we gather the ball again each time it's needed, this is very quick to do.
+In Metris, `ball()` is implemented in the file [low_topo.hxx](../../../src/low_topo.hxx).
+A similar concept is the **shell** of an edge, the set of elements that contain the edge.
 
 
 This function is implemented and tested against the functions in `src/low_topo.hxx` in [bunit/doc_ball.cxx](../../../bunit/doc_ball.cxx).

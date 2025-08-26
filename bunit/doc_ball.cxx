@@ -6,12 +6,11 @@
 #define BOOST_TEST_MODULE test_doc_ball
 
 #include "common_setup.hxx"
-// #include "types_arrays.hxx"
 
 namespace Metris {
 
 intAr1 doc_ball(const int ipoin, const intAr2& fac2poi, const intAr2& fac2fac,
-                const int ithread, intAr1 tag, intAr2r fac2tag,
+                const int ithread, int* tag, intAr2r fac2tag,
                 const int iele0) {
 
   // update tag
@@ -73,6 +72,7 @@ BOOST_AUTO_TEST_CASE(test_doc_ball)
   //,METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k" // if 3D is implemented
   };
 
+  const int ithread = 0;
   for(std::string mesh : meshes){
 
     // dummy analytical metric
@@ -81,13 +81,41 @@ BOOST_AUTO_TEST_CASE(test_doc_ball)
     Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
     msh.cleanup(); // to avoid dead elements in case the file has some
 
+    int failedPoin = 0;
     for (int ipoin = 0; ipoin < msh.npoin; ipoin++){
 
-      int iele0 = msh.poi2ent(ipoin,0);
+      // First obtain ball of elements with Metris::ball
 
-      intAr1 ipoinBall = doc_ball(ipoin,msh.fac2poi,msh.fac2fac,0,0,msh.fac2tag,iele0);
-      std::cout << "ipoinBall.get_n() = " << ipoinBall.get_n() << std::endl;
+      // Initialize ball of faces (triangles) array
+      intAr1 lbfac(10);
+      // Pass the other two empty so ball does not fill them
+      intAr1 lbedg;
+      intAr1 lbtet;
+      int iopen;
+      bool append = false;
+      ball(msh,ipoin,lbedg,lbfac,lbtet,&iopen,append,ithread);
+
+      // Now obtain ball of elements using doc_ball
+
+      // cheating a bit, use lbfac to obtain seed
+      int iele0 = lbfac[0];
+
+      intAr1 ipoinBall = doc_ball(ipoin,msh.fac2poi,msh.fac2fac,ithread,msh.tag,msh.fac2tag,iele0);
+
+      // check that balls match
+      for (const int ele1 : ipoinBall){
+        bool found = false;
+        for (const int ele2 : lbfac){
+          if (ele1 == ele2){
+            found = true;
+            break;
+          }
+        }
+        if (!found) failedPoin++;
+      }
+
     }
+    BOOST_TEST(failedPoin == 0);
   }
 }
 
