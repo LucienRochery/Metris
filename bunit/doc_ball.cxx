@@ -3,24 +3,30 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#include "types_arrays.hxx"
+#define BOOST_TEST_MODULE test_doc_ball
+
+#include "common_setup.hxx"
+// #include "types_arrays.hxx"
+
+namespace Metris {
 
 intAr1 doc_ball(const int ipoin, const intAr2& fac2poi, const intAr2& fac2fac,
                 const int ithread, intAr1 tag, intAr2r fac2tag,
                 const int iele0) {
 
+  // update tag
   const int currentTag = tag[ithread] + 1;
   tag[ithread] = currentTag;
 
   // initialize array for the ball and add iele0
   intAr1 ball;
   ball.stack(iele0);
-  fac2tag(iele0) = currentTag;
+  fac2tag(ithread,iele0) = currentTag;
 
   // little helper to identify if a given element has a given point
-  auto eleHasPoi = [&](const int iele, const int ipoi){
+  auto eleHasPoi = [&](const int iele, const int ipoin){
     for (int j = 0; j < fac2poi.size2(); j++){
-      if (fac2poi(iele,j) == ipoi) return true;
+      if (fac2poi(iele,j) == ipoin) return true;
     }
     return false;
   };
@@ -41,15 +47,47 @@ intAr1 doc_ball(const int ipoin, const intAr2& fac2poi, const intAr2& fac2fac,
       if (neighbourElem < 0) continue;
 
       // neighbour already visited
-      if (fac2tag(neighbourElem) == currentTag) continue;
+      if (fac2tag(ithread,neighbourElem) == currentTag) continue;
 
       // add neighbour to the visited elements
-      fac2tag(neighbourElem) = currentTag;
+      fac2tag(ithread,neighbourElem) = currentTag;
 
-      // neighbour contains ipoi, add it to ball
-      if (eleHasPoi(neighbourElem,ipoi)) ball.stack(neighbourElem);
+      // neighbour contains ipoin, add it to ball
+      if (eleHasPoi(neighbourElem,ipoin)) ball.stack(neighbourElem);
     }
   }
 
   return ball;
 }
+
+}
+
+using namespace Metris;
+typedef MetricFieldAnalytical MFT;
+
+BOOST_AUTO_TEST_CASE(test_doc_ball)
+{
+  // bool is whether straight
+  std::vector<std::string> meshes = {
+   METRIS_CASES_DIR "/unit/2D/square/iso.p1.10k"
+  //,METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k" // if 3D is implemented
+  };
+
+  for(std::string mesh : meshes){
+
+    // dummy analytical metric
+    cargHandler arg("-in " + mesh + " -anamet 1 -verb 0");
+    MetrisRunner run(arg.c, arg.v);
+    Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
+    msh.cleanup(); // to avoid dead elements in case the file has some
+
+    for (int ipoin = 0; ipoin < msh.npoin; ipoin++){
+
+      int iele0 = msh.poi2ent(ipoin,0);
+
+      intAr1 ipoinBall = doc_ball(ipoin,msh.fac2poi,msh.fac2fac,0,0,msh.fac2tag,iele0);
+      std::cout << "ipoinBall.get_n() = " << ipoinBall.get_n() << std::endl;
+    }
+  }
+}
+
