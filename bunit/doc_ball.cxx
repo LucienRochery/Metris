@@ -24,22 +24,22 @@ intAr1 doc_ball(const int ipoin, const intAr2& fac2poi, const intAr2& fac2fac,
 
   // little helper to identify if a given element has a given point
   auto eleHasPoi = [&](const int iele, const int ipoin){
-    for (int j = 0; j < fac2poi.size2(); j++){
-      if (fac2poi(iele,j) == ipoin) return true;
+    for (int jj = 0; jj < fac2poi.size2(); jj++){
+      if (fac2poi(iele,jj) == ipoin) return true;
     }
     return false;
   };
 
   // loop visiting neighbors of elements in ball
-  for (int i = 0; i < ball.get_n(); i++){
+  for (int ii = 0; ii < ball.get_n(); ii++){
 
     // fetch element from ball
-    const int ele = ball[i];
+    const int ele = ball[ii];
 
     // traverse its neighbours
-    for (int j = 0; j < fac2fac.size2(); j++){
+    for (int jj = 0; jj < fac2fac.size2(); jj++){
 
-      const int neighbourElem = fac2fac(ele,j);
+      const int neighbourElem = fac2fac(ele,jj);
 
       // not really an element index;
       // e.g. ele might be a boundary element and might not contain valid elem index in all the fac2fac stride
