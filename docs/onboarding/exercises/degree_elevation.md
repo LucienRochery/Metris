@@ -22,8 +22,7 @@ Notes:
 
 Tips:
 - Coordinates array can be expanded using `inc_n()`. This takes care of allocations if necessary. 
-- High-order constants can be found in `ho_constants.hxx`: `getnnode(tdim, ideg)` returns number of nodes of element type, `ordfac.s[ideg][inode][:]` holds the multi-index of node `inode` (e.g. vertices are `ideg, 0, 0`, `0, ideg, 0`,  edge control points are `i1, 0, i2` with `i1+i2=ideg`, etc.), `mul2nod(i1,i2,...)` functions are the inverse of `ord(edg/fac/tet)` i.e. they return `inode` from a multi-index. 
-- Other ordering arrays are found in `metris_constants.hxx` such as `lnoed2/3` and `lnofa3` which give the vertices associated to edges or faces. 
+- See the [high-order element evaluation exercise](HO_evaluation.md) for HO ordering tips. 
 - Connectivity arrays can be resized using `allocate(nelem, nnode)`, this modifies the stride (second dimension) to match `nnode`.
 - The main difficulty of this exercise is dealing with node indices and making sure facets aren't mangled when copied from one element to another. A helper function can be written for this. 
 

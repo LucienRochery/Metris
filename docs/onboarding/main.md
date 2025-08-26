@@ -23,4 +23,5 @@ Note: in all exercises, a `MeshBase& msh` object can be taken in instead of only
 
 # High-order meshes
 
+- [high-order element evaluation](exercises/HO_evaluation.md): evaluate physical points on Bézier elements from barycentric coordinates
 - [degree elevation](exercises/degree_elevation.md): add degrees of freedom to a degree 1 mesh to make it a higher degree. 
