@@ -27,6 +27,7 @@
 
 namespace Metris{
 
+  
 class scriptArrayString {
 public:
   scriptArrayString() : ifirst(true), iinit(false) {}

@@ -42,7 +42,7 @@ void CADInfo::iniEGADSModel(){
     METRIS_THROW(TopoExcept());
   }
   if(ncadfa == 0){
-    printf("WARNING: Body with no faces !\n");
+    fmt::print("WARNING: Body with no faces !\n");
   }else{
     //printf("  body has {} faces \n",ncadfa);
   }
@@ -50,7 +50,11 @@ void CADInfo::iniEGADSModel(){
   // then pass it in so the last instance being destroyed calls EG_free. 
   //if(DOPRINTS1()){
   {
-    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);printf("-- CAD faces freed\n");});
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);
+      #ifndef NDEBUG
+      fmt::print("-- CAD faces freed\n");
+      #endif
+    });
     cad2fac.set_sp(ncadfa,buff_sp); 
   }
   //}else{
@@ -65,11 +69,15 @@ void CADInfo::iniEGADSModel(){
     METRIS_THROW(TopoExcept());
   }
   if(ncaded == 0){
-    printf("## WARNING: Body with no edges !\n");
+    fmt::print("## WARNING: Body with no edges !\n");
   }
   //if(DOPRINTS1()){
   {
-    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);fmt::print("-- CAD edges freed\n");});
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);
+      #ifndef NDEBUG
+      fmt::print("-- CAD edges freed\n");
+      #endif
+    });
     cad2edg.set_sp(ncaded,buff_sp); 
   }
   //}else{
@@ -89,8 +97,12 @@ void CADInfo::iniEGADSModel(){
   }
   //if(DOPRINTS1()){
   {
-    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);fmt::print("-- CAD loops freed\n");});
-    cad2lop.set_sp(ncadlp,buff_sp); 
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);
+      #ifndef NDEBUG
+      fmt::print("-- CAD loops freed\n");
+      #endif
+    });
+    cad2lop.set_sp(ncadlp,buff_sp);
   }
   //}else{
   //  std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);});
@@ -108,7 +120,11 @@ void CADInfo::iniEGADSModel(){
   }
   //if(DOPRINTS1()){
   {
-    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);fmt::print("-- CAD nodes freed\n");});
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);
+      #ifndef NDEBUG
+      fmt::print("-- CAD nodes freed\n");
+      #endif
+    });
     cad2nod.set_sp(ncadno,buff_sp); 
   }
   //}else{

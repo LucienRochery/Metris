@@ -14,6 +14,8 @@
 #include "../metris_options.hxx"
 
 #include "fmt/format.h"
+#include "nlohmann/json_fwd.hpp"
+
 
 namespace Metris{
 
@@ -51,14 +53,17 @@ struct MeshStat{
         && abs(this->maxqua_bdry - rhs.maxqua_bdry ) < 1.0e-3
         && abs(this->avgqua_bdry - rhs.avgqua_bdry ) < 1.0e-3 ;
   }
-  void print(std::string name = ""){
-    fmt::print("-- Mesh stat summary {}:\n",name.c_str());
-    fmt::print(" - Length       : {:.2f}% unit w/ {} < l ~= {} < {} \n",pctunit,minlen,avglen,maxlen);
-    fmt::print(" - Length (bdry): {:.2f}% unit w/ {} < l ~= {} < {} \n",pctunit_bdry,minlen_bdry,avglen_bdry,maxlen_bdry);
-    fmt::print(" - Conf. err.       : {} < q ~= {} < {} \n",minqua,avgqua,maxqua);
-    fmt::print(" - Conf. err. (bdry): {} < q ~= {} < {} \n",minqua_bdry,avgqua_bdry,maxqua_bdry);
+  void print(std::string name = "", FILE* logfile = stdout){
+    fmt::print(logfile, "-- Mesh stat summary {}:\n",name.c_str());
+    fmt::print(logfile, " - Length       : {:.2f}% unit w/ {} < l ~= {} < {} \n",pctunit,minlen,avglen,maxlen);
+    fmt::print(logfile, " - Length (bdry): {:.2f}% unit w/ {} < l ~= {} < {} \n",pctunit_bdry,minlen_bdry,avglen_bdry,maxlen_bdry);
+    fmt::print(logfile, " - Conf. err.       : {} < q ~= {} < {} \n",minqua,avgqua,maxqua);
+    fmt::print(logfile, " - Conf. err. (bdry): {} < q ~= {} < {} \n",minqua_bdry,avgqua_bdry,maxqua_bdry);
   }
 };
+
+void to_json(nlohmann::json& jj, const MeshStat& stat);
+void from_json(const nlohmann::json& jj, MeshStat& stat);
 
 class MetrisRunner{
 public:
@@ -68,6 +73,7 @@ public:
   MetrisRunner(int argc, char** argv); 
 
   // Initialize from API objects. These are destroyed by constructor. 
+  // They can be NULL if the parameters specify input mesh
   MetrisRunner(MetrisAPI *data_front, MetrisAPI *data_back, MetrisParameters &p);
   MetrisRunner(MetrisAPI *data_front, MetrisParameters &p) : MetrisRunner(data_front,NULL,p) { }
 
@@ -75,7 +81,12 @@ public:
 
   ~MetrisRunner();
 
+
   // -- Primary 
+
+  // Calls the other functions in a certain order, default call. 
+  void runMetris();
+
   // -tardeg <d> Mesh goes to degree d while conserving geometry
   int degElevate();
 

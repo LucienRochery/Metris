@@ -239,9 +239,11 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner_iniMetris.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner_curveMesh.cxx
+    ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner_runMetris.cxx
+    ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner_MeshStat_json.cxx
+    ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner_statMesh.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/msh_adaptMesh.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/msh_optimMesh.cxx
-    ${PROJECT_SOURCE_DIR}/src/MetrisRunner/statMesh.cxx
 
     ${PROJECT_SOURCE_DIR}/src/Adaptation/msh_collapse.cxx
     ${PROJECT_SOURCE_DIR}/src/Adaptation/low_collapse.cxx
