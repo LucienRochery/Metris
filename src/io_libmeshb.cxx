@@ -674,7 +674,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
   Build tables for VerticesOnGeometricEntities
   */
 
-  if(msh.CAD()){
+  //if(msh.CAD()){
     try{
 
       // stream CAD into file 
@@ -732,7 +732,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
       GmfSetKwd(libIdx, GmfVertices, msh.npoin);
       GmfSetBlock(libIdx, GmfVertices, 1, msh.npoin, 0, NULL, NULL,
         GmfDoubleVec, msh.idim, &coord(0,0), &coord[msh.npoin-1][0],
-        GmfInt                , &lpoic[0]      , &lpoic[msh.npoin-1]);
+        GmfInt                , &lpoic[0]  , &lpoic[msh.npoin-1]);
 
       if(ngpof > 0){
         GmfSetKwd(libIdx, GmfVerticesOnGeometricTriangles, ngpof);
@@ -773,6 +773,8 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
       #endif
       METRIS_THROW_MSG(TODOExcept(),"Manage corners (lpoic) in this context");
     }
+
+  #if 0
   }else{
     intAr1 lpoic(msh.npoin);
     intAr1 lcorn(10);
@@ -808,6 +810,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
     //  }
     //}
   }
+  #endif
  
  
 
