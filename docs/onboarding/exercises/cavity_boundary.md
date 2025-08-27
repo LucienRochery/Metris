@@ -7,7 +7,7 @@ The **cavity operator** is the single operator for topological change in Metris,
 For this, it is necessary to be able to gather the cavity's boundary.
 
 
-This function is implemented in [bunit/doc_cavity_boundary.hxx](../../../bunit/doc_cavity_boundary.hxx) and tested in [bunit/doc_cavity_boundary.cxx](../../../bunit/doc_cavity_boundary.cxx).
+The function for this exercise is implemented in [bunit/doc_cavity_boundary.hxx](../../../bunit/doc_cavity_boundary.hxx) and tested in [bunit/doc_cavity_boundary.cxx](../../../bunit/doc_cavity_boundary.cxx).
 
 Inputs:
 - A list of elements `lcavel` (or some other name) of topological dimension `tdim`.
