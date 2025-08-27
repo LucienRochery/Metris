@@ -1347,7 +1347,7 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
       if(iskip) continue;
 
       CPRINTF3(" - stack ibpoi {} iref {} \n",ibpoi,iref);
-      lref.stack(iref);
+      lref.stack(iref+1);
       lbpo.stack(ibpoi);
 
     }// for ibpoi
