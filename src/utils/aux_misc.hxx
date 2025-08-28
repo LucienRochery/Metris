@@ -76,6 +76,8 @@ void sortupto8_dec(T *tab,int * idx,int n);
 template<typename T, int n>
 inline void sortupto8_dec(T tab[n], int idx[n]){
 
+  METRIS_ASSERT(n >= 0);
+
   if constexpr (n == 8){
     if(tab[idx[1-1]]<tab[idx[2-1]])  swi(idx[1-1],idx[2-1]);
     if(tab[idx[3-1]]<tab[idx[4-1]])  swi(idx[3-1],idx[4-1]);
@@ -196,8 +198,6 @@ inline void sortupto8_dec(T tab[n], int idx[n]){
 
     if(tab[idx[1-1]]<tab[idx[2-1]] )  swi(idx[1-1],idx[2-1]);
 
-  }else if(n<1){
-    METRIS_THROW(WArgExcept());
   }
 }
 

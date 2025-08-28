@@ -68,7 +68,7 @@ dblAr1& MeshBack::ent2dev(int tdimn){
   case(2):
     return fac2dev;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"ent2dev (1) tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG("ent2dev (1) tdimn not in range = {}", tdimn);
   }
 }
 
@@ -79,7 +79,7 @@ const dblAr1& MeshBack::ent2dev(int tdimn) const{
   case(2):
     return fac2dev;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"ent2dev (2) tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG("ent2dev (2) tdimn not in range = {}", tdimn);
   }
 }
 
@@ -125,8 +125,8 @@ void MeshBack::initialize(MetrisAPI *data,
       if(param.ianamet >= 0){
 
       METRIS_ENFORCE_MSG((param.ianamet <= MAX_ANAMET_DEFINED(this->idim)),
-        "Invalid anamet index: 1 - "<<MAX_ANAMET_DEFINED(idim )<<" accepted");
-  
+        "Invalid anamet index: 1 - {} accepted", MAX_ANAMET_DEFINED(idim));
+
         anamet = (idim == 2 ? __ANAMET2D[param.ianamet-1] : __ANAMET3D[param.ianamet-1]);
       }
 
@@ -185,7 +185,7 @@ void MeshBack::initialize(MetrisAPI *data,
     if(DOPRINTS2()) met.writeMetricFile("metDATA");
 
   }else{
-    METRIS_THROW_MSG(WArgExcept(), "## No metric info for back");
+    METRIS_THROW_MSG( "## No metric info for back");
   }
 
 
@@ -324,7 +324,7 @@ void MeshBack::initialize(MetrisAPI *data,
                               getBasis(), DifVar::Bary, DifVar::None,
                               bary, dum, jmat[0], NULL);
               }else{
-                METRIS_THROW_MSG(TODOExcept(),"How are we in idim = "<<idim<<" in face bdry case?")
+                METRIS_THROW_MSG("TODO: How are we in idim = {} in face bdry case?", idim);
               }
             }}CT_FOR1(ideg); 
             vecprod(jmat[0], jmat[1], dirent);
@@ -370,7 +370,7 @@ void MeshBack::initialize(MetrisAPI *data,
             }
           }
 
-          METRIS_ASSERT_MSG(dtprd >= 1.0e-16,"zero dtprd = "<<dtprd);
+          METRIS_ASSERT_MSG(dtprd >= 1.0e-16,"zero dtprd = {:e}", dtprd);
 
 
           double dev = 1 - abs(dtprd);
@@ -405,6 +405,7 @@ void MeshBack::initialize(MetrisAPI *data,
 
 double MeshBack::getMetComplexity(){
 
+  GETVDEPTH(param);
   double volM = getDomainVolume();
 
   //std::cout<<"Domain volume = " << vol0 << "\n";// << " aniso = "<<volM<<"\n";
@@ -424,7 +425,7 @@ double MeshBack::getMetComplexity(){
   // Thus we require volM / vK0 unit elements to fill the domain.
   double comp = volM / Constants::vK0[idim];
 
-  std::cout<<"Estimated tar nelem = "<<comp<<" current = "<<nelem<<"\n";
+  CPRINTF1("Estimated tar nelem = {} current = {}\n",comp,nelem);
 
   return comp;
 

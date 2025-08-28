@@ -95,10 +95,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
     double nrmn = sqrt(getnrml2<gdim>(nrmal));
     METRIS_ASSERT(nrmn > orthTol);
     if(getprdl2<gdim>(tau1,nrmal) >= orthTol*nrmn){
-      PRINTF("## Normal norm {:15.7e} prod w tau1 {:15.7e}  \n",nrmn,getprdl2<gdim>(tau1,nrmal));
-      PRINTF(" normal: {}\n",dblAr1(3,nrmal));
-      PRINTF(" tau1: {}\n",dblAr1(3,tau1));
-      METRIS_THROW(GeomExcept());
+      METRIS_THROW_MSG("## Normal {} norm {:15.7e} tau1 = {}, prod w/ {:15.7e}\n",dblAr1(3,nrmal),nrmn,dblAr1(3,tau1),getprdl2<gdim>(tau1,nrmal));
     }
     #endif
 
@@ -120,7 +117,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
       for(int ii = 0; ii < gdim ;ii++) tau2[ii] -= dtprd*nrmal[ii]/nrmn;
       PRINTF("## -> prod w tau2 {:15.7e}  \n",getprdl2<gdim>(tau2,nrmal));
 
-      METRIS_THROW(GeomExcept());
+      METRIS_THROW();
     }
     #endif
 
@@ -207,7 +204,7 @@ bool indelsphere(const MeshBase &msh, const double *coop, const double *metl,
       fmt::print("\n");
     }
 
-    METRIS_THROW_MSG(GeomExcept(), "Invmat failed Delaunay ent2pol = "<<intAr1(tdim+1,ent2pol))
+    METRIS_THROW_MSG( "Invmat failed Delaunay ent2pol = "<<intAr1(tdim+1,ent2pol))
     #endif
     #endif
     return true; // basically a sliver with infinite Delaunay radius

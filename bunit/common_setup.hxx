@@ -148,16 +148,11 @@ public:
       s_xy += x[ii]*y[ii];
     }
     T det = s_xx*nn - s_x*s_x;
-    if(abs((double) det) < 1.0e-30){
-      printf("## linearRegression nan coeff a using n = %d sx = %e sy = %e\n",
-        nn,(double)s_x,(double)s_y);
-      printf(" s_xx %e s_xy %e\n",(double)s_xx,(double)s_xy);
-      printf("x : ");
-      MeshArray1D<T>(nn, x).print();
-      printf("y : ");
-      MeshArray1D<T>(nn, y).print();
-      METRIS_THROW(GeomExcept());
-    }
+    METRIS_ENFORCE_MSG(abs((double) det) >= 1.0e-30, 
+      "## linearRegression nan coeff a using n = {} sx = {:e} sy = {:e}\n"
+      " s_xx {:e} s_xy {:e}\n"
+      "x: {}\ny : {}\n",
+      nn,(double)s_x,(double)s_y,(double)s_xx,(double)s_xy,MeshArray1D<T>(nn, x),MeshArray1D<T>(nn, y));
 
     slope = (nn*s_xy - s_x*s_y)/det;
     origin = (-s_x*s_xy + s_xx*s_y)/det;

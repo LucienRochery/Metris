@@ -31,9 +31,9 @@ namespace Metris{
     }else if(iquaf == QuaFun::Unit){
       return quafun_unit<MFT,gdim,tdim,ftype>;
     }else{
-      METRIS_THROW_MSG(TODOExcept(), "Implement QuaFun in get_quafun_xi");
+      METRIS_THROW_MSG("TODO: Implement QuaFun in get_quafun_xi");
     }
-    METRIS_THROW_MSG(TODOExcept(), "Implement QuaFun in get_quafun_xi");
+    METRIS_THROW_MSG("TODO: Implement QuaFun in get_quafun_xi");
     return quafun_distortion<MFT,gdim,tdim,ftype>;
   }
 
@@ -45,9 +45,9 @@ namespace Metris{
     }else if(iquaf == QuaFun::Unit){
       return d_quafun_unit<MFT,gdim,tdim,ftype>;
     }else{
-      METRIS_THROW_MSG(TODOExcept(), "Implement QuaFun in get_quafun_xi");
+      METRIS_THROW_MSG("TODO: Implement QuaFun in get_quafun_xi");
     }
-    METRIS_THROW_MSG(TODOExcept(), "Implement QuaFun in get_quafun_xi");
+    METRIS_THROW_MSG("TODO: Implement QuaFun in get_quafun_xi");
     return d_quafun_distortion<MFT,gdim,tdim,ftype>;
   }
 
@@ -79,7 +79,7 @@ namespace Metris{
       if(iquaf == QuaFun::Distortion){
         return metqua<MFT,gdim,tdim,ideg,asdmsh,QuaFun::Distortion,ftype>;
       }else{
-        METRIS_THROW_MSG(TODOExcept(), "Implement "<<(int)iquaf<<" in QuaFunList");
+        METRIS_THROW_MSG("TODO: Implement "<<(int)iquaf<<" in QuaFunList");
       }
     }
 
@@ -87,7 +87,7 @@ namespace Metris{
       if(iquaf == QuaFun::Distortion){
         return d_metqua<MFT,gdim,ftype>;
       }else{
-        METRIS_THROW_MSG(TODOExcept(), "Implement "<<(int)iquaf<<" in QuaFunList");
+        METRIS_THROW_MSG("TODO: Implement "<<(int)iquaf<<" in QuaFunList");
       }
     }
 

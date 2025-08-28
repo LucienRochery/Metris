@@ -10,6 +10,7 @@
 
 #include "ho_constants.hxx"
 #include "utils/fact_pow.hxx"
+#include "aux_exceptions.hxx"
 
 #include <cstdint>
 #include <array>
@@ -55,7 +56,7 @@ public:
     METRIS_ASSERT(idim >= 1 && idim <= 3);
     METRIS_ASSERT(ideg >= 0 && ideg <= METRIS_MAX_DEG_ORDERING);
     METRIS_ASSERT_MSG(inode >= 0 && inode < getnnode(idim,ideg),
-      "inode = "<<inode<<" >= 0? <? "<<getnnode(idim,ideg));
+      "inode = {} >= 0? <? {}", inode, getnnode(idim,ideg));
 
     static fact_mulidx instance; // thread-safe in C++17
 

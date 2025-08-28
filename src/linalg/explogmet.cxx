@@ -58,7 +58,7 @@ void getlogmet_inp(T *met){
     fmt::print(stderr,"Invalid metric: {}\n", MeshArray1D<T, int>(nnmet, met));
     fmt::print(stderr,"eigvals: {}\n",MeshArray1D<T, int>(ndim,eigval));
 
-    METRIS_THROW_MSG(RealExcept(),"Negative eigenvalues");
+    METRIS_THROW_MSG("Negative eigenvalues");
   }
 
 #ifdef METRIS_USE_LAPACK

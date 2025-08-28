@@ -70,7 +70,7 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     if(ideg == 1){
       getnorfacP1(ent2poi[ientt], msh.coord, norelt);
       if(normalize_vec<gdim>(norelt)){
-        METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
+        METRIS_THROW_MSG( "Normal (elt) vanishes");
       }
     }
 
@@ -78,15 +78,15 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       int ipoin = ent2poi(ientt, inode);
       int ibpoi = msh.poi2ebp(ipoin, tdim, ientt, iref);
       METRIS_ASSERT_MSG(ibpoi >= 0 && ibpoi < msh.nbpoi, 
-        "iface = "<<ientt<<" iref  "<<iref<<" inode = "<<inode
-        <<" ipoin = "<<ipoin<<" ibpoi = "<< ibpoi);
+        "iface = {} iref = {} inode = {} ipoin = {} ibpoi = {}",
+        ientt,iref,inode,ipoin,ibpoi);
       int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
-      METRIS_ENFORCE_MSG(ierro == 0, "metqua0 EG_evaluate error " << ierro);
+      METRIS_ENFORCE_MSG(ierro == 0, "metqua0 EG_evaluate error {}", ierro);
       vecprod(du,dv,norCAD);
       if(normalize_vec<gdim>(norCAD)){
         // legitimate if e.g. cone tip.
         METRIS_ENFORCE_MSG(msh.getpoitdim(ipoin) == 0,
-          "Normal (CAD) vanishes at non-corner point "<<ipoin)
+          "Normal (CAD) vanishes at non-corner point {}", ipoin)
         nordev += 0;
         continue;
       }
@@ -100,7 +100,7 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
           MPRINTF("norelt vanished ientt = {} node {} point {} nodes {}\n",
                   ientt,inode,ipoin,intAr1(nnode, ent2poi[ientt]));
           for(int ii = 0; ii < gdim; ii++) MPRINTF("{}: {:23.15e}\n",ii,norelt[ii]);
-          METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
+          METRIS_THROW_MSG( "Normal (elt) vanishes");
         }
       }
 
@@ -349,10 +349,10 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
   METRIS_ASSERT(msh.met.getSpace() == MetSpace::Log)
   // Differentiate or don't, but there is no barycentric derivative in this context 
   METRIS_ASSERT(idifmet == DifVar::None || idifmet == DifVar::Phys);
-  if(idifmet != DifVar::None) METRIS_THROW_MSG(TODOExcept(), 
+  if(idifmet != DifVar::None) METRIS_THROW_MSG( 
                            "Metric field derivative not implemented in quality")
   //METRIS_ASSERT( !(idiff != DifVar::None && dofbas == FEBasis::Undefined) );
-  if(dofbas == FEBasis::Bezier && idifmet != DifVar::None) METRIS_THROW_MSG(TODOExcept(), 
+  if(dofbas == FEBasis::Bezier && idifmet != DifVar::None) METRIS_THROW_MSG( 
     "Ctrl pt dof not implemented -> do lag2bez derivatives of metric")
   //METRIS_ASSERT( !(idiff != DifVar::None && dquael == NULL) );
 
@@ -400,7 +400,7 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
   //tra = invtJ0_tJ_M_J_invJ0iag[0] + invtJ0_tJ_M_J_invJ0iag[1];
   //if constexpr (tdim == 3) tra += invtJ0_tJ_M_J_invJ0iag[2]; 
   // This is an actual exception that should never theoretically happen. 
-  if(tra < 1.0e-16) METRIS_THROW_MSG(GeomExcept(), "NEGATIVE J^TMJ trace "<<tra);
+  if(tra < 1.0e-16) METRIS_THROW_MSG( "NEGATIVE J^TMJ trace = {:e}", tra);
 
 
 
@@ -419,7 +419,7 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
   }
 
   if(abs(det) < 1.0e-16 && power > 0) 
-     METRIS_THROW_MSG(GeomExcept(), "Singular J^TMJ det = "<<det);
+     METRIS_THROW_MSG( "Singular J^TMJ det = {:e}", det);
 
   //constexpr auto irpow = [&]<int n>(ftype x) -> ftype{
   //  if constexpr(std::is_same<ftype,double>::value) return idpow<n>(x);
@@ -521,8 +521,6 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
       for(int ii = 0; ii < gdim; ii++){
         dquael[inode*gdim+ii] = dpowd*(     2* tra   *ddetA[inode][ii]
                                       - tdim*dtra[inode][ii]*det_invtJ0_tJ)*detM*det_invtJ0_tJ/(trapowd*tra); 
-        //printf("grad = {} Contrib  =",(double)dquael[inode*gdim+ii]);
-        //std::cout<<ddetA[inode][ii]<<" "<<dtra[inode][ii]<<" "<<trapowd<<" "<<tra<<" \n";
       }
     }
     if(abs(power) != 1){

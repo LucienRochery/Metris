@@ -272,7 +272,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
               ted2ed(itse2,0),ted2ed(itse2,1));
           }
           wait();
-          METRIS_THROW(TopoExcept());
+          METRIS_THROW();
         }
       }
 
@@ -316,7 +316,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
           }else if(ted2ed(itsep,1) < 0){
             itpoe = tsedg(itsep, 0);
           }else{
-            METRIS_THROW_MSG(TopoExcept(), "Last edge has 2 neighbours");
+            METRIS_THROW_MSG( "Last edge has 2 neighbours");
           }
           double sze = tsmet[itpoe];
 
@@ -382,8 +382,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
         ipprv = itpo1;
         itsed = ted2ed(itsed,1);
       }else{
-        MPRINTF("## FAILED TO find ipprv = {} ",ipprv);
-        METRIS_THROW(TopoExcept())
+        METRIS_THROW_MSG("## FAILED TO find ipprv = {} ",ipprv);
       }
 
 
@@ -416,9 +415,8 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
                  lnewt.get_n()-1,theta,tnewp,lentot,iseed,tedg[0],tedg[1]);
         METRIS_ASSERT_MSG(tnewp >= tedg[0] && tnewp <= tedg[1]
                        || tnewp <= tedg[0] && tnewp >= tedg[1],
-                       "New point t not in edge t bounds. Using tspoi: "
-                       <<tspoi[itpo1]<<" "<<tspoi[itpo2]<<
-                       "tess points "<<itpo1<<" "<<itpo2);
+                       "New point t not in edge t bounds. Using tspoi: {} {} tess points {} {}",
+                       tspoi[itpo1],tspoi[itpo2],itpo1,itpo2);
       #else
         CPRINTF1(" -> new point {} w theta = {:.2f} t = {:.2f} lentot = {:.2f} seed edg = {}\n",
                  lnewt.get_n()-1,theta,tnewp,lentot,iseed);

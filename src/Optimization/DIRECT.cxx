@@ -60,7 +60,7 @@ void DIBLOB(DIBLOB_args &args,
             int *ifmin, double *barmin ,double *fmin){
 
   if(idim == 3){
-    METRIS_THROW_MSG(TODOExcept(), "Improve DIBLOB dim 3 splits and run test_DIRECT");
+    METRIS_THROW_MSG("TODO: Improve DIBLOB dim 3 splits and run test_DIRECT");
   }
 
   METRIS_ASSERT(idim == 2 || idim == 3);
@@ -374,12 +374,9 @@ void DIBLOB(DIBLOB_args &args,
     int ielem = args.lhull[ilev];
     METRIS_ASSERT(args.ent2pol(ielem,idim+1) == ilev);
     int ieglo = args.ent2pol(ielem,idim+2);
-    if(ielem < 0){
-      MPRINTF("## VERY STRANGE !\n");
-      MPRINTF("niter = {} \n",args.niter);
-      MPRINTF("hull is: {}\n",args.lhull);
-      METRIS_THROW(TopoExcept())
-    }
+    METRIS_ASSERT_MSG(ielem >= 0,"## VERY STRANGE !\n"
+      "niter = {} \nhull is: {}\n",
+      args.niter,args.lhull);
 
 
     int nele0 = args.ent2pol.get_n();

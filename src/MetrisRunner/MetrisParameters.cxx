@@ -476,7 +476,7 @@ void MetrisParameters::checkParameters(){
   METRIS_ENFORCE(geo_abstoledg >= 0.0);
   METRIS_ENFORCE(geo_lentolfac >= 1.0);
   METRIS_ENFORCE_MSG(usrTarDeg >= 1, "Degree < 1 provided through tardeg.");
-  METRIS_ENFORCE_MSG(usrTarDeg <= METRIS_MAX_DEG, "Opt -tardeg > METRIS_MAX_DEG = "<<METRIS_MAX_DEG);
+  METRIS_ENFORCE_MSG(usrTarDeg <= METRIS_MAX_DEG, "Opt -tardeg > METRIS_MAX_DEG = {}",METRIS_MAX_DEG);
 }
 
 void MetrisParameters::setMeshIn(std::string meshName){
@@ -535,10 +535,7 @@ void MetrisParameters::setLogFile(std::string fname){
     logFile = stderr;
   }else{
     logFile = fopen(fname.c_str(), "w");
-    if(!logFile){
-      fmt::print(stderr, "Error opening log file {}\n", fname);
-      METRIS_THROW(WArgExcept());
-    }
+    METRIS_ENFORCE_MSG(logFile != NULL,"Error opening log file {}", fname);
   }
 }
 

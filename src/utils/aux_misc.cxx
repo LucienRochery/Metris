@@ -527,6 +527,8 @@ template void gen_ordering_Vizir< n , 3 >(int *ord);
 template<typename T>
 void sortupto8_dec(T *tab,int n){
 
+  METRIS_ASSERT(n >= 0);
+
   if(n == 8){
     if(tab[1-1]<tab[2-1])  swi(tab[1-1],tab[2-1]);
     if(tab[3-1]<tab[4-1])  swi(tab[3-1],tab[4-1]);
@@ -647,8 +649,6 @@ void sortupto8_dec(T *tab,int n){
 
     if(tab[1-1]<tab[2-1] )  swi(tab[1-1],tab[2-1]);
 
-  }else if(n<1){
-    METRIS_THROW(WArgExcept());
   }
 }
 
@@ -656,6 +656,8 @@ void sortupto8_dec(T *tab,int n){
 // Sort as decreasing
 template<typename T>
 void sortupto8_dec(T *tab, int *idx, int n){
+
+  METRIS_ASSERT(n >= 0);
 
   if(n == 8){
     if(tab[idx[1-1]]<tab[idx[2-1]])  swi(idx[1-1],idx[2-1]);
@@ -777,8 +779,6 @@ void sortupto8_dec(T *tab, int *idx, int n){
 
     if(tab[idx[1-1]]<tab[idx[2-1]] )  swi(idx[1-1],idx[2-1]);
 
-  }else if(n<1){
-    METRIS_THROW(WArgExcept());
   }
 }
 #if 0
@@ -915,6 +915,8 @@ void sortupto8_dec(T tab[n], int idx[n]){
 
 template<typename T>
 void sortupto8_inc(T *tab,int n){
+  
+  METRIS_ASSERT(n >= 0);
 
   if(n == 8){
     if(tab[1-1]>tab[2-1])  swi(tab[1-1],tab[2-1]);
@@ -1036,8 +1038,6 @@ void sortupto8_inc(T *tab,int n){
 
     if(tab[1-1]>tab[2-1] )  swi(tab[1-1],tab[2-1]);
 
-  }else if(n<1){
-    METRIS_THROW(WArgExcept());
   }
 }
 

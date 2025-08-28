@@ -29,7 +29,7 @@ namespace Metris{
 // Field is indexed by tet2poi etc. Basically coord or met.
 template<int ideg>
 void setMeshBezier(Mesh &msh, int nwork, double *rwork){
-	METRIS_THROW_MSG(TODOExcept(),"Replace this call with msh.setBezier");
+	METRIS_THROW_MSG("TODO: Replace this call with msh.setBezier");
 	if(msh.ilag == 0) return;
   printf("-- Converting mesh to Bézier ideg = {} idim = {} .\n",ideg,msh.idim);
 
@@ -43,7 +43,7 @@ void setMeshBezier(Mesh &msh, int nwork, double *rwork){
 
 template<int ideg>
 void setMeshLagrange(Mesh &msh, int nwork, double *rwork){
-	METRIS_THROW_MSG(TODOExcept(),"Replace this call with msh.setBezier");
+	METRIS_THROW_MSG("TODO: Replace this call with msh.setBezier");
 	if(msh.ilag == 1) return;
   printf("-- Converting mesh to Lagrange ideg = {}.\n",ideg);
   if(msh.idim == 2){

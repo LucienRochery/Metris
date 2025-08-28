@@ -55,14 +55,9 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
 
       int icoco = -(msh.fac2tag(ithread,iface) - msh.tag[ithread]) - 1;
       METRIS_ASSERT_MSG(icoco >= 0,
-        "face "<<iface<<" icoco "<<icoco);
+        "face {} icoco {}", iface, icoco);
       METRIS_ASSERT(icoco < work.lfcco.get_n());
       METRIS_ASSERT_MSG(edcco[icoco].get_n() > 0,"edcco[icoco] empty in update_bpois_newp");
-      if(edcco[icoco].get_n() <= 0){
-        PRINTF("edcco : {}\n",edcco);
-        PRINTF("## DEBUG FATAL\n");
-        METRIS_THROW(TODOExcept());
-      }
       int ireff = msh.fac2ref[iface];
       ego EG_fac = msh.CAD.cad2fac[ireff];
 
@@ -99,8 +94,8 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
                                    tedg, msh.bpo2rbi[ibpoi]);
           CPRINTF1("   - new (u,v) = {} {}\n",
                    msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
-          METRIS_ENFORCE_MSG(icode == 0,"EG_getEdgeUV error "<<icode);
-          
+          METRIS_ENFORCE_MSG(icode == 0,"EG_getEdgeUV error {}", icode);
+
           break;
         }
         if(found_update) break;
@@ -204,7 +199,7 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
         static int nwarnprt1 = 0;
         if(nwarnprt1++ < 10) fmt::print("## DISABLE THIS DEBUG\n");
 
-        if(icode != 0) METRIS_THROW_MSG(GeomExcept(),"EG_getEdgeUV failed !");
+        if(icode != 0) METRIS_THROW_MSG("EG_getEdgeUV failed !");
 
       }
 

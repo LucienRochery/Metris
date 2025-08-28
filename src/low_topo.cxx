@@ -171,8 +171,7 @@ int ball(MeshBase& msh, int ipoin,
           PRINTF("{} : {}\n",ii,intAr1(2,msh.edg2poi[ii]));
         }
       }
-      METRIS_ASSERT_MSG(iver >= 0,"got iver < 0 with iedg0 = "<<iedg0<<
-        " ipoin = "<<ipoin);
+      METRIS_ASSERT_MSG(iver >= 0,"got iver < 0 with iedg0 = {} ipoin = {}",iedg0, ipoin);
       #endif
       int iedg1 = msh.edg2edg(iedg0,1-iver);
       CPRINTF1(" - case pdim = 1 w/ edge, seed iedg0 = {} neighbour {}\n",iedg0,iedg1);
@@ -245,8 +244,6 @@ int ball(MeshBase& msh, int ipoin,
   int tdi0 = ((pdim > 1 || msh.idim == 2) && dofac) ? 2 : 3;
   int tdi1 = msh.get_tdim();
   if(tdi1 == 3 && !dotet) tdi1 = 2;
-  //METRIS_ASSERT_MSG(tdi0 <= tdi1,
-  //  "## BALL() error tdi0 = "<<tdi0<<" tdi1 = "<<tdi1<<" with pdim "<<pdim<<" dofac "<<dofac<<" doedg "<<doedg<<" dotet "<<dotet);
 
   for(int tdim = tdi0; tdim <= tdi1; tdim++){
 
@@ -255,8 +252,9 @@ int ball(MeshBase& msh, int ipoin,
           intAr2 &ent2tag = msh.ent2tag(tdim);
 
     intAr1 &lbent = tdim == 2 ? lbfac : lbtet;
-    METRIS_ASSERT_MSG(lbent.get_n() > 0,"lbent is empty with tdim = "<<tdim<<
-      " do_edge = "<<doedg<<" do_face = "<<dofac<<" do_tetra = "<<dotet);
+    METRIS_ASSERT_MSG(lbent.get_n() > 0, "lbent is empty with "
+      "tdim = {} do_edge = {} do_face = {} do_tetra = {}", 
+      tdim, doedg, dofac, dotet);
 
     ent2tag(ithrd, lbent[0]) = msh.tag[ithrd];
 
@@ -484,9 +482,9 @@ void ball3_nm(MeshBase& __restrict__ msh,
 			//if(msh.tet2ftg[ielem]){
 			//	int iface = msh.tetfac2glo(ielem,i);
 			//	if(iface < 0 || iface >= msh.nface) 
-			//		METRIS_THROW_MSG(TopoExcept(),"Face missing or invalid in hash tab "<<iface<<"\n");
+			//		METRIS_THROW_MSG("Face missing or invalid in hash tab "<<iface<<"\n");
       //  nbfac++; 
-			//	if(nbfac > lbfac.size1()) METRIS_THROW(SMemExcept());
+			//	METRIS_ASSERT(nbfac <= lbfac.size1());
 			//	lbfac[nbfac-1] = iface; 
 			//}
 
@@ -505,7 +503,7 @@ void ball3_nm(MeshBase& __restrict__ msh,
 
 //    Add to stack and get vertex
 			nball++;
-			if(nball >= lball.size1()) METRIS_THROW(SMemExcept());
+      METRIS_ENFORCE(nball < lball.size1());
 
 			msh.tet2tag(ithread,iele2) = msh.tag[ithread];
 			lball[nball-1] = iele2;
@@ -535,7 +533,7 @@ void ball3_full([[maybe_unused]] MeshBase& __restrict__ msh,
                 [[maybe_unused]] intAr1&           lbedg,
                 [[maybe_unused]] int ithread){
 
-  METRIS_THROW_MSG(TODOExcept(),"All wrong here, reimplement")
+  METRIS_THROW_MSG("TODO: All wrong here, reimplement")
 
   /*
   METRIS_ASSERT(tdimn >= 1 && tdimn <= 3);
@@ -558,7 +556,7 @@ void ball3_full([[maybe_unused]] MeshBase& __restrict__ msh,
 
   int iedg0=-1, ifac0=-1, iele0=-1;
   if(tdimn == 1){
-    METRIS_THROW_MSG(TODOExcept(), "edge ball3 not implemented");
+    METRIS_THROW_MSG("TODO: edge ball3 not implemented");
     if(msh.isboundary_edges()) METRIS_ASSERT(msh.poi2bpo[ipoin] >= 0);
     iedg0 = iseed;
   }else if(tdimn == 2){
@@ -578,7 +576,7 @@ void ball3_full([[maybe_unused]] MeshBase& __restrict__ msh,
       int ientt = msh.bpo2ibi(ibpo2,2);
       METRIS_ASSERT(ientt >= 0);
       if(itype == 1){
-        if(*nbedg >= lbedg.n) METRIS_THROW_MSG(DMemExcept(),"Increase lbedg.ne")
+        if(*nbedg >= lbedg.n) METRIS_THROW_MSG("Increase lbedg.ne")
         #ifndef NDEBUG 
           METRIS_ASSERT(msh.edg2tag(ithread,ientt) < msh.tag[ithread]);
           msh.edg2tag(ithread,ientt) = msh.tag[ithread];
@@ -586,7 +584,7 @@ void ball3_full([[maybe_unused]] MeshBase& __restrict__ msh,
         lbedg[*nbedg] = ientt;
         (*nbedg)++;
       }else if(itype == 2){
-        if(*nbfac >= lbfac.n) METRIS_THROW_MSG(DMemExcept(),"Increase lbfac.ne")
+        if(*nbfac >= lbfac.n) METRIS_THROW_MSG("Increase lbfac.ne")
         #ifndef NDEBUG 
           METRIS_ASSERT(msh.fac2tag(ithread,ientt) < msh.tag[ithread]);
           msh.fac2tag(ithread,ientt) = msh.tag[ithread];
@@ -606,7 +604,7 @@ void ball3_full([[maybe_unused]] MeshBase& __restrict__ msh,
 
     return;
   }else{
-    METRIS_THROW_MSG(TODOExcept(), "eleme ball3 not implemented")
+    METRIS_THROW_MSG("TODO: eleme ball3 not implemented")
     iele0 = iseed;    
   }
   */
@@ -940,7 +938,7 @@ void shell(const MeshBase& msh,
   // If not ibdry, there is no shell in case tdim == 3 which assumes idim == 3. 
   if(ifac0 < 0 && dofac && !dotet && ibdry){
     METRIS_ASSERT(tdim == 3);
-    METRIS_THROW_MSG(TODOExcept(), "Implement nm / surf shell in case tet seed and no tet shell")
+    METRIS_THROW_MSG("TODO: Implement nm / surf shell in case tet seed and no tet shell")
   }else if(dofac && !dotet){
     METRIS_ASSERT(msh.idim == 2 || msh.nelem == 0);
     METRIS_ASSERT(ifac0 >= 0);

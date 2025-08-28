@@ -131,7 +131,7 @@ void MeshBase::newfactopo(int ielem, int ifael, int iref, int iele2){
 
   int ifacn = nface;
   set_nface(nface+1);
-  //if(nface >= mface)METRIS_THROW_MSG(DMemExcept(),
+  //if(nface >= mface)METRIS_THROW_MSG(
   //  "INCREASE MFACE (iniMeshNeighbours)");
   METRIS_ASSERT(ifael >= 0 && ifael < 4);
   METRIS_ASSERT(!isdeadent(ielem, tet2poi));

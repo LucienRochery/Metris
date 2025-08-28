@@ -33,33 +33,8 @@ struct MeshStat{
   double pctunit_bdry, minlen_bdry,maxlen_bdry,avglen_bdry;
   double minqua, maxqua, avgqua;
   double minqua_bdry, maxqua_bdry, avgqua_bdry;
-  bool operator==(const MeshStat& rhs){
-    return abs(this->pctunit - rhs.pctunit) < 1.0e-3
-        && abs(this->minlen  - rhs.minlen ) < 1.0e-1
-        && abs(this->maxlen  - rhs.maxlen ) < 1.0e-1
-        && abs(this->avglen  - rhs.avglen ) < 1.0e-2
-
-        && abs(this->pctunit_bdry - rhs.pctunit_bdry) < 1.0e-3
-        && abs(this->minlen_bdry  - rhs.minlen_bdry ) < 1.0e-1
-        && abs(this->maxlen_bdry  - rhs.maxlen_bdry ) < 1.0e-1
-        && abs(this->avglen_bdry  - rhs.avglen_bdry ) < 1.0e-2
-
-
-        && abs(this->minqua - rhs.minqua ) < 1.0e-3
-        && abs(this->maxqua - rhs.maxqua ) < 1.0e-3
-        && abs(this->avgqua - rhs.avgqua ) < 1.0e-3 
-
-        && abs(this->minqua_bdry - rhs.minqua_bdry ) < 1.0e-3
-        && abs(this->maxqua_bdry - rhs.maxqua_bdry ) < 1.0e-3
-        && abs(this->avgqua_bdry - rhs.avgqua_bdry ) < 1.0e-3 ;
-  }
-  void print(std::string name = "", FILE* logfile = stdout){
-    fmt::print(logfile, "-- Mesh stat summary {}:\n",name.c_str());
-    fmt::print(logfile, " - Length       : {:.2f}% unit w/ {} < l ~= {} < {} \n",pctunit,minlen,avglen,maxlen);
-    fmt::print(logfile, " - Length (bdry): {:.2f}% unit w/ {} < l ~= {} < {} \n",pctunit_bdry,minlen_bdry,avglen_bdry,maxlen_bdry);
-    fmt::print(logfile, " - Conf. err.       : {} < q ~= {} < {} \n",minqua,avgqua,maxqua);
-    fmt::print(logfile, " - Conf. err. (bdry): {} < q ~= {} < {} \n",minqua_bdry,avgqua_bdry,maxqua_bdry);
-  }
+  bool operator==(const MeshStat& rhs);
+  void print(std::string name = "", FILE* logfile = stdout);
 };
 
 void to_json(nlohmann::json& jj, const MeshStat& stat);

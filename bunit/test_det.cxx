@@ -581,7 +581,7 @@ ftype detsym_Eigen_LDLT(const ftype *met){
       met_Eigen(ii, jj) = met[sym2idx(ii,jj)];
 
   Eigen::LDLT<MatrixN> ldlt(met_Eigen.template selfadjointView<Eigen::Lower>());
-  if(ldlt.info() != Eigen::Success) METRIS_THROW(GeomExcept());
+  METRIS_ENFORCE(ldlt.info() == Eigen::Success)
 
   VectorN Dv = ldlt.vectorD();
 

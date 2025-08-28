@@ -39,7 +39,7 @@ MetricFieldFE::MetricFieldFE(MeshBase &msh_) : msh(msh_){
 void MetricFieldFE::setSpace(MetSpace ispacn, bool iforce){
   #ifndef NDEBUG
   if(msh.meshClass() == MeshClass::MeshBack && !iforce && ispacn != this->ispace){
-    METRIS_THROW_MSG(GeomExcept(),"setSpace called on back mesh! Should not be done.")
+    METRIS_THROW_MSG("setSpace called on back mesh! Should not be done.")
   }
   #endif
   METRIS_ASSERT(ispacn != MetSpace::Undefined);
@@ -78,8 +78,8 @@ MetricFieldFE &MetricFieldFE::operator=(const MetricFieldFE& inp){
 void MetricFieldFE::setLog(){
 
   if(ibasis == FEBasis::Undefined){
-    std::cout<<"## WARNING: Metric field basis not defined, possible surface or line mesh \n";
-    std::cout<<"## Skip setLog \n";
+    GETVDEPTH(msh.param);
+    CPRINTF1("# WARNING: Metric field basis not defined, possible surface or line mesh: skip setLog()\n");
     return;
   }
 
@@ -99,8 +99,8 @@ void MetricFieldFE::setLog(){
 void MetricFieldFE::setExp(){
 
   if(ibasis == FEBasis::Undefined){
-    std::cout<<"## WARNING: Metric field basis not defined, possible surface or line mesh \n";
-    std::cout<<"## Skip setLog \n";
+    GETVDEPTH(msh.param);
+    CPRINTF1("# WARNING: Metric field basis not defined, possible surface or line mesh: skip setExp()\n");
     return;
   }
   
@@ -188,7 +188,7 @@ void MetricFieldFE::readMetricFile(std::string inpname){
       this->ispace = MetSpace::Log;
     }else{
       PRINTF("## UNKNOWN COMMENT LINE: {}\n", strbuf);
-      METRIS_THROW_MSG(TODOExcept(),
+      METRIS_THROW_MSG(
         "Known bug: Comments works in binary file but not plaintext after transmesh.\n")
     }
   }
@@ -196,13 +196,13 @@ void MetricFieldFE::readMetricFile(std::string inpname){
 
   int nsolf,ltyp[GmfMaxTyp],szfls;
   int npoif = GmfStatKwd(libIdx,GmfSolAtVertices, &nsolf, &szfls, ltyp);
-  METRIS_ENFORCE_MSG(npoif == msh.npoin,"Metric file npoin = "<<npoif<<" does not agree with mesh = "<<msh.npoin);
+  METRIS_ENFORCE_MSG(npoif == msh.npoin,"Metric file npoin = {} does not agree with mesh = {}", npoif, msh.npoin);
 
   METRIS_ENFORCE(nsolf == 1);
   METRIS_ENFORCE(ltyp[0] == GmfSymMat);
 
   int nnmet = getnnmet();
-  METRIS_ASSERT_MSG(nnmet == 3 || nnmet == 6," nnmet = "<<nnmet);
+  METRIS_ASSERT_MSG(nnmet == 3 || nnmet == 6," nnmet = {}", nnmet);
 
   // Possible reallocation
   this->rfld.allocate(msh.mpoin,nnmet);
@@ -224,8 +224,7 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
   const MetSpace outspac = MetSpace::Exp;
 
   if(ibasis == FEBasis::Undefined){
-    std::cout<<"## WARNING: Metric field basis not defined, possible surface or line mesh \n";
-    std::cout<<"## Skip writeMetricFile = "<<outname<<"\n";
+    CPRINTF1("# WARNING: Metric field basis not defined, possible surface or line mesh: skip writeMetricFile = {}\n", outname);
     return;
   }
 
@@ -355,8 +354,8 @@ void MetricFieldFE::getMetBary(AsDeg asdmet,
 
   // barycentric is defined but not physical. Probably a mistake either way
   if(msh.idim != tdimn && idiff != DifVar::None) 
-    METRIS_THROW_MSG(WArgExcept(), "Differing tdim = "<<tdimn<<" and gdim ="
-                                    <<msh.idim<<" are you sure about idiff?")
+    METRIS_THROW_MSG( "Differing tdim = {} and gdim = {} are you sure about idiff?", tdimn, msh.idim)
+
 
 
   CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
@@ -438,7 +437,7 @@ void MetricFieldFE::getMetBary0( DifVar idiff,  MetSpace tarspac,
     eval3<nnmet,ideg>(rfld,ent2pol,this->ibasis,idife,DifVar::None,bary,metl,dmet0,NULL);
   }
 
-  if(tdimn > gdim) METRIS_THROW_MSG(WArgExcept(), "getMetBary0 topo dim > gdim");
+  if(tdimn > gdim) METRIS_THROW_MSG( "getMetBary0 topo dim > gdim");
 
 
   if(idiff == DifVar::None){

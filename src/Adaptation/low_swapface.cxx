@@ -112,7 +112,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
   if(spnorm >= 0){
     quae1 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,iface,1.0);
-    METRIS_ASSERT_MSG(quae1 > -1.0e-16, "Negative quae1 "<<quae1<<" iface "<<iface);
+    METRIS_ASSERT_MSG(quae1 > -1.0e-16, "Negative quae1 {:e} iface {}",quae1,iface);
   }
 
 

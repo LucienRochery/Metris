@@ -44,7 +44,7 @@ get_quafun(QuaFun iquaf){
   }else if(iquaf == QuaFun::Unit){
     return metqua<MFT,gdim,tdim,QuaFun::Unit,ftype>;
   }else{
-    METRIS_THROW_MSG(TODOExcept(),"cf quafun_")
+    METRIS_THROW_MSG("TODO: cf quafun_")
   }
 }
 

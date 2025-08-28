@@ -146,7 +146,7 @@ int reinsertFlat(Mesh<MFT> &msh){
             iface = msh.tetfac2glo(ientt, ifa);
             cav.ipins = msh.newpoitopo(2, iface);
             ibins = msh.newbpotopo(cav.ipins,2,iface);
-            METRIS_THROW_MSG(TODOExcept(), "Implement projpoifac (get (u,v))");
+            METRIS_THROW_MSG("TODO: Implement projpoifac (get (u,v))");
           }
           for(int ii = 0; ii < gdim; ii++) 
             msh.coord(cav.ipins,ii) = msh.coord(ipoin,ii);
@@ -187,7 +187,7 @@ int reinsertFlat(Mesh<MFT> &msh){
                 msh.coord(ipoin,ii) = msh.coord(cav.ipins,ii);
               writeMesh("dbg_projptedg.meshb",msh);
 
-              METRIS_THROW_MSG(GeomExcept(),"LArge dist "<<dist);
+              METRIS_THROW_MSG("LArge dist "<<dist);
               //#else
               //if(iverb >= 3) printf("  - Large dist {} continue \n",dist);
               //continue;
@@ -196,7 +196,7 @@ int reinsertFlat(Mesh<MFT> &msh){
             }
 
           }else if(tdim == 3){
-            METRIS_THROW_MSG(TODOExcept(), "Implement use projpoifac");
+            METRIS_THROW_MSG("TODO: Implement use projpoifac");
           }
         }
 
@@ -211,7 +211,7 @@ int reinsertFlat(Mesh<MFT> &msh){
             cav.lcedg.stack(ifedg);
           }
         }else{
-          METRIS_THROW(TODOExcept());
+          METRIS_THROW_MSG("TODO");
         }
 
         ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithread);

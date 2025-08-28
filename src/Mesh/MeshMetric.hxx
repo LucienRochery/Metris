@@ -65,7 +65,7 @@ public:
 
 		int nwork = met.getnnmet()*npoin;
 		double *rwork = getrwork(nwork);
-		if(rwork == NULL) METRIS_THROW_MSG(DMemExcept(), "Unable to recover rwork array");
+		if(rwork == NULL) METRIS_THROW_MSG( "Unable to recover rwork array");
 
 		met.setBasis(ibasis,nwork,rwork);
 	}

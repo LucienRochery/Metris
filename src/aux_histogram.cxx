@@ -175,7 +175,7 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
     }else{
       nchar = (int) (scal * buckcnt[ibucket]);
     }
-    METRIS_ASSERT_MSG(nchar <= ncol,"nchar = "<<nchar<<" ncol = "<<ncol);
+    METRIS_ASSERT_MSG(nchar <= ncol,"nchar = {} > ncol = {}", nchar, ncol);
     for(int ii = 0; ii < nchar; ii++){
       buffer[1+ibucket][ibuf0 + ii] = '*';
     }

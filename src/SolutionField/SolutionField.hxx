@@ -39,10 +39,10 @@ public:
 
   // virtual incurs costs
   inline const double& operator[]([[maybe_unused]] int i) const {
-    METRIS_THROW_MSG(WArgExcept(),"SolutionFieldBase::operator[] should not be called");
+    METRIS_THROW_MSG("SolutionFieldBase::operator[] should not be called");
   }
   inline double& operator[]([[maybe_unused]] int i){
-    METRIS_THROW_MSG(WArgExcept(),"SolutionFieldBase::operator[] should not be called");
+    METRIS_THROW_MSG("SolutionFieldBase::operator[] should not be called");
   }
 
   SolutionFieldBase &operator=(const SolutionFieldBase& inp){
@@ -55,7 +55,7 @@ public:
   double getSolBary([[maybe_unused]] int tdim, [[maybe_unused]] int ielem, 
                     [[maybe_unused]] const double* __restrict__ bary, 
                     [[maybe_unused]] std::initializer_list<double*> dfun = {}) const {
-    METRIS_THROW_MSG(WArgExcept(),"SolutionFieldBase::getSolBary() should not be called");
+    METRIS_THROW_MSG("SolutionFieldBase::getSolBary() should not be called");
   }
 
   const MeshBase *msh;

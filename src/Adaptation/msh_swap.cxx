@@ -110,7 +110,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
               //printf("## WAIT AFTER SWAPTETRA\n");
               //wait();
             }else{
-              METRIS_THROW_MSG(TopoExcept(),"in dim < 3, ntetra > 0");
+              METRIS_THROW_MSG("in dim < 3, ntetra > 0");
             }
           }
         #ifndef NDEBUG

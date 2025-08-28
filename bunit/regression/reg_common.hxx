@@ -29,7 +29,29 @@ std::string time2str() {
   return oss.str();
 }
 
+bool isCloseMeshStat(const MeshStat& baseline, const MeshStat& current,
+    bool* iclose_pctunit, bool* iclose_pctunit_bdry,
+    bool* iclose_avgqua, bool* iclose_avgqua_bdry){
+  *iclose_pctunit      = abs(baseline.pctunit      - current.pctunit     ) < 1.0;
+  *iclose_pctunit_bdry = abs(baseline.pctunit_bdry - current.pctunit_bdry) < 1.0;
+  *iclose_avgqua       = abs(baseline.avgqua       - current.avgqua      ) < 1.0e-2;
+  *iclose_avgqua_bdry  = abs(baseline.avgqua_bdry  - current.avgqua_bdry ) < 1.0e-2;
+  return *iclose_pctunit && *iclose_pctunit_bdry && *iclose_avgqua && *iclose_avgqua_bdry;
+}
 
+void printUnmatchedMeshStat(const MeshStat& baseline, const MeshStat& current,
+    bool iclose_pctunit, bool iclose_pctunit_bdry,
+    bool iclose_avgqua, bool iclose_avgqua_bdry){
+
+  if(!iclose_pctunit) fmt::print(stderr," - pctunit differ: baseline {} vs current {}\n",
+      baseline.pctunit, current.pctunit);
+  if(!iclose_pctunit_bdry) fmt::print(stderr," - pctunit_bdry differ: baseline {} vs current {}\n",
+      baseline.pctunit_bdry, current.pctunit_bdry);
+  if(!iclose_avgqua) fmt::print(stderr," - avg quality differ: baseline {} vs current {}\n",
+      baseline.avgqua, current.avgqua);
+  if(!iclose_avgqua_bdry) fmt::print(stderr," - avg quality bdry differ: baseline {} vs current {}\n",
+      baseline.avgqua_bdry, current.avgqua_bdry);
+  }
 
 } // namespace Metris
 

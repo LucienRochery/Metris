@@ -207,10 +207,8 @@ void anamet2D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
     //fmt::print("debug r = {:15.7e} theta = {:15.7e} print met = {:15.7e} {:15.7e} {:15.7e} \n",
     //  r.value(), theta.value(), met[0],met[1],met[2]);
     for(int ii = 0; ii < 6; ii++){
-      if(std::isnan(dmet[ii])){
-        fmt::print("## NAN METRIS IN ANAMET 5 ! coop = {} {} \n",crd[0],crd[1]);
-        METRIS_THROW(GeomExcept());
-      }
+      METRIS_ASSERT_MSG(!std::isnan(met[ii]),
+        "NAN METRIS IN ANAMET 5 ! coop = {} {} \n",crd[0],crd[1]);
     }
   }
   #endif

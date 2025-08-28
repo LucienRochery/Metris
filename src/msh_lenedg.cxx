@@ -60,7 +60,7 @@ void getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref,
       METRIS_ASSERT(msh.curdeg == 1);
       msh.forceBasisFlag(FEBasis::Bezier);
     }else{
-      METRIS_THROW_MSG(TODOExcept(), "LenType::MetCrv not implemented for Pk");
+      METRIS_THROW_MSG("TODO: LenType::MetCrv not implemented for Pk");
     }
   }
 
@@ -129,7 +129,7 @@ void getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref,
             len = getlenedg_geosz<MFT, gdim, 2>(msh, edg2pol, sz);
 
           }else{
-            METRIS_THROW_MSG(TODOExcept(),"Size interp scheme not implemented");
+            METRIS_THROW_MSG("TODO: Size interp scheme not implemented");
           }
         }}CT_FOR1(ideg);
       }}CT_FOR1(gdim);

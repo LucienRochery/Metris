@@ -45,7 +45,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     && msh.CAD()
     && abs(msh.param->qua_surf_wt_normal) > 1.0e-9*abs(msh.param->qua_surf_wt_quality);
   if(tdim == 1 && gdim >= 2) 
-    METRIS_THROW_MSG(TODOExcept(), "TODO: Edge quality with normal dev")
+    METRIS_THROW_MSG("TODO: TODO: Edge quality with normal dev")
 
 
   // Performance impact should be zero
@@ -71,7 +71,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   //    int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
   //    METRIS_ENFORCE_MSG(ierro == 0, "metqua0 EG_evaluate error " << ierro);
   //    vecprod(du,dv,norfld[inode]);
-  //    if(normalize_vec<gdim>(norfld[inode])) METRIS_THROW_MSG(GeomExcept(), "Normal vanishes");
+  //    if(normalize_vec<gdim>(norfld[inode])) METRIS_THROW_MSG( "Normal vanishes");
   //  }
   //}
   const int ideg = msh.curdeg;

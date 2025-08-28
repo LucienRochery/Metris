@@ -20,9 +20,6 @@ void projptsurf(MeshBase &msh, int ibpoi, double *coop, double tol = 0.1);
 
 // To be used for entities not handled by CAD e.g. interior planes. 
 void projptsurf_disc(MeshBase &msh, int ibpoi, double *coop);
-//{
-//	METRIS_THROW(TODOExcept());
-//}
 
 // Get normal at ibpoi using face. 
 void bpo2CADnormal(MeshBase &msh, int ibpoi, double *du, double *dv, double *nrmal);

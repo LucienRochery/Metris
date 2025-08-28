@@ -75,8 +75,8 @@ template<> int64_t MetrisOpenMeshFile<GmfWrite>(std::string meshName, int meshDi
 
   int64_t libIdx = GmfOpenMesh(meshName.c_str(), GmfWrite,  libVer, meshDim);
 
-  if(!libIdx || (libVer != 2 && libVer != 3))METRIS_THROW_MSG(WArgExcept(),
-    "FILE COULDNT BE OPENED OR WRONG VERSION name = "<<meshName);
+  METRIS_ENFORCE_MSG(libIdx && (libVer == 2 || libVer == 3),
+    "FILE COULDNT BE OPENED OR WRONG VERSION: {}, name = {}", libVer, meshName);
   
   return libIdx;
 }
@@ -86,11 +86,11 @@ template<> int64_t MetrisOpenMeshFile<GmfRead>(std::string meshName, int *meshDi
 
   int64_t libIdx = GmfOpenMesh(meshName.c_str(), GmfRead, &libVer, meshDim);
 
-  if(!libIdx || (libVer != 2 && libVer != 3))METRIS_THROW_MSG(WArgExcept(),
-    "FILE COULDNT BE OPENED OR WRONG VERSION name = "<< meshName);
-  //if( *meshDim == 2) printf("## EXPERIMENTAL: 2D meshes\n");
-  if(*meshDim != 3 && *meshDim != 2) METRIS_THROW_MSG(WArgExcept(), "Unsupported dimension " << *meshDim);
-  
+  METRIS_ENFORCE_MSG(libIdx && (libVer == 2 || libVer == 3),
+    "FILE COULDNT BE OPENED OR WRONG VERSION: {}, name = {}", libVer, meshName);
+
+  METRIS_ENFORCE_MSG(*meshDim == 3 || *meshDim == 2, "Unsupported dimension {}", *meshDim);
+
   return libIdx;
 }
 /*
@@ -126,7 +126,7 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav)
     meshName += ".meshb";
   }
   // this ensures all error messages are printed
-  if(ierro > 0) METRIS_THROW(WArgExcept());
+  METRIS_ENFORCE(ierro <= 0);
 
 
 
@@ -542,7 +542,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
     eff_meshName += ".meshb";
   }
   // this ensures all error messages are printed
-  if(ierro > 0) METRIS_THROW(WArgExcept());
+  METRIS_ENFORCE(ierro <= 0);
 
   intAr1 edg2ref(iedg1), fac2ref(ifac1), tet2ref(iele1);
   intAr2 edg2poi(iedg1, msh.edg2poi.get_stride()),
@@ -684,7 +684,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
       //ierro = EG_exportModel(msh.CAD.EGADS_model, &nbyte, &stream);
       //if(ierro != 0){
       //  print_EGADS_error("EG_exportModel",ierro);
-      //  METRIS_THROW_MSG(TopoExcept(),"Failed to export model to stream.");
+      //  METRIS_THROW_MSG("Failed to export model to stream.");
       //}
       //if(iverb > 0) printf(" - Stream of size {}b \n",nbyte);
       //GmfWriteByteFlow(libIdx, stream, (int) nbyte);
@@ -771,7 +771,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
         if(boost::stacktrace::stacktrace const * tr=boost::get_error_info<excStackTrace>(e) )
           std::cerr << "## Call stack: \n" << *tr;
       #endif
-      METRIS_THROW_MSG(TODOExcept(),"Manage corners (lpoic) in this context");
+      METRIS_THROW_MSG("TODO: Manage corners (lpoic) in this context");
     }
 
   #if 0
@@ -826,7 +826,7 @@ void writeField(std::string outname, const MeshBase &msh, SolTyp stype, dblAr1 &
   GETVDEPTH(msh.param);
 
   if(stype != SolTyp::P0Elt && stype != SolTyp::CG) 
-    METRIS_THROW_MSG(TODOExcept(), "Implement other SolTyps in writeField");
+    METRIS_THROW_MSG("TODO: Implement other SolTyps in writeField");
 
   int tdimn = msh.get_tdim();
   METRIS_ENFORCE(tdimn == 1 || tdimn == 2 || tdimn == 3);
@@ -846,7 +846,7 @@ void writeField(std::string outname, const MeshBase &msh, SolTyp stype, dblAr1 &
   int ndof = -1;
   if(stype == SolTyp::CG)         ndof = msh.npoin;
   else if(stype == SolTyp::P0Elt) ndof = msh.nentt(msh.get_tdim());
-  else METRIS_THROW_MSG(TODOExcept(), "Sol typ not implemented ndof")
+  else METRIS_THROW_MSG("TODO: Sol typ not implemented ndof")
   if(rfld.get_n() / ndim != ndof){
     CPRINTF1("## WARNING rfld.get_n / ndim = {} ndof {} \n",
              rfld.get_n() / ndim, ndof);
@@ -885,7 +885,7 @@ void writeField(std::string outname, const MeshBase &msh, SolTyp stype, dblAr1 &
         GmfSetLin(libIdx, solPosKwd, 0.5, 0.5, 0.5, 0.5);
       }
     }else{
-      METRIS_THROW_MSG(TODOExcept(),"SoltAtElt kwd deg > 2 not implemented");
+      METRIS_THROW_MSG("TODO: SoltAtElt kwd deg > 2 not implemented");
     }
   }else if(stype == SolTyp::CG){
     solKwd = GmfSolAtVertices;
@@ -969,7 +969,7 @@ void writeBackLinks(std::string solName, Mesh<MFT>& msh){
         eval2<2,1>(msh.bak->coord, ent2poi[ientt], msh.bak->getBasis(), 
           DifVar::None, DifVar::None, bary, coom, NULL, NULL);
       }else{
-        METRIS_THROW_MSG(WArgExcept(), "pdim 3 but gdim 2");
+        METRIS_THROW_MSG("pdim 3 but gdim 2");
       }
     }else{
       if(pdim == 1){
@@ -1087,7 +1087,7 @@ void writeMeshVecs(std::string meshName, MeshBase &msh, const dblAr2 &poi2vec){
     eff_meshName += ".meshb";
   }
   // this ensures all error messages are printed
-  if(ierro > 0) METRIS_THROW(WArgExcept());
+  METRIS_ENFORCE(ierro <= 0);
 
   if(msh.idim >= 3){
     for(int i =0; i < msh.nelem;i++){
@@ -1222,7 +1222,7 @@ void writeMeshVecs(std::string meshName, MeshBase &msh, const dblAr2 &poi2vec){
       //ierro = EG_exportModel(msh.CAD.EGADS_model, &nbyte, &stream);
       //if(ierro != 0){
       //  print_EGADS_error("EG_exportModel",ierro);
-      //  METRIS_THROW_MSG(TopoExcept(),"Failed to export model to stream.");
+      //  METRIS_THROW_MSG("Failed to export model to stream.");
       //}
       //if(iverb > 0) printf(" - Stream of size {}b \n",nbyte);
       //GmfWriteByteFlow(libIdx, stream, (int) nbyte);
@@ -1309,7 +1309,7 @@ void writeMeshVecs(std::string meshName, MeshBase &msh, const dblAr2 &poi2vec){
         if(boost::stacktrace::stacktrace const * tr=boost::get_error_info<excStackTrace>(e) )
           std::cerr << "## Call stack: \n" << *tr;
       #endif
-      METRIS_THROW_MSG(TODOExcept(),"Manage corners (lpoic) in this context");
+      METRIS_THROW_MSG("TODO: Manage corners (lpoic) in this context");
     }
   }else{
     GmfSetKwd(libIdx, GmfVertices, msh.npoin);
@@ -1386,11 +1386,11 @@ void writeMesh(std::string meshName, int ideg, int ilag,
     meshName += ".meshb";
   }
   // this ensures all error messages are printed
-  if(ierro > 0) METRIS_THROW(WArgExcept());
+  METRIS_ENFORCE(ierro <= 0);
 
   int idim = coord.get_stride();
 
-  if(idim != 2 && idim != 3) METRIS_THROW_MSG(WArgExcept(),"Unsupported dimension " << idim);
+  if(idim != 2 && idim != 3) METRIS_THROW_MSG("Unsupported dimension " << idim);
 
 
   if(idim >= 3){

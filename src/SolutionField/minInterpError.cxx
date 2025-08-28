@@ -146,7 +146,7 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
             }
             METRIS_ASSERT(imani && !iopen);
           }else{
-            METRIS_THROW_MSG(TODOExcept(), "3D in minInterperr");
+            METRIS_THROW_MSG("TODO: 3D in minInterperr");
           }
         }else if(inode < tdim + 1 + nedgl * (ideg - 1)){
           // Edge node. 
@@ -163,10 +163,10 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
             lball.stack(ient2);
             lnode.stack(inod2);
           }else{
-            METRIS_THROW_MSG(TODOExcept(), "3D in minInterperr");
+            METRIS_THROW_MSG("TODO: 3D in minInterperr");
           }
         }else{
-          METRIS_THROW_MSG(TODOExcept(), "Interior 2D/3D or face in 3D");
+          METRIS_THROW_MSG("TODO: Interior 2D/3D or face in 3D");
         }
 
         CPRINTF2(" - ientt {} inode {} ipoin {} ball size {}\n",ientt,inode,ipoin,lball.get_n());
@@ -342,7 +342,7 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
             }
             METRIS_ASSERT(imani && !iopen);
           }else{
-            METRIS_THROW_MSG(TODOExcept(), "3D in minInterperr");
+            METRIS_THROW_MSG("TODO: 3D in minInterperr");
           }
         }else if(inode < tdim + 1 + nedgl * (ideg - 1)){
           // Edge node. 
@@ -359,10 +359,10 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
             lball.stack(ient2);
             lnode.stack(inod2);
           }else{
-            METRIS_THROW_MSG(TODOExcept(), "3D in minInterperr");
+            METRIS_THROW_MSG("TODO: 3D in minInterperr");
           }
         }else{
-          METRIS_THROW_MSG(TODOExcept(), "Interior 2D/3D or face in 3D");
+          METRIS_THROW_MSG("TODO: Interior 2D/3D or face in 3D");
         }
 
         if(DOPRINTS2()){

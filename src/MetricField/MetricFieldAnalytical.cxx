@@ -54,8 +54,8 @@ void MetricFieldAnalytical::setAnalyticalMetric(int ianamet_){
 	METRIS_ASSERT(idim == 2 || idim == 3);
 	
   if(ianamet_ <= 0 || ianamet_ > MAX_ANAMET_DEFINED(idim ) )
-    METRIS_THROW_MSG(WArgExcept(),"Invalid index: 1 - "<<MAX_ANAMET_DEFINED(idim )<<" accepted");
-	
+    METRIS_THROW_MSG("Invalid index: 1 - {} accepted", MAX_ANAMET_DEFINED(idim ));
+
 	this->ianamet = ianamet_;
   this->anamet  = (idim == 2 ? __ANAMET2D[this->ianamet-1] : __ANAMET3D[this->ianamet-1]);
 }
@@ -189,11 +189,7 @@ void MetricFieldAnalytical::
     }else{
       #ifndef NDEBUG
       for(int ii = 0; ii < nnmet; ii++){
-        if(std::isnan(metl[ii])){
-          GETVDEPTH(this->msh.param);
-          PRINTF("NaN analytical metric at {}\n", dblAr1(gdim,coop));
-          METRIS_THROW(GeomExcept());
-        }
+        METRIS_ASSERT_MSG(!std::isnan(metl[ii]),"NaN analytical metric: {}", dblAr1(gdim,coop));
       }
       #endif
       getspacmet_inp<gdim,double>(metl, tarspac);

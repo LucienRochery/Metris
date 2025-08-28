@@ -33,7 +33,7 @@ double smoothInterior_Ball(Mesh<MFT> &msh, QuaFun iquaf, int ithrd1, int ithrd2)
 
   int tdimn = msh.get_tdim();
 
-  if(tdimn == 1) METRIS_THROW(TODOExcept());
+  METRIS_ASSERT_MSG(tdimn > 1, "TODO: edge smooth interior ball");
 
   // Geo and topo dimn must match otherwise surface specific 
   METRIS_ASSERT(tdimn == msh.idim);

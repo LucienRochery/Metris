@@ -95,8 +95,8 @@ void optim_newton_drivertype(const MetrisParameters &param,
 
 
   if(*iflag == 0){
-    if(nrwrk < 10*nvar+4) METRIS_THROW_MSG(DMemExcept(),"Increase nrwrk");
-    if(niwrk < 3        ) METRIS_THROW_MSG(DMemExcept(),"Increase niwrk");
+    METRIS_ASSERT_MSG(nrwrk >= 10*nvar+4,"Increase nrwrk");
+    METRIS_ASSERT_MSG(niwrk >= 3        ,"Increase niwrk");
 
     *niter = 0;   
     *iflag = 1;
@@ -771,7 +771,7 @@ int optim_newton_drivertype_PETSc(int nvar ,
   if(*iflag == 0){
 
     if(wlfc1 > wlfc2)
-      METRIS_THROW_MSG(WArgExcept(),"Wolfe constants c1 < c2 not verified")
+      METRIS_THROW_MSG("Wolfe constants c1 < c2 not verified")
 
 
     *niter = 0;   
@@ -1124,7 +1124,7 @@ nlopt_result luksan_pnetS(nlopt_func f, void *f_data,
   // int: ndim, just put on stack. 
 
   METRIS_ENFORCE_MSG(lwork.get_n() >= ndim * 9 + (ndim+1)*mf*2,
-    "lwork size "<<lwork.get_n()<<" need "<<ndim * 9 + (ndim+1)*mf*2)
+    "lwork size {} need {}", lwork.get_n(), ndim * 9 + (ndim+1)*mf*2)
 
   int i, nb = 1;
   double *xl, *xu, *gf, *gn, *s, *xo, *go, *xs, *gs, *xm, *gm, *u1, *u2;

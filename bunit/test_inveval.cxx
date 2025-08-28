@@ -233,7 +233,7 @@ BOOST_AUTO_TEST_CASE(test_inveval)
     for(double dx = dx0; dx > dx1; dx /= qdx){
       ndx++;
     }
-    if(ndx > mdx) METRIS_THROW_MSG(SMemExcept(),"Increase mdx")
+    if(ndx > mdx) METRIS_THROW_MSG("Increase mdx")
     double errgdx[mdx], errhdx[mdx], logdx[mdx];
 
 
@@ -673,7 +673,7 @@ int inveval_badNewton(MeshBase &msh, int ientt,
   for(int ii = 0; ii < nnode; ii++) ent2pol[ii] = ii;
 
   // Just make a static buffer. This will probably blow up at large degrees
-  if constexpr(ideg > 3) METRIS_THROW_MSG(TODOExcept(), "WATCH OUT FOR LARGE STATIC BUFFER");
+  if constexpr(ideg > 3) METRIS_THROW_MSG("TODO: WATCH OUT FOR LARGE STATIC BUFFER");
   double buf[gdim*nnode];
   dblAr2 coorl(nnode,gdim,buf);
   coorl.set_n(nnode);

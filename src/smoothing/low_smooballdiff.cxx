@@ -187,16 +187,9 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
     ierro = 0;
 
     finish:
-    if(DOPRINTS1()){
-      CPRINTF1(" -- END smooballdiff fopt = {} xopt = {} {} ",
-               nargs.fopt,nargs.xopt[0],nargs.xopt[1]);
-      if(idim == 3){
-        PRINTF(" {}\n",nargs.xopt[2]);
-      }else{
-        PRINTF("\n");
-      }
+    CPRINTF1(" -- END smooballdiff fopt = {} xopt = {}\n",
+             nargs.fopt,dblAr1(idim,nargs.xopt));
 
-    }
     for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = nargs.xopt[ii];
 
     if(DOPRINTS2()) writeMesh("debug_smooth0.meshb",msh);
@@ -211,7 +204,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
     for(int iball = 0; iball < nball; iball++){
       int ient2 = lball[iball];
       bool iflat = !isvalideltP1<idim,idim>(msh,ient2);
-      METRIS_ASSERT_MSG(!iflat,"## Flat iball "<<iball<<" elt "<<ient2);
+      METRIS_ASSERT_MSG(!iflat,"Flat iball {} elt {}", iball, ient2);
     }
 
     *qnrm1 = 0;
@@ -275,16 +268,14 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
         getccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef); 
         for(int ii = 0; ii < ncoef; ii++){
           if(ccoef[ii] >= jtol * vol) continue;
-          MPRINTF(" - 1 reject validity coef {:15.7e} scaled {:15.7e} \n",
+          METRIS_THROW_MSG(" - 1 reject validity coef {:15.7e} scaled {:15.7e} \n",
                   ccoef[ii], ccoef[ii]/vol);
-          METRIS_THROW(GeomExcept());
         }
       }
     }else{
       for(int ientt : lball){
         if(isvalideltP1<idim,idim>(msh,ientt)) continue;
-        MPRINTF(" - 2 reject validity\n");
-        METRIS_THROW(GeomExcept());
+        METRIS_THROW_MSG(" - 2 reject validity\n");
       }
     }
   }
@@ -380,7 +371,7 @@ double smooballdiff_fun([[maybe_unused]] unsigned int nvar,
   for(int ientt : lball){
 
     bool iflat = !isvalideltP1<idim,idim>(msh,ientt);
-    if(iflat) METRIS_THROW_MSG(GeomExcept(), "Flat after check??");
+    if(iflat) METRIS_THROW_MSG( "Flat after check??");
 
     int ivar = -1;
     if(grad != NULL) ivar = msh.template getverent<ideg>(ientt,idim,ipoin);
@@ -560,16 +551,14 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
         getccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef); 
         for(int ii = 0; ii < ncoef; ii++){
           if(ccoef[ii] >= jtol * vol) continue;
-          MPRINTF(" - 1 reject validity coef {:15.7e} scaled {:15.7e} \n",
+          METRIS_THROW_MSG(" - 1 reject validity coef {:15.7e} scaled {:15.7e} \n",
                   ccoef[ii], ccoef[ii]/vol);
-          METRIS_THROW(GeomExcept());
         }
       }
     }else{
       for(int ientt : lball){
         if(isvalideltP1<idim,idim>(msh,ientt)) continue;
-        MPRINTF(" - 2 reject validity\n");
-        METRIS_THROW(GeomExcept());
+        METRIS_THROW_MSG(" - 2 reject validity\n");
       }
     }
   }

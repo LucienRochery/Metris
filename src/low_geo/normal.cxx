@@ -216,7 +216,7 @@ void getnorballref(MeshBase &msh, const intAr1 &lball, int iref, double* norpoi)
         msh.fac2poi(iface,0),msh.fac2poi(iface,1),msh.fac2poi(iface,2),
         norfac[0], norfac[1], norfac[2]);
     }else{
-      METRIS_THROW_MSG(TODOExcept(),"Implement normal computation HO");
+      METRIS_THROW_MSG("TODO: Implement normal computation HO");
     }
     // Note the normal is already area weighted.
     for(int ii = 0; ii < 3; ii++) norpoi[ii] += norfac[ii];
@@ -232,7 +232,7 @@ void getnorballref(MeshBase &msh, const intAr1 &lball, int iref, double* norpoi)
         msh.fac2poi(iface,0),msh.fac2poi(iface,1),msh.fac2poi(iface,2),
         norfac[0], norfac[1], norfac[2], sqrt(getnrml2<3>(norfac)));
     }
-    METRIS_THROW_MSG(GeomExcept(),"normal vanishes");
+    METRIS_THROW_MSG("normal vanishes");
   }
   METRIS_ENFORCE(normalize_vec<3>(norpoi) == 0);
 }
@@ -336,14 +336,14 @@ void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
         MPRINTF("Using msh.CAD() = {}\n",msh.CAD());
         MPRINTF("result = {}\n",dblAr1(18,result));
 
-        METRIS_THROW_MSG(GeomExcept(), "## norfac vanishes");
+        METRIS_THROW_MSG("## norfac vanishes");
       }
     }
 
     for(int ii = 0; ii < 3; ii++) norpoi[ii] += norfac[ii];
   }
   
-  if(normalize_vec<3>(norpoi)) METRIS_THROW_MSG(GeomExcept(), "## norpoi vanishes");
+  if(normalize_vec<3>(norpoi)) METRIS_THROW_MSG("## norpoi vanishes");
 
 }
 
@@ -458,10 +458,10 @@ int gettanpoiref(const MeshBase &msh, int ipoin, int iref, double* tanpoi){
           int iref2 = msh.edg2ref[ientt];
           if(iref2 == iref) nref++;
         }
-        if(nref > 2) METRIS_THROW_MSG(TopoExcept(), 
-          " ## "<<nref<<" edges of same ref at point "<<ipoin)
-        if(nref == 2)METRIS_THROW_MSG(TODOExcept(), 
-          " ## Implement case "<<nref<<" edges of same ref at point "<<ipoin)
+        METRIS_ASSERT_MSG(nref <= 2, 
+          " ## {} edges of same ref at point {}", nref, ipoin)
+        if(nref == 2) METRIS_THROW_MSG( 
+          "TODO: Implement case {} edges of same ref at point {}", nref, ipoin)
       }
       #endif
 
@@ -554,9 +554,10 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
   #ifndef NDEBUG
   for(int inode = 0; inode < nnode; inode++){
     if(nod2bpo[inode] < 0) continue;
-    METRIS_ASSERT_MSG(iref == msh.fac2ref[msh.bpo2ibi(nod2bpo[inode],2)] , "Invalid iref = "<<iref<<" ibpoi "
-      <<nod2bpo[inode]<<" ibpoi entity "<<msh.bpo2ibi(nod2bpo[inode],2)
-      <<" has ref "<<msh.fac2ref[msh.bpo2ibi(nod2bpo[inode],2)]<<" for node "<<inode);
+    METRIS_ASSERT_MSG(iref == msh.fac2ref[msh.bpo2ibi(nod2bpo[inode],2)] , 
+      "Invalid iref = {} ibpoi {} ibpoi entity {} has ref {} for node {}",
+      iref, nod2bpo[inode], msh.bpo2ibi(nod2bpo[inode],2), 
+      msh.fac2ref[msh.bpo2ibi(nod2bpo[inode],2)], inode);
   }
   #endif
 
@@ -579,13 +580,13 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
       writeMesh("debug_ibpoi",msh);
       MPRINTF("norfac vanished face nodes {}\n", intAr1(nnode, fac2pol));
       for(int ii = 0; ii < gdim; ii++) MPRINTF("{}: {:23.15e}\n",ii,norelt[ii]);
-      METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
+      METRIS_THROW_MSG("Normal (elt) vanishes");
     }
   }else if(ideg == 1 && norfac_ != NULL){
     for(int ii = 0; ii < gdim; ii++) norelt[ii] = norfac_[ii];
     if(normalize_vec<gdim>(norelt)){
       MPRINTF("## PROVIDED NORFAC VANISHES\n");
-      METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
+      METRIS_THROW_MSG("Normal (elt) vanishes");
     }
   }
 
@@ -602,7 +603,7 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
     }
 
     int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
-    METRIS_ENFORCE_MSG(ierro == 0, "metqua0 EG_evaluate error " << ierro);
+    METRIS_ENFORCE_MSG(ierro == 0, "metqua0 EG_evaluate error {}", ierro);
     vecprod(du,dv,norCAD);
     if(normalize_vec<gdim>(norCAD)){
       // legitimate if e.g. cone tip.
@@ -628,7 +629,7 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
         double nrm = getnrml2<gdim>(norCAD);
         MPRINTF("nrm = {:24.15e}\n",nrm);
         #endif
-        METRIS_THROW_MSG(GeomExcept(), "Normal (CAD) vanishes at ipoin "<<ipoin);
+        METRIS_THROW_MSG("Normal (CAD) vanishes at ipoin {}", ipoin);
       }
       nordev += 0;
       continue;
@@ -644,7 +645,7 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
         MPRINTF("norfac vanished face node {} point {} nodes {}\n",inode,ipoin,
                 intAr1(nnode, fac2pol));
         for(int ii = 0; ii < gdim; ii++) MPRINTF("{}: {:23.15e}\n",ii,norelt[ii]);
-        METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
+        METRIS_THROW_MSG("Normal (elt) vanishes");
       }
     }
 

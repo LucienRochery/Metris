@@ -116,7 +116,8 @@ int insertSteiner(Mesh<MFT>& msh,
   cav.lctet.set_n(0);
   int ielem = msh.fac2tet(iseed, 0);
   METRIS_ASSERT(ielem >= 0);
-  METRIS_ASSERT_MSG(msh.fac2tet(iseed,1) < 0, "tdimp = "<<tdimp<<" iseed = "<<iseed<<" fac2tet = "<<msh.fac2tet(iseed,0)<<" "<<msh.fac2tet(iseed,1)); 
+  METRIS_ASSERT_MSG(msh.fac2tet(iseed,1) < 0, "tdimp = {} iseed = {} fac2tet = {} {}", 
+    tdimp, iseed, msh.fac2tet(iseed,0), msh.fac2tet(iseed,1)); 
   int iref_sup = msh.tet2ref[ielem];
   cav.lctet.stack(ielem);
 

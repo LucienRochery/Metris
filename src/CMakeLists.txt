@@ -120,6 +120,12 @@ else()
   list(APPEND CODEGEN_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_lag2bez.cxx)
 endif()
 
+# These are large files that have been vetted
+# We get compile timeouts after dozens of minutes compiling 
+# with clang -fsanitize=address
+foreach(ff ${CODEGEN_OUT_SRC})
+  set_source_files_properties(${ff} PROPERTIES COMPILE_FLAGS "-fno-sanitize=address")
+endforeach()
 
 if(METRIS_MAX_DEG)
   add_definitions(-DMETRIS_MAX_DEG=${METRIS_MAX_DEG})

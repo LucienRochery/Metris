@@ -61,8 +61,8 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
 
   const bool doSteiner = false;
 
-  int iverb0 = msh.param->iverb;
-  int ivdepth0 = msh.param->ivdepth;
+  //int iverb0 = msh.param->iverb;
+  //int ivdepth0 = msh.param->ivdepth;
 
   // Swap norm -1: length-based. 
   //swapOptions swapOpt(100, -1, 0.0);
