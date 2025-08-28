@@ -10,6 +10,8 @@
 #include "quafun.hxx"
 #include "../Mesh/MeshFwd.hxx"
 
+#include <functional>
+
 
 namespace Metris{
 

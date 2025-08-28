@@ -16,6 +16,7 @@
 
 #include "nlopt_internals.h"
 #include <nlopt.hpp>
+#include <functional>
 
 //#include "../libs/nlopt/src/util/nlopt-util.h"
 //#include "../libs/nlopt/src/algs/luksan/luksan.h"

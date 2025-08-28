@@ -13,6 +13,8 @@
 #include "../metris_constants.hxx"
 #include "../aux_exceptions.hxx"
 
+#include <functional>
+
 namespace Metris{
 
   // Distortion is C det(JK^T M JK)^(1/n) / tra(JK^T M JK)
