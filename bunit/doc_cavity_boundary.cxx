@@ -36,7 +36,31 @@ BOOST_AUTO_TEST_CASE(test_doc_cavity_boundary)
     // ideally be done inside the routines that use them.
     intAr1 lcavel(100);
     intAr2 lcavbdry(100,2);
+
+    // Arrays to put all mesh faces to do a check later
+    // we do this in two different ways for illustration
+
+    // this is to use intAr1::stack method
+    intAr1 allFaces(msh.nface);
+    allFaces.set_n(0);
+
+    // this is to use intAr1::operator[]
+    intAr1 allFaces2(msh.nface);
+
+    // placeholder for balls
+    intAr1 ball_doc(10);
+
+    // placeholder for cavity boundary
+    intAr2 cavBnd_doc(100,2);
+
+    // loop over all faces
     for(int iface = 0; iface < msh.nface; iface++){
+
+      // add face to array of faces
+      allFaces.stack(iface);
+      allFaces2[iface] = iface;
+
+      // we'll get the ball of each vertex (which is a cavity) and check the size of the cavity boundary
       for(int iver = 0; iver < 3; iver++){
 
         int ipoin = msh.fac2poi(iface,iver);
@@ -48,15 +72,16 @@ BOOST_AUTO_TEST_CASE(test_doc_cavity_boundary)
         else if (msh.poi2ent(ipoin,1) == 2) iele0 = msh.poi2ent(ipoin,0);
         else METRIS_THROW_MSG(TODOExcept(), "Implement ball for 3D");
 
-        intAr1 ipoinBall = doc_ball(ipoin,msh.fac2poi,msh.fac2fac,ithread,msh.tag,msh.fac2tag,iele0);
+        doc_ball(ipoin,msh.fac2poi,msh.fac2fac,ithread,msh.tag,msh.fac2tag,iele0,ball_doc);
 
         // Get the cavity boundary
-        intAr2 ballBoundary = doc_cavity_boundary(2,ipoinBall,msh.fac2poi,msh.fac2fac,ithread,msh.tag,msh.fac2tag);
+        doc_cavity_boundary(2,ball_doc,msh.fac2poi,msh.fac2fac,ithread,msh.tag,msh.fac2tag,cavBnd_doc);
 
         // Check it has as many elements as the cavity (only true in case of the ball and for interior ipoin)
-        if (msh.poi2bpo[ipoin] < 0) BOOST_TEST(ipoinBall.get_n() == ballBoundary.get_n());
+        if (msh.poi2bpo[ipoin] < 0) BOOST_TEST(ball_doc.get_n() == cavBnd_doc.get_n());
+        else BOOST_TEST(ball_doc.get_n()+2 == cavBnd_doc.get_n());
 
-        // TODO
+        // // TODO
         // // Check boundary faces are only contained in one cavity
         // // element.
         // // Use getedgfac and getfactet
@@ -69,6 +94,7 @@ BOOST_AUTO_TEST_CASE(test_doc_cavity_boundary)
 
       }
     }
-    std::cout << "msh.npoin = " << msh.npoin << std::endl;
+    doc_cavity_boundary(2,allFaces,msh.fac2poi,msh.fac2fac,ithread,msh.tag,msh.fac2tag,cavBnd_doc);
+    BOOST_TEST(cavBnd_doc.get_n() == msh.nedge);
   }
 }

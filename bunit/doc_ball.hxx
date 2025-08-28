@@ -7,18 +7,21 @@
 
 namespace Metris {
 
-intAr1 doc_ball(const int ipoin, const intAr2& fac2poi, const intAr2& fac2fac,
-                const int ithread, int* tag, intAr2r fac2tag,
-                const int iele0) {
+void doc_ball(const int ipoin, const intAr2& fac2poi, const intAr2& fac2fac,
+              const int ithread, int* tag, intAr2r fac2tag,
+              const int iele0,
+              intAr1& ball) {
 
   // update tag
   const int currentTag = tag[ithread] + 1;
   tag[ithread] = currentTag;
 
   // initialize array for the ball and add iele0
-  intAr1 ball;
-  ball.stack(iele0);
+  ball[0] = iele0;
   fac2tag(ithread,iele0) = currentTag;
+
+  int eleInBall = 1;
+  ball.set_n(eleInBall);
 
   // little helper to identify if a given element has a given point
   auto eleHasPoi = [&](const int iele, const int ipoin){
@@ -29,7 +32,7 @@ intAr1 doc_ball(const int ipoin, const intAr2& fac2poi, const intAr2& fac2fac,
   };
 
   // loop visiting neighbors of elements in ball
-  for (int ii = 0; ii < ball.get_n(); ii++){
+  for (int ii = 0; ii < eleInBall; ii++){
 
     // fetch element from ball
     const int ele = ball[ii];
@@ -50,11 +53,13 @@ intAr1 doc_ball(const int ipoin, const intAr2& fac2poi, const intAr2& fac2fac,
       fac2tag(ithread,neighbourElem) = currentTag;
 
       // neighbour contains ipoin, add it to ball
-      if (eleHasPoi(neighbourElem,ipoin)) ball.stack(neighbourElem);
+      if (eleHasPoi(neighbourElem,ipoin)){
+        eleInBall++;
+        ball.set_n(eleInBall);
+        ball[eleInBall-1] = neighbourElem;
+      }
     }
   }
-
-  return ball;
 }
 
 } // namespace Metris

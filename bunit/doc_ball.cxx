@@ -28,18 +28,21 @@ BOOST_AUTO_TEST_CASE(test_doc_ball)
     Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
     msh.cleanup(); // to avoid dead elements in case the file has some
 
+    // Placeholders to use with Metris::ball
+
+    // Initialize ball of faces (triangles) array
+    intAr1 lbfac(10);
+    // Pass the other two empty so ball does not fill them
+    intAr1 lbedg;
+    intAr1 lbtet;
+    int iopen;
+    bool append = false;
+
+
+
     int failedPoin = 0;
     for (int ipoin = 0; ipoin < msh.npoin; ipoin++){
 
-      // First obtain ball of elements with Metris::ball
-
-      // Initialize ball of faces (triangles) array
-      intAr1 lbfac(10);
-      // Pass the other two empty so ball does not fill them
-      intAr1 lbedg;
-      intAr1 lbtet;
-      int iopen;
-      bool append = false;
       ball(msh,ipoin,lbedg,lbfac,lbtet,&iopen,append,ithread);
 
       // Now obtain ball of elements using doc_ball
@@ -49,11 +52,12 @@ BOOST_AUTO_TEST_CASE(test_doc_ball)
       if (msh.poi2ent(ipoin,1) == 1) iele0 = msh.edg2fac[msh.poi2ent(ipoin,0)];
       else if (msh.poi2ent(ipoin,1) == 2) iele0 = msh.poi2ent(ipoin,0);
       else METRIS_THROW_MSG(TODOExcept(), "Implement ball for 3D");
-
-      intAr1 ipoinBall = doc_ball(ipoin,msh.fac2poi,msh.fac2fac,ithread,msh.tag,msh.fac2tag,iele0);
+// Placeholder to use with doc_ball
+    intAr1 ball_doc(100);
+      doc_ball(ipoin,msh.fac2poi,msh.fac2fac,ithread,msh.tag,msh.fac2tag,iele0,ball_doc);
 
       // check that balls match
-      for (const int ele1 : ipoinBall){
+      for (const int ele1 : ball_doc){
         bool found = false;
         for (const int ele2 : lbfac){
           if (ele1 == ele2){
