@@ -88,7 +88,7 @@ void anamet2D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 void anamet2D_3([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
   SANS::SurrealS<2,double> X[2];
-  X[0] = abs(crd[0] - 0.5);
+  X[0] = std::abs(crd[0] - 0.5);
   X[0].deriv(0) = crd[0] >= 0.5 ? 1 : -1;
   X[0].deriv(1) = 0;
 

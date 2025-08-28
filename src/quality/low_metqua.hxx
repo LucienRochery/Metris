@@ -15,6 +15,8 @@
 #include "../aux_exceptions.hxx"
 #include "../Mesh/MeshFwd.hxx"
 
+#include <functional>
+
 
 namespace Metris{
 
