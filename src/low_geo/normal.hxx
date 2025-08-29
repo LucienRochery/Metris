@@ -9,6 +9,8 @@
 #include "../types.hxx"
 #include "../Mesh/MeshFwd.hxx"
 
+#include <map>
+
 namespace Metris{
 
 enum class AsDeg;

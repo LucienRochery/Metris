@@ -16,7 +16,7 @@ MeshArray1D<intWrkAr1*>& MeshBase::get_iwork_tracked(MeshSize itype){
     case(MeshSize::Face):   return iwork_Face;
     case(MeshSize::Tetra):  return iwork_Tetra;
     case(MeshSize::BPoint): return iwork_BPoint;
-    default: METRIS_THROW(TODOExcept())
+    default: METRIS_THROW_MSG("TODO: implement work type {}",(int)itype)
   }
 }
 MeshArray1D<dblWrkAr1*>& MeshBase::get_rwork_tracked(MeshSize itype){
@@ -26,7 +26,7 @@ MeshArray1D<dblWrkAr1*>& MeshBase::get_rwork_tracked(MeshSize itype){
     case(MeshSize::Face):   return rwork_Face;
     case(MeshSize::Tetra):  return rwork_Tetra;
     case(MeshSize::BPoint): return rwork_BPoint;
-    default: METRIS_THROW(TODOExcept())
+    default: METRIS_THROW_MSG("TODO: implement work type {}",(int)itype)
   }
 }
 

@@ -91,8 +91,7 @@ public:
   T operator[](int idx) const{
     if(is_range){
       METRIS_ASSERT_MSG(idx >= i1 && idx < i2,
-        "Passed idx = "<<idx<<" to range based with "
-        <<" i1 = "<<i1<<" i2 = "<<i2);
+        "Passed idx = {} to range based with  i1 = {} i2 = {}", idx, i1, i2);
       return idx;
     }else{
       // MeshArray1D does its own error handling
@@ -111,7 +110,7 @@ public:
   //}
   //T& operator[](int idx){
   //  if(is_range){
-  //    METRIS_THROW_MSG(WArgExcept(),"Range is immutable");
+  //    METRIS_THROW_MSG("Range is immutable");
   //  }else{
   //    // MeshArray1D does its own error handling
   //    return arr->operator[](idx);
@@ -202,13 +201,15 @@ public:
   inline INT1 size1() const {return m1;}
 
   ALWAYS_INLINE T &operator[](const INT1 &i){
-    METRIS_ASSERT_MSG(i >= 0 && i < n1, "Array1D out of bounds (1) i = "
-                      <<i<<" >= N = "<<n1<<" addr "<<array<<" m1 = "<<m1);
+    METRIS_ASSERT_MSG(i >= 0 && i < n1, 
+      "Array1D out of bounds (1) i = {} >= N = {} addr {} m1 = {}", 
+      i, n1, (void*) array, m1);
     return array[i];
   }
   ALWAYS_INLINE const T &operator[](const INT1 &i) const {
-    METRIS_ASSERT_MSG(i >= 0 && i < n1, "Array1D out of bounds (2) i = "
-                      <<i<<" >= N = "<<m1<<" addr "<<array_ro);
+    METRIS_ASSERT_MSG(i >= 0 && i < n1, 
+      "Array1D out of bounds (2) i = {} >= N = {} addr {} m1 = {}", 
+      i, n1, (void*) array, m1);
     return array_ro[i];
   }
 
@@ -325,23 +326,22 @@ public:
   MeshArray2D<T,INT1,INT2>& operator=(MeshArray2D &&cpy); 
 
   ALWAYS_INLINE T* operator[](INT1 i){
-    METRIS_ASSERT_MSG(i >= 0 && i < n1, "i out of bounds i = "<<i<<" n = "<<n1
-      <<" m = "<<m1);
+    METRIS_ASSERT_MSG(i >= 0 && i < n1, "i out of bounds i = {} n = {} m = {}", i, n1, m1);
     return &array[i*stride];
   }
   ALWAYS_INLINE const T* operator[](INT1 i) const{
-    METRIS_ASSERT_MSG(i >= 0 && i < n1, "i out of bounds i = "<<i<<" n = "<<n1);
+    METRIS_ASSERT_MSG(i >= 0 && i < n1, "i out of bounds i = {} n = {}", i, n1);
     return &array_ro[i*stride];
   }
 
   ALWAYS_INLINE T& operator()(INT1 i, INT2 j){
-    METRIS_ASSERT_MSG(i >= 0 && i < n1, "i = "<<i<<" out of bounds n = "<<n1);
-    METRIS_ASSERT_MSG(j >= 0 && j < stride, "j = "<<j<<" out of bounds n = "<<stride);
+    METRIS_ASSERT_MSG(i >= 0 && i < n1, "i = {} out of bounds n = {}", i, n1);
+    METRIS_ASSERT_MSG(j >= 0 && j < stride, "j = {} out of bounds n = {}", j, stride);
     return array[i*stride + j];
   }
   ALWAYS_INLINE const T& operator()(INT1 i, INT2 j) const{
-    METRIS_ASSERT_MSG(i >= 0 && i < n1, "i = "<<i<<" out of bounds n = "<<n1);
-    METRIS_ASSERT_MSG(j >= 0 && j < stride, "j = "<<j<<" out of bounds n = "<<stride);
+    METRIS_ASSERT_MSG(i >= 0 && i < n1, "i = {} out of bounds n = {}", i, n1);
+    METRIS_ASSERT_MSG(j >= 0 && j < stride, "j = {} out of bounds n = {}", j, stride);
     return array_ro[i*stride + j];
   }
 
@@ -379,73 +379,70 @@ template <typename T>
 class MeshArray3D{
 public:
 
-    MeshArray3D(){
-        nmemalc = 0;
-        s1      = 0;
-        s2      = 0;
-        array   = NULL;
-        iowner  = false;
-        dbgid   = 0; 
-    }
-    MeshArray3D(int n,int s1_,int s2_){
-        dbgid   = 0; 
-        if(n < 0 || s1_ <= 0 || s2_ < 0) METRIS_THROW(WArgExcept());
-        s1  = s1_;
-        s2  = s2_;
-        nmemalc = n*s1*s2;
-        array   = new T[nmemalc];
-        //printf("Called new 3[]\n");
-        if(array == NULL) METRIS_THROW(DMemExcept());
-        iowner  = true;
-    }
+  MeshArray3D(){
+    nmemalc = 0;
+    s1      = 0;
+    s2      = 0;
+    array   = NULL;
+    iowner  = false;
+    dbgid   = 0; 
+  }
+  MeshArray3D(int n,int s1_,int s2_){
+    dbgid   = 0; 
+    METRIS_ASSERT(n >= 0 && s1_ > 0 && s2_ >= 0);
+    s1  = s1_;
+    s2  = s2_;
+    nmemalc = n*s1*s2;
+    array   = new T[nmemalc];
+    METRIS_ASSERT(array != NULL);
+    iowner  = true;
+  }
 
-    MeshArray3D(int n,int s1_,int s2_, T* buff){
-        dbgid   = 0; 
-        if(n < 0 || s1_ <= 0 || s2_ < 0) METRIS_THROW(WArgExcept());
-        s1  = s1_;
-        s2  = s2_;
-        nmemalc = n*s1*s2;
-        array   = buff;
-        iowner = false;
-        if(array == NULL) METRIS_THROW(DMemExcept());
-    }
+  MeshArray3D(int n,int s1_,int s2_, T* buff){
+    dbgid   = 0; 
+    METRIS_ASSERT(n >= 0 && s1_ > 0 && s2_ >= 0);
+    s1  = s1_;
+    s2  = s2_;
+    nmemalc = n*s1*s2;
+    array   = buff;
+    iowner = false;
+    METRIS_ASSERT(array != NULL);
+  }
 
-    MeshArray3D(int s1_, int s2_,const std::initializer_list<T> & list){
-        dbgid   = 0; 
-        if(s1_ <= 0 || s2_ <= 0) METRIS_THROW(WArgExcept());
+  MeshArray3D(int s1_, int s2_,const std::initializer_list<T> & list){
+    dbgid   = 0; 
+    METRIS_ASSERT(s1_ > 0 && s2_ > 0);
+    METRIS_ASSERT(list.size()%(s2_*s1_) == 0);
 
-        if(list.size()%(s2_*s1_) != 0) METRIS_THROW(WArgExcept());
+    s1  = s1_;
+    s2  = s2_;
+    nmemalc = list.size();
+    array   = new T[nmemalc];
+    METRIS_ASSERT(array != NULL);
 
-        s1  = s1_;
-        s2  = s2_;
-        nmemalc = list.size();
-        array   = new T[nmemalc];
-        //printf("Called new 3[]\n");
-        if(array == NULL) METRIS_THROW(DMemExcept());
+    std::copy_n(list.begin(),list.size(),array);
+    iowner  = true;
+  }
 
-        std::copy_n(list.begin(),list.size(),array);
-        iowner  = true;
-    }
-
-    MeshArray3D(const MeshArray3D &cpy){
-        dbgid   = 0; 
-        iowner = false;
-        array  = cpy.array;
-        nmemalc= cpy.nmemalc;
-        s1  = cpy.s1;
-        s2  = cpy.s2;
-    }
+  MeshArray3D(const MeshArray3D &cpy){
+    dbgid   = 0; 
+    iowner = false;
+    array  = cpy.array;
+    nmemalc= cpy.nmemalc;
+    s1  = cpy.s1;
+    s2  = cpy.s2;
+  }
 
 //  The only difference is we take control of the array.
-    MeshArray3D(MeshArray3D &&cpy){
-        dbgid   = 0; 
-        iowner = true;
-        cpy.iowner = false;
-        array  = cpy.array;
-        nmemalc= cpy.nmemalc;
-        s1  = cpy.s1;
-        s2  = cpy.s2;
-    }
+  MeshArray3D(MeshArray3D &&cpy){
+    dbgid   = 0; 
+    iowner = true;
+    cpy.iowner = false;
+    array  = cpy.array;
+    nmemalc= cpy.nmemalc;
+    s1  = cpy.s1;
+    s2  = cpy.s2;
+  }
 //    MeshArray3D(int m, int s, const T* a){
 //        stride  = s;
 //        nmemalc = m*stride;
@@ -458,87 +455,76 @@ public:
 //    }
 //
 
-    //void set_dbgid(int dbgid){
-    //  this->dbgid = dbgid;
-    //}
+  //void set_dbgid(int dbgid){
+  //  this->dbgid = dbgid;
+  //}
 
-    void allocate(int m,int s1_, int s2_){
-      if(nmemalc > 0) METRIS_THROW_MSG(TODOExcept(),"More sophisticated 3D array");
-      if(m < 0 || s1_ <= 0 || s2_ <= 0) METRIS_THROW(WArgExcept());
+  void allocate(int m,int s1_, int s2_){
+    if(nmemalc > 0) METRIS_THROW_MSG("TODO: More sophisticated 3D array");
+    METRIS_ASSERT(m >= 0 && s1_ > 0 && s2_ >= 0);
 
-      s1  = s1_;
-      s2  = s2_;
-      nmemalc = m*s1*s2;
-      iowner = true;
-      array = new T[nmemalc];
-      //printf("Called new 3[]\n");
-      if(array == NULL) METRIS_THROW(DMemExcept());
-    }
+    s1  = s1_;
+    s2  = s2_;
+    nmemalc = m*s1*s2;
+    iowner = true;
+    array = new T[nmemalc];
+    METRIS_ASSERT(array != NULL);
+  }
 
-    void fill(int m, T x){
-        for(int i = 0;i < m; i++) array[i] = x;
-    }
+  void fill(int m, T x){
+    for(int i = 0;i < m; i++) array[i] = x;
+  }
 
-    void fill(T x){
-        for(int i = 0;i < nmemalc; i++) array[i] = x;
-    }
-    
+  void fill(T x){
+    for(int i = 0;i < nmemalc; i++) array[i] = x;
+  }
+  
 
-    void print(int n) const {
-        int m = n < (nmemalc/s1/s2) ? n : (nmemalc/s1/s2);
-        for(int i = 0; i < m; i++){
-            std::printf("{:4}: ",i);
-            for(int j = 0; j < s1; j++){
-                std::printf("{:4}:",j);
-                for(int k = 0; k < s2; k++){
-                    std::printf(" {}",array[i*s1*s2+j*s2+k]);
-                }
-                std::printf("\n      ");
-            }
-            std::printf("\n");
+  void print(int n) const {
+    int m = n < (nmemalc/s1/s2) ? n : (nmemalc/s1/s2);
+    for(int i = 0; i < m; i++){
+      std::printf("{:4}: ",i);
+      for(int j = 0; j < s1; j++){
+        std::printf("{:4}:",j);
+        for(int k = 0; k < s2; k++){
+          std::printf(" {}",array[i*s1*s2+j*s2+k]);
         }
+        std::printf("\n      ");
+      }
+      std::printf("\n");
     }
-    void print() const{
-        this->print(nmemalc);
-    }
+  }
+  void print() const{
+    this->print(nmemalc);
+  }
 
 
 
 
-    ~MeshArray3D(){
-        nmemalc = 0;
-        if(array != NULL && iowner) delete[] array;
-        array = NULL;
-    }
+  ~MeshArray3D(){
+    nmemalc = 0;
+    if(array != NULL && iowner) delete[] array;
+    array = NULL;
+  }
 
 //    inline       T &operator[](int i)       {return array[i*stride];}
 //    inline const T &operator[](int i) const {return array[i*stride];}
-    
-    MeshArray3D<T>& operator=(const std::initializer_list<T> & list){
-        if(list.size()%(s1*s2) != 0) METRIS_THROW(WArgExcept());
-        if(list.size() > nmemalc)    METRIS_THROW(WArgExcept());
-        std::copy_n(list.begin(),list.size(),array);
-        nmemalc = list.size();
-        return *this;
-    }
+  
+  MeshArray3D<T>& operator=(const std::initializer_list<T> & list){
+    METRIS_ASSERT(list.size()%(s1*s2) == 0)
+    METRIS_ASSERT(list.size() <= nmemalc)
+    std::copy_n(list.begin(),list.size(),array);
+    nmemalc = list.size();
+    return *this;
+  }
 
 //    operator T*() const{return array;}
-    inline  T &operator()(int i, int j, int k) {
-        #ifdef ARRAY_CHECKS
-            if(k >= s2) METRIS_THROW(WArgExcept());
-            if(j >= s1) METRIS_THROW(WArgExcept());
-            if(i*s1*s2 + j*s2 + k >= nmemalc) METRIS_THROW(WArgExcept());
-        #endif
-        return array[i*s1*s2 + j*s2 + k]; 
-    }
-    inline const T &operator()(int i, int j, int k) const {
-        #ifdef ARRAY_CHECKS
-            if(k >= s2) METRIS_THROW(WArgExcept());
-            if(j >= s1) METRIS_THROW(WArgExcept());
-            if(i*s1*s2 + j*s2 + k >= nmemalc) METRIS_THROW(WArgExcept());
-        #endif
-        return array[i*s1*s2 + j*s2 + k]; 
-    }
+  inline  T &operator()(int i, int j, int k) {
+    return array[i*s1*s2 + j*s2 + k]; 
+  }
+  inline const T &operator()(int i, int j, int k) const {
+    return array[i*s1*s2 + j*s2 + k]; 
+  }
 //    inline const T &operator()(int i,int j) {
 //        #ifdef OURDEBUG
 //            if(j >= stride) throw std::invalid_argument("INDEX LARGER THAN STRIDE !");
@@ -553,20 +539,20 @@ public:
 
 //    inline int fitsFor(int i) const {return (stride*i < nmemalc);}
 
-    void set_stride(int s1_, int s2_){
-        if(s1_ <= 0 || s2_ <= 0) METRIS_THROW(WArgExcept());
-        if(nmemalc%(s1_*s2_) != 0) METRIS_THROW(WArgExcept());
-        s1 = s1_;
-        s2 = s2_;
-    }
-    inline int size() const {return nmemalc;}
+  void set_stride(int s1_, int s2_){
+    METRIS_ASSERT(s1_ > 0 && s2_ > 0);
+    METRIS_ASSERT(nmemalc%(s1_*s2_) != 0);
+    s1 = s1_;
+    s2 = s2_;
+  }
+  inline int size() const {return nmemalc;}
 
 protected:
-    int s1,s2;
-    int64_t nmemalc;
-    bool iowner;
-    T *__restrict__ array;
-    int dbgid;
+  int s1,s2;
+  int64_t nmemalc;
+  bool iowner;
+  T *__restrict__ array;
+  int dbgid;
 };
 
 

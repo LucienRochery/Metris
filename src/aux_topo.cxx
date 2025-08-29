@@ -53,14 +53,14 @@ bdry:
 		int iface = msh.bpo2ibi(ibpoi,2);
     CPRINTF2("Type 2 iface = {} \n",iface);
 		METRIS_ASSERT_MSG(iface >= 0 && iface < msh.nface,
-			"face out of bounds nface = "<<msh.nface<<" iface = "<<iface<<" due to ipoin "<<ipoin);
+			"face out of bounds nface = {} iface = {} due to ipoin {}", msh.nface, iface, ipoin);
 		return msh.fac2tet(iface,0);
 	}
 	if(itype == 1){
 		int iedge = msh.bpo2ibi(ibpoi,2);
     CPRINTF2("Type 1 iedge = {} \n",iedge);
 		METRIS_ASSERT_MSG(iedge >= 0 && iedge < msh.nedge,
-			"Edge out of bounds nedge = "<<msh.nedge<<" iedge = "<<iedge<<" due to ipoin "<<ipoin);
+			"Edge out of bounds nedge = {} iedge = {} due to ipoin {}", msh.nedge, iedge, ipoin);
 		int iface = msh.edg2fac[iedge];
 		// There is no triangle, thus no tetrahedron, attached to this edge
 		if(iface < 0) return -1;
@@ -102,7 +102,7 @@ nocor:
 	// The first entry (stored in poi2bpo) is always a lowest-dim :
 
 	// 2. Only triangles attached, and only one at that. 
-	if(itype == 2 && msh.idim == 2) METRIS_THROW_MSG(TopoExcept(), "Triangle flagged as bdry element in 2D");
+	if(itype == 2 && msh.idim == 2) METRIS_THROW_MSG("Triangle flagged as bdry element in 2D");
 	if(itype == 2) return msh.bpo2ibi(ibpoi,2);
 
 	// 1. Edge case is simple because we can use edg2fac:
@@ -164,7 +164,7 @@ int getpoient(const MeshBase &msh, int ipoin, int tdimn){
   if(tdimn == 1)     return getpoiedg(msh,ipoin);
   else if(tdimn == 2)return getpoifac(msh,ipoin); 
   else if(tdimn == 3)return getpoitet(msh,ipoin); 
-  METRIS_THROW_MSG(WArgExcept(),"tdimn out of bounds");
+  METRIS_THROW_MSG("tdimn out of bounds");
 }
 
 
@@ -210,11 +210,9 @@ int getedgfac(const MeshBase &msh, int iface, int i1, int i2){
 		int j2 = msh.fac2poi(iface,lnoed2[ii][1]);
 		if((i1 == j1 && i2 == j2) || (i1 == j2 && i2 == j1)) return ii;
 	}
-	METRIS_THROW_MSG(TopoExcept(),
-    "EDGE NOT IN TRIANGLE iface = "<<iface<<" vertices "<<
-    msh.fac2poi(iface,0)<<" "<<msh.fac2poi(iface,1)<<" "<<
-    msh.fac2poi(iface,2)<<" "<<
-    " i1 = "<<i1<<" i2 = "<<i2);
+	METRIS_THROW_MSG(
+    "EDGE NOT IN TRIANGLE iface = {} vertices {} {} {} i1 = {} i2 = {}",
+    iface, msh.fac2poi(iface,0), msh.fac2poi(iface,1), msh.fac2poi(iface,2), i1, i2);
 }
 
 int getedgfacOpp(const MeshBase &msh, int iface, int i1, int i2){
@@ -277,7 +275,6 @@ int getedgtet(const MeshBase &msh, int ielem,  int i1, int i2){
 
 int getedgent(const MeshBase &msh, int tdim, int ientt, int i1, int i2){
   if(tdim == 1){
-    //METRIS_THROW_MSG(WArgExcept(), "getedgent called with tdim == 1: error?");
     if(  (msh.edg2poi(ientt,0) == i1 && msh.edg2poi(ientt,1) == i2)
       || (msh.edg2poi(ientt,0) == i2 && msh.edg2poi(ientt,1) == i1)){
       return 0;
@@ -357,7 +354,7 @@ void getbpois(const MeshBase &msh, int ientt, int *lbpoi){
 			while((msh.bpo2ibi(ibpoi,2) != ientt || msh.bpo2ibi(ibpoi,1) != 1) && msh.bpo2ibi(ibpoi,3) != ibpo0){
 				ibpoi = msh.bpo2ibi(ibpoi,3);
 				nloop++;
-				if(nloop > 100) METRIS_THROW_MSG(TopoExcept(),
+				if(nloop > 100) METRIS_THROW_MSG(
 					"100 BOUNDARY POINTS FOR ONE POINT? INFINITE LOOP");
 			}
 			METRIS_ASSERT(msh.bpo2ibi(ibpoi,2) == ientt);
@@ -383,7 +380,7 @@ void getbpois(const MeshBase &msh, int ientt, int *lbpoi){
 				ibpoi = msh.bpo2ibi(ibpoi,3);
 				METRIS_ASSERT(ibpoi < msh.nbpoi);
 				nloop++;
-				if(nloop > 100)METRIS_THROW_MSG(TopoExcept(),
+				if(nloop > 100)METRIS_THROW_MSG(
 					"100 BOUNDARY POINTS FOR ONE POINT? INFINITE LOOP");
 			}
 			METRIS_ASSERT(msh.bpo2ibi(ibpoi,2) == ientt);
@@ -406,7 +403,7 @@ template void getbpois< n ,2>(const MeshBase &msh, int ientt, int *lbpoi);
 bool getnextfacnm(const MeshBase &msh, int iface, int i1, int i2,
 	                      int* ifac2, int* ied){
   *ifac2 = - msh.fac2fac(*ifac2,*ied) - 2;
-  METRIS_ASSERT_MSG(*ifac2 >= 0 && *ifac2 < msh.nface, "Invalid next face ifac2 = "<<*ifac2);
+  METRIS_ASSERT_MSG(*ifac2 >= 0 && *ifac2 < msh.nface, "Invalid next face ifac2 = {}", *ifac2);
   *ied  = getedgfac(msh,*ifac2,i1,i2);
 	return *ifac2 != iface;
 }
@@ -415,7 +412,7 @@ bool getnextfacnm(const MeshBase &msh, int iface, int i1, int i2,
 bool getnextedgnm(const MeshBase &msh, int iedg0, int ipoin, 
                         int* iedg2, int* inei){
   *iedg2 = - msh.edg2edg(*iedg2,*inei) - 2;
-  METRIS_ASSERT_MSG(*iedg2 >= 0 && *iedg2 < msh.nedge, "Invalid next nm edge = "<<*iedg2);
+  METRIS_ASSERT_MSG(*iedg2 >= 0 && *iedg2 < msh.nedge, "Invalid next nm edge = {}", *iedg2);
   *inei = -1;
   for(int ii = 0; ii < 2; ii++){
     if(msh.edg2poi(*iedg2,1-ii) == ipoin) *inei = ii;

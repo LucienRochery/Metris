@@ -35,7 +35,7 @@ namespace Metris{
 template<int gdim, int tdim, int ideg>
 double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
   GETVDEPTH(msh.param);
-  // METRIS_THROW_MSG(TODOExcept(), "maximizeCcoef not implemented for ideg = "<<ideg);
+  // METRIS_THROW_MSG("TODO: maximizeCcoef not implemented for ideg = "<<ideg);
   msh.setBasis(FEBasis::Bezier); // Vizir assumes Lagrange
   constexpr int jdeg = tdim * (ideg - 1);
   constexpr int ncoef = tdim == 2 ? getnnod2(jdeg) : getnnod3(jdeg);
@@ -226,7 +226,7 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
         double t1s = get_wall_time();
         MPRINTF("Bisection time {:.2e}s \n",t1s-t0s);
 
-        if(!iok) METRIS_THROW(AlgoExcept());
+        METRIS_ENFORCE_MSG(iok,"Could not find a good bisection iterate");
 
         // Got a good correction
         double t1_tot = get_wall_time();
@@ -242,7 +242,7 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
     }
   } // for niter 
 
-  METRIS_THROW(AlgoExcept());
+  METRIS_THROW();
   return -1;
 }
 
@@ -283,7 +283,7 @@ double getminccoef(MeshBase &msh){
       MPRINTF("element is {} = {}\n", ielem, intAr1(tdim + 1, ent2poi[ielem]));
       writeMesh("debug_vol", msh);
     }
-    METRIS_ENFORCE_MSG(vol>0.0,"vol = "<<vol);
+    METRIS_ENFORCE_MSG(vol>0.0,"vol = {:e}",vol);
     getsclccoef<gdim,gdim,ideg>(msh,ielem,NULL,ccoef,&iflat);
     for(int ii = 0; ii < ncoef; ii++){
       iret = MIN(iret,ccoef[ii]/vol/vol0);

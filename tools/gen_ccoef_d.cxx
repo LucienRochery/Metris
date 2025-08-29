@@ -509,10 +509,10 @@ void get_ccoeff3d(int ideg){
     //str << "double* vproduct(const double* a, const double* b);\n\n";
 
     str << "static double* vdiff(const double* a, const double* b){";
-    str << "  METRIS_THROW_MSG(TODOExcept(),\"Reimplement ccoef3_d\");";
+    str << "  METRIS_THROW_MSG(\"Reimplement ccoef3_d\");";
     str << "}";
     str << "static double* vproduct(const double* a, const double* b){";
-    str << "  METRIS_THROW_MSG(TODOExcept(),\"Reimplement ccoef3_d\");";
+    str << "  METRIS_THROW_MSG(\"Reimplement ccoef3_d\");";
     str << "}";
 
     str << "template<int ideg>\n";

@@ -40,7 +40,7 @@ int insertEdge(Mesh<MFT>& msh,
 
   int iverb0   = msh.param->iverb;
   int ivdepth0 = msh.param->ivdepth;
-  int ierro_cavity = 0;
+  int ierro_cavity;
 
   GETVDEPTH(msh.param);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
@@ -104,7 +104,7 @@ int insertEdge(Mesh<MFT>& msh,
   // work for collrejcav_lenqua
   #ifndef NDEBUG
   static int nwarnprt = 0;
-  if(nwarnprt++ < 10) printf("## WARNING REMOVE STATI FROM NOCOMP\n");
+  if(nwarnprt++ < 10) PRINTF("## WARNING REMOVE STATI FROM NOCOMP\n");
   #endif
   static std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp;
 

@@ -7,6 +7,8 @@
 
 #include "common_setup.hxx"
 
+#include <functional>
+
 
 using namespace Metris;
 

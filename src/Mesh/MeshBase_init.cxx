@@ -64,8 +64,8 @@ void MeshBase::initialize(MetrisAPI *data,
   }else if(this->meshClass() == MeshClass::MeshBack){
     usrTarDeg = -1;
   }else{
-    METRIS_THROW_MSG(WArgExcept(), "Unknown code path (1) MeshBase init with type" 
-      << (int) this->meshClass());
+    METRIS_THROW_MSG( "Unknown code path (1) MeshBase init with type {}",
+      (int) this->meshClass());
   }
   //int usrTarDeg = imsh == whichMesh::Front ? param.usrTarDeg : -1;
 
@@ -78,8 +78,8 @@ void MeshBase::initialize(MetrisAPI *data,
     }else if(this->meshClass() == MeshClass::MeshBack){
       fname = param.inpBack ? param.backFileName : param.meshFileName; 
     }else{
-      METRIS_THROW_MSG(WArgExcept(), "Unknown code path (2) MeshBase init with type" 
-        << (int) this->meshClass());
+      METRIS_THROW_MSG( "Unknown code path (2) MeshBase init with type {}",
+        (int) this->meshClass());
     }
     //std::string fname = imsh == whichMesh::Front ? param.meshFileName 
     //                  : param.inpBack == true ? param.backFileName : param.meshFileName; 
@@ -261,7 +261,7 @@ void MeshBase::initialize(MetrisAPI *data,
       if(isdeadent(iface,fac2poi)) continue;
       getnorfacP1(fac2poi[iface], coord, nor_disc);
 
-      if(normalize_vec<3>(nor_disc)) METRIS_THROW_MSG(TODOExcept(), 
+      if(normalize_vec<3>(nor_disc)) METRIS_THROW_MSG( 
         "Error handling in face orientation disc normals.")
 
       // To compute the CAD normal, the safest is to average the vertex normals.
@@ -272,17 +272,16 @@ void MeshBase::initialize(MetrisAPI *data,
       METRIS_ASSERT_MSG(ierro == 0, "Manage CAD normal errors. Stack elements"
           " with failures and deal with them in a second time.");
 
-      if(normalize_vec<3>(norCAD)) METRIS_THROW_MSG(TODOExcept(), 
+      if(normalize_vec<3>(norCAD)) METRIS_THROW_MSG( 
         "Error handling in face orientation CAD normals.")
 
       double dtprd = getprdl2<3>(norCAD, nor_disc);
 
       METRIS_ASSERT_MSG(abs(dtprd) >= Constants::dtprdMisAlign,
         "Check meaning of apparently very badly aligned CAD and face normal. "
-        "dtprd = "<<dtprd<<" iface = "<<iface<<
-        "\n norCAD = "<<norCAD[0]<<" "<<norCAD[1]<<" "<<norCAD[2]<<" "
-        "\n norfac = "<<nor_disc[0]<<" "<<nor_disc[1]<<" "<<nor_disc[2]
-        )
+        "dtprd = {} iface = {}\n norCAD = {} {} {}\n norfac = {} {} {}", dtprd, iface,
+        norCAD[0], norCAD[1], norCAD[2],
+        nor_disc[0], nor_disc[1], nor_disc[2]);
 
       int iref = fac2ref[iface];
       CPRINTF3("Debug iface {} iref {} dtprd = {} \n",iface,iref,dtprd);
@@ -365,7 +364,7 @@ void MeshBase::initialize(MetrisAPI *data,
     for(bool isper : isperiodic_face) nperiodic_face += isper;
     CPRINTF1("-- Found {} periodic CAD faces\n",nperiodic_face);
 
-    //METRIS_THROW_MSG(TODOExcept(), "Implement edge and triangle orientation in 3D")
+    //METRIS_THROW_MSG("TODO: Implement edge and triangle orientation in 3D")
   }
 
 
@@ -459,7 +458,7 @@ void MeshBase::initialize(MetrisAPI *data,
 
 
   // Compute maximum normal deviation for localization tolerance 
-  if(isboundary_faces()) METRIS_THROW_MSG(TODOExcept(), 
+  if(isboundary_faces()) METRIS_THROW_MSG( 
                                          "Implement geodev for triangles in 3D")
   geodev[1] = -1;
 #endif
@@ -509,7 +508,7 @@ void MeshBase::readConstants(int64_t libIdx, int usrMinDeg){
   GETVDEPTH(param);
 
   set_npoin(GmfStatKwd( libIdx, GmfVertices ));
-  if(npoin == 0) METRIS_THROW_MSG(TopoExcept(),"EMPTY MESH (NO VERTICES)");
+  if(npoin == 0) METRIS_THROW_MSG("EMPTY MESH (NO VERTICES)");
 
   // We don't know yet. 
   nbpoi_ = 0;
@@ -522,8 +521,8 @@ void MeshBase::readConstants(int64_t libIdx, int usrMinDeg){
     int i3 = GmfStatKwd(libIdx, libmeshb::elemKwds[iDeg]);
     if(i1 > 0 || i2 > 0 || i3 > 0){
       METRIS_ENFORCE_MSG(iDeg <= METRIS_MAX_DEG, 
-        "readConstants iDeg = "<<iDeg<< " > METRIS_MAX_DEG have P3: "<<i1<< " edges " 
-        <<i2<< " faces "<<i3<< " tetras ");
+        "readConstants iDeg = {} > METRIS_MAX_DEG have P3: {} edges {} faces {} tetras",
+        iDeg, i1, i2, i3);
       CPRINTF1("-- Mesh of degree {}\n", iDeg);
 
       // Degree used for storage. User wants usrMinDeg and up to METRIS_MAX_DEG if the mesh file expects more. 
@@ -536,12 +535,12 @@ void MeshBase::readConstants(int64_t libIdx, int usrMinDeg){
     } 
     if((i1 > 0 && nedge > 0) || 
        (i2 > 0 && nface > 0) || 
-       (i3 > 0 && nelem > 0)) METRIS_THROW_MSG(TopoExcept(),"SEVERAL DEGREES IN THE MESH");
+       (i3 > 0 && nelem > 0)) METRIS_THROW_MSG("SEVERAL DEGREES IN THE MESH");
     if(i1 > 0) set_nedge(i1);
     if(i2 > 0) set_nface(i2);
     if(i3 > 0) set_nelem(i3);
   }
-  if(isuppr > 0)METRIS_THROW_MSG(TopoExcept(),"MESH HAS ELTS OF DEG > METRIS_MAX_DEG");
+  if(isuppr > 0)METRIS_THROW_MSG("MESH HAS ELTS OF DEG > METRIS_MAX_DEG");
 
   METRIS_ENFORCE_MSG( idim >= 3 || nelem == 0, "TETRAHEDRA IN DIMENSION 2 FILE");
 }
@@ -617,11 +616,11 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
     CPRINTF2(" - Mesh in Bézier format.\n");
   }else{
     ibasis = FEBasis::Undefined;
-    METRIS_THROW_MSG(WArgExcept(),"Invalid basis in mesh file");
+    METRIS_THROW_MSG("Invalid basis in mesh file");
   }
 
 
-  if(idim != 2 && idim !=3) METRIS_THROW_MSG(WArgExcept(), "Dimension unsupported "<<idim)
+  if(idim != 2 && idim !=3) METRIS_THROW_MSG( "Dimension unsupported {}", idim);
 
   /* -------------------------------------------------------------------------------- */
   /* ----------------------------------- Points ------------------------------------- */
@@ -751,8 +750,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   
         if(!GmfStatKwd(libIdx, libmeshb::elemOrdKwds[ideg])){
           gen_ordering_Vizir<ideg,3>(FileOrdering);
-          std::cout<<"## No ordering given in file ! Use e.g. GmfTetrahedraP2Ordering."<<
-          std::endl<<"Defaulting to Vizir4 (\"P.-L.\") ordering"<<std::endl;
+          CPRINTF1("# No ordering given in file ! Use e.g. GmfTetrahedraP2Ordering.\n");
+          CPRINTF1("Defaulting to Vizir4 (\"P.-L.\") ordering");
         }else{
           GmfGetBlock(libIdx, libmeshb::elemOrdKwds[ideg], 1, nppe, 0, NULL,
             NULL, GmfIntTab, nppe, &FileOrdering[0], &FileOrdering[4*(nppe-1)]);
@@ -804,7 +803,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
     //#else
 
     //  if(isboundary_faces() && param->refineConventionsInp)
-    //    METRIS_THROW_MSG(TODOExcept(), "Surface bpois not handled MeshBase_init "
+    //    METRIS_THROW_MSG("TODO: Surface bpois not handled MeshBase_init "
     //      "with refineConventionsInp == true. Modify iniMeshBdryPoints.");
 
     //#endif
@@ -836,8 +835,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   
         if(!GmfStatKwd(libIdx, libmeshb::faceOrdKwds[ideg])){
           gen_ordering_Vizir<ideg,2>(FileOrdering);
-          std::cout<<"!! No ordering given in file ! Use e.g. GmfTrianglesP2Ordering."<<
-          std::endl<<"Defaulting to Vizir4 (\"P.-L.\") ordering"<<std::endl;
+          CPRINTF1("# No ordering given in file ! Use e.g. GmfTrianglesP2Ordering.\n");
+          CPRINTF1("Defaulting to Vizir4 (\"P.-L.\") ordering");
         }else{
           GmfGetBlock(libIdx, libmeshb::faceOrdKwds[ideg], 1, nppf, 0, NULL,
             NULL, GmfIntVec, nppf, &FileOrdering[0], &FileOrdering[3*(nppf-1)]);
@@ -888,8 +887,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
                     dblAr1(idim,coord[fac2poi(iface,2)]));
             writeMesh("debugsurf",*this);
           }
-          METRIS_ENFORCE_MSG(ineg || nseen == 1, "## FIRST NEGATIVE ELEMENT IS RANK "<<nseen
-            <<" meas "<<meas);
+          METRIS_ENFORCE_MSG(ineg || nseen == 1, 
+            "## FIRST NEGATIVE ELEMENT IS RANK {} meas {}", nseen, meas);
           ineg = true;
           int tmp = fac2poi(iface,0);
           fac2poi(iface,0) = fac2poi(iface,1);
@@ -925,8 +924,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
         }
         if(!GmfStatKwd(libIdx, libmeshb::edgeOrdKwds[ideg])){
           gen_ordering_Vizir<ideg,1>(FileOrdering);
-          std::cout<<"!! No ordering given in file ! Use e.g. GmfEdgesP2Ordering."<<
-          std::endl<<"Defaulting to Vizir4 (\"P.-L.\") ordering"<<std::endl;
+          CPRINTF1("# No ordering given in file ! Use e.g. GmfEdgesP2Ordering.\n");
+          CPRINTF1("Defaulting to Vizir4 (\"P.-L.\") ordering");
         }else{
           GmfGetBlock(libIdx, libmeshb::edgeOrdKwds[ideg], 1, npp, 0, NULL,
             NULL, GmfIntVec, npp, &FileOrdering[0], &FileOrdering[npp-1]);
@@ -1045,12 +1044,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
         continue;
       }
       METRIS_ASSERT_MSG(iedge >= 0 && iedge < nedge || param->refineConventionsInp,
-        "iedge = "<<iedge<<" refineConventionsInp = "<<param->refineConventionsInp
-        << " lgpoe = "<<lgpoe(igpoe,1));
-      //METRIS_ASSERT_MSG(iedge >= 0 && iedge < CAD.ncaded || !param->refineConventionsInp,
-      //                  "Invalid edge reference in refine convention iedge "
-      //                  <<iedge<<" CAD.ncaded "<<CAD.ncaded<< " refine conv "
-      //                  <<param->refineConventionsInp)
+        "iedge = {} refineConventionsInp = {} lgpoe = {}", 
+        iedge, param->refineConventionsInp, lgpoe(igpoe,1));
 
       if(!param->refineConventionsInp && isdeadent(iedge,edg2poi)){
         if(nwarn++ < mwarn){
@@ -1190,7 +1185,7 @@ void MeshBase::readMeshData(MetrisAPI &data){
   ibasis = data.mshbasis;
   METRIS_ASSERT(ibasis == FEBasis::Lagrange || ibasis == FEBasis::Bezier);
 
-  if(idim != 2 && idim !=3) METRIS_THROW_MSG(WArgExcept(), "Dimension unsupported "<<idim)
+  if(idim != 2 && idim !=3) METRIS_THROW_MSG( "Dimension unsupported {}", idim);
 
   coord = std::move(data.coord);
   poi2bpo.fill(-1);

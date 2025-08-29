@@ -487,17 +487,10 @@ double getlenedg_quad(MeshMetric<MetricFieldType> &msh,
       len += getlenedg<gdim>(tang,msh.met[ipoin])*dx;
     }
 
-    #ifndef NDEBUG
-    if(std::isnan(len)){
-      GETVDEPTH(msh.param);
-      PRINTF("## DEBUG nan len increment in getlenedg_quad\n");
-      PRINTF("ientt {} tdim {} iedg {} nquad {} gdim {} ideg {} \n",
-             ientt, tdimn, iedg, nquad, gdim, ideg);
-      PRINTF("dx = {}, tang = {}\n",dx,dblAr1(gdim,tang));
-      PRINTF("metl = {}\n",dblAr1(nnmet,metl));
-      METRIS_THROW(GeomExcept());
-    }
-    #endif
+    METRIS_ASSERT_MSG(!std::isnan(len),"nan len increment in getlenedg_quad\n"
+      "ientt {} tdim {} iedg {} nquad {} gdim {} ideg {} \n"
+      "dx = {}, tang = {}\nmetl = {}",
+      ientt, tdimn, iedg, nquad, gdim, ideg, dx, dblAr1(gdim,tang), dblAr1(nnmet,metl));
   }
 
   return len;

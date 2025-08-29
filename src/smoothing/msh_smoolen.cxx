@@ -64,7 +64,7 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
   //const double maxwt = 20.0;
   //const double qrthr = 2.0;
   const double tolavg = msh.param->opt_smoo_tol;
-  const double tolmax = msh.param->opt_smoo_tol;
+  //const double tolmax = msh.param->opt_smoo_tol;
 
   dblAr1 work;
   if(msh.param->iflag2 != 0){
@@ -74,7 +74,7 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
   // 1 -> no maximum quality increase allowed 
   //const double maxinc_worst = 1.00;
 
-  const int nnmet = (msh.idim*(msh.idim+1))/2;
+  //const int nnmet = (msh.idim*(msh.idim+1))/2;
 
   METRIS_ENFORCE(msh.param->opt_power < 0); // Otherwise rework the mins / maxs
 
@@ -89,7 +89,6 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
   ledge.reserve(medge);
 
   double t0s = get_wall_time();
-  int nedge_tot = 0;
   for(int ientt = 0; ientt < msh.nentt(tdim); ientt++){
     INCVDEPTH(msh.param);
     if(isdeadent(ientt,ent2poi)) continue;
@@ -102,7 +101,6 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
       auto key = stup2(ip1,ip2);
       if(ledge.find(key) != ledge.end()) continue;
 
-      nedge_tot++;
       
       ledge[key] = ientt;
     }// for ied
@@ -118,7 +116,6 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
 
     double qmin = 1.0e30, qmax = -1.0e30, qavg = 0.0;
     int imax = -1;
-    int navg = 0;
     for(auto iedge : ledge){
       int ip1 = std::get<0>(iedge.first);
       int ip2 = std::get<1>(iedge.first);

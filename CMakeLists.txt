@@ -24,6 +24,11 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.30.0)
   cmake_policy(SET CMP0167 NEW)
 endif()
 
+if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+  cmake_policy(SET CMP0135 NEW)
+endif()
+
+
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT OR NOT DEFINED CMAKE_INSTALL_PREFIX)
   set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install CACHE PATH "Install destination" FORCE)
   message(STATUS "Using default install prefix ${CMAKE_INSTALL_PREFIX}")
@@ -231,16 +236,22 @@ set(METRIS_CASES_DIR ${METRIS_CASES_DIR} CACHE PATH "Directory where Metris case
 message("-- Created directory ${METRIS_CASES_DIR} (unless it already existed)")
 make_directory(${METRIS_CASES_DIR})
 
+set(METRIS_REGRESSION_DIR "${CMAKE_SOURCE_DIR}/bunit/regression" CACHE PATH "Metris regression tests directory.")
+
 enable_testing()
 
 file (GLOB TEST_SOURCES CONFIGURE_DEPENDS "bunit/*.cxx")
+file (GLOB_RECURSE TEST_REG_SOURCES CONFIGURE_DEPENDS "bunit/regression/*.cxx")
+
 
 # -- Boost/test
 find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 
 # -- Get the required meshes by reading bunit/test_ files
+# Uses TEST_SOURCES 
 include(cmake/FindUnitTestMeshes.cmake)
-
+# We can now concatenate TEST_SOURCES and TEST_REG_SOURCES
+set(TEST_SOURCES ${TEST_SOURCES} ${TEST_REG_SOURCES})
 
 #add_custom_command(OUTPUT ${METRIS_UNIT_TEST_MESHES}
 #                   DEPENDS metris
@@ -249,8 +260,22 @@ include(cmake/FindUnitTestMeshes.cmake)
 #                           ${METRIS_CASES_DIR}/gen_cases.sh)
 #add_custom_target(deploy_cases DEPENDS ${METRIS_UNIT_TEST_MESHES})
 
-set(METRIS_TARGET_TESTS "")
 set(METRIS_TARGET_TESTS_BUILD "")
+
+# Dummy test that runs the required builds
+include(ProcessorCount)
+ProcessorCount(NCORES)
+if(NCORES EQUAL 0)
+  set(NCORES 1)
+endif()
+math(EXPR BUILD_CORES "${NCORES} - 1")
+if(BUILD_CORES LESS 1)
+  set(BUILD_CORES 1)
+endif()
+add_test(
+  NAME setup_build_and_deploy
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target deploy_cases metris_tests_build --parallel ${BUILD_CORES}
+)
 
 foreach(test_file ${TEST_SOURCES})
   get_filename_component(test_target ${test_file} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
@@ -258,7 +283,9 @@ foreach(test_file ${TEST_SOURCES})
   add_executable(${test_target_build} EXCLUDE_FROM_ALL ${test_file})
   set_target_properties(${test_target_build} PROPERTIES OUTPUT_NAME ${test_target})
   setMetrisCXXFlags(${test_target_build} PUBLIC)
-  target_compile_definitions(${test_target_build} PUBLIC METRIS_CASES_DIR="${METRIS_CASES_DIR}")
+  target_compile_definitions(${test_target_build} PUBLIC METRIS_CASES_DIR="${METRIS_CASES_DIR}"
+                                                         METRIS_REGRESSION_DIR="${METRIS_REGRESSION_DIR}"
+                                                         )
   target_link_libraries(${test_target_build} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   target_link_libraries(${test_target_build} PUBLIC libMetris 
                                                     ${METRIS_DEPS_LIBRARIES}
@@ -268,33 +295,35 @@ foreach(test_file ${TEST_SOURCES})
   #target_include_directories(${test_target} PUBLIC "."  ${PETSC_INCLUDE}  ${ABSL_INCLUDE_DIRS})
 
 
-  add_custom_target(${test_target}
-      DEPENDS ${test_target_build}
-      COMMAND $<TARGET_FILE:${test_target_build}> 
-  )
+  #add_custom_target(${test_target}
+  #    DEPENDS ${test_target_build}
+  #    COMMAND $<TARGET_FILE:${test_target_build}> 
+  #)
 
   
 
   # Note: CMake uses regexp, not  bash-style globs. 
   # Hence _* would match to any number of '_', but not to any number of any characters...
   if(test_target MATCHES "^test_.*")
-    list(APPEND METRIS_TARGET_TESTS ${test_target})
     list(APPEND METRIS_TARGET_TESTS_BUILD ${test_target_build})
     add_test(
       NAME ${test_target}
       COMMAND $<TARGET_FILE:${test_target_build}>
       WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
+
+    # Doing add_test(toto) doesn't create a toto target 
+    # that we can add deps to. Instead, we should use fixtures.
+    set_tests_properties(${test_target} PROPERTIES
+        FIXTURES_REQUIRED "build_and_deploy"
+    )
   endif()
 
-  # Ensure that foo_build is built before foo
-  add_dependencies(${test_target}  deploy_cases)
+  ## Ensure that foo_build is built before foo
+  #add_dependencies(${test_target}  deploy_cases)
 endforeach()
-  
-add_custom_target(metris_tests
-                  DEPENDS ${METRIS_TARGET_TESTS}
-                  )
 
+# A target to manually compile the tests, no longer necessary
 add_custom_target(metris_tests_build
                   DEPENDS ${METRIS_TARGET_TESTS_BUILD}
                   )

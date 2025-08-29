@@ -10,8 +10,9 @@
 #include "../Mesh/MeshFwd.hxx"
 #include "../msh_anamet.hxx"
 #include "../SolutionField/anasol.hxx"
-#include <string>
 
+#include "nlohmann/json_fwd.hpp"
+#include <string>
 #include <cstdio>
 
 namespace Metris{
@@ -21,6 +22,10 @@ enum class FEBasis;
 class MetrisRunner;
 class MetrisAPI;
 class CADInfo;
+
+
+void to_json(nlohmann::json& jj, const MetrisParameters& param);
+void from_json(const nlohmann::json& jj, MetrisParameters& param);
 
 // Parameters can be set manually, or initialized by a Runner from argc/argv 
 // If set manually, use MetrisRunner constructor taking a MetrisParameter as input. 
@@ -40,6 +45,8 @@ struct MetrisParameters{
 
   void setMeshIn(std::string inp);
   void setMeshOut(std::string out);
+  void setCAD(std::string cadName);
+  void setMetricFile(std::string metName);
   void setAnalyticalMetric(int ianamet);
   void setAnalyticalMetric(AnaMetFun anamet_ptr); 
   void setAnalyticalSolution(int ianasol);
@@ -163,6 +170,7 @@ struct MetrisParameters{
 
   FEBasis outbasis;
 
+  void setLogFile(std::string fname);
   FILE* logFile;
 
   friend class MetrisRunner;

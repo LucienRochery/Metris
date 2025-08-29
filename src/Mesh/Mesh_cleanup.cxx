@@ -43,8 +43,9 @@ void Mesh<MetricFieldType>::cleanup(){
     int ipoin = this->bpo2ibi(ibpoi,0); 
     if(ipoin < 0) continue;
 
-    METRIS_ASSERT_MSG(ipoin < this->npoin, "ibpoi = "<<ibpoi<<" nbpoi = "<<this->nbpoi<<
-      " points to ipoin = "<<ipoin<<" but npoin = "<<this->nbpoi);
+    METRIS_ASSERT_MSG(ipoin < this->npoin, 
+      "ibpoi = {} nbpoi = {} points to ipoin = {} but npoin = {}", 
+      ibpoi, this->nbpoi, ipoin, this->npoin);
 
     int ibpon = nbpon; 
     lentt[ibpoi] = ibpon; 

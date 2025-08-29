@@ -361,10 +361,10 @@ int setCavityInsertion3(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
   int ierro;
 
   const int tdim  = insertionSeed.tdim_adp;
-  const int tdimp = insertionSeed.tdimp;
-  const int iseed = insertionSeed.iseed;
-  const int iref  = insertionSeed.iref;
-  const int nnmet = (msh.idim*(msh.idim+1))/2;
+  //const int tdimp = insertionSeed.tdimp;
+  //const int iseed = insertionSeed.iseed;
+  //const int iref  = insertionSeed.iref;
+  //const int nnmet = (msh.idim*(msh.idim+1))/2;
 
   const bool filter_long = true;
   
@@ -385,7 +385,7 @@ int setCavityInsertion3(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
   //ierro = aux_findCloseConstrained(msh, cav, ithrd1, ithrd2);
   //if(ierro > 0) return INS2D_ERR_SHORTCSTR;
 
-  const int ibins = msh.poi2ebp(cav.ipins,tdimp,iseed,iref);
+  //const int ibins = msh.poi2ebp(cav.ipins,tdimp,iseed,iref);
 
   ierro = movePointCavLen<MFT>(msh, cav, 5, ithrd1);
   if(DOPRINTS2()){
@@ -700,7 +700,7 @@ void check_cavity_rempoint(MeshMetric<MFT> &msh, MshCavity &cav, const CavOprOpt
   // ipins should always be seeded with a newbpotopo if it is going to be bdry
   const int pdim_ipins = msh.getpoitdim(cav.ipins);
   METRIS_ASSERT_MSG(pdim_ipins >= 0 && pdim_ipins <= msh.get_tdim(),
-                    "pdim_ipins = "<<pdim_ipins);
+                    "invalid pdim_ipins = {}", pdim_ipins);
 
   // Tag points that won't be deleted: there is at least one elt outside
   // the cavity that has the point. 
@@ -843,7 +843,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
 
   // Get normal deviation of initial cavity.
   if(msh.nperiodic_face != 0){
-    METRIS_THROW_MSG(TODOExcept(),"## CASE WITH PERIODIC FACES NOT HANDLED IN LOW_INCREASECAV")
+    METRIS_THROW_MSG("TODO: ## CASE WITH PERIODIC FACES NOT HANDLED IN LOW_INCREASECAV")
     // I think the way to generalize this is not to go all in on generality as in reconnect_faccav,
     // but to keep this "happy path" centered approach and work around the exceptions locally. 
     // It is rare in practice to have periodic faces and, even when some exist, most won't be, in real geoms.
@@ -1539,7 +1539,7 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
 
 
   //if(msh.get_tdim() == 3) 
-  //  METRIS_THROW_MSG(TODOExcept(), "Unit test this for n = 3. Implement gettetfac instead of getfacedg");
+  //  METRIS_THROW_MSG("TODO: Unit test this for n = 3. Implement gettetfac instead of getfacedg");
   // Simply disable surface Delaunay for now 
 
   int nnmet = (msh.idim * (msh.idim + 1)) / 2;
@@ -1756,7 +1756,6 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
 
   intAr1 lbtet(20), lbfac(20), lbedg(20);
   int iopen;
-  bool imani;
 
   int nprem = 0;
 
@@ -1780,7 +1779,7 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
     INCVDEPTH(msh.param);
     int ientt = lcent[ii];
     METRIS_ASSERT_MSG(!isdeadent(ientt, msh.ent2poi(cdim)),
-      "entity "<<ientt<<" tdim "<<cdim<<" is dead");
+      "entity {} tdim {} is dead", ientt, cdim);
 
 
     #if 0
@@ -1944,7 +1943,7 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
     //if(tdim == 2){
 
     //}else{
-    //  METRIS_THROW_MSG(TODOExcept(), 
+    //  METRIS_THROW_MSG( 
     //    "Implement height control in increase_cavity_lenedg 3D");
     //}
   }
@@ -1979,7 +1978,7 @@ template int increase_cavity_lenedg0<MetricFieldFE        ,3>(
 
 void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread){
   GETVDEPTH(msh.param);
-  METRIS_ASSERT_MSG(ithread >= 0, "ithread = "<<ithread<<" < 0")
+  METRIS_ASSERT_MSG(ithread >= 0, "ithread = {} < 0", ithread);
   CPRINTF2("-- START aux_taginsrefs\n");
   for(int iedge : cav.lcedg){
     int iref = msh.edg2ref[iedge];
@@ -1999,7 +1998,7 @@ void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread){
   }
   for(int ielem : cav.lctet){
     int iref = msh.tet2ref[ielem];
-    METRIS_ASSERT_MSG(iref >= 0, "ielem = "<<ielem<<" invalid iref = "<<iref);
+    METRIS_ASSERT_MSG(iref >= 0, "ielem = {} invalid iref = {}", ielem, iref);
     if(msh.dom2tag(ithread,iref) < msh.tag[ithread]){
       CPRINTF3(" - ipins has tetra ref {} \n",iref);
     }

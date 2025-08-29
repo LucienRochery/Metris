@@ -24,7 +24,7 @@ namespace Metris{
   
 void d2unittensor(const Mesh<MetricFieldAnalytical> &msh, int ielem, double *tens3sym_){
 
-  METRIS_THROW_MSG(TODOExcept(), "Read this over and consolidate with existing")
+  METRIS_THROW_MSG("TODO: Read this over and consolidate with existing")
   
   double metP1[6],dmetP1[18]; 
   double eigval[3],eigvec[9],rwork[10];
@@ -93,7 +93,7 @@ void d2unittensor(const Mesh<MetricFieldAnalytical> &msh, int ielem, double *ten
   // Next compute S = N x_2 T x_1 N^T
   // with N = J_0^T R^T 
   mat3X2tens3sym1X1tmat3(tJ0tR,tens3sym,tens3sym_);
-  METRIS_THROW_MSG(TODOExcept(),"Changed to non symmetric verify symmetric");
+  METRIS_THROW_MSG("TODO: Changed to non symmetric verify symmetric");
 
 }
 
@@ -102,7 +102,7 @@ Use P2 element intrinsic metric at all stages
 This is mainly for validation
 */
 void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
-  if(msh.curdeg != 2) METRIS_THROW(WArgExcept());
+  METRIS_ASSERT(msh.curdeg == 2);
 
   constexpr int ideg = 2;
   constexpr int gdim = 3;
@@ -110,7 +110,7 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
 
   GETVDEPTH(msh.param);
 
-  METRIS_THROW_MSG(TODOExcept(), "Read this over and consolidate with existing")
+  METRIS_THROW_MSG("TODO: Read this over and consolidate with existing")
 
   double tJ0tR[9];
   SANS::SurrealS<3,double> intmetS[6];
@@ -277,7 +277,7 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
 //              double* __restrict__ scale ,
 //              double* __restrict__ rotmat){
 //  if(msh.ilogmet != 1 && msh.ianamet <=0)
-//    METRIS_THROW_MSG(WArgExcept(), "Set metric to log before calling scalrot3");
+//    METRIS_THROW_MSG( "Set metric to log before calling scalrot3");
 //
 //  // Used in both
 //  double jmat[3][3];
@@ -338,7 +338,7 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
 //    detM = detsym<3>(metbar);
 //  }
 //  // tr(log M) = log(det(M))
-//  if(detM < 1.0e-16) METRIS_THROW_MSG(GeomExcept(),"SINGULAR METRIC " << detM
+//  if(detM < 1.0e-16) METRIS_THROW_MSG("SINGULAR METRIC " << detM
 //  <<" log-metric "<<metbar[0]<<" "<<metbar[1]<<" "<<metbar[2]<<" "
 //                  <<metbar[3]<<" "<<metbar[4]<<" "<<metbar[5]<<" ")
 //  double detMm12 = 1.0 / sqrt(detM);

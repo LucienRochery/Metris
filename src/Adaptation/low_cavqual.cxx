@@ -46,7 +46,7 @@ bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1){
   msh.set_nface(nfac0+1);
   msh.fac2poi(nfac0,0) = cav.ipins;
   msh.fac2ref[nfac0] = msh.fac2ref[cav.lcfac[0]];
-  if(msh.getpoitdim(cav.ipins) != 2) METRIS_THROW_MSG(TODOExcept(), "Fix fac2ref handling in multi ref rejcavnordev")
+  if(msh.getpoitdim(cav.ipins) != 2) METRIS_THROW_MSG("TODO: Fix fac2ref handling in multi ref rejcavnordev")
   int ibins_fac = msh.bpo2ibi(ibins,2);
   msh.bpo2ibi(ibins,2) = nfac0;
 

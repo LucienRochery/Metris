@@ -124,11 +124,11 @@ void MetrisAPI::initialize(MetrisRunner &run){
 
   idim = run.msh_g->idim;
   ideg = run.msh_g->curdeg;
-  if(ideg != run.msh_g->strdeg) METRIS_THROW_MSG(TODOExcept(), 
-    "Implement resizing arrays in API curdeg = "
-    <<run.msh_g->curdeg<<" strdeg = "<<run.msh_g->strdeg);
+  if(ideg != run.msh_g->strdeg) METRIS_THROW_MSG( 
+    "TODO: Implement resizing arrays in API curdeg = {} strdeg = {}",
+    run.msh_g->curdeg,run.msh_g->strdeg);
 
-  //if(run.hookedAPI != NULL)METRIS_THROW_MSG(TODOExcept(), 
+  //if(run.hookedAPI != NULL)METRIS_THROW_MSG( 
   //    "Either avoid initializing several MetrisAPI using single Runner,\
   //     or implement hookedAPI as array")
 
@@ -614,7 +614,7 @@ void MetrisAPI::getCoord(int ipoi1, int ipoi2, double *coord) const {
 void MetrisAPI::setMetric(int ipoin, const double *metfld){
   if(!imet) return;
   METRIS_ASSERT_MSG(ipoin >= 0 && ipoin < npoin,
-    "ipoin = "<<ipoin<<" npoin = "<<npoin);
+    "ipoin = {} npoin = {}", ipoin, npoin);
   int nnmet = (idim*(idim+1))/2;
   for(int ii = 0; ii < nnmet; ii++) this->metfld(ipoin,ii) = metfld[ii];
 }
@@ -671,16 +671,17 @@ void MetrisAPI::setElementsOrdering(int tdimn, const int *ordering){
 
   for(int ii = 0; ii < nnode; ii++){
     int inode = mul2nod(tdimn,&ordering[(tdimn+1) * ii]);
-    METRIS_ENFORCE_MSG(usrord[tdimn-1][inode] == -1, "Ordering repeats itself inode = "<<ii<<
-      " previous = "<<usrord[tdimn-1][inode]);
+    METRIS_ENFORCE_MSG(usrord[tdimn-1][inode] == -1, 
+      "Ordering repeats itself inode = {} previous = {}", 
+      ii, usrord[tdimn-1][inode]);
     usrord[tdimn-1][inode] = ii;
   }
 }
 
 void MetrisAPI::setElementsOrdering(int iordering){
-  METRIS_THROW_MSG(TODOExcept(), 
+  METRIS_THROW_MSG( 
     "Default orderings not implemented. "
-    "Either don't call setElementsOrdering, or provide explicitely. Given"<<iordering);
+    "Either don't call setElementsOrdering, or provide explicitely. Given: {}", iordering);
 }
 
 void MetrisAPI::setElement(int tdimn, int ielem, const int *ent2pol, int iref){

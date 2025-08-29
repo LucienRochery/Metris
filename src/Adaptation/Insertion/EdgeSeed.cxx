@@ -66,14 +66,10 @@ EdgeSeed::EdgeSeed(MeshBase& msh, MshCavity& cav_, int tdim_adp_, int tdim_ent, 
   bool ithrow = !(iseed >= 0 && iseed < msh.nentt(tdimp))
              ||  isdeadent(iseed,msh.ent2poi(tdimp))
              ||  iref < 0;
-  if(ithrow){
-    GETVDEPTH(msh.param);
-    PRINTF("## EdgeSeed failed: tdimp = {} iseed = {} iref = {}\n",
-           tdimp,iseed,iref);
-    PRINTF("Called with tdim = {} ientt = {} iedl = {}\n",
-           tdim_ent,ientt,iedl);
-    METRIS_THROW(TopoExcept());
-  }
+  if(ithrow) METRIS_THROW_MSG(
+      "## EdgeSeed failed: tdimp = {} iseed = {} iref = {}\n"
+      "Called with tdim = {} ientt = {} iedl = {}\n",
+           tdimp,iseed,iref,tdim_ent,ientt,iedl);
   #endif
 }
 

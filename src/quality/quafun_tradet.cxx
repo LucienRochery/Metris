@@ -37,7 +37,7 @@ void quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
 
   // Only if metric interpolation is needed
-  if(msh.met.getSpace() != MetSpace::Log && met_ == NULL) METRIS_THROW_MSG(WArgExcept(),
+  if(msh.met.getSpace() != MetSpace::Log && met_ == NULL) METRIS_THROW_MSG(
       "## SET MESH METRIC TO LOG BEFORE CALLING quafun_tradet");
 
   constexpr int nnmet = (gdim*(gdim+1))/2;
@@ -104,7 +104,7 @@ void quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   if(*tra < 1.0e-16){
     GETVDEPTH(msh.param);
     MPRINTF("## Trace could be negative: {:e}\n",(double)*tra);
-    METRIS_THROW_MSG(GeomExcept(),"Zero trace of spd matrix? "<<*tra);
+    METRIS_THROW_MSG("Zero trace of spd matrix? {:e}",*tra);
   }
 
 
@@ -125,7 +125,7 @@ void quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   }
 
   if(abs(*det) < 1.0e-16 && msh.param->opt_power > 0) 
-     METRIS_THROW_MSG(GeomExcept(), "Singular J^TMJ det = "<<det);
+     METRIS_THROW_MSG("Singular J^TMJ det = {:e}",*det);
 
    return;
 }
@@ -275,7 +275,7 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
   //tra = tra_matXsymXtmat<gdim, double, ftype, ftype>(met, invtJ0_tJK[0]);
   // This is an actual exception that should never theoretically happen. 
-  METRIS_ENFORCE_MSG(tra >= 1.0e-16, "## Negative tJMJ trace = "<<tra)
+  METRIS_ENFORCE_MSG(tra >= 1.0e-16, "## Negative tJMJ trace = {:e}",tra)
 
 
 
@@ -299,7 +299,7 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   }
 
   if(abs(det) < 1.0e-16 && msh.param->opt_power > 0) 
-     METRIS_THROW_MSG(GeomExcept(), "Singular J^TMJ det = "<<det);
+     METRIS_THROW_MSG( "Singular J^TMJ det = {:e}",det);
 
 
   // This is used later on -> store it 
@@ -563,7 +563,7 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   }
 
   // Store as vector.
-  if(idifmet != DifVar::None) METRIS_THROW_MSG(TODOExcept(), 
+  if(idifmet != DifVar::None) METRIS_THROW_MSG( 
     "Multiply dmet by point Jacobian matrix.");
   SANS::DLA::MatSymS<gdim,doubleS> metS;
   for(int ii = 0; ii < nnmet; ii++){
@@ -588,7 +588,7 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   if constexpr (tdim == 3) tra += tJ0_tJK_M_JK_J0[5];
 
   // This is an actual exception that should never theoretically happen. 
-  METRIS_ENFORCE_MSG(tra.value() >= 1.0e-16, "## Negative tJMJ trace = "<<tra)
+  METRIS_ENFORCE_MSG(tra.value() >= 1.0e-16, "## Negative tJMJ trace = {:e}",tra.value())
 
 
   doubleS detM, det_invtJ0_tJ;
@@ -611,7 +611,7 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   }
 
   if(abs(det.value()) < 1.0e-16 && msh.param->opt_power > 0) 
-     METRIS_THROW_MSG(GeomExcept(), "Singular J^TMJ det = "<<det);
+     METRIS_THROW_MSG( "Singular J^TMJ det = {:e}",det.value());
 
   return;
 }

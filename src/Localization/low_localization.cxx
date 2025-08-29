@@ -227,7 +227,7 @@ int inveval(MeshBase &msh, int ientt,
   for(int ii = 0; ii < nnode; ii++) ent2pol[ii] = ii;
 
   // Just make a static buffer. This will probably blow up at large degrees
-  if constexpr(ideg > 3) METRIS_THROW_MSG(TODOExcept(), "WATCH OUT FOR LARGE STATIC BUFFER");
+  if constexpr(ideg > 3) METRIS_THROW_MSG("TODO: WATCH OUT FOR LARGE STATIC BUFFER");
   double buf[gdim*nnode];
   dblAr2 coorl(nnode,gdim,buf);
   coorl.set_n(nnode);

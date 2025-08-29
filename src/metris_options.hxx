@@ -197,7 +197,7 @@ struct cargHandler{
     std::stringstream cmd_(cmd);
     while(std::getline(cmd_, str, ' ')){
       int n = str.length();
-      if(c >= margv) METRIS_THROW_MSG(SMemExcept(), "256 options? if legitimate, increase margv");
+      if(c >= margv) METRIS_THROW_MSG("{} >= 256 options? if legitimate, increase margv",c);
       v[c] = (char *) malloc((n+1)*sizeof(char));
       strncpy(v[c],str.c_str(),n+1);
       c++;

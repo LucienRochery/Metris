@@ -52,8 +52,9 @@ int main(int argc, char** argv){
       icod = Metris::main_metris(argc, argv);
       //icod = main_metris(argc, argv, msh, bak);
     }catch(const Metris::MetrisExcept &e){
-      printf("\n\n## MAIN_METRIS THROWS EXCEPTION:\n");
-      std::cout<<"## Type: "<<e.what()<<std::endl;
+      fmt::print("\n################################################################\n");
+      fmt::print(stderr,"## MAIN_METRIS THROWS EXCEPTION:\n");
+      fmt::print(stderr,"## Message: {}\n",e.message);
   
     #ifndef NO_BOOST_EXCEPT
       if(std::string const * ms=boost::get_error_info<excMessage>(e) )

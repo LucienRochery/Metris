@@ -54,7 +54,7 @@ void MetrisRunner::degElevate0(){
 
   Mesh<MFT> &msh = *( (Mesh<MFT>*) msh_g );
 
-  //if(param_.inpBack) METRIS_THROW_MSG(TODOExcept(), 
+  //if(param_.inpBack) METRIS_THROW_MSG( 
   //  "Degree elevation with input back not implemented");
   
   double t1 = get_wall_time(); 
@@ -107,12 +107,12 @@ void MetrisRunner::degElevate0(){
 
 
   #if 0
-  if(param_.inpBack)  METRIS_THROW_MSG(TODOExcept(),
+  if(param_.inpBack)  METRIS_THROW_MSG(
       "Implement back mesh update in case of ext file after degelev");
   if(bak.nelem > 0){
     for(int ipoin = npoi0+1; ipoin < msh.npoin; ipoin++){
       int ielem = getpoitet(msh,ipoin);
-      if(ielem < 0 || ielem >= msh.nelem) METRIS_THROW_MSG(TopoExcept(),
+      if(ielem < 0 || ielem >= msh.nelem) METRIS_THROW_MSG(
         "Failed to find back element for (HO) ipoin = "<<ipoin);
       msh.poi2bakipoin,3-1) = ielem;
     }
@@ -120,7 +120,7 @@ void MetrisRunner::degElevate0(){
   if(bak.nface > 0){
     for(int ipoin = npoi0+1; ipoin < msh.npoin; ipoin++){
       int iface = getpoifac(msh,ipoin);
-      //if(iface < 0 || iface >= msh.nface) METRIS_THROW_MSG(TopoExcept(),
+      //if(iface < 0 || iface >= msh.nface) METRIS_THROW_MSG(
       //  "Failed to find back face for (HO) ipoin = "<<ipoin);
       msh.poi2bak(ipoin,2-1) = iface;
     }
@@ -139,7 +139,7 @@ void MetrisRunner::degElevate0(){
       //  printf("element : ");
       //  intAr1(entnpps[msh.curdeg],ent2poi[ientt]).print();
 
-      //   METRIS_THROW_MSG(TopoExcept(),
+      //   METRIS_THROW_MSG(
       //  "Failed to find back edge for (HO) ipoin = "<<ipoin);
       //}
       msh.poi2bak(ipoin,1-1) = iedge;
@@ -397,7 +397,7 @@ void MetrisRunner::degElevate0(){
     }
     #endif
   }else{
-    METRIS_THROW(TODOExcept());
+    METRIS_THROW_MSG("TODO: degree {}",msh.curdeg);
   }
 
   if(msh.param->iverb >= 1){

@@ -14,11 +14,11 @@ double detvdif3(const double* x1,const double* x2,
 
 static double* vdiff([[maybe_unused]] const double* a, 
                      [[maybe_unused]] const double* b){  
-  METRIS_THROW_MSG(TODOExcept(),"Reimplement ccoef3_d");
+  METRIS_THROW_MSG("TODO: Reimplement ccoef3_d");
 }
 static double* vproduct([[maybe_unused]] const double* a, 
                         [[maybe_unused]] const double* b){  
-  METRIS_THROW_MSG(TODOExcept(),"Reimplement ccoef3_d");
+  METRIS_THROW_MSG("TODO: Reimplement ccoef3_d");
 }
 
 template<int ideg>

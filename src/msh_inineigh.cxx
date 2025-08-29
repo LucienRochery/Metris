@@ -58,7 +58,7 @@ void iniMeshNeighbours(MeshBase &msh){
     iniMeshNeighbours2D<ideg>(msh);
   }else if(msh.idim == 3){
     iniMeshNeighbours3D<ideg>(msh);
-  }else METRIS_THROW_MSG(WArgExcept(),"Unsupported dimension "<<msh.idim);
+  }else METRIS_THROW_MSG("Unsupported dimension {}",msh.idim);
 }
 
 
@@ -356,16 +356,15 @@ void iniMeshNeighbours3D(MeshBase &msh){
         // Fetch neighbour to this edge
         int ifa2 = getfactetOpp(msh,ielem2,i1,i2,i3);
         CPRINTF3(" - Found ielem2 = {} ifa2 = {} \n",ielem2,ifa2);
-        if(ifa2 < 0){
-          std::cout<<" (2) ## SOME PROBLEM WITH THIS HASH TABLE33 !"<<std::endl;
-          std::cout<<"Did not find face in ielem2 of verts "<<
-          msh.tet2poi(ielem2,0)<<" "<<
-          msh.tet2poi(ielem2,1)<<" "<<
-          msh.tet2poi(ielem2,2)<<" "<<
-          msh.tet2poi(ielem2,3)<<" "<<std::endl;
-          std::cout<<"Face = "<<i1<<" "<<i2<<" "<<i3<<std::endl;
-          METRIS_THROW(TopoExcept())
-        }
+        METRIS_ASSERT_MSG(ifa2 >= 0,
+          "## SOME PROBLEM WITH THIS HASH TABLE33 !\n"
+          "Did not find face in ielem2 of verts {} {} {} {}\n"
+          "Face = {} {} {}\n",
+          msh.tet2poi(ielem2,0),
+          msh.tet2poi(ielem2,1),
+          msh.tet2poi(ielem2,2),
+          msh.tet2poi(ielem2,3),
+          i1,i2,i3);
         msh.tet2tet(ielem2,ifa2) = ielem ;
         msh.tet2tet(ielem ,ifa1) = ielem2;
 
@@ -489,14 +488,12 @@ void iniMeshNeighbours3D(MeshBase &msh){
         }else{
           // We already knew this edge was non manifold: it has already been added
           // to the glo hash table if needed. 
-          if(ifac2 == -1) METRIS_THROW_MSG(TopoExcept(),
-            "SOME PROB (4) WITH THIS HASH TABLE")
+          METRIS_ASSERT_MSG(ifac2 != -1,"SOME PROB (4) WITH THIS HASH TABLE")
           ifac2 = -ifac2 -2;
           // We already know the face is non manifold
           int ied2 = getedgfac(msh,ifac2,i1,i2);
           int ifac3  = msh.fac2fac(ifac2,ied2);
-          if(ifac3 >= 0) METRIS_THROW_MSG(TopoExcept(),
-            "SOME PROB (7) WITH THIS HASH TABLE");
+          METRIS_ASSERT_MSG(ifac3 < 0,"SOME PROB (7) WITH THIS HASH TABLE")
 
           msh.fac2fac(ifac2,ied2) = -(iface  + 2);
           msh.fac2fac[iface ][ied1] = ifac3;

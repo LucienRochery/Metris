@@ -336,6 +336,23 @@ else()
 endif()
 list(APPEND METRIS_DEPS_LIBRARIES fmt::fmt)
 
+include(FetchContent)
+
+# nlohmann json library
+FetchContent_Declare(json_fetch URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+FetchContent_MakeAvailable(json_fetch)
+if(NOT TARGET nlohmann_json::nlohmann_json)
+  add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)
+endif()
+install(FILES ${json_fetch_SOURCE_DIR}/single_include/nlohmann/json.hpp
+              ${json_fetch_SOURCE_DIR}/single_include/nlohmann/json_fwd.hpp
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/nlohmann/
+        )
+list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${json_fetch_SOURCE_DIR}/single_include>)
+list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
+metris_register_dependency("FetchContent" "json" "")
+#target_link_libraries(foo PRIVATE nlohmann_json::nlohmann_json)
+
 if(USE_ABSL)
   message("Enabled absl")
   FetchContent_Declare(

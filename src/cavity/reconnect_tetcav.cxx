@@ -219,7 +219,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
                      iver,ipoin,iface,ireff,nseenm1+1);
             // Same ref can be seen twice by same vertex, meaning it has already 
             // been updated.
-            METRIS_ASSERT_MSG(nseenm1 <= iver, "nseenm1 = "<<nseenm1<<" iver = "<<iver);
+            METRIS_ASSERT_MSG(nseenm1 <= iver, "nseenm1 = {} iver = {}", nseenm1, iver);
 
             // We must be careful to skip refs that have been skipped by at 
             // least one prior point, because our method of counting is 
@@ -251,7 +251,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
           if(iface < 0) continue;
           if(msh.fac2tet(iface,0) >= 0 && msh.fac2tet(iface,1) >= 0){
             if(msh.param->dbgfull) 
-              METRIS_THROW_MSG(TODOExcept(), "Handle internal surface case here");
+              METRIS_THROW_MSG("TODO: Handle internal surface case here");
             CPRINTF1(" # REJECT: tet face {} matches glo face {} which is internal\n",
               ifal, iface);
             return CAV_ERR_BDRYTET2;
@@ -271,7 +271,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
           }else if(ip1 == jp3){
             if(ip2 == jp1) nogood = true;
           }else{
-            METRIS_THROW_MSG(TopoExcept(), "Tet local <-> global face mismatch");
+            METRIS_THROW_MSG( "Tet local <-> global face mismatch");
           }
           if(nogood) break;
         }
@@ -397,7 +397,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
               // 0 points to a new one, put in 1
               msh.fac2tet(ielef,1) = ielen;
             }else{
-              METRIS_THROW_MSG(TopoExcept(), "New face points to dead element")
+              METRIS_THROW_MSG( "New face points to dead element")
             }
 
           }else{

@@ -154,8 +154,8 @@ bool MeshArray1D<T,INT1>::allocate(INT1 m){
   T* new_array = new_array_sp.get();
 
   METRIS_ASSERT_MSG(array != NULL || n1 <= 0,
-  "n1 = "<<n1<<" and array = "<<array);
-    
+    "n1 = {} and array = {}", n1, (void*) array);
+
   for(int ii = 0; ii < n1; ii++) new_array[ii] = array[ii];
   
   array_sp = new_array_sp;

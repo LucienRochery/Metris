@@ -99,7 +99,7 @@ MeshArray2D<T,INT1,INT2>::MeshArray2D(MeshArray2D &&cpy){
 template<typename T, typename INT1, typename INT2>
 bool MeshArray2D<T,INT1,INT2>::allocate(INT1 m, INT2 s){
 
-  METRIS_ASSERT_MSG(MAX(m,m1) >= n1," Trying to allocate size "<<m<<" < n1 = "<<n1); 
+  METRIS_ASSERT_MSG(MAX(m,m1) >= n1," Trying to allocate size {} < n1 = {}",m,n1); 
   METRIS_ASSERT(s >= 0); 
 
   // No need to reallocate nor copy if the stride hasn't changed and we have enough room.
@@ -182,8 +182,8 @@ template<typename T, typename INT1, typename INT2>
 void MeshArray2D<T,INT1,INT2>::copyTo(MeshArray2D<T,INT1,INT2> &out, INT1 ncopy) const{
   if(ncopy < 0) ncopy = n1;
   METRIS_ASSERT(ncopy <= n1);
-  if(out.get_stride() < stride) METRIS_THROW_MSG(WArgExcept(), 
-                       "Out stride = " << out.get_stride()<<" this = "<<stride);
+  METRIS_ENFORCE_MSG(out.get_stride() >= stride,
+                    "Out stride = {} this = {}", out.get_stride(), stride);
   out.set_n(ncopy);
   
   for(INT1 ii = 0; ii < ncopy; ii++){
@@ -250,9 +250,9 @@ MeshArray2D<T,INT1,INT2>::~MeshArray2D(){
 
 //template<typename T, typename INT1, typename INT2>
 //MeshArray2D<T,INT1,INT2>& MeshArray2D<T,INT1,INT2>::operator=(const std::initializer_list<T> & list){
-//  if(list.size(){}tride != 0) METRIS_THROW_MSG(WArgExcept(),
+//  if(list.size(){}tride != 0) METRIS_THROW_MSG(
 //                               "INITIALIZER LIST NOT A MULTIPLE OF STRIDE");
-//  if(list.size() > nmemalc)   METRIS_THROW_MSG(WArgExcept(),
+//  if(list.size() > nmemalc)   METRIS_THROW_MSG(
 //                               "INITIALIZER LIST TOO LARGE");
 //  std::copy_n(list.begin(),list.size(),array);
 //  nmemalc = list.size();

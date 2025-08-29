@@ -70,16 +70,15 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
       METRIS_ASSERT(pdim == 1);
 
       METRIS_ASSERT_MSG(msh.edg2ref[msh.bpo2ibi(ibpoi,2)] == iref,
-       "ipoin="<<ipoin<<" ibpoi = "<<ibpoi<<" bpo2ibi[2] = "
-        <<msh.bpo2ibi(ibpoi,2)<< 
-        " iref = "<<iref<<" edg2ref = "<<msh.edg2ref[msh.bpo2ibi(ibpoi,2)]);
+       "ipoin = {} ibpoi = {} bpo2ibi[2] = {} iref = {} edg2ref = {}",
+       ipoin, ibpoi, msh.bpo2ibi(ibpoi,2), iref, msh.edg2ref[msh.bpo2ibi(ibpoi,2)]);
 
 
       // Proceed to reinsertion? First test distance. 
       int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
       if(ierro != 0){
         PRINTF("## EG_getRange failed {}\n",EG_err2str(ierro));
-        METRIS_THROW_MSG(GeomExcept()," EG_Evaluate failed")  
+        METRIS_THROW_MSG(" EG_Evaluate failed")  
       }
 
       double dst; 
@@ -152,7 +151,7 @@ void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
         ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
       }}CT_FOR1(ideg);
 
-      METRIS_ASSERT_MSG(ierro == 0, "Cavity failed ierro = "<<ierro);
+      METRIS_ASSERT_MSG(ierro == 0, "Cavity failed ierro = {}", ierro);
 
 
     }

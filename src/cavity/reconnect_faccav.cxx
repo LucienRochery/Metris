@@ -151,7 +151,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
         // nm -> edge -> other coco
         if(ifnei == -1) continue;
         else if(ifnei <= -2)
-          METRIS_THROW_MSG(TODOExcept(), "Check if there is a cavity face in the "
+          METRIS_THROW_MSG("TODO: Check if there is a cavity face in the "
             " non-manifold neighbours. If there is, continue to edge check,"
             " otherwise continue.")
 
@@ -303,7 +303,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
 		}else if(msh.edg2poi(iedge,1) == cav.ipins){
 			ipoin = msh.edg2poi(iedge,0);
 		}else{
-			METRIS_THROW_MSG(TopoExcept(), "Either nedg0 wrong or corrupted new edges (no ipins)");
+			METRIS_THROW_MSG( "Either nedg0 wrong or corrupted new edges (no ipins)");
 		}
     int iedex = edtyp.get_n(); 
 		msh.poi2tag(ithread,ipoin) = msh.tag[ithread] + iedex;
@@ -364,7 +364,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
         // Some of the nm faces could be in the cavity, others not. 
         // We'll leave this case be for now 
 
-        METRIS_THROW_MSG(TODOExcept(), "Non manifold when ipins on bdry todo")
+        METRIS_THROW_MSG("TODO: Non manifold when ipins on bdry todo")
       }
     }
   }  
@@ -424,7 +424,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
 				msh.poi2tag(ithread,ipoin) = 0;
 			}
 		}else{
-			METRIS_THROW(TopoExcept());
+			METRIS_THROW();
 		}
 	}
 
@@ -559,11 +559,9 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
     }
     #endif
     METRIS_ASSERT_MSG(edcco[icoco].get_n() > 0,
-                      "edcco[icoco] empty in reconnect_faccav\n"
-                      "ifac0 = "<<ifac0<<" icoco = "<<icoco<<
-                    " with tag = "<<msh.tag[ithread]<<" face tag = "
-                    << msh.fac2tag(ithread,ifac0));
-    
+      "edcco[icoco] empty in reconnect_faccav\n"
+      "ifac0 = {} icoco = {} with tag = {} face tag = {}\n",
+      ifac0, icoco, msh.tag[ithread], msh.fac2tag(ithread, ifac0));
 
     bool found_update = false;
     for(int ibpoe = msh.poi2bpo[cav.ipins]; ibpoe >= 0; ibpoe = msh.bpo2ibi(ibpoe,3)){
@@ -588,7 +586,7 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
         int icode = EG_getEdgeUV(EG_fac, EG_edg, isens, 
                                   tedg, msh.bpo2rbi[ibn]);
         CPRINTF1("   - new (u,v) = {} {}\n", msh.bpo2rbi(ibn,0),msh.bpo2rbi(ibn,1));
-        METRIS_ENFORCE_MSG(icode == 0,"EG_getEdgeUV error "<<icode);
+        METRIS_ENFORCE_MSG(icode == 0,"EG_getEdgeUV error {}", icode);
         
         break;
       }
@@ -621,7 +619,7 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
     MPRINTF("Full ip bpois:\n");
     print_bpolist(msh,msh.poi2bpo[ip]);
 
-    METRIS_THROW_MSG(TopoExcept(),"Failed to find ib in old faces");
+    METRIS_THROW_MSG("Failed to find ib in old faces");
   }
 }
 
@@ -663,7 +661,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
     // Outside edge: this will create a triangle. 
   }else{ // Edge neighbour (non manifold or 2D boundary)
     int iedge = msh.facedg2glo(ifac1,ied);
-    if(iedge < 0) METRIS_THROW_MSG(TopoExcept(),"No edge where face neighbourless or nm");
+    if(iedge < 0) METRIS_THROW_MSG("No edge where face neighbourless or nm");
     // If edge in edge cavity, dead
     if(msh.edg2tag(ithread,iedge) >= msh.tag[ithread]) return 0;
     // Outside edge or non manifold but not inside cavity! this should have been caught by 
@@ -701,7 +699,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
         // In this case, look at checktopo and what is done there using ced2tag. 
         fmt::print("Trying to create face with vertices {} {} {} \n",ip1,ip2,cav.ipins);
         writeMesh("TODO",msh);
-        METRIS_THROW_MSG(TODOExcept(), "Handle case where all three vertices are corners...")
+        METRIS_THROW_MSG("TODO: Handle case where all three vertices are corners...")
       }else{
         // At last one is pure edge, has a single ref. 
         int iedge = -1;
@@ -781,7 +779,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
   // Connex component gives us the normal
   int icoco = msh.fac2tag(ithread,ifac1) - msh.tag[ithread] - 1;
   METRIS_ASSERT_MSG(icoco >= 0 && icoco < work.lnorcco.get_n(), 
-                    "icoco = "<<icoco<< " n "<<work.lnorcco.get_n());
+                    "icoco = {} n = {}", icoco, work.lnorcco.get_n());
   // We want to keep new faces untagged. 
   msh.fac2tag(ithread,ifacn) = msh.tag[ithread] - icoco - 1;
 
@@ -879,7 +877,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
     }else if(jp1 == cav.ipins && jp2 == ip1){
       iedex = msh.poi2tag(ithread,ip1) - msh.tag[ithread];
     }else{
-      METRIS_THROW(TopoExcept());
+      METRIS_THROW();
     }
 
     // From now on, either an interior edge, or an exterior edge that ifac1 does
@@ -992,7 +990,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
           }
         } else{ // An old face
           if(ifac2 < 0){
-            METRIS_THROW_MSG(TODOExcept(), "Handle non manifold ext neighbour");
+            METRIS_THROW_MSG("TODO: Handle non manifold ext neighbour");
           }else{
             msh.fac2fac(ifacn,iedn) = ifac2;
             // Only difference is we don't update ifac2 back

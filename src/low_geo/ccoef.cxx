@@ -136,14 +136,14 @@ void getccoef_dpoint(const MeshBase &msh, int ientt, int inode, double *ccoef, d
       vdiff_perp(msh.coord[msh.fac2poi(ientt,(inode+1)%3)], 
                  msh.coord[msh.fac2poi(ientt,(inode+2)%3)], d_ccoef[0]);
     }else{
-      METRIS_THROW_MSG(TODOExcept(), "Control coeff derivatives per point not implemented in 3D")
+      METRIS_THROW_MSG("TODO: ccoef derivatives per point not implemented in 3D")
     }
   }else{
     if(ccoef != NULL) getccoef<idim,idim,ideg>(msh,ientt,NULL,ccoef);
     if constexpr(idim == 2){
       d_pt_ccoef_genbez2<ideg>(msh.fac2poi,msh.coord,ientt,inode,d_ccoef);
     }else{
-      METRIS_THROW_MSG(TODOExcept(), "Control coeff derivatives per point not implemented in 3D")
+      METRIS_THROW_MSG("TODO: ccoef derivatives per point not implemented in 3D")
     }
   }
 }

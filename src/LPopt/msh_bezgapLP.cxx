@@ -48,7 +48,7 @@ template<int gdim, int tdim, int ideg>
 double bezGapsLP(MeshBase &msh, const intAr1 &idx_point, 
                  const dblAr2 &pos_ctrlp, //const dblAr1 &weight,
                  LPMethod method,  LPLib lib){
-  // METRIS_THROW_MSG(TODOExcept(), "maximizeCcoef not implemented for ideg = "<<ideg);
+  // METRIS_THROW_MSG("TODO: maximizeCcoef not implemented for ideg = "<<ideg);
   GETVDEPTH(msh.param);
   const bool MAE = false;
   // We can convert the mesh, but doing that for the displacements would be a 
@@ -304,7 +304,7 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
   } // for niter 
 
   //printf("debug coord ip 6 {} {} \n", msh.coord(6,0), msh.coord(6,1));
-  //METRIS_THROW(AlgoExcept());
+  //METRIS_THROW();
   return -1;
 }
 

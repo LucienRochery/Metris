@@ -24,10 +24,11 @@ This implements topological and (u,v) guess init of boundary points.
 */
 template<class MFT, int mshdeg, int tardeg>
 void deg_elevate(Mesh<MFT> &msh){
-  if(msh.idim != 2 && msh.idim != 3) METRIS_THROW_MSG(TODOExcept(), "Implement dim "<<msh.idim<<" degelev.");
+  if(msh.idim != 2 && msh.idim != 3) 
+    METRIS_THROW_MSG("TODO: Implement dim {} degelev.",msh.idim);
 
   // This actually works, so why?
-  //if constexpr(mshdeg != 1) METRIS_THROW_MSG(TODOExcept(), "Write into temporary arrays and update at the end.")
+  //if constexpr(mshdeg != 1) METRIS_THROW_MSG("TODO: Write into temporary arrays and update at the end.")
 
   int tagedl[6];
   intAr1 lshell(100);
@@ -233,7 +234,7 @@ void deg_elevate(Mesh<MFT> &msh){
             }
           }
         }else if(ifac2 < 0){
-          METRIS_THROW_MSG(TopoExcept(),"ERROR NO EDGE BUT NON MANIFOLD OR SURF BDRY")
+          METRIS_THROW_MSG("NO EDGE BUT NON MANIFOLD OR SURF BDRY")
 
         // VV From here on, manifold neighbour
         }else if(msh.fac2tag(0,ifac2) >= msh.tag[0]){
@@ -277,7 +278,6 @@ void deg_elevate(Mesh<MFT> &msh){
           int ibpoi = lbpon[irnk];
           if(ibpoi < 0) continue;
           METRIS_ASSERT(ibpoi >= 0 && ibpoi < msh.nbpoi);
-          //METRIS_ASSERT_MSG(msh.bpo2ibi(ibpoi,0) == ipoin, "\nError at irnk = "<<irnk<<" ipoin = "<<ipoin<<" ibpoi "<<ibpoi<<" bpo2ibi = "<<msh.bpo2ibi(ibpoi,0));
           msh.bpo2rbi(ibpoi,0) = newuv[irnk][0];
           msh.bpo2rbi(ibpoi,1) = newuv[irnk][1];
         }
@@ -343,8 +343,7 @@ void deg_elevate(Mesh<MFT> &msh){
           int iele2 = msh.tet2tet(ielem,ifa);
           if(iele2 < 0){
             int iface = msh.tetfac2glo(ielem,ifa);
-            if(iface < 0) METRIS_THROW_MSG(TopoExcept(),
-              "FACE MISSING FROM HASH TABLE")
+            if(iface < 0) METRIS_THROW_MSG("FACE MISSING FROM HASH TABLE")
 
             cpy_glofac2tetfac<tardeg>(msh,iface,ielem,ifa);
             continue;
@@ -410,14 +409,12 @@ void deg_elevate(Mesh<MFT> &msh){
               // This neighbour is a face that contains the edge
               ifnd = 1;
               int iface = msh.tetfac2glo(iele2,ifa2);
-              if(iface < 0) METRIS_THROW_MSG(TopoExcept(),
-                                                 "FACE MISSING FROM HASH TABLE")
+              if(iface < 0) METRIS_THROW_MSG("FACE MISSING FROM HASH TABLE")
 
               int iedf = getedgfac(msh,iface,ip1,ip2);
               cpy_facedg2tetedg<tardeg>(msh,iface,iedf,ielem,ied);
             }
-            if(ifnd == 0)METRIS_THROW_MSG(TopoExcept(),
-                                "FAILED TO FIND BOUNDARY FACE WITH THE EDGE")
+            if(ifnd == 0)METRIS_THROW_MSG("FAILED TO FIND BOUNDARY FACE WITH THE EDGE")
           }else{
             int ifnd = 0;
             for(int iele2 : lshell){

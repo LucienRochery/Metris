@@ -99,7 +99,7 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
     MPRINTF("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
   }
   
-  if(data_front == NULL && data_back == NULL && !param_.inpBack && !param_.inpMesh) METRIS_THROW_MSG(WArgExcept(),
+  if(data_front == NULL && data_back == NULL && !param_.inpBack && !param_.inpMesh) METRIS_THROW_MSG(
     "No meshes provided either through data or files");
 
   if(data_back == NULL && !param_.inpBack){

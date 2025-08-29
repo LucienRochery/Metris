@@ -106,7 +106,7 @@ int MeshBase::nentt(int tdimn) const {
   case(3):
     return nelem;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"nentt tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG("nentt tdimn not in range = {}", tdimn);
   }
 }
 
@@ -120,7 +120,7 @@ int MeshBase::nnode(int tdimn) const {
   case(3):
     return getnnod3(curdeg);
   default:
-    METRIS_THROW_MSG(WArgExcept(),"nnode tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG("nnode tdimn not in range = {}", tdimn);
   }
 }
 
@@ -134,7 +134,7 @@ intAr2& MeshBase::ent2poi(int tdimn){
   case(3):
     return tet2poi;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"ent2poi (1) tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG("ent2poi (1) tdimn not in range = {}", tdimn);
   }
 }
 
@@ -147,7 +147,7 @@ const intAr2& MeshBase::ent2poi(int tdimn) const{
   case(3):
     return tet2poi;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"ent2poi (2) tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG("ent2poi (2) tdimn not in range = {}", tdimn);
   }
 }
 
@@ -192,7 +192,7 @@ intAr1& MeshBase::ent2ref(int tdimn){
   case(3):
     return tet2ref;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"ent2ref (1) tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG("ent2ref (1) tdimn not in range = {}", tdimn);
   }
 }
 
@@ -205,7 +205,7 @@ const intAr1& MeshBase::ent2ref(int tdimn) const{
   case(3):
     return tet2ref;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"ent2ref (2) tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG("ent2ref (2) tdimn not in range = {}", tdimn);
   }
 }
 
@@ -219,7 +219,7 @@ intAr2& MeshBase::ent2ent(int tdimn){
   case(3):
     return tet2tet;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"ent2ent (1) tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG("ent2ent (1) tdimn not in range = {}", tdimn);
   }
 }
 
@@ -232,7 +232,7 @@ const intAr2& MeshBase::ent2ent(int tdimn) const{
   case(3):
     return tet2tet;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"ent2ent (2) tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG("ent2ent (2) tdimn not in range = {}", tdimn);
   }
 }
 
@@ -633,7 +633,7 @@ void MeshBase::set_nentt(int tdimn, int nentt, bool skipallocf){
 //  int ibpoi = msh.poi2bpo[ipoin];
 //  METRIS_ASSERT(ibpoi >= 0);
 //
-//  if(EGADS_context != NULL) METRIS_THROW_MSG(TODOExcept(),
+//  if(EGADS_context != NULL) METRIS_THROW_MSG(
 //    "getpoinormal with egads context")
 //
 //  for(int ii = 0; ii < 3; ii++) norpoi[ii] = 0;
@@ -699,7 +699,7 @@ void MeshBase::get_nMeshSize(MeshSize itype, int* nn, int* mm){
       mentt = CAD.ncadfa;
       break;
     default:
-      METRIS_THROW_MSG(WArgExcept(), "get_nMeshSize: invalid entity type = "<< (int) itype);
+      METRIS_THROW_MSG( "get_nMeshSize: invalid entity type = {}", (int) itype);
   }
   *nn = nentt;
   *mm = mentt;
@@ -715,7 +715,7 @@ void MeshBase::setBasis(FEBasis ibasis_){
   }else if(ibasis_ == FEBasis::Bezier){
     setBezier();
   }else{
-    METRIS_THROW_MSG(WArgExcept(), "Invalid basis for coordinates (MeshBase)")
+    METRIS_THROW_MSG( "Invalid basis for coordinates (MeshBase)")
   }
 }
 
@@ -765,7 +765,7 @@ intAr2r& MeshBase::ent2tag(int tdimn){
   case(3):
     return tet2tag;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"ent2tag (1) tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG("ent2tag (1) tdimn not in range = {}", tdimn);
   }
 }
 
@@ -778,7 +778,7 @@ const intAr2r& MeshBase::ent2tag(int tdimn) const{
   case(3):
     return tet2tag;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"ent2tag (1) tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG("ent2tag (1) tdimn not in range = {}", tdimn);
   }
 }
 

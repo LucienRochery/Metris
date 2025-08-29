@@ -23,7 +23,7 @@ ftype detsym_Eigen_LLT(const ftype *met){
     fmt::print("## Eigen error {} in detsym_Eigen_LLT\n", (int)llt.info());
     const int nnmet = (ndim*(ndim+1))/2;
     fmt::print("Input metric {}\n",dblAr1(nnmet,met));
-    METRIS_THROW_MSG(GeomExcept(),"Eigen error "<<llt.info());
+    METRIS_THROW_MSG("Eigen error {}", (int) llt.info());
   }
 
   MatrixN LL = llt.matrixL();

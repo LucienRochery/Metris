@@ -74,7 +74,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
   CPRINTF1("-- START insPointsCurve iref {}\n",iref);
   METRIS_ENFORCE(lnewt[0] > range[0]);
   METRIS_ENFORCE_MSG(ninsp >= 1 || lnewt[1] > lnewt[0],
-    "ninsp = "<<ninsp<<" lnewt = "<<lnewt[0]<<" "<<lnewt[1]);
+    "ninsp = {} lnewt = {} {}", ninsp, lnewt[0], lnewt[1]);
 
 
   // Fill edges seeds for extremities
@@ -111,7 +111,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       for(int inewt = 0; inewt < ninsp+2; inewt++){
         int iseed = t2sed[inewt];
         METRIS_ASSERT_MSG(iseed >= 0 && iseed < msh.nedge && !isdeadent(iseed,msh.edg2poi),
-          "Invalid edge seed "<<iseed);
+          "Invalid edge seed {}",iseed);
       }
       for(int inewt = 0; inewt < ninsp; inewt++){
         int iseed = t2sed[inewt+1];
@@ -125,8 +125,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
         double tcur = lnewt[inewt];
         METRIS_ASSERT_MSG(tcur >= tedg[0] && tcur <= tedg[1]
                        || tcur <= tedg[0] && tcur >= tedg[1],
-                       "Current t = "<<tcur<<" not in edge bounds = "
-                       <<tedg[0]<<"  "<<tedg[1]);
+                       "Current t = {} not in edge bounds = {}  {}", tcur, tedg[0], tedg[1]);
       }
     }catch(const MetrisExcept &e){
       printf("## WRONG SEEDS, DUMP ALL\n");
@@ -207,7 +206,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       METRIS_ASSERT(itnxt >= -1);
       int ienxt = t2sed[itnxt+1];
       METRIS_ASSERT_MSG(ienxt >= 0 && !isdeadent(ienxt,msh.edg2poi),
-        "Invalid ienxt = "<<ienxt<<" w/ itnxt = "<<itnxt<<" ninsp = "<<ninsp);
+        "Invalid ienxt = {} w/ itnxt = {} ninsp = {}", ienxt, itnxt, ninsp);
 
       #ifndef NDEBUG
       // Check the seed contains the t value 
@@ -222,8 +221,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
         }
         METRIS_ASSERT_MSG(tcur >= tedg[0] && tcur <= tedg[1]
                        || tcur <= tedg[0] && tcur >= tedg[1],
-                       "Current t = "<<tcur<<" not in edge bounds = "
-                       <<tedg[0]<<"  "<<tedg[1]);
+                       "Current t = {} not in edge bounds = {}  {}", tcur, tedg[0], tedg[1]);
       }
       #endif
 
@@ -388,8 +386,8 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
           intAr1 dum;
           shell3(msh, ipoi1, ipoi2, iele0, lshell, dum, &iopen);
           // should all be open shells.
-          METRIS_ASSERT_MSG(iopen >= 0," shell is closed ipoi1 = "<<ipoi1
-            <<" ipoi2 = "<<ipoi2);
+          METRIS_ASSERT_MSG(iopen >= 0,
+            "shell is open ipoi1 = {} ipoi2 = {}", ipoi1, ipoi2);
 
           for(int ielem : lshell){
             if(msh.tet2tag(ithrd1,ielem) >= msh.tag[ithrd1]) continue;

@@ -37,7 +37,7 @@ namespace Metris{
 template<class MFT, int gdim, int tdim, int ideg>
 double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method, 
                         LPLib lib, const bool cstrCcoef){
-  METRIS_ASSERT_MSG(ideg==2, "maximizeMetCcoef not implemented for ideg = " << ideg);
+  METRIS_ASSERT_MSG(ideg==2, "maximizeMetCcoef not implemented for ideg = {}", ideg);
   GETVDEPTH(msh.param);
   // The P2 and Metric specialization
   const bool MAE = false;
@@ -332,7 +332,7 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
         // double t1s = get_wall_time();
         // printf("Bisection time {:.2e}s \n",t1s-t0s);
 
-        // if(!iok) METRIS_THROW(AlgoExcept());
+        // METRIS_ENFORCE(iok);
 
         // // Got a good correction
         // double t1_tot = get_wall_time();
@@ -358,7 +358,7 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
     // }
   } // for niter 
 
-  METRIS_THROW(AlgoExcept());
+  METRIS_THROW();
   return -1;
 }
 

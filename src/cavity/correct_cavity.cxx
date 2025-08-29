@@ -93,7 +93,7 @@ int correct_cavity0(Mesh<MFT> &msh,
   //    continue;
   //    
   //    isbad:
-  //    if(*nbad >= mbad) METRIS_THROW(DMemExcept());
+  //    METRIS_ASSERT(*nbad < mbad);
   //    lbad[*nbad][0] = ientt;
   //    lbad[*nbad][1] = tdim;
   //    (*nbad)++;
@@ -182,7 +182,7 @@ int correct_cavity0(Mesh<MFT> &msh,
             //      return CAV_ERR_CADFAR;
             //    #endif
             //  }
-            //  //METRIS_THROW_MSG(GeomExcept(), "Very large geometric gap? Manual check " << err);
+            //  //METRIS_THROW_MSG( "Very large geometric gap? Manual check " << err);
             //}
 
             for(int ii = 0; ii < gdim; ii++) msh.coord(ipoin,ii) = result[ii];

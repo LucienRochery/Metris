@@ -275,7 +275,7 @@ void quafun_tradet_nodet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
 
 
   // Only if metric interpolation is needed
-  if(msh.met.getSpace() != MetSpace::Log && met_ == NULL) METRIS_THROW_MSG(WArgExcept(),
+  if(msh.met.getSpace() != MetSpace::Log && met_ == NULL) METRIS_THROW_MSG(
       "## SET MESH METRIC TO LOG BEFORE CALLING metqua2_xi");
 
   constexpr int nnmet = (gdim*(gdim+1))/2;
@@ -339,7 +339,7 @@ void quafun_tradet_nodet(Mesh<MFT> &msh,AsDeg asdmsh, AsDeg asdmet,
   if constexpr (tdim == 3) *tra += J0tJtMJJ0_diag[2];
   
   // This is an actual exception that should never theoretically happen. 
-  if(*tra < 1.0e-16) METRIS_THROW_MSG(GeomExcept(),"Zero trace of spd matrix? "<<*tra);
+  if(*tra < 1.0e-16) METRIS_THROW_MSG("Zero trace of spd matrix? "<<*tra);
 
 
   if constexpr(tdim == gdim){
