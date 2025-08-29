@@ -19,6 +19,15 @@
 
 namespace Metris{
 
+bool isGitDirty() {
+  FILE* pipe = popen("git status --porcelain 2>/dev/null", "r");
+  if (!pipe) return true;
+  
+  int c = fgetc(pipe);
+  pclose(pipe);
+  
+  return (c != EOF);
+}
 
 // Outputs a string YYYY-MM-DD-HH-MM-SS
 std::string time2str() {

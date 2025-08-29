@@ -74,19 +74,6 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_QUIET)
 
-# Check for uncommitted changes
-execute_process(
-    COMMAND ${GIT_EXECUTABLE} status --porcelain
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_UNCOMMITTED_CHANGES
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-    ERROR_QUIET)
-
-# Set a variable indicating if there are uncommitted changes
-if(GIT_UNCOMMITTED_CHANGES)
-  add_compile_definitions(METRIS_GIT_DIRTY)
-endif()
-
 add_compile_definitions(METRIS_GIT_URL="${GITURL}")
 add_compile_definitions(METRIS_GIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 message("Metris using METRIS_GIT_URL = ${GITURL}")

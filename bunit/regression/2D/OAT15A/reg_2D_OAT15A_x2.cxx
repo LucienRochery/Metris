@@ -13,11 +13,7 @@ typedef MetricFieldAnalytical MFT;
 
 BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2) 
 {
-  #ifdef METRIS_GIT_DIRTY
-  bool update_baseline = false;
-  #else
-  bool update_baseline = true;
-  #endif
+  bool update_baseline = !isGitDirty();
 
   if(update_baseline) fmt::print("-- Clean git working tree, will update baseline.\n");
   else                fmt::print("## Uncommitted changes: will not update baseline.\n");
