@@ -235,7 +235,7 @@ set(METRIS_CASES_DIR ${METRIS_CASES_DIR} CACHE PATH "Directory where Metris case
 message("-- Created directory ${METRIS_CASES_DIR} (unless it already existed)")
 make_directory(${METRIS_CASES_DIR})
 
-set(METRIS_REGRESSION_DIR "${CMAKE_SOURCE_DIR}/bunit/regression" CACHE PATH "Metris regression tests directory.")
+add_compile_definitions(METRIS_ROOT_DIR="${CMAKE_SOURCE_DIR}")
 
 enable_testing()
 

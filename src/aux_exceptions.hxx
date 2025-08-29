@@ -117,10 +117,10 @@ struct MetrisExcept: virtual std::exception{
   explicit MetrisExcept(const std::string& runtime_msg) : message(runtime_msg) {}
 
   #ifndef NO_EXCEPT_MESSAGES
-  // For formatted strings with compile-time validation
-  template<typename... Args>
-  MetrisExcept(const char* fmt, const Args&... args) 
-      : message(fmt::format(fmt, args...)) {}
+    // For formatted strings with compile-time validation
+    template<typename... Args>
+    MetrisExcept(const char* fmt, const Args&... args) 
+        : message(fmt::format(fmt, args...)) {}
   #endif
 
   MetrisExcept() : MetrisExcept("") {}
