@@ -72,10 +72,11 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
   int imin = -1;
   int ival = 0;
   for(double val : values){
-    if(std::isnan(val)){
-      printf("## NAN VALUES PROVIDED TO HISTO!\n");
-      continue;
-    }
+
+    // Make this an error as there's no good reason a NaN should be here.
+    METRIS_ASSERT_MSG(!std::isnan(val), "NAN value in histogram!");
+    if(std::isnan(val)) continue;
+
     if(val < vmin){
       vmin = val;
       imin = ival;

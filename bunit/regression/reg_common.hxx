@@ -16,28 +16,32 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
+#include <vector>
 
 namespace Metris{
 
-bool isGitDirty() {
-  FILE* pipe = popen("git status --porcelain --untracked-files=no 2>/dev/null", "r");
-  if (!pipe) return true;
+// Initialize a field json_baseline_allhwid[hwid] passed in as json_baseline
+void initialize_baseline_hwid(const std::vector<std::string>& test_names,
+                                    nlohmann::json& json_baseline, 
+                              const nlohmann::json& json_current){
+
+  json_baseline = json_current;
+  nlohmann::json metadata = json_current["metadata"];
   
-  int c = fgetc(pipe);
-  pclose(pipe);
+  // Remove CPU_time and log into CPU_times.
+  for(const std::string& test_name : test_names){
+    nlohmann::json& json_run = json_baseline["runs"][test_name];
+    double cpu_time = json_run["CPU_time"];
+    json_run.erase("CPU_time");
+    json_run["CPU_times"] = nlohmann::json::array();
+    json_run["CPU_times"].push_back(cpu_time);
+    // metadata stored per run on the baseline, as each case 
+    // might be updated at a different time.
+    json_run["metadata"] = metadata;
+  }
   
-  return (c != EOF);
 }
 
-// Outputs a string YYYY-MM-DD-HH-MM-SS
-std::string time2str() {
-  auto now = std::chrono::system_clock::now();
-  auto time_t = std::chrono::system_clock::to_time_t(now);
-  
-  std::ostringstream oss;
-  oss << std::put_time(std::localtime(&time_t), "%Y-%m-%d-%H-%M-%S");
-  return oss.str();
-}
 
 // Returns an upper bound on CPU time
 double get_baseline_CPU(nlohmann::json baseline_json){
@@ -67,6 +71,27 @@ double get_baseline_CPU(nlohmann::json baseline_json){
   }
   cpu_stdev = sqrt(cpu_stdev / ncpu);
   return cpu_avg + 2.5*cpu_stdev;
+}
+
+
+bool isGitDirty() {
+  FILE* pipe = popen("git status --porcelain --untracked-files=no 2>/dev/null", "r");
+  if (!pipe) return true;
+  
+  int c = fgetc(pipe);
+  pclose(pipe);
+  
+  return (c != EOF);
+}
+
+// Outputs a string YYYY-MM-DD-HH-MM-SS
+std::string time2str() {
+  auto now = std::chrono::system_clock::now();
+  auto time_t = std::chrono::system_clock::to_time_t(now);
+  
+  std::ostringstream oss;
+  oss << std::put_time(std::localtime(&time_t), "%Y-%m-%d-%H-%M-%S");
+  return oss.str();
 }
 
 bool isCloseMeshStat(const MeshStat& baseline, const MeshStat& current,
