@@ -71,7 +71,7 @@ void anamet3D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
   double hmin = 0.1;
   double gamma = 2;
-  SANS::SurrealS<3,double> hh = hmin + gamma*abs(z);
+  SANS::SurrealS<3,double> hh = hmin + gamma*std::abs(z);
   hh *= scale;
 
   SANS::SurrealS<3,double> eigval[3] = {1.0/(scale*scale), 1.0/(scale*scale), 1.0/(hh*hh)};
@@ -335,7 +335,7 @@ void anamet3D_6([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
   double hx = 0.1*scale;
   double hy = 0.1*scale;
-  SANS::SurrealS<3,double> hz = (h0 + 2*(0.1-h0)*abs(z-0.5))*scale;
+  SANS::SurrealS<3,double> hz = (h0 + 2*(0.1-h0)*std::abs(z-0.5))*scale;
 
   SANS::SurrealS<3,double> metS[6] = {1.0/(hx*hx), 0, 1.0/(hy*hy), 0, 0, 1.0/(hz*hz)};
 
@@ -389,7 +389,7 @@ void anamet3D_7([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double hz = 0.1*scale;
   double ht = 0.1*scale;
   const double h0 = 0.001;
-  SANS::SurrealS<3,double> hr = (h0 + 2*(0.1-h0)*abs(r-0.5))*scale;
+  SANS::SurrealS<3,double> hr = (h0 + 2*(0.1-h0)*std::abs(r-0.5))*scale;
 
   SANS::SurrealS<3,double> eigval[3], eigvec[3][3];
   eigval[0] = 1.0/(hr*hr);
@@ -454,7 +454,7 @@ void anamet3D_8([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   else      ht = d / 40 + (1 - d)*0.1;
   ht *= scale;
   const double h0 = 0.001;
-  SANS::SurrealS<3,double> hr = (h0 + 2*(0.1-h0)*abs(r-0.5))*scale;
+  SANS::SurrealS<3,double> hr = (h0 + 2*(0.1-h0)*std::abs(r-0.5))*scale;
 
   SANS::SurrealS<3,double> eigval[3], eigvec[3][3];
   eigval[0] = 1.0/(hr*hr);
@@ -486,7 +486,7 @@ void anamet3D_9([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
   SANS::SurrealS<3,double> X[3];
   const double x0 = 0.0;
-  X[0] = abs(crd[0] - x0);
+  X[0] = std::abs(crd[0] - x0);
   X[0].deriv(0) = crd[0] >= x0 ? 1 : -1;
   X[0].deriv(1) = 0;
   X[0].deriv(2) = 0;
@@ -536,7 +536,7 @@ void anamet3D_10([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict_
 
   SANS::SurrealS<3,double> X[3];
   const double x0 = 0.5;
-  X[0] = abs(crd[0] - x0);
+  X[0] = std::abs(crd[0] - x0);
   X[0].deriv(0) = crd[0] >= x0 ? 1 : -1;
   X[0].deriv(1) = 0;
   X[0].deriv(2) = 0;

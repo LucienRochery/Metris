@@ -173,13 +173,13 @@ void anamet2D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double hy_min = 0.001;
   double hy_max = 0.1;
   double hx = scale*0.5;
-  SANS::SurrealS<2,double> hy = scale*(abs(r)*hy_max + (1 - abs(r))*hy_min);
+  SANS::SurrealS<2,double> hy = scale*(std::abs(r)*hy_max + (1 - std::abs(r))*hy_min);
 
 
   SANS::SurrealS<2,double> eigval[2] = {1.0/(hy*hy), 1.0/(hx*hx)};
   SANS::SurrealS<2,double> eigvec[4];
 
-  SANS::SurrealS<2,double> y[2] = {X[0] / (abs(r) + 1.0e-6), X[1] / (abs(r) + 1.0e-6)};
+  SANS::SurrealS<2,double> y[2] = {X[0] / (std::abs(r) + 1.0e-6), X[1] / (std::abs(r) + 1.0e-6)};
   SANS::SurrealS<2,double> theta;
   if(y[0].value() > 0){
     theta = atan(y[1]/y[0]);

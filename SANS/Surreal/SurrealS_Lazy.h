@@ -1047,16 +1047,25 @@ SURREALS_FUNC1( floor, floor(z), 0 )
 
 // misc functions <cmath>
 
-using ::abs;
+// cstdlib abs only supports integer types
+// For some unexplained reason, I didn't have any warnings
+// about this in the past, but I'm starting to see them now
+// Hence, we'll be phasing out usage of ::abs(). 
+using std::abs;
 
+}
+namespace std{
 template<class Expr, class T>
-ALWAYS_INLINE SurrealSExpr::OpMul<Expr, Real, T>
-abs( const SurrealSType<Expr, T>& z )
+ALWAYS_INLINE SANS::SurrealSExpr::OpMul<Expr, Real, T>
+abs( const SANS::SurrealSType<Expr, T>& z )
 {
   return (z.value() < 0) ?
-         SurrealSExpr::OpMul<Expr, Real, T>( z.cast(), -1 ) :
-         SurrealSExpr::OpMul<Expr, Real, T>( z.cast(),  1 );
+         SANS::SurrealSExpr::OpMul<Expr, Real, T>( z.cast(), -1 ) :
+         SANS::SurrealSExpr::OpMul<Expr, Real, T>( z.cast(),  1 );
 }
+}
+namespace SANS{
+
 
 using ::fabs;
 
