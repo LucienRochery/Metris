@@ -20,7 +20,7 @@
 namespace Metris{
 
 bool isGitDirty() {
-  FILE* pipe = popen("git status --porcelain 2>/dev/null", "r");
+  FILE* pipe = popen("git status --porcelain --untracked-files=no 2>/dev/null", "r");
   if (!pipe) return true;
   
   int c = fgetc(pipe);
