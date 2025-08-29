@@ -22,15 +22,18 @@ namespace Metris{
 
 // Initialize a field json_baseline_allhwid[hwid] passed in as json_baseline
 void initialize_baseline_hwid(const std::vector<std::string>& test_names,
-                                    nlohmann::json& json_baseline, 
+                              std::string str_hwid,
+                                    nlohmann::json& json_baseline_allhwid, 
                               const nlohmann::json& json_current){
 
-  json_baseline = json_current;
+  json_baseline_allhwid[str_hwid] = json_current;
   nlohmann::json metadata = json_current["metadata"];
-  
+
+  json_baseline_allhwid[str_hwid].erase("metadata");
+
   // Remove CPU_time and log into CPU_times.
   for(const std::string& test_name : test_names){
-    nlohmann::json& json_run = json_baseline["runs"][test_name];
+    nlohmann::json& json_run = json_baseline_allhwid[str_hwid]["runs"][test_name];
     double cpu_time = json_run["CPU_time"];
     json_run.erase("CPU_time");
     json_run["CPU_times"] = nlohmann::json::array();

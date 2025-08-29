@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2)
 
       json_baseline_allhwid[hwid.to_string()] = nlohmann::json::object();
 
-      initialize_baseline_hwid(test_names, json_baseline_allhwid[hwid.to_string()], json_current);
+      initialize_baseline_hwid(test_names, hwid.to_string(), json_baseline_allhwid, json_current);
 
       std::ofstream baseline_json_file(baseline_json_fname);
       baseline_json_file << json_baseline_allhwid.dump(2);  // Pretty print with 2-space indent
