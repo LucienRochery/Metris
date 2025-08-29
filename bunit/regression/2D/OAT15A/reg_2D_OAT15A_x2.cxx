@@ -13,6 +13,15 @@ typedef MetricFieldAnalytical MFT;
 
 BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2) 
 {
+  #ifdef METRIS_GIT_DIRTY
+  bool update_baseline = false;
+  #else
+  bool update_baseline = true;
+  #endif
+
+  if(update_baseline) fmt::print("-- Clean git working tree, will update baseline.\n");
+  else                fmt::print("## Uncommitted changes: will not update baseline.\n");
+  
   std::vector<int> l_adp_opt_niter  = { -1, 5, 1, 0 };
   const double metScale = 1/sqrt(2);
 
@@ -35,9 +44,12 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2)
 
   std::vector<std::string> test_names;
 
-  for(int adp_opt_niter : l_adp_opt_niter){
+  HardwareID hwid;
+  fmt::print("-- Running on {} \n", hwid.to_string());
 
-    for(int tardeg : {1,2}){
+  for(int tardeg : {1,2}){
+    for(int adp_opt_niter : l_adp_opt_niter){
+
 
       std::string test_name = "Q1toQ" + std::to_string(tardeg) + "_cost" + std::to_string(adp_opt_niter);
       test_names.push_back(test_name);
@@ -74,7 +86,8 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2)
       //  );
       //MetrisRunner run(arg.c, arg.v);
 
-      double t0 = get_wall_time();
+      double t0 = get_cpu_time();
+      double t0b = get_wall_time();
       MetrisRunner run(NULL, param);
 
       bool iexcept = false;
@@ -88,8 +101,9 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2)
         except_message = e.what();
         fmt::print(stderr,"## Test {} raised exception:\n{}\n", test_name, except_message);
       }
-      double t1 = get_wall_time();
-      fmt::print("Total time: {:.2f} s\n", t1 - t0);
+      double t1 = get_cpu_time();
+      double t1b = get_wall_time();
+      fmt::print("Total time: wall = {:.2f}s, user = {:.2f}s\n", t1b - t0b, t1 - t0);
       
       MeshStat stat;
       if(!iexcept){
@@ -113,9 +127,9 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2)
   json_file << json_current.dump(2);  // Pretty print with 2-space indent
 
   // Now look for the baseline json file and compare.
-  std::string baseline_json_file = METRIS_REGRESSION_DIR "/2D/OAT15A/reg_2D_OAT15A_x2.baseline.json";
-  if(std::filesystem::exists(baseline_json_file)){
-    std::ifstream jfile(baseline_json_file);
+  std::string baseline_json_fname = METRIS_REGRESSION_DIR "/2D/OAT15A/reg_2D_OAT15A_x2.baseline.json";
+  if(std::filesystem::exists(baseline_json_fname)){
+    std::ifstream jfile(baseline_json_fname);
     nlohmann::json json_baseline;
     jfile >> json_baseline;
     for(const std::string& test_name : test_names){
@@ -125,8 +139,10 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2)
       BOOST_REQUIRE(json_baseline["runs"].contains(test_name));
       BOOST_REQUIRE(json_current["runs"].contains(test_name));
 
-      auto json_baseline_run = json_baseline["runs"][test_name];
-      auto json_current_run  = json_current["runs"][test_name];
+      bool test_passes = true;
+
+      nlohmann::json& json_baseline_run = json_baseline["runs"][test_name];
+      nlohmann::json& json_current_run  = json_current["runs"][test_name];
 
       BOOST_REQUIRE(!json_baseline_run.contains("except"));
 
@@ -153,24 +169,63 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2)
                                iclose_avgqua, iclose_avgqua_bdry);
         baseline_stat.print("baseline",stderr);
         current_stat.print("current",stderr);
+        test_passes = false;
       }
       BOOST_CHECK_MESSAGE(icloseStat, "MeshStat for test " << test_name << " differ from baseline");
       if(icloseStat)
         fmt::print("Current test statistics better or equal as baseline\n");
 
-      double baseline_time = json_baseline_run["CPU_time"];
+      double baseline_time = get_baseline_CPU(json_baseline_run);
       double current_time  = json_current_run["CPU_time"];
-      bool iclose_time = current_time <= 1.2 * baseline_time;
+      bool iclose_time = current_time <= baseline_time;
       BOOST_CHECK_MESSAGE(iclose_time, 
                          "CPU time for test " << test_name << " increased > 1.2x, from " 
                           << baseline_time << " s to " << current_time << " s");
       if(iclose_time)
-        fmt::print("Current test time {:.2f}s ~= {:.2f}s of baseline\n", current_time, baseline_time);
+        fmt::print("Current test time {:.2f}s <= {:.2f}s baseline bound\n", current_time, baseline_time);
+      else{
+        fmt::print(stderr, "CPU time {:.2f}s > {:.2f}s baseline bound\n", baseline_time, current_time);
+        test_passes = false;
+      }
+
+      if(!test_passes || !update_baseline) continue;
+
+      // Update the baseline CPU and stats
+      json_baseline_run["CPU_times"].push_back(current_time);
+      // Update stat and metadata if this case improved.
+      if(current_stat.pctunit > baseline_stat.pctunit){
+        json_baseline_run["result"] = current_stat;
+        // metadata is stored per run on the baseline, as each case 
+        // might be updated at a different time.
+        json_baseline_run["metadata"] = json_current["metadata"]; 
+      }
+
+
     }
 
-  }else{
-    //fmt::print("No baseline file found at {}, cannot compare results.\n"
-    //           "If the results are expected, please copy {} to that location.\n",
-    //           baseline_json_file, out_dir + "runs.json");   
+  }else if(update_baseline){
+    fmt::print("## No baseline file found at {}, creating it.\n",
+               baseline_json_fname);   
+    nlohmann::json json_baseline = json_current;
+    nlohmann::json metadata = json_current["metadata"];
+    // Remove CPU_time and log into CPU_times.
+    for(const std::string& test_name : test_names){
+      auto& json_run = json_baseline["runs"][test_name];
+      double cpu_time = json_run["CPU_time"];
+      json_run.erase("CPU_time");
+      json_run["CPU_times"] = nlohmann::json::array();
+      json_run["CPU_times"].push_back(cpu_time);
+      // metadata stored per run on the baseline, as each case 
+      // might be updated at a different time.
+      json_run["metadata"] = metadata;
+    }
+    
+    std::ofstream baseline_json_file(baseline_json_fname);
+    baseline_json_file << json_baseline.dump(2);  // Pretty print with 2-space indent
+  }
+
+  if (boost::unit_test::results_collector.results(boost::unit_test::framework::current_test_case().p_id).passed() == false) {
+    fmt::print("## Some tests have failed, skipping baseline update.\n");
+    return;
   }
 }

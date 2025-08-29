@@ -7,6 +7,7 @@
 #define __METRIS_REG_COMMON__
 
 #include "../common_setup.hxx"
+#include "reg_hwid.hxx"
 
 #include "nlohmann/json.hpp"
 
@@ -27,6 +28,36 @@ std::string time2str() {
   std::ostringstream oss;
   oss << std::put_time(std::localtime(&time_t), "%Y-%m-%d-%H-%M-%S");
   return oss.str();
+}
+
+// Returns an upper bound on CPU time
+double get_baseline_CPU(nlohmann::json baseline_json){
+  METRIS_ENFORCE(baseline_json.contains("CPU_times"));
+
+  int ncpu = baseline_json["CPU_times"].size();
+  METRIS_ENFORCE(ncpu > 0);
+
+  dblAr1 cpu_times(ncpu);
+
+  double cpu_avg = 0.0;
+  int ii = 0;
+  for(double cpu_time : baseline_json["CPU_times"]){
+    cpu_times[ii++] = cpu_time;
+    cpu_avg += cpu_time;
+  }
+  cpu_avg /= ncpu;
+
+  // Start at 1.5x and gradually go down to 1x
+  if(ncpu < 5) return cpu_avg * 1.5 - 0.1*cpu_avg;
+
+  // Otherwise, use 2.5 sigma, which is a little under 99% confidence
+  // interval (assuming normal distribution)
+  double cpu_stdev = 0.0;
+  for(double cpu_time : cpu_times){
+    cpu_stdev += (cpu_time - cpu_avg) * (cpu_time - cpu_avg);
+  }
+  cpu_stdev = sqrt(cpu_stdev / ncpu);
+  return cpu_avg + 2.5*cpu_stdev;
 }
 
 bool isCloseMeshStat(const MeshStat& baseline, const MeshStat& current,
