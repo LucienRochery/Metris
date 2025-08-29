@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(test_interperr)
             int nentt = msh.nentt(idim);
             const intAr2& ent2poi = msh.ent2poi(idim);
 
-            double t0 = get_wall_time();
+            double t0 = get_cpu_time();
             double errLp = 0;
             double errLp_dbg = 0;
             for(int ientt = 0; ientt < nentt; ientt++){
@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE(test_interperr)
               errLp += err;
               //printf("Debug ientt %d err %e \n",ientt, err);
             }
-            double t1 = get_wall_time();
+            double t1 = get_cpu_time();
 
             if(s != "../cases/2tri2D.mesh")
               printf("   - pnorm %d pdeg %d ideg %d isol %d got err %7.3e elt/s = %dk/s \n",

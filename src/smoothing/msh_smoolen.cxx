@@ -88,7 +88,7 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
   HshTab_I2I ledge;
   ledge.reserve(medge);
 
-  double t0s = get_wall_time();
+  double t0s = get_cpu_time();
   for(int ientt = 0; ientt < msh.nentt(tdim); ientt++){
     INCVDEPTH(msh.param);
     if(isdeadent(ientt,ent2poi)) continue;
@@ -105,7 +105,7 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
       ledge[key] = ientt;
     }// for ied
   }// for ientt
-  double t1s = get_wall_time();
+  double t1s = get_cpu_time();
   CPRINTF1(" - init time {:.2e}s nlong = {}\n",t1s-t0s,(int)ledge.size());
 
 
@@ -134,7 +134,7 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
     }
 
     qavg /= ledge.size();
-    double t0 = get_wall_time();
+    double t0 = get_cpu_time();
     CPRINTF1(" - smoo iter {:3} init {:10.6e} < q < {:10.6e} (at {}), avg = {:10.6e}\n",
              niter,qmin,qmax,imax,qavg,msh.param->opt_pnorm);
     //if(iverb >= 2 && qmax >= 1e10){
@@ -191,7 +191,7 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
       }
     }
 
-    double t1 = get_wall_time();
+    double t1 = get_cpu_time();
     CPRINTF1(" - Iteration end time = {:.2e}s nsuccess = {} nmov = {} \n",
                           t1-t0,nsucc,nmov);
     noper += nmov;

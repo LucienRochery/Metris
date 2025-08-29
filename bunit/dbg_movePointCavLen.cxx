@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(test_eval3)
     HshTab_I2I ledge;
     ledge.reserve(medge);
 
-    double t0s = get_wall_time();
+    double t0s = get_cpu_time();
     int nedge_tot = 0;
     for(int ientt = 0; ientt < msh.nentt(tdim); ientt++){
       INCVDEPTH(msh.param);
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(test_eval3)
 
       }// for ied
     }// for ientt
-    double t1s = get_wall_time();
+    double t1s = get_cpu_time();
     printf(" - init time %f nlong = %d\n",t1s-t0s,(int)ledge.size());
 
     //msh.param->iverb = 5;

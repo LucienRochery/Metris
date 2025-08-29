@@ -79,7 +79,7 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
   //const int inod0 = tdim + 1; // only HO
   const int inod0 = 0; // all
 
-  double t0 = get_wall_time();
+  double t0 = get_cpu_time();
   CPRINTF1("-- START minimizeInterpErrglo\n");
 
   if(ialgo == 0){
@@ -199,7 +199,7 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
                                : interpErrGlo<idim,ideg,pdeg,2,true>(sol);
     errGlo1 = errGlo;
     double red = (errGlo0 - errGlo1) / errGlo0 * 100;
-    double t1 = get_wall_time();
+    double t1 = get_cpu_time();
     CPRINTF1("-- END minimizeInterpErrglo error {} -> {} reduced% {} \n",errGlo0,errGlo1,red);
     CPRINTF1("-- time = {:.2e}s = {} elt/s\n",t1-t0,(int)(nentt/(t1-t0)));
   }
@@ -294,7 +294,7 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
 
   const int inod0 = tdim + 1; // only HO
 
-  double t0 = get_wall_time();
+  double t0 = get_cpu_time();
   CPRINTF1("-- START minimizeInterpErrglo\n");
 
   // start
@@ -396,7 +396,7 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
                                : interpErrGlo<idim,ideg,pdeg,2,true>(sol);
     errGlo1 = errGlo;
     double red = (errGlo0 - errGlo1) / errGlo0 * 100;
-    double t1 = get_wall_time();
+    double t1 = get_cpu_time();
     CPRINTF1("-- END minimizeInterpErrglo error {} -> {} reduced% {} \n",errGlo0,errGlo1,red);
     CPRINTF1("-- time = {:.2e}s = {} elt/s\n",t1-t0,(int)(nentt/(t1-t0)));
   }

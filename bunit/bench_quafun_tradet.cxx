@@ -225,22 +225,22 @@ BOOST_AUTO_TEST_CASE(bench_quafun_tradet)
             double bary[tdim + 1];
             for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1/(tdim + 1.0);
 
-            double t0_full = get_wall_time();
+            double t0_full = get_cpu_time();
             for(int ientt = 0; ientt < nentt; ientt++){
               double tra, det;
               quafun(msh, AsDeg::Pk, AsDeg::Pk, ent2poi[ientt], bary, NULL, &tra, &det);
               dum += tra*det;
             }// for ientt
-            double t1_full = get_wall_time();
+            double t1_full = get_cpu_time();
             opps_full[gdim][tdim] = nentt / (t1_full - t0_full);
 
-            double t0_nodet = get_wall_time();
+            double t0_nodet = get_cpu_time();
             for(int ientt = 0; ientt < nentt; ientt++){
               double tra, det;
               quafun_nodet(msh, AsDeg::Pk, AsDeg::Pk, ent2poi[ientt], bary, NULL, &tra, &det);
               dum += tra*det;
             }// for ientt
-            double t1_nodet = get_wall_time();
+            double t1_nodet = get_cpu_time();
             opps_nodet[gdim][tdim] = nentt / (t1_nodet - t0_nodet);
 
             printf("-- gdim %d tdim %d ideg %d full %dk/s nodet %dk/s\n",gdim,tdim,msh.curdeg,

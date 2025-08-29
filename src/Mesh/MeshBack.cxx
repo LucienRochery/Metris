@@ -148,9 +148,9 @@ void MeshBack::initialize(MetrisAPI *data,
         CPRINTF1("(back)  - Compute intrinsic metric field\n")
         double t0, t1;
 
-        if(DOPRINTS1()) t0 = get_wall_time();
+        if(DOPRINTS1()) t0 = get_cpu_time();
         getMetMesh<MetricFieldFE,ideg>(param,*this);
-        if(DOPRINTS1()) t1 = get_wall_time();
+        if(DOPRINTS1()) t1 = get_cpu_time();
         CPRINTF1("(back)  - Done time = {:.2e}s\n",t1-t0);
 
         if(DOPRINTS2()) met.writeMetricFile("backmet.solb");

@@ -61,7 +61,7 @@ BOOST_AUTO_TEST_CASE(interperr)
         edgHshTab_std.insert({key, ientt});
       }
     }
-    double t0_std = get_wall_time();
+    double t0_std = get_cpu_time();
     int ninser_std = 0;
     for(int ientt = 0; ientt < nentt; ientt++){
       for(int ied = 0; ied < nedgl; ied++){
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(interperr)
         ninser_std++;
       }
     }
-    double t1_std = get_wall_time();
+    double t1_std = get_cpu_time();
 
 
     for(int ientt = 0; ientt < nentt; ientt++){
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(interperr)
         edgHshTab_mtr.insert(key, ientt);
       }
     }
-    double t0_mtr = get_wall_time();
+    double t0_mtr = get_cpu_time();
     int ninser_mtr = 0;
     for(int ientt = 0; ientt < nentt; ientt++){
       for(int ied = 0; ied < nedgl; ied++){
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(interperr)
         ninser_mtr++;
       }
     }
-    double t1_mtr = get_wall_time();
+    double t1_mtr = get_cpu_time();
 
     printf("Dummy %d %d \n",ninser_std, ninser_mtr);
 

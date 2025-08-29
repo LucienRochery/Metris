@@ -178,7 +178,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
     }
 
     qnrm /= navg;
-    double t0 = get_wall_time();
+    double t0 = get_cpu_time();
     CPRINTF1(" - smoo iter {:3} init {:10.6e} < q < {:10.6e} (at {}), avg = {:10.6e} " 
                    "(p = {})\n",niter,qmin,qmax,imax,qnrm,msh.param->opt_pnorm);
     //if(iverb >= 2 && qmax >= 1e10){
@@ -423,7 +423,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
     } // for ipoin // for ientt
     #endif
 
-    double t1 = get_wall_time();
+    double t1 = get_cpu_time();
     CPRINTF1(" - Iteration end time = {:.2e}s nsuccess = {} nmov = {} \n",
                           t1-t0,nsucc,nmov);
     noper += nmov;

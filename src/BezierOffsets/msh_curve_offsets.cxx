@@ -36,7 +36,7 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
 
   GETVDEPTH(msh.param);
 
-  double t0 = get_wall_time();
+  double t0 = get_cpu_time();
 
 
 	if(ideg > 2) METRIS_THROW_MSG("TODO: Implement ideg > 2 curveMeshOffsets.");
@@ -230,13 +230,13 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
     msh.setBasis(FEBasis::Lagrange);
     writeMesh("crv1.meshb",msh);
   }
-  double t1 = get_wall_time();
+  double t1 = get_cpu_time();
   CPRINTF1("Curving time {:.2e}s \n",t1-t0);
 
   maximizeCcoef<ideg,2,2>(msh, OptDoF::HO, LPMethod::IPM, LPLib::alglib);
 
   #else
-    double t1 = get_wall_time();
+    double t1 = get_cpu_time();
     CPRINTF1("Curving time {:.2e}s \n",t1-t0);
 
     dblAr2 pos_ctrlp(npopt,gdim);
@@ -252,7 +252,7 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
 
   #endif
 
-  double t2 = get_wall_time();
+  double t2 = get_cpu_time();
   CPRINTF1("Correction time {:.2e}s \n",t2-t1);
 
   msh.setBasis(ibas0);

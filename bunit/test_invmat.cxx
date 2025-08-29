@@ -264,27 +264,27 @@ BOOST_AUTO_TEST_CASE(test_invmat)
 
       // --- Using LAPACK
       #ifdef METRIS_USE_LAPACK
-      double t0_L = get_wall_time();
+      double t0_L = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met2[ii] = met_samples[ndim-2](isamp, ii);
         for(int ii = 0; ii < nnmet; ii++) met2[ii] = met[ii];
         invspd_LAPACK(ndim, met2);
         dumtot += met2[0];
       }
-      double t1_L = get_wall_time();
+      double t1_L = get_cpu_time();
       #endif
 
       // --- Using Eigen's LL^T
-      double t0_E = get_wall_time();
+      double t0_E = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met2[ii] = met_samples[ndim-2](isamp, ii);
         invspd_Eigen<ndim,double>(met,met2);
         dumtot += met2[0];
       }
-      double t1_E = get_wall_time();
+      double t1_E = get_cpu_time();
 
       // --- Using eigendecomposition (DSYEVQ)
-      double t0_D = get_wall_time();
+      double t0_D = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met2[ii] = met_samples[ndim-2](isamp, ii);
         double eigva2[ndim], eigve2[ndim*ndim];
@@ -293,7 +293,7 @@ BOOST_AUTO_TEST_CASE(test_invmat)
         eig2met<ndim>(eigva2, eigve2, met2);
         dumtot += met2[0];
       }
-      double t1_D = get_wall_time();
+      double t1_D = get_cpu_time();
 
 
       #ifdef METRIS_USE_LAPACK
@@ -334,7 +334,7 @@ BOOST_AUTO_TEST_CASE(test_invmat)
 
       #ifdef METRIS_USE_LAPACK
       // --- Using LAPACK
-      double t0_L = get_wall_time();
+      double t0_L = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < ndim; ii++)
           for(int jj = 0; jj < ndim; jj++)
@@ -342,11 +342,11 @@ BOOST_AUTO_TEST_CASE(test_invmat)
         invmat_LAPACK(ndim, mat);
         dumtot += mat2[0];
       }
-      double t1_L = get_wall_time();
+      double t1_L = get_cpu_time();
       #endif
 
       // --- Using Eigen's LL^T
-      double t0_PP = get_wall_time();
+      double t0_PP = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < ndim; ii++)
           for(int jj = 0; jj < ndim; jj++)
@@ -354,10 +354,10 @@ BOOST_AUTO_TEST_CASE(test_invmat)
         invmat_EigenLUPP<ndim,double>(mat,mat2);
         dumtot += mat2[0];
       }
-      double t1_PP = get_wall_time();
+      double t1_PP = get_cpu_time();
 
       // --- Using eigendecomposition (DSYEVQ)
-      double t0_FP = get_wall_time();
+      double t0_FP = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < ndim; ii++)
           for(int jj = 0; jj < ndim; jj++)
@@ -365,7 +365,7 @@ BOOST_AUTO_TEST_CASE(test_invmat)
         invmat_EigenLUFP<ndim,double>(mat,mat2);
         dumtot += mat2[0];
       }
-      double t1_FP = get_wall_time();
+      double t1_FP = get_cpu_time();
 
 
       #ifdef METRIS_USE_LAPACK

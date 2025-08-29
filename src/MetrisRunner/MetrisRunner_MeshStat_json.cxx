@@ -7,27 +7,29 @@
 
 #include "nlohmann/json.hpp"
 
+#include <cmath>
+
 namespace Metris{
 
 bool MeshStat::operator==(const MeshStat& rhs){
-  return abs(this->pctunit - rhs.pctunit) < 1.0e-3
-      && abs(this->minlen  - rhs.minlen ) < 1.0e-1
-      && abs(this->maxlen  - rhs.maxlen ) < 1.0e-1
-      && abs(this->avglen  - rhs.avglen ) < 1.0e-2
+  return std::abs(this->pctunit - rhs.pctunit) < 1.0e-3
+      && std::abs(this->minlen  - rhs.minlen ) < 1.0e-1
+      && std::abs(this->maxlen  - rhs.maxlen ) < 1.0e-1
+      && std::abs(this->avglen  - rhs.avglen ) < 1.0e-2
 
-      && abs(this->pctunit_bdry - rhs.pctunit_bdry) < 1.0e-3
-      && abs(this->minlen_bdry  - rhs.minlen_bdry ) < 1.0e-1
-      && abs(this->maxlen_bdry  - rhs.maxlen_bdry ) < 1.0e-1
-      && abs(this->avglen_bdry  - rhs.avglen_bdry ) < 1.0e-2
+      && std::abs(this->pctunit_bdry - rhs.pctunit_bdry) < 1.0e-3
+      && std::abs(this->minlen_bdry  - rhs.minlen_bdry ) < 1.0e-1
+      && std::abs(this->maxlen_bdry  - rhs.maxlen_bdry ) < 1.0e-1
+      && std::abs(this->avglen_bdry  - rhs.avglen_bdry ) < 1.0e-2
 
 
-      && abs(this->minqua - rhs.minqua ) < 1.0e-3
-      && abs(this->maxqua - rhs.maxqua ) < 1.0e-3
-      && abs(this->avgqua - rhs.avgqua ) < 1.0e-3 
+      && std::abs(this->minqua - rhs.minqua ) < 1.0e-3
+      && std::abs(this->maxqua - rhs.maxqua ) < 1.0e-3
+      && std::abs(this->avgqua - rhs.avgqua ) < 1.0e-3 
 
-      && abs(this->minqua_bdry - rhs.minqua_bdry ) < 1.0e-3
-      && abs(this->maxqua_bdry - rhs.maxqua_bdry ) < 1.0e-3
-      && abs(this->avgqua_bdry - rhs.avgqua_bdry ) < 1.0e-3 ;
+      && std::abs(this->minqua_bdry - rhs.minqua_bdry ) < 1.0e-3
+      && std::abs(this->maxqua_bdry - rhs.maxqua_bdry ) < 1.0e-3
+      && std::abs(this->avgqua_bdry - rhs.avgqua_bdry ) < 1.0e-3 ;
 }
 void MeshStat::print(std::string name, FILE* logfile){
   fmt::print(logfile, "-- Mesh stat summary {}:\n",name.c_str());
