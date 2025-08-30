@@ -12,6 +12,7 @@
 
 #include "../Mesh/MeshBack.hxx"
 #include "../metris_options.hxx"
+#include "../utils/aux_MinMaxAvg.hxx"
 
 #include "fmt/format.h"
 #include "nlohmann/json_fwd.hpp"
@@ -27,18 +28,7 @@ The MetrisAPI class only handles interfacing (data) i.e. gets, sets and file IO
 */
 
 class MetrisAPI;
-
-struct MeshStat{
-  double pctunit, minlen, maxlen, avglen;
-  double pctunit_bdry, minlen_bdry,maxlen_bdry,avglen_bdry;
-  double minqua, maxqua, avgqua;
-  double minqua_bdry, maxqua_bdry, avgqua_bdry;
-  bool operator==(const MeshStat& rhs);
-  void print(std::string name = "", FILE* logfile = stdout);
-};
-
-void to_json(nlohmann::json& jj, const MeshStat& stat);
-void from_json(const nlohmann::json& jj, MeshStat& stat);
+class MeshStat;
 
 class MetrisRunner{
 public:

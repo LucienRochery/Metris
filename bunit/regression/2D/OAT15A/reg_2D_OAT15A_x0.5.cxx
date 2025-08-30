@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE reg_2D_OAT15A_x2
+#define BOOST_TEST_MODULE reg_2D_OAT15A_x05
 
 #include "../../reg_common.hxx"
 
@@ -11,15 +11,15 @@
 using namespace Metris;
 
 
-BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2) 
+BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x05)
 {
 
-  RegressionTestManager manager("2D/OAT15A", "reg_x2");
+  RegressionTestManager manager("2D/OAT15A", "reg_x0.5");
 
   std::vector<int> l_adp_opt_niter  = { -1, 5, 1, 0 };
 
   MetrisParameters param;
-  param.setMetricScale(1/sqrt(2));
+  param.setMetricScale(sqrt(2));
   param.adp_niter = 30;
   param.opt_niter = 10;
   param.iverb = 2;

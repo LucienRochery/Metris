@@ -99,27 +99,88 @@ std::string time2str() {
   return oss.str();
 }
 
+
 bool isCloseMeshStat(const MeshStat& baseline, const MeshStat& current,
-                     bool* iclose_pctunit, bool* iclose_pctunit_bdry,
-                     bool* iclose_avgqua, bool* iclose_avgqua_bdry){
-  *iclose_pctunit      = abs(baseline.pctunit      - current.pctunit     ) < 1.0;
-  *iclose_pctunit_bdry = abs(baseline.pctunit_bdry - current.pctunit_bdry) < 1.0;
-  *iclose_avgqua       = abs(baseline.avgqua       - current.avgqua      ) < 1.0e-2;
-  *iclose_avgqua_bdry  = abs(baseline.avgqua_bdry  - current.avgqua_bdry ) < 1.0e-2;
-  return *iclose_pctunit && *iclose_pctunit_bdry && *iclose_avgqua && *iclose_avgqua_bdry;
+                     bolAr1 &iclose_pctunit, 
+                     bolAr1 &iclose_avgquaP1,
+                     bolAr1 &iclose_avgquaPk){
+  int tdim = baseline.pctunit.get_n();
+  // We can't throw here as this'll be called in the destructor 
+  // of RegressionTestManager
+  if( tdim != baseline.quaP1.get_n()
+   || tdim != current.len.get_n()
+   || tdim != current.quaP1.get_n()){
+    fmt::print(stderr,"## ERROR in isCloseMeshStat, inconsistent tdim\n");
+    baseline.print("baseline",stderr);
+    current.print("current",stderr);
+    return false;
+   }
+
+  bool iHO = baseline.quaPk.get_n() > 0 || baseline.quaPk.get_n() > 0;
+  if(iHO && (baseline.quaPk.get_n() != tdim 
+          || current.quaPk.get_n() != tdim)){
+    fmt::print(stderr,"## ERROR in isCloseMeshStat, inconsistent tdim (HO)\n");
+    baseline.print("baseline",stderr);
+    current.print("current",stderr);
+    return false;
+  }
+
+  iclose_pctunit.set_n(tdim);
+  iclose_avgquaP1.set_n(tdim);
+  if(iHO) iclose_avgquaPk.set_n(tdim);
+  else    iclose_avgquaPk.set_n(0);
+
+  bool iret = true;
+  for(int ii = 0; ii < tdim; ii++){
+    // Set pct unit close to 1%
+    iret = iret && 
+      (iclose_pctunit[ii]  = abs(baseline.pctunit[ii] - current.pctunit[ii]) < 1.0);
+    // Quality (0,1) differs by 0.01
+    iret = iret && 
+      (iclose_avgquaP1[ii] = abs(baseline.quaP1[ii].avg() - current.quaP1[ii].avg()) < 1.0e-2);
+
+    if(!iHO) continue;
+    // Quality (0,1) differs by 0.01
+    iret = iret && 
+      (iclose_avgquaPk[ii] = abs(baseline.quaPk[ii].avg() - current.quaPk[ii].avg()) < 1.0e-2);
+  }
+
+  return iret;
 }
 
 void printUnmatchedMeshStat(const MeshStat& baseline, const MeshStat& current,
-                            bool iclose_pctunit, bool iclose_pctunit_bdry,
-                            bool iclose_avgqua, bool iclose_avgqua_bdry){
-  if(!iclose_pctunit) fmt::print(stderr," - pctunit differ: baseline {} vs current {}\n",
-      baseline.pctunit, current.pctunit);
-  if(!iclose_pctunit_bdry) fmt::print(stderr," - pctunit_bdry differ: baseline {} vs current {}\n",
-      baseline.pctunit_bdry, current.pctunit_bdry);
-  if(!iclose_avgqua) fmt::print(stderr," - avg quality differ: baseline {} vs current {}\n",
-      baseline.avgqua, current.avgqua);
-  if(!iclose_avgqua_bdry) fmt::print(stderr," - avg quality bdry differ: baseline {} vs current {}\n",
-      baseline.avgqua_bdry, current.avgqua_bdry);
+                            bolAr1 &iclose_pctunit, 
+                            bolAr1 &iclose_avgquaP1,
+                            bolAr1 &iclose_avgquaPk){
+  int tdim = baseline.pctunit.get_n();
+  // We can't throw here as this'll be called in the destructor 
+  // of RegressionTestManager
+  if( tdim != baseline.quaP1.get_n()
+   || tdim != current.len.get_n()
+   || tdim != current.quaP1.get_n()){
+    fmt::print(stderr,"## ERROR in isCloseMeshStat, inconsistent tdim\n");
+    baseline.print("baseline",stderr);
+    current.print("current",stderr);
+    return;
+   }
+
+  bool iHO = baseline.quaPk.get_n() > 0 || baseline.quaPk.get_n() > 0;
+  if(iHO && (baseline.quaPk.get_n() != tdim 
+          || current.quaPk.get_n() != tdim)){
+    fmt::print(stderr,"## ERROR in isCloseMeshStat, inconsistent tdim (HO)\n");
+    baseline.print("baseline",stderr);
+    current.print("current",stderr);
+    return;
+  }
+
+  for(int ii = 0; ii < tdim; ii++){
+    if(!iclose_pctunit[ii]) fmt::print(stderr," - {}D % unit edges differ: baseline {} vs current {}\n",
+        ii+1,baseline.pctunit[ii], current.pctunit[ii]);
+    if(!iclose_avgquaP1[ii]) fmt::print(stderr," - {}D avg quality P1 differ: baseline {} vs current {}\n",
+        ii+1,baseline.quaP1[ii].avg(), current.quaP1[ii].avg());
+    if(!iclose_avgquaPk[ii]) fmt::print(stderr," - {}D avg quality Pk differ: baseline {} vs current {}\n",
+        ii+1,baseline.quaPk[ii].avg(), current.quaPk[ii].avg());
+  }
 }
 
 
@@ -195,7 +256,6 @@ public:
     double t1w_case,t0w_case = get_wall_time();
     MetrisRunner run(NULL, param);
   
-    bool iexcept = false;
     std::string except_message;
     nlohmann::json json_entry;
     json_entry["params"] = *run.param;
@@ -211,7 +271,6 @@ public:
       json_entry["result"] = stat;
       json_entry["CPU_time"] = t1_case - t0_case;
     }catch(const MetrisExcept& e){
-      iexcept = true;
       except_message = e.what();
       fmt::print(stderr,"## Test {} raised exception:\n{}\n", test_name, except_message);
       json_entry["except"] = except_message;
@@ -295,16 +354,14 @@ public:
       MeshStat baseline_stat = json_baseline_run["result"];
       MeshStat current_stat = json_current_run["result"];
 
-      bool iclose_pctunit, iclose_pctunit_bdry, iclose_avgqua, iclose_avgqua_bdry;
+      bolAr1 iclose_pctunit, iclose_avgquaP1, iclose_avgquaPk;
       bool icloseStat = isCloseMeshStat(baseline_stat, current_stat,
-          &iclose_pctunit, &iclose_pctunit_bdry,
-          &iclose_avgqua, &iclose_avgqua_bdry);
+          iclose_pctunit, iclose_avgquaP1, iclose_avgquaPk);
 
       if(!icloseStat){
         fmt::print(stderr, "Mesh stats diverge for test {}:\n",test_name);
         printUnmatchedMeshStat(baseline_stat, current_stat, 
-                                iclose_pctunit, iclose_pctunit_bdry,
-                                iclose_avgqua, iclose_avgqua_bdry);
+                               iclose_pctunit, iclose_avgquaP1, iclose_avgquaPk);
         baseline_stat.print("baseline",stderr);
         current_stat.print("current",stderr);
         test_passes = false;
@@ -338,7 +395,14 @@ public:
       // Update the baseline CPU and stats
       json_baseline_run["CPU_times"].push_back(current_time);
       // Update stat and metadata if this case improved.
-      if(current_stat.pctunit > baseline_stat.pctunit){
+      int tdim = current_stat.pctunit.get_n();
+      if(tdim != baseline_stat.pctunit.get_n()){
+        fmt::print(stderr,"## ERROR in updating baseline, inconsistent tdim\n");
+        baseline_stat.print("baseline",stderr);
+        current_stat.print("current",stderr);
+        continue;
+      }
+      if(current_stat.pctunit[tdim-1] > baseline_stat.pctunit[tdim-1]){
         json_baseline_run["result"] = current_stat;
         // metadata is stored per run on the baseline, as each case 
         // might be updated at a different time.

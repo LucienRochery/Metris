@@ -10,6 +10,7 @@
 
 #include <egads.h>
 #include "../types_arrays.hxx"
+#include "../MetrisRunner/MeshStat.hxx"
 #include "Surreal/SurrealS.h"
 
 template<typename T1, typename T2>
@@ -54,5 +55,10 @@ struct fmt::formatter<Metris::MeshArray1D<T, INT1>> : fmt::ostream_formatter {};
 template<typename T, typename INT1, typename INT2>
 struct fmt::formatter<Metris::MeshArray2D<T, INT1, INT2>> : fmt::ostream_formatter {};
 
+template<>
+struct fmt::formatter<Metris::MinMaxAvg> : fmt::ostream_formatter {};
+
+template<>
+struct fmt::formatter<Metris::MeshStat> : fmt::ostream_formatter {};
 
 #endif

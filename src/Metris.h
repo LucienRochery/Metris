@@ -46,6 +46,7 @@
 #include "low_geo/ccoef_d.hxx"
 
 #include "utils/CT_loop.hxx"
+#include "utils/aux_MinMaxAvg.hxx"
 #include "utils/aux_misc.hxx"
 #include "utils/aux_pp_inc.hxx"
 #include "utils/aux_timer.hxx"
