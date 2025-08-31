@@ -79,8 +79,10 @@ double get_baseline_CPU(nlohmann::json baseline_json){
 }
 
 
+// Return if untracked changes excluding untracked files
+// and the whole bunit/ directory. 
 bool isGitDirty() {
-  FILE* pipe = popen("git status --porcelain --untracked-files=no 2>/dev/null", "r");
+  FILE* pipe = popen("git status --porcelain --untracked-files=no 2>/dev/null | grep -v 'bunit/'", "r");
   if (!pipe) return true;
   
   int c = fgetc(pipe);
@@ -205,14 +207,12 @@ public:
       METRIS_THROW_MSG("METRIS_ROOT_DIR not defined, should be in CMakeLists.txt");
     }
 
-    std::string metris_regression_dir = METRIS_ROOT_DIR "/bunit/regression";
+    std::string metris_regression_dir = METRIS_ROOT_DIR "/bunit/regression/";
 
     t0_all = get_cpu_time();
     t0w_all = get_wall_time();
 
     update_baseline = !isGitDirty();
-    update_baseline = true;
-    fmt::print("\n\n## FORCING GIT CLEAN\n\n");
 
     if(update_baseline) fmt::print("-- Clean git working tree, will update baseline.\n");
     else                fmt::print("## Uncommitted changes: will not update baseline.\n");
@@ -407,6 +407,13 @@ public:
                     test_name, except_message);
         continue;
       }
+
+      // An error that can innocently occur if the baseline name 
+      // matches another test suite's, e.g. OAT15A_x2 vs OAT15A_x0.5
+      // if one is built by copy-pasting another and modifying...
+      MetrisParameters baseline_param = json_baseline_run["params"];
+      MetrisParameters current_param  = json_current_run["params"];
+      BOOST_REQUIRE(baseline_param == current_param);
 
       MeshStat baseline_stat = json_baseline_run["result"];
       MeshStat current_stat = json_current_run["result"];

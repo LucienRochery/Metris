@@ -237,6 +237,7 @@ make_directory(${METRIS_CASES_DIR})
 
 
 enable_testing()
+set(CTEST_OUTPUT_ON_FAILURE 1)
 
 file (GLOB TEST_SOURCES CONFIGURE_DEPENDS "bunit/*.cxx")
 file (GLOB_RECURSE TEST_REG_SOURCES CONFIGURE_DEPENDS "bunit/regression/*.cxx")
@@ -258,7 +259,8 @@ set(TEST_SOURCES ${TEST_SOURCES} ${TEST_REG_SOURCES})
 #                           ${METRIS_CASES_DIR}/gen_cases.sh)
 #add_custom_target(deploy_cases DEPENDS ${METRIS_UNIT_TEST_MESHES})
 
-set(METRIS_TARGET_TESTS_BUILD "")
+set(METRIS_TARGET_UNIT_TESTS_BUILD "")
+set(METRIS_TARGET_REGRESSION_TESTS_BUILD "")
 
 # Dummy test that runs the required builds
 include(ProcessorCount)
@@ -271,12 +273,25 @@ if(BUILD_CORES LESS 1)
   set(BUILD_CORES 1)
 endif()
 add_test(
-  NAME setup_build_and_deploy
-  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target deploy_cases metris_tests_build --parallel ${BUILD_CORES}
+  NAME setup_unit_build_and_deploy
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target deploy_cases metris_unit_tests_build --parallel ${BUILD_CORES}
 )
+set_tests_properties(setup_unit_build_and_deploy PROPERTIES
+                     LABELS "unit"
+                     FIXTURES_SETUP "unit_build_and_deploy"
+                     )
+
+add_test(
+  NAME setup_regression_build_and_deploy
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target metris_regression_tests_build --parallel ${BUILD_CORES}
+)
+set_tests_properties(setup_regression_build_and_deploy PROPERTIES
+                     LABELS "regression"
+                     FIXTURES_SETUP "regression_build_and_deploy"
+                     )
 
 foreach(test_file ${TEST_SOURCES})
-  get_filename_component(test_target ${test_file} NAME_WE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
+  get_filename_component(test_target ${test_file} NAME_WLE) # Get name e.g. unit_dbg1 out of $PATHTOFILE/unit_dbg1.cxx
   set(test_target_build "${test_target}_build")
   add_executable(${test_target_build} EXCLUDE_FROM_ALL ${test_file})
   set_target_properties(${test_target_build} PROPERTIES OUTPUT_NAME ${test_target})
@@ -305,18 +320,28 @@ foreach(test_file ${TEST_SOURCES})
   # Note: CMake uses regexp, not  bash-style globs. 
   # Hence _* would match to any number of '_', but not to any number of any characters...
   if(test_target MATCHES "^test_.*")
-    list(APPEND METRIS_TARGET_TESTS_BUILD ${test_target_build})
-    add_test(
-      NAME ${test_target}
-      COMMAND $<TARGET_FILE:${test_target_build}>
-      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-    )
+    list(APPEND METRIS_TARGET_UNIT_TESTS_BUILD ${test_target_build})
+    add_test(NAME ${test_target}
+             COMMAND $<TARGET_FILE:${test_target_build}>
+             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            )
 
     # Doing add_test(toto) doesn't create a toto target 
     # that we can add deps to. Instead, we should use fixtures.
     set_tests_properties(${test_target} PROPERTIES
-        FIXTURES_REQUIRED "build_and_deploy"
-    )
+                         FIXTURES_REQUIRED "unit_build_and_deploy"
+                         LABELS "unit"
+                         )
+  elseif(test_target MATCHES "^reg_.*")
+    list(APPEND METRIS_TARGET_REGRESSION_TESTS_BUILD ${test_target_build})
+    add_test(NAME ${test_target}
+             COMMAND $<TARGET_FILE:${test_target_build}>
+             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            )
+    set_tests_properties(${test_target} PROPERTIES
+                         FIXTURES_REQUIRED "regression_build_and_deploy"
+                         LABELS "regression"
+                         )
   endif()
 
   ## Ensure that foo_build is built before foo
@@ -324,10 +349,12 @@ foreach(test_file ${TEST_SOURCES})
 endforeach()
 
 # A target to manually compile the tests, no longer necessary
-add_custom_target(metris_tests_build
-                  DEPENDS ${METRIS_TARGET_TESTS_BUILD}
+add_custom_target(metris_unit_tests_build
+                  DEPENDS ${METRIS_TARGET_UNIT_TESTS_BUILD}
                   )
-
+add_custom_target(metris_regression_tests_build
+                  DEPENDS ${METRIS_TARGET_REGRESSION_TESTS_BUILD}
+                  )
 
 
 

@@ -41,6 +41,8 @@ struct MetrisParameters{
     }
   }
 
+  bool operator==(const MetrisParameters &other) const;
+
   void checkParameters();
 
   void setMeshIn(std::string inp);

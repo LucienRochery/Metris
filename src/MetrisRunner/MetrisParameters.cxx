@@ -16,6 +16,94 @@
 namespace Metris{
 
 
+bool MetrisParameters::operator==(const MetrisParameters &other) const{
+  if(usrTarDeg != other.usrTarDeg) return false;
+  if(nproc != other.nproc) return false;
+  if(jtol != other.jtol) return false;
+  if(vtol != other.vtol) return false;
+  if(geo_lentolfac != other.geo_lentolfac) return false;
+  if(geo_abstoledg != other.geo_abstoledg) return false;
+
+
+  if(adp_opt_niter != other.adp_opt_niter) return false;
+  if(adp_niter != other.adp_niter) return false;
+  if(adp_unit_stop != other.adp_unit_stop) return false;
+  if(adp_line_adapt != other.adp_line_adapt) return false;
+  if(adp_stagn_stop != other.adp_stagn_stop) return false;
+  if(adp_smoo_len != other.adp_smoo_len) return false;
+
+  if(hmin != other.hmin) return false;
+  if(hmax != other.hmax) return false;
+  if(met_snap_tol != other.met_snap_tol) return false;
+  if(anamet_dx != other.anamet_dx) return false;
+  if(anamet_dy != other.anamet_dy) return false;
+  if(anamet_dz != other.anamet_dz) return false;
+
+  if(curveType != other.curveType) return false;
+  if(smoo_type != other.smoo_type) return false;
+
+  if(iflag1 != other.iflag1) return false;
+  if(iflag2 != other.iflag2) return false;
+  if(iflag3 != other.iflag3) return false;
+  if(rflag1 != other.rflag1) return false;
+  if(rflag2 != other.rflag2) return false;
+  if(rflag3 != other.rflag3) return false;
+
+  if(opt_niter != other.opt_niter) return false;
+  if(opt_pnorm != other.opt_pnorm) return false;
+  if(opt_power != other.opt_power) return false;
+  if(opt_smoo_niter != other.opt_smoo_niter) return false;
+  if(opt_smoo_tol != other.opt_smoo_tol) return false;
+
+  if(qua_surf_wt_normal != other.qua_surf_wt_normal) return false;
+  if(qua_surf_wt_quality != other.qua_surf_wt_quality) return false;
+
+
+  if(opt_coef_det != other.opt_coef_det) return false;
+  if(opt_coef_tra != other.opt_coef_tra) return false;
+  if(opt_powr_det != other.opt_powr_det) return false;
+  if(opt_powr_tra != other.opt_powr_tra) return false;
+
+  if(opt_unif != other.opt_unif) return false;
+  if(opt_swap_niter != other.opt_swap_niter) return false;
+  if(opt_swap_pnorm != other.opt_swap_pnorm) return false;
+  if(opt_swap_thres != other.opt_swap_thres) return false;
+
+  if(opt_swap_tet_expensive != other.opt_swap_tet_expensive) return false;
+
+  if(interp_err_min_algo != other.interp_err_min_algo) return false;
+
+  if(scaleMet != other.scaleMet) return false;
+  if(metScale != other.metScale) return false;
+
+  if(anaMet != other.anaMet) return false;
+  if(ianamet != other.ianamet) return false;
+
+  if(anaSol != other.anaSol) return false;
+  if(ianasol != other.ianasol) return false;
+  if(intp_pdeg != other.intp_pdeg) return false;
+  if(intp_pnorm != other.intp_pnorm) return false;
+
+  // Check filename component of file names match, ignore path. 
+  std::string inpCAD = this->cadFileName.substr(this->cadFileName.find_last_of("/\\") + 1);
+  std::string othCAD = other.cadFileName.substr(other.cadFileName.find_last_of("/\\") + 1);
+  if(inpCAD != othCAD) return false;
+
+  std::string inpBack = this->backFileName.substr(this->backFileName.find_last_of("/\\") + 1);
+  std::string othBack = other.backFileName.substr(other.backFileName.find_last_of("/\\") + 1);
+  if(inpBack != othBack) return false;
+
+  std::string inpMesh = this->meshFileName.substr(this->meshFileName.find_last_of("/\\") + 1);
+  std::string othMesh = other.meshFileName.substr(other.meshFileName.find_last_of("/\\") + 1);
+  if(inpMesh != othMesh) return false;
+
+  std::string inpMet = this->metFileName.substr(this->metFileName.find_last_of("/\\") + 1);
+  std::string othMet = other.metFileName.substr(other.metFileName.find_last_of("/\\") + 1);
+  if(inpMet != othMet) return false;
+
+  return true;
+}
+
 void to_json(nlohmann::json& jj, const MetrisParameters& param) {
   jj = nlohmann::json{{"cadFileName", param.cadFileName}
                      ,{"backFileName", param.backFileName}
