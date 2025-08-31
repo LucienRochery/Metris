@@ -172,6 +172,7 @@ struct MetrisParameters{
 
   void setLogFile(std::string fname);
   FILE* logFile;
+  std::string logFileName;
 
   friend class MetrisRunner;
   friend class MetrisAPI;

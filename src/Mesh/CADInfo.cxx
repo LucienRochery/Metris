@@ -317,10 +317,11 @@ CADInfo& CADInfo::operator=(const CADInfo &inp){
   ncadfa = inp.ncadfa;
   ncadlp = inp.ncadlp;
 
-  cad2nod = inp.cad2nod;
-  cad2edg = inp.cad2edg;
-  cad2fac = inp.cad2fac;
-  cad2lop = inp.cad2lop;
+  // Hard copies: these are small arrays.
+  inp.cad2nod.copyTo(cad2nod);
+  inp.cad2edg.copyTo(cad2edg);
+  inp.cad2fac.copyTo(cad2fac);
+  inp.cad2lop.copyTo(cad2lop);
 
   //cfa2tag.allocate(METRIS_MAXTAGS, ncadfa, true);
   //ced2tag.allocate(METRIS_MAXTAGS, ncaded, true);

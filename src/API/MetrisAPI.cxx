@@ -88,6 +88,48 @@ MetrisAPI::MetrisAPI(MetrisRunner &run) :  flagsInit(true), CAD_(), CAD(CAD_){
   initialize(run); 
 }
 
+MetrisAPI::MetrisAPI(const MetrisAPI &other) : MetrisAPI() {
+  mshbasis = other.mshbasis;
+  metbasis = other.metbasis;
+  metspace = other.metspace;
+
+  idim = other.idim;
+  ideg = other.ideg;
+  imet = other.imet;
+  npoin = other.npoin;
+  nedge = other.nedge;
+  nface = other.nface;
+  nelem = other.nelem;
+
+  other.coord.copyTo(coord);
+  other.metfld.copyTo(metfld);
+
+  other.edg2poi.copyTo(edg2poi);
+  other.edg2ref.copyTo(edg2ref);
+
+  other.fac2poi.copyTo(fac2poi);
+  other.fac2ref.copyTo(fac2ref);
+
+  other.tet2poi.copyTo(tet2poi);
+  other.tet2ref.copyTo(tet2ref);
+
+  ncorn = other.ncorn;
+  ngpoe = other.ngpoe;
+  ngpof = other.ngpof;
+
+  other.lcorn.copyTo(lcorn);
+  other.lgpoe.copyTo(lgpoe);
+  other.rgpoe.copyTo(rgpoe);
+  other.lgpof.copyTo(lgpof);
+  other.rgpof.copyTo(rgpof);
+
+  flagsInit = other.flagsInit;
+  CAD_ = other.CAD_;
+  for(int tdimn = 1; tdimn <= 3; tdimn++) 
+    for(int iord = 0; iord < getnnode(tdimn,METRIS_MAX_DEG); iord++) 
+      usrord[tdimn-1][iord] = other.usrord[tdimn-1][iord];
+}
+
 void MetrisAPI::free(){
   coord.free();
   metfld.free();

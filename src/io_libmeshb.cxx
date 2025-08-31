@@ -484,6 +484,9 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
   if(ifac1 < 0) ifac1 = msh.nface;
   if(iele1 < 0) iele1 = msh.nelem;
 
+  METRIS_ASSERT(iedg0 >= 0 && ifac0 >= 0 && iele0 >= 0);
+  METRIS_ASSERT(iedg1 >= iedg0 && ifac1 >= ifac0 && iele1 >= iele0);
+
   std::string eff_meshName = iprefix ? msh.param->outmPrefix + meshName
                                      : meshName;
 
@@ -544,30 +547,30 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
   // this ensures all error messages are printed
   METRIS_ENFORCE(ierro <= 0);
 
-  intAr1 edg2ref(iedg1), fac2ref(ifac1), tet2ref(iele1);
-  intAr2 edg2poi(iedg1, msh.edg2poi.get_stride()),
-         fac2poi(ifac1, msh.fac2poi.get_stride()),
-         tet2poi(iele1, msh.tet2poi.get_stride());
-  msh.edg2poi.copyTo(edg2poi);
-  msh.fac2poi.copyTo(fac2poi);
-  msh.tet2poi.copyTo(tet2poi);
+  intAr1 edg2ref(iedg1-iedg0);
+  intAr1 fac2ref(ifac1-ifac0);
+  intAr1 tet2ref(iele1-iele0);
+  intAr2 edg2poi(iedg1-iedg0, msh.edg2poi.get_stride());
+  intAr2 fac2poi(ifac1-ifac0, msh.fac2poi.get_stride());
+  intAr2 tet2poi(iele1-iele0, msh.tet2poi.get_stride());
+
 
   if(msh.idim >= 3){
-    for(int i = iele0; i < iele1;i++){
-      tet2ref[i] = msh.tet2ref[i] + 1;
-      for(int j = 0; j < getnnod3(msh.curdeg); j++)
-        tet2poi(i,j) = msh.tet2poi(i,j) + 1;
+    for(int ii = iele0; ii < iele1;ii++){
+      tet2ref[ii-iele0] = msh.tet2ref[ii] + 1;
+      for(int jj = 0; jj < getnnod3(msh.curdeg); jj++)
+        tet2poi(ii-iele0,jj) = msh.tet2poi(ii,jj) + 1;
     }
   }
-  for(int i = ifac0; i < ifac1;i++){
-    fac2ref[i] = msh.fac2ref[i] + 1;
-    for(int j = 0; j < getnnod2(msh.curdeg); j++)
-      fac2poi(i,j) = msh.fac2poi(i,j) + 1;
+  for(int ii = ifac0; ii < ifac1;ii++){
+    fac2ref[ii-ifac0] = msh.fac2ref[ii] + 1;
+    for(int jj = 0; jj < getnnod2(msh.curdeg); jj++)
+      fac2poi(ii-ifac0,jj) = msh.fac2poi(ii,jj) + 1;
   }
-  for(int i = iedg0; i < iedg1; i++){
-    edg2ref[i] = msh.edg2ref[i] + 1;
-    for(int j = 0; j < getnnod1(msh.curdeg); j++)
-      edg2poi(i,j) = msh.edg2poi(i,j) + 1;
+  for(int ii = iedg0; ii < iedg1; ii++){
+    edg2ref[ii-iedg0] = msh.edg2ref[ii] + 1;
+    for(int jj = 0; jj < getnnod1(msh.curdeg); jj++)
+      edg2poi(ii-iedg0,jj) = msh.edg2poi(ii,jj) + 1;
   }
 
   int64_t libIdx;
@@ -599,8 +602,8 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
     }
     GmfSetKwd( libIdx, fKwd, iedg1- iedg0);
     GmfSetBlock(libIdx, fKwd, 1, iedg1- iedg0, 0, NULL, NULL,
-      GmfIntVec, npp, &edg2poi(iedg0,0), &edg2poi(iedg1-1,0),
-      GmfInt   ,      &edg2ref[iedg0  ], &edg2ref[iedg1-1  ]);
+      GmfIntVec, npp,  edg2poi[0],  edg2poi[iedg1-iedg0-1],
+      GmfInt   ,      &edg2ref[0], &edg2ref[iedg1-iedg0-1]);
 
     //CPRINTF2(" - DONE writing edges\n");
   }
@@ -630,8 +633,8 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
 
     GmfSetKwd( libIdx, fKwd, ifac1 - ifac0);
     GmfSetBlock(libIdx, fKwd, 1,  ifac1 - ifac0, 0, NULL, NULL,
-      GmfIntVec, nppf, &fac2poi(ifac0,0), &fac2poi(ifac1-1,0),
-      GmfInt   ,       &fac2ref[ifac0  ], &fac2ref[ifac1-1  ]);
+      GmfIntVec, nppf,  fac2poi[0], fac2poi[ifac1-ifac0-1],
+      GmfInt   ,       &fac2ref[0],&fac2ref[ifac1-ifac0-1]);
 
     //CPRINTF2(" - DONE writing triangles\n");
   }
@@ -658,8 +661,8 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
     }
     GmfSetKwd( libIdx, eKwd, iele1 - iele0);
     GmfSetBlock(libIdx, eKwd, 1, iele1 - iele0, 0, NULL, NULL,
-                GmfIntVec, nppt, &tet2poi(iele0,0), &tet2poi(iele1-1,0),
-                GmfInt   ,       &tet2ref[iele0  ], &tet2ref[iele1-1   ]); //idx0 + nface[iDeg]-1
+                GmfIntVec, nppt, tet2poi[0], tet2poi[iele1-iele0-1],
+                GmfInt   ,      &tet2ref[0],&tet2ref[iele1-iele0-1]); //idx0 + nface[iDeg]-1
     //CPRINTF2(" - DONE writing tetrahedra\n");
   }
 

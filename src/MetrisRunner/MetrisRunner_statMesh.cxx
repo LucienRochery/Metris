@@ -65,7 +65,7 @@ void MetrisRunner::statMesh0(int tdim, MeshStat* stat_){
   msh.param->qua_surf_wt_normal = 0;
   for(AsDeg asdeg : {AsDeg::P1, AsDeg::Pk}){
     if(asdeg == AsDeg::Pk && msh.curdeg == 1) continue;
-    for(int tdim_ = 1; tdim_ <= tdim; tdim_++){
+    for(int tdim_ = 2; tdim_ <= tdim; tdim_++){
       bool iinva;
       double qmin, qmax, qavg;
       getmetquamesh<MFT>(msh,tdim_,asdeg,asdeg,
@@ -79,6 +79,7 @@ void MetrisRunner::statMesh0(int tdim, MeshStat* stat_){
 
 
 
+  #if METRIS_MAX_DEG >= 2
   if(param->anaSol && msh.idim == 2 && DOPRINTS1()){
     SolutionFieldAnalytical sol(msh);
     sol.setAnalyticalSolution(param->ianasol);
@@ -94,7 +95,8 @@ void MetrisRunner::statMesh0(int tdim, MeshStat* stat_){
     //}}CT_FOR1(idim);
     CPRINTF1("-- Analytical solution interpolation error pnorm {} pdeg {}: {}\n",
              param->intp_pdeg, param->intp_pnorm, errGlo);
-  } 
+  }
+  #endif
 
   if(DOPRINTS1()) stat.print("",param->logFile);
   if(stat_) *stat_ = stat;

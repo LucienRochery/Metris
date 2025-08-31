@@ -40,14 +40,20 @@ double interpErrGlo(const SolutionFieldAnalytical &sol){
 #define BOOST_PP_LOCAL_MACRO(n)\
 template double interpErrGlo<2, 1, n, 1,false>(const SolutionFieldAnalytical &sol);\
 template double interpErrGlo<2, 1, n, 2,false>(const SolutionFieldAnalytical &sol);\
+template double interpErrGlo<2, 1, n, 1,true >(const SolutionFieldAnalytical &sol);\
+template double interpErrGlo<2, 1, n, 2,true >(const SolutionFieldAnalytical &sol);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+#if METRIS_MAX_DEG > 1
+#define BOOST_PP_LOCAL_MACRO(n)\
 template double interpErrGlo<2, 2, n, 1,false>(const SolutionFieldAnalytical &sol);\
 template double interpErrGlo<2, 2, n, 2,false>(const SolutionFieldAnalytical &sol);\
-template double interpErrGlo<2, 1, n, 1,true >(const SolutionFieldAnalytical &sol);\
-template double interpErrGlo<2, 1, n, 2,true >(const SolutionFieldAnalytical &sol);\
 template double interpErrGlo<2, 2, n, 1,true >(const SolutionFieldAnalytical &sol);\
 template double interpErrGlo<2, 2, n, 2,true >(const SolutionFieldAnalytical &sol);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
+#endif
 
 
 // Compute interpolation error over ball of point (shell if HO node)
@@ -129,6 +135,15 @@ template double interpErrBall<2, 2, n, 2,true >(const SolutionFieldAnalytical &s
 // pdeg is interpolation degree maximum 2 
 // pnorm is interp err pnorm maximum 2 
 // Derivatives are derived in docs/Derivatives_interpolation_error.pdf
+#if METRIS_MAX_DEG == 1
+
+template<int idim, int ideg, int pdeg, int pnorm, bool iexact>
+double interpErr(const SolutionFieldAnalytical &sol, int ielem,
+                 int idof, std::initializer_list<double*> derr){
+  METRIS_THROW_MSG("interpErr not implemented for METRIS_MAX_DEG == 1");
+  return 0.0;
+}
+#else
 template<int idim, int ideg, int pdeg, int pnorm, bool iexact>
 double interpErr(const SolutionFieldAnalytical &sol, int ielem,
                  int idof, std::initializer_list<double*> derr){
@@ -443,6 +458,9 @@ double interpErr(const SolutionFieldAnalytical &sol, int ielem,
 
   return err_tot;
 }
+#endif
+
+
 #define BOOST_PP_LOCAL_MACRO(n)\
 template double interpErr<2, 1, n, 1,false>(const SolutionFieldAnalytical &sol, int ielem,\
                                int idof, std::initializer_list<double*> derr);\

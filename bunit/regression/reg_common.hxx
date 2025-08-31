@@ -195,16 +195,24 @@ public:
 
   // case_subdir example "2D/OAT15A"
   // out_subdir example "reg_x2" (subdir of 2D/OAT15A)
-  RegressionTestManager(std::string case_subdir, std::string out_subdir){
+  RegressionTestManager(std::string case_subdir, std::string out_subdir, std::string baseline_name_base){
   
     #ifndef METRIS_ROOT_DIR
       #error "METRIS_ROOT_DIR not defined, should be in CMakeLists.txt"
     #endif
 
+    if(std::string(METRIS_ROOT_DIR).empty()){
+      METRIS_THROW_MSG("METRIS_ROOT_DIR not defined, should be in CMakeLists.txt");
+    }
+
+    std::string metris_regression_dir = METRIS_ROOT_DIR "/bunit/regression";
+
     t0_all = get_cpu_time();
     t0w_all = get_wall_time();
 
     update_baseline = !isGitDirty();
+    update_baseline = true;
+    fmt::print("\n\n## FORCING GIT CLEAN\n\n");
 
     if(update_baseline) fmt::print("-- Clean git working tree, will update baseline.\n");
     else                fmt::print("## Uncommitted changes: will not update baseline.\n");
@@ -227,14 +235,73 @@ public:
 
     fmt::print("-- Running on {} \n", hwid.to_string());
 
+
+    baseline_json_fname = metris_regression_dir + case_subdir + "/"
+                        + baseline_name_base + ".baseline.json";
+
+    fmt::print("-- Baseline file: {}\n", baseline_json_fname);
   }
 
+  std::string getMeshIn(const std::string &msh_base_name) const {
+    return case_dir + msh_base_name;
+  }
+  std::string getMetricIn(const std::string &met_base_name) const {
+    if(met_base_name.empty()) return "";
+    return case_dir + met_base_name;
+  }
+  std::string getCADIn(const std::string &CAD_base_name) const {
+    if(CAD_base_name.empty()) return "";
+    return case_dir + CAD_base_name;
+  }
+  std::string getOutDir() const {
+    return out_dir;
+  }
+
+  // Call this to run from files
   // CAD_base_name and met_base_name can be ""
   void runTest(MetrisParameters& param, 
                std::string test_name,
                std::string mesh_base_name,
                std::string CAD_base_name,
                std::string met_base_name){
+    
+    std::string outfile = out_dir + test_name;
+
+    param.setMeshIn(getMeshIn(mesh_base_name));
+    if(!met_base_name.empty()) param.setMetricFile(getMetricIn(met_base_name));
+    if(!CAD_base_name.empty()) param.setCAD(getCADIn(CAD_base_name));
+    param.outmPrefix = tmp_dir;
+    param.setLogFile(outfile + ".log");
+    param.setMeshOut(outfile);
+
+    MetrisRunner run(NULL, param);
+
+    runTest(test_name, run);
+  }
+
+  // Call this to run from existing MetrisAPI data
+  // (e.g. if some preprocessing was done)
+  // Example reg_2D_OAT15A_x2.cxx test reg_2D_OAT15A_x2_Q2toQ2
+  // Note we could also have passed a preprocessing function handle,
+  // but its type is likely to change with time, requiring more maintenance.
+  // This approach is more flexible, if a little more cumbersome. 
+  void runTest(MetrisParameters& param, 
+               std::string test_name,
+               MetrisAPI *data_front,
+               MetrisAPI *data_back){
+
+    std::string outfile = out_dir + test_name;
+    param.outmPrefix = tmp_dir;
+    param.setLogFile(outfile + ".log");
+    param.setMeshOut(outfile);
+
+    MetrisRunner run(data_front, data_back, param);
+    runTest(test_name, run);
+  }
+
+private:
+  void runTest(std::string test_name,
+               MetrisRunner& run){
 
     
     fmt::print("\n========================================\n");
@@ -242,19 +309,9 @@ public:
     
     test_names.push_back(test_name);
 
-    std::string outfile = out_dir + test_name;
-
-    param.setMeshIn(case_dir + mesh_base_name);
-    if(!met_base_name.empty()) param.setMetricFile(case_dir + met_base_name);
-    if(!CAD_base_name.empty()) param.setCAD(case_dir + CAD_base_name);
-    param.outmPrefix = tmp_dir;
-    param.setLogFile(outfile + ".log");
-    param.setMeshOut(outfile);
-    
 
     double t1_case, t0_case = get_cpu_time();
     double t1w_case,t0w_case = get_wall_time();
-    MetrisRunner run(NULL, param);
   
     std::string except_message;
     nlohmann::json json_entry;
@@ -276,10 +333,11 @@ public:
       json_entry["except"] = except_message;
     }
  
-    json_entry["logfile"]  = outfile + ".log";
+    json_entry["logfile"]  = run.param->logFileName;
     json_current["runs"][test_name] = json_entry;
 
   }
+public:
 
   ~RegressionTestManager(){
 
@@ -296,7 +354,6 @@ public:
     json_file << json_current.dump(2);  // Pretty print with 2-space indent
 
     // Now look for the baseline json file and compare.
-    std::string baseline_json_fname = METRIS_REGRESSION_DIR "/2D/OAT15A/reg_2D_OAT15A_x2.baseline.json";
 
     nlohmann::json json_baseline_allhwid;
     if(std::filesystem::exists(baseline_json_fname)){
@@ -311,7 +368,7 @@ public:
     // or if it did but HWID didn't. 
     if(!json_baseline_allhwid.contains(hwid.to_string())){
       if(update_baseline){
-        fmt::print("## Baseline doesn't contain data for HWID {}, initializing.\n", hwid.to_string());
+        fmt::print("-- Baseline doesn't contain data for HWID {}, initializing.\n", hwid.to_string());
 
         json_baseline_allhwid[hwid.to_string()] = nlohmann::json::object();
 
@@ -420,7 +477,7 @@ public:
   
 public:
 // Provided
-  std::string case_dir, out_dir, tmp_dir;
+  std::string case_dir, out_dir, tmp_dir, baseline_json_fname;
 
 // Internal
   HardwareID hwid;

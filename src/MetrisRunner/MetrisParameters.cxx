@@ -529,6 +529,7 @@ void MetrisParameters::setMetricScale(double sclmet){
 
 
 void MetrisParameters::setLogFile(std::string fname){
+  logFileName = fname;
   if(fname == "stdout"){
     logFile = stdout;
   }else if(fname == "stderr"){

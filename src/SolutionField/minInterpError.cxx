@@ -207,6 +207,7 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
   msh.setBasis(ibas0);
 }
 
+#if METRIS_MAX_DEG > 1
 #define BOOST_PP_LOCAL_MACRO(n)\
 template \
 void minimizeInterpErrglo0<MetricFieldAnalytical, 2, n, 1>(Mesh<MetricFieldAnalytical> &msh, \
@@ -226,6 +227,8 @@ void minimizeInterpErrglo0<MetricFieldFE, 2, n, 2>(Mesh<MetricFieldFE> &msh, \
                            int pnorm, int ialgo, int ithrd1, int ithrd2);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
+#endif
+
 
 #if 0
 template<int idim, int ideg>
@@ -608,7 +611,12 @@ template \
 int minimizeInterpErrloc_Newton<MetricFieldFE, 2, n, 1>(Mesh<MetricFieldFE> &msh, \
                            const SolutionFieldAnalytical &sol, \
                            int pnorm, intAr1& lball, intAr1& lnode,\
-                           double *errLp0, double *errLp1);\
+                           double *errLp0, double *errLp1);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+#if METRIS_MAX_DEG > 1
+#define BOOST_PP_LOCAL_MACRO(n)\
 template \
 int minimizeInterpErrloc_Newton<MetricFieldAnalytical, 2, n, 2>(Mesh<MetricFieldAnalytical> &msh, \
                            const SolutionFieldAnalytical &sol, \
@@ -621,7 +629,7 @@ int minimizeInterpErrloc_Newton<MetricFieldFE, 2, n, 2>(Mesh<MetricFieldFE> &msh
                            double *errLp0, double *errLp1);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
-
+#endif
 
 
 // Not thread safe
@@ -653,7 +661,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
   int ifmin;
   double barmin[idim+1], fopt;
 
-  constexpr auto evalf = idim == 2 ? eval2<idim,idim> : eval3<idim,idim>;
+  constexpr auto evalf = idim == 2 ? eval2<idim,ideg> : eval3<idim,ideg>;
 
 
   if(pnorm == 1){
@@ -805,7 +813,12 @@ template \
 int minimizeInterpErrloc_DIRECT<MetricFieldFE, 2, n, 1>(Mesh<MetricFieldFE> &msh, \
                            const SolutionFieldAnalytical &sol, \
                            int pnorm, intAr1& lball, intAr1& lnode,\
-                           double *errLp0, double *errLp1);\
+                           double *errLp0, double *errLp1);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+#if METRIS_MAX_DEG > 1
+#define BOOST_PP_LOCAL_MACRO(n)\
 template \
 int minimizeInterpErrloc_DIRECT<MetricFieldAnalytical, 2, n, 2>(Mesh<MetricFieldAnalytical> &msh, \
                            const SolutionFieldAnalytical &sol, \
@@ -818,7 +831,6 @@ int minimizeInterpErrloc_DIRECT<MetricFieldFE, 2, n, 2>(Mesh<MetricFieldFE> &msh
                            double *errLp0, double *errLp1);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
-
-
+#endif
 
 } //namespace

@@ -235,7 +235,6 @@ set(METRIS_CASES_DIR ${METRIS_CASES_DIR} CACHE PATH "Directory where Metris case
 message("-- Created directory ${METRIS_CASES_DIR} (unless it already existed)")
 make_directory(${METRIS_CASES_DIR})
 
-add_compile_definitions(METRIS_ROOT_DIR="${CMAKE_SOURCE_DIR}")
 
 enable_testing()
 
@@ -283,8 +282,10 @@ foreach(test_file ${TEST_SOURCES})
   set_target_properties(${test_target_build} PROPERTIES OUTPUT_NAME ${test_target})
   setMetrisCXXFlags(${test_target_build} PUBLIC)
   target_compile_definitions(${test_target_build} PUBLIC METRIS_CASES_DIR="${METRIS_CASES_DIR}"
-                                                         METRIS_REGRESSION_DIR="${METRIS_REGRESSION_DIR}"
+                                                         METRIS_ROOT_DIR="${CMAKE_SOURCE_DIR}"
                                                          )
+                                                        # METRIS_REGRESSION_DIR="${METRIS_REGRESSION_DIR}"
+                                                         
   target_link_libraries(${test_target_build} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   target_link_libraries(${test_target_build} PUBLIC libMetris 
                                                     ${METRIS_DEPS_LIBRARIES}

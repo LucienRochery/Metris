@@ -61,6 +61,9 @@ public:
   // Constructor destroys the input MetrisRunner. 
   MetrisAPI(MetrisRunner &run); 
 
+  // Deep copy
+  MetrisAPI(const MetrisAPI &);
+
 
   // Equivalently call this at any point (overwrite) -> can be used to 
   // "resurrect" a MetrisAPI
