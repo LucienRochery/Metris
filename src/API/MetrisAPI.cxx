@@ -846,7 +846,8 @@ void MetrisAPI::getElementRef(int tdimn, int ielem, int *iref) const{
 
 void MetrisAPI::setCorner(int icorn, int ipcor){
   if(ncorn == 0) return;
-  METRIS_ASSERT(ipcor >= 0 && ipcor < ncorn);
+  METRIS_ASSERT(ipcor >= 0 && ipcor < npoin);
+  METRIS_ASSERT(icorn >= 0 && icorn < ncorn);
   lcorn[icorn] = ipcor; 
 }
 
