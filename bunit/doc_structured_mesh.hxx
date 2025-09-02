@@ -11,7 +11,9 @@ void doc_structured_mesh(const double xmin, const double xmax,
                          const double ymin, const double ymax,
                          const int nx, const int ny,
                          intAr2& fac2poi,
+                         intAr1& fac2ref,
                          intAr2& edg2poi,
+                         intAr1& edg2ref,
                          dblAr2& coord,
                          intAr2& fac2fac,
                          intAr2& edg2edg,
@@ -46,6 +48,7 @@ void doc_structured_mesh(const double xmin, const double xmax,
 
   // fill coordinates array
   const int npoin = nx*ny;
+  coord.allocate(npoin,2);
   coord.set_n(npoin);
 
   double dx = (xmax-xmin)/(nx-1);
@@ -61,7 +64,9 @@ void doc_structured_mesh(const double xmin, const double xmax,
   // subdivide mesh in (nx-1) x (ny-1) rectangles and loop over them
   // to split them and fill fac2poi, edg2poi, fac2fac, edg2edg
   const int nfaces = (nx-1)*(ny-1)*2;
+  fac2poi.allocate(nfaces,3);
   fac2poi.set_n(nfaces);
+  fac2fac.allocate(nfaces,3);
   fac2fac.set_n(nfaces);
   for (int ii = 0; ii < nx-1; ii++)
     for (int jj = 0; jj < ny-1; jj++) {
@@ -99,10 +104,15 @@ void doc_structured_mesh(const double xmin, const double xmax,
       fac2fac(ifaceNW,2) = ifaceSE;
     }
 
-  // edge connectivity is particularly easy
+  // edge connectivity is particularly simple
   const int nedge = 2*(nx-1) + 2*(ny-1);
+  edg2poi.allocate(nedge,2);
   edg2poi.set_n(nedge);
+  edg2edg.allocate(nedge,2);
   edg2edg.set_n(nedge);
+
+  edg2ref.set_n(nedge);
+  int bndRef = 0;
 
   int iedge = 0;
 
@@ -115,7 +125,10 @@ void doc_structured_mesh(const double xmin, const double xmax,
 
     edg2poi(iedge,0) = poi0;
     edg2poi(iedge,1) = poi1;
+
+    edg2ref[iedge] = bndRef;
   }
+  bndRef++;
 
   // right boundary
   int ix = nx-1;
@@ -126,7 +139,10 @@ void doc_structured_mesh(const double xmin, const double xmax,
 
     edg2poi(iedge,0) = poi0;
     edg2poi(iedge,1) = poi1;
+
+    edg2ref[iedge] = bndRef;
   }
+  bndRef++;
 
   // top boundary
   jy = ny-1;
@@ -137,7 +153,10 @@ void doc_structured_mesh(const double xmin, const double xmax,
 
     edg2poi(iedge,0) = poi0;
     edg2poi(iedge,1) = poi1;
+
+    edg2ref[iedge] = bndRef;
   }
+  bndRef++;
 
   // left boundary
   ix = 0;
@@ -148,6 +167,8 @@ void doc_structured_mesh(const double xmin, const double xmax,
 
     edg2poi(iedge,0) = poi0;
     edg2poi(iedge,1) = poi1;
+
+    edg2ref[iedge] = bndRef;
   }
 
   // fill edg2edg connectivity
@@ -160,6 +181,11 @@ void doc_structured_mesh(const double xmin, const double xmax,
   // correct ends
   edg2edg(0,1) = nedge-1;
   edg2edg(nedge-1,0) = 0;
+
+  // fill fac2ref
+  fac2ref.set_n(nfaces);
+  const int faceRef = 0;
+  for (int iface = 0; iface < nfaces; iface++) fac2ref[iface] = faceRef;
 }
 
 } // namespace Metris
