@@ -51,7 +51,6 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2_Q2toQ2)
 
       param.adp_line_adapt = adp_geo_lines;
       param.adp_opt_niter  = adp_opt_niter;
-      param.usrTarDeg      = 2;
 
       try{
         // Hard copy because the runner moves the data.
