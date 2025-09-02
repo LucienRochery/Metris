@@ -23,6 +23,10 @@ Note: in all exercises, a `MeshBase& msh` object can be taken in instead of only
 
 - [mesh localization](exercises/mesh_localization.md): find which mesh element a point (not vertex) lies in.
 
+## Surface
+
+- [Surface topology check](exercises/surface_check.md): verify the surface topology is correct
+
 ## High-order meshes
 
 - [high-order element evaluation](exercises/HO_evaluation.md): evaluate physical points on Bézier elements from barycentric coordinates
