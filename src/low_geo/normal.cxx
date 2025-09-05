@@ -660,8 +660,12 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
     //}
     //#endif
     double dtprd = getprdl2<gdim>(norelt, norCAD);
-    double tmp = 1-abs(dtprd);
-    METRIS_ASSERT(tmp >= 0);
+    double tmp = 1 - abs(dtprd);
+    METRIS_ASSERT_MSG(tmp >= -1.0e-15, 
+      "Normalized normals dotprod > ? tmp = {:e} (<0?)\n"
+      "norelt = {}, norCAD = {}",tmp,dblAr1(3,norelt), dblAr1(3,norCAD));
+    // Value can be slightly negative due to roundoff
+    tmp = MAX(tmp, 0.0);
     nordev += abs(tmp);
     nsum++;
     CPRINTF1(" - face {} {} {} inode = {} ibpoi = {} local dev = {}\n",fac2pol[0],fac2pol[1],fac2pol[2],inode,ibpoi,tmp);
