@@ -96,37 +96,42 @@ void getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref,
               len = getlenedg_geosz_plane<MFT,gdim,ideg>(msh,ientt,tdim,iedgl,sz);
             }
           }else if(itype == LenTyp::MetCrv){
-            METRIS_ASSERT(msh.get_tdim() == gdim);
-            double offset[gdim];
-            int ients = -1, iedgs = -1;
-            if(tdim == gdim){
-              ients = ientt;
-              iedgs = iedgl;
-            }else if(tdim == 1){
-              ients = msh.edg2fac[ientt];
-              if(gdim == 2){
-                iedgs = getedgfac(msh, ients, ip1, ip2);
+
+            #if METRIS_MAX_DEG > 1
+              METRIS_ASSERT(msh.get_tdim() == gdim);
+              double offset[gdim];
+              int ients = -1, iedgs = -1;
+              if(tdim == gdim){
+                ients = ientt;
+                iedgs = iedgl;
+              }else if(tdim == 1){
+                ients = msh.edg2fac[ientt];
+                if(gdim == 2){
+                  iedgs = getedgfac(msh, ients, ip1, ip2);
+                }else{
+                  ients = msh.fac2tet(ients,0);
+                  iedgs = getedgtet(msh, ients, ip1, ip2);
+                }
               }else{
-                ients = msh.fac2tet(ients,0);
+                ients = msh.fac2tet(ientt,0);
                 iedgs = getedgtet(msh, ients, ip1, ip2);
               }
-            }else{
-              ients = msh.fac2tet(ientt,0);
-              iedgs = getedgtet(msh, ients, ip1, ip2);
-            }
-            METRIS_ASSERT(iedgs >= 0);
-            METRIS_ASSERT(ients >= 0);
+              METRIS_ASSERT(iedgs >= 0);
+              METRIS_ASSERT(ients >= 0);
 
-            getBezOffsetsEdge<MFT, gdim, ideg>(msh, gdim, msh.ent2poi(gdim)[ients], iedgs, offset);
+              getBezOffsetsEdge<MFT, gdim, ideg>(msh, gdim, msh.ent2poi(gdim)[ients], iedgs, offset);
 
-            for(int ii = 0; ii < gdim; ii++){
-              msh.coord(ipdum, ii) = (msh.coord(ip1,ii) + msh.coord(ip2,ii))/2
-                                   + offset[ii];
-            }
+              for(int ii = 0; ii < gdim; ii++){
+                msh.coord(ipdum, ii) = (msh.coord(ip1,ii) + msh.coord(ip2,ii))/2
+                                    + offset[ii];
+              }
 
-            double sz[2];
-            int edg2pol[3] = {ip1, ip2, ipdum};
-            len = getlenedg_geosz<MFT, gdim, 2>(msh, edg2pol, sz);
+              double sz[2];
+              int edg2pol[3] = {ip1, ip2, ipdum};
+              len = getlenedg_geosz<MFT, gdim, 2>(msh, edg2pol, sz);
+            #else
+              METRIS_THROW_MSG("LenTyp::MetCrv not available for P1");
+            #endif
 
           }else{
             METRIS_THROW_MSG("TODO: Size interp scheme not implemented");

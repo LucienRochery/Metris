@@ -598,7 +598,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
         double Hqutet[nHess];
         double dqutetD[gdim],hqutetD[nhess];
         ftyp1 hdum[nhess];
-        double t0 = get_wall_time();
+        double t0 = get_cpu_time();
         for(int ii = 0; ii < tdim+1; ii++){
           bary[ii] = 1.0 / (tdim + 1);
         }
@@ -610,7 +610,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
                                               power,inode,dofbas,idifmet,dqutetD,hqutetD);
           }
         }
-        double t1 = get_wall_time();
+        double t1 = get_cpu_time();
         int ps = (int) ((double)(nentt*nrfld) / (t1 - t0) / 1000);
         printf("d_quafun_distortion benchmark t = %f op/s = %dk\n",t1-t0,ps);
         for(int ientt = 0; ientt < nentt; ientt++){
@@ -618,7 +618,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
           dum += D_quafun_distortion<MFT,gdim,ideg,asdmet,double>(msh,ent2poi[ientt],bary,
                           power,dofbas,idifmet,Dqutet[0],Hqutet);
         }
-        t0 = get_wall_time();
+        t0 = get_cpu_time();
         ps = (int) ((double)(nentt) / (t0 - t1) / 1000);
         printf("D_quafun_distortion benchmark t = %f op/s = %dk\n",t1-t0,ps);
         printf("dum = %f\n",dum);

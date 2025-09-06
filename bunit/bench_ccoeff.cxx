@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(bench_ccoef, * utf::tolerance(double(1.0e-6)) )
       printf("--- Codegen \n");
       jmin = 1.0e30;
       jmax =-1.0e30;
-      t0 = get_wall_time();
+      t0 = get_cpu_time();
       for(int ielem = 0; ielem < nentt; ielem++){
         ccoef_genbez(ent2poi,msh.coord,ielem,ccoef);
         dum[0] += ccoef[0];
@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(bench_ccoef, * utf::tolerance(double(1.0e-6)) )
           jmax = MAX(ccoef[i] / vol, jmax);
         }
       }
-      t1 = get_wall_time();
+      t1 = get_cpu_time();
       ps = (int)(nentt/(t1-t0));
       ps /= 1000;
       printf(" %2.0f P%d Full elt coefs %dk/s \n",dum[0],ideg,ps);
@@ -101,7 +101,7 @@ BOOST_AUTO_TEST_CASE(bench_ccoef, * utf::tolerance(double(1.0e-6)) )
       printf("--- Manual compute at nodes \n");
       jmin = 1.0e30;
       jmax =-1.0e30;
-      t0 = get_wall_time();
+      t0 = get_cpu_time();
       for(int ielem = 0; ielem < nentt; ielem++){
         ccoef_eval<idim,idim,ideg>(msh.getBasis(),ent2poi,msh.coord,ielem,NULL,ccoef);
         dum[0] += ccoef[0];
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(bench_ccoef, * utf::tolerance(double(1.0e-6)) )
           jmax = MAX(ccoef[i] / vol, jmax);
         }
       }
-      t1 = get_wall_time();
+      t1 = get_cpu_time();
       ps = (int)(nentt/(t1-t0));
       ps /= 1000;
       printf(" %2.0f P%d Full elt coefs %dk/s \n",dum[0],ideg,ps);

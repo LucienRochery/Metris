@@ -24,6 +24,10 @@ public:
   }
   //CADInfo(ego EGADS_model_);
 
+  CADInfo(const CADInfo& other){
+    *this = other;
+  }
+
   ~CADInfo();
   
   // Return whether useable 

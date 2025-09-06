@@ -47,9 +47,9 @@ void reoderHilbert(MeshBase &msh){
 
   double *crd = msh.coord[0];
 
-  t0 = get_wall_time();
+  t0 = get_cpu_time();
   HilbertRenumbering(LPlibIdx, msh.npoin, bbLPlib, &crd[-3], &lorder[-2]);
-  t1 = get_wall_time();
+  t1 = get_cpu_time();
   printf("HilbertRenumbering() call time {:.2e}s \n",t1-t0);
 
   int *invord = NULL;
@@ -289,7 +289,7 @@ void reoderHilbert(MeshBase &msh){
 
 
   //printf("Tet 1-10 pre\n");
-  t0 = get_wall_time();
+  t0 = get_cpu_time();
   //ParallelQsort(LPlibIdx, (void *)msh.tet2poi[0], msh.nelem, sztet, cmp);
   //ParallelQsort(LPlibIdx, (void *)msh.fac2poi[0], msh.nface, szfac, cmp);
   //ParallelQsort(LPlibIdx, (void *)msh.edg2poi[0], msh.nedge, szedg, cmp);

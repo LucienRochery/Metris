@@ -95,6 +95,7 @@ foreach(meshname ${METRIS_UNIT_TEST_MESHES})
                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/examples/${meshdir_relative}
                      COMMAND ${CMAKE_COMMAND} -E env 
                              METRIS_CASES_DIR=${METRIS_CASES_DIR}
+                             PATH="$ENV{PATH}:${CMAKE_CURRENT_BINARY_DIR}"
                              ${gen_script}
                      COMMENT "Generating ${meshname}")
   message(STATUS "New command outputs ${meshname}")

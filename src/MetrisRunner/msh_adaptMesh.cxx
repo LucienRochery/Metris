@@ -82,6 +82,7 @@ void MetrisRunner::adaptMesh0(int tdim){
   // Make it an option 
   const double minstat = 1.0e-12;
   const int miter = param_.adp_niter;
+  int irestart = 0;
 
   msh.cleanup();
 
@@ -124,9 +125,9 @@ void MetrisRunner::adaptMesh0(int tdim){
 
   if(msh.CAD() && msh.param->adp_line_adapt && tdim == 1){
 
-    t0 = get_wall_time();
+    t0 = get_cpu_time();
     adaptGeoLines<MFT>(msh);
-    t1 = get_wall_time();
+    t1 = get_cpu_time();
     CPRINTF1(" - adaptGeoLines time = {:.2e}s \n",t1-t0);
     if(DOPRINTS2()) writeMesh("v2_geolines_adp",msh);
     if(DOPRINTS2()) msh.met.writeMetricFile("v2_geolines_adp");
@@ -164,7 +165,7 @@ void MetrisRunner::adaptMesh0(int tdim){
   dblAr1 lquae(msh.nface);
 
   double tinsert = 0, tcollapse = 0, tswap = 0, tsmooth = 0;
-  double ttotal = get_wall_time();
+  double ttotal = get_cpu_time();
 
 
   int iopt_niter = 0;
@@ -175,7 +176,7 @@ void MetrisRunner::adaptMesh0(int tdim){
   msh.tag[ithrdfro]++;
   for(int niter = 1; niter <= miter || (miter < 0 && niter < miter_max); niter++){
     stat0 = 0;
-    double tloop0 = get_wall_time();
+    double tloop0 = get_cpu_time();
 
 
     qmax_suf = qavg * MAX(10 / (niter * 1.0), 1.0);
@@ -183,10 +184,10 @@ void MetrisRunner::adaptMesh0(int tdim){
     //qmax_suf = 0;
     double stat;
     // 1. Collapse short edges
-    t0 = get_wall_time();
+    t0 = get_cpu_time();
     stat  = collapseShortEdges<MFT,gdim,ideg>(msh, tdim, qmax_suf, &ncoll, ithrdfro, ithrd1, ithrd2, ithrd3);
     stat0 = MAX(stat0,stat);
-    t1 = get_wall_time();
+    t1 = get_cpu_time();
     tcollapse += t1-t0;
 
     if(DOPRINTS2()){
@@ -219,10 +220,10 @@ void MetrisRunner::adaptMesh0(int tdim){
     // 2. Swaps
 
     if(niter%2 == 0 || qmax_suf < 0.5){
-      t0 = get_wall_time();
+      t0 = get_cpu_time();
       stat  = swapMesh<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdfro, ithrd1, ithrd2);
       stat0 = MAX(stat0,stat);
-      t1 = get_wall_time();
+      t1 = get_cpu_time();
       tswap += t1-t0;
 
       if(DOPRINTS2()){
@@ -254,10 +255,10 @@ void MetrisRunner::adaptMesh0(int tdim){
     // 3. Insert on long edges 
 
 
-    t0 = get_wall_time();
+    t0 = get_cpu_time();
     stat  = insertLongEdges<MFT,gdim,ideg>(msh, tdim, &ninser,ithrd1, ithrd2);
     stat0 = MAX(stat0,stat);
-    t1 = get_wall_time();
+    t1 = get_cpu_time();
     tinsert += t1-t0;
 
     //printf("Debug wait here\n");
@@ -285,10 +286,10 @@ void MetrisRunner::adaptMesh0(int tdim){
 
     if(msh.param->opt_unif && tdim == msh.get_tdim()){
       // 4. Smoothing (heuristic) -> fast but bad; improve
-      t0 = get_wall_time();
+      t0 = get_cpu_time();
       double stat = smoothInterior_Ball<MFT>(msh,QuaFun::Unit,ithrd1,ithrd2);
       stat0 = MAX(stat, stat0); 
-      t1 = get_wall_time();
+      t1 = get_cpu_time();
       if(DOPRINTS2()) writeMesh("v2_unif_adp"+ std::to_string(niter)+".meshb",msh);
       if(DOPRINTS2()) msh.met.writeMetricFile("v2_unif_adp"+ std::to_string(niter)+".solb");    
       if(DOPRINTS2()) writeBackLinks("v2_unif_adp_poi2bak" + std::to_string(niter), msh);
@@ -306,9 +307,9 @@ void MetrisRunner::adaptMesh0(int tdim){
 
 
     if(msh.param->adp_smoo_len){
-      t0 = get_wall_time();
+      t0 = get_cpu_time();
       smoothMeshLength(msh, tdim, ithrd1, ithrd2);
-      t1 = get_wall_time();
+      t1 = get_cpu_time();
 
       if(DOPRINTS2()){
         writeMesh("v2_smoolen_adp"  + std::to_string(tdim) + "D" + std::to_string(niter)+".meshb",msh);
@@ -332,9 +333,9 @@ void MetrisRunner::adaptMesh0(int tdim){
 
 
     if(msh.idim == tdim){
-      t0 = get_wall_time();
+      t0 = get_cpu_time();
       int noper = reinsertFlat<MFT,gdim,ideg>(msh);
-      t1 = get_wall_time();
+      t1 = get_cpu_time();
       msh.cleanup();
       stat  = noper / (double) msh.nface; 
       stat0 = MAX(stat0, stat);
@@ -361,7 +362,7 @@ void MetrisRunner::adaptMesh0(int tdim){
                         + (double)msh.nface
                         + (double)msh.nedge) ) + 1;
 
-    double tloop1 = get_wall_time();
+    double tloop1 = get_cpu_time();
 
     std::string fmt = 
     "{}-- Adp loop {:3} / {:3} dim {} time {:.2e}s " 
@@ -404,11 +405,13 @@ void MetrisRunner::adaptMesh0(int tdim){
       // improves by unconstraining the points, but not the interior in 3D.
       // So, regardless of dimension, we unconstrain only dim <= 2 points.
       bool uncstr = false;
-      for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-        if(msh.poi2ent(ipoin,0) < 0) continue;
-        if(msh.getpoitdim(ipoin) > 2) continue;
-        msh.poicstr[ipoin] = false;
-        uncstr = true;
+      if(++irestart < MAX(2,msh.param->adp_opt_niter)){
+        for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
+          if(msh.poi2ent(ipoin,0) < 0) continue;
+          if(msh.getpoitdim(ipoin) > 2) continue;
+          msh.poicstr[ipoin] = false;
+          uncstr = true;
+        }
       }
 
       CPRINTF1(" - low stat = {:.2e} break or optimize\n",stat0);
@@ -419,9 +422,9 @@ void MetrisRunner::adaptMesh0(int tdim){
         (iopt_niter < msh.param->adp_opt_niter|| msh.param->adp_opt_niter < 0)
          && !msh.param->opt_unif){
         iopt_niter++;
-        double tsmo0 = get_wall_time();
+        double tsmo0 = get_cpu_time();
         stat = optimMesh();
-        double tsmo1 = get_wall_time();
+        double tsmo1 = get_cpu_time();
         tsmooth += tsmo1 - tsmo0;
         msh.tag[ithrdfro]++;
         if(DOPRINTS2()){
@@ -443,7 +446,7 @@ void MetrisRunner::adaptMesh0(int tdim){
   }// for niter
 
 
-  ttotal = get_wall_time() - ttotal;
+  ttotal = get_cpu_time() - ttotal;
 
   msh.cleanup();
 

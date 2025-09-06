@@ -337,7 +337,7 @@ BOOST_AUTO_TEST_CASE(test_inveval)
             if(ifun == 1) printf(" - inveval          :");
             if(ifun == 2) printf(" - inveval_nloptD   :");
 
-            double t0 = get_wall_time();
+            double t0 = get_cpu_time();
             int nerro = 0;
             int nsucc = 0;
             for(int ientt = 0; ientt < nentt; ientt++){
@@ -438,7 +438,7 @@ BOOST_AUTO_TEST_CASE(test_inveval)
 
               } // for isamp 
             } // for ientt
-            double t1 = get_wall_time();
+            double t1 = get_cpu_time();
             double pct_err = nerro / (double) (nsucc + nerro) * 100.0;
             printf(" nerro %7d nsucc %7d pct err %4.1f maxErr = %.2e total time %f = %dk op/s\n",
                    nerro,nsucc,pct_err,maxErr, t1-t0,(int)(nsamp*naliv/(1000*(t1-t0))));

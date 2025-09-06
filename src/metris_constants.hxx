@@ -32,14 +32,18 @@ namespace hana = boost::hana;
 #endif
 
 
+
 #ifndef METRIS_MAX_DEG
 #define METRIS_MAX_DEG 3
 #endif
 
 
-
 #ifndef METRIS_MAX_DEG_JACOBIAN
 #define METRIS_MAX_DEG_JACOBIAN (3*(METRIS_MAX_DEG - 1))
+#if METRIS_MAX_DEG_JACOBIAN <= 0
+#undef METRIS_MAX_DEG_JACOBIAN
+#define METRIS_MAX_DEG_JACOBIAN 1
+#endif
 #endif
 
 

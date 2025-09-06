@@ -103,9 +103,9 @@ void adaptGeoLines2(Mesh<MFT> &msh){
 
   dblAr1 crv_lens(msh.CAD.ncaded);
   {
-  double t0 = get_wall_time();
+  double t0 = get_cpu_time();
   getCADCurveLengths(msh, (lentolfac - 1.0), crv_lens);
-  double t1 = get_wall_time();
+  double t1 = get_cpu_time();
   CPRINTF1(" - getCADCurveLengths time {:.2e}s \n",t1-t0);
   }
 

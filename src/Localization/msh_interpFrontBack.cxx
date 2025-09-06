@@ -137,7 +137,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
   intAr1 lerro(100);
   lerro.set_n(0); 
 
-  double t0 = get_wall_time();
+  double t0 = get_cpu_time();
 
   intAr1 lpfro;
   if(ipoi0 > 0){
@@ -307,7 +307,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     }
   //}
 
-  double t1 = get_wall_time();
+  double t1 = get_cpu_time();
   CPRINTF1("-- Interp Back -> Front time {:.2e}s pt/s {} nerror {} \n",t1-t0,
                                         (int)(msh.npoin/(t1-t0)),lerro.get_n());
 
@@ -393,7 +393,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
 
     }
 
-    double t2 = get_wall_time();
+    double t2 = get_cpu_time();
     CPRINTF1("-- Interp Back -> Front phase 2 time {:.2e}s nfix {} nerror {} \n",t2-t1,
             nfix, nerro);
   }while(nerro > 0 && nfix > 0);

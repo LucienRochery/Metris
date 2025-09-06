@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(test_lag2bez)  // , * utf::tolerance(double(1.0e-6))
 
       msh.coord.copyTo(coor0);
 
-      double t0 = get_wall_time();
+      double t0 = get_cpu_time();
       for(int ii = 0; ii < nconv; ii++){
         if(msh.getBasis() == FEBasis::Lagrange){
           msh.setBasis(FEBasis::Bezier);
@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(test_lag2bez)  // , * utf::tolerance(double(1.0e-6))
           dummy += msh.coord(0,0);
         }
       }
-      double t1 = get_wall_time();
+      double t1 = get_cpu_time();
 
       int npcomp = 0;
       double erri = -1.0e30;

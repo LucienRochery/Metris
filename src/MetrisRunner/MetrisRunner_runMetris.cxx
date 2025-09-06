@@ -21,7 +21,7 @@ void MetrisRunner::runMetris(){
 
 
   double t0, t1;
-  t0 = get_wall_time();
+  t0 = get_cpu_time();
 
 
   try{
@@ -89,7 +89,7 @@ void MetrisRunner::runMetris(){
     throw(e);
   }
 
-  t1 = get_wall_time();
+  t1 = get_cpu_time();
   MPRINTF("\n-- END Metris total runtime {:.2e}s\n",t1-t0);
 
 }

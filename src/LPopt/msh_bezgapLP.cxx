@@ -140,7 +140,7 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
 
       msh.tag[0]++;
 
-      double t0 = get_wall_time();
+      double t0 = get_cpu_time();
 
       for(int ielem = 0; ielem < nelems; ielem++){
         if (isdeadent(ielem, ent2poi)) continue;
@@ -229,7 +229,7 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
           }
         
       }
-      double t1 = get_wall_time();
+      double t1 = get_cpu_time();
     
       //for(int ii = 0; ii < nrow; ii++){
       //  printf("{}: ",ii);
@@ -251,7 +251,7 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
       //}
       //printf("debug coord ip 6 {} {} \n", msh.coord(6,0), msh.coord(6,1));
 
-      double t2 = get_wall_time();
+      double t2 = get_cpu_time();
 
 
       double min_ccoef_before = getminccoef<gdim,ideg>(msh);

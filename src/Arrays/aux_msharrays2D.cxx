@@ -29,7 +29,7 @@ MeshArray2D<T,INT1,INT2>::MeshArray2D(INT1 m, INT2 s){
   stride  = s;
   m1 = n1 = m;
   nmemalc = ((INTL)m1)*((INTL)stride);
-  if(nmemalc == 0) return;
+  if(nmemalc <= 0) return;
   array_sp = cpp17_make_shared<T[]>(nmemalc);
   array    = array_sp.get();
   array_ro = array; 
@@ -181,9 +181,7 @@ void MeshArray2D<T,INT1,INT2>::fill(T x){
 template<typename T, typename INT1, typename INT2>
 void MeshArray2D<T,INT1,INT2>::copyTo(MeshArray2D<T,INT1,INT2> &out, INT1 ncopy) const{
   if(ncopy < 0) ncopy = n1;
-  METRIS_ASSERT(ncopy <= n1);
-  METRIS_ENFORCE_MSG(out.get_stride() >= stride,
-                    "Out stride = {} this = {}", out.get_stride(), stride);
+  out.set_stride(stride);
   out.set_n(ncopy);
   
   for(INT1 ii = 0; ii < ncopy; ii++){

@@ -67,7 +67,7 @@ double MetrisRunner::optimMesh0(){
 
   if(param_.opt_niter == 0) return 0;
 
-  double t01 = get_wall_time();
+  double t01 = get_cpu_time();
 
   const int ithrd1 = 0;
   const int ithrd2 = 1;
@@ -133,10 +133,10 @@ double MetrisRunner::optimMesh0(){
 
 
     //if(msh.param->opt_unif){
-    //  t0 = get_wall_time();
+    //  t0 = get_cpu_time();
     //  double stat = rebalanceMesh<MFT,gdim>(msh);
     //  stat0 = MAX(stat, stat0); 
-    //  t1 = get_wall_time();
+    //  t1 = get_cpu_time();
     //  if(DOPRINTS1()){
     //    if(DOPRINTS2()) writeMesh("debug_rebalance_glo"+ std::to_string(niter)+".meshb",msh);
     //    if(DOPRINTS2()) msh.met.writeMetricFile("debug_rebalance_glo"+ std::to_string(niter)+".solb");    
@@ -150,10 +150,10 @@ double MetrisRunner::optimMesh0(){
 
 
     //// 4. Smoothing (heuristic) -> fast but bad; improve
-    //t0 = get_wall_time();
+    //t0 = get_cpu_time();
     //stat = smoothInterior_Ball<MFT>(msh,QuaFun::Unit);
     //stat0 = MAX(stat, stat0); 
-    //t1 = get_wall_time();
+    //t1 = get_cpu_time();
     //if(DOPRINTS1()){
     //  if(DOPRINTS2()) writeMesh("debug_unit_glo"+ std::to_string(niter)+".meshb",msh);
     //  if(DOPRINTS2()) msh.met.writeMetricFile("debug_unit_glo"+ std::to_string(niter)+".solb");    
@@ -173,10 +173,10 @@ double MetrisRunner::optimMesh0(){
 
     if(msh.idim == msh.get_tdim()){
 
-      t0 = get_wall_time();
+      t0 = get_cpu_time();
       stat = smoothInterior_Ball<MFT>(msh,QuaFun::Distortion, ithrd1, ithrd2);
       stat0 = MAX(stat, stat0); 
-      t1 = get_wall_time();
+      t1 = get_cpu_time();
       if(DOPRINTS1()){
         if(DOPRINTS2()) writeMesh("v2_smooth_opt"+ std::to_string(niter)+".meshb",msh);
         if(DOPRINTS2()) msh.met.writeMetricFile("v2_smooth_opt"+ std::to_string(niter)+".solb");    
@@ -200,12 +200,12 @@ double MetrisRunner::optimMesh0(){
     //getmetquamesh<MFT,gdim,AsDeg::Pk>(msh,&iinva,&qmin,&qmax,&qavg,&lquae);
     //print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality (As Pk)");
     // 5. Smoothing  2
-    t0 = get_wall_time();
+    t0 = get_cpu_time();
     //smoothInterior_Full<MFT>(msh);
     //smoothInterior_Full_TAO<MFT>(msh); 
     smoothInterior_Full_custom<MFT>(msh,&stat);
     stat0 = MAX(stat0,stat);
-    t1 = get_wall_time();
+    t1 = get_cpu_time();
     if(DOPRINTS1()){
       if(DOPRINTS2()) writeMesh("debug_smooth_glo"+ std::to_string(niter)+".meshb",msh);
       if(DOPRINTS2()) msh.met.writeMetricFile("debug_smooth_glo"+ std::to_string(niter)+".solb");    
@@ -220,9 +220,9 @@ double MetrisRunner::optimMesh0(){
     #endif
 
     if(msh.idim == msh.get_tdim()){
-      t0 = get_wall_time();
+      t0 = get_cpu_time();
       int noper = reinsertFlat<MFT,gdim,ideg>(msh);
-      t1 = get_wall_time();
+      t1 = get_cpu_time();
       msh.cleanup();
       stat  = noper / (double) msh.nface; 
       stat0 = MAX(stat0, stat);
@@ -244,11 +244,11 @@ double MetrisRunner::optimMesh0(){
     
     // ALWAYS SWAP LAST ! 
     // 2. Swaps
-    t0 = get_wall_time();
+    t0 = get_cpu_time();
     int nswap;
     stat  = swapMesh<MFT,gdim,ideg>(msh, swapOpt, &nswap, ithrd1, ithrd2, ithrd3);
     stat0 = MAX(stat0,stat);
-    t1 = get_wall_time();
+    t1 = get_cpu_time();
     if(msh.param->dbgfull) check_topo(msh,0);
     msh.cleanup();
     if(msh.param->dbgfull) check_topo(msh,0);
@@ -274,7 +274,7 @@ double MetrisRunner::optimMesh0(){
 
   }
 
-  double t11 = get_wall_time();
+  double t11 = get_cpu_time();
 
   CPRINTF1("-- OptimMesh end runtime = {:.2e}s \n",t11-t01);
   return stat0;

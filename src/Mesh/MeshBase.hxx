@@ -372,7 +372,11 @@ public:
 //protected:
 public:
   // This should only be called from the top levels (Mesh and MeshBack)
-  // Otherwise some auxiliary data structs may not be properly set. 
+  // Otherwise some auxiliary data structs may not be properly set.
+  
+  // Prefer calling this, sets the surface:
+	int newpoint(int tdim, int ientt = -1);
+  // Only for debugs:
 	int newpoitopo(int tdim, int ientt = -1);
   friend void debugInveval(std::string meshName_, MeshBase &msh, int tdim,  int* ent2pol, double *coop);
 

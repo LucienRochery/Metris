@@ -547,12 +547,12 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
 
     CPRINTF1(" - insPoint ref {} iter {} inserted {} nerro {}\n",iref,niter,nsucc,nerro);
     if(DOPRINTS2() && nerro > 0){
-      printf(" - Error list:\n");
+      CPRINTF2(" - Error list:\n");
       for(int ii = 0; ii < ierro_max; ii++){
         if(lerro[ii] <= 0) continue;
         CPRINTF2("   - {} : {}", ii, lerro[ii]);
-        if(ii < CAV_ERR_NERROR) printf(" (cav)");
-        printf("\n");
+        if(ii < CAV_ERR_NERROR) PRINTF(" (cav)");
+        PRINTF("\n");
       }
     }
     #ifndef NDEBUG

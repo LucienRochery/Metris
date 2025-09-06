@@ -28,21 +28,24 @@ endif()
 
 # 1.2 - gen_ccoef: generate Jacobian determinant control coefficients
 set(CCOEF_OUT_SRC "")
-foreach(ideg RANGE 2 ${METRIS_MAX_DEG})
-  if(REQ_CODEGEN)
-    list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef3.0${ideg}.cxx)
-    list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef2.0${ideg}.cxx)
-    list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef3.0${ideg}_d_coord.cxx)
-    list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef2.0${ideg}_d_coord.cxx)
-    list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef2.0${ideg}_d_pt.cxx)
-  else()
-    list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef3.0${ideg}.cxx)
-    list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}.cxx)
-    list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef3.0${ideg}_d_coord.cxx)
-    list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}_d_coord.cxx)
-    list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}_d_pt.cxx)
-  endif()
-endforeach()
+# CMake for quirk: for 2 <= i <= 1 runs i = 2...
+if(METRIS_MAX_DEG GREATER 1)
+  foreach(ideg RANGE 2 ${METRIS_MAX_DEG})
+    if(REQ_CODEGEN)
+      list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef3.0${ideg}.cxx)
+      list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef2.0${ideg}.cxx)
+      list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef3.0${ideg}_d_coord.cxx)
+      list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef2.0${ideg}_d_coord.cxx)
+      list(APPEND CCOEF_OUT_SRC ${PROJECT_BINARY_DIR}/src/codegen_ccoef2.0${ideg}_d_pt.cxx)
+    else()
+      list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef3.0${ideg}.cxx)
+      list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}.cxx)
+      list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef3.0${ideg}_d_coord.cxx)
+      list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}_d_coord.cxx)
+      list(APPEND CCOEF_OUT_SRC ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.0${ideg}_d_pt.cxx)
+    endif()
+  endforeach()
+endif()
 
 if(REQ_CODEGEN)
   add_executable(gen_ccoef ${PROJECT_SOURCE_DIR}/tools/gen_ccoef.cxx 
@@ -242,11 +245,11 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/SolutionField/anasol3D.cxx
 
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisParameters.cxx
+    ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MeshStat.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner_iniMetris.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner_curveMesh.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner_runMetris.cxx
-    ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner_MeshStat_json.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/MetrisRunner_statMesh.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/msh_adaptMesh.cxx
     ${PROJECT_SOURCE_DIR}/src/MetrisRunner/msh_optimMesh.cxx

@@ -470,9 +470,9 @@ void MeshBase::initialize(MetrisAPI *data,
 void MeshBase::iniNeighbours(){
   GETVDEPTH(this->param);
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == this->curdeg){
-    double t1 = get_wall_time(); 
+    double t1 = get_cpu_time(); 
     iniMeshNeighbours<ideg>(*this);
-    double t2 = get_wall_time(); 
+    double t2 = get_cpu_time(); 
     CPRINTF2(" - Done neighbours, time = {:7.3f}s \n",t2-t1); 
   }}CT_FOR1(ideg);
 }

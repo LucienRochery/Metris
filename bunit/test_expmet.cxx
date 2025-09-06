@@ -258,7 +258,7 @@ BOOST_AUTO_TEST_CASE(test_expmet)
       for(double anisorat = 2; anisorat <= aniso_max + 1; anisorat *= aniso_mul){
 
         // Using DSYEVQ
-        double t0_DSYEVQ = get_wall_time();
+        double t0_DSYEVQ = get_cpu_time();
         double dum_DSYEVQ = 0;
         for(int isamp = 0; isamp < nsamp; isamp++){
           for(int ii = 0; ii < nnmet; ii++) met2[ii] = met_samples[ndim-2](isamp, ii);
@@ -269,10 +269,10 @@ BOOST_AUTO_TEST_CASE(test_expmet)
           }
           dum_DSYEVQ += met2[0];
         }
-        double t1_DSYEVQ = get_wall_time();
+        double t1_DSYEVQ = get_cpu_time();
 
 
-        double t0_EIGEN1 = get_wall_time();
+        double t0_EIGEN1 = get_cpu_time();
         double dum_EIGEN1 = 0;
         for(int isamp = 0; isamp < nsamp; isamp++){
           for(int ii = 0; ii < ndim; ii++) 
@@ -290,10 +290,10 @@ BOOST_AUTO_TEST_CASE(test_expmet)
               met[sym2idx(ii,jj)] = met2_Eigen(ii, jj);
           dum_EIGEN1 += met[0];
         }
-        double t1_EIGEN1 = get_wall_time();
+        double t1_EIGEN1 = get_cpu_time();
 
 
-        double t0_EIGEN2 = get_wall_time();
+        double t0_EIGEN2 = get_cpu_time();
         double dum_EIGEN2 = 0;
         for(int isamp = 0; isamp < nsamp; isamp++){
           for(int ii = 0; ii < ndim; ii++) 
@@ -318,7 +318,7 @@ BOOST_AUTO_TEST_CASE(test_expmet)
               met[sym2idx(ii,jj)] = met2_Eigen(ii, jj);
           dum_EIGEN2 += met[0];
         }
-        double t1_EIGEN2 = get_wall_time(); 
+        double t1_EIGEN2 = get_cpu_time(); 
 
 
         std::string funname = metspac == MetSpace::Exp ? "log" : "exp";

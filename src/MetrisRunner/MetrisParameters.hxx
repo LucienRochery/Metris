@@ -41,6 +41,8 @@ struct MetrisParameters{
     }
   }
 
+  bool operator==(const MetrisParameters &other) const;
+
   void checkParameters();
 
   void setMeshIn(std::string inp);
@@ -172,6 +174,7 @@ struct MetrisParameters{
 
   void setLogFile(std::string fname);
   FILE* logFile;
+  std::string logFileName;
 
   friend class MetrisRunner;
   friend class MetrisAPI;

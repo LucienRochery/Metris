@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE reg_2D_OAT15A_x2
+#define BOOST_TEST_MODULE reg_2D_OAT15A_x05
 
 #include "../../reg_common.hxx"
 
@@ -11,15 +11,15 @@
 using namespace Metris;
 
 
-BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2_Q2toQ2) 
+BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x05_Q2toQ2) 
 {
 
-  RegressionTestManager manager("2D/OAT15A", "reg_x2_Q2toQ2", "2D_OAT15A_x2_Q2toQ2");
+  RegressionTestManager manager("2D/OAT15A", "reg_x0.5_Q2toQ2", "2D_OAT15A_x0.5_Q2toQ2");
 
   std::vector<int> l_adp_opt_niter  = {0, 1, 5, -1};
 
   MetrisParameters param;
-  param.setMetricScale(1/sqrt(2));
+  param.setMetricScale(sqrt(2));
   param.adp_niter = 30;
   param.opt_niter = 10;
   //fmt::print("## DEBUG SET ITERATIONS FROM 30, 10 to 0 0\n");
@@ -51,6 +51,7 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2_Q2toQ2)
 
       param.adp_line_adapt = adp_geo_lines;
       param.adp_opt_niter  = adp_opt_niter;
+      param.usrTarDeg      = 2;
 
       try{
         // Hard copy because the runner moves the data.
@@ -66,15 +67,15 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2_Q2toQ2)
 }
 
 
-BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2_Q1toQ1) 
+BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x05_Q1toQ1) 
 {
 
-  RegressionTestManager manager("2D/OAT15A", "reg_x2_Q1toQ1", "2D_OAT15A_x2_Q1toQ1");
+  RegressionTestManager manager("2D/OAT15A", "reg_x0.5_Q1toQ1", "2D_OAT15A_x0.5_Q1toQ1");
 
   std::vector<int> l_adp_opt_niter  = {0, 1, 5, -1};
 
   MetrisParameters param;
-  param.setMetricScale(1/sqrt(2));
+  param.setMetricScale(sqrt(2));
   param.adp_niter = 30;
   param.opt_niter = 10;
   param.iverb = 2;
@@ -101,15 +102,15 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2_Q1toQ1)
 }
 
 
-BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2_Q1toQ2) 
+BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x05_Q1toQ2) 
 {
 
-  RegressionTestManager manager("2D/OAT15A", "reg_x2_Q1toQ2", "2D_OAT15A_x2_Q1toQ2");
+  RegressionTestManager manager("2D/OAT15A", "reg_x0.5_Q1toQ2", "2D_OAT15A_x0.5_Q1toQ2");
 
   std::vector<int> l_adp_opt_niter  = {0, 1, 5, -1};
 
   MetrisParameters param;
-  param.setMetricScale(1/sqrt(2));
+  param.setMetricScale(sqrt(2));
   param.adp_niter = 30;
   param.opt_niter = 10;
   param.iverb = 2;

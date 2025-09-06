@@ -800,9 +800,9 @@ int optim_newton_drivertype_PETSc(int nvar ,
 //    double ksp_tol = MAX(1.0e-5, rwork[1]/100);
     if(iprt >= 3) PRINTF("Calling linear solver with tolerance {:15.7e}\n",ksp_tol);
     PetscKSPHelper KSOLVER(ksp, PETSC_COMM_SELF, OJ, PETSC_DEFAULT, ksp_tol);
-    double t0 = get_wall_time();
+    double t0 = get_cpu_time();
     KSOLVER.solve(RHS,DESC);
-    double t1 = get_wall_time();
+    double t1 = get_cpu_time();
     if(iprt >= 3) PRINTF("KSP time {:.2e}s \n",t1-t0);
 
     // Get current descent direction norm for termination condition
