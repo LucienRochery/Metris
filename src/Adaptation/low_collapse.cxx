@@ -44,11 +44,27 @@ int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, [[maybe_unused]]
   int ip1 = ent2poi(ientt,lnoed[iedl][0]);
   int ip2 = ent2poi(ientt,lnoed[iedl][1]);
 
-  if(msh.getpoitdim(ip1) != msh.getpoitdim(ip2)){
+  int pdim1 = msh.getpoitdim(ip1);
+  int pdim2 = msh.getpoitdim(ip2);
+
+
+  if(pdim1 != pdim2 || pdim1 == 0 || pdim2 == 0){
     //return collapseEdge2(msh, tdim, ientt, iedl, qmax_suf, cav, work, lerro, ithrd1, ithrd2, ithrd3);
     return INS2D_ERR_COLPDIM;
   }else{
     if(msh.poicstr[ip1] || msh.poicstr[ip2]) return 1;
+    // Check they are same ref. If they're same dim as seed
+    // then that is always the case. 
+    if(pdim1 < tdim && pdim2 < tdim){
+      METRIS_ASSERT(pdim1 == pdim2); // in case above changes
+      int ib1 = msh.poi2bpo[ip1];
+      int ib2 = msh.poi2bpo[ip2];
+      int ient1 = msh.bpo2ibi(ib1,2);
+      int ient2 = msh.bpo2ibi(ib2,2);
+      int iref1 = msh.ent2ref(pdim1)[ient1];
+      int iref2 = msh.ent2ref(pdim2)[ient2];
+      if(iref1 != iref2) return INS2D_ERR_COLREF;
+    }
     EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, iedl);
     int ierro = insertEdge(msh, insertionSeed, -1, true, cav, work, lerro, ithrd1, ithrd2);
     if(ierro < 0) return 0;

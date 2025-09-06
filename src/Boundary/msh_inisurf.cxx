@@ -999,8 +999,8 @@ int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
             if(icoco == 0){
               if(lseed[1] == -1){
                 METRIS_ENFORCE_MSG(lrbpo.get_n() == 1,
-                  "{} (u,v)s provided but only one ball connex component found.",
-                  lrbpo.get_n());
+                  "{} (u,v)s provided but only one ball connex component found for ipoin {}.",
+                  lrbpo.get_n(),ipoin);
                 // No other choice
                 irbpo = 0;
                 CPRINTF2(" - only one connex component -> update using {} = {} {} \n",

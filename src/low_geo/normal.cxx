@@ -555,9 +555,9 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
   for(int inode = 0; inode < nnode; inode++){
     if(nod2bpo[inode] < 0) continue;
     METRIS_ASSERT_MSG(iref == msh.fac2ref[msh.bpo2ibi(nod2bpo[inode],2)] , 
-      "Invalid iref = {} ibpoi {} ibpoi entity {} has ref {} for node {}",
-      iref, nod2bpo[inode], msh.bpo2ibi(nod2bpo[inode],2), 
-      msh.fac2ref[msh.bpo2ibi(nod2bpo[inode],2)], inode);
+      "iref {}, inode {}, fac2poi {}, ibpoi {} : {},fac2ref = {}",
+      iref, inode, fac2pol[inode], nod2bpo[inode], intAr1(nibi,msh.bpo2ibi[nod2bpo[inode]]),
+      msh.fac2ref[msh.bpo2ibi(nod2bpo[inode],2)]);
   }
   #endif
 

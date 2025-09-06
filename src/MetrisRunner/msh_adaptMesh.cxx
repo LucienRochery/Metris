@@ -82,6 +82,7 @@ void MetrisRunner::adaptMesh0(int tdim){
   // Make it an option 
   const double minstat = 1.0e-12;
   const int miter = param_.adp_niter;
+  int irestart = 0;
 
   msh.cleanup();
 
@@ -404,11 +405,13 @@ void MetrisRunner::adaptMesh0(int tdim){
       // improves by unconstraining the points, but not the interior in 3D.
       // So, regardless of dimension, we unconstrain only dim <= 2 points.
       bool uncstr = false;
-      for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-        if(msh.poi2ent(ipoin,0) < 0) continue;
-        if(msh.getpoitdim(ipoin) > 2) continue;
-        msh.poicstr[ipoin] = false;
-        uncstr = true;
+      if(++irestart < MAX(2,msh.param->adp_opt_niter)){
+        for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
+          if(msh.poi2ent(ipoin,0) < 0) continue;
+          if(msh.getpoitdim(ipoin) > 2) continue;
+          msh.poicstr[ipoin] = false;
+          uncstr = true;
+        }
       }
 
       CPRINTF1(" - low stat = {:.2e} break or optimize\n",stat0);

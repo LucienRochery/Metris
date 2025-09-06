@@ -11,6 +11,7 @@
 #include "../utils/aux_misc.hxx"
 #include "../aux_topo.hxx"
 #include "../utils/mprintf.hxx"
+#include "../low_topo.hxx"
 
 #include "../msh_checktopo.hxx"
 
@@ -90,6 +91,36 @@ int MeshBase::poi2del(int ipoin, int tdim, int iref) const{
   return bpo2ibi(ibpoi,2);
 }
 #endif
+
+// Prefer calling this one if not doing debugs
+// This seeds the surface properly.
+int MeshBase::newpoint(int tdimn, int ientt){
+  METRIS_ASSERT(tdimn != 0);
+
+  int ipnew = newpoitopo(tdimn, ientt);
+  if(!isboundary_tdim(tdimn)) return ipnew;
+
+  // Create one for the provided seed
+  newbpotopo(ipnew, tdimn, ientt);
+
+  // No higher surface 
+  if(tdimn == 2) return ipnew;
+
+  // Edge case
+  intWrkAr1 lsedg_ = get_iwork(1);
+  intWrkAr1 lsfac_ = get_iwork(10);
+  intAr1 &lsfac = lsfac_.get_array();
+  intAr1 dum;
+  int iopen;
+  int ipoi1 = edg2poi(ientt, 0);
+  int ipoi2 = edg2poi(ientt, 1);
+  shell(*this, ipoi1, ipoi2, 1, ientt, lsedg_.get_array() , lsfac, dum, &iopen);
+
+  for(int iface : lsfac){
+    newbpotopo(ipnew, 2, iface);
+  }
+  return ipnew;
+}
 
 
 int MeshBase::newpoitopo(int tdimn, int ientt){

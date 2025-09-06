@@ -65,18 +65,22 @@ public:
   MetrisAPI(const MetrisAPI &);
 
 
-  // Equivalently call this at any point (overwrite) -> can be used to 
+  // Call this at any point (overwrite) -> can be used to 
   // "resurrect" a MetrisAPI
+  // Kills the runner.
   void initialize(MetrisRunner &run); 
-  // Note the following can be called twice. The arrays can be reallocated over
-  // and the flags reset. 
-  // This can be helpful if information "trickles in" 
-  // EGADS_model can be NULL
+
+  // idim is geometric dimension
+  // ideg is mesh degree
+  // imet is boolean whether metric provided
+  // mshbasis/metbasis if FEBasis::Lagrange or FEBasis::Bezier
+  // metspace is MetSpace::Exp or MetSpace::Log
   void initialize(int idim, int ideg, 
                   int ncorn, int ngpoe, int ngpof, 
                   int npoin, bool imet, 
                   int nedge, int nface, int nelem, 
                   FEBasis mshbasis, FEBasis metbasis, MetSpace metspace);
+
   // Can set only the flags, and later setNCorner etc. 
   // EGADS_model can be NULL
   void initialize(int idim, int ideg, bool imet,

@@ -940,7 +940,6 @@ void shell(const MeshBase& msh,
     METRIS_ASSERT(tdim == 3);
     METRIS_THROW_MSG("TODO: Implement nm / surf shell in case tet seed and no tet shell")
   }else if(dofac && !dotet){
-    METRIS_ASSERT(msh.idim == 2 || msh.nelem == 0);
     METRIS_ASSERT(ifac0 >= 0);
     // 2D case 
     lsfac.stack(ifac0);

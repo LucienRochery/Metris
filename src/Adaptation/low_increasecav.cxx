@@ -141,7 +141,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     int ncte1 = cav.lctet.get_n();
     for(int ii = 0; ii < msh.idim; ii++) coor0[ii] = msh.coord(cav.ipins, ii);
     for(int ii = 0; ii < nnmet   ; ii++) met0[ii] = msh.met(cav.ipins, ii);
-    if(ibins >= 0) for(int ii = 0; ii < 2       ; ii++) uv0[ii] = msh.bpo2rbi(ibins, ii);
+    if(ibins >= 0) for(int ii = 0; ii < 2 ; ii++) uv0[ii] = msh.bpo2rbi(ibins, ii);
 
     ierro = 0;
     if(DOPRINTS2()){
@@ -801,6 +801,18 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
     if(msh.param->iverb > 0) PRINTF("## Could move nordev checks to increase_cavity. For this, we need to precompute the ccos as in reconnect_faccav.\n");
   }
 
+  #ifndef NDEBUG
+  intWrkAr1 lcedg0_ = msh.get_iwork(10);
+  intWrkAr1 lcfac0_ = msh.get_iwork(100);
+  intWrkAr1 lctet0_ = msh.get_iwork(100);
+  intAr1& lcedg0 = lcedg0_.get_array();
+  intAr1& lcfac0 = lcfac0_.get_array();
+  intAr1& lctet0 = lctet0_.get_array();
+  cav.lcedg.copyTo(lcedg0);
+  cav.lcfac.copyTo(lcfac0);
+  cav.lctet.copyTo(lctet0);
+  #endif
+
 
 
   //#ifdef NODELSURF
@@ -832,10 +844,14 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
     }
   }
 
-
-  int ibins = msh.poi2bpo[cav.ipins];
-  int pdim  = msh.get_tdim();
-  if(ibins >= 0) pdim = msh.bpo2ibi(ibins,1);
+  int pdim = msh.getpoitdim(cav.ipins);
+  #ifndef NDEBUG
+  {
+  int cav_mindim = cav.lcedg.get_n() > 0 ? 1 : 
+                   cav.lcfac.get_n() > 0 ? 2 : 3;
+  METRIS_ASSERT(pdim == cav_mindim);
+  }
+  #endif
 
   CPRINTF1("-- START increase_cavity ipins {} dim {} list initial cavity:\n", cav.ipins, pdim);
   cav.print(msh);
@@ -1006,27 +1022,85 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
             ent2pol[lnofa3[0][2]] = ent2poi(ientt,lnofa3[inei][2]);
           }
 
+          bool iflat;
           int nod2bpo[3];
-          double nordev_tol = -1;
-          if(msh.idim == 3 && tdim == 2){
-            int iref = msh.fac2ref[ientt];
-            nordev_tol = ref2nordev(iref,0);
-            nod2bpo[0] = pdim == 2 ? msh.poi2bpo[cav.ipins] : -1;
-            nod2bpo[1] = msh.poi2ebp(ent2pol[1], 2, ientt, iref);
-            nod2bpo[2] = msh.poi2ebp(ent2pol[2], 2, ientt, iref);
-            CPRINTF1(" - using nordevtol = {} for face ref {}\n", nordev_tol, iref);
-          }
 
-          // First, check if this is a sliver
-          double meas0;
-          bool ivalid = msh.idim == 2 ? isvalideltP1<2,2>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol) 
-                      :     tdim == 2 ? isvalideltP1<3,2>(msh, ent2pol, nod2bpo, NULL, &meas0, nordev_tol) 
-                                      : isvalideltP1<3,3>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol); // NORCAD
-          bool iflat = !ivalid;
-          CPRINTF1("   - inccav pdim {} tdim {} ent {} = {}\n",pdim,tdim,ientt,
-                   intAr1(tdim+1,ent2pol));
-          CPRINTF1("   - w/ vtol = {:e} got iflat = {} meas0 = {:15.7e} neighbour = {}\n",
-                   msh.param->vtol,iflat,meas0,ienei);
+          #ifndef NDEBUG
+          try{
+          #endif
+
+          
+            double nordev_tol = -1;
+            if(msh.idim == 3 && tdim == 2){
+              int iref = msh.fac2ref[ientt];
+              nordev_tol = ref2nordev(iref,0);
+              nod2bpo[0] = msh.poi2ebp(cav.ipins, 2, ientt, iref);
+              nod2bpo[1] = msh.poi2ebp(ent2pol[1], 2, ientt, iref);
+              nod2bpo[2] = msh.poi2ebp(ent2pol[2], 2, ientt, iref);
+              CPRINTF1(" - using nordevtol = {} for face ref {}\n", nordev_tol, iref);
+              METRIS_ASSERT(msh.bpo2ibi(nod2bpo[0],1) == 2);
+              METRIS_ASSERT(msh.bpo2ibi(nod2bpo[1],1) == 2);
+              METRIS_ASSERT(msh.bpo2ibi(nod2bpo[2],1) == 2);
+              METRIS_ASSERT(msh.fac2ref[msh.bpo2ibi(nod2bpo[0],2)] == iref);
+              METRIS_ASSERT(msh.fac2ref[msh.bpo2ibi(nod2bpo[1],2)] == iref);
+              METRIS_ASSERT(msh.fac2ref[msh.bpo2ibi(nod2bpo[2],2)] == iref);
+            }
+
+
+            // First, check if this is a sliver
+            double meas0;
+            bool ivalid = msh.idim == 2 ? isvalideltP1<2,2>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol) 
+                        :     tdim == 2 ? isvalideltP1<3,2>(msh, ent2pol, nod2bpo, NULL, &meas0, nordev_tol) 
+                                        : isvalideltP1<3,3>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol); // NORCAD
+            iflat = !ivalid;
+            CPRINTF1("   - inccav pdim {} tdim {} ent {} = {}\n",pdim,tdim,ientt,
+                    intAr1(tdim+1,ent2pol));
+            CPRINTF1("   - w/ vtol = {:e} got iflat = {} meas0 = {:15.7e} neighbour = {}\n",
+                    msh.param->vtol,iflat,meas0,ienei);
+
+          #ifndef NDEBUG
+          catch(const MetrisExcept& e){
+
+            PRINTF("## isvalideltP1 threw for ientt {} tdim {}, nodes: {}\n",ientt,tdim,intAr1(tdim+1,ent2pol));
+            if(msh.idim == 3 && tdim == 2){
+              int iref = msh.fac2ref[ientt];
+              int ibins = msh.poi2bpo[cav.ipins];
+              PRINTF("## nod2bpo[0] using ipins {} poi2bpo = {}, bpo2ibi: {}\n",cav.ipins, ibins, intAr1(nibi,msh.bpo2ibi[ibins]));
+              PRINTF("## List all ipins bpoi:\n");
+              for(int ibpoi = ibins; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+                int ient0 = msh.bpo2ibi(ibpoi,2);
+                int tdim0 = msh.bpo2ibi(ibpoi,1);
+                int iref0 = -1;
+                if(tdim0 > 0) iref0 = msh.ent2ref(tdim0)[ient0];
+                PRINTF("##  {}: {}, entity ref {}\n", ibpoi, intAr1(nibi,msh.bpo2ibi[ibpoi]),iref0);
+              }
+              PRINTF("## USING pdim_ins = {}\n",pdim);
+              PRINTF("## nod2bpo[1] using ipoin {} ientt {} iref {}, got ibpoi {}, bpo2ibi: {}\n",
+                     ent2pol[1], ientt, iref, nod2bpo[1],
+                     intAr1(nibi,msh.bpo2ibi[nod2bpo[1]]));
+              PRINTF("## nod2bpo[2] using ipoin {} ientt {} iref {}, got ibpoi {}, bpo2ibi: {}\n",
+                     ent2pol[2], ientt, iref, nod2bpo[2],
+                     intAr1(nibi,msh.bpo2ibi[nod2bpo[2]]));
+              PRINTF("Cavity:\n");
+              cav.print(msh, 10);
+              PRINTF("\nInitial:\n");
+              MPRINTF(" - Edge cavity: \n");
+              for(int iecav : lcedg0){
+                MPRINTF("  {} : {}\n",iecav,intAr1(2,msh.edg2poi[iecav]));
+              }
+              MPRINTF(" - Face cavity: \n");
+              for(int iecav : lcfac0){
+                MPRINTF("  {} : {}\n",iecav,intAr1(2,msh.fac2poi[iecav]));
+              }
+              MPRINTF(" - Tetra cavity: \n");
+              for(int iecav : lctet0){
+                MPRINTF("  {} : {}\n",iecav,intAr1(2,msh.tet2poi[iecav]));
+              }
+
+            }
+            throw(e);
+          }
+          #endif
 
           #if 0
           // Next check geodev 
@@ -1044,7 +1118,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
 
           // if element created with this facet is negative, add the neighbour
           // to cavity. 
-          if(iflat || meas0 < 0){
+          if(iflat){
             if(ienei >= 0){
               if(ref2tag(ithrd1,ent2ref[ienei]) < msh.tag[ithrd1]){
                 CPRINTF1("   - ienei = {} is wrong ref {} -> cannot correct\n",
