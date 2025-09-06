@@ -132,3 +132,8 @@ bunit/regression/**/tmp/
 !bunit/regression/2D/OAT15A/OAT15A.solb
 # Ignore sub directories, these are working directories
 bunit/regression/2D/OAT15A/*/
+
+
+!bunit/regression/3D/cube/cube.meshb
+# Ignore sub directories, these are working directories
+bunit/regression/3D/cube/*/

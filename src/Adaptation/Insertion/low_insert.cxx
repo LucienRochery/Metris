@@ -128,7 +128,7 @@ int insertEdge(Mesh<MFT>& msh,
   #endif
     ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
   #ifndef NDEBUG
-  catch(const MetrisExcept& exc){
+  }catch(const MetrisExcept& exc){
     fmt::print("## increase_cavity failed, tdim_adp {} tdimp {} iseed {} iref {}\n",
               insertionSeed.tdim_adp,insertionSeed.tdimp,
               insertionSeed.iseed,insertionSeed.iref);

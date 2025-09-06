@@ -1059,7 +1059,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
                     msh.param->vtol,iflat,meas0,ienei);
 
           #ifndef NDEBUG
-          catch(const MetrisExcept& e){
+          }catch(const MetrisExcept& e){
 
             PRINTF("## isvalideltP1 threw for ientt {} tdim {}, nodes: {}\n",ientt,tdim,intAr1(tdim+1,ent2pol));
             if(msh.idim == 3 && tdim == 2){
