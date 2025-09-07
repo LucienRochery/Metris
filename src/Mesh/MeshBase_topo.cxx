@@ -34,7 +34,7 @@ int MeshBase::tet2fac(int ielem, int ifal){
 }
 
 int MeshBase::poi2ebp(int ipoin, int tdim, int ientt, int iref) const {
-  METRIS_ASSERT(ipoin >= 0);
+  METRIS_ASSERT_MSG(ipoin >= 0 && ipoin < npoin," ipoin out of bounds {} {}",ipoin,npoin);
   METRIS_ASSERT(tdim >= 1 && tdim <= 3);
   
   int ibpoi = poi2bpo[ipoin];
@@ -105,6 +105,14 @@ int MeshBase::newpoint(int tdimn, int ientt){
 
   // No higher surface 
   if(tdimn == 2) return ipnew;
+
+  static int nwarnprt = 5;
+  if(nwarnprt-- > 0){
+    GETVDEPTH(this->param);
+    PRINTF("## Warning: disabled face seeding in newpoint\n");
+  }
+  return ipnew;
+
 
   // Edge case
   intWrkAr1 lsedg_ = get_iwork(1);

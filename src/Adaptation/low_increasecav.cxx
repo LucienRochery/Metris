@@ -1034,14 +1034,14 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
             if(msh.idim == 3 && tdim == 2){
               int iref = msh.fac2ref[ientt];
               nordev_tol = ref2nordev(iref,0);
-              nod2bpo[0] = msh.poi2ebp(cav.ipins, 2, ientt, iref);
+              nod2bpo[0] = pdim == 2 ? msh.poi2ebp(cav.ipins, 2, ientt, iref) : -1;
               nod2bpo[1] = msh.poi2ebp(ent2pol[1], 2, ientt, iref);
               nod2bpo[2] = msh.poi2ebp(ent2pol[2], 2, ientt, iref);
               CPRINTF1(" - using nordevtol = {} for face ref {}\n", nordev_tol, iref);
-              METRIS_ASSERT(msh.bpo2ibi(nod2bpo[0],1) == 2);
+              METRIS_ASSERT(nod2bpo[0] < 0 || msh.bpo2ibi(nod2bpo[0],1) == 2);
               METRIS_ASSERT(msh.bpo2ibi(nod2bpo[1],1) == 2);
               METRIS_ASSERT(msh.bpo2ibi(nod2bpo[2],1) == 2);
-              METRIS_ASSERT(msh.fac2ref[msh.bpo2ibi(nod2bpo[0],2)] == iref);
+              METRIS_ASSERT(nod2bpo[0] < 0 || msh.fac2ref[msh.bpo2ibi(nod2bpo[0],2)] == iref);
               METRIS_ASSERT(msh.fac2ref[msh.bpo2ibi(nod2bpo[1],2)] == iref);
               METRIS_ASSERT(msh.fac2ref[msh.bpo2ibi(nod2bpo[2],2)] == iref);
             }
