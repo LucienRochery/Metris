@@ -59,7 +59,8 @@ void check_topo(MeshBase &msh,
 
 
     CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
-    CT_FOR0_INC(2,gdim,tdim){if(tdim <= msh.get_tdim()){
+    //CT_FOR0_INC(2,gdim,tdim){if(tdim <= msh.get_tdim()){
+      constexpr int tdim = gdim;
       int nentt = tdim == 1 ? nedge : tdim == 2 ? nface : nelem;
       const intAr2 &ent2poi = msh.ent2poi(tdim);
       for(int ientt = 0; ientt < nentt; ientt++){
@@ -77,7 +78,7 @@ void check_topo(MeshBase &msh,
           }
         }
       }
-    }}CT_FOR1(tdim);
+    //}}CT_FOR1(tdim);
     }}CT_FOR1(gdim);
 
 

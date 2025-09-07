@@ -43,7 +43,7 @@ void getccoef(const MeshBase &msh, int ientt, double *nrmal, double *ccoef){
     bool iflat;
     ccoef[0] = ifact<tdim>()*getmeasentP1<gdim,tdim>(msh, ientt, nrmal, &iflat);
   }else if constexpr(ideg >= 4 || gdim != tdim){
-    METRIS_ASSERT(nrmal != NULL);
+    METRIS_ASSERT_MSG(nrmal != NULL,"Null normal with gdim {} tdim {} ideg {}",gdim, tdim, ideg);
     ccoef_eval<gdim,tdim,ideg>(msh.getBasis(),ent2poi,msh.coord,ientt,nrmal,ccoef);
   }else{
     static_assert(gdim == tdim);

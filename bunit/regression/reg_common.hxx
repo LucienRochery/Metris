@@ -13,9 +13,7 @@
 
 #include <filesystem>
 #include <chrono>
-#include <iomanip>
 #include <string>
-#include <sstream>
 #include <vector>
 
 namespace Metris{
@@ -91,15 +89,6 @@ bool isGitDirty() {
   return (c != EOF);
 }
 
-// Outputs a string YYYY-MM-DD-HH-MM-SS
-std::string time2str() {
-  auto now = std::chrono::system_clock::now();
-  auto time_t = std::chrono::system_clock::to_time_t(now);
-  
-  std::ostringstream oss;
-  oss << std::put_time(std::localtime(&time_t), "%Y-%m-%d-%H-%M-%S");
-  return oss.str();
-}
 
 
 bool isCloseMeshStat(const MeshStat& baseline, const MeshStat& current,
@@ -213,6 +202,8 @@ public:
     t0w_all = get_wall_time();
 
     update_baseline = !isGitDirty();
+    update_baseline = true;
+    fmt::print(stderr,"## WARNING FORCED update_baseline = true\n");
 
     if(update_baseline) fmt::print("-- Clean git working tree, will update baseline.\n");
     else                fmt::print("## Uncommitted changes: will not update baseline.\n");
@@ -266,7 +257,9 @@ public:
                std::string met_base_name){
     
     std::string outfile = out_dir + test_name;
-
+    
+    param.iverb = 2;
+    param.ivdepth = 1;
     param.setMeshIn(getMeshIn(mesh_base_name));
     if(!met_base_name.empty()) param.setMetricFile(getMetricIn(met_base_name));
     if(!CAD_base_name.empty()) param.setCAD(getCADIn(CAD_base_name));
@@ -390,7 +383,13 @@ public:
       fmt::print("========================================\n");
       fmt::print("Comparing case {}\n",test_name);
 
+      if(!json_baseline["runs"].contains(test_name)){
+        fmt::print(stderr, "## ERROR: Baseline missing test {}\n", test_name);
+      }
       BOOST_REQUIRE(json_baseline["runs"].contains(test_name));
+      if(!json_current["runs"].contains(test_name)){
+        fmt::print(stderr, "## ERROR: Current missing test {}\n", test_name);
+      }
       BOOST_REQUIRE(json_current["runs"].contains(test_name));
 
       bool test_passes = true;
@@ -413,6 +412,7 @@ public:
       // if one is built by copy-pasting another and modifying...
       MetrisParameters baseline_param = json_baseline_run["params"];
       MetrisParameters current_param  = json_current_run["params"];
+      //fmt::print(stderr, "## WARNING DISABLED CHECK FOR PARAM\n");
       BOOST_REQUIRE(baseline_param == current_param);
 
       MeshStat baseline_stat = json_baseline_run["result"];
