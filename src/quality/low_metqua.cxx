@@ -81,9 +81,13 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
   // Accumulate normal error at the nodes (depending on asdmsh)
   if(do_nordev){
-    CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-      nordev = getnordev<ideg>(msh, ientt);
-    }}CT_FOR1(ideg);
+    if(asdmsh == AsDeg::P1){
+      nordev = getnordev<1>(msh, ientt);
+    }else{
+      CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
+        nordev = getnordev<ideg>(msh, ientt);
+      }}CT_FOR1(ideg);
+    }
   }
 
   if(ideg_eff > 1){
