@@ -13,6 +13,7 @@
 #include <sys/resource.h>   // For getrusage()
 #include <sstream>
 #include <iomanip>
+#include <chrono>
 
 namespace Metris{
 
