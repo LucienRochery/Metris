@@ -12,77 +12,20 @@
 
 #include "nlohmann/json.hpp"
 #include <string>
+#include <boost/pfr.hpp>
 
 namespace Metris{
 
+bool MetrisParametersData::operator==(const MetrisParametersData &other) const{
+  #define FIELD(type, name, default_value) \
+  if(name != other.name) return false;
+  METRIS_PARAMETER_FIELDS_JSON
+  #undef FIELD
+  return true;
+}
 
 bool MetrisParameters::operator==(const MetrisParameters &other) const{
-  if(usrTarDeg != other.usrTarDeg) return false;
-  if(nproc != other.nproc) return false;
-  if(jtol != other.jtol) return false;
-  if(vtol != other.vtol) return false;
-  if(geo_lentolfac != other.geo_lentolfac) return false;
-  if(geo_abstoledg != other.geo_abstoledg) return false;
-
-
-  if(adp_opt_niter != other.adp_opt_niter) return false;
-  if(adp_niter != other.adp_niter) return false;
-  if(adp_unit_stop != other.adp_unit_stop) return false;
-  if(adp_line_adapt != other.adp_line_adapt) return false;
-  if(adp_stagn_stop != other.adp_stagn_stop) return false;
-  if(adp_smoo_len != other.adp_smoo_len) return false;
-
-  if(hmin != other.hmin) return false;
-  if(hmax != other.hmax) return false;
-  if(met_snap_tol != other.met_snap_tol) return false;
-  if(anamet_dx != other.anamet_dx) return false;
-  if(anamet_dy != other.anamet_dy) return false;
-  if(anamet_dz != other.anamet_dz) return false;
-
-  if(curveType != other.curveType) return false;
-  if(smoo_type != other.smoo_type) return false;
-
-  if(iflag1 != other.iflag1) return false;
-  if(iflag2 != other.iflag2) return false;
-  if(iflag3 != other.iflag3) return false;
-  if(rflag1 != other.rflag1) return false;
-  if(rflag2 != other.rflag2) return false;
-  if(rflag3 != other.rflag3) return false;
-
-  if(opt_niter != other.opt_niter) return false;
-  if(opt_pnorm != other.opt_pnorm) return false;
-  if(opt_power != other.opt_power) return false;
-  if(opt_smoo_niter != other.opt_smoo_niter) return false;
-  if(opt_smoo_tol != other.opt_smoo_tol) return false;
-
-  if(qua_surf_wt_normal != other.qua_surf_wt_normal) return false;
-  if(qua_surf_wt_quality != other.qua_surf_wt_quality) return false;
-
-
-  if(opt_coef_det != other.opt_coef_det) return false;
-  if(opt_coef_tra != other.opt_coef_tra) return false;
-  if(opt_powr_det != other.opt_powr_det) return false;
-  if(opt_powr_tra != other.opt_powr_tra) return false;
-
-  if(opt_unif != other.opt_unif) return false;
-  if(opt_swap_niter != other.opt_swap_niter) return false;
-  if(opt_swap_pnorm != other.opt_swap_pnorm) return false;
-  if(opt_swap_thres != other.opt_swap_thres) return false;
-
-  if(opt_swap_tet_expensive != other.opt_swap_tet_expensive) return false;
-
-  if(interp_err_min_algo != other.interp_err_min_algo) return false;
-
-  if(scaleMet != other.scaleMet) return false;
-  if(metScale != other.metScale) return false;
-
-  if(anaMet != other.anaMet) return false;
-  if(ianamet != other.ianamet) return false;
-
-  if(anaSol != other.anaSol) return false;
-  if(ianasol != other.ianasol) return false;
-  if(intp_pdeg != other.intp_pdeg) return false;
-  if(intp_pnorm != other.intp_pnorm) return false;
+  if(!MetrisParametersData::operator==(other)) return false;
 
   // Check filename component of file names match, ignore path. 
   std::string inpCAD = this->cadFileName.substr(this->cadFileName.find_last_of("/\\") + 1);
@@ -104,203 +47,84 @@ bool MetrisParameters::operator==(const MetrisParameters &other) const{
   return true;
 }
 
+void MetrisParametersData::printDifference(const MetrisParametersData &other) const{
+  #define FIELD(type, name, default_value) \
+  if(name != other.name) fmt::print("-- Field {} differs: {} != {}\n", #name, name, other.name);
+  METRIS_PARAMETER_FIELDS_JSON
+  #undef FIELD
+}
+
+void MetrisParameters::printDifference(const MetrisParameters &other) const {
+  
+  MetrisParametersData::printDifference(other);
+  // Check filename component of file names match, ignore path. 
+  std::string inpCAD = this->cadFileName.substr(this->cadFileName.find_last_of("/\\") + 1);
+  std::string othCAD = other.cadFileName.substr(other.cadFileName.find_last_of("/\\") + 1);
+  if(inpCAD != othCAD) fmt::print("-- Input CAD file name differs: {} != {}\n", inpCAD, othCAD);
+
+  std::string inpBack = this->backFileName.substr(this->backFileName.find_last_of("/\\") + 1);
+  std::string othBack = other.backFileName.substr(other.backFileName.find_last_of("/\\") + 1);
+  if(inpBack != othBack) fmt::print("-- Input Back file name differs: {} != {}\n", inpBack, othBack);
+
+  std::string inpMesh = this->meshFileName.substr(this->meshFileName.find_last_of("/\\") + 1);
+  std::string othMesh = other.meshFileName.substr(other.meshFileName.find_last_of("/\\") + 1);
+  if(inpMesh != othMesh) fmt::print("-- Input Mesh file name differs: {} != {}\n", inpMesh, othMesh);
+
+  std::string inpMet = this->metFileName.substr(this->metFileName.find_last_of("/\\") + 1);
+  std::string othMet = other.metFileName.substr(other.metFileName.find_last_of("/\\") + 1);
+  if(inpMet != othMet) fmt::print("-- Input Met file name differs: {} != {}\n", inpMet, othMet);
+
+}
+
+void to_json(nlohmann::json& jj, const MetrisParametersData& param) {
+  
+  jj = nlohmann::json{
+    #define FIELD(type, name, default_value) {#name, param.name}
+    METRIS_PARAMETER_FIELD1
+    #undef FIELD
+    #define FIELD(type, name, default_value) ,{#name, param.name}
+    METRIS_PARAMETER_OTHERFIELDS_JSON
+    #undef FIELD
+  };
+
+}
+
+void from_json(const nlohmann::json& jj, MetrisParametersData& param) {
+
+  #define FIELD(type, name, default_value) \
+  jj.at(#name).get_to(param.name);
+  METRIS_PARAMETER_FIELDS_JSON
+  #undef FIELD
+
+}
+
 void to_json(nlohmann::json& jj, const MetrisParameters& param) {
   jj = nlohmann::json{{"cadFileName", param.cadFileName}
                      ,{"backFileName", param.backFileName}
                      ,{"metFileName", param.metFileName}
                      ,{"meshFileName", param.meshFileName}
-                     ,{"usrTarDeg", param.usrTarDeg}
-                     ,{"nproc", param.nproc}
-                     ,{"jtol", param.jtol}
-                     ,{"vtol", param.vtol}
-                     ,{"geo_lentolfac", param.geo_lentolfac}
-                     ,{"geo_abstoledg", param.geo_abstoledg}
-                     ,{"adp_opt_niter", param.adp_opt_niter}
-                     ,{"adp_niter", param.adp_niter}
-                     ,{"adp_unit_stop", param.adp_unit_stop}
-                     ,{"adp_line_adapt", param.adp_line_adapt}
-                     ,{"adp_stagn_stop", param.adp_stagn_stop}
-                     ,{"adp_smoo_len", param.adp_smoo_len}
-                     ,{"hmin", param.hmin}
-                     ,{"hmax", param.hmax}
-                     ,{"met_snap_tol", param.met_snap_tol}
-                     ,{"anamet_dx", param.anamet_dx}
-                     ,{"anamet_dy", param.anamet_dy}
-                     ,{"anamet_dz", param.anamet_dz}
-                     ,{"curveType", param.curveType}
-                     ,{"smoo_type", param.smoo_type}
-                     ,{"nocleanup", param.nocleanup}
-                     ,{"iflag1", param.iflag1}
-                     ,{"iflag2", param.iflag2}
-                     ,{"iflag3", param.iflag3}
-                     ,{"rflag1", param.rflag1}
-                     ,{"rflag2", param.rflag2}
-                     ,{"rflag3", param.rflag3}
-                     ,{"opt_niter", param.opt_niter}
-                     ,{"opt_pnorm", param.opt_pnorm}
-                     ,{"opt_power", param.opt_power}
-                     ,{"opt_smoo_niter", param.opt_smoo_niter}
-                     ,{"opt_smoo_tol", param.opt_smoo_tol}
-                     ,{"qua_surf_wt_normal", param.qua_surf_wt_normal}
-                     ,{"qua_surf_wt_quality", param.qua_surf_wt_quality}
-                     ,{"opt_coef_det", param.opt_coef_det}
-                     ,{"opt_coef_tra", param.opt_coef_tra}
-                     ,{"opt_powr_det", param.opt_powr_det}
-                     ,{"opt_powr_tra", param.opt_powr_tra}
-                     ,{"opt_unif", param.opt_unif}
-                     ,{"opt_swap_niter", param.opt_swap_niter}
-                     ,{"opt_swap_pnorm", param.opt_swap_pnorm}
-                     ,{"opt_swap_thres", param.opt_swap_thres}
-                     ,{"opt_swap_tet_expensive", param.opt_swap_tet_expensive}
-                     ,{"interp_err_min_algo", param.interp_err_min_algo}
-                     ,{"metScale", param.metScale}
-                     ,{"ianamet", param.ianamet}
-                     ,{"intp_pdeg", param.intp_pdeg}
-                     ,{"intp_pnorm", param.intp_pnorm}
                      };
+  nlohmann::json jj2;
+  to_json(jj2, static_cast<const MetrisParametersData&>(param));
+  jj.update(jj2); // merge
 }
 
 void from_json(const nlohmann::json& jj, MetrisParameters& param) {
-  jj.at("cadFileName").get_to(param.cadFileName);
-  jj.at("backFileName").get_to(param.backFileName);
-  jj.at("metFileName").get_to(param.metFileName);
-  jj.at("meshFileName").get_to(param.meshFileName);
-  jj.at("usrTarDeg").get_to(param.usrTarDeg);
-  jj.at("nproc").get_to(param.nproc);
-  jj.at("jtol").get_to(param.jtol);
-  jj.at("vtol").get_to(param.vtol);
-  jj.at("geo_lentolfac").get_to(param.geo_lentolfac);
-  jj.at("geo_abstoledg").get_to(param.geo_abstoledg);
-  jj.at("adp_opt_niter").get_to(param.adp_opt_niter);
-  jj.at("adp_niter").get_to(param.adp_niter);
-  jj.at("adp_unit_stop").get_to(param.adp_unit_stop);
-  jj.at("adp_line_adapt").get_to(param.adp_line_adapt);
-  jj.at("adp_stagn_stop").get_to(param.adp_stagn_stop);
-  jj.at("adp_smoo_len").get_to(param.adp_smoo_len);
-  jj.at("hmin").get_to(param.hmin);
-  jj.at("hmax").get_to(param.hmax);
-  jj.at("met_snap_tol").get_to(param.met_snap_tol);
-  jj.at("anamet_dx").get_to(param.anamet_dx);
-  jj.at("anamet_dy").get_to(param.anamet_dy);
-  jj.at("anamet_dz").get_to(param.anamet_dz);
-  jj.at("curveType").get_to(param.curveType);
-  jj.at("smoo_type").get_to(param.smoo_type);
-  jj.at("nocleanup").get_to(param.nocleanup);
-  jj.at("iflag1").get_to(param.iflag1);
-  jj.at("iflag2").get_to(param.iflag2);
-  jj.at("iflag3").get_to(param.iflag3);
-  jj.at("rflag1").get_to(param.rflag1);
-  jj.at("rflag2").get_to(param.rflag2);
-  jj.at("rflag3").get_to(param.rflag3);
-  jj.at("opt_niter").get_to(param.opt_niter);
-  jj.at("opt_pnorm").get_to(param.opt_pnorm);
-  jj.at("opt_power").get_to(param.opt_power);
-  jj.at("opt_smoo_niter").get_to(param.opt_smoo_niter);
-  jj.at("opt_smoo_tol").get_to(param.opt_smoo_tol);
-  jj.at("qua_surf_wt_normal").get_to(param.qua_surf_wt_normal);
-  jj.at("qua_surf_wt_quality").get_to(param.qua_surf_wt_quality);
-  jj.at("opt_coef_det").get_to(param.opt_coef_det);
-  jj.at("opt_coef_tra").get_to(param.opt_coef_tra);
-  jj.at("opt_powr_det").get_to(param.opt_powr_det);
-  jj.at("opt_powr_tra").get_to(param.opt_powr_tra);
-  jj.at("opt_unif").get_to(param.opt_unif);
-  jj.at("opt_swap_niter").get_to(param.opt_swap_niter);
-  jj.at("opt_swap_pnorm").get_to(param.opt_swap_pnorm);
-  jj.at("opt_swap_thres").get_to(param.opt_swap_thres);
-  jj.at("opt_swap_tet_expensive").get_to(param.opt_swap_tet_expensive);
-  jj.at("interp_err_min_algo").get_to(param.interp_err_min_algo);
-  jj.at("metScale").get_to(param.metScale);
-  jj.at("ianamet").get_to(param.ianamet);
-  jj.at("intp_pdeg").get_to(param.intp_pdeg);
-  jj.at("intp_pnorm").get_to(param.intp_pnorm);
+  from_json(jj, static_cast<MetrisParametersData&>(param));
+  jj.at("cadFileName").get_to(param.cadFileName_);
+  jj.at("backFileName").get_to(param.backFileName_);
+  jj.at("metFileName").get_to(param.metFileName_);
+  jj.at("meshFileName").get_to(param.meshFileName_);
 }
 
-MetrisParameters::MetrisParameters(){
-  usrTarDeg = 1;
-  nproc     = -1;
-
-  jtol = Defaults::jtol;
-  vtol = Defaults::vtol;
-
-  geo_lentolfac = Defaults::geo_lentolfac;
-  geo_abstoledg = Defaults::geo_abstoledg;
-
-  anamet_ptr= NULL;
-  ianamet   = -1;
-  metScale  = 1;
-  hmin = 1.0e-30;
-  hmax = 1.0e30;
-  anamet_dx = anamet_dy = anamet_dz = 0.0;
-  met_snap_tol = Defaults::met_snap_tol;
-
-  anasol_ptr= NULL;
-  ianasol   = -1;
-  anaSol    = false;
-
-  main_in_prefix = false;
-
-  adp_niter     = 0;
-  adp_unit_stop = 99.9;
-  adp_stagn_stop = Defaults::adp_stagn_stop;
-  adp_opt_niter = 1;
-  adp_line_adapt = false;
-  adp_smoo_len   = false;
-
-  // 0 is none, default
-  // 3 is offsets followed by smoothing 
-  // 4 is offsets then backtrack and stop there 
-  curveType = 0; 
-  smoo_type = 0;
-
-  opt_unif = false;
-
-  iverb     = 0;
-  ivdepth   = 0;
-
-  interactive = dbgfull = nocleanup = false;
-
-  refineConventionsInp = refineConventionsOut = false;
-
-  opt_pnorm = Defaults::opt_pnorm;
-  opt_power = Defaults::opt_power;
-  opt_niter = Defaults::opt_niter;
-  opt_smoo_niter = Defaults::opt_smoo_niter;
-  opt_smoo_tol   = Defaults::opt_smoo_tol;
-
-  opt_swap_pnorm = Defaults::opt_swap_pnorm;
-  opt_swap_niter = Defaults::opt_swap_niter;
-  opt_swap_thres = Defaults::opt_swap_thres;
-  opt_swap_tet_expensive = false;
 
 
-  qua_surf_wt_normal  = Defaults::qua_surf_wt_normal;
-  qua_surf_wt_quality = Defaults::qua_surf_wt_quality;
-
-
-  opt_coef_det = 1.0;
-  opt_powr_det = -2;
-
-  opt_coef_tra = 1.0;
-  opt_powr_tra =  2;
-
-  intp_pdeg  = 1;
-  intp_pnorm = 1;
-
-  // Private members (internal use)
-  wrtMesh   = false;
-  inpMesh   = false;
-  inpBack   = false;
-  inpCAD    = false;
-  inpMet    = false;
-  anaMet    = false;
-  scaleMet  = false;
-  outbasis  = FEBasis::Lagrange;
-
-  logFile = stdout;
-
-  iflag1 = iflag2 = iflag3 = 0;
-  rflag1 = rflag2 = rflag3 = 0.0;
-  interp_err_min_algo = 1; // 1 for Newton, 0 for DIRECT
+MetrisParameters::MetrisParameters() : 
+  outmFileName(outmFileName_), 
+  cadFileName(cadFileName_), backFileName(backFileName_), 
+  metFileName(metFileName_), logFileName(logFileName_), 
+  meshFileName(meshFileName_), logFile(logFile_)
+{
 }
 
 MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
@@ -393,8 +217,7 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   }
 
   if(opt.count("back")){
-    inpBack = true;
-    backFileName = correctExtension_meshb(opt.m["back"].template as<std::string>());
+    setBackIn(opt.m["back"].template as<std::string>());
     CPRINTF1(" - Read back mesh name {}\n", backFileName.c_str());
   }
 
@@ -569,62 +392,66 @@ void MetrisParameters::checkParameters(){
 
 void MetrisParameters::setMeshIn(std::string meshName){
   inpMesh = true;
-  meshFileName = correctExtension_meshb(meshName);
+  meshFileName_ = correctExtension_meshb(meshName);
 }
 
+void MetrisParameters::setBackIn(std::string backName){
+  inpBack = true;
+  backFileName_ = correctExtension_meshb(backName);
+}
 
 void MetrisParameters::setCAD(std::string CADname){
   inpCAD = true;
-  cadFileName = correctExtension_egads(CADname);
+  cadFileName_ = correctExtension_egads(CADname);
 }
 
 void MetrisParameters::setMetricFile(std::string metName){
   inpMet = true;
-  metFileName = correctExtension_solb(metName);
+  metFileName_ = correctExtension_solb(metName);
 }
 
 void MetrisParameters::setMeshOut(std::string out){
   wrtMesh = true;
-  outmFileName = correctExtension_meshb(out);
+  outmFileName_ = correctExtension_meshb(out);
 }
 
 
-void MetrisParameters::setAnalyticalMetric(int ianamet){
+void MetrisParametersData::setAnalyticalMetric(int ianamet){
   anaMet = true;
   this->ianamet = ianamet;
 }
 
-void MetrisParameters::setAnalyticalMetric(AnaMetFun anamet_ptr){
+void MetrisParametersData::setAnalyticalMetric(AnaMetFun anamet_ptr){
   anaMet = true;
   this->anamet_ptr = (anamet_proto) anamet_ptr;
 }
 
-void MetrisParameters::setAnalyticalSolution(int ianasol){
+void MetrisParametersData::setAnalyticalSolution(int ianasol){
   anaSol = true;
   this->ianasol = ianasol;
 }
 
-void MetrisParameters::setAnalyticalSolution(AnaSolFun anasol_ptr){
+void MetrisParametersData::setAnalyticalSolution(AnaSolFun anasol_ptr){
   anaSol = true;
   this->anasol_ptr = (anasol_proto) anasol_ptr;
 }
 
 
-void MetrisParameters::setMetricScale(double sclmet){
+void MetrisParametersData::setMetricScale(double sclmet){
   scaleMet = true;
   this->metScale = sclmet;
 }
 
 
 void MetrisParameters::setLogFile(std::string fname){
-  logFileName = fname;
+  logFileName_ = fname;
   if(fname == "stdout"){
-    logFile = stdout;
+    logFile_ = stdout;
   }else if(fname == "stderr"){
-    logFile = stderr;
+    logFile_ = stderr;
   }else{
-    logFile = fopen(fname.c_str(), "w");
-    METRIS_ENFORCE_MSG(logFile != NULL,"Error opening log file {}", fname);
+    logFile_ = fopen(fname.c_str(), "w");
+    METRIS_ENFORCE_MSG(logFile_ != NULL,"Error opening log file {}", fname);
   }
 }
 

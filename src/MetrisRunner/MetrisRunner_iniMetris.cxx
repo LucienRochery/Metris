@@ -37,6 +37,8 @@ MetrisRunner::MetrisRunner(MetrisAPI *data_front, MetrisAPI *data_back,
 opt(),
 param_(param__),
 param(&param_){
+  MetrisParameters param_default;
+  
   constructorCommon(data_front,data_back);
 
 }
