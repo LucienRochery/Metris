@@ -81,6 +81,7 @@ public:
 
 
 
+
   void copyFlags(MetrisAPI *into) const;
 
   // Change degree, allocate to desired.
