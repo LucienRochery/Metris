@@ -89,7 +89,7 @@ int insertEdge(Mesh<MFT>& msh,
   //  ibins = msh.newbpotopo(cav.ipins,insertionSeed.tdimp,insertionSeed.iseed);
   
   // Proper surface seeding
-  cav.ipins = msh.newpoint(insertionSeed.tdimp, insertionSeed.iseed);
+  cav.ipins = msh.newpoint(PointType::Vertex, insertionSeed.tdimp, insertionSeed.iseed);
 
   if(msh.CAD()) METRIS_ASSERT(insertionSeed.obj != NULL 
                     || insertionSeed.tdimp == 2 && !msh.isboundary_faces() || insertionSeed.tdimp == 3);

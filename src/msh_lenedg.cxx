@@ -55,7 +55,7 @@ void getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref,
 
   int ipdum = -1;
   if(itype == LenTyp::MetCrv){
-    ipdum = msh.newpoitopo(msh.get_tdim(), -1);
+    ipdum = msh.newpoitopo(PointType::Vertex,msh.get_tdim(), -1);
     if(msh.getBasis() == FEBasis::Undefined || msh.curdeg == 1){
       METRIS_ASSERT(msh.curdeg == 1);
       msh.forceBasisFlag(FEBasis::Bezier);

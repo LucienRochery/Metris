@@ -26,8 +26,8 @@
 namespace Metris{
 
 
-int MeshBack::newpoitopo(int tdimn, int ientt){
-  return MeshBase::newpoitopo(tdimn, ientt);
+int MeshBack::newpoitopo(PointType ptype, int tdimn, int ientt){
+  return MeshBase::newpoitopo(ptype, tdimn, ientt);
 }
 
 void MeshBack::copyConstants(const MeshBase &msh){

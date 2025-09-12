@@ -576,7 +576,7 @@ void MeshBase::copyConstants(const MeshBase &msh){
 
 
 void MeshBase::zeroArrays(){
-  poi2ent.fill(-1);
+  poi2ent_.fill(-1);
   edg2fac.fill(-1);
 
   if(idim >= 3) fac2tet.fill(-1);
@@ -676,10 +676,10 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
       if(poi2bpo[ipoin] >= 0){
         CPRINTF1("## Warning: point {} already supplied as corner {}. Would have become {} \n",ipoin,
-                 bpo2ibi[poi2bpo[ipoin]][2],icorn);
+                 bpo2ibi(poi2bpo[ipoin],2),icorn);
         continue;
       }
-      newbpotopo(ipoin,0,icorn);
+      newbpotopo(Vertex{ipoin},0,icorn);
       ncor1++;
     }
     CPRINTF1(" - Added {} corners\n",ncor1);
@@ -708,10 +708,10 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
       if(poi2bpo[ipoin] >= 0){
         CPRINTF1("## Warning: point {} already supplied as corner {}. Would have become {} \n",ipoin,
-                 bpo2ibi[poi2bpo[ipoin]][2],icorn);
+                 bpo2ibi(poi2bpo[ipoin],2),icorn);
         continue;
       }
-      newbpotopo(ipoin,0,icorn);
+      newbpotopo(Vertex{ipoin},0,icorn);
       ncor1++;
     }
     CPRINTF1(" - Added {} corners\n",ncor1);
@@ -761,8 +761,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
   
       GmfGetBlock(libIdx, eKwd, 1, nelem, 0, NULL, NULL,
-        GmfIntVec, nppe, &tet2poi(0,0), &tet2poi[nelem-1][0],
-        GmfInt         , &tet2ref[0   ], &tet2ref[nelem-1  ]);
+        GmfIntVec, nppe, &tet2poi(0,0), &tet2poi(nelem-1,0),
+        GmfInt         , &tet2ref[0   ],&tet2ref[nelem-1  ]);
     }}CT_FOR1(ideg);
   
     for(int i = 0; i < nelem;i++){
@@ -771,9 +771,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
         tet2poi(i,j) -= 1;
       }
       if(isdeadent(i,tet2poi)) continue;
-      for(int j = 0; j < getnnod3(curdeg); j++){
-        poi2ent[tet2poi(i,j)][0] = i ;
-        poi2ent[tet2poi(i,j)][1] = 3 ;
+      for(int jj = 0; jj < getnnod3(curdeg); jj++){
+        if(jj < 4) set_poi2ent(Vertex{tet2poi(i,jj)}, 3, i);
+        else       set_poi2ent(CtrlPt{tet2poi(i,jj)}, 3, i);
       }
     }
     
@@ -846,8 +846,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
   
       GmfGetBlock(libIdx, fKwd, 1,nface, 0, NULL, NULL,
-        GmfIntVec, nppf, &fac2poi(0,0), &fac2poi[nface-1][0],
-        GmfInt   ,       &fac2ref[0   ], &fac2ref[nface-1  ]);
+        GmfIntVec, nppf, &fac2poi(0,0), &fac2poi(nface-1,0),
+        GmfInt   ,       &fac2ref[0   ],&fac2ref[nface-1  ]);
     }}CT_FOR1(ideg);
     
     for(int i = 0; i < nface;i++){
@@ -859,8 +859,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
 
       if(isdeadent(i,fac2poi)) continue;
       for(int jj = 0; jj < getnnod2(curdeg); jj++){
-        poi2ent[fac2poi(i,jj)][0] = i;
-        poi2ent[fac2poi(i,jj)][1] = 2;
+        if(jj < 3) set_poi2ent(Vertex{fac2poi(i,jj)}, 2, i);
+        else       set_poi2ent(CtrlPt{fac2poi(i,jj)}, 2, i);
       }
     }
 
@@ -935,7 +935,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
   
       GmfGetBlock(libIdx, fKwd, 1,nedge, 0, NULL, NULL,
-        GmfIntVec, npp, &edg2poi(0,0),&edg2poi[nedge-1][0],
+        GmfIntVec, npp, &edg2poi(0,0) ,&edg2poi(nedge-1,0),
         GmfInt   ,      &edg2ref[0   ],&edg2ref[nedge-1  ]);
   
     }}CT_FOR1(ideg);
@@ -947,9 +947,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
       if(edg2ref[i] < 0) redorefs[1] = true; 
       if(isdeadent(i,edg2poi)) continue;
-      for(int j = 0; j < getnnod1(curdeg); j++){
-        poi2ent[edg2poi(i,j)][0] = i;
-        poi2ent[edg2poi(i,j)][1] = 1;
+      for(int jj = 0; jj < getnnod1(curdeg); jj++){
+        if(jj < 2) set_poi2ent(Vertex{edg2poi(i,jj)}, 1, i);
+        else       set_poi2ent(CtrlPt{edg2poi(i,jj)}, 1, i);
       }
     }
     CPRINTF2("-- Done reading {:10} edges\n",nedge);
@@ -978,20 +978,20 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       dosomething = false;
       for(int ientt = ient0; ientt < nentt_; ientt++){
         if(isdeadent(ientt,ent2poi_))continue;
-        if(ent2tag_[ithread][ientt] >= tag[ithread]) continue;
+        if(ent2tag_(ithread,ientt) >= tag[ithread]) continue;
         ient0 = ientt+1;
         entstack.stack(ientt);
-        ent2tag_[ithread][ientt] = tag[ithread];
+        ent2tag_(ithread,ientt) = tag[ithread];
         nref++;
         dosomething = true;
         while(entstack.get_n() > 0){
           int ient1 = entstack.pop();
           ent2ref_[ient1] = nref;
           for(int ii = 0; ii < 2; ii++){
-            int ientv = ent2ent_[ient1][ii];
+            int ientv = ent2ent_(ient1,ii);
             if(ientv < 0) continue;
-            if(ent2tag_[ithread][ientv] >= tag[ithread]) continue;
-            ent2tag_[ithread][ientv] = tag[ithread];
+            if(ent2tag_(ithread,ientv) >= tag[ithread]) continue;
+            ent2tag_(ithread,ientv) = tag[ithread];
             entstack.stack(ientv);
           }
         }
@@ -1073,7 +1073,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       // The link created in edg2bpo is temporary: if the point turns out 
       // not to be a corner then there is no need to keep the link. 
       // It will be deleted in iniMeshBdryPoints. 
-      int ibpoi = newbpotopo(ipoin,1,iedge);
+      int iver = getveredg<1>(iedge, ipoin);
+      int ibpoi = iver >= 0 ? newbpotopo(Vertex{ipoin},1,iedge) : 
+                              newbpotopo(CtrlPt{ipoin},1,iedge);
       if(ibpoi < 0) continue;
       bpo2rbi(ibpoi,0) = rgpoe(igpoe,0);
       bpo2rbi(ibpoi,1) = 0.0;
@@ -1142,7 +1144,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
 
 
-      int ibpoi = newbpotopo(ipoin,2,iface);
+      int iver = getverfac<1>(iface, ipoin);
+      int ibpoi = iver >= 0 ? newbpotopo(Vertex{ipoin},2,iface) : 
+                              newbpotopo(CtrlPt{ipoin},2,iface);
       if(ibpoi < 0) continue;
       // Third value is unused
       bpo2rbi(ibpoi,0) = rgpof(igpof,0);
@@ -1203,7 +1207,7 @@ void MeshBase::readMeshData(MetrisAPI &data){
     int ipoin = data.lcorn[icorn];
     // even metrisAPI deg change can't remove a corner
     METRIS_ASSERT(ipoin >= 0 && ipoin < npoin);
-    newbpotopo(ipoin,0,icorn);
+    newbpotopo(Vertex{ipoin},0,icorn);
   }
   data.lcorn.free();
 
@@ -1229,18 +1233,20 @@ void MeshBase::readMeshData(MetrisAPI &data){
   int nwarn = 0;
   int mwarn = 5;
   for(int igpoe = 0; igpoe < data.ngpoe; igpoe++){
-    int ipoin = data.lgpoe[igpoe][0];
+    int ipoin = data.lgpoe(igpoe,0);
     // ipoin < 0 if dead and >= npoin if degree has been reduced in API
     if(ipoin < 0 || ipoin >= npoin) continue;
-    int iedge = data.lgpoe[igpoe][1];
+    int iedge = data.lgpoe(igpoe,1);
     if(isdeadent(iedge,edg2poi)){
       if(nwarn++ < mwarn){
         CPRINTF1("## FILE CONTAINS IBPOS POINTING TO DEAD EDGES");
       }
       continue;
     }
-    int ibpon = newbpotopo(ipoin,1,iedge);
-    bpo2rbi(ibpon,0) = data.rgpoe[igpoe][0];
+    int iver = getveredg<1>(iedge, ipoin);
+    int ibpon = iver >= 0 ? newbpotopo(Vertex{ipoin},1,iedge) : 
+                            newbpotopo(CtrlPt{ipoin},1,iedge);
+    bpo2rbi(ibpon,0) = data.rgpoe(igpoe,0);
     bpo2rbi(ibpon,1) = 0.0;
   }
   data.lgpoe.free();
@@ -1248,66 +1254,41 @@ void MeshBase::readMeshData(MetrisAPI &data){
 
   nwarn = 0;
   for(int igpof = 0; igpof < data.ngpof; igpof++){
-    int ipoin = data.lgpof[igpof][0];
+    int ipoin = data.lgpof(igpof,0);
     // ipoin < 0 if dead and >= npoin if degree has been reduced in API
     if(ipoin < 0 || ipoin >= npoin) continue;
-    int iface = data.lgpof[igpof][1];
+    int iface = data.lgpof(igpof,1);
     if(isdeadent(iface,fac2poi)){
       if(nwarn++ < mwarn){
         CPRINTF1("## FILE CONTAINS IBPOS POINTING TO DEAD TRIANGLES");
       }
       continue;
     }
-    int ibpon = newbpotopo(ipoin,2,iface);
-    bpo2rbi(ibpon,0) = data.rgpof[igpof][0];
-    bpo2rbi(ibpon,1) = data.rgpof[igpof][1];
+    int iver = getverfac<1>(iface, ipoin);
+    int ibpon = iver >= 0 ? newbpotopo(Vertex{ipoin},2,iface) : 
+                            newbpotopo(CtrlPt{ipoin},2,iface);
+    bpo2rbi(ibpon,0) = data.rgpof(igpof,0);
+    bpo2rbi(ibpon,1) = data.rgpof(igpof,1);
   }
   data.lgpof.free();
   data.rgpof.free();
   
 
 
-
-  int nnode;
-  nnode = getnnod3(curdeg);
-  for(int ielem = 0; ielem < nelem; ielem++){
-    //for(int ii = 0; ii < nnode; ii++){
-    //  tet2poi(ielem,ii) = data.tet2poi(ielem,ii);
-    //}
-    //tet2ref[ielem] = data.tet2ref[ielem];
-    if(isdeadent(ielem,tet2poi)) continue;
-    for(int ii = 0; ii < nnode; ii++){
-      poi2ent[tet2poi(ielem,ii)][0] = ielem;
-      poi2ent[tet2poi(ielem,ii)][1] = 3;
+  for(int tdim = get_tdim(); tdim >= 1; tdim--){
+    int nnode = getnnode(tdim, curdeg);
+    const int nentt_ = nentt(tdim);
+    intAr2 &ent2poi_ = ent2poi(tdim);
+    for(int ientt = 0; ientt < nentt_; ientt++){
+      if(isdeadent(ientt,ent2poi_)) continue;
+      for(int ii = 0; ii < tdim + 1; ii++){
+        set_poi2ent(Vertex{ent2poi_(ientt,ii)}, tdim, ientt);
+      }
+      for(int ii = tdim + 1; ii < nnode; ii++){
+        set_poi2ent(CtrlPt{ent2poi_(ientt,ii)}, tdim, ientt);
+      }
     }
   }
-
-  nnode = getnnod2(curdeg);
-  for(int iface = 0; iface < nface; iface++){
-    //for(int ii = 0; ii < nnode; ii++){
-    //  fac2poi(iface,ii) = data.fac2poi(iface,ii);
-    //}
-    //fac2ref[iface] = data.fac2ref[iface];
-    if(isdeadent(iface,fac2poi)) continue;
-    for(int ii = 0; ii < nnode; ii++){
-      poi2ent[fac2poi(iface,ii)][0] = iface;
-      poi2ent[fac2poi(iface,ii)][1] = 2;
-    }
-  }
-
-  nnode = getnnod1(curdeg);
-  for(int iedge = 0; iedge < nedge; iedge++){
-    //for(int ii = 0; ii < nnode; ii++){
-    //  edg2poi(iedge,ii) = data.edg2poi(iedge,ii);
-    //}
-    //edg2ref[iedge] = data.edg2ref[iedge];
-    if(isdeadent(iedge,edg2poi)) continue;
-    for(int ii = 0; ii < nnode; ii++){
-      poi2ent[edg2poi(iedge,ii)][0] = iedge; 
-      poi2ent[edg2poi(iedge,ii)][1] = 1; 
-    }
-  }
-
 
 }
 

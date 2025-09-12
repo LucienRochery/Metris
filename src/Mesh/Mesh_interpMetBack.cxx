@@ -36,6 +36,8 @@ int Mesh<MFT>::interpMetBack(int ipoin){
   METRIS_ASSERT_MSG(tdim > 0, "Interpolate corners manually");
   
   int iseed = this->poi2ent(ipoin,0);
+  // Control point case
+  if(iseed < -1) iseed = - iseed - 2;
   METRIS_ASSERT(this->poi2ent(ipoin,1) == tdim);
   METRIS_ASSERT(iseed >= 0 && iseed < this->nentt(tdim));
   METRIS_ASSERT(!isdeadent(iseed,this->ent2poi(tdim)));
@@ -331,13 +333,13 @@ ieleb_initialized:
     this->param->iverb   = 10;
     this->param->ivdepth = 20;
 
-    int ipdbg = this->bak->newpoitopo(-1,-1);
-    int ibdbg = this->bak->newbpotopo(ipdbg,0,ipdbg);
+    int ipdbg = this->bak->newpoitopo(PointType::Vertex,-1,-1);
+    int ibdbg = this->bak->newbpotopo(Vertex{ipdbg},0,ipdbg);
     for(int ii = 0; ii < this->idim; ii++) 
       this->bak->coord(ipdbg,ii) = this->coord(ipoi0,ii);
 
-    int ipdb2 = this->bak->newpoitopo(-1,-1);
-    this->bak->newbpotopo(ipdb2,0,ipdb2);
+    int ipdb2 = this->bak->newpoitopo(PointType::Vertex,-1,-1);
+    this->bak->newbpotopo(Vertex{ipdb2},0,ipdb2);
     for(int ii = 0; ii < this->idim; ii++) 
       this->bak->coord(ipdb2,ii) = coopr[ii];
 
@@ -357,13 +359,13 @@ ieleb_initialized:
   #endif
 
   if(ierro != 0 && DOPRINTS2() && this->param->dbgfull){
-    int ipdbg = this->bak->newpoitopo(-1,-1);
-    int ibdbg = this->bak->newbpotopo(ipdbg,0,ipdbg);
+    int ipdbg = this->bak->newpoitopo(PointType::Vertex,-1,-1);
+    int ibdbg = this->bak->newbpotopo(Vertex{ipdbg},0,ipdbg);
     for(int ii = 0; ii < this->idim; ii++) 
       this->bak->coord(ipdbg,ii) = this->coord(ipoi0,ii);
 
-    int ipdb2 = this->bak->newpoitopo(-1,-1);
-    this->bak->newbpotopo(ipdb2,0,ipdb2);
+    int ipdb2 = this->bak->newpoitopo(PointType::Vertex,-1,-1);
+    this->bak->newbpotopo(Vertex{ipdb2},0,ipdb2);
     for(int ii = 0; ii < this->idim; ii++) 
       this->bak->coord(ipdb2,ii) = coopr[ii];
 
@@ -457,13 +459,13 @@ ieleb_initialized:
   }
 
   if(DOPRINTS2() && len >= 0.5){
-    int ipdbg = this->bak->newpoitopo(-1,-1);
-    int ibdbg = this->bak->newbpotopo(ipdbg,0,ipdbg);
+    int ipdbg = this->bak->newpoitopo(PointType::Vertex,-1,-1);
+    int ibdbg = this->bak->newbpotopo(Vertex{ipdbg},0,ipdbg);
     for(int ii = 0; ii < this->idim; ii++) 
       this->bak->coord(ipdbg,ii) = this->coord(ipoi0,ii);
 
-    int ipdb2 = this->bak->newpoitopo(-1,-1);
-    this->bak->newbpotopo(ipdb2,0,ipdb2);
+    int ipdb2 = this->bak->newpoitopo(PointType::Vertex,-1,-1);
+    this->bak->newbpotopo(Vertex{ipdb2},0,ipdb2);
     for(int ii = 0; ii < this->idim; ii++) 
       this->bak->coord(ipdb2,ii) = coopr[ii];
 

@@ -45,11 +45,8 @@ friend class MeshBase;
 
 
   // Internal use:
-  WorkArray1D(const WorkArray1D& other);
   WorkArray1D(WorkArray1D&& other);
 
-  WorkArray1D& operator=(WorkArray1D&& other);
-  WorkArray1D& operator=(const WorkArray1D& other);
 
 private:
   int ilock;
@@ -57,6 +54,7 @@ private:
   MeshBase& msh;
   MeshSize itype;
   int iref_tracked;
+  bool imoved = false;
 };
 
 

@@ -144,7 +144,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     lpfro.allocate(ipoi0);
     lpfro.set_n(0);
     for(int ipoin = 0; ipoin < ipoi0; ipoin++){
-      if(msh.poi2ent(ipoin,0) < 0) continue;
+      if(msh.isdeadpoint(ipoin)) continue;
       lpfro.stack(ipoin);
     }
   }else{
@@ -158,7 +158,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
 
   //    INCVDEPTH(msh.param);
 
-  //    if(msh.poi2ent(ipoin,0) < 0) continue;
+  //    if(msh.isdeadpoint(ipoin)) continue;
 
   //    int pdim = msh.getpoitdim(ipoin);
   //    // Corner not to be localized but matched prior

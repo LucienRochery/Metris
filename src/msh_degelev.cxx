@@ -117,8 +117,8 @@ void deg_elevate(Mesh<MFT> &msh){
           // Inherits attachment to this edge, triangles, etc. Same topological make. 
           ibnew = msh.poi2bpo[ipnew];
         }else{
-          ipnew = msh.newpoitopo(1,iedge);
-          ibnew = msh.newbpotopo(ipnew,1,iedge);
+          ipnew = msh.newpoitopo(PointType::CtrlPt, 1, iedge);
+          ibnew = msh.newbpotopo(CtrlPt{ipnew}, 1, iedge);
         }
 
         for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
@@ -183,8 +183,8 @@ void deg_elevate(Mesh<MFT> &msh){
             ipnew = msh.fac2poi[iface][irn0_prv + irnk - irn0];
             ibnew = msh.poi2bpo[ipnew];
           }else{
-            ipnew = msh.newpoitopo(2,iface);
-            ibnew = msh.newbpotopo(ipnew,2,iface);
+            ipnew = msh.newpoitopo(PointType::CtrlPt, 2, iface);
+            ibnew = msh.newbpotopo(CtrlPt{ipnew}, 2, iface);
           }
 
           for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
@@ -228,7 +228,7 @@ void deg_elevate(Mesh<MFT> &msh){
                 lbpon[irnk] = lbpoi[irn0_prv + irnk - irn0];
                 msh.bpo2ibi[lbpon[irnk]][0] = msh.fac2poi(iface,irnk);
               }else{
-                msh.newbpotopo(msh.fac2poi(iface,irnk),2,iface);
+                msh.newbpotopo(CtrlPt{msh.fac2poi(iface,irnk)},2,iface);
                 lbpon[irnk] = msh.nbpoi - 1;
               }
             }
@@ -250,8 +250,8 @@ void deg_elevate(Mesh<MFT> &msh){
               ipnew = msh.fac2poi[iface][irn0_prv + irnk - irn0];
               ibnew = msh.poi2bpo[ipnew];
             }else{
-              ipnew = msh.newpoitopo(2,iface);
-              ibnew = msh.newbpotopo(ipnew,2,iface);
+              ipnew = msh.newpoitopo(PointType::CtrlPt, 2, iface);
+              ibnew = msh.newbpotopo(CtrlPt{ipnew}, 2, iface);
             }
 
             for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
@@ -310,7 +310,7 @@ void deg_elevate(Mesh<MFT> &msh){
                         + 4 * nppf0;
 
           for(int irnk = irnk0; irnk < getnnod3(tardeg); irnk++){
-            int ipnew = msh.newpoitopo(3,ielem);
+            int ipnew = msh.newpoitopo(PointType::CtrlPt,3,ielem);
 
             for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
             
@@ -364,7 +364,7 @@ void deg_elevate(Mesh<MFT> &msh){
             int irnk1 = 4 + 6*(getnnod1(tardeg)-2) + (ifa+1)*nppf0; 
 
             for(int irnk = irnk0; irnk < irnk1; irnk++){
-              int ipnew = msh.newpoitopo(3,ielem);
+              int ipnew = msh.newpoitopo(PointType::CtrlPt,3,ielem);
               for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
 
               msh.tet2poi(ielem,irnk) = ipnew;
@@ -439,7 +439,7 @@ void deg_elevate(Mesh<MFT> &msh){
               METRIS_ASSERT(irn1 <= getnnod3(tardeg));
     
               for(int irnk = irn0; irnk < irn1;irnk++){
-                int ipnew = msh.newpoitopo(3,ielem);
+                int ipnew = msh.newpoitopo(PointType::CtrlPt,3,ielem);
                 msh.tet2poi(ielem,irnk) = ipnew;
                 //newt2poi[ielem][irnk-4] = ipnew;
                 for(int i = 0; i < gdim; i++) msh.coord(ipnew,i) = newpt[irnk][i];

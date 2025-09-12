@@ -148,7 +148,7 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
     int nmov  = 0;
 
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-      if(msh.poi2ent(ipoin, 0) < 0) continue;
+      if(msh.isdeadpoint(ipoin)) continue;
       if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
       INCVDEPTH(msh.param);
 

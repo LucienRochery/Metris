@@ -174,7 +174,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
               // This would only happen if we just added another edge here:
               if(msh.bpo2ibi(ib2,1) != 1){ 
                 // then create new bpo and copy the old uvs here
-                int ibn = msh.newbpotopo(ipoin,1,iedgn);
+                int ibn = msh.newbpotopo(Vertex{ipoin},1,iedgn);
                 for(int jj = 0; jj < nrbi; jj++) 
                   msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ibpoi,jj);
                 CPRINTF2(" - (1) newbpo ipoin = {} ibn = {} from ib = {}, t = {}\n",
@@ -182,7 +182,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
               }
             }else{
               // then create new bpo and copy the old uvs here
-              int ibn = msh.newbpotopo(ipoin,1,iedgn);
+              int ibn = msh.newbpotopo(Vertex{ipoin},1,iedgn);
               for(int jj = 0; jj < nrbi; jj++) 
                 msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ibpoi,jj);
               CPRINTF2(" - (2) newbpo ipoin = {} ibn = {} from ib = {}, t = {}\n",
@@ -195,7 +195,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
           //// We're not in the business of adding nodes
           //METRIS_ASSERT(ipoin == cav.ipins);
 
-          int ibn = msh.newbpotopo(ipoin,1,iedgn);
+          int ibn = msh.newbpotopo(Vertex{ipoin},1,iedgn);
           CPRINTF2(" - (3) newbpo ipoin = {} ibn = {} CORNER case\n",ipoin,ibn);
 
           // Let's assume most likely, this is not a loop. 
@@ -384,10 +384,9 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
       // Create new control points
       for(int j = 0; j < ideg - 1; j++){
         int ipnew = msh.npoin;
-        msh.newpoitopo(1,iedgn);
+        msh.newpoitopo(PointType::CtrlPt,1,iedgn);
         msh.edg2poi(iedgn,2+j) = ipnew;
-        msh.poi2ent(ipnew,0) = iedgn;
-        msh.poi2ent(ipnew,1) = 1;
+        msh.set_poi2ent(CtrlPt{ipnew}, 1, iedgn);
         msh.poi2bpo[ipnew] = -1;
         double t = (1.0 + j)/ideg; 
         for(int k = 0; k < msh.idim; k++){
@@ -397,7 +396,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
 
         if(msh.isboundary_edges()){
           // New bpo attached to edge. 
-          msh.newbpotopo(ipnew,1,iedgn);
+          msh.newbpotopo(CtrlPt{ipnew},1,iedgn);
           for(int ll = 0; ll < nrbi; ll++){
             msh.bpo2rbi(msh.nbpoi-1,ll) = (1 - t) * msh.bpo2rbi(ibins ,ll)
                                              + t  * msh.bpo2rbi(ibseed,ll);

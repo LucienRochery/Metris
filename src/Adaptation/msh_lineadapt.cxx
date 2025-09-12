@@ -498,8 +498,8 @@ void adaptGeoLines(Mesh<MFT> &msh){
                 msh.fac2ref[cav.lcfac[ii]] = 3;
               }
               // Add a corner at ipoin 
-              int ipoin = msh.newpoitopo(-1,-1);
-              int ibpoi = msh.newbpotopo(ipoin,0,ipoin);
+              int ipoin = msh.newpoitopo(PointType::Vertex, -1,-1);
+              int ibpoi = msh.newbpotopo(Vertex{ipoin},0,ipoin);
               for(int ii = 0; ii < msh.idim; ii++) 
                 msh.coord(ipoin,ii) = msh.coord(cav.ipins,ii);
               writeMesh("debug_lineadap0.meshb",msh);
@@ -605,7 +605,7 @@ void adaptGeoLines(Mesh<MFT> &msh){
 
             int ipins_old = cav.ipins;
             int inewp_old = cav.inewp;
-            cav.ipins = msh.newpoitopo(msh.get_tdim(), -1);
+            cav.ipins = msh.newpoitopo(PointType::Vertex,msh.get_tdim(), -1);
             cav.inewp = 1;
 
             int ncedg = cav.lcedg.get_n();
@@ -866,8 +866,8 @@ void getCADCurveLengths(Mesh<MFT> &msh, [[maybe_unused]] double tol, dblAr1 &crv
 
   // add two dummy points 
   int ipon[2]; 
-  ipon[0] = msh.newpoitopo(-1,-1);
-  ipon[1] = msh.newpoitopo(-1,-1);
+  ipon[0] = msh.newpoitopo(PointType::Vertex,-1,-1);
+  ipon[1] = msh.newpoitopo(PointType::Vertex,-1,-1);
 
 
   bool noCAD = !msh.CAD();
@@ -964,8 +964,8 @@ void getCADCurveLengths_old(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
 
   // add two dummy points 
   int ipon[2]; 
-  ipon[0] = msh.newpoitopo(-1,-1);
-  ipon[1] = msh.newpoitopo(-1,-1);
+  ipon[0] = msh.newpoitopo(PointType::Vertex,-1,-1);
+  ipon[1] = msh.newpoitopo(PointType::Vertex,-1,-1);
   int edg2pol[2] = {ipon[0], ipon[1]};
   double sz[2];
 
@@ -1128,8 +1128,8 @@ void getCADCurveLengths_old(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
 
           #ifndef NDEBUG
           if(dtprd < -10){
-            msh.newbpotopo(ipon[1-iwhich],0,-1);
-            msh.newbpotopo(ipon[  iwhich],0,-1);
+            msh.newbpotopo(Vertex{ipon[1-iwhich]},0,-1);
+            msh.newbpotopo(Vertex{ipon[  iwhich]},0,-1);
 
             MPRINTF("## FAILURE idiv = {} / {} dtprd = {} iedge = {}\n",
               idiv, ndiv, dtprd, iedge);
@@ -1405,8 +1405,8 @@ static int gen_newp_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
 
   const int nnmet = (msh.idim*(msh.idim+1))/2;
 
-  cav.ipins = msh.newpoitopo(1,iedgseed);
-  int ibins = msh.newbpotopo(cav.ipins,1,iedgseed);
+  cav.ipins = msh.newpoitopo(PointType::Vertex, 1,iedgseed);
+  int ibins = msh.newbpotopo(Vertex{cav.ipins},1,iedgseed);
 
 
   // Get optimal location. First guess, t. Then bisection 
@@ -1469,7 +1469,7 @@ static int gen_newp_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
     #ifndef NDEBUG
       CPRINTF2(" - computed metric {}\n", dblAr1(nnmet,msh.met[cav.ipins]));
       if(ierro != 0){
-        msh.newbpotopo(cav.ipins,0);
+        msh.newbpotopo(Vertex{cav.ipins},0);
         if(DOPRINTS3()) writeMesh("debug_interpMetBack"+std::to_string(cav.ipins),msh);
       }
       METRIS_ASSERT_MSG(ierro == 0, "interpMetBack failed");

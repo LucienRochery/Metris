@@ -95,7 +95,7 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
       [[maybe_unused]] double lbdmin, [[maybe_unused]] double lbdmax){
 		int nnmet = (msh->idim*(msh->idim+1))/2;
 		for(int ipoin = ipoi0 - 1; ipoin < ipoi1; ipoin++){
-      if(msh->poi2ent(ipoin,0) < 0) continue;
+      if(msh->isdeadpoint(ipoin)) continue;
 			for(int jj = 0; jj < nnmet; jj++) msh->met(ipoin,jj) /= rwork->operator[](ipoin);
 		}
 		// Control sizes here if provided (hmin hmax)

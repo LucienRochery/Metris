@@ -149,7 +149,7 @@ doproj:
     for(int ibpoi = nbpo0; ibpoi < msh.nbpoi; ibpoi++){
       INCVDEPTH(msh.param);
       int ipoin = msh.bpo2ibi(ibpoi,0);
-      if(msh.poi2ent(ipoin,0) < 0) continue;
+      if(msh.isdeadpoint(ipoin)) continue;
       if(msh.bpo2tag(ithrd,ibpoi) >= btag) continue;
 
    	  int ientt = msh.bpo2ibi(ibpoi,2);
@@ -681,7 +681,7 @@ void iniMeshBdryCorners(MeshBase &msh){
      	if(minty == 0) continue;
 			}
 			// Create corner
-			msh.newbpotopo(ipoin,0);
+			msh.newbpotopo(Vertex{ipoin},0);
 			ncrec ++;
 		}
 	}
@@ -1072,7 +1072,8 @@ int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
               if(ibpoi >= 0){
                 METRIS_ASSERT(iface == ientt);
               }else{
-                ibpoi = msh.newbpotopo(ipoin, 2, iface);
+                ibpoi = iver < tdim + 1 ? msh.newbpotopo(Vertex{ipoin}, 2, iface)
+                                        : msh.newbpotopo(CtrlPt{ipoin}, 2, iface);
               }
 
               for(int ii = 0; ii < nrbi; ii++) 
@@ -1118,7 +1119,8 @@ int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
 
 			// Create new bpo link either if point new bdry or if corner
 			if(ibpoi < 0 || msh.bpo2ibi(ibpoi,1) == 0){
-				msh.newbpotopo(ipoin,1,iedge);
+				if(iver < 2) msh.newbpotopo(Vertex{ipoin},1,iedge);
+        else         msh.newbpotopo(CtrlPt{ipoin},1,iedge);
 				ntry1++;
         CPRINTF3(" - new edge bpo ipoin = {} iedge = {} ntry1 = {}\n",ipoin,iedge,ntry1);
 			}
@@ -1144,7 +1146,8 @@ int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
 
 				// New bpo link if either new or (edge or corner) point. 
 				if(ibpoi < 0 || msh.bpo2ibi(ibpoi,1) < 2){
-					msh.newbpotopo(ipoin,2,iface);
+					if(iver < 3) msh.newbpotopo(Vertex{ipoin},2,iface);
+					else         msh.newbpotopo(CtrlPt{ipoin},2,iface);
 					ntry2++;
           CPRINTF3(" - new face bpo ipoin = {} iface = {} ntry2 = {}\n",ipoin,iface,ntry2);
 					continue;
@@ -1231,7 +1234,7 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
 
   for(int ipoin = 0; ipoin < msh.npoin ;ipoin++){
     INCVDEPTH(msh.param);
-    if(msh.poi2ent(ipoin,0) < 0){
+    if(msh.isdeadpoint(ipoin)){
       if(do_lpoic) lpoic[ipoin] = 0;
       continue;
     }
@@ -1259,7 +1262,7 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
     INCVDEPTH(msh.param);
     int ipoin = msh.bpo2ibi(ibpoi,0);
     if(ipoin < 0) continue;
-    if(msh.poi2ent(ipoin,0) < 0) continue;
+    if(msh.isdeadpoint(ipoin)) continue;
     METRIS_ASSERT(ipoin < msh.npoin);
     int itype = msh.bpo2ibi(ibpoi,1);
     if(itype == 2){

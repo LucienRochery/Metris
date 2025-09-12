@@ -47,32 +47,36 @@ bool MetrisParameters::operator==(const MetrisParameters &other) const{
   return true;
 }
 
-void MetrisParametersData::printDifference(const MetrisParametersData &other) const{
+void MetrisParametersData::printDifference(const MetrisParametersData &other, std::string thisName, FILE* logFile) const{
+
   #define FIELD(type, name, default_value) \
-  if(name != other.name) fmt::print("-- Field {} differs: {} != {}\n", #name, name, other.name);
+  if(name != other.name){\
+    if(!thisName.empty()) fmt::print(logFile,"-- {} differs from {}: {} -> {}\n", #name, thisName, this->name, other.name);\
+    else fmt::print(logFile,"-- {} differs: {} -> {}\n",  #name, this->name, other.name);\
+  }
   METRIS_PARAMETER_FIELDS_JSON
   #undef FIELD
 }
 
-void MetrisParameters::printDifference(const MetrisParameters &other) const {
-  
-  MetrisParametersData::printDifference(other);
+void MetrisParameters::printDifference(const MetrisParameters &other, std::string thisName) const {
+
+  MetrisParametersData::printDifference(other, thisName, logFile_);
   // Check filename component of file names match, ignore path. 
   std::string inpCAD = this->cadFileName.substr(this->cadFileName.find_last_of("/\\") + 1);
   std::string othCAD = other.cadFileName.substr(other.cadFileName.find_last_of("/\\") + 1);
-  if(inpCAD != othCAD) fmt::print("-- Input CAD file name differs: {} != {}\n", inpCAD, othCAD);
+  if(inpCAD != othCAD) fmt::print("-- CAD differs: {} != {}\n", inpCAD, othCAD);
 
   std::string inpBack = this->backFileName.substr(this->backFileName.find_last_of("/\\") + 1);
   std::string othBack = other.backFileName.substr(other.backFileName.find_last_of("/\\") + 1);
-  if(inpBack != othBack) fmt::print("-- Input Back file name differs: {} != {}\n", inpBack, othBack);
+  if(inpBack != othBack) fmt::print("-- Back Mesh differs: {} != {}\n", inpBack, othBack);
 
   std::string inpMesh = this->meshFileName.substr(this->meshFileName.find_last_of("/\\") + 1);
   std::string othMesh = other.meshFileName.substr(other.meshFileName.find_last_of("/\\") + 1);
-  if(inpMesh != othMesh) fmt::print("-- Input Mesh file name differs: {} != {}\n", inpMesh, othMesh);
+  if(inpMesh != othMesh) fmt::print("-- Input Mesh differs: {} != {}\n", inpMesh, othMesh);
 
   std::string inpMet = this->metFileName.substr(this->metFileName.find_last_of("/\\") + 1);
   std::string othMet = other.metFileName.substr(other.metFileName.find_last_of("/\\") + 1);
-  if(inpMet != othMet) fmt::print("-- Input Met file name differs: {} != {}\n", inpMet, othMet);
+  if(inpMet != othMet) fmt::print("-- Input Metric differs: {} != {}\n", inpMet, othMet);
 
 }
 

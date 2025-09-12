@@ -97,6 +97,7 @@ int cavity_operator(Mesh<MFT> &msh ,
   cav.print(msh);
 
   if(DOPRINTS2()) writeMeshCavity("cavity0",msh,cav);
+  if(DOPRINTS3()) writeMesh("cavinifull",msh,true);
 
 	if(cav.ipins < 0 || cav.ipins >= msh.npoin) 
 		METRIS_THROW_MSG("ipins out of bounds\n");

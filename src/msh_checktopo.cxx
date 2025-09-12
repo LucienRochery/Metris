@@ -96,6 +96,18 @@ void check_topo(MeshBase &msh,
         for(int ii = 0; ii < nnode; ii++){
           int ipoin = ent2poi(ientt,ii);
           int ient2 = msh.poi2ent(ipoin,0);
+          // control point case:
+          if(ii >= tdim+1) ient2 = - ient2 - 2;
+          if(ient2 < 0){
+            PRINTF("## INVALID poi2ent? tdim {} ientt {} ipoin {} poi2ent = {} anounced dim {}\n",
+                   tdim,ientt,ipoin,ient2,msh.poi2ent(ipoin,1));
+            for(int jj = 0; jj < tdim + 1; jj++){
+              int ienei = msh.ent2ent(tdim)(ientt,jj);
+              if(ienei < 0) continue;
+              PRINTF(" - ent2ent[{}] = {} : {}\n",jj,ienei,intAr1(nnode,ent2poi[ienei]));
+            }
+
+          }
           METRIS_ENFORCE_MSG(ient2 >= 0,
             "Invalid poin2ent? tdim = {} ientt {} ipoin {} poi2ent = {} anounced dim {}",
             tdim,ientt,ipoin,ient2,msh.poi2ent(ipoin,1));
@@ -110,15 +122,15 @@ void check_topo(MeshBase &msh,
 
     for(int ipoin = 0; ipoin < npoin; ipoin++){
       int ientt = msh.poi2ent(ipoin,0);
-      if(ientt < 0) continue;
+      if(ientt < 0) continue; // either HO node or dead
       int tdim = msh.poi2ent(ipoin,1);
       METRIS_ENFORCE_MSG(1 <= tdim && tdim <= msh.get_tdim(), 
         "ipoin {} poi2ent = {} {}",ipoin,ientt,tdim);
       if(tdim >= 1){
         int iver = msh.getverent(ientt,tdim,ipoin);
         if(iver < 0){
-          MPRINTF("failed to find ipoin in its poi2ent. ipoin = {} ientt {} tdim {} ",
-                   ipoin, ientt, tdim);
+          MPRINTF("failed to find ipoin in its poi2ent. ipoin = {} ientt {} tdim {}\n vertices: {}\n",
+                   ipoin, ientt, tdim, intAr1(getnnode(tdim,msh.curdeg),msh.ent2poi(tdim)[ientt]));
           const intAr2 &ent2poi = msh.ent2poi(tdim);
           MPRINTF("vertices: ");
           intAr1(tdim+1,ent2poi[ientt]).print();
@@ -142,7 +154,7 @@ void check_topo(MeshBase &msh,
       :((Mesh<MetricFieldAnalytical> *)(&msh))->poi2bak;
 
       for(int ipoin = 0; ipoin < npoin; ipoin++){
-        if(msh.poi2ent(ipoin,0) < 0) continue;
+        if(msh.isdeadpoint(ipoin)) continue;
 
 
         int pdim = msh.getpoitdim(ipoin);
@@ -179,7 +191,7 @@ void check_topo(MeshBase &msh,
     if(msh.meshClass() == MeshClass::Mesh && msh.metricClass() == MetricClass::MetricFieldAnalytical){
       Mesh<MetricFieldAnalytical>& msh_a = (Mesh<MetricFieldAnalytical>&)msh;
       for(int ipoin = 0; ipoin < npoin; ipoin++){
-        if(msh.poi2ent(ipoin,0) < 0) continue;
+        if(msh.isdeadpoint(ipoin)) continue;
         double metl[6];
         msh_a.met.getMetPhys(DifVar::None, msh_a.met.getSpace(),
                              msh.coord[ipoin], metl, NULL);
@@ -187,7 +199,8 @@ void check_topo(MeshBase &msh,
                                         geterrl2<6>(metl, msh_a.met[ipoin]);
         double nrm1 = msh.idim == 2 ? getnrml2<3>(msh_a.met[ipoin]) :
                                       getnrml2<6>(msh_a.met[ipoin]);
-        METRIS_ENFORCE_MSG(errmet < 1.0E-15*nrm1, "Large metric error {:e} > {:e}",errmet,1.0E-15*nrm1);
+        METRIS_ENFORCE_MSG(errmet < 1.0E-15*nrm1, "Large metric error {:e} > {:e} ipoin {} poi2ent {} {}",
+                           errmet,1.0E-15*nrm1,ipoin,msh.poi2ent(ipoin,0), msh.poi2ent(ipoin,1));
       }
     }
 
@@ -511,6 +524,36 @@ void check_topo(MeshBase &msh,
         }
         METRIS_ENFORCE_MSG(ifa2 >= 0 && ifa2 < 4,"Returned face within 0-3 range");
         METRIS_ENFORCE_MSG(msh.tet2tet(iele2,ifa2) == ielem,"Neighbour has ielem as neighbour at common face");
+        // In HO case, check conformity
+        if(msh.curdeg > 1){
+          int idx1[4], idx2[4];
+          idx1[ifa] = 0;
+          idx2[ifa2] = 0;
+          int iof = msh.tet2poi(iele2, lnofa3[ifa2][0]) == i1 ? 0 
+                  : msh.tet2poi(iele2, lnofa3[ifa2][0]) == i2 ? 1 : 2;
+          for(int ii = 0; ii <= msh.curdeg; ii++){
+            for(int jj = 0; jj <= msh.curdeg - ii; jj++){
+              int kk = msh.curdeg - ii - jj;
+              idx1[lnofa3[ifa][0]] = ii;
+              idx1[lnofa3[ifa][1]] = jj;
+              idx1[lnofa3[ifa][2]] = kk;
+              // Other face is offset such that its first is the iof-th of ielem
+              // And it also goes the other way
+              idx2[lnofa3[ifa2][(0+iof)%3]] = ii;
+              idx2[lnofa3[ifa2][(1+iof)%3]] = kk;
+              idx2[lnofa3[ifa2][(2+iof)%3]] = jj;
+              int inod1 = mul2nod(4,idx1);
+              int inod2 = mul2nod(4,idx2);
+              int ipoi1 = msh.tet2poi(ielem,inod1);
+              int ipoi2 = msh.tet2poi(iele2,inod2);
+              METRIS_ENFORCE_MSG(ipoi1 == ipoi2,
+                "HO tet face mismatch,\niele1 = {} : {}; face {} idx : {} inode {}\niele2 = {} : {}; face {} idx : {} inode {}\n",
+                ielem,intAr1(getnnode(3,msh.curdeg),msh.tet2poi[ielem]),ifa ,intAr1(4,idx1),inod1,
+                iele2,intAr1(getnnode(3,msh.curdeg),msh.tet2poi[iele2]),ifa2,intAr1(4,idx2),inod2
+                );
+            }
+          }
+        }
       }
     }
 
@@ -938,7 +981,7 @@ void check_topo(MeshBase &msh,
       int ipoin = msh.bpo2ibi(ibpoi,0);
       if(ipoin < 0) continue;
       METRIS_ENFORCE(msh.bpo2ibi(msh.poi2bpo[ipoin],0) == ipoin);
-      METRIS_ENFORCE(msh.poi2ent(ipoin,0) >= 0); 
+      METRIS_ENFORCE(msh.poi2ent(ipoin,0) != -1); 
 
       int bdim = msh.bpo2ibi(ibpoi,1);
       METRIS_ENFORCE(bdim == 0 || bdim == 1 || bdim == 2);
@@ -1126,9 +1169,9 @@ void check_topo(MeshBase &msh,
           int iref = msh.ent2ref(tdim)[ientt];
           ego obj = tdim == 1 ? msh.CAD.cad2edg[iref] : msh.CAD.cad2fac[iref];
           EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
-          int ipnew = msh.newpoitopo(tdim, -1);
+          int ipnew = msh.newpoitopo(PointType::Vertex,tdim, -1);
           for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipnew,ii) = result[ii];
-          msh.newbpotopo(ipnew, 0, ipnew);
+          msh.newbpotopo(Vertex{ipnew}, 0, ipnew);
         }
         writeMesh("EGEvals",msh);
         for(int ipoin = npoi0; ipoin < msh.npoin; ipoin++) msh.killpoint(ipoin);

@@ -444,8 +444,8 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
       for(int inewt = 0; inewt < nnewp1; inewt++){
         double tcur = lnewt[inewt];
         METRIS_ENFORCE(EG_evaluate(obj, &tcur, result) == EGADS_SUCCESS);
-        int ipnew = msh.newpoitopo(0, -1);
-        msh.newbpotopo(ipnew,0,ipnew);
+        int ipnew = msh.newpoitopo(PointType::Vertex, 0, -1);
+        msh.newbpotopo(Vertex{ipnew},0,ipnew);
         for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipnew,ii) = result[ii];
       }
       CPRINTF3(" - First gen point {} t = {} \n",npoi0,lnewt[0]);

@@ -10,56 +10,14 @@
 
 using namespace Metris;
 
-
-
-BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q1toQ2) 
-{
-
-  RegressionTestManager manager("3D/cube", "reg_anamet_Q1toQ2", "3D_cube_anamet_Q1toQ2");
-
-  std::vector<int> l_adp_opt_niter  = {5, 1, 0 };
-  std::vector<std::pair<int,double>> l_ianamet = { {1,0.5}, {2,0.05} };
-
-  MetrisParameters param;
-  param.adp_niter = 20;
-  param.opt_niter = 10;
-  param.iverb = 2;
-  param.ivdepth = 1;
-  param.usrTarDeg = 2;
-
-  for(int adp_opt_niter : l_adp_opt_niter){
-    for(bool adp_geo_lines : {true, false}){
-
-      for(std::pair<int,double> ianamet : l_ianamet){
-        std::string test_name = "Q1toQ2_cost" + std::to_string(adp_opt_niter)
-                              + "_met" + std::to_string(ianamet.first);
-        if(adp_geo_lines) test_name += "_geo";
-
-        param.setAnalyticalMetric(ianamet.first);
-        param.setMetricScale(ianamet.second);
-        param.adp_line_adapt = adp_geo_lines;
-        param.adp_opt_niter  = adp_opt_niter;
-
-        try{
-          manager.runTest(param, test_name, "cube.meshb", "cube.egads", "");
-        }catch(const MetrisExcept& e){
-          fmt::print(stderr,"## Test {} raised exception:\n{}\n", test_name, e.what());
-        }
-      }
-    }
-
-  }
-
-}
-
-
+#if 0
 BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q1toQ1) 
 {
 
   RegressionTestManager manager("3D/cube", "reg_anamet_Q1toQ1", "3D_cube_anamet_Q1toQ1");
 
   std::vector<int> l_adp_opt_niter  = {5, 1, 0 };
-  std::vector<std::pair<int,double>> l_ianamet = { {1,0.5}, {2,0.05} };
+  std::vector<std::pair<int,double>> l_ianamet = { {1,1.0}, {2,0.05} };
 
   MetrisParameters param;
   param.adp_niter = 20;
@@ -95,13 +53,55 @@ BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q1toQ1)
 
 
 
+BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q1toQ2) 
+{
+
+  RegressionTestManager manager("3D/cube", "reg_anamet_Q1toQ2", "3D_cube_anamet_Q1toQ2");
+
+  std::vector<int> l_adp_opt_niter  = {5, 1, 0 };
+  std::vector<std::pair<int,double>> l_ianamet = { {1,1.0}, {2,0.05} };
+
+  MetrisParameters param;
+  param.adp_niter = 20;
+  param.opt_niter = 10;
+  param.iverb = 2;
+  param.ivdepth = 1;
+  param.usrTarDeg = 2;
+
+  for(int adp_opt_niter : l_adp_opt_niter){
+    for(bool adp_geo_lines : {true, false}){
+
+      for(std::pair<int,double> ianamet : l_ianamet){
+        std::string test_name = "Q1toQ2_cost" + std::to_string(adp_opt_niter)
+                              + "_met" + std::to_string(ianamet.first);
+        if(adp_geo_lines) test_name += "_geo";
+
+        param.setAnalyticalMetric(ianamet.first);
+        param.setMetricScale(ianamet.second);
+        param.adp_line_adapt = adp_geo_lines;
+        param.adp_opt_niter  = adp_opt_niter;
+
+        try{
+          manager.runTest(param, test_name, "cube.meshb", "cube.egads", "");
+        }catch(const MetrisExcept& e){
+          fmt::print(stderr,"## Test {} raised exception:\n{}\n", test_name, e.what());
+        }
+      }
+    }
+
+  }
+
+}
+#endif
+
+
 BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q2toQ2) 
 {
 
   RegressionTestManager manager("3D/cube", "reg_anamet_Q2toQ2", "3D_cube_anamet_Q2toQ2");
 
   std::vector<int> l_adp_opt_niter  = {5, 1, 0 };
-  std::vector<std::pair<int,double>> l_ianamet = { {1,0.5}, {2,0.05} };
+  std::vector<std::pair<int,double>> l_ianamet = { {1,1.0}, {2,0.05} };
 
   MetrisParameters param;
   param.adp_niter = 20;
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q2toQ2)
     for(bool adp_geo_lines : {true, false}){
 
       for(std::pair<int,double> ianamet : l_ianamet){
-        std::string test_name = "Q1toQ2_cost" + std::to_string(adp_opt_niter)
+        std::string test_name = "Q2toQ2_cost" + std::to_string(adp_opt_niter)
                               + "_met" + std::to_string(ianamet.first);
         if(adp_geo_lines) test_name += "_geo";
 

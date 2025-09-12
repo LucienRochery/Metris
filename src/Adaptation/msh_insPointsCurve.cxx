@@ -186,8 +186,8 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
 
       if(msh.param->dbgfull) check_topo(msh,ithrd2);
 
-      int ipnew = msh.newpoitopo(1, -1);
-      int ibnew = msh.newbpotopo(ipnew,1,t2sed[inewt+1]);
+      int ipnew = msh.newpoitopo(PointType::Vertex, 1, -1);
+      int ibnew = msh.newbpotopo(Vertex{ipnew},1,t2sed[inewt+1]);
       cav.ipins = ipnew;
       cav.inewp = 1;
       
@@ -458,7 +458,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       }}CT_FOR1(ideg);
 
       //if(ierro != 0){
-      //  printf("## WAIT: in insPointsCurve cavity ierro {} \n",ierro);
+      //  PRINTF("## WAIT: in insPointsCurve cavity ierro {} \n",ierro);
       //  wait();
       //}
 

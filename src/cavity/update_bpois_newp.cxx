@@ -86,7 +86,7 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
           // fetch or create face ibpoi
           int ibpoi = msh.poi2ebp(cav.ipins, 2, iface, -1);
           CPRINTF1("   - existing ibpoi ? {}\n",ibpoi);
-          if(ibpoi < 0) ibpoi = msh.newbpotopo(cav.ipins,2,iface);
+          if(ibpoi < 0) ibpoi = msh.newbpotopo(Vertex{cav.ipins},2,iface);
           else CPRINTF1("   - old (u,v) = {} {} \n"
                         ,msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
 
@@ -183,21 +183,8 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
         int sg = 1;
         if(ip1 != msh.fac2poi(iface,lnoed2[ied][0])) sg = -1;
 
-        if(ipoin == 71925){
-          fmt::print(" debug 71925 previous (u,v) = {} {}\n",
-            msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
-        }
         int icode = EG_getEdgeUV(EG_fac, EG_edg, sg, tt, msh.bpo2rbi[ibpoi]);
-        if(ipoin == 71925){
-          fmt::print(" debug using sg = {} tt = {} new (u,v) = {} {}\n",
-            sg,tt,msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
-          double uvdbg[4];
-          icode = EG_getEdgeUV(EG_fac, EG_edg, -sg, tt, uvdbg);
-          fmt::print(" debug if sg = -sg icode {} : {} {} \n",icode,uvdbg[0],uvdbg[1]);
-        }
 
-        static int nwarnprt1 = 0;
-        if(nwarnprt1++ < 10) fmt::print("## DISABLE THIS DEBUG\n");
 
         if(icode != 0) METRIS_THROW_MSG("EG_getEdgeUV failed !");
 

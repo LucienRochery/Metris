@@ -31,8 +31,8 @@ typedef void(*anamet_proto)(const AnaMetCtx*,const double*__restrict__,double,in
 typedef double(*anasol_proto)(void*,const double*__restrict__,std::initializer_list<double*>);
 
 
-class MetrisParametersData;
-class MetrisParameters;
+struct MetrisParametersData;
+struct MetrisParameters;
 
 void to_json(nlohmann::json& jj, const MetrisParametersData& param);
 void to_json(nlohmann::json& jj, const MetrisParameters& param);
@@ -203,7 +203,7 @@ namespace internal {
 //  - We want to compare them differently
 //  - I don't expect there'll be any more in the future (or much fewer)
 //  - It's good to have private setters for them
-class MetrisParametersData{
+struct MetrisParametersData{
 public:
 
   void setAnalyticalMetric(int ianamet);
@@ -216,7 +216,7 @@ public:
   anasol_proto anasol_ptr = NULL;
 
   bool operator==(const MetrisParametersData &other) const;
-  void printDifference(const MetrisParametersData &other) const;
+  void printDifference(const MetrisParametersData &other, std::string thisName = "", FILE* logFile = stdout) const;
 
   #define FIELD(type, name, default_value) \
       type name{default_value};\
@@ -268,7 +268,7 @@ public:
   void setLogFile(std::string fname);
 
 
-  void printDifference(const MetrisParameters &other) const;
+  void printDifference(const MetrisParameters &other, std::string thisName = "") const;
 
 public:
   const std::string& outmFileName;
@@ -306,6 +306,7 @@ private:
   template<class MFT>
   friend class Mesh;
   friend class CADInfo;
+
 };
 
 } // End namespace
