@@ -24,7 +24,7 @@ param(&param_){
   GETVDEPTH(param);
   if(DOPRINTS1()){
     fmt::print("Call: ");
-    for(int ii = 0; ii < argc; ii++){
+    for(int ii = 1; ii < argc; ii++){
       fmt::print(" {} ",argv[ii]);
     }
     fmt::print("\n");

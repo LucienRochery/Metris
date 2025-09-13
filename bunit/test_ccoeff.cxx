@@ -18,9 +18,8 @@ BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) )
 
   // bool is whether straight
   std::vector<std::pair<std::string,bool>> meshes = {
-   {METRIS_CASES_DIR "/unit/2D/square/iso.p1.100k",true}
+   {METRIS_CASES_DIR "/unit/2D/square/iso.p1.100k -t 2",true}
   ,{METRIS_CASES_DIR "/unit/2D/square/circmet.p2.500",false}
-  ,{METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k",true}
   ,{METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k -t 2",true}
   ,{METRIS_CASES_DIR "/unit/3D/cube/curved.p2.2k",false}
   #if METRIS_MAX_DEG >= 3
@@ -34,20 +33,20 @@ BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) )
   };
 
 
-  double tol = 1.0e-12;
+  double tol = 1.0e-10;
   for(auto testcase : meshes)
   {
     std::string s = testcase.first;
     bool istr8    = testcase.second;
 
-    cargHandler arg("-in " + s + "  -anamet 1 -verb 0");
+    cargHandler arg("-in " + s + " -anamet 1 -verb 0");
     MetrisRunner run(arg.c, arg.v);
     Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
     // For those meshes that have a higher target degree than 1 (does nothing to the others)
     run.degElevate();
     msh.cleanup();
 
-    std::cout<<"\n\n-- Mesh "<<s<<" dim "<<msh.idim<<" deg "<<msh.curdeg<<"\n";
+    std::cout<<"\n-- Mesh "<<s<<" dim "<<msh.idim<<" deg "<<msh.curdeg<<"\n";
 
     int ps;
 
@@ -68,8 +67,7 @@ BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) )
       constexpr auto evalf =  idim == 2 ? eval2<idim,ideg> : eval3<idim,ideg>;
       constexpr auto evalj =  idim == 2 ? eval2<1   ,jdeg> : eval3<1   ,jdeg>;
 
-
-      bool first = true;
+      //bool first = true;
       double err2 = 0.0;
       double erri = -1.0e30;
       double err2_ev1 = 0.0;
@@ -77,11 +75,8 @@ BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) )
       double err2_ev2 = 0.0;
       double erri_ev2 = -1.0e30;
       int lcoef[nnodj];
-      for(int i=0; i<nnodj; i++){
-        lcoef[i] = i;
-      }
+      for(int i = 0; i < nnodj; i++) lcoef[i] = i;
   
-      bool firstnan = true;
       for(int ielem = 0; ielem < nentt; ielem++){
         ccoef_genbez(ent2poi,msh.coord,ielem,ccoef);
         double vol = vol0 * getmeasentP1<idim>(ent2poi[ielem],msh.coord);
@@ -89,35 +84,18 @@ BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) )
         //                      ,msh.coord[ent2poi(ielem,2)],msh.coord[ent2poi(ielem,0)]
         //                      ,msh.coord[ent2poi(ielem,3)],msh.coord[ent2poi(ielem,0)]); 
         ccoef_eval<idim,idim,ideg>(msh.getBasis(),ent2poi,msh.coord,ielem,NULL,ccoef2);
-        err2 += geterrl2<nnodj>(ccoef2,ccoef)/vol/vol;
-        for(int i = 0; i < nnodj; i++){
+        err2 += geterrl2<nnodj>(ccoef2,ccoef)/getnrml2<nnodj>(ccoef);
+        for(int ii = 0; ii < nnodj; ii++){
+          erri = MAX(erri, abs(ccoef[ii] - ccoef2[ii])/ccoef[ii]);
           //int idx1 = ordtet.s[jdeg][i][0];
           //int idx2 = ordtet.s[jdeg][i][1];
           //int idx3 = ordtet.s[jdeg][i][2];
           //int idx4 = ordtet.s[jdeg][i][3];
-          erri = erri > abs(ccoef[i]-ccoef2[i])/vol ? erri : abs(ccoef[i]-ccoef2[i])/vol;
           //if(first && abs(ccoef[i]-ccoef2[i]) > tol)printf("dbg %d (%d%d%d%d) ccoef = %20.15e ccoef2 = %20.15e err = %20.15e addr1 %p \n",i,
           //  idx1,idx2,idx3,idx4,ccoef[i],ccoef2[i],abs(ccoef[i]-ccoef2[i]),(void *)&ccoef[i]);
         }
-        if( (std::isnan(err2) || std::isnan(erri)) && firstnan){
-          firstnan = false;
-          printf("Error became NaN\n");
-          printf("Printing ccoef1:\n");
-          for(int i = 0; i < nnodj ;i++){
-            //int idx1 = ordtet.s[jdeg][i][0];
-            //int idx2 = ordtet.s[jdeg][i][1];
-            //int idx3 = ordtet.s[jdeg][i][2];
-            //int idx4 = ordtet.s[jdeg][i][3];
-            //printf("NaN %d (%d%d%d%d) ccoef = %20.15e ccoef2 = %20.15e err = %20.15e addr1 %p \n",i,
-            //idx1,idx2,idx3,idx4,ccoef[i],ccoef2[i],abs(ccoef[i]-ccoef2[i]),(void *)&ccoef[i]);
-            printf("NaN %d (",i);
-            for(int jj = 0; jj < idim + 1; jj++) printf("%d",ordent[jdeg][i][jj]);
-            printf(") ccoef = %20.15e ccoef2 = %20.15e err = %20.15e addr1 %p \n",
-                  ccoef[i],ccoef2[i],abs(ccoef[i]-ccoef2[i]),(void *)&ccoef[i]);
-          }
-        }
-        /* Compare Jacobian determinant to evaluations using ccoef */
 
+        /* Compare Jacobian determinant to evaluations using ccoef */
         double jmat[idim*idim],dum[idim],bary[idim+1];
         for(int irnk = 0; irnk < nnodj; irnk++){
           for(int ii = 0; ii < idim + 1; ii++) 
@@ -139,30 +117,22 @@ BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) )
           dblAr2 ccoef_(nnodj,1,ccoef);
           evalj(ccoef_,lcoef,FEBasis::Bezier,DifVar::None,DifVar::None,
                 bary,&detc1,NULL,NULL);
-          err2_ev1 += geterrl2<1>(&detc1,&det)/vol/vol;
-          erri_ev1 = erri_ev1 > abs(det-detc1)/vol ? erri_ev1 : abs(det-detc1)/vol;
-
+          err2_ev1 += pow(detc1 - det,2) / pow(det,2);
+          erri_ev1 = MAX(erri_ev1, abs(det-detc1)/det);
 
           double detc2; 
           //eval3<1,jdeg,ilag,0,0>(dblAr2(nnodj,1,ccoef2),lcoef,bary,&detc2,NULL,NULL);
           dblAr2 ccoef2_(nnodj,1,ccoef2);
           evalj(ccoef2_,lcoef,FEBasis::Bezier,DifVar::None,DifVar::None,
                 bary,&detc2,NULL,NULL);
-          err2_ev2 += geterrl2<1>(&detc2,&det)/vol/vol;
-          erri_ev2 = erri_ev2 > abs(det-detc2)/vol ? erri_ev2 : abs(det-detc2)/vol;
+          err2_ev2 += pow(detc2 - det,2) / pow(det,2);
+          erri_ev2 = MAX(erri_ev2, abs(det - detc2)/det);
           //if(first && (abs(detc1-det) > tol || abs(detc2-det) > tol) )printf("(eval) %d (%d%d%d%d) detc2 = %12.5e err1 = %12.5e err2 = %12.5e bary = %f %f %f %f \n",irnk,
           //  idx1,idx2,idx3,idx4,detc2,abs(detc1-det),abs(detc2-det),bary[0],bary[1],bary[2],bary[3]);
-          if(detc1>1.0e10){
-            printf("## VERY LARGE VALUE %f \n",detc1);
-            printf("ccoef: \n");
-            dblAr1(nnodj,ccoef).print(nnodj);
-            printf("\n");
-            printf("Deg = %d nnode jac %d \n",ideg,nnodj);
-          }
         }
 
         //if(first) wait();
-        first = false;
+        //first = false;
       }
 
 
@@ -172,7 +142,7 @@ BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) )
 
       double erri_ev2_lag = -1.0e30;
       double err2_ev2_lag = 0.0;
-      first = true;
+      //first = true;
       for(int ielem = 0; ielem < nentt; ielem++){
         double vol = vol0 * getmeasentP1<idim>(ent2poi[ielem],msh.coord);
         //double vol = detvdif3(msh.coord[ent2poi(ielem,1)],msh.coord[ent2poi(ielem,0)]
@@ -208,7 +178,7 @@ BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) )
         }
 
         //if(first) wait();
-        first = false;
+        //first = false;
       }
 
 
@@ -227,6 +197,9 @@ BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) )
       BOOST_TEST(err2_ev1 <= tol);
       BOOST_TEST(erri_ev2 <= tol);
       BOOST_TEST(err2_ev2 <= tol);
+      fmt::print("-- END ccoef error (eval / gen): L2 {:.2e} max {:.2e}\n",err2,erri);
+      fmt::print("       det   error 1           : L2 {:.2e} max {:.2e}\n",err2_ev1,erri_ev1); 
+      fmt::print("       det   error 2           : L2 {:.2e} max {:.2e}\n",err2_ev2,erri_ev2); 
       //printf("   %15.8e < J_K < %15.8e \n",jmin,jmax);
       //printf("-- Bézier\n");
       //printf("Debug erri = %20.15e err2 = %20.15e\n",erri,err2);

@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(test_eval3)
     for(int niter = 0; niter < 10; niter++){
       for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
         if(msh.poi2bpo[ipoin] >= 0) continue;
-        if(msh.poi2ent(ipoin,0) < 0) continue;
+        if(msh.isdeadpoint(ipoin)) continue;
 
         cav.reset();
         int ierro = ball(msh,ipoin,cav.lcedg,cav.lcfac,cav.lctet,&iopen, false, ithrd1);
