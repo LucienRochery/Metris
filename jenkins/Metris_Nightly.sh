@@ -8,7 +8,7 @@ export METRIS_CASES_DIR=$WORKSPACE/examples/
 
 #Files might linger if a build was aborted
 echo "Removing any lingering untracked files"
-for f in `git ls-files --others --exclude=build --exclude=external --exclude=bunit/regression`; do
+for f in `git ls-files --others --exclude-standard`; do
   echo "rm -rf $f"
 done
 
@@ -42,13 +42,13 @@ ctest --output-on-failure -V -L regression 2>&1 |tee regression.log
 #Fail the build if any files were generated in source.
 #Count the number of files
 cd $WORKSPACE
-tmpfiles=`git ls-files --others --exclude=build --exclude=external --exclude=bunit/regression | wc -l`
+tmpfiles=`git ls-files --others --exclude-standard | wc -l`
 
 if [ $tmpfiles -ne 0 ]; then
   set -x
   echo "error: Files should not be generated in code pushed to the repository."
   echo "error: Files found :"
-  for f in `git ls-files --others --exclude=build --exclude=external --exclude=bunit/regression`; do
+  for f in `git ls-files --others --exclude-standard`; do
     echo "error: $f"
   done
   exit 1
