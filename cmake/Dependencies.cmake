@@ -271,8 +271,12 @@ list(APPEND CMAKE_INSTALL_RPATH ${CAS_ROOT}/lib/)
 set(EGADS_INCLUDE_DIRS ${ESP_ROOT}/include)
 
 list(APPEND METRIS_DEPS_LIBRARIES    ${EGADS_LIBRARIES})
-list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${EGADS_INCLUDE_DIRS})
 list(APPEND METRIS_DEPS_LIBRARIES    ${EGADSLITE_LIBRARIES})
+list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${EGADS_INCLUDE_DIRS})
+
+find_library(CAS_LIBRARIES TKernel HINTS ${CAS_ROOT}/lib REQUIRED )
+list(APPEND METRIS_DEPS_LIBRARIES ${CAS_LIBRARIES})
+
 
 
 if(USE_CLP)
@@ -398,7 +402,7 @@ endif()
 #  metris_register_dependency("find_package" "Boost" "program_options")
 #endif()
 #set(METRIS_BOOST_COMPONENTS "${METRIS_BOOST_COMPONENTS}   program_options") #math # exception
-find_package(Boost REQUIRED COMPONENTS   program_options) #math exception
+find_package(Boost REQUIRED COMPONENTS program_options) #math exception
 #list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
 #message("-- Boost_PROGRAM_OPTIONS_LIBRARY = ${Boost_PROGRAM_OPTIONS_LIBRARY}")
 #message("-- Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}")
