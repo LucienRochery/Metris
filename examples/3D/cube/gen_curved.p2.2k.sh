@@ -16,4 +16,4 @@ OUTFIL=$OUTDIR/curved.p2.2k.meshb
 mkdir -p $OUTDIR
 mkdir -p tmp/
 
-rmetris -in cube -cad cube.egads -prefix tmp/ -opt-niter 20 -anamet 2 -out $OUTFIL -t 2
+metris -in cube -cad cube.egads -prefix tmp/ -opt-niter 20 -anamet 2 -out $OUTFIL -t 2
