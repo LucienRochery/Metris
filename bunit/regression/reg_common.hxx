@@ -202,8 +202,6 @@ public:
     t0w_all = get_wall_time();
 
     update_baseline = !isGitDirty();
-    update_baseline = true;
-    fmt::print(stderr,"## WARNING FORCED update_baseline = true\n");
 
     if(update_baseline) fmt::print("-- Clean git working tree, will update baseline.\n");
     else                fmt::print("## Uncommitted changes: will not update baseline.\n");

@@ -1,0 +1,95 @@
+Call: 
+-- usrTarDeg differs from default: 1 -> 2
+-- opt_niter differs from default: 5 -> 0
+-- Input Mesh = /Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/cube.meshb
+-- Input CAD  = /Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/cube.egads
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Metris: high-order metric-based non-manifold tetrahedral remesher
+Copyright (C) 2023-2025, Massachusetts Institute of Technology
+Licensed under The GNU Lesser General Public License, version 2.1
+See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
+
+Metris Git repository URL git@github.com:LucienRochery/Metris.git
+commit SHA1 a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3 
+
+Compiled with EGADS version 1.27
+              OCC revision: with OpenCASCADE 7.7.0
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ - Initialization as metricFE
+-- Mesh of degree 1
+ - Mesh in Lagrange format. depth
+-- Start reading       1474 points
+-- Done reading       1474 points
+-- Start reading          8 corners
+ - Added 8 corners
+-- Start reading          0 VerticesOnGeometricVertices (corners)
+-- Start reading       6203 tetrahedra
+-- Start reading       6203 P1 tetrahedra
+-- Done reading       6203 tetrahedra
+-- Start reading       1596 P1 triangles
+-- Done reading       6203 triangles
+-- Start reading        132 P1 edges
+-- Done reading        132 edges
+(back) -- Counted 1 tetra domain ids
+-- Start tetra loop nelem = 6203 
+ - Done neighbours, time =   0.002s 
+-- Update bdry point link to entities (iniBdryPoints)
+-- Created 144/144 edge, 1440/1440 face bpois 
+   1584 boundary points created (iniBdryPoints)
+(back) -- iniBdryPoints nbpoi 8 -> 1592
+-- Read CAD file /Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/cube.egads and project.
+ - Start reading CAD file.
+ - Done reading CAD file.
+-- prjMeshPoints start: verify 8, project 1584
+ - Tested 8 points. Errors:
+       8 Corners: 2.000e+00 max (33), 3.062e-01 avg L2, 0 errs
+-- End main loop 72 bad points to fix 
+   - corr loop   0 ncorr 69, 3 remaining
+   - corr loop   1 ncorr 3, 0 remaining
+Projected 1584 points. Errors:
+     144 Edges:   3.081e-33 max (42), 7.710e-19 avg L2, 0 errs
+    1368 Faces:   6.163e-33 max (668), 4.037e-19 avg L2, 0 errs
+-- Write file inisurf.meshb npoin 1474 nedge 132 nface 1596 tetra 6203 
+  -- Domain is manifold
+  -- Found 0 periodic CAD faces
+-- Write file mshDATAback npoin 1474 nedge 132 nface 1596 tetra 6203 
+(back)  - Compute intrinsic metric field
+-- LPlib found ncore = 12 
+## WARNING: must verify nthread <= METRIS_MAXTAGS = 8. Increase in metris_constants.hxx.
+ - running intrinsic metric with nproc = 8 
+ - intrinsic metric accel 1 = 1 
+ - intrinsic metric accel 2 = 8 
+(back)  - Done time = 1.11e-02s
+-- Write file file backmet.solb npoin 1474
+  -- DONE tdim = 2 snapped 1/264 ( 0.4%) metrics to surface
+          errmin min = 5.37e-04 max = 4.20e-01
+     - iref 5 snapped 1/44 ( 2.3%) err min =  5.37e-04 max =  4.12e-01
+  -- DONE tdim = 1 snapped 0/24 ( 0.0%) metrics to surface
+          errmin min = 1.80e-01 max = 4.20e-01
+  -- 0 singular CAD normals / tangents at topo dim 1 entities
+  -- 0 singular CAD normals / tangents at topo dim 2 entities
+-- Computed max geodev, edges:   0.0000000e+00 at 131 faces   0.0000000e+00 at 1595
+  -- Degree elevation 1 -> 2 
+-- DONE time 5.41e-03s
+-- Back metric interpolation back deg = 1
+  -- Matched 8 back <-> front corners
+  -- Frontal back -> front links
+   - Init front with 1474 points
+        ## WARNING dir_nei_criterion disabled
+        ## WARNING dir_nei_criterion disabled
+        ## WARNING dir_nei_criterion disabled
+        ## WARNING dir_nei_criterion disabled
+        ## WARNING dir_nei_criterion disabled
+        ## WARNING dir_nei_criterion disabled
+        ## WARNING dir_nei_criterion disabled
+        ## WARNING dir_nei_criterion disabled
+        ## WARNING dir_nei_criterion disabled
+        ## WARNING dir_nei_criterion disabled
+  -- Interp Back -> Front time 7.19e-03s pt/s 1384358 nerror 0 
+-- DONE time 7.84e-03s
+-- Write file interpBack npoin 9948 nedge 132 nface 1596 tetra 6203 
+-- Write file file interpBack.solb npoin 9948
