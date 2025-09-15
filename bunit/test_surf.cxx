@@ -224,8 +224,8 @@ void test_increase_cavity(Mesh<MFT> &msh2D, Mesh<MFT> &msh3D){
     int ifac2 = -1;
     for(; ifac2 == iface || ifac2 < 0; ifac2 = distr(rng)){}
     // Generate a point in iface, then seed cavity with ifac2.
-    int ip3D = msh3D.newpoitopo(2, iface);
-    int ib3D = msh3D.newbpotopo(ip3D, 2, iface);
+    int ip3D = msh3D.newpoitopo(PointType::Vertex,2, iface);
+    int ib3D = msh3D.newbpotopo(Vertex{ip3D}, 2, iface);
 
     int ib1 = msh3D.poi2ebp(msh3D.fac2poi(iface,0), 2, iface, msh3D.fac2ref[iface]);
     int ib2 = msh3D.poi2ebp(msh3D.fac2poi(iface,1), 2, iface, msh3D.fac2ref[iface]);
@@ -242,7 +242,7 @@ void test_increase_cavity(Mesh<MFT> &msh2D, Mesh<MFT> &msh3D){
     BOOST_REQUIRE(ierro == EGADS_SUCCESS);
 
 
-    int ip2D = msh2D.newpoitopo(2, iface);
+    int ip2D = msh2D.newpoitopo(PointType::Vertex,2, iface);
     msh2D.coord(ip2D,0) = msh3D.coord(ip3D,0) = result[0];
     msh2D.coord(ip2D,1) = msh3D.coord(ip3D,1) = result[1];
                           msh3D.coord(ip3D,2) = result[2];

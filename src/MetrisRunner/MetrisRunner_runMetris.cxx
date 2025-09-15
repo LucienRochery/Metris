@@ -78,13 +78,15 @@ void MetrisRunner::runMetris(){
     //#endif
   }catch(const MetrisExcept &e){
     printf("## Exception thrown, print mesh\n");
-    writeMesh("exception",*msh_g);
+    std::string time_stamp = time2str();
+    std::string fname = "exception-" + time_stamp;
+    writeMesh(fname,*msh_g);
     if(metricFE){
       Mesh<MetricFieldFE> &msh = (Mesh<MetricFieldFE> &)(*msh_g);
-      msh.met.writeMetricFile("exception.solb");
+      msh.met.writeMetricFile(fname);
     }else{
       Mesh<MetricFieldAnalytical> &msh = (Mesh<MetricFieldAnalytical> &)(*msh_g);
-      msh.met.writeMetricFile("exception.solb");
+      msh.met.writeMetricFile(fname);
     }
     throw(e);
   }

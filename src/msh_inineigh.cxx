@@ -181,8 +181,8 @@ void iniMeshNeighbours2D(MeshBase &msh){
   // Add corners at triple+ points and diff refs
   for(int iedge = 0; iedge < msh.nedge; iedge++){
     if(isdeadent(iedge,msh.edg2poi)) continue;
-    msh.poi2tag[0][msh.edg2poi(iedge,0)] = -1;
-    msh.poi2tag[0][msh.edg2poi(iedge,1)] = -1;
+    msh.poi2tag(0,msh.edg2poi(iedge,0)) = -1;
+    msh.poi2tag(0,msh.edg2poi(iedge,1)) = -1;
   }
 
   for(int iedge = 0; iedge < msh.nedge; iedge++){
@@ -210,14 +210,14 @@ void iniMeshNeighbours2D(MeshBase &msh){
         if(msh.edg2poi(iedge2,1) == ip) ive2 = 1;
         //if(iprt > 0)printf("  msh.edg2poi iedge2: {} {} \n",msh.edg2poi(iedge2,0),msh.edg2poi(iedge2,1));
         assert(("Hash table (1)" && msh.edg2poi(iedge2,ive2) == ip));
-        int iedge3 = msh.edg2edg[iedge2][1-ive2];
+        int iedge3 = msh.edg2edg(iedge2,1-ive2);
 
         if(iedge3 == -1){ 
           // There is a neighbour but the point is still manifold
           //if(iprt>0)printf("  Initialize neighbour ({},{}) -> {} and ({},{}) -> {} \n",
           //  iedge2,1-ive2,iedge,iedge,1-ive1,iedge2);
-          msh.edg2edg[iedge2][1-ive2] = iedge  ;
-          msh.edg2edg[iedge ][1-ive1] = iedge2 ;
+          msh.edg2edg(iedge2,1-ive2) = iedge  ;
+          msh.edg2edg(iedge ,1-ive1) = iedge2 ;
           // Tag point to be added as corner if refs differ
           if(msh.edg2ref[iedge] != msh.edg2ref[iedge2]) inewc = 1;
         }else{ 
@@ -239,9 +239,9 @@ void iniMeshNeighbours2D(MeshBase &msh){
 
           //if(iprt>0)printf("  Update using 1,2,3 = ({},{}) ({},{}) ({},{})\n",
           //                              iedge,1-ive1,iedge2,1-ive2,iedge3,1-ive3);
-          msh.edg2edg[iedge2][1-ive2] = -(iedge3+2) ;
-          msh.edg2edg[iedge3][1-ive3] = -(iedge +2) ;
-          msh.edg2edg[iedge ][1-ive1] = -(iedge2+2) ;
+          msh.edg2edg(iedge2,1-ive2) = -(iedge3+2) ;
+          msh.edg2edg(iedge3,1-ive3) = -(iedge +2) ;
+          msh.edg2edg(iedge ,1-ive1) = -(iedge2+2) ;
 
           // We must update the value in the hash table to reflect this. 
           // This should certainly not lead to an insertion.
@@ -260,15 +260,15 @@ void iniMeshNeighbours2D(MeshBase &msh){
         if(msh.edg2poi(iedge2,1) == ip) ive2 = 1;
         assert(("Hash table (3)" && ive2 >= 0));
 
-        int iedge3  = msh.edg2edg[iedge2][1-ive2];
+        int iedge3  = msh.edg2edg(iedge2,1-ive2);
         assert(("Array corruption" && iedge3 < -1));
 
         iedge3 = - (iedge3 + 2);
 
         //if(iprt>0)printf("  Got iedge3 = {} \n",iedge3);
 
-        msh.edg2edg[iedge2][1-ive2] = -(iedge  + 2);
-        msh.edg2edg[iedge ][1-ive1] = -(iedge3 + 2);
+        msh.edg2edg(iedge2,1-ive2) = -(iedge  + 2);
+        msh.edg2edg(iedge ,1-ive1) = -(iedge3 + 2);
       }
       if(inewc > 0){
         // Create new corner if does not exist
@@ -278,7 +278,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
         int ibpoi = msh.poi2bpo[ip];
         if(ibpoi < 0 || (
           ibpoi > 0 && msh.bpo2ibi(ibpoi,1) > 0)){
-          msh.newbpotopo(ip,0);
+          msh.newbpotopo(Vertex{ip},0);
         }
       }
     }
@@ -291,8 +291,8 @@ void iniMeshNeighbours2D(MeshBase &msh){
   // Reset tag to 0, it's few points
   for(int iedge = 0; iedge < msh.nedge; iedge++){
     if(isdeadent(iedge,msh.edg2poi)) continue;
-    msh.poi2tag[0][msh.edg2poi(iedge,0)] = 0;
-    msh.poi2tag[0][msh.edg2poi(iedge,1)] = 0;
+    msh.poi2tag(0,msh.edg2poi(iedge,0)) = 0;
+    msh.poi2tag(0,msh.edg2poi(iedge,1)) = 0;
   }
   iniMeshBdryCorners(msh);
 }
@@ -460,7 +460,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
           if(ifac3 == -1){
             // In this case, the previous edge did not yet have a neighbour. 
             msh.fac2fac(ifac2,ied2) = iface ;
-            msh.fac2fac[iface ][ied1] = ifac2;
+            msh.fac2fac(iface,ied1) = ifac2;
             // Tag edge to be added on grounds of different refs 
             if(msh.fac2ref[ifac2] != msh.fac2ref[iface]) inewe = 1;            
           }else{
@@ -479,7 +479,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
 
             msh.fac2fac(ifac2,ied2) = -(ifac3 + 2);
             msh.fac2fac(ifac3,ied3) = -(iface  + 2);
-            msh.fac2fac[iface ][ied1] = -(ifac2 + 2);
+            msh.fac2fac(iface,ied1) = -(ifac2 + 2);
 
             // We must update the value in the hash table to reflect this. 
             // This should certainly not lead to an insertion.
@@ -496,7 +496,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
           METRIS_ASSERT_MSG(ifac3 < 0,"SOME PROB (7) WITH THIS HASH TABLE")
 
           msh.fac2fac(ifac2,ied2) = -(iface  + 2);
-          msh.fac2fac[iface ][ied1] = ifac3;
+          msh.fac2fac(iface,ied1) = ifac3;
 
         }
       }
@@ -530,8 +530,8 @@ void iniMeshNeighbours3D(MeshBase &msh){
   // Add corners at triple+ points and diff refs
   for(int iedge = 0; iedge < msh.nedge; iedge++){
     if(isdeadent(iedge,msh.edg2poi)) continue;
-    msh.poi2tag[0][msh.edg2poi(iedge,0)] = -1;
-    msh.poi2tag[0][msh.edg2poi(iedge,1)] = -1;
+    msh.poi2tag(0,msh.edg2poi(iedge,0)) = -1;
+    msh.poi2tag(0,msh.edg2poi(iedge,1)) = -1;
   }
  
 
@@ -563,14 +563,14 @@ void iniMeshNeighbours3D(MeshBase &msh){
         if(msh.edg2poi(iedge2,1) == ip) ive2 = 1;
         CPRINTF3("  msh.edg2poi iedge2: {} {} \n",msh.edg2poi(iedge2,0),msh.edg2poi(iedge2,1));
         assert(("Hash table (1)" && msh.edg2poi(iedge2,ive2) == ip));
-        int iedge3 = msh.edg2edg[iedge2][1-ive2];
+        int iedge3 = msh.edg2edg(iedge2,1-ive2);
 
         if(iedge3 == -1){ 
           // There is a neighbour but the point is still manifold
           CPRINTF3("  Initialize neighbour ({},{}) -> {} and ({},{}) -> {} \n",
                    iedge2,1-ive2,iedge,iedge,1-ive1,iedge2);
-          msh.edg2edg[iedge2][1-ive2] = iedge  ;
-          msh.edg2edg[iedge ][1-ive1] = iedge2 ;
+          msh.edg2edg(iedge2,1-ive2) = iedge  ;
+          msh.edg2edg(iedge ,1-ive1) = iedge2 ;
           // Tag point to be added as corner if refs differ
           if(msh.edg2ref[iedge] != msh.edg2ref[iedge2]) inewc = 1;
         }else{ 
@@ -592,9 +592,9 @@ void iniMeshNeighbours3D(MeshBase &msh){
 
           CPRINTF3("  Update using 1,2,3 = ({},{}) ({},{}) ({},{})\n",
                                         iedge,1-ive1,iedge2,1-ive2,iedge3,1-ive3);
-                                        msh.edg2edg[iedge2][1-ive2] = -(iedge3+2) ;
-          msh.edg2edg[iedge3][1-ive3] = -(iedge +2) ;
-          msh.edg2edg[iedge ][1-ive1] = -(iedge2+2) ;
+                                        msh.edg2edg(iedge2,1-ive2) = -(iedge3+2) ;
+          msh.edg2edg(iedge3,1-ive3) = -(iedge +2) ;
+          msh.edg2edg(iedge ,1-ive1) = -(iedge2+2) ;
 
           // We must update the value in the hash table to reflect this. 
           // This should certainly not lead to an insertion.
@@ -613,15 +613,15 @@ void iniMeshNeighbours3D(MeshBase &msh){
         if(msh.edg2poi(iedge2,1) == ip) ive2 = 1;
         assert(("Hash table (3)" && ive2 >= 0));
 
-        int iedge3  = msh.edg2edg[iedge2][1-ive2];
+        int iedge3  = msh.edg2edg(iedge2,1-ive2);
         assert(("Array corruption" && iedge3 < -1));
 
         iedge3 = - (iedge3 + 2);
 
         CPRINTF3("  Got iedge3 = {} \n",iedge3);
 
-        msh.edg2edg[iedge2][1-ive2] = -(iedge  + 2);
-        msh.edg2edg[iedge ][1-ive1] = -(iedge3 + 2);
+        msh.edg2edg(iedge2,1-ive2) = -(iedge  + 2);
+        msh.edg2edg(iedge ,1-ive1) = -(iedge3 + 2);
       }
       if(inewc > 0){
         // Create new corner if does not exist
@@ -630,7 +630,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
         // Points always point to the corner if it exists
         int ibpoi = msh.poi2bpo[ip];
         if(ibpoi < 0 || (ibpoi > 0 && msh.bpo2ibi(ibpoi,1) > 0)){
-          msh.newbpotopo(ip,0);
+          msh.newbpotopo(Vertex{ip},0);
         }
       }
     }
@@ -640,8 +640,8 @@ void iniMeshNeighbours3D(MeshBase &msh){
   // Reset tag to 0, it's few points
   for(int iedge = 0; iedge < msh.nedge; iedge++){
     if(isdeadent(iedge,msh.edg2poi)) continue;
-    msh.poi2tag[0][msh.edg2poi(iedge,0)] = 0;
-    msh.poi2tag[0][msh.edg2poi(iedge,1)] = 0;
+    msh.poi2tag(0,msh.edg2poi(iedge,0)) = 0;
+    msh.poi2tag(0,msh.edg2poi(iedge,1)) = 0;
   }
   iniMeshBdryCorners(msh);
 }

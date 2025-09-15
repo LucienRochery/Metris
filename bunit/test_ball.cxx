@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(test_ball)
     };
 
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-      if(msh.poi2ent(ipoin,0) < 0) continue;
+      if(msh.isdeadpoint(ipoin)) continue;
       poi2edg[ipoin].allocate(4);
       poi2fac[ipoin].allocate(10);
       if(msh.get_tdim() >= 3) poi2tet[ipoin].allocate(100);
@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(test_ball)
     printf("-- Test 1: empty ball\n");
 
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-      if(msh.poi2ent(ipoin,0) < 0) continue;
+      if(msh.isdeadpoint(ipoin)) continue;
       int iopen;
 
       int ierro = ball(msh, ipoin, lbedg0, lbfac0, lbtet0, &iopen, false, 0);

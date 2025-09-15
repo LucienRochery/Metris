@@ -12,6 +12,7 @@
 #include "../utils/fact_pow.hxx"
 #include "../low_geo/lenedg.hxx"
 #include "../low_geo/measure.hxx"
+#include "../low_geo/ccoef.hxx"
 #include "../low_topo.hxx"
 #include "../cavity/msh_cavity.hxx"
 #include "../Adaptation/Insertion/EdgeSeed.hxx"
@@ -99,10 +100,14 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov,
                const intAr1* lbedg, const intAr1* lbfac, const intAr1* lbtet,
                int miter,
                double *qlen0, double *qlen1){
-
+  
   const double damp = 0.1;
   const double nordev = -1; // improve in the future by getting initial ball nordev?
-
+  if(msh.curdeg > 1){
+    static int nwarnprt = 5;
+    if(nwarnprt --> 0) fmt::print("## TODO: smoopoilen HO. Need to update (move) adjacent HO nodes\n");
+    return 0;
+  }
   GETVDEPTH(msh.param);
 
   const int tdimp = msh.getpoitdim(ipmov);
@@ -226,6 +231,22 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov,
             CPRINTF1(" - dim {} element {} became invalid -> reject iteration\n",tdim,ientt);
             ivalid = false;
             break;
+          }
+          if(msh.curdeg > 1 && ivalid && gdim == tdim){
+            CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
+              constexpr int jdeg = tdim*(ideg-1);
+              constexpr int nnodj = getnnode(tdim,jdeg);
+              double ccoef[nnodj];
+              for(int ientt : *lbent){
+                bool ieval;
+                getsclccoef<gdim,tdim,ideg>(msh, ientt, NULL, ccoef, &ieval);
+                CPRINTF2(" - tdim {} HO ball elt {} valid = {}\n", tdim, ientt, ieval);
+                if(ieval) continue;
+                CPRINTF1(" - dim {} HO element {} became invalid -> reject iteration\n",tdim,ientt);
+                ivalid = false;
+                break;
+              }
+            }}CT_FOR1(ideg);
           }
         }}CT_FOR1(tdim);
       }}CT_FOR1(gdim);

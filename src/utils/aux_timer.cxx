@@ -11,6 +11,9 @@
 #include <time.h>
 #include <sys/time.h>
 #include <sys/resource.h>   // For getrusage()
+#include <sstream>
+#include <iomanip>
+#include <chrono>
 
 namespace Metris{
 
@@ -32,6 +35,17 @@ double get_cpu_time(){
            usage.ru_stime.tv_sec + usage.ru_stime.tv_usec * 1e-6;
   }
   return 0.0;
+}
+
+
+// Outputs a string YYYY-MM-DD-HH-mm-ss
+std::string time2str(){
+  auto now = std::chrono::system_clock::now();
+  auto time_t = std::chrono::system_clock::to_time_t(now);
+  
+  std::ostringstream oss;
+  oss << std::put_time(std::localtime(&time_t), "%Y-%m-%d-%H-%M-%S");
+  return oss.str();
 }
 
 } // End namespace

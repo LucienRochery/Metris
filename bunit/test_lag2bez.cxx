@@ -66,7 +66,7 @@ BOOST_AUTO_TEST_CASE(test_lag2bez)  // , * utf::tolerance(double(1.0e-6))
       double erri = -1.0e30;
       double err2 = 0.0;
       for(int ipoin=0; ipoin<msh.npoin;ipoin++){
-        if(msh.poi2ent(ipoin,0) < 0) continue;
+        if(msh.isdeadpoint(ipoin)) continue;
         npcomp++;
         err2 += geterrl2<3>(coor0[ipoin],msh.coord[ipoin]);
         for(int i=0; i < 3;i++){

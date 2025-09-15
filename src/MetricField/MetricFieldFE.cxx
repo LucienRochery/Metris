@@ -295,7 +295,7 @@ void MetricFieldFE::normalize(double coeff){
   int nnmet = getnnmet();
   if(ispace == MetSpace::Exp){
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-      if(msh.poi2ent(ipoin,0) < 0) continue;
+      if(msh.isdeadpoint(ipoin)) continue;
       for(int ii = 0; ii < nnmet; ii++){
         rfld(ipoin,ii) *= size;
       }
@@ -306,7 +306,7 @@ void MetricFieldFE::normalize(double coeff){
     // = M * exp(c)I
     // hence replace c with log(c) and add identity to the metrics.
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-      if(msh.poi2ent(ipoin,0) < 0) continue;
+      if(msh.isdeadpoint(ipoin)) continue;
       for(int ii = 0; ii < msh.idim; ii++){
         rfld[ipoin][sym2idx(ii,ii)] += lsize;
       }
@@ -321,7 +321,7 @@ void MetricFieldFE::correctMetric(){
   double eigval[3], eigvec[9];
   for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
     INCVDEPTH(msh.param);
-    if(msh.poi2ent(ipoin,0) < 0) continue;
+    if(msh.isdeadpoint(ipoin)) continue;
     if(msh.idim == 2){
       geteigsym<2,double>(rfld[ipoin],eigval,eigvec);
     }else{

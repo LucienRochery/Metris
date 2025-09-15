@@ -461,11 +461,11 @@ the driver must do the update ! we only do it topo
 */
 template<class MetricFieldType>
 static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav, const CavWrkArrs &work,
-    int ip, int ifacn, int ifac0, int ithread){
+    PointType ptype, int ip, int ifacn, int ifac0, int ithread){
 
   GETVDEPTH(msh.param);
   //static int warnprt = 0;
-  //if(warnprt++ < 10) printf("## DEBUG REMOVE PRINT IN aux_bpo_update_fac\n");
+  //if(warnprt++ < 10) printf("## DEBUG REMOVE PRINT IN (aux_bpo_update_fac)\n");
   //if(ip == 4247){
   //  printf("## DEBUG point 42247 full prints\n");
   //  iverb__ = 5;
@@ -474,9 +474,9 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
 
 
   int ib = msh.poi2bpo[ip];
-  METRIS_ASSERT_MSG(ib >= 0, "aux_bpo_update_fac called on non boundary point");
+  METRIS_ASSERT_MSG(ib >= 0, "(aux_bpo_update_fac) called on non boundary point");
 
-  CPRINTF1("-- START aux_bpo_update_fac ip = {} ib = {} ifacn {} ifac0 {} ipins {}\n",
+  CPRINTF1("-- START (aux_bpo_update_fac) ip = {} ib = {} ifacn {} ifac0 {} ipins {}\n",
             ip,ib,ifacn,ifac0,cav.ipins);
 
   // Easy case: same dim 
@@ -487,7 +487,8 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
     if(msh.fac2tag(ithread,ifa) >= msh.tag[ithread] // if face about to get deleted
     && msh.bpo2ibi(ib,3) == -1){ // and have not yet done what we're about to do  || note unlike edges there is no higher tdim
       // then create new bpo and copy the old uvs here
-      int ibn = msh.newbpotopo(ip,2,ifacn);
+      int ibn = ptype == PointType::Vertex ? msh.newbpotopo(Vertex{ip},2,ifacn) :
+                                             msh.newbpotopo(CtrlPt{ip},2,ifacn);
       for(int jj = 0; jj < nrbi; jj++) msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ib,jj);
       CPRINTF2(" - easy update ip {} ibn {} from ib {} (u,v) = {} {}\n",ip,ibn,ib,
                msh.bpo2rbi(ib,0),msh.bpo2rbi(ib,1));
@@ -497,7 +498,8 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
 
   // Edge or corner 
   // Depends whether new, or old edge. 
-  int ibn = msh.newbpotopo(ip,2,ifacn);
+  int ibn = ptype == PointType::Vertex ? msh.newbpotopo(Vertex{ip},2,ifacn) :
+                                         msh.newbpotopo(CtrlPt{ip},2,ifacn);
   CPRINTF2(" - new face ibpoi = {}\n",ibn);
 
   for(int jj = 0; jj < nrbi; jj++) msh.bpo2rbi(ibn,jj) = 0.0;
@@ -625,9 +627,9 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
 
 
 template void aux_bpo_update_fac<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, 
-   const MshCavity &cav,const CavWrkArrs &work, int ip, int ifacn, int ifac0, int ithread);
+   const MshCavity &cav,const CavWrkArrs &work, PointType ptype, int ip, int ifacn, int ifac0, int ithread);
 template void aux_bpo_update_fac<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, 
-   const MshCavity &cav,const CavWrkArrs &work, int ip, int ifacn, int ifac0, int ithread);
+   const MshCavity &cav,const CavWrkArrs &work, PointType ptype, int ip, int ifacn, int ifac0, int ithread);
 
 
 
@@ -798,7 +800,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
     for(int ii = 0; ii < 3; ii++){
       int ip = msh.fac2poi(ifacn,ii);
       METRIS_ASSERT(ip >= 0 && ip < msh.npoin);
-      aux_bpo_update_fac(msh,cav,work,ip,ifacn,ifac1,ithread);
+      aux_bpo_update_fac(msh,cav,work,PointType::Vertex,ip,ifacn,ifac1,ithread);
     }
   }
   int nod2bpo[3];
@@ -818,7 +820,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
                               : isvalideltP1<3,2>(msh, ifacn, nod2bpo, NULL, &meas, nordev_tol);  // work.lnorcco[icoco]
   if(!ivalid){
     CPRINTF1(" # invalid new face {} {} {} using normal {} {} {} nordev tolerance {:.2e} measure = {:.2e}\n",cav.ipins,ip1,ip2,
-             work.lnorcco[icoco][0],work.lnorcco[icoco][1],work.lnorcco[icoco][2],work.lnordevcco[icoco],meas);
+             work.lnorcco(icoco,0),work.lnorcco(icoco,1),work.lnorcco(icoco,2),work.lnordevcco[icoco],meas);
     //printf("Debug wait here\n");
     //wait();
     //if(work.lnordevcco[icoco] > 1.0e-12){
@@ -866,8 +868,8 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
       if(msh.isboundary_faces()){ // Don't duplicate the work done if edge
         int idx0 = 3 + iedn * (getnnod1(ideg) - 2);
         for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
-          int ip = msh.fac2poi[ifacn][idx0 + ii];
-          aux_bpo_update_fac(msh,cav,work,ip,ifacn,ifac1,ithread);
+          int ip = msh.fac2poi(ifacn,idx0 + ii);
+          aux_bpo_update_fac(msh,cav,work,PointType::CtrlPt,ip,ifacn,ifac1,ithread);
         }
       }
 
@@ -912,16 +914,16 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
           int idx0 = 3 + iedn * (getnnod1(ideg) - 2);
           if(ityp < 0){ // Old edge
             for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
-              int ip = msh.fac2poi[ifacn][idx0 + ii];
-              aux_bpo_update_fac(msh,cav,work,ip,ifacn,ifac1,ithread);
+              int ip = msh.fac2poi(ifacn,idx0 + ii);
+              aux_bpo_update_fac(msh,cav,work,PointType::CtrlPt,ip,ifacn,ifac1,ithread);
             }
           }else{
             //METRIS_ASSERT(cav.nrmal != NULL || !msh.CAD());
             // We don't do it now. But later, we will need to regenerate (u,v) from t. 
             // For now just create ibpoi. 
             for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
-              int ip = msh.fac2poi[ifacn][idx0 + ii];
-              msh.newbpotopo(ip,2,ifacn);
+              int ip = msh.fac2poi(ifacn,idx0 + ii);
+              msh.newbpotopo(CtrlPt{ip},2,ifacn);
             }
           }
         }
@@ -946,8 +948,8 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
         if(msh.isboundary_faces() && abs(ityp) == 2){ 
           int idx0 = 3 + iedn * (getnnod1(ideg) - 2);
           for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
-            int ip = msh.fac2poi[ifacn][idx0 + ii];
-            aux_bpo_update_fac(msh,cav,work,ip,ifacn,ifac1,ithread);
+            int ip = msh.fac2poi(ifacn,idx0 + ii);
+            aux_bpo_update_fac(msh,cav,work,PointType::CtrlPt,ip,ifacn,ifac1,ithread);
           }
         }
 
@@ -1016,19 +1018,19 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
         double u1 = idx[lnoed2[iedn][0]] / (double) ideg;
         double u2 = idx[lnoed2[iedn][1]] / (double) ideg;
 
-        int ipnew = msh.newpoitopo(2,ifacn);
+        int ipnew = msh.newpoitopo(PointType::CtrlPt,2,ifacn);
         
 
         for(int jj = 0; jj < msh.idim; jj++){
           msh.coord(ipnew,jj) = u1*msh.coord(jp1,jj) + u2*msh.coord(jp2,jj);
         }
         if(msh.isboundary_faces()){
-          int ibnew = msh.newbpotopo(ipnew,2,ifacn);
+          int ibnew = msh.newbpotopo(CtrlPt{ipnew},2,ifacn);
           for(int jj = 0; jj < nrbi; jj++){
             msh.bpo2rbi(ibnew,jj) = u1*msh.bpo2rbi(jb1,jj) + u2*msh.bpo2rbi(jb2,jj);
           }
         }
-        msh.fac2poi[ifacn][mul2nod(idx[0],idx[1],idx[2])] = ipnew;
+        msh.fac2poi(ifacn,mul2nod(idx[0],idx[1],idx[2])) = ipnew;
       }
 
       // Update edex 
@@ -1092,18 +1094,18 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
         ((double)ordfac.s[ideg][irnk][2])/ideg
       };
 
-      int ipnew = msh.newpoitopo(2,ifacn);
+      int ipnew = msh.newpoitopo(PointType::CtrlPt,2,ifacn);
       for(int jj = 0; jj < msh.idim; jj++){
         msh.coord(ipnew,jj) = bary[0]*msh.coord(ipn1,jj) 
                                  + bary[1]*msh.coord(ipn2,jj)
                                  + bary[2]*msh.coord(ipn3,jj);
       }
       if(msh.isboundary_faces()){
-        msh.newbpotopo(ipnew,2,ifacn);
+        msh.newbpotopo(CtrlPt{ipnew},2,ifacn);
         for(int jj = 0; jj < nrbi; jj++){
-          msh.bpo2rbi[msh.nbpoi - 1][jj] = bary[0]*msh.bpo2rbi(ibn1,jj) 
-                                         + bary[1]*msh.bpo2rbi(ibn2,jj)
-                                         + bary[2]*msh.bpo2rbi(ibn3,jj);
+          msh.bpo2rbi(msh.nbpoi - 1,jj) = bary[0]*msh.bpo2rbi(ibn1,jj) 
+                                        + bary[1]*msh.bpo2rbi(ibn2,jj)
+                                        + bary[2]*msh.bpo2rbi(ibn3,jj);
         }
       }
       msh.fac2poi(ifacn,irnk) = ipnew;

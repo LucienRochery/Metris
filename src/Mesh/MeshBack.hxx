@@ -54,7 +54,7 @@ public:
   void set_nface(int nedge, bool skipallocf = false) override; 
 
 public:
-  int newpoitopo(int tdimn, int ientt = -1);
+  int newpoitopo(PointType ptype, int tdimn, int ientt = -1);
   
 	void readConstants(int64_t libIdx, int usrMinDeg);
   void readConstants(const MetrisAPI &data, int usrMinDeg);

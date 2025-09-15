@@ -407,7 +407,7 @@ void MetrisRunner::adaptMesh0(int tdim){
       bool uncstr = false;
       if(++irestart < MAX(2,msh.param->adp_opt_niter)){
         for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-          if(msh.poi2ent(ipoin,0) < 0) continue;
+          if(msh.isdeadpoint(ipoin)) continue;
           if(msh.getpoitdim(ipoin) > 2) continue;
           msh.poicstr[ipoin] = false;
           uncstr = true;
@@ -474,7 +474,7 @@ void MetrisRunner::adaptMesh0(int tdim){
   double voltot = msh.getDomainVolume();
   int npvol = 0;
   for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-    if(msh.poi2ent(ipoin,0) < 0) continue;
+    if(msh.isdeadpoint(ipoin)) continue;
     npvol ++;
   }
   printf("-- Point density = {} ; vol = {} np = {}\n",voltot/npvol, voltot, npvol);

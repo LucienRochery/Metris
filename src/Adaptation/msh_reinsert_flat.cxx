@@ -140,12 +140,12 @@ int reinsertFlat(Mesh<MFT> &msh){
           if(tdim == 2){
             iedge = msh.facedg2glo(ientt, ifa);
             cav.lcedg.stack(iedge);
-            cav.ipins = msh.newpoitopo(1, iedge);
-            ibins = msh.newbpotopo(cav.ipins,1,iedge);
+            cav.ipins = msh.newpoitopo(PointType::Vertex, 1, iedge);
+            ibins = msh.newbpotopo(Vertex{cav.ipins}, 1, iedge);
           }else if(tdim == 3){
             iface = msh.tetfac2glo(ientt, ifa);
-            cav.ipins = msh.newpoitopo(2, iface);
-            ibins = msh.newbpotopo(cav.ipins,2,iface);
+            cav.ipins = msh.newpoitopo(PointType::Vertex, 2, iface);
+            ibins = msh.newbpotopo(Vertex{cav.ipins}, 2, iface);
             METRIS_THROW_MSG("TODO: Implement projpoifac (get (u,v))");
           }
           for(int ii = 0; ii < gdim; ii++) 
@@ -176,13 +176,13 @@ int reinsertFlat(Mesh<MFT> &msh){
               }
               printf("\n");
 
-              ipoin = msh.newpoitopo(-1,-1);
-              int ibpoi = msh.newbpotopo(ipoin,0,ipoin);
+              ipoin = msh.newpoitopo(PointType::Vertex, -1,-1);
+              int ibpoi = msh.newbpotopo(Vertex{ipoin},0,ipoin);
               for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipoin,ii) = coopr[ii];
 
 
-              ipoin = msh.newpoitopo(-1,-1);
-              ibpoi = msh.newbpotopo(ipoin,0,ipoin);
+              ipoin = msh.newpoitopo(PointType::Vertex, -1,-1);
+              ibpoi = msh.newbpotopo(Vertex{ipoin},0,ipoin);
               for(int ii = 0; ii < msh.idim; ii++) 
                 msh.coord(ipoin,ii) = msh.coord(cav.ipins,ii);
               writeMesh("dbg_projptedg.meshb",msh);

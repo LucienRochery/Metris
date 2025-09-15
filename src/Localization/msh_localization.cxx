@@ -611,7 +611,7 @@ int locMesh(MeshBase &msh, int *ientt,
                 }else if(msh.meshClass() == MeshClass::MeshBack){
                   printf("Back mesh\n");
                 }
-                int ipdbg = msh.newpoitopo(-1,-1);
+                int ipdbg = msh.newpoitopo(PointType::Vertex,-1,-1);
                 int ibdbg = msh.newbpotopo(ipdbg,0,ipdbg);
                 for(int ii = 0; ii < msh.idim; ii++) 
                   msh.coord(ipdbg,ii) = coop[ii];

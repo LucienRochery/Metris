@@ -23,11 +23,11 @@ param(&param_){
   METRIS_ENFORCE_MSG(!(opt.count("met") && opt.count("anamet")),"Contradictory options: -back or -met and -anamet");
   GETVDEPTH(param);
   if(DOPRINTS1()){
-    printf("Call: ");
-    for(int ii = 0; ii < argc; ii++){
-      printf(" %s ",argv[ii]);
+    fmt::print("Call: ");
+    for(int ii = 1; ii < argc; ii++){
+      fmt::print(" {} ",argv[ii]);
     }
-    printf("\n");
+    fmt::print("\n");
   }
   constructorCommon(NULL,NULL);
 }
@@ -37,6 +37,27 @@ MetrisRunner::MetrisRunner(MetrisAPI *data_front, MetrisAPI *data_back,
 opt(),
 param_(param__),
 param(&param_){
+  MetrisParameters param_default;
+
+  GETVDEPTH(param);
+  CPRINTF1("Call: \n");
+  if(DOPRINTS1()) ((MetrisParametersData&)param_default).printDifference(param__,"default",param->logFile);
+  if(param->inpMesh){
+    CPRINTF1("-- Input Mesh = {}\n", param->meshFileName);
+  }else if(data_front){
+    CPRINTF1("-- Input Mesh from data\n");
+  }
+  if(param->inpCAD){
+    CPRINTF1("-- Input CAD  = {}\n", param->cadFileName);
+  }
+  if(param->inpBack){
+    CPRINTF1("-- Input Back = {}\n", param->backFileName);
+  }else if(data_back){
+    CPRINTF1("-- Input Back from data\n");
+  }
+  if(param->inpMet){
+    CPRINTF1("-- Input Met  = {}\n", param->metFileName);
+  }
   constructorCommon(data_front,data_back);
 
 }

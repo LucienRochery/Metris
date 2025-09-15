@@ -10,7 +10,6 @@
 
 
 #include <boost/program_options.hpp>
-#include "metris_defaults.hxx"
 #include "aux_exceptions.hxx"
 
 
@@ -83,7 +82,7 @@ struct MetrisOptions{
 
     // ----------------- Adaptation options  
     s.add_options()
-      ("adapt"  , po::value<int>() ->default_value(0)->implicit_value(-1),
+      ("adapt"  , po::value<int>(),
         "Adaptation iterations")
       ("adp-unit-stop", po::value<double>(), 
         "Percent unit edges to stop adaptation, default 99.9%")
@@ -97,7 +96,7 @@ struct MetrisOptions{
         "Use length-based smoothing in adaptation loop")
       ("opt-unif" , 
         "Shape preserving uniformization")
-      ("geo-lentolfac", po::value<double>()->default_value(Defaults::geo_lentolfac),
+      ("geo-lentolfac", po::value<double>(),
         "Tolerance factor for geometric edge length in adaptGeoLines")
       ("geo-abstoledg", po::value<double>(), 
         "Absolute distance tolerance such that point is considered on CAD edge");
@@ -197,7 +196,8 @@ struct cargHandler{
     std::stringstream cmd_(cmd);
     while(std::getline(cmd_, str, ' ')){
       int n = str.length();
-      if(c >= margv) METRIS_THROW_MSG("{} >= 256 options? if legitimate, increase margv",c);
+      METRIS_ENFORCE_MSG(c < margv,">= {}  options? if legitimate, increase margv",margv)
+      METRIS_ENFORCE(n >= 0);
       v[c] = (char *) malloc((n+1)*sizeof(char));
       strncpy(v[c],str.c_str(),n+1);
       c++;

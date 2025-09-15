@@ -133,7 +133,7 @@ int insertSteiner(Mesh<MFT>& msh,
 
 
 
-  cav.ipins = msh.newpoitopo(tdimp+1, -1);
+  cav.ipins = msh.newpoitopo(PointType::Vertex,tdimp+1, -1);
 
   double step = 1;
   double *uvsrf = NULL; // will be useful when we implement tdimp = 1
@@ -149,8 +149,8 @@ int insertSteiner(Mesh<MFT>& msh,
              itry,ntry,step,dblAr1(msh.idim,msh.coord[cav.ipins]),ielem);
 
     if(DOPRINTS3()){
-      int ipdbg = msh.newpoitopo(0, -1);
-      msh.newbpotopo(ipdbg, 0, ipdbg);
+      int ipdbg = msh.newpoitopo(PointType::Vertex, 0, -1);
+      msh.newbpotopo(Vertex{ipdbg}, 0, ipdbg);
       for(int ii = 0; ii < msh.idim; ii++)
         msh.coord(ipdbg,ii) = msh.coord(cav.ipins,ii);
       writeMesh("Steiner_locMesh_" + std::to_string(itry),msh);
@@ -189,8 +189,7 @@ int insertSteiner(Mesh<MFT>& msh,
   }
 
   if(ielem != cav.lctet[0]) cav.lctet.stack(ielem);
-  msh.poi2ent(cav.ipins, 0) = ielem;
-  msh.poi2ent(cav.ipins, 1) = 3;
+  msh.set_poi2ent(Vertex{cav.ipins}, 3, ielem);
 
   ierro = msh.interpMetBack(cav.ipins, tdimp+1, ielem, iref_sup, algnd);
   if(ierro != 0){

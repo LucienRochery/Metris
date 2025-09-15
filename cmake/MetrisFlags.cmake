@@ -97,7 +97,8 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES Clang)
   set(METRIS_CLANG_FLAGS -Wno-misleading-indentation 
                          -Wno-gnu-zero-variadic-macro-arguments 
                          -Wno-gcc-compat 
-                         -Wno-cast-function-type-mismatch)
+                         -Wno-cast-function-type-mismatch
+                         -Wno-pessimizing-move)
 
 
   #set(METRIS_CXX_FLAGS_RELEASE -DNDEBUG  -march=native -O3 -fPIC)

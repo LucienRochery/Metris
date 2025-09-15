@@ -21,32 +21,10 @@ namespace Defaults{
   // Hence an element passes the volume test iff: 
   // det(li lj) >= vtol * (pi_i ||l_i||)^(2/(idim+1))   (idim / nnmet)
   // The 1/idim! factor is not included. 
-  const double jtol = 1.0e-6;
   const double vtol = 1.0e-12;
   // Absolute tolerance on edge length 
   const double ltol = 1.0e-12;
 
-  const double geo_lentolfac = 1.01;
-  const double geo_abstoledg = 1.0e-10;
-
-  // See MetrisParameters 
-  const int opt_pnorm = 2;
-  const int opt_power = -1;
-  const int opt_niter = 5;
-  const int opt_smoo_niter = 10;
-  const double opt_smoo_tol = 0.005;
-
-  const double qua_surf_wt_normal  = 1;
-  const double qua_surf_wt_quality = 1;
-
-  const int opt_swap_niter = 100;
-  const int opt_swap_pnorm = opt_pnorm;
-  const double opt_swap_thres = 1.0e-16;
-
-  const double adp_stagn_stop = 1.0e-2;
-
-  // tolerance for surface snapping in intrinsic metric case
-  const double met_snap_tol = 1.0e-3;
 
   // What factor to multiply sizes by when realloc necessary.
   const double mem_growfac = 1.5;

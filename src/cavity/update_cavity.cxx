@@ -66,7 +66,8 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
     for(int ii = nfac0; ii < msh.nface; ii++) cav2.lcfac.stack(ii);
     for(int ii = nedg0; ii < msh.nedge; ii++) cav2.lcedg.stack(ii);
     cav2.ipins = cav.ipins;
-    writeMeshCavity("cavity1",msh,cav2);
+    writeMeshCavity("cavity2",msh,cav2);
+    cav2.print(msh);
   }
 
   // -- 1 Manage bpois
@@ -102,7 +103,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
     for(int ientt : cav.lcent<tdimn>()){
       INCVDEPTH(msh.param);
       for(int ii = 0; ii < nnode; ii++){
-        int ip = msh.template ent2poi<tdimn>()[ientt][ii];
+        int ip = msh.template ent2poi<tdimn>()(ientt,ii);
         if(msh.poi2tag(ithread,ip) >= ptag0) continue;
         msh.poi2tag(ithread,ip) = ptag0;
         if(DOPRINTS3()){
@@ -233,11 +234,11 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
       for(int ii = 0; ii < nnode; ii++){
         int ipoin = ent2poi(ientt,ii);
         int ientt = msh.poi2ent(ipoin,0);
+        if(ientt < -1) ientt = - ientt - 2; // control point
         int tdimp = msh.poi2ent(ipoin,1); 
         if(tdimp != tdime) continue;
         if(ent2tag(ithread,ientt) < msh.tag[ithread]) continue;
-        msh.poi2ent(ipoin,0) = -1;
-        msh.poi2ent(ipoin,1) = -1;
+        msh.set_poi2ent(Vertex{ipoin}, -1, -1); // type doesn't matter for -1
       }
     }
   }
@@ -253,7 +254,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
       // We're in a linked list, but we don't know previous. 
       // Get iedg1 = next, iedg0 = previous. 
       int iedg0 = -1, iedg1 = iedg2; 
-      int ipoin = msh.edg2poi[iedge][1-jj];
+      int ipoin = msh.edg2poi(iedge,1-jj);
       int iedgc = iedge, ineic = jj;
       int inei0;
       //int nnei = 0;
@@ -297,17 +298,15 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
     int ip[2]; 
     for(int ii = 0; ii < 2; ii++){
       ip[ii] = msh.edg2poi(iedge,ii);
-      if(msh.poi2ent[ip[ii]][1] >= 1 || msh.poi2ent[ip[ii]][1] <= 0){
-        msh.poi2ent[ip[ii]][0] = iedge;
-        msh.poi2ent[ip[ii]][1] = 1;
+      if(msh.poi2ent(ip[ii],1) >= 1 || msh.poi2ent(ip[ii],1) <= 0){
+        msh.set_poi2ent(Vertex{ip[ii]}, 1, iedge);
       }
     }
     constexpr int nnode = getnnod1(ideg);
     for(int ii = 2; ii < nnode; ii++){
       int ipoin = msh.edg2poi(iedge,ii);
-      if(msh.poi2ent[ipoin][1] >= 1 || msh.poi2ent[ipoin][1] <= 0){
-        msh.poi2ent[ipoin][0] = iedge;
-        msh.poi2ent[ipoin][1] = 1;
+      if(msh.poi2ent(ipoin,1) >= 1 || msh.poi2ent(ipoin,1) <= 0){
+        msh.set_poi2ent(CtrlPt{ipoin}, 1, iedge);
       }
     }
 
@@ -326,18 +325,18 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
       if(iedg2 == -1) continue;
       if(iedg2 < -1 && - iedg2 - 2 >= nedg0) continue;
 
-      int ipoin = msh.edg2poi[iedge][1-inei];
+      int ipoin = msh.edg2poi(iedge,1-inei);
 
       if(iedg2 >= 0){// Simple manifold neighbour.
-        int ine2 = msh.edg2poi[iedg2][1-0] == ipoin ? 0 : 
-                   msh.edg2poi[iedg2][1-1] == ipoin ? 1 : -1;
+        int ine2 = msh.edg2poi(iedg2,1-0) == ipoin ? 0 : 
+                   msh.edg2poi(iedg2,1-1) == ipoin ? 1 : -1;
         msh.edg2edg(iedg2,ine2) = iedge;
       }else if(iedg2 < -1){ // Non manifold
         // What happens here is that iedge points to some loop, but is not part of that loop
         // Simply read two elements and sandwich it there
         int iedg0 = - iedg2 - 2;
-        int ine0 = msh.edg2poi[iedg0][1-0] == ipoin ? 0 : 
-                   msh.edg2poi[iedg0][1-1] == ipoin ? 1 : -1;
+        int ine0 = msh.edg2poi(iedg0,1-0) == ipoin ? 0 : 
+                   msh.edg2poi(iedg0,1-1) == ipoin ? 1 : -1;
         int iedg1 = msh.edg2edg(iedg0,ine0);
         METRIS_ASSERT(iedg1 < -1);
         // Now we make iedg0 point to iedge and iedge to iedg1
@@ -390,16 +389,14 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
     for(int ii = 0; ii < 3; ii++){
       ip[ii] = msh.fac2poi(ifanw,ii);
       if(msh.poi2ent(ip[ii],1) >= 2  || msh.poi2ent(ip[ii],1) <= 0){
-        msh.poi2ent(ip[ii],0) = ifanw;
-        msh.poi2ent(ip[ii],1) = 2;
+        msh.set_poi2ent(Vertex{ip[ii]}, 2, ifanw);
       }
     }
     constexpr int nnode = getnnod2(ideg);
     for(int ii = 3; ii < nnode; ii++){
       int ipoin = msh.fac2poi(ifanw,ii);
       if(msh.poi2ent(ipoin,1) >= 2  || msh.poi2ent(ipoin,1) <= 0){
-        msh.poi2ent(ipoin,0) = ifanw;
-        msh.poi2ent(ipoin,1) = 2;
+        msh.set_poi2ent(CtrlPt{ipoin}, 2, ifanw);
       }
     }
     // insert in hashtab 
@@ -471,7 +468,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
             jp1,jp2);
           if(ifaca < -1){
             PRINTF("First neighbour (ifaca) = {} nodes = {} {} {} \n",ifaca,
-              msh.fac2poi[-ifaca-2][0],msh.fac2poi[-ifaca-2][1],msh.fac2poi[-ifaca-2][2]);
+              msh.fac2poi(-ifaca-2,0),msh.fac2poi(-ifaca-2,1),msh.fac2poi(-ifaca-2,2));
           }else{
             PRINTF("Boundary -> no first neighbour (ifaca = -1)\n");
           }
@@ -766,9 +763,6 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
           msh.tet2tet(iele2,ifa2) = ielem;
         }
       }
-
-
-
     }
 
     int nnode = getnnod3(ideg);
@@ -776,8 +770,8 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
       int ipoin = msh.tet2poi(ielem, ii);
       METRIS_ASSERT(ipoin >= 0);
       if(msh.poi2ent(ipoin,1) <= 2 && msh.poi2ent(ipoin,1) >= 1) continue;
-      msh.poi2ent(ipoin,1) = 3;
-      msh.poi2ent(ipoin,0) = ielem;
+      if(ii < 4) msh.set_poi2ent(Vertex{ipoin}, 3, ielem);
+      else       msh.set_poi2ent(CtrlPt{ipoin}, 3, ielem);
     }
   }
 
@@ -789,7 +783,8 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
       int nnode = getnnod1(ideg); 
       for(int ii = 0; ii < nnode; ii++){
         int ipoin = msh.edg2poi(iedge,ii);
-        if(msh.poi2ent(ipoin,0) >= 0) continue;
+        if((msh.poi2ent(ipoin,0) >= 0  && ii <  2)
+         ||(msh.poi2ent(ipoin,0) <= -2 && ii >= 2)) continue;
         int ibpoi = msh.poi2bpo[ipoin];
         while(ibpoi >= 0){
           msh.bpo2ibi(ibpoi,0) = -1;
@@ -805,7 +800,8 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
       int nnode = getnnod2(ideg); 
       for(int ii = 0; ii < nnode; ii++){
         int ipoin = msh.fac2poi(iface,ii);
-        if(msh.poi2ent(ipoin,0) >= 0) continue;
+        if((msh.poi2ent(ipoin,0) >= 0  && ii <  3)
+         ||(msh.poi2ent(ipoin,0) <= -2 && ii >= 3)) continue;
         int ibpoi = msh.poi2bpo[ipoin];
         while(ibpoi >= 0){
           msh.bpo2ibi(ibpoi,0) = -1;
@@ -829,7 +825,8 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
     INCVDEPTH(msh.param);
     for(int ii = 0; ii < nnode; ii++){
       int ipoin = ent2poi(ientt,ii);
-      if(msh.poi2ent(ipoin,0) >= 0) continue;
+      if((msh.poi2ent(ipoin,0) >= 0  && ii <  tdimc)
+       ||(msh.poi2ent(ipoin,0) <= -2 && ii >= tdimc)) continue;
       msh.killpoint(ipoin);
     }
   }

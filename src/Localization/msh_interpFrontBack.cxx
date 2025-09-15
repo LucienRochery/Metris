@@ -144,7 +144,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     lpfro.allocate(ipoi0);
     lpfro.set_n(0);
     for(int ipoin = 0; ipoin < ipoi0; ipoin++){
-      if(msh.poi2ent(ipoin,0) < 0) continue;
+      if(msh.isdeadpoint(ipoin)) continue;
       lpfro.stack(ipoin);
     }
   }else{
@@ -158,7 +158,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
 
   //    INCVDEPTH(msh.param);
 
-  //    if(msh.poi2ent(ipoin,0) < 0) continue;
+  //    if(msh.isdeadpoint(ipoin)) continue;
 
   //    int pdim = msh.getpoitdim(ipoin);
   //    // Corner not to be localized but matched prior
@@ -193,7 +193,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
       INCVDEPTH(msh.param);
       int ipseed = lpfro.pop();
       METRIS_ASSERT_MSG(ipseed >= 0 && ipseed < msh.npoin,"Invalid ipseed = {}", ipseed);
-      METRIS_ASSERT(msh.poi2ent(ipseed,0) >= 0);
+      METRIS_ASSERT(!msh.isdeadpoint(ipseed));
 
       int psdim = msh.getpoitdim(ipseed);
 
@@ -201,8 +201,18 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
       {
       INCVDEPTH(msh.param)
       int ientt = msh.poi2ent(ipseed, 0);
+      #ifndef NDEBUG
+      bool iHO = false;
+      #endif
+      if(ientt < -1){
+        ientt = -ientt-2;
+        #ifndef NDEBUG
+        iHO = true;
+        #endif
+      }
       int tdime = msh.poi2ent(ipseed, 1);
       int iver = msh.getverent(ientt,tdime,ipseed);
+      METRIS_ASSERT((!iHO && iver < tdime+1) || (iHO && iver >= tdime+1));
       int iedl = -1;
       ierro = 0;
       lentt[0].set_n(0);
@@ -271,7 +281,9 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
             }
 
             // Get the ref of the point. 
-            int iref = msh.ent2ref(pdim)[msh.poi2ent(ipoin,0)];
+            int ipent = msh.poi2ent(ipoin,0);
+            if(ipent < -1) ipent = -ipent - 2;
+            int iref = msh.ent2ref(pdim)[ipent];
             METRIS_ASSERT(iref >= 0);
 
             double *algnd = NULL;

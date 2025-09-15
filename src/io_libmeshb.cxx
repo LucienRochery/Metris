@@ -312,6 +312,7 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav)
   // Quadratic search in the corners so we don't have to use tags.
   for(int ii = 0; ii < ncedg; ii++){
     int iedge = cav.lcedg[ii];
+    if(isdeadent(iedge,msh.edg2poi)) continue;
     for(int jj = 0; jj < 2; jj++){
       int ip = msh.edg2poi(iedge,jj);
       int ib = msh.poi2bpo[ip];
@@ -336,6 +337,7 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav)
   if(msh.isboundary_faces()){
     for(int ii = 0; ii < ncfac; ii++){
       int iface = cav.lcfac[ii];
+      if(isdeadent(iface,msh.fac2poi)) continue;
       for(int jj = 0; jj < 3; jj++){
         int ip = msh.fac2poi(iface,jj);
         int ib = msh.poi2bpo[ip];
@@ -411,8 +413,8 @@ void debugInveval(std::string meshName_, MeshBase &msh, int tdim, int* ent2pol, 
 
   for(int ii = 0; ii < nnode; ii++) ent2pol[ii] += 1;
 
-  int ipnew = msh.newpoitopo(0,-1);
-  msh.newbpotopo(ipnew,0,-1);
+  int ipnew = msh.newpoitopo(PointType::Vertex,0,-1);
+  msh.newbpotopo(Vertex{ipnew},0,-1);
 
   for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipnew,ii) = coop[ii];
 
@@ -938,7 +940,7 @@ void writeBackLinks(std::string solName, Mesh<MFT>& msh){
   double bary[4], coom[3];
 
   for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-    if(msh.poi2ent(ipoin,0) < 0){
+    if(msh.isdeadpoint(ipoin)){
       for(int ii = 0; ii < msh.idim; ii++) field(ipoin, ii) = 0.0;
       continue;
     } 

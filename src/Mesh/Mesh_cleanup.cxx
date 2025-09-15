@@ -25,6 +25,8 @@ void Mesh<MetricFieldType>::cleanup(){
     return;
   }
 
+  if(this->param->dbgfull) check_topo(*this,0);
+
   int nwork = MAX(this->nbpoi, this->nedge);
   nwork = MAX(nwork, this->nface);
   nwork = MAX(nwork, this->nelem);
@@ -84,7 +86,7 @@ void Mesh<MetricFieldType>::cleanup(){
   const int nnmet = (idim*(idim+1))/2;
   int nponn = 0;
   for(int ipoin = 0; ipoin < this->npoin; ipoin++){
-    if(this->poi2ent(ipoin,0) < 0) continue;
+    if(this->isdeadpoint(ipoin)) continue;
 
     int iponn = nponn;
     nponn++;
@@ -117,7 +119,6 @@ void Mesh<MetricFieldType>::cleanup(){
   }
 
 
-
   // ----- Tetras
   update_tetras:
   int nelen = 0; 
@@ -131,7 +132,7 @@ void Mesh<MetricFieldType>::cleanup(){
 
     int nnode = getnnod3(this->curdeg); 
     // Not just copy but also translation using lpoin 
-    for(int ii = 0; ii < nnode; ii++) 
+    for(int ii = 0; ii < nnode; ii++)
       this->tet2poi(ielen,ii) = lpoin[this->tet2poi(ielem,ii)]; 
 
     // The next updates are only needed if the index changed. 
@@ -347,15 +348,16 @@ void Mesh<MetricFieldType>::cleanup(){
 
   // Recompute poi2ent 
   int tdimm = this->get_tdim();
-  for(int tdimn = tdimm; tdimn >= 1; tdimn--){
-    intAr2 &ent2poi = this->ent2poi(tdimn);
-    int nnode = this->nnode(tdimn);
-    int nentt = this->nentt(tdimn); 
+  for(int tdim = tdimm; tdim >= 1; tdim--){
+    intAr2 &ent2poi = this->ent2poi(tdim);
+    int nnode = getnnode(tdim,this->curdeg);
+    int nentt = this->nentt(tdim); 
     for(int ientt = 0; ientt < nentt; ientt++){
-      for(int ii = 0; ii < nnode; ii++){
-        int ipoin = ent2poi(ientt,ii);
-        this->poi2ent(ipoin,0) = ientt;
-        this->poi2ent(ipoin,1) = tdimn;
+      for(int ii = 0; ii < tdim + 1; ii++){
+        this->set_poi2ent(Vertex{ent2poi(ientt,ii)}, tdim, ientt);
+      }
+      for(int ii = tdim + 1; ii < nnode; ii++){
+        this->set_poi2ent(CtrlPt{ent2poi(ientt,ii)}, tdim, ientt);
       }
     }
   }

@@ -1,0 +1,40 @@
+Call: 
+-- usrTarDeg differs from default: 1 -> 2
+-- adp_niter differs from default: 0 -> 30
+-- opt_niter differs from default: 5 -> 10
+-- metScale differs from default: 1 -> 0.7071067811865475
+-- Input Mesh from data
+-- Input CAD  = /Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/OAT15A.egads
+-- Input Met  = /Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/OAT15A.solb
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Metris: high-order metric-based non-manifold tetrahedral remesher
+Copyright (C) 2023-2025, Massachusetts Institute of Technology
+Licensed under The GNU Lesser General Public License, version 2.1
+See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
+
+Metris Git repository URL git@github.com:LucienRochery/Metris.git
+commit SHA1 a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3 
+
+Compiled with EGADS version 1.27
+              OCC revision: with OpenCASCADE 7.7.0
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ - Initialization as metricFE
+(back) -- Counted 0 tetra domain ids
+ - Done neighbours, time =   0.002s 
+-- Update bdry point link to entities (iniBdryPoints)
+-- Created 0/10 edge, 0/0 face bpois 
+   0 boundary points created (iniBdryPoints)
+(back) -- iniBdryPoints nbpoi 924 -> 924
+-- prjMeshPoints start: verify 924, project 0
+ - Tested 924 points. Errors:
+       5 Corners: 0.000e+00 max (0), 0.000e+00 avg L2, 0 errs
+     919 Edges  :   1.572e+03 max (8252), 1.096e-01 avg L2, 0 errs
+   - no delayed points -> break
+   - corr loop   0 ncorr 0, 0 remaining
+-- Write file /Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/reg_x2_Q2toQ2/tmp/inisurf.meshb npoin 32519 nedge 457 nface 16031 tetra 0 
+-- Write file /Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/reg_x2_Q2toQ2/tmp/mshDATAback npoin 32519 nedge 457 nface 16031 tetra 0 
+(back)  - Get metric from file /Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/OAT15A.solb

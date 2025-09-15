@@ -53,6 +53,9 @@ void MeshBase::get_algnd(int ipoin, double* algnd){
   if(tdim == idim) return;
 
   int ientt = poi2ent(ipoin,0);
+  if(ientt < -1) ientt = - ientt - 2; // Control point case
+  METRIS_ASSERT(ientt >= 0 && ientt < nentt(tdim));
+  
   int iref  = ent2ref(tdim)[ientt];
   bool done = false;
   if(CAD()){
@@ -301,7 +304,7 @@ MeshBase& MeshBase::operator=(const MeshBase &inp){
   if(inp.nbpoi > 0) inp.bpo2ibi.copyTo(bpo2ibi,inp.nbpoi);
   if(inp.nbpoi > 0) inp.bpo2rbi.copyTo(bpo2rbi,inp.nbpoi);
   if(inp.npoin > 0) inp.poi2bpo.copyTo(poi2bpo,inp.npoin);
-  if(inp.npoin > 0) inp.poi2ent.copyTo(poi2ent,inp.npoin);
+  if(inp.npoin > 0) inp.poi2ent_.copyTo(poi2ent_,inp.npoin);
   if(inp.npoin > 0) inp.poicstr.copyTo(poicstr,inp.npoin);
                                                            
   if(inp.nedge > 0) inp.edg2edg.copyTo(edg2edg,inp.nedge);
@@ -431,8 +434,8 @@ void MeshBase::set_npoin(int npoin, bool skipallocf){
   if(npoin > mpoin_) mpoin_ = MAX(npoin, mpoin_*Defaults::mem_growfac);
 
 
-  poi2ent.allocate(mpoin, 2);
-  poi2ent.set_n(npoin);
+  poi2ent_.allocate(mpoin, 2);
+  poi2ent_.set_n(npoin);
 
   poi2bpo.allocate(mpoin);
   poi2bpo.set_n(npoin);

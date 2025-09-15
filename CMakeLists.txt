@@ -1,3 +1,8 @@
+# Parameters:
+# - METRIS_BUILD_CORES : build cores for unit test deployment, default n-1
+# - METRIS_MAX_DEG : maximum degree to support, default 2
+
+
 # FetchContent_MakeAvailable is latest constraint:
 cmake_minimum_required(VERSION 3.14.0)
 set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CMAKE_COMMAND} -E time")
@@ -246,6 +251,20 @@ file (GLOB_RECURSE TEST_REG_SOURCES CONFIGURE_DEPENDS "bunit/regression/*.cxx")
 # -- Boost/test
 find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 
+# -- For building in FindUnitTestMeshes and setup_unit_build_and_deploy
+if(NOT DEFINED METRIS_BUILD_CORES)
+  include(ProcessorCount)
+  ProcessorCount(NCORES)
+  if(NCORES EQUAL 0)
+    set(NCORES 1)
+  endif()
+  math(EXPR METRIS_BUILD_CORES "${NCORES} - 1")
+  if(METRIS_BUILD_CORES LESS 1)
+    set(METRIS_BUILD_CORES 1)
+  endif()
+  set(METRIS_BUILD_CORES ${METRIS_BUILD_CORES} CACHE STRING "Number of cores to use when building Metris for unit test mesh generation")
+endif()
+
 # -- Get the required meshes by reading bunit/test_ files
 # Uses TEST_SOURCES 
 include(cmake/FindUnitTestMeshes.cmake)
@@ -263,18 +282,9 @@ set(METRIS_TARGET_UNIT_TESTS_BUILD "")
 set(METRIS_TARGET_REGRESSION_TESTS_BUILD "")
 
 # Dummy test that runs the required builds
-include(ProcessorCount)
-ProcessorCount(NCORES)
-if(NCORES EQUAL 0)
-  set(NCORES 1)
-endif()
-math(EXPR BUILD_CORES "${NCORES} - 1")
-if(BUILD_CORES LESS 1)
-  set(BUILD_CORES 1)
-endif()
 add_test(
   NAME setup_unit_build_and_deploy
-  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target deploy_cases metris_unit_tests_build --parallel ${BUILD_CORES}
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target deploy_cases metris_unit_tests_build --parallel ${METRIS_BUILD_CORES}
 )
 set_tests_properties(setup_unit_build_and_deploy PROPERTIES
                      LABELS "unit"
@@ -283,7 +293,7 @@ set_tests_properties(setup_unit_build_and_deploy PROPERTIES
 
 add_test(
   NAME setup_regression_build_and_deploy
-  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target metris_regression_tests_build --parallel ${BUILD_CORES}
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target metris_regression_tests_build --parallel ${METRIS_BUILD_CORES}
 )
 set_tests_properties(setup_regression_build_and_deploy PROPERTIES
                      LABELS "regression"

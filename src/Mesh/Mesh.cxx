@@ -26,8 +26,8 @@
 namespace Metris{
 
 template<class MFT>
-int Mesh<MFT>::newpoitopo(int tdimn, int ientt){
-  int ipoin = MeshBase::newpoitopo(tdimn, ientt);
+int Mesh<MFT>::newpoitopo(PointType ptype, int tdimn, int ientt){
+  int ipoin = MeshBase::newpoitopo(ptype, tdimn, ientt);
 
   // No need to add guesses here, that'll be done when calling interpMetBack
   poi2bak[ipoin] = -1;

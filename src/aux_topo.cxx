@@ -32,8 +32,12 @@ int getpoitet(const MeshBase &msh, int ipoin){
 
   if(msh.nelem <= 0) return -1;
 
-  if(msh.poi2ent(ipoin,1) == 3) return msh.poi2ent(ipoin,0); 
-  
+  if(msh.poi2ent(ipoin,1) == 3){
+    int ientt = msh.poi2ent(ipoin,0);
+    if(ientt >= -1) return ientt;
+    else return -ientt - 2;
+  }
+
   CPRINTF2("Start getpoitet ipoin = {} poi2bpo {} \n",ipoin,msh.poi2bpo[ipoin]);
   
 	// Note: poi2bpo is not unique for ipoin. 
@@ -86,8 +90,12 @@ goto bdry;
 int getpoifac(const MeshBase &msh, int ipoin){
 	METRIS_ASSERT(ipoin >= 0 && ipoin < msh.npoin);
   if(msh.nface <= 0) return -1;
-
-  if(msh.poi2ent(ipoin,1) == 2) return msh.poi2ent(ipoin,0);
+ 
+  if(msh.poi2ent(ipoin,1) == 2){
+    int ientt = msh.poi2ent(ipoin,0);
+    if(ientt >= -1) return ientt;
+    else return -ientt - 2;
+  }
 
   // If the point is not tagged as boundary, it cannot then be attached to a triangle.
   if(msh.isboundary_faces()) return -1;
@@ -127,7 +135,11 @@ goto nocor;
 int getpoiedg(const MeshBase &msh, int ipoin){
 	METRIS_ASSERT(ipoin >= 0 && ipoin < msh.npoin);
 
-  if(msh.poi2ent(ipoin,1) == 1) return msh.poi2ent(ipoin,0); 
+  if(msh.poi2ent(ipoin,1) == 1){
+    int ientt = msh.poi2ent(ipoin,0);
+    if(ientt >= -1) return ientt;
+    else return -ientt - 2;
+  }
 
   if(msh.isboundary_edges()) return -1;
 
