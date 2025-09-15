@@ -37,7 +37,7 @@ cp $WORKSPACE/jenkins/Makefile.parallel .
 #time make -f Makefile.parallel install
 
 # This should handle all the necessary compilations
-ctest --output-on-failure -L regression
+ctest --output-on-failure -V -L regression 2>&1 |tee regression.log
 
 #Fail the build if any files were generated in source.
 #Count the number of files

@@ -18,7 +18,9 @@ cd $cmakedir
 
 source $WORKSPACE/jenkins/jenkins_env.sh
 
-CMAKEARGS="-DMETRIS_BUILD_CORES=1"
+# Number of processors used in compile
+nproc=1
+CMAKEARGS="-DMETRIS_BUILD_CORES=$nproc"
 
 
 time source $WORKSPACE/jenkins/cmake_jenkins.sh
@@ -26,14 +28,13 @@ time source $WORKSPACE/jenkins/cmake_jenkins.sh
 # Copy over the makefile that pipes parallel execution to files
 cp $WORKSPACE/jenkins/Makefile.parallel .
 
-# Number of processors used in compile
-nproc=1
 
 echo "in directory $(pwd)"
 
 #Build basic Metris targets
 time make -j $nproc -f Makefile.parallel metris
-time make -j $nproc -f Makefile.parallel unit_build
+#time make -j $nproc -f Makefile.parallel unit_build
+ctest -V --output-on-failure -L unit 2>&1 |tee unit_tests.log
 #time make -f Makefile.parallel install
 
 #Fail the build if any files were generated in source.
