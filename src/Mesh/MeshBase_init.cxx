@@ -64,8 +64,8 @@ void MeshBase::initialize(MetrisAPI *data,
   }else if(this->meshClass() == MeshClass::MeshBack){
     usrTarDeg = -1;
   }else{
-    METRIS_THROW_MSG(WArgExcept(), "Unknown code path (1) MeshBase init with type" 
-      << (int) this->meshClass());
+    METRIS_THROW_MSG( "Unknown code path (1) MeshBase init with type {}",
+      (int) this->meshClass());
   }
   //int usrTarDeg = imsh == whichMesh::Front ? param.usrTarDeg : -1;
 
@@ -78,8 +78,8 @@ void MeshBase::initialize(MetrisAPI *data,
     }else if(this->meshClass() == MeshClass::MeshBack){
       fname = param.inpBack ? param.backFileName : param.meshFileName; 
     }else{
-      METRIS_THROW_MSG(WArgExcept(), "Unknown code path (2) MeshBase init with type" 
-        << (int) this->meshClass());
+      METRIS_THROW_MSG( "Unknown code path (2) MeshBase init with type {}",
+        (int) this->meshClass());
     }
     //std::string fname = imsh == whichMesh::Front ? param.meshFileName 
     //                  : param.inpBack == true ? param.backFileName : param.meshFileName; 
@@ -261,7 +261,7 @@ void MeshBase::initialize(MetrisAPI *data,
       if(isdeadent(iface,fac2poi)) continue;
       getnorfacP1(fac2poi[iface], coord, nor_disc);
 
-      if(normalize_vec<3>(nor_disc)) METRIS_THROW_MSG(TODOExcept(), 
+      if(normalize_vec<3>(nor_disc)) METRIS_THROW_MSG( 
         "Error handling in face orientation disc normals.")
 
       // To compute the CAD normal, the safest is to average the vertex normals.
@@ -272,17 +272,16 @@ void MeshBase::initialize(MetrisAPI *data,
       METRIS_ASSERT_MSG(ierro == 0, "Manage CAD normal errors. Stack elements"
           " with failures and deal with them in a second time.");
 
-      if(normalize_vec<3>(norCAD)) METRIS_THROW_MSG(TODOExcept(), 
+      if(normalize_vec<3>(norCAD)) METRIS_THROW_MSG( 
         "Error handling in face orientation CAD normals.")
 
       double dtprd = getprdl2<3>(norCAD, nor_disc);
 
       METRIS_ASSERT_MSG(abs(dtprd) >= Constants::dtprdMisAlign,
         "Check meaning of apparently very badly aligned CAD and face normal. "
-        "dtprd = "<<dtprd<<" iface = "<<iface<<
-        "\n norCAD = "<<norCAD[0]<<" "<<norCAD[1]<<" "<<norCAD[2]<<" "
-        "\n norfac = "<<nor_disc[0]<<" "<<nor_disc[1]<<" "<<nor_disc[2]
-        )
+        "dtprd = {} iface = {}\n norCAD = {} {} {}\n norfac = {} {} {}", dtprd, iface,
+        norCAD[0], norCAD[1], norCAD[2],
+        nor_disc[0], nor_disc[1], nor_disc[2]);
 
       int iref = fac2ref[iface];
       CPRINTF3("Debug iface {} iref {} dtprd = {} \n",iface,iref,dtprd);
@@ -365,7 +364,7 @@ void MeshBase::initialize(MetrisAPI *data,
     for(bool isper : isperiodic_face) nperiodic_face += isper;
     CPRINTF1("-- Found {} periodic CAD faces\n",nperiodic_face);
 
-    //METRIS_THROW_MSG(TODOExcept(), "Implement edge and triangle orientation in 3D")
+    //METRIS_THROW_MSG("TODO: Implement edge and triangle orientation in 3D")
   }
 
 
@@ -459,7 +458,7 @@ void MeshBase::initialize(MetrisAPI *data,
 
 
   // Compute maximum normal deviation for localization tolerance 
-  if(isboundary_faces()) METRIS_THROW_MSG(TODOExcept(), 
+  if(isboundary_faces()) METRIS_THROW_MSG( 
                                          "Implement geodev for triangles in 3D")
   geodev[1] = -1;
 #endif
@@ -471,9 +470,9 @@ void MeshBase::initialize(MetrisAPI *data,
 void MeshBase::iniNeighbours(){
   GETVDEPTH(this->param);
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == this->curdeg){
-    double t1 = get_wall_time(); 
+    double t1 = get_cpu_time(); 
     iniMeshNeighbours<ideg>(*this);
-    double t2 = get_wall_time(); 
+    double t2 = get_cpu_time(); 
     CPRINTF2(" - Done neighbours, time = {:7.3f}s \n",t2-t1); 
   }}CT_FOR1(ideg);
 }
@@ -509,7 +508,7 @@ void MeshBase::readConstants(int64_t libIdx, int usrMinDeg){
   GETVDEPTH(param);
 
   set_npoin(GmfStatKwd( libIdx, GmfVertices ));
-  if(npoin == 0) METRIS_THROW_MSG(TopoExcept(),"EMPTY MESH (NO VERTICES)");
+  if(npoin == 0) METRIS_THROW_MSG("EMPTY MESH (NO VERTICES)");
 
   // We don't know yet. 
   nbpoi_ = 0;
@@ -522,8 +521,8 @@ void MeshBase::readConstants(int64_t libIdx, int usrMinDeg){
     int i3 = GmfStatKwd(libIdx, libmeshb::elemKwds[iDeg]);
     if(i1 > 0 || i2 > 0 || i3 > 0){
       METRIS_ENFORCE_MSG(iDeg <= METRIS_MAX_DEG, 
-        "readConstants iDeg = "<<iDeg<< " > METRIS_MAX_DEG have P3: "<<i1<< " edges " 
-        <<i2<< " faces "<<i3<< " tetras ");
+        "readConstants iDeg = {} > METRIS_MAX_DEG have P3: {} edges {} faces {} tetras",
+        iDeg, i1, i2, i3);
       CPRINTF1("-- Mesh of degree {}\n", iDeg);
 
       // Degree used for storage. User wants usrMinDeg and up to METRIS_MAX_DEG if the mesh file expects more. 
@@ -536,12 +535,12 @@ void MeshBase::readConstants(int64_t libIdx, int usrMinDeg){
     } 
     if((i1 > 0 && nedge > 0) || 
        (i2 > 0 && nface > 0) || 
-       (i3 > 0 && nelem > 0)) METRIS_THROW_MSG(TopoExcept(),"SEVERAL DEGREES IN THE MESH");
+       (i3 > 0 && nelem > 0)) METRIS_THROW_MSG("SEVERAL DEGREES IN THE MESH");
     if(i1 > 0) set_nedge(i1);
     if(i2 > 0) set_nface(i2);
     if(i3 > 0) set_nelem(i3);
   }
-  if(isuppr > 0)METRIS_THROW_MSG(TopoExcept(),"MESH HAS ELTS OF DEG > METRIS_MAX_DEG");
+  if(isuppr > 0)METRIS_THROW_MSG("MESH HAS ELTS OF DEG > METRIS_MAX_DEG");
 
   METRIS_ENFORCE_MSG( idim >= 3 || nelem == 0, "TETRAHEDRA IN DIMENSION 2 FILE");
 }
@@ -577,7 +576,7 @@ void MeshBase::copyConstants(const MeshBase &msh){
 
 
 void MeshBase::zeroArrays(){
-  poi2ent.fill(-1);
+  poi2ent_.fill(-1);
   edg2fac.fill(-1);
 
   if(idim >= 3) fac2tet.fill(-1);
@@ -617,11 +616,11 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
     CPRINTF2(" - Mesh in Bézier format.\n");
   }else{
     ibasis = FEBasis::Undefined;
-    METRIS_THROW_MSG(WArgExcept(),"Invalid basis in mesh file");
+    METRIS_THROW_MSG("Invalid basis in mesh file");
   }
 
 
-  if(idim != 2 && idim !=3) METRIS_THROW_MSG(WArgExcept(), "Dimension unsupported "<<idim)
+  if(idim != 2 && idim !=3) METRIS_THROW_MSG( "Dimension unsupported {}", idim);
 
   /* -------------------------------------------------------------------------------- */
   /* ----------------------------------- Points ------------------------------------- */
@@ -677,10 +676,10 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
       if(poi2bpo[ipoin] >= 0){
         CPRINTF1("## Warning: point {} already supplied as corner {}. Would have become {} \n",ipoin,
-                 bpo2ibi[poi2bpo[ipoin]][2],icorn);
+                 bpo2ibi(poi2bpo[ipoin],2),icorn);
         continue;
       }
-      newbpotopo(ipoin,0,icorn);
+      newbpotopo(Vertex{ipoin},0,icorn);
       ncor1++;
     }
     CPRINTF1(" - Added {} corners\n",ncor1);
@@ -709,10 +708,10 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
       if(poi2bpo[ipoin] >= 0){
         CPRINTF1("## Warning: point {} already supplied as corner {}. Would have become {} \n",ipoin,
-                 bpo2ibi[poi2bpo[ipoin]][2],icorn);
+                 bpo2ibi(poi2bpo[ipoin],2),icorn);
         continue;
       }
-      newbpotopo(ipoin,0,icorn);
+      newbpotopo(Vertex{ipoin},0,icorn);
       ncor1++;
     }
     CPRINTF1(" - Added {} corners\n",ncor1);
@@ -751,8 +750,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   
         if(!GmfStatKwd(libIdx, libmeshb::elemOrdKwds[ideg])){
           gen_ordering_Vizir<ideg,3>(FileOrdering);
-          std::cout<<"## No ordering given in file ! Use e.g. GmfTetrahedraP2Ordering."<<
-          std::endl<<"Defaulting to Vizir4 (\"P.-L.\") ordering"<<std::endl;
+          CPRINTF1("# No ordering given in file ! Use e.g. GmfTetrahedraP2Ordering.\n");
+          CPRINTF1("Defaulting to Vizir4 (\"P.-L.\") ordering");
         }else{
           GmfGetBlock(libIdx, libmeshb::elemOrdKwds[ideg], 1, nppe, 0, NULL,
             NULL, GmfIntTab, nppe, &FileOrdering[0], &FileOrdering[4*(nppe-1)]);
@@ -762,8 +761,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
   
       GmfGetBlock(libIdx, eKwd, 1, nelem, 0, NULL, NULL,
-        GmfIntVec, nppe, &tet2poi(0,0), &tet2poi[nelem-1][0],
-        GmfInt         , &tet2ref[0   ], &tet2ref[nelem-1  ]);
+        GmfIntVec, nppe, &tet2poi(0,0), &tet2poi(nelem-1,0),
+        GmfInt         , &tet2ref[0   ],&tet2ref[nelem-1  ]);
     }}CT_FOR1(ideg);
   
     for(int i = 0; i < nelem;i++){
@@ -772,9 +771,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
         tet2poi(i,j) -= 1;
       }
       if(isdeadent(i,tet2poi)) continue;
-      for(int j = 0; j < getnnod3(curdeg); j++){
-        poi2ent[tet2poi(i,j)][0] = i ;
-        poi2ent[tet2poi(i,j)][1] = 3 ;
+      for(int jj = 0; jj < getnnod3(curdeg); jj++){
+        if(jj < 4) set_poi2ent(Vertex{tet2poi(i,jj)}, 3, i);
+        else       set_poi2ent(CtrlPt{tet2poi(i,jj)}, 3, i);
       }
     }
     
@@ -804,7 +803,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
     //#else
 
     //  if(isboundary_faces() && param->refineConventionsInp)
-    //    METRIS_THROW_MSG(TODOExcept(), "Surface bpois not handled MeshBase_init "
+    //    METRIS_THROW_MSG("TODO: Surface bpois not handled MeshBase_init "
     //      "with refineConventionsInp == true. Modify iniMeshBdryPoints.");
 
     //#endif
@@ -836,8 +835,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   
         if(!GmfStatKwd(libIdx, libmeshb::faceOrdKwds[ideg])){
           gen_ordering_Vizir<ideg,2>(FileOrdering);
-          std::cout<<"!! No ordering given in file ! Use e.g. GmfTrianglesP2Ordering."<<
-          std::endl<<"Defaulting to Vizir4 (\"P.-L.\") ordering"<<std::endl;
+          CPRINTF1("# No ordering given in file ! Use e.g. GmfTrianglesP2Ordering.\n");
+          CPRINTF1("Defaulting to Vizir4 (\"P.-L.\") ordering");
         }else{
           GmfGetBlock(libIdx, libmeshb::faceOrdKwds[ideg], 1, nppf, 0, NULL,
             NULL, GmfIntVec, nppf, &FileOrdering[0], &FileOrdering[3*(nppf-1)]);
@@ -847,8 +846,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
   
       GmfGetBlock(libIdx, fKwd, 1,nface, 0, NULL, NULL,
-        GmfIntVec, nppf, &fac2poi(0,0), &fac2poi[nface-1][0],
-        GmfInt   ,       &fac2ref[0   ], &fac2ref[nface-1  ]);
+        GmfIntVec, nppf, &fac2poi(0,0), &fac2poi(nface-1,0),
+        GmfInt   ,       &fac2ref[0   ],&fac2ref[nface-1  ]);
     }}CT_FOR1(ideg);
     
     for(int i = 0; i < nface;i++){
@@ -860,8 +859,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
 
       if(isdeadent(i,fac2poi)) continue;
       for(int jj = 0; jj < getnnod2(curdeg); jj++){
-        poi2ent[fac2poi(i,jj)][0] = i;
-        poi2ent[fac2poi(i,jj)][1] = 2;
+        if(jj < 3) set_poi2ent(Vertex{fac2poi(i,jj)}, 2, i);
+        else       set_poi2ent(CtrlPt{fac2poi(i,jj)}, 2, i);
       }
     }
 
@@ -888,8 +887,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
                     dblAr1(idim,coord[fac2poi(iface,2)]));
             writeMesh("debugsurf",*this);
           }
-          METRIS_ENFORCE_MSG(ineg || nseen == 1, "## FIRST NEGATIVE ELEMENT IS RANK "<<nseen
-            <<" meas "<<meas);
+          METRIS_ENFORCE_MSG(ineg || nseen == 1, 
+            "## FIRST NEGATIVE ELEMENT IS RANK {} meas {}", nseen, meas);
           ineg = true;
           int tmp = fac2poi(iface,0);
           fac2poi(iface,0) = fac2poi(iface,1);
@@ -925,8 +924,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
         }
         if(!GmfStatKwd(libIdx, libmeshb::edgeOrdKwds[ideg])){
           gen_ordering_Vizir<ideg,1>(FileOrdering);
-          std::cout<<"!! No ordering given in file ! Use e.g. GmfEdgesP2Ordering."<<
-          std::endl<<"Defaulting to Vizir4 (\"P.-L.\") ordering"<<std::endl;
+          CPRINTF1("# No ordering given in file ! Use e.g. GmfEdgesP2Ordering.\n");
+          CPRINTF1("Defaulting to Vizir4 (\"P.-L.\") ordering");
         }else{
           GmfGetBlock(libIdx, libmeshb::edgeOrdKwds[ideg], 1, npp, 0, NULL,
             NULL, GmfIntVec, npp, &FileOrdering[0], &FileOrdering[npp-1]);
@@ -936,7 +935,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
   
       GmfGetBlock(libIdx, fKwd, 1,nedge, 0, NULL, NULL,
-        GmfIntVec, npp, &edg2poi(0,0),&edg2poi[nedge-1][0],
+        GmfIntVec, npp, &edg2poi(0,0) ,&edg2poi(nedge-1,0),
         GmfInt   ,      &edg2ref[0   ],&edg2ref[nedge-1  ]);
   
     }}CT_FOR1(ideg);
@@ -948,9 +947,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
       if(edg2ref[i] < 0) redorefs[1] = true; 
       if(isdeadent(i,edg2poi)) continue;
-      for(int j = 0; j < getnnod1(curdeg); j++){
-        poi2ent[edg2poi(i,j)][0] = i;
-        poi2ent[edg2poi(i,j)][1] = 1;
+      for(int jj = 0; jj < getnnod1(curdeg); jj++){
+        if(jj < 2) set_poi2ent(Vertex{edg2poi(i,jj)}, 1, i);
+        else       set_poi2ent(CtrlPt{edg2poi(i,jj)}, 1, i);
       }
     }
     CPRINTF2("-- Done reading {:10} edges\n",nedge);
@@ -979,20 +978,20 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       dosomething = false;
       for(int ientt = ient0; ientt < nentt_; ientt++){
         if(isdeadent(ientt,ent2poi_))continue;
-        if(ent2tag_[ithread][ientt] >= tag[ithread]) continue;
+        if(ent2tag_(ithread,ientt) >= tag[ithread]) continue;
         ient0 = ientt+1;
         entstack.stack(ientt);
-        ent2tag_[ithread][ientt] = tag[ithread];
+        ent2tag_(ithread,ientt) = tag[ithread];
         nref++;
         dosomething = true;
         while(entstack.get_n() > 0){
           int ient1 = entstack.pop();
           ent2ref_[ient1] = nref;
           for(int ii = 0; ii < 2; ii++){
-            int ientv = ent2ent_[ient1][ii];
+            int ientv = ent2ent_(ient1,ii);
             if(ientv < 0) continue;
-            if(ent2tag_[ithread][ientv] >= tag[ithread]) continue;
-            ent2tag_[ithread][ientv] = tag[ithread];
+            if(ent2tag_(ithread,ientv) >= tag[ithread]) continue;
+            ent2tag_(ithread,ientv) = tag[ithread];
             entstack.stack(ientv);
           }
         }
@@ -1045,12 +1044,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
         continue;
       }
       METRIS_ASSERT_MSG(iedge >= 0 && iedge < nedge || param->refineConventionsInp,
-        "iedge = "<<iedge<<" refineConventionsInp = "<<param->refineConventionsInp
-        << " lgpoe = "<<lgpoe(igpoe,1));
-      //METRIS_ASSERT_MSG(iedge >= 0 && iedge < CAD.ncaded || !param->refineConventionsInp,
-      //                  "Invalid edge reference in refine convention iedge "
-      //                  <<iedge<<" CAD.ncaded "<<CAD.ncaded<< " refine conv "
-      //                  <<param->refineConventionsInp)
+        "iedge = {} refineConventionsInp = {} lgpoe = {}", 
+        iedge, param->refineConventionsInp, lgpoe(igpoe,1));
 
       if(!param->refineConventionsInp && isdeadent(iedge,edg2poi)){
         if(nwarn++ < mwarn){
@@ -1078,7 +1073,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       // The link created in edg2bpo is temporary: if the point turns out 
       // not to be a corner then there is no need to keep the link. 
       // It will be deleted in iniMeshBdryPoints. 
-      int ibpoi = newbpotopo(ipoin,1,iedge);
+      int iver = getveredg<1>(iedge, ipoin);
+      int ibpoi = iver >= 0 ? newbpotopo(Vertex{ipoin},1,iedge) : 
+                              newbpotopo(CtrlPt{ipoin},1,iedge);
       if(ibpoi < 0) continue;
       bpo2rbi(ibpoi,0) = rgpoe(igpoe,0);
       bpo2rbi(ibpoi,1) = 0.0;
@@ -1147,7 +1144,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
 
 
-      int ibpoi = newbpotopo(ipoin,2,iface);
+      int iver = getverfac<1>(iface, ipoin);
+      int ibpoi = iver >= 0 ? newbpotopo(Vertex{ipoin},2,iface) : 
+                              newbpotopo(CtrlPt{ipoin},2,iface);
       if(ibpoi < 0) continue;
       // Third value is unused
       bpo2rbi(ibpoi,0) = rgpof(igpof,0);
@@ -1190,7 +1189,7 @@ void MeshBase::readMeshData(MetrisAPI &data){
   ibasis = data.mshbasis;
   METRIS_ASSERT(ibasis == FEBasis::Lagrange || ibasis == FEBasis::Bezier);
 
-  if(idim != 2 && idim !=3) METRIS_THROW_MSG(WArgExcept(), "Dimension unsupported "<<idim)
+  if(idim != 2 && idim !=3) METRIS_THROW_MSG( "Dimension unsupported {}", idim);
 
   coord = std::move(data.coord);
   poi2bpo.fill(-1);
@@ -1208,7 +1207,7 @@ void MeshBase::readMeshData(MetrisAPI &data){
     int ipoin = data.lcorn[icorn];
     // even metrisAPI deg change can't remove a corner
     METRIS_ASSERT(ipoin >= 0 && ipoin < npoin);
-    newbpotopo(ipoin,0,icorn);
+    newbpotopo(Vertex{ipoin},0,icorn);
   }
   data.lcorn.free();
 
@@ -1234,18 +1233,20 @@ void MeshBase::readMeshData(MetrisAPI &data){
   int nwarn = 0;
   int mwarn = 5;
   for(int igpoe = 0; igpoe < data.ngpoe; igpoe++){
-    int ipoin = data.lgpoe[igpoe][0];
+    int ipoin = data.lgpoe(igpoe,0);
     // ipoin < 0 if dead and >= npoin if degree has been reduced in API
     if(ipoin < 0 || ipoin >= npoin) continue;
-    int iedge = data.lgpoe[igpoe][1];
+    int iedge = data.lgpoe(igpoe,1);
     if(isdeadent(iedge,edg2poi)){
       if(nwarn++ < mwarn){
         CPRINTF1("## FILE CONTAINS IBPOS POINTING TO DEAD EDGES");
       }
       continue;
     }
-    int ibpon = newbpotopo(ipoin,1,iedge);
-    bpo2rbi(ibpon,0) = data.rgpoe[igpoe][0];
+    int iver = getveredg<1>(iedge, ipoin);
+    int ibpon = iver >= 0 ? newbpotopo(Vertex{ipoin},1,iedge) : 
+                            newbpotopo(CtrlPt{ipoin},1,iedge);
+    bpo2rbi(ibpon,0) = data.rgpoe(igpoe,0);
     bpo2rbi(ibpon,1) = 0.0;
   }
   data.lgpoe.free();
@@ -1253,66 +1254,41 @@ void MeshBase::readMeshData(MetrisAPI &data){
 
   nwarn = 0;
   for(int igpof = 0; igpof < data.ngpof; igpof++){
-    int ipoin = data.lgpof[igpof][0];
+    int ipoin = data.lgpof(igpof,0);
     // ipoin < 0 if dead and >= npoin if degree has been reduced in API
     if(ipoin < 0 || ipoin >= npoin) continue;
-    int iface = data.lgpof[igpof][1];
+    int iface = data.lgpof(igpof,1);
     if(isdeadent(iface,fac2poi)){
       if(nwarn++ < mwarn){
         CPRINTF1("## FILE CONTAINS IBPOS POINTING TO DEAD TRIANGLES");
       }
       continue;
     }
-    int ibpon = newbpotopo(ipoin,2,iface);
-    bpo2rbi(ibpon,0) = data.rgpof[igpof][0];
-    bpo2rbi(ibpon,1) = data.rgpof[igpof][1];
+    int iver = getverfac<1>(iface, ipoin);
+    int ibpon = iver >= 0 ? newbpotopo(Vertex{ipoin},2,iface) : 
+                            newbpotopo(CtrlPt{ipoin},2,iface);
+    bpo2rbi(ibpon,0) = data.rgpof(igpof,0);
+    bpo2rbi(ibpon,1) = data.rgpof(igpof,1);
   }
   data.lgpof.free();
   data.rgpof.free();
   
 
 
-
-  int nnode;
-  nnode = getnnod3(curdeg);
-  for(int ielem = 0; ielem < nelem; ielem++){
-    //for(int ii = 0; ii < nnode; ii++){
-    //  tet2poi(ielem,ii) = data.tet2poi(ielem,ii);
-    //}
-    //tet2ref[ielem] = data.tet2ref[ielem];
-    if(isdeadent(ielem,tet2poi)) continue;
-    for(int ii = 0; ii < nnode; ii++){
-      poi2ent[tet2poi(ielem,ii)][0] = ielem;
-      poi2ent[tet2poi(ielem,ii)][1] = 3;
+  for(int tdim = get_tdim(); tdim >= 1; tdim--){
+    int nnode = getnnode(tdim, curdeg);
+    const int nentt_ = nentt(tdim);
+    intAr2 &ent2poi_ = ent2poi(tdim);
+    for(int ientt = 0; ientt < nentt_; ientt++){
+      if(isdeadent(ientt,ent2poi_)) continue;
+      for(int ii = 0; ii < tdim + 1; ii++){
+        set_poi2ent(Vertex{ent2poi_(ientt,ii)}, tdim, ientt);
+      }
+      for(int ii = tdim + 1; ii < nnode; ii++){
+        set_poi2ent(CtrlPt{ent2poi_(ientt,ii)}, tdim, ientt);
+      }
     }
   }
-
-  nnode = getnnod2(curdeg);
-  for(int iface = 0; iface < nface; iface++){
-    //for(int ii = 0; ii < nnode; ii++){
-    //  fac2poi(iface,ii) = data.fac2poi(iface,ii);
-    //}
-    //fac2ref[iface] = data.fac2ref[iface];
-    if(isdeadent(iface,fac2poi)) continue;
-    for(int ii = 0; ii < nnode; ii++){
-      poi2ent[fac2poi(iface,ii)][0] = iface;
-      poi2ent[fac2poi(iface,ii)][1] = 2;
-    }
-  }
-
-  nnode = getnnod1(curdeg);
-  for(int iedge = 0; iedge < nedge; iedge++){
-    //for(int ii = 0; ii < nnode; ii++){
-    //  edg2poi(iedge,ii) = data.edg2poi(iedge,ii);
-    //}
-    //edg2ref[iedge] = data.edg2ref[iedge];
-    if(isdeadent(iedge,edg2poi)) continue;
-    for(int ii = 0; ii < nnode; ii++){
-      poi2ent[edg2poi(iedge,ii)][0] = iedge; 
-      poi2ent[edg2poi(iedge,ii)][1] = 1; 
-    }
-  }
-
 
 }
 

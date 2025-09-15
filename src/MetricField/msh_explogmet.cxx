@@ -18,7 +18,7 @@ template<int ndimn>
 void setLogMetMesh0(const MeshBase &msh, dblAr2 &metfld){
   static_assert(ndimn == 2 || ndimn == 3);
   for(int ipoin = 0; ipoin < msh.npoin ;ipoin++){
-    if(msh.poi2ent(ipoin,0) < 0) continue;
+    if(msh.isdeadpoint(ipoin)) continue;
     try{
       getlogmet_inp<ndimn,double>(metfld[ipoin]);
     }catch(const MetrisExcept& e){
@@ -38,7 +38,7 @@ template<int ndimn>
 void setExpMetMesh0(const MeshBase &msh, dblAr2 &metfld){
   static_assert(ndimn == 2 || ndimn == 3);
   for(int ipoin = 0; ipoin < msh.npoin ;ipoin++){
-    if(msh.poi2ent(ipoin,0) < 0) continue;
+    if(msh.isdeadpoint(ipoin)) continue;
     try{
       getexpmet_inp<ndimn,double>(metfld[ipoin]);
     }catch(const MetrisExcept& e){

@@ -36,6 +36,8 @@ int Mesh<MFT>::interpMetBack(int ipoin){
   METRIS_ASSERT_MSG(tdim > 0, "Interpolate corners manually");
   
   int iseed = this->poi2ent(ipoin,0);
+  // Control point case
+  if(iseed < -1) iseed = - iseed - 2;
   METRIS_ASSERT(this->poi2ent(ipoin,1) == tdim);
   METRIS_ASSERT(iseed >= 0 && iseed < this->nentt(tdim));
   METRIS_ASSERT(!isdeadent(iseed,this->ent2poi(tdim)));
@@ -70,9 +72,8 @@ template<class MFT>
 int Mesh<MFT>::interpMetBack(int ipoin, int tdim, int iseed, 
                              int iref, const double* algnd){
   METRIS_ASSERT_MSG(tdim == this->getpoitdim(ipoin) || this->getpoitdim(ipoin) == 0,
-    "seed is dim "<<tdim<<" point is "<<this->getpoitdim(ipoin)
-    << " ipoin = "<<ipoin );
-  METRIS_ASSERT_MSG(iseed >= 0 && iseed < this->nentt(tdim), "interpMetBack provided invalid seed index "<<iseed);
+    "seed is dim {} point is {} ipoin = {}", tdim, this->getpoitdim(ipoin), ipoin);
+  METRIS_ASSERT_MSG(iseed >= 0 && iseed < this->nentt(tdim), "interpMetBack provided invalid seed index {}", iseed);
   METRIS_ASSERT_MSG(!isdeadent(iseed,tdim == 1 ? this->edg2poi :
                                      tdim == 2 ? this->fac2poi : this->tet2poi),
                     "Dead seed passed to interpMetBack");
@@ -86,10 +87,10 @@ int Mesh<MFT>::interpMetBack(int ipoin, int tdim, int iseed,
            iseed,tdim);
 
   METRIS_ASSERT_MSG(tdim == this->idim || (algnd != NULL && iref >= 0),
-    "Boundary dim "<<tdim<<" but algnd = "<<algnd<<" and iref = "<<iref);
+    "Boundary dim {} but algnd = {} and iref = {}", tdim, (void*) algnd, iref);
 
   METRIS_ASSERT_MSG(ipoin >= 0 && ipoin < this->npoin, 
-    "interpMetBack ipoin out of bounds "<<ipoin<<" < ? "<<this->npoin);
+    "interpMetBack ipoin out of bounds {} < ? {}", ipoin, this->npoin);
 
   int ierro = this->interpMetBack0(ipoin, tdim, iseed, iref, algnd);
 
@@ -118,7 +119,7 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,int tdim, int iseed, int iref,
     return 0;
   }else{
 
-    //if(this->idim == 3) METRIS_THROW_MSG(TODOExcept(), 
+    //if(this->idim == 3) METRIS_THROW_MSG( 
     //                                     "Metric interpolation in surface case")
 
     const int nnode = tdim == 1 ? getnnod1(this->curdeg) 
@@ -278,9 +279,9 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
 ieleb_initialized:
 
   METRIS_ASSERT_MSG(ieleb >= 0 && ieleb < bak->nentt(tdim),
-    "with tdim = "<<tdim<<" got ieleb = "<<ieleb<<" ipseed = "<<ipseed);
+    "with tdim = {} got ieleb = {} ipseed = {}", tdim, ieleb, ipseed);
 
-  CPRINTF2(" - using ipseed {} bak elt seed = {} dim {}\n",ipseed,ieleb,tdim);
+  CPRINTF2(" - using ipseed {} bak elt seed = {} dim {}\n", ipseed, ieleb, tdim);
 
 
   int ierro;
@@ -301,14 +302,13 @@ ieleb_initialized:
   CT_FOR0_INC(1,METRIS_MAX_DEG,bdeg){if(bdeg == this->bak->curdeg){
     INCVDEPTH(this->param);
     if(this->idim == 2){
+      METRIS_ASSERT(tdim <= 2);
       if(tdim == 1){
         ierro = locMesh<2,1,bdeg>(*(this->bak), &ieleb, this->coord[ipoi0],
                                   tdim, uvsrf, iref, algnd, coopr, barb);
       }else if(tdim == 2){
         ierro = locMesh<2,2,bdeg>(*(this->bak), &ieleb, this->coord[ipoi0],
                                   tdim, uvsrf, iref, NULL , coopr, barb);
-      }else{
-        METRIS_THROW(WArgExcept());
       }
     }else{
       if(tdim == 1){
@@ -333,13 +333,13 @@ ieleb_initialized:
     this->param->iverb   = 10;
     this->param->ivdepth = 20;
 
-    int ipdbg = this->bak->newpoitopo(-1,-1);
-    int ibdbg = this->bak->newbpotopo(ipdbg,0,ipdbg);
+    int ipdbg = this->bak->newpoitopo(PointType::Vertex,-1,-1);
+    int ibdbg = this->bak->newbpotopo(Vertex{ipdbg},0,ipdbg);
     for(int ii = 0; ii < this->idim; ii++) 
       this->bak->coord(ipdbg,ii) = this->coord(ipoi0,ii);
 
-    int ipdb2 = this->bak->newpoitopo(-1,-1);
-    this->bak->newbpotopo(ipdb2,0,ipdb2);
+    int ipdb2 = this->bak->newpoitopo(PointType::Vertex,-1,-1);
+    this->bak->newbpotopo(Vertex{ipdb2},0,ipdb2);
     for(int ii = 0; ii < this->idim; ii++) 
       this->bak->coord(ipdb2,ii) = coopr[ii];
 
@@ -359,13 +359,13 @@ ieleb_initialized:
   #endif
 
   if(ierro != 0 && DOPRINTS2() && this->param->dbgfull){
-    int ipdbg = this->bak->newpoitopo(-1,-1);
-    int ibdbg = this->bak->newbpotopo(ipdbg,0,ipdbg);
+    int ipdbg = this->bak->newpoitopo(PointType::Vertex,-1,-1);
+    int ibdbg = this->bak->newbpotopo(Vertex{ipdbg},0,ipdbg);
     for(int ii = 0; ii < this->idim; ii++) 
       this->bak->coord(ipdbg,ii) = this->coord(ipoi0,ii);
 
-    int ipdb2 = this->bak->newpoitopo(-1,-1);
-    this->bak->newbpotopo(ipdb2,0,ipdb2);
+    int ipdb2 = this->bak->newpoitopo(PointType::Vertex,-1,-1);
+    this->bak->newbpotopo(Vertex{ipdb2},0,ipdb2);
     for(int ii = 0; ii < this->idim; ii++) 
       this->bak->coord(ipdb2,ii) = coopr[ii];
 
@@ -385,8 +385,8 @@ ieleb_initialized:
   // (e.g. loc stuck opposite side of hole)
   METRIS_ASSERT(ieleb >= 0 && ieleb < bak->nentt(tdim));
   METRIS_ASSERT_MSG((iref == bak->ent2ref(tdim)[ieleb]) || iref == -1,
-    "got iref = "<<iref<<" ieleb = "<<ieleb<<" tdim "<<tdim<<
-    " ieleb ref "<<bak->ent2ref(tdim)[ieleb]);
+    "got iref = {} ieleb = {} tdim {} ieleb ref {}", iref, ieleb, tdim, bak->ent2ref(tdim)[ieleb]);
+
 
   
   const intAr2& bak2poi = bak->ent2poi(tdim);
@@ -459,13 +459,13 @@ ieleb_initialized:
   }
 
   if(DOPRINTS2() && len >= 0.5){
-    int ipdbg = this->bak->newpoitopo(-1,-1);
-    int ibdbg = this->bak->newbpotopo(ipdbg,0,ipdbg);
+    int ipdbg = this->bak->newpoitopo(PointType::Vertex,-1,-1);
+    int ibdbg = this->bak->newbpotopo(Vertex{ipdbg},0,ipdbg);
     for(int ii = 0; ii < this->idim; ii++) 
       this->bak->coord(ipdbg,ii) = this->coord(ipoi0,ii);
 
-    int ipdb2 = this->bak->newpoitopo(-1,-1);
-    this->bak->newbpotopo(ipdb2,0,ipdb2);
+    int ipdb2 = this->bak->newpoitopo(PointType::Vertex,-1,-1);
+    this->bak->newbpotopo(Vertex{ipdb2},0,ipdb2);
     for(int ii = 0; ii < this->idim; ii++) 
       this->bak->coord(ipdb2,ii) = coopr[ii];
 

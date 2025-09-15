@@ -72,7 +72,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
     int nswap_tdim = 0;
     int nswap3fa = 0;
     int nswap3ed = 0;
-    double t02 = get_wall_time();
+    double t02 = get_cpu_time();
 
     for(int niter = 0; niter < miter; niter++){
       int   ntry  = 0;
@@ -87,7 +87,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
       int nerro_niter = 0;
       int nswap_niter = 0;
 
-      double t01 = get_wall_time();
+      double t01 = get_cpu_time();
 
       for(int ientt = ient0; ientt < nent0; ientt++){
         INCVDEPTH(msh.param);
@@ -110,7 +110,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
               //printf("## WAIT AFTER SWAPTETRA\n");
               //wait();
             }else{
-              METRIS_THROW_MSG(TopoExcept(),"in dim < 3, ntetra > 0");
+              METRIS_THROW_MSG("in dim < 3, ntetra > 0");
             }
           }
         #ifndef NDEBUG
@@ -171,7 +171,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
         }
         ntry++; 
       }
-      double t11 = get_wall_time();
+      double t11 = get_cpu_time();
 
       double stat0 =(double)nswap_niter / (double)msh.nentt(tdim);
       if(ntry == 0) stat  = MAX(stat, 0);
@@ -191,7 +191,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
     }// for niter
 
 
-    double t12 = get_wall_time();
+    double t12 = get_cpu_time();
     int ncallps_tdim = 1000*(int)((nswap_tdim / (t12-t02)) / 1000);
     if(tdim == 2){
       CPRINTF2(" - swaps dim {} time {:.2e}s swapped {} = {} /s nerro {}\n",tdim,t12-t02,nswap_tdim,ncallps_tdim,nerro_tdim)

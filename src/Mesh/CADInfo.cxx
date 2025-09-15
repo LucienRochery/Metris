@@ -26,23 +26,18 @@ void CADInfo::iniEGADSModel(){
   int oclass,mtype,nbody,*dum;
   ego *bodies;
   ierro = EG_getTopology(EGADS_model,&geom,&oclass,&mtype,NULL,&nbody,&bodies,&dum);
-  if(ierro != 0){
-    fmt::print(stderr,"EG_getTopology error : {}",EG_err2str(ierro));
-    METRIS_THROW(TopoExcept());
-  }
-  if(nbody == 0) METRIS_THROW_MSG(TopoExcept(),"CAD has nbody = "<<nbody);
-  if(nbody  > 1) METRIS_THROW_MSG(TopoExcept(),"> 1 BODIES NOT SUPPORTED YET ");
+  METRIS_ENFORCE_MSG(ierro == 0, "EG_getTopology error : {}",EG_err2str(ierro))
+  METRIS_ENFORCE_MSG(nbody > 0, "CAD has 0 bodies");
+  METRIS_ENFORCE_MSG(nbody <= 1, "TODO: CAD has {} > 1 bodies",nbody);
 
   body = bodies[0];
 
   ego *buff; 
   ierro = EG_getBodyTopos(body,NULL,FACE,&ncadfa,&buff);
-  if(ierro != 0){
-    fmt::print(stderr,"EG_getBodyTopos (FACE) error : {}",EG_err2str(ierro));
-    METRIS_THROW(TopoExcept());
-  }
+  METRIS_ENFORCE_MSG(ierro == 0, "EG_getBodyTopos (FACE) error : {}",EG_err2str(ierro));
+  
   if(ncadfa == 0){
-    printf("WARNING: Body with no faces !\n");
+    fmt::print("WARNING: Body with no faces !\n");
   }else{
     //printf("  body has {} faces \n",ncadfa);
   }
@@ -50,7 +45,11 @@ void CADInfo::iniEGADSModel(){
   // then pass it in so the last instance being destroyed calls EG_free. 
   //if(DOPRINTS1()){
   {
-    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);printf("-- CAD faces freed\n");});
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);
+      #ifndef NDEBUG
+      fmt::print("-- CAD faces freed\n");
+      #endif
+    });
     cad2fac.set_sp(ncadfa,buff_sp); 
   }
   //}else{
@@ -60,16 +59,17 @@ void CADInfo::iniEGADSModel(){
   cad2fac.set_n(ncadfa);
 
   ierro = EG_getBodyTopos(body,NULL,EDGE,&ncaded,&buff);
-  if(ierro != 0){
-    fmt::print(stderr,"EG_getBodyTopos (EDGE) error : {}",EG_err2str(ierro));
-    METRIS_THROW(TopoExcept());
-  }
+  METRIS_ENFORCE_MSG(ierro == 0, "EG_getBodyTopos (EDGE) error : {}",EG_err2str(ierro));
   if(ncaded == 0){
-    printf("## WARNING: Body with no edges !\n");
+    fmt::print("## WARNING: Body with no edges !\n");
   }
   //if(DOPRINTS1()){
   {
-    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);fmt::print("-- CAD edges freed\n");});
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);
+      #ifndef NDEBUG
+      fmt::print("-- CAD edges freed\n");
+      #endif
+    });
     cad2edg.set_sp(ncaded,buff_sp); 
   }
   //}else{
@@ -80,17 +80,18 @@ void CADInfo::iniEGADSModel(){
 
 
   ierro = EG_getBodyTopos(body,NULL,LOOP,&ncadlp,&buff);
-  if(ierro != 0){
-    fmt::print(stderr,"EG_getBodyTopos (LOOP) error : {}",EG_err2str(ierro));
-    METRIS_THROW(TopoExcept());
-  }
+  METRIS_ENFORCE_MSG(ierro == 0, "EG_getBodyTopos (LOOP) error : {}",EG_err2str(ierro));
   if(ncadlp == 0){
     fmt::print("## WARNING: Body with no loops !\n");
   }
   //if(DOPRINTS1()){
   {
-    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);fmt::print("-- CAD loops freed\n");});
-    cad2lop.set_sp(ncadlp,buff_sp); 
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);
+      #ifndef NDEBUG
+      fmt::print("-- CAD loops freed\n");
+      #endif
+    });
+    cad2lop.set_sp(ncadlp,buff_sp);
   }
   //}else{
   //  std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);});
@@ -99,16 +100,17 @@ void CADInfo::iniEGADSModel(){
   cad2lop.set_n(ncadlp);
 
   ierro = EG_getBodyTopos(body,NULL,NODE,&ncadno,&buff);
-  if(ierro != 0){
-    fmt::print(stderr,"EG_getBodyTopos (NODE) error : {}",EG_err2str(ierro));
-    METRIS_THROW(TopoExcept());
-  }
+  METRIS_ENFORCE_MSG(ierro == 0, "EG_getBodyTopos (NODE) error : {}",EG_err2str(ierro));
   if(ncadno == 0){
     fmt::print("## WARNING: Body with no nodes !\n");
   }
   //if(DOPRINTS1()){
   {
-    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);fmt::print("-- CAD nodes freed\n");});
+    std::shared_ptr<ego[]> buff_sp(buff, [](ego* pp) {EG_free(pp);
+      #ifndef NDEBUG
+      fmt::print("-- CAD nodes freed\n");
+      #endif
+    });
     cad2nod.set_sp(ncadno,buff_sp); 
   }
   //}else{
@@ -129,12 +131,12 @@ void CADInfo::setModel(ego EGADS_context_, ego EGADS_model_){
   //  int ierro = EG_open(&EGADS_context);
   //  if(ierro != EGADS_SUCCESS){
   //    print_EGADS_error("CADInfo::setModel: EG_open",ierro);
-  //    METRIS_THROW(TopoExcept());
+  //    METRIS_THROW();
   //  }
   //  ierro = EG_contextCopy(EGADS_context, EGADS_model_, &EGADS_model);
   //  if(ierro != EGADS_SUCCESS){
   //    print_EGADS_error("CADInfo::setModel: EG_contextCopy",ierro);
-  //    METRIS_THROW(TopoExcept());
+  //    METRIS_THROW();
   //  }
   //  printf("Debug hard-copied EGADS_model\n");
   //}
@@ -143,7 +145,7 @@ void CADInfo::setModel(ego EGADS_context_, ego EGADS_model_){
 
 
 void CADInfo::setModel(size_t nbyte, char* stream){
-//  METRIS_THROW_MSG(TODOExcept(), "Fix CAD stream\n");
+//  METRIS_THROW_MSG("TODO: Fix CAD stream\n");
   fmt::print("## DEBUG STREAM AS INT:\n");
   int *ptr = (int*)stream;
   for(int ii = 0; ii < (int) MIN(10,nbyte / sizeof(int)); ii++){
@@ -154,15 +156,11 @@ void CADInfo::setModel(size_t nbyte, char* stream){
   fmt::print("## DEBUG NBODY FROM STREAM {} \n",*nbodyptr);
 
   int ierro = EG_open(&EGADS_context);
-  if(ierro != 0){
-    fmt::print(stderr,"EG_open error : {}",EG_err2str(ierro));
-    METRIS_THROW(TopoExcept());
-  }
+  METRIS_ENFORCE_MSG(ierro == 0, "EG_open error : {}",EG_err2str(ierro));
+
   ierro = EG_importModel(EGADS_context, nbyte, stream, &EGADS_model);
-  if(ierro != 0){
-    fmt::print(stderr,"EG_importModel error : {}",EG_err2str(ierro));
-    METRIS_THROW(TopoExcept());
-  }
+  METRIS_ENFORCE_MSG(ierro == 0, "EG_importModel error : {}",EG_err2str(ierro));
+
 
 
   ego geom;
@@ -178,7 +176,7 @@ void CADInfo::setModel(size_t nbyte, char* stream){
   //ierro = EG_exportModel(EGADS_model, &nbyte2, &stream2);
   //if(ierro != 0){
   //  print_EGADS_error("EG_exportModel",ierro);
-  //  METRIS_THROW_MSG(TopoExcept(),"Failed to export model to stream2.");
+  //  METRIS_THROW_MSG("Failed to export model to stream2.");
   //}
   //printf(" - Stream2 of size {}b \n",nbyte2);
 
@@ -197,10 +195,7 @@ void CADInfo::iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0
       // Throw out exceptions as these are not fatal. 
       CPRINTF1("-- Read CAD file {} and project.\n",param.cadFileName.c_str());
       int ierro = EG_open(&EGADS_context);
-      if(ierro != 0){
-        fmt::print(stderr,"EG_open error : {}",EG_err2str(ierro));
-        METRIS_THROW(TopoExcept());
-      }
+      METRIS_ENFORCE_MSG(ierro == 0, "EG_open error : {}",EG_err2str(ierro));
       std::shared_ptr<ego> buff_sp1(&EGADS_context, [](ego *pp) {EG_close(*pp);});
       EGADS_context_sp = buff_sp1;
 
@@ -208,10 +203,7 @@ void CADInfo::iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0
       CPRINTF2(" - Start reading CAD file.\n");
       int bitFlag = 0; 
       ierro = EG_loadModel(EGADS_context,bitFlag,param.cadFileName.c_str(),&EGADS_model);
-      if(ierro != 0){
-        fmt::print(stderr,"EG_loadModel error : {}",EG_err2str(ierro));
-        METRIS_THROW_MSG(WArgExcept(),"CAD Projection will not be available");
-      }
+      METRIS_ENFORCE_MSG(ierro == 0, "EG_loadModel error : {}",EG_err2str(ierro));
 
 
       CPRINTF2(" - Done reading CAD file.\n");
@@ -222,14 +214,14 @@ void CADInfo::iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0
       //ierro = EG_exportModel(EGADS_model, &nbyte, &stream);
       //if(ierro != 0){
       //  print_EGADS_error("EG_exportModel",ierro);
-      //  METRIS_THROW_MSG(TopoExcept(),"Failed to export model to stream.");
+      //  METRIS_THROW_MSG("Failed to export model to stream.");
       //}
       //printf("Got nbyte %zu \n", nbyte);
       //ego EGADS_model2;
       //ierro = EG_importModel(EGADS_context, nbyte, stream, &EGADS_model2);
       //if(ierro != 0){
       //  print_EGADS_error("EG_importModel",ierro);
-      //  METRIS_THROW(TopoExcept());
+      //  METRIS_THROW();
       //}
 
       //ego geom;
@@ -242,10 +234,10 @@ void CADInfo::iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0
       //ierro = EG_getTopology(EGADS_model,&geom,&oclass,&mtype,NULL,&nbody,&bodies,&dum);
       //if(ierro != 0){
       //  print_EGADS_error("EG_getTopology",ierro);
-      //  METRIS_THROW(TopoExcept());
+      //  METRIS_THROW();
       //}
-      //if(nbody == 0) METRIS_THROW_MSG(TopoExcept(),"EMPTY EGADS MODEL");
-      //if(nbody  > 1) METRIS_THROW_MSG(TopoExcept(),"> 1 BODIES NOT SUPPORTED YET ");
+      //if(nbody == 0) METRIS_THROW_MSG("EMPTY EGADS MODEL");
+      //if(nbody  > 1) METRIS_THROW_MSG("> 1 BODIES NOT SUPPORTED YET ");
 
       //wait();
     }
@@ -261,13 +253,13 @@ void CADInfo::iniCADLink(const MetrisParameters &param, MeshBase &msh, int nbpo0
     for(int iface = 0; iface < msh.nface; iface++){
       if(isdeadent(iface,msh.fac2poi)) continue;
       int iref = msh.fac2ref[iface];
-      if(iref < 0) METRIS_THROW_MSG(TopoExcept(),"Even without CAD: give faces refs!! iface = "<<iface<<" iref = "<<iref);
+      if(iref < 0) METRIS_THROW_MSG("Even without CAD: give faces refs!! iface = {} iref = {}", iface, iref);
       if(iref > ncadfa) ncadfa = iref;
     }
     for(int iedge = 0; iedge < msh.nedge; iedge++){
       if(isdeadent(iedge,msh.edg2poi)) continue;
       int iref = msh.edg2ref[iedge];
-      if(iref < 0) METRIS_THROW_MSG(TopoExcept(),"Even without CAD: give edges refs! iedge = !"<<iedge<<" iref = "<<iref);
+      if(iref < 0) METRIS_THROW_MSG("Even without CAD: give edges refs! iedge = {} iref = {}", iedge, iref);
       if(iref > ncaded) ncaded = iref;
     }
     for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
@@ -325,10 +317,11 @@ CADInfo& CADInfo::operator=(const CADInfo &inp){
   ncadfa = inp.ncadfa;
   ncadlp = inp.ncadlp;
 
-  cad2nod = inp.cad2nod;
-  cad2edg = inp.cad2edg;
-  cad2fac = inp.cad2fac;
-  cad2lop = inp.cad2lop;
+  // Hard copies: these are small arrays.
+  inp.cad2nod.copyTo(cad2nod);
+  inp.cad2edg.copyTo(cad2edg);
+  inp.cad2fac.copyTo(cad2fac);
+  inp.cad2lop.copyTo(cad2lop);
 
   //cfa2tag.allocate(METRIS_MAXTAGS, ncadfa, true);
   //ced2tag.allocate(METRIS_MAXTAGS, ncaded, true);

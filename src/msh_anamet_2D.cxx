@@ -88,7 +88,7 @@ void anamet2D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 void anamet2D_3([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
   SANS::SurrealS<2,double> X[2];
-  X[0] = abs(crd[0] - 0.5);
+  X[0] = std::abs(crd[0] - 0.5);
   X[0].deriv(0) = crd[0] >= 0.5 ? 1 : -1;
   X[0].deriv(1) = 0;
 
@@ -173,13 +173,13 @@ void anamet2D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double hy_min = 0.001;
   double hy_max = 0.1;
   double hx = scale*0.5;
-  SANS::SurrealS<2,double> hy = scale*(abs(r)*hy_max + (1 - abs(r))*hy_min);
+  SANS::SurrealS<2,double> hy = scale*(std::abs(r)*hy_max + (1 - std::abs(r))*hy_min);
 
 
   SANS::SurrealS<2,double> eigval[2] = {1.0/(hy*hy), 1.0/(hx*hx)};
   SANS::SurrealS<2,double> eigvec[4];
 
-  SANS::SurrealS<2,double> y[2] = {X[0] / (abs(r) + 1.0e-6), X[1] / (abs(r) + 1.0e-6)};
+  SANS::SurrealS<2,double> y[2] = {X[0] / (std::abs(r) + 1.0e-6), X[1] / (std::abs(r) + 1.0e-6)};
   SANS::SurrealS<2,double> theta;
   if(y[0].value() > 0){
     theta = atan(y[1]/y[0]);
@@ -207,10 +207,8 @@ void anamet2D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
     //fmt::print("debug r = {:15.7e} theta = {:15.7e} print met = {:15.7e} {:15.7e} {:15.7e} \n",
     //  r.value(), theta.value(), met[0],met[1],met[2]);
     for(int ii = 0; ii < 6; ii++){
-      if(std::isnan(dmet[ii])){
-        fmt::print("## NAN METRIS IN ANAMET 5 ! coop = {} {} \n",crd[0],crd[1]);
-        METRIS_THROW(GeomExcept());
-      }
+      METRIS_ASSERT_MSG(!std::isnan(met[ii]),
+        "NAN METRIS IN ANAMET 5 ! coop = {} {} \n",crd[0],crd[1]);
     }
   }
   #endif

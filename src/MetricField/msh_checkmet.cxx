@@ -29,7 +29,7 @@ void checkMet(const MeshMetric<MetricFieldFE>& msh){
     double eigval[gdim];
     double eigvec[gdim*gdim];
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-      if(msh.poi2ent(ipoin,0) < 0) continue;
+      if(msh.isdeadpoint(ipoin)) continue;
       geteigsym<gdim,double>(msh.met[ipoin],eigval,eigvec);
       for(int ii = 0; ii < gdim; ii++) METRIS_ENFORCE(eigval[ii] > 1.0e-16);
     }

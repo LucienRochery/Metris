@@ -97,14 +97,15 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES Clang)
   set(METRIS_CLANG_FLAGS -Wno-misleading-indentation 
                          -Wno-gnu-zero-variadic-macro-arguments 
                          -Wno-gcc-compat 
-                         -Wno-cast-function-type-mismatch)
+                         -Wno-cast-function-type-mismatch
+                         -Wno-pessimizing-move)
 
 
   #set(METRIS_CXX_FLAGS_RELEASE -DNDEBUG  -march=native -O3 -fPIC)
   set(METRIS_C_FLAGS_RELEASE           -DNDEBUG  -march=native -O3 -ftree-vectorize -fPIC)
   set(METRIS_C_FLAGS_DEBUG               -O0 -g  -Wall -Wextra -pedantic  -march=native  -fno-pie  -fPIC) # -S -fverbose-asm -rdynamic -ggdb3
   #set(METRIS_C_FLAGS_DEBUG  -fsanitize=address  -fconstexpr-steps=10000000 -O0 -g3  -march=native -fno-pie ) # -S -fverbose-asm
-  set(METRIS_C_FLAGS_MEMCHECK            -Wall -fsanitize=address -O0 -g -fPIC) # -S -fverbose-asm
+  set(METRIS_C_FLAGS_MEMCHECK            -DNO_EXCEPT_MESSAGES -Wall -fsanitize=address -O0 -g -fPIC) # -S -fverbose-asm
   set(METRIS_C_FLAGS_RELWITHDEBINFO  ${METRIS_C_FLAGS_RELEASE} -g -fno-omit-frame-pointer)
 
   set(METRIS_C_FLAGS_RELEASE        ${METRIS_C_FLAGS_RELEASE}        ${METRIS_CLANG_FLAGS})

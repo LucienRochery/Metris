@@ -166,7 +166,7 @@ double getmeasentP1(const MeshBase&__restrict__ msh, const int*__restrict__ ent2
         norref = norCAD;
         if(msh.CAD()){
           int ierro = getnorfacCAD(msh,ent2pol,nod2bpo,norCAD);
-          METRIS_ASSERT_MSG(ierro == 0, "getnorfacCAD failed ierro = " << ierro);
+          METRIS_ASSERT_MSG(ierro == 0, "getnorfacCAD failed ierro = {}", ierro);
         }else{
           getnorfacP1(ent2pol,msh.coord,norCAD);
         }
@@ -319,7 +319,7 @@ template double getmeasent_aniso<MetricFieldFE        ,3,n>(const MeshMetric<Met
 template <int gdim>
 void getmeasentP1grad(const int *ent2pol, const dblAr2& coord, int idof, double *grad){
   if constexpr(gdim == 3){
-    METRIS_THROW_MSG(TODOExcept(),"Implement getmeasentP1grad with idim == 3 (use subdetvec)");
+    METRIS_THROW_MSG("TODO: Implement getmeasentP1grad with idim == 3 (use subdetvec)");
   }else{
 
     int inxt1 = (idof + 1) % 3;

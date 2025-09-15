@@ -61,8 +61,8 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
 
   const bool doSteiner = false;
 
-  int iverb0 = msh.param->iverb;
-  int ivdepth0 = msh.param->ivdepth;
+  //int iverb0 = msh.param->iverb;
+  //int ivdepth0 = msh.param->ivdepth;
 
   // Swap norm -1: length-based. 
   //swapOptions swapOpt(100, -1, 0.0);
@@ -117,7 +117,7 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
   HshTab_I2I ledge;
   ledge.reserve(medge);
 
-  double t0s = get_wall_time();
+  double t0s = get_cpu_time();
   int nedge_tot = 0;
   for(int ientt = 0; ientt < msh.nentt(tdim); ientt++){
     INCVDEPTH(msh.param);
@@ -143,7 +143,7 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
 
     }// for ied
   }// for ientt
-  double t1s = get_wall_time();
+  double t1s = get_cpu_time();
   CPRINTF1(" - init time {:.2e}s nlong = {}\n",t1s-t0s,(int)ledge.size());
 
   if(ledge.size() == 0){
@@ -168,7 +168,7 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
 
     // Don't let the loop grow beyond initial size.
     const auto edge_it1 = ledge.end();
-    double t0 = get_wall_time();
+    double t0 = get_cpu_time();
     for(auto edge_it = ledge.begin(); edge_it != edge_it1;){
       ntry++;
       INCVDEPTH(msh.param);
@@ -304,7 +304,7 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
     if(tdim == 3) stat0 *= 32;
     if(tdim == 2) stat0 *= 5;
 
-    double t1 = get_wall_time();
+    double t1 = get_cpu_time();
     int ncallps = 1000*(int)((ninser1 / (t1-t0)) / 1000);
     CPRINTF2(" - END time = {:.2e}s nlong {} ntry {} nskip {} nadded {} ninser {} = {} /s, nerro {}; nSteiner {} nerro {} helped {}; stat {:.2e}\n",
               t1-t0,nlong,ntry,nskip,nadded,ninser1,ncallps,nerro,nSteiner,nerroSteiner,ninser1S,stat0);

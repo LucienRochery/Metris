@@ -10,6 +10,7 @@
 #include "Metris_LAPACK.hxx"
 
 #include <type_traits>
+#include <cmath>
 
 namespace Metris{
 
@@ -184,20 +185,20 @@ template<int ndimn, typename T = double>
 inline T detsym3(const T met[]){
   static_assert(ndimn == 2 || ndimn == 3);
   if constexpr(ndimn == 2){
-    T mx = abs(met[0]); 
-    mx = mx > abs(met[1]) ? mx : abs(met[1]);
-    mx = mx > abs(met[2]) ? mx : abs(met[2]);
+    T mx = std::abs(met[0]); 
+    mx = mx > std::abs(met[1]) ? mx : std::abs(met[1]);
+    mx = mx > std::abs(met[2]) ? mx : std::abs(met[2]);
     T met2[3] ;
     for(int ii = 0; ii < 3 ;ii++) met2[ii] = met[ii] / mx;
     double det = met2[0]*met2[2] - met2[1]*met2[1];
     return det*mx*mx;
   }else{
-    T mx = abs(met[0]); 
-    mx = mx > abs(met[1]) ? mx : abs(met[1]);
-    mx = mx > abs(met[2]) ? mx : abs(met[2]);
-    mx = mx > abs(met[3]) ? mx : abs(met[3]);
-    mx = mx > abs(met[4]) ? mx : abs(met[4]);
-    mx = mx > abs(met[5]) ? mx : abs(met[5]);
+    T mx = std::abs(met[0]); 
+    mx = mx > std::abs(met[1]) ? mx : std::abs(met[1]);
+    mx = mx > std::abs(met[2]) ? mx : std::abs(met[2]);
+    mx = mx > std::abs(met[3]) ? mx : std::abs(met[3]);
+    mx = mx > std::abs(met[4]) ? mx : std::abs(met[4]);
+    mx = mx > std::abs(met[5]) ? mx : std::abs(met[5]);
     T met2[6] ;
     for(int ii =0; ii < 6 ;ii++) met2[ii] = met[ii] / mx;
     double det = met2[0]*(met2[2]*met2[5]-met2[4]*met2[4])
@@ -214,12 +215,12 @@ inline T detsym2(const SANS::DLA::MatSymS<ndimn,T> &met){
   if constexpr(ndimn == 2){
     return met[0]*met[2] - met[1]*met[1];
   }else{
-    T mx = abs(met[0]); 
-    mx = mx > abs(met[1]) ? mx : abs(met[1]);
-    mx = mx > abs(met[2]) ? mx : abs(met[2]);
-    mx = mx > abs(met[3]) ? mx : abs(met[3]);
-    mx = mx > abs(met[4]) ? mx : abs(met[4]);
-    mx = mx > abs(met[5]) ? mx : abs(met[5]);
+    T mx = std::abs(met[0]); 
+    mx = mx > std::abs(met[1]) ? mx : std::abs(met[1]);
+    mx = mx > std::abs(met[2]) ? mx : std::abs(met[2]);
+    mx = mx > std::abs(met[3]) ? mx : std::abs(met[3]);
+    mx = mx > std::abs(met[4]) ? mx : std::abs(met[4]);
+    mx = mx > std::abs(met[5]) ? mx : std::abs(met[5]);
     T met2[6] ;
     for(int ii = 0; ii < 6 ;ii++) met2[ii] = met[ii] / mx;
     T det = met2[0]*(met2[2]*met2[5]-met2[4]*met2[4])

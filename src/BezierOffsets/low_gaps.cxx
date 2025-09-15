@@ -279,9 +279,8 @@ void scalrotJ0(const MeshBase &msh, int ielem  ,
   */
   //double bary[gdim+1] = {1.0/(gdim+1),1.0/(gdim+1),1.0/(gdim+1)};
   double detM12 = detsym<gdim>(srmet);
-  if(detM12 < 1.0e-16) METRIS_THROW_MSG(GeomExcept(),"SINGULAR METRIC " << detM12
-  <<" log-metric "<<srmet[0]<<" "<<srmet[1]<<" "<<srmet[2]<<" "
-                  <<srmet[3]<<" "<<srmet[4]<<" "<<srmet[5]<<" ")
+  if(detM12 < 1.0e-16) METRIS_THROW_MSG("SINGULAR METRIC det = {:e}\n"
+    "log-metric = {}",detM12,dblAr1((gdim*(gdim+1))/2,srmet));
 
   *scale = pow(detJ1 * detM12 / detJ0,1.0/gdim);
 }

@@ -22,6 +22,12 @@
 
 namespace Metris{
 
+// Zero-cost wrappers for ipoin
+// Only used in set_poi2ent currently. 
+enum class CtrlPt : int {};
+enum class Vertex : int {};
+enum class PointType {Vertex, CtrlPt};
+
 class MetricFieldFE;
 class MetricFieldAnalytical;
 class MetrisAPI; 
@@ -82,7 +88,23 @@ public:
   const int &npoin = npoin_;
 	dblAr2 coord;
   int idim; // geometric dimension
-	intAr2  poi2ent; // 2xnpoin: 0 = lowest-dim element attached, 1 = dimension of element
+   // 2xnpoin: 0 = lowest-dim element attached, 1 = dimension of element:
+	const intAr2& poi2ent = poi2ent_; // read-only
+  void set_poi2ent(Vertex ipoin, int tdim, int ientt);
+  void set_poi2ent(CtrlPt ipoin, int tdim, int ientt);
+protected:
+	intAr2  poi2ent_; // rw array internal only 
+public:
+  inline bool isvertex(int ipoin) const {return poi2ent(ipoin,0) >= 0;}
+  inline bool isctrlpt(int ipoin) const {
+    if(poi2ent(ipoin,0) >= -1) return false;
+    int iver = this->getverent(-poi2ent(ipoin,0)-2, poi2ent(ipoin,1), ipoin);
+    return iver >= 0;
+  }
+  inline bool isdeadpoint(int ipoin) const {
+    if(this->poi2ent(ipoin,0) == -1) return true;
+    return !isvertex(ipoin) && !isctrlpt(ipoin);
+  }
   int getpoitdim(int ipoin) const;  // Point topological dimension (lowest dim attached element)
   bolAr1  poicstr; // is point constrained (internal)
 	double bb[3][2]; // bounding box: [x,y,z][min,max]
@@ -372,11 +394,21 @@ public:
 //protected:
 public:
   // This should only be called from the top levels (Mesh and MeshBack)
-  // Otherwise some auxiliary data structs may not be properly set. 
-	int newpoitopo(int tdim, int ientt = -1);
-  friend void debugInveval(std::string meshName_, MeshBase &msh, int tdim,  int* ent2pol, double *coop);
+  // Otherwise some auxiliary data structs may not be properly set.
+  
+  // Prefer calling this, sets the surface:
+	int newpoint(PointType ptype, int tdim, int ientt);
+
+  // Internal / debugs:
+  // Note: we need to distinguish because of how poi2ent is handled.
+  int newpoitopo(PointType ptype, int tdim, int ientt = -1);
+
+protected:
+  // Only internal:
+	int newpoitopo0(int tdim, int ientt = -1);
 
 public:
+  friend void debugInveval(std::string meshName_, MeshBase &msh, int tdim,  int* ent2pol, double *coop);
 	// Create new face by copying from tetrahedron
 	template <int ideg>
 	void newfactopo(int ielem, int ifael, int iref = -1, int iele2 = -1);
@@ -389,7 +421,12 @@ public:
 	template <int ideg>
 	void newedgtopo(int iface, int iedfa, int iref = -1);
 
-	int newbpotopo(int ipoin, int tdim, int ientt = -1);
+  // PointType is Vertex or CtrlPt
+	int newbpotopo(Vertex ipoin, int tdim, int ientt = -1);
+	int newbpotopo(CtrlPt ipoin, int tdim, int ientt = -1);
+protected:
+	int newbpotopo0(PointType ptype, int ipoin, int tdim, int ientt = -1);
+public:
   void killpoint(int ipoin);
 
   // Remove all tagged entities from ipoin

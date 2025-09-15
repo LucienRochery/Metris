@@ -59,10 +59,6 @@ constexpr void ini_cbzfac();
 constexpr void ini_cbztet();
 
 
-#ifndef METRIS_MAX_DEG_JACOBIAN
-#define METRIS_MAX_DEG_JACOBIAN (3*(METRIS_MAX_DEG - 1))
-#endif
-
 // Degree of the maximum pnorm (<= 2) interpolation error integrand
 #ifndef METRIS_MAX_DEG_INTPINTGD
 #define METRIS_MAX_DEG_INTPINTGD METRIS_MAX_DEG_JACOBIAN + 2*(METRIS_MAX_DEG+1)*METRIS_MAX_DEG

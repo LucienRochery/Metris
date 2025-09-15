@@ -18,7 +18,7 @@ template <int ideg, int ilag, typename ftype>
 void metquaS_xi(const Mesh &msh, int ielem, int power, 
 	              const double* bary, ftype* qufac){
 	assert(power != 0);
-	if(msh.ilogmet != 1)METRIS_THROW_MSG(WArgExcept(),
+	if(msh.ilogmet != 1)METRIS_THROW_MSG(
 		"## SET MESH METRIC TO LOG BEFORE CALLING metquaS_xi");
 	double jmat[9],met[6],dum[3],lmet[6];
 	// Get Jacobian matrix at xi
@@ -90,7 +90,7 @@ void metquaS_xi(const Mesh &msh, int ielem, int power,
 //	            + 2*jmat[3*2+0]*jmat[3*2+1]*met[1]
 //	            + 2*jmat[3*2+0]*jmat[3*2+2]*met[3]
 //	            + 2*jmat[3*2+1]*jmat[3*2+2]*met[4];
-	if(tra < 1.0e-16) METRIS_THROW_MSG(GeomExcept(),
+	if(tra < 1.0e-16) METRIS_THROW_MSG(
 		"NEGATIVE J^TMJ trace "<<tra);
 	if(det < 1.0e-16){
 
@@ -171,7 +171,7 @@ void metquaS_xi(const Mesh &msh, int ielem, int power,
        << "tra = " << tra_8 << " det = " << det_8 << std::endl;
 
 
-		METRIS_THROW_MSG(GeomExcept(),
+		METRIS_THROW_MSG(
     "NEGATIVE met det  "<<det<<" met det "<<detsym<3>(met)
     <<" prod det "<<det1<<" met = "<<
     met[0]<<" "<<met[1]<<" "<<met[2]<<" "<<

@@ -97,9 +97,10 @@ int cavity_operator(Mesh<MFT> &msh ,
   cav.print(msh);
 
   if(DOPRINTS2()) writeMeshCavity("cavity0",msh,cav);
+  if(DOPRINTS3()) writeMesh("cavinifull",msh,true);
 
 	if(cav.ipins < 0 || cav.ipins >= msh.npoin) 
-		METRIS_THROW_MSG(WArgExcept(),"ipins out of bounds\n");
+		METRIS_THROW_MSG("ipins out of bounds\n");
 
 	int ierro = CAV_NOERR;
 
@@ -223,7 +224,7 @@ int cavity_operator(Mesh<MFT> &msh ,
     // Write out the cavity. 
     writeMesh("cavenderr",msh,true,nedg0,nfac0,nele0);
   }
-	//METRIS_THROW_MSG(TODOExcept(), 
+	//METRIS_THROW_MSG( 
   //  "Get rid of bpoi entries of existing points? Do these exist? Check ierro = "<<ierro);
   msh.tag[ithread]++;
   if(msh.isboundary_faces()){

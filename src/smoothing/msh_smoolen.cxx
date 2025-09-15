@@ -64,7 +64,7 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
   //const double maxwt = 20.0;
   //const double qrthr = 2.0;
   const double tolavg = msh.param->opt_smoo_tol;
-  const double tolmax = msh.param->opt_smoo_tol;
+  //const double tolmax = msh.param->opt_smoo_tol;
 
   dblAr1 work;
   if(msh.param->iflag2 != 0){
@@ -74,7 +74,7 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
   // 1 -> no maximum quality increase allowed 
   //const double maxinc_worst = 1.00;
 
-  const int nnmet = (msh.idim*(msh.idim+1))/2;
+  //const int nnmet = (msh.idim*(msh.idim+1))/2;
 
   METRIS_ENFORCE(msh.param->opt_power < 0); // Otherwise rework the mins / maxs
 
@@ -88,8 +88,7 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
   HshTab_I2I ledge;
   ledge.reserve(medge);
 
-  double t0s = get_wall_time();
-  int nedge_tot = 0;
+  double t0s = get_cpu_time();
   for(int ientt = 0; ientt < msh.nentt(tdim); ientt++){
     INCVDEPTH(msh.param);
     if(isdeadent(ientt,ent2poi)) continue;
@@ -102,12 +101,11 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
       auto key = stup2(ip1,ip2);
       if(ledge.find(key) != ledge.end()) continue;
 
-      nedge_tot++;
       
       ledge[key] = ientt;
     }// for ied
   }// for ientt
-  double t1s = get_wall_time();
+  double t1s = get_cpu_time();
   CPRINTF1(" - init time {:.2e}s nlong = {}\n",t1s-t0s,(int)ledge.size());
 
 
@@ -118,7 +116,6 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
 
     double qmin = 1.0e30, qmax = -1.0e30, qavg = 0.0;
     int imax = -1;
-    int navg = 0;
     for(auto iedge : ledge){
       int ip1 = std::get<0>(iedge.first);
       int ip2 = std::get<1>(iedge.first);
@@ -137,7 +134,7 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
     }
 
     qavg /= ledge.size();
-    double t0 = get_wall_time();
+    double t0 = get_cpu_time();
     CPRINTF1(" - smoo iter {:3} init {:10.6e} < q < {:10.6e} (at {}), avg = {:10.6e}\n",
              niter,qmin,qmax,imax,qavg,msh.param->opt_pnorm);
     //if(iverb >= 2 && qmax >= 1e10){
@@ -151,7 +148,7 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
     int nmov  = 0;
 
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-      if(msh.poi2ent(ipoin, 0) < 0) continue;
+      if(msh.isdeadpoint(ipoin)) continue;
       if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
       INCVDEPTH(msh.param);
 
@@ -194,7 +191,7 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
       }
     }
 
-    double t1 = get_wall_time();
+    double t1 = get_cpu_time();
     CPRINTF1(" - Iteration end time = {:.2e}s nsuccess = {} nmov = {} \n",
                           t1-t0,nsucc,nmov);
     noper += nmov;

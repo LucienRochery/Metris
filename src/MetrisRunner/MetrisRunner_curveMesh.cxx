@@ -52,7 +52,7 @@ void MetrisRunner::curveMesh0(){
   }
 
 
-  double t1 = get_wall_time();
+  double t1 = get_cpu_time();
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){
     if(ideg == msh.curdeg){
       if(itype == 1){
@@ -87,7 +87,7 @@ void MetrisRunner::curveMesh0(){
       }
     }
   }CT_FOR1(ideg);
-  double t2 = get_wall_time();
+  double t2 = get_cpu_time();
   CPRINTF1("-- Curving end time = {:.2e}s\n",t2-t1);
 
 

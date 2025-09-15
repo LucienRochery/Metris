@@ -233,7 +233,7 @@ BOOST_AUTO_TEST_CASE(test_inveval)
     for(double dx = dx0; dx > dx1; dx /= qdx){
       ndx++;
     }
-    if(ndx > mdx) METRIS_THROW_MSG(SMemExcept(),"Increase mdx")
+    if(ndx > mdx) METRIS_THROW_MSG("Increase mdx")
     double errgdx[mdx], errhdx[mdx], logdx[mdx];
 
 
@@ -337,7 +337,7 @@ BOOST_AUTO_TEST_CASE(test_inveval)
             if(ifun == 1) printf(" - inveval          :");
             if(ifun == 2) printf(" - inveval_nloptD   :");
 
-            double t0 = get_wall_time();
+            double t0 = get_cpu_time();
             int nerro = 0;
             int nsucc = 0;
             for(int ientt = 0; ientt < nentt; ientt++){
@@ -438,7 +438,7 @@ BOOST_AUTO_TEST_CASE(test_inveval)
 
               } // for isamp 
             } // for ientt
-            double t1 = get_wall_time();
+            double t1 = get_cpu_time();
             double pct_err = nerro / (double) (nsucc + nerro) * 100.0;
             printf(" nerro %7d nsucc %7d pct err %4.1f maxErr = %.2e total time %f = %dk op/s\n",
                    nerro,nsucc,pct_err,maxErr, t1-t0,(int)(nsamp*naliv/(1000*(t1-t0))));
@@ -673,7 +673,7 @@ int inveval_badNewton(MeshBase &msh, int ientt,
   for(int ii = 0; ii < nnode; ii++) ent2pol[ii] = ii;
 
   // Just make a static buffer. This will probably blow up at large degrees
-  if constexpr(ideg > 3) METRIS_THROW_MSG(TODOExcept(), "WATCH OUT FOR LARGE STATIC BUFFER");
+  if constexpr(ideg > 3) METRIS_THROW_MSG("TODO: WATCH OUT FOR LARGE STATIC BUFFER");
   double buf[gdim*nnode];
   dblAr2 coorl(nnode,gdim,buf);
   coorl.set_n(nnode);

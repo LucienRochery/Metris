@@ -74,7 +74,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
   CPRINTF1("-- START insPointsCurve iref {}\n",iref);
   METRIS_ENFORCE(lnewt[0] > range[0]);
   METRIS_ENFORCE_MSG(ninsp >= 1 || lnewt[1] > lnewt[0],
-    "ninsp = "<<ninsp<<" lnewt = "<<lnewt[0]<<" "<<lnewt[1]);
+    "ninsp = {} lnewt = {} {}", ninsp, lnewt[0], lnewt[1]);
 
 
   // Fill edges seeds for extremities
@@ -111,7 +111,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       for(int inewt = 0; inewt < ninsp+2; inewt++){
         int iseed = t2sed[inewt];
         METRIS_ASSERT_MSG(iseed >= 0 && iseed < msh.nedge && !isdeadent(iseed,msh.edg2poi),
-          "Invalid edge seed "<<iseed);
+          "Invalid edge seed {}",iseed);
       }
       for(int inewt = 0; inewt < ninsp; inewt++){
         int iseed = t2sed[inewt+1];
@@ -125,8 +125,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
         double tcur = lnewt[inewt];
         METRIS_ASSERT_MSG(tcur >= tedg[0] && tcur <= tedg[1]
                        || tcur <= tedg[0] && tcur >= tedg[1],
-                       "Current t = "<<tcur<<" not in edge bounds = "
-                       <<tedg[0]<<"  "<<tedg[1]);
+                       "Current t = {} not in edge bounds = {}  {}", tcur, tedg[0], tedg[1]);
       }
     }catch(const MetrisExcept &e){
       printf("## WRONG SEEDS, DUMP ALL\n");
@@ -187,8 +186,8 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
 
       if(msh.param->dbgfull) check_topo(msh,ithrd2);
 
-      int ipnew = msh.newpoitopo(1, -1);
-      int ibnew = msh.newbpotopo(ipnew,1,t2sed[inewt+1]);
+      int ipnew = msh.newpoitopo(PointType::Vertex, 1, -1);
+      int ibnew = msh.newbpotopo(Vertex{ipnew},1,t2sed[inewt+1]);
       cav.ipins = ipnew;
       cav.inewp = 1;
       
@@ -207,7 +206,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       METRIS_ASSERT(itnxt >= -1);
       int ienxt = t2sed[itnxt+1];
       METRIS_ASSERT_MSG(ienxt >= 0 && !isdeadent(ienxt,msh.edg2poi),
-        "Invalid ienxt = "<<ienxt<<" w/ itnxt = "<<itnxt<<" ninsp = "<<ninsp);
+        "Invalid ienxt = {} w/ itnxt = {} ninsp = {}", ienxt, itnxt, ninsp);
 
       #ifndef NDEBUG
       // Check the seed contains the t value 
@@ -222,8 +221,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
         }
         METRIS_ASSERT_MSG(tcur >= tedg[0] && tcur <= tedg[1]
                        || tcur <= tedg[0] && tcur >= tedg[1],
-                       "Current t = "<<tcur<<" not in edge bounds = "
-                       <<tedg[0]<<"  "<<tedg[1]);
+                       "Current t = {} not in edge bounds = {}  {}", tcur, tedg[0], tedg[1]);
       }
       #endif
 
@@ -388,8 +386,8 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
           intAr1 dum;
           shell3(msh, ipoi1, ipoi2, iele0, lshell, dum, &iopen);
           // should all be open shells.
-          METRIS_ASSERT_MSG(iopen >= 0," shell is closed ipoi1 = "<<ipoi1
-            <<" ipoi2 = "<<ipoi2);
+          METRIS_ASSERT_MSG(iopen >= 0,
+            "shell is open ipoi1 = {} ipoi2 = {}", ipoi1, ipoi2);
 
           for(int ielem : lshell){
             if(msh.tet2tag(ithrd1,ielem) >= msh.tag[ithrd1]) continue;
@@ -460,7 +458,7 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
       }}CT_FOR1(ideg);
 
       //if(ierro != 0){
-      //  printf("## WAIT: in insPointsCurve cavity ierro {} \n",ierro);
+      //  PRINTF("## WAIT: in insPointsCurve cavity ierro {} \n",ierro);
       //  wait();
       //}
 
@@ -549,12 +547,12 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
 
     CPRINTF1(" - insPoint ref {} iter {} inserted {} nerro {}\n",iref,niter,nsucc,nerro);
     if(DOPRINTS2() && nerro > 0){
-      printf(" - Error list:\n");
+      CPRINTF2(" - Error list:\n");
       for(int ii = 0; ii < ierro_max; ii++){
         if(lerro[ii] <= 0) continue;
         CPRINTF2("   - {} : {}", ii, lerro[ii]);
-        if(ii < CAV_ERR_NERROR) printf(" (cav)");
-        printf("\n");
+        if(ii < CAV_ERR_NERROR) PRINTF(" (cav)");
+        PRINTF("\n");
       }
     }
     #ifndef NDEBUG

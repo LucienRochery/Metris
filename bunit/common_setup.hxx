@@ -27,6 +27,7 @@
 
 namespace Metris{
 
+  
 class scriptArrayString {
 public:
   scriptArrayString() : ifirst(true), iinit(false) {}
@@ -72,68 +73,6 @@ private:
   std::string name_;
 };
 
-class MinMaxAvg {
-public:
-  MinMaxAvg() : min_(1.0e30), avg_(0), max_(-1.0e30), navg(0){}
-
-  MinMaxAvg& operator+=(double val){
-    if (val < min_) min_ = val;
-    if (val > max_) max_ = val;
-    avg_ += val;
-    navg++;
-    return *this;
-  }
-
-  double min() const {return min_;}
-  double avg() const {return navg > 0 ? avg_/navg : 0;}
-  double max() const {return max_;}
-
-  bool operator<=(double value) const {
-    return max_ <= value;
-  }
-
-  friend bool operator<=(double lhs, const MinMaxAvg& rhs) {
-    return lhs <= rhs.max_;
-  }
-
-  bool operator<(double value) const {
-    return max_ < value;
-  }
-
-  friend bool operator<(double lhs, const MinMaxAvg& rhs) {
-    return lhs < rhs.max_;
-  }
-
-
-  bool operator>=(double value) const {
-    return max_ >= value;
-  }
-
-  friend bool operator>=(double lhs, const MinMaxAvg& rhs) {
-    return lhs >= rhs.max_;
-  }
-
-  bool operator>(double value) const {
-    return max_ > value;
-  }
-
-  friend bool operator>(double lhs, const MinMaxAvg& rhs) {
-    return lhs > rhs.max_;
-  }
-
-  friend std::ostream& operator<<(std::ostream& os, const MinMaxAvg& mma) {
-    os << "min: " << mma.min_ << ", "
-       << "avg: " << mma.avg() << ", "
-       << "max: " << mma.max_ << ", "
-       << "count: " << mma.navg;
-    return os;
-  }
-
-private:
-  double min_, avg_, max_;
-  unsigned long long int navg;
-};
-
 
 template<typename T = double>
 struct LinReg{
@@ -147,16 +86,11 @@ public:
       s_xy += x[ii]*y[ii];
     }
     T det = s_xx*nn - s_x*s_x;
-    if(abs((double) det) < 1.0e-30){
-      printf("## linearRegression nan coeff a using n = %d sx = %e sy = %e\n",
-        nn,(double)s_x,(double)s_y);
-      printf(" s_xx %e s_xy %e\n",(double)s_xx,(double)s_xy);
-      printf("x : ");
-      MeshArray1D<T>(nn, x).print();
-      printf("y : ");
-      MeshArray1D<T>(nn, y).print();
-      METRIS_THROW(GeomExcept());
-    }
+    METRIS_ENFORCE_MSG(abs((double) det) >= 1.0e-30, 
+      "## linearRegression nan coeff a using n = {} sx = {:e} sy = {:e}\n"
+      " s_xx {:e} s_xy {:e}\n"
+      "x: {}\ny : {}\n",
+      nn,(double)s_x,(double)s_y,(double)s_xx,(double)s_xy,MeshArray1D<T>(nn, x),MeshArray1D<T>(nn, y));
 
     slope = (nn*s_xy - s_x*s_y)/det;
     origin = (-s_x*s_xy + s_xx*s_y)/det;

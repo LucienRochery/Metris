@@ -48,9 +48,9 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
       }
       #endif
       METRIS_ASSERT_MSG(ent2tag(ithread,ientt) < msh.tag[ithread],
-    "Cavity entity "<<ientt<<" already tagged in thread "<<ithread
-    <<", tag = "<<ent2tag(ithread,ientt)<<" >= "<< msh.tag[ithread]
-    <<" tdim = "<<tdim);
+        "Cavity entity {} already tagged in thread {}, "
+        "tag = {} >= {}, tdim = {}",
+        ientt, ithread, ent2tag(ithread,ientt), msh.tag[ithread], tdim);
 
       ent2tag(ithread,ientt) = msh.tag[ithread];
       #ifndef NDEBUG
@@ -64,7 +64,8 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
     }
   }
 
-  METRIS_ASSERT_MSG(inewp == (bool) cav.inewp, "cav provides inewp = "<< cav.inewp <<" but found "<< inewp);
+  METRIS_ASSERT_MSG(inewp == (bool) cav.inewp, 
+    "cav provides inewp = {} but found {}", cav.inewp, inewp);
 
   if(opts.skip_topo_checks){
     CPRINTF1(" - flag skip_topo_checks set: skipping topological checks.\n");
@@ -151,7 +152,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
 
       int iedge = getedgglo(msh,ip1,ip2);
 
-      if(iedge < 0 && ifac2 < 0) METRIS_THROW_MSG(TopoExcept(),"Non manifold and no edge");
+      if(iedge < 0 && ifac2 < 0) METRIS_THROW_MSG("Non manifold and no edge");
 
       if(iedge < 0) continue;
 
@@ -212,7 +213,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
     // ipins should always be seeded with a newbpotopo if it is going to be bdry
     const int pdim_ipins = msh.getpoitdim(cav.ipins);
     METRIS_ASSERT_MSG(pdim_ipins >= 0 && pdim_ipins <= msh.get_tdim(),
-      "pdim_ipins = "<<pdim_ipins);
+      "invalid pdim_ipins = {}", pdim_ipins);
 
     // Tag points that won't be deleted: there is at least one elt outside
     // the cavity that has the point. 

@@ -32,14 +32,18 @@ namespace hana = boost::hana;
 #endif
 
 
+
 #ifndef METRIS_MAX_DEG
 #define METRIS_MAX_DEG 3
 #endif
 
 
-
 #ifndef METRIS_MAX_DEG_JACOBIAN
 #define METRIS_MAX_DEG_JACOBIAN (3*(METRIS_MAX_DEG - 1))
+#if METRIS_MAX_DEG_JACOBIAN <= 0
+#undef METRIS_MAX_DEG_JACOBIAN
+#define METRIS_MAX_DEG_JACOBIAN 1
+#endif
 #endif
 
 
@@ -78,6 +82,18 @@ constexpr int lnoed3[6][2] = {{0,1},
                               {0,3},
                               {1,3},
                               {2,3}};
+constexpr int lnoed[3][6][2] = {{{0,1}},
+                                {{1,2},
+                                 {2,0},
+                                 {0,1}},
+                                {{0,1},
+                                 {1,2},
+                                 {2,0},
+                                 {0,3},
+                                 {1,3},
+                                 {2,3}}};
+
+
 template <int tdim>
 constexpr auto getlnoed(){
   static_assert(tdim >= 1 && tdim <=3);
@@ -89,18 +105,29 @@ constexpr auto getlnoed(){
     return lnoed3;
   }
 }
+
+
+// Nodes on facets (tetra)
 constexpr int lnofa3[4][3] = {{1,3,2},
                               {2,3,0},
                               {3,1,0},
                               {0,1,2}};
 
+// Edges on facets (triangle)
 constexpr int ledfa2[3][1] = {{0},
                               {1},
                               {2}};
+// Edges on facets (tetra)
 constexpr int ledfa3[4][3] = {{5,1,4},
                               {3,2,5},
                               {0,3,4},
                               {1,2,0}};
+
+// Edges on node (tetra)
+constexpr int ledno3[4][3] = {{0,2,3},
+                              {0,1,4},
+                              {1,2,5},
+                              {3,4,5}};
 
 // Get array giving nodes of subdim facet (face of tet, edge of face)
 // opposite given index (e.g. face opposite node, vertex opposite node, node opposite node)

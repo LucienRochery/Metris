@@ -151,7 +151,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
         // nm -> edge -> other coco
         if(ifnei == -1) continue;
         else if(ifnei <= -2)
-          METRIS_THROW_MSG(TODOExcept(), "Check if there is a cavity face in the "
+          METRIS_THROW_MSG("TODO: Check if there is a cavity face in the "
             " non-manifold neighbours. If there is, continue to edge check,"
             " otherwise continue.")
 
@@ -303,7 +303,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
 		}else if(msh.edg2poi(iedge,1) == cav.ipins){
 			ipoin = msh.edg2poi(iedge,0);
 		}else{
-			METRIS_THROW_MSG(TopoExcept(), "Either nedg0 wrong or corrupted new edges (no ipins)");
+			METRIS_THROW_MSG( "Either nedg0 wrong or corrupted new edges (no ipins)");
 		}
     int iedex = edtyp.get_n(); 
 		msh.poi2tag(ithread,ipoin) = msh.tag[ithread] + iedex;
@@ -364,7 +364,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
         // Some of the nm faces could be in the cavity, others not. 
         // We'll leave this case be for now 
 
-        METRIS_THROW_MSG(TODOExcept(), "Non manifold when ipins on bdry todo")
+        METRIS_THROW_MSG("TODO: Non manifold when ipins on bdry todo")
       }
     }
   }  
@@ -424,7 +424,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
 				msh.poi2tag(ithread,ipoin) = 0;
 			}
 		}else{
-			METRIS_THROW(TopoExcept());
+			METRIS_THROW();
 		}
 	}
 
@@ -461,11 +461,11 @@ the driver must do the update ! we only do it topo
 */
 template<class MetricFieldType>
 static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav, const CavWrkArrs &work,
-    int ip, int ifacn, int ifac0, int ithread){
+    PointType ptype, int ip, int ifacn, int ifac0, int ithread){
 
   GETVDEPTH(msh.param);
   //static int warnprt = 0;
-  //if(warnprt++ < 10) printf("## DEBUG REMOVE PRINT IN aux_bpo_update_fac\n");
+  //if(warnprt++ < 10) printf("## DEBUG REMOVE PRINT IN (aux_bpo_update_fac)\n");
   //if(ip == 4247){
   //  printf("## DEBUG point 42247 full prints\n");
   //  iverb__ = 5;
@@ -474,9 +474,9 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
 
 
   int ib = msh.poi2bpo[ip];
-  METRIS_ASSERT_MSG(ib >= 0, "aux_bpo_update_fac called on non boundary point");
+  METRIS_ASSERT_MSG(ib >= 0, "(aux_bpo_update_fac) called on non boundary point");
 
-  CPRINTF1("-- START aux_bpo_update_fac ip = {} ib = {} ifacn {} ifac0 {} ipins {}\n",
+  CPRINTF1("-- START (aux_bpo_update_fac) ip = {} ib = {} ifacn {} ifac0 {} ipins {}\n",
             ip,ib,ifacn,ifac0,cav.ipins);
 
   // Easy case: same dim 
@@ -487,7 +487,8 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
     if(msh.fac2tag(ithread,ifa) >= msh.tag[ithread] // if face about to get deleted
     && msh.bpo2ibi(ib,3) == -1){ // and have not yet done what we're about to do  || note unlike edges there is no higher tdim
       // then create new bpo and copy the old uvs here
-      int ibn = msh.newbpotopo(ip,2,ifacn);
+      int ibn = ptype == PointType::Vertex ? msh.newbpotopo(Vertex{ip},2,ifacn) :
+                                             msh.newbpotopo(CtrlPt{ip},2,ifacn);
       for(int jj = 0; jj < nrbi; jj++) msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ib,jj);
       CPRINTF2(" - easy update ip {} ibn {} from ib {} (u,v) = {} {}\n",ip,ibn,ib,
                msh.bpo2rbi(ib,0),msh.bpo2rbi(ib,1));
@@ -497,7 +498,8 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
 
   // Edge or corner 
   // Depends whether new, or old edge. 
-  int ibn = msh.newbpotopo(ip,2,ifacn);
+  int ibn = ptype == PointType::Vertex ? msh.newbpotopo(Vertex{ip},2,ifacn) :
+                                         msh.newbpotopo(CtrlPt{ip},2,ifacn);
   CPRINTF2(" - new face ibpoi = {}\n",ibn);
 
   for(int jj = 0; jj < nrbi; jj++) msh.bpo2rbi(ibn,jj) = 0.0;
@@ -559,11 +561,9 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
     }
     #endif
     METRIS_ASSERT_MSG(edcco[icoco].get_n() > 0,
-                      "edcco[icoco] empty in reconnect_faccav\n"
-                      "ifac0 = "<<ifac0<<" icoco = "<<icoco<<
-                    " with tag = "<<msh.tag[ithread]<<" face tag = "
-                    << msh.fac2tag(ithread,ifac0));
-    
+      "edcco[icoco] empty in reconnect_faccav\n"
+      "ifac0 = {} icoco = {} with tag = {} face tag = {}\n",
+      ifac0, icoco, msh.tag[ithread], msh.fac2tag(ithread, ifac0));
 
     bool found_update = false;
     for(int ibpoe = msh.poi2bpo[cav.ipins]; ibpoe >= 0; ibpoe = msh.bpo2ibi(ibpoe,3)){
@@ -588,7 +588,7 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
         int icode = EG_getEdgeUV(EG_fac, EG_edg, isens, 
                                   tedg, msh.bpo2rbi[ibn]);
         CPRINTF1("   - new (u,v) = {} {}\n", msh.bpo2rbi(ibn,0),msh.bpo2rbi(ibn,1));
-        METRIS_ENFORCE_MSG(icode == 0,"EG_getEdgeUV error "<<icode);
+        METRIS_ENFORCE_MSG(icode == 0,"EG_getEdgeUV error {}", icode);
         
         break;
       }
@@ -621,15 +621,15 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
     MPRINTF("Full ip bpois:\n");
     print_bpolist(msh,msh.poi2bpo[ip]);
 
-    METRIS_THROW_MSG(TopoExcept(),"Failed to find ib in old faces");
+    METRIS_THROW_MSG("Failed to find ib in old faces");
   }
 }
 
 
 template void aux_bpo_update_fac<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, 
-   const MshCavity &cav,const CavWrkArrs &work, int ip, int ifacn, int ifac0, int ithread);
+   const MshCavity &cav,const CavWrkArrs &work, PointType ptype, int ip, int ifacn, int ifac0, int ithread);
 template void aux_bpo_update_fac<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, 
-   const MshCavity &cav,const CavWrkArrs &work, int ip, int ifacn, int ifac0, int ithread);
+   const MshCavity &cav,const CavWrkArrs &work, PointType ptype, int ip, int ifacn, int ifac0, int ithread);
 
 
 
@@ -663,7 +663,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
     // Outside edge: this will create a triangle. 
   }else{ // Edge neighbour (non manifold or 2D boundary)
     int iedge = msh.facedg2glo(ifac1,ied);
-    if(iedge < 0) METRIS_THROW_MSG(TopoExcept(),"No edge where face neighbourless or nm");
+    if(iedge < 0) METRIS_THROW_MSG("No edge where face neighbourless or nm");
     // If edge in edge cavity, dead
     if(msh.edg2tag(ithread,iedge) >= msh.tag[ithread]) return 0;
     // Outside edge or non manifold but not inside cavity! this should have been caught by 
@@ -701,7 +701,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
         // In this case, look at checktopo and what is done there using ced2tag. 
         fmt::print("Trying to create face with vertices {} {} {} \n",ip1,ip2,cav.ipins);
         writeMesh("TODO",msh);
-        METRIS_THROW_MSG(TODOExcept(), "Handle case where all three vertices are corners...")
+        METRIS_THROW_MSG("TODO: Handle case where all three vertices are corners...")
       }else{
         // At last one is pure edge, has a single ref. 
         int iedge = -1;
@@ -781,7 +781,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
   // Connex component gives us the normal
   int icoco = msh.fac2tag(ithread,ifac1) - msh.tag[ithread] - 1;
   METRIS_ASSERT_MSG(icoco >= 0 && icoco < work.lnorcco.get_n(), 
-                    "icoco = "<<icoco<< " n "<<work.lnorcco.get_n());
+                    "icoco = {} n = {}", icoco, work.lnorcco.get_n());
   // We want to keep new faces untagged. 
   msh.fac2tag(ithread,ifacn) = msh.tag[ithread] - icoco - 1;
 
@@ -800,7 +800,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
     for(int ii = 0; ii < 3; ii++){
       int ip = msh.fac2poi(ifacn,ii);
       METRIS_ASSERT(ip >= 0 && ip < msh.npoin);
-      aux_bpo_update_fac(msh,cav,work,ip,ifacn,ifac1,ithread);
+      aux_bpo_update_fac(msh,cav,work,PointType::Vertex,ip,ifacn,ifac1,ithread);
     }
   }
   int nod2bpo[3];
@@ -820,7 +820,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
                               : isvalideltP1<3,2>(msh, ifacn, nod2bpo, NULL, &meas, nordev_tol);  // work.lnorcco[icoco]
   if(!ivalid){
     CPRINTF1(" # invalid new face {} {} {} using normal {} {} {} nordev tolerance {:.2e} measure = {:.2e}\n",cav.ipins,ip1,ip2,
-             work.lnorcco[icoco][0],work.lnorcco[icoco][1],work.lnorcco[icoco][2],work.lnordevcco[icoco],meas);
+             work.lnorcco(icoco,0),work.lnorcco(icoco,1),work.lnorcco(icoco,2),work.lnordevcco[icoco],meas);
     //printf("Debug wait here\n");
     //wait();
     //if(work.lnordevcco[icoco] > 1.0e-12){
@@ -868,8 +868,8 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
       if(msh.isboundary_faces()){ // Don't duplicate the work done if edge
         int idx0 = 3 + iedn * (getnnod1(ideg) - 2);
         for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
-          int ip = msh.fac2poi[ifacn][idx0 + ii];
-          aux_bpo_update_fac(msh,cav,work,ip,ifacn,ifac1,ithread);
+          int ip = msh.fac2poi(ifacn,idx0 + ii);
+          aux_bpo_update_fac(msh,cav,work,PointType::CtrlPt,ip,ifacn,ifac1,ithread);
         }
       }
 
@@ -879,7 +879,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
     }else if(jp1 == cav.ipins && jp2 == ip1){
       iedex = msh.poi2tag(ithread,ip1) - msh.tag[ithread];
     }else{
-      METRIS_THROW(TopoExcept());
+      METRIS_THROW();
     }
 
     // From now on, either an interior edge, or an exterior edge that ifac1 does
@@ -914,16 +914,16 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
           int idx0 = 3 + iedn * (getnnod1(ideg) - 2);
           if(ityp < 0){ // Old edge
             for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
-              int ip = msh.fac2poi[ifacn][idx0 + ii];
-              aux_bpo_update_fac(msh,cav,work,ip,ifacn,ifac1,ithread);
+              int ip = msh.fac2poi(ifacn,idx0 + ii);
+              aux_bpo_update_fac(msh,cav,work,PointType::CtrlPt,ip,ifacn,ifac1,ithread);
             }
           }else{
             //METRIS_ASSERT(cav.nrmal != NULL || !msh.CAD());
             // We don't do it now. But later, we will need to regenerate (u,v) from t. 
             // For now just create ibpoi. 
             for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
-              int ip = msh.fac2poi[ifacn][idx0 + ii];
-              msh.newbpotopo(ip,2,ifacn);
+              int ip = msh.fac2poi(ifacn,idx0 + ii);
+              msh.newbpotopo(CtrlPt{ip},2,ifacn);
             }
           }
         }
@@ -948,8 +948,8 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
         if(msh.isboundary_faces() && abs(ityp) == 2){ 
           int idx0 = 3 + iedn * (getnnod1(ideg) - 2);
           for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
-            int ip = msh.fac2poi[ifacn][idx0 + ii];
-            aux_bpo_update_fac(msh,cav,work,ip,ifacn,ifac1,ithread);
+            int ip = msh.fac2poi(ifacn,idx0 + ii);
+            aux_bpo_update_fac(msh,cav,work,PointType::CtrlPt,ip,ifacn,ifac1,ithread);
           }
         }
 
@@ -992,7 +992,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
           }
         } else{ // An old face
           if(ifac2 < 0){
-            METRIS_THROW_MSG(TODOExcept(), "Handle non manifold ext neighbour");
+            METRIS_THROW_MSG("TODO: Handle non manifold ext neighbour");
           }else{
             msh.fac2fac(ifacn,iedn) = ifac2;
             // Only difference is we don't update ifac2 back
@@ -1018,19 +1018,19 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
         double u1 = idx[lnoed2[iedn][0]] / (double) ideg;
         double u2 = idx[lnoed2[iedn][1]] / (double) ideg;
 
-        int ipnew = msh.newpoitopo(2,ifacn);
+        int ipnew = msh.newpoitopo(PointType::CtrlPt,2,ifacn);
         
 
         for(int jj = 0; jj < msh.idim; jj++){
           msh.coord(ipnew,jj) = u1*msh.coord(jp1,jj) + u2*msh.coord(jp2,jj);
         }
         if(msh.isboundary_faces()){
-          int ibnew = msh.newbpotopo(ipnew,2,ifacn);
+          int ibnew = msh.newbpotopo(CtrlPt{ipnew},2,ifacn);
           for(int jj = 0; jj < nrbi; jj++){
             msh.bpo2rbi(ibnew,jj) = u1*msh.bpo2rbi(jb1,jj) + u2*msh.bpo2rbi(jb2,jj);
           }
         }
-        msh.fac2poi[ifacn][mul2nod(idx[0],idx[1],idx[2])] = ipnew;
+        msh.fac2poi(ifacn,mul2nod(idx[0],idx[1],idx[2])) = ipnew;
       }
 
       // Update edex 
@@ -1094,18 +1094,18 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
         ((double)ordfac.s[ideg][irnk][2])/ideg
       };
 
-      int ipnew = msh.newpoitopo(2,ifacn);
+      int ipnew = msh.newpoitopo(PointType::CtrlPt,2,ifacn);
       for(int jj = 0; jj < msh.idim; jj++){
         msh.coord(ipnew,jj) = bary[0]*msh.coord(ipn1,jj) 
                                  + bary[1]*msh.coord(ipn2,jj)
                                  + bary[2]*msh.coord(ipn3,jj);
       }
       if(msh.isboundary_faces()){
-        msh.newbpotopo(ipnew,2,ifacn);
+        msh.newbpotopo(CtrlPt{ipnew},2,ifacn);
         for(int jj = 0; jj < nrbi; jj++){
-          msh.bpo2rbi[msh.nbpoi - 1][jj] = bary[0]*msh.bpo2rbi(ibn1,jj) 
-                                         + bary[1]*msh.bpo2rbi(ibn2,jj)
-                                         + bary[2]*msh.bpo2rbi(ibn3,jj);
+          msh.bpo2rbi(msh.nbpoi - 1,jj) = bary[0]*msh.bpo2rbi(ibn1,jj) 
+                                        + bary[1]*msh.bpo2rbi(ibn2,jj)
+                                        + bary[2]*msh.bpo2rbi(ibn3,jj);
         }
       }
       msh.fac2poi(ifacn,irnk) = ipnew;

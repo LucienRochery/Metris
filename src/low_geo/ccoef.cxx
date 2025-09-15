@@ -43,7 +43,7 @@ void getccoef(const MeshBase &msh, int ientt, double *nrmal, double *ccoef){
     bool iflat;
     ccoef[0] = ifact<tdim>()*getmeasentP1<gdim,tdim>(msh, ientt, nrmal, &iflat);
   }else if constexpr(ideg >= 4 || gdim != tdim){
-    METRIS_ASSERT(nrmal != NULL);
+    METRIS_ASSERT_MSG(nrmal != NULL,"Null normal with gdim {} tdim {} ideg {}",gdim, tdim, ideg);
     ccoef_eval<gdim,tdim,ideg>(msh.getBasis(),ent2poi,msh.coord,ientt,nrmal,ccoef);
   }else{
     static_assert(gdim == tdim);
@@ -136,14 +136,14 @@ void getccoef_dpoint(const MeshBase &msh, int ientt, int inode, double *ccoef, d
       vdiff_perp(msh.coord[msh.fac2poi(ientt,(inode+1)%3)], 
                  msh.coord[msh.fac2poi(ientt,(inode+2)%3)], d_ccoef[0]);
     }else{
-      METRIS_THROW_MSG(TODOExcept(), "Control coeff derivatives per point not implemented in 3D")
+      METRIS_THROW_MSG("TODO: ccoef derivatives per point not implemented in 3D")
     }
   }else{
     if(ccoef != NULL) getccoef<idim,idim,ideg>(msh,ientt,NULL,ccoef);
     if constexpr(idim == 2){
       d_pt_ccoef_genbez2<ideg>(msh.fac2poi,msh.coord,ientt,inode,d_ccoef);
     }else{
-      METRIS_THROW_MSG(TODOExcept(), "Control coeff derivatives per point not implemented in 3D")
+      METRIS_THROW_MSG("TODO: ccoef derivatives per point not implemented in 3D")
     }
   }
 }

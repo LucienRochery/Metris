@@ -29,7 +29,7 @@ namespace Metris{
 // Field is indexed by tet2poi etc. Basically coord or met.
 template<int ideg>
 void setMeshBezier(Mesh &msh, int nwork, double *rwork){
-	METRIS_THROW_MSG(TODOExcept(),"Replace this call with msh.setBezier");
+	METRIS_THROW_MSG("TODO: Replace this call with msh.setBezier");
 	if(msh.ilag == 0) return;
   printf("-- Converting mesh to Bézier ideg = {} idim = {} .\n",ideg,msh.idim);
 
@@ -43,7 +43,7 @@ void setMeshBezier(Mesh &msh, int nwork, double *rwork){
 
 template<int ideg>
 void setMeshLagrange(Mesh &msh, int nwork, double *rwork){
-	METRIS_THROW_MSG(TODOExcept(),"Replace this call with msh.setBezier");
+	METRIS_THROW_MSG("TODO: Replace this call with msh.setBezier");
 	if(msh.ilag == 1) return;
   printf("-- Converting mesh to Lagrange ideg = {}.\n",ideg);
   if(msh.idim == 2){
@@ -131,7 +131,7 @@ void setFieldBezier(MeshBase &msh, dblAr2 &rfld){
 
 	// Simply replace now
 	for(int ipoin=0; ipoin<msh.npoin; ipoin++){
-		if(msh.poi2ent(ipoin,0) < 0) continue;
+		if(msh.isdeadpoint(ipoin)) continue;
 		for(int j = 0; j < szfld; j++){
 			rfld[ipoin][j] = rwrk[ipoin][j];
 		}
@@ -169,7 +169,7 @@ void setFieldLagrange(MeshBase &msh, dblAr2 &rfld){
   // Simply replace now
   for(int ipoin=0; ipoin<msh.npoin; ipoin++){
     // Detached point (neither corner nor attached to anything)
-    if(msh.poi2ent(ipoin,0) < 0) continue;
+    if(msh.isdeadpoint(ipoin)) continue;
     // Corners can be loose despite >= poi2ent and should also be left alone 
     // (they are always vertices anyways)
     int ibpoi = msh.poi2bpo[ipoin];

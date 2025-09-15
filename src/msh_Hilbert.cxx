@@ -41,15 +41,15 @@ void reoderHilbert(MeshBase &msh){
     isear = 4;
   }else{
     lorder = new uint64_t[msh.npoin];
-    if(lorder == NULL) METRIS_THROW(DMemExcept());
+    METRIS_ASSERT(lorder != NULL);
     ialloc = true;
   }
 
   double *crd = msh.coord[0];
 
-  t0 = get_wall_time();
+  t0 = get_cpu_time();
   HilbertRenumbering(LPlibIdx, msh.npoin, bbLPlib, &crd[-3], &lorder[-2]);
-  t1 = get_wall_time();
+  t1 = get_cpu_time();
   printf("HilbertRenumbering() call time {:.2e}s \n",t1-t0);
 
   int *invord = NULL;
@@ -64,7 +64,7 @@ void reoderHilbert(MeshBase &msh){
     invord = &msh.iwork[0];
   }else{
     invord = new int[msh.npoin];
-    if(invord == NULL) METRIS_THROW(DMemExcept());
+    METRIS_ASSERT(invord != NULL);
     iallo2 = true;
   }
 
@@ -110,7 +110,7 @@ void reoderHilbert(MeshBase &msh){
     int nchain = 0;
     do{
       // Go to next
-      if(msh.poi2tag(0,jj) >= msh.tag[0]) METRIS_THROW_MSG(AlgoExcept(),"ERROR PERMUTING POINTS");
+      if(msh.poi2tag(0,jj) >= msh.tag[0]) METRIS_THROW_MSG("ERROR PERMUTING POINTS");
       msh.poi2tag(0,jj) = msh.tag[0];
 
       //int idx1_n = (int)lorder[2*jj + 1] - 1;
@@ -130,10 +130,10 @@ void reoderHilbert(MeshBase &msh){
       jj = invord[idx0]; 
 
       nchain++;
-      if(nchain > msh.npoin) METRIS_THROW_MSG(AlgoExcept(),"INFINITE CHAIN OF POINTS?")
+      if(nchain > msh.npoin) METRIS_THROW_MSG("INFINITE CHAIN OF POINTS?")
     }while(jj != ii);
 
-    if( jp == ii) METRIS_THROW_MSG(AlgoExcept(),"Empty chain")
+    if( jp == ii) METRIS_THROW_MSG("Empty chain")
 
 
     idx1 = (int)lorder[2*jp + io1] - 1;
@@ -289,7 +289,7 @@ void reoderHilbert(MeshBase &msh){
 
 
   //printf("Tet 1-10 pre\n");
-  t0 = get_wall_time();
+  t0 = get_cpu_time();
   //ParallelQsort(LPlibIdx, (void *)msh.tet2poi[0], msh.nelem, sztet, cmp);
   //ParallelQsort(LPlibIdx, (void *)msh.fac2poi[0], msh.nface, szfac, cmp);
   //ParallelQsort(LPlibIdx, (void *)msh.edg2poi[0], msh.nedge, szedg, cmp);
@@ -363,7 +363,7 @@ void reoderHilbert(MeshBase &msh){
     
         ientp = ient1;
         ient1 = ient2;
-        if(nchain > msh.nelem) METRIS_THROW_MSG(AlgoExcept(), "Infinite chain (Hilbert elt sort)")
+        if(nchain > msh.nelem) METRIS_THROW_MSG( "Infinite chain (Hilbert elt sort)")
       }while(ient1 != ient0);
     
 //      if(ientp == 1) printf("Found 1 in end\n");
@@ -412,7 +412,7 @@ void reoderHilbert(MeshBase &msh){
 //        msh.tet2poi(iele1,inode) = msh.tet2poi(iele2,inode);
 //
 //      iele1 = iele2;
-//      if(nchain > msh.nelem) METRIS_THROW_MSG(AlgoExcept(), "Infinite chain (Hilbert elt sort)")
+//      if(nchain > msh.nelem) METRIS_THROW_MSG( "Infinite chain (Hilbert elt sort)")
 //    }while(iele1 != iele0);
 //
 //    msh.tet2ref[ielep] = iref0;

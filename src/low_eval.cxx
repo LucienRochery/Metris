@@ -412,7 +412,7 @@ double eval_lagrangefunc(const int * __restrict__ idx,
     double ev[1+idim];
     int i,j,k;
     METRIS_ASSERT_MSG(idim == 2 || idim == 3, 
-                      "Only dimensions 2 and 3 supported, supplied "<<idim)
+                      "Only dimensions 2 and 3 supported, supplied {}", idim)
 
     if(ider <= 0){
         fac = 1.0;

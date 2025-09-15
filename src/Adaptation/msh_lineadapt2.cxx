@@ -51,7 +51,7 @@ void adaptGeoLines2(Mesh<MFT> &msh){
   // edge length interval 
   const double lentolfac = msh.param->geo_lentolfac;
   if(lentolfac < 1.0){
-    METRIS_THROW_MSG(WArgExcept(),"lentolfac < 1! = "<<lentolfac);
+    METRIS_THROW_MSG("lentolfac < 1! = {}", lentolfac);
   }
 
   // From each ref, point onto a corner that has an edge, of this ref, inciding
@@ -103,9 +103,9 @@ void adaptGeoLines2(Mesh<MFT> &msh){
 
   dblAr1 crv_lens(msh.CAD.ncaded);
   {
-  double t0 = get_wall_time();
+  double t0 = get_cpu_time();
   getCADCurveLengths(msh, (lentolfac - 1.0), crv_lens);
-  double t1 = get_wall_time();
+  double t1 = get_cpu_time();
   CPRINTF1(" - getCADCurveLengths time {:.2e}s \n",t1-t0);
   }
 
@@ -140,11 +140,10 @@ void adaptGeoLines2(Mesh<MFT> &msh){
     int oclass,mtype,nchild,*senses;
     int ierro = EG_getTopology(loop,&geom,&oclass,&mtype,NULL,
                            &nchild,&lchild,&senses);
-    if(ierro != 0){
-      MPRINTF("EG_getTopology (LOOP) error : {}",EG_err2str(ierro));
-      METRIS_THROW(TopoExcept());
-    }
-    METRIS_ENFORCE_MSG(nchild == msh.CAD.ncaded || msh.CAD.ncadlp > 1," nchild = "<<nchild);
+    METRIS_ENFORCE_MSG(ierro == 0, 
+      "EG_getTopology (LOOP) error : {}",EG_err2str(ierro));
+    METRIS_ENFORCE_MSG(nchild == msh.CAD.ncaded || msh.CAD.ncadlp > 1,
+      " nchild = {}", nchild);
     std::map<ego,int> edgorient;
     for(int ii = 0; ii < nchild; ii++){
       ego edg = lchild[ii];

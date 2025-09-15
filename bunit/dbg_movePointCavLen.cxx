@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(test_eval3)
     HshTab_I2I ledge;
     ledge.reserve(medge);
 
-    double t0s = get_wall_time();
+    double t0s = get_cpu_time();
     int nedge_tot = 0;
     for(int ientt = 0; ientt < msh.nentt(tdim); ientt++){
       INCVDEPTH(msh.param);
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(test_eval3)
 
       }// for ied
     }// for ientt
-    double t1s = get_wall_time();
+    double t1s = get_cpu_time();
     printf(" - init time %f nlong = %d\n",t1s-t0s,(int)ledge.size());
 
     //msh.param->iverb = 5;
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE(test_eval3)
       MPRINTF(" - Init cav edge %d face %d tetra %d dens0 %f dens1 %f optimal %f\n",
               cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),dens0,dens1,opt_dens);
 
-      cav.ipins = msh.newpoitopo(tdim,ientt);
+      cav.ipins = msh.newpoitopo(PointType::Vertex,tdim,ientt);
       printf("Debug ipins = %d \n",cav.ipins);
       cav.inewp = 1; // Now flag as new point for future density computations
       for(int ii = 0; ii < msh.idim; ii++) msh.coord(cav.ipins,ii) = (msh.coord(ip1,ii) + msh.coord(ip2,ii))/2.0;

@@ -14,6 +14,7 @@
 #include "../low_geo/ccoef.hxx"
 #include "../aux_topo.hxx"
 #include "../linalg/det.hxx"
+#include "../io_libmeshb.hxx"
 
 #include "../utils/aux_misc.hxx"
 #include "../utils/CT_loop.hxx"
@@ -93,7 +94,7 @@ int correct_cavity0(Mesh<MFT> &msh,
   //    continue;
   //    
   //    isbad:
-  //    if(*nbad >= mbad) METRIS_THROW(DMemExcept());
+  //    METRIS_ASSERT(*nbad < mbad);
   //    lbad[*nbad][0] = ientt;
   //    lbad[*nbad][1] = tdim;
   //    (*nbad)++;
@@ -105,6 +106,16 @@ int correct_cavity0(Mesh<MFT> &msh,
 
   int ptag0 = msh.tag[ithread];
   if constexpr(ideg > 1){
+
+    if(DOPRINTS2()){
+      MshCavity cav2(msh.nelem-nele0,msh.nedge-nedg0,msh.nface-nfac0);
+      for(int ii = nele0; ii < msh.nelem; ii++) cav2.lctet.stack(ii);
+      for(int ii = nfac0; ii < msh.nface; ii++) cav2.lcfac.stack(ii);
+      for(int ii = nedg0; ii < msh.nedge; ii++) cav2.lcedg.stack(ii);
+      cav2.ipins = cav.ipins;
+      writeMeshCavity("cavity1",msh,cav2);
+      cav2.print(msh);
+    }
 
     CPRINTF1("-- correct_cavity phase 1 : curve & project\n");
     // No HO curvature yet, just CAD projection
@@ -182,7 +193,7 @@ int correct_cavity0(Mesh<MFT> &msh,
             //      return CAV_ERR_CADFAR;
             //    #endif
             //  }
-            //  //METRIS_THROW_MSG(GeomExcept(), "Very large geometric gap? Manual check " << err);
+            //  //METRIS_THROW_MSG( "Very large geometric gap? Manual check " << err);
             //}
 
             for(int ii = 0; ii < gdim; ii++) msh.coord(ipoin,ii) = result[ii];
@@ -258,6 +269,14 @@ int correct_cavity0(Mesh<MFT> &msh,
       }else{
         getsclccoef<gdim,tdim,ideg>(msh, ientt, nrmal, ccoef, &iflat);
       }
+      if(iflat){
+        CPRINTF1(" - tdim {} ientt {} invalid\n",tdim,ientt);
+        if constexpr(ideg > 1){
+          constexpr int idegj = tdim*(ideg-1);
+          constexpr int nnodj = getnnode(tdim,idegj);
+          CPRINTF2(" - ccoef = {} \n",dblAr1(nnodj,ccoef));
+        }
+      }
       if(iflat) goto isbad;
 
       continue;
@@ -265,8 +284,8 @@ int correct_cavity0(Mesh<MFT> &msh,
       isbad:
       int nbad = lbad.get_n();
       lbad.inc_n();
-      lbad[nbad][0] = ientt;
-      lbad[nbad][1] = tdim;
+      lbad(nbad,0) = ientt;
+      lbad(nbad,1) = tdim;
   
     }
   }CT_FOR1(tdim);

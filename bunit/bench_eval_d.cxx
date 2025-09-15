@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(bench_eval_d)
           dum = 0;
           int nrep = (int) (ntar / nentt);
           
-          double t0 = get_wall_time();
+          double t0 = get_cpu_time();
           for(int irep = 0; irep < nrep; irep++)
             for(int ientt = 0; ientt < nentt; ientt++){
               if(isdeadent(ientt,ent2poi)) continue;
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(bench_eval_d)
                 if(abs(dum) > 1) dum = 1.0 / dum;
               }
             }
-          double t1 = get_wall_time();
+          double t1 = get_cpu_time();
           for(int irep = 0; irep < nrep; irep++)
             for(int ientt = 0; ientt < nentt; ientt++){
               if(isdeadent(ientt,ent2poi)) continue;
@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_CASE(bench_eval_d)
                 if(abs(dum) > 1) dum = 1.0 / dum;
               }
             }
-          double t2 = get_wall_time();
+          double t2 = get_cpu_time();
           if(ibasis == FEBasis::Bezier){
             for(int irep = 0; irep < nrep; irep++)
               for(int ientt = 0; ientt < nentt; ientt++){
@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(bench_eval_d)
                 }
               }
           }
-          double t3 = get_wall_time();
+          double t3 = get_cpu_time();
 
           if(ibasis == FEBasis::Bezier){
             for(int irep = 0; irep < nrep; irep++)
@@ -189,7 +189,7 @@ BOOST_AUTO_TEST_CASE(bench_eval_d)
               }
           }
 
-          double t4 = get_wall_time();
+          double t4 = get_cpu_time();
 
           ps1[ijac] = (nentt*nrep*nsamp/(1e6 * (t1-t0)));
           ps2[ijac] = (nentt*nrep*nsamp/(1e6 * (t2-t1)));
@@ -212,7 +212,7 @@ BOOST_AUTO_TEST_CASE(bench_eval_d)
           dum = 0;
           int nrep = (int) (ntar / nentt);
           
-          double t0 = get_wall_time();
+          double t0 = get_cpu_time();
           for(int irep = 0; irep < nrep; irep++)
             for(int ientt = 0; ientt < nentt; ientt++){
               if(isdeadent(ientt,ent2poi)) continue;
@@ -224,7 +224,7 @@ BOOST_AUTO_TEST_CASE(bench_eval_d)
                 if(abs(dum) > 1) dum = 1.0 / dum;
               }
             }
-          double t1 = get_wall_time();
+          double t1 = get_cpu_time();
           for(int irep = 0; irep < nrep; irep++)
             for(int ientt = 0; ientt < nentt; ientt++){
               if(isdeadent(ientt,ent2poi)) continue;
@@ -237,7 +237,7 @@ BOOST_AUTO_TEST_CASE(bench_eval_d)
                 if(abs(dum) > 1) dum = 1.0 / dum;
               }
             }
-          double t2 = get_wall_time();
+          double t2 = get_cpu_time();
           if(ibasis == FEBasis::Bezier){
             for(int irep = 0; irep < nrep; irep++)
               for(int ientt = 0; ientt < nentt; ientt++){
@@ -252,7 +252,7 @@ BOOST_AUTO_TEST_CASE(bench_eval_d)
                 }
               }
           }
-          double t3 = get_wall_time();
+          double t3 = get_cpu_time();
           if(ibasis == FEBasis::Bezier){
             for(int irep = 0; irep < nrep; irep++)
               for(int ientt = 0; ientt < nentt; ientt++){
@@ -267,7 +267,7 @@ BOOST_AUTO_TEST_CASE(bench_eval_d)
                 }
               }
           }
-          double t4 = get_wall_time();
+          double t4 = get_cpu_time();
           ps1[ijac] = (nentt*nrep*nsamp/(1e6 * (t1-t0)));
           ps2[ijac] = (nentt*nrep*nsamp/(1e6 * (t2-t1)));
           ps3[ijac] = (nentt*nrep*nsamp/(1e6 * (t3-t2)));

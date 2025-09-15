@@ -9,6 +9,8 @@
 #include "../metris_constants.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../utils/fmt_formatters.hxx"
+#include "../utils/aux_MinMaxAvg.hxx"
+//#include "../MetrisRunner/MeshStat.hxx"
 #include <egads.h>
 #include <memory>
 
@@ -154,8 +156,8 @@ bool MeshArray1D<T,INT1>::allocate(INT1 m){
   T* new_array = new_array_sp.get();
 
   METRIS_ASSERT_MSG(array != NULL || n1 <= 0,
-  "n1 = "<<n1<<" and array = "<<array);
-    
+    "n1 = {} and array = {}", n1, (void*) array);
+
   for(int ii = 0; ii < n1; ii++) new_array[ii] = array[ii];
   
   array_sp = new_array_sp;
@@ -291,6 +293,9 @@ template class MeshArray1D<intAr1*,int>;
 template class MeshArray1D<dblAr1*,int>;
 template class MeshArray1D<intWrkAr1*,int>;
 template class MeshArray1D<dblWrkAr1*,int>;
+
+template class MeshArray1D<MinMaxAvg,int>;
+template class MeshArray1D<MeshStat,int>;
 
 //template MeshArray1D<bool,int32_t>::MeshArray1D<bool,int32_t,int32_t>(MeshArray2D<bool,int32_t,int32_t> &arr2);
 //

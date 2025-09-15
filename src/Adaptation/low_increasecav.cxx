@@ -141,7 +141,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     int ncte1 = cav.lctet.get_n();
     for(int ii = 0; ii < msh.idim; ii++) coor0[ii] = msh.coord(cav.ipins, ii);
     for(int ii = 0; ii < nnmet   ; ii++) met0[ii] = msh.met(cav.ipins, ii);
-    if(ibins >= 0) for(int ii = 0; ii < 2       ; ii++) uv0[ii] = msh.bpo2rbi(ibins, ii);
+    if(ibins >= 0) for(int ii = 0; ii < 2 ; ii++) uv0[ii] = msh.bpo2rbi(ibins, ii);
 
     ierro = 0;
     if(DOPRINTS2()){
@@ -361,10 +361,10 @@ int setCavityInsertion3(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
   int ierro;
 
   const int tdim  = insertionSeed.tdim_adp;
-  const int tdimp = insertionSeed.tdimp;
-  const int iseed = insertionSeed.iseed;
-  const int iref  = insertionSeed.iref;
-  const int nnmet = (msh.idim*(msh.idim+1))/2;
+  //const int tdimp = insertionSeed.tdimp;
+  //const int iseed = insertionSeed.iseed;
+  //const int iref  = insertionSeed.iref;
+  //const int nnmet = (msh.idim*(msh.idim+1))/2;
 
   const bool filter_long = true;
   
@@ -385,7 +385,7 @@ int setCavityInsertion3(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
   //ierro = aux_findCloseConstrained(msh, cav, ithrd1, ithrd2);
   //if(ierro > 0) return INS2D_ERR_SHORTCSTR;
 
-  const int ibins = msh.poi2ebp(cav.ipins,tdimp,iseed,iref);
+  //const int ibins = msh.poi2ebp(cav.ipins,tdimp,iseed,iref);
 
   ierro = movePointCavLen<MFT>(msh, cav, 5, ithrd1);
   if(DOPRINTS2()){
@@ -700,7 +700,7 @@ void check_cavity_rempoint(MeshMetric<MFT> &msh, MshCavity &cav, const CavOprOpt
   // ipins should always be seeded with a newbpotopo if it is going to be bdry
   const int pdim_ipins = msh.getpoitdim(cav.ipins);
   METRIS_ASSERT_MSG(pdim_ipins >= 0 && pdim_ipins <= msh.get_tdim(),
-                    "pdim_ipins = "<<pdim_ipins);
+                    "invalid pdim_ipins = {}", pdim_ipins);
 
   // Tag points that won't be deleted: there is at least one elt outside
   // the cavity that has the point. 
@@ -801,6 +801,18 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
     if(msh.param->iverb > 0) PRINTF("## Could move nordev checks to increase_cavity. For this, we need to precompute the ccos as in reconnect_faccav.\n");
   }
 
+  #ifndef NDEBUG
+  intWrkAr1 lcedg0_ = msh.get_iwork(10);
+  intWrkAr1 lcfac0_ = msh.get_iwork(100);
+  intWrkAr1 lctet0_ = msh.get_iwork(100);
+  intAr1& lcedg0 = lcedg0_.get_array();
+  intAr1& lcfac0 = lcfac0_.get_array();
+  intAr1& lctet0 = lctet0_.get_array();
+  cav.lcedg.copyTo(lcedg0);
+  cav.lcfac.copyTo(lcfac0);
+  cav.lctet.copyTo(lctet0);
+  #endif
+
 
 
   //#ifdef NODELSURF
@@ -832,10 +844,14 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
     }
   }
 
-
-  int ibins = msh.poi2bpo[cav.ipins];
-  int pdim  = msh.get_tdim();
-  if(ibins >= 0) pdim = msh.bpo2ibi(ibins,1);
+  int pdim = msh.getpoitdim(cav.ipins);
+  #ifndef NDEBUG
+  {
+  int cav_mindim = cav.lcedg.get_n() > 0 ? 1 : 
+                   cav.lcfac.get_n() > 0 ? 2 : 3;
+  METRIS_ASSERT(pdim == cav_mindim);
+  }
+  #endif
 
   CPRINTF1("-- START increase_cavity ipins {} dim {} list initial cavity:\n", cav.ipins, pdim);
   cav.print(msh);
@@ -843,7 +859,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
 
   // Get normal deviation of initial cavity.
   if(msh.nperiodic_face != 0){
-    METRIS_THROW_MSG(TODOExcept(),"## CASE WITH PERIODIC FACES NOT HANDLED IN LOW_INCREASECAV")
+    METRIS_THROW_MSG("TODO: ## CASE WITH PERIODIC FACES NOT HANDLED IN LOW_INCREASECAV")
     // I think the way to generalize this is not to go all in on generality as in reconnect_faccav,
     // but to keep this "happy path" centered approach and work around the exceptions locally. 
     // It is rare in practice to have periodic faces and, even when some exist, most won't be, in real geoms.
@@ -1006,27 +1022,85 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
             ent2pol[lnofa3[0][2]] = ent2poi(ientt,lnofa3[inei][2]);
           }
 
+          bool iflat;
           int nod2bpo[3];
-          double nordev_tol = -1;
-          if(msh.idim == 3 && tdim == 2){
-            int iref = msh.fac2ref[ientt];
-            nordev_tol = ref2nordev(iref,0);
-            nod2bpo[0] = pdim == 2 ? msh.poi2bpo[cav.ipins] : -1;
-            nod2bpo[1] = msh.poi2ebp(ent2pol[1], 2, ientt, iref);
-            nod2bpo[2] = msh.poi2ebp(ent2pol[2], 2, ientt, iref);
-            CPRINTF1(" - using nordevtol = {} for face ref {}\n", nordev_tol, iref);
-          }
 
-          // First, check if this is a sliver
-          double meas0;
-          bool ivalid = msh.idim == 2 ? isvalideltP1<2,2>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol) 
-                      :     tdim == 2 ? isvalideltP1<3,2>(msh, ent2pol, nod2bpo, NULL, &meas0, nordev_tol) 
-                                      : isvalideltP1<3,3>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol); // NORCAD
-          bool iflat = !ivalid;
-          CPRINTF1("   - inccav pdim {} tdim {} ent {} = {}\n",pdim,tdim,ientt,
-                   intAr1(tdim+1,ent2pol));
-          CPRINTF1("   - w/ vtol = {:e} got iflat = {} meas0 = {:15.7e} neighbour = {}\n",
-                   msh.param->vtol,iflat,meas0,ienei);
+          #ifndef NDEBUG
+          try{
+          #endif
+
+          
+            double nordev_tol = -1;
+            if(msh.idim == 3 && tdim == 2){
+              int iref = msh.fac2ref[ientt];
+              nordev_tol = ref2nordev(iref,0);
+              nod2bpo[0] = pdim == 2 ? msh.poi2ebp(cav.ipins, 2, ientt, iref) : -1;
+              nod2bpo[1] = msh.poi2ebp(ent2pol[1], 2, ientt, iref);
+              nod2bpo[2] = msh.poi2ebp(ent2pol[2], 2, ientt, iref);
+              CPRINTF1(" - using nordevtol = {} for face ref {}\n", nordev_tol, iref);
+              METRIS_ASSERT(nod2bpo[0] < 0 || msh.bpo2ibi(nod2bpo[0],1) == 2);
+              METRIS_ASSERT(msh.bpo2ibi(nod2bpo[1],1) == 2);
+              METRIS_ASSERT(msh.bpo2ibi(nod2bpo[2],1) == 2);
+              METRIS_ASSERT(nod2bpo[0] < 0 || msh.fac2ref[msh.bpo2ibi(nod2bpo[0],2)] == iref);
+              METRIS_ASSERT(msh.fac2ref[msh.bpo2ibi(nod2bpo[1],2)] == iref);
+              METRIS_ASSERT(msh.fac2ref[msh.bpo2ibi(nod2bpo[2],2)] == iref);
+            }
+
+
+            // First, check if this is a sliver
+            double meas0;
+            bool ivalid = msh.idim == 2 ? isvalideltP1<2,2>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol) 
+                        :     tdim == 2 ? isvalideltP1<3,2>(msh, ent2pol, nod2bpo, NULL, &meas0, nordev_tol) 
+                                        : isvalideltP1<3,3>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol); // NORCAD
+            iflat = !ivalid;
+            CPRINTF1("   - inccav pdim {} tdim {} ent {} = {}\n",pdim,tdim,ientt,
+                    intAr1(tdim+1,ent2pol));
+            CPRINTF1("   - w/ vtol = {:e} got iflat = {} meas0 = {:15.7e} neighbour = {}\n",
+                    msh.param->vtol,iflat,meas0,ienei);
+
+          #ifndef NDEBUG
+          }catch(const MetrisExcept& e){
+
+            PRINTF("## isvalideltP1 threw for ientt {} tdim {}, nodes: {}\n",ientt,tdim,intAr1(tdim+1,ent2pol));
+            if(msh.idim == 3 && tdim == 2){
+              int iref = msh.fac2ref[ientt];
+              int ibins = msh.poi2bpo[cav.ipins];
+              PRINTF("## nod2bpo[0] using ipins {} poi2bpo = {}, bpo2ibi: {}\n",cav.ipins, ibins, intAr1(nibi,msh.bpo2ibi[ibins]));
+              PRINTF("## List all ipins bpoi:\n");
+              for(int ibpoi = ibins; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
+                int ient0 = msh.bpo2ibi(ibpoi,2);
+                int tdim0 = msh.bpo2ibi(ibpoi,1);
+                int iref0 = -1;
+                if(tdim0 > 0) iref0 = msh.ent2ref(tdim0)[ient0];
+                PRINTF("##  {}: {}, entity ref {}\n", ibpoi, intAr1(nibi,msh.bpo2ibi[ibpoi]),iref0);
+              }
+              PRINTF("## USING pdim_ins = {}\n",pdim);
+              PRINTF("## nod2bpo[1] using ipoin {} ientt {} iref {}, got ibpoi {}, bpo2ibi: {}\n",
+                     ent2pol[1], ientt, iref, nod2bpo[1],
+                     intAr1(nibi,msh.bpo2ibi[nod2bpo[1]]));
+              PRINTF("## nod2bpo[2] using ipoin {} ientt {} iref {}, got ibpoi {}, bpo2ibi: {}\n",
+                     ent2pol[2], ientt, iref, nod2bpo[2],
+                     intAr1(nibi,msh.bpo2ibi[nod2bpo[2]]));
+              PRINTF("Cavity:\n");
+              cav.print(msh, 10);
+              PRINTF("\nInitial:\n");
+              MPRINTF(" - Edge cavity: \n");
+              for(int iecav : lcedg0){
+                MPRINTF("  {} : {}\n",iecav,intAr1(2,msh.edg2poi[iecav]));
+              }
+              MPRINTF(" - Face cavity: \n");
+              for(int iecav : lcfac0){
+                MPRINTF("  {} : {}\n",iecav,intAr1(2,msh.fac2poi[iecav]));
+              }
+              MPRINTF(" - Tetra cavity: \n");
+              for(int iecav : lctet0){
+                MPRINTF("  {} : {}\n",iecav,intAr1(2,msh.tet2poi[iecav]));
+              }
+
+            }
+            throw(e);
+          }
+          #endif
 
           #if 0
           // Next check geodev 
@@ -1044,7 +1118,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
 
           // if element created with this facet is negative, add the neighbour
           // to cavity. 
-          if(iflat || meas0 < 0){
+          if(iflat){
             if(ienei >= 0){
               if(ref2tag(ithrd1,ent2ref[ienei]) < msh.tag[ithrd1]){
                 CPRINTF1("   - ienei = {} is wrong ref {} -> cannot correct\n",
@@ -1539,7 +1613,7 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
 
 
   //if(msh.get_tdim() == 3) 
-  //  METRIS_THROW_MSG(TODOExcept(), "Unit test this for n = 3. Implement gettetfac instead of getfacedg");
+  //  METRIS_THROW_MSG("TODO: Unit test this for n = 3. Implement gettetfac instead of getfacedg");
   // Simply disable surface Delaunay for now 
 
   int nnmet = (msh.idim * (msh.idim + 1)) / 2;
@@ -1756,7 +1830,6 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
 
   intAr1 lbtet(20), lbfac(20), lbedg(20);
   int iopen;
-  bool imani;
 
   int nprem = 0;
 
@@ -1780,7 +1853,7 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
     INCVDEPTH(msh.param);
     int ientt = lcent[ii];
     METRIS_ASSERT_MSG(!isdeadent(ientt, msh.ent2poi(cdim)),
-      "entity "<<ientt<<" tdim "<<cdim<<" is dead");
+      "entity {} tdim {} is dead", ientt, cdim);
 
 
     #if 0
@@ -1944,7 +2017,7 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
     //if(tdim == 2){
 
     //}else{
-    //  METRIS_THROW_MSG(TODOExcept(), 
+    //  METRIS_THROW_MSG( 
     //    "Implement height control in increase_cavity_lenedg 3D");
     //}
   }
@@ -1979,7 +2052,7 @@ template int increase_cavity_lenedg0<MetricFieldFE        ,3>(
 
 void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread){
   GETVDEPTH(msh.param);
-  METRIS_ASSERT_MSG(ithread >= 0, "ithread = "<<ithread<<" < 0")
+  METRIS_ASSERT_MSG(ithread >= 0, "ithread = {} < 0", ithread);
   CPRINTF2("-- START aux_taginsrefs\n");
   for(int iedge : cav.lcedg){
     int iref = msh.edg2ref[iedge];
@@ -1999,7 +2072,7 @@ void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread){
   }
   for(int ielem : cav.lctet){
     int iref = msh.tet2ref[ielem];
-    METRIS_ASSERT_MSG(iref >= 0, "ielem = "<<ielem<<" invalid iref = "<<iref);
+    METRIS_ASSERT_MSG(iref >= 0, "ielem = {} invalid iref = {}", ielem, iref);
     if(msh.dom2tag(ithread,iref) < msh.tag[ithread]){
       CPRINTF3(" - ipins has tetra ref {} \n",iref);
     }

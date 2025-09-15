@@ -63,7 +63,7 @@ void eval_d_SurrealS0(const T& __restrict__  rfld,
       eval3_d_bezier<T,szfld,ideg,nvar>(rfld, idif1, idif2, bary, eval, jmat, hmat);
     }
   }else{
-    METRIS_THROW_MSG(TODOExcept(),"Implement eval3_d_LAGRANGE");
+    METRIS_THROW_MSG("TODO: Implement eval3_d_LAGRANGE");
   } 
   return;
 }
@@ -152,7 +152,7 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
       eval3_d_bezier<MeshArray2D<SANS::SurrealS<nvar,double>>,szfld,ideg,nvar>(rfld, idif1, idif2, bary, eval, jmat, hmat);
     }
   }else{
-    METRIS_THROW_MSG(TODOExcept(),"Implement eval3_d_LAGRANGE");
+    METRIS_THROW_MSG("TODO: Implement eval3_d_LAGRANGE");
   } 
   return;
 }

@@ -15,8 +15,8 @@ void SolutionFieldAnalytical::setAnalyticalSolution(int ianasol_){
   METRIS_ASSERT(idim == 2 || idim == 3);
   
   if(ianasol_ <= 0 || ianasol_ > MAX_ANASOL_DEFINED(idim) )
-    METRIS_THROW_MSG(WArgExcept(),"Invalid index: 1 - "<<MAX_ANASOL_DEFINED(idim )<<" accepted");
-  
+    METRIS_THROW_MSG("Invalid index: 1 - {} accepted", MAX_ANASOL_DEFINED(idim ));
+
   this->ianasol = ianasol_;
   this->anasol  = (idim == 2 ? __ANASOL2D[this->ianasol-1] : __ANASOL3D[this->ianasol-1]);
 }

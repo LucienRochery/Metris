@@ -79,7 +79,7 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
   //const int inod0 = tdim + 1; // only HO
   const int inod0 = 0; // all
 
-  double t0 = get_wall_time();
+  double t0 = get_cpu_time();
   CPRINTF1("-- START minimizeInterpErrglo\n");
 
   if(ialgo == 0){
@@ -146,7 +146,7 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
             }
             METRIS_ASSERT(imani && !iopen);
           }else{
-            METRIS_THROW_MSG(TODOExcept(), "3D in minInterperr");
+            METRIS_THROW_MSG("TODO: 3D in minInterperr");
           }
         }else if(inode < tdim + 1 + nedgl * (ideg - 1)){
           // Edge node. 
@@ -163,10 +163,10 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
             lball.stack(ient2);
             lnode.stack(inod2);
           }else{
-            METRIS_THROW_MSG(TODOExcept(), "3D in minInterperr");
+            METRIS_THROW_MSG("TODO: 3D in minInterperr");
           }
         }else{
-          METRIS_THROW_MSG(TODOExcept(), "Interior 2D/3D or face in 3D");
+          METRIS_THROW_MSG("TODO: Interior 2D/3D or face in 3D");
         }
 
         CPRINTF2(" - ientt {} inode {} ipoin {} ball size {}\n",ientt,inode,ipoin,lball.get_n());
@@ -199,7 +199,7 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
                                : interpErrGlo<idim,ideg,pdeg,2,true>(sol);
     errGlo1 = errGlo;
     double red = (errGlo0 - errGlo1) / errGlo0 * 100;
-    double t1 = get_wall_time();
+    double t1 = get_cpu_time();
     CPRINTF1("-- END minimizeInterpErrglo error {} -> {} reduced% {} \n",errGlo0,errGlo1,red);
     CPRINTF1("-- time = {:.2e}s = {} elt/s\n",t1-t0,(int)(nentt/(t1-t0)));
   }
@@ -207,6 +207,7 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
   msh.setBasis(ibas0);
 }
 
+#if METRIS_MAX_DEG > 1
 #define BOOST_PP_LOCAL_MACRO(n)\
 template \
 void minimizeInterpErrglo0<MetricFieldAnalytical, 2, n, 1>(Mesh<MetricFieldAnalytical> &msh, \
@@ -226,6 +227,8 @@ void minimizeInterpErrglo0<MetricFieldFE, 2, n, 2>(Mesh<MetricFieldFE> &msh, \
                            int pnorm, int ialgo, int ithrd1, int ithrd2);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
+#endif
+
 
 #if 0
 template<int idim, int ideg>
@@ -294,7 +297,7 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
 
   const int inod0 = tdim + 1; // only HO
 
-  double t0 = get_wall_time();
+  double t0 = get_cpu_time();
   CPRINTF1("-- START minimizeInterpErrglo\n");
 
   // start
@@ -342,7 +345,7 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
             }
             METRIS_ASSERT(imani && !iopen);
           }else{
-            METRIS_THROW_MSG(TODOExcept(), "3D in minInterperr");
+            METRIS_THROW_MSG("TODO: 3D in minInterperr");
           }
         }else if(inode < tdim + 1 + nedgl * (ideg - 1)){
           // Edge node. 
@@ -359,10 +362,10 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
             lball.stack(ient2);
             lnode.stack(inod2);
           }else{
-            METRIS_THROW_MSG(TODOExcept(), "3D in minInterperr");
+            METRIS_THROW_MSG("TODO: 3D in minInterperr");
           }
         }else{
-          METRIS_THROW_MSG(TODOExcept(), "Interior 2D/3D or face in 3D");
+          METRIS_THROW_MSG("TODO: Interior 2D/3D or face in 3D");
         }
 
         if(DOPRINTS2()){
@@ -396,7 +399,7 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
                                : interpErrGlo<idim,ideg,pdeg,2,true>(sol);
     errGlo1 = errGlo;
     double red = (errGlo0 - errGlo1) / errGlo0 * 100;
-    double t1 = get_wall_time();
+    double t1 = get_cpu_time();
     CPRINTF1("-- END minimizeInterpErrglo error {} -> {} reduced% {} \n",errGlo0,errGlo1,red);
     CPRINTF1("-- time = {:.2e}s = {} elt/s\n",t1-t0,(int)(nentt/(t1-t0)));
   }
@@ -608,7 +611,12 @@ template \
 int minimizeInterpErrloc_Newton<MetricFieldFE, 2, n, 1>(Mesh<MetricFieldFE> &msh, \
                            const SolutionFieldAnalytical &sol, \
                            int pnorm, intAr1& lball, intAr1& lnode,\
-                           double *errLp0, double *errLp1);\
+                           double *errLp0, double *errLp1);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+#if METRIS_MAX_DEG > 1
+#define BOOST_PP_LOCAL_MACRO(n)\
 template \
 int minimizeInterpErrloc_Newton<MetricFieldAnalytical, 2, n, 2>(Mesh<MetricFieldAnalytical> &msh, \
                            const SolutionFieldAnalytical &sol, \
@@ -621,7 +629,7 @@ int minimizeInterpErrloc_Newton<MetricFieldFE, 2, n, 2>(Mesh<MetricFieldFE> &msh
                            double *errLp0, double *errLp1);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
-
+#endif
 
 
 // Not thread safe
@@ -653,7 +661,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
   int ifmin;
   double barmin[idim+1], fopt;
 
-  constexpr auto evalf = idim == 2 ? eval2<idim,idim> : eval3<idim,idim>;
+  constexpr auto evalf = idim == 2 ? eval2<idim,ideg> : eval3<idim,ideg>;
 
 
   if(pnorm == 1){
@@ -805,7 +813,12 @@ template \
 int minimizeInterpErrloc_DIRECT<MetricFieldFE, 2, n, 1>(Mesh<MetricFieldFE> &msh, \
                            const SolutionFieldAnalytical &sol, \
                            int pnorm, intAr1& lball, intAr1& lnode,\
-                           double *errLp0, double *errLp1);\
+                           double *errLp0, double *errLp1);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+#if METRIS_MAX_DEG > 1
+#define BOOST_PP_LOCAL_MACRO(n)\
 template \
 int minimizeInterpErrloc_DIRECT<MetricFieldAnalytical, 2, n, 2>(Mesh<MetricFieldAnalytical> &msh, \
                            const SolutionFieldAnalytical &sol, \
@@ -818,7 +831,6 @@ int minimizeInterpErrloc_DIRECT<MetricFieldFE, 2, n, 2>(Mesh<MetricFieldFE> &msh
                            double *errLp0, double *errLp1);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
-
-
+#endif
 
 } //namespace

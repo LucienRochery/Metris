@@ -40,7 +40,7 @@ int insertEdge(Mesh<MFT>& msh,
 
   int iverb0   = msh.param->iverb;
   int ivdepth0 = msh.param->ivdepth;
-  int ierro_cavity = 0;
+  int ierro_cavity;
 
   GETVDEPTH(msh.param);
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);
@@ -83,11 +83,14 @@ int insertEdge(Mesh<MFT>& msh,
   double algnd[3];
 
   // Create the point, set info for localization 
-  cav.ipins = msh.newpoitopo(insertionSeed.tdimp, insertionSeed.iseed);
-  int ibins = -1;
-  if(msh.isboundary_tdim(insertionSeed.tdimp)) 
-    ibins = msh.newbpotopo(cav.ipins,insertionSeed.tdimp,insertionSeed.iseed);
+  //cav.ipins = msh.newpoitopo(insertionSeed.tdimp, insertionSeed.iseed);
+  //int ibins = -1;
+  //if(msh.isboundary_tdim(insertionSeed.tdimp)) 
+  //  ibins = msh.newbpotopo(cav.ipins,insertionSeed.tdimp,insertionSeed.iseed);
   
+  // Proper surface seeding
+  cav.ipins = msh.newpoint(PointType::Vertex, insertionSeed.tdimp, insertionSeed.iseed);
+
   if(msh.CAD()) METRIS_ASSERT(insertionSeed.obj != NULL 
                     || insertionSeed.tdimp == 2 && !msh.isboundary_faces() || insertionSeed.tdimp == 3);
 
@@ -104,7 +107,7 @@ int insertEdge(Mesh<MFT>& msh,
   // work for collrejcav_lenqua
   #ifndef NDEBUG
   static int nwarnprt = 0;
-  if(nwarnprt++ < 10) printf("## WARNING REMOVE STATI FROM NOCOMP\n");
+  if(nwarnprt++ < 10) PRINTF("## WARNING REMOVE STATI FROM NOCOMP\n");
   #endif
   static std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp;
 
@@ -113,15 +116,25 @@ int insertEdge(Mesh<MFT>& msh,
 
   bool imoved_point = false;
 
-  ierro = aux_bisecPointLen(msh, insertionSeed, ibins, icollapse, cav);
+  ierro = aux_bisecPointLen(msh, insertionSeed, msh.poi2bpo[cav.ipins], icollapse, cav);
   if(ierro != 0){
     CPRINTF1(" # Failed aux_bisecPointLen ierro = {}\n",ierro);
     goto cleanup;
   }
-  // Seed the cavity properly
-  ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
 
-  
+  // Seed the cavity properly
+  #ifndef NDEBUG
+  try{
+  #endif
+    ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
+  #ifndef NDEBUG
+  }catch(const MetrisExcept& exc){
+    fmt::print("## increase_cavity failed, tdim_adp {} tdimp {} iseed {} iref {}\n",
+              insertionSeed.tdim_adp,insertionSeed.tdimp,
+              insertionSeed.iseed,insertionSeed.iref);
+    throw(exc);
+  }
+  #endif
 
   if(icollapse){
     ierro = collrejcav_lenqua(msh, cav, false, false, false, -1, nocomp, ithrd2);

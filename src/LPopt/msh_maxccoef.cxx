@@ -35,7 +35,7 @@ namespace Metris{
 template<int gdim, int tdim, int ideg>
 double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
   GETVDEPTH(msh.param);
-  // METRIS_THROW_MSG(TODOExcept(), "maximizeCcoef not implemented for ideg = "<<ideg);
+  // METRIS_THROW_MSG("TODO: maximizeCcoef not implemented for ideg = "<<ideg);
   msh.setBasis(FEBasis::Bezier); // Vizir assumes Lagrange
   constexpr int jdeg = tdim * (ideg - 1);
   constexpr int ncoef = tdim == 2 ? getnnod2(jdeg) : getnnod3(jdeg);
@@ -62,7 +62,7 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
   const double qupdt0 = 0.2;
   const double qupdt1 = 0.8;
   
-  double t0_tot = get_wall_time();
+  double t0_tot = get_cpu_time();
 
   double ccoef[ncoef];
   double min_ccoef = getminccoef<gdim,ideg>(msh);
@@ -138,7 +138,7 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
     double mxdNm = -1;
     for(int icoor = 0; icoor < tdim; icoor++){
 
-      double t0 = get_wall_time();
+      double t0 = get_cpu_time();
 
       for(int ielem = 0; ielem < nelems; ielem++){
         
@@ -169,13 +169,13 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
         }
         row++;
       }
-      double t1 = get_wall_time();
+      double t1 = get_cpu_time();
 
       minlpsetbcall(solver.state, -INFINITY, INFINITY);
 
       solver.optimize();
 
-      double t2 = get_wall_time();
+      double t2 = get_cpu_time();
 
       MPRINTF(" - CPU time assembly {} solve {} \n",t1-t0,t2-t1);
 
@@ -192,7 +192,7 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
         MPRINTF(" - gone over threshold\n");
         
         // reset update 
-        double t0s = get_wall_time();
+        double t0s = get_cpu_time();
         double q0 = 0, q1 = 1;
         double qp = qupdt; // q previous
         double tol0 = 0.1;
@@ -223,13 +223,13 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
           }
 
         } // for niters
-        double t1s = get_wall_time();
+        double t1s = get_cpu_time();
         MPRINTF("Bisection time {:.2e}s \n",t1s-t0s);
 
-        if(!iok) METRIS_THROW(AlgoExcept());
+        METRIS_ENFORCE_MSG(iok,"Could not find a good bisection iterate");
 
         // Got a good correction
-        double t1_tot = get_wall_time();
+        double t1_tot = get_cpu_time();
         MPRINTF(" - Backtract exit min ccoef = {} > {} = jtol total time = {:.2e}s \n",
                                                   min_final,jtol,t1_tot-t0_tot);
         return min_final;
@@ -242,7 +242,7 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
     }
   } // for niter 
 
-  METRIS_THROW(AlgoExcept());
+  METRIS_THROW();
   return -1;
 }
 
@@ -283,7 +283,7 @@ double getminccoef(MeshBase &msh){
       MPRINTF("element is {} = {}\n", ielem, intAr1(tdim + 1, ent2poi[ielem]));
       writeMesh("debug_vol", msh);
     }
-    METRIS_ENFORCE_MSG(vol>0.0,"vol = "<<vol);
+    METRIS_ENFORCE_MSG(vol>0.0,"vol = {:e}",vol);
     getsclccoef<gdim,gdim,ideg>(msh,ielem,NULL,ccoef,&iflat);
     for(int ii = 0; ii < ncoef; ii++){
       iret = MIN(iret,ccoef[ii]/vol/vol0);

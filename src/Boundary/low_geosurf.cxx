@@ -62,12 +62,10 @@ void projptsurf(MeshBase &msh, int ibpoi, double *coop, double tol){
 
 	double result[18];
 	int ierro = EG_invEvaluate(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
-	if(ierro != 0){
-    MPRINTF("EG_invEvaluate (LOOP) error : {}",EG_err2str(ierro));
-		METRIS_THROW(TopoExcept());
-	}
+  METRIS_ENFORCE_MSG(ierro == 0, "EG_invEvaluate (LOOP) error : {}", EG_err2str(ierro));
 	double dist = geterrl2<3>(msh.coord[ipoin],result);
-	if(tol > 0.0 && dist > tol*tol) METRIS_THROW(RealExcept());
+  METRIS_ENFORCE_MSG(tol < 0.0 || dist <= tol*tol, 
+    "Negative or small distance {:e} computed in projptsurf", dist);
 
 	coop[0] = result[0];
 	coop[1] = result[1];
@@ -75,23 +73,18 @@ void projptsurf(MeshBase &msh, int ibpoi, double *coop, double tol){
 }
 
 void bpo2CADnormal(MeshBase &msh, int ibpoi, double *du, double *dv, double *nrmal){
-  if(ibpoi < 0 || ibpoi >= msh.nbpoi) METRIS_THROW(WArgExcept());
-  if(!msh.CAD()) METRIS_THROW_MSG(TopoExcept(), "CAD not initialized");
-  if(msh.bpo2ibi(ibpoi,1) != 2) METRIS_THROW_MSG(WArgExcept(),"Point not attached to CAD face")
+  METRIS_ASSERT_MSG(ibpoi >= 0 && ibpoi < msh.nbpoi);
+  METRIS_ASSERT_MSG(msh.CAD(), "CAD not initialized");
+  METRIS_ASSERT_MSG(msh.bpo2ibi(ibpoi,1) == 2, "Point not attached to CAD face, tdimn = {}",msh.bpo2ibi(ibpoi,1))
 
   int iface = msh.bpo2ibi(ibpoi,2);
-  if(iface < 0 || iface >= msh.nface) METRIS_THROW(TopoExcept());
   int iref = msh.fac2ref[iface];
-  if(iref < 0 || iref >= msh.CAD.ncadfa) METRIS_THROW(TopoExcept());
 
   ego obj = msh.CAD.cad2fac[iref];
 
   double result[18];
   int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
-  if(ierro != 0){
-    MPRINTF("EG_evaluate error : {}",EG_err2str(ierro));
-    METRIS_THROW(TopoExcept());
-  }
+  METRIS_ENFORCE_MSG(ierro == 0, "EG_evaluate error : {}", EG_err2str(ierro));
 
   du[0] = result[3];
   du[1] = result[4];

@@ -50,7 +50,7 @@ int projptfac(MeshBase &msh,
     
   }else{ // if ideg > 1
 
-    METRIS_THROW_MSG(TODOExcept(), "ideg > 1 projptfac implement")
+    METRIS_THROW_MSG("TODO: ideg > 1 projptfac implement")
 
     double tol0 = geterrl2<gdim>(msh.coord[ipoi1],msh.coord[ipoi2]);
     tol0 = sqrt(tol0);
@@ -164,7 +164,7 @@ int projptfacP1(const double*__restrict__ coop,
                  coof2,coof3,nrmal);
     nrm123 = getnrml2<3>(nrmal);
     fmt::print("## order 3 1 2 nrm = {:15.7e}\n",nrm123);
-    METRIS_THROW_MSG(GeomExcept(), "Degenerate face passed to projptfacP1");
+    METRIS_THROW_MSG( "Degenerate face passed to projptfacP1");
     #endif
     return 1;
   }
@@ -198,9 +198,9 @@ int projptfacP1(const double*__restrict__ coop,
 
   METRIS_ASSERT_MSG(abs(bary[0] + bary[1] + bary[2] - 1) 
     < 1.0e-8*MAX(1,MAX(MAX(abs(bary[0]),abs(bary[1])),abs(bary[2]))),
-    "Triangle barycentrics dont sum to one: "<<bary[0]
-    <<" "<<bary[1]<<" "<<bary[2]<<" sum = "<<bary[0] + bary[1] + bary[2] 
-    <<" dif to 1 "<<abs(bary[0] + bary[1] + bary[2] - 1));
+    "Triangle barycentrics dont sum to one: {} {} {} sum = {} dif to 1 {:e}",
+    bary[0], bary[1], bary[2], bary[0] + bary[1] + bary[2],
+    abs(bary[0] + bary[1] + bary[2] - 1));
 
   ierro = bary[0] < -Constants::baryTol || bary[0] > 1 + Constants::baryTol
         ||bary[1] < -Constants::baryTol || bary[1] > 1 + Constants::baryTol
@@ -413,7 +413,7 @@ int projptedgCAD(MeshBase &msh, const double*__restrict__ coop, double tol,
     int ierro = EG_evaluate(obj, param, result);
     if(ierro > 0){
       MPRINTF("EG_evaluate error : {}",EG_err2str(ierro));
-      METRIS_THROW_MSG(GeomExcept(), "EGADS error");
+      METRIS_THROW_MSG( "EGADS error");
     }
 
     for(int ii = 0; ii < gdim; ii++) coopr[ii] = result[ii];
@@ -448,13 +448,13 @@ int projptedgCAD(MeshBase &msh, const double*__restrict__ coop, double tol,
   // Since this is suicide, just add a point (forbidden on MeshBase otherwise)
   int ipoin = msh.npoin;
   msh.set_npoin(msh.npoin + 1);
-  msh.newbpotopo(ipoin,0,ipoin);
+  msh.newbpotopo(Vertex{ipoin},0,ipoin);
   for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipoin,ii) = coop[ii];
   writeMesh("dbg_projptedg.meshb",msh);
 
   CPRINTF1("## Failed to proj on edge {} {} \n",msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
 
-  METRIS_THROW_MSG(AlgoExcept(), "Too many iterations projptedg")
+  METRIS_THROW_MSG( "Too many iterations projptedg")
 }
 template 
 int projptedgCAD<2>(MeshBase &msh, const double*__restrict__ coop, double tol, 

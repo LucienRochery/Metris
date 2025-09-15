@@ -33,7 +33,7 @@ double smoothInterior_Ball(Mesh<MFT> &msh, QuaFun iquaf, int ithrd1, int ithrd2)
 
   int tdimn = msh.get_tdim();
 
-  if(tdimn == 1) METRIS_THROW(TODOExcept());
+  METRIS_ASSERT_MSG(tdimn > 1, "TODO: edge smooth interior ball");
 
   // Geo and topo dimn must match otherwise surface specific 
   METRIS_ASSERT(tdimn == msh.idim);
@@ -178,7 +178,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
     }
 
     qnrm /= navg;
-    double t0 = get_wall_time();
+    double t0 = get_cpu_time();
     CPRINTF1(" - smoo iter {:3} init {:10.6e} < q < {:10.6e} (at {}), avg = {:10.6e} " 
                    "(p = {})\n",niter,qmin,qmax,imax,qnrm,msh.param->opt_pnorm);
     //if(iverb >= 2 && qmax >= 1e10){
@@ -312,7 +312,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
 
     #ifndef USE_LPLIB_SMOOTHINTERIOR
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-      if(msh.poi2ent(ipoin, 0) < 0) continue;
+      if(msh.isdeadpoint(ipoin)) continue;
       if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
       INCVDEPTH(msh.param);
 
@@ -423,7 +423,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
     } // for ipoin // for ientt
     #endif
 
-    double t1 = get_wall_time();
+    double t1 = get_cpu_time();
     CPRINTF1(" - Iteration end time = {:.2e}s nsuccess = {} nmov = {} \n",
                           t1-t0,nsucc,nmov);
     noper += nmov;

@@ -16,6 +16,7 @@
 
 #include "nlopt_internals.h"
 #include <nlopt.hpp>
+#include <functional>
 
 //#include "../libs/nlopt/src/util/nlopt-util.h"
 //#include "../libs/nlopt/src/algs/luksan/luksan.h"
@@ -95,8 +96,8 @@ void optim_newton_drivertype(const MetrisParameters &param,
 
 
   if(*iflag == 0){
-    if(nrwrk < 10*nvar+4) METRIS_THROW_MSG(DMemExcept(),"Increase nrwrk");
-    if(niwrk < 3        ) METRIS_THROW_MSG(DMemExcept(),"Increase niwrk");
+    METRIS_ASSERT_MSG(nrwrk >= 10*nvar+4,"Increase nrwrk");
+    METRIS_ASSERT_MSG(niwrk >= 3        ,"Increase niwrk");
 
     *niter = 0;   
     *iflag = 1;
@@ -771,7 +772,7 @@ int optim_newton_drivertype_PETSc(int nvar ,
   if(*iflag == 0){
 
     if(wlfc1 > wlfc2)
-      METRIS_THROW_MSG(WArgExcept(),"Wolfe constants c1 < c2 not verified")
+      METRIS_THROW_MSG("Wolfe constants c1 < c2 not verified")
 
 
     *niter = 0;   
@@ -799,9 +800,9 @@ int optim_newton_drivertype_PETSc(int nvar ,
 //    double ksp_tol = MAX(1.0e-5, rwork[1]/100);
     if(iprt >= 3) PRINTF("Calling linear solver with tolerance {:15.7e}\n",ksp_tol);
     PetscKSPHelper KSOLVER(ksp, PETSC_COMM_SELF, OJ, PETSC_DEFAULT, ksp_tol);
-    double t0 = get_wall_time();
+    double t0 = get_cpu_time();
     KSOLVER.solve(RHS,DESC);
-    double t1 = get_wall_time();
+    double t1 = get_cpu_time();
     if(iprt >= 3) PRINTF("KSP time {:.2e}s \n",t1-t0);
 
     // Get current descent direction norm for termination condition
@@ -1124,7 +1125,7 @@ nlopt_result luksan_pnetS(nlopt_func f, void *f_data,
   // int: ndim, just put on stack. 
 
   METRIS_ENFORCE_MSG(lwork.get_n() >= ndim * 9 + (ndim+1)*mf*2,
-    "lwork size "<<lwork.get_n()<<" need "<<ndim * 9 + (ndim+1)*mf*2)
+    "lwork size {} need {}", lwork.get_n(), ndim * 9 + (ndim+1)*mf*2)
 
   int i, nb = 1;
   double *xl, *xu, *gf, *gn, *s, *xo, *go, *xs, *gs, *xm, *gm, *u1, *u2;

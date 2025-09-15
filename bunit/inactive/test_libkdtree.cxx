@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(test_libkdtree)
       typedef KDTree::KDTree<gdim,kdtreeNode_aniso<gdim>> t_KDTree_aniso;
 
       // Initialize kdtree with all points in the mesh
-      double t0i_iso = get_wall_time();
+      double t0i_iso = get_cpu_time();
       t_KDTree_iso kdtree_iso;
       for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
         kdtreeNode_iso<gdim> node;
@@ -101,9 +101,9 @@ BOOST_AUTO_TEST_CASE(test_libkdtree)
         for(int ii = 0; ii < gdim; ii++) node.xyz[ii] = msh.coord(ipoin,ii);
         kdtree_iso.insert(node);
       }
-      double t1i_iso = get_wall_time();
+      double t1i_iso = get_cpu_time();
       kdtree_iso.optimise();
-      double t2i_iso = get_wall_time();
+      double t2i_iso = get_cpu_time();
       int nkpsi1_iso = (int)(msh.npoin / (t1i_iso - t0i_iso) / 1000);
       int nkpsi2_iso = (int)(msh.npoin / (t2i_iso - t1i_iso) / 1000);
       printf("-- %dD   iso init times fill = %f = %dk/s optim = %f = %dk/s\n",
@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(test_libkdtree)
 
       // Now make it aniso
       msh.met.setSpace(MetSpace::Log);
-      double t0i_aniso = get_wall_time();
+      double t0i_aniso = get_cpu_time();
       t_KDTree_aniso kdtree_aniso;
       for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
         kdtreeNode_aniso<gdim> node;
@@ -168,9 +168,9 @@ BOOST_AUTO_TEST_CASE(test_libkdtree)
         for(int ii = 0; ii < nnmet; ii++) node.lmet[ii] = msh.met(ipoin,ii);
         kdtree_aniso.insert(node);
       }
-      double t1i_aniso = get_wall_time();
+      double t1i_aniso = get_cpu_time();
       kdtree_aniso.optimise();
-      double t2i_aniso = get_wall_time();
+      double t2i_aniso = get_cpu_time();
       int nkpsi1_aniso = (int)(msh.npoin / (t1i_aniso - t0i_aniso) / 1000);
       int nkpsi2_aniso = (int)(msh.npoin / (t2i_aniso - t1i_aniso) / 1000);
       printf("-- %dD aniso init times fill = %f = %dk/s optim = %f = %dk/s\n",
@@ -276,7 +276,7 @@ BOOST_AUTO_TEST_CASE(test_libkdtree)
 
 
       // Lastly run a benchmark
-      double t0_iso = get_wall_time();
+      double t0_iso = get_cpu_time();
       double dum = 0;
       for(int ipoi1 = 0; ipoi1 < msh.npoin; ipoi1++){
         kdtreeNode_iso<gdim> node;
@@ -286,13 +286,13 @@ BOOST_AUTO_TEST_CASE(test_libkdtree)
           = kdtree_iso.find_nearest(node);
         dum += found.first->ipoin;
       }
-      double t1_iso = get_wall_time();
+      double t1_iso = get_cpu_time();
 
       int nkps_iso = (int)(msh.npoin / (t1_iso - t0_iso) / 1000);
       printf("-- Benchmark %dD   iso time = %f : %dk pt/s\n",gdim,t1_iso-t0_iso,nkps_iso);
 
 
-      double t0_aniso = get_wall_time();
+      double t0_aniso = get_cpu_time();
       for(int ipoi1 = 0; ipoi1 < msh.npoin; ipoi1++){
         kdtreeNode_aniso<gdim> node;
         for(int ii = 0; ii < gdim; ii++) node.xyz[ii] = msh.coord(ipoi1,ii);
@@ -302,7 +302,7 @@ BOOST_AUTO_TEST_CASE(test_libkdtree)
           = kdtree_aniso.find_nearest(node);
         dum -= found.first->ipoin;
       }
-      double t1_aniso = get_wall_time();
+      double t1_aniso = get_cpu_time();
 
       int nkps_aniso = (int)(msh.npoin / (t1_aniso - t0_aniso) / 1000);
       printf("-- Benchmark %dD aniso time = %f : %dk pt/s\n",gdim,t1_aniso-t0_aniso,nkps_aniso);

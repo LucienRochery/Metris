@@ -149,12 +149,12 @@ BOOST_AUTO_TEST_CASE(test_interpMetBack)
           int nlast = 0;
           for(int ientt = 0; ientt < nentt; ientt++){
             for(int isamp = 0; isamp < nsamp; isamp++){
-              int ipnew = msh.newpoitopo(tdim, ientt);
+              int ipnew = msh.newpoitopo(PointType::Vertex,tdim, ientt);
               evalf(msh.coord,ent2poi[ientt],msh.getBasis(),DifVar::None,
                     DifVar::None,bary[isamp],msh.coord[ipnew],NULL,NULL);
               double algnd[gdim];
               if(tdim < gdim){
-                msh.newbpotopo(ipnew, tdim, ientt);
+                msh.newbpotopo(Vertex{ipnew}, tdim, ientt);
                 if(tdim == 1){
                   for(int ii = 0; ii < gdim; ii++){
                     algnd[ii] = msh.coord(msh.edg2poi(ientt,0),ii)

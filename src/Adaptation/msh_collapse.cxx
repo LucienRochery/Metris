@@ -106,7 +106,7 @@ double collapseShortEdges(Mesh<MFT> &msh, int tdim, double qmax_suf, int *ncoll,
     double minl = 1.0e30;
     double maxl = -1.0;
 
-    double t0 = get_wall_time();
+    double t0 = get_cpu_time();
 
 
 
@@ -267,7 +267,7 @@ double collapseShortEdges(Mesh<MFT> &msh, int tdim, double qmax_suf, int *ncoll,
 
 
 
-    double t1 = get_wall_time();
+    double t1 = get_cpu_time();
     int ncallps = 1000*(int)(((ncoll1+ncoll2) / (t1-t0)) / 1000);
     CPRINTF2(" - Loop end t = {:.2e} ncoll1 = {} ncoll2 = {} tot =  {} /s; nerro1 {} nerro2 {}\n",
       t1-t0,ncoll1,ncoll2,ncallps,nerro1,nerro2);

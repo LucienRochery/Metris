@@ -37,7 +37,7 @@ namespace Metris{
 template<class MFT, int gdim, int tdim, int ideg>
 double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method, 
                         LPLib lib, const bool cstrCcoef){
-  METRIS_ASSERT_MSG(ideg==2, "maximizeMetCcoef not implemented for ideg = " << ideg);
+  METRIS_ASSERT_MSG(ideg==2, "maximizeMetCcoef not implemented for ideg = {}", ideg);
   GETVDEPTH(msh.param);
   // The P2 and Metric specialization
   const bool MAE = false;
@@ -163,7 +163,7 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
     // Get max norm along x or y displacement 
     for(int icoor = 0; icoor < tdim ; icoor++){
 
-      double t0 = get_wall_time();
+      double t0 = get_cpu_time();
 
       for(int ielem = 0; ielem < nelems; ielem++){
         if (isdeadent(ielem, ent2poi)) continue;
@@ -242,7 +242,7 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
         }
       } // for ielem
 
-      double t1 = get_wall_time();
+      double t1 = get_cpu_time();
       // I blocks
       for(int k = 0; k < ncoefglob; k++){
         if (MAE){
@@ -268,7 +268,7 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
               obj_change);
       obj_value_prev = obj_val;
 
-      double t2 = get_wall_time();
+      double t2 = get_cpu_time();
 
       CPRINTF1(" - CPU time assembly {} solve {} \n",t1-t0,t2-t1);
 
@@ -294,7 +294,7 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
         CPRINTF1(" - gone over threshold\n");
         
         // reset update 
-        // double t0s = get_wall_time();
+        // double t0s = get_cpu_time();
 
         // double q0 = 0, q1 = 1;
         // double qp = qupdt; // q previous
@@ -329,13 +329,13 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
         //   }
 
         // } // for niters
-        // double t1s = get_wall_time();
+        // double t1s = get_cpu_time();
         // printf("Bisection time {:.2e}s \n",t1s-t0s);
 
-        // if(!iok) METRIS_THROW(AlgoExcept());
+        // METRIS_ENFORCE(iok);
 
         // // Got a good correction
-        // double t1_tot = get_wall_time();
+        // double t1_tot = get_cpu_time();
         // printf(" - Backtract exit min ccoef = {} > {} = jtol total time = {:.2e}s \n",
         //                                           min_final,jtol,t1_tot-t0_tot);
 
@@ -358,7 +358,7 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
     // }
   } // for niter 
 
-  METRIS_THROW(AlgoExcept());
+  METRIS_THROW();
   return -1;
 }
 

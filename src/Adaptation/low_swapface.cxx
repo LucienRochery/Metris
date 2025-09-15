@@ -112,7 +112,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
   if(spnorm >= 0){
     quae1 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,iface,1.0);
-    METRIS_ASSERT_MSG(quae1 > -1.0e-16, "Negative quae1 "<<quae1<<" iface "<<iface);
+    METRIS_ASSERT_MSG(quae1 > -1.0e-16, "Negative quae1 {:e} iface {}",quae1,iface);
   }
 
 
@@ -297,23 +297,23 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       int ibpon, ibpoo;
       // ip1
       ibpoo = msh.poi2ebp(ip1, 2, iface, iref);
-      ibpon = msh.newbpotopo(ip1, 2, nfac0+0);
+      ibpon = msh.newbpotopo(Vertex{ip1}, 2, nfac0+0);
       for(int ii = 0; ii < nrbi; ii++) 
         msh.bpo2rbi(ibpon, ii) = msh.bpo2rbi(ibpoo, ii);
       // ip2
       ibpoo = msh.poi2ebp(ip2, 2, iface, iref);
-      ibpon = msh.newbpotopo(ip2, 2, nfac0+1);
+      ibpon = msh.newbpotopo(Vertex{ip2}, 2, nfac0+1);
       for(int ii = 0; ii < nrbi; ii++) 
         msh.bpo2rbi(ibpon, ii) = msh.bpo2rbi(ibpoo, ii);
       // ip3 (msh.fac2poi(iface,ied))
       ibpoo = msh.poi2ebp(msh.fac2poi(iface,ied), 2, iface, iref);
-      ibpon = msh.newbpotopo(msh.fac2poi(iface,ied), 2, nfac0+1);
+      ibpon = msh.newbpotopo(Vertex{msh.fac2poi(iface,ied)}, 2, nfac0+1);
       for(int ii = 0; ii < nrbi; ii++) 
         msh.bpo2rbi(ibpon, ii) = msh.bpo2rbi(ibpoo, ii);
       // ip4 (msh.fac2poi(ifac2,ie2))
       ibpoo = msh.poi2ebp(msh.fac2poi(ifac2,ie2), 2, ifac2, iref);
       METRIS_ASSERT(ibpoo >= 0);
-      ibpon = msh.newbpotopo(msh.fac2poi(ifac2,ie2), 2, nfac0+1);
+      ibpon = msh.newbpotopo(Vertex{msh.fac2poi(ifac2,ie2)}, 2, nfac0+1);
       METRIS_ASSERT(ibpon >= 0);
       for(int ii = 0; ii < nrbi; ii++) 
         msh.bpo2rbi(ibpon, ii) = msh.bpo2rbi(ibpoo, ii);

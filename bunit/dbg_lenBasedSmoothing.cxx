@@ -74,9 +74,9 @@ BOOST_AUTO_TEST_CASE(test_eval3)
     msh.param->opt_niter = 20;
     msh.param->iverb = 0;
 
-    double t0_1 = get_wall_time();
+    double t0_1 = get_cpu_time();
     run.optimMesh();
-    double t1_1 = get_wall_time();
+    double t1_1 = get_cpu_time();
 
     std::cout<<"\n\n------------------------------------------------\n";
     printf("---- Post smoothing stat\n");
@@ -88,11 +88,11 @@ BOOST_AUTO_TEST_CASE(test_eval3)
     msh.param->iverb = 0;
     MshCavity cav(100,100,1);
     int iopen;
-    double t0_2 = get_wall_time();
+    double t0_2 = get_cpu_time();
     for(int niter = 0; niter < 10; niter++){
       for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
         if(msh.poi2bpo[ipoin] >= 0) continue;
-        if(msh.poi2ent(ipoin,0) < 0) continue;
+        if(msh.isdeadpoint(ipoin)) continue;
 
         cav.reset();
         int ierro = ball(msh,ipoin,cav.lcedg,cav.lcfac,cav.lctet,&iopen, false, ithrd1);
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(test_eval3)
         METRIS_ENFORCE(ierro == 0);
       }
     }
-    double t1_2 = get_wall_time();
+    double t1_2 = get_cpu_time();
 
     std::cout<<"\n\n------------------------------------------------\n";
     printf("---- Post len based stat\n");

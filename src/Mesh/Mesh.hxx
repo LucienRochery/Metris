@@ -68,7 +68,7 @@ public:
 
 // -- Internal
 public:
-  int newpoitopo(int tdimn, int ientt = -1);
+  int newpoitopo(PointType ptype, int tdimn, int ientt = -1);
 
   // Called from MetrisRunner
   void initialize(MetrisAPI *data, MeshBack &bak, MetrisParameters &param);

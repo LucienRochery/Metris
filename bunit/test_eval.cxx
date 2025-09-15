@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(test_eval)
     int ndx = 0;
     for(double dx = dx0; dx > dx1; dx /= qdx) ndx++;
     
-    if(ndx > mdx) METRIS_THROW_MSG(SMemExcept(),"Increase mdx")
+    if(ndx > mdx) METRIS_THROW_MSG("Increase mdx")
     double err3dx[nbase][mdx], err6dx[nbase][mdx], logdx[mdx];
 
     for(auto testcase : meshes)

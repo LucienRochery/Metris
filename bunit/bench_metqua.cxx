@@ -77,13 +77,13 @@ BOOST_AUTO_TEST_CASE(bench_metqua)
                  meshname.c_str(), testname.c_str(), gdim, tdim, msh.curdeg, nloop);
 
           msh.met.setSpace(MetSpace::Exp);
-          double tm0_exp = get_wall_time();
+          double tm0_exp = get_cpu_time();
           for(int iloop = 0; iloop < nloop; iloop++){
             for(int ielem = 0; ielem < nentt; ielem++){
               dum += metqua<MFT,gdim,tdim>(msh, AsDeg::Pk, AsDeg::Pk, ielem, 1.0);
             }
           }// for iloop
-          double tm1_exp = get_wall_time();
+          double tm1_exp = get_cpu_time();
 
           int psm_exp = (int) ((((double)nentt) * nloop) / (tm1_exp - tm0_exp) / 1000);
           printf("-- Test end prod metqua = %dk/s\n",psm_exp);
@@ -91,34 +91,34 @@ BOOST_AUTO_TEST_CASE(bench_metqua)
           if(tdim == gdim && msh.curdeg == 1){
 
             msh.met.setSpace(MetSpace::Log);
-            double t01 = get_wall_time();
+            double t01 = get_cpu_time();
             for(int iloop = 0; iloop < nloop; iloop++){
               for(int ielem = 0; ielem < nentt; ielem++){
                 dum -= metqua1<MFT,gdim>(msh, ielem, 1);
               }
             }// for iloop
-            double t11 = get_wall_time();
+            double t11 = get_cpu_time();
 
 
             msh.met.setSpace(MetSpace::Exp);
-            double t02 = get_wall_time();
+            double t02 = get_cpu_time();
             for(int iloop = 0; iloop < nloop; iloop++){
               for(int ielem = 0; ielem < nentt; ielem++){
                 dum += metqua2<MFT,gdim>(msh, ielem, 1);
               }
             }// for iloop
-            double t12 = get_wall_time();
+            double t12 = get_cpu_time();
 
 
             // Accumulate into dummy to avoid optimizing out
             msh.met.setSpace(MetSpace::Exp);
-            double t03 = get_wall_time();
+            double t03 = get_cpu_time();
             for(int iloop = 0; iloop < nloop; iloop++){
               for(int ielem = 0; ielem < nentt; ielem++){
                 dum -= metqua3<MFT,gdim>(msh, ielem, 1);
               }
             }// for iloop
-            double t13 = get_wall_time();
+            double t13 = get_cpu_time();
 
             int ps1 = (int) ((((double)nentt) * nloop) / (t11 - t01) / 1000);
             int ps2 = (int) ((((double)nentt) * nloop) / (t12 - t02) / 1000);

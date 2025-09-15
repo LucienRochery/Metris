@@ -68,7 +68,7 @@ void adaptGeoLines(Mesh<MFT> &msh){
   // edge length interval 
   const double lentolfac = msh.param->geo_lentolfac;
   if(lentolfac < 1.0){
-    METRIS_THROW_MSG(WArgExcept(),"lentolfac < 1! = "<<lentolfac);
+    METRIS_THROW_MSG("lentolfac < 1! = {}", lentolfac);
   }
   // Maximum number of iterations for length bisection 
   const int miter_bisection = 1000;
@@ -142,11 +142,10 @@ void adaptGeoLines(Mesh<MFT> &msh){
     int oclass,mtype,nchild,*senses;
     int ierro = EG_getTopology(loop,&geom,&oclass,&mtype,NULL,
                                &nchild,&lchild,&senses);
-    if(ierro != 0){
-      MPRINTF("EG_getTopology (LOOP) error : {}",EG_err2str(ierro));
-      METRIS_THROW(TopoExcept());
-    }
-    METRIS_ENFORCE_MSG(nchild == msh.CAD.ncaded || msh.CAD.ncadlp > 1," nchild = "<<nchild);
+    METRIS_ENFORCE_MSG(ierro == 0, 
+      "EG_getTopology (LOOP) error : {}",EG_err2str(ierro));
+    METRIS_ENFORCE_MSG(nchild == msh.CAD.ncaded || msh.CAD.ncadlp > 1,
+      " nchild = {}", nchild);
     std::map<ego,int> edgorient;
     for(int ii = 0; ii < nchild; ii++){
       ego edg = lchild[ii];
@@ -330,9 +329,9 @@ void adaptGeoLines(Mesh<MFT> &msh){
           nedgit,icor0,msh.bpo2rbi(ibcr0,0),iedc0,msh.edg2poi(iedc0,0),msh.edg2poi(iedc0,1),tarlen);
 
         METRIS_ASSERT_MSG(msh.edg2poi(iedc0,0) == icor0 || msh.edg2poi(iedc0,1) == icor0,
-          "Corner not in seed edge ! ib = "<<ibcr0<<" entries = "
-          <<msh.bpo2ibi(ibcr0,0)<<" " <<msh.bpo2ibi(ibcr0,1)<<" "
-          <<msh.bpo2ibi(ibcr0,2)<<" " <<msh.bpo2ibi(ibcr0,3)<<"\n");
+          "Corner not in seed edge ! ib = {} entries = {} {} {} {}",
+          ibcr0, msh.bpo2ibi(ibcr0,0), msh.bpo2ibi(ibcr0,1),
+          msh.bpo2ibi(ibcr0,2), msh.bpo2ibi(ibcr0,3));
 
 
         // Which end is the corner?
@@ -344,8 +343,8 @@ void adaptGeoLines(Mesh<MFT> &msh){
           if(abs(range[ii] - msh.bpo2rbi(ibcr0,0)) < 1.0e-6 * drnge) irnge = ii;
         }
         METRIS_ENFORCE_MSG(irnge != -1,"## CORNERS IN MESH HAVE WRONG CAD EDGE "
-        "PARAMETRIC COORDINATES !\n" <<" icor = "<<icor0<<" range = "<<range
-        [0]<<" - "<<range[1]<<" this t = "<<msh.bpo2rbi(ibcr0,0));
+        "PARAMETRIC COORDINATES !\n icor = {} range = {} - {} this t = {}",
+        icor0, range[0], range[1], msh.bpo2rbi(ibcr0,0));
 
         // Error on existing edge points, used to determine whether re-iteration
         // is needed
@@ -499,8 +498,8 @@ void adaptGeoLines(Mesh<MFT> &msh){
                 msh.fac2ref[cav.lcfac[ii]] = 3;
               }
               // Add a corner at ipoin 
-              int ipoin = msh.newpoitopo(-1,-1);
-              int ibpoi = msh.newbpotopo(ipoin,0,ipoin);
+              int ipoin = msh.newpoitopo(PointType::Vertex, -1,-1);
+              int ibpoi = msh.newbpotopo(Vertex{ipoin},0,ipoin);
               for(int ii = 0; ii < msh.idim; ii++) 
                 msh.coord(ipoin,ii) = msh.coord(cav.ipins,ii);
               writeMesh("debug_lineadap0.meshb",msh);
@@ -606,7 +605,7 @@ void adaptGeoLines(Mesh<MFT> &msh){
 
             int ipins_old = cav.ipins;
             int inewp_old = cav.inewp;
-            cav.ipins = msh.newpoitopo(msh.get_tdim(), -1);
+            cav.ipins = msh.newpoitopo(PointType::Vertex,msh.get_tdim(), -1);
             cav.inewp = 1;
 
             int ncedg = cav.lcedg.get_n();
@@ -729,8 +728,8 @@ void adaptGeoLines(Mesh<MFT> &msh){
 
           // Should be a line point, if corner we exited already (!continue_ref)
           METRIS_ASSERT_MSG(msh.bpo2ibi(ibpo0,1) == 1, 
-            "corner despite continue_ref? itype = "<<msh.bpo2ibi(ibpo0,1)<<
-            " ibpo0 = "<<ibpo0<<" ipoin = "<<msh.bpo2ibi(ibpo0,0));
+            "corner despite continue_ref? itype = {}", msh.bpo2ibi(ibpo0,1),
+            " ibpo0 = {}", ibpo0, " ipoin = {}", msh.bpo2ibi(ibpo0,0));
 
           CPRINTF1(" - Start from ipoi0 = {} ibpo0 = {} \n", ipoi0,ibpo0);
 
@@ -746,7 +745,7 @@ void adaptGeoLines(Mesh<MFT> &msh){
             }else if(msh.edg2poi(iedge,1) == cav.ipins){
               ip = msh.edg2poi(iedge,0);
             }else{
-              METRIS_THROW_MSG(TopoExcept(),"Check again edge indices after insertion");
+              METRIS_THROW_MSG("Check again edge indices after insertion");
             }
             int ib = msh.poi2ebp(ip,1,iedge,-1);
             METRIS_ASSERT(ib >= 0);
@@ -867,8 +866,8 @@ void getCADCurveLengths(Mesh<MFT> &msh, [[maybe_unused]] double tol, dblAr1 &crv
 
   // add two dummy points 
   int ipon[2]; 
-  ipon[0] = msh.newpoitopo(-1,-1);
-  ipon[1] = msh.newpoitopo(-1,-1);
+  ipon[0] = msh.newpoitopo(PointType::Vertex,-1,-1);
+  ipon[1] = msh.newpoitopo(PointType::Vertex,-1,-1);
 
 
   bool noCAD = !msh.CAD();
@@ -965,8 +964,8 @@ void getCADCurveLengths_old(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
 
   // add two dummy points 
   int ipon[2]; 
-  ipon[0] = msh.newpoitopo(-1,-1);
-  ipon[1] = msh.newpoitopo(-1,-1);
+  ipon[0] = msh.newpoitopo(PointType::Vertex,-1,-1);
+  ipon[1] = msh.newpoitopo(PointType::Vertex,-1,-1);
   int edg2pol[2] = {ipon[0], ipon[1]};
   double sz[2];
 
@@ -1129,8 +1128,8 @@ void getCADCurveLengths_old(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
 
           #ifndef NDEBUG
           if(dtprd < -10){
-            msh.newbpotopo(ipon[1-iwhich],0,-1);
-            msh.newbpotopo(ipon[  iwhich],0,-1);
+            msh.newbpotopo(Vertex{ipon[1-iwhich]},0,-1);
+            msh.newbpotopo(Vertex{ipon[  iwhich]},0,-1);
 
             MPRINTF("## FAILURE idiv = {} / {} dtprd = {} iedge = {}\n",
               idiv, ndiv, dtprd, iedge);
@@ -1183,7 +1182,7 @@ void getCADCurveLengths_old(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
             dblAr1(msh.idim,result).print();
 
             writeMesh("debug_CADCurveLengths.meshb", msh);
-            METRIS_THROW(GeomExcept());
+            METRIS_THROW();
           }
           #endif
         }
@@ -1208,7 +1207,7 @@ void getCADCurveLengths_old(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
           }else{
             len = getlenedg_geosz<MFT,3,1>(msh,edg2pol,sz);
           }
-          METRIS_THROW(GeomExcept());
+          METRIS_THROW();
         }
         #endif
 
@@ -1231,9 +1230,9 @@ void getCADCurveLengths_old(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
         break;
       }
       ndiv *= 2;
-      METRIS_ENFORCE_MSG(ndiv < 1e6, "Infinite loop? Increase geotol. Last len ="
-        << edg_len0 << " new = "<<edg_len1<< " ref2ned = "<<ref2ned[iref]
-        << " tol = "<<tol<<" crv_len0 = "<<crv_len0[iref]);
+      METRIS_ENFORCE_MSG(ndiv < 1e6,"Infinite loop? Increase geotol. "
+        "Last len = {} new = {} ref2ned = {} tol = {:e} crv_len0 = {}",
+        edg_len0, edg_len1, ref2ned[iref], tol, crv_len0[iref]);
       edg_len0 = edg_len1;
       METRIS_ENFORCE_MSG(ndiv > 0, "Integer overflow");
     } // while(true)
@@ -1406,8 +1405,8 @@ static int gen_newp_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
 
   const int nnmet = (msh.idim*(msh.idim+1))/2;
 
-  cav.ipins = msh.newpoitopo(1,iedgseed);
-  int ibins = msh.newbpotopo(cav.ipins,1,iedgseed);
+  cav.ipins = msh.newpoitopo(PointType::Vertex, 1,iedgseed);
+  int ibins = msh.newbpotopo(Vertex{cav.ipins},1,iedgseed);
 
 
   // Get optimal location. First guess, t. Then bisection 
@@ -1470,7 +1469,7 @@ static int gen_newp_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
     #ifndef NDEBUG
       CPRINTF2(" - computed metric {}\n", dblAr1(nnmet,msh.met[cav.ipins]));
       if(ierro != 0){
-        msh.newbpotopo(cav.ipins,0);
+        msh.newbpotopo(Vertex{cav.ipins},0);
         if(DOPRINTS3()) writeMesh("debug_interpMetBack"+std::to_string(cav.ipins),msh);
       }
       METRIS_ASSERT_MSG(ierro == 0, "interpMetBack failed");
@@ -1507,7 +1506,7 @@ static int gen_newp_line(Mesh<MFT> &msh, MshCavity& cav, ego obj,
         if(ipdbg < 0) continue;
         PRINTF("{} : {}",ipdbg, dblAr1(nnmet, msh.met[ipdbg]));
       }
-      METRIS_THROW(GeomExcept());
+      METRIS_THROW();
     }
 
     if(abs(len - *adjusted_tarlen) < dlen_best){
