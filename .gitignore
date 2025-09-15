@@ -137,3 +137,13 @@ bunit/regression/2D/OAT15A/*/
 !bunit/regression/3D/cube/cube.meshb
 # Ignore sub directories, these are working directories
 bunit/regression/3D/cube/*/
+
+
+!bunit/regression/3D/UGAWG_cone-cone/cone-cone.meshb
+# Ignore sub directories, these are working directories
+bunit/regression/3D/UGAWG_cone-cone/*/
+
+!bunit/regression/3D/UGAWG_cube-cylinder/cube-cylinder.meshb
+!bunit/regression/3D/UGAWG_cube-cylinder/cube-cylinder.surf.meshb
+# Ignore sub directories, these are working directories
+bunit/regression/3D/UGAWG_cube-cylinder/*/

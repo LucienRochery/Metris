@@ -105,7 +105,7 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov,
   const double nordev = -1; // improve in the future by getting initial ball nordev?
   if(msh.curdeg > 1){
     static int nwarnprt = 5;
-    if(nwarnprt --> 0) fmt::print("## TODO: smoopoilen HO. Need to update adjacent HO nodes\n");
+    if(nwarnprt --> 0) fmt::print("## TODO: smoopoilen HO. Need to update (move) adjacent HO nodes\n");
     return 0;
   }
   GETVDEPTH(msh.param);

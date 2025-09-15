@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x05_Q2toQ2)
       try{
         // Hard copy because the runner moves the data.
         MetrisAPI HOdata_current(HOdata);
-        manager.runTest(param, test_name, &HOdata_current, NULL);
+        manager.runTest(param, test_name, &HOdata_current, NULL, "OAT15A.egads", "OAT15A.solb");
       }catch(const MetrisExcept& e){
         fmt::print(stderr,"## Test {} raised exception:\n{}\n", test_name, e.what());
       }

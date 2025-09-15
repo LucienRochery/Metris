@@ -12,7 +12,6 @@
 
 #include "nlohmann/json.hpp"
 #include <string>
-#include <boost/pfr.hpp>
 
 namespace Metris{
 

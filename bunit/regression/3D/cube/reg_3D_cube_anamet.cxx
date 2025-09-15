@@ -10,7 +10,6 @@
 
 using namespace Metris;
 
-#if 0
 BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q1toQ1) 
 {
 
@@ -92,26 +91,22 @@ BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q1toQ2)
   }
 
 }
-#endif
 
 
 BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q2toQ2) 
 {
 
   RegressionTestManager manager("3D/cube", "reg_anamet_Q2toQ2", "3D_cube_anamet_Q2toQ2");
-
   std::vector<int> l_adp_opt_niter  = {5, 1, 0 };
   std::vector<std::pair<int,double>> l_ianamet = { {1,1.0}, {2,0.05} };
 
   MetrisParameters param;
   param.adp_niter = 20;
   param.opt_niter = 10;
-  param.iverb = 2;
-  param.ivdepth = 1;
 
   MetrisParameters param_degelev;
   param_degelev.adp_niter = 0;
-  param_degelev.opt_niter = 10;
+  param_degelev.opt_niter = 0;
   param_degelev.iverb = 2;
   param_degelev.ivdepth = 1;
   param_degelev.usrTarDeg = 2;
@@ -138,7 +133,7 @@ BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q2toQ2)
 
         try{
           MetrisAPI HOdata_current(HOdata);
-          manager.runTest(param, test_name, &HOdata_current, NULL);
+          manager.runTest(param, test_name, &HOdata_current, NULL, "cube.egads", "");
         }catch(const MetrisExcept& e){
           fmt::print(stderr,"## Test {} raised exception:\n{}\n", test_name, e.what());
         }
