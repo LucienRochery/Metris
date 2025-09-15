@@ -1,0 +1,67 @@
+Call: 
+-- usrTarDeg differs from default: 1 -> 2
+-- opt_niter differs from default: 5 -> 10
+-- Input Mesh = /Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/OAT15A.meshb
+-- Input CAD  = /Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/OAT15A.egads
+-- Input Met  = /Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/OAT15A.solb
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Metris: high-order metric-based non-manifold tetrahedral remesher
+Copyright (C) 2023-2025, Massachusetts Institute of Technology
+Licensed under The GNU Lesser General Public License, version 2.1
+See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
+
+Metris Git repository URL git@github.com:LucienRochery/Metris.git
+commit SHA1 a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3 
+
+Compiled with EGADS version 1.27
+              OCC revision: with OpenCASCADE 7.7.0
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+ - Initialization as metricFE
+-- Mesh of degree 1
+ - Mesh in Lagrange format. depth
+-- Start reading       8244 points
+-- Done reading       8244 points
+-- Start reading          5 corners
+ - Added 5 corners
+-- Start reading          0 VerticesOnGeometricVertices (corners)
+-- Start reading      16031 P1 triangles
+-- Done reading          0 triangles
+-- Start reading        457 P1 edges
+-- Done reading        457 edges
+ - File has 462 bdry pts -> edge links
+(back) -- Counted 0 tetra domain ids
+ - Done neighbours, time =   0.003s 
+-- Update bdry point link to entities (iniBdryPoints)
+-- Created 0/10 edge, 0/0 face bpois 
+   0 boundary points created (iniBdryPoints)
+(back) -- iniBdryPoints nbpoi 467 -> 467
+-- Read CAD file /Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/OAT15A.egads and project.
+ - Start reading CAD file.
+ - Done reading CAD file.
+-- prjMeshPoints start: verify 467, project 0
+ - Tested 467 points. Errors:
+       5 Corners: 0.000e+00 max (0), 0.000e+00 avg L2, 0 errs
+     462 Edges  :   1.256e-19 max (3), 1.136e-12 avg L2, 0 errs
+   - no delayed points -> break
+   - corr loop   0 ncorr 0, 0 remaining
+-- Write file inisurf.meshb npoin 8244 nedge 457 nface 16031 tetra 0 
+-- Write file mshDATAback npoin 8244 nedge 457 nface 16031 tetra 0 
+(back)  - Get metric from file /Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/OAT15A.solb
+Metric in Lagrange format.
+  -- 0 singular CAD normals / tangents at topo dim 1 entities
+  -- Skipping face: not linked to CAD
+-- Computed max geodev, edges:   3.9645110e-02 at 8 faces  -1.0000000e+00 at 0
+  -- Degree elevation 1 -> 2 
+-- DONE time 4.87e-03s
+-- Back metric interpolation back deg = 1
+  -- Matched 5 back <-> front corners
+  -- Frontal back -> front links
+   - Init front with 8244 points
+  -- Interp Back -> Front time 8.42e-03s pt/s 3862572 nerror 0 
+-- DONE time 8.95e-03s
+-- Write file interpBack npoin 32519 nedge 457 nface 16031 tetra 0 
+-- Write file file interpBack.solb npoin 32519
