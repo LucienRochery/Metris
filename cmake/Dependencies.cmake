@@ -274,13 +274,91 @@ list(APPEND METRIS_DEPS_LIBRARIES    ${EGADS_LIBRARIES})
 list(APPEND METRIS_DEPS_LIBRARIES    ${EGADSLITE_LIBRARIES})
 list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${EGADS_INCLUDE_DIRS})
 
-find_library(CAS_TKERNEL TKernel
-             HINTS ${CAS_ROOT}/lib 
+find_library(CAS_TKBool       TKBool
+             HINTS ${CAS_ROOT}/lib
              REQUIRED)
-find_library(CAS_TKFEAT TKFeat
-             HINTS ${CAS_ROOT}/lib 
+find_library(CAS_TKernel      TKernel
+             HINTS ${CAS_ROOT}/lib
              REQUIRED)
-list(APPEND CAS_LIBRARIES ${CAS_TKERNEL} ${CAS_TKFEAT})
+find_library(CAS_TKFeat       TKFeat
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKBO         TKBO
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKGeomAlgo   TKGeomAlgo
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKMath       TKMath
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKOffset     TKOffset
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKPrim       TKPrim
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKTopAlgo    TKTopAlgo
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKBRep       TKBRep
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKG2d        TKG2d
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKG3d        TKG3d
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKGeomBase   TKGeomBase
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKShHealing  TKShHealing
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKSTEP       TKSTEP
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKSTEP209    TKSTEP209
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKSTEPBase   TKSTEPBase
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKSTEPAttr   TKSTEPAttr
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKXSBase     TKXSBase
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKIGES       TKIGES
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+find_library(CAS_TKFillet     TKFillet
+             HINTS ${CAS_ROOT}/lib
+             REQUIRED)
+list(APPEND CAS_LIBRARIES 
+            ${CAS_TKBool}
+            ${CAS_TKernel}
+            ${CAS_TKFeat}
+            ${CAS_TKBO}
+            ${CAS_TKGeomAlgo}
+            ${CAS_TKMath}
+            ${CAS_TKOffset}
+            ${CAS_TKPrim}
+            ${CAS_TKTopAlgo}
+            ${CAS_TKBRep}
+            ${CAS_TKG2d}
+            ${CAS_TKG3d}
+            ${CAS_TKGeomBase}
+            ${CAS_TKShHealing}
+            ${CAS_TKSTEP}
+            ${CAS_TKSTEP209}
+            ${CAS_TKSTEPBase}
+            ${CAS_TKSTEPAttr}
+            ${CAS_TKXSBase}
+            ${CAS_TKIGES}
+            ${CAS_TKFillet})
 list(APPEND METRIS_DEPS_LIBRARIES ${CAS_LIBRARIES})
 
 
