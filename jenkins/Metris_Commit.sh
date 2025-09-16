@@ -48,9 +48,11 @@ if command -v readelf >/dev/null 2>&1; then
   echo "Debug printing metris RUNPATH"
   readelf -d metris |grep RUNPATH || true
   echo "Debug done"
-else
-  echo "Neither objdump nor readelf found, cannot print RPATH/RUNPATH"
 fi
+echo "Library search path:"
+libs ./metris 2>&1 | grep 'search path' || true
+echo "Library search path DONE"
+
 #time make -j $nproc -f Makefile.parallel unit_build
 ctest -V --output-on-failure -L unit 2>&1 |tee unit_tests.log
 #time make -f Makefile.parallel install
