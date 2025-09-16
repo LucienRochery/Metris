@@ -32,8 +32,10 @@ cp $WORKSPACE/jenkins/Makefile.parallel .
 echo "in directory $(pwd)"
 
 #Build basic Metris targets
-rm -f metris
 time make -j $nproc -f Makefile.parallel metris
+echo "Debug printing metris RPATH"
+objdump -x metris | grep RPATH
+echo "Debug done"
 #time make -j $nproc -f Makefile.parallel unit_build
 ctest -V --output-on-failure -L unit 2>&1 |tee unit_tests.log
 #time make -f Makefile.parallel install
