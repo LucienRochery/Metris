@@ -118,6 +118,8 @@ else()
 endif()
 
 set(CMAKE_MACOSX_RPATH 1)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 
 include(${PROJECT_SOURCE_DIR}/cmake/Dependencies.cmake)
 
