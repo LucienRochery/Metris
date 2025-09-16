@@ -287,22 +287,24 @@ list(APPEND METRIS_DEPS_LIBRARIES    ${EGADSLITE_LIBRARIES})
 list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${EGADS_INCLUDE_DIRS})
 
 
-if(${CAS_REV} VERSION_GREATER_EQUAL 7.8) 
-  set(OCC_LIBRARY_NAMES TKBO TKBRep TKBin TKBinL TKBinTObj TKBinXCAF TKBool TKCAF TKCDF TKDE TKDECascade TKDEGLTF TKDEIGES TKDEOBJ TKDEPLY TKDESTEP TKDESTL TKDEVRML TKExpress TKFeat TKFillet TKG2d TKG3d TKGeomAlgo TKGeomBase TKHLR TKLCAF TKMath TKMesh TKOffset TKPrim TKRWMesh TKService TKShHealing TKStd TKStdL TKTObj TKTopAlgo TKV3d TKVCAF TKXCAF TKXMesh TKXSBase TKXml TKXmlL TKXmlTObj TKXmlXCAF TKernel)
-  message(STATUS "Using OCC version >= 7.8 library names: ${OCC_LIBRARY_NAMES}")
-else()
-  set(OCC_LIBRARY_NAMES TKBool TKernel TKFeat TKBO TKGeomAlgo TKMath TKOffset TKPrim TKTopAlgo TKBRep TKG2d TKG3d TKGeomBase TKShHealing TKSTEP TKSTEP209 TKSTEPBase TKSTEPAttr TKXSBase TKIGES TKFillet)
-  message(STATUS "Using OCC version <= 7.7 library names: ${OCC_LIBRARY_NAMES}")
-endif()
+# OpenCASCADE should not be linked to directly, or else RUNPATH is ignored!
+# RUNPATH (unlike the deprecated RPATH) is only used for indirect dependencies...
+#if(${CAS_REV} VERSION_GREATER_EQUAL 7.8) 
+#  set(OCC_LIBRARY_NAMES TKBO TKBRep TKBin TKBinL TKBinTObj TKBinXCAF TKBool TKCAF TKCDF TKDE TKDECascade TKDEGLTF TKDEIGES TKDEOBJ TKDEPLY TKDESTEP TKDESTL TKDEVRML TKExpress TKFeat TKFillet TKG2d TKG3d TKGeomAlgo TKGeomBase TKHLR TKLCAF TKMath TKMesh TKOffset TKPrim TKRWMesh TKService TKShHealing TKStd TKStdL TKTObj TKTopAlgo TKV3d TKVCAF TKXCAF TKXMesh TKXSBase TKXml TKXmlL TKXmlTObj TKXmlXCAF TKernel)
+#  message(STATUS "Using OCC version >= 7.8 library names: ${OCC_LIBRARY_NAMES}")
+#else()
+#  set(OCC_LIBRARY_NAMES TKBool TKernel TKFeat TKBO TKGeomAlgo TKMath TKOffset TKPrim TKTopAlgo TKBRep TKG2d TKG3d TKGeomBase TKShHealing TKSTEP TKSTEP209 TKSTEPBase TKSTEPAttr TKXSBase TKIGES TKFillet)
+#  message(STATUS "Using OCC version <= 7.7 library names: ${OCC_LIBRARY_NAMES}")
+#endif()
 
-foreach(OCClib ${OCC_LIBRARY_NAMES})
-  find_library(CAS_${OCClib} ${OCClib}
-               HINTS ${CAS_ROOT}/lib
-               REQUIRED)
-  list(APPEND CAS_LIBRARIES ${CAS_${OCClib}})
-endforeach()
-
-list(APPEND METRIS_DEPS_LIBRARIES ${CAS_LIBRARIES})
+#foreach(OCClib ${OCC_LIBRARY_NAMES})
+#  find_library(CAS_${OCClib} ${OCClib}
+#               HINTS ${CAS_ROOT}/lib
+#               REQUIRED)
+#  list(APPEND CAS_LIBRARIES ${CAS_${OCClib}})
+#endforeach()
+#
+#list(APPEND METRIS_DEPS_LIBRARIES ${CAS_LIBRARIES})
 
 
 
