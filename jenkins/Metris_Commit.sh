@@ -32,7 +32,7 @@ cp $WORKSPACE/jenkins/Makefile.parallel .
 echo "in directory $(pwd)"
 
 #Build basic Metris targets
-rm metris
+rm -f metris
 time make -j $nproc -f Makefile.parallel metris
 #time make -j $nproc -f Makefile.parallel unit_build
 ctest -V --output-on-failure -L unit 2>&1 |tee unit_tests.log
