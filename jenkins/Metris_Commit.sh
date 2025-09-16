@@ -50,17 +50,13 @@ if command -v readelf >/dev/null 2>&1; then
   echo "Debug done"
 fi
 echo "Library search path:"
-LD_DEBUG=libs ./metris 2>&1 | grep "libTKernel"
+#LD_DEBUG=libs ./metris 2>&1 | grep "libTKernel"
+LD_DEBUG=all ./metris 2>&1 | grep "PATH"
 echo "Library search path DONE"
 ls $CAS_DIR/lib/
 printenv LD_LIBRARY_PATH
 
-# Check if RUNPATH is disabled
-cat /proc/sys/kernel/unprivileged_userns_clone 2>/dev/null || echo "unprivileged_userns_clone"
-cat /proc/sys/kernel/yama/ptrace_scope 2>/dev/null || echo "yama/ptrace_scope"
-
-# Check if SELinux is interfering
-getenforce 2>/dev/null || echo "getenforce"
+ldd ./metris
 
 #time make -j $nproc -f Makefile.parallel unit_build
 ctest -V --output-on-failure -L unit 2>&1 |tee unit_tests.log
