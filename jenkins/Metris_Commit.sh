@@ -57,6 +57,7 @@ ls $CAS_DIR/lib/
 printenv LD_LIBRARY_PATH
 
 ldd ./metris
+ldd --version
 
 #time make -j $nproc -f Makefile.parallel unit_build
 ctest -V --output-on-failure -L unit 2>&1 |tee unit_tests.log
