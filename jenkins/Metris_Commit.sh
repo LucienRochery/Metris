@@ -33,12 +33,23 @@ echo "in directory $(pwd)"
 
 #Build basic Metris targets
 time make -j $nproc -f Makefile.parallel metris
-echo "Debug printing metris RPATH"
-objdump -x metris | grep RPATH
-echo "Debug done"
-echo "Debug printing metris RUNPATH"
-objdump -x metris | grep RUNPATH
-echo "Debug done"
+if command -v objdump >/dev/null 2>&1; then
+  echo "Debug printing metris RPATH"
+  objdump -x metris |grep RPATH
+  echo "Debug done"
+  echo "Debug printing metris RUNPATH"
+  objdump -x metris |grep RUNPATH
+  echo "Debug done"
+elif command -v readelf >/dev/null 2>&1; then
+  echo "Debug printing metris RPATH"
+  readelf -d metris |grep RPATH
+  echo "Debug done"
+  echo "Debug printing metris RUNPATH"
+  readelf -d metris |grep RUNPATH
+  echo "Debug done"
+else
+  echo "Neither objdump nor readelf found, cannot print RPATH/RUNPATH"
+fi
 #time make -j $nproc -f Makefile.parallel unit_build
 ctest -V --output-on-failure -L unit 2>&1 |tee unit_tests.log
 #time make -f Makefile.parallel install
