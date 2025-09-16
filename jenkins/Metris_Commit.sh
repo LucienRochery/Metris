@@ -50,8 +50,10 @@ if command -v readelf >/dev/null 2>&1; then
   echo "Debug done"
 fi
 echo "Library search path:"
-libs ./metris 2>&1 | grep 'search path' || true
+LD_DEBUG=libs ./metris 2>&1 | grep "libTKernel"
 echo "Library search path DONE"
+ls $CAS_DIR/lib/
+printenv LD_LIBRARY_PATH
 
 #time make -j $nproc -f Makefile.parallel unit_build
 ctest -V --output-on-failure -L unit 2>&1 |tee unit_tests.log
