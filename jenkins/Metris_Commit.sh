@@ -32,6 +32,7 @@ cp $WORKSPACE/jenkins/Makefile.parallel .
 echo "in directory $(pwd)"
 
 #Build basic Metris targets
+rm -f metris
 time make -j $nproc -f Makefile.parallel metris
 if command -v objdump >/dev/null 2>&1; then
   echo "Debug printing metris RPATH"
@@ -48,6 +49,7 @@ if command -v readelf >/dev/null 2>&1; then
   echo "Debug printing metris RUNPATH"
   readelf -d metris |grep RUNPATH || true
   echo "Debug done"
+  readelf -d ./metris | grep NEEDED
 fi
 echo "Library search path:"
 #LD_DEBUG=libs ./metris 2>&1 | grep "libTKernel"
