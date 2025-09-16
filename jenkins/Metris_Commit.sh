@@ -35,17 +35,18 @@ echo "in directory $(pwd)"
 time make -j $nproc -f Makefile.parallel metris
 if command -v objdump >/dev/null 2>&1; then
   echo "Debug printing metris RPATH"
-  objdump -x metris |grep RPATH
+  objdump -x metris |grep RPATH || true
   echo "Debug done"
   echo "Debug printing metris RUNPATH"
-  objdump -x metris |grep RUNPATH
+  objdump -x metris |grep RUNPATH || true
   echo "Debug done"
-elif command -v readelf >/dev/null 2>&1; then
+fi
+if command -v readelf >/dev/null 2>&1; then
   echo "Debug printing metris RPATH"
-  readelf -d metris |grep RPATH
+  readelf -d metris |grep RPATH || true
   echo "Debug done"
   echo "Debug printing metris RUNPATH"
-  readelf -d metris |grep RUNPATH
+  readelf -d metris |grep RUNPATH || true
   echo "Debug done"
 else
   echo "Neither objdump nor readelf found, cannot print RPATH/RUNPATH"
