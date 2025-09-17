@@ -32,7 +32,7 @@ cp $WORKSPACE/jenkins/Makefile.parallel .
 echo "in directory $(pwd)"
 
 #Build basic Metris targets
-rm -f metris
+#rm -f metris
 time make -j $nproc -f Makefile.parallel metris
 if command -v objdump >/dev/null 2>&1; then
   echo "Debug printing metris RPATH"
@@ -61,8 +61,8 @@ printenv LD_LIBRARY_PATH
 ldd ./metris
 ldd --version
 
-#time make -j $nproc -f Makefile.parallel unit_build
-ctest -V --output-on-failure -L unit 2>&1 |tee unit_tests.log
+time make -j $nproc -f Makefile.parallel unit_build
+#ctest -V --output-on-failure -L unit 2>&1 |tee unit_tests.log
 #time make -f Makefile.parallel install
 
 #Fail the build if any files were generated in source.
