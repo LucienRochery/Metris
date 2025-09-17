@@ -282,7 +282,9 @@ public:
   
 private:
   std::string outmFileName_;
+public:
   bool main_in_prefix{false}; // whether main output goes in prefix (default no)
+private:
 
   bool wrtMesh{false};
   std::string meshFileName_;

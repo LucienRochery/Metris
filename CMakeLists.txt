@@ -118,6 +118,8 @@ else()
 endif()
 
 set(CMAKE_MACOSX_RPATH 1)
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 
 include(${PROJECT_SOURCE_DIR}/cmake/Dependencies.cmake)
 
@@ -254,7 +256,12 @@ find_package(Boost COMPONENTS unit_test_framework REQUIRED)
 # -- For building in FindUnitTestMeshes and setup_unit_build_and_deploy
 if(NOT DEFINED METRIS_BUILD_CORES)
   include(ProcessorCount)
-  ProcessorCount(NCORES)
+  if(COMMAND ProcessorCount)
+    ProcessorCount(NCORES)
+  else()
+    message(STATUS "ProcessorCount module not available, defaulting to 1 core")
+    set(NCORES 1)
+  endif()
   if(NCORES EQUAL 0)
     set(NCORES 1)
   endif()

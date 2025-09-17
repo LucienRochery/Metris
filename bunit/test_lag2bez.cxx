@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(test_lag2bez)  // , * utf::tolerance(double(1.0e-6))
       err2 = sqrt(err2);
       BOOST_TEST(erri < tol);
       BOOST_TEST(err2 < tol);
-      printf(" %d double conversion abs coord error: inf = %23.16e, l2 = %23.16e\n",
+      printf(" %d double conversions, abs coord err: inf = %23.16e, l2 = %23.16e\n",
               nconv,erri,err2);
       printf(" Time = %f s = %f / conv = %e /conv.elt \n", t1-t0, (t1-t0)/nconv, (t1-t0)/((double)nconv * msh.nentt(msh.get_tdim())) );
     }

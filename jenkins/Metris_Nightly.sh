@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Nightly script: run regression tests for merging onto main
+
 cd $WORKSPACE
 
 export METRIS_CASES_DIR=$WORKSPACE/examples/
@@ -29,41 +31,13 @@ time source $WORKSPACE/jenkins/cmake_jenkins.sh
 cp $WORKSPACE/jenkins/Makefile.parallel .
 
 
-echo "in directory $(pwd)"
-
 #Build basic Metris targets
-#rm -f metris
-time make -j $nproc -f Makefile.parallel metris
-##if command -v objdump >/dev/null 2>&1; then
-##  echo "Debug printing metris RPATH"
-##  objdump -x metris |grep RPATH || true
-##  echo "Debug done"
-##  echo "Debug printing metris RUNPATH"
-##  objdump -x metris |grep RUNPATH || true
-##  echo "Debug done"
-##fi
-##if command -v readelf >/dev/null 2>&1; then
-##  echo "Debug printing metris RPATH"
-##  readelf -d metris |grep RPATH || true
-##  echo "Debug done"
-##  echo "Debug printing metris RUNPATH"
-##  readelf -d metris |grep RUNPATH || true
-##  echo "Debug done"
-##  readelf -d ./metris | grep NEEDED
-##fi
-##echo "Library search path:"
-###LD_DEBUG=libs ./metris 2>&1 | grep "libTKernel"
-##LD_DEBUG=all ./metris 2>&1 | grep "PATH"
-##echo "Library search path DONE"
-##ls $CAS_DIR/lib/
-##printenv LD_LIBRARY_PATH
-##
-##ldd ./metris
-##ldd --version
-
-time make -j $nproc -f Makefile.parallel unit_build
-#ctest -V --output-on-failure -L unit 2>&1 |tee unit_tests.log
+#time make -j $nproc -f Makefile.parallel metris
+#time make -j $nproc -f Makefile.parallel unit_build
 #time make -f Makefile.parallel install
+
+# This should handle all the necessary compilations
+ctest --output-on-failure -V -L regression 2>&1 |tee regression.log
 
 #Fail the build if any files were generated in source.
 #Count the number of files
