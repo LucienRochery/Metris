@@ -82,9 +82,9 @@ add_library(meshBASIC STATIC low_eval.cxx ho_constants.hxx
 setMetrisCXXFlags(meshBASIC PUBLIC)
 set_property(TARGET meshBASIC PROPERTY CXX_STANDARD 17)
 target_include_directories(meshBASIC PUBLIC 
-                           $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
+                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
                            $<INSTALL_INTERFACE:include/src>
-                           $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}> # For directories SANS/ libs/ etc.
+                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # For directories SANS/ libs/ etc.
                            $<INSTALL_INTERFACE:include>
                            ${METRIS_EXTERNAL_INCLUDE_DIRS})
 target_link_libraries(meshBASIC PUBLIC ${ABSL_LIBRARIES}
@@ -301,10 +301,9 @@ add_library(libMetris STATIC ${SRC_SOURCES})
 setMetrisCXXFlags(libMetris PUBLIC)
 set_property(TARGET libMetris PROPERTY CXX_STANDARD 17)
 
-message("-- METRIS_DEPS_INCLUDE_DIRS = ${METRIS_DEPS_INCLUDE_DIRS}")
-target_include_directories(libMetris PUBLIC  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
+target_include_directories(libMetris PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> # 
                                              $<INSTALL_INTERFACE:include/src>
-                                             $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}> # For directories SANS/ libs/ etc.
+                                             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # For directories SANS/ libs/ etc.
                                              $<INSTALL_INTERFACE:include>
                                              ${METRIS_EXTERNAL_INCLUDE_DIRS} )
 
@@ -325,9 +324,9 @@ set_property(TARGET metrisPrepro PROPERTY CXX_STANDARD 17)
 set_target_properties(metrisPrepro PROPERTIES EXCLUDE_FROM_ALL TRUE)
 target_compile_options(metrisPrepro PUBLIC ${METRIS_CXX_FLAGS} -E)
 
-target_include_directories(metrisPrepro PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src>
+target_include_directories(metrisPrepro PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
                                                $<INSTALL_INTERFACE:include/src>
-                                               $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}> # For directories SANS/ libs/ etc.
+                                               $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # For directories SANS/ libs/ etc.
                                                $<INSTALL_INTERFACE:include>
                                                ${METRIS_EXTERNAL_INCLUDE_DIRS} )
 if(REQ_CODEGEN)

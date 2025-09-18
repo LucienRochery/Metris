@@ -178,7 +178,7 @@ target_link_libraries(egads2lite PUBLIC libMetris
                                         )
 
 #For some reason, not specifying the full path does not work for EXISTS
-if(EXISTS ${CMAKE_SOURCE_DIR}/progs/scatter_rh.cxx)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/scatter_rh.cxx)
   add_executable(scatter_rh EXCLUDE_FROM_ALL "progs/scatter_rh.cxx")
   target_link_libraries(scatter_rh PUBLIC libMetris 
                                           Boost::headers # yes this is weird
@@ -189,7 +189,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/progs/scatter_rh.cxx)
   setMetrisCXXFlags(scatter_rh PUBLIC)
 endif()
 
-if(EXISTS ${CMAKE_SOURCE_DIR}/progs/extract_surf.cxx)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/extract_surf.cxx)
   add_executable(extract_surf EXCLUDE_FROM_ALL "progs/extract_surf.cxx")
   target_link_libraries(extract_surf PUBLIC libMetris 
                                             Boost::headers # yes this is weird
@@ -200,7 +200,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/progs/extract_surf.cxx)
   setMetrisCXXFlags(extract_surf PUBLIC)
 endif()
 
-if(EXISTS ${CMAKE_SOURCE_DIR}/progs/offset_coord.cxx)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/offset_coord.cxx)
   add_executable(offset_coord EXCLUDE_FROM_ALL "progs/offset_coord.cxx")
   target_link_libraries(offset_coord PUBLIC libMetris 
                                             Boost::headers # yes this is weird
@@ -235,7 +235,7 @@ elseif(DEFINED ENV{METRIS_CASES_DIR})
   set(METRIS_CASES_DIR $ENV{METRIS_CASES_DIR})
   message("-- Using env var METRIS_CASES_DIR = ${METRIS_CASES_DIR}")
 else()
-  set(METRIS_CASES_DIR "${CMAKE_SOURCE_DIR}/examples")
+  set(METRIS_CASES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/examples")
   message("-- Using default METRIS_CASES_DIR = root/cases = ${METRIS_CASES_DIR}")
 endif()
 set(METRIS_CASES_DIR ${METRIS_CASES_DIR} CACHE PATH "Directory where Metris cases are found.")
@@ -314,7 +314,7 @@ foreach(test_file ${TEST_SOURCES})
   set_target_properties(${test_target_build} PROPERTIES OUTPUT_NAME ${test_target})
   setMetrisCXXFlags(${test_target_build} PUBLIC)
   target_compile_definitions(${test_target_build} PUBLIC METRIS_CASES_DIR="${METRIS_CASES_DIR}"
-                                                         METRIS_ROOT_DIR="${CMAKE_SOURCE_DIR}"
+                                                         METRIS_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
                                                          )
                                                         # METRIS_REGRESSION_DIR="${METRIS_REGRESSION_DIR}"
                                                          
