@@ -253,20 +253,20 @@ if(NOT DEFINED CAS_ROOT)
   endif()
 endif()
 
-if(NOT DEFINED CAS_REV)
-  if(DEFINED ENV{CASREV})
-    set(CAS_REV $ENV{CASREV})
-  elseif(DEFINED ENV{CAS_REV})
-    set(CAS_REV $ENV{CAS_REV})
-  elseif(DEFINED ENV{CAS_VERSION})
-    set(CAS_REV $ENV{CAS_VERSION})
-  else()
-    message(FATAL_ERROR "Set environment variable CASREV/CAS_REV/CAS_VERSION, usually by sourcing ESP_env.sh")
-  endif()
-endif()
-
-message("Using ESP_ROOT = ${ESP_ROOT}")
-message("Using CAS_ROOT = ${CAS_ROOT}, CAS_REV = ${CAS_REV}")
+#if(NOT DEFINED CAS_REV)
+#  if(DEFINED ENV{CASREV})
+#    set(CAS_REV $ENV{CASREV})
+#  elseif(DEFINED ENV{CAS_REV})
+#    set(CAS_REV $ENV{CAS_REV})
+#  elseif(DEFINED ENV{CAS_VERSION})
+#    set(CAS_REV $ENV{CAS_VERSION})
+#  else()
+#    message(FATAL_ERROR "Set environment variable CASREV/CAS_REV/CAS_VERSION, usually by sourcing ESP_env.sh")
+#  endif()
+#endif()
+#
+#message("Using ESP_ROOT = ${ESP_ROOT}")
+#message("Using CAS_ROOT = ${CAS_ROOT}, CAS_REV = ${CAS_REV}")
 
 # Linker still needs path to lib files at compile time
 find_library(EGADS_LIBRARIES NAMES egads
@@ -287,8 +287,6 @@ list(APPEND METRIS_DEPS_LIBRARIES    ${EGADSLITE_LIBRARIES})
 list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${EGADS_INCLUDE_DIRS})
 
 
-# OpenCASCADE should not be linked to directly, or else RUNPATH is ignored!
-# RUNPATH (unlike the deprecated RPATH) is only used for indirect dependencies...
 #if(${CAS_REV} VERSION_GREATER_EQUAL 7.8) 
 #  set(OCC_LIBRARY_NAMES TKBO TKBRep TKBin TKBinL TKBinTObj TKBinXCAF TKBool TKCAF TKCDF TKDE TKDECascade TKDEGLTF TKDEIGES TKDEOBJ TKDEPLY TKDESTEP TKDESTL TKDEVRML TKExpress TKFeat TKFillet TKG2d TKG3d TKGeomAlgo TKGeomBase TKHLR TKLCAF TKMath TKMesh TKOffset TKPrim TKRWMesh TKService TKShHealing TKStd TKStdL TKTObj TKTopAlgo TKV3d TKVCAF TKXCAF TKXMesh TKXSBase TKXml TKXmlL TKXmlTObj TKXmlXCAF TKernel)
 #  message(STATUS "Using OCC version >= 7.8 library names: ${OCC_LIBRARY_NAMES}")
