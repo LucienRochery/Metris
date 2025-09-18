@@ -16,4 +16,4 @@ OUTFIL=$OUTDIR/circmet.p2.5k.meshb
 mkdir -p $OUTDIR
 mkdir -p tmp/
 
-rmetris -in square -anamet 2 -sclmet 0.14 -out $OUTFIL -prefix tmp/ -adapt 10 -opt-niter 10 -t 2 -adp-opt-niter -1
+metris -in square -anamet 2 -sclmet 0.14 -out $OUTFIL -prefix tmp/ -adapt 10 -opt-niter 10 -t 2 -adp-opt-niter -1

@@ -71,8 +71,8 @@ BOOST_AUTO_TEST_CASE(test_surf)
   // Using boundary-layer mesh along x centered at 0.5. This is 3 in 2D and 10 in 3D.
   cargHandler arg2D("-in " + mesh + " -cad " + CADf + " -anamet 3 -sclmet 1 -vdepth 0 -verb 0 -opt-niter 0 -adp-opt-niter 0 -adapt 0");
   MetrisRunner run2D(arg2D.c, arg2D.v);
-  run2D.param->ivdepth = MAX(run2D.param->ivdepth, cmdparam.ivdepth);
-  run2D.param->iverb   = MAX(run2D.param->iverb  , cmdparam.iverb  );
+  //run2D.param->ivdepth = MAX(run2D.param->ivdepth, cmdparam.ivdepth);
+  //run2D.param->iverb   = MAX(run2D.param->iverb  , cmdparam.iverb  );
   Mesh<MFT> &msh2D = *((Mesh<MFT>*) run2D.msh_g);
 
   msh2D.cleanup();
@@ -97,8 +97,8 @@ BOOST_AUTO_TEST_CASE(test_surf)
 
   cargHandler arg3D("-in " + mesh + ".3D -cad " + CADf + " -anamet 10 -sclmet 1 -vdepth 0 -verb 0 -opt-niter 0 -adp-opt-niter 0 -adapt 1");
   MetrisRunner run3D(arg3D.c, arg3D.v);
-  run3D.param->ivdepth = MAX(run3D.param->ivdepth, cmdparam.ivdepth);
-  run3D.param->iverb   = MAX(run3D.param->iverb  , cmdparam.iverb  );
+  //run3D.param->ivdepth = MAX(run3D.param->ivdepth, cmdparam.ivdepth);
+  //run3D.param->iverb   = MAX(run3D.param->iverb  , cmdparam.iverb  );
   Mesh<MFT> &msh3D = *((Mesh<MFT>*) run3D.msh_g);
 
   msh2D.coord.set_stride(2);

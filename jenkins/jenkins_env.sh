@@ -6,7 +6,7 @@ dir=`pwd`
 builddir=`basename $dir`
 
 CAS_VERSION=7.8.1
-
+export CASREV=$CAS_VERSION
 if [[ `hostname` == *"reynolds"* ]]; then
 
   if [[ $builddir == *"intel"* || $builddir == *"coverage"* ]]; then

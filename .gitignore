@@ -120,6 +120,7 @@ cases/2D/*
 !jenkins/jenkins_env.sh
 !jenkins/jenkins_sim.sh
 !jenkins/Metris_Commit.sh
+!jenkins/Metris_Nightly.sh
 
 # Exclude all meshb and solb files except those we take as input
 bunit/regression/**/*.meshb

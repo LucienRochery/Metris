@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(test_newton_drivertype)
   BOOST_CHECK_SMALL(err_TNCG,1.0e-5);
   BOOST_CHECK_SMALL(args.fopt,1.0e-5);
 
-  fmt::print("-- END Newton tests final x error: basic {:.2e}, TNCG = {:.2e}\n", err, err_TNCG);
+  fmt::print("-- END Newton tests final x err: basic {:.2e}, TNCG = {:.2e}\n", err, err_TNCG);
 
 }
 

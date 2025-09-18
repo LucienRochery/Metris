@@ -97,8 +97,12 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES Clang)
   set(METRIS_CLANG_FLAGS -Wno-misleading-indentation 
                          -Wno-gnu-zero-variadic-macro-arguments 
                          -Wno-gcc-compat 
-                         -Wno-cast-function-type-mismatch
                          -Wno-pessimizing-move)
+
+  # This option only introduced in version 19.0.0 raises a warning otherwise
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.0.0)
+    set(METRIS_CLANG_FLAGS ${METRIS_CLANG_FLAGS}  -Wno-cast-function-type-mismatch)
+  endif()
 
 
   #set(METRIS_CXX_FLAGS_RELEASE -DNDEBUG  -march=native -O3 -fPIC)
