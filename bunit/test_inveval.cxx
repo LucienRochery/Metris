@@ -14,10 +14,10 @@
 #include <regex>
 
 #include "common_setup.hxx"
-#include "../src/utils/aux_pp_inc.hxx"
-#include "../src/Localization/low_localization.hxx"
-#include "../src/low_geo/ccoef.hxx"
-#include "../src/linalg/invmat.hxx"
+#include "utils/aux_pp_inc.hxx"
+#include "Localization/low_localization.hxx"
+#include "low_geo/ccoef.hxx"
+#include "linalg/invmat.hxx"
 
 #include <boost/hana.hpp> 
 #include <nlopt.hpp>

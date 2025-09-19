@@ -13,8 +13,8 @@
 #include "low_eval_d_SurrealS.hxx"
 #include "low_eval_d_bezier.hxx"
 
-#include "../SANS/Surreal/SurrealS.h"
-#include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "SANS/Surreal/SurrealS.h"
+#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 #include <boost/hana.hpp> 
 
 

@@ -11,7 +11,7 @@
 
 #include "../aux_exceptions.hxx"
 #include "../utils/fmt_formatters.hxx"
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 #include <Eigen/Dense>
 
 namespace Metris{

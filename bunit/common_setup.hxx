@@ -8,7 +8,7 @@
 
 #include <string>
 
-#include "../src/Metris.h"
+#include "Metris.h"
 
 #include <fcntl.h>
 

@@ -11,19 +11,19 @@
 
 #include "gen_bary.hxx"
 
-#include "../src/utils/CT_loop.hxx"
-#include "../src/utils/mprintf.hxx"
-#include "../src/quality/low_metqua.hxx"
-#include "../src/quality/low_metqua_d.hxx"
-#include "../src/metris_options.hxx"
-#include "../src/MetrisRunner/MetrisRunner.hxx"
-#include "../src/Mesh/Mesh.hxx"
+#include "utils/CT_loop.hxx"
+#include "utils/mprintf.hxx"
+#include "quality/low_metqua.hxx"
+#include "quality/low_metqua_d.hxx"
+#include "metris_options.hxx"
+#include "MetrisRunner/MetrisRunner.hxx"
+#include "Mesh/Mesh.hxx"
 
-#include "../src/quality/low_metqua.hxx"
-#include "../src/quality/quafun_tradet.hxx"
-#include "../src/quality/quafun.hxx"
+#include "quality/low_metqua.hxx"
+#include "quality/quafun_tradet.hxx"
+#include "quality/quafun.hxx"
 
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 
 namespace Metris{
 

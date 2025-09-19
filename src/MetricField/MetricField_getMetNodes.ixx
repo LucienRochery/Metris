@@ -8,7 +8,7 @@
    #ifndef FILE_H_
       #define FILE_H_
       #include <boost/preprocessor/iteration/iterate.hpp>
-      #define BOOST_PP_ITERATION_PARAMS_1 (3, (1, METRIS_MAX_DEG, "src/MetricField/MetricField_getMetNodes.ixx"))
+      #define BOOST_PP_ITERATION_PARAMS_1 (3, (1, METRIS_MAX_DEG, "MetricField/MetricField_getMetNodes.ixx"))
       #include BOOST_PP_ITERATE()
    #endif
 #else

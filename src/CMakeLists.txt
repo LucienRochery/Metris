@@ -82,13 +82,11 @@ add_library(meshBASIC STATIC low_eval.cxx ho_constants.hxx
 setMetrisCXXFlags(meshBASIC PUBLIC)
 set_property(TARGET meshBASIC PROPERTY CXX_STANDARD 17)
 target_include_directories(meshBASIC PUBLIC 
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                            $<INSTALL_INTERFACE:include/src>
-                           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # For directories SANS/ libs/ etc.
-                           $<INSTALL_INTERFACE:include>
                            ${METRIS_EXTERNAL_INCLUDE_DIRS})
 target_link_libraries(meshBASIC PUBLIC ${ABSL_LIBRARIES}
- ${METRIS_DEPS_LIBRARIES}
+                                       metris_deps
                                        ) 
 if(REQ_CODEGEN)
   add_dependencies(meshBASIC codegen1  gen_lageval)
@@ -301,13 +299,18 @@ add_library(libMetris STATIC ${SRC_SOURCES})
 setMetrisCXXFlags(libMetris PUBLIC)
 set_property(TARGET libMetris PROPERTY CXX_STANDARD 17)
 
-target_include_directories(libMetris PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src> # 
+target_include_directories(libMetris PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # 
                                              $<INSTALL_INTERFACE:include/src>
-                                             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # For directories SANS/ libs/ etc.
-                                             $<INSTALL_INTERFACE:include>
-                                             ${METRIS_EXTERNAL_INCLUDE_DIRS} )
-
-target_link_libraries(libMetris PUBLIC ${METRIS_DEPS_LIBRARIES})
+                                             ${METRIS_EXTERNAL_INCLUDE_DIRS}
+                                             )
+target_link_libraries(libMetris PUBLIC metris_deps)
+# Finicky include directory propagation requires explicitely
+# including the interface directories to be robust:
+get_target_property(METRIS_DEPS_INTERFACE_DIRS metris_deps INTERFACE_INCLUDE_DIRECTORIES)
+MESSAGE(STATUS "METRIS_DEPS_INTERFACE_DIRS = ${METRIS_DEPS_INTERFACE_DIRS}")
+if(METRIS_DEPS_INTERFACE_DIRS)
+  target_include_directories(libMetris INTERFACE ${METRIS_DEPS_INTERFACE_DIRS})
+endif()
 
 if(REQ_CODEGEN)
   add_dependencies(libMetris codegen1 codegen2)
@@ -324,10 +327,8 @@ set_property(TARGET metrisPrepro PROPERTY CXX_STANDARD 17)
 set_target_properties(metrisPrepro PROPERTIES EXCLUDE_FROM_ALL TRUE)
 target_compile_options(metrisPrepro PUBLIC ${METRIS_CXX_FLAGS} -E)
 
-target_include_directories(metrisPrepro PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
+target_include_directories(metrisPrepro PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                                                $<INSTALL_INTERFACE:include/src>
-                                               $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # For directories SANS/ libs/ etc.
-                                               $<INSTALL_INTERFACE:include>
                                                ${METRIS_EXTERNAL_INCLUDE_DIRS} )
 if(REQ_CODEGEN)
   add_dependencies(libMetris codegen1 codegen2)

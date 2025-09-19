@@ -7,10 +7,10 @@
 
 #include "common_setup.hxx"
 
-#include "../src/msh_lag2bez.hxx"
-#include "../src/utils/mprintf.hxx"
-#include "../src/utils/CT_loop.hxx"
-#include "../src/utils/aux_timer.hxx"
+#include "msh_lag2bez.hxx"
+#include "utils/mprintf.hxx"
+#include "utils/CT_loop.hxx"
+#include "utils/aux_timer.hxx"
 
 #include <cmath>
 

@@ -8,9 +8,9 @@
 #include "common_setup.hxx"
 
 #include <random>
-#include "../src/Adaptation/low_delaunay.hxx"
-#include "../src/utils/mprintf.hxx"
-#include "../src/Adaptation/Insertion/msh_insert.hxx"
+#include "Adaptation/low_delaunay.hxx"
+#include "utils/mprintf.hxx"
+#include "Adaptation/Insertion/msh_insert.hxx"
 
 #include <boost/hana.hpp> 
 namespace hana = boost::hana;

@@ -10,14 +10,14 @@
 
 #include <boost/timer/progress_display.hpp>
 
-#include "../src/utils/aux_misc.hxx"
-#include "../src/quality/low_metqua.hxx"
-#include "../SANS/Surreal/SurrealS.h"
-#include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "utils/aux_misc.hxx"
+#include "quality/low_metqua.hxx"
+#include "SANS/Surreal/SurrealS.h"
+#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 //#include <src/msh_metric.hxx>
-#include "../src/Localization/low_localization.hxx"
+#include "Localization/low_localization.hxx"
 
-#include "../src/Optimization/opt_generic.hxx"
+#include "Optimization/opt_generic.hxx"
 
 #include <boost/hana.hpp> 
 namespace hana = boost::hana;

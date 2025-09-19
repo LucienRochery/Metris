@@ -9,7 +9,7 @@
 #include "SANS/Surreal/SurrealS.h"
 #include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
-#include "src/metris_constants.hxx"
+//#include "metris_constants.hxx"
 
 namespace SANS
 {

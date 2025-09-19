@@ -51,12 +51,9 @@ include(cmake/BuildType.cmake)
 include(cmake/MetrisFlags.cmake)
  
 
-set(METRIS_DEPS_LIBRARIES "")
-# INTERNAL_INCLUDE_DIRS paths are all relative to ${PROJECT_SOURCE_DIR}. The directory structure is replicated
-# in install/include 
-set(METRIS_INTERNAL_INCLUDE_DIRS "")
 # These are system-wide install paths only:
 set(METRIS_EXTERNAL_INCLUDE_DIRS "")
+add_library(metris_deps INTERFACE)
 
 
 find_package(Git REQUIRED)
@@ -150,7 +147,6 @@ endif()
 
 
 add_subdirectory(libs)
-add_subdirectory(SANS)
 # 2 --- Main program
 add_subdirectory(src)
 #add_subdirectory(libs/libkdtree)
@@ -320,7 +316,7 @@ foreach(test_file ${TEST_SOURCES})
                                                          
   target_link_libraries(${test_target_build} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   target_link_libraries(${test_target_build} PUBLIC libMetris 
-                                                    ${METRIS_DEPS_LIBRARIES}
+                                                    metris_deps
                                                     Boost::headers # yes this is weird
                                                     ${Boost_LIBRARIES}
                                                     )
@@ -377,7 +373,7 @@ add_custom_target(metris_regression_tests_build
 
 # --- Install libMetris
 
-install(TARGETS libMetris libmeshb lplib3 libkdtree alglib libSANS_Metris EXPORT libMetrisTargets
+install(TARGETS libMetris libmeshb lplib3 alglib metris_deps EXPORT libMetrisTargets
   RUNTIME  DESTINATION   ${CMAKE_INSTALL_BINDIR}
            COMPONENT     runtime OPTIONAL
   LIBRARY  DESTINATION   ${CMAKE_INSTALL_LIBDIR}
@@ -485,7 +481,5 @@ message(STATUS "Metris configure script end, using "
         "CMAKE_INSTALL_LIBDIR = ${CMAKE_INSTALL_LIBDIR}, \n"
         "CMAKE_INSTALL_INCLUDEDIR = ${CMAKE_INSTALL_INCLUDEDIR}, \n"
         "CMAKE_INSTALL_BINDIR = ${CMAKE_INSTALL_BINDIR}, \n"
-        "METRIS_DEPS_LIBRARIES = ${METRIS_DEPS_LIBRARIES}, \n"
-        "METRIS_INTERNAL_INCLUDE_DIRS = ${METRIS_INTERNAL_INCLUDE_DIRS}, \n"
         "METRIS_EXTERNAL_INCLUDE_DIRS = ${METRIS_EXTERNAL_INCLUDE_DIRS}")
 message("=================================================================")
