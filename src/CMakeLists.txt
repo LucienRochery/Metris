@@ -307,7 +307,7 @@ target_link_libraries(libMetris PUBLIC metris_deps)
 # Finicky include directory propagation requires explicitely
 # including the interface directories to be robust:
 get_target_property(METRIS_DEPS_INTERFACE_DIRS metris_deps INTERFACE_INCLUDE_DIRECTORIES)
-MESSAGE(WARNING "METRIS_DEPS_INTERFACE_DIRS = ${METRIS_DEPS_INTERFACE_DIRS}")
+MESSAGE(STATUS "METRIS_DEPS_INTERFACE_DIRS = ${METRIS_DEPS_INTERFACE_DIRS}")
 if(METRIS_DEPS_INTERFACE_DIRS)
   target_include_directories(libMetris INTERFACE ${METRIS_DEPS_INTERFACE_DIRS})
 endif()
