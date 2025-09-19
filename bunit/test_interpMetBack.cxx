@@ -14,12 +14,12 @@
 #include <regex>
 
 #include "common_setup.hxx"
-#include "../src/utils/aux_pp_inc.hxx"
-#include "../src/utils/mprintf.hxx"
-#include "../src/Localization/low_localization.hxx"
-#include "../src/low_geo/ccoef.hxx"
-#include "../src/low_geo/normal.hxx"
-#include "../src/linalg/invmat.hxx"
+#include "utils/aux_pp_inc.hxx"
+#include "utils/mprintf.hxx"
+#include "Localization/low_localization.hxx"
+#include "low_geo/ccoef.hxx"
+#include "low_geo/normal.hxx"
+#include "linalg/invmat.hxx"
 
 #include <filesystem>
 #include <boost/hana.hpp> 

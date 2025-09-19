@@ -8,17 +8,17 @@
 #include <boost/test/included/unit_test.hpp> 
 #include "common_setup.hxx"
 
-#include "../src/low_eval.hxx"
-#include "../src/low_eval_d.hxx"
-#include "../src/low_evalS.hxx"
-#include "../src/low_eval_d_SurrealS.hxx"
+#include "low_eval.hxx"
+#include "low_eval_d.hxx"
+#include "low_evalS.hxx"
+#include "low_eval_d_SurrealS.hxx"
 
-#include "../src/utils/CT_loop.hxx"
-#include "../src/utils/mprintf.hxx"
-#include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
-#include "../src/Mesh/Mesh.hxx"
+#include "utils/CT_loop.hxx"
+#include "utils/mprintf.hxx"
+#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "Mesh/Mesh.hxx"
 
-#include "../src/low_eval_d.hxx"
+#include "low_eval_d.hxx"
 
 #include <random>
 

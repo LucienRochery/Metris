@@ -150,7 +150,6 @@ endif()
 
 
 add_subdirectory(libs)
-add_subdirectory(SANS)
 # 2 --- Main program
 add_subdirectory(src)
 #add_subdirectory(libs/libkdtree)
@@ -377,7 +376,7 @@ add_custom_target(metris_regression_tests_build
 
 # --- Install libMetris
 
-install(TARGETS libMetris libmeshb lplib3 libkdtree alglib libSANS_Metris EXPORT libMetrisTargets
+install(TARGETS libMetris libmeshb lplib3 alglib libSANS_Metris EXPORT libMetrisTargets
   RUNTIME  DESTINATION   ${CMAKE_INSTALL_BINDIR}
            COMPONENT     runtime OPTIONAL
   LIBRARY  DESTINATION   ${CMAKE_INSTALL_LIBDIR}

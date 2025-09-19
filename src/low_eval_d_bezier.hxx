@@ -7,7 +7,7 @@
 #define __LOW_EVAL_D_BEZIER__
 
 
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 #include "low_eval_d_helper.hxx"
 #include "ho_constants.hxx"
 #include "types.hxx"

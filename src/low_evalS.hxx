@@ -18,7 +18,7 @@
 #include "utils/aux_misc.hxx"
 
 
-#include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
 #include <boost/hana.hpp> 
 

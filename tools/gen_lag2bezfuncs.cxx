@@ -3,11 +3,11 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#include "../src/ho_constants.hxx"
-#include "../src/low_eval.hxx"
-#include "../src/utils/aux_misc.hxx"
-#include "../src/utils/aux_timer.hxx"
-#include "../src/utils/CT_loop.hxx"
+#include "ho_constants.hxx"
+#include "low_eval.hxx"
+#include "utils/aux_misc.hxx"
+#include "utils/aux_timer.hxx"
+#include "utils/CT_loop.hxx"
 
 
 #include <boost/hana.hpp> 

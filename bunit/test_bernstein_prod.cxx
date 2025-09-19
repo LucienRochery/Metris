@@ -7,8 +7,8 @@
 
 #include "common_setup.hxx"
 
-#include "../src/utils/CT_loop.hxx"
-#include "../src/utils/bernstein_prod.hxx"
+#include "utils/CT_loop.hxx"
+#include "utils/bernstein_prod.hxx"
 
 #include <random>
 #include <cmath>

@@ -7,14 +7,14 @@
 
 #include "common_setup.hxx"
 
-#include "../src/SolutionField/minInterpError.hxx"
-#include "../src/SolutionField/interpError.hxx"
-#include "../src/SolutionField/SolutionField.hxx"
-#include "../src/utils/mprintf.hxx"
-#include "../src/utils/CT_loop.hxx"
-#include "../src/utils/aux_timer.hxx"
-#include "../src/linalg/det.hxx"
-#include "../src/utils/bernstein_prod.hxx"
+#include "SolutionField/minInterpError.hxx"
+#include "SolutionField/interpError.hxx"
+#include "SolutionField/SolutionField.hxx"
+#include "utils/mprintf.hxx"
+#include "utils/CT_loop.hxx"
+#include "utils/aux_timer.hxx"
+#include "linalg/det.hxx"
+#include "utils/bernstein_prod.hxx"
 
 #include <random>
 #include <cmath>

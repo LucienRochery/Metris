@@ -7,7 +7,7 @@
 #ifndef __METRIS_SYMIDX__
 #define __METRIS_SYMIDX__
 
-#include "../src/utils/aux_pp_inc.hxx"
+#include "utils/aux_pp_inc.hxx"
 
 namespace Metris{
 

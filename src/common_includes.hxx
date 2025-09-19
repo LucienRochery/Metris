@@ -35,7 +35,7 @@
 
 #include "utils/aux_timer.hxx"
 #include "aux_exceptions.hxx"
-#include "../SANS/tools/minmax.h"
+#include "SANS/tools/minmax.h"
 
 
 //#include "utils/aux_misc.hxx"
@@ -60,7 +60,7 @@
 //#include <cassert>
 //#include <tuple>
 //
-//#include "../SANS/Surreal/SurrealS.h"
+//#include "SANS/Surreal/SurrealS.h"
 
 
 

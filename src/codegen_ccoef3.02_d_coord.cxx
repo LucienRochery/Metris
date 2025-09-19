@@ -4,7 +4,7 @@
 //See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 #include "codegen_ccoef_d.hxx"
-#include "src/types.hxx"
+#include "types.hxx"
 
 namespace Metris{
 

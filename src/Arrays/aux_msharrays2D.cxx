@@ -4,7 +4,7 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 #include "../Arrays/aux_msharrays.hxx"
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 #include "../metris_constants.hxx"
 
 #include "../utils/fmt_formatters.hxx"

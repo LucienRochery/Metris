@@ -11,11 +11,11 @@
 #include <boost/timer/progress_display.hpp>
 #include <random>
 
-//#include "../src/utils/aux_utils.hxx"
-#include "../src/low_geo/misc.hxx"
-#include "../src/linalg/eigen.hxx"
-#include "../src/linalg/det.hxx"
-#include "../src/linalg/invmat.hxx"
+//#include "utils/aux_utils.hxx"
+#include "low_geo/misc.hxx"
+#include "linalg/eigen.hxx"
+#include "linalg/det.hxx"
+#include "linalg/invmat.hxx"
 
 
 #include <Eigen/Core>

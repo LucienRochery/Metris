@@ -7,8 +7,8 @@ add_library(libSANS_Metris tools/SANSException.cpp
                            LinearAlgebra/DenseLinAlg/StaticSize/MatMul/MatrixS_MatMul_Native_MatrixS_Instantiate.cpp
                            )
 target_include_directories(libSANS_Metris PUBLIC ${Boost_INCLUDE_DIRS}
-                                                 $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
-                                                 $<INSTALL_INTERFACE:include>)
+                                                 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
+                                                 $<INSTALL_INTERFACE:include/libs>)
 
 if(USE_GMP)
   target_link_libraries(libSANS_Metris PUBLIC ${GMP_LIBRARIES})

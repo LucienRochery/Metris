@@ -15,11 +15,11 @@ list(APPEND METRIS_DEPS_LIBRARIES lplib3)
 
 
 
-# -- libkdtree
-add_library(libkdtree INTERFACE)
-target_include_directories(libkdtree INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/libs/libkdtree>
-                                               $<INSTALL_INTERFACE:include/libs/libkdtree>)
-list(APPEND METRIS_DEPS_LIBRARIES libkdtree)
+## -- libkdtree
+#add_library(libkdtree INTERFACE)
+#target_include_directories(libkdtree INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/libs/libkdtree>
+#                                               $<INSTALL_INTERFACE:include/libs/libkdtree>)
+#list(APPEND METRIS_DEPS_LIBRARIES libkdtree)
 
 # -- Alglib
 file (GLOB_RECURSE ALGLIB_SRC CONFIGURE_DEPENDS "alglib-cpp/src/*.cpp")
@@ -29,6 +29,7 @@ target_include_directories(alglib INTERFACE $<BUILD_INTERFACE:${PROJECT_SOURCE_D
 list(APPEND METRIS_DEPS_LIBRARIES alglib)
 
 
+add_subdirectory(SANS)
 
 
 set(METRIS_INTERNAL_INCLUDE_DIRS ${METRIS_INTERNAL_INCLUDE_DIRS} PARENT_SCOPE)

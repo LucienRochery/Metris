@@ -8,7 +8,7 @@
 #ifndef __METRIS_LINALG_UTILS__
 #define __METRIS_LINALG_UTILS__
 
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 
 
 namespace Metris{

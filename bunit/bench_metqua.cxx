@@ -8,9 +8,9 @@
 #include <boost/test/included/unit_test.hpp> 
 #include "common_setup.hxx"
 
-#include "../src/ho_constants.hxx"
-#include "../src/utils/aux_misc.hxx"
-#include "../src/quality/low_metqua.hxx"
+#include "ho_constants.hxx"
+#include "utils/aux_misc.hxx"
+#include "quality/low_metqua.hxx"
 
 #include <random>
 

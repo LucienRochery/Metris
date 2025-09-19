@@ -10,15 +10,15 @@
 
 #include <boost/timer/progress_display.hpp>
 
-#include "../src/ho_constants.hxx"
-#include "../src/io_libmeshb.hxx"
-#include "../src/utils/aux_misc.hxx"
-#include "../src/quality/low_metqua.hxx"
-#include "../SANS/Surreal/SurrealS.h"
-#include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
-#include "../src/low_geo/misc.hxx"
-#include "../src/Adaptation/low_cavqual.cxx"
-#include <boost/hana.hpp> 
+#include "ho_constants.hxx"
+#include "io_libmeshb.hxx"
+#include "utils/aux_misc.hxx"
+#include "quality/low_metqua.hxx"
+#include "SANS/Surreal/SurrealS.h"
+#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "low_geo/misc.hxx"
+#include "Adaptation/low_cavqual.cxx"
+#include <boost/hana.hpp>
 
 using namespace Metris;
 

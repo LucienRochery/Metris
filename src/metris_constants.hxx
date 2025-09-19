@@ -12,7 +12,7 @@
 #include <array>
 #include <boost/hana/map.hpp>
 #include <boost/hana/pair.hpp>
-#include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
+#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
 #include "metris_defaults.hxx"
 #include "types_scalar.hxx"
 namespace hana = boost::hana;

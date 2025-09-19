@@ -27,7 +27,7 @@ Simplest possible approach.
 #include "../io_libmeshb.hxx"
 #include "../msh_checktopo.hxx"
 
-#include "libs/lplib3/lplib3.h"
+#include "lplib3/lplib3.h"
 
 
 

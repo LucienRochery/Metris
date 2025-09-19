@@ -6,7 +6,7 @@
 
 #ifndef __METRIS_SURREALS_INC__
 #define __METRIS_SURREALS_INC__
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 
 
 typedef SANS::SurrealS<2,double> SurrealS2;

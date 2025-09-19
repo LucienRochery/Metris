@@ -6,7 +6,7 @@
 #ifndef __METRIS_LIBMESHB_INTERFACE__
 #define __METRIS_LIBMESHB_INTERFACE__
 
-#include "libs/libmeshb7/libmeshb7.h"
+#include "libmeshb7/libmeshb7.h"
 
 #define __MAX_LIBMESHB_DEG__ 4
 

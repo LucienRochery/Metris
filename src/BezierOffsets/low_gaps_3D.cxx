@@ -15,7 +15,7 @@
 #include "../ho_quadrature.hxx"
 #include "../low_localization.hxx"
 #include "../linalg/eigen.hxx"
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 
 #include "../low_geo/ccoef.hxx"
 
