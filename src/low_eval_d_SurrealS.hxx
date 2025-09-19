@@ -7,7 +7,7 @@
 #define __LOW_EVAL_D_SURREALS__
 
 
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 #include "ho_constants.hxx"
 #include "types.hxx"
 #include "low_eval_d_bezier.hxx"

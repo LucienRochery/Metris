@@ -23,9 +23,9 @@ BOOST_AUTO_TEST_CASE(bench_quafun_tradet)
 #include "common_setup.hxx"
 #include "gen_bary.hxx"
 
-#include "../src/quality/quafun_tradet.hxx"
-#include "../src/low_eval.hxx"
-#include "../src/linalg/det.hxx"
+#include "quality/quafun_tradet.hxx"
+#include "low_eval.hxx"
+#include "linalg/det.hxx"
 
 
 namespace Metris{

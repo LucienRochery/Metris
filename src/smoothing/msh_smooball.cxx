@@ -21,7 +21,7 @@ Simplest possible approach.
 #include "../quality/low_metqua.hxx"
 #include "../io_libmeshb.hxx"
 
-#include "libs/lplib3/lplib3.h"
+#include "lplib3/lplib3.h"
 
 #undef USE_LPLIB_SMOOTHINTERIOR 
 

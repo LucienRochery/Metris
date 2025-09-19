@@ -26,7 +26,7 @@
 #include <cmath>
 #include "../linalg/dsytrd.hxx"
 #include "../linalg/dsyevq.hxx"
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 #include "../utils/aux_misc.hxx"
 
 // Macros

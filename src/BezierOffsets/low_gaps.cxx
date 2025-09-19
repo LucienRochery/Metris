@@ -9,7 +9,7 @@
 
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../Mesh/Mesh.hxx"
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 #include "../aux_exceptions.hxx"
 #include "../ho_constants.hxx"
 

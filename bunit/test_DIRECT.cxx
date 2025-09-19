@@ -10,13 +10,13 @@
 #include <random>
 #include <filesystem>
 
-#include "../src/Optimization/DIRECT.hxx"
-#include "../src/types.hxx"
-#include "../src/low_geo/misc.hxx"
-#include "../src/low_geo/measure.hxx"
-#include "../src/io_libmeshb.hxx"
-#include "../src/low_eval.hxx"
-#include "../src/utils/mprintf.hxx"
+#include "Optimization/DIRECT.hxx"
+#include "types.hxx"
+#include "low_geo/misc.hxx"
+#include "low_geo/measure.hxx"
+#include "io_libmeshb.hxx"
+#include "low_eval.hxx"
+#include "utils/mprintf.hxx"
 
 #include <boost/timer/progress_display.hpp>
 

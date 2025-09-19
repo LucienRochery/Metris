@@ -4,8 +4,8 @@
 //See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 #include "gen_ccoef.hxx"
-#include "../src/ho_constants.hxx"
-#include "../src/aux_exceptions.hxx"
+#include "ho_constants.hxx"
+#include "aux_exceptions.hxx"
 #include <../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h>
 
 #include <sstream>

@@ -7,8 +7,8 @@
 
 #include "common_setup.hxx"
 
-#include "../src/utils/tuple_hashtable.hxx"
-#include "../src/utils/aux_misc.hxx"
+#include "utils/tuple_hashtable.hxx"
+#include "utils/aux_misc.hxx"
 
 
 #include <random>

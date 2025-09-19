@@ -10,7 +10,7 @@
 #include <string>
 #include <map>
 
-#include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
 void simpfrac(int x, int y, int *xs, int *ys);
 void insert_map2(std::map<std::pair<int, int>, std::vector<SANS::DLA::VectorS<4, int>>> &d_ccoef_map,

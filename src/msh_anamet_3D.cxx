@@ -7,7 +7,7 @@
 
 #include "linalg/eigen.hxx"
 #include "linalg/utils.hxx"
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 
 
 #include <cmath>

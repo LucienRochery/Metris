@@ -3,8 +3,8 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#include "../src/main_adap.hxx"
-#include "../src/metris_options.hxx"
+#include "main_adap.hxx"
+#include "metris_options.hxx"
 #ifdef METRIS_USE_PETSC
   #include <petscsys.h>
 #endif

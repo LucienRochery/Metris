@@ -10,7 +10,7 @@
 // This assumes an input Bézier mesh. 
 #include "gen_ccoef.hxx"
 
-#include "../src/ho_constants.hxx"
+#include "ho_constants.hxx"
 #include <cmath>
 
 #include <string>

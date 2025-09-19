@@ -16,7 +16,7 @@
 
 #include "Mesh/MeshMetric.hxx"
 
-#include "libs/lplib3/lplib3.h"
+#include "lplib3/lplib3.h"
 
 namespace Metris{
 

@@ -14,8 +14,8 @@
 #include "low_eval_d_bezier.hxx"
 #include "low_eval_d_helper.hxx"
 
-#include "../SANS/Surreal/SurrealS.h"
-#include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "SANS/Surreal/SurrealS.h"
+#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 #include <boost/hana.hpp> 
 
 

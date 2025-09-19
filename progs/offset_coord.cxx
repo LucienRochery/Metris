@@ -3,8 +3,8 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#include "../src/Metris.h"
-#include "../src/libmeshb.hxx"
+#include "Metris.h"
+#include "libmeshb.hxx"
 #include <fstream>
 #include <string>
 #include <algorithm>

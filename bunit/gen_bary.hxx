@@ -6,7 +6,7 @@
 #ifndef __METRIS_GEN_BARY__
 #define __METRIS_GEN_BARY__
 
-#include "../src/types_arrays.hxx"
+#include "types_arrays.hxx"
 
 #include <random>
 
