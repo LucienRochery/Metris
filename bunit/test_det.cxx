@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_det
 
 #include <boost/test/included/unit_test.hpp> 
 #include "common_setup.hxx"
@@ -12,12 +12,15 @@
 #include <random>
 #include <fstream>
 
-//#include "../src/utils/aux_utils.hxx"
-#include "../src/low_geo.hxx"
-#include "../src/linalg/det.hxx"
-#include "../src/linalg/eigen.hxx"
-#include "../src/linalg/explogmet.hxx"
+//#include "utils/aux_utils.hxx"
+#include "low_geo/misc.hxx"
+#include "linalg/det.hxx"
+#include "linalg/eigen.hxx"
+#include "linalg/explogmet.hxx"
 
+//#ifdef NDEBUG 
+#define DO_BENCHMARKS
+//#endif
 
 #include <Eigen/Dense>
 
@@ -37,7 +40,7 @@ template<int ndim>
 void generate_metric(double aniso, double eigval[ndim], double eigvec[ndim][ndim],
   std::uniform_real_distribution<double>& unif, std::default_random_engine& rng);
 
-BOOST_AUTO_TEST_CASE(test_eigen) 
+BOOST_AUTO_TEST_CASE(test_det) 
 {//METRIS_MAX_DEG
 
   const int nsamp = 1e5;
@@ -240,6 +243,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
 #else
   printf("## Unit test disabled as USE_MULTIPRECISION not defined\n");
+  BOOST_TEST(true);
 #endif
 
 
@@ -260,47 +264,55 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       // ------------------------------------------------------------ Benchmark
       double dum_tot = 0;
 
-      #ifdef NDEBUG
-      double t0_N = get_wall_time();
+      for(int isamp = 0; isamp < nsamp; isamp++){
+        generate_metric<ndim>(anisorat, eigval, eigvec, unif, rng);
+
+        // Generate metric from eigvecs, eigvals
+        eig2met<ndim,double>(eigval,eigvec[0],met);
+        for(int ii = 0; ii < nnmet; ii++) met_samples[ndim-2](isamp, ii) = met[ii];
+      }
+
+      #ifdef DO_BENCHMARKS
+      double t0_N = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
         double det = detsym<ndim>(met);
         dum_tot += det;
       }
-      double t1_N = get_wall_time();
+      double t1_N = get_cpu_time();
 
       #ifdef USE_MULTIPRECISION
-      double t0_Nf4 = get_wall_time();
+      double t0_Nf4 = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met4[ii] = (float4) met_samples[ndim-2](isamp, ii);
         float4 det = detsym<ndim,float4>(met4);
         dum_tot += (double) det;
       }
-      double t1_Nf4 = get_wall_time();
+      double t1_Nf4 = get_cpu_time();
       #endif
 
 
       #ifdef METRIS_USE_LAPACK
-      double t0_L = get_wall_time();
+      double t0_L = get_cpu_time();
       int rwork[10];
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
         double det = detsym_LAPACK<ndim>(met);
         dum_tot += det;
       }
-      double t1_L = get_wall_time();
+      double t1_L = get_cpu_time();
       #endif
 
 
-      double t0_ELLT = get_wall_time();
+      double t0_ELLT = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
         double det = detsym_Eigen_LLT<ndim>(met);
         dum_tot += det;
       }
-      double t1_ELLT = get_wall_time();
+      double t1_ELLT = get_cpu_time();
 
-      double t0_Edet = get_wall_time();
+      double t0_Edet = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
         
@@ -311,24 +323,24 @@ BOOST_AUTO_TEST_CASE(test_eigen)
         double det = met_Eigen.determinant();
         dum_tot += det;
       }
-      double t1_Edet = get_wall_time();
+      double t1_Edet = get_cpu_time();
 
-      double t0_ELDLT= get_wall_time();
+      double t0_ELDLT= get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim-2](isamp, ii);
         double det = detsym_Eigen_LDLT<ndim>(met);
         dum_tot+= det;
       }
-      double t1_ELDLT= get_wall_time();
+      double t1_ELDLT= get_cpu_time();
 
       #ifdef USE_MULTIPRECISION
-      double t0_ELDLTf4 = get_wall_time();
+      double t0_ELDLTf4 = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met4[ii] = (float4) met_samples[ndim-2](isamp, ii);
         float4 det = detsym_Eigen_LDLT<ndim,float4>(met4);
         dum_tot+= (double) det;
       }
-      double t1_ELDLTf4 = get_wall_time();
+      double t1_ELDLTf4 = get_cpu_time();
       #endif
 
 
@@ -352,7 +364,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       printf("                      Edet     time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_Edet-t0_Edet,(int)(nsamp/(t1_Edet-t0_Edet)/1000),
                   (t1_Edet-t0_Edet)/(t1_N-t0_N));
-      printf("                      ELDLT   time : %8.2e = %dk op/s, fac = %4.2fx\n",
+      printf("                      ELDLT    time : %8.2e = %dk op/s, fac = %4.2fx\n",
                   t1_ELDLT-t0_ELDLT,(int)(nsamp/(t1_ELDLT-t0_ELDLT)/1000),
                   (t1_ELDLT-t0_ELDLT)/(t1_N-t0_N));
       #ifdef USE_MULTIPRECISION
@@ -569,7 +581,7 @@ ftype detsym_Eigen_LDLT(const ftype *met){
       met_Eigen(ii, jj) = met[sym2idx(ii,jj)];
 
   Eigen::LDLT<MatrixN> ldlt(met_Eigen.template selfadjointView<Eigen::Lower>());
-  if(ldlt.info() != Eigen::Success) METRIS_THROW(GeomExcept());
+  METRIS_ENFORCE(ldlt.info() == Eigen::Success)
 
   VectorN Dv = ldlt.vectorD();
 

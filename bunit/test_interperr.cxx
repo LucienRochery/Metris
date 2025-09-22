@@ -3,18 +3,18 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_interperr
 
 #include "common_setup.hxx"
 
-#include "../src/SolutionField/minInterpError.hxx"
-#include "../src/SolutionField/interpError.hxx"
-#include "../src/SolutionField/SolutionField.hxx"
-#include "../src/utils/mprintf.hxx"
-#include "../src/utils/CT_loop.hxx"
-#include "../src/utils/aux_timer.hxx"
-#include "../src/linalg/det.hxx"
-#include "../src/utils/bernstein_prod.hxx"
+#include "SolutionField/minInterpError.hxx"
+#include "SolutionField/interpError.hxx"
+#include "SolutionField/SolutionField.hxx"
+#include "utils/mprintf.hxx"
+#include "utils/CT_loop.hxx"
+#include "utils/aux_timer.hxx"
+#include "linalg/det.hxx"
+#include "utils/bernstein_prod.hxx"
 
 #include <random>
 #include <cmath>
@@ -104,7 +104,7 @@ double interpErr_debug(const SolutionFieldAnalytical &sol, int ielem){
 #endif
 
 
-BOOST_AUTO_TEST_CASE(interperr) 
+BOOST_AUTO_TEST_CASE(test_interperr) 
 {
 
 
@@ -144,7 +144,7 @@ BOOST_AUTO_TEST_CASE(interperr)
             int nentt = msh.nentt(idim);
             const intAr2& ent2poi = msh.ent2poi(idim);
 
-            double t0 = get_wall_time();
+            double t0 = get_cpu_time();
             double errLp = 0;
             double errLp_dbg = 0;
             for(int ientt = 0; ientt < nentt; ientt++){
@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE(interperr)
               errLp += err;
               //printf("Debug ientt %d err %e \n",ientt, err);
             }
-            double t1 = get_wall_time();
+            double t1 = get_cpu_time();
 
             if(s != "../cases/2tri2D.mesh")
               printf("   - pnorm %d pdeg %d ideg %d isol %d got err %7.3e elt/s = %dk/s \n",

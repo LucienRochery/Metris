@@ -83,34 +83,34 @@ template void tens3sym1X1mat3sym<3>(const double* __restrict__ tens3sym1,
 void mat3X2tens3sym1X1tmat3(const double* __restrict__ tens3sym1, 
                            const double* __restrict__ mat3,
                                  double* __restrict__ tens3){
-  printf("dbg %f \n",tens3sym1[0]);
-  printf("dbg %f \n",tens3sym1[1]);
-  printf("dbg %f \n",tens3sym1[2]);
-  printf("dbg %f \n",tens3sym1[3]);
-  printf("dbg %f \n",tens3sym1[4]);
-  printf("dbg %f \n",tens3sym1[5]);
-  printf("dbg %f \n",tens3sym1[6]);
-  printf("dbg %f \n",tens3sym1[7]);
-  printf("dbg %f \n",tens3sym1[8]);
-  printf("dbg %f \n",tens3sym1[9]);
-  printf("dbg %f \n",tens3sym1[10]);
-  printf("dbg %f \n",tens3sym1[11]);
-  printf("dbg %f \n",tens3sym1[12]);
-  printf("dbg %f \n",tens3sym1[13]);
-  printf("dbg %f \n",tens3sym1[14]);
-  printf("dbg %f \n",tens3sym1[15]);
-  printf("dbg %f \n",tens3sym1[16]);
-  printf("dbg %f \n",tens3sym1[17]);
+  //printf("dbg {} \n",tens3sym1[0]);
+  //printf("dbg {} \n",tens3sym1[1]);
+  //printf("dbg {} \n",tens3sym1[2]);
+  //printf("dbg {} \n",tens3sym1[3]);
+  //printf("dbg {} \n",tens3sym1[4]);
+  //printf("dbg {} \n",tens3sym1[5]);
+  //printf("dbg {} \n",tens3sym1[6]);
+  //printf("dbg {} \n",tens3sym1[7]);
+  //printf("dbg {} \n",tens3sym1[8]);
+  //printf("dbg {} \n",tens3sym1[9]);
+  //printf("dbg {} \n",tens3sym1[10]);
+  //printf("dbg {} \n",tens3sym1[11]);
+  //printf("dbg {} \n",tens3sym1[12]);
+  //printf("dbg {} \n",tens3sym1[13]);
+  //printf("dbg {} \n",tens3sym1[14]);
+  //printf("dbg {} \n",tens3sym1[15]);
+  //printf("dbg {} \n",tens3sym1[16]);
+  //printf("dbg {} \n",tens3sym1[17]);
 
-  printf("dbg %f \n",mat3[0]);
-  printf("dbg %f \n",mat3[1]);
-  printf("dbg %f \n",mat3[2]);
-  printf("dbg %f \n",mat3[3]);
-  printf("dbg %f \n",mat3[4]);
-  printf("dbg %f \n",mat3[5]);
-  printf("dbg %f \n",mat3[6]);
-  printf("dbg %f \n",mat3[7]);
-  printf("dbg %f \n",mat3[8]);
+  //printf("dbg {} \n",mat3[0]);
+  //printf("dbg {} \n",mat3[1]);
+  //printf("dbg {} \n",mat3[2]);
+  //printf("dbg {} \n",mat3[3]);
+  //printf("dbg {} \n",mat3[4]);
+  //printf("dbg {} \n",mat3[5]);
+  //printf("dbg {} \n",mat3[6]);
+  //printf("dbg {} \n",mat3[7]);
+  //printf("dbg {} \n",mat3[8]);
 
   
   for(int ii = 0; ii < 3; ii++){

@@ -4,8 +4,10 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 #include "../Arrays/aux_msharrays.hxx"
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 #include "../metris_constants.hxx"
+
+#include "../utils/fmt_formatters.hxx"
 
 
 namespace Metris{
@@ -23,10 +25,11 @@ MeshArray2D<T,INT1,INT2>::MeshArray2D(){
 }
 template<typename T, typename INT1, typename INT2>
 MeshArray2D<T,INT1,INT2>::MeshArray2D(INT1 m, INT2 s){
-  METRIS_ENFORCE_MSG(m >= 0 && s > 0, "MeshArray2D initialized with m < 0 or s <= 0")
+  METRIS_ENFORCE_MSG(m >= 0 && s >= 0, "MeshArray2D initialized with m < 0 or s <= 0")
   stride  = s;
   m1 = n1 = m;
   nmemalc = ((INTL)m1)*((INTL)stride);
+  if(nmemalc <= 0) return;
   array_sp = cpp17_make_shared<T[]>(nmemalc);
   array    = array_sp.get();
   array_ro = array; 
@@ -36,10 +39,10 @@ MeshArray2D<T,INT1,INT2>::MeshArray2D(INT1 m, INT2 s){
 template<typename T, typename INT1, typename INT2>
 MeshArray2D<T,INT1,INT2>::MeshArray2D(INT2 s, const std::initializer_list<T> & list){
   METRIS_ASSERT(s > 0);
-  METRIS_ASSERT(list.size()%s == 0);
+  METRIS_ASSERT(list.size(){} == 0);
 
   stride  = s;
-  m1 = n1 = list.size()%s;
+  m1 = n1 = list.size(){};
   nmemalc = list.size();
   array   = new T[nmemalc];
 
@@ -96,7 +99,7 @@ MeshArray2D<T,INT1,INT2>::MeshArray2D(MeshArray2D &&cpy){
 template<typename T, typename INT1, typename INT2>
 bool MeshArray2D<T,INT1,INT2>::allocate(INT1 m, INT2 s){
 
-  METRIS_ASSERT_MSG(MAX(m,m1) >= n1," Trying to allocate size "<<m<<" < n1 = "<<n1); 
+  METRIS_ASSERT_MSG(MAX(m,m1) >= n1," Trying to allocate size {} < n1 = {}",m,n1); 
   METRIS_ASSERT(s >= 0); 
 
   // No need to reallocate nor copy if the stride hasn't changed and we have enough room.
@@ -178,9 +181,7 @@ void MeshArray2D<T,INT1,INT2>::fill(T x){
 template<typename T, typename INT1, typename INT2>
 void MeshArray2D<T,INT1,INT2>::copyTo(MeshArray2D<T,INT1,INT2> &out, INT1 ncopy) const{
   if(ncopy < 0) ncopy = n1;
-  METRIS_ASSERT(ncopy <= n1);
-  if(out.get_stride() < stride) METRIS_THROW_MSG(WArgExcept(), 
-                       "Out stride = " << out.get_stride()<<" this = "<<stride);
+  out.set_stride(stride);
   out.set_n(ncopy);
   
   for(INT1 ii = 0; ii < ncopy; ii++){
@@ -191,21 +192,53 @@ void MeshArray2D<T,INT1,INT2>::copyTo(MeshArray2D<T,INT1,INT2> &out, INT1 ncopy)
 }
 
 template<typename T, typename INT1, typename INT2>
-void MeshArray2D<T,INT1,INT2>::print(INT1 n) const{
-  INT1 m = n < (nmemalc/stride) ? n : (nmemalc/stride);
+void MeshArray2D<T,INT1,INT2>::print(INT1 n, FILE* logfile) const{
+  INT1 m = n*stride <= nmemalc ? n : n1;
+  constexpr bool isptr = std::is_same<T,ego>::value;
+
+  fmt::print(logfile, "[");
   for(INT1 ii = 0; ii < m; ii++){
-      std::cout<<ii<<":";
-      for(INT2 jj = 0; jj < stride; jj++){
-          std::cout<<" "<<array_ro[ii*stride+jj]<<" ";
+    fmt::print(logfile, "[");
+    fmt::print(logfile, "{}: [", ii);
+    for(INT2 jj = 0; jj < stride-1; jj++){
+      if constexpr(isptr){
+        fmt::print(logfile, "{} ", (void*) array_ro[ii*stride+jj]);
+      }else{
+        fmt::print(logfile, "{} ", array_ro[ii*stride+jj]); 
       }
-      std::cout<<"\n";
+    }
+    if constexpr(isptr){
+      fmt::print(logfile, "{}]", (void*) array_ro[ii*stride+stride-1]);
+    }else{
+      fmt::print(logfile, "{}]", array_ro[ii*stride+stride-1]);
+    }
+    if(ii < m-1) fmt::print(logfile, ",\n ");
   }
+  fmt::print(logfile, "]");
 }
 template<typename T, typename INT1, typename INT2>
-void MeshArray2D<T,INT1,INT2>::print() const{
-  this->print(nmemalc); 
+void MeshArray2D<T,INT1,INT2>::print(FILE* logfile) const{
+  this->print(n1, logfile); 
 }
 
+template<typename T, typename INT1, typename INT2>
+std::ostream& MeshArray2D<T,INT1,INT2>::print(std::ostream& _os) const{
+  if(n1 <= 0) return _os;
+
+  _os << "[";
+  for(INT1 ii = 0; ii < n1; ii++){
+    _os << "[";
+    _os << ii << ": [";
+    for(INT2 jj = 0; jj < stride-1; jj++){
+      _os << array_ro[ii*stride+jj] << " ";
+    }
+    _os << array_ro[ii*stride+stride-1] << "]";
+    if(ii < n1 - 1) _os << ",\n ";
+  }
+  _os << "]";
+
+  return _os;
+}
 
 
 template<typename T, typename INT1, typename INT2>
@@ -215,9 +248,9 @@ MeshArray2D<T,INT1,INT2>::~MeshArray2D(){
 
 //template<typename T, typename INT1, typename INT2>
 //MeshArray2D<T,INT1,INT2>& MeshArray2D<T,INT1,INT2>::operator=(const std::initializer_list<T> & list){
-//  if(list.size()%stride != 0) METRIS_THROW_MSG(WArgExcept(),
+//  if(list.size(){}tride != 0) METRIS_THROW_MSG(
 //                               "INITIALIZER LIST NOT A MULTIPLE OF STRIDE");
-//  if(list.size() > nmemalc)   METRIS_THROW_MSG(WArgExcept(),
+//  if(list.size() > nmemalc)   METRIS_THROW_MSG(
 //                               "INITIALIZER LIST TOO LARGE");
 //  std::copy_n(list.begin(),list.size(),array);
 //  nmemalc = list.size();

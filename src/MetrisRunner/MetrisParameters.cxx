@@ -8,92 +8,148 @@
 #include "../metris_defaults.hxx"
 #include "../metris_constants.hxx"
 #include "../io_libmeshb.hxx"
+#include "../utils/mprintf.hxx"
+
+#include "nlohmann/json.hpp"
 #include <string>
 
 namespace Metris{
 
+bool MetrisParametersData::operator==(const MetrisParametersData &other) const{
+  #define FIELD(type, name, default_value) \
+  if(name != other.name) return false;
+  METRIS_PARAMETER_FIELDS_JSON
+  #undef FIELD
+  return true;
+}
 
-MetrisParameters::MetrisParameters(){
-  usrTarDeg = 1;
-  nproc     = -1;
+bool MetrisParameters::operator==(const MetrisParameters &other) const{
+  if(!MetrisParametersData::operator==(other)) return false;
 
-  jtol = Defaults::jtol;
-  vtol = Defaults::vtol;
+  // Check filename component of file names match, ignore path. 
+  std::string inpCAD = this->cadFileName.substr(this->cadFileName.find_last_of("/\\") + 1);
+  std::string othCAD = other.cadFileName.substr(other.cadFileName.find_last_of("/\\") + 1);
+  if(inpCAD != othCAD) return false;
 
-  geo_lentolfac = Defaults::geo_lentolfac;
-  geo_abstoledg = Defaults::geo_abstoledg;
+  std::string inpBack = this->backFileName.substr(this->backFileName.find_last_of("/\\") + 1);
+  std::string othBack = other.backFileName.substr(other.backFileName.find_last_of("/\\") + 1);
+  if(inpBack != othBack) return false;
 
-  anamet_ptr= NULL;
-  ianamet   = -1;
-  metScale  = 1;
-  hmin = 1.0e-30;
-  hmax = 1.0e30;
-  met_snap_tol = Defaults::met_snap_tol;
+  std::string inpMesh = this->meshFileName.substr(this->meshFileName.find_last_of("/\\") + 1);
+  std::string othMesh = other.meshFileName.substr(other.meshFileName.find_last_of("/\\") + 1);
+  if(inpMesh != othMesh) return false;
 
-  anasol_ptr= NULL;
-  ianasol   = -1;
-  anaSol    = false;
+  std::string inpMet = this->metFileName.substr(this->metFileName.find_last_of("/\\") + 1);
+  std::string othMet = other.metFileName.substr(other.metFileName.find_last_of("/\\") + 1);
+  if(inpMet != othMet) return false;
 
-  main_in_prefix = false;
+  return true;
+}
 
-  adp_niter     = 0;
-  adp_unit_stop = 99.9;
-  adp_stagn_stop = Defaults::adp_stagn_stop;
-  adp_opt_niter = 1;
-  adp_line_adapt = false;
+void MetrisParametersData::printDifference(const MetrisParametersData &other, std::string thisName, FILE* logFile) const{
 
-  // 0 is none, default
-  // 3 is offsets followed by smoothing 
-  // 4 is offsets then backtrack and stop there 
-  curveType = 0; 
-  smoo_type = 0;
+  #define FIELD(type, name, default_value) \
+  if(name != other.name){\
+    if(!thisName.empty()) fmt::print(logFile,"-- {} differs from {}: {} -> {}\n", #name, thisName, this->name, other.name);\
+    else fmt::print(logFile,"-- {} differs: {} -> {}\n",  #name, this->name, other.name);\
+  }
+  METRIS_PARAMETER_FIELDS_JSON
+  #undef FIELD
+}
 
-  opt_unif = false;
+void MetrisParameters::printDifference(const MetrisParameters &other, std::string thisName) const {
 
-  iverb     = 1;
-  ivdepth   = 0;
+  MetrisParametersData::printDifference(other, thisName, logFile_);
+  // Check filename component of file names match, ignore path. 
+  std::string inpCAD = this->cadFileName.substr(this->cadFileName.find_last_of("/\\") + 1);
+  std::string othCAD = other.cadFileName.substr(other.cadFileName.find_last_of("/\\") + 1);
+  if(inpCAD != othCAD) fmt::print("-- CAD differs: {} != {}\n", inpCAD, othCAD);
 
-  interactive = dbgfull = nocleanup = false;
+  std::string inpBack = this->backFileName.substr(this->backFileName.find_last_of("/\\") + 1);
+  std::string othBack = other.backFileName.substr(other.backFileName.find_last_of("/\\") + 1);
+  if(inpBack != othBack) fmt::print("-- Back Mesh differs: {} != {}\n", inpBack, othBack);
 
-  refineConventionsInp = refineConventionsOut = false;
+  std::string inpMesh = this->meshFileName.substr(this->meshFileName.find_last_of("/\\") + 1);
+  std::string othMesh = other.meshFileName.substr(other.meshFileName.find_last_of("/\\") + 1);
+  if(inpMesh != othMesh) fmt::print("-- Input Mesh differs: {} != {}\n", inpMesh, othMesh);
 
-  opt_pnorm = Defaults::opt_pnorm;
-  opt_power = Defaults::opt_power;
-  opt_niter = Defaults::opt_niter;
-  opt_smoo_niter = Defaults::opt_smoo_niter;
-  opt_smoo_tol   = Defaults::opt_smoo_tol;
+  std::string inpMet = this->metFileName.substr(this->metFileName.find_last_of("/\\") + 1);
+  std::string othMet = other.metFileName.substr(other.metFileName.find_last_of("/\\") + 1);
+  if(inpMet != othMet) fmt::print("-- Input Metric differs: {} != {}\n", inpMet, othMet);
 
-  opt_swap_pnorm = Defaults::opt_swap_pnorm;
-  opt_swap_niter = Defaults::opt_swap_niter;
-  opt_swap_thres = Defaults::opt_swap_thres;
-  opt_swap_tet_expensive = false;
+}
+
+void to_json(nlohmann::json& jj, const MetrisParametersData& param) {
+  
+  jj = nlohmann::json{
+    #define FIELD(type, name, default_value) {#name, param.name}
+    METRIS_PARAMETER_FIELD1
+    #undef FIELD
+    #define FIELD(type, name, default_value) ,{#name, param.name}
+    METRIS_PARAMETER_OTHERFIELDS_JSON
+    #undef FIELD
+  };
+
+}
+
+void from_json(const nlohmann::json& jj, MetrisParametersData& param) {
+
+  #define FIELD(type, name, default_value) \
+  jj.at(#name).get_to(param.name);
+  METRIS_PARAMETER_FIELDS_JSON
+  #undef FIELD
+
+}
+
+void to_json(nlohmann::json& jj, const MetrisParameters& param) {
+  jj = nlohmann::json{{"cadFileName", param.cadFileName}
+                     ,{"backFileName", param.backFileName}
+                     ,{"metFileName", param.metFileName}
+                     ,{"meshFileName", param.meshFileName}
+                     };
+  nlohmann::json jj2;
+  to_json(jj2, static_cast<const MetrisParametersData&>(param));
+  jj.update(jj2); // merge
+}
+
+void from_json(const nlohmann::json& jj, MetrisParameters& param) {
+  from_json(jj, static_cast<MetrisParametersData&>(param));
+  jj.at("cadFileName").get_to(param.cadFileName_);
+  jj.at("backFileName").get_to(param.backFileName_);
+  jj.at("metFileName").get_to(param.metFileName_);
+  jj.at("meshFileName").get_to(param.meshFileName_);
+}
 
 
-  qua_surf_wt_normal  = Defaults::qua_surf_wt_normal;
-  qua_surf_wt_quality = Defaults::qua_surf_wt_quality;
 
-
-  opt_coef_det = 1.0;
-  opt_powr_det = -2;
-
-  opt_coef_tra = 1.0;
-  opt_powr_tra =  2;
-
-  // Private members (internal use)
-  wrtMesh   = false;
-  inpMesh   = false;
-  inpBack   = false;
-  inpCAD    = false;
-  inpMet    = false;
-  anaMet    = false;
-  scaleMet  = false;
-  outbasis  = FEBasis::Lagrange;
-
-  iflag1 = iflag2 = iflag3 = 0;
-  interp_err_min_algo = 1; // 1 for Newton, 0 for DIRECT
+MetrisParameters::MetrisParameters() : 
+  outmFileName(outmFileName_), 
+  cadFileName(cadFileName_), backFileName(backFileName_), 
+  metFileName(metFileName_), logFileName(logFileName_), 
+  meshFileName(meshFileName_), logFile(logFile_)
+{
 }
 
 MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
+
+  if(opt.count("help")) { 
+    fmt::print("Flag --help:\n");
+    std::cout << opt.s << std::endl;
+    exit(0);
+  }
+
+  // These need to be first, or subsequent prints will be ill-defined.
+  if(opt.count("verb")){
+    iverb = opt.m["verb"].template as<int>();
+  }
+  if(opt.count("vdepth")){
+    ivdepth = opt.m["vdepth"].template as<int>();
+  }
+  if(opt.count("log")){
+    setLogFile(opt.m["log"].template as<std::string>());
+  }
+
+  GETVDEPTH(this);
 
   if(opt.count("refine-conventions-inp")){
     refineConventionsInp = true;
@@ -102,31 +158,20 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     refineConventionsOut = true;
   }
   
-  if(opt.count("help")) { 
-    std::cout << "Cf MetrisOptions class" <<"\n";
-    exit(1);
-  }
-  if(opt.count("verb")){
-    iverb = opt.m["verb"].template as<int>();
-  }
-  if(opt.count("vdepth")){
-    ivdepth = opt.m["vdepth"].template as<int>();
-  }
 
   if(opt.count("opt-unif")){
     opt_unif = true;
-    if(iverb >= 1) std::cout << "-- Set opt-unif \n";
+    CPRINTF1("-- Set opt-unif\n");
   }
 
   if(opt.count("in")){
-    inpMesh = true;
-    meshFileName = correctExtension_meshb(opt.m["in"].template as<std::string>());
-    if(iverb >= 1) std::cout << "-- Read input mesh name " << meshFileName << "\n";
+    setMeshIn(opt.m["in"].template as<std::string>());
+    CPRINTF1("-- Read input mesh name {}\n", meshFileName.c_str());
   }
 
   if(opt.count("prefix")){
     outmPrefix = opt.m["prefix"].template as<std::string>();
-    if(iverb >= 1) std::cout << "-- File prefix: " << outmPrefix << "\n";
+    CPRINTF1("-- File prefix: {}\n", outmPrefix.c_str());
   }
   if(opt.count("main-in-prefix")){
     main_in_prefix = true;
@@ -134,16 +179,16 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
 
   if(opt.count("bez")){
     outbasis = FEBasis::Bezier;
-    if(iverb >= 1) std::cout << "-- Bézier output basis\n";
+    CPRINTF1("-- Bézier output basis\n");
   }
 
 
   if(opt.count("out")) { 
     setMeshOut(opt.m["out"].template as<std::string>());
-    if(iverb >= 1) std::cout << "-- Read output file name " << outmFileName << ".\n";
+    CPRINTF1("-- Read output file name {}.\n", outmFileName.c_str());
   }else{
-    if(iverb >= 1) std::cout << "# Output mesh file name not set. Use --out or -o <filename>.\n";
-    if(iverb >= 1) std::cout << "# Running but skipping mesh output."<<"\n";
+    CPRINTF1("# Output mesh file name not set. Use --out or -o <filename>.\n");
+    CPRINTF1("# Running but skipping mesh output.\n");
   }
 
   // usrMaxDeg is the very maximum the user is allowing for storage. It is hard bounded by the constant METRIS_MAX_DEG
@@ -154,46 +199,43 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
 
   if(opt.count("nproc")){
     nproc = opt.m["nproc"].template as<int>();
-    if(iverb >= 1) printf("-- Running with nproc = %d \n",nproc);
+    CPRINTF1("-- Running with nproc = {} \n",nproc);
   }
 
   if(opt.count("cad")){
-    inpCAD = true;
-    cadFileName = correctExtension_egads(opt.m["cad"].template as<std::string>());
+    setCAD(opt.m["cad"].template as<std::string>());
   }
 
   if(opt.count("dbgfull")){
-    if(iverb >= 1) printf("-- Full debugs activated\n");
+    CPRINTF1("-- Full debugs activated\n");
     dbgfull = true;
   }
   if(opt.count("interactive")){
-    if(iverb >= 1) printf("-- Wait calls activated\n");
+    CPRINTF1("-- Wait calls activated\n");
     interactive = true;
   }
   if(opt.count("nocleanup")){
-    if(iverb >= 1) printf("-- Cleanup calls deactivated\n");
+    CPRINTF1("-- Cleanup calls deactivated\n");
     nocleanup = true;
   }
 
   if(opt.count("back")){
-    inpBack = true;
-    backFileName = correctExtension_meshb(opt.m["back"].template as<std::string>());
-    if(iverb >= 1) std::cout<<" - Read back mesh name "<<backFileName<<"\n";
+    setBackIn(opt.m["back"].template as<std::string>());
+    CPRINTF1(" - Read back mesh name {}\n", backFileName.c_str());
   }
 
   if(opt.count("met")){
-    inpMet = true;
-    metFileName = correctExtension_solb(opt.m["met"].template as<std::string>());
+    setMetricFile(opt.m["met"].template as<std::string>());
   }
 
   if(opt.count("anamet")){
     setAnalyticalMetric(opt.m["anamet"].template as<int>());
-    if(iverb >= 1) printf("Using analytical metric %d \n", ianamet);
+    CPRINTF1("Using analytical metric {} \n", ianamet);
   }
 
   if(opt.count("anasol")){
     setAnalyticalSolution(opt.m["anasol"].template as<int>());
-    if(iverb >= 1) printf("Using analytical metric %d \n", ianamet);
+    CPRINTF1("Using analytical metric {} \n", ianamet);
   }
 
   if(opt.count("intp-pdeg")){
@@ -219,6 +261,10 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("adp-stat-stop")){
     adp_stagn_stop = opt.m["adp-stat-stop"].as<double>();
   }
+  if(opt.count("adp-smoo-len")){
+    adp_smoo_len = true;
+  }
+  
   if(opt.count("do-line-adp")){
     adp_line_adapt = true; 
   }
@@ -261,6 +307,18 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("hmax")){
     hmax = opt.m["hmax"].as<double>();
   }
+  
+  if(opt.count("mdx")){
+    anamet_dx = opt.m["mdx"].as<double>();
+  }
+  if(opt.count("mdy")){
+    anamet_dy = opt.m["mdy"].as<double>();
+  }
+  if(opt.count("mdz")){
+    anamet_dz = opt.m["mdz"].as<double>();
+  }
+  
+
   if(opt.count("met-snap-tol")){
     met_snap_tol = opt.m["met-snap-tol"].as<double>();
   }
@@ -310,6 +368,16 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     iflag3 = opt.m["iflag3"].as<int>();
   }
 
+  if(opt.count("rflag1")){
+    rflag1 = opt.m["rflag1"].as<double>();
+  }
+  if(opt.count("rflag2")){
+    rflag2 = opt.m["rflag2"].as<double>();
+  }
+  if(opt.count("rflag3")){
+    rflag3 = opt.m["rflag3"].as<double>();
+  }
+
   if(opt.count("interp-err-min-algo")){
     interp_err_min_algo = opt.m["interp-err-min-algo"].as<int>();
     METRIS_ENFORCE_MSG(interp_err_min_algo == 0 || interp_err_min_algo == 1,
@@ -322,41 +390,72 @@ void MetrisParameters::checkParameters(){
   METRIS_ENFORCE(geo_abstoledg >= 0.0);
   METRIS_ENFORCE(geo_lentolfac >= 1.0);
   METRIS_ENFORCE_MSG(usrTarDeg >= 1, "Degree < 1 provided through tardeg.");
-  METRIS_ENFORCE_MSG(usrTarDeg <= METRIS_MAX_DEG, "Opt -tardeg > METRIS_MAX_DEG = "<<METRIS_MAX_DEG);
+  METRIS_ENFORCE_MSG(usrTarDeg <= METRIS_MAX_DEG, "Opt -tardeg > METRIS_MAX_DEG = {}",METRIS_MAX_DEG);
 }
 
+void MetrisParameters::setMeshIn(std::string meshName){
+  inpMesh = true;
+  meshFileName_ = correctExtension_meshb(meshName);
+}
+
+void MetrisParameters::setBackIn(std::string backName){
+  inpBack = true;
+  backFileName_ = correctExtension_meshb(backName);
+}
+
+void MetrisParameters::setCAD(std::string CADname){
+  inpCAD = true;
+  cadFileName_ = correctExtension_egads(CADname);
+}
+
+void MetrisParameters::setMetricFile(std::string metName){
+  inpMet = true;
+  metFileName_ = correctExtension_solb(metName);
+}
 
 void MetrisParameters::setMeshOut(std::string out){
   wrtMesh = true;
-  outmFileName = correctExtension_meshb(out);
+  outmFileName_ = correctExtension_meshb(out);
 }
 
 
-void MetrisParameters::setAnalyticalMetric(int ianamet){
+void MetrisParametersData::setAnalyticalMetric(int ianamet){
   anaMet = true;
   this->ianamet = ianamet;
 }
 
-void MetrisParameters::setAnalyticalMetric(AnaMetFun anamet_ptr){
+void MetrisParametersData::setAnalyticalMetric(AnaMetFun anamet_ptr){
   anaMet = true;
   this->anamet_ptr = (anamet_proto) anamet_ptr;
 }
 
-void MetrisParameters::setAnalyticalSolution(int ianasol){
+void MetrisParametersData::setAnalyticalSolution(int ianasol){
   anaSol = true;
   this->ianasol = ianasol;
 }
 
-void MetrisParameters::setAnalyticalSolution(AnaSolFun anasol_ptr){
+void MetrisParametersData::setAnalyticalSolution(AnaSolFun anasol_ptr){
   anaSol = true;
   this->anasol_ptr = (anasol_proto) anasol_ptr;
 }
 
 
-void MetrisParameters::setMetricScale(double sclmet){
+void MetrisParametersData::setMetricScale(double sclmet){
   scaleMet = true;
   this->metScale = sclmet;
 }
 
+
+void MetrisParameters::setLogFile(std::string fname){
+  logFileName_ = fname;
+  if(fname == "stdout"){
+    logFile_ = stdout;
+  }else if(fname == "stderr"){
+    logFile_ = stderr;
+  }else{
+    logFile_ = fopen(fname.c_str(), "w");
+    METRIS_ENFORCE_MSG(logFile_ != NULL,"Error opening log file {}", fname);
+  }
+}
 
 } // End namespace

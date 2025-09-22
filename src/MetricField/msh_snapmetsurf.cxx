@@ -5,9 +5,11 @@
 
 #include "msh_snapmetsurf.hxx"
 #include "../Mesh/MeshMetric.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
+#include "../low_geo/normal.hxx"
+
 #include "../utils/mprintf.hxx"
-#include "../low_normal.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 #include <unordered_set>
 
@@ -89,8 +91,6 @@ void snapMetSurf(MeshMetric<MetricFieldType> &msh,
 
         int imin = -1;
         double errmin = 1.0e30;
-        //printf("Debug surfdir = ");
-        //dblAr1(gdim, surfdir).print();
         for(int ii = 0; ii < gdim; ii++){
           double dtprd = gdim == 2 ? getprdl2<2>(&eigvec[gdim*ii], surfdir)
                                    : getprdl2<3>(&eigvec[gdim*ii], surfdir);
@@ -101,7 +101,7 @@ void snapMetSurf(MeshMetric<MetricFieldType> &msh,
           }
         }
 
-        CPRINTF1(" - ipoin %d iref %d tdim %d errmin %e\n",ipoin,iref,tdim,errmin);
+        CPRINTF1(" - ipoin {} iref {} tdim {} errmin {}\n",ipoin,iref,tdim,errmin);
         maxerrmin = MAX(maxerrmin, errmin);
         minerrmin = MIN(minerrmin, errmin);
 
@@ -141,7 +141,7 @@ void snapMetSurf(MeshMetric<MetricFieldType> &msh,
           double dtpr2 = gdim == 2 ? getprdl2<2>(&eigvec[gdim*ivec2], &eigvec[gdim*ivec1])
                                    : getprdl2<3>(&eigvec[gdim*ivec2], &eigvec[gdim*ivec1]);
           #ifndef NDEBUG
-            double eigvec2_debug[gdim];
+            double eigvec2_debug[3];
           #endif
           for(int ii = 0; ii < gdim; ii++){
             #ifndef NDEBUG
@@ -154,16 +154,12 @@ void snapMetSurf(MeshMetric<MetricFieldType> &msh,
                             : normalize_vec<3>(&eigvec[gdim*ivec2]);
           #ifndef NDEBUG
             if(ierro != 0){
-              printf("## snapMetSurf error ivec2\n");
-              printf("eigvec1 : ");
-              dblAr1(gdim,&eigvec[gdim*ivec1]).print();
-              printf("eigvec2 : ");
-              dblAr1(gdim,&eigvec[gdim*ivec2]).print();
-              printf("eigvec2 ini: ");
-              dblAr1(gdim,eigvec2_debug).print();
-              printf("surfdir : ");
-              dblAr1(gdim,surfdir).print();
-              printf("dtpr1 %e dtpr2 %e",dtpr1,dtpr2);
+              PRINTF("## snapMetSurf error ivec2\n");
+              PRINTF("eigvec1 : {}\n",dblAr1(gdim,&eigvec[gdim*ivec1]));
+              PRINTF("eigvec2 : {}\n",dblAr1(gdim,&eigvec[gdim*ivec2]));
+              PRINTF("eigvec2 ini: {}\n",dblAr1(gdim,eigvec2_debug));
+              PRINTF("surfdir : {}\n",dblAr1(gdim,surfdir));
+              PRINTF("dtpr1 {:e} dtpr2 {:e}",dtpr1,dtpr2);
             }
           #endif
           METRIS_ASSERT(ierro == 0);
@@ -178,17 +174,17 @@ void snapMetSurf(MeshMetric<MetricFieldType> &msh,
 
       }// for iver
     }// for ientt
-    CPRINTF1("-- DONE tdim = %d snapped %d/%d (%4.1f%%) metrics to surface\n"
+    CPRINTF1("-- DONE tdim = {} snapped {}/{} ({:4.1f}%) metrics to surface\n"
              ,tdim,ncorr,ntry,ncorr/(double)ntry*100);
-    CPRINTF1("        errmin min = %5.2e max = %5.2e\n",minerrmin,maxerrmin)
-    if(nerro > 0) CPRINTF1("        %d/%d (%4.1f%%) errors\n",
+    CPRINTF1("        errmin min = {:5.2e} max = {:5.2e}\n",minerrmin,maxerrmin)
+    if(nerro > 0) CPRINTF1("        {}/{} ({:4.1f}%) errors\n",
                            nerro,ntry,nerro/(double)ntry*100);
 
     if(DOPRINTS2()){
       int nref = tdim == 1 ? msh.CAD.ncaded : msh.CAD.ncadfa;
       for(int iref = 0; iref < nref; iref++){
         if(ncorref[iref] == 0) continue;
-        CPRINTF2("   - iref %d snapped %d/%d (%4.1f%%) err min = %9.2e max = %9.2e\n",iref,
+        CPRINTF2("   - iref {} snapped {}/{} ({:4.1f}%) err min = {:9.2e} max = {:9.2e}\n",iref,
                ncorref[iref],ntryref[iref],ncorref[iref]/(double)ntryref[iref]*100,
                minerrminref[iref],maxerrminref[iref]);
       }

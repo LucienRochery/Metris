@@ -21,7 +21,7 @@ template <int ndimn, int ideg>
 void eltgapsbezconv(MeshBase &msh, int ielem, int isig, bool confirm){
   static_assert(ndimn == 2 || ndimn == 3);
   if constexpr(ideg == 1) return;
-  if(!confirm) METRIS_THROW_MSG(WArgExcept(),"Probably don't want to call this");
+  if(!confirm) METRIS_THROW_MSG("Probably don't want to call this");
 
   METRIS_ASSERT(ielem >= 0);
 
@@ -71,7 +71,7 @@ void eltgapsbezconv(MeshBase &msh, int ielem, int isig, bool confirm){
     }
   }
   if constexpr(ideg > 2){
-    if(ndimn == 2) METRIS_THROW_MSG(TODOExcept(), "Implement face interior Deltas for dimension 2");
+    if(ndimn == 2) METRIS_THROW_MSG("TODO: Implement face interior Deltas for dimension 2");
 
     for(int ifac = 0; ifac < nfacl; ifac++){
       int irnk0 = nvert + nedgl * (ideg - 1) 
@@ -100,7 +100,7 @@ void eltgapsbezconv(MeshBase &msh, int ielem, int isig, bool confirm){
     }
   }
   if constexpr(ideg > 3){
-    METRIS_THROW_MSG(TODOExcept(),"Quickly implement face Delta computation in curveMeshOffsets")
+    METRIS_THROW_MSG("TODO: Quickly implement face Delta computation in curveMeshOffsets")
   }
 
 }
@@ -144,7 +144,7 @@ void gaps2bez(MeshBase &msh){
       eltgapsbezconv<3,ideg>(msh,ielem,1,true);
     }
   }else{
-    METRIS_THROW_MSG(WArgExcept(), "gaps2bez unsupported dim "<<msh.idim);
+    METRIS_THROW_MSG( "gaps2bez unsupported dim {}", msh.idim);
   }
 }
 
@@ -164,7 +164,7 @@ void bez2gaps(MeshBase &msh){
       eltgapsbezconv<3,ideg>(msh,ielem,-1,true);
     }
   }else{
-    METRIS_THROW_MSG(WArgExcept(), "gaps2bez unsupported dim "<<msh.idim);
+    METRIS_THROW_MSG( "gaps2bez unsupported dim {}", msh.idim);
   }
 }
 

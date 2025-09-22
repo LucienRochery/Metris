@@ -4,8 +4,8 @@
 //See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 #include "gen_ccoef.hxx"
-#include "../src/ho_constants.hxx"
-#include "../src/aux_exceptions.hxx"
+#include "ho_constants.hxx"
+#include "aux_exceptions.hxx"
 #include <../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h>
 
 #include <sstream>
@@ -110,7 +110,7 @@ void getccoef2_map_coord(int ideg){
 
   str << "#include \"codegen_ccoef_d.hxx\"\n";
   str << "#include \"types.hxx\"\n\n\n";
-  //str << "#include \"low_geo.hxx\"\n\n";
+  //str << "#include \"low_geo/misc.hxx\"\n\n";
   str << "namespace Metris{\n\n\n";
 
   str << "template<int ideg> void d_ccoef_genbez2"
@@ -174,10 +174,10 @@ void getccoef2_map_coord(int ideg){
         char irnk2_1_s[16]; snprintf(irnk2_1_s,5,"%4d",irnk2_1);
         char irnk2_2_s[16]; snprintf(irnk2_2_s,5,"%4d",irnk2_2);
         //if(ifirst == 1){
-        //  str << "\n  ccoef["<<irnkcc_s<<"] = "<<up_s<<"det2_vdif(coord[fac2poi(ielem,"<<irnk1_1_s<<")],coord[fac2poi(ielem,"<<irnk1_2_s<<")]\n";
+        //  str << "\n  ccoef["<<irnkcc_s<<"] = "<<up_s<<"detvdif2(coord[fac2poi(ielem,"<<irnk1_1_s<<")],coord[fac2poi(ielem,"<<irnk1_2_s<<")]\n";
         //  ifirst = 0;
         //}else{
-        //  str << "\n             + "<<up_s<<"det2_vdif(coord[fac2poi(ielem,"<<irnk1_1_s<<")],coord[fac2poi(ielem,"<<irnk1_2_s<<")]\n";
+        //  str << "\n             + "<<up_s<<"detvdif2(coord[fac2poi(ielem,"<<irnk1_1_s<<")],coord[fac2poi(ielem,"<<irnk1_2_s<<")]\n";
         //}
         //str << "                            ,coord[fac2poi(ielem,"<<irnk2_1_s<<")],coord[fac2poi(ielem,"<<irnk2_2_s<<")])"<<lo_s;
 
@@ -362,10 +362,10 @@ void get_point_derivatives(int ideg){
         char irnk2_1_s[16]; snprintf(irnk2_1_s,5,"%4d",irnk2_1);
         char irnk2_2_s[16]; snprintf(irnk2_2_s,5,"%4d",irnk2_2);
         //if(ifirst == 1){
-        //  str << "\n  ccoef["<<irnkcc_s<<"] = "<<up_s<<"*det2_vdif(coord[fac2poi[ielem]["<<irnk1_1_s<<"]],coord[fac2poi[ielem]["<<irnk1_2_s<<"]]\n";
+        //  str << "\n  ccoef["<<irnkcc_s<<"] = "<<up_s<<"*detvdif2(coord[fac2poi[ielem]["<<irnk1_1_s<<"]],coord[fac2poi[ielem]["<<irnk1_2_s<<"]]\n";
         //  ifirst = 0;
         //}else{
-        //  str << "\n             + "<<up_s<<"*det2_vdif(coord[fac2poi[ielem]["<<irnk1_1_s<<"]],coord[fac2poi[ielem]["<<irnk1_2_s<<"]]\n";
+        //  str << "\n             + "<<up_s<<"*detvdif2(coord[fac2poi[ielem]["<<irnk1_1_s<<"]],coord[fac2poi[ielem]["<<irnk1_2_s<<"]]\n";
         //}
         //str << "                            ,coord[fac2poi[ielem]["<<irnk2_1_s<<"]],coord[fac2poi[ielem]["<<irnk2_2_s<<"]])/"<<lo_s;
 
@@ -498,24 +498,21 @@ void get_ccoeff3d(int ideg){
     str << "//Licensed under The GNU Lesser General Public License, version 2.1\n";
     str << "//See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n\n";
 
-    str << "#include <src/codegen_ccoef_d.hxx>\n";
-    str << "#include <src/types.hxx>\n\n";
-    //str << "#include <src/low_geo.hxx>\n\n";
+    str << "#include \"codegen_ccoef_d.hxx\"\n";
+    str << "#include \"linalg/det.hxx\"\n";
+    str << "#include \"types.hxx\" \n\n";
+    //str << "#include <src/low_geo/misc.hxx>\n\n";
 
     str << "namespace Metris{\n\n";
-
-    str << "double det3_vdif(const double* x1,const double* x2\n";
-    str << "                ,const double* y1,const double* y2\n";
-    str << "                ,const double* z1,const double* z2);\n\n";
 
     //str << "double* vdiff(const double* a,const double* b);\n\n";
     //str << "double* vproduct(const double* a, const double* b);\n\n";
 
     str << "static double* vdiff(const double* a, const double* b){";
-    str << "  METRIS_THROW_MSG(TODOExcept(),\"Reimplement ccoef3_d\");";
+    str << "  METRIS_THROW_MSG(\"Reimplement ccoef3_d\");";
     str << "}";
     str << "static double* vproduct(const double* a, const double* b){";
-    str << "  METRIS_THROW_MSG(TODOExcept(),\"Reimplement ccoef3_d\");";
+    str << "  METRIS_THROW_MSG(\"Reimplement ccoef3_d\");";
     str << "}";
 
     str << "template<int ideg>\n";
@@ -589,10 +586,10 @@ void get_ccoeff3d(int ideg){
                   char irnk3_1_s[16]; snprintf(irnk3_1_s,5,"%4d",irnk3_1);
                   char irnk3_2_s[16]; snprintf(irnk3_2_s,5,"%4d",irnk3_2);
                   //if(ifirst == 1){
-                  //  str << "\n  ccoef["<<irnkcc_s<<"] = "<<up_s<<"*det3_vdif(coord[tet2poi[ielem]["<<irnk1_1_s<<"]],coord[tet2poi[ielem]["<<irnk1_2_s<<"]]\n";
+                  //  str << "\n  ccoef["<<irnkcc_s<<"] = "<<up_s<<"*detvdif3(coord[tet2poi[ielem]["<<irnk1_1_s<<"]],coord[tet2poi[ielem]["<<irnk1_2_s<<"]]\n";
                   //  ifirst = 0;
                   //}else{
-                  //  str << "\n             + "<<up_s<<"*det3_vdif(coord[tet2poi[ielem]["<<irnk1_1_s<<"]],coord[tet2poi[ielem]["<<irnk1_2_s<<"]]\n";
+                  //  str << "\n             + "<<up_s<<"*detvdif3(coord[tet2poi[ielem]["<<irnk1_1_s<<"]],coord[tet2poi[ielem]["<<irnk1_2_s<<"]]\n";
                   //}
                   //str << "                            ,coord[tet2poi[ielem]["<<irnk2_1_s<<"]],coord[tet2poi[ielem]["<<irnk2_2_s<<"]]\n";
                   //str << "                            ,coord[tet2poi[ielem]["<<irnk3_1_s<<"]],coord[tet2poi[ielem]["<<irnk3_2_s<<"]])/"<<lo_s;

@@ -10,7 +10,6 @@
 
 
 #include <boost/program_options.hpp>
-#include "metris_defaults.hxx"
 #include "aux_exceptions.hxx"
 
 
@@ -52,6 +51,9 @@ struct MetrisOptions{
       ("nocleanup", "Disable cleanup (debug)"   )
       ("nproc"  , po::value<int>(), "Maximum number of CPU cores for multi-threading"   );
 
+    s.add_options()
+      ("log", po::value<std::string>(),
+       "Log file name, default stdout");
 
     s.add_options()
       ("refine-conventions-inp", "Adopt Refine conventions for VerticesOnGeometricX");
@@ -65,7 +67,10 @@ struct MetrisOptions{
       ("sclmet" , po::value<double>(), 
         "Analytical metric scaling") 
       ("hmin" , po::value<double>(), "Minimum metric size"   )
-      ("hmax" , po::value<double>(), "Maximum metric size"   );
+      ("hmax" , po::value<double>(), "Maximum metric size"   )
+      ("mdx" , po::value<double>(), "Analytical metric x offset"   )
+      ("mdy" , po::value<double>(), "Analytical metric y offset"   )
+      ("mdz" , po::value<double>(), "Analytical metric z offset"   );
 
     s.add_options()
       ("anasol" , po::value<int>(), 
@@ -77,7 +82,7 @@ struct MetrisOptions{
 
     // ----------------- Adaptation options  
     s.add_options()
-      ("adapt"  , po::value<int>() ->default_value(0)->implicit_value(-1),
+      ("adapt"  , po::value<int>(),
         "Adaptation iterations")
       ("adp-unit-stop", po::value<double>(), 
         "Percent unit edges to stop adaptation, default 99.9%")
@@ -87,9 +92,11 @@ struct MetrisOptions{
         "Smoothing in adaptation: -1 unlimited, N > 0 number of iter")
       ("do-line-adp",
         "Use adaptGeoLines (not very robust if boundary very coarse)")
+      ("adp-smoo-len",
+        "Use length-based smoothing in adaptation loop")
       ("opt-unif" , 
         "Shape preserving uniformization")
-      ("geo-lentolfac", po::value<double>()->default_value(Defaults::geo_lentolfac),
+      ("geo-lentolfac", po::value<double>(),
         "Tolerance factor for geometric edge length in adaptGeoLines")
       ("geo-abstoledg", po::value<double>(), 
         "Absolute distance tolerance such that point is considered on CAD edge");
@@ -122,12 +129,16 @@ struct MetrisOptions{
       ("qua-surf-wt-normal", po::value<double>(),
                     "Weight of normal deviation in surface quality.");
 
+    
 
     // ----------------- Generic flags. Used for quick debugging
     s.add_options()  
       ("iflag1", po::value<int>(), "Generic integer flag")
       ("iflag2", po::value<int>(), "Generic integer flag")
       ("iflag3", po::value<int>(), "Generic integer flag")
+      ("rflag1", po::value<double>(), "Generic real flag")
+      ("rflag2", po::value<double>(), "Generic real flag")
+      ("rflag3", po::value<double>(), "Generic real flag")
       ("interp-err-min-algo", po::value<int>(), 
         "Interpolation error minimization algo: 0 for Newton, 1 for DIRECT");
   }
@@ -185,7 +196,8 @@ struct cargHandler{
     std::stringstream cmd_(cmd);
     while(std::getline(cmd_, str, ' ')){
       int n = str.length();
-      if(c >= margv) METRIS_THROW_MSG(SMemExcept(), "256 options? if legitimate, increase margv");
+      METRIS_ENFORCE_MSG(c < margv,">= {}  options? if legitimate, increase margv",margv)
+      METRIS_ENFORCE(n >= 0);
       v[c] = (char *) malloc((n+1)*sizeof(char));
       strncpy(v[c],str.c_str(),n+1);
       c++;

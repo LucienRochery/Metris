@@ -88,6 +88,48 @@ MetrisAPI::MetrisAPI(MetrisRunner &run) :  flagsInit(true), CAD_(), CAD(CAD_){
   initialize(run); 
 }
 
+MetrisAPI::MetrisAPI(const MetrisAPI &other) : MetrisAPI() {
+  mshbasis = other.mshbasis;
+  metbasis = other.metbasis;
+  metspace = other.metspace;
+
+  idim = other.idim;
+  ideg = other.ideg;
+  imet = other.imet;
+  npoin = other.npoin;
+  nedge = other.nedge;
+  nface = other.nface;
+  nelem = other.nelem;
+
+  other.coord.copyTo(coord);
+  other.metfld.copyTo(metfld);
+
+  other.edg2poi.copyTo(edg2poi);
+  other.edg2ref.copyTo(edg2ref);
+
+  other.fac2poi.copyTo(fac2poi);
+  other.fac2ref.copyTo(fac2ref);
+
+  other.tet2poi.copyTo(tet2poi);
+  other.tet2ref.copyTo(tet2ref);
+
+  ncorn = other.ncorn;
+  ngpoe = other.ngpoe;
+  ngpof = other.ngpof;
+
+  other.lcorn.copyTo(lcorn);
+  other.lgpoe.copyTo(lgpoe);
+  other.rgpoe.copyTo(rgpoe);
+  other.lgpof.copyTo(lgpof);
+  other.rgpof.copyTo(rgpof);
+
+  flagsInit = other.flagsInit;
+  CAD_ = other.CAD_;
+  for(int tdimn = 1; tdimn <= 3; tdimn++) 
+    for(int iord = 0; iord < getnnode(tdimn,METRIS_MAX_DEG); iord++) 
+      usrord[tdimn-1][iord] = other.usrord[tdimn-1][iord];
+}
+
 void MetrisAPI::free(){
   coord.free();
   metfld.free();
@@ -124,11 +166,11 @@ void MetrisAPI::initialize(MetrisRunner &run){
 
   idim = run.msh_g->idim;
   ideg = run.msh_g->curdeg;
-  if(ideg != run.msh_g->strdeg) METRIS_THROW_MSG(TODOExcept(), 
-    "Implement resizing arrays in API curdeg = "
-    <<run.msh_g->curdeg<<" strdeg = "<<run.msh_g->strdeg);
+  if(ideg != run.msh_g->strdeg) METRIS_THROW_MSG( 
+    "TODO: Implement resizing arrays in API curdeg = {} strdeg = {}",
+    run.msh_g->curdeg,run.msh_g->strdeg);
 
-  //if(run.hookedAPI != NULL)METRIS_THROW_MSG(TODOExcept(), 
+  //if(run.hookedAPI != NULL)METRIS_THROW_MSG( 
   //    "Either avoid initializing several MetrisAPI using single Runner,\
   //     or implement hookedAPI as array")
 
@@ -309,7 +351,7 @@ void MetrisAPI::setDegree(int tardeg){
     }//elseif ideg 
 
     if(ndead[tdim-1] > 0) 
-      printf("# Warning: %d dead tdim %d elements in API\n",
+      fmt::print("# Warning: {} dead tdim {} elements in API\n",
              ndead[tdim-1], tdim);
   }//for tdim
   ideg = tardeg;
@@ -451,6 +493,14 @@ void MetrisAPI::setNTetrahedra(int nelem_){
   tet2ref.allocate(nelem);
   tet2ref.set_n(nelem);
 }
+void MetrisAPI::setNElements(int tdimn, int nentt){
+  METRIS_ENFORCE(tdimn >= 1 && tdimn <= 3);
+  if(tdimn == 1) setNEdges(nentt);
+  if(tdimn == 2) setNFaces(nentt);
+  if(tdimn == 3) setNTetrahedra(nentt);
+  return;
+}
+
 void MetrisAPI::setNCorners(int ncorn_){
   // Only wrong program flow would lead to this, so assert 
   METRIS_ASSERT(flagsInit);
@@ -543,6 +593,18 @@ void MetrisAPI::copyCAD(MetrisAPI *into) const{
   into->CAD_ = CAD;
 }
 
+void MetrisAPI::copyElements(int tdimn, MetrisAPI *into) const{
+  METRIS_ENFORCE(tdimn >= 1 && tdimn <= 3);
+  const int nentt = tdimn == 1 ? nedge :
+                    tdimn == 2 ? nface : nelem;
+  into->setNElements(tdimn, nentt);
+  if(nentt == 0) return;
+  const intAr2& ent2poi = tdimn == 1 ? edg2poi :
+                          tdimn == 2 ? fac2poi : tet2poi;
+  const intAr1& ent2ref = tdimn == 1 ? edg2ref :
+                          tdimn == 2 ? fac2ref : tet2ref;
+  into->setElement(tdimn, 0, nentt, ent2poi[0], &ent2ref[0]);
+}
 
 
 
@@ -594,7 +656,7 @@ void MetrisAPI::getCoord(int ipoi1, int ipoi2, double *coord) const {
 void MetrisAPI::setMetric(int ipoin, const double *metfld){
   if(!imet) return;
   METRIS_ASSERT_MSG(ipoin >= 0 && ipoin < npoin,
-    "ipoin = "<<ipoin<<" npoin = "<<npoin);
+    "ipoin = {} npoin = {}", ipoin, npoin);
   int nnmet = (idim*(idim+1))/2;
   for(int ii = 0; ii < nnmet; ii++) this->metfld(ipoin,ii) = metfld[ii];
 }
@@ -651,16 +713,17 @@ void MetrisAPI::setElementsOrdering(int tdimn, const int *ordering){
 
   for(int ii = 0; ii < nnode; ii++){
     int inode = mul2nod(tdimn,&ordering[(tdimn+1) * ii]);
-    METRIS_ENFORCE_MSG(usrord[tdimn-1][inode] == -1, "Ordering repeats itself inode = "<<ii<<
-      " previous = "<<usrord[tdimn-1][inode]);
+    METRIS_ENFORCE_MSG(usrord[tdimn-1][inode] == -1, 
+      "Ordering repeats itself inode = {} previous = {}", 
+      ii, usrord[tdimn-1][inode]);
     usrord[tdimn-1][inode] = ii;
   }
 }
 
 void MetrisAPI::setElementsOrdering(int iordering){
-  METRIS_THROW_MSG(TODOExcept(), 
+  METRIS_THROW_MSG( 
     "Default orderings not implemented. "
-    "Either don't call setElementsOrdering, or provide explicitely. Given"<<iordering);
+    "Either don't call setElementsOrdering, or provide explicitely. Given: {}", iordering);
 }
 
 void MetrisAPI::setElement(int tdimn, int ielem, const int *ent2pol, int iref){
@@ -783,7 +846,8 @@ void MetrisAPI::getElementRef(int tdimn, int ielem, int *iref) const{
 
 void MetrisAPI::setCorner(int icorn, int ipcor){
   if(ncorn == 0) return;
-  METRIS_ASSERT(ipcor >= 0 && ipcor < ncorn);
+  METRIS_ASSERT(ipcor >= 0 && ipcor < npoin);
+  METRIS_ASSERT(icorn >= 0 && icorn < ncorn);
   lcorn[icorn] = ipcor; 
 }
 

@@ -5,6 +5,7 @@ if [[ -z "$METRIS_CASES_DIR" ]]; then
     exit 1
 fi
 
+
 DIR0=$(pwd)
 
 cd $METRIS_CASES_DIR

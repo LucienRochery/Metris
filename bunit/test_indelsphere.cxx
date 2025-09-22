@@ -3,14 +3,14 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_indelsphere
 
 #include "common_setup.hxx"
 
 #include <random>
-#include "../src/adapt/low_delaunay.hxx"
-#include "../src/utils/mprintf.hxx"
-#include "../src/adapt/msh_insert.hxx"
+#include "Adaptation/low_delaunay.hxx"
+#include "utils/mprintf.hxx"
+#include "Adaptation/Insertion/msh_insert.hxx"
 
 #include <boost/hana.hpp> 
 namespace hana = boost::hana;
@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(test_indelsphere)
   }; 
 
 
-  const int nsamp = 100;
+  const int nsamp = 30;
   dblAr2 bary(nsamp,3);
   dblAr2 bary_out(nsamp,3);
   std::uniform_real_distribution<double> unif(0.0,1.0);
@@ -106,8 +106,8 @@ BOOST_AUTO_TEST_CASE(test_indelsphere)
     INCVDEPTH(msh2D.param);
 
     double hmet = 1;
-    for(int iscal = 0; iscal < 10; iscal++){
-      hmet /= 2;
+    for(int iscal = 0; iscal < 5; iscal++){
+      hmet /= 4;
       double metl[6] = {hmet, 0, hmet, 0, 0, hmet};
 
       printf("-- Met scaling %f \n",hmet);

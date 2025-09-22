@@ -7,13 +7,15 @@
 #include "msh_maxccoef.hxx"
 #include "LPsolver.hxx"
 
-#include "../low_ccoef.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/ccoef.hxx"
+#include "../low_geo/measure.hxx"
+
 #include "../ho_constants.hxx"
 #include "../io_libmeshb.hxx"
 
 #include "../utils/aux_timer.hxx"
 #include "../utils/aux_misc.hxx"
+#include "../utils/mprintf.hxx"
 
 #include "../Mesh/MeshBase.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -46,8 +48,8 @@ template<int gdim, int tdim, int ideg>
 double bezGapsLP(MeshBase &msh, const intAr1 &idx_point, 
                  const dblAr2 &pos_ctrlp, //const dblAr1 &weight,
                  LPMethod method,  LPLib lib){
-  // METRIS_THROW_MSG(TODOExcept(), "maximizeCcoef not implemented for ideg = "<<ideg);
-
+  // METRIS_THROW_MSG("TODO: maximizeCcoef not implemented for ideg = "<<ideg);
+  GETVDEPTH(msh.param);
   const bool MAE = false;
   // We can convert the mesh, but doing that for the displacements would be a 
   // pain in the ass. Better the caller works in Bezier from the start. 
@@ -59,8 +61,6 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
   constexpr int nnode = tdim == 2 ? getnnod2(ideg) : getnnod3(ideg);
   // Only P1 nodes 
   constexpr int vol0 = ifact<tdim>();
-
-  const int iverb = msh.param->iverb;
 
   const intAr2 &ent2poi = msh.ent2poi(tdim); 
         dblAr2 &coord   = msh.coord;
@@ -76,14 +76,14 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
   double ccoef[ncoef];
   double min_ccoef = getminccoef<gdim,ideg>(msh);
 
-  printf("-- Enter bezGapsLP with jtol = %e min ccoef = %e \n",jtol,min_ccoef);
+  CPRINTF1("-- Enter bezGapsLP with jtol = {} min ccoef = {} \n",jtol,min_ccoef);
 
   int nelems = msh.nentt(tdim);
   int ncoefglob = nelems * ncoef;
   
   int noptim_points = pos_ctrlp.get_n();
   
-  printf("\n NUMBER OF OPTIM = %d \n", noptim_points);
+  CPRINTF1("\n NUMBER OF OPTIM = {} \n", noptim_points);
 
   // DoFs are ordered as dX followed by the D_i, followed by virtual
   // variable t in the case of min max.
@@ -140,7 +140,7 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
 
       msh.tag[0]++;
 
-      double t0 = get_wall_time();
+      double t0 = get_cpu_time();
 
       for(int ielem = 0; ielem < nelems; ielem++){
         if (isdeadent(ielem, ent2poi)) continue;
@@ -175,7 +175,7 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
             dxmax[iwhich][icoor] = MAX(dxmax[iwhich][icoor],abs(opt_ctrlpt - ctrlpt));
             dxavg[iwhich][icoor] += abs(opt_ctrlpt - ctrlpt);
 
-            //printf("debug ipoin %d icst_1 = %d icst_2 = %d \n",ipoin,icst_1, icst_2);
+            //printf("debug ipoin {} icst_1 = {} icst_2 = {} \n",ipoin,icst_1, icst_2);
 
             // INEQUALITY CONSTRAINTS 
             // dD_i - dX_i >=  Pi - Pi^opt - |Pi - Pi*|
@@ -184,8 +184,8 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
             solver.setConstraintLB(icst_1, ctrlpt - opt_ctrlpt - abs(ctrlpt - opt_ctrlpt));
             solver.setConstraintUB(icst_1, solver.INFINITY_p);
 
-            //printf("row %d put at j = %d %d \n",icst_2, ivar_dD, ivar_dX);
-            //printf("cstrt >= %14.7e\n",opt_ctrlpt - ctrlpt);
+            //printf("row {} put at j = {} {} \n",icst_2, ivar_dD, ivar_dX);
+            //printf("cstrt >= {:14.7e}\n",opt_ctrlpt - ctrlpt);
             // INEQUALITY CONSTRAINTS
             // dD_i + dX_i >= Pi^opt - Pi - |Pi - Pi*|
             solver.setConstraintMatrix(icst_2, ivar_dD, 1);
@@ -229,10 +229,10 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
           }
         
       }
-      double t1 = get_wall_time();
+      double t1 = get_cpu_time();
     
       //for(int ii = 0; ii < nrow; ii++){
-      //  printf("%d: ",ii);
+      //  printf("{}: ",ii);
       //  for(int jj = 0; jj < ncol; jj++){
       //    printf(" %5f ", sparseget(solver.Acstr_ALG,ii,jj));
       //  }
@@ -247,11 +247,11 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
 
       //printf("Solution vector:\n");
       //for(int ii = 0; ii < ncol; ii++) {
-      //  printf("%d : %15.7e\n",ii,solver.x_ALG[ii]);
+      //  printf("{} : {:15.7e}\n",ii,solver.x_ALG[ii]);
       //}
-      //printf("debug coord ip 6 %f %f \n", msh.coord(6,0), msh.coord(6,1));
+      //printf("debug coord ip 6 {} {} \n", msh.coord(6,0), msh.coord(6,1));
 
-      double t2 = get_wall_time();
+      double t2 = get_cpu_time();
 
 
       double min_ccoef_before = getminccoef<gdim,ideg>(msh);
@@ -261,11 +261,11 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
 
       min_ccoef = min_ccoef_after;
 
-      printf("   - %d/%d f = %15.7e t asbl %f solve %f ccoef %f -> %f\n", 
+      CPRINTF1("   - {}/{} f = {:15.7e} t asbl {} solve {} ccoef {} -> {}\n", 
              niter,icoor,obj_val,t1-t0,t2-t1,min_ccoef_before/vol0,min_ccoef_after/vol0);
 
 
-      if(iverb >= 3){
+      if(DOPRINTS2()){
         std::string fname = "bezGapsLP"+std::to_string(niter)+"."+std::to_string(icoor);
         writeMesh(fname,msh);
       }
@@ -275,11 +275,11 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
     bool istop = true;
     for(int icoor = 0; icoor < gdim; icoor++){
       dxavg[iwhich][icoor] /= noptim_points;
-      if(iverb >= 2) printf(" - niter %d/%d dx[%d] avg = %15.7e max = %15.7e "
-                            "davg = %15.7e dmax = %15.7e\n",
-                            niter,miter,icoor,dxavg[iwhich][icoor],dxmax[iwhich][icoor],
-                            abs(dxavg[iwhich][icoor] - dxavg[1-iwhich][icoor]),
-                            abs(dxmax[iwhich][icoor] - dxmax[1-iwhich][icoor]));
+      CPRINTF1(" - niter {}/{} dx[{}] avg = {:15.7e} max = {:15.7e} "
+               "davg = {:15.7e} dmax = {:15.7e}\n",
+                niter,miter,icoor,dxavg[iwhich][icoor],dxmax[iwhich][icoor],
+                abs(dxavg[iwhich][icoor] - dxavg[1-iwhich][icoor]),
+                abs(dxmax[iwhich][icoor] - dxmax[1-iwhich][icoor]));
       if(!MAE && dxmax[iwhich][icoor] < obj_change_tol) continue;
       if( MAE && dxavg[iwhich][icoor] < obj_change_tol) continue;
       if(!MAE && abs(dxmax[iwhich][icoor] - dxmax[1-iwhich][icoor]) < obj_change_tol
@@ -292,19 +292,19 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
       //istop = false;
     }
     if(istop){
-      if(iverb >= 1) printf(" - changes too small in objective, stop \n");
+      CPRINTF1(" - changes too small in objective, stop \n");
       return min_ccoef;
     }
     iwhich = 1 - iwhich;
     if(istop){
-      if(iverb >= 1) printf(" - changes too small, stop \n");
+      CPRINTF1(" - changes too small, stop \n");
       return min_ccoef;
     }
 
   } // for niter 
 
-  //printf("debug coord ip 6 %f %f \n", msh.coord(6,0), msh.coord(6,1));
-  //METRIS_THROW(AlgoExcept());
+  //printf("debug coord ip 6 {} {} \n", msh.coord(6,0), msh.coord(6,1));
+  //METRIS_THROW();
   return -1;
 }
 

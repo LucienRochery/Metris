@@ -7,15 +7,17 @@
 #include "low_metqua.hxx"
 
 #include "../ho_constants.hxx"
-#include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
+#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
 #include "../aux_topo.hxx"
-#include "../low_geo.hxx"
-#include "../low_normal.hxx"
+#include "../low_geo/misc.hxx"
+#include "../low_geo/normal.hxx"
 #include "../io_libmeshb.hxx"
 #include "../Mesh/Mesh.hxx"
 #include "../linalg/det.hxx"
 
 #include "../utils/aux_pp_inc.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 
 namespace Metris{
@@ -43,7 +45,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     && msh.CAD()
     && abs(msh.param->qua_surf_wt_normal) > 1.0e-9*abs(msh.param->qua_surf_wt_quality);
   if(tdim == 1 && gdim >= 2) 
-    METRIS_THROW_MSG(TODOExcept(), "TODO: Edge quality with normal dev")
+    METRIS_THROW_MSG("TODO: TODO: Edge quality with normal dev")
 
 
   // Performance impact should be zero
@@ -69,113 +71,23 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   //    int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
   //    METRIS_ENFORCE_MSG(ierro == 0, "metqua0 EG_evaluate error " << ierro);
   //    vecprod(du,dv,norfld[inode]);
-  //    if(normalize_vec<gdim>(norfld[inode])) METRIS_THROW_MSG(GeomExcept(), "Normal vanishes");
+  //    if(normalize_vec<gdim>(norfld[inode])) METRIS_THROW_MSG( "Normal vanishes");
   //  }
   //}
   const int ideg = msh.curdeg;
   const int ideg_eff = asdmsh == AsDeg::P1 ? 1 : ideg;
   const int nnode = getnnode(tdim, ideg_eff);
+  constexpr int nnmet = (gdim*(gdim+1))/2;
 
   // Accumulate normal error at the nodes (depending on asdmsh)
   if(do_nordev){
-    double result[18];
-    double norCAD[gdim], norelt[gdim];
-    double *du = &result[3];
-    double *dv = &result[6];
-    const int iref = msh.fac2ref[ientt];
-    const ego obj  = msh.CAD.cad2fac[iref];
-
-    // Even if we use CAD normals at all vertices, we can compute this one just once.
-    if(ideg == 1){
-      getnorfacP1(ent2poi[ientt], msh.coord, norelt);
-      if(normalize_vec<gdim>(norelt)){
-        writeMesh("debug_ibpoi",msh);
-        printf("norelt vanished ientt = %d nodes ",ientt);
-        intAr1(nnode, ent2poi[ientt]).print();
-        for(int ii = 0; ii < gdim; ii++) printf("%d: %23.15e\n",ii,norelt[ii]);
-        METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
-      }
+    if(asdmsh == AsDeg::P1){
+      nordev = getnordev<1>(msh, ientt);
+    }else{
+      CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
+        nordev = getnordev<ideg>(msh, ientt);
+      }}CT_FOR1(ideg);
     }
-
-    for(int inode = 0; inode < nnode; inode++){
-      int ipoin = ent2poi(ientt, inode);
-      int ibpoi = msh.poi2ebp(ipoin, tdim, ientt, iref);
-      if(ibpoi < 0){
-        for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
-          printf("ibpoi %d : ",ibpoi);
-          intAr1(nibi, msh.bpo2ibi[ibpoi]).print();
-        }
-        writeMesh("debug_ibpoi",msh);
-      }
-      METRIS_ASSERT_MSG(ibpoi >= 0 && ibpoi < msh.nbpoi, 
-        "iface = "<<ientt<<" iref  "<<iref<<" inode = "<<inode
-        <<" ipoin = "<<ipoin<<" ibpoi = "<< ibpoi);
-      int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
-      METRIS_ENFORCE_MSG(ierro == 0, "metqua0 EG_evaluate error " << ierro);
-      vecprod(du,dv,norCAD);
-      if(normalize_vec<gdim>(norCAD)){
-        //printf("using tdim = %d ientt = %d iref = %d \n",tdim, ientt, iref);
-        // legitimate if e.g. cone tip.
-        if(msh.getpoitdim(ipoin) != 0){
-          printf("ipoin = %d point dim = %d",ipoin,msh.getpoitdim(ipoin));
-          printf("using ibpoi = %d : ",ibpoi);
-          intAr1(nibi, msh.bpo2ibi[ibpoi]).print();
-          int  idbgdim = msh.bpo2ibi(ibpoi,1);
-          int  idbgent = msh.bpo2ibi(ibpoi,2);
-          printf(" entity ref = %d \n", msh.ent2ref(idbgdim)[idbgent]);
-          printf("get du = ");
-          dblAr1(gdim, du).print();
-          printf("get dv = ");
-          dblAr1(gdim, dv).print();
-          printf("vecprod = ");
-          dblAr1(gdim, norCAD).print();
-
-          printf("(u,v) = %24.15e %24.15e\n", msh.bpo2rbi(ibpoi,0), msh.bpo2rbi(ibpoi,1));
-          printf("eval coop %24.15e %24.15e %24.15e \n",
-            result[0],result[1],result[2]);
-
-          double nrm = getnrml2<gdim>(norCAD);
-          printf("nrm = %24.15e\n",nrm);
-
-
-          int ibpo2 = msh.poi2ebp(168, tdim, ientt, iref);
-          printf("168 (node) (u,v) = %24.15e %24.15e\n", msh.bpo2rbi(ibpo2,0), msh.bpo2rbi(ibpo2,1));
-          ierro = EG_evaluate(obj, msh.bpo2rbi[ibpo2], result);
-          printf("get du = ");
-          dblAr1(gdim, du).print();
-          printf("get dv = ");
-          dblAr1(gdim, dv).print();
-          printf("vecprod = ");
-          printf("eval coop %24.15e %24.15e %24.15e \n",
-            result[0],result[1],result[2]);
-
-
-          METRIS_THROW_MSG(GeomExcept(), "Normal (CAD) vanishes at ipoin "<<ipoin);
-        }
-        nordev += 0;
-        continue;
-      }
-
-      if(ideg > 1){
-        for(int ii = 0; ii < tdim + 1; ii++)
-          bary[ii] = ordelt[ideg_eff][inode][ii]/((double) (ideg_eff));
-        getnorfac(msh, ientt, bary, asdmsh, norelt);
-        if(normalize_vec<gdim>(norelt)){
-          writeMesh("debug_ibpoi",msh);
-          printf("norelt vanished ientt = %d node %d point %d nodes ",ientt,inode,ipoin);
-          intAr1(nnode, ent2poi[ientt]).print();
-          for(int ii = 0; ii < gdim; ii++) printf("%d: %23.15e\n",ii,norelt[ii]);
-          METRIS_THROW_MSG(GeomExcept(), "Normal (elt) vanishes");
-        }
-      }
-
-      double dtprd = getprdl2<gdim>(norelt, norCAD);
-      double tmp = 1-abs(dtprd);
-      METRIS_ASSERT(tmp >= 0);
-      nordev += tmp*tmp;
-    }
-    nordev /= nnode;
-    nordev = sqrt(nordev);
   }
 
   if(ideg_eff > 1){
@@ -188,12 +100,22 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
     METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
 
+    //double metl[nnmet];
+
     for(int iquad = 0; iquad < nnode; iquad++){
       for(int ii = 0; ii < tdim + 1; ii++){
         bary[ii] = ordelt[ideg][iquad][ii]/((double) (ideg));
       }
       const int ipoin = ent2poi(ientt, iquad);
       ftype qua0 = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,msh.met[ipoin]);
+      // About 6x slower if MetSpace::Log: leave an assert here. 
+      //if(msh.met.getSpace() == MetSpace::Exp){
+      //  qua0 = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,msh.met[ipoin]);
+      //}else{
+      //  for(int ii = 0; ii < nnmet; ii++) metl[ii] = msh.met(ipoin,ii);
+      //  getexpmet_inp<gdim>(metl);
+      //  qua0 = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,metl);
+      //}
 
       // You'd think this wouldn't be a bottleneck but it eats up 20% of optimization
       // time to run pow() here even if pnorm = 2 or 1.
@@ -237,8 +159,8 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       qutet = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,NULL);
       #ifndef NDEBUG
         }catch(const MetrisExcept &e){
-          printf("## metqua ent2pol \n");
-          intAr1(getnnode(tdim,ideg), ent2poi[ientt]).print();
+          printf("## metqua ent2pol {}\n",
+                 intAr1(getnnode(tdim,ideg), ent2poi[ientt]));
           throw(e);
         }
       #endif
@@ -253,7 +175,6 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
     #else
       METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
-      constexpr int nnmet = (gdim*(gdim+1))/2;
       double met[nnmet];
       for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim  + 1);
       for(int jj = 0; jj < nnmet; jj++) met[jj] = 0;

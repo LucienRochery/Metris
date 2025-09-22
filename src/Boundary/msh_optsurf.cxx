@@ -83,7 +83,7 @@ void smoo_surfqua_G1(Mesh &msh){
 		int ibpo1 = -1;
 		int nn = 0; 
 		do{
-			if(nn++ > METRIS_MAX_WHILE) METRIS_THROW_MSG(TopoExcept(), 
+			if(nn++ > METRIS_MAX_WHILE) METRIS_THROW_MSG( 
 				"ill-formed linked list of bpois");
 
 			msh.poi2tag(0,ibpo2) = msh.tag[0];
@@ -92,7 +92,7 @@ void smoo_surfqua_G1(Mesh &msh){
 			ibpo2 = msh.bpo2ibi(ibpo2,3);
 		}while(ibpo2 != ibpoi && ibpo2 != -1);
 
-		if(ibpo1 < 0)	METRIS_THROW_MSG(TopoExcept(),"LINE MESH?");
+		if(ibpo1 < 0)	METRIS_THROW_MSG("LINE MESH?");
 		// At this stage, ibpo1 is a triangle-attached boundary point. 
 
 		// Store for quicker reference (and shorter code, really)

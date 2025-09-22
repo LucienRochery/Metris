@@ -10,16 +10,18 @@
 
 #include "../Mesh/Mesh.hxx"
 #include "../ho_constants.hxx"
-#include "../utils/aux_timer.hxx"
-#include "../utils/mprintf.hxx"
-#include "../utils/aux_misc.hxx"
-#include "../utils/bernstein_prod.hxx"
-#include "../low_ccoef.hxx"
+#include "../low_geo/ccoef.hxx"
+#include "../low_geo/measure.hxx"
 #include "../linalg/det.hxx"
 #include "../Optimization/opt_generic.hxx"
 #include "../low_topo.hxx"
 #include "../io_libmeshb.hxx"
-#include "../low_geo.hxx"
+
+#include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/aux_misc.hxx"
+#include "../utils/bernstein_prod.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 #include "codegen_lag2bez.hxx"
 
@@ -77,7 +79,7 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
   //const int inod0 = tdim + 1; // only HO
   const int inod0 = 0; // all
 
-  double t0 = get_wall_time();
+  double t0 = get_cpu_time();
   CPRINTF1("-- START minimizeInterpErrglo\n");
 
   if(ialgo == 0){
@@ -107,13 +109,13 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
     redpct1 = 100*(errGlo0-errGlo)/errGlo0;
 
     if(DOPRINTS1() || getErrGlo){
-      CPRINTF1("-- START iter %d/%d error %e ",niter,miter,errGlo);
-      if(niter == 0 && DOPRINTS1()) printf("\n");
-      else if(DOPRINTS1()) printf(" red %% %f\n",redpct1);
+      CPRINTF1("-- START iter {}/{} error {} ",niter,miter,errGlo);
+      if(niter == 0 && DOPRINTS1()) fmt::print(LOGFILE__,"\n");
+      else if(DOPRINTS1()) fmt::print(LOGFILE__," red % {}\n",redpct1);
     }
 
     if(abs(redpct1-redpct2) < 1.0e-3 && niter > 1){
-      CPRINTF1("-- STOP percent reduction too small %e -> %e \n",redpct1, redpct2);
+      CPRINTF1("-- STOP percent reduction too small {} -> {} \n",redpct1, redpct2);
       break;
     }
 
@@ -144,7 +146,7 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
             }
             METRIS_ASSERT(imani && !iopen);
           }else{
-            METRIS_THROW_MSG(TODOExcept(), "3D in minInterperr");
+            METRIS_THROW_MSG("TODO: 3D in minInterperr");
           }
         }else if(inode < tdim + 1 + nedgl * (ideg - 1)){
           // Edge node. 
@@ -161,19 +163,15 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
             lball.stack(ient2);
             lnode.stack(inod2);
           }else{
-            METRIS_THROW_MSG(TODOExcept(), "3D in minInterperr");
+            METRIS_THROW_MSG("TODO: 3D in minInterperr");
           }
         }else{
-          METRIS_THROW_MSG(TODOExcept(), "Interior 2D/3D or face in 3D");
+          METRIS_THROW_MSG("TODO: Interior 2D/3D or face in 3D");
         }
 
-        if(DOPRINTS2()){
-          CPRINTF2(" - ientt %d inode %d ipoin %d ball size %d\n",ientt,inode,ipoin,lball.get_n());
-          CPRINTF2(" ball:");
-          lball.print();
-          CPRINTF2(" lnode:");
-          lnode.print();
-        }
+        CPRINTF2(" - ientt {} inode {} ipoin {} ball size {}\n",ientt,inode,ipoin,lball.get_n());
+        CPRINTF2(" ball: {}\n",lball);
+        CPRINTF2(" lnode: {}\n",lnode);
 
         // We now have lball list of elements, lnode index of ipoin in these
         double errLp0, errLp1;
@@ -182,18 +180,18 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
       : minimizeInterpErrloc_DIRECT<MFT,idim,ideg,pdeg>(msh, sol, pnorm, lball, lnode, &errLp0, &errLp1);
         METRIS_ASSERT(errLp1 <= errLp0 || ierro);
         if(ierro != 0){
-          CPRINTF1(" - returned ierro %d \n",ierro);
+          CPRINTF1(" - returned ierro {} \n",ierro);
           nerro++;
           continue;
         }else{
-          CPRINTF1(" - min interp err loc success %e -> %e, decrease %f%% \n",
+          CPRINTF1(" - min interp err loc success {} -> {}, decrease {}% \n",
                    errLp0, errLp1, (errLp1-errLp0)/errLp0*100);
           nsucc++;
         }
 
       }// for inode
     }// for ientt 
-    CPRINTF1(" - END iter %d/%d nerro %d nsucc %d \n",niter,miter,nerro,nsucc);
+    CPRINTF1(" - END iter {}/{} nerro {} nsucc {} \n",niter,miter,nerro,nsucc);
   }// for niter
 
   if(DOPRINTS1()){
@@ -201,14 +199,15 @@ void minimizeInterpErrglo0(Mesh<MFT> &msh, const SolutionFieldAnalytical &sol,
                                : interpErrGlo<idim,ideg,pdeg,2,true>(sol);
     errGlo1 = errGlo;
     double red = (errGlo0 - errGlo1) / errGlo0 * 100;
-    double t1 = get_wall_time();
-    CPRINTF1("-- END minimizeInterpErrglo error %e -> %e reduced%% %f \n",errGlo0,errGlo1,red);
-    CPRINTF1("-- time = %f = %d elt/s\n",t1-t0,(int)(nentt/(t1-t0)));
+    double t1 = get_cpu_time();
+    CPRINTF1("-- END minimizeInterpErrglo error {} -> {} reduced% {} \n",errGlo0,errGlo1,red);
+    CPRINTF1("-- time = {:.2e}s = {} elt/s\n",t1-t0,(int)(nentt/(t1-t0)));
   }
 
   msh.setBasis(ibas0);
 }
 
+#if METRIS_MAX_DEG > 1
 #define BOOST_PP_LOCAL_MACRO(n)\
 template \
 void minimizeInterpErrglo0<MetricFieldAnalytical, 2, n, 1>(Mesh<MetricFieldAnalytical> &msh, \
@@ -228,6 +227,8 @@ void minimizeInterpErrglo0<MetricFieldFE, 2, n, 2>(Mesh<MetricFieldFE> &msh, \
                            int pnorm, int ialgo, int ithrd1, int ithrd2);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
+#endif
+
 
 #if 0
 template<int idim, int ideg>
@@ -296,7 +297,7 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
 
   const int inod0 = tdim + 1; // only HO
 
-  double t0 = get_wall_time();
+  double t0 = get_cpu_time();
   CPRINTF1("-- START minimizeInterpErrglo\n");
 
   // start
@@ -312,9 +313,9 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
       double errGlo = pnorm == 1 ? interpErrGlo<idim,ideg,pdeg,1,true>(sol)
                                  : interpErrGlo<idim,ideg,pdeg,2,true>(sol);
       if(niter == 0) errGlo0 = errGlo;
-      CPRINTF1("-- START iter %d/%d error %e ",niter,miter,errGlo);
+      CPRINTF1("-- START iter {}/{} error {} ",niter,miter,errGlo);
       if(niter == 0 && DOPRINTS1()) printf("\n");
-      else if(DOPRINTS1()) printf(" red %% %f\n",100*(errGlo0-errGlo)/errGlo0);
+      else if(DOPRINTS1()) printf(" red % {}\n",100*(errGlo0-errGlo)/errGlo0);
     }
 
     msh.tag[ithrd1]++;
@@ -344,7 +345,7 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
             }
             METRIS_ASSERT(imani && !iopen);
           }else{
-            METRIS_THROW_MSG(TODOExcept(), "3D in minInterperr");
+            METRIS_THROW_MSG("TODO: 3D in minInterperr");
           }
         }else if(inode < tdim + 1 + nedgl * (ideg - 1)){
           // Edge node. 
@@ -361,18 +362,16 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
             lball.stack(ient2);
             lnode.stack(inod2);
           }else{
-            METRIS_THROW_MSG(TODOExcept(), "3D in minInterperr");
+            METRIS_THROW_MSG("TODO: 3D in minInterperr");
           }
         }else{
-          METRIS_THROW_MSG(TODOExcept(), "Interior 2D/3D or face in 3D");
+          METRIS_THROW_MSG("TODO: Interior 2D/3D or face in 3D");
         }
 
         if(DOPRINTS2()){
-          CPRINTF2(" - ientt %d inode %d ipoin %d ball size %d\n",ientt,inode,ipoin,lball.get_n());
-          CPRINTF2(" ball:");
-          lball.print();
-          CPRINTF2(" lnode:");
-          lnode.print();
+          CPRINTF2(" - ientt {} inode {} ipoin {} ball size {}\n",ientt,inode,ipoin,lball.get_n());
+          CPRINTF2(" ball: {}\n",lball);
+          CPRINTF2(" lnode: {}\n",lnode);
         }
 
         // We now have lball list of elements, lnode index of ipoin in these
@@ -381,18 +380,18 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
         minimizeInterpErrloc<MFT,idim,ideg,pdeg>(msh, sol, pnorm, lball, lnode, &errLp0, &errLp1);
         METRIS_ASSERT(errLp1 <= errLp0 || ierro);
         if(ierro != 0){
-          CPRINTF1(" - returned ierro %d \n",ierro);
+          CPRINTF1(" - returned ierro {} \n",ierro);
           nerro++;
           continue;
         }else{
-          CPRINTF1(" - min interp err loc success %e -> %e, decrease %f%% \n",
+          CPRINTF1(" - min interp err loc success {} -> {}, decrease {}% \n",
                    errLp0, errLp1, (errLp1-errLp0)/errLp0*100);
           nsucc++;
         }
 
       }// for inode
     }// for ientt 
-    CPRINTF1(" - END iter %d/%d nerro %d nsucc %d \n",niter,miter,nerro,nsucc);
+    CPRINTF1(" - END iter {}/{} nerro {} nsucc {} \n",niter,miter,nerro,nsucc);
   }// for niter
 
   if(DOPRINTS1()){
@@ -400,9 +399,9 @@ void minimizeInterpErrglo0_nlopt(Mesh<MFT> &msh, const SolutionFieldAnalytical &
                                : interpErrGlo<idim,ideg,pdeg,2,true>(sol);
     errGlo1 = errGlo;
     double red = (errGlo0 - errGlo1) / errGlo0 * 100;
-    double t1 = get_wall_time();
-    CPRINTF1("-- END minimizeInterpErrglo error %e -> %e reduced%% %f \n",errGlo0,errGlo1,red);
-    CPRINTF1("-- time = %f = %d elt/s\n",t1-t0,(int)(nentt/(t1-t0)));
+    double t1 = get_cpu_time();
+    CPRINTF1("-- END minimizeInterpErrglo error {} -> {} reduced% {} \n",errGlo0,errGlo1,red);
+    CPRINTF1("-- time = {:.2e}s = {} elt/s\n",t1-t0,(int)(nentt/(t1-t0)));
   }
 
   msh.setBasis(ibas0);
@@ -481,10 +480,10 @@ int minimizeInterpErrloc_Newton(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
 
     ierro = optim_newton_drivertype<idim>(args, xcur, &fcur, gcur, hess, &iflag, &ihess);
     
-    CPRINTF1(" - newton ret ierro %d iflag %d xcur %f %f \n",ierro,iflag,xcur[0],xcur[1]);
+    CPRINTF1(" - newton ret ierro {} iflag {} xcur {} {} \n",ierro,iflag,xcur[0],xcur[1]);
 
     if(ierro > 0){
-      CPRINTF1(" ## optim_newton_drivertype error %d\n",ierro);
+      CPRINTF1(" ## optim_newton_drivertype error {}\n",ierro);
       goto cleanup;
     }
     if(iflag <= 0){
@@ -500,7 +499,7 @@ int minimizeInterpErrloc_Newton(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
     iinva = false;
     if constexpr (ideg == 1){
       for(int ientt : lball){
-        getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iinva);
+        iinva = !isvalideltP1<idim,idim>(msh,ientt); 
         if(iinva) break;
       }
     }else{
@@ -510,7 +509,7 @@ int minimizeInterpErrloc_Newton(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
       }
     }
     if(iinva){
-      CPRINTF1(" - invalid config, ihess = %d \n",ihess);
+      CPRINTF1(" - invalid config, ihess = {} \n",ihess);
       // Otherwise we got an invalid update. 
       METRIS_ASSERT(ihess == 0);
       if(ihess != 0){
@@ -542,7 +541,7 @@ int minimizeInterpErrloc_Newton(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
 
     if(niter == 0) *errLp0 = fcur;
 
-    CPRINTF1(" - computed errLp ball = %e \n",fcur);
+    CPRINTF1(" - computed errLp ball = {} \n",fcur);
   }// for niter
 
   *errLp1 = args.fopt;
@@ -551,7 +550,7 @@ int minimizeInterpErrloc_Newton(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
   #ifndef NDEBUG
   if constexpr (ideg == 1){
     for(int ientt : lball){
-      getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iinva);
+      iinva = !isvalideltP1<idim,idim>(msh,ientt); 
       if(iinva) break;
     }
   }else{
@@ -588,7 +587,7 @@ int minimizeInterpErrloc_Newton(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
   //  CPRINTF1("-- Gave up on relaxation")
   //  for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii] + args.xopt[ii];
   //}else{
-  //  CPRINTF1("-- Final relaxation factor %f \n",qfac1)
+  //  CPRINTF1("-- Final relaxation factor {} \n",qfac1)
   //}
 
 
@@ -612,7 +611,12 @@ template \
 int minimizeInterpErrloc_Newton<MetricFieldFE, 2, n, 1>(Mesh<MetricFieldFE> &msh, \
                            const SolutionFieldAnalytical &sol, \
                            int pnorm, intAr1& lball, intAr1& lnode,\
-                           double *errLp0, double *errLp1);\
+                           double *errLp0, double *errLp1);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+#if METRIS_MAX_DEG > 1
+#define BOOST_PP_LOCAL_MACRO(n)\
 template \
 int minimizeInterpErrloc_Newton<MetricFieldAnalytical, 2, n, 2>(Mesh<MetricFieldAnalytical> &msh, \
                            const SolutionFieldAnalytical &sol, \
@@ -625,7 +629,7 @@ int minimizeInterpErrloc_Newton<MetricFieldFE, 2, n, 2>(Mesh<MetricFieldFE> &msh
                            double *errLp0, double *errLp1);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
-
+#endif
 
 
 // Not thread safe
@@ -657,7 +661,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
   int ifmin;
   double barmin[idim+1], fopt;
 
-  constexpr auto evalf = idim == 2 ? eval2<idim,idim> : eval3<idim,idim>;
+  constexpr auto evalf = idim == 2 ? eval2<idim,ideg> : eval3<idim,ideg>;
 
 
   if(pnorm == 1){
@@ -668,7 +672,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
 
   args.fscale = *errLp0;
 
-  CPRINTF1("-- START minimizeInterpErrloc_DIRECT nball %d initial err %e\n",
+  CPRINTF1("-- START minimizeInterpErrloc_DIRECT nball {} initial err {}\n",
            lball.get_n(), *errLp0)
 
 
@@ -692,7 +696,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
 
 
     int neval = leval.get_n();
-    CPRINTF1(" - DIBLOB iflag %d neval %d\n",args.iflag,neval);
+    CPRINTF1(" - DIBLOB iflag {} neval {}\n",args.iflag,neval);
 
     if(args.iflag <= 0){
       CPRINTF1(" - iflag = 0 termination\n");
@@ -714,7 +718,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
       iinva = false;
       if constexpr (ideg == 1){
         for(int ientt : lball){
-          getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iinva);
+          iinva = !isvalideltP1<idim,idim>(msh,ientt);
           if(iinva) break;
         }
       }else{
@@ -724,7 +728,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
         }
       }
       if(iinva){
-        CPRINTF1(" - eval %d invalid config\n",ieval);
+        CPRINTF1(" - eval {} invalid config\n",ieval);
         // Otherwise we got an invalid update. 
         feval[ieval] = 1.0e30;
         goto loop_cleanup;
@@ -736,7 +740,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
         feval[ieval] = interpErrBall<idim, ideg, pdeg, 2, iexact>(sol, lball, lnode, {});
       }// if pnorm
 
-      CPRINTF1(" - eval %d errLp ball = %e \n",ieval,feval[ieval]);
+      CPRINTF1(" - eval {} errLp ball = {} \n",ieval,feval[ieval]);
 
       loop_cleanup:
       for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
@@ -744,9 +748,8 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
 
   }// for niter
 
-  CPRINTF1("-- END minimizeInterpErrloc_DIRECT ifmin %d fun %e -> %e barmin ",
-           ifmin, *errLp0, fopt);
-  if(DOPRINTS1()) dblAr1(idim+1,barmin).print();
+  CPRINTF1("-- END minimizeInterpErrloc_DIRECT ifmin {} fun {} -> {} barmin {}\n",
+           ifmin, *errLp0, fopt, dblAr1(idim+1,barmin));
 
 
   if(fopt >= *errLp0){
@@ -768,7 +771,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
   iinva = false;
   if constexpr (ideg == 1){
     for(int ientt : lball){
-      getmeasentP1<idim,idim>(msh, ent2poi[ientt], NULL, &iinva);
+      iinva = !isvalideltP1<idim,idim>(msh,ientt);
       if(iinva) break;
     }
   }else{
@@ -778,8 +781,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
     }
   }
   if(iinva){
-    printf("Invalid configuration, dump mesh. ball = ");
-    lball.print();
+    PRINTF("Invalid configuration, dump mesh. ball = {}\n",lball);
     writeMesh("debugDIBLOB_intp.meshb",msh);
   }
   METRIS_ASSERT(!iinva);
@@ -793,7 +795,7 @@ int minimizeInterpErrloc_DIRECT(Mesh<MFT> &msh, const SolutionFieldAnalytical &s
     }else{
       fnew = interpErrBall<idim, ideg, pdeg, 2, iexact>(sol, lball, lnode, {});
     }// if pnorm
-    CPRINTF1("DEBUG: recomputed fnew = %e errLp1 = %e\n",fnew,*errLp1);
+    CPRINTF1("DEBUG: recomputed fnew = {} errLp1 = {}\n",fnew,*errLp1);
   }
 
 
@@ -811,7 +813,12 @@ template \
 int minimizeInterpErrloc_DIRECT<MetricFieldFE, 2, n, 1>(Mesh<MetricFieldFE> &msh, \
                            const SolutionFieldAnalytical &sol, \
                            int pnorm, intAr1& lball, intAr1& lnode,\
-                           double *errLp0, double *errLp1);\
+                           double *errLp0, double *errLp1);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+#if METRIS_MAX_DEG > 1
+#define BOOST_PP_LOCAL_MACRO(n)\
 template \
 int minimizeInterpErrloc_DIRECT<MetricFieldAnalytical, 2, n, 2>(Mesh<MetricFieldAnalytical> &msh, \
                            const SolutionFieldAnalytical &sol, \
@@ -824,7 +831,6 @@ int minimizeInterpErrloc_DIRECT<MetricFieldFE, 2, n, 2>(Mesh<MetricFieldFE> &msh
                            double *errLp0, double *errLp1);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
-
-
+#endif
 
 } //namespace

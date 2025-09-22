@@ -27,7 +27,7 @@ void square_bernstein(const dblAr2 &coef_inp, dblAr2 &coef_out,
 
   //static bool iinit = false;
   //if(!iinit){
-  //  printf("instantiate sqr %d %d %d\n",gdim,tdim,ideg);
+  //  printf("instantiate sqr {} {} {}\n",gdim,tdim,ideg);
   //  iinit = true;
   //}
 
@@ -43,7 +43,7 @@ void square_bernstein(const dblAr2 &coef_inp, dblAr2 &coef_out,
 
   constexpr auto ordent = ORDELT(tdim);
 
-  //printf("# debug start tdim ideg %d %d \n",tdim,ideg);
+  //printf("# debug start tdim ideg {} {} \n",tdim,ideg);
   //printf(" inp = \n");
   //coef_inp.print();
 

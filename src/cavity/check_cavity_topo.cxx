@@ -19,7 +19,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
                       CavOprOpt &opts, //RoutineWorkMemory<int> &iwrk, 
                       int ithread){
 
-  cav.maxtag = ++msh.tag[ithread];
+  cav.maxtag = MAX(cav.maxtag,++msh.tag[ithread]);
 
   GETVDEPTH(msh.param);
 
@@ -32,22 +32,40 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
 
 
   // Tag while checking no duplicates (hard error).
+  #ifndef NDEBUG
+  bool inewp = true;
+  #endif
   for(int tdim = 1; tdim <= msh.get_tdim(); tdim++){
     const intAr1& lcent = cav.lcent(tdim);
     intAr2& ent2tag = msh.ent2tag(tdim);
     const int nnode = msh.nnode(tdim);
     const intAr2 &ent2poi = msh.ent2poi(tdim);
     for(int ientt : lcent){
-      METRIS_ASSERT(ent2tag(ithread,ientt) < msh.tag[ithread]);
+      #ifndef NDEBUG
+      if(!(ent2tag(ithread,ientt) < msh.tag[ithread])){
+        printf("## ERROR PRINT CAVITY\n");
+        cav.print(msh,2);
+      }
+      #endif
+      METRIS_ASSERT_MSG(ent2tag(ithread,ientt) < msh.tag[ithread],
+        "Cavity entity {} already tagged in thread {}, "
+        "tag = {} >= {}, tdim = {}",
+        ientt, ithread, ent2tag(ithread,ientt), msh.tag[ithread], tdim);
+
       ent2tag(ithread,ientt) = msh.tag[ithread];
-      if(!cav.inewp) continue;
+      #ifndef NDEBUG
+      if(!inewp) continue;
       // Check if ipins is present in the cavity elements.
       for(int inode = 0; inode < nnode; inode++){
         int ipoin = ent2poi(ientt, inode);
-        if(ipoin == cav.ipins) cav.inewp = false;
+        if(ipoin == cav.ipins) inewp = false;
       }
+      #endif
     }
   }
+
+  METRIS_ASSERT_MSG(inewp == (bool) cav.inewp, 
+    "cav provides inewp = {} but found {}", cav.inewp, inewp);
 
   if(opts.skip_topo_checks){
     CPRINTF1(" - flag skip_topo_checks set: skipping topological checks.\n");
@@ -61,7 +79,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
       int iface = msh.edg2fac[iedge];
       if(iface < 0) continue;
       if(msh.fac2tag(ithread,iface) < msh.tag[ithread]){
-        CPRINTF1(" # cavity edge %d supports face %d not in cavity\n",iedge,iface);
+        CPRINTF1(" # cavity edge {} supports face {} not in cavity\n",iedge,iface);
         return CAV_ERR_NOEDGFAC;
       }
       int ip1 = msh.edg2poi(iedge,0);
@@ -72,19 +90,19 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
       if(ifac2 == -1) continue;
       if(ifac2 >= 0){
         if(msh.fac2tag(ithread,ifac2) < msh.tag[ithread]){
-          CPRINTF1(" # cavity edge %d supports n-m face %d not in cavity\n",iedge,ifac2);
+          CPRINTF1(" # cavity edge {} supports n-m face {} not in cavity\n",iedge,ifac2);
           return CAV_ERR_NOEDGFAC;
         }
         continue;
       }
       ifac2 = iface;
       while(getnextfacnm(msh, iface, ip1, ip2, &ifac2, &ied)){
-        CPRINTF1(" - check face %d nm face nei %d\n",iface,ifac2);
+        CPRINTF1(" - check face {} nm face nei {}\n",iface,ifac2);
         METRIS_ASSERT(ifac2 >= 0 && ifac2 < msh.nface);
         METRIS_ASSERT(!isdeadent(ifac2, msh.fac2poi));
         METRIS_ASSERT(ied >= 0);
         if(msh.fac2tag(ithread,ifac2) < msh.tag[ithread]){
-          CPRINTF1(" # cavity edge %d supports n-m face %d not in cavity\n",iedge,ifac2);
+          CPRINTF1(" # cavity edge {} supports n-m face {} not in cavity\n",iedge,ifac2);
           return CAV_ERR_NOEDGFAC;
         }
       }
@@ -97,7 +115,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
         int ielem = msh.fac2tet(iface,ii);
         if(ielem < 0) continue;
         if(msh.tet2tag(ithread,ielem) < msh.tag[ithread]){
-          CPRINTF1(" # cavity face %d supports tet %d not in cavity\n",iface,ielem);
+          CPRINTF1(" # cavity face {} supports tet {} not in cavity\n",iface,ielem);
           return CAV_ERR_NOFACTET;
         }
       }
@@ -134,12 +152,12 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
 
       int iedge = getedgglo(msh,ip1,ip2);
 
-      if(iedge < 0 && ifac2 < 0) METRIS_THROW_MSG(TopoExcept(),"Non manifold and no edge");
+      if(iedge < 0 && ifac2 < 0) METRIS_THROW_MSG("Non manifold and no edge");
 
       if(iedge < 0) continue;
 
       if(msh.edg2tag(ithread,iedge) < msh.tag[ithread]){
-        CPRINTF1("## edge %d is internal but was not in cavity\n",iedge);
+        CPRINTF1("## edge {} = {} {} is internal but was not in cavity\n",iedge,msh.edg2poi(iedge,0),msh.edg2poi(iedge,1));
         // This is not always an error in the sense of an assert.
         // The assert has proved useful to spot legitimate bugs but let's downgrade it now
         return CAV_ERR_INTEDG;
@@ -162,7 +180,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
         int iface = getfacglo(msh, ip1, ip2, ip3);
         if(iface < 0) continue;
         if(msh.fac2tag(ithread,iface) < msh.tag[ithread]){
-          CPRINTF1("## face %d is internal but was not in cavity\n",iface);
+          CPRINTF1("## face {} is internal but was not in cavity\n",iface);
           return CAV_ERR_INTFAC;
         }
       }
@@ -195,7 +213,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
     // ipins should always be seeded with a newbpotopo if it is going to be bdry
     const int pdim_ipins = msh.getpoitdim(cav.ipins);
     METRIS_ASSERT_MSG(pdim_ipins >= 0 && pdim_ipins <= msh.get_tdim(),
-      "pdim_ipins = "<<pdim_ipins);
+      "invalid pdim_ipins = {}", pdim_ipins);
 
     // Tag points that won't be deleted: there is at least one elt outside
     // the cavity that has the point. 
@@ -211,7 +229,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
           // This point is not set to be deleted. 
           if(ent2tag(ithread,ient2) < msh.tag[ithread]){
             msh.poi2tag(ithread,ipoin) = msh.tag[ithread];
-            CPRINTF2("  - not rem point %d \n", ipoin);
+            CPRINTF2("  - not rem point {} \n", ipoin);
           }
         }
       }
@@ -223,12 +241,12 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
         int ipoin = ent2poi(ientt,ii);
         if(ipoin == cav.ipins) continue;
         if(msh.poi2tag(ithread,ipoin) >= msh.tag[ithread]) continue;
-        CPRINTF2("  - rem pt ? %d \n", ipoin);
+        CPRINTF2("  - rem pt ? {} \n", ipoin);
 
         // Check the point dimension wrt to option allow_remove_points_superdim
         int pdim = msh.getpoitdim(ipoin);
         if(pdim > pdim_ipins && opts.allow_remove_points_superdim){
-          CPRINTF1(" - point dim %d > %d = dim(ipins) " 
+          CPRINTF1(" - point dim {} > {} = dim(ipins) " 
                    "with allow_remove_points_superdim, skip check\n",
                    pdim, pdim_ipins);
           continue;
@@ -260,7 +278,7 @@ int check_cavity_topo(MeshBase &msh, MshCavity &cav,
         // at least one, and at least one not in the cav. Then the point is not
         // tagged. Then we wouldn't be here. 
 
-        CPRINTF1(" ## norempts and point %d will be removed \n",ipoin);
+        CPRINTF1(" ## norempts and point {} will be removed \n",ipoin);
         
         return CAV_ERR_REMPT;
 

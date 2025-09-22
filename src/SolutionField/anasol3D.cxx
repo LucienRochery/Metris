@@ -51,7 +51,7 @@ double anasol3D_1([[maybe_unused]] void *ctx,
             d3fun[sym3idx(ii,jj,kk)] = 0;
     }
     if(ndiff >= 4){
-      METRIS_THROW_MSG(TODOExcept(), "ndiff >= 4 not implemented. Might be more pleasant to use codegen.")
+      METRIS_THROW_MSG("TODO: ndiff >= 4 not implemented. Might be more pleasant to use codegen.")
     }
 
   }

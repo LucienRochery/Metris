@@ -6,32 +6,28 @@
 #define BOOST_TEST_MODULE My Test 
 
 #include <boost/test/included/unit_test.hpp> 
-#include <bunit/common_setup.hxx>
+#include "common_setup.hxx"
 
-#include "../src/ho_constants.hxx"
-#include "../src/utils/aux_misc.hxx"
-#include "../src/quality/low_metqua.hxx"
+#include "ho_constants.hxx"
+#include "utils/aux_misc.hxx"
+#include "quality/low_metqua.hxx"
 
 #include <random>
 
-namespace utf = boost::unit_test;
-
 using namespace Metris;
-
-typedef MetricFieldAnalytical MFT;
 
 
 // P1 only and uses 1 eval with avg metric. This is current metqua implementation
 // (05/2025)
-template <int idim>
+template <typename MFT, int idim>
 double metqua1(Mesh<MFT> &msh, int ientt, double difto);
 
 // P1 only and uses tdim + 1 evals instead of avg metric
-template <int idim>
+template <typename MFT, int idim>
 double metqua2(Mesh<MFT> &msh, int ientt, double difto);
 
 // Like metqua1 but using linearly averaged metric
-template <int idim>
+template <typename MFT, int idim>
 double metqua3(Mesh<MFT> &msh, int ientt, double difto);
 
 
@@ -43,91 +39,106 @@ BOOST_AUTO_TEST_CASE(bench_metqua)
   // bool is whether straight
   std::vector<std::string> meshes = {
      METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k.meshb"
+    ,METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k.meshb -t 2"
     ,METRIS_CASES_DIR "/unit/2D/square/iso.p1.100k.meshb"
+    ,METRIS_CASES_DIR "/unit/2D/square/iso.p1.100k.meshb -t 2"
     };
 
   const int tarop = 1e6;
 
+  // Accumulate into dummy to avoid optimizing out
+  double dum = 0;
+
   for(auto meshname : meshes){
 
-    cargHandler arg("-in " + meshname + " -anamet 1 -opt-norm 2 -verb 0");
-    MetrisRunner run(arg.c, arg.v);
-    Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
+    CT_FOR0_INC(1,2,itest){
+      
+      std::string  metarg = itest == 1 ? " -anamet 1" : " ";
+      cargHandler arg("-in " + meshname + metarg + " -opt-norm 2 -verb 0");
+      MetrisRunner run(arg.c, arg.v);
+      run.degElevate();
+      using MFT = typename std::conditional<itest == 1, MetricFieldAnalytical, MetricFieldFE>::type;
+      Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
+
+      std::string testname = itest == 1 ? "Analytical" : "FE";
 
 
+      CT_FOR0_INC(1,3,gdim){if(gdim == msh.idim){
+        CT_FOR0_INC(2,gdim,tdim){
 
-    int idim = msh.idim;
-    METRIS_ASSERT(idim == msh.get_tdim());
+          int nentt = msh.nentt(tdim);
+          const int nloop = ceil(tarop / (double) nentt);
 
-    int nentt = msh.nentt(idim);
-    const int nloop = ceil(tarop / (double) nentt);
-    printf("-- Running mesh %s nloop = %d\n",meshname.c_str(), nloop);
+          // For slight mesh perturbations
+          std::uniform_real_distribution<double> unif(0.0,1.0);
+          std::default_random_engine rng(0);
 
-    // For slight mesh perturbations
-    std::uniform_real_distribution<double> unif(0.0,1.0);
-    std::default_random_engine rng(0);
+          printf("\n-- Running mesh %s metric %s gdim %d tdim %d ideg %d nloop = %d\n",
+                 meshname.c_str(), testname.c_str(), gdim, tdim, msh.curdeg, nloop);
 
-    // Accumulate into dummy to avoid optimizing out
-    msh.met.setSpace(MetSpace::Log);
-    double dum1 = 0;
-    double t01 = get_wall_time();
-    for(int iloop = 0; iloop < nloop; iloop++){
-      for(int ielem = 0; ielem < nentt; ielem++){
-        if(idim == 2){
-          dum1 += metqua1<2>(msh, ielem, 1);
-        }else{
-          dum1 += metqua1<3>(msh, ielem, 1);
-        }
-      }
-    }// for iloop
-    double t11 = get_wall_time();
+          msh.met.setSpace(MetSpace::Exp);
+          double tm0_exp = get_cpu_time();
+          for(int iloop = 0; iloop < nloop; iloop++){
+            for(int ielem = 0; ielem < nentt; ielem++){
+              dum += metqua<MFT,gdim,tdim>(msh, AsDeg::Pk, AsDeg::Pk, ielem, 1.0);
+            }
+          }// for iloop
+          double tm1_exp = get_cpu_time();
 
+          int psm_exp = (int) ((((double)nentt) * nloop) / (tm1_exp - tm0_exp) / 1000);
+          printf("-- Test end prod metqua = %dk/s\n",psm_exp);
+          
+          if(tdim == gdim && msh.curdeg == 1){
 
-    // Accumulate into dummy to avoid optimizing out
-    msh.met.setSpace(MetSpace::Exp);
-    double dum2 = 0;
-    double t02 = get_wall_time();
-    for(int iloop = 0; iloop < nloop; iloop++){
-      for(int ielem = 0; ielem < nentt; ielem++){
-        if(idim == 2){
-          dum2 += metqua2<2>(msh, ielem, 1);
-        }else{
-          dum2 += metqua2<3>(msh, ielem, 1);
-        }
-      }
-    }// for iloop
-    double t12 = get_wall_time();
+            msh.met.setSpace(MetSpace::Log);
+            double t01 = get_cpu_time();
+            for(int iloop = 0; iloop < nloop; iloop++){
+              for(int ielem = 0; ielem < nentt; ielem++){
+                dum -= metqua1<MFT,gdim>(msh, ielem, 1);
+              }
+            }// for iloop
+            double t11 = get_cpu_time();
 
 
-    // Accumulate into dummy to avoid optimizing out
-    msh.met.setSpace(MetSpace::Exp);
-    double dum3 = 0;
-    double t03 = get_wall_time();
-    for(int iloop = 0; iloop < nloop; iloop++){
-      for(int ielem = 0; ielem < nentt; ielem++){
-        if(idim == 2){
-          dum3 += metqua3<2>(msh, ielem, 1);
-        }else{
-          dum3 += metqua3<3>(msh, ielem, 1);
-        }
-      }
-    }// for iloop
-    double t13 = get_wall_time();
+            msh.met.setSpace(MetSpace::Exp);
+            double t02 = get_cpu_time();
+            for(int iloop = 0; iloop < nloop; iloop++){
+              for(int ielem = 0; ielem < nentt; ielem++){
+                dum += metqua2<MFT,gdim>(msh, ielem, 1);
+              }
+            }// for iloop
+            double t12 = get_cpu_time();
 
-    int ps1 = (int) ((((double)nentt) * nloop) / (t11 - t01) / 1000);
-    int ps2 = (int) ((((double)nentt) * nloop) / (t12 - t02) / 1000);
-    int ps3 = (int) ((((double)nentt) * nloop) / (t13 - t03) / 1000);
 
-    printf(" dum1 = %e dum2 = %e dum3 = %e\n",dum1,dum2,dum3);
-    printf("-- Test end metqua1 time = %e metqua2 = %e metqua3 = %e\n"
-           "ps 1: %dk/s %dk/s %dk/s\n"
-           "ratio 2/1 = %e 3/1 = %e\n\n\n",
-      t11 - t01, t12 - t02, t13 - t03, 
-      ps1, ps2, ps3,
-      (t12 - t02) / (t11 - t01), (t13 - t03) / (t11 - t01));
+            // Accumulate into dummy to avoid optimizing out
+            msh.met.setSpace(MetSpace::Exp);
+            double t03 = get_cpu_time();
+            for(int iloop = 0; iloop < nloop; iloop++){
+              for(int ielem = 0; ielem < nentt; ielem++){
+                dum -= metqua3<MFT,gdim>(msh, ielem, 1);
+              }
+            }// for iloop
+            double t13 = get_cpu_time();
+
+            int ps1 = (int) ((((double)nentt) * nloop) / (t11 - t01) / 1000);
+            int ps2 = (int) ((((double)nentt) * nloop) / (t12 - t02) / 1000);
+            int ps3 = (int) ((((double)nentt) * nloop) / (t13 - t03) / 1000);
+
+
+              
+            printf("          bench metqua1 = %dk/s\n",ps1);
+            printf("          bench metqua2 = %dk/s ratio 2/1 = %e\n",ps2, (t12 - t02) / (t11 - t01));
+            printf("          bench metqua3 = %dk/s ratio 3/1 = %e\n",ps3, (t13 - t03) / (t11 - t01));
+          }
+        
+        }CT_FOR1(tdim);
+      }}CT_FOR1(gdim);
+
+    }CT_FOR1(itest);
 
   }// for meshname : meshes
 
+  printf("\n\ndum = %e\n",dum);
 }// end boost test case
 
 
@@ -136,7 +147,7 @@ BOOST_AUTO_TEST_CASE(bench_metqua)
 
 
 // Same as metqua for P1 only and uses tdim + 1 evals instead of avg metric
-template <int idim>
+template <typename MFT, int idim>
 double metqua2(Mesh<MFT> &msh, int ientt, double difto){
   constexpr int tdim = idim;
   constexpr int gdim = idim;
@@ -176,12 +187,13 @@ double metqua2(Mesh<MFT> &msh, int ientt, double difto){
 
   return qutet;
 }
-template double metqua2<2>(Mesh<MFT> &msh, int ientt, double difto);
-template double metqua2<3>(Mesh<MFT> &msh, int ientt, double difto);
+template double metqua2<MetricFieldAnalytical, 2>(Mesh<MetricFieldAnalytical> &msh, int ientt, double difto);
+template double metqua2<MetricFieldAnalytical, 3>(Mesh<MetricFieldAnalytical> &msh, int ientt, double difto);
+template double metqua2<MetricFieldFE, 2>(Mesh<MetricFieldFE> &msh, int ientt, double difto);
+template double metqua2<MetricFieldFE, 3>(Mesh<MetricFieldFE> &msh, int ientt, double difto);
 
 
-
-template <int idim>
+template <typename MFT, int idim>
 double metqua1(Mesh<MFT> &msh, int ientt, double difto){
   constexpr int tdim = idim;
   constexpr int gdim = idim;
@@ -210,12 +222,14 @@ double metqua1(Mesh<MFT> &msh, int ientt, double difto){
   }
   return qutet;
 }
-template double metqua1<2>(Mesh<MFT> &msh, int ientt, double difto);
-template double metqua1<3>(Mesh<MFT> &msh, int ientt, double difto);
+template double metqua1<MetricFieldAnalytical, 2>(Mesh<MetricFieldAnalytical> &msh, int ientt, double difto);
+template double metqua1<MetricFieldAnalytical, 3>(Mesh<MetricFieldAnalytical> &msh, int ientt, double difto);
+template double metqua1<MetricFieldFE, 2>(Mesh<MetricFieldFE> &msh, int ientt, double difto);
+template double metqua1<MetricFieldFE, 3>(Mesh<MetricFieldFE> &msh, int ientt, double difto);
 
 
 
-template <int idim>
+template <typename MFT, int idim>
 double metqua3(Mesh<MFT> &msh, int ientt, double difto){
   constexpr int tdim = idim;
   constexpr int gdim = idim;
@@ -253,5 +267,7 @@ double metqua3(Mesh<MFT> &msh, int ientt, double difto){
   }
   return qutet;
 }
-template double metqua3<2>(Mesh<MFT> &msh, int ientt, double difto);
-template double metqua3<3>(Mesh<MFT> &msh, int ientt, double difto);
+template double metqua3<MetricFieldAnalytical, 2>(Mesh<MetricFieldAnalytical> &msh, int ientt, double difto);
+template double metqua3<MetricFieldAnalytical, 3>(Mesh<MetricFieldAnalytical> &msh, int ientt, double difto);
+template double metqua3<MetricFieldFE, 2>(Mesh<MetricFieldFE> &msh, int ientt, double difto);
+template double metqua3<MetricFieldFE, 3>(Mesh<MetricFieldFE> &msh, int ientt, double difto);

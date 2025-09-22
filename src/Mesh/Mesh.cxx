@@ -11,10 +11,10 @@
 #include "../ho_constants.hxx"
 #include "../io_libmeshb.hxx"
 #include "../aux_topo.hxx"
-#include "../low_lenedg.hxx"
-#include "../low_geo.hxx"
-#include "../low_normal.hxx"
-#include "../low_ccoef.hxx"
+#include "../low_geo/lenedg.hxx"
+#include "../low_geo/misc.hxx"
+#include "../low_geo/normal.hxx"
+#include "../low_geo/ccoef.hxx"
 #include "../utils/mprintf.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../linalg/det.hxx"
@@ -26,8 +26,8 @@
 namespace Metris{
 
 template<class MFT>
-int Mesh<MFT>::newpoitopo(int tdimn, int ientt){
-  int ipoin = MeshBase::newpoitopo(tdimn, ientt);
+int Mesh<MFT>::newpoitopo(PointType ptype, int tdimn, int ientt){
+  int ipoin = MeshBase::newpoitopo(ptype, tdimn, ientt);
 
   // No need to add guesses here, that'll be done when calling interpMetBack
   poi2bak[ipoin] = -1;
@@ -44,15 +44,10 @@ void Mesh<MetricFieldAnalytical>::initialize(MetrisAPI *data, MeshBack &bak,
 
   GETVDEPTH(this->param);
 
-  if(param.ianamet >= 0){
-    met.setAnalyticalMetric(param.ianamet);
-  }else{
-    METRIS_ASSERT(param.anamet_ptr != NULL);
-    met.setAnalyticalMetric(param.anamet_ptr);
-  }
-  
+  met.setAnalyticalMetric(param);
+
   if(param.scaleMet){
-    CPRINTF1("-- Front scaling metric by %15.7e\n", param.metScale);
+    CPRINTF1("-- Front scaling metric by {:15.7e}\n", param.metScale);
     met.normalize(param.metScale);
   }
 

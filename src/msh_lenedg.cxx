@@ -4,11 +4,12 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 #include "msh_lenedg.hxx"
-#include "low_lenedg.hxx"
+#include "low_geo/lenedg.hxx"
 
 #include "aux_topo.hxx"
 #include "utils/aux_misc.hxx"
 #include "utils/CT_loop.hxx"
+#include "utils/mprintf.hxx"
 #include "Mesh/MeshMetric.hxx"
 #include "BezierOffsets/low_gaps.hxx"
 
@@ -17,7 +18,7 @@ namespace Metris{
 template<class MFT>
 void getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref, 
                     intAr2 &ilned, dblAr1 &rlned, lenStat& stat, LenTyp itype){
-  
+  GETVDEPTH(msh.param);
   METRIS_ASSERT(tdim >= 1); // implement lnoed1
 
   stat.qua_short = 0;
@@ -54,12 +55,12 @@ void getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref,
 
   int ipdum = -1;
   if(itype == LenTyp::MetCrv){
-    ipdum = msh.newpoitopo(msh.get_tdim(), -1);
+    ipdum = msh.newpoitopo(PointType::Vertex,msh.get_tdim(), -1);
     if(msh.getBasis() == FEBasis::Undefined || msh.curdeg == 1){
       METRIS_ASSERT(msh.curdeg == 1);
       msh.forceBasisFlag(FEBasis::Bezier);
     }else{
-      METRIS_THROW_MSG(TODOExcept(), "LenType::MetCrv not implemented for Pk");
+      METRIS_THROW_MSG("TODO: LenType::MetCrv not implemented for Pk");
     }
   }
 
@@ -95,47 +96,55 @@ void getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref,
               len = getlenedg_geosz_plane<MFT,gdim,ideg>(msh,ientt,tdim,iedgl,sz);
             }
           }else if(itype == LenTyp::MetCrv){
-            METRIS_ASSERT(msh.get_tdim() == gdim);
-            double offset[gdim];
-            int ients = -1, iedgs = -1;
-            if(tdim == gdim){
-              ients = ientt;
-              iedgs = iedgl;
-            }else if(tdim == 1){
-              ients = msh.edg2fac[ientt];
-              if(gdim == 2){
-                iedgs = getedgfac(msh, ients, ip1, ip2);
+
+            #if METRIS_MAX_DEG > 1
+              METRIS_ASSERT(msh.get_tdim() == gdim);
+              double offset[gdim];
+              int ients = -1, iedgs = -1;
+              if(tdim == gdim){
+                ients = ientt;
+                iedgs = iedgl;
+              }else if(tdim == 1){
+                ients = msh.edg2fac[ientt];
+                if(gdim == 2){
+                  iedgs = getedgfac(msh, ients, ip1, ip2);
+                }else{
+                  ients = msh.fac2tet(ients,0);
+                  iedgs = getedgtet(msh, ients, ip1, ip2);
+                }
               }else{
-                ients = msh.fac2tet(ients,0);
+                ients = msh.fac2tet(ientt,0);
                 iedgs = getedgtet(msh, ients, ip1, ip2);
               }
-            }else{
-              ients = msh.fac2tet(ientt,0);
-              iedgs = getedgtet(msh, ients, ip1, ip2);
-            }
-            METRIS_ASSERT(iedgs >= 0);
-            METRIS_ASSERT(ients >= 0);
+              METRIS_ASSERT(iedgs >= 0);
+              METRIS_ASSERT(ients >= 0);
 
-            getBezOffsetsEdge<MFT, gdim, ideg>(msh, gdim, msh.ent2poi(gdim)[ients], iedgs, offset);
+              getBezOffsetsEdge<MFT, gdim, ideg>(msh, gdim, msh.ent2poi(gdim)[ients], iedgs, offset);
 
-            for(int ii = 0; ii < gdim; ii++){
-              msh.coord(ipdum, ii) = (msh.coord(ip1,ii) + msh.coord(ip2,ii))/2
-                                   + offset[ii];
-            }
+              for(int ii = 0; ii < gdim; ii++){
+                msh.coord(ipdum, ii) = (msh.coord(ip1,ii) + msh.coord(ip2,ii))/2
+                                    + offset[ii];
+              }
 
-            double sz[2];
-            int edg2pol[3] = {ip1, ip2, ipdum};
-            len = getlenedg_geosz<MFT, gdim, 2>(msh, edg2pol, sz);
+              double sz[2];
+              int edg2pol[3] = {ip1, ip2, ipdum};
+              len = getlenedg_geosz<MFT, gdim, 2>(msh, edg2pol, sz);
+            #else
+              METRIS_THROW_MSG("LenTyp::MetCrv not available for P1");
+            #endif
 
           }else{
-            METRIS_THROW_MSG(TODOExcept(),"Size interp scheme not implemented");
+            METRIS_THROW_MSG("TODO: Size interp scheme not implemented");
           }
         }}CT_FOR1(ideg);
       }}CT_FOR1(gdim);
       if(std::isnan(len)){
-        printf("## DEBUG NAN LEN EDGE !\n");
-        printf("ientt = %d tdim = %d edge %d itype == GeoSiz? %d\n",
+        MPRINTF("## DEBUG NAN LEN EDGE !\n");
+        MPRINTF("ientt = {} tdim = {} edge {} itype == GeoSiz? {}\n",
                ientt,tdim,iedgl,itype == LenTyp::GeoSiz);
+      }
+      if(len > 1000){
+        fmt::print("## DEBUG WAIT HERE LEN = {} ip1 = {} ip2 = {} ientt = {}\n",len,ip1,ip2,ientt);
       }
       int iedgg = ilned.get_n();
       ilned.inc_n();

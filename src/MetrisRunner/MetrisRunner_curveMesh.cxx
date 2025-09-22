@@ -35,9 +35,8 @@ void MetrisRunner::curveMesh0(){
 
   //int itype = opt.m["smooth"].as<int>();
   int itype = param_.curveType;
-  int iverb = param_.iverb;
 
-  if(iverb >= 1) printf("-- Metric based smoothing requested type = %d \n",itype);
+  CPRINTF1("-- Metric based smoothing requested type = {} \n",itype);
 
 
   msh.met.setSpace(MetSpace::Log);
@@ -46,18 +45,18 @@ void MetrisRunner::curveMesh0(){
   double qmin, qmax, qavg;
   bool iinva;
   dblAr1 lquae, dum = {0.1, 0.9};
-  if(iverb >= 1){
+  if(DOPRINTS1()){
     getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,
                        &iinva,&qmin,&qmax,&qavg,&lquae);
     print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality");
   }
 
 
-  double t1 = get_wall_time();
+  double t1 = get_cpu_time();
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){
     if(ideg == msh.curdeg){
       if(itype == 1){
-        if(iverb >= 1) printf(" - using curveMeshOffsets\n");
+        CPRINTF1(" - using curveMeshOffsets\n");
         if constexpr(ideg > 1){
           if(msh.idim == 2){
             curveMeshOffsets<MFT,2,ideg>(msh);
@@ -66,7 +65,7 @@ void MetrisRunner::curveMesh0(){
           }
         }
       }else if(itype == 2){
-        if(iverb >= 1) printf(" - using maximizeMetCcoef\n");
+        CPRINTF1(" - using maximizeMetCcoef\n");
         if constexpr(ideg > 1){
           if(msh.idim == 2){
             maximizeMetCcoef<MFT,2,2,ideg>(msh, OptDoF::HO, LPMethod::IPM, LPLib::alglib);
@@ -88,11 +87,11 @@ void MetrisRunner::curveMesh0(){
       }
     }
   }CT_FOR1(ideg);
-  double t2 = get_wall_time();
-  if(iverb >= 1) printf("-- Curving end time = %f\n",t2-t1);
+  double t2 = get_cpu_time();
+  CPRINTF1("-- Curving end time = {:.2e}s\n",t2-t1);
 
 
-  if(iverb >= 2){
+  if(DOPRINTS2()){
     writeMesh("smooth_end.meshb",msh);
     int ideg = msh.curdeg;
     msh.curdeg = 1;
@@ -103,7 +102,7 @@ void MetrisRunner::curveMesh0(){
     writeField("smooth_end.qua.solb",msh,SolTyp::P0Elt,lquae);
   }
 
-  if(iverb >= 1){
+  if(DOPRINTS1()){
     getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,
                        &iinva,&qmin,&qmax,&qavg,&lquae);
     print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality");

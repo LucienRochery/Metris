@@ -72,10 +72,11 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
   int imin = -1;
   int ival = 0;
   for(double val : values){
-    if(std::isnan(val)){
-      printf("## NAN VALUES PROVIDED TO HISTO!\n");
-      continue;
-    }
+
+    // Make this an error as there's no good reason a NaN should be here.
+    METRIS_ASSERT_MSG(!std::isnan(val), "NAN value in histogram!");
+    if(std::isnan(val)) continue;
+
     if(val < vmin){
       vmin = val;
       imin = ival;
@@ -113,7 +114,7 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
   const int mcol = 100;
   w.ws_col = MIN(MAX(w.ws_col, 40),mcol);
 
-  // Expected length to print %8.2e < symb < %8.2e w/ spaces
+  // Expected length to print {:8.2e} < symb < {:8.2e} w/ spaces
   int ibuf0  = symb.length() + 6 + 2*8 + 2; 
   int prtwdt = w.ws_col - ibuf0;
 
@@ -130,14 +131,14 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
     }
   }
 
-  CPRINTF1("-- %s: %.2f %% within bounds %f %f \n", name.c_str(),
+  CPRINTF1("-- {}: {:.2f} % within bounds {} {} \n", name.c_str(),
                            100.0 - 100.0*(nlow + nhig)/(double) nval,vlow, vhig);
-  CPRINTF1(" - minimum = %f (%d)\n",vmin,imin);
-  CPRINTF1(" - maximum = %f (%d)\n",vmax,imax);
+  CPRINTF1(" - minimum = {} ({})\n",vmin,imin);
+  CPRINTF1(" - maximum = {} ({})\n",vmax,imax);
   if(!nogeom){
-    CPRINTF1(" - average = %f (geometric) = %f\n",vavgl,vavgg);
+    CPRINTF1(" - average = {} (geometric) = {}\n",vavgl,vavgg);
   }else{
-    CPRINTF1(" - average = %f \n",vavgl);
+    CPRINTF1(" - average = {} \n",vavgl);
   }
 
   if(!DOPRINTS2()) return;
@@ -175,7 +176,7 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
     }else{
       nchar = (int) (scal * buckcnt[ibucket]);
     }
-    METRIS_ASSERT_MSG(nchar <= ncol,"nchar = "<<nchar<<" ncol = "<<ncol);
+    METRIS_ASSERT_MSG(nchar <= ncol,"nchar = {} > ncol = {}", nchar, ncol);
     for(int ii = 0; ii < nchar; ii++){
       buffer[1+ibucket][ibuf0 + ii] = '*';
     }
@@ -186,9 +187,9 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
  
   for(int ii = 0; ii < nbucket+2; ii++){
     for(int jj = 0; jj < ncol; jj++){
-      printf("%c",buffer[ii][jj]);
+      fmt::print(LOGFILE__,"{}",buffer[ii][jj]);
     }
-    printf("\n");
+    fmt::print(LOGFILE__,"\n");
   }
 
 }

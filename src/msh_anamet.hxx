@@ -10,13 +10,12 @@
 #include <boost/preprocessor/iteration/local.hpp>
 #include <boost/preprocessor/repetition/enum_params.hpp>
 
-
-#define MAX_ANAMET3D_DEFINED 4
+#define MAX_ANAMET3D_DEFINED 10
 #define MAX_ANAMET2D_DEFINED 6
 
 #define MAX_ANAMET_DEFINED(dim) (dim == 2 ? MAX_ANAMET2D_DEFINED : MAX_ANAMET3D_DEFINED)
 // Allowed prototype: 
-//  void (*anamet)(void* ctx, double *crd, int idif1, double *met, double *dmet);
+//  void (*anamet)(const AnaMetCtx* ctx, double *crd, int idif1, double *met, double *dmet);
 // Met stored 1 2 4  
 //              3 5
 //                6
@@ -24,7 +23,16 @@
 
 namespace Metris{
 
-typedef void(*anamet_proto)(void*,const double*__restrict__,double,int,double*,double*);
+struct MetrisParameters;
+typedef struct AnaMetCtx{
+  AnaMetCtx():dx(0),dy(0),dz(0){}
+  void setFromParam(const MetrisParameters& param);
+  // Passed in using options -mdx -mdy -mdz
+  double dx, dy, dz;
+} AnaMetCtx;
+
+typedef void(*anamet_proto)(const AnaMetCtx*,const double*__restrict__,double,int,double*,double*);
+
 
 
 // A wrapper to ensure a function pointer passed to the overloaded function in MetrisParameters 
@@ -46,12 +54,12 @@ public:
 };
 
 #define BOOST_PP_LOCAL_MACRO(n)\
-void anamet3D_##n(void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet);
+void anamet3D_##n(const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet);
 #define BOOST_PP_LOCAL_LIMITS (1, MAX_ANAMET3D_DEFINED)
 #include BOOST_PP_LOCAL_ITERATE()
 
 #define BOOST_PP_LOCAL_MACRO(n)\
-void anamet2D_##n(void *ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet);
+void anamet2D_##n(const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet);
 #define BOOST_PP_LOCAL_LIMITS (1, MAX_ANAMET2D_DEFINED)
 #include BOOST_PP_LOCAL_ITERATE()
 

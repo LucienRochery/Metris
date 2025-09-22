@@ -3,11 +3,11 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#include "../src/ho_constants.hxx"
-#include "../src/low_eval.hxx"
-#include "../src/utils/aux_misc.hxx"
-#include "../src/utils/aux_timer.hxx"
-#include "../src/utils/CT_loop.hxx"
+#include "ho_constants.hxx"
+#include "low_eval.hxx"
+#include "utils/aux_misc.hxx"
+#include "utils/aux_timer.hxx"
+#include "utils/CT_loop.hxx"
 
 
 #include <boost/hana.hpp> 
@@ -79,7 +79,7 @@ void gen_lag2bez(std::ostringstream &str){
   CT_FOR0_INC(0,METRIS_MAX_DEG_LAG2BEZ,ideg){
 
 
-    double t0 = get_wall_time();
+    double t0 = get_cpu_time();
 
     if constexpr(ideg == 0){
       str << "template<> void lag2bez"<<tdim<<"<"<<0<<","<<1<<">"<<
@@ -293,7 +293,7 @@ void gen_lag2bez(std::ostringstream &str){
       }
       str<<"}\n\n";
     }
-    double t1 = get_wall_time();
+    double t1 = get_cpu_time();
     printf(" -- Degree %d took %f s\n",ideg,t1-t0);
   }CT_FOR1(ideg);
   //  str << "  }\n"; // close constructor

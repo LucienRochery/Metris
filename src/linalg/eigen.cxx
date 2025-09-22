@@ -10,7 +10,8 @@
 #include "symidx.hxx"
 
 #include "../aux_exceptions.hxx"
-#include "../SANS/Surreal/SurrealS.h"
+#include "../utils/fmt_formatters.hxx"
+#include "SANS/Surreal/SurrealS.h"
 #include <Eigen/Dense>
 
 namespace Metris{
@@ -29,8 +30,8 @@ void geteigsym_LAPACK<2>(const double* met,int nwork,double* rwork,double* eigva
   int two = 2, info;
   // The LAPACKE version does memory allocation...
   dsyev_(&c1,&c2,&two,eigvec,&two,eigval,rwork,&nwork,&info);
-  if(info != 0)METRIS_THROW_MSG(AlgoExcept(),
-   "1 dsyev failed last ierro = "<<info<<"\n");
+  if(info != 0)METRIS_THROW_MSG(
+   "1 dsyev failed last ierro = {}", info);
 
 }
 template<>
@@ -46,8 +47,8 @@ void geteigsym_LAPACK<3>(const double* met,int nwork,double* rwork,double* eigva
   char c1 = 'V', c2 = 'U';
   int three = 3, info;
   dsyev_(&c1,&c2,&three,eigvec,&three,eigval,rwork,&nwork,&info);
-  if(info != 0) METRIS_THROW_MSG(AlgoExcept(),
-   "2 dsyev failed last ierro = "<<info<<"\n");
+  if(info != 0) METRIS_THROW_MSG(
+   "2 dsyev failed last ierro = {}", info);
 
 }
 #endif
@@ -57,8 +58,8 @@ void geteigsym_LAPACK<3>(const double* met,int nwork,double* rwork,double* eigva
 //             SANS::SurrealS<3,double>* __restrict__ eigval,
 //             SANS::SurrealS<3,double>* __restrict__ eigvec){
 //  int ierro = dsyevq3<SANS::SurrealS<3,double>>(met,eigvec,eigval);
-//  if(ierro != 0)METRIS_THROW_MSG(AlgoExcept(),
-//   "dsyevq3 FAILED INFO = "<<ierro<<"\n");
+//  if(ierro != 0)METRIS_THROW_MSG(
+//   "dsyevq3 FAILED INFO = {}", ierro);
 //}
 
 // This function can take SANS::SurrealS as input.
@@ -74,8 +75,8 @@ void geteigsym(const T* __restrict__ met,
     //  double rwork[nwork];
     //  geteigsym<ndimn>(met, nwork, rwork, eigval, eigvec);
     //}else{
-      METRIS_THROW_MSG(AlgoExcept(),
-        "dsyevq3 FAILED INFO = "<<ierro<<"inp ="<<met[0]<<" "<<met[1]<<" "<<met[2]<<"\n");
+      METRIS_THROW_MSG(
+        "dsyevq3 FAILED INFO = {} inp = {} {} {}", ierro, met[0], met[1], met[2]);
     //}
   }
 }

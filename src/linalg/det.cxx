@@ -6,20 +6,25 @@
 #include "det.hxx"
 #include <Eigen/Dense>
 #include "../aux_exceptions.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 namespace Metris{
 
 template<int ndim,typename ftype>
 ftype detsym_Eigen_LLT(const ftype *met){
   typedef Eigen::Matrix<ftype,ndim,ndim> MatrixN;
-  typedef Eigen::Vector<ftype,ndim> VectorN;
 
   MatrixN met_Eigen;
   for(int ii = 0; ii < ndim; ii++) 
     for(int jj = 0; jj < ndim; jj++) 
       met_Eigen(ii, jj) = met[sym2idx(ii,jj)];
   Eigen::LLT<MatrixN> llt(met_Eigen);
-  if(llt.info() != Eigen::Success) METRIS_THROW(GeomExcept());
+  if(llt.info() != Eigen::Success){
+    fmt::print("## Eigen error {} in detsym_Eigen_LLT\n", (int)llt.info());
+    const int nnmet = (ndim*(ndim+1))/2;
+    fmt::print("Input metric {}\n",dblAr1(nnmet,met));
+    METRIS_THROW_MSG("Eigen error {}", (int) llt.info());
+  }
 
   MatrixN LL = llt.matrixL();
 

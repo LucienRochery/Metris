@@ -10,6 +10,7 @@
 #include "Metris_LAPACK.hxx"
 
 #include <type_traits>
+#include <cmath>
 
 namespace Metris{
 
@@ -52,6 +53,28 @@ inline T detvec3(const T* __restrict__ v1,
        + v1[1]*(v2[2]*v3[0]-v3[2]*v2[0])
        + v1[2]*(v2[0]*v3[1]-v3[0]*v2[1]);
 }
+
+// determinant of matrix with columns x1-x2, y1-y2
+template<typename T=double>
+inline T detvdif2(const T* x1,const T* x2, 
+            const T* y1,const T* y2){
+  return (x1[0] - x2[0])*(y1[1] - y2[1]) 
+       - (x1[1] - x2[1])*(y1[0] - y2[0]);
+}
+
+// determinant of matrix with columns x1-x2, y1-y2, z1-z2
+template <typename T=double>
+inline T detvdif3(const T* x1,const T* x2,
+                   const T* y1,const T* y2,
+                   const T* z1,const T* z2){
+  return (x1[0] - x2[0])*( (y1[1] - y2[1])*(z1[2] - z2[2]) - (z1[1] - z2[1])*(y1[2] - y2[2]))
+       + (x1[1] - x2[1])*( (y1[2] - y2[2])*(z1[0] - z2[0]) - (z1[2] - z2[2])*(y1[0] - y2[0]))
+       + (x1[2] - x2[2])*( (y1[0] - y2[0])*(z1[1] - z2[1]) - (z1[0] - z2[0])*(y1[1] - y2[1]));
+}
+
+
+
+
 // Same as detvec2/3 but get sub-determinant obtained by extracting i-th line,
 // j-th column. Now the vs are necessarily columns (or permute i,j). 
 // Note the sub-determinants are SIGNED : i.e. multiplied by (-1)^{i+j}. 
@@ -162,20 +185,20 @@ template<int ndimn, typename T = double>
 inline T detsym3(const T met[]){
   static_assert(ndimn == 2 || ndimn == 3);
   if constexpr(ndimn == 2){
-    T mx = abs(met[0]); 
-    mx = mx > abs(met[1]) ? mx : abs(met[1]);
-    mx = mx > abs(met[2]) ? mx : abs(met[2]);
+    T mx = std::abs(met[0]); 
+    mx = mx > std::abs(met[1]) ? mx : std::abs(met[1]);
+    mx = mx > std::abs(met[2]) ? mx : std::abs(met[2]);
     T met2[3] ;
     for(int ii = 0; ii < 3 ;ii++) met2[ii] = met[ii] / mx;
     double det = met2[0]*met2[2] - met2[1]*met2[1];
     return det*mx*mx;
   }else{
-    T mx = abs(met[0]); 
-    mx = mx > abs(met[1]) ? mx : abs(met[1]);
-    mx = mx > abs(met[2]) ? mx : abs(met[2]);
-    mx = mx > abs(met[3]) ? mx : abs(met[3]);
-    mx = mx > abs(met[4]) ? mx : abs(met[4]);
-    mx = mx > abs(met[5]) ? mx : abs(met[5]);
+    T mx = std::abs(met[0]); 
+    mx = mx > std::abs(met[1]) ? mx : std::abs(met[1]);
+    mx = mx > std::abs(met[2]) ? mx : std::abs(met[2]);
+    mx = mx > std::abs(met[3]) ? mx : std::abs(met[3]);
+    mx = mx > std::abs(met[4]) ? mx : std::abs(met[4]);
+    mx = mx > std::abs(met[5]) ? mx : std::abs(met[5]);
     T met2[6] ;
     for(int ii =0; ii < 6 ;ii++) met2[ii] = met[ii] / mx;
     double det = met2[0]*(met2[2]*met2[5]-met2[4]*met2[4])
@@ -192,12 +215,12 @@ inline T detsym2(const SANS::DLA::MatSymS<ndimn,T> &met){
   if constexpr(ndimn == 2){
     return met[0]*met[2] - met[1]*met[1];
   }else{
-    T mx = abs(met[0]); 
-    mx = mx > abs(met[1]) ? mx : abs(met[1]);
-    mx = mx > abs(met[2]) ? mx : abs(met[2]);
-    mx = mx > abs(met[3]) ? mx : abs(met[3]);
-    mx = mx > abs(met[4]) ? mx : abs(met[4]);
-    mx = mx > abs(met[5]) ? mx : abs(met[5]);
+    T mx = std::abs(met[0]); 
+    mx = mx > std::abs(met[1]) ? mx : std::abs(met[1]);
+    mx = mx > std::abs(met[2]) ? mx : std::abs(met[2]);
+    mx = mx > std::abs(met[3]) ? mx : std::abs(met[3]);
+    mx = mx > std::abs(met[4]) ? mx : std::abs(met[4]);
+    mx = mx > std::abs(met[5]) ? mx : std::abs(met[5]);
     T met2[6] ;
     for(int ii = 0; ii < 6 ;ii++) met2[ii] = met[ii] / mx;
     T det = met2[0]*(met2[2]*met2[5]-met2[4]*met2[4])

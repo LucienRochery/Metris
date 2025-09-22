@@ -58,6 +58,7 @@ dbg_quality_diff.txt
 docs/quality/
 *.trace/
 
+src/linalg/intersect_met.*
 
 cases/public/*
 !cases/public/square.meshb
@@ -73,12 +74,16 @@ examples/2D/*
 examples2D/misc/*
 !examples/2D/misc/2tri2D.mesh
 !examples/2D/misc/invevalP2.mesh
+!examples/2D/misc/gen_2tri2D.sh
+!examples/2D/misc/gen_invevalP2.sh
+
 !examples/2D/square/
 examples2D/square/*
+!examples/2D/square/gen_square.egads.sh
 !examples/2D/square/gen_circmet.p2.500.sh
 !examples/2D/square/gen_circmet.p2.5k.sh
-!examples/2D/square/gen_square.p1.100k.sh
-!examples/2D/square/gen_square.p1.10k.sh
+!examples/2D/square/gen_iso.p1.100k.sh
+!examples/2D/square/gen_iso.p1.10k.sh
 !examples/2D/square/square.egads
 !examples/2D/square/square.meshb
 !examples/2D/square/test_script.sh
@@ -91,9 +96,10 @@ examples/3D/*
 examples3D/cube/*
 !examples/3D/cube/cube.egads
 !examples/3D/cube/cube.meshb
-!examples/3D/cube/gen_cube.p1.16k.sh
-!examples/3D/cube/gen_cube.p1.2k.sh
+!examples/3D/cube/gen_iso.p1.16k.sh
+!examples/3D/cube/gen_iso.p1.2k.sh
 !examples/3D/cube/gen_curved.p2.2k.sh
+!examples/3D/cube/gen_cube.egads.sh
 
 
 !cases/unit/
@@ -114,3 +120,21 @@ cases/2D/*
 !jenkins/jenkins_env.sh
 !jenkins/jenkins_sim.sh
 !jenkins/Metris_Commit.sh
+!jenkins/Metris_Nightly.sh
+
+# Exclude all meshb and solb files except those we take as input
+bunit/regression/**/*.meshb
+bunit/regression/**/*.mesh
+bunit/regression/**/*.solb
+bunit/regression/**/*.sol
+bunit/regression/**/tmp/
+
+!bunit/regression/2D/OAT15A/OAT15A.meshb
+!bunit/regression/2D/OAT15A/OAT15A.solb
+
+!bunit/regression/3D/cube/cube.meshb
+
+!bunit/regression/3D/UGAWG_cone-cone/cone-cone.meshb
+
+!bunit/regression/3D/UGAWG_cube-cylinder/cube-cylinder.meshb
+!bunit/regression/3D/UGAWG_cube-cylinder/cube-cylinder.surf.meshb

@@ -18,7 +18,7 @@ template <int ideg, int ilag, typename ftype>
 void metquaS_xi(const Mesh &msh, int ielem, int power, 
 	              const double* bary, ftype* qufac){
 	assert(power != 0);
-	if(msh.ilogmet != 1)METRIS_THROW_MSG(WArgExcept(),
+	if(msh.ilogmet != 1)METRIS_THROW_MSG(
 		"## SET MESH METRIC TO LOG BEFORE CALLING metquaS_xi");
 	double jmat[9],met[6],dum[3],lmet[6];
 	// Get Jacobian matrix at xi
@@ -90,7 +90,7 @@ void metquaS_xi(const Mesh &msh, int ielem, int power,
 //	            + 2*jmat[3*2+0]*jmat[3*2+1]*met[1]
 //	            + 2*jmat[3*2+0]*jmat[3*2+2]*met[3]
 //	            + 2*jmat[3*2+1]*jmat[3*2+2]*met[4];
-	if(tra < 1.0e-16) METRIS_THROW_MSG(GeomExcept(),
+	if(tra < 1.0e-16) METRIS_THROW_MSG(
 		"NEGATIVE J^TMJ trace "<<tra);
 	if(det < 1.0e-16){
 
@@ -137,18 +137,16 @@ void metquaS_xi(const Mesh &msh, int ielem, int power,
     matXtmat<3>(tmpMat2[0],invtJ_0tJ_K,J0tJtMJJ02);
 
     ftype det1 = detmat<3,ftype>(invtJ_0tJ_K);
-    printf("Got det = %15.7e as 3x3 = %15.7e",(double)det,(double)detmat<3,ftype>(tmpMat[0]));
-    printf(" as product of dets = %15.7e as 3x3 using matXmat<3> %15.7e\n",
+    printf("Got det = {:15.7e} as 3x3 = {:15.7e}",(double)det,(double)detmat<3,ftype>(tmpMat[0]));
+    printf(" as product of dets = {:15.7e} as 3x3 using matXmat<3> {:15.7e}\n",
      (double)(det1*det1*detsym<3>(met)),(double)detmat<3,ftype>(J0tJtMJJ02));
 
-    printf("J0tJtMJJ0 original:\n");
-    MeshArray2D<ftype>(3,3,tmpMat[0]).print();
-    printf("J0tJtMJJ0 matmat\n");
-    MeshArray2D<ftype>(3,3,J0tJtMJJ02).print();
+    printf("J0tJtMJJ0 original: {}\n",MeshArray2D<ftype>(3,3,tmpMat[0]));
+    printf("J0tJtMJJ0 matmat {}\n", MeshArray2D<ftype>(3,3,J0tJtMJJ02));
     printf("Debug diff between original and recomputed \n");
     //for(int i = 0; i < 3; i++){
     //	for(int j = 0 ; j < 3; j++){
-    //		printf("%15.7e \n",tmpMat[i][j] - J0tJtMJJ02[3*i+j]);
+    //		printf("{:15.7e} \n",tmpMat[i][j] - J0tJtMJJ02[3*i+j]);
     //	}
     //}
 
@@ -173,7 +171,7 @@ void metquaS_xi(const Mesh &msh, int ielem, int power,
        << "tra = " << tra_8 << " det = " << det_8 << std::endl;
 
 
-		METRIS_THROW_MSG(GeomExcept(),
+		METRIS_THROW_MSG(
     "NEGATIVE met det  "<<det<<" met det "<<detsym<3>(met)
     <<" prod det "<<det1<<" met = "<<
     met[0]<<" "<<met[1]<<" "<<met[2]<<" "<<

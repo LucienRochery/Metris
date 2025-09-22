@@ -10,7 +10,7 @@
 #include "../MetrisRunner/MetrisParameters.hxx"
 
 #include "../aux_topo.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../io_libmeshb.hxx"
 #include "../utils/mprintf.hxx"
 
@@ -26,7 +26,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
   const int ncedg = cav.lcedg.get_n();
   
   if(ncedg <= 0) return 0;
-  // if(msh.get_tdim() == 1) METRIS_THROW_MSG(TODOExcept(), "Add quality checks in reconnect lincav for tdim = 1 meshes");
+  // if(msh.get_tdim() == 1) METRIS_THROW_MSG("TODO: Add quality checks in reconnect lincav for tdim = 1 meshes");
   int ierro = CAV_NOERR;
 
   // Tag cavity edges to determine cavity boundary. 
@@ -58,10 +58,10 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
   }
 
   //if(necbp == 1) {
-  //  if(ncedg != 2) METRIS_THROW_MSG(TODOExcept(),"Interpret this case (lazy assert)")
+  //  if(ncedg != 2) METRIS_THROW_MSG("TODO: Interpret this case (lazy assert)")
   //}
 
-  if(necbp == 0) METRIS_THROW_MSG(TODOExcept(),"Interpret this case 2 (lazy assert)")
+  if(necbp == 0) METRIS_THROW_MSG("TODO: Interpret this case 2 (lazy assert)")
 
  
   // Tag possible refs for reconnection
@@ -73,7 +73,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
     int ityp = msh.bpo2ibi(ibins,1);
 
     if(ityp > 1){
-      METRIS_THROW_MSG(TopoExcept(), "Non line new pt on line not caught before ??");
+      METRIS_THROW_MSG( "Non line new pt on line not caught before ??");
     }
 
 
@@ -89,7 +89,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
           int iedge = msh.bpo2ibi(ibpo2,2);
           int iref  = msh.edg2ref[iedge];
           METRIS_ASSERT_MSG(iref >= 0 && iref < msh.CAD.ncaded,
-                                                   " lincav init iref = "<<iref);
+                            " lincav init iref = {}", iref);
           // Only if cavity element. 
           if(msh.edg2tag(ithread,iedge) >= msh.tag[ithread]) 
             msh.ced2tag(ithread,iref) = msh.tag[ithread];
@@ -154,7 +154,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
       msh.edg2poi(iedgn,0) = cav.ipins;
       msh.edg2poi(iedgn,1) = ipseed;
 
-      CPRINTF1(" - new edge %d = %d %d    \n",iedgn,
+      CPRINTF1(" - new edge {} = {} {}    \n",iedgn,
                 msh.edg2poi(iedgn,0), msh.edg2poi(iedgn,1) );
 
 
@@ -169,23 +169,23 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
             if(msh.bpo2ibi(ibpoi,3) != -1){
               int ib2 = msh.bpo2ibi(ibpoi,3);
               METRIS_ASSERT_MSG(ib2 >= 0 && ib2 < msh.nbpoi, 
-                "ib2 = "<<ib2<<" out of range, iver = "<<ii<<" ipoin = "<<ipoin
-                <<" ipins = "<<cav.ipins)
+                "ib2 = {} out of range, iver = {} ipoin = {}"
+                " ipins = {}", ib2, ii, ipoin, cav.ipins);
               // This would only happen if we just added another edge here:
               if(msh.bpo2ibi(ib2,1) != 1){ 
                 // then create new bpo and copy the old uvs here
-                int ibn = msh.newbpotopo(ipoin,1,iedgn);
+                int ibn = msh.newbpotopo(Vertex{ipoin},1,iedgn);
                 for(int jj = 0; jj < nrbi; jj++) 
                   msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ibpoi,jj);
-                CPRINTF2(" - (1) newbpo ipoin = %d ibn = %d from ib = %d, t = %f\n",
+                CPRINTF2(" - (1) newbpo ipoin = {} ibn = {} from ib = {}, t = {}\n",
                   ipoin,ibn,ibpoi,msh.bpo2rbi(ibn,0));
               }
             }else{
               // then create new bpo and copy the old uvs here
-              int ibn = msh.newbpotopo(ipoin,1,iedgn);
+              int ibn = msh.newbpotopo(Vertex{ipoin},1,iedgn);
               for(int jj = 0; jj < nrbi; jj++) 
                 msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ibpoi,jj);
-              CPRINTF2(" - (2) newbpo ipoin = %d ibn = %d from ib = %d, t = %f\n",
+              CPRINTF2(" - (2) newbpo ipoin = {} ibn = {} from ib = {}, t = {}\n",
                 ipoin,ibn,ibpoi,msh.bpo2rbi(ibn,0));
             }
           }
@@ -195,8 +195,8 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
           //// We're not in the business of adding nodes
           //METRIS_ASSERT(ipoin == cav.ipins);
 
-          int ibn = msh.newbpotopo(ipoin,1,iedgn);
-          CPRINTF2(" - (3) newbpo ipoin = %d ibn = %d CORNER case\n",ipoin,ibn);
+          int ibn = msh.newbpotopo(Vertex{ipoin},1,iedgn);
+          CPRINTF2(" - (3) newbpo ipoin = {} ibn = {} CORNER case\n",ipoin,ibn);
 
           // Let's assume most likely, this is not a loop. 
           // Thus count same ref and, if nn == 1, let's go. 
@@ -212,9 +212,9 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
             int iref2 = msh.edg2ref[msh.bpo2ibi(ib2,2)];
             METRIS_ASSERT_MSG(msh.bpo2ibi(ib2,2) >= 0 
                            && msh.bpo2ibi(ib2,2) < msh.nedge - 1,
-              "ib2 pointing to invalid edge? msh.nedge = "<<msh.nedge
-              <<" pts to "<<msh.bpo2ibi(ib2,2)<<" iedgn = "<<iedgn<<"\n"
-              <<" ipoin = "<<ipoin<<" ibpoi = "<<ibpoi<<" ib2 = "<<ib2);
+              "ib2 pointing to invalid edge? msh.nedge = {}"
+              " pts to {} iedgn = {} ipoin = {} ibpoi = {} ib2 = {}",
+              msh.nedge, msh.bpo2ibi(ib2,2), iedgn, ipoin, ibpoi, ib2);
             METRIS_ASSERT(iref2 >= 0 && iref2 < msh.CAD.ncaded); // Valgrind mostly
             if(iref2 == iref){
               nn++;
@@ -223,12 +223,12 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
 
           }
 
-          CPRINTF2(" - (3) CORNER step 1 ib3 = %d nn = %d\n",ib3, nn);
+          CPRINTF2(" - (3) CORNER step 1 ib3 = {} nn = {}\n",ib3, nn);
 
           if(nn == 1){
             for(int jj = 0; jj < nrbi; jj++) 
               msh.bpo2rbi(ibn,jj) = msh.bpo2rbi(ib3,jj);
-            CPRINTF2(" - (3) CORNER (1) update from ib3 %d ipoin = %d t = %f\n",
+            CPRINTF2(" - (3) CORNER (1) update from ib3 {} ipoin = {} t = {}\n",
                      ib3,msh.bpo2ibi(ib3,0),msh.bpo2rbi(ib3,0));
 
           }else{ 
@@ -273,7 +273,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
                   ipoip = ip1;
                   iedg3 = msh.edg2edg(iedg3,1);
                 }else{
-                  METRIS_THROW_MSG(TopoExcept(),
+                  METRIS_THROW_MSG(
                     "Neighbours didnt share the expected vertex");
                 }
 
@@ -286,7 +286,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
                 for(int ii = 0; ii < nrbi; ii++) 
                   msh.bpo2rbi(ibn,ii) = msh.bpo2rbi(ib2,ii);
                 ifndg = true;
-                CPRINTF2(" - (3) CORNER (2) update from ib2 = %d t = %f \n",
+                CPRINTF2(" - (3) CORNER (2) update from ib2 = {} t = {} \n",
                          ib2, msh.bpo2rbi(ib2,0));
                 break;
               }
@@ -306,7 +306,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
                              : geterrl2<3>(msh.coord[cav.ipins], msh.coord[ipseed]);
 
         if(nrm1 < Defaults::ltol * Defaults::ltol){
-          CPRINTF1(" - small edge len = %f ! return ip1 ip2 = %d %d \n",
+          CPRINTF1(" - small edge len = {} ! return ip1 ip2 = {} {} \n",
                    sqrt(nrm1),cav.ipins,ipseed); 
           return CAV_ERR_FLATEDG;
         }
@@ -317,7 +317,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
           nrm2 = msh.idim == 2 ? geterrl2<2>(msh.coord[ip1], msh.coord[ip2])
                                : geterrl2<3>(msh.coord[ip1], msh.coord[ip2]);
           if(nrm2 < Defaults::ltol * Defaults::ltol) 
-            METRIS_THROW_MSG(GeomExcept(), "small nrm2 = "<<nrm2);
+            METRIS_THROW_MSG("small nrm2 = {:e}", nrm2);
           nrm2 = 1.0/sqrt(nrm2);
         }
 
@@ -328,10 +328,10 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
                                             msh.coord[ip1      ], msh.coord[ip2  ])
                               : getprdl2<3>(msh.coord[cav.ipins], msh.coord[ipseed],
                                             msh.coord[ip1      ], msh.coord[ip2  ]);
-        CPRINTF2(" - iedge old %d new %d dtprd %f \n",iedge,iedgn,dtprd*nrm1*nrm2);
+        CPRINTF2(" - iedge old {} new {} dtprd {} \n",iedge,iedgn,dtprd*nrm1*nrm2);
 
         if(dtprd*nrm1*nrm2 < 1 - opts.geodev1){
-          CPRINTF1(" ## GEODEV REJECT dtprd = %f ipins %d ipseed %d ip1 %d ip2 %d \n",
+          CPRINTF1(" ## GEODEV REJECT dtprd = {} ipins {} ipseed {} ip1 {} ip2 {} \n",
                    dtprd,cav.ipins, ipseed, ip1, ip2);
           return CAV_ERR_GEODEVLIN;
         }
@@ -384,10 +384,9 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
       // Create new control points
       for(int j = 0; j < ideg - 1; j++){
         int ipnew = msh.npoin;
-        msh.newpoitopo(1,iedgn);
+        msh.newpoitopo(PointType::CtrlPt,1,iedgn);
         msh.edg2poi(iedgn,2+j) = ipnew;
-        msh.poi2ent(ipnew,0) = iedgn;
-        msh.poi2ent(ipnew,1) = 1;
+        msh.set_poi2ent(CtrlPt{ipnew}, 1, iedgn);
         msh.poi2bpo[ipnew] = -1;
         double t = (1.0 + j)/ideg; 
         for(int k = 0; k < msh.idim; k++){
@@ -397,7 +396,7 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
 
         if(msh.isboundary_edges()){
           // New bpo attached to edge. 
-          msh.newbpotopo(ipnew,1,iedgn);
+          msh.newbpotopo(CtrlPt{ipnew},1,iedgn);
           for(int ll = 0; ll < nrbi; ll++){
             msh.bpo2rbi(msh.nbpoi-1,ll) = (1 - t) * msh.bpo2rbi(ibins ,ll)
                                              + t  * msh.bpo2rbi(ibseed,ll);

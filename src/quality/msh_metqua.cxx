@@ -49,19 +49,17 @@ double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
       double quent = 0;
       //try{
         if(msh.idim == 2){
-          if constexpr(tdim_c == 2){
+          METRIS_ASSERT(tdim_c == 2);
+          if constexpr(tdim_c == 2){ // avoid bad instantiations
             quent = metqua<MFT,2,tdim_c>(msh,asdmsh,asdmet,ientt,1.0);
-          }else{
-            METRIS_THROW(WArgExcept());
           }
         }else{
           quent = metqua<MFT,3,tdim_c>(msh,asdmsh,asdmet,ientt,1.0);
         }
         METRIS_ASSERT_MSG(tdim_c < msh.idim || quent <= 1 + 1.0e-15,
-          "GT 1 quality with tdim = "<<tdim_c<<" gdim = "<<msh.idim<<" quent = "
-          <<quent)
+          "GT 1 quality with tdim = {} gdim = {} quent = {}",tdim_c,msh.idim,quent)
         //if(quent > 1 + 1.0e-15){
-        //  printf("## DEBUG QUENT > 1 tdim = %d tdim_c = %d gdim = %d quent %e dif %e\n",
+        //  printf("## DEBUG QUENT > 1 tdim = {} tdim_c = {} gdim = {} quent {} dif {}\n",
         //    tdim,tdim_c,msh.idim,quent,quent-1);
         //  exit(1);
         //}
@@ -72,7 +70,7 @@ double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
       qtot += quent;
       (*qmin) = MIN(*qmin,quent);
       (*qmax) = MAX(*qmax,quent);
-      CPRINTF3(" - getmetquamesh ientt %d dim %d qual = %e\n",ientt,tdim,quent);
+      CPRINTF3(" - getmetquamesh ientt {} dim {} qual = {}\n",ientt,tdim,quent);
     }
   }}CT_FOR1(tdim_c);
   }}CT_FOR1(ideg);

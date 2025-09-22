@@ -26,7 +26,7 @@
 #include <cmath>
 #include "../linalg/dsytrd.hxx"
 #include "../linalg/dsyevq.hxx"
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 #include "../utils/aux_misc.hxx"
 
 // Macros
@@ -80,8 +80,8 @@ int dsyevq(const T* __restrict__ mat, T* __restrict__ eigvec, T* __restrict__  e
       // element e(l) is zero
       for (m=l; m <= ndim-2; m++)
       {
-        g = abs(eigval[m])+abs(eigval[m+1]);
-        if (abs(e[m]) + g == g)
+        g = std::abs(eigval[m])+std::abs(eigval[m+1]);
+        if (std::abs(e[m]) + g == g)
           break;
       }
       if (m == l)
@@ -104,7 +104,7 @@ int dsyevq(const T* __restrict__ mat, T* __restrict__ eigvec, T* __restrict__  e
       {
         f = s * e[i];
         b = c * e[i];
-        if (abs(f) > abs(g))
+        if (std::abs(f) > std::abs(g))
         {
           c      = g / f;
           r      = sqrt(SQR(c) + 1.0);

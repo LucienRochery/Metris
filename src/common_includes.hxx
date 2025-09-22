@@ -35,14 +35,14 @@
 
 #include "utils/aux_timer.hxx"
 #include "aux_exceptions.hxx"
-#include "../SANS/tools/minmax.h"
+#include "SANS/tools/minmax.h"
 
 
 //#include "utils/aux_misc.hxx"
 //#include "low_eval.hxx"
 //#include "low_topo.hxx"
 //
-#include "low_geo.hxx"
+#include "low_geo/misc.hxx"
 #include "linalg/matprods.hxx"
 //#include "aux_topo.hxx"
 //
@@ -60,7 +60,7 @@
 //#include <cassert>
 //#include <tuple>
 //
-//#include "../SANS/Surreal/SurrealS.h"
+//#include "SANS/Surreal/SurrealS.h"
 
 
 

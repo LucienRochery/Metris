@@ -8,6 +8,9 @@
 #include "../SurrealS_inc.hxx"
 #include "../metris_constants.hxx"
 #include "../utils/aux_misc.hxx"
+#include "../utils/fmt_formatters.hxx"
+#include "../utils/aux_MinMaxAvg.hxx"
+//#include "../MetrisRunner/MeshStat.hxx"
 #include <egads.h>
 #include <memory>
 
@@ -152,8 +155,9 @@ bool MeshArray1D<T,INT1>::allocate(INT1 m){
   std::shared_ptr<T[]> new_array_sp = cpp17_make_shared<T[]>(m);
   T* new_array = new_array_sp.get();
 
-  METRIS_ASSERT(array != NULL || n1 <= 0);
-    
+  METRIS_ASSERT_MSG(array != NULL || n1 <= 0,
+    "n1 = {} and array = {}", n1, (void*) array);
+
   for(int ii = 0; ii < n1; ii++) new_array[ii] = array[ii];
   
   array_sp = new_array_sp;
@@ -198,8 +202,10 @@ void MeshArray1D<T,INT1>::fill(T x){
 template<typename T,typename INT1>
 void MeshArray1D<T,INT1>::copyTo(MeshArray1D<T,INT1> &out, INT1 ncopy) const{
   if(ncopy < 0) ncopy = n1;
+  if(ncopy <= 0) return;
+  out.allocate(ncopy);
   out.set_n(ncopy);
-  memcpy(&out[0],array,ncopy*sizeof(T));
+  memcpy((void*)&out[0],array,ncopy*sizeof(T));
 }
 
 template<typename T,typename INT1>
@@ -209,24 +215,41 @@ MeshArray1D<T,INT1>::~MeshArray1D(){
 
 
 template<typename T,typename INT1>
-void MeshArray1D<T,INT1>::print(INT1 n) const{
-  INT1 m = n < m1 ? n : m1;
-  for(INT1 i = 0; i < m; i++){
-    std::cout<<array_ro[i]<<" ";
+void MeshArray1D<T,INT1>::print(INT1 n, FILE* logfile) const{
+  constexpr bool isptr = std::is_same_v<T,ego>
+                       || std::is_same_v<T,intAr1*>
+                       || std::is_same_v<T,dblAr1*>
+                       || std::is_same_v<T,intWrkAr1*>
+                       || std::is_same_v<T,dblWrkAr1*>;
+  INT1 m = n < m1 ? n : n1;
+  if(m == 0) return;
+  fmt::print(logfile, "[");
+  for(INT1 i = 0; i < m-1; i++){
+    if constexpr(isptr){
+      fmt::print(logfile, "{} ", (void*) array_ro[i]);
+    }else{
+      fmt::print(logfile, "{} ", array_ro[i]);
+    }
   }
-  std::cout<<"\n";
+  if constexpr(isptr){
+    fmt::print(logfile, "{}]\n", (void*) array_ro[m-1]);
+  }else{
+    fmt::print(logfile, "{}]\n", array_ro[m-1]);
+  }
 }
 template<typename T,typename INT1>
-void MeshArray1D<T,INT1>::print() const{
-  this->print(n1);
+void MeshArray1D<T,INT1>::print(FILE* logfile) const{
+  this->print(n1, logfile);
 }
 
 template<typename T,typename INT1>
 std::ostream& MeshArray1D<T,INT1>::print(std::ostream& _os) const{
-  for(INT1 ii = 0; ii < n1; ii++){
+  if(n1 <= 0) return _os;
+  _os<<"[";
+  for(INT1 ii = 0; ii < n1-1; ii++){
     _os<<array_ro[ii]<<" ";
   }
-  _os<<"\n";
+  _os<<array_ro[n1-1]<<"]";
   return _os;
 }
 
@@ -266,6 +289,13 @@ template class MeshArray1D<MeshArray1D<std::pair<int,int>,int>,int>;
 
 template class MeshArray1D<MeshArray1D<double,int>,int>;
 template class MeshArray1D<MeshArray1D<int   ,int>,int>;
+template class MeshArray1D<intAr1*,int>;
+template class MeshArray1D<dblAr1*,int>;
+template class MeshArray1D<intWrkAr1*,int>;
+template class MeshArray1D<dblWrkAr1*,int>;
+
+template class MeshArray1D<MinMaxAvg,int>;
+template class MeshArray1D<MeshStat,int>;
 
 //template MeshArray1D<bool,int32_t>::MeshArray1D<bool,int32_t,int32_t>(MeshArray2D<bool,int32_t,int32_t> &arr2);
 //

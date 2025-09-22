@@ -25,7 +25,7 @@ QuaFunList<MFT,gdim,tdim,ideg,asdmsh,asdmet,ftype>
   if(iquaf == QuaFun::Distortion){
     return metqua<MFT,gdim,tdim,ideg,asdmsh,QuaFun::Distortion,ftype>;
   }else{
-    METRIS_THROW_MSG(TODOExcept(), "Implement "<<(int)iquaf<<" in QuaFunList");
+    METRIS_THROW_MSG("TODO: Implement "<<(int)iquaf<<" in QuaFunList");
   }
 }
 
@@ -36,7 +36,7 @@ QuaFunList<MFT,gdim,tdim,ideg,asdmsh,asdmet,ftype>::d_quafun(QuaFun iquaf){
   if(iquaf == QuaFun::Distortion){
     return d_metqua<MFT,gdim,ideg,asdmet,ftype>;
   }else{
-    METRIS_THROW_MSG(TODOExcept(), "Implement "<<(int)iquaf<<" in QuaFunList");
+    METRIS_THROW_MSG("TODO: Implement "<<(int)iquaf<<" in QuaFunList");
   }
 }
 

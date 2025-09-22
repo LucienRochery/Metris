@@ -15,16 +15,16 @@
 #include "../ho_quadrature.hxx"
 #include "../low_localization.hxx"
 #include "../linalg/eigen.hxx"
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 
-#include "../low_ccoef.hxx"
+#include "../low_geo/ccoef.hxx"
 
 
 namespace Metris{
   
 void d2unittensor(const Mesh<MetricFieldAnalytical> &msh, int ielem, double *tens3sym_){
 
-  METRIS_THROW_MSG(TODOExcept(), "Read this over and consolidate with existing")
+  METRIS_THROW_MSG("TODO: Read this over and consolidate with existing")
   
   double metP1[6],dmetP1[18]; 
   double eigval[3],eigvec[9],rwork[10];
@@ -93,7 +93,7 @@ void d2unittensor(const Mesh<MetricFieldAnalytical> &msh, int ielem, double *ten
   // Next compute S = N x_2 T x_1 N^T
   // with N = J_0^T R^T 
   mat3X2tens3sym1X1tmat3(tJ0tR,tens3sym,tens3sym_);
-  METRIS_THROW_MSG(TODOExcept(),"Changed to non symmetric verify symmetric");
+  METRIS_THROW_MSG("TODO: Changed to non symmetric verify symmetric");
 
 }
 
@@ -102,15 +102,15 @@ Use P2 element intrinsic metric at all stages
 This is mainly for validation
 */
 void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
-  if(msh.curdeg != 2) METRIS_THROW(WArgExcept());
+  METRIS_ASSERT(msh.curdeg == 2);
 
   constexpr int ideg = 2;
   constexpr int gdim = 3;
   constexpr int tdim = 3; 
 
-  METRIS_THROW_MSG(TODOExcept(), "Read this over and consolidate with existing")
+  GETVDEPTH(msh.param);
 
-  int iprt = 1;
+  METRIS_THROW_MSG("TODO: Read this over and consolidate with existing")
 
   double tJ0tR[9];
   SANS::SurrealS<3,double> intmetS[6];
@@ -122,10 +122,8 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
   // a) Get intrinsic metric and physical derivatives
   METRIS_ENFORCE(!getintmetxi<gdim,gdim,ideg>(msh.coord,msh.tet2poi[ielem],
                                               msh.getBasis(),bary,intmetS));
-  if(iprt > 0){
-    printf("1. print intmetS and derivatives\n");
-    MeshArray1D<SANS::SurrealS<3,double>>(6,intmetS).print();
-  }
+  CPRINTF1("1. print intmetS and derivatives:\n{}\n",
+           MeshArray1D<SANS::SurrealS<3,double>>(6,intmetS));
     // State is now intmetS = M
   // b) Get Jacobian to compute scale
 	double eval[3], jmat[9];
@@ -190,72 +188,72 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
   for(int ii = 0; ii < 6; ii++) intmet[ii] = intmetS[ii].value();
   tens3sym1X1mat3sym<3>(dpMm12,intmet,tens3sym);
 
-  printf("%f\n",tJ0tR[0]);
-  printf("%f\n",tJ0tR[1]);
-  printf("%f\n",tJ0tR[2]);
-  printf("%f\n",tJ0tR[3]);
-  printf("%f\n",tJ0tR[4]);
-  printf("%f\n",tJ0tR[5]);
-  printf("%f\n",tJ0tR[6]);
-  printf("%f\n",tJ0tR[7]);
-  printf("%f\n",tJ0tR[8]);
+  printf("{}\n",tJ0tR[0]);
+  printf("{}\n",tJ0tR[1]);
+  printf("{}\n",tJ0tR[2]);
+  printf("{}\n",tJ0tR[3]);
+  printf("{}\n",tJ0tR[4]);
+  printf("{}\n",tJ0tR[5]);
+  printf("{}\n",tJ0tR[6]);
+  printf("{}\n",tJ0tR[7]);
+  printf("{}\n",tJ0tR[8]);
 
-  printf("%f\n",tens3sym[0]);
-  printf("%f\n",tens3sym[1]);
-  printf("%f\n",tens3sym[2]);
-  printf("%f\n",tens3sym[3]);
-  printf("%f\n",tens3sym[4]);
-  printf("%f\n",tens3sym[5]);
-  printf("%f\n",tens3sym[6]);
-  printf("%f\n",tens3sym[7]);
-  printf("%f\n",tens3sym[8]);
-  printf("%f\n",tens3sym[9]);
-  printf("%f\n",tens3sym[10]);
-  printf("%f\n",tens3sym[11]);
-  printf("%f\n",tens3sym[12]);
-  printf("%f\n",tens3sym[13]);
-  printf("%f\n",tens3sym[14]);
-  printf("%f\n",tens3sym[15]);
-  printf("%f\n",tens3sym[16]);
-  printf("%f\n",tens3sym[17]);
+  printf("{}\n",tens3sym[0]);
+  printf("{}\n",tens3sym[1]);
+  printf("{}\n",tens3sym[2]);
+  printf("{}\n",tens3sym[3]);
+  printf("{}\n",tens3sym[4]);
+  printf("{}\n",tens3sym[5]);
+  printf("{}\n",tens3sym[6]);
+  printf("{}\n",tens3sym[7]);
+  printf("{}\n",tens3sym[8]);
+  printf("{}\n",tens3sym[9]);
+  printf("{}\n",tens3sym[10]);
+  printf("{}\n",tens3sym[11]);
+  printf("{}\n",tens3sym[12]);
+  printf("{}\n",tens3sym[13]);
+  printf("{}\n",tens3sym[14]);
+  printf("{}\n",tens3sym[15]);
+  printf("{}\n",tens3sym[16]);
+  printf("{}\n",tens3sym[17]);
 
   // Next compute S = N x_2 T x_1 N^T
   double tens3[27];
   mat3X2tens3sym1X1tmat3(tens3sym,tJ0tR,tens3);
 
-  printf("%f\n",tens3[0]);
-  printf("%f\n",tens3[1]);
-  printf("%f\n",tens3[2]);
-  printf("%f\n",tens3[3]);
-  printf("%f\n",tens3[4]);
-  printf("%f\n",tens3[5]);
-  printf("%f\n",tens3[6]);
-  printf("%f\n",tens3[7]);
-  printf("%f\n",tens3[8]);
-  printf("%f\n",tens3[9]);
-  printf("%f\n",tens3[10]);
-  printf("%f\n",tens3[11]);
-  printf("%f\n",tens3[12]);
-  printf("%f\n",tens3[13]);
-  printf("%f\n",tens3[14]);
-  printf("%f\n",tens3[15]);
-  printf("%f\n",tens3[16]);
-  printf("%f\n",tens3[17]);
-  printf("%f\n",tens3[18]);
-  printf("%f\n",tens3[19]);
-  printf("%f\n",tens3[20]);
-  printf("%f\n",tens3[21]);
-  printf("%f\n",tens3[22]);
-  printf("%f\n",tens3[23]);
-  printf("%f\n",tens3[24]);
-  printf("%f\n",tens3[25]);
-  printf("%f\n",tens3[26]);
+  printf("{}\n",tens3[0]);
+  printf("{}\n",tens3[1]);
+  printf("{}\n",tens3[2]);
+  printf("{}\n",tens3[3]);
+  printf("{}\n",tens3[4]);
+  printf("{}\n",tens3[5]);
+  printf("{}\n",tens3[6]);
+  printf("{}\n",tens3[7]);
+  printf("{}\n",tens3[8]);
+  printf("{}\n",tens3[9]);
+  printf("{}\n",tens3[10]);
+  printf("{}\n",tens3[11]);
+  printf("{}\n",tens3[12]);
+  printf("{}\n",tens3[13]);
+  printf("{}\n",tens3[14]);
+  printf("{}\n",tens3[15]);
+  printf("{}\n",tens3[16]);
+  printf("{}\n",tens3[17]);
+  printf("{}\n",tens3[18]);
+  printf("{}\n",tens3[19]);
+  printf("{}\n",tens3[20]);
+  printf("{}\n",tens3[21]);
+  printf("{}\n",tens3[22]);
+  printf("{}\n",tens3[23]);
+  printf("{}\n",tens3[24]);
+  printf("{}\n",tens3[25]);
+  printf("{}\n",tens3[26]);
 
   printf("Check 3 symmetry:");
   for(int kk = 0; kk < 3; kk++){
     for(int ii = 0; ii < 3; ii++){
       for(int jj = ii + 1; jj < 3; jj++){
-        printf("%d %d / %d %d : %f %f \n",ii,jj,jj,ii,
+        printf("{} {} / {} {} : {} {} \n",ii,jj,jj,ii,
                     tens3[9*ii+3*jj+kk],tens3[9*jj+3*ii+kk]);
       }
     }
@@ -279,7 +277,7 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
 //              double* __restrict__ scale ,
 //              double* __restrict__ rotmat){
 //  if(msh.ilogmet != 1 && msh.ianamet <=0)
-//    METRIS_THROW_MSG(WArgExcept(), "Set metric to log before calling scalrot3");
+//    METRIS_THROW_MSG( "Set metric to log before calling scalrot3");
 //
 //  // Used in both
 //  double jmat[3][3];
@@ -340,7 +338,7 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
 //    detM = detsym<3>(metbar);
 //  }
 //  // tr(log M) = log(det(M))
-//  if(detM < 1.0e-16) METRIS_THROW_MSG(GeomExcept(),"SINGULAR METRIC " << detM
+//  if(detM < 1.0e-16) METRIS_THROW_MSG("SINGULAR METRIC " << detM
 //  <<" log-metric "<<metbar[0]<<" "<<metbar[1]<<" "<<metbar[2]<<" "
 //                  <<metbar[3]<<" "<<metbar[4]<<" "<<metbar[5]<<" ")
 //  double detMm12 = 1.0 / sqrt(detM);

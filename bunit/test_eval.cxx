@@ -3,19 +3,19 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_eval
 
 #include <boost/test/included/unit_test.hpp> 
 #include <bunit/common_setup.hxx>
 
 #include <boost/timer/progress_display.hpp>
 
-#include "../src/ho_constants.hxx"
-#include "../src/utils/aux_misc.hxx"
-#include "../src/quality/low_metqua.hxx"
-#include "../SANS/Surreal/SurrealS.h"
-#include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
-#include "../src/low_geo.hxx"
+#include "ho_constants.hxx"
+#include "utils/aux_misc.hxx"
+#include "quality/low_metqua.hxx"
+#include "SANS/Surreal/SurrealS.h"
+#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "low_geo/misc.hxx"
 
 #include <boost/hana.hpp> 
 namespace hana = boost::hana;
@@ -32,7 +32,7 @@ typedef MetricFieldAnalytical MFT;
 // In non constant metric fields, derivatives only defined for DoFs in back element
 // interiors... 
 
-BOOST_AUTO_TEST_CASE(test_eval3) 
+BOOST_AUTO_TEST_CASE(test_eval) 
 {
 
   // bool is whether straight
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(test_eval3)
     int ndx = 0;
     for(double dx = dx0; dx > dx1; dx /= qdx) ndx++;
     
-    if(ndx > mdx) METRIS_THROW_MSG(SMemExcept(),"Increase mdx")
+    if(ndx > mdx) METRIS_THROW_MSG("Increase mdx")
     double err3dx[nbase][mdx], err6dx[nbase][mdx], logdx[mdx];
 
     for(auto testcase : meshes)

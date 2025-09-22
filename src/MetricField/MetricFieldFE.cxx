@@ -10,15 +10,18 @@
 #include "../MetricField/msh_explogmet.hxx"
 #include "../Mesh/MeshBase.hxx"
 #include "../msh_lag2bez.hxx"
-#include "../utils/aux_misc.hxx"
 #include "../low_eval.hxx"
 #include "../io_libmeshb.hxx"
-#include "../utils/CT_loop.hxx"
 #include "../msh_structs.hxx"
 #include "../linalg/invmat.hxx"
 #include "../linalg/explogmet.hxx"
 #include "../linalg/utils.hxx"
 #include "../linalg/symidx.hxx"
+
+#include "../utils/CT_loop.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
+#include "../utils/aux_misc.hxx"
 
 #include "../Localization/msh_localization.hxx"
 
@@ -36,7 +39,7 @@ MetricFieldFE::MetricFieldFE(MeshBase &msh_) : msh(msh_){
 void MetricFieldFE::setSpace(MetSpace ispacn, bool iforce){
   #ifndef NDEBUG
   if(msh.meshClass() == MeshClass::MeshBack && !iforce && ispacn != this->ispace){
-    METRIS_THROW_MSG(GeomExcept(),"setSpace called on back mesh! Should not be done.")
+    METRIS_THROW_MSG("setSpace called on back mesh! Should not be done.")
   }
   #endif
   METRIS_ASSERT(ispacn != MetSpace::Undefined);
@@ -75,8 +78,8 @@ MetricFieldFE &MetricFieldFE::operator=(const MetricFieldFE& inp){
 void MetricFieldFE::setLog(){
 
   if(ibasis == FEBasis::Undefined){
-    std::cout<<"## WARNING: Metric field basis not defined, possible surface or line mesh \n";
-    std::cout<<"## Skip setLog \n";
+    GETVDEPTH(msh.param);
+    CPRINTF1("# WARNING: Metric field basis not defined, possible surface or line mesh: skip setLog()\n");
     return;
   }
 
@@ -96,8 +99,8 @@ void MetricFieldFE::setLog(){
 void MetricFieldFE::setExp(){
 
   if(ibasis == FEBasis::Undefined){
-    std::cout<<"## WARNING: Metric field basis not defined, possible surface or line mesh \n";
-    std::cout<<"## Skip setLog \n";
+    GETVDEPTH(msh.param);
+    CPRINTF1("# WARNING: Metric field basis not defined, possible surface or line mesh: skip setExp()\n");
     return;
   }
   
@@ -160,30 +163,32 @@ void MetricFieldFE::readMetricFile(std::string inpname){
 
   METRIS_ENFORCE_MSG(metdim == msh.idim, "Metric and mesh dimension must agree");
 
+  GETVDEPTH(msh.param);
 
   int ilag = 1 - GmfStatKwd(libIdx, GmfBezierBasis);
   if(ilag == 1){
-    std::cout<<"Metric in Lagrange format.\n";
+    CPRINTF1("Metric in Lagrange format.\n");
     this->ibasis = FEBasis::Lagrange;
   }else{
-    std::cout<<"Metric in Bézier format.\n";
+    CPRINTF1("Metric in Bézier format.\n");
     this->ibasis = FEBasis::Bezier;
   }
 
   this->ispace = MetSpace::Exp;
   int ncom = GmfStatKwd(libIdx, GmfComments);
-  if(ncom) std::cout<<"Metric file contains "<<ncom<<" comments\n";
+  if(ncom) CPRINTF1("Metric file contains {} comments\n", ncom);
+
   char buff[257];
   GmfGotoKwd(libIdx, GmfComments);  
   for(int icom = 0; icom < ncom; icom++){
     GmfGetLin(libIdx, GmfComments, buff);
     std::string strbuf(buff);
     if(strbuf.find("log") != std::string::npos){
-      std::cout<<"log-Metric supplied.\n";
+      CPRINTF1("log-Metric supplied.\n");
       this->ispace = MetSpace::Log;
     }else{
-      std::cout<<"## UNKNOWN COMMENT LINE: "<<strbuf<<"\n";
-      METRIS_THROW_MSG(TODOExcept(),
+      PRINTF("## UNKNOWN COMMENT LINE: {}\n", strbuf);
+      METRIS_THROW_MSG(
         "Known bug: Comments works in binary file but not plaintext after transmesh.\n")
     }
   }
@@ -191,13 +196,13 @@ void MetricFieldFE::readMetricFile(std::string inpname){
 
   int nsolf,ltyp[GmfMaxTyp],szfls;
   int npoif = GmfStatKwd(libIdx,GmfSolAtVertices, &nsolf, &szfls, ltyp);
-  METRIS_ENFORCE_MSG(npoif == msh.npoin,"Metric file npoin = "<<npoif<<" does not agree with mesh = "<<msh.npoin);
+  METRIS_ENFORCE_MSG(npoif == msh.npoin,"Metric file npoin = {} does not agree with mesh = {}", npoif, msh.npoin);
 
   METRIS_ENFORCE(nsolf == 1);
   METRIS_ENFORCE(ltyp[0] == GmfSymMat);
 
   int nnmet = getnnmet();
-  METRIS_ASSERT_MSG(nnmet == 3 || nnmet == 6," nnmet = "<<nnmet);
+  METRIS_ASSERT_MSG(nnmet == 3 || nnmet == 6," nnmet = {}", nnmet);
 
   // Possible reallocation
   this->rfld.allocate(msh.mpoin,nnmet);
@@ -213,16 +218,15 @@ void MetricFieldFE::readMetricFile(std::string inpname){
 
 void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
 
+  GETVDEPTH(msh.param);
+
   // For now, always force writing as exp metric. 
   const MetSpace outspac = MetSpace::Exp;
 
   if(ibasis == FEBasis::Undefined){
-    std::cout<<"## WARNING: Metric field basis not defined, possible surface or line mesh \n";
-    std::cout<<"## Skip writeMetricFile = "<<outname<<"\n";
+    CPRINTF1("# WARNING: Metric field basis not defined, possible surface or line mesh: skip writeMetricFile = {}\n", outname);
     return;
   }
-
-  int iverb = msh.param->iverb;
 
   dblAr2 buffer;
   if(outspac == this->ispace){
@@ -271,16 +275,12 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
     GmfSetLin(libIdx,GmfComments,buf);
   } 
 
-  std::cout<<"-- Write file "<<metName<<std::endl;
+  CPRINTF1("-- Write file file {} npoin {}\n",metName,msh.npoin);
 
 
- // if(iverb>0)std::cout<<"-- Start writing metrics: "<<msh.npoin<<std::endl;
   GmfSetKwd(libIdx, GmfSolAtVertices, msh.npoin, 1, &szfld);
   GmfSetBlock(libIdx, GmfSolAtVertices, 1, msh.npoin, 0, NULL, NULL,
-    GmfDoubleVec, nnmet, buffer[0], buffer[msh.npoin-1]);
- //               GmfDoubleVec, 3, &coord[0], &coord[npoin-1],
-//                GmfInt         , &poi2bpo[0], &poi2bpo[npoin-1]);
-  if(iverb >= 3) std::cout<<"-- Done  writing metric"<<std::endl;
+              GmfDoubleVec, nnmet, buffer[0], buffer[msh.npoin-1]);
 
 
   GmfCloseMesh( libIdx );
@@ -295,7 +295,7 @@ void MetricFieldFE::normalize(double coeff){
   int nnmet = getnnmet();
   if(ispace == MetSpace::Exp){
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-      if(msh.poi2ent(ipoin,0) < 0) continue;
+      if(msh.isdeadpoint(ipoin)) continue;
       for(int ii = 0; ii < nnmet; ii++){
         rfld(ipoin,ii) *= size;
       }
@@ -306,7 +306,7 @@ void MetricFieldFE::normalize(double coeff){
     // = M * exp(c)I
     // hence replace c with log(c) and add identity to the metrics.
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-      if(msh.poi2ent(ipoin,0) < 0) continue;
+      if(msh.isdeadpoint(ipoin)) continue;
       for(int ii = 0; ii < msh.idim; ii++){
         rfld[ipoin][sym2idx(ii,ii)] += lsize;
       }
@@ -320,17 +320,16 @@ void MetricFieldFE::correctMetric(){
 
   double eigval[3], eigvec[9];
   for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
-    if(msh.poi2ent(ipoin,0) < 0) continue;
+    INCVDEPTH(msh.param);
+    if(msh.isdeadpoint(ipoin)) continue;
     if(msh.idim == 2){
       geteigsym<2,double>(rfld[ipoin],eigval,eigvec);
     }else{
       geteigsym<3,double>(rfld[ipoin],eigval,eigvec);
     }
     for(int ii = 0; ii < msh.idim; ii++){
-      if(eigval[ii] < 1.0e-32){
-        printf("## CORRECTED SMALL OR NEGATIVE EIGVALS: ");
-        dblAr1(msh.idim,eigval).print();
-      }
+      if(eigval[ii] < 1.0e-32)
+        PRINTF("## CORRECTED SMALL OR NEGATIVE EIGVALS: {}\n",dblAr1(msh.idim,eigval));
       eigval[ii] = abs(eigval[ii]);
     }
     if(msh.idim == 2){
@@ -355,8 +354,8 @@ void MetricFieldFE::getMetBary(AsDeg asdmet,
 
   // barycentric is defined but not physical. Probably a mistake either way
   if(msh.idim != tdimn && idiff != DifVar::None) 
-    METRIS_THROW_MSG(WArgExcept(), "Differing tdim = "<<tdimn<<" and gdim ="
-                                    <<msh.idim<<" are you sure about idiff?")
+    METRIS_THROW_MSG( "Differing tdim = {} and gdim = {} are you sure about idiff?", tdimn, msh.idim)
+
 
 
   CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
@@ -376,12 +375,12 @@ void MetricFieldFE::getMetBary(AsDeg asdmet,
   }}CT_FOR1(gdim);
 
   if(std::isnan(metl[0])){
-    printf("## DEBUG NAN METRIC IN GETMETBARY\n");
-    printf("bary = ");
-    dblAr1(msh.idim+1,bary).print();
+    GETVDEPTH(msh.param);
+    PRINTF("## DEBUG NAN METRIC IN GETMETBARY\n");
+    PRINTF("bary = {}\n",dblAr1(msh.idim+1,bary));
     for(int inode = 0; inode < getnnode(msh.idim,msh.curdeg); inode++){
-      printf("elt node %d met = ",ent2pol[inode]);
-      dblAr1((msh.idim*(msh.idim+1))/2, this->rfld[ent2pol[inode]]).print();
+      PRINTF("elt node {} met = {}\n",ent2pol[inode],
+             dblAr1((msh.idim*(msh.idim+1))/2, this->rfld[ent2pol[inode]]));
     }
   }
 
@@ -438,7 +437,7 @@ void MetricFieldFE::getMetBary0( DifVar idiff,  MetSpace tarspac,
     eval3<nnmet,ideg>(rfld,ent2pol,this->ibasis,idife,DifVar::None,bary,metl,dmet0,NULL);
   }
 
-  if(tdimn > gdim) METRIS_THROW_MSG(WArgExcept(), "getMetBary0 topo dim > gdim");
+  if(tdimn > gdim) METRIS_THROW_MSG( "getMetBary0 topo dim > gdim");
 
 
   if(idiff == DifVar::None){

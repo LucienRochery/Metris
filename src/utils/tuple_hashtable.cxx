@@ -194,7 +194,7 @@ uint32_t nextPrime(int n){
   while(n1 < n2 - 1){
     int navg = (n1 + n2) / 2;
     prime = boost::math::prime(navg);
-    printf("navg = %d n1 = %d n2 = %d prime = %d\n",navg,n1,n2,prime);
+    printf("navg = {} n1 = {} n2 = {} prime = {}\n",navg,n1,n2,prime);
     if(prime >= n){
       n2 = navg;
     }else{

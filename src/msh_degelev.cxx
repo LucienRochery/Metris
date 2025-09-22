@@ -24,10 +24,11 @@ This implements topological and (u,v) guess init of boundary points.
 */
 template<class MFT, int mshdeg, int tardeg>
 void deg_elevate(Mesh<MFT> &msh){
-  if(msh.idim != 2 && msh.idim != 3) METRIS_THROW_MSG(TODOExcept(), "Implement dim "<<msh.idim<<" degelev.");
+  if(msh.idim != 2 && msh.idim != 3) 
+    METRIS_THROW_MSG("TODO: Implement dim {} degelev.",msh.idim);
 
   // This actually works, so why?
-  //if constexpr(mshdeg != 1) METRIS_THROW_MSG(TODOExcept(), "Write into temporary arrays and update at the end.")
+  //if constexpr(mshdeg != 1) METRIS_THROW_MSG("TODO: Write into temporary arrays and update at the end.")
 
   int tagedl[6];
   intAr1 lshell(100);
@@ -116,8 +117,8 @@ void deg_elevate(Mesh<MFT> &msh){
           // Inherits attachment to this edge, triangles, etc. Same topological make. 
           ibnew = msh.poi2bpo[ipnew];
         }else{
-          ipnew = msh.newpoitopo(1,iedge);
-          ibnew = msh.newbpotopo(ipnew,1,iedge);
+          ipnew = msh.newpoitopo(PointType::CtrlPt, 1, iedge);
+          ibnew = msh.newbpotopo(CtrlPt{ipnew}, 1, iedge);
         }
 
         for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
@@ -182,8 +183,8 @@ void deg_elevate(Mesh<MFT> &msh){
             ipnew = msh.fac2poi[iface][irn0_prv + irnk - irn0];
             ibnew = msh.poi2bpo[ipnew];
           }else{
-            ipnew = msh.newpoitopo(2,iface);
-            ibnew = msh.newbpotopo(ipnew,2,iface);
+            ipnew = msh.newpoitopo(PointType::CtrlPt, 2, iface);
+            ibnew = msh.newbpotopo(CtrlPt{ipnew}, 2, iface);
           }
 
           for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
@@ -227,13 +228,13 @@ void deg_elevate(Mesh<MFT> &msh){
                 lbpon[irnk] = lbpoi[irn0_prv + irnk - irn0];
                 msh.bpo2ibi[lbpon[irnk]][0] = msh.fac2poi(iface,irnk);
               }else{
-                msh.newbpotopo(msh.fac2poi(iface,irnk),2,iface);
+                msh.newbpotopo(CtrlPt{msh.fac2poi(iface,irnk)},2,iface);
                 lbpon[irnk] = msh.nbpoi - 1;
               }
             }
           }
         }else if(ifac2 < 0){
-          METRIS_THROW_MSG(TopoExcept(),"ERROR NO EDGE BUT NON MANIFOLD OR SURF BDRY")
+          METRIS_THROW_MSG("NO EDGE BUT NON MANIFOLD OR SURF BDRY")
 
         // VV From here on, manifold neighbour
         }else if(msh.fac2tag(0,ifac2) >= msh.tag[0]){
@@ -249,8 +250,8 @@ void deg_elevate(Mesh<MFT> &msh){
               ipnew = msh.fac2poi[iface][irn0_prv + irnk - irn0];
               ibnew = msh.poi2bpo[ipnew];
             }else{
-              ipnew = msh.newpoitopo(2,iface);
-              ibnew = msh.newbpotopo(ipnew,2,iface);
+              ipnew = msh.newpoitopo(PointType::CtrlPt, 2, iface);
+              ibnew = msh.newbpotopo(CtrlPt{ipnew}, 2, iface);
             }
 
             for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
@@ -277,7 +278,6 @@ void deg_elevate(Mesh<MFT> &msh){
           int ibpoi = lbpon[irnk];
           if(ibpoi < 0) continue;
           METRIS_ASSERT(ibpoi >= 0 && ibpoi < msh.nbpoi);
-          //METRIS_ASSERT_MSG(msh.bpo2ibi(ibpoi,0) == ipoin, "\nError at irnk = "<<irnk<<" ipoin = "<<ipoin<<" ibpoi "<<ibpoi<<" bpo2ibi = "<<msh.bpo2ibi(ibpoi,0));
           msh.bpo2rbi(ibpoi,0) = newuv[irnk][0];
           msh.bpo2rbi(ibpoi,1) = newuv[irnk][1];
         }
@@ -310,7 +310,7 @@ void deg_elevate(Mesh<MFT> &msh){
                         + 4 * nppf0;
 
           for(int irnk = irnk0; irnk < getnnod3(tardeg); irnk++){
-            int ipnew = msh.newpoitopo(3,ielem);
+            int ipnew = msh.newpoitopo(PointType::CtrlPt,3,ielem);
 
             for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
             
@@ -343,8 +343,7 @@ void deg_elevate(Mesh<MFT> &msh){
           int iele2 = msh.tet2tet(ielem,ifa);
           if(iele2 < 0){
             int iface = msh.tetfac2glo(ielem,ifa);
-            if(iface < 0) METRIS_THROW_MSG(TopoExcept(),
-              "FACE MISSING FROM HASH TABLE")
+            if(iface < 0) METRIS_THROW_MSG("FACE MISSING FROM HASH TABLE")
 
             cpy_glofac2tetfac<tardeg>(msh,iface,ielem,ifa);
             continue;
@@ -365,7 +364,7 @@ void deg_elevate(Mesh<MFT> &msh){
             int irnk1 = 4 + 6*(getnnod1(tardeg)-2) + (ifa+1)*nppf0; 
 
             for(int irnk = irnk0; irnk < irnk1; irnk++){
-              int ipnew = msh.newpoitopo(3,ielem);
+              int ipnew = msh.newpoitopo(PointType::CtrlPt,3,ielem);
               for(int ii = 0; ii < gdim; ii++) msh.coord(ipnew,ii) = newpt[irnk][ii];
 
               msh.tet2poi(ielem,irnk) = ipnew;
@@ -410,14 +409,12 @@ void deg_elevate(Mesh<MFT> &msh){
               // This neighbour is a face that contains the edge
               ifnd = 1;
               int iface = msh.tetfac2glo(iele2,ifa2);
-              if(iface < 0) METRIS_THROW_MSG(TopoExcept(),
-                                                 "FACE MISSING FROM HASH TABLE")
+              if(iface < 0) METRIS_THROW_MSG("FACE MISSING FROM HASH TABLE")
 
               int iedf = getedgfac(msh,iface,ip1,ip2);
               cpy_facedg2tetedg<tardeg>(msh,iface,iedf,ielem,ied);
             }
-            if(ifnd == 0)METRIS_THROW_MSG(TopoExcept(),
-                                "FAILED TO FIND BOUNDARY FACE WITH THE EDGE")
+            if(ifnd == 0)METRIS_THROW_MSG("FAILED TO FIND BOUNDARY FACE WITH THE EDGE")
           }else{
             int ifnd = 0;
             for(int iele2 : lshell){
@@ -442,7 +439,7 @@ void deg_elevate(Mesh<MFT> &msh){
               METRIS_ASSERT(irn1 <= getnnod3(tardeg));
     
               for(int irnk = irn0; irnk < irn1;irnk++){
-                int ipnew = msh.newpoitopo(3,ielem);
+                int ipnew = msh.newpoitopo(PointType::CtrlPt,3,ielem);
                 msh.tet2poi(ielem,irnk) = ipnew;
                 //newt2poi[ielem][irnk-4] = ipnew;
                 for(int i = 0; i < gdim; i++) msh.coord(ipnew,i) = newpt[irnk][i];
@@ -481,7 +478,7 @@ void deg_elevate(Mesh<MFT> &msh){
 
 }
 // Explicit instantiation.
-#include <src/msh_degelev.ixx>
+#include "msh_degelev.ixx"
 
 
 } // End namespace

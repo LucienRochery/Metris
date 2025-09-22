@@ -11,13 +11,14 @@
 
 #include "../aux_topo.hxx"
 #include "../ho_constants.hxx"
-#include "../low_normal.hxx"
-#include "../low_geo.hxx"
+#include "../low_geo/normal.hxx"
+#include "../low_geo/misc.hxx"
 #include "../quality/low_metqua.hxx"
-#include "../utils/mprintf.hxx"
-#include "../utils/aux_misc.hxx"
 #include "../io_libmeshb.hxx"
 
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
+#include "../utils/aux_misc.hxx"
 
 namespace Metris{
 
@@ -27,11 +28,11 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
 
   GETVDEPTH(msh.param);
 
-  CPRINTF1("-- START update_bpois_newp %d <= ipoin < %d + ipins = %d\n",
+  CPRINTF1("-- START update_bpois_newp {} <= ipoin < {} + ipins = {}\n",
            npoi0, msh.npoin, cav.ipins);
 
   if(!msh.isboundary_faces()){
-    CPRINTF1("-- END update_bpois_newp, mesh dim %d <= 2\n",msh.idim);
+    CPRINTF1("-- END update_bpois_newp, mesh dim {} <= 2\n",msh.idim);
     return 0;
   }
 
@@ -54,19 +55,13 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
 
       int icoco = -(msh.fac2tag(ithread,iface) - msh.tag[ithread]) - 1;
       METRIS_ASSERT_MSG(icoco >= 0,
-        "face "<<iface<<" icoco "<<icoco);
+        "face {} icoco {}", iface, icoco);
       METRIS_ASSERT(icoco < work.lfcco.get_n());
-      METRIS_ASSERT(edcco[icoco].get_n() > 0);
-      if(edcco[icoco].get_n() <= 0){
-        printf("edcco :\n");
-        edcco.print();
-        printf("## DEBUG FATAL\n");
-        METRIS_THROW(TODOExcept());
-      }
+      METRIS_ASSERT_MSG(edcco[icoco].get_n() > 0,"edcco[icoco] empty in update_bpois_newp");
       int ireff = msh.fac2ref[iface];
       ego EG_fac = msh.CAD.cad2fac[ireff];
 
-      CPRINTF1(" - iface %d iref %d update ipins bpoi\n",iface,ireff);
+      CPRINTF1(" - iface {} iref {} update ipins bpoi\n",iface,ireff);
 
       // Find an edge ibpoi for an edge that bounds this connex component
       bool found_update = false;
@@ -76,10 +71,10 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
         int iedge = msh.bpo2ibi(ibpoe,2);
         int irefe = msh.edg2ref[iedge];
         METRIS_ASSERT(irefe >= 0);
-        CPRINTF1("   - iedge %d iref %d bpo link potential coco bound t %e\n",
+        CPRINTF1("   - iedge {} iref {} bpo link potential coco bound t {}\n",
                  iedge,irefe,msh.bpo2rbi(ibpoe,0));
         for(auto ipair : edcco[icoco]){
-          CPRINTF1("     - pair %d %d \n",ipair.first,ipair.second);
+          CPRINTF1("     - pair {} {} \n",ipair.first,ipair.second);
           if(irefe != ipair.first) continue;
           found_update = true;
           int isens = ipair.second;
@@ -90,17 +85,18 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
 
           // fetch or create face ibpoi
           int ibpoi = msh.poi2ebp(cav.ipins, 2, iface, -1);
-          CPRINTF1("   - existing ibpoi ? %d\n",ibpoi);
-          if(ibpoi < 0) ibpoi = msh.newbpotopo(cav.ipins,2,iface);
-          else CPRINTF1("   - old (u,v) = %e %e \n"
+          CPRINTF1("   - existing ibpoi ? {}\n",ibpoi);
+          if(ibpoi < 0) ibpoi = msh.newbpotopo(Vertex{cav.ipins},2,iface);
+          else CPRINTF1("   - old (u,v) = {} {} \n"
                         ,msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
 
           int icode = EG_getEdgeUV(EG_fac, EG_edg, isens, 
                                    tedg, msh.bpo2rbi[ibpoi]);
-          CPRINTF1("   - new (u,v) = %e %e\n",
+          CPRINTF1("   - new (u,v) = {} {}\n",
                    msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
+          METRIS_ENFORCE_MSG(icode == 0,"EG_getEdgeUV error {}", icode);
 
-          METRIS_ENFORCE_MSG(icode == 0,"EG_getEdgeUV error "<<icode);
+          break;
         }
         if(found_update) break;
       }
@@ -108,7 +104,7 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
     }// for iface
 
   }else{
-    CPRINTF1(" - skip ipins update, point dim = %d\n",msh.getpoitdim(cav.ipins));
+    CPRINTF1(" - skip ipins update, point dim = {}\n",msh.getpoitdim(cav.ipins));
   }// if ipins_uv
 
 
@@ -187,23 +183,10 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
         int sg = 1;
         if(ip1 != msh.fac2poi(iface,lnoed2[ied][0])) sg = -1;
 
-        if(ipoin == 71925){
-          printf(" debug 71925 previous (u,v) = %e %e\n",
-            msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
-        }
         int icode = EG_getEdgeUV(EG_fac, EG_edg, sg, tt, msh.bpo2rbi[ibpoi]);
-        if(ipoin == 71925){
-          printf(" debug using sg = %d tt = %e new (u,v) = %e %e\n",
-            sg,tt,msh.bpo2rbi(ibpoi,0),msh.bpo2rbi(ibpoi,1));
-          double uvdbg[4];
-          icode = EG_getEdgeUV(EG_fac, EG_edg, -sg, tt, uvdbg);
-          printf(" debug if sg = -sg icode %d : %e %e \n",icode,uvdbg[0],uvdbg[1]);
-        }
 
-        static int nwarnprt1 = 0;
-        if(nwarnprt1++ < 10) printf("## DISABLE THIS DEBUG\n");
 
-        if(icode != 0) METRIS_THROW_MSG(GeomExcept(),"EG_getEdgeUV failed !");
+        if(icode != 0) METRIS_THROW_MSG("EG_getEdgeUV failed !");
 
       }
 

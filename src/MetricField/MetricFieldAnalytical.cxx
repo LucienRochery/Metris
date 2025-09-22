@@ -5,15 +5,22 @@
 
 
 
-#include "../MetricField/MetricField.hxx"
+#include "MetricField.hxx"
+
+#include "../MetrisRunner/MetrisParameters.hxx"
+
 #include "../Mesh/MeshBase.hxx"
 #include "../Mesh/MeshMetric.hxx"
 
 #include "../msh_anamet.hxx"
-#include "../utils/aux_misc.hxx"
 #include "../low_eval.hxx"
 #include "../linalg/utils.hxx"
 #include "../linalg/explogmet.hxx"
+
+#include "../utils/aux_misc.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
+
 
 #include <cmath>
 
@@ -32,14 +39,23 @@ MetricFieldAnalytical::MetricFieldAnalytical(MeshBase &msh)
   #endif
 }
 
+void MetricFieldAnalytical::setAnalyticalMetric(const MetrisParameters& param){
+  if(param.ianamet >= 0){
+    this->setAnalyticalMetric(param.ianamet);
+  }else{
+    METRIS_ASSERT(param.anamet_ptr != NULL);
+    this->setAnalyticalMetric(param.anamet_ptr);
+  }
+  ctx.setFromParam(param);
+}
 
 void MetricFieldAnalytical::setAnalyticalMetric(int ianamet_){
 	int idim = msh.idim;
 	METRIS_ASSERT(idim == 2 || idim == 3);
 	
   if(ianamet_ <= 0 || ianamet_ > MAX_ANAMET_DEFINED(idim ) )
-    METRIS_THROW_MSG(WArgExcept(),"Invalid index: 1 - "<<MAX_ANAMET_DEFINED(idim )<<" accepted");
-	
+    METRIS_THROW_MSG("Invalid index: 1 - {} accepted", MAX_ANAMET_DEFINED(idim ));
+
 	this->ianamet = ianamet_;
   this->anamet  = (idim == 2 ? __ANAMET2D[this->ianamet-1] : __ANAMET3D[this->ianamet-1]);
 }
@@ -50,6 +66,7 @@ void MetricFieldAnalytical::setAnalyticalMetric(anamet_proto anamet_ptr){
   this->ianamet = -1;
   this->anamet  = anamet_ptr;
 }
+
  
 MetricFieldAnalytical &MetricFieldAnalytical::operator=(const MetricFieldAnalytical& inp){
 	MetricFieldFE::operator=(inp);
@@ -71,10 +88,10 @@ void MetricFieldAnalytical::normalize(double coeff){
 void MetricFieldAnalytical::getMetPhys(DifVar idiff, MetSpace tarspac, 
                                        const double*__restrict__ coop, 
                                        double*__restrict__ metl, 
-                                       double*__restrict__ dmet) {
-    CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
-      getMetPhys0<gdim>(idiff,tarspac,coop,metl,dmet);
-    }}CT_FOR1(gdim);
+                                       double*__restrict__ dmet) const {
+  CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
+    getMetPhys0<gdim>(idiff,tarspac,coop,metl,dmet);
+  }}CT_FOR1(gdim);
 }
 
 
@@ -150,19 +167,19 @@ void MetricFieldAnalytical::
   getMetPhys0(DifVar idiff, MetSpace tarspac, 
               const double*__restrict__  coop,  
               double*__restrict__ metl, 
-              double*__restrict__ dmet){
+              double*__restrict__ dmet) const {
 	METRIS_ASSERT(gdim == msh.idim);
 	int idifa = 0;
 	if(idiff != DifVar::None) idifa = 1;
 
-	anamet(NULL,coop,scale,idifa,metl,dmet);
+	anamet(&ctx,coop,scale,idifa,metl,dmet);
 
 	constexpr int nnmet = (gdim*(gdim+1))/2;
 	
 	if(tarspac != MetSpace::Exp){
     // This is undesireable but we rather prepare for it. 
     // Let's log that it happened.
-    this->nspace_miss++;
+    //this->nspace_miss++;
 
     if(idiff != DifVar::None){
       SANS::SurrealS<gdim,double> metS[nnmet];
@@ -172,11 +189,7 @@ void MetricFieldAnalytical::
     }else{
       #ifndef NDEBUG
       for(int ii = 0; ii < nnmet; ii++){
-        if(std::isnan(metl[ii])){
-          printf("NaN analytical metric at ");
-          dblAr1(gdim,coop).print();
-          METRIS_THROW(GeomExcept());
-        }
+        METRIS_ASSERT_MSG(!std::isnan(metl[ii]),"NaN analytical metric: {}", dblAr1(gdim,coop));
       }
       #endif
       getspacmet_inp<gdim,double>(metl, tarspac);
@@ -201,11 +214,11 @@ template void MetricFieldAnalytical::getMetBary0<3,ideg>\
 template void MetricFieldAnalytical::getMetPhys0<2>
                             (DifVar idiff, MetSpace tarspac, 
                             const double*__restrict__ coop, 
-                                  double*__restrict__ metl, double*__restrict__ dmet) ;
+                                  double*__restrict__ metl, double*__restrict__ dmet) const ;
 template void MetricFieldAnalytical::getMetPhys0<3>
                             (DifVar idiff, MetSpace tarspac, 
                             const double*__restrict__ coop, 
-                                  double*__restrict__ metl, double*__restrict__ dmet) ;
+                                  double*__restrict__ metl, double*__restrict__ dmet) const ;
 
 
 } // End namespace

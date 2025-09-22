@@ -1,7 +1,7 @@
 
 # arg1: target name 
 # arg2: scope (PUBLIC INTERFACE etc)
-function(setMetrisFlags arg1 arg2)
+function(setMetrisCXXFlags arg1 arg2)
   target_compile_options(${arg1} ${arg2} $<$<CONFIG:MEMCHECK>:${METRIS_CXX_FLAGS_MEMCHECK}>)
   target_compile_options(${arg1} ${arg2} $<$<CONFIG:DEBUG>:${METRIS_CXX_FLAGS_DEBUG}>)
   target_compile_options(${arg1} ${arg2} $<$<CONFIG:RELEASE>:${METRIS_CXX_FLAGS_RELEASE}>)
@@ -11,6 +11,17 @@ function(setMetrisFlags arg1 arg2)
   target_link_options(${arg1} ${arg2} $<$<CONFIG:DEBUG>:${METRIS_CXX_FLAGS_DEBUG}>)
   target_link_options(${arg1} ${arg2} $<$<CONFIG:RELEASE>:${METRIS_CXX_FLAGS_RELEASE}>)
   target_link_options(${arg1} ${arg2} $<$<CONFIG:RELWITHDEBINFO>:${METRIS_CXX_FLAGS_RELWITHDEBINFO}>)
+endfunction()
+function(setMetrisCFlags arg1 arg2)
+  target_compile_options(${arg1} ${arg2} $<$<CONFIG:MEMCHECK>:${METRIS_C_FLAGS_MEMCHECK}>)
+  target_compile_options(${arg1} ${arg2} $<$<CONFIG:DEBUG>:${METRIS_C_FLAGS_DEBUG}>)
+  target_compile_options(${arg1} ${arg2} $<$<CONFIG:RELEASE>:${METRIS_C_FLAGS_RELEASE}>)
+  target_compile_options(${arg1} ${arg2} $<$<CONFIG:RELWITHDEBINFO>:${METRIS_C_FLAGS_RELWITHDEBINFO}>)
+
+  target_link_options(${arg1} ${arg2} $<$<CONFIG:MEMCHECK>:${METRIS_C_FLAGS_MEMCHECK}>)
+  target_link_options(${arg1} ${arg2} $<$<CONFIG:DEBUG>:${METRIS_C_FLAGS_DEBUG}>)
+  target_link_options(${arg1} ${arg2} $<$<CONFIG:RELEASE>:${METRIS_C_FLAGS_RELEASE}>)
+  target_link_options(${arg1} ${arg2} $<$<CONFIG:RELWITHDEBINFO>:${METRIS_C_FLAGS_RELWITHDEBINFO}>)
 endfunction()
 
 
@@ -26,22 +37,22 @@ endif()
 
 message("Metris using build type = ${CMAKE_BUILD_TYPE}")
 
-set(METRIS_WARNING_FLAGS -Wno-gnu-zero-variadic-macro-arguments  
-                         -Wno-logical-op-parentheses
-                         -Wno-gcc-compat 
+set(METRIS_WARNING_FLAGS -Wno-logical-op-parentheses
+                         -Wunused-result
                          -Wno-variadic-macros)  
-set(METRIS_CXX_FLAGS ${METRIS_WARNING_FLAGS} -DMETRIS_GIT_URL="${GITURL}")
+#set(METRIS_FLAGS ${METRIS_WARNING_FLAGS} -DMETRIS_GIT_URL="${GITURL}")
+set(METRIS_FLAGS ${METRIS_WARNING_FLAGS})
 if(USE_TRACELIBS)
-  set(METRIS_CXX_FLAGS ${METRIS_CXX_FLAGS} -DBOOST_STACKTRACE_USE_ADDR2LINE)
+  set(METRIS_FLAGS ${METRIS_FLAGS} -DBOOST_STACKTRACE_USE_ADDR2LINE)
 endif()
 if(USE_ABSL)
-  set(METRIS_CXX_FLAGS ${METRIS_CXX_FLAGS} -DUSE_ABSL)
+  set(METRIS_FLAGS ${METRIS_FLAGS} -DUSE_ABSL)
 endif()
 if(USE_METRIS_HASH)
   message("Using Metris hash tables")
-  set(METRIS_CXX_FLAGS ${METRIS_CXX_FLAGS} -DUSE_METRIS_HASH)
+  set(METRIS_FLAGS ${METRIS_FLAGS} -DUSE_METRIS_HASH)
 endif()
-
+ 
 #Somehow, a straight comparison with EQUAL icc or EQUAL icc doesn't register here. Perhaps there's a space in there. 
 if(SHORT_COMPILER_NAME STREQUAL icc OR SHORT_COMPILER_NAME STREQUAL icx OR CMAKE_CXX_COMPILER_ID STREQUAL IntelLLVM)
 
@@ -65,39 +76,69 @@ if(SHORT_COMPILER_NAME STREQUAL icc OR SHORT_COMPILER_NAME STREQUAL icx OR CMAKE
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL GNU)
 
   message("Using GNU compiler ${CMAKE_C_COMPILER} ${SHORT_COMPILER_NAME}")
-  set(METRIS_CXX_FLAGS_RELEASE  -DNDEBUG -fconstexpr-ops-limit=10000000 -fPIC -O3 )
-  #set(METRIS_CXX_FLAGS_DEBUG   -Og -ggdb3 -Wall -Wextra -pedantic  -march=native -no-pie -fno-pie  -rdynamic) # -S -fverbose-asm
-  set(METRIS_CXX_FLAGS_DEBUG  -fconstexpr-ops-limit=10000000 -fPIC  -Og -g -Wall -march=native -ftree-vectorize) #  -rdynamic # -S -fverbose-asm -ggdb3
-  set(METRIS_CXX_FLAGS_MEMCHECK -fconstexpr-ops-limit=10000000 -fPIC -O0 -g -fsanitize=address -fno-omit-frame-pointer)
-  set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_CXX_RELEASE} -g)
 
-  set(METRIS_C_FLAGS_RELEASE  ${METRIS_CXX_FLAGS_RELEASE})
-  set(METRIS_C_FLAGS_DEBUG ${METRIS_CXX_FLAGS_DEBUG})
-  set(METRIS_C_FLAGS_MEMCHECK ${METRIS_CXX_FLAGS_MEMCHECK})
-  set(METRIS_C_FLAGS_RELWITHDEBINFO ${METRIS_C_RELEASE} -g)
+  set(METRIS_CXX_ONLY_FLAGS -fconstexpr-ops-limit=10000000)
+
+  set(METRIS_C_FLAGS_RELEASE  -DNDEBUG  -fPIC -O3 )
+  #set(METRIS_C_FLAGS_DEBUG   -Og -ggdb3 -Wall -Wextra -pedantic  -march=native -no-pie -fno-pie  -rdynamic) # -S -fverbose-asm
+  set(METRIS_C_FLAGS_DEBUG   -fPIC  -Og -g -Wall -march=native -ftree-vectorize) #  -rdynamic # -S -fverbose-asm -ggdb3
+  set(METRIS_C_FLAGS_MEMCHECK  -fPIC -O0 -g -fsanitize=address -fno-omit-frame-pointer)
+  set(METRIS_C_FLAGS_RELWITHDEBINFO ${METRIS_CXX_RELEASE} -g)
+
+  set(METRIS_CXX_FLAGS_RELEASE        ${METRIS_C_FLAGS_RELEASE} ${METRIS_CXX_ONLY_FLAGS})
+  set(METRIS_CXX_FLAGS_DEBUG          ${METRIS_C_FLAGS_DEBUG} ${METRIS_CXX_ONLY_FLAGS})
+  set(METRIS_CXX_FLAGS_MEMCHECK       ${METRIS_C_FLAGS_MEMCHECK} ${METRIS_CXX_ONLY_FLAGS})
+  set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_C_FLAGS_RELWITHDEBINFO} ${METRIS_CXX_ONLY_FLAGS})
 
 elseif(CMAKE_CXX_COMPILER_ID MATCHES Clang)
 
   message("Using Clang ${CMAKE_C_COMPILER} ${SHORT_COMPILER_NAME}")
-  #set(METRIS_CXX_FLAGS_RELEASE -DNDEBUG -fconstexpr-steps=1000000000 -march=native -O3 -fPIC)
-  set(METRIS_CXX_FLAGS_RELEASE -DNDEBUG -fconstexpr-steps=1000000000 -march=native -O3 -ftree-vectorize -fPIC)
-  set(METRIS_CXX_FLAGS_DEBUG    -fconstexpr-steps=1000000000 -O0 -g  -Wall -Wextra -pedantic  -march=native  -fno-pie  -fPIC) # -S -fverbose-asm -rdynamic -ggdb3
-  #set(METRIS_CXX_FLAGS_DEBUG  -fsanitize=address  -fconstexpr-steps=10000000 -O0 -g3  -march=native -fno-pie ) # -S -fverbose-asm
-  set(METRIS_CXX_FLAGS_MEMCHECK   -fconstexpr-steps=1000000000 -Wall -fsanitize=address -O0 -g -fPIC) # -S -fverbose-asm
-  set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_CXX_RELEASE} -g -fno-omit-frame-pointer)
 
-  set(METRIS_C_FLAGS_RELEASE  ${METRIS_CXX_FLAGS_RELEASE})
-  set(METRIS_C_FLAGS_DEBUG ${METRIS_CXX_FLAGS_DEBUG})
-  set(METRIS_C_FLAGS_MEMCHECK ${METRIS_CXX_FLAGS_MEMCHECK})
-  set(METRIS_C_FLAGS_RELWITHDEBINFO ${METRIS_C_RELEASE} -g -fno-omit-frame-pointer)
+  set(METRIS_CLANG_FLAGS -Wno-misleading-indentation 
+                         -Wno-gnu-zero-variadic-macro-arguments 
+                         -Wno-gcc-compat 
+                         -Wno-pessimizing-move)
+
+  # This option only introduced in version 19.0.0 raises a warning otherwise
+  if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.0.0)
+    set(METRIS_CLANG_FLAGS ${METRIS_CLANG_FLAGS}  -Wno-cast-function-type-mismatch)
+  endif()
+
+
+  #set(METRIS_CXX_FLAGS_RELEASE -DNDEBUG  -march=native -O3 -fPIC)
+  set(METRIS_C_FLAGS_RELEASE           -DNDEBUG  -march=native -O3 -ftree-vectorize -fPIC)
+  set(METRIS_C_FLAGS_DEBUG               -O0 -g  -Wall -Wextra -pedantic  -march=native  -fno-pie  -fPIC) # -S -fverbose-asm -rdynamic -ggdb3
+  #set(METRIS_C_FLAGS_DEBUG  -fsanitize=address  -fconstexpr-steps=10000000 -O0 -g3  -march=native -fno-pie ) # -S -fverbose-asm
+  set(METRIS_C_FLAGS_MEMCHECK            -DNO_EXCEPT_MESSAGES -Wall -fsanitize=address -O0 -g -fPIC) # -S -fverbose-asm
+  set(METRIS_C_FLAGS_RELWITHDEBINFO  ${METRIS_C_FLAGS_RELEASE} -g -fno-omit-frame-pointer)
+
+  set(METRIS_C_FLAGS_RELEASE        ${METRIS_C_FLAGS_RELEASE}        ${METRIS_CLANG_FLAGS})
+  set(METRIS_C_FLAGS_DEBUG          ${METRIS_C_FLAGS_DEBUG}          ${METRIS_CLANG_FLAGS})
+  set(METRIS_C_FLAGS_MEMCHECK       ${METRIS_C_FLAGS_MEMCHECK}       ${METRIS_CLANG_FLAGS})
+  set(METRIS_C_FLAGS_RELWITHDEBINFO ${METRIS_C_FLAGS_RELWITHDEBINFO} ${METRIS_CLANG_FLAGS})
+
+
+  if(CBT_lower STREQUAL "memcheck")
+    remove_definitions(-DNDEBUG)
+  endif()
+
+  set(METRIS_CXX_ONLY_FLAGS -fconstexpr-steps=1000000000)
+
+  set(METRIS_CXX_FLAGS_RELEASE  ${METRIS_C_FLAGS_RELEASE} ${METRIS_CXX_ONLY_FLAGS})
+  set(METRIS_CXX_FLAGS_DEBUG ${METRIS_C_FLAGS_DEBUG} ${METRIS_CXX_ONLY_FLAGS})
+  set(METRIS_CXX_FLAGS_MEMCHECK ${METRIS_C_FLAGS_MEMCHECK} ${METRIS_CXX_ONLY_FLAGS})
+  set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_C_FLAGS_RELWITHDEBINFO} ${METRIS_CXX_ONLY_FLAGS})
 
 else()
   message(FATAL_ERROR "Unknown compiler ID = ${CMAKE_CXX_COMPILER_ID}, SHORT_COMPILER_NAME = ${SHORT_COMPILER_NAME}")
 endif()
 
-set(METRIS_CXX_FLAGS_RELEASE        ${METRIS_CXX_FLAGS} ${METRIS_CXX_FLAGS_RELEASE})
-set(METRIS_CXX_FLAGS_DEBUG          ${METRIS_CXX_FLAGS} ${METRIS_CXX_FLAGS_DEBUG})
-set(METRIS_CXX_FLAGS_MEMCHECK       ${METRIS_CXX_FLAGS} ${METRIS_CXX_FLAGS_MEMCHECK})
-set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_CXX_FLAGS} ${METRIS_CXX_FLAGS_RELWITHDEBINFO})
+# We don't need these for C as that is only for external libs.
+set(METRIS_CXX_FLAGS_RELEASE        ${METRIS_FLAGS} ${METRIS_CXX_FLAGS_RELEASE})
+set(METRIS_CXX_FLAGS_DEBUG          ${METRIS_FLAGS} ${METRIS_CXX_FLAGS_DEBUG})
+set(METRIS_CXX_FLAGS_MEMCHECK       ${METRIS_FLAGS} ${METRIS_CXX_FLAGS_MEMCHECK})
+set(METRIS_CXX_FLAGS_RELWITHDEBINFO ${METRIS_FLAGS} ${METRIS_CXX_FLAGS_RELWITHDEBINFO})
 
 
+message(STATUS "METRIS_FLAGS: ${METRIS_FLAGS}")
+message(STATUS "METRIS_CXX_FLAGS_DEBUG: ${METRIS_CXX_FLAGS_DEBUG}")

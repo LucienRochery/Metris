@@ -19,7 +19,9 @@
 #include "../aux_exceptions.hxx"
 #include "../aux_histogram.hxx"
 #include "../aux_topo.hxx"
+
 #include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
 
 namespace Metris{
 	 
@@ -32,10 +34,12 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
   constexpr int tdim = gdim;
   static_assert(gdim == 2 || gdim == 3);
 
-  double t0 = get_wall_time();
+  GETVDEPTH(msh.param);
+
+  double t0 = get_cpu_time();
 
 
-	if(ideg > 2) METRIS_THROW_MSG(TODOExcept(), "Implement ideg > 2 curveMeshOffsets.");
+	if(ideg > 2) METRIS_THROW_MSG("TODO: Implement ideg > 2 curveMeshOffsets.");
 
   if constexpr(ideg <= 1) return 0;
 
@@ -43,8 +47,6 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
 	msh.setBasis(FEBasis::Bezier);
   MetSpace ispac0 = msh.met.getSpace();
 	msh.met.setSpace(MetSpace::Log);
-
-  int iverb = msh.param->iverb;
 
 
   constexpr int nnmet = (gdim*(gdim+1))/2;
@@ -104,17 +106,15 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
 
 
 
-  if(iverb >= 2){
+  if(DOPRINTS2()){
     msh.setBasis(FEBasis::Lagrange);
     writeMesh("crv0.meshb",msh);
     double qmin, qmax, qavg;
     bool iinva;
     dblAr1 lquae, dum = {0.1, 0.9};
-    if(iverb >= 1){
-      getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,
-                           &iinva,&qmin,&qmax,&qavg,&lquae);
-      print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality");
-    }
+    getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,
+                          &iinva,&qmin,&qmax,&qavg,&lquae);
+    print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality");
     msh.setBasis(FEBasis::Bezier);
   } 
 
@@ -157,7 +157,7 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
             double sum = 0;
             for(int ii = 0; ii < tdim + 1; ii++) sum += bary[ii];
             if(sum <= 1.0e-16){
-              METRIS_THROW_MSG(GeomExcept(), "Zero or negative bary sum");
+              METRIS_THROW_MSG( "Zero or negative bary sum");
             }
             for(int ii = 0; ii < tdim + 1; ii++) bary[ii] /= sum;
 
@@ -173,7 +173,7 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
           // Check if the neighbour is limiting 
           int ient2 = msh.fac2fac(ientt,ie);
           if(ient2 < 0){
-            METRIS_THROW_MSG(TODOExcept(),"Boundary or non-manifold case in msh_curve_offsets");
+            METRIS_THROW_MSG("TODO: Boundary or non-manifold case in msh_curve_offsets");
           }else{
             inventP1<gdim>(msh.fac2poi[ient2],msh.coord,msh.coord[ipoih],bary);
             int je = -1;
@@ -200,7 +200,7 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
                 double sum = 0;
                 for(int ii = 0; ii < tdim + 1; ii++) sum += bary[ii];
                 if(sum <= 1.0e-16){
-                  METRIS_THROW_MSG(GeomExcept(), "Zero or negative bary sum");
+                  METRIS_THROW_MSG( "Zero or negative bary sum");
                 }
                 for(int ii = 0; ii < tdim + 1; ii++) bary[ii] /= sum;
 
@@ -219,7 +219,7 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
 
 
       }else if (tdim == 3){
-        METRIS_THROW_MSG(TODOExcept(),"Shell2 and correction in msh_curve_offsets");
+        METRIS_THROW_MSG("TODO: Shell2 and correction in msh_curve_offsets");
       }
 
     }
@@ -230,14 +230,14 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
     msh.setBasis(FEBasis::Lagrange);
     writeMesh("crv1.meshb",msh);
   }
-  double t1 = get_wall_time();
-  printf("Curving time %f \n",t1-t0);
+  double t1 = get_cpu_time();
+  CPRINTF1("Curving time {:.2e}s \n",t1-t0);
 
   maximizeCcoef<ideg,2,2>(msh, OptDoF::HO, LPMethod::IPM, LPLib::alglib);
 
   #else
-    double t1 = get_wall_time();
-    printf("Curving time %f \n",t1-t0);
+    double t1 = get_cpu_time();
+    CPRINTF1("Curving time {:.2e}s \n",t1-t0);
 
     dblAr2 pos_ctrlp(npopt,gdim);
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
@@ -252,8 +252,8 @@ int curveMeshOffsets(Mesh<MFT> &msh, bool icorr){
 
   #endif
 
-  double t2 = get_wall_time();
-  printf("Correction time %f \n",t2-t1);
+  double t2 = get_cpu_time();
+  CPRINTF1("Correction time {:.2e}s \n",t2-t1);
 
   msh.setBasis(ibas0);
   msh.met.setSpace(ispac0);

@@ -14,8 +14,8 @@
 #include "low_eval_d_bezier.hxx"
 #include "low_eval_d_helper.hxx"
 
-#include "../SANS/Surreal/SurrealS.h"
-#include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "SANS/Surreal/SurrealS.h"
+#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 #include <boost/hana.hpp> 
 
 
@@ -333,7 +333,7 @@ void eval_d_direct(const dblAr2 & __restrict__ rfld,
   //-- Hessian (bary) and derivatives
   // not implemented
   if(idif2 == DifVar::Bary){
-    METRIS_THROW_MSG(TODOExcept(),"Unsupported diff2 in eval_d_direct");
+    METRIS_THROW_MSG("TODO: Unsupported diff2 in eval_d_direct");
     //for(int i=0; i<szfld; i++){
     //  for(int j = 0; j < 3; j++){
     //    dhmat[0*szfld*3 + i*3 + j] = shmat[0*szfld + i].deriv(j);

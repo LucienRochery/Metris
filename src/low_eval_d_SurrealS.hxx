@@ -7,7 +7,7 @@
 #define __LOW_EVAL_D_SURREALS__
 
 
-#include "../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 #include "ho_constants.hxx"
 #include "types.hxx"
 #include "low_eval_d_bezier.hxx"
@@ -63,7 +63,7 @@ void eval_d_SurrealS0(const T& __restrict__  rfld,
       eval3_d_bezier<T,szfld,ideg,nvar>(rfld, idif1, idif2, bary, eval, jmat, hmat);
     }
   }else{
-    METRIS_THROW_MSG(TODOExcept(),"Implement eval3_d_LAGRANGE");
+    METRIS_THROW_MSG("TODO: Implement eval3_d_LAGRANGE");
   } 
   return;
 }
@@ -76,7 +76,7 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
                              SANS::DLA::VectorS<     szfld,SANS::SurrealS<nvar,double>> *eval, 
                              SANS::DLA::MatrixS<tdim,szfld,SANS::SurrealS<nvar,double>> *jmat, 
                              SANS::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat){
-  //printf("Debug surreal0 bary = %f %f %f %f field:\n",bary[0]
+  //printf("Debug surreal0 bary = {} {} {} {} field:\n",bary[0]
   //  ,bary[1],bary[2],bary[3]);
   //std::cout<<"0: "<<rfld[boost::hana::int_c<0>][0]<<" "<<rfld[boost::hana::int_c<0>][1]<<" "
   //                <<rfld[boost::hana::int_c<0>][2]<<std::endl;
@@ -152,7 +152,7 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
       eval3_d_bezier<MeshArray2D<SANS::SurrealS<nvar,double>>,szfld,ideg,nvar>(rfld, idif1, idif2, bary, eval, jmat, hmat);
     }
   }else{
-    METRIS_THROW_MSG(TODOExcept(),"Implement eval3_d_LAGRANGE");
+    METRIS_THROW_MSG("TODO: Implement eval3_d_LAGRANGE");
   } 
   return;
 }
@@ -251,7 +251,7 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
 
   //hana::while_(hana::less.than(hana::int_c<nrfld>), boost::hana::int_c<0>, [&](auto i_c){
   //  constexpr int i = i_c;
-  //  printf("Debug rfld[%d] = \n",i);
+  //  printf("Debug rfld[{}] = \n",i);
   //  std::cout<<"0:"<<w_op[i_c][0]<<std::endl;
   //  std::cout<<"1:"<<w_op[i_c][1]<<std::endl;
   //  std::cout<<"2:"<<w_op[i_c][2]<<std::endl;
@@ -324,12 +324,15 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
 
     if(dfld == NULL){
       METRIS_ASSERT(nvar == szfld);
-      for(int icmp = 0; icmp < szfld; icmp++){
-        smem[icmp].value() = rfld[lfld[ivar]][icmp];
-        for(int j = 0; j < nvar; j++){
-          smem[icmp].deriv(j) = 0;
+      // This is required to silence compiler warnings (iteration 2 invokes undefined behavior)
+      if constexpr (nvar == szfld){
+        for(int icmp = 0; icmp < szfld; icmp++){
+          smem[icmp].value() = rfld[lfld[ivar]][icmp];
+          for(int j = 0; j < nvar; j++){
+            smem[icmp].deriv(j) = 0;
+          }
+          smem[icmp].deriv(icmp) = 1;
         }
-        smem[icmp].deriv(icmp) = 1;
       }
     }else{
       for(int icmp = 0; icmp < szfld; icmp++){
@@ -450,7 +453,7 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
 
   //hana::while_(hana::less.than(hana::int_c<nrfld>), boost::hana::int_c<0>, [&](auto i_c){
   //  constexpr int i = i_c;
-  //  printf("Debug rfld[%d] = \n",i);
+  //  printf("Debug rfld[{}] = \n",i);
   //  std::cout<<"0:"<<w_op[i_c][0]<<std::endl;
   //  std::cout<<"1:"<<w_op[i_c][1]<<std::endl;
   //  std::cout<<"2:"<<w_op[i_c][2]<<std::endl;

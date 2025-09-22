@@ -3,14 +3,14 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_lag2bez
 
 #include "common_setup.hxx"
 
-#include "../src/msh_lag2bez.hxx"
-#include "../src/utils/mprintf.hxx"
-#include "../src/utils/CT_loop.hxx"
-#include "../src/utils/aux_timer.hxx"
+#include "msh_lag2bez.hxx"
+#include "utils/mprintf.hxx"
+#include "utils/CT_loop.hxx"
+#include "utils/aux_timer.hxx"
 
 #include <cmath>
 
@@ -20,7 +20,7 @@ using namespace Metris;
 typedef MetricFieldAnalytical MFT;
 
 // 1.0e-8 relative error -> 1.0e-6% utf::tolerance()
-BOOST_AUTO_TEST_CASE(lag2bez)  // , * utf::tolerance(double(1.0e-6)) 
+BOOST_AUTO_TEST_CASE(test_lag2bez)  // , * utf::tolerance(double(1.0e-6)) 
 {//METRIS_MAX_DEG
 
   std::vector<std::string> meshes = {METRIS_CASES_DIR "/unit/3D/cube/curved.p2.2k"
@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(lag2bez)  // , * utf::tolerance(double(1.0e-6))
 
       msh.coord.copyTo(coor0);
 
-      double t0 = get_wall_time();
+      double t0 = get_cpu_time();
       for(int ii = 0; ii < nconv; ii++){
         if(msh.getBasis() == FEBasis::Lagrange){
           msh.setBasis(FEBasis::Bezier);
@@ -60,13 +60,13 @@ BOOST_AUTO_TEST_CASE(lag2bez)  // , * utf::tolerance(double(1.0e-6))
           dummy += msh.coord(0,0);
         }
       }
-      double t1 = get_wall_time();
+      double t1 = get_cpu_time();
 
       int npcomp = 0;
       double erri = -1.0e30;
       double err2 = 0.0;
       for(int ipoin=0; ipoin<msh.npoin;ipoin++){
-        if(msh.poi2ent(ipoin,0) < 0) continue;
+        if(msh.isdeadpoint(ipoin)) continue;
         npcomp++;
         err2 += geterrl2<3>(coor0[ipoin],msh.coord[ipoin]);
         for(int i=0; i < 3;i++){
@@ -83,7 +83,7 @@ BOOST_AUTO_TEST_CASE(lag2bez)  // , * utf::tolerance(double(1.0e-6))
       err2 = sqrt(err2);
       BOOST_TEST(erri < tol);
       BOOST_TEST(err2 < tol);
-      printf(" %d double conversion abs coord error: inf = %23.16e, l2 = %23.16e\n",
+      printf(" %d double conversions, abs coord err: inf = %23.16e, l2 = %23.16e\n",
               nconv,erri,err2);
       printf(" Time = %f s = %f / conv = %e /conv.elt \n", t1-t0, (t1-t0)/nconv, (t1-t0)/((double)nconv * msh.nentt(msh.get_tdim())) );
     }

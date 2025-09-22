@@ -6,14 +6,17 @@
 #include "msh_intrinsicmet.hxx"
 
 ////#include "msh_metric.hxx"
-#include "low_normal.hxx"
-#include "low_geo.hxx"
+#include "low_geo/normal.hxx"
+#include "low_geo/measure.hxx"
 #include "linalg/explogmet.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include "io_libmeshb.hxx"
 #include "utils/mprintf.hxx"
+#include "aux_topo.hxx"
 
-#include "../libs/lplib3.h"
+#include "Mesh/MeshMetric.hxx"
+
+#include "lplib3/lplib3.h"
 
 namespace Metris{
 
@@ -42,17 +45,17 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
 
   int nthread = GetNumberOfCores();
   if(nthread <= 0){
-    CPRINTF1("## WARNING: LPlib function GetNumberOfCores() returned negative threads. Set to default %d.\n",METRIS_MAXTAGS);
+    CPRINTF1("## WARNING: LPlib function GetNumberOfCores() returned negative threads. Set to default {}.\n",METRIS_MAXTAGS);
     nthread = METRIS_MAXTAGS;
   }else{
-    CPRINTF2("-- LPlib found ncore = %d \n",nthread);
+    CPRINTF2("-- LPlib found ncore = {} \n",nthread);
     if(nthread > METRIS_MAXTAGS){
-      CPRINTF1("## WARNING: must verify nthread <= METRIS_MAXTAGS = %d. Increase in metris_constants.hxx.\n",METRIS_MAXTAGS);
+      CPRINTF1("## WARNING: must verify nthread <= METRIS_MAXTAGS = {}. Increase in metris_constants.hxx.\n",METRIS_MAXTAGS);
       nthread = METRIS_MAXTAGS;
     }
   }
   if(nproc > 0) nthread = MIN(nthread, nproc);
-  CPRINTF1(" - running intrinsic metric with nproc = %d \n",nthread);
+  CPRINTF1(" - running intrinsic metric with nproc = {} \n",nthread);
 
 
   int tdim = msh.get_tdim();
@@ -75,11 +78,10 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
     for(int ii = 0; ii < tdim + 1; ii++) AddDependency(LibIdx, ientt+1, ent2poi(ientt,ii)+1);
   }
   EndDependency(LibIdx, LP_stat);
-  //printf("LP stat %f %f \n",LP_stat[0],LP_stat[1]);
+  //printf("LP stat {:.2e} {} \n",LP_stat[0],LP_stat[1]);
 
 
-	// Placeholder
-  dblWrkAr1 rwork = msh.get_rwork(msh.npoin);
+  dblWrkAr1 rwork = msh.get_rwork(MeshSize::Point);
 	for(int ipoin = 0; ipoin < msh.npoin; ipoin++) rwork[ipoin] = 1.0;
 	
 
@@ -93,7 +95,7 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
       [[maybe_unused]] double lbdmin, [[maybe_unused]] double lbdmax){
 		int nnmet = (msh->idim*(msh->idim+1))/2;
 		for(int ipoin = ipoi0 - 1; ipoin < ipoi1; ipoin++){
-      if(msh->poi2ent(ipoin,0) < 0) continue;
+      if(msh->isdeadpoint(ipoin)) continue;
 			for(int jj = 0; jj < nnmet; jj++) msh->met(ipoin,jj) /= rwork->operator[](ipoin);
 		}
 		// Control sizes here if provided (hmin hmax)
@@ -108,10 +110,10 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
    }}CT_FOR1(tdim_);
   }}CT_FOR1(gdim);
 
-  CPRINTF2(" - intrinsic metric accel 1 = %f \n",acc);
+  CPRINTF2(" - intrinsic metric accel 1 = {} \n",acc);
   acc = LaunchParallelMultiArg(LibIdx, LP_poi, 0, (void*)metcomp2_LPlib, 
                                3, &msh, &rwork, lbdmin, lbdmax);
-  CPRINTF2(" - intrinsic metric accel 2 = %f \n",acc);
+  CPRINTF2(" - intrinsic metric accel 2 = {} \n",acc);
 
 	if(ibas0 == FEBasis::Bezier) msh.met.setBasis(FEBasis::Bezier);
 	
@@ -156,7 +158,7 @@ void getMetMesh0_lplib(int ient0, int ient1,
     if constexpr(tdim == 2 && gdim == 3) getnorfacP1(ent2poi[ientt], msh.coord, norfac);
 
 
-    meas0 = getmeasentP1<gdim,tdim>(msh,ent2poi[ientt],norfac,&iflat);
+    meas0 = getmeasentP1<gdim,tdim>(msh,ientt,norfac,&iflat);
 
     METRIS_ASSERT(!iflat);
 

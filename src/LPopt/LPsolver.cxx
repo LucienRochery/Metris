@@ -10,21 +10,20 @@ namespace Metris{
 
 // Only through the constructor can the lib be set (not to be changed after)
 LPsolver::LPsolver(LPLib ilib, LPMethod method){
-  // METRIS_THROW_MSG(TODOExcept(), "Implement LPsolver class for lib " << (int)ilib);
   this->ilib   = ilib;
   this->method = method;
   nrow = 0; 
   ncol = 0;
   #ifndef USE_CLP
     if(ilib == LPLib::clp) 
-      METRIS_THROW_MSG(WArgExcept(), "Recompile with USE_CLP=True")
+      METRIS_THROW_MSG( "Recompile with USE_CLP=True")
   #endif
 
   if(ilib == LPLib::alglib){
     INFINITY_m = alglib::fp_neginf;
     INFINITY_p = alglib::fp_posinf;
   }else{
-    METRIS_THROW_MSG(TODOExcept(), "Set infinities for CLP");
+    METRIS_THROW_MSG("TODO: Set infinities for CLP");
   }
 }
 
@@ -87,7 +86,7 @@ double& LPsolver::obj(int i){
     return obj_CLP[i];
     #endif
   }
-  METRIS_THROW_MSG(WArgExcept(),"Incorrect lib LPsolver");
+  METRIS_THROW_MSG("Incorrect lib LPsolver");
   return obj_ALG[i];
 }
 
@@ -106,7 +105,7 @@ void LPsolver::setVarCstr(int i, double lb, double ub){
   if(ilib == LPLib::alglib){
     minlpsetbci(state, i, lb, ub);
   }else if(ilib == LPLib::clp){
-    METRIS_THROW_MSG(TODOExcept(),"Implement setVarCstr in CLP case");
+    METRIS_THROW_MSG("TODO: Implement setVarCstr in CLP case");
     #ifdef USE_CLP
     LB_CLP[i] = x;
     #endif
@@ -198,8 +197,8 @@ double LPsolver::optimize(){
     alglib::minlpoptimize(state);
     alglib::minlpresults(state, x_ALG, rep);
     // Won't be throwing later on, instead handle the error
-    if(rep.terminationtype < 1) METRIS_THROW_MSG(AlgoExcept(),
-                        "LP failed to be solved code = "<<rep.terminationtype)
+    if(rep.terminationtype < 1) METRIS_THROW_MSG(
+                        "LP failed to be solved code = {}", rep.terminationtype)
     return rep.f;
 
   }else if(ilib == LPLib::clp){
@@ -223,8 +222,8 @@ double LPsolver::optimize(){
       model.setSolveType(ClpSolve::useDual); 
     }
     model.primalDual();
-    if (model.isProvenOptimal() == 0) METRIS_THROW_MSG(AlgoExcept(),
-                "LP failed to be solved. Termination code = " <<model.status());
+    if (model.isProvenOptimal() == 0) METRIS_THROW_MSG(
+                "LP failed to be solved. Termination code = {}", model.status());
     #endif
   }
   return 0;
@@ -245,7 +244,7 @@ double LPsolver::updateCoord(MeshBase &msh, const intAr1 &idx_point, int icoor, 
     if(irank < 0) continue;
     msh.coord(ipoin,icoor) += fac*dx[irank];
     nrmdx += dx[irank]*dx[irank];
-    //printf("DEBUG dx[%d] = %15.6e\n",irank,dx[irank]);
+    //printf("DEBUG dx[{}] = {:15.6e}\n",irank,dx[irank]);
   }
   return sqrt(nrmdx); 
 }

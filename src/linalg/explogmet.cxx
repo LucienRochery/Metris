@@ -9,13 +9,17 @@
 #include "../linalg/eigen.hxx"
 #include "../aux_exceptions.hxx"
 
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../linalg/matprods.hxx"
 #include "../linalg/utils.hxx"
+
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 #include <cmath>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <Eigen/Dense>
+#include "fmt/format.h"
 
 namespace Metris{
 
@@ -50,24 +54,16 @@ void getlogmet_inp(T *met){
     }
     #endif
 
-    printf("Invalid metric: \n");
     int nnmet = (ndim*(ndim+1))/2;
-    if constexpr (std::is_same<T, double>::value){
-      for(int ii = 0 ; ii < nnmet; ii++) printf(" %23.15e ",met[ii]); 
-    }else{
-      for(int ii = 0 ; ii < nnmet; ii++) std::cout<<met[ii]<<" ";
-    }
-    std::cout<<"\n";
+    fmt::print(stderr,"Invalid metric: {}\n", MeshArray1D<T, int>(nnmet, met));
+    fmt::print(stderr,"eigvals: {}\n",MeshArray1D<T, int>(ndim,eigval));
 
-    if constexpr(std::is_same<T,double>::value){
-      std::cout<<"eigvals:";
-      dblAr1(ndim,eigval).print();
-    }
-
-    METRIS_THROW_MSG(RealExcept(),"Negative eigenvalues");
+    METRIS_THROW_MSG("Negative eigenvalues");
   }
 
+#ifdef METRIS_USE_LAPACK
 fixed:
+#endif
 
 	for(int ii = 0; ii < ndim ; ii++) eigval[ii] = log(eigval[ii]);
 

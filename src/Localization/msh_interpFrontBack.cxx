@@ -9,16 +9,17 @@
 #include "msh_interpFrontBack.hxx"
 
 #include "../msh_lag2bez.hxx"
-#include "../utils/aux_misc.hxx"
 #include "../linalg/det.hxx"
 #include "../low_topo.hxx"
-#include "../low_normal.hxx"
-#include "../low_geo.hxx"
-#include "../utils/mprintf.hxx"
-#include "../utils/aux_timer.hxx"
-#include "../utils/mprintf.hxx"
+#include "../low_geo/normal.hxx"
+#include "../low_geo/misc.hxx"
 #include "../io_libmeshb.hxx"
 #include "../Boundary/low_projsurf.hxx"
+
+#include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
+#include "../utils/aux_misc.hxx"
 
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -36,7 +37,7 @@ template<class MetricFieldType, int bdeg>
 void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
   INCVDEPTH(msh.param);
   if(bak.getBasis() == FEBasis::Lagrange && bak.curdeg > 1) 
-      METRIS_THROW_MSG(WArgExcept(), "Back should be in Bézier format!");
+      METRIS_THROW_MSG( "Back should be in Bézier format!");
 
   //METRIS_ENFORCE_MSG(msh.idim == msh.get_tdim(), "Mesh is surface or line in plane.");
 
@@ -91,10 +92,10 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     if(bak.bpo2ibi(ibpoi,1) != 0) continue;
     int ipoin = bak.bpo2ibi(ibpoi,0);
     lcorb.stack(ipoin);
-    CPRINTF1(" - back corner point %d \n",ipoin);
+    CPRINTF1(" - back corner point {} \n",ipoin);
   }
   METRIS_ASSERT_MSG(lcorb.get_n() == lcorf.get_n(),
-    "Found back cor n = "<<lcorb.get_n()<<" front n = "<<lcorf.get_n());
+    "Found back cor n = {} front n = {}",lcorb.get_n(),lcorf.get_n());
 
   for(int ipoif : lcorf){
     INCVDEPTH(msh.param);
@@ -115,7 +116,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
       }
     }
     int ipoib = lcorb[imin];
-    CPRINTF1(" - Corner match %d (back) with %d (front) distance %e \n",
+    CPRINTF1(" - Corner match {} (back) with {} (front) distance {} \n",
              ipoib,ipoif,sqrt(dmin));
     msh.poi2bak[ipoif] = ipoib;
     for(int ii = 0; ii < nnmet; ii++)
@@ -123,7 +124,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     // Make unmatchable
     lcorb[imin] = -1;
   }
-  CPRINTF1("-- Matched %d back <-> front corners\n",lcorf.get_n());
+  CPRINTF1("-- Matched {} back <-> front corners\n",lcorf.get_n());
 
 
 
@@ -136,14 +137,14 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
   intAr1 lerro(100);
   lerro.set_n(0); 
 
-  double t0 = get_wall_time();
+  double t0 = get_cpu_time();
 
   intAr1 lpfro;
   if(ipoi0 > 0){
     lpfro.allocate(ipoi0);
     lpfro.set_n(0);
     for(int ipoin = 0; ipoin < ipoi0; ipoin++){
-      if(msh.poi2ent(ipoin,0) < 0) continue;
+      if(msh.isdeadpoint(ipoin)) continue;
       lpfro.stack(ipoin);
     }
   }else{
@@ -157,14 +158,14 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
 
   //    INCVDEPTH(msh.param);
 
-  //    if(msh.poi2ent(ipoin,0) < 0) continue;
+  //    if(msh.isdeadpoint(ipoin)) continue;
 
   //    int pdim = msh.getpoitdim(ipoin);
   //    // Corner not to be localized but matched prior
   //    if(pdim == 0) continue;
 
   //    ierro = msh.interpMetBack(ipoin);
-  //    if(ierro != 0) METRIS_THROW_MSG(TODOExcept(),"Implement bad stack to retry later");
+  //    if(ierro != 0) METRIS_THROW_MSG("TODO: Implement bad stack to retry later");
   //  }
   //}else{
     // Case where no points (except corners) are seeded. 
@@ -179,13 +180,9 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     msh.tag[ithread]++;
     int ptag = msh.tag[ithread];
     if(DOPRINTS2()){
-      CPRINTF2(" - Init front with %d points",lpfro.get_n());
-      if(lpfro.get_n() <= 10){
-        printf(": ");
-        lpfro.print();
-      }else{
-        printf("\n");
-      }
+      CPRINTF2(" - Init front with {} points",lpfro.get_n());
+      if(lpfro.get_n() <= 10) PRINTF(": {}",lpfro);
+      PRINTF("\n");
     }
     for(int ipoin : lpfro){
       msh.poi2tag(ithread,ipoin) = ptag;
@@ -195,8 +192,8 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     while(lpfro.get_n() > 0){
       INCVDEPTH(msh.param);
       int ipseed = lpfro.pop();
-      METRIS_ASSERT_MSG(ipseed >= 0 && ipseed < msh.npoin," Got ipseed = "<<ipseed);
-      METRIS_ASSERT(msh.poi2ent(ipseed,0) >= 0);
+      METRIS_ASSERT_MSG(ipseed >= 0 && ipseed < msh.npoin,"Invalid ipseed = {}", ipseed);
+      METRIS_ASSERT(!msh.isdeadpoint(ipseed));
 
       int psdim = msh.getpoitdim(ipseed);
 
@@ -204,8 +201,18 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
       {
       INCVDEPTH(msh.param)
       int ientt = msh.poi2ent(ipseed, 0);
+      #ifndef NDEBUG
+      bool iHO = false;
+      #endif
+      if(ientt < -1){
+        ientt = -ientt-2;
+        #ifndef NDEBUG
+        iHO = true;
+        #endif
+      }
       int tdime = msh.poi2ent(ipseed, 1);
       int iver = msh.getverent(ientt,tdime,ipseed);
+      METRIS_ASSERT((!iHO && iver < tdime+1) || (iHO && iver >= tdime+1));
       int iedl = -1;
       ierro = 0;
       lentt[0].set_n(0);
@@ -230,7 +237,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
           }
 
           // Interior control point, unless volume, could be face...
-          METRIS_THROW_MSG(TODOExcept(), "Implement P3+ case")
+          METRIS_THROW_MSG("TODO: Implement P3+ case")
           lentt[tdime-1].stack(ientt);
         }
         if(doshell){
@@ -246,20 +253,18 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
       }
       METRIS_ASSERT(ierro == 0);
 
-      CPRINTF1(" - front point %d ball nedge %d nface %d ntetr %d\n",ipseed,
+      CPRINTF1(" - front point {} ball nedge {} nface {} ntetr {}\n",ipseed,
                lentt[0].get_n(),lentt[1].get_n(),lentt[2].get_n());
 
       double algnd_[3];
       for(int tdim = 1; tdim <= msh.get_tdim(); tdim++){
         for(int ientt : lentt[tdim-1]){
           INCVDEPTH(msh.param);
-          CPRINTF1(" - ball dim %d entity %d check for new points\n",tdim,ientt);
+          CPRINTF1(" - ball dim {} entity {} check for new points\n",tdim,ientt);
           METRIS_ASSERT_MSG(ientt >= 0 && ientt < msh.nentt(tdim),
-            "front point "<<ipseed
-            <<"\nseed edg "<<lentt[0]
-            <<"\nseed fac "<<lentt[1]
-            <<"\nseed tet "<<lentt[2] << "\n"
-            <<"Error at tdim "<<tdim<<" ientt = "<<ientt);
+            "front point {}\nseed edg {}\nseed fac {}\nseed tet{}\n"
+            "Error at tdim {} ientt {}",
+            ipseed,lentt[0],lentt[1],lentt[2],tdim,ientt);
           int nnode = getnnode(tdim,msh.curdeg);
 
           for(int inode = 0; inode < nnode; inode++){
@@ -271,12 +276,14 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
             // Corner not to be localized but matched prior
             if(pdim == 0) continue;
             if(pdim < psdim){
-              CPRINTF1(" - point dim %d < seed dim = %d -> skip\n",pdim, psdim);
+              CPRINTF1(" - point dim {} < seed dim = {} -> skip\n",pdim, psdim);
               continue;
             }
 
             // Get the ref of the point. 
-            int iref = msh.ent2ref(pdim)[msh.poi2ent(ipoin,0)];
+            int ipent = msh.poi2ent(ipoin,0);
+            if(ipent < -1) ipent = -ipent - 2;
+            int iref = msh.ent2ref(pdim)[ipent];
             METRIS_ASSERT(iref >= 0);
 
             double *algnd = NULL;
@@ -294,7 +301,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
 
             nsucc++;
 
-            CPRINTF1(" - added point %d dim %d to front\n",ipoin,pdim);
+            CPRINTF1(" - added point {} dim {} to front\n",ipoin,pdim);
             lpfro.stack(ipoin);
             msh.poi2tag(ithread,ipoin) = ptag;
           }
@@ -303,22 +310,22 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
 
     }// while lpfro
     if(nsucc != msh.npoin){
-      MPRINTF("## Failed %d points\n",msh.npoin - nsucc);
+      PRINTF("## Failed {} points\n",msh.npoin - nsucc);
       for(int ipoin = ipoi0; ipoin < msh.npoin; ipoin++){
         if(msh.poi2tag(ithread,ipoin) >= ptag) continue;
-        printf("Failed point %d \n",ipoin);
+        PRINTF("Failed point {} \n",ipoin);
       }
-      METRIS_THROW(GeomExcept());
+      METRIS_THROW();
     }
   //}
 
-  double t1 = get_wall_time();
-  CPRINTF1("-- Interp Back -> Front time %f pt/s %d nerror %d \n",t1-t0,
+  double t1 = get_cpu_time();
+  CPRINTF1("-- Interp Back -> Front time {:.2e}s pt/s {} nerror {} \n",t1-t0,
                                         (int)(msh.npoin/(t1-t0)),lerro.get_n());
 
   if(lerro.get_n() == 0) return;
 
-  METRIS_THROW_MSG(TODOExcept(), "Error handling unchanged since poi2bak 2D");
+  METRIS_THROW_MSG("TODO: Error handling unchanged since poi2bak 2D");
   int tdim  = gdim; 
 
   intAr1 lball(100);
@@ -329,8 +336,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
   int nerro = 0;
   int nfix = 0;
   do{
-    if(nloop++ > 10) METRIS_THROW(GeomExcept()); 
-
+    METRIS_ENFORCE(nloop++ <= 10);
     nfix  = 0;
     nerro = 0;
     for(int ipoin : lerro){
@@ -365,14 +371,14 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
           for(int ii = 0; ii < tdim + 1; ii++)  bary[ii] = 1.0 / (tdim + 1);
           if(tdim == 2){
             // dummy tdim 
-            METRIS_THROW_MSG(TODOExcept(), 
+            METRIS_THROW_MSG( 
               "Error handling unchanged since poi2bak 2D");
             ierro = locMesh<2,2,bdeg>(bak,&ieleg,msh.coord[ipoin],
                                       msh.get_tdim(),NULL,-1,NULL,
                                       coopr,bary,1.0e-6,0,true);
           }else{
             // dummy tdim 
-            METRIS_THROW_MSG(TODOExcept(), 
+            METRIS_THROW_MSG( 
               "Error handling unchanged since poi2bak 2D");
             ierro = locMesh<3,2,bdeg>(bak,&ieleg,msh.coord[ipoin],
                                       msh.get_tdim(),NULL,-1,NULL,
@@ -399,18 +405,20 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
 
     }
 
-    double t2 = get_wall_time();
-    printf("-- Interp Back -> Front phase 2 time %f nfix %d nerror %d \n",t2-t1,
-      nfix, nerro);
+    double t2 = get_cpu_time();
+    CPRINTF1("-- Interp Back -> Front phase 2 time {:.2e}s nfix {} nerror {} \n",t2-t1,
+            nfix, nerro);
   }while(nerro > 0 && nfix > 0);
 
   if(nerro == 0) return;
 
-  printf("## ERROR EXIT DUMP ERROR POINTS \n");
-  int ii = 0;
-  for(int ipoin : lerro){
-    if(msh.poi2tag(0,ipoin) < msh.tag[0]) continue;
-    printf("%d : ipoin = %d \n",ii++,ipoin);
+  CPRINTF1("## ERROR EXIT DUMP ERROR POINTS \n");
+  if(DOPRINTS1()){
+    int ii = 0;
+    for(int ipoin : lerro){
+      if(msh.poi2tag(0,ipoin) < msh.tag[0]) continue;
+      CPRINTF1("{} : ipoin = {} \n",ii++,ipoin);
+    }
   }
 }
 

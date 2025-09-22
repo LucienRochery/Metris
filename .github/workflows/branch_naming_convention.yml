@@ -1,3 +1,5 @@
+# https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#github-context
+
 name: Enforce Branch Naming
 
 on:
@@ -9,17 +11,70 @@ jobs:
   check-branch:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history so we can access any commit SHA
+
       - name: Check branch name matches user/*
         run: |
           branch="${GITHUB_REF#refs/heads/}"
           echo "Using GITHUB_ACTOR = $GITHUB_ACTOR"
           echo "Using branch = $branch"
 
-          if [[ $GITHUB_ACTOR != "LucienRochery" ]] ; then
-            if [[ "$branch" == "develop" && $GITHUB_ACTOR == "acdl-jenkins" ]] ; then
-              echo "Jenkins merge onto develop access"
-            elif [[ "$branch" != "$GITHUB_ACTOR/"* ]] ; then
-              echo "Error: $GITHUB_ACTOR can only push to branches named $GITHUB_ACTOR/*"
+
+          if [[ $GITHUB_ACTOR == "LucienRochery" ]] ; then
+            echo "User $GITHUB_ACTOR can push to any branch"
+            exit 0
+          fi
+
+          if [[ "$branch" == "develop" && $GITHUB_ACTOR == "acdl-jenkins" ]] ; then
+            echo "Jenkins merge onto develop access"
+            exit 0
+          fi
+          
+          if [[ "$branch" == "$GITHUB_ACTOR/"* ]] ; then
+            echo "$GITHUB_ACTOR can push to branches named $GITHUB_ACTOR/*"
+            exit 0
+          fi
+
+
+          if [[ "$branch" == "documentation" ]] ; then
+            echo "In documentation branch, checking only docs/ was changed"
+
+            # Using HEAD~1 doesn't work in GitHub Actions
+            changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }})
+
+            # changed_files is newline separated... convert to bash array
+            #echo "$changed_files" | readarray -t files_array
+            # Piping is no good as it runs in subshell, the result is lost
+            # < is basically a $ but, instead of returning a string, it returns a file. 
+            readarray -t files_array < <(echo "$changed_files")
+
+            echo "Changed files: $changed_files"
+            echo "Changed files array: ${files_array[@]}"
+
+            # Check all changed files are in docs/
+            non_docs_files=()
+            # Array expansion via [@] is necessary otherwise for only goes over first...
+            for changed_file in "${files_array[@]}"; do
+              echo "Testing file $changed_file"
+              if [[ -n "$changed_file" && ! "$changed_file" =~ ^docs/ ]]; then
+                non_docs_files+=("$changed_file")
+              fi
+            done
+            
+            if [[ ${#non_docs_files[@]} -gt 0 ]]; then
+              echo "Error: $GITHUB_ACTOR can only modify files in docs/ directory on documentation branch"
+              echo "Non-docs files found:"
+              printf '%s\n' "${non_docs_files[@]}"
               exit 1
+            else
+              echo "All changes are in docs/ directory -> push OK"
+              exit 0
             fi
           fi
+
+          echo "Error: $GITHUB_ACTOR can only push to branches named $GITHUB_ACTOR/* or documentation if only docs/ was changed."
+          exit 1
+

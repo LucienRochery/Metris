@@ -7,8 +7,8 @@
 
 #include <boost/test/included/unit_test.hpp> 
 
-#include "../src/utils/CT_loop.hxx"
-#include "../src/low_eval.hxx"
+#include "utils/CT_loop.hxx"
+#include "low_eval.hxx"
 
 #include "common_setup.hxx"
 

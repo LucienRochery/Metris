@@ -7,20 +7,22 @@
 #define __METRIS_PRINT_MACROS__
 
 #include <string>
+#include "fmt/format.h"
 #include "aux_misc.hxx"
 #include "../aux_exceptions.hxx"
-#include "../MetrisRunner/MetrisParameters.hxx"
 
 #define INCVDEPTH(param_obj) [[maybe_unused]] DepthCounter dc__(true);\
 [[maybe_unused]] const char* spaces_string__ = dc__.getSpaces();\
 [[maybe_unused]] int iverb__ = param_obj->iverb;\
-[[maybe_unused]] int ivdepth__ = param_obj->ivdepth;
+[[maybe_unused]] int ivdepth__ = param_obj->ivdepth;\
+[[maybe_unused]] FILE* LOGFILE__ = param_obj->logFile;
 
 
 #define GETVDEPTH(param_obj) [[maybe_unused]] DepthCounter dc__(false);\
 [[maybe_unused]] const char* spaces_string__ = dc__.getSpaces();\
 [[maybe_unused]] int iverb__ = param_obj->iverb;\
-[[maybe_unused]] int ivdepth__ = param_obj->ivdepth;
+[[maybe_unused]] int ivdepth__ = param_obj->ivdepth;\
+[[maybe_unused]] FILE* LOGFILE__ = param_obj->logFile;
 
 
 // ##__VA_ARGS__ deletes trailing comma if __VA_ARGS__ empty. C++20 has more 
@@ -29,13 +31,11 @@
 #define DOPRINTS1() (dc__.getDepth() <= ivdepth__  && iverb__ >= 1)
 #define DOPRINTS2() (dc__.getDepth() <= ivdepth__  && iverb__ >= 2)
 #define DOPRINTS3() (dc__.getDepth() <= ivdepth__  && iverb__ >= 3)
-#define MPRINTF(fmt,...) printf("%s" fmt, spaces_string__, ##__VA_ARGS__);
-#define CPRINTF1(fmt,...) if(DOPRINTS1()){printf("%s" fmt, spaces_string__, ##__VA_ARGS__);}
-#define CPRINTF2(fmt,...) if(DOPRINTS2()){printf("%s" fmt, spaces_string__, ##__VA_ARGS__);}
-#define CPRINTF3(fmt,...) if(DOPRINTS3()){printf("%s" fmt, spaces_string__, ##__VA_ARGS__);}
-//#define CPRINTF1(fmt,...) if(DOPRINTS1()){printf("%s" fmt, spaces_string__.c_str(), ##__VA_ARGS__);}
-//#define CPRINTF2(fmt,...) if(DOPRINTS2()){printf("%s" fmt, spaces_string__.c_str(), ##__VA_ARGS__);}
-
+#define PRINTF(FMT__,...) fmt::print(LOGFILE__,FMT__, ##__VA_ARGS__)
+#define MPRINTF(FMT__,...) fmt::print(LOGFILE__,"{}" FMT__, spaces_string__, ##__VA_ARGS__)
+#define CPRINTF1(FMT__,...) {if(DOPRINTS1()){fmt::print(LOGFILE__,"{}" FMT__, spaces_string__, ##__VA_ARGS__);}}
+#define CPRINTF2(FMT__,...) {if(DOPRINTS2()){fmt::print(LOGFILE__,"{}" FMT__, spaces_string__, ##__VA_ARGS__);}}
+#define CPRINTF3(FMT__,...) {if(DOPRINTS3()){fmt::print(LOGFILE__,"{}" FMT__, spaces_string__, ##__VA_ARGS__);}}
 
 namespace Metris{
 class DepthCounter{
@@ -73,10 +73,10 @@ public:
     return depth;
   }
 
-  void debug(){
-    printf("-- debug dc depth = %d \n",depth);
-    for(int ii = 0; ii < 65; ii++) printf(" char %d : -%c-\n",ii,spaces[ii]);
-  }
+  //void debug(){
+  //  printf("-- debug dc depth = {} \n",depth);
+  //  for(int ii = 0; ii < 65; ii++) printf(" char {} : -%c-\n",ii,spaces[ii]);
+  //}
 
   bool inc;
 };

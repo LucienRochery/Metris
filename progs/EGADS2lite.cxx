@@ -9,7 +9,7 @@
 #include <egads.h>
 #include <src/aux_EGADSprinterr.hxx>
 #include <fstream>
-#include "../libs/libmeshb.hxx"
+#include "libmeshb.hxx"
 #include <string>
 #include <algorithm>
 
@@ -39,7 +39,7 @@ int main(int argc, char** argv){
   int ierro = EG_open(&EGADS_context);
   if(ierro != 0){
     print_EGADS_error("EG_open",ierro);
-    METRIS_THROW_MSG(WArgExcept(),"EGADS context could not be initialized.");
+    METRIS_THROW_MSG("EGADS context could not be initialized.");
   }
 
   size_t nbyte;
@@ -58,13 +58,13 @@ int main(int argc, char** argv){
   ierro = EG_loadModel(EGADS_context,bitFlag,param.cadFileName.c_str(),&EGADS_model);
   if(ierro != 0){
     print_EGADS_error("EG_loadModel",ierro);
-    METRIS_THROW_MSG(WArgExcept(),"EGADS file could not be read.");
+    METRIS_THROW_MSG("EGADS file could not be read.");
   }
 
   ierro = EG_exportModel(EGADS_model, &nbyte, &stream);
   if(ierro != 0){
     print_EGADS_error("EG_exportModel",ierro);
-    METRIS_THROW_MSG(TopoExcept(),"Failed to export model to stream.");
+    METRIS_THROW_MSG("Failed to export model to stream.");
   }
 
   printf("Stream of size %zub \n",nbyte);
@@ -84,7 +84,7 @@ int main(int argc, char** argv){
 
   fname = "toto.meshb";
   int64_t libIdx = GmfOpenMesh(fname.c_str(), GmfWrite, 3, 2);
-  if(!libIdx)METRIS_THROW_MSG(WArgExcept(),
+  if(!libIdx)METRIS_THROW_MSG(
     "FILE COULDNT BE OPENED OR WRONG VERSION name = "<<fname);
   GmfWriteByteFlow(libIdx, stream, (int) nbyte);
   GmfCloseMesh(libIdx);

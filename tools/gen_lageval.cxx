@@ -3,8 +3,8 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See $METRIS_ROOT/License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#include "../src/ho_constants.hxx"
-#include "../src/metris_constants.hxx"
+#include "ho_constants.hxx"
+#include "metris_constants.hxx"
 
 #include <string>
 #include <cmath>

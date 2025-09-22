@@ -21,7 +21,7 @@ void MetricFieldFE::getMetNodes(int ientt, double *metnod) const{
   constexpr int nnmet = (gdim*(gdim+1))/2;
   METRIS_ENFORCE_MSG(nnmet == getnnmet(), "getMetNodes called with wrong gdim");
 
-  if(this->ibasis != FEBasis::Lagrange) METRIS_THROW_MSG(TODOExcept(), 
+  if(this->ibasis != FEBasis::Lagrange) METRIS_THROW_MSG( 
     "Implement getMedNodes for Bézier (FE)")
 
   constexpr int npptar = (tdim == 1) ? getnnod1(tardeg)
@@ -62,7 +62,7 @@ void MetricFieldAnalytical::getMetNodes(int ientt, double *metnod) const{
   constexpr int nnmet = (gdim*(gdim+1))/2;
   METRIS_ASSERT(gdim == msh.idim);
 
-  if(this->ibasis != FEBasis::Lagrange) METRIS_THROW_MSG(TODOExcept(), 
+  if(this->ibasis != FEBasis::Lagrange) METRIS_THROW_MSG( 
     "Implement getMedNodes for Bézier (Analytical)")
     
   constexpr int npptar = (tdim == 1) ? getnnod1(tardeg)
@@ -93,7 +93,7 @@ void MetricFieldAnalytical::getMetNodes(int ientt, double *metnod) const{
     }
     eval(msh.coord,ent2poi[ientt],msh.getBasis(),DifVar::None,
                                  DifVar::None,bary,coop,NULL,NULL);
-    anamet(NULL,coop,scale,0,&metnod[nnmet*irnk],NULL);
+    anamet(&ctx,coop,scale,0,&metnod[nnmet*irnk],NULL);
   }
 
   // Convert to log if log format expected
@@ -106,7 +106,7 @@ void MetricFieldAnalytical::getMetNodes(int ientt, double *metnod) const{
 
 
 
-#include <src/MetricField/MetricField_getMetNodes.ixx>
+#include "MetricField_getMetNodes.ixx"
 
 
 }// End namespace

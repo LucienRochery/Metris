@@ -12,21 +12,22 @@
 
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../ho_constants.hxx"
-#include "../utils/aux_misc.hxx"
-#include "../utils/aux_timer.hxx"
 #include "../low_eval.hxx"
-#include "../low_geo.hxx"
-#include "../utils/mprintf.hxx"
+#include "../low_geo/misc.hxx"
 #include "../io_libmeshb.hxx"
 #include "../API/MetrisAPI.hxx"
 #include "../linalg/det.hxx"
 
+#include "../utils/aux_misc.hxx"
+#include "../utils/aux_timer.hxx"
+#include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 namespace Metris{
 
 
-int MeshBack::newpoitopo(int tdimn, int ientt){
-  return MeshBase::newpoitopo(tdimn, ientt);
+int MeshBack::newpoitopo(PointType ptype, int tdimn, int ientt){
+  return MeshBase::newpoitopo(ptype, tdimn, ientt);
 }
 
 void MeshBack::copyConstants(const MeshBase &msh){
@@ -67,7 +68,7 @@ dblAr1& MeshBack::ent2dev(int tdimn){
   case(2):
     return fac2dev;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"ent2dev (1) tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG("ent2dev (1) tdimn not in range = {}", tdimn);
   }
 }
 
@@ -78,7 +79,7 @@ const dblAr1& MeshBack::ent2dev(int tdimn) const{
   case(2):
     return fac2dev;
   default:
-    METRIS_THROW_MSG(WArgExcept(),"ent2dev (2) tdimn not in range = "<<tdimn);
+    METRIS_THROW_MSG("ent2dev (2) tdimn not in range = {}", tdimn);
   }
 }
 
@@ -115,7 +116,8 @@ void MeshBack::initialize(MetrisAPI *data,
 
 
   // If no input file: 
-  if(!param.inpMet && data == NULL || (data != NULL && !data->imet)){
+  if(  (!param.inpMet && data == NULL) 
+    || (data != NULL && !data->imet)  ){
     // If analytical:
     if(param.anamet_ptr != NULL || param.ianamet >= 1){
 
@@ -123,8 +125,8 @@ void MeshBack::initialize(MetrisAPI *data,
       if(param.ianamet >= 0){
 
       METRIS_ENFORCE_MSG((param.ianamet <= MAX_ANAMET_DEFINED(this->idim)),
-        "Invalid anamet index: 1 - "<<MAX_ANAMET_DEFINED(idim )<<" accepted");
-  
+        "Invalid anamet index: 1 - {} accepted", MAX_ANAMET_DEFINED(idim));
+
         anamet = (idim == 2 ? __ANAMET2D[param.ianamet-1] : __ANAMET3D[param.ianamet-1]);
       }
 
@@ -136,6 +138,8 @@ void MeshBack::initialize(MetrisAPI *data,
       for(int ipoin = 0; ipoin < npoin; ipoin++){
         anamet(NULL, coord[ipoin], param.metScale, 0, met[ipoin], NULL);
       } 
+
+      if(DOPRINTS2()) met.writeMetricFile("backmet.solb");
       met.setSpace(MetSpace::Log, true);
 
     // Else intrinsic:
@@ -144,24 +148,24 @@ void MeshBack::initialize(MetrisAPI *data,
         CPRINTF1("(back)  - Compute intrinsic metric field\n")
         double t0, t1;
 
-        if(DOPRINTS1()) t0 = get_wall_time();
+        if(DOPRINTS1()) t0 = get_cpu_time();
         getMetMesh<MetricFieldFE,ideg>(param,*this);
-        if(DOPRINTS1()) t1 = get_wall_time();
-        CPRINTF1("(back)  - Done time = %f\n",t1-t0);
+        if(DOPRINTS1()) t1 = get_cpu_time();
+        CPRINTF1("(back)  - Done time = {:.2e}s\n",t1-t0);
 
+        if(DOPRINTS2()) met.writeMetricFile("backmet.solb");
         snapMetSurf<MetricFieldFE>(*this, 0);
 
       }}CT_FOR1(ideg);
     }
 
-    if(DOPRINTS2()) met.writeMetricFile("backmet.solb");
     #ifndef NDEBUG
       checkMet(*this);
     #endif
 
   }else if(param.inpMet){
     
-    CPRINTF1("(back)  - Get metric from file %s\n",param.metFileName.c_str());
+    CPRINTF1("(back)  - Get metric from file {}\n",param.metFileName.c_str());
     METRIS_ENFORCE_MSG(data == NULL || !data->imet, 
                        "Metric specified both in data and file");
 
@@ -181,7 +185,7 @@ void MeshBack::initialize(MetrisAPI *data,
     if(DOPRINTS2()) met.writeMetricFile("metDATA");
 
   }else{
-    METRIS_THROW_MSG(WArgExcept(), "## No metric info for back");
+    METRIS_THROW_MSG( "## No metric info for back");
   }
 
 
@@ -191,7 +195,7 @@ void MeshBack::initialize(MetrisAPI *data,
   met.setBasis(FEBasis::Bezier);
 
   if(param.scaleMet){
-    CPRINTF1("-- Back scaling metric by %15.7e\n", param.metScale);
+    CPRINTF1("-- Back scaling metric by {:15.7e}\n", param.metScale);
     met.normalize(param.metScale);
   }
 
@@ -292,7 +296,7 @@ void MeshBack::initialize(MetrisAPI *data,
             dirCAD = buf;
           }
 
-          //CPRINTF3("ientt %d iref %d ipoin = %d ibpoi = %d : ",ientt,iref,ipoin,ibpoi);
+          //CPRINTF3("ientt {} iref {} ipoin = {} ibpoi = {} : ",ientt,iref,ipoin,ibpoi);
           //if(DOPRINTS1()) intAr1(nibi,bpo2ibi[ibpoi]).print();
 
           // Get elt direction (tangent if dim = 1, normal otherwise)
@@ -320,7 +324,7 @@ void MeshBack::initialize(MetrisAPI *data,
                               getBasis(), DifVar::Bary, DifVar::None,
                               bary, dum, jmat[0], NULL);
               }else{
-                METRIS_THROW_MSG(TODOExcept(),"How are we in idim = "<<idim<<" in face bdry case?")
+                METRIS_THROW_MSG("TODO: How are we in idim = {} in face bdry case?", idim);
               }
             }}CT_FOR1(ideg); 
             vecprod(jmat[0], jmat[1], dirent);
@@ -339,7 +343,7 @@ void MeshBack::initialize(MetrisAPI *data,
           if(iCADsing){
             if(poi2tag(0,ipoin) >= tag[0]) continue;
             poi2tag(0,ipoin) = tag[0];
-            CPRINTF1("## CAD normal singular at point %d \n",ipoin);
+            CPRINTF1("## CAD normal singular at point {} \n",ipoin);
             nCADsing++;
             continue;
           }
@@ -353,23 +357,20 @@ void MeshBack::initialize(MetrisAPI *data,
           dtprd = abs(dtprd);
 
           if(DOPRINTS3()){
-            CPRINTF3(" - ientt %d ipoin %d mtype %d dtprd %f dirCAD = ",ientt,ipoin,mtype,dtprd);
-            dblAr1(idim,dirCAD).print();
-            CPRINTF3(" - dirent = ");
-            dblAr1(idim,dirent).print();
-            CPRINTF3(" - (u,v) = ");
-            dblAr1(nrbi,bpo2rbi[ibpoi]).print();
+            CPRINTF3(" - ientt {} ipoin {} mtype {} dtprd {} dirCAD = {}\n",
+                     ientt,ipoin,mtype,dtprd,dblAr1(idim,dirCAD));
+            CPRINTF3(" - dirent = {}\n",dblAr1(idim,dirent));
+            CPRINTF3(" - (u,v) = {} {}\n",bpo2rbi(ibpoi,0),bpo2rbi(ibpoi,1));
             if(1 - abs(dtprd) >= 0.9){
               CPRINTF3("## LARGE GEODEV \n");
               for(int ibpo0 = poi2bpo[ipoin]; ibpo0 >= 0; ibpo0 = bpo2ibi(ibpo0,3)){
-                CPRINTF3("   - ibpoi %d : ",ibpo0);
-                intAr1(nibi,bpo2ibi[ibpo0]).print();
-                MPRINTF(" (u,v) = %f %f \n",bpo2rbi(ibpo0,0),bpo2rbi(ibpo0,1));
+                CPRINTF3("   - ibpoi {} : {}\n",ibpo0,intAr1(nibi,bpo2ibi[ibpo0]));
+                MPRINTF(" (u,v) = {} {} \n",bpo2rbi(ibpo0,0),bpo2rbi(ibpo0,1));
               }
             }
           }
 
-          METRIS_ASSERT_MSG(dtprd >= 1.0e-16,"zero dtprd = "<<dtprd);
+          METRIS_ASSERT_MSG(dtprd >= 1.0e-16,"zero dtprd = {:e}", dtprd);
 
 
           double dev = 1 - abs(dtprd);
@@ -382,10 +383,10 @@ void MeshBack::initialize(MetrisAPI *data,
           }
 
         }// for int ii 
-        CPRINTF3(" - ientt %d final dev = %15.7e \n",ientt,ent2dev[ientt]);
+        CPRINTF3(" - ientt {} final dev = {:15.7e} \n",ientt,ent2dev[ientt]);
 
       }
-      CPRINTF1("-- %d singular CAD normals / tangents at topo dim %d entities\n",nCADsing,tdim);
+      CPRINTF1("-- {} singular CAD normals / tangents at topo dim {} entities\n",nCADsing,tdim);
     }
 
   }// if CAD()
@@ -394,7 +395,7 @@ void MeshBack::initialize(MetrisAPI *data,
     geodev[1] = 1;
   }
   
-  CPRINTF1("-- Computed max geodev, edges: %15.7e at %d faces %15.7e at %d\n",
+  CPRINTF1("-- Computed max geodev, edges: {:15.7e} at {} faces {:15.7e} at {}\n",
                                geodev[0], imax[0], geodev[1], imax[1]);
 
 
@@ -404,6 +405,7 @@ void MeshBack::initialize(MetrisAPI *data,
 
 double MeshBack::getMetComplexity(){
 
+  GETVDEPTH(param);
   double volM = getDomainVolume();
 
   //std::cout<<"Domain volume = " << vol0 << "\n";// << " aniso = "<<volM<<"\n";
@@ -423,7 +425,7 @@ double MeshBack::getMetComplexity(){
   // Thus we require volM / vK0 unit elements to fill the domain.
   double comp = volM / Constants::vK0[idim];
 
-  std::cout<<"Estimated tar nelem = "<<comp<<" current = "<<nelem<<"\n";
+  CPRINTF1("Estimated tar nelem = {} current = {}\n",comp,nelem);
 
   return comp;
 

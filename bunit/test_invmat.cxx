@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_invmat
 
 #include <boost/test/included/unit_test.hpp> 
 #include "common_setup.hxx"
@@ -11,11 +11,11 @@
 #include <boost/timer/progress_display.hpp>
 #include <random>
 
-//#include "../src/utils/aux_utils.hxx"
-#include "../src/low_geo.hxx"
-#include "../src/linalg/eigen.hxx"
-#include "../src/linalg/det.hxx"
-#include "../src/linalg/invmat.hxx"
+//#include "utils/aux_utils.hxx"
+#include "low_geo/misc.hxx"
+#include "linalg/eigen.hxx"
+#include "linalg/det.hxx"
+#include "linalg/invmat.hxx"
 
 
 #include <Eigen/Core>
@@ -37,7 +37,7 @@ void generate_metric(double aniso, double eigval[ndim], double eigvec[ndim][ndim
   MetSpace metspac,
   std::uniform_real_distribution<double>& unif, std::default_random_engine& rng);
 
-BOOST_AUTO_TEST_CASE(test_invspd) 
+BOOST_AUTO_TEST_CASE(test_invmat) 
 {//METRIS_MAX_DEG
 
   const int nsamp = 1e5;
@@ -264,27 +264,27 @@ BOOST_AUTO_TEST_CASE(test_invspd)
 
       // --- Using LAPACK
       #ifdef METRIS_USE_LAPACK
-      double t0_L = get_wall_time();
+      double t0_L = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met2[ii] = met_samples[ndim-2](isamp, ii);
         for(int ii = 0; ii < nnmet; ii++) met2[ii] = met[ii];
         invspd_LAPACK(ndim, met2);
         dumtot += met2[0];
       }
-      double t1_L = get_wall_time();
+      double t1_L = get_cpu_time();
       #endif
 
       // --- Using Eigen's LL^T
-      double t0_E = get_wall_time();
+      double t0_E = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met2[ii] = met_samples[ndim-2](isamp, ii);
         invspd_Eigen<ndim,double>(met,met2);
         dumtot += met2[0];
       }
-      double t1_E = get_wall_time();
+      double t1_E = get_cpu_time();
 
       // --- Using eigendecomposition (DSYEVQ)
-      double t0_D = get_wall_time();
+      double t0_D = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met2[ii] = met_samples[ndim-2](isamp, ii);
         double eigva2[ndim], eigve2[ndim*ndim];
@@ -293,7 +293,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
         eig2met<ndim>(eigva2, eigve2, met2);
         dumtot += met2[0];
       }
-      double t1_D = get_wall_time();
+      double t1_D = get_cpu_time();
 
 
       #ifdef METRIS_USE_LAPACK
@@ -334,7 +334,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
 
       #ifdef METRIS_USE_LAPACK
       // --- Using LAPACK
-      double t0_L = get_wall_time();
+      double t0_L = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < ndim; ii++)
           for(int jj = 0; jj < ndim; jj++)
@@ -342,11 +342,11 @@ BOOST_AUTO_TEST_CASE(test_invspd)
         invmat_LAPACK(ndim, mat);
         dumtot += mat2[0];
       }
-      double t1_L = get_wall_time();
+      double t1_L = get_cpu_time();
       #endif
 
       // --- Using Eigen's LL^T
-      double t0_PP = get_wall_time();
+      double t0_PP = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < ndim; ii++)
           for(int jj = 0; jj < ndim; jj++)
@@ -354,10 +354,10 @@ BOOST_AUTO_TEST_CASE(test_invspd)
         invmat_EigenLUPP<ndim,double>(mat,mat2);
         dumtot += mat2[0];
       }
-      double t1_PP = get_wall_time();
+      double t1_PP = get_cpu_time();
 
       // --- Using eigendecomposition (DSYEVQ)
-      double t0_FP = get_wall_time();
+      double t0_FP = get_cpu_time();
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < ndim; ii++)
           for(int jj = 0; jj < ndim; jj++)
@@ -365,7 +365,7 @@ BOOST_AUTO_TEST_CASE(test_invspd)
         invmat_EigenLUFP<ndim,double>(mat,mat2);
         dumtot += mat2[0];
       }
-      double t1_FP = get_wall_time();
+      double t1_FP = get_cpu_time();
 
 
       #ifdef METRIS_USE_LAPACK

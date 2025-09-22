@@ -8,16 +8,18 @@
 
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../Mesh/Mesh.hxx"
-#include "../low_geo.hxx"
-#include "../low_normal.hxx"
+#include "../low_geo/measure.hxx"
+#include "../low_geo/normal.hxx"
 #include "../low_topo.hxx"
-#include "../low_ccoef.hxx"
+#include "../low_geo/ccoef.hxx"
 #include "../aux_topo.hxx"
+#include "../linalg/det.hxx"
+#include "../io_libmeshb.hxx"
+
 #include "../utils/aux_misc.hxx"
 #include "../utils/CT_loop.hxx"
 #include "../utils/mprintf.hxx"
-#include "../linalg/det.hxx"
-
+#include "../utils/fmt_formatters.hxx"
 
 namespace Metris{
 
@@ -92,7 +94,7 @@ int correct_cavity0(Mesh<MFT> &msh,
   //    continue;
   //    
   //    isbad:
-  //    if(*nbad >= mbad) METRIS_THROW(DMemExcept());
+  //    METRIS_ASSERT(*nbad < mbad);
   //    lbad[*nbad][0] = ientt;
   //    lbad[*nbad][1] = tdim;
   //    (*nbad)++;
@@ -104,6 +106,16 @@ int correct_cavity0(Mesh<MFT> &msh,
 
   int ptag0 = msh.tag[ithread];
   if constexpr(ideg > 1){
+
+    if(DOPRINTS2()){
+      MshCavity cav2(msh.nelem-nele0,msh.nedge-nedg0,msh.nface-nfac0);
+      for(int ii = nele0; ii < msh.nelem; ii++) cav2.lctet.stack(ii);
+      for(int ii = nfac0; ii < msh.nface; ii++) cav2.lcfac.stack(ii);
+      for(int ii = nedg0; ii < msh.nedge; ii++) cav2.lcedg.stack(ii);
+      cav2.ipins = cav.ipins;
+      writeMeshCavity("cavity1",msh,cav2);
+      cav2.print(msh);
+    }
 
     CPRINTF1("-- correct_cavity phase 1 : curve & project\n");
     // No HO curvature yet, just CAD projection
@@ -175,13 +187,13 @@ int correct_cavity0(Mesh<MFT> &msh,
             //  err = geterrl2<gdim>(msh.coord[ipoin],result);
             //  if(err > nrm0){
             //    #ifndef NDEBUG
-            //      printf("## DEBUG high CAD gap = %f nrm0 = %f\n",err,nrm0);
+            //      printf("## DEBUG high CAD gap = {} nrm0 = {}\n",err,nrm0);
             //      wait();
             //    #else
             //      return CAV_ERR_CADFAR;
             //    #endif
             //  }
-            //  //METRIS_THROW_MSG(GeomExcept(), "Very large geometric gap? Manual check " << err);
+            //  //METRIS_THROW_MSG( "Very large geometric gap? Manual check " << err);
             //}
 
             for(int ii = 0; ii < gdim; ii++) msh.coord(ipoin,ii) = result[ii];
@@ -202,20 +214,20 @@ int correct_cavity0(Mesh<MFT> &msh,
       int nent0 = tdim == 1 ? nedg0 
                 : tdim == 2 ? nfac0 : nele0;
       int nentt = msh.nentt(tdim);
-      CPRINTF1(" - Update HO points dim %d entities %d <= i < %d\n",tdim,nent0,nentt);
+      CPRINTF1(" - Update HO points dim {} entities {} <= i < {}\n",tdim,nent0,nentt);
       for(int ientt = nent0; ientt < nentt; ientt++){
         INCVDEPTH(msh.param);
         METRIS_ASSERT(!isdeadent(ientt,msh.ent2poi(tdim)));
-        int iref = msh.ent2ref(tdim)[ientt];
+        //int iref = msh.ent2ref(tdim)[ientt];
         for(int ii = tdim+1; ii < getnnode(tdim,ideg); ii++){
           INCVDEPTH(msh.param);
           int ipoin = msh.ent2poi(tdim)(ientt,ii);
-          CPRINTF1(" - ipoin = %d tag = %d <? %d\n",ipoin,msh.poi2tag(ithread,ipoin),ptag0);
+          CPRINTF1(" - ipoin = {} tag = {} <? {}\n",ipoin,msh.poi2tag(ithread,ipoin),ptag0);
           if(ipoin < npoi0) continue;
           if(msh.poi2tag(ithread,ipoin) >= ptag0) continue;
           msh.poi2tag(ithread,ipoin) = ptag0;
 
-          CPRINTF1("- update HO pt %d interp seed %d dim %d \n",ipoin,ientt,tdim);
+          CPRINTF1("- update HO pt {} interp seed {} dim {} \n",ipoin,ientt,tdim);
           if(msh.interpMetBack(ipoin) != 0) return CAV_ERR_INTERPMETBACK;
         }// for ii = tdim+1
       }// for ientt
@@ -224,7 +236,7 @@ int correct_cavity0(Mesh<MFT> &msh,
 
 
 
-  CPRINTF1("-- correct_cavity phase %d : verify validity\n",1+ideg>1);
+  CPRINTF1("-- correct_cavity phase {} : verify validity\n",1+ideg>1);
 
   //double quael;
   CT_FOR0_INC(2,gdim,tdim){
@@ -234,7 +246,7 @@ int correct_cavity0(Mesh<MFT> &msh,
     int nent0 = tdim == 2 ? nfac0 : nele0;
     int nentt = msh.nentt(tdim);
     
-    const intAr2& ent2poi = msh.ent2poi(tdim);
+    //const intAr2& ent2poi = msh.ent2poi(tdim);
 
     for(int ientt = nent0; ientt < nentt; ientt++){
       INCVDEPTH(msh.param);
@@ -244,19 +256,26 @@ int correct_cavity0(Mesh<MFT> &msh,
 
       bool iflat = false;
       if constexpr(ideg == 1){
-        double meas = getmeasentP1<gdim,tdim>(msh, ent2poi[ientt], nrmal, &iflat);
+        double meas = getmeasentP1<gdim,tdim>(msh, ientt, nrmal, &iflat);
         if(DOPRINTS1()){
           if constexpr (tdim == 2){
-            CPRINTF1(" - %d tdim %d ientt %d meas %e iflat %d using normal ",
-                     ientt-nent0,tdim,ientt,meas,iflat);
-            dblAr1(gdim,nrmal).print();
+            CPRINTF1(" - {} tdim {} ientt {} meas {} iflat {} using normal {}\n",
+                     ientt-nent0,tdim,ientt,meas,iflat,dblAr1(gdim,nrmal));
           }else{
-            CPRINTF1(" - %d tdim %d ientt %d meas %e iflat %d\n",
+            CPRINTF1(" - {} tdim {} ientt {} meas {} iflat {}\n",
                      ientt-nent0,tdim,ientt,meas,iflat);
           }
         }
       }else{
         getsclccoef<gdim,tdim,ideg>(msh, ientt, nrmal, ccoef, &iflat);
+      }
+      if(iflat){
+        CPRINTF1(" - tdim {} ientt {} invalid\n",tdim,ientt);
+        if constexpr(ideg > 1){
+          constexpr int idegj = tdim*(ideg-1);
+          constexpr int nnodj = getnnode(tdim,idegj);
+          CPRINTF2(" - ccoef = {} \n",dblAr1(nnodj,ccoef));
+        }
       }
       if(iflat) goto isbad;
 
@@ -265,8 +284,8 @@ int correct_cavity0(Mesh<MFT> &msh,
       isbad:
       int nbad = lbad.get_n();
       lbad.inc_n();
-      lbad[nbad][0] = ientt;
-      lbad[nbad][1] = tdim;
+      lbad(nbad,0) = ientt;
+      lbad(nbad,1) = tdim;
   
     }
   }CT_FOR1(tdim);

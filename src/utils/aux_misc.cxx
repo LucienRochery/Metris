@@ -8,8 +8,8 @@
 #include "ho_constants.hxx"
 #include "aux_exceptions.hxx"
 
-#include "../SANS/Surreal/SurrealS.h"
-#include "../SANS/tools/minmax.h"
+#include "SANS/Surreal/SurrealS.h"
+#include "SANS/tools/minmax.h"
 
 #include <boost/preprocessor/iteration/local.hpp>
 
@@ -19,134 +19,6 @@
 
 
 namespace Metris{
-
-//template <typename ftype>
-//void fini_diff(int ndim, std::function< ftype(double*) >& fun,
-//               double *x0){
-//
-//}
-
-//     iinter = 1 : linear progression between min and max value
-//     iinter = 2 ; geometric
-//     nlist: input size
-//     rlist: values
-//     llist: indices ; for instance, if rlist pertains to edges, perhaps
-//                      min and max should print llist(imin) and llist(imax)
-//                      instead
-//     if llist = NULL, simply index 0 ... nlist - 1
-// T is any hash table type with an iterator that has a ->first and ->second double field
-void generic_hist(double *rlist,int nlist, int *llist,double vlo,double vhi,
-                  const char *vname,const char *title,int iinter){
-  int nslot;
-  const int mslot = 20;
-  int cslot[mslot];
-  double vslot[mslot];
-  double vmin,vmax,vavg,dslot,v0;
-  int imin,imax,nval,nlo,nhi;
-
-  if(nlist <= 0) METRIS_THROW_MSG(WArgExcept(),"Empty list in histo");
-
-  vmin = rlist[0];
-  vmax = rlist[0];
-  imin = 0;
-  imax = 0;
-  vavg = 0.0;
-  nval = 0;
-  nlo = 0;
-  nhi = 0;
-  for(int ilist = 1; ilist < nlist; ilist++){
-    double rlcur = rlist[ilist];
-    if(rlcur < vlo) nlo++;
-    else if(rlcur > vhi) nhi++;
-    else nval++;
-    if(rlcur < vmin){
-      imin = ilist;
-      vmin = rlcur;
-    }
-    if(rlcur > vmax){
-      imax = ilist;
-      vmax = rlcur;
-    }
-    vavg += rlcur;
-  }
-  vavg /= nlist;
-
-  nslot = nval < mslot ? nval : mslot;
-  if(iinter == 1){
-    dslot = ( (vmax < vhi ? vmax : vhi) - (vmin > vlo ? vmin : vlo) ) / nslot;
-  }else{
-    dslot = log( (vmax < vhi ? vmax : vhi) - (vmin > vlo ? vmin : vlo) ) / nslot;
-  }
-
-  for(int i = 0; i < nslot; i++){
-    if(iinter == 1){
-      vslot[i] = (vmin > vlo ? vmin : vlo) + i*dslot;
-    }else{
-      vslot[i] = exp(log((vmin > vlo ? vmin : vlo))+i*dslot);
-    }
-    cslot[i] = 0;
-  }
-  if(nhi > 0) vslot[nslot-1] = vhi;
-  for(int ilist = 0; ilist < nlist; ilist++){
-    double rlcur = rlist[ilist];
-    if(rlcur < vlo || rlcur > vhi) continue;
-    int iskp = 0;
-    for(int j=0;j<nslot;j++){
-      if(rlcur > vslot[j]) continue;
-      cslot[j] ++;
-      iskp = 1;
-      break;
-    }
-    if(iskp == 0){
-      cslot[nslot-1] ++; 
-    }
-  }
-  printf("-- %s histogram\n",title);
-  if(llist != NULL){
-    imin = llist[imin];
-    imax = llist[imax];
-  }
-  printf("  - min = %9.2e at %d\n",vmin,imin);
-  printf("  - avg = %9.2e \n",vavg);
-  printf("  - max = %9.2e at %d\n",vmax,imax);
-  //if(nval < nlist) printf(" - outside bounds n = %d\n",nlist-nval);
-
-    if(iinter == 1){
-      if(nlo > 0){
-        printf("                  %s < %9.3f %15d       %6.2f %%\n",vname,vlo,nlo,(100.0*nlo)/nlist);
-      }
-      if(cslot[0] > 0){
-        v0 = vmin;
-        if(nlo > 0) v0 = vlo;
-        printf("      %9.3f < %s < %9.3f %15d       %6.2f %%\n",v0,vname,vslot[0],cslot[0],(100.0*cslot[0])/nlist);
-      }
-      for(int i = 0; i < nslot-2; i++){
-        if(cslot[i+1]>0)
-          printf("      %9.3f < %s < %9.3f %15d       %6.2f %%\n",vslot[i],vname,vslot[i+1],cslot[i+1],(100.0*cslot[i+1])/nlist);
-      }
-      if(nhi > 0){
-        printf("      %9.3f < %s            %d       %6.2f %%\n",vhi,vname,nhi,(100.0*nhi)/nlist);
-      }
-    }else{
-      if(nlo > 0){
-        printf("                  %s < %9.2e %15d       %6.2f %%\n",vname,vlo,nlo,(100.0*nlo)/nlist);
-      }
-      if(cslot[0] > 0){
-        v0 = vmin;
-        if(nlo > 0) v0 = vlo;
-        printf("      %9.2e < %s < %9.2e %15d       %6.2f %%\n",v0,vname,vslot[0],cslot[0],(100.0*cslot[0])/nlist);
-      }
-      for(int i = 0; i < nslot-2; i++){
-        if(cslot[i+1]>0)
-          printf("      %9.2e < %s < %9.2e %15d       %6.2f %%\n",vslot[i],vname,vslot[i+1],cslot[i+1],(100.0*cslot[i+1])/nlist);
-      }
-      if(nhi > 0){
-        printf("      %9.2e < %s            %d       %6.2f %%\n",vhi,vname,nhi,(100.0*nhi)/nlist);
-      }
-    }
-}
-
-
 
 
 // Specialization for termination
@@ -184,10 +56,8 @@ char* itoa(int value, char* result, int base) {
 }
 
 void wait(){
-  fflush(stdout);
-  char tmp;
-  printf("Press key to continue ");
-  scanf("%c",&tmp);
+  std::cout << "Press Enter to continue..." << std::flush;
+  std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
 // Gets 2,..4 ints, returns sorted tuple (for hash keys)
@@ -657,6 +527,8 @@ template void gen_ordering_Vizir< n , 3 >(int *ord);
 template<typename T>
 void sortupto8_dec(T *tab,int n){
 
+  METRIS_ASSERT(n >= 0);
+
   if(n == 8){
     if(tab[1-1]<tab[2-1])  swi(tab[1-1],tab[2-1]);
     if(tab[3-1]<tab[4-1])  swi(tab[3-1],tab[4-1]);
@@ -777,8 +649,6 @@ void sortupto8_dec(T *tab,int n){
 
     if(tab[1-1]<tab[2-1] )  swi(tab[1-1],tab[2-1]);
 
-  }else if(n<1){
-    METRIS_THROW(WArgExcept());
   }
 }
 
@@ -786,6 +656,8 @@ void sortupto8_dec(T *tab,int n){
 // Sort as decreasing
 template<typename T>
 void sortupto8_dec(T *tab, int *idx, int n){
+
+  METRIS_ASSERT(n >= 0);
 
   if(n == 8){
     if(tab[idx[1-1]]<tab[idx[2-1]])  swi(idx[1-1],idx[2-1]);
@@ -907,8 +779,6 @@ void sortupto8_dec(T *tab, int *idx, int n){
 
     if(tab[idx[1-1]]<tab[idx[2-1]] )  swi(idx[1-1],idx[2-1]);
 
-  }else if(n<1){
-    METRIS_THROW(WArgExcept());
   }
 }
 #if 0
@@ -1045,6 +915,8 @@ void sortupto8_dec(T tab[n], int idx[n]){
 
 template<typename T>
 void sortupto8_inc(T *tab,int n){
+  
+  METRIS_ASSERT(n >= 0);
 
   if(n == 8){
     if(tab[1-1]>tab[2-1])  swi(tab[1-1],tab[2-1]);
@@ -1166,8 +1038,6 @@ void sortupto8_inc(T *tab,int n){
 
     if(tab[1-1]>tab[2-1] )  swi(tab[1-1],tab[2-1]);
 
-  }else if(n<1){
-    METRIS_THROW(WArgExcept());
   }
 }
 

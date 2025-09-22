@@ -8,19 +8,19 @@
 //#include <src/codegen_ccoef_d.hxx>
 
 #include <src/low_ccoef_d.hxx>
-#include <src/low_ccoef.hxx>
+#include <src/low_geo/ccoef.hxx>
 
 #include <boost/test/included/unit_test.hpp> 
 #include <bunit/common_setup.hxx>
 
 #include <boost/timer/progress_display.hpp>
 
-#include "../src/utils/aux_misc.hxx"
-#include "../src/quality/low_metqua.hxx"
-#include "../src/quality/low_metqua_d.hxx"
+#include "utils/aux_misc.hxx"
+#include "quality/low_metqua.hxx"
+#include "quality/low_metqua_d.hxx"
 
-#include "../SANS/Surreal/SurrealS.h"
-#include "../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "SANS/Surreal/SurrealS.h"
+#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
 
 #include <boost/hana.hpp> 

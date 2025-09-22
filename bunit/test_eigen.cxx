@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE test_eigen
 
 #include <boost/test/included/unit_test.hpp> 
 #include "common_setup.hxx"
@@ -12,11 +12,11 @@
 #include <random>
 #include <fstream>
 
-//#include "../src/utils/aux_utils.hxx"
-#include "../src/low_geo.hxx"
-#include "../src/linalg/det.hxx"
-#include "../src/linalg/eigen.hxx"
-#include "../src/linalg/explogmet.hxx"
+//#include "utils/aux_utils.hxx"
+#include "low_geo/misc.hxx"
+#include "linalg/det.hxx"
+#include "linalg/eigen.hxx"
+#include "linalg/explogmet.hxx"
 
 
 #include <Eigen/Dense>
@@ -392,7 +392,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
 
 
       #ifdef NDEBUG
-      double t0_DSYEVQ = get_wall_time();
+      double t0_DSYEVQ = get_cpu_time();
       double dum_DSYEVQ = 0;
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim](isamp, ii);
@@ -400,12 +400,12 @@ BOOST_AUTO_TEST_CASE(test_eigen)
         geteigsym<ndim,double>(met,eigva2,eigve2[0]);
         dum_DSYEVQ += eigva2[0];
       }
-      double t1_DSYEVQ = get_wall_time();
+      double t1_DSYEVQ = get_cpu_time();
 
 
       double dum_LAPACK = 1;
     #ifdef METRIS_USE_LAPACK
-      double t0_LAPACK = get_wall_time();
+      double t0_LAPACK = get_cpu_time();
       int rwork[10];
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim](isamp, ii);
@@ -413,11 +413,11 @@ BOOST_AUTO_TEST_CASE(test_eigen)
         geteigsym_LAPACK<ndim>(met,10,rwork,eigva2,eigve2[0]);
         dum_LAPACK += eigva2[0];
       }
-      double t1_LAPACK = get_wall_time();
+      double t1_LAPACK = get_cpu_time();
     #endif
 
 
-      double t0_EIGEN = get_wall_time();
+      double t0_EIGEN = get_cpu_time();
       double dum_EIGEN = 0;
       for(int isamp = 0; isamp < nsamp; isamp++){
         for(int ii = 0; ii < nnmet; ii++) met[ii] = met_samples[ndim](isamp, ii);
@@ -435,10 +435,10 @@ BOOST_AUTO_TEST_CASE(test_eigen)
         MatrixN eigenvectors = solver.eigenvectors();
         dum_EIGEN += eigenvalues[0];
       }
-      double t1_EIGEN = get_wall_time();
+      double t1_EIGEN = get_cpu_time();
 
 
-      double t0_EIGEN2 = get_wall_time();
+      double t0_EIGEN2 = get_cpu_time();
       double dum_EIGEN2 = 0;
       typedef Eigen::Matrix<double,ndim,ndim> MatrixN;
       typedef Eigen::Vector<double,ndim> VectorN;
@@ -460,7 +460,7 @@ BOOST_AUTO_TEST_CASE(test_eigen)
         eigenvectors = solver.eigenvectors();
         dum_EIGEN2 += eigenvalues[0];
       }
-      double t1_EIGEN2 = get_wall_time();
+      double t1_EIGEN2 = get_cpu_time();
 
 
       printf("  -- DONE benchmarks DSYEVQ time : %8.2e = %d op/s\n",

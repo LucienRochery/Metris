@@ -16,7 +16,7 @@ class MeshBase;
 	
 
 // Get a tetrahedron point belongs to. 
-int getpoitet(const MeshBase &msh, int ipoin, int iprt=0);
+int getpoitet(const MeshBase &msh, int ipoin);
 // Get a triangle point belongs to even if tet attached. 
 int getpoifac(const MeshBase &msh, int ipoin);
 // Get an edge point belongs to even if tet or tri attached. 
@@ -45,10 +45,10 @@ int getedgent(const MeshBase &msh, int tdim, int ientt, int i1, int i2);
 
 // In case this is changed in the future; e.g. -1 but what if unsigned? 
 inline bool isdeadent(int ient, const intAr2 &lent){
-	return (lent[ient][0] == lent[ient][1] || lent[ient][0] < 0);
+	return (lent(ient,0) == lent(ient,1) || lent(ient,0) < 0);
 }
 inline void killent(int ient, intAr2 &lent){
-	lent[ient][0] = -1;
+	lent(ient,0) = -1;
 	//lent[ient][0] = lent[ient][1];
 }
 

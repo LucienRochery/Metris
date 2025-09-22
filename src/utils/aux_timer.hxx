@@ -8,12 +8,17 @@
 #ifndef __SRC_AUX_TIMER__
 #define __SRC_AUX_TIMER__
 
+#include <string>
+
 // Sourced from stack https://stackoverflow.com/questions/17432502/how-can-i-measure-cpu-time-and-wall-clock-time-on-both-linux-windows
 
 namespace Metris{
 	
 double get_wall_time();
 double get_cpu_time();
+
+// Outputs a string YYYY-MM-DD-HH-mm-ss
+std::string time2str();
 
 } // End namespace
 #endif

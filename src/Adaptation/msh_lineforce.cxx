@@ -1,0 +1,168 @@
+//Metris: high-order metric-based non-manifold tetrahedral remesher
+//Copyright (C) 2023-2025, Massachusetts Institute of Technology
+//Licensed under The GNU Lesser General Public License, version 2.1
+//See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
+
+
+#include "msh_lineforce.hxx"
+
+#include "../Mesh/Mesh.hxx"
+#include "../MetrisRunner/MetrisParameters.hxx"
+
+#include "low_increasecav.hxx"
+#include "../cavity/msh_cavity.hxx"
+
+#include "../utils/mprintf.hxx"
+#include "../utils/EGADSprinterr.hxx"
+
+#include "../low_geo/measure.hxx"
+#include "../low_geo/nrml2.hxx"
+#include "../low_topo.hxx"
+#include "../io_libmeshb.hxx"
+
+
+namespace Metris{
+
+// Evaluate points on lines and forcibly reinsert them in the mesh, breaking 
+// everything on the way 
+template<class MFT>
+void reinsertLines(Mesh<MFT> &msh, int ithrd1, int ithrd2){
+  GETVDEPTH(msh.param);
+  MshCavity cav(0,100,2);
+  cav.lcedg.set_n(2);
+  // There could be one single face for 2 edges even not corner 
+  cav.lcfac.set_n(0);
+
+  CavOprInfo info;
+  CavWrkArrs work;
+  CavOprOpt opts;
+  opts.dryrun = false;
+  opts.allow_remove_points = true;
+
+
+  // Absolute tolerance for whether a point is on the geometry or not 
+  // (temporary)
+  const double geotol = msh.param->geo_abstoledg;
+
+  double result[18];
+
+
+  msh.tag[ithrd1]++;
+  for(int iedge = 0; iedge < msh.nedge; iedge++){
+    INCVDEPTH(msh.param);
+    if(isdeadent(iedge,msh.edg2poi)) continue;
+
+    int iref = msh.edg2ref[iedge];
+    ego obj = msh.CAD.cad2edg[iref];
+
+    // In case two insertions are needed -> edge is killed on first insert
+    int ip[2] = {msh.edg2poi(iedge,0), msh.edg2poi(iedge,1)};
+
+    for(int iver = 0; iver < 2; iver++){
+      int ipoin = ip[iver];
+      if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
+
+
+      int ibpoi = msh.poi2bpo[ipoin];
+      int pdim = msh.bpo2ibi(ibpoi,1);
+      // Don't move corners, assumed in position 
+      if(pdim == 0) continue;
+      METRIS_ASSERT(pdim == 1);
+
+      METRIS_ASSERT_MSG(msh.edg2ref[msh.bpo2ibi(ibpoi,2)] == iref,
+       "ipoin = {} ibpoi = {} bpo2ibi[2] = {} iref = {} edg2ref = {}",
+       ipoin, ibpoi, msh.bpo2ibi(ibpoi,2), iref, msh.edg2ref[msh.bpo2ibi(ibpoi,2)]);
+
+
+      // Proceed to reinsertion? First test distance. 
+      int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
+      if(ierro != 0){
+        PRINTF("## EG_getRange failed {}\n",EG_err2str(ierro));
+        METRIS_THROW_MSG(" EG_Evaluate failed")  
+      }
+
+      double dst; 
+      if(msh.idim == 2){
+        dst = geterrl2<2>(msh.coord[ipoin], result);
+      }else{
+        dst = geterrl2<3>(msh.coord[ipoin], result);
+      }
+
+      if(dst < geotol*geotol) continue;
+
+      // Not on geometry, reinsert 
+      CPRINTF1(" - Point {} not on geom dim {} ref {}, dist = {:15.7e} > "
+                                  "{:15.7e} = tol\n", ipoin, pdim, iref,sqrt(dst), geotol);
+      if(DOPRINTS2()){
+
+        int ipdbg = msh.newpoitopo(PointType::Vertex, -1,-1);
+        msh.newbpotopo(Vertex{ipdbg},0,ipdbg);
+        for(int ii = 0; ii < msh.idim; ii++) 
+          msh.coord(ipdbg,ii) = msh.coord(ipoin,ii);
+        writeMesh("dbg_geometry_pt"+std::to_string(ipoin),msh);
+        msh.killpoint(ipdbg);
+      }
+
+      cav.lcfac.set_n(0);
+      cav.lcedg.set_n(0);
+      cav.ipins = ipoin;
+
+      double coor0[3];
+      for(int ii = 0; ii < msh.idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
+      for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipoin,ii) = result[ii];
+
+      // Start from ball2 so we can check if a reinsertion is even required. 
+      // (no-op)
+      // Edge could have been killed if ii == 1
+      int iedg1 = msh.poi2ent(ipoin,0);
+      METRIS_ASSERT(msh.poi2ent(ipoin,1) == 1);
+      int iface = msh.edg2fac[iedg1];
+      bool imani;
+      int  iopen;
+      ball2(msh,ipoin,iface,cav.lcfac,cav.lcedg,&iopen,&imani,ithrd2);
+      //METRIS_ASSERT(iopen);
+      METRIS_ASSERT(cav.lcedg.get_n() == 2);
+
+      bool ireins = false;
+      for(int icfac : cav.lcfac){
+        // Dummy normal 
+        bool iflat;
+        if(msh.idim == 2) iflat = !isvalideltP1<2,2>(msh,icfac); 
+        else              iflat = !isvalideltP1<3,2>(msh,icfac);
+
+        if(iflat){
+          ireins = true;
+          break; 
+        }
+      }
+
+      if(!ireins) continue;
+
+      ierro = increase_cavity_validity(msh,cav,ithrd2);
+      if(ierro != 0 && DOPRINTS2()){
+        CPRINTF2(" # increase_cavity_validity failed ierro {} \n",ierro);
+        CPRINTF2("Trying to reinsert ipoin {} iedge = {} iedg1 {} iface {} iref {} \n",
+                 cav.ipins, iedge, iedg1, iface, iref);
+        writeMesh("increase_fail", msh);
+        writeMeshCavity("increase_cav2D_fail", msh, cav);
+      }
+
+      CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
+        ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
+      }}CT_FOR1(ideg);
+
+      METRIS_ASSERT_MSG(ierro == 0, "Cavity failed ierro = {}", ierro);
+
+
+    }
+  }
+
+}
+
+template
+void reinsertLines(Mesh<MetricFieldAnalytical> &msh, int ithrd1, int ithrd2);
+template
+void reinsertLines(Mesh<MetricFieldFE        > &msh, int ithrd1, int ithrd2);
+
+
+}// end Namespace

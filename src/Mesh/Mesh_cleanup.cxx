@@ -9,6 +9,7 @@
 #include "../msh_checktopo.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../utils/mprintf.hxx"
+#include "../utils/fmt_formatters.hxx"
 
 
 namespace Metris{
@@ -23,6 +24,8 @@ void Mesh<MetricFieldType>::cleanup(){
     MPRINTF("## Option -nocleanup enabled -> Mesh::cleanup() skipped.\n");
     return;
   }
+
+  if(this->param->dbgfull) check_topo(*this,0);
 
   int nwork = MAX(this->nbpoi, this->nedge);
   nwork = MAX(nwork, this->nface);
@@ -42,6 +45,10 @@ void Mesh<MetricFieldType>::cleanup(){
     int ipoin = this->bpo2ibi(ibpoi,0); 
     if(ipoin < 0) continue;
 
+    METRIS_ASSERT_MSG(ipoin < this->npoin, 
+      "ibpoi = {} nbpoi = {} points to ipoin = {} but npoin = {}", 
+      ibpoi, this->nbpoi, ipoin, this->npoin);
+
     int ibpon = nbpon; 
     lentt[ibpoi] = ibpon; 
     nbpon++; 
@@ -57,7 +64,7 @@ void Mesh<MetricFieldType>::cleanup(){
 
   if(nbpon != this->nbpoi){
 
-    CPRINTF3(" - cleanup bdry links %d -> %d \n",this->nbpoi,nbpon);
+    CPRINTF3(" - cleanup bdry links {} -> {} \n",this->nbpoi,nbpon);
 
     // Update link to next 
     for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
@@ -79,7 +86,7 @@ void Mesh<MetricFieldType>::cleanup(){
   const int nnmet = (idim*(idim+1))/2;
   int nponn = 0;
   for(int ipoin = 0; ipoin < this->npoin; ipoin++){
-    if(this->poi2ent(ipoin,0) < 0) continue;
+    if(this->isdeadpoint(ipoin)) continue;
 
     int iponn = nponn;
     nponn++;
@@ -100,7 +107,7 @@ void Mesh<MetricFieldType>::cleanup(){
 
   if(this->npoin == nponn) goto update_tetras; 
 
-  CPRINTF3(" - cleanup vertices %d -> %d \n",this->npoin,nponn);
+  CPRINTF3(" - cleanup vertices {} -> {} \n",this->npoin,nponn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
     int ipoin = this->bpo2ibi(ibpoi,0); 
@@ -110,7 +117,6 @@ void Mesh<MetricFieldType>::cleanup(){
     this->bpo2ibi(ibpoi,0) = lpoin[ipoin]; 
     if(ityp == 0) this->bpo2ibi(ibpoi,2) = lpoin[ipoin]; 
   }
-
 
 
   // ----- Tetras
@@ -126,7 +132,7 @@ void Mesh<MetricFieldType>::cleanup(){
 
     int nnode = getnnod3(this->curdeg); 
     // Not just copy but also translation using lpoin 
-    for(int ii = 0; ii < nnode; ii++) 
+    for(int ii = 0; ii < nnode; ii++)
       this->tet2poi(ielen,ii) = lpoin[this->tet2poi(ielem,ii)]; 
 
     // The next updates are only needed if the index changed. 
@@ -140,7 +146,7 @@ void Mesh<MetricFieldType>::cleanup(){
   
   if(nelen == this->nelem) goto update_faces;
 
-  CPRINTF3(" - cleanup tetras %d -> %d \n",this->nelem,nelen);
+  CPRINTF3(" - cleanup tetras {} -> {} \n",this->nelem,nelen);
 
   for(int iface = 0; iface < this->nface; iface++){
     for(int ii = 0; ii < 2; ii++){
@@ -210,7 +216,7 @@ void Mesh<MetricFieldType>::cleanup(){
 
   if(nfacn == this->nface) goto update_edges;
 
-  CPRINTF3(" - cleanup faces %d -> %d \n",this->nface,nfacn);
+  CPRINTF3(" - cleanup faces {} -> {} \n",this->nface,nfacn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
     int ipoin = this->bpo2ibi(ibpoi,0); 
@@ -297,11 +303,18 @@ void Mesh<MetricFieldType>::cleanup(){
   if(nedgn == this->nedge) goto update_final; 
 
 
-  CPRINTF3(" - cleanup edges %d -> %d \n",this->nedge,nedgn);
+  CPRINTF3(" - cleanup edges {} -> {} \n",this->nedge,nedgn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
     int ipoin = this->bpo2ibi(ibpoi,0); 
     if(ipoin < 0) continue;
+    if(ipoin >= this->npoin){
+      fmt::print("ipoin = {} >= npoin = {}\n",ipoin,this->npoin);
+      fmt::print("ibpoi = {} : {}\n",ibpoi,intAr1(nibi,this->bpo2ibi[ibpoi]));
+      for(int ibpo2 = this->bpo2ibi(ibpoi,3); ibpo2 >= 0; ibpo2 = this->bpo2ibi(ibpo2,3)){
+        fmt::print("ibpo2 = {} : {}\n",ibpo2,intAr1(nibi,this->bpo2ibi[ibpo2]));
+      }
+    }
     METRIS_ASSERT(ipoin < this->npoin);
     int ityp = this->bpo2ibi(ibpoi,1); 
 
@@ -335,15 +348,16 @@ void Mesh<MetricFieldType>::cleanup(){
 
   // Recompute poi2ent 
   int tdimm = this->get_tdim();
-  for(int tdimn = tdimm; tdimn >= 1; tdimn--){
-    intAr2 &ent2poi = this->ent2poi(tdimn);
-    int nnode = this->nnode(tdimn);
-    int nentt = this->nentt(tdimn); 
+  for(int tdim = tdimm; tdim >= 1; tdim--){
+    intAr2 &ent2poi = this->ent2poi(tdim);
+    int nnode = getnnode(tdim,this->curdeg);
+    int nentt = this->nentt(tdim); 
     for(int ientt = 0; ientt < nentt; ientt++){
-      for(int ii = 0; ii < nnode; ii++){
-        int ipoin = ent2poi(ientt,ii);
-        this->poi2ent(ipoin,0) = ientt;
-        this->poi2ent(ipoin,1) = tdimn;
+      for(int ii = 0; ii < tdim + 1; ii++){
+        this->set_poi2ent(Vertex{ent2poi(ientt,ii)}, tdim, ientt);
+      }
+      for(int ii = tdim + 1; ii < nnode; ii++){
+        this->set_poi2ent(CtrlPt{ent2poi(ientt,ii)}, tdim, ientt);
       }
     }
   }

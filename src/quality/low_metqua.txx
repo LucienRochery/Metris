@@ -10,7 +10,7 @@
 
 #include "../aux_exceptions.hxx"
 
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../ho_quadrature.hxx"
 #include "../low_eval_d.hxx"
 #include "../linalg/explogmet.hxx"
@@ -23,7 +23,7 @@
 //#include "../low_localization.hxx"
 
 //#include "../codegen_ccoef.hxx"
-//#include "../low_ccoef.hxx"
+//#include "../low_geo/ccoef.hxx"
 
 /*
   Differentiation of quality/low_metqua.hxx functions. 
@@ -105,7 +105,7 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
   // Note, our jmat is transposed:
   // jmat[3*i+j] = d_i F_j
 
-  //printf("Debug ilag %d ideg %d jmat :\n",ilag,ideg);
+  //printf("Debug ilag {} ideg {} jmat :\n",ilag,ideg);
   //dblAr2(3,3,jmat).print();
 
 
@@ -156,11 +156,11 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
   //SANS::SurrealS<nvar,double> det 
   //  = detsym<3,SANS::SurrealS<nvar,double>>(J0tJtMJJ0);
 
-  if(tra.value() < 1.0e-16) METRIS_THROW_MSG(GeomExcept(),
+  if(tra.value() < 1.0e-16) METRIS_THROW_MSG(
     "NEGATIVE J^TMJ trace "<<tra.value());
     
 	if(abs(det.value()) < 1.0e-16 && power > 0) 
-     METRIS_THROW_MSG(GeomExcept(), "Singular J^TMJ det = "<<det);
+     METRIS_THROW_MSG( "Singular J^TMJ det = "<<det);
 
   if(gdim == 2){
 	  if(power > 0){
@@ -239,14 +239,14 @@ metqua_shell_d<ideg,ilag,nvar>
     int iopen;
     int iver = msh.getvertet<ideg>(iele0, ipoin);
     if(iver < 4 || iver >= 4 + 6*(getnnod1(ideg)-2))
-      METRIS_THROW_MSG(TopoExcept(),"VERTEX NOT ON EDGE")
+      METRIS_THROW_MSG("VERTEX NOT ON EDGE")
   
     int ied = (iver - 4) / (getnnod1(ideg) - 2);
   
     int ipoi1 = msh.tet2poi(iele0,lnoed3[ied][0]);
     int ipoi2 = msh.tet2poi(iele0,lnoed3[ied][1]);
     shell3(msh,ipoi1,ipoi2,iele0,mshell,nshell,lshell,&iopen);
-    if(iopen >= 0) METRIS_THROW_MSG(TopoExcept(),"SHELL IS OPEN IN OPTIM")
+    if(iopen >= 0) METRIS_THROW_MSG("SHELL IS OPEN IN OPTIM")
   }
   
   constexpr int nrfld = getnnod3(ideg);
@@ -265,7 +265,7 @@ metqua_shell_d<ideg,ilag,nvar>
 
         SANS::SurrealS<3,double> qutet = 0;
         metqua_d<ideg,ilag,ivar,nvar>(msh,ielem,power,dmetvar,dpoivar,&qutet);
-        if(qutet < 0) METRIS_THROW_MSG(GeomExcept(),
+        if(qutet < 0) METRIS_THROW_MSG(
           "NEGATIVE ELEMENT QUALITY = "<<qutet<<" ielem = "<<ielem)
     
         (*qushe) += qutet;

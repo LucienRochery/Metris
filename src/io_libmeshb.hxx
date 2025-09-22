@@ -8,7 +8,7 @@
 
 
 #include <string>
-#include "../libs/libmeshb.hxx"
+#include "libmeshb.hxx"
 #include "Mesh/MeshFwd.hxx"
 #include "types.hxx"
 
@@ -39,8 +39,9 @@ int64_t MetrisOpenMeshFile(std::string name, int *meshDim);
 //void iniMesh(MetrisOptions &opt, int usrMinDeg, int usrMaxDeg, Mesh &msh);
 
 void writeMeshCavity(std::string meshName, MeshBase &msh, const MshCavity& cav);
-void writeMesh(std::string meshName, MeshBase &msh, bool iprefix = true,
-               int nedg0 = 0, int nfac0 = 0, int nele0 = 0);
+void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix = true,
+               int iedg0 = 0, int ifac0 = 0, int iele0 = 0,
+               int iedg1 = -1, int ifac1 = -1, int iele1 = -1);
 
 template<class MFT>
 void writeBackLinks(std::string solName, Mesh<MFT>& msh);

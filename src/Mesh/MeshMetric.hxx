@@ -43,7 +43,7 @@ public:
 
   MeshClass meshClass() const override { return MeshClass::MeshMetric; }
 
-	MeshMetric() : MeshBase(), met(*this){}
+	MeshMetric() : MeshBase(), met(*this) {}
 
 
   void set_npoin(int npoin, bool skipallocf = false) override; 
@@ -65,7 +65,7 @@ public:
 
 		int nwork = met.getnnmet()*npoin;
 		double *rwork = getrwork(nwork);
-		if(rwork == NULL) METRIS_THROW_MSG(DMemExcept(), "Unable to recover rwork array");
+		if(rwork == NULL) METRIS_THROW_MSG( "Unable to recover rwork array");
 
 		met.setBasis(ibasis,nwork,rwork);
 	}

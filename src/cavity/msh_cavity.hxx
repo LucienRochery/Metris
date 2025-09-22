@@ -62,12 +62,14 @@ public:
       lctet.set_n(0);
       lcfac.set_n(0);
       lcedg.set_n(0);
+      inewp = -1;
     }
   
 	void reset(){
-		ipins =-1;
+		ipins = -1;
 		nrempts = 0;
 		iremcor = -1;
+    inewp = -1;
     lcedg.set_n(0);
     lcfac.set_n(0);
     lctet.set_n(0);
@@ -120,6 +122,13 @@ public:
     }
   }
 
+  int get_tdim() const{
+         if(lctet.get_n() > 0) return 3;
+    else if(lcfac.get_n() > 0) return 2;
+    else if(lcedg.get_n() > 0) return 1;
+    return 0;
+  }
+
   void print(const MeshBase &msh, int iforce = 0) const;
 
   /* User set data */
@@ -145,10 +154,11 @@ public:
   // Internal use
 	// Store removed points, whether a corner is removed and if so which one (one at the most)
 	int nrempts, iremcor, maxtag;
-  bool inewp; // is ipins a whole new point or already in the mesh?
+  int inewp; // is ipins a whole new point or already in the mesh?
 
 
 };
+
 
 struct CavOprOpt{
 	// If a partial initial cavity is supplied, this should be set to 1.
@@ -256,7 +266,12 @@ struct CavWrkArrs{
   intAr1 lfcco;
 
   // Store normals for each connex component of the cavity.
-  dblAr2 lnorf;
+  dblAr2 lnorcco;
+  dblAr1 lnordevcco;
+
+  // -- Line cavity info, for update_cavity
+  intAr1 lseed; // store the seed edge (initially in the cavity) that lead to a new element
+  intAr1 lnewe; // store the final edge associated to this seed
 
   // Store edge (reference, sign) pairs 
   // for edges that bound a connex component of the face cavity. 
@@ -270,7 +285,8 @@ struct CavWrkArrs{
 
     lfcco.allocate(100);
 
-    lnorf.allocate(10,3);
+    lnorcco.allocate(10,3);
+    lnordevcco.allocate(10);
     edcco.allocate(10);
   }
 
@@ -305,7 +321,10 @@ int update_cavity(Mesh<MetricFieldType> &msh, MshCavity &cav, const CavWrkArrs &
 // point is included in the line cavity. 
 template<class MetricFieldType, int ideg>
 int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts, 
-                     int ithread);//,int mnwedg, int *nnwedg,int lnwedg[]);
+                     int ithread);
+template<class MetricFieldType, int ideg>
+int reconnect_lincav2(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts, 
+                     int ithread);
 
 
 // The boundary here is a set of edges. They will be reconnected to ipins. 

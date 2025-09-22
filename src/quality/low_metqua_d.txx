@@ -10,7 +10,7 @@
 
 #include "../aux_exceptions.hxx"
 
-#include "../low_geo.hxx"
+#include "../low_geo/misc.hxx"
 #include "../ho_quadrature.hxx"
 //#include "../low_eval_d.hxx"
 #include "../linalg/explogmet.hxx"
@@ -23,7 +23,7 @@ namespace Metris{
 //#include "../low_localization.hxx"
 
 //#include "../codegen_ccoef.hxx"
-//#include "../low_ccoef.hxx"
+//#include "../low_geo/ccoef.hxx"
 
 #if 0
 template <class MFT, int gdim, int tdim, int mshdeg, 
@@ -38,10 +38,10 @@ void d_quafun_distortion(Mesh<MFT> &msh, int ielem, int power,
 
   METRIS_ASSERT(power != 0);
 
-  if(msh.met.getSpace() != MetSpace::Log) METRIS_THROW_MSG(WArgExcept(),
+  if(msh.met.getSpace() != MetSpace::Log) METRIS_THROW_MSG(
       "## SET MESH METRIC TO LOG BEFORE CALLING metqua2_xi");
 
-  if(msh.getBasis() != FEBasis::Bezier ) METRIS_THROW_MSG(WArgExcept(), 
+  if(msh.getBasis() != FEBasis::Bezier ) METRIS_THROW_MSG( 
       "## METQUA DIFF ONLY AVAILABLE IN BEZIER");
 
   // Differentiate or don't, but there is no barycentric derivative in this context 
@@ -88,7 +88,7 @@ void d_quafun_distortion(Mesh<MFT> &msh, int ielem, int power,
   if(tdim == 3) tra += J0tJtMJJ0_diag[2];
   
   // This is an actual exception that should never theoretically happen. 
-  if(tra < 1.0e-16) METRIS_THROW_MSG(GeomExcept(), "NEGATIVE J^TMJ trace "<<tra);
+  if(tra < 1.0e-16) METRIS_THROW_MSG( "NEGATIVE J^TMJ trace "<<tra);
 
 
   ftype det ;
@@ -105,7 +105,7 @@ void d_quafun_distortion(Mesh<MFT> &msh, int ielem, int power,
   }
 
   if(abs(det) < 1.0e-16 && power > 0) 
-     METRIS_THROW_MSG(GeomExcept(), "Singular J^TMJ det = "<<det);
+     METRIS_THROW_MSG( "Singular J^TMJ det = "<<det);
 
   if constexpr (tdim == 2){
     if(power > 0){
@@ -133,13 +133,13 @@ d_quafun_distortion<MFT,gdim,mshdeg,metdeg,ivar,ftype>::d_quafun_distortion(Mesh
   static_assert(gdim == 2 || gdim == 3);
   METRIS_ASSERT(gdim == msh.idim);
   METRIS_ASSERT(power != 0);
-  if(msh.met.getSpace() != MetSpace::Log) METRIS_THROW_MSG(WArgExcept(),
+  if(msh.met.getSpace() != MetSpace::Log) METRIS_THROW_MSG(
       "## SET MESH METRIC TO LOG BEFORE CALLING metqua2_xi");
-  if(msh.getBasis() != FEBasis::Bezier ) METRIS_THROW_MSG(WArgExcept(), 
+  if(msh.getBasis() != FEBasis::Bezier ) METRIS_THROW_MSG( 
       "## METQUA DIFF ONLY AVAILABLE IN BEZIER");
   // Differentiate or don't, but there is no barycentric derivative in this context 
   METRIS_ASSERT(metderiv == DifVar::None || metderiv == DifVar::Phys);
-  if(metderiv != DifVar::None) METRIS_THROW_MSG(TODOExcept(), 
+  if(metderiv != DifVar::None) METRIS_THROW_MSG( 
                            "Metric field derivative not implemented in quality")
 
   constexpr int tdim  = gdim;
@@ -178,7 +178,7 @@ d_quafun_distortion<MFT,gdim,mshdeg,metdeg,ivar,ftype>::d_quafun_distortion(Mesh
   //                                                            jmatS,invtJ_0tJ_K);
   //HERE;
 
-  METRIS_THROW_MSG(TODOExcept(),"ORDELT ARRAY REMOVED -> FIX d_quafun_distortion here");
+  METRIS_THROW_MSG("TODO: ORDELT ARRAY REMOVED -> FIX d_quafun_distortion here");
   //constexpr auto ordent = ORDELT_ARRAY(tdim); 
   //constexpr std::array<int,tdim+1> idxP = ordent[mshdeg][ivar];
   //constexpr std::array<int,tdim+1> idx1 = ordent[mshdeg][ivar] - ordent[1][0];
@@ -217,7 +217,7 @@ d_quafun_distortion<MFT,gdim,mshdeg,metdeg,ivar,ftype>::d_quafun_distortion(Mesh
   if(tdim == 3) tra += J0tJtMJJ0_diag[2];
   
   // This is an actual exception that should never theoretically happen. 
-  if(tra < 1.0e-16) METRIS_THROW_MSG(GeomExcept(), "NEGATIVE J^TMJ trace "<<tra);
+  if(tra < 1.0e-16) METRIS_THROW_MSG( "NEGATIVE J^TMJ trace "<<tra);
 
 
   ftype det ;
@@ -234,7 +234,7 @@ d_quafun_distortion<MFT,gdim,mshdeg,metdeg,ivar,ftype>::d_quafun_distortion(Mesh
   }
 
   if(abs(det) < 1.0e-16 && power > 0) 
-     METRIS_THROW_MSG(GeomExcept(), "Singular J^TMJ det = "<<det);
+     METRIS_THROW_MSG( "Singular J^TMJ det = "<<det);
 
   if constexpr (tdim == 2){
     if(power > 0){
@@ -330,7 +330,7 @@ OLD IMPLEMENTATIONS
 //  // Note, our jmat is transposed:
 //  // jmat[3*i+j] = d_i F_j
 //
-//  //printf("Debug ilag %d ideg %d jmat :\n",ilag,ideg);
+//  //printf("Debug ilag {} ideg {} jmat :\n",ilag,ideg);
 //  //dblAr2(3,3,jmat).print();
 //
 //
@@ -375,11 +375,11 @@ OLD IMPLEMENTATIONS
 //  //SANS::SurrealS<gdim,double> det 
 //  //  = detsym<3,SANS::SurrealS<gdim,double>>(J0tJtMJJ0);
 //
-//  if(tra.value() < 1.0e-16) METRIS_THROW_MSG(GeomExcept(),
+//  if(tra.value() < 1.0e-16) METRIS_THROW_MSG(
 //    "NEGATIVE J^TMJ trace "<<tra.value());
 //    
 //  if(abs(det.value()) < 1.0e-16 && power > 0){
-//    METRIS_THROW_MSG(GeomExcept(),
+//    METRIS_THROW_MSG(
 //    "Singular J^TMJ det = "<<det.value()<<" met det "<<detsym<3>(met)
 //    <<" prod det "<<det1<<" met = "<<
 //    met[0]<<" "<<met[1]<<" "<<met[2]<<" "<<
@@ -457,14 +457,14 @@ OLD IMPLEMENTATIONS
 //    int iopen;
 //    int iver = getvertet<ideg>(iele0, msh.tet2poi, ipoin);
 //    if(iver < 4 || iver >= 4 + 6*(getnnod1(ideg)-2))
-//      METRIS_THROW_MSG(TopoExcept(),"VERTEX NOT ON EDGE")
+//      METRIS_THROW_MSG("VERTEX NOT ON EDGE")
 //  
 //    int ied = (iver - 4) / (getnnod1(ideg) - 2);
 //  
 //    int ipoi1 = msh.tet2poi(iele0,lnoed3[ied][0]);
 //    int ipoi2 = msh.tet2poi(iele0,lnoed3[ied][1]);
 //    shell3(msh,ipoi1,ipoi2,iele0,mshell,nshell,lshell,&iopen);
-//    if(iopen >= 0) METRIS_THROW_MSG(TopoExcept(),"SHELL IS OPEN IN OPTIM")
+//    if(iopen >= 0) METRIS_THROW_MSG("SHELL IS OPEN IN OPTIM")
 //  }
 //  
 //  constexpr int nrfld = getnnod3(ideg);
@@ -483,7 +483,7 @@ OLD IMPLEMENTATIONS
 //
 //        SANS::SurrealS<3,double> qutet = 0;
 //        metqua3_d<ideg,ilag,ivar,gdim>(msh,ielem,power,dmetvar,dpoivar,&qutet);
-//        if(qutet < 0) METRIS_THROW_MSG(GeomExcept(),
+//        if(qutet < 0) METRIS_THROW_MSG(
 //          "NEGATIVE ELEMENT QUALITY = "<<qutet<<" ielem = "<<ielem)
 //    
 //        (*qushe) += qutet;
