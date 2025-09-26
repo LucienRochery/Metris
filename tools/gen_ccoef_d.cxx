@@ -6,7 +6,7 @@
 #include "gen_ccoef.hxx"
 #include "ho_constants.hxx"
 #include "aux_exceptions.hxx"
-#include <../SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h>
+#include <SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h>
 
 #include <sstream>
 #include <fstream>

@@ -15,7 +15,7 @@
 //#include "../low_eval_d.hxx"
 #include "../linalg/explogmet.hxx"
 
-#include "../../SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
+#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
 
 
 namespace Metris{

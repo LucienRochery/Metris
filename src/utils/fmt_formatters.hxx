@@ -7,6 +7,7 @@
 #define __METRIS_FMT_FORMATTERS__
 
 #include "fmt/format.h"
+#include "fmt/ostream.h"
 
 #include <egads.h>
 #include "../types_arrays.hxx"
@@ -43,22 +44,25 @@ std::ostream& operator<<(std::ostream& _os, const std::pair<T1, T2>& _p) {
 //  }
 //};
 
-template<typename T1, typename T2>
-struct fmt::formatter<std::pair<T1, T2>> : fmt::ostream_formatter {};
+//fmt::ostream_formatter was temporarily removed from version 8 to 9...
+#if FMT_VERSION < 80000 || FMT_VERSION >= 90000
+  template<typename T1, typename T2>
+  struct fmt::formatter<std::pair<T1, T2>> : fmt::ostream_formatter {};
 
-template<int N, typename T>
-struct fmt::formatter<SANS::SurrealS<N, T>> : fmt::ostream_formatter {};
+  template<int N, typename T>
+  struct fmt::formatter<SANS::SurrealS<N, T>> : fmt::ostream_formatter {};
 
-template<typename T, typename INT1>
-struct fmt::formatter<Metris::MeshArray1D<T, INT1>> : fmt::ostream_formatter {};
+  template<typename T, typename INT1>
+  struct fmt::formatter<Metris::MeshArray1D<T, INT1>> : fmt::ostream_formatter {};
 
-template<typename T, typename INT1, typename INT2>
-struct fmt::formatter<Metris::MeshArray2D<T, INT1, INT2>> : fmt::ostream_formatter {};
+  template<typename T, typename INT1, typename INT2>
+  struct fmt::formatter<Metris::MeshArray2D<T, INT1, INT2>> : fmt::ostream_formatter {};
 
-template<>
-struct fmt::formatter<Metris::MinMaxAvg> : fmt::ostream_formatter {};
+  template<>
+  struct fmt::formatter<Metris::MinMaxAvg> : fmt::ostream_formatter {};
 
-template<>
-struct fmt::formatter<Metris::MeshStat> : fmt::ostream_formatter {};
+  template<>
+  struct fmt::formatter<Metris::MeshStat> : fmt::ostream_formatter {};
+#endif
 
 #endif
