@@ -7,7 +7,6 @@
 #define __METRIS_FMT_FORMATTERS__
 
 #include "fmt/format.h"
-#include "fmt/ostream.h"
 
 #include <egads.h>
 #include "../types_arrays.hxx"
