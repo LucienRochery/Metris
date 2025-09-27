@@ -373,7 +373,7 @@ add_custom_target(metris_regression_tests_build
 
 # --- Install libMetris
 
-install(TARGETS libMetris libmeshb lplib3 alglib metris_deps EXPORT libMetrisTargets
+install(TARGETS libMetris metris_deps EXPORT libMetrisTargets
   RUNTIME  DESTINATION   ${CMAKE_INSTALL_BINDIR}
            COMPONENT     runtime OPTIONAL
   LIBRARY  DESTINATION   ${CMAKE_INSTALL_LIBDIR}

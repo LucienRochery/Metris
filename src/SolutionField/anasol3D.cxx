@@ -6,7 +6,7 @@
 
 #include "anasol.hxx"
 
-#include "../../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 #include "../aux_exceptions.hxx"
 #include "../linalg/symidx.hxx"
 

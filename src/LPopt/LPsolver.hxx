@@ -6,7 +6,7 @@
 #ifndef __METRIS_LPSOLVER__
 #define __METRIS_LPSOLVER__
 
-#include "../libs/alglib-cpp/src/optimization.h"
+#include "alglib-cpp/src/optimization.h"
 
 #include "../types.hxx"
 

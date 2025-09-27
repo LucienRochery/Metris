@@ -7,7 +7,7 @@
 #ifndef __METRIS_LOW_GEO_NRML2__
 #define __METRIS_LOW_GEO_NRML2__
 
-#include "../../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 #include "../types_scalar.hxx"
 #include "../Arrays/aux_msharrays.hxx"
 

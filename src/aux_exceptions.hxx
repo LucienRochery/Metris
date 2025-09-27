@@ -79,17 +79,17 @@ for boost::exception docs.
 
 // Using fmt::format is deadly when compiling with clang -fsanitize=address
 #ifndef NO_EXCEPT_MESSAGES
-  #define METRIS_ENFORCE_MSG(x, FMT__, ...) \
-      if(!(x)) { throw Metris::MetrisAssert(#x, fmt::format(FMT__, ##__VA_ARGS__)); }
+  #define METRIS_ENFORCE_MSG(x, ...) \
+      if(!(x)) { throw Metris::MetrisAssert(#x, fmt::format(__VA_ARGS__)); }
 #else
-  #define METRIS_ENFORCE_MSG(x, FMT__, ...) METRIS_ENFORCE(x)
+  #define METRIS_ENFORCE_MSG(x, ...) METRIS_ENFORCE(x)
 #endif
 #ifndef NDEBUG
     #define METRIS_ASSERT(x) METRIS_ENFORCE(x)
-    #define METRIS_ASSERT_MSG(x, FMT__, ...) METRIS_ENFORCE_MSG(x, FMT__, ##__VA_ARGS__)
+    #define METRIS_ASSERT_MSG(x, ...) METRIS_ENFORCE_MSG(x, __VA_ARGS__)
 #else
     #define METRIS_ASSERT(x) {};
-    #define METRIS_ASSERT_MSG(x, FMT__, ...) {};
+    #define METRIS_ASSERT_MSG(x, ...) {};
 #endif
 #define METRIS_TRY0(x) try{x;}catch(const Metris::MetrisExcept &){}
 

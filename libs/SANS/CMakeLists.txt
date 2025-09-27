@@ -18,11 +18,9 @@ if(USE_GMP)
   target_include_directories(libSANS_Metris PUBLIC ${GMP_INCLUDE_DIRS})
 endif()
 
-# Install the static library archive.
 install(TARGETS libSANS_Metris
-    EXPORT libMetrisTargets # Associate this target with our export set
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
+        EXPORT libMetrisTargets 
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 export(TARGETS libSANS_Metris FILE libMetrisTargets.cmake APPEND)
 
