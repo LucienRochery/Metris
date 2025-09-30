@@ -9,6 +9,7 @@
 
 #include "quafun_distortion.hxx"
 #include "quafun_unit.hxx"
+#include "quafun_sizeshape.hxx"
 
 #include "../metris_constants.hxx"
 #include "../aux_exceptions.hxx"
@@ -20,18 +21,20 @@ namespace Metris{
   // Distortion is C det(JK^T M JK)^(1/n) / tra(JK^T M JK)
   // Unit is cf quafun_unit.cxx not being used currently.
   // Distortion has additionally a normal deviation penalization term.
-  // Weights are given by 
+  // Weights are given by
 
-  enum class QuaFun{Distortion,Unit};
+  enum class QuaFun{Distortion,Unit,SizeShape};
 
 
-  template<class MFT, int gdim, int tdim, 
+  template<class MFT, int gdim, int tdim,
            QuaFun iquaf, class ftype=double>
   constexpr auto get_quafun_xi(){
     if constexpr(iquaf == QuaFun::Distortion){
       return quafun_distortion<MFT,gdim,tdim,ftype>;
     }else if(iquaf == QuaFun::Unit){
       return quafun_unit<MFT,gdim,tdim,ftype>;
+    }else if(iquaf == QuaFun::SizeShape){
+      return quafun_sizeshape<MFT,gdim,tdim,ftype>;
     }else{
       METRIS_THROW_MSG("TODO: Implement QuaFun in get_quafun_xi");
     }
@@ -39,13 +42,15 @@ namespace Metris{
     return quafun_distortion<MFT,gdim,tdim,ftype>;
   }
 
-  template<class MFT, int gdim, int tdim, 
+  template<class MFT, int gdim, int tdim,
            QuaFun iquaf, class ftype=double>
   constexpr auto get_d_quafun_xi(){
     if constexpr(iquaf == QuaFun::Distortion){
       return d_quafun_distortion<MFT,gdim,tdim,ftype>;
     }else if(iquaf == QuaFun::Unit){
       return d_quafun_unit<MFT,gdim,tdim,ftype>;
+    }else if(iquaf == QuaFun::SizeShape){
+      return d_quafun_sizeshape<MFT,gdim,tdim,ftype>;
     }else{
       METRIS_THROW_MSG("TODO: Implement QuaFun in get_quafun_xi");
     }
@@ -56,14 +61,14 @@ namespace Metris{
 
   //template<class MFT> class Mesh;
 
-  //template<class MFT, int gdim, int tdim, int ideg, 
+  //template<class MFT, int gdim, int tdim, int ideg,
   //          AsDeg asdmsh, AsDeg asdmet, class ftype=double>
   //struct quafun_t{
 
   //}
 
   #if 0
-  template<class MFT, int gdim, int tdim, int ideg, 
+  template<class MFT, int gdim, int tdim, int ideg,
             AsDeg asdmsh, AsDeg asdmet, class ftype=double>
   struct QuaFunList{
 
@@ -75,7 +80,7 @@ namespace Metris{
     using   quafun_xi_t = std::function<ftype(Mesh<MFT>&,
                                const int*__restrict__,const double*__restrict__,
                                int, double*__restrict__)>;
-#if 0 
+#if 0
 
     quafun_t quafun(QuaFun iquaf){
       if(iquaf == QuaFun::Distortion){
