@@ -122,8 +122,10 @@ if (NOT EIGEN3_INCLUDE_DIRS)
   )
   FetchContent_MakeAvailable(Eigen3)
   set(EIGEN3_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/eigen3-src/")
-  install(DIRECTORY ${EIGEN3_INCLUDE_DIRS}/Eigen ${EIGEN3_INCLUDE_DIRS}/unsupported
-          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  if(METRIS_INSTALL)
+    install(DIRECTORY ${EIGEN3_INCLUDE_DIRS}/Eigen ${EIGEN3_INCLUDE_DIRS}/unsupported
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  endif()
   message("EIGEN3_INCLUDE_DIRS = ${EIGEN3_INCLUDE_DIRS}")
   #list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIRS})
   list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIRS}>)
@@ -352,22 +354,26 @@ else()
     message(FATAL_ERROR "fmt was not fetched correctly.")
   endif()
 
-  install(DIRECTORY ${fmt_fetch_SOURCE_DIR}/include/
-          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-          FILES_MATCHING PATTERN "*.h*")
+  if(METRIS_INSTALL)
+    install(DIRECTORY ${fmt_fetch_SOURCE_DIR}/include/
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+            FILES_MATCHING PATTERN "*.h*")
+  endif()
 
   # This is to suppress the warning that PUBLIC_HEADER exists but not
   # being installed. For some reason, we can't get that to install 
   # correctly, and are installing headers manually. 
   set_target_properties(fmt PROPERTIES PUBLIC_HEADER "")
 
-  install(TARGETS fmt
-          EXPORT libMetrisTargets
-          LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
-          RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
-          #PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-          )
+  if(METRIS_INSTALL)
+    install(TARGETS fmt
+            EXPORT libMetrisTargets
+            LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
+            RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
+            #PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+            )
+  endif()
 
   if(NOT TARGET fmt::fmt)
     add_library(fmt::fmt ALIAS fmt)
@@ -388,10 +394,12 @@ FetchContent_MakeAvailable(json_fetch)
 if(NOT TARGET nlohmann_json::nlohmann_json)
   add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)
 endif()
-install(FILES ${json_fetch_SOURCE_DIR}/single_include/nlohmann/json.hpp
-              ${json_fetch_SOURCE_DIR}/single_include/nlohmann/json_fwd.hpp
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/nlohmann/
-        )
+if(METRIS_INSTALL)
+  install(FILES ${json_fetch_SOURCE_DIR}/single_include/nlohmann/json.hpp
+                ${json_fetch_SOURCE_DIR}/single_include/nlohmann/json_fwd.hpp
+          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/nlohmann/
+          )
+endif()
 list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${json_fetch_SOURCE_DIR}/single_include>)
 list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
 metris_register_dependency("FetchContent" "json" "")
@@ -514,14 +522,16 @@ else()
     if(NOT TARGET NLopt::nlopt)
       add_library(NLopt::nlopt ALIAS nlopt)
     endif()
-    install(DIRECTORY ${nlopt_fetch_BINARY_DIR}
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-            FILES_MATCHING PATTERN "*.h*")
-    install(TARGETS nlopt
-            EXPORT libMetrisTargets
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    if(METRIS_INSTALL)
+      install(DIRECTORY ${nlopt_fetch_BINARY_DIR}
+              DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+              FILES_MATCHING PATTERN "*.h*")
+      install(TARGETS nlopt
+              EXPORT libMetrisTargets
+              LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+              ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+              RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    endif()
             # Install NLopt headers if using FetchContent
     list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${nlopt_fetch_BINARY_DIR}>)
     list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
