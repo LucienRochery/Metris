@@ -140,61 +140,83 @@ ftype d_quafun_sizeshape(Mesh<MFT> &msh,
   int dpowd = iipow<tdim>(tdim);              // n^n
   ftype trapowdm2 = irpow<tdim-2,ftype>(tra); // tra^(n-2)
   ftype trapowdm1 = trapowdm2*tra;            // tra^(n-1)
-  ftype trapowd   = trapowdm1*tra;            // tra
+  ftype trapowd   = trapowdm1*tra;            // tra^n
 
-  // compute base quality Q: we have final quality is Q^|power|
-  // then derivative is |power|*Q^(|power|-1) dQ -> we need to compute Q
+  ftype quael1;
+  quael1 = trapowd*(1. + 1./(det*det))/(2.*dpowd);
+
   ftype quael;
-  if(power > 0){
-    quael = trapowd/(det*dpowd);
-  }else{
-    quael = (det*dpowd)/trapowd;
+  const int ppower = abs(power);
+  if(ivar < 0)
+  {
+    if (power < 0)
+      quael1 = 1./quael1;
+
+    quael = pow(quael1, ppower);
+
+    return quael;
   }
-  ftype quae1 = quael;
-  if(abs(power) != 1) quael = pow(quael, abs(power));
-
-
   // From here, we compute derivatives.
-  if(ivar < 0) return quael;
-  // See docs/quality/qualityiff.pdf for details
 
-
-  // Quality function is 1/(2*d^d) * tra^d * (1 + 1/det^2)
+  // Quality function base is 1/(2*d^d) * tra^d * (1 + 1/det^2)
   // derivative then:
   // 1/(2*d^d) * [ d * tra^(d-1) * dtra * (1 + 1/det^2) - 2 * tra^d/det^3 * ddet ]
   // hessian is to cumbersome to write...
   for(int ii = 0; ii < gdim; ii++){
-    dquael[ii] = 1/(2*dpowd) * (tdim * trapowdm1 * dtra[ii] * (1 + 1/(det*det))
-                  - 2 * trapowd / (det*det*det) * ddet[ii]);
+    dquael[ii] = 1./(2.*dpowd) * (tdim * trapowdm1 * dtra[ii] * (1. + 1./(det*det))
+                                - 2. * trapowd / (det*det*det) * ddet[ii]
+                               );
   }
   if(hquael != NULL){ // asking for hessian as well
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = ii; jj < gdim; jj++){
-        hquael[sym2idx(ii,jj)] = 1/(2*dpowd) * ( tdim * ( (tdim-1) * trapowdm2 * dtra[ii] * dtra[jj] * (1 + 1/(det*det)) \
-                                                          + trapowdm1 * ( htra[sym2idx(ii,jj)] * (1 + 1/(det*det)) - dtra[ii] / (det*det) * ddet[jj]) \
-                                                        ) \
-                                                 -2 * ( d * trapowdm1 * dtra[jj] / (det*det*det) * ddet[ii] + trapowd * ( -3/(det*det*det*det) * ddet[ii]*ddet[jj] \
-                                                                                                                          + 1/(det*det*det) * hdet[sym2idx(ii,jj)] \
-                                                                                                                        ) \
-                                                      ) \
+        hquael[sym2idx(ii,jj)] = 1./(2.*dpowd) * ( tdim * ( (tdim-1) * trapowdm2 * dtra[ii] * dtra[jj] * (1. + 1./(det*det))
+                                                          + trapowdm1 * ( htra[sym2idx(ii,jj)] * (1. + 1./(det*det)) - 2. * dtra[ii] / (det*det*det) * ddet[jj])
+                                                        )
+                                                 -2 * ( tdim * trapowdm1 * dtra[jj] / (det*det*det) * ddet[ii] + trapowd * ( -3./(det*det*det*det) * ddet[ii]*ddet[jj]
+                                                                                                                             + hdet[sym2idx(ii,jj)]/(det*det*det)
+                                                                                                                           )
+                                                      )
                                                );
       }
     }
   }
   if(power < 0){
-    for(int ii = 0; ii < gdim; ii++){
-      for(int jj = ii; jj < gdim; jj++)
-        hquael[sym2idx(ii,jj)] = 2 / (quae1*quae1*quae1) * dquael[ii] * dquael[jj] - 1 / (quae1*quae1) * hquael[sym2idx(ii,jj)];
+
+    if(hquael != NULL){
+      // modify Hessian first, as it uses the gradient
+      for(int ii = 0; ii < gdim; ii++){
+        for(int jj = ii; jj < gdim; jj++)
+          hquael[sym2idx(ii,jj)] = 2. / (quael1*quael1*quael1) * dquael[ii] * dquael[jj] - 1. / (quael1*quael1) * hquael[sym2idx(ii,jj)];
+      }
     }
 
+    // now modify the gradient
     for(int ii = 0; ii < gdim; ii++)
-      dquael[ii] = -dquael[ii]/(quae1*quae1);
+      dquael[ii] = -dquael[ii]/(quael1*quael1);
+
+    // finaly modify value itself
+    quael1 = 1./quael1;
   }
 
-  if(abs(power) != 1){
-    // Q^(abs(power)) , quael is Q^p, quae1 is just Q
+  quael = quael1;
+
+  // if we have the final quality as the base Q raised to a positive power
+  // modify value and derivatives accordingly
+  if(ppower != 1){
+    // Q^(abs(power)) , quael is Q^p, quael1 is just Q
+
+    quael = pow(quael, ppower);
+
+    if(hquael != NULL){
+      for(int ii = 0; ii < gdim; ii++){
+        for(int jj = ii; jj < gdim; jj++)
+          hquael[sym2idx(ii,jj)] = ppower * (ppower-1) * quael / (quael1*quael1) * dquael[ii] * dquael[jj] + ppower * quael/quael1 * hquael[sym2idx(ii,jj)];
+      }
+    }
+
     for(int ii = 0; ii < gdim; ii++){
-      dquael[ii] = abs(power)*dquael[ii]*quael/quae1;
+      dquael[ii] = ppower * dquael[ii] * quael/quael1;
     }
   }
 
