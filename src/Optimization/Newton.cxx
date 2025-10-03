@@ -7,7 +7,7 @@
 
 #include "linalg/invmat.hxx"
 #include "linalg/matprods.hxx"
-#include "../../SANS/tools/minmax.h"
+#include "SANS/tools/minmax.h"
 #include "types.hxx"
 #include "Optimization/opt_generic.hxx"
 #include "low_geo/misc.hxx"
