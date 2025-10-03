@@ -13,11 +13,11 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_CXX_EXTENSIONS OFF) # Otherwise get -std=gnu++17 messes with intel
 
-
+option(METRIS_INSTALL "Install Metris: disable if managing some of Metris deps" ON)
 
 # Get the name of the binary directory
-STRING( TOUPPER ${CMAKE_BINARY_DIR} BIN_DIR_NAME )
-GET_FILENAME_COMPONENT( BIN_DIR_NAME ${BIN_DIR_NAME} NAME_WE )
+string(TOUPPER ${CMAKE_BINARY_DIR} BIN_DIR_NAME)
+get_filename_component(BIN_DIR_NAME ${BIN_DIR_NAME} NAME_WE)
 
 # Suppress nlopt warnings. NEW policy does not work with what nlopt is trying to do.
 if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.27)
@@ -372,114 +372,115 @@ add_custom_target(metris_regression_tests_build
 
 
 # --- Install libMetris
-
-install(TARGETS libMetris libmeshb lplib3 alglib metris_deps EXPORT libMetrisTargets
-  RUNTIME  DESTINATION   ${CMAKE_INSTALL_BINDIR}
-           COMPONENT     runtime OPTIONAL
-  LIBRARY  DESTINATION   ${CMAKE_INSTALL_LIBDIR}
-           COMPONENT     runtime OPTIONAL
-           #NAMELINK_SKIP
-  #ARCHIVE  DESTINATION   ${CMAKE_INSTALL_LIBDIR}
-           #COMPONENT     Y
-  INCLUDES DESTINATION   ${CMAKE_INSTALL_INCLUDEDIR})
-
-
-# Install all headers. We don't have any specific public headers, users can do anything (as we do in unit tests at times, for instance)
-install(
-  FILES ${PROJECT_SOURCE_DIR}/src/Metris.h
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/src/
-)
-install(
-  DIRECTORY ${PROJECT_SOURCE_DIR}/src/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/src/
-  FILES_MATCHING
-    PATTERN "*.hxx"
-    PATTERN ".*" EXCLUDE
-)
-
-install(
-  DIRECTORY ${PROJECT_SOURCE_DIR}/SANS/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/SANS/
-  FILES_MATCHING
-    PATTERN "*.h"
-    PATTERN ".*" EXCLUDE
-)
-
-install(
-  DIRECTORY ${PROJECT_SOURCE_DIR}/libs/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libs/
-  FILES_MATCHING
-    PATTERN "*.h*"
-    PATTERN ".*" EXCLUDE
-)
-
-install(EXPORT libMetrisTargets
-  FILE libMetrisTargets.cmake
-  NAMESPACE Metris::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Metris
-)
-
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfigVersion.cmake"
-    #VERSION ${PROJECT_VERSION}
-    COMPATIBILITY AnyNewerVersion
-)
+if(METRIS_INSTALL)
+  install(TARGETS libMetris metris_deps EXPORT libMetrisTargets
+    RUNTIME  DESTINATION   ${CMAKE_INSTALL_BINDIR}
+            COMPONENT     runtime OPTIONAL
+    LIBRARY  DESTINATION   ${CMAKE_INSTALL_LIBDIR}
+            COMPONENT     runtime OPTIONAL
+            #NAMELINK_SKIP
+    #ARCHIVE  DESTINATION   ${CMAKE_INSTALL_LIBDIR}
+            #COMPONENT     Y
+    INCLUDES DESTINATION   ${CMAKE_INSTALL_INCLUDEDIR})
 
 
+  # Install all headers. We don't have any specific public headers, users can do anything (as we do in unit tests at times, for instance)
+  install(
+    FILES ${PROJECT_SOURCE_DIR}/src/Metris.h
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/src/
+  )
+  install(
+    DIRECTORY ${PROJECT_SOURCE_DIR}/src/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/src/
+    FILES_MATCHING
+      PATTERN "*.hxx"
+      PATTERN ".*" EXCLUDE
+  )
 
-set(METRIS_DEPS_EXPORT_CODE "")
-foreach(dep_entry ${METRIS_CONFIG_DEPENDENCIES})
-  message( "dep_entry = ${dep_entry}")
-  string(REPLACE "|" ";" dep_parts "${dep_entry}")
-  list(GET dep_parts 0 dep_type)
-  list(GET dep_parts 1 dep_name)
-  list(GET dep_parts 2 dep_components)
-  message( "dep_type = ${dep_type}, dep_name = ${dep_name}, dep_components = ${dep_components}")
-  
-  if(dep_type STREQUAL "find_package")
-    if(dep_components)
-      string(APPEND METRIS_DEPS_EXPORT_CODE "find_dependency(${dep_name} COMPONENTS ${dep_components})\n")
-    else()
-      string(APPEND METRIS_DEPS_EXPORT_CODE "find_dependency(${dep_name})\n")
-    endif()
-  elseif(dep_type STREQUAL "FetchContent")
-    # For FetchContent dependencies, we need a different approach
-    string(APPEND METRIS_DEPS_EXPORT_CODE "# ${dep_name} was built via FetchContent and is included in the exported targets\n")
-  elseif(dep_type STREQUAL "provided")
-    # Parse the space separated components into two items:
-    string(REPLACE " " ";" dep_components "${dep_components}")
-    list(GET dep_components 0 DEP_LIBRARIES)
-    list(GET dep_components 1 DEP_INCLUDE_DIRS)
+  install(
+    DIRECTORY ${PROJECT_SOURCE_DIR}/SANS/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/SANS/
+    FILES_MATCHING
+      PATTERN "*.h"
+      PATTERN ".*" EXCLUDE
+  )
 
-    # For provided dependencies, we can just export the variables
-    string(APPEND METRIS_DEPS_EXPORT_CODE "list(APPEND METRIS_LIBRARIES ${DEP_LIBRARIES})\n")
-    string(APPEND METRIS_DEPS_EXPORT_CODE "list(APPEND METRIS_INCLUDE_DIRS ${DEP_INCLUDE_DIRS})\n")
-  else()
-    message(FATAL_ERROR "Unknown dependency type: ${dep_type} for ${dep_name}")
-  endif()
-endforeach()
+  install(
+    DIRECTORY ${PROJECT_SOURCE_DIR}/libs/
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/libs/
+    FILES_MATCHING
+      PATTERN "*.h*"
+      PATTERN ".*" EXCLUDE
+  )
 
-#message(FATAL_ERROR "METRIS_DEPS_EXPORT_CODE = ${METRIS_DEPS_EXPORT_CODE}")
-
-configure_package_config_file(
-    "${PROJECT_SOURCE_DIR}/cmake/MetrisConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfig.cmake"
-    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Metris
-)
-
-install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfig.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfigVersion.cmake"
-    "${PROJECT_SOURCE_DIR}/cmake/FindNLopt.cmake"  # Install your custom finder
+  install(EXPORT libMetrisTargets
+    FILE libMetrisTargets.cmake
+    NAMESPACE Metris::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Metris
-)
+  )
 
-message("=================================================================")
-message(STATUS "Metris configure script end, using "
-        "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}, \n"
-        "CMAKE_INSTALL_LIBDIR = ${CMAKE_INSTALL_LIBDIR}, \n"
-        "CMAKE_INSTALL_INCLUDEDIR = ${CMAKE_INSTALL_INCLUDEDIR}, \n"
-        "CMAKE_INSTALL_BINDIR = ${CMAKE_INSTALL_BINDIR}, \n"
-        "METRIS_EXTERNAL_INCLUDE_DIRS = ${METRIS_EXTERNAL_INCLUDE_DIRS}")
-message("=================================================================")
+  include(CMakePackageConfigHelpers)
+  write_basic_package_version_file(
+      "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfigVersion.cmake"
+      #VERSION ${PROJECT_VERSION}
+      COMPATIBILITY AnyNewerVersion
+  )
+
+
+
+  set(METRIS_DEPS_EXPORT_CODE "")
+  foreach(dep_entry ${METRIS_CONFIG_DEPENDENCIES})
+    message( "dep_entry = ${dep_entry}")
+    string(REPLACE "|" ";" dep_parts "${dep_entry}")
+    list(GET dep_parts 0 dep_type)
+    list(GET dep_parts 1 dep_name)
+    list(GET dep_parts 2 dep_components)
+    message( "dep_type = ${dep_type}, dep_name = ${dep_name}, dep_components = ${dep_components}")
+    
+    if(dep_type STREQUAL "find_package")
+      if(dep_components)
+        string(APPEND METRIS_DEPS_EXPORT_CODE "find_dependency(${dep_name} COMPONENTS ${dep_components})\n")
+      else()
+        string(APPEND METRIS_DEPS_EXPORT_CODE "find_dependency(${dep_name})\n")
+      endif()
+    elseif(dep_type STREQUAL "FetchContent")
+      # For FetchContent dependencies, we need a different approach
+      string(APPEND METRIS_DEPS_EXPORT_CODE "# ${dep_name} was built via FetchContent and is included in the exported targets\n")
+    elseif(dep_type STREQUAL "provided")
+      # Parse the space separated components into two items:
+      string(REPLACE " " ";" dep_components "${dep_components}")
+      list(GET dep_components 0 DEP_LIBRARIES)
+      list(GET dep_components 1 DEP_INCLUDE_DIRS)
+
+      # For provided dependencies, we can just export the variables
+      string(APPEND METRIS_DEPS_EXPORT_CODE "list(APPEND METRIS_LIBRARIES ${DEP_LIBRARIES})\n")
+      string(APPEND METRIS_DEPS_EXPORT_CODE "list(APPEND METRIS_INCLUDE_DIRS ${DEP_INCLUDE_DIRS})\n")
+    else()
+      message(FATAL_ERROR "Unknown dependency type: ${dep_type} for ${dep_name}")
+    endif()
+  endforeach()
+
+  #message(FATAL_ERROR "METRIS_DEPS_EXPORT_CODE = ${METRIS_DEPS_EXPORT_CODE}")
+
+  configure_package_config_file(
+      "${PROJECT_SOURCE_DIR}/cmake/MetrisConfig.cmake.in"
+      "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfig.cmake"
+      INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Metris
+  )
+
+  install(FILES
+      "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfig.cmake"
+      "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfigVersion.cmake"
+      "${PROJECT_SOURCE_DIR}/cmake/FindNLopt.cmake"  # Install your custom finder
+      DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Metris
+  )
+
+  message("=================================================================")
+  message(STATUS "Metris configure script end, using "
+          "CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}, \n"
+          "CMAKE_INSTALL_LIBDIR = ${CMAKE_INSTALL_LIBDIR}, \n"
+          "CMAKE_INSTALL_INCLUDEDIR = ${CMAKE_INSTALL_INCLUDEDIR}, \n"
+          "CMAKE_INSTALL_BINDIR = ${CMAKE_INSTALL_BINDIR}, \n"
+          "METRIS_EXTERNAL_INCLUDE_DIRS = ${METRIS_EXTERNAL_INCLUDE_DIRS}")
+  message("=================================================================")
+endif()

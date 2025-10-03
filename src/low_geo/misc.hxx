@@ -12,7 +12,7 @@
 #include "../Mesh/MeshFwd.hxx"
 #include "../metris_constants.hxx"
 
-#include "../../SANS/Surreal/SurrealS.h"
+#include "SANS/Surreal/SurrealS.h"
 
 
 namespace Metris{
