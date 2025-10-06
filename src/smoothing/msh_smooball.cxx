@@ -8,9 +8,7 @@ Routine for "direct" smoothing as P1. From each (facet, metric) pair, generate r
 Simplest possible approach.
 */
 
-// #undef USE_LPLIB_SMOOTHINTERIOR
-
-#include "../Mesh/Mesh.hxx"
+#include "../Mesh/Mesh.hxx" 
 #include "../MetrisRunner/MetrisParameters.hxx"
 
 #include "../smoothing/msh_smooball.hxx"
@@ -23,9 +21,10 @@ Simplest possible approach.
 #include "../quality/low_metqua.hxx"
 #include "../io_libmeshb.hxx"
 
-#ifdef USE_LPLIB_SMOOTHINTERIOR
-#include "../libs/lplib3.h"
-#endif
+#include "lplib3/lplib3.h"
+
+#undef USE_LPLIB_SMOOTHINTERIOR 
+
 
 namespace Metris{
 
@@ -34,9 +33,9 @@ double smoothInterior_Ball(Mesh<MFT> &msh, QuaFun iquaf, int ithrd1, int ithrd2)
 
   int tdimn = msh.get_tdim();
 
-  if(tdimn == 1) METRIS_THROW(TODOExcept());
+  METRIS_ASSERT_MSG(tdimn > 1, "TODO: edge smooth interior ball");
 
-  // Geo and topo dimn must match otherwise surface specific
+  // Geo and topo dimn must match otherwise surface specific 
   METRIS_ASSERT(tdimn == msh.idim);
   double noper;
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
@@ -44,39 +43,79 @@ double smoothInterior_Ball(Mesh<MFT> &msh, QuaFun iquaf, int ithrd1, int ithrd2)
       noper = smoothInterior_Ball0<MFT,2,ideg>(msh,iquaf,ithrd1,ithrd2);
     }else{
       noper = smoothInterior_Ball0<MFT,3,ideg>(msh,iquaf,ithrd1,ithrd2);
-    }
+    } 
   }}CT_FOR1(ideg);
 
-  return noper;
+  return noper; 
 }
 
-template double smoothInterior_Ball<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh,
+template double smoothInterior_Ball<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, 
                                              QuaFun iquaf, int ithrd1, int ithrd2);
-template double smoothInterior_Ball<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh,
+template double smoothInterior_Ball<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, 
                                              QuaFun iquaf, int ithrd1, int ithrd2);
+
+
 
 
 // idim: gdim = tdim
 template<class MFT, int idim, int ideg>
-double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
+double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf, 
                             int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
 
   constexpr int tdim = idim;
   //constexpr int gdim = idim;
   if(ideg > idim + 1){
-    printf("## SMOOTHING DISABLED FOR DEGREE %d and dim %d \n",ideg,idim);
+    PRINTF("## SMOOTHING DISABLED FOR DEGREE {} and dim {} \n",ideg,idim);
     return -1.0;
   }
 
+
   int nentt = msh.nentt(tdim);
-  const intAr2 &ent2poi = msh.ent2poi(tdim);
-  const intAr2 &ent2ent = msh.ent2ent(tdim);
+  const intAr2 &ent2poi = msh.ent2poi(tdim); 
+  const intAr2 &ent2ent = msh.ent2ent(tdim); 
+
+
+  #ifdef USE_LPLIB_SMOOTHINTERIOR
+    // LPlib init
+    int nproc = msh.param->nproc;
+    int nthread = GetNumberOfCores();
+    if(nthread <= 0){
+      CPRINTF1("## WARNING: LPlib function GetNumberOfCores() returned " 
+               "negative threads. Set to default {}.\n",METRIS_MAXTAGS);
+      nthread = METRIS_MAXTAGS;
+    }else{
+      CPRINTF2("-- LPlib found ncore = {} \n",nthread);
+      if(nthread > METRIS_MAXTAGS){
+        CPRINTF1("## WARNING: must verify nthread <= METRIS_MAXTAGS = {}." 
+                " Increase in metris_constants.hxx.\n", METRIS_MAXTAGS);
+        nthread = METRIS_MAXTAGS;
+      }
+    }
+    if(nproc > 0) nthread = MIN(nthread, nproc);
+    int64_t LibIdx = InitParallel(nthread);
+    int LP_elt = NewType(LibIdx, nentt);
+    int LP_poi = NewType(LibIdx, msh.npoin);
+    float LP_stat[2];
+    BeginDependency(LibIdx, LP_elt, LP_poi);
+    for(int ientt = 0; ientt < nentt; ientt++){
+      for(int ii = 0; ii < tdim + 1; ii++) 
+        AddDependency(LibIdx, ientt+1, ent2poi(ientt,ii)+1);
+    }
+    EndDependency(LibIdx, LP_stat);
+    // END LPlib init
+
+    int itag_shared = ithrd1;
+    // ithrd2 can be used freely as it is for elements, whose collisions are
+    // avoided by LPlib
+  #endif
 
   //msh.met.setSpace(MetSpace::Log);
 
-  // Eventually move all constants to MetrisParameters
-  // L2 conformity error from 0 to 1
+
+
+  // Eventually move all constants to MetrisParameters 
+  // L2 conformity error from 0 to 1 
   const double difto = 1.0;
   const int miter = msh.param->opt_smoo_niter;
   //const double maxwt = 20.0;
@@ -89,17 +128,20 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
     MPRINTF("\n\n##WARNING EXPERIMENTAL SMOOTHING FUNCTION 2\n");
   }
 
-  // 1 -> no maximum quality increase allowed
+  // 1 -> no maximum quality increase allowed 
   //const double maxinc_worst = 1.00;
 
   constexpr int nnmet = (idim*(idim+1))/2;
 
   METRIS_ENFORCE(msh.param->opt_power < 0); // Otherwise rework the mins / maxs
-  // Otherwise not only edge nodes
-  METRIS_ENFORCE(ideg <= tdim + 1);
+  // Otherwise not only edge nodes 
+  METRIS_ENFORCE(ideg <= tdim + 1); 
 
+
+  #ifndef USE_LPLIB_SMOOTHINTERIOR
   const int mball = 100;
   intAr1 lball(mball);
+  #endif
 
   msh.tag[ithrd1]++;
 
@@ -136,107 +178,64 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
     }
 
     qnrm /= navg;
-    double t0 = get_wall_time();
-    CPRINTF1(" - smoo iter %3d init %10.6e < q < %10.6e (at %d), avg = %10.6e "
-                   "(p = %d)\n",niter,qmin,qmax,imax,qnrm,msh.param->opt_pnorm);
+    double t0 = get_cpu_time();
+    CPRINTF1(" - smoo iter {:3} init {:10.6e} < q < {:10.6e} (at {}), avg = {:10.6e} " 
+                   "(p = {})\n",niter,qmin,qmax,imax,qnrm,msh.param->opt_pnorm);
     //if(iverb >= 2 && qmax >= 1e10){
-    //  printf("## HIGH QMAX mshdeg = %d \n",msh.curdeg);
+    //  printf("## HIGH QMAX mshdeg = {} \n",msh.curdeg);
     //  std::string fname = "qmax"+std::to_string(imax);
     //  writeMesh(fname,msh);
     //  //wait();
-    //}
+    //} 
 
     int nsucc = 0;
     int nmov  = 0;
 
-#ifdef USE_LPLIB_SMOOTHINTERIOR
-        // LPlib init
-    int nproc = msh.param->nproc;
-    int nthread = GetNumberOfCores();
-    if(nthread <= 0){
-      CPRINTF1("## WARNING: LPlib function GetNumberOfCores() returned "
-               "negative threads. Set to default %d.\n",METRIS_MAXTAGS);
-      nthread = METRIS_MAXTAGS;
-    }else{
-      CPRINTF2("-- LPlib found ncore = %d \n",nthread);
-      if(nthread > METRIS_MAXTAGS){
-        CPRINTF1("## WARNING: must verify nthread <= METRIS_MAXTAGS = %d."
-                " Increase in metris_constants.hxx.\n", METRIS_MAXTAGS);
-        nthread = METRIS_MAXTAGS;
-      }
-    }
-    if(nproc > 0) nthread = MIN(nthread, nproc);
-    int64_t LibIdx = InitParallel(nthread);
-    int LP_elt = NewType(LibIdx, nentt);
-    int LP_poi = NewType(LibIdx, msh.npoin);
-    float LP_stat[2];
-    BeginDependency(LibIdx, LP_elt, LP_poi);
-    for(int ientt = 0; ientt < nentt; ientt++){
-      for(int ii = 0; ii < tdim + 1; ii++)
-        AddDependency(LibIdx, ientt+1, ent2poi(ientt,ii)+1);
-    }
-    EndDependency(LibIdx, LP_stat);
-    // END LPlib init
-
-
-
-    // define worker function
-    auto smoothInteriorPointLoop_lplib =
-    (void (*)(int, int, int,
-     Mesh<MFT>*, int, int, double*,
-     intAr1*, intAr1*,
-     double*, double*, QuaFun*))
-     [] (int ipoi0, int ipoi1, int ithread, Mesh<MFT> *msh,
-         int itag_shared, int itag2, double *qmax,
-         intAr1 *nsuccthr, intAr1 *nmovthr,
-         double *tolavg, double *tolmax, QuaFun *iquaf){
+    #if 0
+    #ifdef USE_LPLIB_SMOOTHINTERIOR
+    void (*inerloop_LPlib)(int,int,int,Mesh<MFT>*,int,int,double*,
+          intAr1*,intAr1*,double,double)
+    = [] (int ipoi0, int ipoi1, int ithread, Mesh<MFT> *msh,
+          int itag_shared, int itag2, double *qmax, 
+          intAr1 *nsuccthr, intAr1 *nmovthr, 
+          double tolavg, double tolmax){
 
       const int mball = 100;
       constexpr int nnmet = (idim*(idim+1))/2;
       const int iverb = msh->param->iverb;
-      const intAr2 &ent2poi = msh->ent2poi(tdim);
+      intAr2 &ent2poi = tdim == 2 ? msh->fac2poi : msh->tet2poi;
 
       intAr1 lball(mball);
       dblAr1 qball(mball);
 
       for(int ipoin = ipoi0 - 1; ipoin < ipoi1; ipoin++){
-
+        
         if(msh->poi2tag(itag_shared,ipoin) >= msh->tag[itag_shared]) continue;
 
-        if (msh->poi2ent(ipoin,0) < 0) continue;
-
         int ib = msh->poi2bpo[ipoin];
-
-
         if(ib >= 0) continue;
 
         int ientt = getpoient(*msh, ipoin, tdim);
 
-        std::cout << "Printing points in ientt = " << ientt << std::endl;
-        std::cout << msh->fac2poi(ientt,0) << " " <<  msh->fac2poi(ientt,1) << " " << msh->fac2poi(ientt,2) << std::endl;
-
-        std::cout << "Printing entities in ipoin = " << ipoin << std::endl;
-        std::cout << msh->poi2ent(ipoin,0) << " " << msh->poi2ent(ipoin,1) << std::endl;
-
         //double qpoin = rpoqe[ipoin] / ipone[ipoin];
         //if(qpoin > qnrm / qrthr){
           if(iverb >= 3){
-            //printf("   - smoo pt %d seed elt %d quapt = %10.6e"
-            //  " qthrs = %10.6e qnrm = %10.6e\n",
+            //printf("   - smoo pt {} seed elt {} quapt = {:10.6e}" 
+            //  " qthrs = {:10.6e} qnrm = {:10.6e}\n",
             //  ipoin,ientt,qpoin,qrthr * qnrm,qnrm);
-            printf("   - smoo pt %d seed elt %d \n", ipoin,ientt);
+            printf("   - smoo pt {} seed elt {} \n", ipoin,ientt);
           }
 
           int iopen;
           bool imani = false;
           int ierro = 0,itmp = 0;
           if constexpr (idim == 2){
-            intAr1 dum;
+            intAr1 dum; 
             ierro = ball2(*msh,ipoin,ientt,lball,dum,&iopen,&imani,itag2);
           }else{
             ierro = ball3(*msh,ipoin,ientt,lball,&iopen,itag2);
           }
-          METRIS_ASSERT(ierro == 0);
+          METRIS_ASSERT(ierro == 0); 
           METRIS_ASSERT(iopen == 0);
           METRIS_ASSERT(imani == true);
 
@@ -249,14 +248,14 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
             //ierro = smooballdirect<MFT,idim,ideg>(msh,ipoin,lball,qball,
             //                       &qnrm0,&qmax0,&qnrm1,&qmax1,
             //                       qpower,qpnorm,difto,maxwt,inorm,iverb,itag2);
-            ierro = smooballdiff<MFT,idim,ideg>(*msh,ipoin,lball,
-                                    &qnrm0,&qmax0,&qnrm1,&qmax1,*iquaf);//maxinc_worst,
+            ierro = smooballdiff<MFT,idim,ideg>(*msh,ipoin,lball,qball,
+                                   &qnrm0,&qmax0,&qnrm1,&qmax1);//maxinc_worst,
             if(qmax1 > *qmax){
               if(iverb >= 2) printf("  - reject move, worst above last worst "
-                " %15.7e > %15.7e\n", qmax1, *qmax);
-              for(int ii = 0; ii < idim; ii++)
+                " {:15.7e} > {:15.7e}\n", qmax1, *qmax);
+              for(int ii = 0; ii < idim; ii++) 
                 msh->coord(ipoin,ii) = coor0[ii];
-              for(int ii = 0; ii < nnmet;ii++)
+              for(int ii = 0; ii < nnmet;ii++) 
                 msh->met(ipoin,ii)   =  met0[ii];
               ierro = 1;
             }
@@ -267,15 +266,15 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
           }
           if(ierro == 0){
             (*nsuccthr)[ithread]++;
-            if(iverb >= 3) printf("   - success smoothing %d q avg"
-                                      " %10.6e -> %10.6e max %10.6e -> %10.6e\n",
-                                      ipoin,qnrm0,qnrm1,qmax0,qmax1);
+            if(iverb >= 3) printf("   - success smoothing {} q avg" 
+                                     " {:10.6e} -> {:10.6e} max {:10.6e} -> {:10.6e}\n",
+                                     ipoin,qnrm0,qnrm1,qmax0,qmax1);
 
             bool imov = false;
-            // qnrm1 should be < qnrm0 for there to be progress
-            if(qnrm0 - qnrm1 > *tolavg) imov = true;
-            // idem qmax
-            if(qmax0 - qmax1 > *tolmax) imov = true;
+            // qnrm1 should be < qnrm0 for there to be progress 
+            if(qnrm0 - qnrm1 > tolavg) imov = true;
+            // idem qmax 
+            if(qmax0 - qmax1 > tolmax) imov = true;
             if(imov){
               (*nmovthr)[ithread]++;
               for(int iele2 : lball){
@@ -296,50 +295,45 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
       // Control sizes here if provided (hmin hmax)
     };
 
-    int itag_shared = ithrd1;
-    // ithrd2 can be used freely as it is for elements, whose collisions are
-    // avoided by LPlib
-
-    // arrays for success/move counters for each thread
-    intAr1 nsuccthr(nthread);
-    intAr1 nmovthr(nthread);
-
-    float acc = LaunchParallelMultiArg(LibIdx, LP_poi, LP_elt,
-                                       (void*)smoothInteriorPointLoop_lplib, 9,
-                                       &msh, itag_shared, ithrd2, &qmax,
-                                       &nsuccthr, &nmovthr,
-                                       &tolavg, &tolmax, &iquaf);
-
-    CPRINTF1("Smoothing accel = %f \n",acc);
+    float acc = LaunchParallelMultiArg(LibIdx, LP_elt, LP_poi, 
+                                       (void*)inerloop_LPlib, 8, 
+                                       &msh, itag_shared, ithrd2, &qmax, 
+                                       &nsuccthr, &nmovthr, 
+                                       tolavg, tolmax);
+    CPRINTF1("Smoothing accel = {} \n",acc);
     for(int ii = 0; ii < nthread; ii++){
       nsucc += nsuccthr[ii];
       nmov  += nmovthr[ii];
     }
 
-#else
-    // not multi-threaded (original working version)
+    #endif
+    #endif
+
+
+    #ifndef USE_LPLIB_SMOOTHINTERIOR
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
+      if(msh.isdeadpoint(ipoin)) continue;
       if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
       INCVDEPTH(msh.param);
 
       int ib = msh.poi2bpo[ipoin];
       if(ib >= 0) continue;
 
-      int ientt = getpoient(msh, ipoin, tdim);
+      int ientt = getpoient(msh, ipoin, tdim);  
       int iver = tdim == 2 ? msh.template getverfac<ideg>(ientt, ipoin)
                            : msh.template getvertet<ideg>(ientt, ipoin);
 
       METRIS_ASSERT(iver >= 0);
 
 
-      CPRINTF1(" - smoo pt %d seed elt %d \n", ipoin,ientt);
+      CPRINTF1(" - smoo pt {} seed elt {} \n", ipoin,ientt);
       int ierro = 0;
 
       if(iver < tdim+1){
         int iopen;
-        // Vertex case
+        // Vertex case 
         if constexpr (idim == 2){
-          intAr1 dum;
+          intAr1 dum; 
           bool imani = false;
           ierro = ball2(msh,ipoin,ientt,lball,dum,&iopen,&imani,ithrd2);
           METRIS_ASSERT(imani == true);
@@ -371,7 +365,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         }
 
       }
-      METRIS_ASSERT(ierro == 0);
+      METRIS_ASSERT(ierro == 0); 
 
       double coor0[idim];
       double met0[nnmet];
@@ -390,26 +384,26 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
                                      &qnrm0,&qmax0,&qnrm1,&qmax1,work,iquaf);
         }
         if(qmax1 > qmax){
-          CPRINTF1(" - reject move, worst above last worst %15.7e > %15.7e\n",
+          CPRINTF1(" - reject move, worst above last worst {:15.7e} > {:15.7e}\n", 
                    qmax1, qmax);
           for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
           for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
           ierro = 1;
         }
       }catch(const MetrisExcept &e){
-        printf("## FAILED  smooballdirect\n");
+        PRINTF("## FAILED  smooballdirect\n");
         writeMesh("smooth_error.meshb",msh);
         throw(e);
       }
       if(ierro == 0){
         nsucc++;
-        CPRINTF1(" - success smoothing %d q avg %10.6e -> %10.6e "
-                 "max %10.6e -> %10.6e\n",ipoin,qnrm0,qnrm1,qmax0,qmax1);
+        CPRINTF1(" - success smoothing {} q avg {:10.6e} -> {:10.6e} " 
+                 "max {:10.6e} -> {:10.6e}\n",ipoin,qnrm0,qnrm1,qmax0,qmax1);
 
         bool imov = false;
-        // qnrm1 should be < qnrm0 for there to be progress
+        // qnrm1 should be < qnrm0 for there to be progress 
         if(qnrm0 - qnrm1 > tolavg) imov = true;
-        // idem qmax
+        // idem qmax 
         if(qmax0 - qmax1 > tolmax) imov = true;
         if(imov){
           nmov ++;
@@ -426,12 +420,11 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1]; // deactivate
       }
 
-    } // end for ipoin // for ientt
+    } // for ipoin // for ientt
+    #endif
 
-#endif // USE_LPLIB_SMOOTHINTERIOR
-
-    double t1 = get_wall_time();
-    CPRINTF1(" - Iteration end t = %f nsuccess = %d nmov = %d \n",
+    double t1 = get_cpu_time();
+    CPRINTF1(" - Iteration end time = {:.2e}s nsuccess = {} nmov = {} \n",
                           t1-t0,nsucc,nmov);
     noper += nmov;
     if(nmov == 0) break;
@@ -439,6 +432,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
 
   return noper / (double) nentt;
 }
+
 
 #define BOOST_PP_LOCAL_MACRO(n)\
 template double smoothInterior_Ball0<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
@@ -451,5 +445,6 @@ template double smoothInterior_Ball0<MetricFieldFE        ,3,n>(Mesh<MetricField
                                         QuaFun iquaf, int ithrd1, int ithrd2);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
+
 
 } // end namespace
