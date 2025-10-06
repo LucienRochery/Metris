@@ -1,27 +1,27 @@
 
-# -- 
+# --
 # libMetris is the main target: all files compiled
-# It requires 3 codegen targets of which one requires the other two... and also 
-# partial compilation of src/* files. 
-# This proceeds in three steps: 
-#   - stage 1 codegen needs nothing and generates files needed for 
+# It requires 3 codegen targets of which one requires the other two... and also
+# partial compilation of src/* files.
+# This proceeds in three steps:
+#   - stage 1 codegen needs nothing and generates files needed for
 #     stage 2 (third codegen target) codegen
 #   - meshBASIC compiles the needed files (which require stage 1 codegen) for:
-#   - stage 2 codegen compiles the last codegen target 
-# -- 
+#   - stage 2 codegen compiles the last codegen target
+# --
 
 # 1 --- CODEGEN TARGETS
 # 1.1 - gen_lageval: generate Lagrange evaluation routines
 if(REQ_CODEGEN)
   add_executable(gen_lageval ${PROJECT_SOURCE_DIR}/tools/gen_lageval.cxx ho_constants.hxx)
   setMetrisCXXFlags(gen_lageval PUBLIC)
-  target_link_libraries(gen_lageval PUBLIC  Boost::headers 
-                                            libSANS_Metris 
+  target_link_libraries(gen_lageval PUBLIC  Boost::headers
+                                            libSANS_Metris
                                             )
   target_include_directories(gen_lageval PUBLIC ${PROJECT_SOURCE_DIR})
   add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/codegen_lagrange.hxx
                      DEPENDS gen_lageval
-                     COMMAND make gen_lageval 
+                     COMMAND make gen_lageval
                      COMMAND ./gen_lageval)
 endif()
 
@@ -48,17 +48,17 @@ if(METRIS_MAX_DEG GREATER 1)
 endif()
 
 if(REQ_CODEGEN)
-  add_executable(gen_ccoef ${PROJECT_SOURCE_DIR}/tools/gen_ccoef.cxx 
-                           ${PROJECT_SOURCE_DIR}/tools/gen_ccoef_d_pt.cxx 
-                           ${PROJECT_SOURCE_DIR}/tools/gen_ccoef_d_coord.cxx 
+  add_executable(gen_ccoef ${PROJECT_SOURCE_DIR}/tools/gen_ccoef.cxx
+                           ${PROJECT_SOURCE_DIR}/tools/gen_ccoef_d_pt.cxx
+                           ${PROJECT_SOURCE_DIR}/tools/gen_ccoef_d_coord.cxx
                            ho_constants.hxx)
   setMetrisCXXFlags(gen_ccoef PUBLIC)
   target_link_libraries(gen_ccoef PUBLIC libSANS_Metris)
   target_include_directories(gen_ccoef PUBLIC ${METRIS_DEPS_INCLUDE_DIRS}
                                               ${PROJECT_SOURCE_DIR} )
 
-  add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/codegen_ccoef.hxx 
-                            ${PROJECT_BINARY_DIR}/src/codegen_ccoef_d.hxx 
+  add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/codegen_ccoef.hxx
+                            ${PROJECT_BINARY_DIR}/src/codegen_ccoef_d.hxx
                             ${CCOEF_OUT_SRC}
                     DEPENDS gen_ccoef
                     COMMAND make gen_ccoef
@@ -66,8 +66,8 @@ if(REQ_CODEGEN)
                     #COMMAND cp codegen_* ${PROJECT_SOURCE_DIR}/src/)
 
   # 1 - wrapping up: create dependency for later targets
-  add_custom_target(codegen1 DEPENDS ${PROJECT_BINARY_DIR}/src/codegen_ccoef.hxx 
-                                     ${PROJECT_BINARY_DIR}/src/codegen_ccoef_d.hxx 
+  add_custom_target(codegen1 DEPENDS ${PROJECT_BINARY_DIR}/src/codegen_ccoef.hxx
+                                     ${PROJECT_BINARY_DIR}/src/codegen_ccoef_d.hxx
                                      ${CCOEF_OUT_SRC}
                                      ${PROJECT_BINARY_DIR}/src/codegen_lagrange.hxx)
 endif()
@@ -76,18 +76,18 @@ endif()
 # 2 --- meshBASIC (low_eval.cxx)
 # Files needed by stage 2 codegen which don't need stage 2 codegen themselves...
 add_library(meshBASIC STATIC low_eval.cxx ho_constants.hxx
-                             Arrays/aux_msharrays1D.cxx 
-                             Arrays/aux_msharrays2D.cxx 
+                             Arrays/aux_msharrays1D.cxx
+                             Arrays/aux_msharrays2D.cxx
                              utils/aux_timer.cxx )
 setMetrisCXXFlags(meshBASIC PUBLIC)
 set_property(TARGET meshBASIC PROPERTY CXX_STANDARD 17)
-target_include_directories(meshBASIC PUBLIC 
+target_include_directories(meshBASIC PUBLIC
                            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                            $<INSTALL_INTERFACE:include/src>
                            ${METRIS_EXTERNAL_INCLUDE_DIRS})
 target_link_libraries(meshBASIC PUBLIC ${ABSL_LIBRARIES}
                                        metris_deps
-                                       ) 
+                                       )
 if(REQ_CODEGEN)
   add_dependencies(meshBASIC codegen1  gen_lageval)
 
@@ -95,13 +95,13 @@ if(REQ_CODEGEN)
   # gen_lag2bez: generate Lagrange-to-Bézier conversion routines
   add_executable(gen_lag2bez ${PROJECT_SOURCE_DIR}/tools/gen_lag2bezfuncs.cxx)
   setMetrisCXXFlags(gen_lag2bez PUBLIC)
-  target_link_libraries(gen_lag2bez PUBLIC meshBASIC 
+  target_link_libraries(gen_lag2bez PUBLIC meshBASIC
                                            libSANS_Metris
                                            ${ABSL_LIBRARIES})
-  target_include_directories(gen_lag2bez PUBLIC 
+  target_include_directories(gen_lag2bez PUBLIC
                              ${PROJECT_SOURCE_DIR})
 
-  add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/codegen_lag2bez.hxx 
+  add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/codegen_lag2bez.hxx
                             ${PROJECT_BINARY_DIR}/src/codegen_lag2bez.cxx
                      DEPENDS gen_lag2bez
                      COMMAND make gen_lag2bez
@@ -122,7 +122,7 @@ else()
 endif()
 
 # These are large files that have been vetted
-# We get compile timeouts after dozens of minutes compiling 
+# We get compile timeouts after dozens of minutes compiling
 # with clang -fsanitize=address
 foreach(ff ${CODEGEN_OUT_SRC})
   set_source_files_properties(${ff} PROPERTIES COMPILE_FLAGS "-fno-sanitize=address")
@@ -137,7 +137,7 @@ endif()
 #file (GLOB_RECURSE SRC_SOURCES CONFIGURE_DEPENDS "*.cxx")
 
 
-set(SRC_SOURCES 
+set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/aux_hashtab.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_topo.cxx
     ${PROJECT_SOURCE_DIR}/src/aux_histogram.cxx
@@ -160,7 +160,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/utils/binom.cxx
     ${PROJECT_SOURCE_DIR}/src/utils/bernstein_prod.cxx
     ${PROJECT_SOURCE_DIR}/src/utils/EGADSprinterr.cxx
-    
+
     #${PROJECT_SOURCE_DIR}/src/utils/tuple_hashtable.cxx
     ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays1D.cxx
     ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays2D.cxx
@@ -194,6 +194,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/quality/low_metqua.cxx
     ${PROJECT_SOURCE_DIR}/src/quality/quafun_distortion.cxx
     ${PROJECT_SOURCE_DIR}/src/quality/quafun_unit.cxx
+    ${PROJECT_SOURCE_DIR}/src/quality/quafun_sizeshape.cxx
     ${PROJECT_SOURCE_DIR}/src/quality/quafun_tradet.cxx
     ${PROJECT_SOURCE_DIR}/src/quality/low_metqua_d.cxx
     ${PROJECT_SOURCE_DIR}/src/quality/msh_metqua.cxx
@@ -280,7 +281,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/smoothing/low_smoolen.cxx
 
     ${PROJECT_SOURCE_DIR}/src/API/MetrisAPI.cxx
-    
+
     ${PROJECT_SOURCE_DIR}/src/LPopt/msh_maxccoef.cxx
     ${PROJECT_SOURCE_DIR}/src/LPopt/msh_maxmetLP.cxx
     ${PROJECT_SOURCE_DIR}/src/LPopt/msh_bezgapLP.cxx
@@ -288,7 +289,7 @@ set(SRC_SOURCES
     ${CODEGEN_OUT_SRC}
 )
 if(EXISTS ${PROJECT_SOURCE_DIR}/src/Adaptation/msh_lineadapt2.cxx)
-  set(SRC_SOURCES 
+  set(SRC_SOURCES
       ${SRC_SOURCES}
       ${PROJECT_SOURCE_DIR}/src/Adaptation/msh_lineadapt2.cxx
       ${PROJECT_SOURCE_DIR}/src/Adaptation/msh_genPointsCurve.cxx
@@ -299,7 +300,7 @@ add_library(libMetris STATIC ${SRC_SOURCES})
 setMetrisCXXFlags(libMetris PUBLIC)
 set_property(TARGET libMetris PROPERTY CXX_STANDARD 17)
 
-target_include_directories(libMetris PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # 
+target_include_directories(libMetris PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> #
                                              $<INSTALL_INTERFACE:include/src>
                                              ${METRIS_EXTERNAL_INCLUDE_DIRS}
                                              )
@@ -332,5 +333,5 @@ target_include_directories(metrisPrepro PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT
                                                ${METRIS_EXTERNAL_INCLUDE_DIRS} )
 if(REQ_CODEGEN)
   add_dependencies(libMetris codegen1 codegen2)
-endif() 
-   
+endif()
+

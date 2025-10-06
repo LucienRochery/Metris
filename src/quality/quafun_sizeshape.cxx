@@ -37,7 +37,6 @@ ftype quafun_sizeshape(Mesh<MFT> &msh,
   quafun_tradet<MFT,gdim,tdim,ftype>(msh,asdmsh,asdmet,ent2pol,bary,
                                      met_,&tra,&det);
 
-
   ftype quent;
   if constexpr (tdim == 2){
     if(power > 0){
@@ -134,7 +133,6 @@ ftype d_quafun_sizeshape(Mesh<MFT> &msh,
        met_,
        &tra,dtra,htra,
        &det,ddet,hdet);
-
 
   // This is used later on -> store it
   int dpowd = iipow<tdim>(tdim);              // n^n
