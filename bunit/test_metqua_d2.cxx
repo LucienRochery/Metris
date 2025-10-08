@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d2)
 
       CT_FOR0_INC(2,gdim,tdim){if(tdim <= msh.get_tdim()){
         INCVDEPTH(msh.param);
-        MPRINTF("-- Tests tdim = %d gdim = %d\n",tdim,gdim);
+        MPRINTF("-- Tests tdim = {} gdim = {}\n",tdim,gdim);
         constexpr auto quafun_xi   = get_quafun_xi<MFT,gdim,tdim,iquaf,ftype>();
         constexpr auto d_quafun_xi = get_d_quafun_xi<MFT,gdim,tdim,iquaf,ftype>();
         const intAr2 &ent2poi = msh.ent2poi(tdim);
@@ -106,8 +106,8 @@ BOOST_AUTO_TEST_CASE(test_metqua_d2)
           }// for ientt
           if(ntest == 0) continue;
           err_avg /= ntest;
-          MPRINTF(" - DONE using asdmsh = %s, asdmet = %s:"
-                  " got err min = %e, avg = %e, max = %e\n",
+          MPRINTF(" - DONE using asdmsh = {}, asdmet = {}:"
+                  " got err min = {}, avg = {}, max = {}\n",
                   asdmsh_str.c_str(),asdmet_str.c_str(),
                   err_min,err_avg,err_max);
           BOOST_TEST(err_max < 1.0e-12);
@@ -202,7 +202,7 @@ BOOST_AUTO_TEST_CASE(test_quafun_sizeshape)
 
       CT_FOR0_INC(2,gdim,tdim){if(tdim <= msh.get_tdim()){
         INCVDEPTH(msh.param);
-        MPRINTF("-- Tests tdim = %d gdim = %d\n",tdim,gdim);
+        MPRINTF("-- Tests tdim = {} gdim = {}\n",tdim,gdim);
         constexpr auto quafun_xi   = get_quafun_xi<MFT,gdim,tdim,iquaf,ftype>();
         constexpr auto d_quafun_xi = get_d_quafun_xi<MFT,gdim,tdim,iquaf,ftype>();
         const intAr2 &ent2poi = msh.ent2poi(tdim);
@@ -240,8 +240,8 @@ BOOST_AUTO_TEST_CASE(test_quafun_sizeshape)
           }// for ientt
           if(ntest == 0) continue;
           err_avg /= ntest;
-          MPRINTF(" - DONE using asdmsh = %s, asdmet = %s:"
-                  " got err min = %e, avg = %e, max = %e\n",
+          MPRINTF(" - DONE using asdmsh = {}, asdmet = {}:"
+                  " got err min = {}, avg = {}, max = {}\n",
                   asdmsh_str.c_str(),asdmet_str.c_str(),
                   err_min,err_avg,err_max);
           BOOST_TEST(err_max < 1.0e-12);
@@ -336,7 +336,13 @@ BOOST_AUTO_TEST_CASE(test_quafun_sizeshape)
           msh.coord(ent2poi(ientt,1),0) = 1.; msh.coord(ent2poi(ientt,1),1) = 0.;
           msh.coord(ent2poi(ientt,2),0) = 0.5; msh.coord(ent2poi(ientt,2),1) = 0.1;
 
-          trueQuality = 4061972./5625.;
+          const dblAr1 e1({msh.coord(ent2poi(ientt,1),0) - msh.coord(ent2poi(ientt,0),0), msh.coord(ent2poi(ientt,1),1) - msh.coord(ent2poi(ientt,0),1)});
+          const dblAr1 e2({msh.coord(ent2poi(ientt,2),0) - msh.coord(ent2poi(ientt,0),0), msh.coord(ent2poi(ientt,2),1) - msh.coord(ent2poi(ientt,0),1)});
+
+          double tra = 4./3. * (e1[0]*e1[0] + e1[1]*e1[1] +  e2[0]*e2[0] + e2[1]*e2[1] - e1[0]*e2[0] - e1[1]*e2[1]);
+          double det = 4./3. * (e1[0]*e2[1] - e1[1]*e2[0])*(e1[0]*e2[1] - e1[1]*e2[0]);
+
+          trueQuality = 1./(2*2*2) * tra * tra * (1. + 1./(det*det));
 
           for (int powerSign : {+1, -1}) {
             msh.param->opt_power = powerSign;
@@ -368,7 +374,7 @@ BOOST_AUTO_TEST_CASE(test_quafun_sizeshape)
 
 
         }
-        MPRINTF("-- Test 3: Check quality derivatives using FD\n");
+        MPRINTF("-- Test 3: Check quality derivatives using 1st order FD\n");
         if (gdim == 2 && tdim == 2 && ideg == 1 && msh.nentt(tdim) > 0) {
 
           // use identity metric for this test
@@ -456,9 +462,104 @@ BOOST_AUTO_TEST_CASE(test_quafun_sizeshape)
           } // ientt
 
           // print max errors per h
-          // TODO: change this to use MPRINTF
-          std::cout << "Gradient FD max errors by h: " << std::endl;
-          for (int ih = 0; ih < nh; ih++) std::cout << "  h = " << hvec[ih] << " err = " << std::scientific << err_max_by_h[ih] << std::endl;
+          MPRINTF(" - Gradient 1st order FD max errors by h:\n");
+          for (int ih = 0; ih < nh; ih++) MPRINTF("  - h = {:.1e}, max err = {:.1e}\n",hvec[ih],err_max_by_h[ih]);
+
+        }
+
+        MPRINTF("-- Test 4: Check quality derivatives using 2nd order FD\n");
+        if (gdim == 2 && tdim == 2 && ideg == 1 && msh.nentt(tdim) > 0) {
+
+          // use identity metric for this test
+          const double metI[3] = {1., 0., 1.};
+          const double btri[3]  = {1./3., 1./3., 1./3.};
+
+          const int nnode = getnnode(tdim, ideg);
+
+          // check for several elements (not entire mesh)
+          const int ncheck_ent = std::min(10, msh.nentt(tdim));
+
+          // step sizes
+          const int nh = 7;
+          const double hvec[7] = {1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7};
+
+          // to save max error
+          double err_max_by_h[7] = {0,0,0,0,0,0,0};
+
+          intAr2& ent2poi = msh.ent2poi(2);
+
+          for (int ientt = 0; ientt < ncheck_ent; ientt++) {
+
+            // Compute analytic value and gradient
+            double qua0;
+            dblAr1 grad_analytic(6); // 3 nodes with 2 components each
+
+            // we will need the coords backup to restore after each perturbation
+            dblAr2 coord_backup(3,2);
+            for (int ipoin = 0; ipoin < 3; ipoin++) {
+              for (int ii = 0; ii < gdim; ii++)
+                coord_backup(ipoin,ii) = msh.coord(ent2poi(ientt,ipoin), ii);
+            }
+
+            // get base value once
+            qua0 = quafun_xi(msh, AsDeg::P1, AsDeg::P1, ent2poi[ientt], btri, metI);
+
+            // fill analytic gradient per node
+            for (int ivar = 0; ivar < nnode; ivar++) {
+              double dqa[gdim], hqa[(gdim*(gdim+1))/2];
+              double qua_d = d_quafun_xi(msh, AsDeg::P1, AsDeg::P1, ent2poi[ientt], btri, metI,
+                                        ivar, msh.getBasis(), DifVar::None,
+                                        dqa, hqa);
+              // consistency : qua_d == qua0
+              BOOST_CHECK_SMALL(qua_d - qua0, 1e-12);
+              for (int ii = 0; ii < gdim; ii++)
+                grad_analytic[ivar*gdim + ii] = dqa[ii];
+            }
+
+            // now finite differences for each coordinate
+            for (int ivar = 0; ivar < nnode; ivar++) {
+              for (int ii = 0; ii < gdim; ii++) {
+
+                double prev_err = std::numeric_limits<double>::quiet_NaN();
+
+                for (int ih = 0; ih < nh; ih++) {
+                  const double h = hvec[ih];
+
+                  // perturb x(ivar,k) by +h
+                  msh.coord(ent2poi(ientt,ivar), ii) = coord_backup(ivar,ii) + h;
+                  // compute quality value
+                  double quahplus = quafun_xi(msh, AsDeg::P1, AsDeg::P1, ent2poi[ientt], btri, metI);
+                  // perturb x(ivar,k) by -h
+                  msh.coord(ent2poi(ientt,ivar), ii) = coord_backup(ivar,ii) - h;
+                  // compute quality value
+                  double quahminus = quafun_xi(msh, AsDeg::P1, AsDeg::P1, ent2poi[ientt], btri, metI);
+
+                  // forward finite difference
+                  const double fd = (quahplus - quahminus) / (2.*h);
+
+                  // error against analytic
+                  const double an = grad_analytic[ivar*gdim + ii];
+
+                  const double err = std::abs(fd - an);
+                  err_max_by_h[ih] = std::max(err_max_by_h[ih], err);
+
+                  // crude rate check: first order
+                  if (ih > 0 && std::isfinite(prev_err) && prev_err > 0) {
+                    const double h_prev = hvec[ih-1];
+                    const double order = std::log(prev_err/err) / std::log(h_prev/h);
+                  }
+
+                  // restore the perturbed coordinate
+                  msh.coord(ent2poi(ientt,ivar), ii) = coord_backup(ivar,ii);
+                  prev_err = err;
+                } // hvec
+              } // ii
+            } // ivar
+          } // ientt
+
+          // print max errors per h
+          MPRINTF(" - Gradient 2nd order FD max errors by h:\n");
+          for (int ih = 0; ih < nh; ih++) MPRINTF("  - h = {:.1e}, max err = {:.1e}\n",hvec[ih],err_max_by_h[ih]);
 
         }
         }// INCVDEPTH
