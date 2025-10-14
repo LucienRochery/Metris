@@ -23,11 +23,11 @@
 
 namespace Metris{
 
-//  Reconnect face cavity boundary to ipins. 
+//  Reconnect face cavity boundary to ipins.
 //  Also fill work connex component array lfcco and their normals lnorcco
-// and tag faces as tag[ithread]+icoco+1, icoco their connex component. 
+// and tag faces as tag[ithread]+icoco+1, icoco their connex component.
 template <class MetricFieldType, int ideg>
-int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav, 
+int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
                      CavOprOpt &opts, CavWrkArrs &work,
                      int nedg0, double *qmax, int ithread){
   GETVDEPTH(msh.param);
@@ -53,9 +53,9 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
 
 	// Edges from ipins to boundary cavity ; EDge EXists
 	// Can be a glo edge or a triangle edge: typ = 1 (glo edg) or 2 (tri)
-	// ent stores the entity. 
-	// Initially, this is only from the new edges, nedg0 to nedge. 
-	// Later as triangles are created, and new ho points, we store refs here as well. 
+	// ent stores the entity.
+	// Initially, this is only from the new edges, nedg0 to nedge.
+	// Later as triangles are created, and new ho points, we store refs here as well.
 	//const int medex = 100;
   intAr1 &edtyp = work.edtyp;
   intAr1 &edent = work.edent;
@@ -64,9 +64,9 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
 
   // Store faces in a connex component: work array. In the end, only stores
   // a seed face for each connex component. From face tags, their corresponding
-  // connex component can be found (even if they are not the seed). 
+  // connex component can be found (even if they are not the seed).
   intAr1 &lfcco = work.lfcco;
-  lfcco.set_n(0); 
+  lfcco.set_n(0);
 
   // Store the normal for each connex component. Doesn't need to be normalized.
   // We compute it as the sum of face normals.
@@ -81,19 +81,19 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
     PRINTF("## IMPLEMENT NORDEV CONTROL IN RECONNECT_FACCAV IN CASE NO CAD\n");
   }
 
-  // Store edge references that bound a connex component. 
+  // Store edge references that bound a connex component.
   MeshArray1D<MeshArray1D<std::pair<int,int>, int>, int> &edcco = work.edcco;
   edcco.set_n(0);
 
   int nfac0 = msh.nface;
 
-  // Note: edges already tagged. 
+  // Note: edges already tagged.
 
-  // We need to colour the faces per connex components. 
-  // Also compute normals per connex component and store into lfcco. 
+  // We need to colour the faces per connex components.
+  // Also compute normals per connex component and store into lfcco.
 	for(int iface : cav.lcfac){
 		METRIS_ASSERT(iface >= 0);
-    // avoid duplicates in cavity 
+    // avoid duplicates in cavity
     if(msh.fac2tag(ithread,iface) > msh.tag[ithread]){
       PRINTF("## DEBUG TAGGED FACE PRINT CAV {}\n",cav.lcfac);
     }
@@ -126,7 +126,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
 
     // The algo is add any old face to lfcco, then stack as work array
     // the work section is only from ncoco:-
-    // At the end, seeds to the cocos are left. 
+    // At the end, seeds to the cocos are left.
     // We still need to allow popping this guy or we're not getting started.
     while(lfcco.get_n() >= ncoco){
       int ifacs = lfcco.pop();
@@ -174,10 +174,10 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
           }
           if(ifnd_ref) continue;
           // The edge is positively oriented if, as t increases, face parametric
-          // domain is to the left. 
+          // domain is to the left.
           // We have here a triangle with two (u,v) pairs U1 and U2 on the edge
-          // with corresponding t1 < t2. The orientation is the the sign of the 
-          // area of the triangle U1U2U3. 
+          // with corresponding t1 < t2. The orientation is the the sign of the
+          // area of the triangle U1U2U3.
           int ip1 = msh.fac2poi(ifacs, ied);
           int ip2 = msh.fac2poi(ifacs, lnoed2[ied][0]);
           int ip3 = msh.fac2poi(ifacs, lnoed2[ied][1]);
@@ -201,7 +201,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
             }
             METRIS_ASSERT(msh.bpo2ibi(ib,1) == 0);
 
-            // If corner, check if it has two ts for this edge. 
+            // If corner, check if it has two ts for this edge.
             int ibed1 = -1, ibed2 = -1;
             for(int ib2 = msh.bpo2ibi(ib,3); ib2 >= 0; ib2 = msh.bpo2ibi(ib2,3)){
               if(msh.bpo2ibi(ib2,1) != 1) continue;
@@ -222,7 +222,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
               continue;
             }
             // only one extremity can be corner of this ref edge:
-            METRIS_ASSERT(ifail == -1); 
+            METRIS_ASSERT(ifail == -1);
             ifail = ii;
             ibad[0] = ibed1;
             ibad[1] = ibed2;
@@ -263,7 +263,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
         }
 
 
-        // Already stacked (tag on stack); must be done after iedge check or 
+        // Already stacked (tag on stack); must be done after iedge check or
         // edcco not properly filled.
         if(msh.fac2tag(ithread,ifnei) > msh.tag[ithread]) continue;
 
@@ -278,7 +278,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
 
     lfcco.stack(iface);
 
-  }// for iface 
+  }// for iface
 
   METRIS_ASSERT(msh.tag[ithread] + ncoco > cav.maxtag);
   cav.maxtag = msh.tag[ithread] + ncoco;
@@ -305,7 +305,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
 		}else{
 			METRIS_THROW_MSG( "Either nedg0 wrong or corrupted new edges (no ipins)");
 		}
-    int iedex = edtyp.get_n(); 
+    int iedex = edtyp.get_n();
 		msh.poi2tag(ithread,ipoin) = msh.tag[ithread] + iedex;
 
 		edtyp.stack(1);
@@ -336,14 +336,14 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
         METRIS_ASSERT(!isdeadent(ifac2,msh.fac2poi));
         if(msh.fac2tag(ithread,ifac2) >= msh.tag[ithread]) continue;
         // Standard neighbour, exterior face
-  
-        int iedex = edtyp.get_n(); 
+
+        int iedex = edtyp.get_n();
         msh.poi2tag(ithread,ipoin) = msh.tag[ithread] + iedex;
 
         edtyp.stack(-2);
         edent.stack(ifac2);
 
-      }else if(ifac2 == -1){ 
+      }else if(ifac2 == -1){
         // In this case, it's a actually an edge
         // But it may be an edge prior to the cavity call (not in the cavity)
         // In this case, we don't want to update the edge just yet.
@@ -353,7 +353,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
 
         // This one no longer exists (cavity edge)
         if(msh.edg2tag(ithread,iedge) >= msh.tag[ithread]) continue;
-      
+
         int iedex = edtyp.get_n();
         msh.poi2tag(ithread,ipoin) = msh.tag[ithread] + iedex;
 
@@ -361,13 +361,13 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
         edent.stack(iedge);
 
       }else{ // Non manifold
-        // Some of the nm faces could be in the cavity, others not. 
-        // We'll leave this case be for now 
+        // Some of the nm faces could be in the cavity, others not.
+        // We'll leave this case be for now
 
         METRIS_THROW_MSG("TODO: Non manifold when ipins on bdry todo")
       }
     }
-  }  
+  }
 
   cav.maxtag = MAX(cav.maxtag, msh.tag[ithread] + edtyp.get_n());
 
@@ -381,7 +381,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
 
 	for(int iface : cav.lcfac){
 		// If there is a new triangle, its ref will be this triangle's ref.
-		int iref  = msh.fac2ref[iface]; 
+		int iref  = msh.fac2ref[iface];
     #ifndef NDEBUG
       if(msh.fac2tag(ithread,iface) <= msh.tag[ithread]){
         PRINTF("## TAG mismatch iface = {}, {} <= {} \n",iface,msh.fac2tag(ithread,iface),msh.tag[ithread]);
@@ -445,19 +445,19 @@ template int reconnect_faccav<MetricFieldFE        , n >(Mesh<MetricFieldFE     
 
 
 /*
-New triangle ifacn created by cavity triangle ifac0 
+New triangle ifacn created by cavity triangle ifac0
 Point ip, update bpoi -> this is only for points that already existed !
 
-if ip is ipins, we may not have the info ! that is if ip is a new pt 
+if ip is ipins, we may not have the info ! that is if ip is a new pt
 the driver must do the update ! we only do it topo
 -> Working towards calling getEdgeUV here if approapriate.
 
 - If ip is face, we already knew
-- If ip is edge, we know all possible (u,v)s there. 
-  - We need one face in same connex component (coco) as ifac0 
+- If ip is edge, we know all possible (u,v)s there.
+  - We need one face in same connex component (coco) as ifac0
     -> Assume by contradiction 2 faces i1 i2 in same coco have different (u,v)
        Then some path from i1 to i2 collapses to a point -> a squeeze, changes geometry topo: CQFD
-  - Connect components correspond to same tag. 
+  - Connect components correspond to same tag.
 */
 template<class MetricFieldType>
 static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav, const CavWrkArrs &work,
@@ -479,7 +479,7 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
   CPRINTF1("-- START (aux_bpo_update_fac) ip = {} ib = {} ifacn {} ifac0 {} ipins {}\n",
             ip,ib,ifacn,ifac0,cav.ipins);
 
-  // Easy case: same dim 
+  // Easy case: same dim
   if(msh.bpo2ibi(ib,1) == 2){
     int ifa = msh.bpo2ibi(ib,2);
     CPRINTF2(" - update bpo ib {} dim 2 iface = {} tag = {} >=? {}\n",ib,ifa,
@@ -496,8 +496,8 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
     return;
   }
 
-  // Edge or corner 
-  // Depends whether new, or old edge. 
+  // Edge or corner
+  // Depends whether new, or old edge.
   int ibn = ptype == PointType::Vertex ? msh.newbpotopo(Vertex{ip},2,ifacn) :
                                          msh.newbpotopo(CtrlPt{ip},2,ifacn);
   CPRINTF2(" - new face ibpoi = {}\n",ibn);
@@ -505,7 +505,7 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
   for(int jj = 0; jj < nrbi; jj++) msh.bpo2rbi(ibn,jj) = 0.0;
 
   // Find the entry relating to the mother face ifac0
-  // Note, this may not exist, if we're not currently looking at the edge ifac0 gave ifacn. 
+  // Note, this may not exist, if we're not currently looking at the edge ifac0 gave ifacn.
   ib = msh.poi2ebp(ip,2,ifac0,-1);
   //ib = getent2bpo(msh, ib, ifac0, 2);
 
@@ -521,9 +521,9 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
 
   CPRINTF2(" - mother face ib not found, find in same connex component\n");
 
-  
+
   if(ip == cav.ipins && cav.inewp){
-    if(!msh.CAD()) return; 
+    if(!msh.CAD()) return;
 
     if(msh.getpoitdim(ip) == 2){
       // Face case is the simplest, because we already have the (u,v) in ipins' first ibpoi
@@ -585,11 +585,11 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
         double tedg = msh.bpo2rbi(ibpoe,0);
 
         // fetch or create face ibpoi
-        int icode = EG_getEdgeUV(EG_fac, EG_edg, isens, 
+        int icode = EG_getEdgeUV(EG_fac, EG_edg, isens,
                                   tedg, msh.bpo2rbi[ibn]);
         CPRINTF1("   - new (u,v) = {} {}\n", msh.bpo2rbi(ibn,0),msh.bpo2rbi(ibn,1));
         METRIS_ENFORCE_MSG(icode == 0,"EG_getEdgeUV error {}", icode);
-        
+
         break;
       }
       if(found_update) break;
@@ -597,17 +597,17 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
     METRIS_ASSERT(found_update);
 
   }else{
-    // Case of pre-existing point: the (u,v) already exists, we need only copy it from an old face in the same 
+    // Case of pre-existing point: the (u,v) already exists, we need only copy it from an old face in the same
     // connex component, that contains ip.
 
     int tag0 = msh.fac2tag(ithread,ifac0);
-    // We already know first is not face. 
+    // We already know first is not face.
     for(int ib2 = msh.bpo2ibi(msh.poi2bpo[ip],3); ib2 >= 0; ib2 = msh.bpo2ibi(ib2,3)){
       if(msh.bpo2ibi(ib2,1) != 2) continue;
       int iface = msh.bpo2ibi(ib2,2);
       if(msh.fac2tag(ithread,iface) == tag0){
-        // Found ! 
-        // Note this could be a virtual face, as it might in the 
+        // Found !
+        // Note this could be a virtual face, as it might in the
         // case of an insertion
         CPRINTF2(" - ip {} found face {} in same connex comp as {} (u,v) = {} {}\n",
                 ip,iface,ifac0,msh.bpo2rbi(ib2,0),msh.bpo2rbi(ib2,1));
@@ -626,9 +626,9 @@ static void aux_bpo_update_fac(Mesh<MetricFieldType> &msh, const MshCavity &cav,
 }
 
 
-template void aux_bpo_update_fac<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, 
+template void aux_bpo_update_fac<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh,
    const MshCavity &cav,const CavWrkArrs &work, PointType ptype, int ip, int ifacn, int ifac0, int ithread);
-template void aux_bpo_update_fac<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, 
+template void aux_bpo_update_fac<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh,
    const MshCavity &cav,const CavWrkArrs &work, PointType ptype, int ip, int ifacn, int ifac0, int ithread);
 
 
@@ -636,7 +636,7 @@ template void aux_bpo_update_fac<MetricFieldAnalytical>(Mesh<MetricFieldAnalytic
 
 // cavity element ifac1 spawns new element from its edge ied
 template<class MetricFieldType, int ideg>
-int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav, 
+int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
              CavOprOpt &opts, CavWrkArrs &work,
              int ifac1, int ied, int iref ,
              bool check_qua,
@@ -660,13 +660,13 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
     METRIS_ASSERT(!isdeadent(ifac2,msh.fac2poi));
     // Belongs to cavity: continue
     if(msh.fac2tag(ithread,ifac2) >= msh.tag[ithread]) return 0;
-    // Outside edge: this will create a triangle. 
+    // Outside edge: this will create a triangle.
   }else{ // Edge neighbour (non manifold or 2D boundary)
     int iedge = msh.facedg2glo(ifac1,ied);
     if(iedge < 0) METRIS_THROW_MSG("No edge where face neighbourless or nm");
     // If edge in edge cavity, dead
     if(msh.edg2tag(ithread,iedge) >= msh.tag[ithread]) return 0;
-    // Outside edge or non manifold but not inside cavity! this should have been caught by 
+    // Outside edge or non manifold but not inside cavity! this should have been caught by
     // check cavity topo. So we can assume this is a proper cavity boundary edge.
   }
 
@@ -674,13 +674,13 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
 
   // Whether 2D bdry or cavity bdry, this edge is not shared nor in edge cavity.
   // A new triangle will be created
-  // We need to check if the other edges already exist or not. 
+  // We need to check if the other edges already exist or not.
   int ip1 = msh.fac2poi(ifac1,lnoed2[ied][0]);
   if(ip1 == cav.ipins) return 0;
   int ip2 = msh.fac2poi(ifac1,lnoed2[ied][1]);
   if(ip2 == cav.ipins) return 0;
 
-  // Slightly more subtle, if ipins is the third vertex, then we'll end up 
+  // Slightly more subtle, if ipins is the third vertex, then we'll end up
   // with a duplicate face (surface pinching)
   int ip3 = msh.fac2poi(ifac1,ied);
   if(ip3 == cav.ipins) return CAV_ERR_DUPFAC;
@@ -698,12 +698,12 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
     if(id1 <= 1 && id2 <= 1 && idi <= 1){
       // All three points are edge. If one is only edge, there is only one ref to check
       if(id1 == 0 && id2 == 0 && idi == 0){
-        // In this case, look at checktopo and what is done there using ced2tag. 
+        // In this case, look at checktopo and what is done there using ced2tag.
         fmt::print("Trying to create face with vertices {} {} {} \n",ip1,ip2,cav.ipins);
         writeMesh("TODO",msh);
         METRIS_THROW_MSG("TODO: Handle case where all three vertices are corners...")
       }else{
-        // At last one is pure edge, has a single ref. 
+        // At last one is pure edge, has a single ref.
         int iedge = -1;
         int nc = 0, ne = 0;
         int le[2], lc[2];
@@ -780,9 +780,9 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
 
   // Connex component gives us the normal
   int icoco = msh.fac2tag(ithread,ifac1) - msh.tag[ithread] - 1;
-  METRIS_ASSERT_MSG(icoco >= 0 && icoco < work.lnorcco.get_n(), 
+  METRIS_ASSERT_MSG(icoco >= 0 && icoco < work.lnorcco.get_n(),
                     "icoco = {} n = {}", icoco, work.lnorcco.get_n());
-  // We want to keep new faces untagged. 
+  // We want to keep new faces untagged.
   msh.fac2tag(ithread,ifacn) = msh.tag[ithread] - icoco - 1;
 
   double nordev_tol = MAX(work.lnordevcco[icoco], 1.0e-12);
@@ -838,7 +838,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
   if(ifac2 >= 0) METRIS_ASSERT(!isdeadent(ifac2,msh.fac2poi));
   if(ifac2 < -1) METRIS_ASSERT(!isdeadent(-ifac2-2,msh.fac2poi));
 
-  // Set the other neighbours to zero for now. 
+  // Set the other neighbours to zero for now.
   msh.fac2fac(ifacn,1) = -1;
   msh.fac2fac(ifacn,2) = -1;
   if(msh.nelem > 0){
@@ -847,10 +847,10 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
   }
 
 
- 
-  // Next up, edge interior nodes and neighbours. 
 
-  // Not very pretty but let's not assume 1, 2 is edge 0. 
+  // Next up, edge interior nodes and neighbours.
+
+  // Not very pretty but let's not assume 1, 2 is edge 0.
   // (though it is and should remain)
   for(int iedn = 0; iedn < 3; iedn++){
     int jp1 = msh.fac2poi(ifacn,lnoed2[iedn][0]);
@@ -883,7 +883,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
     }
 
     // From now on, either an interior edge, or an exterior edge that ifac1 does
-    // not know about ! 
+    // not know about !
     CPRINTF2(" - iedn = {} iedex = {} \n",iedn,iedex);
 
 
@@ -891,17 +891,17 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
       int ityp = work.edtyp[iedex];
       METRIS_ASSERT(abs(ityp) == 1 || abs(ityp) == 2);
       CPRINTF2(" - iedex = {} ityp = {} \n",iedex,ityp);
-      // The edge can either be attached to an edge, or a triangle. 
-      // Copy from respective entity 
+      // The edge can either be attached to an edge, or a triangle.
+      // Copy from respective entity
       // Then update internal neighbours
-      // Can be non manifold in both cases. 
-      // In case of edge, we might not know a second face yet. 
+      // Can be non manifold in both cases.
+      // In case of edge, we might not know a second face yet.
       int ifac2 = -1;
       if(abs(ityp) == 1){
         int iedge = work.edent[iedex];
         CPRINTF2(" - found edge attached to global edge {}\n",iedge);
         cpy_gloedg2facedg<ideg>(msh,iedge,ifacn,iedn);
-        // Next up we update or exploit edg2fac. 
+        // Next up we update or exploit edg2fac.
         if(ityp > 0){ // A new edge
           ifac2 = msh.edg2fac[iedge];
           CPRINTF2(" -> ifac2 from edg2fac = {} \n",ifac2);
@@ -919,8 +919,8 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
             }
           }else{
             //METRIS_ASSERT(cav.nrmal != NULL || !msh.CAD());
-            // We don't do it now. But later, we will need to regenerate (u,v) from t. 
-            // For now just create ibpoi. 
+            // We don't do it now. But later, we will need to regenerate (u,v) from t.
+            // For now just create ibpoi.
             for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
               int ip = msh.fac2poi(ifacn,idx0 + ii);
               msh.newbpotopo(CtrlPt{ip},2,ifacn);
@@ -945,7 +945,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
         if(abs(ityp) == 2)cpy_facedg2facedg<ideg>(msh,ifac2,ied2,ifacn,iedn);
 
         // Don't duplicate the work done if edge
-        if(msh.isboundary_faces() && abs(ityp) == 2){ 
+        if(msh.isboundary_faces() && abs(ityp) == 2){
           int idx0 = 3 + iedn * (getnnod1(ideg) - 2);
           for(int ii = 0; ii < getnnod1(ideg) - 2; ii++){
             int ip = msh.fac2poi(ifacn,idx0 + ii);
@@ -953,17 +953,17 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
           }
         }
 
-        // Update neighbours. 
+        // Update neighbours.
         if(ityp > 0){ // A new face
 
-          // Find out what ifac2 knows already 
+          // Find out what ifac2 knows already
           int ifac3 = msh.fac2fac(ifac2,ied2);
           // Note this is a cavity interior edge, there can be no outside triangles here
           METRIS_ASSERT(ifac3 < 0 || ifac3 >= nfac0);
 
-          // This cannot happen. 
+          // This cannot happen.
           // Indeed, only if ifacn was the edg2fac link could someone have made us their neighbour
-          // but then we would not be here as we would have had ifac2 == ifacn. 
+          // but then we would not be here as we would have had ifac2 == ifacn.
           METRIS_ASSERT(ifac3 != ifacn);
 
           if(ifac3 == -1){ // easiest: both are brand new, update
@@ -975,8 +975,8 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
             METRIS_ASSERT(ifac3 != ifac2 && ifac3 != ifacn); // Two things that cannot happen for different reasons
             CPRINTF2(" - update ifacn(ied) nm nei = {}({}) - {}(?) - {}({})\n",
               ifacn,iedn,ifac3,ifac2,ied2);
-            // Right now we have ifacn to insert, ifac2 and ifac3 two neighbours. 
-            // Let's sandwich ifacn between the two. 
+            // Right now we have ifacn to insert, ifac2 and ifac3 two neighbours.
+            // Let's sandwich ifacn between the two.
             msh.fac2fac(ifacn,iedn) = - ifac3 - 2; // we point to ifac3..
             msh.fac2fac(ifac2,ied2) = - ifacn - 2; // and ifac2 switches from ifac3 to us
           }else{ // New non manifold
@@ -1002,8 +1002,8 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
     }else{ // New edge. Create and add to edex.
       int jb1, jb2;
       if(msh.isboundary_faces()){
-        // Note if the edge did not exist (as is the case here), 
-        // then the new points cannot be edge points but only face. 
+        // Note if the edge did not exist (as is the case here),
+        // then the new points cannot be edge points but only face.
         jb1 = msh.poi2ebp(jp1,2,-1,iref);
         METRIS_ASSERT(jb1 >= 0);
 
@@ -1019,7 +1019,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
         double u2 = idx[lnoed2[iedn][1]] / (double) ideg;
 
         int ipnew = msh.newpoitopo(PointType::CtrlPt,2,ifacn);
-        
+
 
         for(int jj = 0; jj < msh.idim; jj++){
           msh.coord(ipnew,jj) = u1*msh.coord(jp1,jj) + u2*msh.coord(jp2,jj);
@@ -1033,7 +1033,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
         msh.fac2poi(ifacn,mul2nod(idx[0],idx[1],idx[2])) = ipnew;
       }
 
-      // Update edex 
+      // Update edex
       int iedex = work.edtyp.get_n();
 
       work.edtyp.stack(2);
@@ -1047,22 +1047,22 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
 
   // Over zealous check does not know we had in fact previously detected edge.
   // This is more of a retroactive check on the edges.
-  // See that we did not create an edge that is on the bdry of the cavity. 
-  // This could be recovered but it becomes messy when CAD and HO is involved so just reject... 
+  // See that we did not create an edge that is on the bdry of the cavity.
+  // This could be recovered but it becomes messy when CAD and HO is involved so just reject...
   // To recover, "simply" disable (but no such logic exists) CAD projection for the HO nodes
-  // Also, copy the HO nodes from whatever informs this face... 
+  // Also, copy the HO nodes from whatever informs this face...
   if(msh.nedge - nedg0 > 20) PRINTF("\n\n ## IMPLEMENT HASHTAB FOR HTIS\n");
   for (int ii = 0; ii < 3 ;ii++){
     // This is only bad if there is already a triangle on the other side (not boundary !)
     int ifac2 = msh.fac2fac(ifacn,ii);
-    if(ifac2 < 0) continue; 
+    if(ifac2 < 0) continue;
     if(msh.fac2tag(ithread,ifac2) < msh.tag[ithread]) continue;
     int kp1 = msh.fac2poi(ifacn,lnoed2[ii][0]);
     int kp2 = msh.fac2poi(ifacn,lnoed2[ii][1]);
     for(int iedge = nedg0; iedge < msh.nedge; iedge++){
       int jp1 = msh.edg2poi(iedge,0);
       int jp2 = msh.edg2poi(iedge,1);
-      if( (jp1 == kp1 && jp2 == kp2) 
+      if( (jp1 == kp1 && jp2 == kp2)
        || (jp1 == kp2 && jp2 == kp1) ){
         CPRINTF1(" previously created edge {} coincides with this edge",iedge);
         return CAV_ERR_DUPEDG2;
@@ -1075,7 +1075,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
   if constexpr(ideg >= 3){
 
     // Face interior nodes.
-    int irnk0 = 3 + 3*(ideg-1); 
+    int irnk0 = 3 + 3*(ideg-1);
     int ipn1 = msh.fac2poi(ifacn,0);
     int ipn2 = msh.fac2poi(ifacn,1);
     int ipn3 = msh.fac2poi(ifacn,2);
@@ -1096,14 +1096,14 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
 
       int ipnew = msh.newpoitopo(PointType::CtrlPt,2,ifacn);
       for(int jj = 0; jj < msh.idim; jj++){
-        msh.coord(ipnew,jj) = bary[0]*msh.coord(ipn1,jj) 
+        msh.coord(ipnew,jj) = bary[0]*msh.coord(ipn1,jj)
                                  + bary[1]*msh.coord(ipn2,jj)
                                  + bary[2]*msh.coord(ipn3,jj);
       }
       if(msh.isboundary_faces()){
         msh.newbpotopo(CtrlPt{ipnew},2,ifacn);
         for(int jj = 0; jj < nrbi; jj++){
-          msh.bpo2rbi(msh.nbpoi - 1,jj) = bary[0]*msh.bpo2rbi(ibn1,jj) 
+          msh.bpo2rbi(msh.nbpoi - 1,jj) = bary[0]*msh.bpo2rbi(ibn1,jj)
                                         + bary[1]*msh.bpo2rbi(ibn2,jj)
                                         + bary[2]*msh.bpo2rbi(ibn3,jj);
         }
@@ -1118,10 +1118,22 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
   if(check_qua){
     METRIS_ASSERT(ideg == 1);
     double quael;
-    if(msh.idim == 2)
+    if(msh.idim == 2){
+      #ifdef TESTQUAFSIZESHAPE
+      CPRINTF1("Using SizeShape qual in cavity operator\n");
+      quael = metqua<MetricFieldType,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ifacn,1.0);
+      #else
       quael = metqua<MetricFieldType,2,2>(msh,AsDeg::P1,AsDeg::P1,ifacn,1.0);
-    else
+      #endif
+    }
+    else{
+      #ifdef TESTQUAFSIZESHAPE
+      CPRINTF1("Using SizeShape qual in cavity operator\n");
+      quael = metqua<MetricFieldType,3,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ifacn,1.0);
+      #else
       quael = metqua<MetricFieldType,3,2>(msh,AsDeg::P1,AsDeg::P1,ifacn,1.0);
+      #endif
+    }
     CPRINTF1(" - new triangle {} = {} {} {} from {} nei = {} {} {} conf error = {} \n",ifacn,
        msh.fac2poi(ifacn,0), msh.fac2poi(ifacn,1), msh.fac2poi(ifacn,2),ifac1,
        msh.fac2fac(ifacn,0), msh.fac2fac(ifacn,1), msh.fac2fac(ifacn,2), quael);

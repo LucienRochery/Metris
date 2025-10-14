@@ -65,10 +65,10 @@ void MshCavity::print(const MeshBase &msh, int iforce) const{
 // -------------------------------------------------------------------------------------- //
 // -------------------------------------------------------------------------------------- //
 // -------------------------------------------------------------------------------------- //
-// For prints: "level 3" routine. level 0 = adapMesh level 1 = msh_collapse.. level 2 = low_collapse.. level 3 = cavity 
-// 2 spaces per level 
+// For prints: "level 3" routine. level 0 = adapMesh level 1 = msh_collapse.. level 2 = low_collapse.. level 3 = cavity
+// 2 spaces per level
 template <class MFT, int ideg>
-int cavity_operator(Mesh<MFT> &msh , 
+int cavity_operator(Mesh<MFT> &msh ,
                     MshCavity  &cav,
                     CavOprOpt  &opts,
                     CavWrkArrs &work,
@@ -99,7 +99,7 @@ int cavity_operator(Mesh<MFT> &msh ,
   if(DOPRINTS2()) writeMeshCavity("cavity0",msh,cav);
   if(DOPRINTS3()) writeMesh("cavinifull",msh,true);
 
-	if(cav.ipins < 0 || cav.ipins >= msh.npoin) 
+	if(cav.ipins < 0 || cav.ipins >= msh.npoin)
 		METRIS_THROW_MSG("ipins out of bounds\n");
 
 	int ierro = CAV_NOERR;
@@ -138,16 +138,16 @@ int cavity_operator(Mesh<MFT> &msh ,
 	}
 
 
-  // This only implements norempts for now. 
+  // This only implements norempts for now.
 	ierro = check_cavity_topo(msh, cav, opts, ithread);
 	if(ierro > 0) goto cleanup;
 
 
   // The minimum value we need to set to (note right ++ is fine as we need only >=)
   cav.maxtag = MAX(cav.maxtag,++msh.tag[ithread]);
-  
-   /*  -------------- Generate final cavity -------------------- 
-   		 For typent in (line|face|tetra) do 
+
+   /*  -------------- Generate final cavity --------------------
+   		 For typent in (line|face|tetra) do
          Generate typent cavity + new typent-1 elements boundary
          Reconnect bdry to ipins
    */
@@ -165,7 +165,7 @@ int cavity_operator(Mesh<MFT> &msh ,
 
 
 	ierro = reconnect_tetcav<MFT, ideg>(msh, cav, opts, info, nfac0, &qmax, ithread);
-  if(ierro > 0) goto cleanup; 
+  if(ierro > 0) goto cleanup;
   if(msh.get_tdim() == 3) info.qmax_end = qmax;
   CPRINTF1("-- reconnect_tetcav done nele0 = {} nelem = {} \n",nele0,msh.nelem);
 
@@ -178,7 +178,7 @@ int cavity_operator(Mesh<MFT> &msh ,
   }
 
 	/*  -------------- Validity correction and quality checks ------------------
-	  If this doesn't pass, don't invest on expensive optimization 
+	  If this doesn't pass, don't invest on expensive optimization
 	*/
 
 	ierro = correct_cavity<MFT,ideg>(msh,cav,opts,npoi0,nedg0,nfac0,nele0,
@@ -187,7 +187,7 @@ int cavity_operator(Mesh<MFT> &msh ,
   if(ierro > 0) goto cleanup;
 
   if(opts.dryrun){
-    if((opts.qmax_suf < 0 || qmax > opts.qmax_suf) && 
+    if((opts.qmax_suf < 0 || qmax > opts.qmax_suf) &&
        (opts.qmax_iff < 0 || qmax > opts.qmax_iff)){
       ierro = CAV_ERR_DRYFAIL1;
       goto cleanup;
@@ -221,10 +221,10 @@ int cavity_operator(Mesh<MFT> &msh ,
   msh.tag[ithread] = cav.maxtag;
   CPRINTF1("-- Cavity error ierro = {} \n",ierro);
   if(DOPRINTS2()){
-    // Write out the cavity. 
+    // Write out the cavity.
     writeMesh("cavenderr",msh,true,nedg0,nfac0,nele0);
   }
-	//METRIS_THROW_MSG( 
+	//METRIS_THROW_MSG(
   //  "Get rid of bpoi entries of existing points? Do these exist? Check ierro = "<<ierro);
   msh.tag[ithread]++;
   if(msh.isboundary_faces()){
@@ -257,15 +257,15 @@ int cavity_operator(Mesh<MFT> &msh ,
 	msh.set_nedge(nedg0);
 	msh.set_nface(nfac0);
 	msh.set_nelem(nele0);
-  
+
   cav.maxtag = MAX(cav.maxtag, msh.tag[ithread]);
 
 
   finish:
 
   msh.tag[ithread] = cav.maxtag;
-  
-  // cav.ipins may not be correctly in the mesh 
+
+  // cav.ipins may not be correctly in the mesh
   if(msh.param->dbgfull && ierro == 0) check_topo(msh,ithread);
 
   //static int nwarnprt = 0;

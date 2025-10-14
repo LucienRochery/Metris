@@ -30,17 +30,17 @@
 
 namespace Metris{
 
-// This version tags elements and also edges via a hash table. 
-// Initially, all elements are untagged (active) and the hash table is empty. 
-// When an insertion fails on an edge, the edge is added to the hashtable. 
+// This version tags elements and also edges via a hash table.
+// Initially, all elements are untagged (active) and the hash table is empty.
+// When an insertion fails on an edge, the edge is added to the hashtable.
 // When insertions fail on all edges of an element, the element becomes tagged (inactive)
 // When an insertion is carried out, neighbouring edges are not untagged because
 // the majority of rejections are due to error INS2D_ERR_SHORTEDG which is only
-// made worse by an insertion. 
+// made worse by an insertion.
 // Edges eliminated by other errors can be removed from the hashtable in a second
-// time. 
-// Note their errors might depend on greater than 1 neighbourhood; hence there 
-// is no perfect solution other than to allow a full run at some point (in the end). 
+// time.
+// Note their errors might depend on greater than 1 neighbourhood; hence there
+// is no perfect solution other than to allow a full run at some point (in the end).
 
 // lpins work array sized dynamically by this routine ; it's an argument solely because this will be called several times, save on alloc
 // also: as iterations go, fewer and fewer edges are long, no use allocating more than once to maximum needed size (first iter)
@@ -59,12 +59,16 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd1 != ithrd2);
 
+  #ifdef TESTQUAFSIZESHAPE
+  CPRINTF1("insertLongEdges \n\n\n\n\n");
+  #endif
+
   const bool doSteiner = false;
 
   //int iverb0 = msh.param->iverb;
   //int ivdepth0 = msh.param->ivdepth;
 
-  // Swap norm -1: length-based. 
+  // Swap norm -1: length-based.
   //swapOptions swapOpt(100, -1, 0.0);
   swapOptions swapOpt(100, 0, 0.005);
 
@@ -91,10 +95,10 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
   double stat = 0;
 
 
-  const int nedgl = (tdim*(tdim+1))/2;
+  const int nedgl = (tdim*(tdim+1))/2; // edges per simplex
 
   const intAr2 lnoed(nedgl,2,tdim == 1 ? lnoed1[0] :
-                             tdim == 2 ? lnoed2[0] : lnoed3[0]);
+                             tdim == 2 ? lnoed2[0] : lnoed3[0]); // local edge id to local nodes ids
   const intAr2 &ent2poi = msh.ent2poi(tdim);
 
   // Error counting:
@@ -185,11 +189,11 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
       ntry++;
       int ip1 = std::get<0>(key);
       int ip2 = std::get<1>(key);
-      int ied = getedgent(msh, tdim, ientt, ip1, ip2);
+      int ied = getedgent(msh, tdim, ientt, ip1, ip2); // local edge id in ientt
       METRIS_ASSERT(ied >= 0);
 
       CPRINTF1(" - enact ins ientt = {} ied = {} edg {} {}\n",ientt,ied,ip1,ip2);
-      int nent0 = msh.nentt(tdim); 
+      int nent0 = msh.nentt(tdim);
       int iSteiner = -1;
     try_insert:
       iSteiner++;
@@ -263,7 +267,7 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
         CPRINTF2(" # insertion failed ierro = {} \n",ierro);
         if(doSteiner && iSteiner == 0 && tdim <= 2 && insertionSeed.tdimp <= tdim && insertionSeed.tdimp < msh.get_tdim()){
           static int nwarnprt = 5;
-          if(insertionSeed.tdimp == 1 && nwarnprt --> 0) 
+          if(insertionSeed.tdimp == 1 && nwarnprt --> 0)
             PRINTF("## Once insertSteiner is implemented for tdimp = 1, update this call site");
           CPRINTF1(" -> try Steiner point insertion\n");
 
@@ -284,7 +288,7 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
             //printf("## DEBUG SET MAX PRINTS\n");
             //msh.param->iverb = 3;
             //msh.param->ivdepth = 15;
-            
+
 
             goto try_insert;
           }

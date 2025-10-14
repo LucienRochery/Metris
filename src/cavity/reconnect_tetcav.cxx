@@ -21,9 +21,9 @@ namespace Metris{
 int aux_check_tetbdry(MeshBase &msh, MshCavity& cav, int ielen, int ifa0, int *cfatag, int ithread);
 
 template <class MFT, int ideg>
-int reconnect_tetcav(Mesh<MFT> &msh, 
-                     MshCavity& cav, 
-                     CavOprOpt  &opts, 
+int reconnect_tetcav(Mesh<MFT> &msh,
+                     MshCavity& cav,
+                     CavOprOpt  &opts,
                      CavOprInfo &info,
                      int nfac0, double *qmax, int ithread){
 
@@ -35,7 +35,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
                 || (opts.qmax_iff > 0 && msh.get_tdim() == 3);
 
   //// When would we not though?
-  //bool check_val = opts.fast_reject 
+  //bool check_val = opts.fast_reject
   //              || opts.max_increase_cav_geo <= 0
   //              || check_qua;
 
@@ -54,23 +54,23 @@ int reconnect_tetcav(Mesh<MFT> &msh,
 
   const int nele0 = msh.nelem;
 
-  // In the future, handle connex components here. For now, unique ref. 
+  // In the future, handle connex components here. For now, unique ref.
   // If the cavity has two+ tet connex components, then ipins is necessarily
-  // a tdim 2 or 1 point. It is on the interface beetween the connex cpts. 
-  // In that case, the faces nfac0 through nface do not generate tetrahedra. 
-  // Hence the only case where tets are created with new faces is if point 
+  // a tdim 2 or 1 point. It is on the interface beetween the connex cpts.
+  // In that case, the faces nfac0 through nface do not generate tetrahedra.
+  // Hence the only case where tets are created with new faces is if point
   // is interior. In that case it is quite simple, the tetrahedra are oriented
   // same as face with ipins in first position, and we are always the first fac2tet.
   for(int ielem : cav.lctet){
     msh.tet2tag(ithread, ielem) = msh.tag[ithread];
   }
 
-  // Hash faces containing ipins for neighbour updates. 
-  // Can be boundary faces, or new interior faces. 
-  // As they all share ipins, it is enough to hash the remaining two vertices. 
-  // Such faces hit at most 2 elements; we need only keep track of one, as 
+  // Hash faces containing ipins for neighbour updates.
+  // Can be boundary faces, or new interior faces.
+  // As they all share ipins, it is enough to hash the remaining two vertices.
+  // Such faces hit at most 2 elements; we need only keep track of one, as
   // when we are the second, we update info and can trash the entry.
-  HshTab_I2I2 facHsh; 
+  HshTab_I2I2 facHsh;
   for(int iface = nfac0; iface < msh.nface; iface++){
     int iver = msh.template getverfac<1>(iface, cav.ipins);
     METRIS_ASSERT(iver >= 0);
@@ -79,18 +79,18 @@ int reconnect_tetcav(Mesh<MFT> &msh,
     auto key = stup2(ip1,ip2);
     facHsh[key] = {2, iface};
   }
-  
+
   // "Hash" edges containing ipins for HO updates
   // Loose arrays we'll point into using poi2tag on the
-  // non-ipins vertex. 
+  // non-ipins vertex.
   // Helper struct that resets poi2tag on destruction.
   struct edgHashHO_t{
-    edgHashHO_t(MeshBase &msh_, const MshCavity& cav, int nfac0, int ithread_) : 
+    edgHashHO_t(MeshBase &msh_, const MshCavity& cav, int nfac0, int ithread_) :
       msh(msh_), ithread(ithread_), ipins(cav.ipins),
-      // Compilers complain about std::move here but it is necessary for 
-      // how work arrays work: only one live at a time, and update the tracking with 
-      // the move constructor. 
-      // Note: we could allow copy constructor for untracked work arrays, but let's not 
+      // Compilers complain about std::move here but it is necessary for
+      // how work arrays work: only one live at a time, and update the tracking with
+      // the move constructor.
+      // Note: we could allow copy constructor for untracked work arrays, but let's not
       // complicate things.
       edgHshDim(std::move(msh.get_iwork(cav.lctet.get_n()*(msh.curdeg > 1)))),
       edgHshElt(std::move(msh.get_iwork(cav.lctet.get_n()*(msh.curdeg > 1)))),
@@ -99,7 +99,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
         edgHshDim.set_n(0);
         edgHshEdg.set_n(0);
         // Initialize with new triangles; new edges from edges have been
-        // now used by triangles, so this is enough. 
+        // now used by triangles, so this is enough.
         int nhash = 0;
         for(int iface = nfac0; iface < msh.nface; iface++){
           for(int ied = 0; ied < 3; ied++){
@@ -161,20 +161,20 @@ int reconnect_tetcav(Mesh<MFT> &msh,
   edgHashHO_t edgHashHO(msh, cav, nfac0, ithread);
 
   // Hash external edges for control point copies.
-  // A tetra can share no face (but an edge) with an external element. 
+  // A tetra can share no face (but an edge) with an external element.
   // If we don't hash these edges, we're reliant on order of control point copies
-  // and it can take arbitrarily many steps to go from an tetra that copied 
+  // and it can take arbitrarily many steps to go from an tetra that copied
   // the ctrl point to another.
   HshTab_I2I2 extEdgHsh;
   if constexpr (ideg > 1){
-    // Any external edge is necessarily in an external face. 
-    // Hence there is at least one cavity element that sees it as 
+    // Any external edge is necessarily in an external face.
+    // Hence there is at least one cavity element that sees it as
     // an edge within one of its external faces.
     for(int ielem : cav.lctet){
       INCVDEPTH(msh.param);
       for(int ifa = 0; ifa < 4; ifa++){
         int ienei = msh.tet2tet(ielem,ifa);
-        CPRINTF3(" - extEdgHsh check iecav {} ifa {} : {} {} {}\n", 
+        CPRINTF3(" - extEdgHsh check iecav {} ifa {} : {} {} {}\n",
                  ielem, ifa, msh.tet2poi(ielem,lnofa3[ifa][0]),
                              msh.tet2poi(ielem,lnofa3[ifa][1]),
                              msh.tet2poi(ielem,lnofa3[ifa][2]));
@@ -195,10 +195,10 @@ int reconnect_tetcav(Mesh<MFT> &msh,
   }
 
 
-  // To check if all points are on the boundary. 
+  // To check if all points are on the boundary.
   const int pdim_ipins = msh.getpoitdim(cav.ipins);
 
-  // Next loop over cavity boundary faces to generate new tets. If there are 
+  // Next loop over cavity boundary faces to generate new tets. If there are
   // new faces, they do not generate tetrahedra, as those would have ipins twice.
   for(int iele0 : cav.lctet){
     INCVDEPTH(msh.param);
@@ -210,7 +210,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
         continue;
       }
 
-      // Also skip if face contains ipins already. 
+      // Also skip if face contains ipins already.
       bool iskip = false;
       for(int ii = 0; ii < 3; ii++){
         if(msh.tet2poi(iele0, lnofa3[ifa0][ii]) != cav.ipins) continue;
@@ -224,7 +224,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
       }
 
       // Additionally, skip any faces that coincide with triangles which were
-      // in the cavity. These have disappeared from the mesh. 
+      // in the cavity. These have disappeared from the mesh.
       {// namespace
         auto key = stup3(msh.tet2poi(iele0, lnofa3[ifa0][0]),
                          msh.tet2poi(iele0, lnofa3[ifa0][1]),
@@ -241,7 +241,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
       }
 
 
-      // Cavity boundary face, create tet. 
+      // Cavity boundary face, create tet.
       int ielen = msh.nelem;
       msh.set_nelem(msh.nelem+1);
 
@@ -260,16 +260,16 @@ int reconnect_tetcav(Mesh<MFT> &msh,
           msh.tet2poi(ielen,ii) = -1;
         }
       }
-      
+
       CPRINTF1(" - new tetra = {} from iele0 = {} ifa = {} vertices: {} {} {} {}\n",
                ielen,iele0,ifa0,msh.tet2poi(ielen,0),msh.tet2poi(ielen,1),
                msh.tet2poi(ielen,2),msh.tet2poi(ielen,3));
 
       double meas0;
       if(!isvalideltP1<3,3>(msh, ielen,NULL,&meas0)){
-        CPRINTF1(" - iflat ! return ip1 ip2 ip3 ip4 = {} {} {} {} meas = {:15.7e} \n", 
+        CPRINTF1(" - iflat ! return ip1 ip2 ip3 ip4 = {} {} {} {} meas = {:15.7e} \n",
                  msh.tet2poi(ielen,0),msh.tet2poi(ielen,1),msh.tet2poi(ielen,2),
-                 msh.tet2poi(ielen,3),meas0); 
+                 msh.tet2poi(ielen,3),meas0);
         return CAV_ERR_FLATTET;
       }
       CPRINTF2(" - new tetra volume {} \n",meas0);
@@ -293,11 +293,21 @@ int reconnect_tetcav(Mesh<MFT> &msh,
             quael = tt->second;
             CPRINTF2(" - found cached quality\n");
           }else{
+            #ifdef TESTQUAFSIZESHAPE
+            CPRINTF1("Using SizeShape qual in cavity operator\n");
+            quael = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
+            #else
             quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
+            #endif
             cav.qtetr[key] = quael;
           }
         }else{
+          #ifdef TESTQUAFSIZESHAPE
+          CPRINTF1("Using SizeShape qual in cavity operator\n")
+          quael = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
+          #else
           quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
+          #endif
         }
         CPRINTF1(" - new tetra {} = {} {} {} {} from {} conf error = {} \n",
           ielen,
@@ -369,7 +379,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
             int inod2 = mul2nod(3,idx2);
             CPRINTF2(" - copy ctrl pt {}{}{}{} inode {} = {} from {}{}{}{} inode {}\n",
                      idx1[0],idx1[1],idx1[2],idx1[3], inod1,
-                     msh.tet2poi(iecav, inod2), 
+                     msh.tet2poi(iecav, inod2),
                      idx2[0],idx2[1],idx2[2],idx2[3], inod2);
             msh.tet2poi(ielen, inod1) = msh.tet2poi(iecav, inod2);
           }
@@ -385,7 +395,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
           int ihash = edgHashHO.ihash(ipoi1, ipoi2);
           CPRINTF1(" - new tet {} check ied {} : {} {}, ihash = {}\n",
                   ielen, ied, ipoi1, ipoi2, ihash);
-          
+
           if(ihash >= 0){
             // These are ints
             const auto [tdim, iele1, ied1] = edgHashHO[ihash];
@@ -398,7 +408,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
             METRIS_ASSERT(tdim == 2 || tdim == 3);
             METRIS_ASSERT(iele1 >= 0 && iele1 < msh.nentt(tdim));
             METRIS_ASSERT(ied1 >= 0 && ied1 < (tdim == 2 ? 3 : 6));
-            
+
             // Copy control points
             int idx1[4] = {}, idx2[4] = {};
             bool isori = true;
@@ -445,14 +455,14 @@ int reconnect_tetcav(Mesh<MFT> &msh,
       // - create/copy HO nodes
       for(int ied = 0; ied < 3; ied++){
         // ifa is the node we want to avoid (ipins)
-        // lnoed[ied][0] and lnoed[ied][1] will span all combinations of 
+        // lnoed[ied][0] and lnoed[ied][1] will span all combinations of
         // 2 among 0,1,2
-        // to this we add 1, and go over ifa + 1, ifa + 2 and ifa + 3 
-        // modulo 4, which spans all pairs of vertices not ifa. 
-        int ip1 = msh.tet2poi(ielen, (ifa0 + lnoed2[ied][0]+1)%4); 
-        int ip2 = msh.tet2poi(ielen, (ifa0 + lnoed2[ied][1]+1)%4); 
+        // to this we add 1, and go over ifa + 1, ifa + 2 and ifa + 3
+        // modulo 4, which spans all pairs of vertices not ifa.
+        int ip1 = msh.tet2poi(ielen, (ifa0 + lnoed2[ied][0]+1)%4);
+        int ip2 = msh.tet2poi(ielen, (ifa0 + lnoed2[ied][1]+1)%4);
 
-        // This makes the face opposite ifa + ied. 
+        // This makes the face opposite ifa + ied.
         int ifan = (ifa0 + ied + 1)%4;
 
         CPRINTF1(" - with ifa0 {} have ifan {} \n",ifa0, ifan);
@@ -467,12 +477,12 @@ int reconnect_tetcav(Mesh<MFT> &msh,
           CPRINTF1(" - found internal or new boundary face tdim {} entt {} \n",
                    tdimf,ielef);
 
-          // Copy the nodes from the entity. Could be dimension 2 or 3. 
+          // Copy the nodes from the entity. Could be dimension 2 or 3.
           // Also update neighbours
           if(tdimf == 2){
 
             CPRINTF1(" - bdry face nodes {} {} {} \n",msh.fac2poi(ielef,0)
-                     ,msh.fac2poi(ielef,1),msh.fac2poi(ielef,2)); 
+                     ,msh.fac2poi(ielef,1),msh.fac2poi(ielef,2));
             CPRINTF1("   match with {} {} {} \n",msh.tet2poi(ielen,lnofa3[ifan][0])
               ,msh.tet2poi(ielen,lnofa3[ifan][1]),msh.tet2poi(ielen,lnofa3[ifan][2]));
 
@@ -492,21 +502,21 @@ int reconnect_tetcav(Mesh<MFT> &msh,
 
           }else{
             METRIS_ASSERT(ielef >= nele0);
-            // Copy from a tetrahedron. For this we need to know the ifa for 
-            // the tet. 
+            // Copy from a tetrahedron. For this we need to know the ifa for
+            // the tet.
             int ifaf = getfactet(msh, ielef, ip1, ip2, cav.ipins);
             METRIS_ASSERT(ifaf >= 0);
 
             if constexpr (ideg > 1) cpy_tetfac2tetfac<ideg>(msh, ielef, ifaf, ielen, ifan);
-            
+
             // Also update the neighbour. This is a cavity interior face and both are
-            // new elements. 
+            // new elements.
             msh.tet2tet(ielen,ifan) = ielef;
             msh.tet2tet(ielef,ifaf) = ielen;
           }
 
         }else{// tt != facHsh.end()
-          // Create control points and add this interior face to hash table. 
+          // Create control points and add this interior face to hash table.
           // Loop over face indices all but vertices and edges
           int idx[4] = {};
           for(int ii = 1; ii <= ideg - 2; ii++){
@@ -536,7 +546,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
             }
           }
 
-          // Additionally, add the new face to hash table. 
+          // Additionally, add the new face to hash table.
           facHsh[key] = {3, ielen};
 
         }// tt != facHsh.end()
@@ -561,7 +571,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
             }
           }
         }
-      }// for ii 
+      }// for ii
 
       for(int ii = 0; ii < METRIS_MAXTAGS; ii++) msh.tet2tag(ii,ielen) = 0;
 
@@ -585,7 +595,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
 template int reconnect_tetcav<MetricFieldAnalytical, n >(Mesh<MetricFieldAnalytical> &msh,\
  MshCavity& cav, CavOprOpt &opts, CavOprInfo &info, int nfac0, double *qmax, int ithread);\
 template int reconnect_tetcav<MetricFieldFE        , n >(Mesh<MetricFieldFE        > &msh,\
- MshCavity& cav, CavOprOpt &opts, CavOprInfo &info, int nfac0, double *qmax, int ithread); 
+ MshCavity& cav, CavOprOpt &opts, CavOprInfo &info, int nfac0, double *qmax, int ithread);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 
@@ -603,11 +613,11 @@ int aux_check_tetbdry(MeshBase &msh, MshCavity& cav, int ielen, int ifa0, int *c
   }
 
   // The previous test was more lenient: it allowed tetrahedra to have
-  // all four vertices on the boundary, provided that the tet faces 
-  // were reverse oriented to the boundary faces they supported. 
-  // This meant the tet was inside the domain. 
+  // all four vertices on the boundary, provided that the tet faces
+  // were reverse oriented to the boundary faces they supported.
+  // This meant the tet was inside the domain.
   // One issue is a tetrahedron could be created with only one (perhaps even none)
-  // face on the boundary, and later be "uncovered". 
+  // face on the boundary, and later be "uncovered".
   // New criterion is more conservative but does not depend on future topology
   // we simply check if no four vertices are on the same face reference.
 
@@ -626,12 +636,12 @@ int aux_check_tetbdry(MeshBase &msh, MshCavity& cav, int ielen, int ifa0, int *c
       int nseenm1 = msh.cfa2tag(ithread,ireff) - *cfatag;
       CPRINTF1(" - check ver {} ipoin {} face {} ref {} already seen {}x\n",
                 iver,ipoin,iface,ireff,nseenm1+1);
-      // Same ref can be seen twice by same vertex, meaning it has already 
+      // Same ref can be seen twice by same vertex, meaning it has already
       // been updated.
       METRIS_ASSERT_MSG(nseenm1 <= iver, "nseenm1 = {} iver = {}", nseenm1, iver);
 
-      // We must be careful to skip refs that have been skipped by at 
-      // least one prior point, because our method of counting is 
+      // We must be careful to skip refs that have been skipped by at
+      // least one prior point, because our method of counting is
       // setting tag to tag + iver. Otherwise, if only the last point sees
       // a face ref, we'd think all did.
       if(nseenm1 + 1 < iver && iver != 0){
@@ -659,7 +669,7 @@ int aux_check_tetbdry(MeshBase &msh, MshCavity& cav, int ielen, int ifa0, int *c
     CPRINTF1(" - tet face {} -> glo face {}\n",ifal, iface);
     if(iface < 0) continue;
     if(msh.fac2tet(iface,0) >= 0 && msh.fac2tet(iface,1) >= 0){
-      if(msh.param->dbgfull) 
+      if(msh.param->dbgfull)
         METRIS_THROW_MSG("TODO: Handle internal surface case here");
       CPRINTF1(" # REJECT: tet face {} matches glo face {} which is internal\n",
         ifal, iface);

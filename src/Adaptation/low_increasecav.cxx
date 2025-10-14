@@ -7,8 +7,8 @@
 #include "low_increasecav.hxx"
 #include "low_delaunay.hxx"
 #include "Insertion/low_insert.hxx" // for error codes
-#include "Insertion/aux_insert.hxx" 
-#include "Insertion/EdgeSeed.hxx" 
+#include "Insertion/aux_insert.hxx"
+#include "Insertion/EdgeSeed.hxx"
 #include "low_cavqual.hxx"
 
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -32,7 +32,7 @@ namespace Metris{
 
 
 template<class MFT>
-int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, 
+int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav,
                         const EdgeSeed &insertionSeed,
                         int miter, int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
@@ -90,19 +90,19 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav,
 }
 
 template
-int setCavityInsertion2<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, 
+int setCavityInsertion2<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav,
                         const EdgeSeed &insertionSeed,
                         int miter, int ithrd1, int ithrd2);
 template
-int setCavityInsertion2<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, 
+int setCavityInsertion2<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav,
                         const EdgeSeed &insertionSeed,
                         int miter, int ithrd1, int ithrd2);
 
 
 
 template<class MFT>
-int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts, 
-                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max, 
+int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
+                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max,
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
@@ -115,7 +115,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
   const int nnmet = (msh.idim*(msh.idim+1))/2;
 
   bool filter_long = true;
-  
+
   static int nwarnprt = 0;
   if(nwarnprt++ < 10 && !filter_long) printf("## FILTER_LONG SET TO TRUE\n");
 
@@ -205,7 +205,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
       writeMeshCavity("insert_cavity4."+std::to_string(ngrow),msh,cav);
       msh.met.writeMetricFile("insert_cavity4."+std::to_string(ngrow));
     }
- 
+
     //ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
     //if(ierro > 0){
     //  ierro = INS2D_ERR_SHORTEDG;
@@ -215,8 +215,8 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     //}
 
     // Check if the cavity needs fixing.
-    // This is only if points are going to be removed, and they have length to 
-    // ipins too short. 
+    // This is only if points are going to be removed, and they have length to
+    // ipins too short.
 
     check_cavity_rempoint(msh, cav, opts, lrempoi.get_array(), true, ithrd1);
     if(lrempoi.get_n() > 0){
@@ -236,7 +236,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
 
       bool unfixable = false;
       if(lrempoi.get_n() > 0){
-        // Now we need to remove all the newly added elements that contain 
+        // Now we need to remove all the newly added elements that contain
         // one of the lrempoi.
         CPRINTF2(" # Fix cavity, lrempoi = {}\n", lrempoi.get_n());
         msh.tag[ithrd1]++;
@@ -246,7 +246,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
         }
         for(int tdimc = 1; tdimc <= msh.get_tdim(); tdimc++){
           intAr1 &lcent = cav.lcent(tdimc);
-          const int ncen0 = tdimc == 1 ? nced1 : 
+          const int ncen0 = tdimc == 1 ? nced1 :
                             tdimc == 2 ? ncfa1 : ncte1;
           const intAr2& ent2poc = msh.ent2poi(tdimc);
           int nrem = 0;
@@ -266,8 +266,8 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
             }
             CPRINTF1(" - remove {} from cavity dim {}\n",icent,tdimc);
             int icend = lcent.pop();
-            // This can only happen if we're the last element. In that case we 
-            // shrank the array and can quit. 
+            // This can only happen if we're the last element. In that case we
+            // shrank the array and can quit.
             if(icend == icent) break;
             // otherwise place last here.
             icent = icend;
@@ -314,7 +314,7 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
       }
       if(DOPRINTS2()) writeMeshCavity("insert_cavity4."+std::to_string(ngrow),msh,cav);
     }// if ierro > 0
-    
+
     ierro = 0;
 
     // Make sure not shrinking (would be a bug)
@@ -323,8 +323,8 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     METRIS_ASSERT(cav.lctet.get_n() >= ncte1);
 
     // Check if the cavity has grown; break if not
-    bool igrow =  cav.lcedg.get_n() > nced1 
-               || cav.lcfac.get_n() > ncfa1 
+    bool igrow =  cav.lcedg.get_n() > nced1
+               || cav.lcfac.get_n() > ncfa1
                || cav.lctet.get_n() > ncte1;
     if(!igrow) break;
 
@@ -339,25 +339,30 @@ int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
 }
 
 template
-int setCavityInsertion<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, const CavOprOpt &opts, 
-                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max, 
+int setCavityInsertion<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, const CavOprOpt &opts,
+                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max,
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2);
 template
-int setCavityInsertion<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, const CavOprOpt &opts, 
-                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max, 
+int setCavityInsertion<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, const CavOprOpt &opts,
+                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max,
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2);
 
 
 // Same as setCavityInsertion but try to cut down on time
-// by moving the point only once. 
+// by moving the point only once.
 template<class MFT>
-int setCavityInsertion3(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts, 
-                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max, 
+int setCavityInsertion3(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
+                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max,
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
+
+  #ifdef TESTQUAFSIZESHAPE
+  CPRINTF1("setCavityInsertion3 \n\n\n\n\n");
+  #endif
+
   int ierro;
 
   const int tdim  = insertionSeed.tdim_adp;
@@ -367,7 +372,7 @@ int setCavityInsertion3(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
   //const int nnmet = (msh.idim*(msh.idim+1))/2;
 
   const bool filter_long = true;
-  
+
   static int nwarnprt = 0;
   if(nwarnprt++ < 10 && !filter_long) printf("## FILTER_LONG SET TO TRUE\n");
 
@@ -397,7 +402,13 @@ int setCavityInsertion3(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     return INS2D_ERR_MOVPTCAVLEN;
   }
 
+  #ifdef TESTQUAFSIZESHAPE
+  CPRINTF1("============================== calling increase_cavity_quality===================================\n\n\n\n\n\n\n\n")
+  ierro = increase_cavity_quality(msh,cav,tdim,5,ithrd1);
+  #else
+  CPRINTF1("============================== calling increase_cavity_Delaunay===================================\n\n\n\n\n\n\n\n")
   ierro = increase_cavity_Delaunay(msh,cav,tdim,5,ithrd1);
+  #endif
   if(DOPRINTS2()){
     writeMeshCavity("insert_cavity1",msh,cav);
   }
@@ -419,7 +430,7 @@ int setCavityInsertion3(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
   check_cavity_rempoint(msh, cav, opts, lrempoi.get_array(), true, ithrd1);
   if(lrempoi.get_n() == 0) goto finish_cavity;
 
-  // Now we need to remove all the newly added elements that contain 
+  // Now we need to remove all the newly added elements that contain
   // one of the lrempoi.
   CPRINTF2(" # Fix cavity, lrempoi = {}\n", lrempoi.get_n());
   msh.tag[ithrd1]++;
@@ -429,7 +440,7 @@ int setCavityInsertion3(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
   }
   for(int tdimc = 1; tdimc <= msh.get_tdim(); tdimc++){
     intAr1 &lcent = cav.lcent(tdimc);
-    const int ncen0 = tdimc == 1 ? nced1 : 
+    const int ncen0 = tdimc == 1 ? nced1 :
                       tdimc == 2 ? ncfa1 : ncte1;
     const intAr2& ent2poc = msh.ent2poi(tdimc);
     int nrem = 0;
@@ -449,8 +460,8 @@ int setCavityInsertion3(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
       }
       CPRINTF1(" - remove {} from cavity dim {}\n",icent,tdimc);
       int icend = lcent.pop();
-      // This can only happen if we're the last element. In that case we 
-      // shrank the array and can quit. 
+      // This can only happen if we're the last element. In that case we
+      // shrank the array and can quit.
       if(icend == icent) break;
       // otherwise place last here.
       icent = icend;
@@ -472,9 +483,9 @@ int setCavityInsertion3(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     return INS2D_ERR_SHORTEDG2;
   }
 
-  
+
 finish_cavity:
-  
+
   ierro = collrejcav_lenqua(msh, cav, filter_long, false, true, lenqua_short_max, nocomp, ithrd2);
   if(ierro > 0) return INS2D_ERR_LENQUA;
 
@@ -482,20 +493,20 @@ finish_cavity:
 }
 
 template
-int setCavityInsertion3<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, const CavOprOpt &opts, 
-                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max, 
+int setCavityInsertion3<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, const CavOprOpt &opts,
+                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max,
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2);
 template
-int setCavityInsertion3<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, const CavOprOpt &opts, 
-                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max, 
+int setCavityInsertion3<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, const CavOprOpt &opts,
+                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max,
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2);
 
 
 template<class MFT>
-int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts, 
-                       int mgrow, double lenqua_short_max, 
+int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
+                       int mgrow, double lenqua_short_max,
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
@@ -552,7 +563,7 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     CPRINTF1(" - +cav nedge {} nface {} nelem {}\n",
              cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
     if(DOPRINTS2()) writeMeshCavity("insert_cavity3."+std::to_string(ngrow),msh,cav);
- 
+
     //ierro = collrejcav_lenqua(msh, cav, true, false, true, lenqua_short_max, nocomp, ithrd2);
     //if(ierro > 0){
     //  ierro = INS2D_ERR_SHORTEDG;
@@ -562,8 +573,8 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     //}
 
     // Check if the cavity needs fixing.
-    // This is only if points are going to be removed, and they have length to 
-    // ipins too short. 
+    // This is only if points are going to be removed, and they have length to
+    // ipins too short.
 
     check_cavity_rempoint(msh, cav, opts, lrempoi.get_array(), true, ithrd1);
     if(lrempoi.get_n() > 0){
@@ -590,7 +601,7 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
         break;
       }
 
-      // Now we need to remove all the newly added elements that contain 
+      // Now we need to remove all the newly added elements that contain
       // one of the lrempoi.
       msh.tag[ithrd1]++;
       for(int ii = 0; ii < lrempoi.get_n(); ii++){
@@ -599,7 +610,7 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
       }
       for(int tdimc = 1; tdimc <= msh.get_tdim(); tdimc++){
         intAr1 &lcent = cav.lcent(tdimc);
-        const int ncen0 = tdimc == 1 ? nced1 : 
+        const int ncen0 = tdimc == 1 ? nced1 :
                           tdimc == 2 ? ncfa1 : ncte1;
         const intAr2& ent2poc = msh.ent2poi(tdimc);
         int nrem = 0;
@@ -619,8 +630,8 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
           }
           CPRINTF1(" - remove {} from cavity dim {}\n",icent,tdimc);
           int icend = lcent.pop();
-          // This can only happen if we're the last element. In that case we 
-          // shrank the array and can quit. 
+          // This can only happen if we're the last element. In that case we
+          // shrank the array and can quit.
           if(icend == icent) break;
           // otherwise place last here.
           icent = icend;
@@ -629,7 +640,7 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
         CPRINTF1(" - removed {} dim {} cavity elements\n",nrem,tdimc);
       }// for tdimc
     }// if ierro > 0
-    
+
     ierro = 0;
 
     // Make sure not shrinking (would be a bug)
@@ -638,8 +649,8 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
     METRIS_ASSERT(cav.lctet.get_n() >= ncte1);
 
     // Check if the cavity has grown; break if not
-    bool igrow =  cav.lcedg.get_n() > nced1 
-               || cav.lcfac.get_n() > ncfa1 
+    bool igrow =  cav.lcedg.get_n() > nced1
+               || cav.lcfac.get_n() > ncfa1
                || cav.lctet.get_n() > ncte1;
     if(!igrow) break;
     if(ierro > 0) break;
@@ -655,13 +666,13 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
 }
 
 template
-int setCavityInsertion2<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, const CavOprOpt &opts, 
-                       int mgrow, double lenqua_short_max, 
+int setCavityInsertion2<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, const CavOprOpt &opts,
+                       int mgrow, double lenqua_short_max,
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2);
 template
-int setCavityInsertion2<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, const CavOprOpt &opts, 
-                       int mgrow, double lenqua_short_max, 
+int setCavityInsertion2<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, const CavOprOpt &opts,
+                       int mgrow, double lenqua_short_max,
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2);
 
@@ -682,15 +693,15 @@ void check_cavity_rempoint(MeshMetric<MFT> &msh, MshCavity &cav, const CavOprOpt
   for(int ientt : cav.lctet) msh.tet2tag(ithrd1,ientt) = msh.tag[ithrd1];
 
   // Points to be removed are those that are surrounded by only cavity elements.
-  // Hence, loop over cavity elements and tag any points that belong to a 
-  // non-cavity neighbour. 
-  // Lastly, count untagged vertices. 
+  // Hence, loop over cavity elements and tag any points that belong to a
+  // non-cavity neighbour.
+  // Lastly, count untagged vertices.
 
-  // If it belongs to any lower dim elements, that should be in the cavity. 
-  // It suffice there is one, as if it doesnt belong to all, it would be tagged. 
+  // If it belongs to any lower dim elements, that should be in the cavity.
+  // It suffice there is one, as if it doesnt belong to all, it would be tagged.
 
-  int tdimn = cav.lctet.get_n() > 0 ? 3 
-            : cav.lcfac.get_n() > 0 ? 2 
+  int tdimn = cav.lctet.get_n() > 0 ? 3
+            : cav.lcfac.get_n() > 0 ? 2
                                     : 1;
   const intAr1&  lcent = cav.lcent(tdimn);
   const intAr2&  ent2ent = msh.ent2ent(tdimn);
@@ -703,7 +714,7 @@ void check_cavity_rempoint(MeshMetric<MFT> &msh, MshCavity &cav, const CavOprOpt
                     "invalid pdim_ipins = {}", pdim_ipins);
 
   // Tag points that won't be deleted: there is at least one elt outside
-  // the cavity that has the point. 
+  // the cavity that has the point.
   for(int ientt : lcent){
     for(int ii = 0; ii < tdimn + 1; ii++){
       int ipoin = ent2poi(ientt,ii);
@@ -712,8 +723,8 @@ void check_cavity_rempoint(MeshMetric<MFT> &msh, MshCavity &cav, const CavOprOpt
         if(jj == ii) continue;
         int ient2 = ent2ent(ientt,jj);
         if(ient2 < 0) continue;
-        // Tag point if the adjacent element is not in the cavity 
-        // This point is not set to be deleted. 
+        // Tag point if the adjacent element is not in the cavity
+        // This point is not set to be deleted.
         if(ent2tag(ithrd1,ient2) < msh.tag[ithrd1]){
           msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1];
           CPRINTF2("  - not rem point {} \n", ipoin);
@@ -733,32 +744,32 @@ void check_cavity_rempoint(MeshMetric<MFT> &msh, MshCavity &cav, const CavOprOpt
       // Check the point dimension wrt to option allow_remove_points_superdim
       int pdim = msh.getpoitdim(ipoin);
       if(pdim > pdim_ipins && opts.allow_remove_points_superdim){
-        CPRINTF1(" - point dim {} > {} = dim(ipins) " 
+        CPRINTF1(" - point dim {} > {} = dim(ipins) "
                  "with allow_remove_points_superdim, skip check\n",
                  pdim, pdim_ipins);
         continue;
       }
 
       // point going to be deleted, but only if any existing lower dim entities
-      // are also in the cavity. 
+      // are also in the cavity.
       if(tdimn == 3){
         // If there is a face attached, check it is in the cavity.
         int iface = getpoifac(msh, ipoin);
-        // If not, this point won't be removed. Continue. 
+        // If not, this point won't be removed. Continue.
         if(iface >= 0 && msh.fac2tag(ithrd1,iface) < msh.tag[ithrd1]) continue;
-      } 
+      }
 
       if(tdimn >= 2){
         // If there is an edge attached, check it is in the cavity.
         int iedge = getpoiedg(msh,ipoin);
-        // If not, this point won't be removed. Continue. 
+        // If not, this point won't be removed. Continue.
         if(iedge >= 0 && msh.edg2tag(ithrd1,iedge) < msh.tag[ithrd1]) continue;
       }
 
       // If we're here, that means that there are either no attached lower dim
       // or there are and they are all in the cavity; indeed, assume there exist
       // at least one, and at least one not in the cav. Then the point is not
-      // tagged. Then we wouldn't be here. 
+      // tagged. Then we wouldn't be here.
 
       CPRINTF1(" ## point {} will be removed \n",ipoin);
       // tag point so we don't check for it again
@@ -787,10 +798,10 @@ template void check_cavity_rempoint<MetricFieldFE        >
    intAr1 &lrempoi, bool chklen, int ithrd1);
 
 
-// Increase for validity and Delaunay (if idelaunay == true) both. 
-// Argument ref2nordev is optional unless surface is involved. It need not be filled prior. 
+// Increase for validity and Delaunay (if idelaunay == true) both.
+// Argument ref2nordev is optional unless surface is involved. It need not be filled prior.
 template<class MFT>
-int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav, 
+int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
                     bool idelaunay, int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
   METRIS_ASSERT(ithrd1 != ithrd2);
@@ -847,7 +858,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
   int pdim = msh.getpoitdim(cav.ipins);
   #ifndef NDEBUG
   {
-  int cav_mindim = cav.lcedg.get_n() > 0 ? 1 : 
+  int cav_mindim = cav.lcedg.get_n() > 0 ? 1 :
                    cav.lcfac.get_n() > 0 ? 2 : 3;
   METRIS_ASSERT(pdim == cav_mindim);
   }
@@ -861,9 +872,9 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
   if(msh.nperiodic_face != 0){
     METRIS_THROW_MSG("TODO: ## CASE WITH PERIODIC FACES NOT HANDLED IN LOW_INCREASECAV")
     // I think the way to generalize this is not to go all in on generality as in reconnect_faccav,
-    // but to keep this "happy path" centered approach and work around the exceptions locally. 
+    // but to keep this "happy path" centered approach and work around the exceptions locally.
     // It is rare in practice to have periodic faces and, even when some exist, most won't be, in real geoms.
-    // Moreover, dealing with this is price paid for each surface insertion, not just on edges. 
+    // Moreover, dealing with this is price paid for each surface insertion, not just on edges.
     // We left place in ref2nordev for a second entry, only for periodic refs.
   }
 
@@ -905,7 +916,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
 
   int nnmet = (msh.idim * (msh.idim + 1)) / 2;
   double metl[6], lmet[6];
-  double *metl_p; 
+  double *metl_p;
   if(idelaunay){
     if(msh.met.getSpace() == MetSpace::Log){
       for(int ii = 0; ii < nnmet; ii++) lmet[ii] = msh.met(cav.ipins,ii);
@@ -965,7 +976,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
 
         double norCAD[3];
         if(msh.idim == 3 && tdim == 2){
-          // If dimension 3 topo dim 2, get a normal for this face. 
+          // If dimension 3 topo dim 2, get a normal for this face.
           if(msh.CAD()){
             getnorfacCAD(msh,ientt,norCAD);
           }else{
@@ -998,9 +1009,9 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
 
 
 
-          // tdim 2: if there's an edge here and it's in the cavity, then it will 
-          // be split and we'll get no face from it. 
-          // tdim 3: idem, faces. 
+          // tdim 2: if there's an edge here and it's in the cavity, then it will
+          // be split and we'll get no face from it.
+          // tdim 3: idem, faces.
           int isube = -1;
           if(tdim == 2){
             isube = msh.fac2edg(ientt,inei);
@@ -1012,7 +1023,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
             continue;
           }
 
-          // New face is ipins, ip1, ip2  
+          // New face is ipins, ip1, ip2
           if(tdim == 2){
             ent2pol[1] = ent2poi(ientt,lnoed2[inei][0]);
             ent2pol[2] = ent2poi(ientt,lnoed2[inei][1]);
@@ -1029,7 +1040,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
           try{
           #endif
 
-          
+
             double nordev_tol = -1;
             if(msh.idim == 3 && tdim == 2){
               int iref = msh.fac2ref[ientt];
@@ -1049,8 +1060,8 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
 
             // First, check if this is a sliver
             double meas0;
-            bool ivalid = msh.idim == 2 ? isvalideltP1<2,2>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol) 
-                        :     tdim == 2 ? isvalideltP1<3,2>(msh, ent2pol, nod2bpo, NULL, &meas0, nordev_tol) 
+            bool ivalid = msh.idim == 2 ? isvalideltP1<2,2>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol)
+                        :     tdim == 2 ? isvalideltP1<3,2>(msh, ent2pol, nod2bpo, NULL, &meas0, nordev_tol)
                                         : isvalideltP1<3,3>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol); // NORCAD
             iflat = !ivalid;
             CPRINTF1("   - inccav pdim {} tdim {} ent {} = {}\n",pdim,tdim,ientt,
@@ -1103,13 +1114,13 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
           #endif
 
           #if 0
-          // Next check geodev 
+          // Next check geodev
           // Actually not because adding more faces will only damage the cavity further
-          // Do this in the future as pre reject, possibly. 
+          // Do this in the future as pre reject, possibly.
           // Also depends on Pk etc. Probably best to leave in cav.
-          double nrmal[3]; 
+          double nrmal[3];
           if(msh.idim == 3 && pdim < 2){
-            // Get the normal in the case we're on an edge in 3D, and get only 
+            // Get the normal in the case we're on an edge in 3D, and get only
             // the correct side.
             int iref = msh.fac2ref[ientt];
             getnorballref<1>(msh,lcent,iref,nrmal);
@@ -1117,7 +1128,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
           #endif
 
           // if element created with this facet is negative, add the neighbour
-          // to cavity. 
+          // to cavity.
           if(iflat){
             if(ienei >= 0){
               if(ref2tag(ithrd1,ent2ref[ienei]) < msh.tag[ithrd1]){
@@ -1149,7 +1160,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
             // There are two cases:
             // - ienei >= 0, then this entity is sandwiched and needs to be added
             // - ienei < 0, then the only hope of correction is adding this entity
-            // Hence, in any case, if there is a subdim entity here, add it. 
+            // Hence, in any case, if there is a subdim entity here, add it.
             if(isube >= 0){
               // If the point tdim is greater than this element's dim, it cannot
               // be added.
@@ -1157,7 +1168,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
                 CPRINTF1("   - ientt {} dim {} < ipins dim {}\n",isube,tdim-1,pdim);
                 return 2;
               }
-              // Add the boundary entity, but only if in allowed refs. 
+              // Add the boundary entity, but only if in allowed refs.
               int iref = msh.ent2ref(tdim-1)[isube];
               if(msh.ref2tag(tdim-1)(ithrd1,iref) < msh.tag[ithrd1]){
                 CPRINTF1("   - ientt {} -> isube {} is wrong ref {}\n",ienei,isube,iref);
@@ -1165,9 +1176,9 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
               }
               cav.lcent(tdim-1).stack(isube);
               msh.ent2tag(tdim-1)(ithrd1,isube) = msh.tag[ithrd1];
-              CPRINTF1("   - inccav added dim {} ent {} to stack \n", tdim-1, 
+              CPRINTF1("   - inccav added dim {} ent {} to stack \n", tdim-1,
                        isube);
-              // We added a lower dim entity, hence restart will be required. 
+              // We added a lower dim entity, hence restart will be required.
               restart = true;
             }
 
@@ -1192,19 +1203,19 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
             }
 
 
-            // Check if Delaunay 
+            // Check if Delaunay
             bool isinsph;
             try{
               if(tdim == 2){
                 if(msh.idim == 2){
-                  isinsph = indelsphere<2,2>(msh, msh.coord[cav.ipins], metl_p, 
+                  isinsph = indelsphere<2,2>(msh, msh.coord[cav.ipins], metl_p,
                                             ent2poi[ienei]);
                 }else{
-                  isinsph = indelsphere<3,2>(msh, msh.coord[cav.ipins], metl_p, 
+                  isinsph = indelsphere<3,2>(msh, msh.coord[cav.ipins], metl_p,
                                             ent2poi[ienei]);
                 }
               }else{
-                isinsph = indelsphere<3,3>(msh, msh.coord[cav.ipins], metl_p, 
+                isinsph = indelsphere<3,3>(msh, msh.coord[cav.ipins], metl_p,
                                           ent2poi[ienei]);
               }
             }catch(const MetrisExcept& e){
@@ -1222,7 +1233,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
               ent2tag(ithrd1,ienei) = msh.tag[ithrd1];
 
               if(isube >= 0){
-                // Add the boundary entity, but only if in allowed refs. 
+                // Add the boundary entity, but only if in allowed refs.
                 int iref = msh.ent2ref(tdim-1)[isube];
                 if(msh.ref2tag(tdim-1)(ithrd1,iref) < msh.tag[ithrd1]){
                   CPRINTF1("   - ientt {} -> isube {} is wrong ref {}\n",ienei,isube,iref);
@@ -1230,15 +1241,15 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
                 }
                 cav.lcent(tdim-1).stack(isube);
                 msh.ent2tag(tdim-1)(ithrd1,isube) = msh.tag[ithrd1];
-                CPRINTF1("   - inccav added dim {} ent {} to stack \n", tdim-1, 
+                CPRINTF1("   - inccav added dim {} ent {} to stack \n", tdim-1,
                          isube);
-                // We added a lower dim entity, hence restart will be required. 
+                // We added a lower dim entity, hence restart will be required.
                 restart = true;
               }
             }
 
           }// if idelaunay
-      
+
         } // for int inei
 
       } // for int ientl
@@ -1255,9 +1266,9 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
 }
 
 
-template int increase_cavity(MeshMetric<MetricFieldAnalytical> &msh, MshCavity &cav, 
+template int increase_cavity(MeshMetric<MetricFieldAnalytical> &msh, MshCavity &cav,
                     bool idelaunay, int ithrd1, int ithrd2);
-template int increase_cavity(MeshMetric<MetricFieldFE        > &msh, MshCavity &cav, 
+template int increase_cavity(MeshMetric<MetricFieldFE        > &msh, MshCavity &cav,
                     bool idelaunay, int ithrd1, int ithrd2);
 
 
@@ -1267,7 +1278,7 @@ template int increase_cavity(MeshMetric<MetricFieldFE        > &msh, MshCavity &
 
 
 
-// Increase for validity. Only allow same refs as ipins already has. 
+// Increase for validity. Only allow same refs as ipins already has.
 int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
   GETVDEPTH(msh.param);
 
@@ -1396,7 +1407,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
 
         double norCAD[3];
         if(msh.idim == 3 && tdim == 2){
-          // If dimension 3 topo dim 2, get a normal for this face. 
+          // If dimension 3 topo dim 2, get a normal for this face.
           if(msh.CAD()){
             getnorfacCAD(msh,ientt,norCAD);
           }else{
@@ -1440,9 +1451,9 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
             }
           }
 
-          // tdim 2: if there's an edge here and it's in the cavity, then it will 
-          // be split and we'll get no face from it. 
-          // tdim 3: idem, faces. 
+          // tdim 2: if there's an edge here and it's in the cavity, then it will
+          // be split and we'll get no face from it.
+          // tdim 3: idem, faces.
           int iedge = -1, iface = -1;
           if(tdim == 2){
             iedge = msh.fac2edg(ientt,inei);
@@ -1472,7 +1483,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
             }
           }
 
-          // New face is ipins, ip1, ip2  
+          // New face is ipins, ip1, ip2
           if(tdim == 2){
             ent2pol[1] = ent2poi(ientt,lnoed2[inei][0]);
             ent2pol[2] = ent2poi(ientt,lnoed2[inei][1]);
@@ -1495,20 +1506,20 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
           meas0 = msh.idim == 2 ? getmeasentP1<2,2>(msh, ent2pol, nod2bpo, norCAD, &iflat, -1)
                 :     tdim == 2 ? getmeasentP1<3,2>(msh, ent2pol, nod2bpo, norCAD, &iflat, -1)
                                 : getmeasentP1<3,3>(msh, ent2pol, nod2bpo, norCAD, &iflat, -1);
-          
+
           CPRINTF1("  - inccav pdim {} tdim {} ent {} = {}\n",
                    pdim,tdim,ientt,intAr1(tdim+1,ent2pol));
           CPRINTF1("  - w/ vtol = {} got iflat = {} meas0 = {:15.7e} neighbour = {}\n",
                    msh.param->vtol,iflat,meas0,ienei);
 
           #if 0
-          // Next check geodev 
+          // Next check geodev
           // Actually not because adding more faces will only damage the cavity further
-          // Do this in the future as pre reject, possibly. 
+          // Do this in the future as pre reject, possibly.
           // Also depends on Pk etc. Probably best to leave in cav.
-          double nrmal[3]; 
+          double nrmal[3];
           if(msh.idim == 3 && pdim < 2){
-            // Get the normal in the case we're on an edge in 3D, and get only 
+            // Get the normal in the case we're on an edge in 3D, and get only
             // the correct side.
             int iref = msh.fac2ref[ientt];
             getnorballref<1>(msh,lcent,iref,nrmal);
@@ -1517,7 +1528,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
           // ignore ienei < 0 as it could be bdry -> edge remeshing
           if((iflat || meas0 < 0)){
             //if(ienei == -1) return 1;
-            //// Cannot be corrected 
+            //// Cannot be corrected
             //if(ienei < 0){
             //  METRIS_ASSERT(iedge >= 0 && tdim == 2 || iface >= 0 && tdim ==3);
             //  CPRINTF1(" # abort flat no neighbour: meas {:23.15e}\n", meas0);
@@ -1529,7 +1540,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
               ent2tag(ithread,ienei) = msh.tag[ithread];
               CPRINTF1("   - inccav added entt {} to stack \n", ienei);
             }else{
-              // Add the boundary entity, but only if in allowed refs. 
+              // Add the boundary entity, but only if in allowed refs.
               if(tdim == 2){
                 int iref = msh.edg2ref[iedge];
                 if(msh.ced2tag(ithread,iref) < msh.tag[ithread] && msh.isboundary_edges()){
@@ -1547,7 +1558,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
             }
 
             // If a subdim entity was sandwiched here, we need to add it
-            // Also true if no neighbour -> add bdry entity. 
+            // Also true if no neighbour -> add bdry entity.
             if((tdim == 2 && iedge >= 0) || (tdim == 3 && iface >= 0)){
               if(tdim == 2){
                 cav.lcedg.stack(iedge);
@@ -1556,7 +1567,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
                 cav.lcfac.stack(iface);
                 msh.fac2tag(ithread,iface) = msh.tag[ithread];
               }
-              CPRINTF1("   - inccav added dim {} ent {} to stack \n", tdim - 1, 
+              CPRINTF1("   - inccav added dim {} ent {} to stack \n", tdim - 1,
                        tdim == 2 ? iedge : iface);
             }
 
@@ -1573,7 +1584,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
             }
 
           }
-      
+
         } // for int inei
 
       } // for int ientl
@@ -1590,7 +1601,7 @@ int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
 
 
 
-// Increase cavity for Delaunay criterion on ipoin 
+// Increase cavity for Delaunay criterion on ipoin
 // Normal only needed in 3D case if cavity has faces
 template<class MFT>
 int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
@@ -1612,9 +1623,9 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
   //#endif
 
 
-  //if(msh.get_tdim() == 3) 
+  //if(msh.get_tdim() == 3)
   //  METRIS_THROW_MSG("TODO: Unit test this for n = 3. Implement gettetfac instead of getfacedg");
-  // Simply disable surface Delaunay for now 
+  // Simply disable surface Delaunay for now
 
   int nnmet = (msh.idim * (msh.idim + 1)) / 2;
 
@@ -1655,7 +1666,7 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
 
 
   double metl[6], lmet[6];
-  double *metl_p; 
+  double *metl_p;
   if(msh.met.getSpace() == MetSpace::Log){
     for(int jj = 0; jj < nnmet; jj++) lmet[jj] = msh.met(cav.ipins,jj);
     if(msh.idim == 2){
@@ -1730,14 +1741,14 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
         try{
           if(tdim == 2){
             if(msh.idim == 2){
-              isinsph = indelsphere<2,2>(msh, msh.coord[cav.ipins], metl_p, 
+              isinsph = indelsphere<2,2>(msh, msh.coord[cav.ipins], metl_p,
                                         ent2poi[ienei]);
             }else{
-              isinsph = indelsphere<3,2>(msh, msh.coord[cav.ipins], metl_p, 
+              isinsph = indelsphere<3,2>(msh, msh.coord[cav.ipins], metl_p,
                                         ent2poi[ienei]);
             }
           }else{
-            isinsph = indelsphere<3,3>(msh, msh.coord[cav.ipins], metl_p, 
+            isinsph = indelsphere<3,3>(msh, msh.coord[cav.ipins], metl_p,
                                       ent2poi[ienei]);
           }
         }catch(const MetrisExcept& e){
@@ -1768,7 +1779,7 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
             }
           }
         }
-        
+
       }// for j = 0,tdim
     }// for icent
 
@@ -1783,9 +1794,9 @@ int increase_cavity_Delaunay(MeshMetric<MFT> &msh, MshCavity &cav, int tdim,
   return 0;
 }
 
-template int increase_cavity_Delaunay(MeshMetric<MetricFieldAnalytical> &msh, 
+template int increase_cavity_Delaunay(MeshMetric<MetricFieldAnalytical> &msh,
                                       MshCavity &cav, int tdim, int ngrow, int ithread);
-template int increase_cavity_Delaunay(MeshMetric<MetricFieldFE        > &msh, 
+template int increase_cavity_Delaunay(MeshMetric<MetricFieldFE        > &msh,
                                       MshCavity &cav, int tdim, int ngrow, int ithread);
 
 
@@ -1793,7 +1804,7 @@ template int increase_cavity_Delaunay(MeshMetric<MetricFieldFE        > &msh,
 
 
 template<class MFT>
-int increase_cavity_lenedg(MeshMetric<MFT> &msh, MshCavity &cav, 
+int increase_cavity_lenedg(MeshMetric<MFT> &msh, MshCavity &cav,
                            const CavOprOpt &opts,
                            int ipins,int ithrd1, int ithrd2){
   int nprem = 0;
@@ -1806,7 +1817,7 @@ int increase_cavity_lenedg(MeshMetric<MFT> &msh, MshCavity &cav,
 }
 
 template<class MFT, int gdim>
-int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav, 
+int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
                             const CavOprOpt &opts,
                             int ipins, int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
@@ -1840,7 +1851,7 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
   //int ncomp = 0;
   //int ncav0 = lcent.get_n();
 
-  // NB: loop bounds MUST be reevaluated ! don't range-for this 
+  // NB: loop bounds MUST be reevaluated ! don't range-for this
   int cdim = 0;
        if(cav.lctet.get_n() > 0) cdim = 3;
   else if(cav.lcfac.get_n() > 0) cdim = 2;
@@ -1848,7 +1859,7 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
   const int nedgl = (cdim*(cdim+1))/2;
   const intAr2 lnoed(nedgl,2,cdim == 2 ? lnoed2[0] : lnoed3[0]);
 
-  intAr1 &lcent = cav.lcent(cdim); 
+  intAr1 &lcent = cav.lcent(cdim);
   for(int ii = 0; ii < lcent.get_n(); ii++){
     INCVDEPTH(msh.param);
     int ientt = lcent[ii];
@@ -1862,8 +1873,8 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
       if(ientn >= 0){
         if(ent2tag(ithrd1,ientn) >= msh.tag[ithrd1]) continue;
       }
-      // Cavity boundary 
-      // Loop over face nodes 
+      // Cavity boundary
+      // Loop over face nodes
       int kk = -1;
       for(int ii = 0; ii < tdim; ii++){
         // Increment and skip when == to ifa (= not on facet)
@@ -1881,7 +1892,7 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
 
         // Short edge
 
-        if(!opts.allow_remove_points) return -1; 
+        if(!opts.allow_remove_points) return -1;
         if constexpr (tdim == 2){
           ball2(msh,ipoin,ientt,lbfac,dum,&iopen,&imani,ithrd2);
         }else{
@@ -2017,7 +2028,7 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
     //if(tdim == 2){
 
     //}else{
-    //  METRIS_THROW_MSG( 
+    //  METRIS_THROW_MSG(
     //    "Implement height control in increase_cavity_lenedg 3D");
     //}
   }
@@ -2027,27 +2038,295 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav,
   return nprem;
 }
 
-template int increase_cavity_lenedg(MeshMetric<MetricFieldAnalytical> &msh, 
+template int increase_cavity_lenedg(MeshMetric<MetricFieldAnalytical> &msh,
            MshCavity &cav, const CavOprOpt &opts, int ipins, int ithrd1, int ithrd2);
-template int increase_cavity_lenedg(MeshMetric<MetricFieldFE        > &msh, 
+template int increase_cavity_lenedg(MeshMetric<MetricFieldFE        > &msh,
            MshCavity &cav, const CavOprOpt &opts, int ipins, int ithrd1, int ithrd2);
 
 
 template int increase_cavity_lenedg0<MetricFieldAnalytical,2>(
-                            MeshMetric<MetricFieldAnalytical> &msh, 
+                            MeshMetric<MetricFieldAnalytical> &msh,
            MshCavity &cav, const CavOprOpt &opts, int ipins, int ithrd1, int ithrd2);
 template int increase_cavity_lenedg0<MetricFieldFE        ,2>(
-                            MeshMetric<MetricFieldFE        > &msh, 
+                            MeshMetric<MetricFieldFE        > &msh,
            MshCavity &cav, const CavOprOpt &opts, int ipins, int ithrd1, int ithrd2);
 template int increase_cavity_lenedg0<MetricFieldAnalytical,3>(
-                            MeshMetric<MetricFieldAnalytical> &msh, 
+                            MeshMetric<MetricFieldAnalytical> &msh,
            MshCavity &cav, const CavOprOpt &opts, int ipins, int ithrd1, int ithrd2);
 template int increase_cavity_lenedg0<MetricFieldFE        ,3>(
-                            MeshMetric<MetricFieldFE        > &msh, 
+                            MeshMetric<MetricFieldFE        > &msh,
            MshCavity &cav, const CavOprOpt &opts, int ipins, int ithrd1, int ithrd2);
 
 
+// Increase cavity based on quality
+template<class MFT>
+int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
+                             int ngrow, int ithread){
 
+  if(tdim <= 1) return 0;
+
+  GETVDEPTH(msh.param);
+  METRIS_ASSERT(tdim <= cav.get_tdim());
+
+  //#ifdef NODELSURF
+  //static int nwarn = 0;
+
+  //// Disable surf
+  //if(msh.get_tdim() < msh.idim && msh.param->iflag1 == 0){
+  //  if(nwarn++ < 10) MPRINTF("## WARNING DELAUNAY SURFACE DISABLED\n");
+  //  return 0;
+  //}
+  //#endif
+
+
+  //if(msh.get_tdim() == 3)
+  //  METRIS_THROW_MSG("TODO: Unit test this for n = 3. Implement gettetfac instead of getfacedg");
+  // Simply disable surface Delaunay for now
+
+  int nnmet = (msh.idim * (msh.idim + 1)) / 2;
+
+  msh.tag[ithread]++;
+
+  // Tag point's surface references if any. Filter entities
+  aux_taginsrefs(msh,cav,ithread);
+
+  for(int ielem : cav.lctet){
+    METRIS_ASSERT(ielem >= 0 && ielem < msh.nelem);
+    METRIS_ASSERT(!isdeadent(ielem,msh.tet2poi));
+    msh.tet2tag(ithread,ielem) = msh.tag[ithread];
+  }
+
+  for(int iface : cav.lcfac){
+    METRIS_ASSERT(iface >= 0 && iface < msh.nface);
+    METRIS_ASSERT(!isdeadent(iface,msh.fac2poi));
+    msh.fac2tag(ithread,iface) = msh.tag[ithread];
+  }
+
+  for(int iedge : cav.lcedg){
+    METRIS_ASSERT(iedge >= 0 && iedge < msh.nedge);
+    METRIS_ASSERT(!isdeadent(iedge,msh.edg2poi));
+    msh.edg2tag(ithread,iedge) = msh.tag[ithread];
+  }
+
+  // Actually do only the one dimension, keep this in for the future, maybe.
+  //for(int tdim = msh.get_tdim(); tdim <= msh.get_tdim(); tdim++){
+  intAr1 &lcent = cav.lcent(tdim);
+  //if(lcent.get_n() == 0) continue;
+  intAr1 &lcsub = cav.lcent(tdim-1);
+
+  CPRINTF1("-- START increase_cavity_quality {}\n",tdim);
+  const intAr2&  ent2ent = msh.ent2ent(tdim);
+  const intAr2&  ent2poi = msh.ent2poi(tdim);
+        intAr2r& ent2tag = msh.ent2tag(tdim);
+        intAr2r& sub2tag = msh.ent2tag(tdim-1);
+
+
+  double metl[6], lmet[6];
+  double *metl_p;
+  if(msh.met.getSpace() == MetSpace::Log){
+    for(int jj = 0; jj < nnmet; jj++) lmet[jj] = msh.met(cav.ipins,jj);
+    if(msh.idim == 2){
+      getexpmet_cpy<2>(lmet, metl);
+    }else{
+      getexpmet_cpy<3>(lmet, metl);
+    }
+    metl_p = metl;
+  }else{
+    metl_p = msh.met[cav.ipins];
+  }
+
+
+  int icen0 = 0, icen1 = lcent.get_n();
+  for(int igrow = 0; igrow < ngrow || ngrow < 0; igrow++){
+
+    // loop over current cavity entities
+    for(int icent = icen0; icent < icen1; icent++){
+      INCVDEPTH(msh.param);
+
+      int ientt = lcent[icent]; // fetch entity ID
+
+      // loop over neighbors of ientt (equivalently over boundary facets of ientt)
+      for(int jj = 0; jj < tdim + 1; jj++){
+
+        int ienei = ent2ent(ientt,jj); // fetch neighbor
+
+        if(ienei < 0) continue; // Non manifold skip
+
+        CPRINTF1(" - check ienei = {} quality\n",ienei);
+
+        // if neighbor tagged means it belongs to cavity so skip
+        if(ent2tag(ithread,ienei) >= msh.tag[ithread]){
+          CPRINTF1(" - ienei = {} is tagged {} >= {}\n",
+                   ienei,ent2tag(ithread,ienei),msh.tag[ithread]);
+          continue;
+        }
+
+
+        // some checks that I don't fully understand, but I realize they must stay
+        int isube = -1;
+        if(tdim == 2){
+          int iref2 = msh.fac2ref[ienei];
+          if(msh.cfa2tag(ithread,iref2) < msh.tag[ithread] && msh.isboundary_faces()){
+            CPRINTF1(" - ienei = {} is wrong bdry ref {}\n",ienei,iref2);
+            continue;
+          }
+          isube = msh.fac2edg(ientt,jj);
+          if(isube >= 0){
+            if(msh.edg2tag(ithread,isube) >= msh.tag[ithread]){
+              CPRINTF1(" - iface {} -> iedge {} is tagged, skip\n",ientt,isube);
+              continue;
+            }
+            int iref1 = msh.edg2ref[isube];
+            if(msh.ced2tag(ithread,iref1) < msh.tag[ithread] && msh.isboundary_edges()){
+              CPRINTF1(" - iface {} -> iedge {} is wrong bdry ref {}\n",ienei,isube,iref1);
+              continue;
+            }
+          }
+        }else{
+          if(msh.tet2ref[ienei] != msh.tet2ref[ientt]){
+            CPRINTF1(" - ienei {} ref = {} != ientt {} ref {} -> skip\n",
+                     ienei,msh.tet2ref[ienei],ientt,msh.tet2ref[ientt]);
+                     continue;
+          }
+          isube = msh.tet2fac(ientt,jj);
+          if(isube >= 0){
+            if(msh.fac2tag(ithread,isube) >= msh.tag[ithread]){
+              CPRINTF1(" - itetr {} -> iface {} is tagged, skip\n",ientt,isube);
+              continue;
+            }
+            int iref1 = msh.fac2ref[isube];
+            if(msh.ced2tag(ithread,iref1) < msh.tag[ithread]){
+              CPRINTF1(" - itetr {} -> iface {} is wrong bdry ref {}\n",ienei,isube,iref1);
+              continue;
+            }
+          }
+        }
+
+        // at this point, we have that ienei is an OUTSIDE element to ientt across local facet jj
+
+        // mark neighbor as visited
+        ent2tag(ithread,ienei) = msh.tag[ithread];
+
+        // aggregate quality of the two original elements
+        double quaold;
+        double quaIn = 1e30; double quaOut = 1e30;
+
+        constexpr AsDeg asdmsh = AsDeg::P1;
+        constexpr AsDeg asdmet = AsDeg::P1;
+        if (tdim == 2){
+          if (msh.idim == 2){
+            quaIn  = metqua<MFT,2,2,QuaFun::SizeShape>(msh,asdmsh,asdmet,ientt,1.);
+            quaOut = metqua<MFT,2,2,QuaFun::SizeShape>(msh,asdmsh,asdmet,ienei,1.);
+          }
+          else{
+            quaIn  = metqua<MFT,3,2,QuaFun::SizeShape>(msh,asdmsh,asdmet,ientt,1.);
+            quaOut = metqua<MFT,3,2,QuaFun::SizeShape>(msh,asdmsh,asdmet,ienei,1.);
+          }
+        }
+        else{
+          quaIn  = metqua<MFT,3,3,QuaFun::SizeShape>(msh,asdmsh,asdmet,ientt,1.);
+          quaOut = metqua<MFT,3,3,QuaFun::SizeShape>(msh,asdmsh,asdmet,ienei,1.);
+        }
+
+        // set original quality as maximum of the two (recall here quality is actually distortion, so max is the worst case)
+        quaold = std::max(quaIn,quaOut);
+
+        // now we need to obtain the quality of the "would-be" elements if we add ienei to the cavity
+        // for this, we create a new local cavity with just ientt and ienei
+
+        MshCavity cav_loc(4,4,2);
+        cav_loc.reset();
+        cav_loc.ipins = cav.ipins;
+        cav_loc.inewp = 1;
+
+        if (tdim == 2){
+          // add the in and out faces
+          cav_loc.lcfac.stack(ientt);
+          cav_loc.lcfac.stack(ienei);
+
+          // if mesh is surface in 3D, add the tets incident to the faces ientt and ienei
+          if (msh.idim == 3){
+            msh.tag[ithread]++;
+            for (int ii = 0; ii < 2; ii++) {
+              int iface = (ii == 0 ? ientt : ienei);
+              for (int it = 0; it < 2; it++) {
+                int itet = msh.fac2tet(iface, it);
+                if (itet < 0) continue;
+                if (msh.tet2tag(ithread, itet) == msh.tag[ithread]) continue;
+                msh.tet2tag(ithread, itet) = msh.tag[ithread];
+                cav_loc.lctet.stack(itet);
+              }
+            }
+          }
+        }
+        else {
+          // add the in and out tets
+          cav_loc.lctet.stack(ientt);
+          cav_loc.lctet.stack(ienei);
+        }
+
+        // dry-run cavity operator on local cavity
+        CavOprOpt opts_loc;
+        opts_loc.allow_topological_correction = true;
+        opts_loc.skip_topo_checks = false;
+        opts_loc.dryrun = true;
+        opts_loc.qmax_nec = -1;
+        opts_loc.qmax_suf = -1;
+        opts_loc.qmax_iff = -1;
+
+        CavOprInfo info_loc;
+        CavWrkArrs work_loc;
+
+        int ierr = 0;
+        CT_FOR0_INC(1, METRIS_MAX_DEG, ideg){ if (msh.curdeg == ideg) {
+          ierr = cavity_operator<MFT, ideg>(msh, cav_loc, opts_loc, work_loc, info_loc, ithread);
+        }} CT_FOR1(ideg);
+        if (ierr != 0){
+          CPRINTF1(" - local cavity reconnection failed for ientt {}, jj {}, ienei {}\n", ientt,jj,ienei);
+          continue;
+        }
+
+        double quanew = info_loc.qmax_end;
+
+        bool improvesQua = quaold > quanew + 1e-12;
+
+        if(improvesQua){
+          lcent.stack(ienei);
+          CPRINTF1(" - stack dim {} ienei {}\n",tdim,ienei);
+          if(isube >= 0){
+            CPRINTF1(" - stack dim {} subent {}\n",tdim-1,isube);
+            sub2tag(ithread,isube) = msh.tag[ithread];
+            lcsub.stack(isube);
+          }
+          if(tdim == 2 && msh.get_tdim() >= 3){
+            for(int ii = 0; ii < 2; ii++){
+              int isupe = msh.fac2tet(ienei, ii);
+              if(isupe < 0) continue;
+              if(msh.tet2tag(ithread,isupe) >= msh.tag[ithread]) continue;
+              CPRINTF1(" - stack dim {} supent {}\n",tdim+1,isupe);
+              msh.tet2tag(ithread,isupe) = msh.tag[ithread];
+              cav.lctet.stack(isupe);
+            }
+          }
+        }
+
+      }// for jj = 0,tdim
+    }// for icent
+
+    icen0 = icen1;
+    icen1 = lcent.get_n();
+    CPRINTF1(" - del grow {} / {} + {} ent\n",igrow,ngrow,icen1-icen0);
+    if(icen1 == icen0) break;
+  }// for igrow
+  //}// for tdim
+
+  return 0;
+}
+
+template int increase_cavity_quality(Mesh<MetricFieldAnalytical> &msh,
+                                      MshCavity &cav, int tdim, int ngrow, int ithread);
+template int increase_cavity_quality(Mesh<MetricFieldFE        > &msh,
+                                      MshCavity &cav, int tdim, int ngrow, int ithread);
 
 
 void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread){

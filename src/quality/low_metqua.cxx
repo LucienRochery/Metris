@@ -39,12 +39,12 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
   const int pnorm = msh.param->opt_pnorm;
 
-  ftype qutet = 0; 
+  ftype qutet = 0;
   double nordev = 0;
-  bool do_nordev = tdim == 2 && gdim == 3 
+  bool do_nordev = tdim == 2 && gdim == 3
     && msh.CAD()
     && abs(msh.param->qua_surf_wt_normal) > 1.0e-9*abs(msh.param->qua_surf_wt_quality);
-  if(tdim == 1 && gdim >= 2) 
+  if(tdim == 1 && gdim >= 2)
     METRIS_THROW_MSG("TODO: TODO: Edge quality with normal dev")
 
 
@@ -53,7 +53,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   constexpr auto ordelt = ORDELT(tdim);
 
   //// Compute normal at the nodes. This is then used to interpolate a normal
-  //// within the element. Fewer EG_evaluate calls needed and more robust as 
+  //// within the element. Fewer EG_evaluate calls needed and more robust as
   //// (u,v) interpolation followed by evaluation is not necessarily very stable.
   //double norfld[getnnode(tdim,METRIS_MAX_DEG)][gdim];
   //if(do_nordev){
@@ -108,7 +108,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       }
       const int ipoin = ent2poi(ientt, iquad);
       ftype qua0 = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,msh.met[ipoin]);
-      // About 6x slower if MetSpace::Log: leave an assert here. 
+      // About 6x slower if MetSpace::Log: leave an assert here.
       //if(msh.met.getSpace() == MetSpace::Exp){
       //  qua0 = quafun_xi(msh,asdmet,asdmsh,ent2poi[ientt],bary,msh.met[ipoin]);
       //}else{
@@ -126,7 +126,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
         qua0 = pow(qua0, pnorm);
       }
       qutet += qua0 / nnode;
-      
+
       //qutet += pow(abs(qua0 - difto),pnorm) / nnode;
 
     }
@@ -150,7 +150,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
         }
         qutet += qua0 / (tdim + 1);
       }
-    
+
     #elif 0
       for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim  + 1);
       #ifndef NDEBUG
@@ -200,7 +200,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   if(do_nordev){
     METRIS_ASSERT(msh.param->qua_surf_wt_quality >= 0);
     METRIS_ASSERT(msh.param->qua_surf_wt_normal  >= 0);
-    qutet = msh.param->qua_surf_wt_quality*qutet 
+    qutet = msh.param->qua_surf_wt_quality*qutet
           + msh.param->qua_surf_wt_normal*pow(nordev, pnorm); // for homogeneity
   }
 
@@ -211,8 +211,8 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                   INSTANTIATE(BOOST_PP_SEQ_ELEM(0, SEQ),\
                               BOOST_PP_SEQ_ELEM(1, SEQ),\
                               BOOST_PP_SEQ_ELEM(2, SEQ))
-#define MFT_SEQ (MetricFieldFE)(MetricFieldAnalytical) 
-#define QUAFUN_SEQ (QuaFun::Distortion)(QuaFun::Unit)
+#define MFT_SEQ (MetricFieldFE)(MetricFieldAnalytical)
+#define QUAFUN_SEQ (QuaFun::Distortion)(QuaFun::Unit)(QuaFun::SizeShape)
 
 
 #define INSTANTIATE(MFT_VAL,QUAFUN,FTYPE)\
@@ -231,6 +231,6 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,(MFT_SEQ)(QUAFUN_SEQ)(QUA_FTYPE_SE
 
 
 #undef EXPAND_TEMPLATE
-#undef MFT_SEQ // note these two could go into headers 
+#undef MFT_SEQ // note these two could go into headers
 
 } // End namespace
