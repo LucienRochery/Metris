@@ -59,10 +59,6 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd1 != ithrd2);
 
-  #ifdef TESTQUAFSIZESHAPE
-  CPRINTF1("insertLongEdges \n\n\n\n\n");
-  #endif
-
   const bool doSteiner = false;
 
   //int iverb0 = msh.param->iverb;
@@ -91,9 +87,7 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
   double lenqua_short_max = (lenstat0.qua_short + lenstat0.qua_long)/2;
   CPRINTF1(" - {:.2f}% unit using qua threshold {}\n",lenstat0.prop_unit*100,lenqua_short_max);
 
-
   double stat = 0;
-
 
   const int nedgl = (tdim*(tdim+1))/2; // edges per simplex
 

@@ -75,12 +75,7 @@ void MetrisRunner::adaptMesh0(int tdim){
 
   GETVDEPTH(this->param);
 
-  #ifdef TESTQUAFSIZESHAPE
-  CPRINTF1("Adapting mesh with TESTQUAFSIZESHAPE defined\n");
-  #endif
-
   Mesh<MFT> &msh = static_cast<Mesh<MFT>&>(*msh_g);
-
 
   //METRIS_THROW(TODOExcept());
 
@@ -160,10 +155,6 @@ void MetrisRunner::adaptMesh0(int tdim){
 
   }
 
-
-
-
-
   // Will never exceed this
   const int miter_max = 100;
 
@@ -171,7 +162,6 @@ void MetrisRunner::adaptMesh0(int tdim){
 
   double tinsert = 0, tcollapse = 0, tswap = 0, tsmooth = 0;
   double ttotal = get_cpu_time();
-
 
   int iopt_niter = 0;
   double stat0 = 1;
@@ -182,10 +172,6 @@ void MetrisRunner::adaptMesh0(int tdim){
   for(int niter = 1; niter <= miter || (miter < 0 && niter < miter_max); niter++){
     stat0 = 0;
     double tloop0 = get_cpu_time();
-
-    #ifdef TESTQUAFSIZESHAPE
-    CPRINTF1("1. Collapses \n\n\n\n\n");
-    #endif
 
     qmax_suf = qavg * MAX(10 / (niter * 1.0), 1.0);
     //qmax_suf = 1.0 - (niter - 1) / (double) miter;
@@ -227,10 +213,6 @@ void MetrisRunner::adaptMesh0(int tdim){
 
     // 2. Swaps
 
-    #ifdef TESTQUAFSIZESHAPE
-    CPRINTF1("2. Swaps \n\n\n\n\n");
-    #endif
-
     if(niter%2 == 0 || qmax_suf < 0.5){
       t0 = get_cpu_time();
       stat  = swapMesh<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdfro, ithrd1, ithrd2);
@@ -265,10 +247,6 @@ void MetrisRunner::adaptMesh0(int tdim){
     #endif
 
     // 3. Insert on long edges
-
-    #ifdef TESTQUAFSIZESHAPE
-    CPRINTF1("3. Insertions \n\n\n\n\n");
-    #endif
 
     t0 = get_cpu_time();
     stat  = insertLongEdges<MFT,gdim,ideg>(msh, tdim, &ninser,ithrd1, ithrd2);

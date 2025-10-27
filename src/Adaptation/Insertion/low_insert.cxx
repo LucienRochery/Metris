@@ -74,11 +74,8 @@ int insertEdge(Mesh<MFT>& msh,
            cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
   METRIS_ASSERT(cav.lcedg.get_n() > 0 || cav.lcfac.get_n() > 0 || cav.lctet.get_n() > 0);
 
-
-
   int ierro = 0;
   bool irestart_cav;
-
 
   int nced0 = cav.lcedg.get_n();
   int ncfa0 = cav.lcfac.get_n();

@@ -51,6 +51,11 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2);
 
+template<class MFT>
+int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
+                              const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max,
+                              std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
+                              int ithrd1, int ithrd2);
 
 // Check if any removed points; only those > 1/sqrt(2) from ipins if chklen
 // This can possibly be reworked to be faster, for now we check everything every
