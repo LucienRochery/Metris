@@ -8,6 +8,7 @@
 #ifndef __METRIS_CONSTANTS__
 #define __METRIS_CONSTANTS__
 
+// #define TESTQUAFSIZESHAPE
 
 #include <array>
 #include <boost/hana/map.hpp>
@@ -16,8 +17,6 @@
 #include "metris_defaults.hxx"
 #include "types_scalar.hxx"
 namespace hana = boost::hana;
-
-#define TESTQUAFSIZESHAPE
 
 // Maximum while loop counter for non-manifold structures and other linked lists.
 #ifndef METRIS_MAX_WHILE

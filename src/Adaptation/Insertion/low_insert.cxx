@@ -47,10 +47,6 @@ int insertEdge(Mesh<MFT>& msh,
   METRIS_ASSERT(ithrd2 >= 0 && ithrd2 < METRIS_MAXTAGS);
   METRIS_ASSERT(ithrd1   != ithrd2);
 
-  #ifdef TESTQUAFSIZESHAPE
-  CPRINTF1("insertEdge \n\n\n\n\n");
-  #endif
-
   CavOprOpt opts;
   CavOprInfo info;
   opts.allow_topological_correction = true;
@@ -166,7 +162,11 @@ int insertEdge(Mesh<MFT>& msh,
 
   // -- This section only if !icollapse
 
+  #ifdef TESTQUAFSIZESHAPE
+  ierro = setCavityInsertionQuality(msh,cav,opts,insertionSeed,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);
+  #else
   ierro = setCavityInsertion3(msh,cav,opts,insertionSeed,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);
+  #endif
   if(ierro != 0) goto cleanup;
 
 

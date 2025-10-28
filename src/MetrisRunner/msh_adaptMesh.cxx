@@ -277,10 +277,6 @@ void MetrisRunner::adaptMesh0(int tdim){
       CPRINTF2("------------------------------------------------------------\n");
     }
 
-    #ifdef TESTQUAFSIZESHAPE
-    CPRINTF1("4. Smoothing \n\n\n\n\n");
-    #endif
-
     if(msh.param->opt_unif && tdim == msh.get_tdim()){
       // 4. Smoothing (heuristic) -> fast but bad; improve
       t0 = get_cpu_time();

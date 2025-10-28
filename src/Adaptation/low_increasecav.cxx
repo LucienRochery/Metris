@@ -674,8 +674,6 @@ int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &o
                        int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
 
-  CPRINTF1("setCavityInsertionQuality \n\n\n\n\n");
-
   int ierro;
 
   const int tdim  = insertionSeed.tdim_adp;
@@ -694,7 +692,7 @@ int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &o
   int ncfa1 = cav.lcfac.get_n();
   int ncte1 = cav.lctet.get_n();
 
-  CPRINTF1("-- START setCavityInsertion tdim = {} mgrow = {}\n",tdim,mgrow);
+  CPRINTF1("-- START setCavityInsertionQuality tdim = {} mgrow = {}\n",tdim,mgrow);
   intWrkAr1 lrempoi = msh.get_iwork(10);
   lrempoi.set_n(0);
 
@@ -2204,21 +2202,6 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   GETVDEPTH(msh.param);
   METRIS_ASSERT(tdim <= cav.get_tdim());
 
-  //#ifdef NODELSURF
-  //static int nwarn = 0;
-
-  //// Disable surf
-  //if(msh.get_tdim() < msh.idim && msh.param->iflag1 == 0){
-  //  if(nwarn++ < 10) MPRINTF("## WARNING DELAUNAY SURFACE DISABLED\n");
-  //  return 0;
-  //}
-  //#endif
-
-
-  //if(msh.get_tdim() == 3)
-  //  METRIS_THROW_MSG("TODO: Unit test this for n = 3. Implement gettetfac instead of getfacedg");
-  // Simply disable surface Delaunay for now
-
   int nnmet = (msh.idim * (msh.idim + 1)) / 2;
 
   msh.tag[ithread]++;
@@ -2255,22 +2238,6 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   const intAr2&  ent2poi = msh.ent2poi(tdim);
         intAr2r& ent2tag = msh.ent2tag(tdim);
         intAr2r& sub2tag = msh.ent2tag(tdim-1);
-
-
-  double metl[6], lmet[6];
-  double *metl_p;
-  if(msh.met.getSpace() == MetSpace::Log){
-    for(int jj = 0; jj < nnmet; jj++) lmet[jj] = msh.met(cav.ipins,jj);
-    if(msh.idim == 2){
-      getexpmet_cpy<2>(lmet, metl);
-    }else{
-      getexpmet_cpy<3>(lmet, metl);
-    }
-    metl_p = metl;
-  }else{
-    metl_p = msh.met[cav.ipins];
-  }
-
 
   int icen0 = 0, icen1 = lcent.get_n();
   for(int igrow = 0; igrow < ngrow || ngrow < 0; igrow++){
@@ -2340,35 +2307,41 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
         // at this point, we have that ienei is an OUTSIDE element to ientt across local facet jj
 
-        // mark neighbor as visited
-        ent2tag(ithread,ienei) = msh.tag[ithread];
+        // next thing is to identify all the cavity elements that ienei is neighbor of
+        // those plus ienei itself form the current configuration of the patch
+        intAr1 entInCurrentConfig;
+        for(int kk = 0; kk < tdim + 1; kk++){
 
-        // aggregate quality of the two original elements
-        double quaold;
-        double quaIn = 1e30; double quaOut = 1e30;
+          int ieneinei = ent2ent(ienei,kk); // fetch neighbor of ienei
+
+          if(ieneinei < 0) continue; // Non manifold skip
+
+          // if neighbor tagged means it belongs to cavity so stack it
+          if(ent2tag(ithread,ieneinei) >= msh.tag[ithread]) entInCurrentConfig.stack(ieneinei);
+        }
+        entInCurrentConfig.stack(ienei);
+
+        // compute aggregate quality of the current configuration
+        dblAr1 quaOfEach;
+        double quaCurrentConfig = -1.;
 
         constexpr AsDeg asdmsh = AsDeg::P1;
         constexpr AsDeg asdmet = AsDeg::P1;
         if (tdim == 2){
-          if (msh.idim == 2){
-            quaIn  = metqua<MFT,2,2,QuaFun::SizeShape>(msh,asdmsh,asdmet,ientt,1.);
-            quaOut = metqua<MFT,2,2,QuaFun::SizeShape>(msh,asdmsh,asdmet,ienei,1.);
-          }
-          else{
-            quaIn  = metqua<MFT,3,2,QuaFun::SizeShape>(msh,asdmsh,asdmet,ientt,1.);
-            quaOut = metqua<MFT,3,2,QuaFun::SizeShape>(msh,asdmsh,asdmet,ienei,1.);
-          }
+          if (msh.idim == 2)
+            for (const int iele : entInCurrentConfig) quaOfEach.stack(metqua<MFT,2,2,QuaFun::SizeShape>(msh,asdmsh,asdmet,iele,1.));
+          else
+            for (const int iele : entInCurrentConfig) quaOfEach.stack(metqua<MFT,3,2,QuaFun::SizeShape>(msh,asdmsh,asdmet,iele,1.));
         }
-        else{
-          quaIn  = metqua<MFT,3,3,QuaFun::SizeShape>(msh,asdmsh,asdmet,ientt,1.);
-          quaOut = metqua<MFT,3,3,QuaFun::SizeShape>(msh,asdmsh,asdmet,ienei,1.);
-        }
+        else
+          for (const int iele : entInCurrentConfig) quaOfEach.stack(metqua<MFT,3,3,QuaFun::SizeShape>(msh,asdmsh,asdmet,iele,1.));
 
-        // set original quality as maximum of the two (recall here quality is actually distortion, so max is the worst case)
-        quaold = std::max(quaIn,quaOut);
+        // set quality of the current configuration as maximum among the elements in the configuration
+        // (recall here quality is actually distortion, so max is the worst case)
+        for (const double qual : quaOfEach) if (qual > quaCurrentConfig) quaCurrentConfig = qual;
 
         // now we need to obtain the quality of the "would-be" elements if we add ienei to the cavity
-        // for this, we create a new local cavity with just ientt and ienei
+        // for this, we create a new local cavity with all the elements in the current configuration
 
         MshCavity cav_loc(4,4,2);
         cav_loc.reset();
@@ -2376,15 +2349,13 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
         cav_loc.inewp = 1;
 
         if (tdim == 2){
-          // add the in and out faces
-          cav_loc.lcfac.stack(ientt);
-          cav_loc.lcfac.stack(ienei);
+          // add the faces (elements) in current configuration
+          for (const int iface : entInCurrentConfig) cav_loc.lcfac.stack(iface);
 
-          // if mesh is surface in 3D, add the tets incident to the faces ientt and ienei
+          // if mesh is surface in 3D, add the tets incident to the all faces in the current config
           if (msh.idim == 3){
             msh.tag[ithread]++;
-            for (int ii = 0; ii < 2; ii++) {
-              int iface = (ii == 0 ? ientt : ienei);
+            for (const int iface : entInCurrentConfig){
               for (int it = 0; it < 2; it++) {
                 int itet = msh.fac2tet(iface, it);
                 if (itet < 0) continue;
@@ -2396,9 +2367,8 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
           }
         }
         else {
-          // add the in and out tets
-          cav_loc.lctet.stack(ientt);
-          cav_loc.lctet.stack(ienei);
+          // add the tets in current configuration
+          for (const int iele : entInCurrentConfig) cav_loc.lctet.stack(iele);
         }
 
         // dry-run cavity operator on local cavity
@@ -2418,16 +2388,19 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
           ierr = cavity_operator<MFT, ideg>(msh, cav_loc, opts_loc, work_loc, info_loc, ithread);
         }} CT_FOR1(ideg);
         if (ierr != 0){
+          // this will catch, among other things, if one of the would-be elements is invalid
           CPRINTF1(" - local cavity reconnection failed for ientt {}, jj {}, ienei {}\n", ientt,jj,ienei);
           continue;
         }
 
         double quanew = info_loc.qmax_end;
 
-        bool improvesQua = quaold > quanew + 1e-12;
+        bool improvesQua = quaCurrentConfig > quanew + 1e-12;
 
+        // add ienei to cavity if that improves quality
         if(improvesQua){
           lcent.stack(ienei);
+          ent2tag(ithread,ienei) = msh.tag[ithread];
           CPRINTF1(" - stack dim {} ienei {}\n",tdim,ienei);
           if(isube >= 0){
             CPRINTF1(" - stack dim {} subent {}\n",tdim-1,isube);
