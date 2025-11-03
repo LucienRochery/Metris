@@ -8,7 +8,7 @@
 #ifndef __METRIS_CONSTANTS__
 #define __METRIS_CONSTANTS__
 
-// #define TESTQUAFSIZESHAPE
+#define TESTQUAFSIZESHAPE
 
 #include <array>
 #include <boost/hana/map.hpp>

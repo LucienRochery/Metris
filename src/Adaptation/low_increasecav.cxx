@@ -677,10 +677,6 @@ int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &o
   int ierro;
 
   const int tdim  = insertionSeed.tdim_adp;
-  //const int tdimp = insertionSeed.tdimp;
-  //const int iseed = insertionSeed.iseed;
-  //const int iref  = insertionSeed.iref;
-  //const int nnmet = (msh.idim*(msh.idim+1))/2;
 
   const bool filter_long = true;
 
@@ -696,24 +692,6 @@ int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &o
   intWrkAr1 lrempoi = msh.get_iwork(10);
   lrempoi.set_n(0);
 
-  // Try commenting this out since we now move the point.
-  //// Check any close constrained points
-  //ierro = aux_findCloseConstrained(msh, cav, ithrd1, ithrd2);
-  //if(ierro > 0) return INS2D_ERR_SHORTCSTR;
-
-  //const int ibins = msh.poi2ebp(cav.ipins,tdimp,iseed,iref);
-
-  // don't do point movement
-  // ierro = movePointCavLen<MFT>(msh, cav, 5, ithrd1);
-  // if(DOPRINTS2()){
-  //   writeMeshCavity("insert_cavity0",msh,cav);
-  //   msh.met.writeMetricFile("insert_cavity0");
-  // }
-  // if(ierro > 0){
-  //   CPRINTF1(" # movePointCavLen error {}\n",ierro);
-  //   return INS2D_ERR_MOVPTCAVLEN;
-  // }
-
   ierro = increase_cavity_quality(msh,cav,tdim,5,ithrd1);
   if(DOPRINTS2()){
     writeMeshCavity("insert_cavity1",msh,cav);
@@ -722,79 +700,6 @@ int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &o
     CPRINTF1(" # increase_cavity_quality error {}\n",ierro);
     return INS2D_ERR_INCCAVDEL;
   }
-
-  ierro = increase_cavity_validity(msh,cav,ithrd1);
-  if(DOPRINTS2()){
-    writeMeshCavity("insert_cavity2",msh,cav);
-  }
-  if(ierro > 0){
-    CPRINTF1(" # increase_cavity_validity error {}\n",ierro);
-    return INS2D_ERR_INCCAVVAL1;
-  }
-
-  // Check if the cavity needs fixing.
-  check_cavity_rempoint(msh, cav, opts, lrempoi.get_array(), true, ithrd1);
-  if(lrempoi.get_n() == 0) goto finish_cavity;
-
-  // Now we need to remove all the newly added elements that contain
-  // one of the lrempoi.
-  CPRINTF2(" # Fix cavity, lrempoi = {}\n", lrempoi.get_n());
-  msh.tag[ithrd1]++;
-  for(int ii = 0; ii < lrempoi.get_n(); ii++){
-    int ipoin = lrempoi[ii];
-    msh.poi2tag(ithrd1, ipoin) = msh.tag[ithrd1];
-  }
-  for(int tdimc = 1; tdimc <= msh.get_tdim(); tdimc++){
-    intAr1 &lcent = cav.lcent(tdimc);
-    const int ncen0 = tdimc == 1 ? nced1 :
-                      tdimc == 2 ? ncfa1 : ncte1;
-    const intAr2& ent2poc = msh.ent2poi(tdimc);
-    int nrem = 0;
-    for(int ii = ncen0; ii < lcent.get_n();){
-      INCVDEPTH(msh.param);
-      int icent = lcent[ii];
-      bool remelt = false;
-      for(int iver = 0; iver < tdimc + 1; iver++){
-        int ipoin = ent2poc(icent,iver);
-        if(msh.poi2tag(ithrd1, ipoin) < msh.tag[ithrd1]) continue;
-        remelt = true;
-        break;
-      }// for iver
-      if(!remelt){
-        ii++;
-        continue;
-      }
-      CPRINTF1(" - remove {} from cavity dim {}\n",icent,tdimc);
-      int icend = lcent.pop();
-      // This can only happen if we're the last element. In that case we
-      // shrank the array and can quit.
-      if(icend == icent) break;
-      // otherwise place last here.
-      icent = icend;
-      nrem++;
-    }// for icent
-    CPRINTF1(" - removed {} dim {} cavity elements\n",nrem,tdimc);
-  }// for tdimc
-
-  // Try correcting cavity for validity then rechecking
-  ierro = increase_cavity_validity(msh,cav,ithrd1);
-  if(ierro != 0){
-    CPRINTF1(" # +cav error after fix {}\n",ierro);
-    return INS2D_ERR_INCCAVVAL2;
-  }
-
-  check_cavity_rempoint(msh, cav, opts, lrempoi.get_array(), true, ithrd1);
-  if(lrempoi.get_n() > 0){
-    CPRINTF1(" # error nrem point = {} after fix\n",lrempoi.get_n());
-    return INS2D_ERR_SHORTEDG2;
-  }
-
-
-finish_cavity:
-
-  // don't do edge length check
-  // ierro = collrejcav_lenqua(msh, cav, filter_long, false, true, lenqua_short_max, nocomp, ithrd2);
-  // if(ierro > 0) return INS2D_ERR_LENQUA;
 
   return 0;
 }
@@ -2372,6 +2277,8 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
         }
 
         // dry-run cavity operator on local cavity
+        // this reconnects local cavity and compute the max quality
+        // if we have an invalid element in the resulting reconnection it returns non-zero
         CavOprOpt opts_loc;
         opts_loc.allow_topological_correction = true;
         opts_loc.skip_topo_checks = false;
