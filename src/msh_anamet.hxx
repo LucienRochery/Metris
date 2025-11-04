@@ -11,12 +11,12 @@
 #include <boost/preprocessor/repetition/enum_params.hpp>
 
 #define MAX_ANAMET3D_DEFINED 10
-#define MAX_ANAMET2D_DEFINED 6
+#define MAX_ANAMET2D_DEFINED 7
 
 #define MAX_ANAMET_DEFINED(dim) (dim == 2 ? MAX_ANAMET2D_DEFINED : MAX_ANAMET3D_DEFINED)
-// Allowed prototype: 
+// Allowed prototype:
 //  void (*anamet)(const AnaMetCtx* ctx, double *crd, int idif1, double *met, double *dmet);
-// Met stored 1 2 4  
+// Met stored 1 2 4
 //              3 5
 //                6
 // Dmet [i][j] = d_i M_j
@@ -35,9 +35,9 @@ typedef void(*anamet_proto)(const AnaMetCtx*,const double*__restrict__,double,in
 
 
 
-// A wrapper to ensure a function pointer passed to the overloaded function in MetrisParameters 
-// is never interpreted as an integer. 
-// This has no use to anybody except MetrisParameters. 
+// A wrapper to ensure a function pointer passed to the overloaded function in MetrisParameters
+// is never interpreted as an integer.
+// This has no use to anybody except MetrisParameters.
 class AnaMetFun{
 public:
   explicit AnaMetFun(anamet_proto anamet_ptr){

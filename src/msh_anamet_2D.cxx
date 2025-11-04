@@ -19,10 +19,10 @@
 
 namespace Metris{
 
-void anamet2D_1([[maybe_unused]] const AnaMetCtx* ctx, 
-                [[maybe_unused]] const double*__restrict__ crd, 
+void anamet2D_1([[maybe_unused]] const AnaMetCtx* ctx,
+                [[maybe_unused]] const double*__restrict__ crd,
                 double scale, int idif1, double *met, double *dmet){
-  // Not too coarse at the scale of 1  
+  // Not too coarse at the scale of 1
   double h0 = 0.05;
 
   met[0] = 1/(h0*h0*scale*scale);
@@ -73,9 +73,9 @@ void anamet2D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   //  fmt::print("anamet2D_2 debug r = {:.6f} theta = {:.6f}\n", r.value(), theta.value());
   //}
 
-  // eig2met is in R^T D R format. Worst case we are using -theta. 
+  // eig2met is in R^T D R format. Worst case we are using -theta.
   eigvec[0] =  cos(theta);
-  eigvec[1] =  sin(theta); 
+  eigvec[1] =  sin(theta);
   eigvec[2] = -sin(theta);
   eigvec[3] =  cos(theta);
 
@@ -107,7 +107,7 @@ void anamet2D_3([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   SANS::SurrealS<2,double> eigvec[4];
 
   eigvec[0] = 1.0;
-  eigvec[1] = 0.0; 
+  eigvec[1] = 0.0;
   eigvec[2] = 0.0;
   eigvec[3] = 1.0;
 
@@ -140,7 +140,7 @@ void anamet2D_4([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   SANS::SurrealS<2,double> eigvec[4];
 
   eigvec[0] = sqrt(2);
-  eigvec[1] =-sqrt(2); 
+  eigvec[1] =-sqrt(2);
   eigvec[2] = sqrt(2);
   eigvec[3] = sqrt(2);
 
@@ -153,7 +153,7 @@ void anamet2D_4([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
 
 // circle BL
-void anamet2D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, 
+void anamet2D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1,
   double *met, double *dmet){
   const double pi = 3.141592653589793238462643383279502884;
   double x0 = 0.01;
@@ -191,9 +191,9 @@ void anamet2D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   //  fmt::print("anamet2D_2 debug r = {:.6f} theta = {:.6f}\n", r.value(), theta.value());
   //}
 
-  // eig2met is in R^T D R format. Worst case we are using -theta. 
+  // eig2met is in R^T D R format. Worst case we are using -theta.
   eigvec[0] =  cos(theta);
-  eigvec[1] =  sin(theta); 
+  eigvec[1] =  sin(theta);
   eigvec[2] = -sin(theta);
   eigvec[3] =  cos(theta);
 
@@ -225,7 +225,7 @@ void anamet2D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 }
 
 
-// circle centered on 0 
+// circle centered on 0
 void anamet2D_6([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   const double pi = 3.141592653589793238462643383279502884;
   SANS::SurrealS<2,double> X[2];
@@ -262,14 +262,45 @@ void anamet2D_6([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   //  fmt::print("anamet2D_2 debug r = {:.6f} theta = {:.6f}\n", r.value(), theta.value());
   //}
 
-  // eig2met is in R^T D R format. Worst case we are using -theta. 
+  // eig2met is in R^T D R format. Worst case we are using -theta.
   eigvec[0] =  cos(theta);
-  eigvec[1] =  sin(theta); 
+  eigvec[1] =  sin(theta);
   eigvec[2] = -sin(theta);
   eigvec[3] =  cos(theta);
 
   SANS::SurrealS<2,double> metS[3];
   eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
+
+  getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
+}
+
+// optimal metric for corner singularity at 0
+// M = C * r^{-2k} * I
+// with k = 1 - (alpha + 1)/(p+2) ---- alpha = singularity strength, p = solution order
+void anamet2D_7([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+
+  const double alpha = 0.2;
+  const int p = 1;
+
+  const double k = 1. - (alpha + 1.)/(p + 2.);
+
+  SANS::SurrealS<2,double> X[2];
+  X[0] = crd[0];
+  X[0].deriv(0) = 1;
+  X[0].deriv(1) = 0;
+
+  X[1] = crd[1];
+  X[1].deriv(0) = 0;
+  X[1].deriv(1) = 1;
+
+  SANS::SurrealS<2,double> r2 = X[0]*X[0] + X[1]*X[1] + 1e-12; // to avoid blow up at the origin
+
+  SANS::SurrealS<2,double> metricVal = 1./(scale * scale) * pow(r2,-k);
+
+  SANS::SurrealS<2,double> metS[3];
+  metS[0] = metricVal; // M11
+  metS[1] = 0;         // M12
+  metS[2] = metricVal; // M22
 
   getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 }
