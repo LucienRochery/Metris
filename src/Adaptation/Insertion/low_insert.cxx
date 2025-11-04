@@ -134,6 +134,13 @@ int insertEdge(Mesh<MFT>& msh,
   #endif
 
   if(icollapse){
+    #ifdef TESTQUAFSIZESHAPE
+    ierro = increase_cavity_quality(msh,cav,insertionSeed.tdim_adp,5,ithrd1);
+    if(ierro != 0){
+      CPRINTF1(" # increase_cavity_quality failed\n");
+      goto cleanup;
+    }
+    #else
     ierro = collrejcav_lenqua(msh, cav, false, false, false, -1, nocomp, ithrd2);
     if(ierro > 0){
       ierro = INS2D_ERR_SHORTEDG6;
@@ -157,6 +164,7 @@ int insertEdge(Mesh<MFT>& msh,
         goto cleanup;
       }
     }
+    #endif
     goto call_cavity;
   }
 

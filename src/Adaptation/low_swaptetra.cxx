@@ -26,13 +26,13 @@ namespace Metris{
 //          0 if nothing done
 //         -1 if face -> edge swap done
 //         -2 if edge -> face(s) swap done
-// tet swaps: try face and edge swaps. 
-// if lazy, take first quality improving operation. 
+// tet swaps: try face and edge swaps.
+// if lazy, take first quality improving operation.
 // Tet swaps can only be quality, not length, based (for now and perhaps ever).
 template<class MFT, int ideg>
-int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt, 
-             MshCavity &cav, CavWrkArrs &work, 
-             double *qnrm0_, double *qnrm1_, 
+int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
+             MshCavity &cav, CavWrkArrs &work,
+             double *qnrm0_, double *qnrm1_,
              int ithrd1, int ithrd2){
   INCVDEPTH(msh.param);
   constexpr int tdim = 3;
@@ -44,7 +44,7 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
 
 
   static int nwarnprt = 0;
-  if(nwarnprt++ < 10 && opt.swap_norm != msh.param->opt_power) 
+  if(nwarnprt++ < 10 && opt.swap_norm != msh.param->opt_power)
     CPRINTF1("## WARNING forced qpnorm = {}, provided {}\n",msh.param->opt_pnorm,opt.swap_norm);
 
   CavOprOpt opts;
@@ -53,12 +53,16 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
   opts.allow_remove_points = false;
   opts.allow_remove_points_superdim = false;
   opts.cache_tetra_quality = true;
-  // No cavity extension means no issues should arise. 
+  // No cavity extension means no issues should arise.
   opts.skip_topo_checks = true;
 
   // Precompute initial tetra quality and store in cavity hash table.
   cav.reset(); // this resets the quality hash table
+  #ifdef TESTQUAFSIZESHAPE
+  double quael = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,itetr,1.0);
+  #else
   double quael = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,itetr,1.0);
+  #endif
 
   auto key = stup4(msh.tet2poi(itetr,0),msh.tet2poi(itetr,1),
                    msh.tet2poi(itetr,2),msh.tet2poi(itetr,3));
@@ -67,7 +71,7 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
   CPRINTF1("-- START swaptetra itetr {} quael {} ilazy {}\n", itetr, quael,ilazy);
 
   if(ilazy){
-    // In case lazy, simply set a quality threshold. 
+    // In case lazy, simply set a quality threshold.
     opts.dryrun = false;
     opts.qmax_nec = 1.0e-12; // This is set in the children routines
   }else{
@@ -77,7 +81,7 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
 
 
   for(int ifa = 0; ifa < 4; ifa++){
-    int ierro = aux_swaptetface<MFT,ideg>(msh, opt, itetr, ifa, quael, cav, opts, work, 
+    int ierro = aux_swaptetface<MFT,ideg>(msh, opt, itetr, ifa, quael, cav, opts, work,
                                           qnrm0_, qnrm1_, ithrd1);
     CPRINTF1(" - tried face {} ierro {} got qual {} -> {}\n",ifa, ierro, *qnrm0_, *qnrm1_);
     if(ierro < 0){
@@ -90,7 +94,7 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
   if(!msh.param->opt_swap_tet_expensive) return 0;
 
   for(int ied = 0; ied < 6; ied++){
-    int ierro = aux_swaptetedge<MFT,ideg>(msh, opt, itetr, ied, quael, cav, opts, work, 
+    int ierro = aux_swaptetedge<MFT,ideg>(msh, opt, itetr, ied, quael, cav, opts, work,
                                           qnrm0_, qnrm1_, ithrd1, ithrd2);
     CPRINTF1(" - tried edge {} ierro {} got qual {} -> {}\n",ied, ierro, *qnrm0_, *qnrm1_);
     if(ierro < 0){
@@ -129,7 +133,7 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
   constexpr AsDeg asdmet = AsDeg::P1;
 
   static int nwarnprt = 0;
-  if(nwarnprt++ < 10 && opt.swap_norm != msh.param->opt_pnorm) 
+  if(nwarnprt++ < 10 && opt.swap_norm != msh.param->opt_pnorm)
     CPRINTF1("## WARNING forced qpnorm = {}, provided {}\n",msh.param->opt_pnorm,opt.swap_norm);
 
 
@@ -160,7 +164,7 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
 
 
 
-  // Compute second tetrahedron quality for computing qnrm0. 
+  // Compute second tetrahedron quality for computing qnrm0.
   // We cache this quality for the following cases:
   // - The caller had done dryruns and is now effecting the operation -> skip computation
   // - The caller will eventually call an edge-based swap, its qnrm0 will involve
@@ -173,7 +177,11 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
     quae2 = tt->second;
     CPRINTF2(" - found cached quality for neighbour tet {}: {}\n",itet2,quae2);
   }else{
+    #ifdef TESTQUAFSIZESHAPE
+    quae2 = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,itet2,1.0);
+    #else
     quae2 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,itet2,1.0);
+    #endif
     cav.qtetr[key] = quae2;
   }
 
@@ -189,7 +197,7 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
   }
   METRIS_ASSERT(ifa2 >= 0);
 
-  // Get point opposite face in second tetra. 
+  // Get point opposite face in second tetra.
   int ipopp = msh.tet2poi(itet2,ifa2);
 
   // Do not call reset()! We need the quality hash table to persist between calls.
@@ -248,7 +256,7 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
 
 
   static int nwarnprt = 0;
-  if(nwarnprt++ < 10 && opt.swap_norm != msh.param->opt_pnorm) 
+  if(nwarnprt++ < 10 && opt.swap_norm != msh.param->opt_pnorm)
     CPRINTF1("## WARNING forced qpnorm = {}, provided {}\n",msh.param->opt_pnorm,opt.swap_norm);
 
 
@@ -308,7 +316,11 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
       quael = tt->second;
       CPRINTF2(" - found cached quality for shell tet {}: {}\n",ielem,quael);
     }else{
+      #ifdef TESTQUAFSIZESHAPE
+      quael = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,ielem,1.0);
+      #else
       quael = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,ielem,1.0);
+      #endif
       CPRINTF2(" - computed quality for shell tet {}: {}\n",ielem,quael);
       cav.qtetr[key] = quael;
     }
@@ -316,12 +328,12 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
   }
   opts.qmax_nec = qnrm0*0.99;
 
-  // A shell to face(s) (= n -> 2(n-2) ) swap can be made in as many ways as 
+  // A shell to face(s) (= n -> 2(n-2) ) swap can be made in as many ways as
   // there exist triangulations of the n vertices in the shell but not on the edge
-  // We can't exhaust them all using our cavity operator, only those that are 
-  // starrings of one of these vertices. We try these combinations. 
-  // For the case n = 3 (single face) and n = 4, there are resp. 1/2 unique 
-  // combinations. Otherwise, loop over all i = 1,n. 
+  // We can't exhaust them all using our cavity operator, only those that are
+  // starrings of one of these vertices. We try these combinations.
+  // For the case n = 3 (single face) and n = 4, there are resp. 1/2 unique
+  // combinations. Otherwise, loop over all i = 1,n.
 
   CavOprInfo info;
   int ierro = 0;

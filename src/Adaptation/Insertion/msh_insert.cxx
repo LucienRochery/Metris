@@ -102,7 +102,7 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
   intAr1 linserr(minserr);
 
   // Outer loop iterations:
-  const int miter = 10;
+  const int miter = 20;
 
   int ierro;
   *ninser = 0;

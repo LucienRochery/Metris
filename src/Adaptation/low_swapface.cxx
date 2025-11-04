@@ -35,8 +35,8 @@ namespace Metris{
 // Compute using norm specified in opt: if 0, take max.
 // If norm is -1, use edge length instead.
 template<class MFT, int gdim, int ideg>
-int swapface(Mesh<MFT>& msh, int iface, swapOptions opt, 
-             MshCavity &cav, CavWrkArrs &work, 
+int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
+             MshCavity &cav, CavWrkArrs &work,
              double *qnrm0_, double *qnrm1_, int ithread){
 
   #if 0
@@ -82,7 +82,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
 
 
-  if(isdeadent(iface,msh.fac2poi)) return 0; 
+  if(isdeadent(iface,msh.fac2poi)) return 0;
 
   CavOprOpt opts;
   CavOprInfo info;
@@ -111,7 +111,11 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   double quae1;
 
   if(spnorm >= 0){
+    #ifdef TESTQUAFSIZESHAPE
+    quae1 = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,iface,1.0);
+    #else
     quae1 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,iface,1.0);
+    #endif
     METRIS_ASSERT_MSG(quae1 > -1.0e-16, "Negative quae1 {:e} iface {}",quae1,iface);
   }
 
@@ -126,9 +130,9 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
   int iref = msh.fac2ref[iface];
 
-  // Old qualities associated to each possible swap. 
-  // If pnorm >= 0, this is the p-norm of quality accross 
-  // Otherwise it is the length of the edge. 
+  // Old qualities associated to each possible swap.
+  // If pnorm >= 0, this is the p-norm of quality accross
+  // Otherwise it is the length of the edge.
   double quaol[3], norfac[3], eval[18], norCAD[3][3];
   // If using regular quality (spnorm >= 0), the nordev is already taken into account
   // Otherwise, we add it here. Reuse normal of this face.
@@ -140,12 +144,12 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     }
   }
   for(int ied = 0; ied < 3; ied++){
-    quaol[ied] = -1; // In bounds 0, 1, -1 is disregarded 
+    quaol[ied] = -1; // In bounds 0, 1, -1 is disregarded
 
     int ifac2 = msh.fac2fac(iface,ied);
-    if(ifac2 < 0) continue; // Can't swap across nm edge or bdry 
+    if(ifac2 < 0) continue; // Can't swap across nm edge or bdry
 
-    // Different refs, skip 
+    // Different refs, skip
     if(iref != msh.fac2ref[ifac2]) continue;
 
     // Note: manifold but edge in-between is ineig >= 0
@@ -154,13 +158,17 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
 
     if(spnorm >= 0){
+      #ifdef TESTQUAFSIZESHAPE
+      quaol[ied] = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,ifac2,1.0);
+      #else
       quaol[ied] = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,ifac2,1.0);
-    }else{  
+      #endif
+    }else{
       double sz[2], len;
 
       if constexpr(gdim >= 3){
         // In surface case, compute length only in tangent plane.
-        // This is necessary e.g. in curved boundary layer cases. 
+        // This is necessary e.g. in curved boundary layer cases.
         // One case (Sandia bump 1e-6 BL spacing) had:
         // - 2000 edge length using getlenedg_geosz
         // - 0.86 using getlenedg_geosz_plane
@@ -169,9 +177,9 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
         len = getlenedg_geosz<MFT,gdim,ideg>(msh, iface, 2, ied, sz);
       }
 
-      // Attribute quality between 0 and 1, multiplicatively symmetric: 
-      // i.e. q(sqrt2) = q(1/sqrt2). 
-      quaol[ied] = len < 1.0 ? 1.0 - len 
+      // Attribute quality between 0 and 1, multiplicatively symmetric:
+      // i.e. q(sqrt2) = q(1/sqrt2).
+      quaol[ied] = len < 1.0 ? 1.0 - len
                              : 1.0 - 1.0 / len;
 
 
@@ -224,21 +232,21 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     }
     CPRINTF1(" - candidate neighbour {} has qual {}\n",ifac2,quaol[ied]);
   }
-  
+
 
   int idx[3] = {0,1,2};
   sortupto8_dec<double>(quaol,idx,3);
 
-  // Simulate swaps as P1 
-  // Improve when curvature added to cavity 
+  // Simulate swaps as P1
+  // Improve when curvature added to cavity
   //intAr2 fac2pol(2,3);
-  int edg2pol[2]; // only for length based 
+  int edg2pol[2]; // only for length based
   //fac2pol.set_n(2);
-  cav.lcfac.set_n(2); 
+  cav.lcfac.set_n(2);
   cav.lcfac[0] = iface;
   for(int iix = 0; iix < 3; iix++){
     int ied = idx[iix];
-    double quae2 = quaol[ied]; 
+    double quae2 = quaol[ied];
     if(quae2 < 0) continue;
 
     if(spnorm >= 0){
@@ -247,7 +255,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       CPRINTF1(" - consider swap lenqua init = {}\n",quae2);
     }
 
-    // Quality of previous configuration 
+    // Quality of previous configuration
     if(spnorm == 0){
       qnrm0 = MAX(quae1,quae2);
     }else if (spnorm > 0){
@@ -279,7 +287,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
     bool iflat = false;
     for(int ii = 0; ii <= 1; ii++){
-      iflat = !isvalideltP1<gdim,2>(msh,nfac0+ii); 
+      iflat = !isvalideltP1<gdim,2>(msh,nfac0+ii);
       if(iflat){
         CPRINTF1(" - new face {}: {} {} {} would be flat",ii+1,msh.fac2poi(nfac0+ii,0),
           msh.fac2poi(nfac0+ii,1),msh.fac2poi(nfac0+ii,2));
@@ -298,27 +306,27 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       // ip1
       ibpoo = msh.poi2ebp(ip1, 2, iface, iref);
       ibpon = msh.newbpotopo(Vertex{ip1}, 2, nfac0+0);
-      for(int ii = 0; ii < nrbi; ii++) 
+      for(int ii = 0; ii < nrbi; ii++)
         msh.bpo2rbi(ibpon, ii) = msh.bpo2rbi(ibpoo, ii);
       // ip2
       ibpoo = msh.poi2ebp(ip2, 2, iface, iref);
       ibpon = msh.newbpotopo(Vertex{ip2}, 2, nfac0+1);
-      for(int ii = 0; ii < nrbi; ii++) 
+      for(int ii = 0; ii < nrbi; ii++)
         msh.bpo2rbi(ibpon, ii) = msh.bpo2rbi(ibpoo, ii);
       // ip3 (msh.fac2poi(iface,ied))
       ibpoo = msh.poi2ebp(msh.fac2poi(iface,ied), 2, iface, iref);
       ibpon = msh.newbpotopo(Vertex{msh.fac2poi(iface,ied)}, 2, nfac0+1);
-      for(int ii = 0; ii < nrbi; ii++) 
+      for(int ii = 0; ii < nrbi; ii++)
         msh.bpo2rbi(ibpon, ii) = msh.bpo2rbi(ibpoo, ii);
       // ip4 (msh.fac2poi(ifac2,ie2))
       ibpoo = msh.poi2ebp(msh.fac2poi(ifac2,ie2), 2, ifac2, iref);
       METRIS_ASSERT(ibpoo >= 0);
       ibpon = msh.newbpotopo(Vertex{msh.fac2poi(ifac2,ie2)}, 2, nfac0+1);
       METRIS_ASSERT(ibpon >= 0);
-      for(int ii = 0; ii < nrbi; ii++) 
+      for(int ii = 0; ii < nrbi; ii++)
         msh.bpo2rbi(ibpon, ii) = msh.bpo2rbi(ibpoo, ii);
 
-      // For rembpotags. 
+      // For rembpotags.
       msh.tag[ithread]++;
       msh.fac2tag(ithread,nfac0+0) = msh.tag[ithread];
       msh.fac2tag(ithread,nfac0+1) = msh.tag[ithread];
@@ -331,7 +339,11 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       qnrm1 = spnorm == 0 ? -1 : 0;
       for(int ifanw = nfac0+0; ifanw < nfac0+2; ifanw++){
         //qunw1 = metqua0<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,fac2pol[0],1.0);
+        #ifdef TESTQUAFSIZESHAPE
+        qunw[ifanw-nfac0] = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,ifanw,1.0);
+        #else
         qunw[ifanw-nfac0] = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,ifanw,1.0);
+        #endif
         CPRINTF1(" - new face {} quality = {} \n",ifanw-nfac0,qunw[ifanw-nfac0]);
         // Can skip already if using max
         if(spnorm == 0 && qunw[ifanw-nfac0] + opt.swap_thres > qnrm0){
@@ -345,7 +357,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
           qnrm1 += pow(qunw[ifanw-nfac0], spnorm);
         }
       }
-      
+
       if(skipswap) goto cleanup;
 
       if(spnorm > 0){
@@ -358,7 +370,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       edg2pol[1] = msh.fac2poi(ifac2,ie2);
       double sz[2], len;
       len = getlenedg_geosz<MFT,gdim,ideg>(msh, edg2pol, sz);
-      double qulen = len < 1 ? 1.0 - len 
+      double qulen = len < 1 ? 1.0 - len
                              : 1.0 - 1.0 / len;
       CPRINTF1(" - new config ied {} len = {} quality = {} \n",ied,len,qulen);
 
@@ -419,7 +431,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     if(tdim == 3) CPRINTF1(" - cavity ntetr {} \n",cav.lctet.get_n());
 
     int ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithread);
-  
+
     #if 0
     if(istop){
       istop = false;
