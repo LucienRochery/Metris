@@ -228,9 +228,8 @@ template FTYPE metqua< MFT_VAL , 3, 3, QUAFUN, FTYPE>\
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,(MFT_SEQ)(QUAFUN_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
 
-
-
-#undef EXPAND_TEMPLATE
+#undef QUAFUN_SEQ
 #undef MFT_SEQ // note these two could go into headers
+#undef EXPAND_TEMPLATE
 
 } // End namespace

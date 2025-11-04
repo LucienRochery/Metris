@@ -68,8 +68,13 @@ void MetrisRunner::statMesh0(int tdim, MeshStat* stat_){
     for(int tdim_ = 2; tdim_ <= tdim; tdim_++){
       bool iinva;
       double qmin, qmax, qavg;
-      getmetquamesh<MFT>(msh,tdim_,asdeg,asdeg,
+      #ifdef TESTQUAFSIZESHAPE
+      getmetquamesh<MFT,QuaFun::SizeShape>(msh,tdim_,asdeg,asdeg,
                         &iinva,&qmin,&qmax,&qavg,&rquel);
+      #else
+      getmetquamesh<MFT,QuaFun::Distortion>(msh,tdim_,asdeg,asdeg,
+                        &iinva,&qmin,&qmax,&qavg,&rquel);
+      #endif
       stat.setQuality(tdim_,rquel,asdeg);
       std::string degstr = asdeg == AsDeg::P1 ? "P1" : "Pk";
       if(DOPRINTS2()) print_histogram(msh,rquel,IntrpTyp::Geometric,qbnds,"q","Quality "+degstr+" ("+std::to_string(tdim_)+"D)");
