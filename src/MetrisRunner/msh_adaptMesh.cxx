@@ -27,6 +27,8 @@
 
 #include "../low_geo/misc.hxx"
 
+#include "../aux_badEntHandler.hxx"
+
 
 namespace Metris{
 
@@ -490,5 +492,80 @@ template void MetrisRunner::adaptMesh0<MetricFieldAnalytical,2,n>(int tdim);\
 template void MetrisRunner::adaptMesh0<MetricFieldAnalytical,3,n>(int tdim);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
+
+// =============================================================================================== //
+// =============================================================================================== //
+
+template<class MFT,int gdim,int ideg>
+void MetrisRunner::adaptMeshQuality0(int tdim){
+  if(tdim > gdim) return;
+
+  GETVDEPTH(this->param);
+
+  Mesh<MFT>& msh = static_cast<Mesh<MFT>&>(*msh_g);
+
+  msh.cleanup();
+
+  CPRINTF1("-- START adaptMeshQuality0 tdim = {} with miter = {} \n",tdim,miter);
+  if(DOPRINTS1()){
+    writeMesh("debug_adapt_inp", msh);
+    msh.met.writeMetricFile("debug_adapt_inp");
+  }
+
+  msh.met.setSpace(MetSpace::Exp);
+  msh.setBasis(FEBasis::Lagrange);
+
+  // This is the common thread for all routines. Tagged elements are ignored
+  const int ithrdfro = 0;
+  const int ithrd1 = 1;
+  const int ithrd2 = 2;
+  const int ithrd3 = 3;
+  msh.tag[ithrdfro]++;
+
+  const double alpha = 10.;
+  const double badX = 75.;
+
+  // initial number of elements
+  const int nentt0 = msh.nentt(tdim);
+
+  // quality array
+  bool iinva = false; double qmin = 0, qmax = 0, qavg = 0;
+  dblAr1 lquae(nentt0);
+
+  // initial quality computation
+  getmetquamesh<MFT, QuaFun::SizeShape>(msh,tdim,AsDeg::P1,AsDeg::P1,&iinva,&qmin,&qmax,&qavg,&lquae);
+
+  std::vector<int> sortedIDs(nentt0);
+  std::iota(sortedIDs.begin(), sortedIDs.end(), 0) // fill starting with 0, to ientt0
+
+  // sort from max (worst) to min (best) quality. The handler is expecting like this
+  std::sort(ids.begin(), ids.end(),
+            [&](int a, int b){ return lquae(a) > lquae(b); });
+
+
+  // initialize handler for top X% worst, K, and remainder, R
+  BadEntHandler handlerTopX(badX);
+  handlerTopX.setCallBacks(
+                            [&](int ient){ return lquae(ient); },
+                            [&](int ient){ return msh.isdeadent(tdim, ient); });
+
+  // builds K and R
+  handlerTopX.seedFromSortedIDs(sortedIDs);
+
+  // ============================================= //
+  // main loop, fetching worst in K at each iter
+  // ============================================= //
+
+  int iter = 0;
+  while (true){
+
+    EntQual worstEnt = handlerTopX.getFrontK();
+
+
+
+
+  }
+
+}
 
 }//end namespace
