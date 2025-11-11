@@ -536,16 +536,16 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   getmetquamesh<MFT, QuaFun::SizeShape>(msh,tdim,AsDeg::P1,AsDeg::P1,&iinva,&qmin,&qmax,&qavg,&lquae);
 
   std::vector<int> sortedIDs(nentt0);
-  std::iota(sortedIDs.begin(), sortedIDs.end(), 0) // fill starting with 0, to ientt0
+  std::iota(sortedIDs.begin(), sortedIDs.end(), 0); // fill starting with 0, to ientt0
 
   // sort from max (worst) to min (best) quality. The handler is expecting like this
-  std::sort(ids.begin(), ids.end(),
+  std::sort(sortedIDs.begin(), sortedIDs.end(),
             [&](int a, int b){ return lquae(a) > lquae(b); });
 
 
   // initialize handler for top X% worst, K, and remainder, R
-  BadEntHandler handlerTopX(badX);
-  handlerTopX.setCallBacks(
+  BadEntHandler handlerTopX(badX, alpha);
+  handlerTopX.setCallbacks(
                             [&](int ient){ return lquae(ient); },
                             [&](int ient){ return msh.isdeadent(tdim, ient); });
 
@@ -553,18 +553,36 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   handlerTopX.seedFromSortedIDs(sortedIDs);
 
   // ============================================= //
-  // main loop, fetching worst in K at each iter
+  // main loop:
+  // - traverse K from worst to best
+  // - if successful operation, update K and restart
+  // - ends when reaching end of K
   // ============================================= //
 
   int iter = 0;
   while (true){
 
-    EntQual worstEnt = handlerTopX.getFrontK();
+    for (auto itK = handlerTopX.K.rbegin(); itK != handlerTopX.K.rend(); itK++){
+
+      const int ientt = itK->ientt;
+      if (msh.isdeadent(tdim, ientt)) continue;
+
+      // 1. Smoothing
+      // TODO: I think right now my check success is not consistent, metqua is already a deviation from 1. Fix it
+      double statSmoothing = smoothElement_Ball<MFT>(msh,ientt,handler,QuaFun::SizeShape,ithrd1,ithrd2);
+
+      if (statSmoothing > 0) handlerTopX.smoothSuccess = true;
+      if (handlerTopX.smoothSuccess){
+        handlerTopX.updateK(msh.nentt(tdim));
+        break;
+      }
+
+      // 2. Get edge lenghts in ientt. We'll use this to decide if we do collapse or insertion
 
 
-
-
-  }
+    }
+    break;
+}
 
 }
 

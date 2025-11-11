@@ -69,7 +69,12 @@ namespace Metris{
 
 struct BadEntHandler{
 
-  BadEntHandler(double topXpctg) : topX(topXpctg), sizeK(0), nentt(0), currentGen(1) {}
+  BadEntHandler(double topXpctg, double alphaImpr = 0)
+  : topX(topXpctg), alpha(alphaImpr), sizeK(0), nentt(0), currentGen(1),
+    smoothSuccess(false), collapseSuccess(false), insertionSuccess(false) {
+
+      affectedEnts.reserve(100);
+  }
 
   struct EntQual{
     int ient;            // entity id
@@ -88,17 +93,7 @@ struct BadEntHandler{
   // max-heap comparator for R (largest quality at front)
   struct CmpMaxQua { bool operator()(const EntQual& entA, const EntQual& entB) const { return entA.qent < entB.qent; } };
 
-  // multiset for K
-  std::multiset<EntQual, CmpAscendingQua> K; // top X% worst entities
 
-  // max-heap by q for R
-  std::vector<EntQual> R; // remainder
-
-  // state info
-  double topX;              // percentage of entities we want in K
-  int sizeK;                // current size of K (adapted as mesh grows)
-  int nentt;                // current number of entities
-  std::uint64_t currentGen; // current generation (incremented after successful operation)
 
   // latest known generation for entity id
   std::unordered_map<int, std::uint64_t> latestGenStamp;
@@ -118,9 +113,24 @@ struct BadEntHandler{
 
   // to update K after a successful operation
   void updateK(const int nenttNew){
+
+    currentGen++;
+
     nentt = nenttNew;
     sizeK = std::max(1, (int)std::round(nentt * topX/100.));
+
+    if (!affectedEnts.empty()){
+      for (auto ent : affectedEnts){
+        insertEnt(ent->first, ent->second);
+      }
+    }
+    affectedEnts.clear();
+
     rebalance();
+
+    smoothSuccess = false;
+    collapseSuccess = false;
+    insertionSuccess = false;
   }
 
   // construct K and R from sorted index list (worst quality first)
@@ -215,24 +225,9 @@ struct BadEntHandler{
 
       // put it in R
       R.push_back(bestInK);
-      // reheapify
+      // re-heapify
       std::push_heap(R.begin(), R.end(), CmpMaxQua{});
     }
-  }
-
-  // to fetch the front of K
-  EntQual getFrontK(){
-    if (K.empty()){
-      rebalance(); // try to fill from R once
-      if (K.empty()) return EntQual{-1, 0., 0};
-    }
-
-    auto itWorst = std::prev(K.end());
-    EntQual ent = *itWorst;
-    K.erase(itWorst);
-
-    rebalance();
-    return ent;
   }
 
   // to update quality in entity or insert new entity
@@ -251,9 +246,37 @@ struct BadEntHandler{
       R.push_back(EntQual{ient, qent, currentGen});
       std::push_heap(R.begin(), R.end(), CmpMaxQua{});
     }
-
-    rebalance();
   }
+
+  bool checkSuccess(const double quaNew, const double quaOld) const {
+
+    return (quaNew - 1.) <= ( (1. - alpha/100.) * (quaOld - 1.) );
+  }
+
+  void setAlpha(double alphaImprv) { alpha = alphaImprv; }
+
+  //-----------------------------------------------------------//
+
+  // set for K
+  std::set<EntQual, CmpAscendingQua> K; // top X% worst entities
+
+  // max-heap by q for R
+  std::vector<EntQual> R; // remainder
+
+  // state info
+  const double topX;              // percentage of entities we want in K
+  int sizeK;                      // current size of K (adapted as mesh grows)
+  int nentt;                      // current number of entities
+  std::uint64_t currentGen;       // current generation (incremented after successful operation)
+
+  double alpha;                   // percentage of improvement to consider success
+
+  std::unordered_map<int, double> affectedEnts; // keep track of entities modified/created during successful operation
+
+  bool smoothSuccess;
+  bool collapseSuccess;
+  bool insertionSuccess;
+
 };
 
 } // namespace Metris
