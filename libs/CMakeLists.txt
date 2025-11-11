@@ -17,11 +17,11 @@ target_link_libraries(metris_deps INTERFACE libmeshb)
 if(NOT TARGET lplib3)
   add_library(lplib3 STATIC lplib3/lplib3.c)
   target_link_libraries(lplib3 PUBLIC pthread)
-  if(METRIS_INSTALL)
-    install(TARGETS lplib3
-            EXPORT libMetrisTargets
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-  endif()
+endif()
+if(METRIS_INSTALL)
+  install(TARGETS lplib3
+          EXPORT libMetrisTargets
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 target_link_libraries(metris_deps INTERFACE lplib3)
 
