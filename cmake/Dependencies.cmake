@@ -518,6 +518,9 @@ else()
     if(NOT nlopt_fetch_POPULATED)
       message(FATAL_ERROR "NLopt was not fetched correctly.")
     endif()
+    # Add NLopt library directory to RPATH so the runtime linker can find libnlopt.so
+    list(APPEND CMAKE_BUILD_RPATH   ${nlopt_fetch_BINARY_DIR})
+    list(APPEND CMAKE_INSTALL_RPATH ${nlopt_fetch_BINARY_DIR})
     # We do this because find_package() uses this naming.
     if(NOT TARGET NLopt::nlopt)
       add_library(NLopt::nlopt ALIAS nlopt)
