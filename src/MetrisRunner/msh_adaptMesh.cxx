@@ -583,6 +583,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       // 2. Get edge lenghts in ientt. We'll use this to decide if we do collapse or insertion
 
 
+
     }
     break;
 }

@@ -482,7 +482,7 @@ template double smoothElement_Ball<MetricFieldFE        >(Mesh<MetricFieldFE    
 
 // idim: gdim = tdim
 template<class MFT, int idim, int ideg>
-double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, QuaFun iquaf,
+double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handler, QuaFun iquaf,
                            int ithrd1, int ithrd2){
   // TODO: for now just vertex smoothing. Add HO nodes in the future
   GETVDEPTH(msh.param);
@@ -634,8 +634,8 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, QuaFun iquaf,
             msh.poi2tag(ithrd1,ipoi2) = msh.tag[ithrd1] - 1; // reactivate
           }
 
-          // push affected entities: id and new quality
-          handler.affectedEnts[ient2] = quafun(msh,AsDeg::Pk,AsDeg::Pk,ient2,difto);
+          // inform affected entities: id and new quality
+          handler.affectedEntsAlive[ient2] = quafun(msh,AsDeg::Pk,AsDeg::Pk,ient2,difto);
         }
       }else{
         msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1]; // deactivate
