@@ -562,7 +562,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   int iter = 0;
   while (true){
 
-    for (auto itK = handlerTopX.K.rbegin(); itK != handlerTopX.K.rend(); itK++){
+    for (auto itK = handlerTopX.K.begin(); itK != handlerTopX.K.end(); itK++){
 
       const int ientt = itK->ientt;
 
@@ -581,6 +581,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       }
 
       // 2. Get edge lenghts in ientt. We'll use this to decide if we do collapse or insertion
+
 
 
     }

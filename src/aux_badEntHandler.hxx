@@ -74,7 +74,9 @@ Handler for keeping track of the top X% worst entities in mesh, call it K, and t
 
 namespace Metris{
 
-struct BadEntHandler{
+class BadEntHandler{
+
+public:
 
   BadEntHandler(double topXpctg = 50., double alphaImpr = 0.5)
   : topX(topXpctg), alpha(alphaImpr), sizeK(0), nentt(0), currentGen(1),
@@ -89,6 +91,8 @@ struct BadEntHandler{
     double qentt;         // quality
     std::uint64_t genStamp; // generation when recorded
   };
+
+private:
 
   // set comparator for K (set)
   struct CmpWorstFirst{
@@ -110,6 +114,8 @@ struct BadEntHandler{
 
   // placeholder for knowing if entt is dead
   std::function<bool(int)> is_dead;
+
+public:
 
   // to set the placeholders from the exterior of the struct
   void setCallbacks(std::function<double(int)> qua_atExt, std::function<bool(int)> is_deadExt){
@@ -169,7 +175,7 @@ struct BadEntHandler{
     for (const auto& entt : affectedEnttsAlive) insertEntt(entt.first, entt.second);
     affectedEnttsAlive.clear();
 
-    for (const auto entt : deadEntts) killEntt(entt);
+    for (const auto entt : deadEntts) killEnttK(entt);
     deadEntts.clear();
 
     rebalance();
@@ -179,11 +185,16 @@ struct BadEntHandler{
     insertionSuccess = false;
   }
 
+private:
+
   // to insert modified/created entity (general)
   void insertEntt(int ientt, double qentt){
 
-    // decide if entity goes in K or R
-    if (qentt > qualCutoff()) insertInK(ientt,qentt);
+    // first thing is to remove the entity if in K
+    killEnttK(ientt);
+
+    // then decide if fresh entity goes in K or R
+    if (qentt > qualCutoff())  insertInK(ientt,qentt);
     else                       insertInR(ientt,qentt);
   }
 
@@ -198,13 +209,6 @@ struct BadEntHandler{
 
     EntQual entt{ientt, qentt, currentGen};
 
-    // if already in K, delete old copy
-    if (auto it = inK.find(ientt); it != inK.end()){
-
-      K.erase(it->second);
-      inK.erase(it);
-    }
-
     // insert fresh entity
     auto [itNew, inserted] = K.insert(entt);
     inK[ientt] = itNew;
@@ -212,7 +216,7 @@ struct BadEntHandler{
 
   void insertInR(int ientt, double qentt){
 
-    // lazy insertion, we don't care if it is in R already
+    // lazy insertion in R, we don't care if it is in R already
     // if so, the old version would just become stale (via genStamp)
     // the same logic does not apply in K because the size of K
     // must represent the top X% worst elements, all of them fresh and alive
@@ -225,9 +229,8 @@ struct BadEntHandler{
     std::push_heap(R.begin(), R.end(), CmpMaxQua{});
   }
 
-  void killEntt(int ientt){
+  void killEnttK(int ientt){
 
-    // check if in K, otherwise we don't care
     if (auto it = inK.find(ientt); it != inK.end()){
 
       K.erase(it->second);
@@ -235,13 +238,18 @@ struct BadEntHandler{
     }
   }
 
-  // to rebalance K and R, i.e. keep the top X% worst in K as the mesh grows, and the rest in R
+  // to rebalance K and R, i.e. keep the top X% (fresh) worst entities in K as the mesh grows, and the rest in R
   void rebalance(){
 
     // if K not big enough, fetch worst from R until desired size
     while ((int)K.size() < sizeK && !R.empty()){
 
+      purgeFrontR();
       EntQual frontR = getFrontR();
+
+      // I think we are 100% sure the entity is not in K already
+      // but might want to call killEnttK here to be safer
+
       insertInK(frontR.ientt, frontR.qentt);
     }
 
@@ -251,8 +259,9 @@ struct BadEntHandler{
       // remove best in K
       auto itBest = std::prev(K.end());
       EntQual bestInK = *itBest;
-      K.erase(itBest);
+      killEnttK(bestInK.ientt);
 
+      // put it in R
       insertInR(bestInK.ientt, bestInK.qentt);
     }
   }
@@ -260,13 +269,16 @@ struct BadEntHandler{
   // to fetch (and pop) the front of R and re-heapify it
   EntQual getFrontR(){
 
-    purgeFrontR();
+    if (!R.empty()){
 
-    std::pop_heap(R.begin(), R.end(), CmpMaxQua{});
-    EntQual entt = R.back();
-    R.pop_back();
+      std::pop_heap(R.begin(), R.end(), CmpMaxQua{});
+      EntQual entt = R.back();
+      R.pop_back();
 
-    return entt;
+      return entt;
+    }
+
+    return EntQual{-1, 0., 0};
   }
 
   // to make the front of R fresh
@@ -283,44 +295,58 @@ struct BadEntHandler{
 
       // else
 
-      // move invalid worst entt to last slot and re-heapifies the rest -- O(log n)
+      // move invalid worst entt to last slot and re-heapifies the rest -- O(log |R|)
       std::pop_heap(R.begin(), R.end(), CmpMaxQua{});
       // then remove invalid worst entt
       R.pop_back();
     }
   }
 
+public:
+
   bool checkSuccess(const double quaNew, const double quaOld) const {
 
     return quaNew <= ((1. - alpha/100.) * quaOld );
   }
 
+  // useful if we want to iterate over several alpha values,
+  // to not need a new handler from scratch
   void setAlpha(double alphaImprv) { alpha = alphaImprv; }
 
+  // Members
   //-----------------------------------------------------------//
 
-  // set for K
-  std::set<EntQual, CmpWorstFirst> K; // top X% worst entities, all fresh and alive (no lazy insertions)
-  using SetIt = std::set<EntQual, CmpWorstFirst>::iterator;
-  std::unordered_map<int, SetIt> inK; // iterator in K to keep track of "where" the entities are in K
+public:
 
-  // max-heap by q for R
-  std::vector<EntQual> R; // remainder of elements, max-heap with lazy insertions
+  // set for K
+  std::set<EntQual, CmpWorstFirst> K;                       // top X% worst entities, all fresh and alive (no lazy insertions)
+  using SetIt = std::set<EntQual, CmpWorstFirst>::iterator; // to keep track of position of entities in K
+  std::unordered_map<int, SetIt> inK;                       // iterator in K to keep track of "where" the entities are in K
+
+private:
+
+  // max-heap by quality for R
+  std::vector<EntQual> R;                                   // remainder of elements, max-heap with lazy insertions
 
   // state info
-  const double topX;              // percentage of entities we want in K
-  int sizeK;                      // current size of K (adapted as mesh grows)
-  int nentt;                      // current number of entities
-  std::uint64_t currentGen;       // current generation (incremented after successful operation)
+  const double topX;                                        // percentage of entities we want in K
+  int sizeK;                                                // current size of K (adapted as mesh grows)
+  int nentt;                                                // current number of entities
+  std::uint64_t currentGen;                                 // current generation (incremented after successful operation)
 
-  double alpha;                   // percentage of improvement to consider success
+  double alpha;                                             // percentage of improvement to consider success
 
-  std::unordered_map<int, double> affectedEnttsAlive; // keep track of entities modified/created during successful operation
-  std::vector<int> deadEntts;
+public:
 
-  bool smoothSuccess;
-  bool collapseSuccess;
-  bool insertionSuccess;
+  std::unordered_map<int, double> affectedEnttsAlive;       // keep track of entities modified/created during successful operation
+                                                            // feed externally during the operation itself
+
+  std::vector<int> deadEntts;                               // keep track of entities killed during successful operation
+                                                            // feed externally during the operation itself
+
+  bool smoothSuccess;                                       // mark a successful smoothing
+  bool collapseSuccess;                                     // mark a successful collapse
+  bool insertionSuccess;                                    // mark a successful insertion
 
 };
 
