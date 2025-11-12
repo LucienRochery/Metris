@@ -565,10 +565,13 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
     for (auto itK = handlerTopX.K.rbegin(); itK != handlerTopX.K.rend(); itK++){
 
       const int ientt = itK->ientt;
-      if (msh.isdeadent(tdim, ientt)) continue;
+
+      // we assume that if an operation is successful,
+      // the operator takes care of informing to the hanlder:
+      // - new/modified entities, with their qualities
+      // - deleted entities
 
       // 1. Smoothing
-      // TODO: I think right now my check success is not consistent, metqua is already a deviation from 1. Fix it
       double statSmoothing = smoothElement_Ball<MFT>(msh,ientt,handler,QuaFun::SizeShape,ithrd1,ithrd2);
 
       if (statSmoothing > 0) handlerTopX.smoothSuccess = true;
