@@ -16,7 +16,6 @@
 #include <cmath>
 #include <utility>
 
-#include "common_setup.hxx"
 
 /*
 
@@ -79,8 +78,7 @@ class BadEntHandler{
 public:
 
   BadEntHandler(double topXpctg = 50., double alphaImpr = 0.5)
-  : topX(topXpctg), alpha(alphaImpr), sizeK(0), nentt(0), currentGen(1),
-    smoothSuccess(false), collapseSuccess(false), insertionSuccess(false) {
+  : topX(topXpctg), alpha(alphaImpr), sizeK(0), nentt(0), currentGen(1) {
 
       affectedEnttsAlive.reserve(100);
       deadEntts.reserve(100);
@@ -167,22 +165,21 @@ public:
   // to update K after a successful operation
   void updateK(const int nenttNew){
 
+    std::cout << "Base number of alive entities = " << nentt << std::endl;
     currentGen++;
 
-    nentt = nenttNew;
+    if (!deadEntts.empty()) nentt += affectedEnttsAlive.size() - deadEntts.size();
     sizeK = std::max(1, (int)std::round(nentt * topX/100.));
 
+    std::cout << "Modyfing/Inserting " << affectedEnttsAlive.size() << " entities" << std::endl;
     for (const auto& entt : affectedEnttsAlive) insertEntt(entt.first, entt.second);
     affectedEnttsAlive.clear();
 
+    std::cout << "Killing " << deadEntts.size() << " entities" << std::endl;
     for (const auto entt : deadEntts) killEnttK(entt);
     deadEntts.clear();
 
     rebalance();
-
-    smoothSuccess = false;
-    collapseSuccess = false;
-    insertionSuccess = false;
   }
 
 private:
@@ -264,6 +261,10 @@ private:
       // put it in R
       insertInR(bestInK.ientt, bestInK.qentt);
     }
+
+    std::cout << "New number total alive nentt = " << nentt << std::endl;
+    std::cout << "Size of K = " << K.size() << ". (topX = " << topX  << ")" << std::endl;
+    std::cout << "Size of R = " << R.size() << std::endl;
   }
 
   // to fetch (and pop) the front of R and re-heapify it
@@ -343,10 +344,6 @@ public:
 
   std::vector<int> deadEntts;                               // keep track of entities killed during successful operation
                                                             // feed externally during the operation itself
-
-  bool smoothSuccess;                                       // mark a successful smoothing
-  bool collapseSuccess;                                     // mark a successful collapse
-  bool insertionSuccess;                                    // mark a successful insertion
 
 };
 

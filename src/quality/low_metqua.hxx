@@ -5,7 +5,7 @@
 
 #ifndef __METRIS_LOW_METQUA__
 #define __METRIS_LOW_METQUA__
-/* 
+/*
 	Functions relating to Q_M(K) = 1/n tr(J_K^T J_0^{-T} M J_0^{-1} J_K) / det(J_K^T M J_K)^(1/n)
 */
 
@@ -25,12 +25,12 @@ enum class AsDeg;
 /* ----------------------------------------------
  Main functions
    ---------------------------------------------- */
-// Integrated quality 
-template <class MetricFieldType, int gdim, int tdim, 
-          QuaFun iquaf = QuaFun::Distortion, 
+// Integrated quality
+template <class MetricFieldType, int gdim, int tdim,
+          QuaFun iquaf = QuaFun::Distortion,
           typename ftype = double>
 ftype metqua(Mesh<MetricFieldType> &msh,
-             AsDeg asdmsh, AsDeg asdmet, 
+             AsDeg asdmsh, AsDeg asdmet,
              int ielem, ftype difto = 1);
 
 
@@ -45,7 +45,10 @@ get_quafun(QuaFun iquaf){
     return metqua<MFT,gdim,tdim,QuaFun::Distortion,ftype>;
   }else if(iquaf == QuaFun::Unit){
     return metqua<MFT,gdim,tdim,QuaFun::Unit,ftype>;
-  }else{
+  }else if(iquaf == QuaFun::SizeShape){
+    return metqua<MFT,gdim,tdim,QuaFun::SizeShape,ftype>;
+  }
+  else{
     METRIS_THROW_MSG("TODO: cf quafun_")
   }
 }

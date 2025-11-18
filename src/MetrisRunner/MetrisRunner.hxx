@@ -97,7 +97,7 @@ private:
   void adaptMesh0(int tdim);
 
   template<class MetricFieldType, int gdim, int ideg>
-  vaoid adaptMeshQuality0(int tdim);
+  void adaptMeshQuality0(int tdim);
 
   template<class MetricFieldType, int gdim, int ideg>
   double optimMesh0();

@@ -635,7 +635,7 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
           }
 
           // inform affected entities: id and new quality
-          handler.affectedEntsAlive[ient2] = quafun(msh,AsDeg::Pk,AsDeg::Pk,ient2,difto);
+          handler.affectedEnttsAlive[ient2] = quafun(msh,AsDeg::Pk,AsDeg::Pk,ient2,difto);
         }
       }else{
         msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1]; // deactivate

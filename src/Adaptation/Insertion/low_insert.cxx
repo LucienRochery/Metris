@@ -36,7 +36,11 @@ int insertEdge(Mesh<MFT>& msh,
                double lenqua_short_max, // maximum quality (error) a new short edge can have
                bool icollapse,
                MshCavity &cav, CavWrkArrs &work,
-               intAr1 &lerro, int ithrd1, int ithrd2){
+               intAr1 &lerro,
+               #ifdef TESTQUALITYALGO
+               BadEntHandler& handler,
+               #endif
+               int ithrd1, int ithrd2){
 
   int iverb0   = msh.param->iverb;
   int ivdepth0 = msh.param->ivdepth;
@@ -79,6 +83,12 @@ int insertEdge(Mesh<MFT>& msh,
 
   double algnd[3];
 
+  #ifdef TESTQUALITYALGO
+  // snapshot of original number of entities in the mesh
+  // before calling cavity operator
+  const int nentt0 = msh.nentt(insertionSeed.tdim_adp);
+  #endif
+
   // Create the point, set info for localization
   //cav.ipins = msh.newpoitopo(insertionSeed.tdimp, insertionSeed.iseed);
   //int ibins = -1;
@@ -118,6 +128,12 @@ int insertEdge(Mesh<MFT>& msh,
     CPRINTF1(" # Failed aux_bisecPointLen ierro = {}\n",ierro);
     goto cleanup;
   }
+
+  // TODO
+  /* TODO: Here we inserted the point.
+           First thing would be to check if the new configuration
+           has better quality than the original, before inserting the point
+  */
 
   // Seed the cavity properly
   #ifndef NDEBUG
@@ -175,8 +191,10 @@ int insertEdge(Mesh<MFT>& msh,
   #else
   ierro = setCavityInsertion3(msh,cav,opts,insertionSeed,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);
   #endif
-  if(ierro != 0) goto cleanup;
 
+
+
+  if(ierro != 0) goto cleanup;
 
 call_cavity:
 
@@ -212,11 +230,12 @@ restart_cavity:
   ierro = 0;
   if(!irestart_cav) irestart_cav = true;
 
+
+
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
     ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd1);
   }}CT_FOR1(ideg);
   ierro_cavity = ierro;
-
 
   //if(DOPRINTS1()){
   //  msh.param->iverb = iverb0;
@@ -243,6 +262,7 @@ restart_cavity:
       ierro = INS2D_ERR_MOVEPT;
       goto cleanup;
     }
+    // TODO: Look at this carefully in the new quality based approach
     ierro = increase_cavity_Delaunay(msh, cav, insertionSeed.tdim_adp, -1, ithrd1);
     if(ierro != 0){
       CPRINTF1(" - +cav error {}\n",ierro);
@@ -266,6 +286,30 @@ restart_cavity:
 
   if(info.done){
 
+    #ifdef TESTQUALITYALGO
+    // tell handler about killed and new entities
+    const int tdim_adp = insertionSeed.tdim_adp;
+
+    // killed entities
+    const intAr1& deadEntts = cav.lcent(tdim_adp);
+    for (const auto& ideadEntt : deadEntts) handler.deadEntts.push_back(ideadEntt);
+
+    // new entities with their qualities
+    const int nenttNew = msh.nentt(tdim_adp);
+    double difto = 1.;
+    for (int ienttNew = nentt0; ienttNew < nenttNew; ienttNew++) {
+
+      double quael;
+      if (tdim_adp == 2){
+        quael = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::Pk,AsDeg::Pk,ienttNew,difto);
+      }
+      else {
+        quael = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::Pk,AsDeg::Pk,ienttNew,difto);
+      }
+      handler.affectedEnttsAlive[ienttNew] = quael;
+    }
+
+    #endif
     if(idbg){
       PRINTF("## CAVITY SUCCESSFUL inserted ipoin {} \n",cav.ipins);
       writeMeshCavity("insert_cavity_success.meshb", msh, cav);
@@ -298,12 +342,21 @@ template int insertEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh,
                          const EdgeSeed &insertionSeed,
                          double lenqua_short_max, bool icollapse,
                          MshCavity &cav, CavWrkArrs &work,
-                         intAr1 &lerro, int ithrd1, int ithrd2);
+                         intAr1 &lerro,
+                         #ifdef TESTQUALITYALGO
+                         BadEntHandler& handler,
+                         #endif
+                         int ithrd1, int ithrd2);
+
 template int insertEdge<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh,
                          const EdgeSeed &insertionSeed,
                          double lenqua_short_max, bool icollapse,
                          MshCavity &cav, CavWrkArrs &work,
-                         intAr1 &lerro, int ithrd1, int ithrd2);
+                         intAr1 &lerro,
+                         #ifdef TESTQUALITYALGO
+                         BadEntHandler& handler,
+                         #endif
+                         int ithrd1, int ithrd2);
 
 
 

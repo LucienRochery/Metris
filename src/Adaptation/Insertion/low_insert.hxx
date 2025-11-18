@@ -11,6 +11,7 @@
 #include "../../types.hxx"
 
 #include "insert_errors.hxx"
+#include "../../aux_badEntHandler.hxx"
 
 namespace Metris{
 
@@ -21,12 +22,16 @@ struct EdgeSeed;
 // Collapse edge iedl of triangle iface
 // bar1 is t along the edge with 1 if lnoed[iedl][0]
 template<class MFT>
-int insertEdge(Mesh<MFT>& msh, 
+int insertEdge(Mesh<MFT>& msh,
                const EdgeSeed &insertionSeed,
                double lenqua_short_max,
                bool icollapse,
-               MshCavity &cav, CavWrkArrs &work, 
-               intAr1 &lerro, int ithrd1, int ithrd2);
+               MshCavity &cav, CavWrkArrs &work,
+               intAr1 &lerro,
+               #ifdef TESTQUALITYALGO
+               BadEntHandler& handler,
+               #endif
+               int ithrd1, int ithrd2);
 
 
 } // end namespace

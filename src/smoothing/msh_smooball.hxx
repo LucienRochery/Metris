@@ -34,11 +34,11 @@ double smoothInterior_Ball0(Mesh<MetricFieldType> &msh,
 
 
 template<class MetricFieldType>
-double smoothElement_Ball(Mesh<MetricFieldType> &msh, const int ientt, const BadEntHandler& handler,
+double smoothElement_Ball(Mesh<MetricFieldType> &msh, const int ientt, BadEntHandler& handler,
                           QuaFun iquaf, int ithrd1, int ithrd);
 
 template<class MetricFieldType, int idim, int ideg>
-double smoothElement_Ball0(Mesh<MetricFieldType> &msh, const int ientt, const BadEntHandler& handler,
+double smoothElement_Ball0(Mesh<MetricFieldType> &msh, const int ientt, BadEntHandler& handler,
                            QuaFun iquaf, int ithrd1, int ithrd);
 
 } // end namespace

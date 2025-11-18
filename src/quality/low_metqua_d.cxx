@@ -21,7 +21,7 @@
 namespace Metris{
 
 
-// START DEBUG 
+// START DEBUG
 
 //#define DEBUG_MACRO(r,SEQ)  toto(SEQ )
 //BOOST_PP_SEQ_FOR_EACH_PRODUCT(DEBUG_MACRO,(MFT_SEQ)(ASDEG_SEQ)(FTYPE_SEQ))
@@ -30,9 +30,9 @@ namespace Metris{
 
 template <class MFT, int gdim, int tdim, QuaFun iquaf, typename ftype>
 ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
-               int ientt, 
-               int ivar, FEBasis dofbas, DifVar idifmet, 
-               ftype*__restrict__ dquael, ftype*__restrict__ hquael, 
+               int ientt,
+               int ivar, FEBasis dofbas, DifVar idifmet,
+               ftype*__restrict__ dquael, ftype*__restrict__ hquael,
                double difto){
   static_assert(gdim==2 || gdim==3);
   const int pnorm = msh.param->opt_pnorm;
@@ -43,9 +43,9 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
   double bary[tdim+1];
 
-  ftype qutet = 0; 
+  ftype qutet = 0;
   double nordev = 0;
-  bool do_nordev = tdim == 2 && gdim == 3 
+  bool do_nordev = tdim == 2 && gdim == 3
     && msh.CAD()
     && abs(msh.param->qua_surf_wt_normal) > 1.0e-9*abs(msh.param->qua_surf_wt_quality);
 
@@ -77,7 +77,7 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     for(int inode = 0; inode < nnode; inode++){
       int ipoin = ent2poi(ientt, inode);
       int ibpoi = msh.poi2ebp(ipoin, tdim, ientt, iref);
-      METRIS_ASSERT_MSG(ibpoi >= 0 && ibpoi < msh.nbpoi, 
+      METRIS_ASSERT_MSG(ibpoi >= 0 && ibpoi < msh.nbpoi,
         "iface = {} iref = {} inode = {} ipoin = {} ibpoi = {}",
         ientt,iref,inode,ipoin,ibpoi);
       int ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
@@ -147,10 +147,10 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
       if(ivar < 0) continue;
 
-      // If p%2 = 1 and f = qua0 - difto < 0, 
+      // If p%2 = 1 and f = qua0 - difto < 0,
       // notice d|f|^p = d(-f)^p = p(-f')(-f)^(p-1) = p(-1)^p f' f^(p-1)
       // but since p%2 = 1, (-1)^p = -1, so d|f|^p = -pf'f^(p-1) = -d(f)^p
-      // note f^(p-1) = |f|^(p-1) as p-1 = 0 [2] 
+      // note f^(p-1) = |f|^(p-1) as p-1 = 0 [2]
       int sg = 1;
       if(qua0 - difto < 0) sg = -1;
       for(int ii = 0; ii < gdim; ii++){
@@ -171,12 +171,12 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       for(int ii = 0; ii < gdim; ii++){
         for(int jj = ii; jj < gdim; jj++){
           // Only the gradient gets a sign difference
-          hquael[sym2idx(ii,jj)] += 
+          hquael[sym2idx(ii,jj)] +=
             pnorm*(pnorm - 1)*dqua0[ii]*dqua0[jj]*powm2;
         }
       }
 
-    }// for iquad 
+    }// for iquad
   }else{
 
     #if 0
@@ -186,7 +186,7 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                         ivar,dofbas,idifmet,
                         dquael,hquael);
     ftype powm1 = pow(abs(qutet - difto),pnorm-1);
-    qutet = powm1*abs(qutet - difto); 
+    qutet = powm1*abs(qutet - difto);
     #else
       METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
       constexpr int nnmet = (gdim*(gdim+1))/2;
@@ -206,7 +206,7 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       // You'd think this wouldn't be a bottleneck but it eats up 20% of optimization
       // time to run pow() here even if pnorm = 2 or 1.
       qutet = abs(qutet - difto);
-      ftype powm1 = 1; // case pnorm 1 
+      ftype powm1 = 1; // case pnorm 1
       if(pnorm == 2){
         powm1 = qutet;
         qutet *= qutet;
@@ -246,14 +246,14 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   if(do_nordev){
     METRIS_ASSERT(msh.param->qua_surf_wt_quality >= 0);
     METRIS_ASSERT(msh.param->qua_surf_wt_normal  >= 0);
-    qutet = msh.param->qua_surf_wt_quality*qutet 
+    qutet = msh.param->qua_surf_wt_quality*qutet
           + msh.param->qua_surf_wt_normal*pow(nordev, pnorm); // for homogeneity
   }
   return qutet;
 }
 
-//// While cumbersome, this replaces a bunch of manual instantiations, about to 
-//// be made worse the day we add tdimn as a template argument. 
+//// While cumbersome, this replaces a bunch of manual instantiations, about to
+//// be made worse the day we add tdimn as a template argument.
 //#define EXPAND_TEMPLATE(z,gdim,SEQ) \
 //                  INSTANTIATE(gdim,BOOST_PP_SEQ_ELEM(0, SEQ),\
 //                                   BOOST_PP_SEQ_ELEM(1, SEQ),\
@@ -278,14 +278,14 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
 
 
-// While cumbersome, this replaces a bunch of manual instantiations, about to 
-// be made worse the day we add tdimn as a template argument. 
+// While cumbersome, this replaces a bunch of manual instantiations, about to
+// be made worse the day we add tdimn as a template argument.
 #define EXPAND_TEMPLATE(r,SEQ) \
                   INSTANTIATE(BOOST_PP_SEQ_ELEM(0, SEQ),\
                               BOOST_PP_SEQ_ELEM(1, SEQ),\
                               BOOST_PP_SEQ_ELEM(2, SEQ))
 #define MFT_SEQ (MetricFieldFE)(MetricFieldAnalytical)
-#define QUAFUN_SEQ (QuaFun::Distortion)(QuaFun::Unit)
+#define QUAFUN_SEQ (QuaFun::Distortion)(QuaFun::Unit)(QuaFun::SizeShape)
 #define INSTANTIATE(MFT_VAL,QUAFUN,FTYPE)\
 template FTYPE d_metqua< MFT_VAL , 2, 2, QUAFUN,FTYPE>\
                   (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
@@ -327,32 +327,32 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,\
 
 
 /*
-D_quafun_distortion : computes derivatives (up to second) wrt all control points in the 
-element. 
+D_quafun_distortion : computes derivatives (up to second) wrt all control points in the
+element.
 - dquael is ftype* size N = gdim*entnpps[ideg] (entnpps -> gdim)
-- hquael is ftype* size sym NxN. Ordering: 
-  hquael(symidx(gdim*ip1 + i,gdim*ip2 + j)) = d_{ij}^{ip1,ip2} 
-Refer to d_quafun_distortion for additional comments within the routine. 
+- hquael is ftype* size sym NxN. Ordering:
+  hquael(symidx(gdim*ip1 + i,gdim*ip2 + j)) = d_{ij}^{ip1,ip2}
+Refer to d_quafun_distortion for additional comments within the routine.
 */
 template <class MFT, int gdim, int ideg, AsDeg asdmet, typename ftype>
-ftype D_quafun_distortion(Mesh<MFT> &msh, 
+ftype D_quafun_distortion(Mesh<MFT> &msh,
                   const int* ent2poi,
-                  const double*__restrict__ bary, 
-                  FEBasis dofbas, 
-                  DifVar idifmet, 
-                  ftype*__restrict__ dquael, 
+                  const double*__restrict__ bary,
+                  FEBasis dofbas,
+                  DifVar idifmet,
+                  ftype*__restrict__ dquael,
                   ftype*__restrict__ hquael){
 
   const int power = msh.param->opt_power;
   static_assert(gdim == 2 || gdim == 3);
   METRIS_ASSERT(gdim == msh.idim);
   METRIS_ASSERT(msh.met.getSpace() == MetSpace::Log)
-  // Differentiate or don't, but there is no barycentric derivative in this context 
+  // Differentiate or don't, but there is no barycentric derivative in this context
   METRIS_ASSERT(idifmet == DifVar::None || idifmet == DifVar::Phys);
-  if(idifmet != DifVar::None) METRIS_THROW_MSG( 
+  if(idifmet != DifVar::None) METRIS_THROW_MSG(
                            "Metric field derivative not implemented in quality")
   //METRIS_ASSERT( !(idiff != DifVar::None && dofbas == FEBasis::Undefined) );
-  if(dofbas == FEBasis::Bezier && idifmet != DifVar::None) METRIS_THROW_MSG( 
+  if(dofbas == FEBasis::Bezier && idifmet != DifVar::None) METRIS_THROW_MSG(
     "Ctrl pt dof not implemented -> do lag2bez derivatives of metric")
   //METRIS_ASSERT( !(idiff != DifVar::None && dquael == NULL) );
 
@@ -364,7 +364,7 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
   ftype quael;
 
 
-  // Get Jacobian matrix at xi  
+  // Get Jacobian matrix at xi
   // Derivatives are not needed, we compute them ourselves, as they greatly simplify
   // see docs/quality/qualityiff.pdf
   double jmat[tdim*gdim],coopr[gdim];
@@ -377,10 +377,10 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
   }
 
   // Compute J_0^{-T} J_K^T M J_K J_0^{-1}
-  // Note that J_K is stored transposed w.r.t. above ! -> jmat[i,j] = d_i F_j 
-  // whereas (J_K)_{ij} = d_j F_i .. 
+  // Note that J_K is stored transposed w.r.t. above ! -> jmat[i,j] = d_i F_j
+  // whereas (J_K)_{ij} = d_j F_i ..
 
-  // Get J_0^{-T} J_K^T 
+  // Get J_0^{-T} J_K^T
   ftype invtJ0_tJ[tdim][gdim];
   matXmat<tdim,tdim,gdim>(Constants::invtJ_0[hana::type_c<ftype>][tdim],
                                                               jmat,invtJ0_tJ[0]);
@@ -393,13 +393,13 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
   //printf("Debug metric = \n");
   //dblAr1(nnmet,met).print();
 
-  // Compute the trace 
+  // Compute the trace
   ftype tra;
   //ftype invtJ0_tJ_M_J_invJ0iag[tdim];
   tra = tra_matXsymXtmat<gdim, double, ftype, ftype>(met, invtJ0_tJ[0]);
   //tra = invtJ0_tJ_M_J_invJ0iag[0] + invtJ0_tJ_M_J_invJ0iag[1];
-  //if constexpr (tdim == 3) tra += invtJ0_tJ_M_J_invJ0iag[2]; 
-  // This is an actual exception that should never theoretically happen. 
+  //if constexpr (tdim == 3) tra += invtJ0_tJ_M_J_invJ0iag[2];
+  // This is an actual exception that should never theoretically happen.
   if(tra < 1.0e-16) METRIS_THROW_MSG( "NEGATIVE J^TMJ trace = {:e}", tra);
 
 
@@ -410,7 +410,7 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
     det_invtJ0_tJ = detmat<gdim,ftype>(invtJ0_tJ[0]); // Error of 10^{-19} = 10^-14 relative compared to Matlab on wonky case
     //ftype tmp = detsym<gdim>(met); // Error of 10^5 ... // Matlab yields 7.346639223296765e+09 we get 7.346911345315383e+09 // Even in relative this is terrible
     detM = detsym2<gdim>(met); // Also wrong, same error. Note Matlab gets 10^-9 final quality relative error ! Our determinant is terribly bad
-    det = det_invtJ0_tJ*det_invtJ0_tJ*detM; 
+    det = det_invtJ0_tJ*det_invtJ0_tJ*detM;
   }else{
     static_assert(tdim == 2);
     ftype J0tJtMJJ0[3];
@@ -418,7 +418,7 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
     det = detsym2<2>(J0tJtMJJ0);
   }
 
-  if(abs(det) < 1.0e-16 && power > 0) 
+  if(abs(det) < 1.0e-16 && power > 0)
      METRIS_THROW_MSG( "Singular J^TMJ det = {:e}", det);
 
   //constexpr auto irpow = [&]<int n>(ftype x) -> ftype{
@@ -427,7 +427,7 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
   //  if constexpr(std::is_same<ftype,float8>::value) return id8pow<n>(x);
   //};
 
-  // This is used later on -> store it 
+  // This is used later on -> store it
   int dpowd = iipow<tdim>(tdim);
   ftype trapowdm2 = irpow<tdim-2,ftype>(tra);//irpow.template operator()<tdim-2>(tra);
   ftype trapowdm1 = trapowdm2*tra;
@@ -443,16 +443,16 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
 
 
 
-  //// From here, we compute derivatives. 
+  //// From here, we compute derivatives.
   //if(idiff == DifVar::None) return quael;
-  //// See docs/quality/qualityiff.pdf for details 
+  //// See docs/quality/qualityiff.pdf for details
 
-  constexpr int nnode = tdim == 1 ? getnnod1(ideg) : 
+  constexpr int nnode = tdim == 1 ? getnnod1(ideg) :
                         tdim == 2 ? getnnod2(ideg) : getnnod3(ideg) ;
   constexpr auto ordent = ORDELT(tdim);
 
 
-  // Compute A^TM 
+  // Compute A^TM
   ftype invtJ0_tJ_M[tdim][gdim];
   matXsym<gdim>(invtJ0_tJ[0],met,invtJ0_tJ_M[0]);
   ftype J_invJ0[tdim][tdim];
@@ -462,26 +462,26 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
     }
   }
 
-  // Compute D_J_invJ0 which depends on each node, 
+  // Compute D_J_invJ0 which depends on each node,
   // then dtra and ddet
   ftype D_J_invJ0[nnode][tdim], ddet[nnode][gdim], ddetA[nnode][gdim], dtra[nnode][gdim];
   for(int inode = 0; inode < nnode; inode++){
     // Get the derivatives (d_k+1 - d_1) f
     double dfun[tdim];
-    // multi-index of inode: 
+    // multi-index of inode:
     int idx[tdim+1];
     for(int ii = 0; ii < tdim+1; ii++) idx[ii] = ordent[ideg][inode][ii];
 
-    // This is what we called \psi_k in the pdf document 
+    // This is what we called \psi_k in the pdf document
     if(dofbas == FEBasis::Bezier){
       eval_bezierfunc<ideg,tdim>(idx,bary,1,dfun);
     }else{
       eval_lagrangefunc<ideg,tdim>(idx,bary,1,dfun);
     }
-    // The derivative is much simplified, see pdf doc 
+    // The derivative is much simplified, see pdf doc
     // d_i(invtJ0_tJ)_{ij} = \sum_k \psi_k C_kj^T
     // In these notations, C_kj^T = Constants::invtJ_0[hana::type_c<ftype>][tdim][k][j]
-    // BECAUSE THE JACOBIAN MATRICES ARE TRANSPOSED! 
+    // BECAUSE THE JACOBIAN MATRICES ARE TRANSPOSED!
     for(int ii = 0; ii < tdim; ii++){
       D_J_invJ0[inode][ii] = 0;
       for(int kk = 0; kk < tdim; kk++){
@@ -513,14 +513,14 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
       for(int ii = 0; ii < gdim; ii++){
         dquael[inode*gdim + ii] = trapowdm1*( tdim*dtra[inode][ii]*det
                                - tra*ddet[inode][ii])
-                    /(det*det*dpowd); 
+                    /(det*det*dpowd);
         //dquael[inode*gdim + ii] = trapowdm1*( tdim*dtra[inode][ii]*det_invtJ0_tJ
-        //                                    - 2.0*ddetA[inode][ii]*tra )/(det_invtJ0_tJ*det*dpowd); 
+        //                                    - 2.0*ddetA[inode][ii]*tra )/(det_invtJ0_tJ*det*dpowd);
       }
     }else{
       for(int ii = 0; ii < gdim; ii++){
         dquael[inode*gdim+ii] = dpowd*(     2* tra   *ddetA[inode][ii]
-                                      - tdim*dtra[inode][ii]*det_invtJ0_tJ)*detM*det_invtJ0_tJ/(trapowd*tra); 
+                                      - tdim*dtra[inode][ii]*det_invtJ0_tJ)*detM*det_invtJ0_tJ/(trapowd*tra);
       }
     }
     if(abs(power) != 1){
@@ -533,17 +533,17 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
   }
 
 
-  // Sized for two points local Hessian 
+  // Sized for two points local Hessian
   constexpr int nhess2 = ( (2*gdim)*(2*gdim + 1) )/ 2;
   // Compute Hessian
-  //const int dpowdpowp = pow(dpowd,power); 
+  //const int dpowdpowp = pow(dpowd,power);
   for(int inode = 0; inode < nnode; inode++){
-    ftype sumDk2 = 0; // needed for second derivative of trace 
+    ftype sumDk2 = 0; // needed for second derivative of trace
     for(int ii = 0; ii < tdim; ii++){
       sumDk2 += D_J_invJ0[inode][ii]*D_J_invJ0[inode][ii];
     }
 
-    ftype htra[nhess]; // These are temp 
+    ftype htra[nhess]; // These are temp
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = ii; jj < gdim; jj++){
         htra[sym2idx(ii,jj)] = 2.0*met[sym2idx(ii,jj)]*sumDk2;
@@ -559,8 +559,8 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
 
     if(power > 0){
       for(int ii = 0; ii < gdim; ii++){
-        for(int jj = ii; jj < gdim; jj++){ 
-          hquael[sym2idx(gdim*inode+ii,gdim*inode+jj)] = 
+        for(int jj = ii; jj < gdim; jj++){
+          hquael[sym2idx(gdim*inode+ii,gdim*inode+jj)] =
             ( tdim*trapowdm2*det*det*( tra*htra[sym2idx(ii,jj)]
                                      + (tdim - 1)*dtra[inode][ii]*dtra[inode][jj] )
             - trapowdm1*det*( tra*hdet[sym2idx(ii,jj)]
@@ -574,11 +574,11 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
     }else{
       for(int ii = 0; ii < gdim; ii++){
         for(int jj = ii; jj < gdim; jj++){
-          hquael[sym2idx(gdim*inode+ii,gdim*inode+jj)]  = 
+          hquael[sym2idx(gdim*inode+ii,gdim*inode+jj)]  =
             (-(tdim+1)*dtra[inode][jj]*(ddet[inode][ii]*tra - tdim*det*dtra[inode][ii])
-            + tra*( hdet[sym2idx(ii,jj)]*tra + ddet[inode][ii]*dtra[inode][jj] 
+            + tra*( hdet[sym2idx(ii,jj)]*tra + ddet[inode][ii]*dtra[inode][jj]
                   - tdim*ddet[inode][jj]*dtra[inode][ii]
-                  - tdim*det*htra[sym2idx(ii,jj)]) 
+                  - tdim*det*htra[sym2idx(ii,jj)])
             )/(trapowd*tra*tra);
           hquael[sym2idx(gdim*inode+ii,gdim*inode+jj)]  *= dpowd;
         }
@@ -594,26 +594,26 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
         sumDkDk += D_J_invJ0[inod1][ii]*D_J_invJ0[inod2][ii];
       }
 
-      ftype htra[nhess]; // These are temp 
+      ftype htra[nhess]; // These are temp
       for(int ii = 0; ii < gdim; ii++){
         for(int jj = ii; jj < gdim; jj++){
           htra[sym2idx(ii,jj)] = 2.0*met[sym2idx(ii,jj)]*sumDkDk;
         }
       }
 
-      // some extradiagonal terms are added due to d^2 detA != 0 now 
+      // some extradiagonal terms are added due to d^2 detA != 0 now
       ftype hdet[nhess2] = {0};//, hdet2[nhess2] = {0};
-      const ftype detA = det_invtJ0_tJ; // Just for clarity 
+      const ftype detA = det_invtJ0_tJ; // Just for clarity
       if constexpr (gdim == 2){
         // The crossed-point terms (also crossed coordinate)
         hdet[sym2idx(0*gdim+0,1*gdim+1)] = detvec2<ftype>(D_J_invJ0[inod1], D_J_invJ0[inod2])*detA;
         hdet[sym2idx(0*gdim+1,1*gdim+0)] = - hdet[sym2idx(0*gdim+0,1*gdim+1)];//detvec2<ftype>(D_J_invJ0[inod1], D_J_invJ0[inod2])*detA;
       }else{
-        hdet[sym2idx(0*gdim+0,1*gdim+1)] = 
+        hdet[sym2idx(0*gdim+0,1*gdim+1)] =
           detvec3<ftype>(D_J_invJ0[inod1], D_J_invJ0[inod2],  J_invJ0[2]      )*detA;
-        hdet[sym2idx(0*gdim+0,1*gdim+2)] = 
+        hdet[sym2idx(0*gdim+0,1*gdim+2)] =
           detvec3<ftype>(D_J_invJ0[inod1],   J_invJ0[1]    ,  D_J_invJ0[inod2])*detA;
-        hdet[sym2idx(0*gdim+1,1*gdim+2)] = 
+        hdet[sym2idx(0*gdim+1,1*gdim+2)] =
           detvec3<ftype>(  J_invJ0[0]    , D_J_invJ0[inod1],  D_J_invJ0[inod2])*detA;
 
         hdet[sym2idx(1*gdim+0,0*gdim+1)] = - hdet[sym2idx(0*gdim+0,1*gdim+1)];
@@ -627,11 +627,11 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
           hdet[sym2idx(0*gdim+ii,1*gdim+jj)] *= 2.0*detM;
         }
       }
-       
+
       if(power > 0){
         for(int ii = 0; ii < gdim; ii++){
           for(int jj = 0; jj < gdim; jj++){
-            hquael[sym2idx(gdim*inod1+ii,gdim*inod2+jj)] = 
+            hquael[sym2idx(gdim*inod1+ii,gdim*inod2+jj)] =
               ( tdim*trapowdm2*det*det*( tra*htra[sym2idx(ii,jj)]
                                        + (tdim - 1)*dtra[inod1][ii]*dtra[inod2][jj] )
               - trapowdm1*det*( tra*hdet[sym2idx(0*gdim+ii,1*gdim+jj)]
@@ -645,12 +645,12 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
       }else{
         for(int ii = 0; ii < gdim; ii++){
           for(int jj = 0; jj < gdim; jj++){
-            hquael[sym2idx(gdim*inod1+ii,gdim*inod2+jj)] = 
+            hquael[sym2idx(gdim*inod1+ii,gdim*inod2+jj)] =
               (-(tdim+1)*dtra[inod2][jj]*(ddet[inod1][ii]*tra - tdim*det*dtra[inod1][ii])
-              + tra*( hdet[sym2idx(0*gdim+ii,1*gdim+jj)]*tra 
-                    + ddet[inod1][ii]*dtra[inod2][jj] 
+              + tra*( hdet[sym2idx(0*gdim+ii,1*gdim+jj)]*tra
+                    + ddet[inod1][ii]*dtra[inod2][jj]
                     - tdim*ddet[inod2][jj]*dtra[inod1][ii]
-                    - tdim*det*htra[sym2idx(ii,jj)]) 
+                    - tdim*det*htra[sym2idx(ii,jj)])
               )/(trapowd*tra*tra);
             hquael[sym2idx(gdim*inod1+ii,gdim*inod2+jj)] *= dpowd;
           }
@@ -659,7 +659,7 @@ ftype D_quafun_distortion(Mesh<MFT> &msh,
       //if(power > 0){
       //  for(int ii = 0; ii < gdim; ii++){
       //    for(int jj = 0; jj < gdim; jj++){
-      //      hquael[sym2idx(gdim*inod1+ii,gdim*inod2+jj)] =    
+      //      hquael[sym2idx(gdim*inod1+ii,gdim*inod2+jj)] =
       //        (- hquael[sym2idx(gdim*inod1+ii,gdim*inod2+jj)]*quael
       //        + 2.0*dquael[gdim*inod1+ii]*dquael[gdim*inod2+jj]) /(quael*quael*quael);
       //    }
@@ -690,7 +690,7 @@ template FTYPE D_quafun_distortion< MFT_VAL , 2+gdim, 1+ideg, ASDEG_VAL, FTYPE>\
                                    BOOST_PP_SEQ_ELEM(1, SEQ),\
                                    BOOST_PP_SEQ_ELEM(2, SEQ),\
                                    BOOST_PP_SEQ_ELEM(3, SEQ))
-                  
+
 #define REPEAT_GDIM(z,n,SEQ) BOOST_PP_REPEAT(2,EXPAND_TEMPLATE,(n)SEQ)
 #define REPEAT_IDEG(r,SEQ)   BOOST_PP_REPEAT(METRIS_MAX_DEG,REPEAT_GDIM,SEQ)
 
@@ -704,8 +704,8 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG,\
 
 template <class MFT, int gdim, int ideg, AsDeg asdmet, typename ftype>
 ftype D_metqua(Mesh<MFT> &msh, int ielem,
-               FEBasis dofbas, DifVar idifmet, 
-               ftype*__restrict__ dquael, ftype*__restrict__ hquael, 
+               FEBasis dofbas, DifVar idifmet,
+               ftype*__restrict__ dquael, ftype*__restrict__ hquael,
                double difto){
   constexpr int tdim = gdim;
   int* ent2poi = tdim == 2 ? msh.fac2poi[ielem] : msh.tet2poi[ielem];
@@ -717,8 +717,8 @@ ftype D_metqua(Mesh<MFT> &msh, int ielem,
 
 template <class MFT, int gdim, int ideg, AsDeg asdmet, typename ftype>
 ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi,
-              FEBasis dofbas, DifVar idifmet, 
-              ftype*__restrict__ dquael, 
+              FEBasis dofbas, DifVar idifmet,
+              ftype*__restrict__ dquael,
               ftype*__restrict__ hquael,
               double difto){
 
@@ -728,7 +728,7 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi,
 
   double bary[tdim+1];
 
-  ftype qutet = 0; 
+  ftype qutet = 0;
 
   for(int ii = 0; ii < gdim; ii++) dquael[ii] = 0;
 
@@ -737,7 +737,7 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi,
     constexpr int idegj = SMOO_DEGJ(ideg);
     constexpr int nnodj = tdim == 2 ? getnnod2(idegj) : getnnod3(idegj);
 
-    constexpr int nnode = tdim == 1 ? getnnod1(ideg) : 
+    constexpr int nnode = tdim == 1 ? getnnod1(ideg) :
                           tdim == 2 ? getnnod2(ideg) : getnnod3(ideg) ;
 
     constexpr auto ordelt = ORDELT(tdim);
@@ -772,7 +772,7 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi,
 
         for(int ii = 0; ii < gdim*nnode; ii++){
           for(int jj = ii; jj < gdim*nnode; jj++){
-            hquael[sym2idx(ii,jj)] += 
+            hquael[sym2idx(ii,jj)] +=
              sg*pnorm*hqua0[sym2idx(ii,jj)]*powm1;
           }
         }
@@ -782,12 +782,12 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi,
           for(int ii = 0; ii < gdim*nnode; ii++){
             for(int jj = ii; jj < gdim*nnode; jj++){
               hquael[sym2idx(ii,jj)] +=
-                sg*pnorm*(pnorm - 1) 
+                sg*pnorm*(pnorm - 1)
                *dqua0[ii]*dqua0[jj]*powm2;
             }
           }
         } // if(pnorm >= 2)
-        
+
       } // if(hquael != NULL)
 
 
@@ -811,13 +811,13 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi,
 
 
     ftype powm1 = pow(qua0 - difto,pnorm-1);
-    qutet = sg*powm1*(qua0 - difto); 
+    qutet = sg*powm1*(qua0 - difto);
 
 
     if(hquael != NULL){
       for(int ii = 0; ii < gdim*nnode; ii++){
         for(int jj = ii; jj < gdim*nnode; jj++){
-          hquael[sym2idx(ii,jj)] = 
+          hquael[sym2idx(ii,jj)] =
             sg*pnorm*hquael[sym2idx(ii,jj)]*powm1;
         }
       }
@@ -826,11 +826,11 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi,
         for(int ii = 0; ii < gdim*nnode; ii++){
           for(int jj = ii; jj < gdim*nnode; jj++){
             hquael[sym2idx(ii,jj)] +=
-                  sg*pnorm*(pnorm - 1) 
+                  sg*pnorm*(pnorm - 1)
                  *dquael[ii]*dquael[jj]*powm2;
           }
         }
-      }// endif pnorm 
+      }// endif pnorm
     }
 
     for(int ii = 0; ii < gdim*nnode; ii++){
@@ -848,7 +848,7 @@ ftype D_metqua(Mesh<MFT> &msh, const int* ent2poi,
                                    BOOST_PP_SEQ_ELEM(3, SEQ))
 #define REPEAT_GDIM(z,n,SEQ) BOOST_PP_REPEAT(2,EXPAND_TEMPLATE,(n)SEQ)
 #define REPEAT_IDEG(r,SEQ)   BOOST_PP_REPEAT(METRIS_MAX_DEG,REPEAT_GDIM,SEQ)
-                  
+
 #define INSTANTIATE(gdim,ideg,MFT_VAL,ASDEG_VAL,FTYPE)\
 template FTYPE D_metqua< MFT_VAL , 2+gdim, 1+ideg, ASDEG_VAL, FTYPE>\
                   (Mesh< MFT_VAL > &msh, \
@@ -856,7 +856,7 @@ template FTYPE D_metqua< MFT_VAL , 2+gdim, 1+ideg, ASDEG_VAL, FTYPE>\
                    FEBasis dofbas, \
                    DifVar idifmet, \
                    FTYPE*__restrict__ dquael, FTYPE*__restrict__ hquael, \
-                   double difto); 
+                   double difto);
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG,(MFT_SEQ)(ASDEG_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
 
@@ -867,7 +867,7 @@ template FTYPE D_metqua< MFT_VAL , 2+gdim, 1+ideg, ASDEG_VAL, FTYPE>\
                    FEBasis dofbas, \
                    DifVar idifmet, \
                    FTYPE*__restrict__ dquael, FTYPE*__restrict__ hquael, \
-                   double difto); 
+                   double difto);
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG,(MFT_SEQ)(ASDEG_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
 
@@ -880,8 +880,8 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG,(MFT_SEQ)(ASDEG_SEQ)(QUA_FTYPE_SEQ))
 #undef EXPAND_TEMPLATE
 #undef REPEAT_GDIM
 #undef REPEAT_IDEG
-#undef MFT_SEQ // note these two could go into headers 
-#undef ASDEG_SEQ 
+#undef MFT_SEQ // note these two could go into headers
+#undef ASDEG_SEQ
 
 
 

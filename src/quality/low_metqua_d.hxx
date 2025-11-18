@@ -19,37 +19,37 @@ enum class FEBasis;
 enum class DifVar;
 enum class AsDeg;
 
-// Integrated quality 
+// Integrated quality
 template <class MetricFieldType, int gdim, int tdim,
           QuaFun iquaf = QuaFun::Distortion, typename ftype = double>
 ftype d_metqua(Mesh<MetricFieldType> &msh,
-               AsDeg asdmsh, AsDeg asdmet, 
+               AsDeg asdmsh, AsDeg asdmet,
                int ielem, int ivar,
-               FEBasis dofbas, DifVar idifmet, 
-               ftype*__restrict__ dquael, ftype*__restrict__ hquael, 
+               FEBasis dofbas, DifVar idifmet,
+               ftype*__restrict__ dquael, ftype*__restrict__ hquael,
                double difto = 1);
 
 // All derivatives
 template <class MetricFieldType, int gdim, int mshdeg, AsDeg asdmet, typename ftype = double>
-ftype D_metqua(Mesh<MetricFieldType> &msh, int ielem, 
-               FEBasis dofbas, DifVar idifmet, 
-               ftype*__restrict__ dquael, ftype*__restrict__ hquael, 
+ftype D_metqua(Mesh<MetricFieldType> &msh, int ielem,
+               FEBasis dofbas, DifVar idifmet,
+               ftype*__restrict__ dquael, ftype*__restrict__ hquael,
                double difto = 1);
 
 template <class MetricFieldType, int gdim, int mshdeg, AsDeg asdmet, typename ftype = double>
-ftype D_metqua(Mesh<MetricFieldType> &msh, const int *ent2poi, 
-               FEBasis dofbas, DifVar idifmet, 
-               ftype*__restrict__ dquael, ftype*__restrict__ hquael, 
+ftype D_metqua(Mesh<MetricFieldType> &msh, const int *ent2poi,
+               FEBasis dofbas, DifVar idifmet,
+               ftype*__restrict__ dquael, ftype*__restrict__ hquael,
                double difto = 1);
 
-// Differentiated wrt all nodes and coordinates 
+// Differentiated wrt all nodes and coordinates
 template <class MFT, int gdim, int mshdeg, AsDeg asdmet, typename ftype>
-ftype D_quafun_distortion(Mesh<MFT> &msh, 
+ftype D_quafun_distortion(Mesh<MFT> &msh,
                   const int* ent2poi,
-                  const double*__restrict__ bary, 
-                  FEBasis dofbas, 
-                  DifVar idifmet, 
-                  ftype*__restrict__ dquael, 
+                  const double*__restrict__ bary,
+                  FEBasis dofbas,
+                  DifVar idifmet,
+                  ftype*__restrict__ dquael,
                   ftype*__restrict__ hquael);
 
 
@@ -66,7 +66,10 @@ get_d_quafun(QuaFun iquaf){
     return d_metqua<MFT,gdim,tdim,QuaFun::Distortion,ftype>;
   }else if(iquaf == QuaFun::Unit){
     return d_metqua<MFT,gdim,tdim,QuaFun::Unit,ftype>;
-  }else{
+  }else if(iquaf == QuaFun::SizeShape){
+    return d_metqua<MFT,gdim,tdim,QuaFun::SizeShape,ftype>;
+  }
+  else{
     METRIS_THROW_MSG("TODO: cf quafun_")
   }
 }
@@ -77,8 +80,8 @@ get_d_quafun(QuaFun iquaf){
 //struct metqua3_d{
 //	metqua3_d() = delete;
 //	metqua3_d(const Mesh<MetricFieldType> &msh, int ielem, int power,
-//						const double*  __restrict__ dmetvar, 
-//						const double*  __restrict__ dpoivar, 
+//						const double*  __restrict__ dmetvar,
+//						const double*  __restrict__ dpoivar,
 //						SANS::SurrealS<nvar,ftype> *qutet);
 //};
 
@@ -86,10 +89,10 @@ get_d_quafun(QuaFun iquaf){
 //template <class MetricFieldType, int ideg>
 //struct metqua3_shell_d{
 //	metqua3_shell_d() = delete;
-//	metqua3_shell_d(const Mesh<MetricFieldType> &msh, int ipoin, int iele0, int power, int mshell, 
+//	metqua3_shell_d(const Mesh<MetricFieldType> &msh, int ipoin, int iele0, int power, int mshell,
 //	                int* __restrict__ nshell, int* __restrict__ lshell,
-//	                const double* __restrict__ dmetvar, 
-//	                const double* __restrict__ dpoivar, 
+//	                const double* __restrict__ dmetvar,
+//	                const double* __restrict__ dpoivar,
 //	                SANS::SurrealS<nvar,double>*  qushe);
 //};
 
