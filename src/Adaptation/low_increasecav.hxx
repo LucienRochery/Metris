@@ -9,6 +9,7 @@
 #include "../Mesh/MeshFwd.hxx"
 #include "../types_arrays.hxx"
 #include "../aux_hashtab.hxx"
+#include "../aux_badEntHandler.hxx"
 #include <unordered_set>
 
 /*
@@ -53,7 +54,7 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
 
 template<class MFT>
 int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
-                              const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max,
+                              const EdgeSeed &insertionSeed, int mgrow, BadEntHandler& handler, double lenqua_short_max,
                               std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                               int ithrd1, int ithrd2);
 
@@ -97,7 +98,7 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav, const CavOprOp
 // Increase cavity based on quality
 template<class MFT>
 int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav,
-                             int tdim, int ngrow, int ithread);
+                             int tdim, int ngrow, BadEntHandler& handler, int ithread);
 
 // Tag cav.ipins's surface references if any. Used to filter in the other routines
 void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread);

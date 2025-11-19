@@ -669,7 +669,7 @@ int setCavityInsertion2<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh,
 // Cavity growth based on quality
 template<class MFT>
 int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
-                       const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max,
+                       const EdgeSeed &insertionSeed, int mgrow, BadEntHandler& handler, double lenqua_short_max,
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
@@ -692,7 +692,7 @@ int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &o
   intWrkAr1 lrempoi = msh.get_iwork(10);
   lrempoi.set_n(0);
 
-  ierro = increase_cavity_quality(msh,cav,tdim,5,ithrd1);
+  ierro = increase_cavity_quality(msh,cav,tdim,5,handler,ithrd1);
   if(DOPRINTS2()){
     writeMeshCavity("insert_cavity1",msh,cav);
   }
@@ -706,12 +706,12 @@ int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &o
 
 template
 int setCavityInsertionQuality<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, const CavOprOpt &opts,
-                              const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max,
+                              const EdgeSeed &insertionSeed, int mgrow, BadEntHandler& handler, double lenqua_short_max,
                               std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                               int ithrd1, int ithrd2);
 template
 int setCavityInsertionQuality<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, const CavOprOpt &opts,
-                              const EdgeSeed &insertionSeed, int mgrow, double lenqua_short_max,
+                              const EdgeSeed &insertionSeed, int mgrow, BadEntHandler& handler, double lenqua_short_max,
                               std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                               int ithrd1, int ithrd2);
 
@@ -2100,7 +2100,7 @@ template int increase_cavity_lenedg0<MetricFieldFE        ,3>(
 // Increase cavity based on quality
 template<class MFT>
 int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
-                             int ngrow, int ithread){
+                             int ngrow, BadEntHandler& handler, int ithread){
 
   if(tdim <= 1) return 0;
 
@@ -2302,7 +2302,7 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
         double quanew = info_loc.qmax_end;
 
-        bool improvesQua = quaCurrentConfig > quanew + 1e-12;
+        bool improvesQua = handler.checkSuccess(quanew,quaCurrentConfig);
 
         // add ienei to cavity if that improves quality
         if(improvesQua){
@@ -2340,9 +2340,9 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 }
 
 template int increase_cavity_quality(Mesh<MetricFieldAnalytical> &msh,
-                                      MshCavity &cav, int tdim, int ngrow, int ithread);
+                                      MshCavity &cav, int tdim, int ngrow, BadEntHandler& handler, int ithread);
 template int increase_cavity_quality(Mesh<MetricFieldFE        > &msh,
-                                      MshCavity &cav, int tdim, int ngrow, int ithread);
+                                      MshCavity &cav, int tdim, int ngrow, BadEntHandler& handler, int ithread);
 
 
 void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread){
