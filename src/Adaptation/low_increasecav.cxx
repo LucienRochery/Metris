@@ -2241,9 +2241,18 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
         else
           for (const int iele : entInCurrentConfig) quaOfEach.stack(metqua<MFT,3,3,QuaFun::SizeShape>(msh,asdmsh,asdmet,iele,1.));
 
+        #if 0
         // set quality of the current configuration as maximum among the elements in the configuration
         // (recall here quality is actually distortion, so max is the worst case)
         for (const double qual : quaOfEach) if (qual > quaCurrentConfig) quaCurrentConfig = qual;
+        #else
+        // set quality of the current configuration as the sum of qualities
+        // quality here is more like quality error
+        quaCurrentConfig = 0.;
+        for (const double qual : quaOfEach) quaCurrentConfig += qual;
+        #endif
+
+
 
         // now we need to obtain the quality of the "would-be" elements if we add ienei to the cavity
         // for this, we create a new local cavity with all the elements in the current configuration
@@ -2290,6 +2299,8 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
         CavOprInfo info_loc;
         CavWrkArrs work_loc;
 
+        const int nentt0 = msh.nentt(tdim);
+
         int ierr = 0;
         CT_FOR0_INC(1, METRIS_MAX_DEG, ideg){ if (msh.curdeg == ideg) {
           ierr = cavity_operator<MFT, ideg>(msh, cav_loc, opts_loc, work_loc, info_loc, ithread);
@@ -2300,9 +2311,27 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
           continue;
         }
 
-        double quanew = info_loc.qmax_end;
+        double quaNew;
 
-        bool improvesQua = handler.checkSuccess(quanew,quaCurrentConfig);
+        #if 0
+        quanew = info_loc.qmax_end;
+        #else
+        quaNew = 0;
+        const int nentt1 = msh.nentt(tdim);
+        for (int ient2 = nentt0; ient2 < nentt1; ient2++){
+
+          double quael;
+          if (tdim == 2){
+            quael = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::Pk,AsDeg::Pk,ient2,1.);
+          }
+          else {
+            quael = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::Pk,AsDeg::Pk,ient2,1.);
+          }
+          quaNew += quael;
+        }
+        #endif
+
+        bool improvesQua = handler.checkSuccess(quaNew,quaCurrentConfig);
 
         // add ienei to cavity if that improves quality
         if(improvesQua){

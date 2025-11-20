@@ -322,7 +322,7 @@ public:
   // set for K
   std::set<EntQual, CmpWorstFirst> K;                       // top X% worst entities, all fresh and alive (no lazy insertions)
   using SetIt = std::set<EntQual, CmpWorstFirst>::iterator; // to keep track of position of entities in K
-  std::unordered_map<int, SetIt> inK;                       // iterator in K to keep track of "where" the entities are in K
+  std::unordered_map<int, SetIt> inK;                       // map entt ID to iterator in K to keep track of "where" the entities are in K
 
 private:
 

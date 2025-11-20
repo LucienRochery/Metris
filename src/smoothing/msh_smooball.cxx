@@ -571,6 +571,7 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
       // we now have the ball for ipoin, get initial qualities
 
       double qmin = 1.0e30,qmax = -1.0e30, qnrm = 0.0;
+      double qsum = 0.;
       int imax = -1;
       int navg = 0;
       for(auto ient2 : lball){
@@ -589,6 +590,7 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
         }
       }
 
+      qsum = qnrm;
       qnrm /= navg;
       double t0 = get_cpu_time();
       CPRINTF1(" - smoo iter {:3}, ipoin {} (ientt {}, point {}), ball init {:10.6e} < q < {:10.6e} (at {}), avg = {:10.6e} "
@@ -610,9 +612,18 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
           ierro = smooballdiff_luksan<MFT,idim,ideg>(msh,ipoin,lball,
                                      &qnrm0,&qmax0,&qnrm1,&qmax1,work,iquaf);
         }
-        if(!handler.checkSuccess(qmax1,qmax)){
-          CPRINTF1(" - reject move, worst above last worst {:15.7e} > {:15.7e}\n",
-                   qmax1, qmax);
+        double qsumNew = 0.;
+        for(auto ient2 : lball){
+
+          if(isdeadent(ient2,ent2poi)) continue;
+
+          double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ient2,difto);
+          qsumNew += quael;
+
+        }
+        if(!handler.checkSuccess(qsumNew,qsum)){
+          CPRINTF1(" - reject move, quality error increased: {:15.7e} > {:15.7e}\n",
+                   qsumNew, qsum);
           for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
           for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
           ierro = 1;
