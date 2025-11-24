@@ -26,7 +26,10 @@ endif()
 
 # Version >= 3.30 Boost related
 if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.30.0)
-  cmake_policy(SET CMP0167 NEW)
+  # Consumers may use older CMake/Boost setups that expect the
+  # legacy FindBoost/module behavior. Preserve legacy behavior to
+  # remain compatible with outdated consumer configs.
+  cmake_policy(SET CMP0167 OLD)
 endif()
 
 if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
@@ -114,12 +117,20 @@ else()
   add_compile_definitions(NO_BOOST_EXCEPT)
 endif()
 
-set(CMAKE_MACOSX_RPATH 1)
-set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+# Include CMake utilities for RPATH, version checking, etc.
+include(${PROJECT_SOURCE_DIR}/cmake/MetrisCMakeUtils.cmake)
 
+# Set up RPATH configuration
+metris_setup_rpath()
+
+# Initialize dependency export list (cached) so helper functions can append to it
+if(NOT DEFINED METRIS_CONFIG_DEPENDENCIES)
+  set(METRIS_CONFIG_DEPENDENCIES "" CACHE INTERNAL "Metris dependencies list (internal)")
+endif()
 include(${PROJECT_SOURCE_DIR}/cmake/Dependencies.cmake)
 
+# Get Boost libraries after dependencies are loaded (prefers modern targets)
+metris_get_boost_libraries(BOOST_LIBS)
 
 get_filename_component(SHORT_COMPILER_NAME ${CMAKE_C_COMPILER} NAME_WE)
 
@@ -155,31 +166,25 @@ add_subdirectory(src)
 add_executable(metris "progs/main.cxx")
 add_executable(egads2lite EXCLUDE_FROM_ALL "progs/EGADS2lite.cxx")
 
-set_target_properties(metris PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+# Set up RPATH for metris executable
+metris_setup_target_rpath(metris)
 
-
-target_link_libraries(metris PUBLIC libMetris 
-                                    Boost::headers # yes this is weird
-                                    ${Boost_LIBRARIES}
-                                    )
+target_link_libraries(metris PUBLIC libMetris ${BOOST_LIBS})
 
 #if(METRIS_USE_PETSC STREQUAL "True")
 #  target_link_libraries(metris PUBLIC PkgConfig::PETSC ${MPI_C_LIBRARIES})
 #  #target_link_libraries(metris PUBLIC PETSc)
 #endif()
 
-target_link_libraries(egads2lite PUBLIC libMetris 
-                                        Boost::headers # yes this is weird
-                                        ${Boost_LIBRARIES}
-                                        )
+# Set up RPATH for egads2lite
+metris_setup_target_rpath(egads2lite)
+
+target_link_libraries(egads2lite PUBLIC libMetris ${BOOST_LIBS})
 
 #For some reason, not specifying the full path does not work for EXISTS
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/scatter_rh.cxx)
   add_executable(scatter_rh EXCLUDE_FROM_ALL "progs/scatter_rh.cxx")
-  target_link_libraries(scatter_rh PUBLIC libMetris 
-                                          Boost::headers # yes this is weird
-                                          ${Boost_LIBRARIES}
-                                          )
+  target_link_libraries(scatter_rh PUBLIC libMetris ${BOOST_LIBS})
   target_include_directories(scatter_rh PRIVATE  "."
                              ${ESP_ROOT}/include)
   setMetrisCXXFlags(scatter_rh PUBLIC)
@@ -187,10 +192,7 @@ endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/extract_surf.cxx)
   add_executable(extract_surf EXCLUDE_FROM_ALL "progs/extract_surf.cxx")
-  target_link_libraries(extract_surf PUBLIC libMetris 
-                                            Boost::headers # yes this is weird
-                                            ${Boost_LIBRARIES}
-                                            )
+  target_link_libraries(extract_surf PUBLIC libMetris ${BOOST_LIBS})
   target_include_directories(extract_surf PRIVATE  "."
                              ${ESP_ROOT}/include)
   setMetrisCXXFlags(extract_surf PUBLIC)
@@ -198,10 +200,7 @@ endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/offset_coord.cxx)
   add_executable(offset_coord EXCLUDE_FROM_ALL "progs/offset_coord.cxx")
-  target_link_libraries(offset_coord PUBLIC libMetris 
-                                            Boost::headers # yes this is weird
-                                            ${Boost_LIBRARIES}
-                                            )
+  target_link_libraries(offset_coord PUBLIC libMetris ${BOOST_LIBS})
   target_include_directories(offset_coord PRIVATE  "."
                              ${ESP_ROOT}/include)
   setMetrisCXXFlags(offset_coord PUBLIC)
@@ -217,6 +216,12 @@ setMetrisCXXFlags(metris PUBLIC)
 target_include_directories(egads2lite PRIVATE  "."
                            ${ESP_ROOT}/include)
 setMetrisCXXFlags(egads2lite PUBLIC)
+
+# Optionally add consumer tests that exercise find_package(Metris)
+option(METRIS_ENABLE_CONSUMER_TESTS "Enable consumer CMake tests under cmake/tests" ON)
+if(METRIS_ENABLE_CONSUMER_TESTS)
+  add_subdirectory(${PROJECT_SOURCE_DIR}/cmake/tests)
+endif()
 
 
 
@@ -317,8 +322,7 @@ foreach(test_file ${TEST_SOURCES})
   target_link_libraries(${test_target_build} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
   target_link_libraries(${test_target_build} PUBLIC libMetris 
                                                     metris_deps
-                                                    Boost::headers # yes this is weird
-                                                    ${Boost_LIBRARIES}
+                                                    ${BOOST_LIBS}
                                                     )
   #target_include_directories(${test_target} PUBLIC "."  ${PETSC_INCLUDE}  ${ABSL_INCLUDE_DIRS})
 
@@ -419,6 +423,13 @@ if(METRIS_INSTALL)
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Metris
   )
 
+  # Also export the targets to a file in the build tree so consumers can
+  # use the build tree (via METRIS_DIR) without requiring an install step.
+  # This creates `${CMAKE_CURRENT_BINARY_DIR}/libMetrisTargets.cmake`.
+  export(EXPORT libMetrisTargets
+         FILE "${CMAKE_CURRENT_BINARY_DIR}/libMetrisTargets.cmake"
+         NAMESPACE Metris::)
+
   include(CMakePackageConfigHelpers)
   write_basic_package_version_file(
       "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfigVersion.cmake"
@@ -431,10 +442,26 @@ if(METRIS_INSTALL)
   set(METRIS_DEPS_EXPORT_CODE "")
   foreach(dep_entry ${METRIS_CONFIG_DEPENDENCIES})
     message( "dep_entry = ${dep_entry}")
-    string(REPLACE "|" ";" dep_parts "${dep_entry}")
-    list(GET dep_parts 0 dep_type)
-    list(GET dep_parts 1 dep_name)
-    list(GET dep_parts 2 dep_components)
+    # Support both old pipe-separated format and new semicolon-separated format
+    if(dep_entry MATCHES "\\|")
+      # Old format: "TYPE|NAME|COMPONENTS"
+      string(REPLACE "|" ";" dep_parts "${dep_entry}")
+    else()
+      # New format: already a list with semicolons
+      set(dep_parts "${dep_entry}")
+    endif()
+    list(LENGTH dep_parts dep_parts_len)
+    if(dep_parts_len GREATER_EQUAL 1)
+      list(GET dep_parts 0 dep_type)
+    endif()
+    if(dep_parts_len GREATER_EQUAL 2)
+      list(GET dep_parts 1 dep_name)
+    endif()
+    if(dep_parts_len GREATER_EQUAL 3)
+      list(GET dep_parts 2 dep_components)
+    else()
+      set(dep_components "")
+    endif()
     message( "dep_type = ${dep_type}, dep_name = ${dep_name}, dep_components = ${dep_components}")
     
     if(dep_type STREQUAL "find_package")
@@ -449,12 +476,27 @@ if(METRIS_INSTALL)
     elseif(dep_type STREQUAL "provided")
       # Parse the space separated components into two items:
       string(REPLACE " " ";" dep_components "${dep_components}")
-      list(GET dep_components 0 DEP_LIBRARIES)
-      list(GET dep_components 1 DEP_INCLUDE_DIRS)
+      list(LENGTH dep_components comp_len)
+      if(comp_len GREATER_EQUAL 1)
+        list(GET dep_components 0 DEP_LIBRARIES)
+      endif()
+      if(comp_len GREATER_EQUAL 2)
+        list(GET dep_components 1 DEP_INCLUDE_DIRS)
+      endif()
 
-      # For provided dependencies, we can just export the variables
-      string(APPEND METRIS_DEPS_EXPORT_CODE "list(APPEND METRIS_LIBRARIES ${DEP_LIBRARIES})\n")
-      string(APPEND METRIS_DEPS_EXPORT_CODE "list(APPEND METRIS_INCLUDE_DIRS ${DEP_INCLUDE_DIRS})\n")
+      # For provided dependencies, normally we export variables listing libraries and include dirs.
+      # However some header-only or target-based provided deps (notably Eigen) are referenced by
+      # the exported targets as imported targets (e.g. Eigen3::Eigen). In that case consumers
+      # need a corresponding find_dependency() call in the generated config so CMake defines
+      # the imported target when the package is consumed.
+      if(dep_name STREQUAL "Eigen3")
+        # Ensure consumers will find Eigen and get Eigen3::Eigen target available
+        string(APPEND METRIS_DEPS_EXPORT_CODE "find_dependency(Eigen3 REQUIRED)\\n")
+      endif()
+
+      # Still export the raw lists for compatibility with older consumers that use variables
+      string(APPEND METRIS_DEPS_EXPORT_CODE "list(APPEND METRIS_LIBRARIES ${DEP_LIBRARIES})\\n")
+      string(APPEND METRIS_DEPS_EXPORT_CODE "list(APPEND METRIS_INCLUDE_DIRS ${DEP_INCLUDE_DIRS})\\n")
     else()
       message(FATAL_ERROR "Unknown dependency type: ${dep_type} for ${dep_name}")
     endif()
@@ -462,11 +504,63 @@ if(METRIS_INSTALL)
 
   #message(FATAL_ERROR "METRIS_DEPS_EXPORT_CODE = ${METRIS_DEPS_EXPORT_CODE}")
 
-  configure_package_config_file(
+  # Robustness: if the generated targets file references an imported target
+  # like Eigen3::Eigen but the dependency list did not record a find_package
+  # entry (e.g. due to 'provided' handling or formatting), ensure we still
+  # emit a find_dependency for Eigen so consumers of the installed package
+  # won't fail trying to resolve the imported target.
+  set(_targets_file "${CMAKE_CURRENT_BINARY_DIR}/libMetrisTargets.cmake")
+  if(EXISTS "${_targets_file}")
+    file(READ "${_targets_file}" _targets_contents)
+    string(FIND "${_targets_contents}" "Eigen3::Eigen" _found_eigen)
+    if(NOT _found_eigen EQUAL -1)
+      string(FIND "${METRIS_DEPS_EXPORT_CODE}" "find_dependency(Eigen3" _has_eigen_find)
+      if(_has_eigen_find EQUAL -1)
+        message(STATUS "libMetrisTargets references Eigen3::Eigen but no find_dependency(Eigen3) was recorded; adding fallback find_dependency(Eigen3 REQUIRED) in package config.")
+        string(APPEND METRIS_DEPS_EXPORT_CODE "find_dependency(Eigen3 REQUIRED)\\n")
+      endif()
+    endif()
+    unset(_targets_contents)
+  endif()
+
+    # Deduplicate dependency lines while preserving order and removing empty lines
+    string(REPLACE "\n" ";" _deps_list_raw "${METRIS_DEPS_EXPORT_CODE}")
+    set(_deps_list_clean "")
+    foreach(_entry IN LISTS _deps_list_raw)
+      if(NOT _entry STREQUAL "")
+        list(APPEND _deps_list_clean "${_entry}")
+      endif()
+    endforeach()
+    list(REMOVE_DUPLICATES _deps_list_clean)
+    # Rebuild METRIS_DEPS_EXPORT_CODE from cleaned list
+    set(METRIS_DEPS_EXPORT_CODE "")
+    foreach(_entry IN LISTS _deps_list_clean)
+      string(APPEND METRIS_DEPS_EXPORT_CODE "${_entry}\n")
+    endforeach()
+
+    configure_package_config_file(
       "${PROJECT_SOURCE_DIR}/cmake/MetrisConfig.cmake.in"
       "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfig.cmake"
       INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/Metris
   )
+    # Post-process the generated package config produced by
+    # configure_package_config_file(). We intentionally avoid writing the
+    # template directly (which would leave @PACKAGE_INIT@ unexpanded).
+    # Instead, read the generated config and replace the @METRIS_DEPS_EXPORT_CODE@
+    # marker only if present.
+    set(_generated_cfg "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfig.cmake")
+    if(EXISTS "${_generated_cfg}")
+      file(READ "${_generated_cfg}" _cfg_contents)
+      string(FIND "${_cfg_contents}" "@METRIS_DEPS_EXPORT_CODE@" _has_token)
+      if(NOT _has_token EQUAL -1)
+        string(REPLACE "@METRIS_DEPS_EXPORT_CODE@" "${METRIS_DEPS_EXPORT_CODE}" _cfg_contents "${_cfg_contents}")
+        file(WRITE "${_generated_cfg}" "${_cfg_contents}")
+        message(STATUS "Injected METRIS_DEPS_EXPORT_CODE into ${_generated_cfg}")
+      endif()
+      unset(_cfg_contents)
+    else()
+      message(WARNING "Expected generated config ${_generated_cfg} not found; no post-processing done")
+    endif()
 
   install(FILES
       "${CMAKE_CURRENT_BINARY_DIR}/MetrisConfig.cmake"

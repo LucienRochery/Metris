@@ -4,13 +4,19 @@ include(CMakeFindDependencyMacro)
 
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
 
-# Boost's find_package overwrites everything instead of appending, so we have to do it manually.
-set(SAVE_BOOST_LIBRARIES ${Boost_LIBRARIES})
-set(SAVE_BOOST_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
 # Dependencies are registered in Dependencies.cmake depending on how they were obtained (FetchContent or find_package)
+# This will call find_dependency() for each dependency that was found via find_package
 @METRIS_DEPS_EXPORT_CODE@
-list(APPEND Boost_LIBRARIES ${SAVE_BOOST_LIBRARIES})
-list(APPEND Boost_INCLUDE_DIRS ${SAVE_BOOST_INCLUDE_DIRS})
+
+# Legacy compatibility: set Boost_LIBRARIES and Boost_INCLUDE_DIR if Boost::program_options target exists
+if(TARGET Boost::program_options)
+	get_target_property(_boost_inc Boost::program_options INTERFACE_INCLUDE_DIRECTORIES)
+	set(Boost_LIBRARIES Boost::program_options)
+	set(Boost_INCLUDE_DIR "${_boost_inc}")
+endif()
+
+# Note: Modern CMake prefers target-based dependencies (e.g., Boost::program_options)
+# over variables (Boost_LIBRARIES). The exported targets handle this automatically.
 
 include("${CMAKE_CURRENT_LIST_DIR}/libMetrisTargets.cmake")
 check_required_components(Metris)

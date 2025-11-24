@@ -1,17 +1,30 @@
 include(FetchContent)
 
 include(cmake/MetrisFlags.cmake)
+include(cmake/MetrisDependencyHelpers.cmake)
 
-# Since some dependencies can use either find_package or FetchContent, we're going to track how they were imported.
-# This is ultimately so we can export to the MetrisConfig.cmake file for find_package(Metris) to work correctly.
-set(METRIS_CONFIG_DEPENDENCIES "")
-# Note: do not provide DEP_COMPONENTS as ;-separated list as this messes up iterating over METRIS_CONFIG_DEPENDENCIES.
-# Types can be "find_package", "FetchContent", or "provided".
-# If provided, add first the library, then the include dirs.
-function(metris_register_dependency IMPORT_TYPE DEP_NAME DEP_COMPONENTS)
-  list(APPEND METRIS_CONFIG_DEPENDENCIES "${IMPORT_TYPE}|${DEP_NAME}|${DEP_COMPONENTS}")
-  set(METRIS_CONFIG_DEPENDENCIES ${METRIS_CONFIG_DEPENDENCIES} PARENT_SCOPE)
-endfunction()
+
+# Unified dependency import pattern:
+# metris_find_or_fetch_dependency(NAME <name> [COMPONENTS ...] [GIT_REPOSITORY ...] [ENV_VAR ...] [REQUIRED])
+
+# GMP (env or find)
+if(USE_GMP)
+  metris_find_or_fetch_dependency(NAME GMP ENV_VAR GMP_DIR REQUIRED)
+endif()
+
+# Tracy (FetchContent)
+if(USE_TRACY)
+  metris_find_or_fetch_dependency(NAME Tracy GIT_REPOSITORY https://github.com/wolfpld/tracy.git GIT_TAG master REQUIRED)
+endif()
+
+# GINAC/CLN (env)
+if(REQ_CODEGEN)
+  metris_find_or_fetch_dependency(NAME GINAC ENV_VAR GINAC_DIR REQUIRED)
+  metris_find_or_fetch_dependency(NAME CLN ENV_VAR CLN_DIR REQUIRED)
+endif()
+
+# Eigen3
+
 
 if(USE_GMP)
   if(NOT DEFINED GMP_DIR)
@@ -56,27 +69,6 @@ if(USE_TRACY)
   add_compile_definitions(TRACY_ENABLE)
 endif()
 
-## Used for mlpack::BallTree
-#FetchContent_Declare(
-#  mlpack_fetch
-#  GIT_REPOSITORY https://github.com/mlpack/mlpack.git
-#  GIT_TAG master
-#  GIT_SHALLOW TRUE
-#  GIT_PROGRESS TRUE
-#)
-#set(BUILD_CLI_EXECUTABLES OFF CACHE BOOL "" FORCE)
-#set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
-#set(BUILD_PYTHON_BINDINGS OFF CACHE BOOL "" FORCE)
-#set(BUILD_JULIA_BINDINGS OFF CACHE BOOL "" FORCE)
-#set(BUILD_GO_BINDINGS OFF CACHE BOOL "" FORCE)
-#set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
-#set(BUILD_MARKDOWN_BINDINGS OFF CACHE BOOL "" FORCE)
-#set(ARMA_METRIS_USE_LAPACK OFF CACHE BOOL "" FORCE)
-#set(ARMA_USE_BLAS OFF CACHE BOOL "" FORCE)
-#FetchContent_MakeAvailable(mlpack_fetch)
-#set(MLPACK_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/mlpack_fetch-src/src/")
-#list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${MLPACK_INCLUDE_DIRS})
-#list(APPEND METRIS_DEPS_LIBRARIES Tracy::TracyClient)
 
 if(REQ_CODEGEN)
   if(NOT DEFINED ENV{GINAC_DIR} AND NOT (DEFINED GINAC_LIBRARIES AND DEFINED GINAC_INCLUDE_DIRS))
@@ -110,28 +102,24 @@ if(REQ_CODEGEN)
 endif()
 
 
-set(EIGEN3_INCLUDE_DIRS "$ENV{EIGEN_DIR}")
-if (NOT EIGEN3_INCLUDE_DIRS)
-  FetchContent_Declare(
-    Eigen3
-    GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-    GIT_TAG bcce88c99ed687b756b7a537554cb7c1780b816e
-    #GIT_TAG master
-    #FIND_PACKAGE_ARGS NAMES Eigen3
-    EXCLUDE_FROM_ALL
-  )
-  FetchContent_MakeAvailable(Eigen3)
-  set(EIGEN3_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/eigen3-src/")
-  if(METRIS_INSTALL)
-    install(DIRECTORY ${EIGEN3_INCLUDE_DIRS}/Eigen ${EIGEN3_INCLUDE_DIRS}/unsupported
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-  endif()
-  message("EIGEN3_INCLUDE_DIRS = ${EIGEN3_INCLUDE_DIRS}")
-  #list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIRS})
-  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIRS}>)
-  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
-  
+# --- Eigen3 Dependency ---
+# Improved handling: checks for target from parent project, then environment variable,
+# then find_package, then FetchContent
+metris_find_eigen3()
+# --- fmt Dependency ---
+# Ensure fmt is available (find or fetch)
+metris_find_fmt()
+# --- nlohmann/json Dependency ---
+# Ensure nlohmann/json is available (find or fetch)
+metris_find_json()
+# Find Boost program_options so Boost::program_options target exists
+find_package(Boost COMPONENTS program_options QUIET)
+if(Boost_FOUND)
+  message(STATUS "Found Boost program_options")
+  target_link_libraries(metris_deps INTERFACE Boost::program_options)
+  metris_register_dependency("find_package" "Boost REQUIRED" "program_options")
 endif()
+# --- End Eigen3 Dependency ---
 
 
 if(METRIS_USE_LAPACK)
@@ -292,6 +280,13 @@ list(APPEND CMAKE_BUILD_RPATH   ${CAS_ROOT}/lib/)
 list(APPEND CMAKE_INSTALL_RPATH ${CAS_ROOT}/lib/)
 
 set(EGADS_INCLUDE_DIRS ${ESP_ROOT}/include)
+# Robustly check for EGADS header
+if(NOT EXISTS "${ESP_ROOT}/include/egads.h")
+  message(FATAL_ERROR "EGADS header not found: ${ESP_ROOT}/include/egads.h. Set ESP_ROOT to the directory containing include/egads.h.")
+endif()
+
+# Propagate EGADS include path to metris_deps
+target_include_directories(metris_deps INTERFACE $<BUILD_INTERFACE:${ESP_ROOT}/include> $<INSTALL_INTERFACE:include/egads>)
 
 #list(APPEND METRIS_DEPS_LIBRARIES    ${EGADS_LIBRARIES})
 #list(APPEND METRIS_DEPS_LIBRARIES    ${EGADSLITE_LIBRARIES})
@@ -332,78 +327,7 @@ if(USE_CLP)
   endif()
 endif()
 
-# External libraries to be fetched
-find_package(fmt QUIET)
-#message(WARNING "Disabled find fmt")
-if(fmt_FOUND)
-  message(STATUS "fmt lib found: ${fmt_VERSION}")
-  metris_register_dependency("find_package" "fmt REQUIRED" "")
-else()
-  message(STATUS "fmt lib not found, fetching")
-  # fmt library: std::format precursor with better performance
-  # and pre-C++20 support.
-  FetchContent_Declare(
-    fmt_fetch
-    GIT_REPOSITORY https://github.com/fmtlib/fmt
-    GIT_TAG        e69e5f977d458f2650bb346dadf2ad30c5320281
-    EXCLUDE_FROM_ALL) # 10.2.1
-  FetchContent_MakeAvailable(fmt_fetch)
 
-  FetchContent_GetProperties(fmt_fetch)
-  if(NOT fmt_fetch_POPULATED)
-    message(FATAL_ERROR "fmt was not fetched correctly.")
-  endif()
-
-  if(METRIS_INSTALL)
-    install(DIRECTORY ${fmt_fetch_SOURCE_DIR}/include/
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-            FILES_MATCHING PATTERN "*.h*")
-  endif()
-
-  # This is to suppress the warning that PUBLIC_HEADER exists but not
-  # being installed. For some reason, we can't get that to install 
-  # correctly, and are installing headers manually. 
-  set_target_properties(fmt PROPERTIES PUBLIC_HEADER "")
-
-  if(METRIS_INSTALL)
-    install(TARGETS fmt
-            EXPORT libMetrisTargets
-            LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
-            #PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-            )
-  endif()
-
-  if(NOT TARGET fmt::fmt)
-    add_library(fmt::fmt ALIAS fmt)
-  endif()
-
-  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${fmt_fetch_SOURCE_DIR}/include>)
-  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
-  metris_register_dependency("FetchContent" "fmt" "")
-endif()
-#list(APPEND METRIS_DEPS_LIBRARIES fmt::fmt)
-target_link_libraries(metris_deps INTERFACE fmt::fmt)
-
-include(FetchContent)
-
-# nlohmann json library
-FetchContent_Declare(json_fetch URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
-FetchContent_MakeAvailable(json_fetch)
-if(NOT TARGET nlohmann_json::nlohmann_json)
-  add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)
-endif()
-if(METRIS_INSTALL)
-  install(FILES ${json_fetch_SOURCE_DIR}/single_include/nlohmann/json.hpp
-                ${json_fetch_SOURCE_DIR}/single_include/nlohmann/json_fwd.hpp
-          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/nlohmann/
-          )
-endif()
-list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${json_fetch_SOURCE_DIR}/single_include>)
-list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
-metris_register_dependency("FetchContent" "json" "")
-#target_link_libraries(foo PRIVATE nlohmann_json::nlohmann_json)
 
 if(USE_ABSL)
   message("Enabled absl")
@@ -433,113 +357,13 @@ endif()
 ##  endif()
 ##endif()
 
-#find_package(Boost COMPONENTS program_options)
-#if(NOT(Boost_program_options_FOUND))
-#  FetchContent_Declare(
-#    fetch_program_options
-#    GIT_REPOSITORY https://github.com/boostorg/program_options.git
-#    GIT_TAG master
-#    #GIT_SHALLOW TRUE
-#    #FIND_PACKAGE_ARGS NAMES Boost COMPONENTS program_options REQUIRED
-#    EXCLUDE_FROM_ALL
-#  )
-#  FetchContent_MakeAvailable(fetch_program_options)
-#  list(APPEND METRIS_DEPS_LIBRARIES ${Boost_PROGRAM_OPTIONS_LIBRARY})
-#  metris_register_dependency("FetchContent" "Boost" "program_options")
-#else()
-#  list(APPEND METRIS_DEPS_LIBRARIES ${Boost_PROGRAM_OPTIONS_LIBRARY})
-#  metris_register_dependency("find_package" "Boost" "program_options")
-#endif()
-#set(METRIS_BOOST_COMPONENTS "${METRIS_BOOST_COMPONENTS}   program_options") #math # exception
-find_package(Boost REQUIRED COMPONENTS program_options) #math exception
-#list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
-#message("-- Boost_PROGRAM_OPTIONS_LIBRARY = ${Boost_PROGRAM_OPTIONS_LIBRARY}")
-#message("-- Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}")
-metris_register_dependency("find_package" "Boost REQUIRED" "program_options") #math exception
-#list(APPEND METRIS_DEPS_LIBRARIES Boost::program_options)
-target_link_libraries(metris_deps INTERFACE Boost::program_options)
+
 
 
 # --- NLopt Dependency ---
-
-# A CMake project including Metris should prefer to find its own NLopt installation and provide
-# NLOPT_LIBRARIES and NLOPT_INCLUDE_DIRS.
-if(DEFINED NLOPT_LIBRARIES AND DEFINED NLOPT_INCLUDE_DIRS)
-  message(STATUS "Using provided NLOPT_LIBRARIES and NLOPT_INCLUDE_DIRS.")
-  message(STATUS "NLOPT_LIBRARIES = ${NLOPT_LIBRARIES}")
-  message(STATUS "NLOPT_INCLUDE_DIRS = ${NLOPT_INCLUDE_DIRS}")
-  #list(APPEND METRIS_DEPS_LIBRARIES ${NLOPT_LIBRARIES})
-  target_link_libraries(metris_deps INTERFACE ${NLOPT_LIBRARIES})
-  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${NLOPT_INCLUDE_DIRS})
-  metris_register_dependency("provided" "NLopt" "${NLOPT_LIBRARIES} ${NLOPT_INCLUDE_DIRS}")
-elseif(DEFINED NLOPT_DIR OR DEFINED ENV{NLOPT_DIR})
-  # Otherwise, an NLOPT_DIR can be passed in which should include the relevant CMake configuration
-  # files (nloptConfig.cmake or nlopt-config.cmake).
-  if(NOT DEFINED NLOPT_DIR)
-    set(NLOPT_DIR $ENV{NLOPT_DIR})
-    message(STATUS "Using NLOPT_DIR from environment: ${NLOPT_DIR}")
-  endif()
-  message(STATUS "Attempting to find external NLopt using hint NLOPT_DIR=${NLOPT_DIR}...")
-  # find_package is the most robust way to do this. It will use NLOPT_DIR as a hint.
-  find_package(NLopt REQUIRED HINTS "${NLOPT_DIR}")
-  
-  message(STATUS "Found external NLopt: ${NLOPT_LIBRARIES}")
-  #list(APPEND METRIS_DEPS_LIBRARIES NLopt::nlopt)
-  target_link_libraries(metris_deps INTERFACE NLopt::nlopt)
-
-  metris_register_dependency("find_package" "NLopt REQUIRED HINTS ${NLOPT_DIR}" "")
-else()
-  # First try finding the package. If that fails, then clone and build.
-
-  find_package(NLopt)
-
-  if(NLopt_FOUND)
-    message(STATUS "Found NLopt libraries: ${NLOPT_LIBRARIES}")
-    message(STATUS "Found NLopt include directories: ${NLOPT_INCLUDE_DIRS}")
-    #list(APPEND METRIS_DEPS_LIBRARIES NLopt::nlopt)
-    target_link_libraries(metris_deps INTERFACE NLopt::nlopt)
-    metris_register_dependency("find_package" "NLopt REQUIRED" "")
-  else()
-    # Lastly, fetch and build our own for standalone builds.
-    message(STATUS "find_package(NLopt) failed, cloning NLopt.")
-    FetchContent_Declare(
-        nlopt_fetch
-        GIT_REPOSITORY https://github.com/stevengj/nlopt.git
-        GIT_TAG        019f61ac7253a537760d9cdd9febd927ec97320c
-    )
-    
-    set(NLOPT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-
-    FetchContent_MakeAvailable(nlopt_fetch)
-    
-    # After FetchContent, an 'nlopt' target is available.
-    # The generated config header (nlopt.h) is in the binary directory of the fetch.
-    FetchContent_GetProperties(nlopt_fetch)
-    if(NOT nlopt_fetch_POPULATED)
-      message(FATAL_ERROR "NLopt was not fetched correctly.")
-    endif()
-    # We do this because find_package() uses this naming.
-    if(NOT TARGET NLopt::nlopt)
-      add_library(NLopt::nlopt ALIAS nlopt)
-    endif()
-    if(METRIS_INSTALL)
-      install(DIRECTORY ${nlopt_fetch_BINARY_DIR}
-              DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-              FILES_MATCHING PATTERN "*.h*")
-      install(TARGETS nlopt
-              EXPORT libMetrisTargets
-              LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-              ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-              RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-    endif()
-            # Install NLopt headers if using FetchContent
-    list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${nlopt_fetch_BINARY_DIR}>)
-    list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
-    #list(APPEND METRIS_DEPS_LIBRARIES NLopt::nlopt)
-    target_link_libraries(metris_deps INTERFACE NLopt::nlopt)
-    metris_register_dependency("FetchContent" "NLopt" "")
-  endif()
-endif()
+# Improved handling for shared dependencies: checks if NLopt::nlopt target already exists
+# from parent project, then tries various methods to find or fetch NLopt.
+metris_find_nlopt()
 # --- End NLopt Dependency ---
 
 
