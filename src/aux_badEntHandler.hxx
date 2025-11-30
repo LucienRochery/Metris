@@ -165,17 +165,17 @@ public:
   // to update K after a successful operation
   void updateK(const int nenttNew){
 
-    std::cout << "Base number of alive entities = " << nentt << std::endl;
+    // std::cout << "Base number of alive entities = " << nentt << std::endl;
     currentGen++;
 
     if (!deadEntts.empty()) nentt += affectedEnttsAlive.size() - deadEntts.size();
     sizeK = std::max(1, (int)std::round(nentt * topX/100.));
 
-    std::cout << "Modyfing/Inserting " << affectedEnttsAlive.size() << " entities" << std::endl;
+    // std::cout << "Modyfing/Inserting " << affectedEnttsAlive.size() << " entities" << std::endl;
     for (const auto& entt : affectedEnttsAlive) insertEntt(entt.first, entt.second);
     affectedEnttsAlive.clear();
 
-    std::cout << "Killing " << deadEntts.size() << " entities" << std::endl;
+    // std::cout << "Killing " << deadEntts.size() << " entities" << std::endl;
     for (const auto entt : deadEntts) killEnttK(entt);
     deadEntts.clear();
 
@@ -262,9 +262,9 @@ private:
       insertInR(bestInK.ientt, bestInK.qentt);
     }
 
-    std::cout << "New number total alive nentt = " << nentt << std::endl;
-    std::cout << "Size of K = " << K.size() << ". (topX = " << topX  << ")" << std::endl;
-    std::cout << "Size of R = " << R.size() << std::endl;
+    // std::cout << "New number total alive nentt = " << nentt << std::endl;
+    // std::cout << "Size of K = " << K.size() << ". (topX = " << topX  << ")" << std::endl;
+    // std::cout << "Size of R = " << R.size() << std::endl;
   }
 
   // to fetch (and pop) the front of R and re-heapify it
@@ -307,6 +307,8 @@ public:
 
   bool checkSuccess(const double quaNew, const double quaOld) const {
 
+    std::cout << "quaNew = " << quaNew << std::endl;
+    std::cout << "quaOld = " << quaOld << std::endl;
     return quaNew <= ((1. - alpha/100.) * quaOld );
   }
 

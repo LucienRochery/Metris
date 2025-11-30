@@ -81,13 +81,10 @@ int insertEdge(Mesh<MFT>& msh,
   int ncfa0 = cav.lcfac.get_n();
   int ncte0 = cav.lctet.get_n();
 
-  double algnd[3];
-
-  #ifdef TESTQUALITYALGO
-  // snapshot of original number of entities in the mesh
-  // before calling cavity operator
+  // save number of elements in mesh originally, before cavity operator modifies it
   const int nentt0 = msh.nentt(insertionSeed.tdim_adp);
-  #endif
+
+  double algnd[3];
 
   // Create the point, set info for localization
   //cav.ipins = msh.newpoitopo(insertionSeed.tdimp, insertionSeed.iseed);
@@ -129,12 +126,6 @@ int insertEdge(Mesh<MFT>& msh,
     goto cleanup;
   }
 
-  // TODO
-  /* TODO: Here we inserted the point.
-           First thing would be to check if the new configuration
-           has better quality than the original, before inserting the point
-  */
-
   // Seed the cavity properly
   #ifndef NDEBUG
   try{
@@ -153,7 +144,8 @@ int insertEdge(Mesh<MFT>& msh,
     #ifdef TESTQUAFSIZESHAPE
     ierro = increase_cavity_quality(msh,cav,insertionSeed.tdim_adp,5,handler,ithrd1);
     if(ierro != 0){
-      CPRINTF1(" # increase_cavity_quality failed\n");
+      CPRINTF1(" # increase_cavity_quality could not improve patch\n");
+      ierro = INS2D_ERR_NOQUALIMPROV;
       goto cleanup;
     }
     #else
@@ -191,8 +183,6 @@ int insertEdge(Mesh<MFT>& msh,
   #else
   ierro = setCavityInsertion3(msh,cav,opts,insertionSeed,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);
   #endif
-
-
 
   if(ierro != 0) goto cleanup;
 
@@ -262,7 +252,14 @@ restart_cavity:
       ierro = INS2D_ERR_MOVEPT;
       goto cleanup;
     }
-    // TODO: Look at this carefully in the new quality based approach
+    #ifdef TESTQUALITYALGO
+    ierro = increase_cavity_quality(msh,cav,insertionSeed.tdim_adp,5,handler,ithrd1);
+    if(ierro != 0){
+      CPRINTF1(" - +cav error {}\n",ierro);
+      ierro = INS2D_ERR_NOQUALIMPROV;
+      goto cleanup;
+    }
+    #else
     ierro = increase_cavity_Delaunay(msh, cav, insertionSeed.tdim_adp, -1, ithrd1);
     if(ierro != 0){
       CPRINTF1(" - +cav error {}\n",ierro);
@@ -275,6 +272,7 @@ restart_cavity:
       ierro = INS2D_ERR_INCCAVVAL3;
       goto cleanup;
     }
+    #endif
 
     goto restart_cavity;
   }

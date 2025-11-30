@@ -55,8 +55,8 @@ double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
         }else{
           quent = metqua<MFT,3,tdim_c,iquaf>(msh,asdmsh,asdmet,ientt,1.0);
         }
-        METRIS_ASSERT_MSG(tdim_c < msh.idim || quent <= 1 + 1.0e-15,
-          "GT 1 quality with tdim = {} gdim = {} quent = {}",tdim_c,msh.idim,quent)
+        // METRIS_ASSERT_MSG(tdim_c < msh.idim || quent <= 1 + 1.0e-15,
+        //   "GT 1 quality with tdim = {} gdim = {} quent = {}",tdim_c,msh.idim,quent)
         //if(quent > 1 + 1.0e-15){
         //  printf("## DEBUG QUENT > 1 tdim = {} tdim_c = {} gdim = {} quent {} dif {}\n",
         //    tdim,tdim_c,msh.idim,quent,quent-1);

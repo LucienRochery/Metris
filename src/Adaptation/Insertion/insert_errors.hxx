@@ -7,7 +7,7 @@
 #define __METRIS_INSERT_ERRORS__
 
 namespace Metris{
-enum insedgesuf_Errors {INS2D_NOERR = 0, 
+enum insedgesuf_Errors {INS2D_NOERR = 0,
                         INS2D_ERR_INTERPMETBACK1 = 1,
                         INS2D_ERR_INTERPMETBACK2 = 2,
                         INS2D_ERR_EGEVALUATE = 3,
@@ -42,7 +42,8 @@ enum insedgesuf_Errors {INS2D_NOERR = 0,
                         INS2D_ERR_SHORTEDG6 = 32,
                         INS2D_ERR_INCCAVLEN = 33,
                         INS2D_ERR_COLREF = 34,
-                        INS2D_ERR_NERROR = 35
+                        INS2D_ERR_NERROR = 35,
+                        INS2D_ERR_NOQUALIMPROV = 36,
                         };
 
 } // end namespace Metris

@@ -10,6 +10,7 @@
 #include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
 #include "../aux_topo.hxx"
 #include "../low_geo/misc.hxx"
+#include "../low_geo/measure.hxx"
 #include "../low_geo/normal.hxx"
 #include "../io_libmeshb.hxx"
 #include "../Mesh/Mesh.hxx"
@@ -188,6 +189,11 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       // You'd think this wouldn't be a bottleneck but it eats up 20% of optimization
       // time to run pow() here even if pnorm = 2 or 1.
       qutet = abs(qutet - difto);
+      #ifdef TESTQUALITYALGO
+      double meas;
+      isvalideltP1<2,2>(msh, ientt, NULL, &meas);
+      qutet *= meas;
+      #endif
       if(pnorm == 2){
         qutet *= qutet;
       }else if(pnorm > 2){

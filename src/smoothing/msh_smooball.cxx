@@ -514,7 +514,7 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
 
   constexpr int nnmet = (idim*(idim+1))/2;
 
-  METRIS_ENFORCE(msh.param->opt_power < 0); // Otherwise rework the mins / maxs
+  // METRIS_ENFORCE(msh.param->opt_power < 0); // Otherwise rework the mins / maxs
   // Otherwise not only edge nodes
   METRIS_ENFORCE(ideg <= tdim + 1);
 

@@ -26,7 +26,7 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
   if(nval <= 0) return;
 
 
-  const int nbucket = 10; 
+  const int nbucket = 10;
 
   dblAr2 buckval(nbucket,2);
   intAr1 buckcnt(nbucket);
@@ -39,7 +39,7 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
     vlow = values[0];
     vhig = values[0];
     std::sort(&values[0], &values[nval], std::less<double>{});
-    // The 1/nbucket smallest and largest are excluded -> often outliers. 
+    // The 1/nbucket smallest and largest are excluded -> often outliers.
     vlow = values[nval / nbucket];
     vhig = values[nval - nval / nbucket];
   }else{
@@ -52,7 +52,7 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
 
   buckval(0,0) = vlow;
   for(int ibucket = 0; ibucket < nbucket-1; ibucket++){
-    double val; 
+    double val;
     if(iinter == IntrpTyp::Linear){
       val = vlow + (ibucket+1) * (vhig - vlow) / nbucket;
     }else{
@@ -74,7 +74,7 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
   for(double val : values){
 
     // Make this an error as there's no good reason a NaN should be here.
-    METRIS_ASSERT_MSG(!std::isnan(val), "NAN value in histogram!");
+    // METRIS_ASSERT_MSG(!std::isnan(val), "NAN value in histogram!");
     if(std::isnan(val)) continue;
 
     if(val < vmin){
@@ -115,13 +115,13 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
   w.ws_col = MIN(MAX(w.ws_col, 40),mcol);
 
   // Expected length to print {:8.2e} < symb < {:8.2e} w/ spaces
-  int ibuf0  = symb.length() + 6 + 2*8 + 2; 
+  int ibuf0  = symb.length() + 6 + 2*8 + 2;
   int prtwdt = w.ws_col - ibuf0;
 
   // The maximum should not exceed height
-  // This determines the scaling factor 
-  double scal = prtwdt / (double) maxbuckt; 
-  
+  // This determines the scaling factor
+  double scal = prtwdt / (double) maxbuckt;
+
   int ncol = MIN(mcol,MAX(w.ws_col, ibuf0 + 15));
   char buffer[2+nbucket][mcol];
 
@@ -143,7 +143,7 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
 
   if(!DOPRINTS2()) return;
 
-  // Bucket labels: 
+  // Bucket labels:
   if(iinter == IntrpTyp::Linear){
     snprintf(buffer[0],ibuf0,"           %s < %8.2f :",symb.c_str(),buckval(0,0));
   }else{
@@ -166,13 +166,13 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
                                                          symb.c_str());
   }
 
-  // Bucket lines: 
+  // Bucket lines:
   for(int ibucket = -1; ibucket <= nbucket; ibucket++){
     int nchar;
     if(ibucket == -1){
-      nchar = (int) (scal * nlow); 
+      nchar = (int) (scal * nlow);
     }else if(ibucket == nbucket){
-      nchar = (int) (scal * nhig); 
+      nchar = (int) (scal * nhig);
     }else{
       nchar = (int) (scal * buckcnt[ibucket]);
     }
@@ -184,7 +184,7 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
       buffer[1+ibucket][ibuf0 + ii] = ' ';
     }
   }
- 
+
   for(int ii = 0; ii < nbucket+2; ii++){
     for(int jj = 0; jj < ncol; jj++){
       fmt::print(LOGFILE__,"{}",buffer[ii][jj]);

@@ -517,6 +517,7 @@ template void MetrisRunner::adaptMesh0<MetricFieldAnalytical,3,n>(int tdim);
 
 template<class MFT,int gdim,int ideg>
 void MetrisRunner::adaptMeshQuality0(int tdim){
+  #ifdef TESTQUALITYALGO
   if(tdim > gdim) return;
 
   GETVDEPTH(this->param);
@@ -596,6 +597,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   int ntryCollapse = 0; int nSuccessCollapse = 0;
 
   int iter = 0;
+  int smooStreak = 0;
   while (true){
 
     bool didOperation = false;
@@ -619,6 +621,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       double statSmoothing = smoothElement_Ball<MFT>(msh,ientt,handlerTopX,QuaFun::SizeShape,ithrd1,ithrd2);
 
       if (statSmoothing > 0){
+        smooStreak++;
         nSuccessSmoothing++;
         didOperation = true;
         std::cout << "Successful smoothing in ientt = " << ientt << std::endl;
@@ -682,6 +685,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
         if (ierro <= 0){
           // success
+          smooStreak = 0;
           nSuccessInsert++;
           didOperation = true;
           msh.poicstr[cav.ipins] = false;
@@ -690,7 +694,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           break;
         }
         else {
-          CPRINTF2(" # longest-edge insertion failed ierro = %d\n", ierro);
+          CPRINTF2(" # longest-edge insertion failed ierro = {}\n", ierro);
 
           // steiner fallback
           // TODO: for now don't do this.
@@ -759,6 +763,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         int ierro = collapseEdge<MFT>(msh,tdim,ientt,iedMin,0,cav,work,lcaverr,handlerTopX,ithrd1,ithrd2,ithrd3);
 
         if (ierro == 0){
+          smooStreak = 0;
           nSuccessCollapse++;
           didOperation = true;
           std::cout << "Successful collapse in ientt = " << ientt << ", ied = " << iedMin << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
@@ -766,7 +771,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           break;
         }
         else{
-          CPRINTF2(" # shortest-edge collapse failed ierro = %d\n", ierro);
+          CPRINTF2(" # shortest-edge collapse failed ierro = {}\n", ierro);
         }
 
         // ----------------------------- //
@@ -797,6 +802,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
         if (ierro <= 0){
           // success
+          smooStreak = 0;
           nSuccessInsert++;
           didOperation = true;
           msh.poicstr[cav.ipins] = false;
@@ -805,7 +811,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           break;
         }
         else {
-          CPRINTF2(" # longest-edge insertion failed ierro = %d\n", ierro);
+          CPRINTF2(" # longest-edge insertion failed ierro = {}\n", ierro);
 
           // steiner fallback
           // TODO: for now don't do this.
@@ -873,6 +879,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         int ierro = collapseEdge<MFT>(msh,tdim,ientt,iedMin,0,cav,work,lcaverr,handlerTopX,ithrd1,ithrd2,ithrd3);
 
         if (ierro == 0){
+          smooStreak = 0;
           nSuccessCollapse++;
           didOperation = true;
           std::cout << "Successful collapse in ientt = " << ientt << ", ied = " << iedMin << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
@@ -880,7 +887,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           break;
         }
         else{
-          CPRINTF2(" # shortest-edge collapse failed ierro = %d\n", ierro);
+          CPRINTF2(" # shortest-edge collapse failed ierro = {}\n", ierro);
         }
 
         // ----------------------------- //
@@ -889,13 +896,13 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       }
 
     }
-    if (!didOperation || iter >= 200000) break;
+    if (!didOperation || smooStreak >= 2500 || iter >= 25000) break;
   }
   std::cout << "-- END adaptMeshQuality tdim = " << tdim << std::endl;
   std::cout << "-- ntrySmoothing = " << ntrySmoothing << ",  nSuccessSmoothing = " << nSuccessSmoothing << std::endl;
   std::cout << "-- ntryInsert = " << ntryInsert << ",  nSuccessInsert = " << nSuccessInsert << std::endl;
   std::cout << "-- ntryCollapse = " << ntryCollapse << ",  nSuccessCollapse = " << nSuccessCollapse << std::endl;
-
+#endif
 }
 
 #define BOOST_PP_LOCAL_MACRO(n)\

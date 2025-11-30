@@ -40,15 +40,15 @@ ftype quafun_sizeshape(Mesh<MFT> &msh,
   ftype quent;
   if constexpr (tdim == 2){
     if(power > 0){
-      quent = tra*tra*(1+1/(det*det))/8;
+      quent = tra*tra*(1.+1./(det*det))/8.;
     }else{
-      quent = 8/(tra*tra*(1+1/(det*det)));
+      quent = 8./(tra*tra*(1.+1./(det*det)));
     }
   }else{
     if(power > 0){
-      quent = tra*tra*tra*(1+1/(det*det))/54;
+      quent = tra*tra*tra*(1.+1./(det*det))/54.;
     }else{
-      quent = 54/(tra*tra*tra*(1+1/(det*det)));
+      quent = 54./(tra*tra*tra*(1.+1./(det*det)));
     }
   }
 
