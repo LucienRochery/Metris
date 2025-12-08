@@ -544,7 +544,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
   const double alpha = 0.1;
   const double badX = 100;
-  const double lengthThreshold = 1.;
+  const double lengthThreshold = sqrt(2);
 
   // initial number of elements
   const int nentt0 = msh.nentt(tdim);
@@ -896,12 +896,15 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       }
 
     }
-    if (!didOperation || smooStreak >= 2500 || iter >= 25000) break;
+    if (!didOperation || smooStreak >= 2500 || iter >= 100000 ) break;
   }
+
+  std::cout << "iter = " << iter << std::endl;
   std::cout << "-- END adaptMeshQuality tdim = " << tdim << std::endl;
   std::cout << "-- ntrySmoothing = " << ntrySmoothing << ",  nSuccessSmoothing = " << nSuccessSmoothing << std::endl;
   std::cout << "-- ntryInsert = " << ntryInsert << ",  nSuccessInsert = " << nSuccessInsert << std::endl;
   std::cout << "-- ntryCollapse = " << ntryCollapse << ",  nSuccessCollapse = " << nSuccessCollapse << std::endl;
+
 #endif
 }
 

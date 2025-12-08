@@ -8,10 +8,11 @@
 #ifndef __METRIS_CONSTANTS__
 #define __METRIS_CONSTANTS__
 
-// #define TESTQUALITYALGO
+#define TESTQUALITYALGO
 
 #ifdef TESTQUALITYALGO
 #define TESTQUAFSIZESHAPE
+#define INTQUALINRIEMSPACE
 #endif
 
 #include <array>

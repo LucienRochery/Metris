@@ -134,7 +134,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
 
   constexpr int nnmet = (idim*(idim+1))/2;
 
-  METRIS_ENFORCE(msh.param->opt_power < 0); // Otherwise rework the mins / maxs
+  METRIS_ASSERT(msh.param->opt_power == 1 || msh.param->opt_power == -1);
   // Otherwise not only edge nodes
   METRIS_ENFORCE(ideg <= tdim + 1);
 

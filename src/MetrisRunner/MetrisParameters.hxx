@@ -100,7 +100,7 @@ depending on whether they should be serialized.
     /* -- Smoothing */ \
     FIELD(int, opt_niter, 5) \
     FIELD(int, opt_pnorm, 1) \
-    FIELD(int, opt_power, -1) \
+    FIELD(int, opt_power, 1) \
     FIELD(int, opt_smoo_niter, 10) \
     FIELD(double, opt_smoo_tol, 0.005) \
     /* Surface qualities weight the main term by qua_surf_w_quality */ \
