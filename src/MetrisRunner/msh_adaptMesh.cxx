@@ -896,7 +896,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       }
 
     }
-    if (!didOperation || smooStreak >= 2500 || iter >= 100000 ) break;
+    if (!didOperation || smooStreak >= 2500 || iter >= 25000 ) break;
   }
 
   std::cout << "iter = " << iter << std::endl;

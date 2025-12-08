@@ -305,5 +305,47 @@ void anamet2D_7([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 }
 
+// optimal metric for boundary layer at x = 0
+
+// x: normal to BL
+// y: tangent to BL
+
+// function: u(x,y) = exp(-x/epsilon) + beta/(p+1)! * y^(p+1)
+
+// metric: diag(1/h1^2,1/h2^2)
+// h1 = exp(k1*x)
+// h2 = AR * h1
+void anamet2D_8([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+
+  const double epsilon = 0.1;
+  const double beta = 1.;
+  const int p = 1;
+
+  const double delta = epsilon * (p + 3./2.) * (1. - 1./(4.*p*p + 12.*p + 9.));
+  const double k1 = 1./delta;
+
+  const double kR = -1./(epsilon*(p+1.));
+  const double AR0 = 1./(pow(beta,1./(p+1.)) * epsilon);
+
+  SANS::SurrealS<2,double> X[2];
+  X[0] = crd[0];
+  X[0].deriv(0) = 1;
+  X[0].deriv(1) = 0;
+
+  X[1] = crd[1];
+  X[1].deriv(0) = 0;
+  X[1].deriv(1) = 1;
+
+  SANS::SurrealS<2,double> h1 = scale * exp(k1*X[0]);
+  SANS::SurrealS<2,double> AR = AR0 * exp(kR*X[0]);
+  SANS::SurrealS<2,double> h2 = AR * h1;
+
+  SANS::SurrealS<2,double> metS[3];
+  metS[0] = 1./(h1*h1); // M11
+  metS[1] = 0;          // M12
+  metS[2] = 1./(h2*h2); // M22
+
+  getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
+}
 
 } // End namespace
