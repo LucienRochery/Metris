@@ -34,6 +34,10 @@
 #include "../Adaptation/low_collapse.hxx"
 #include "../aux_badEntHandler.hxx"
 
+#ifdef DIAGNOSIS_QUALALGO
+#include <iostream>
+#include <fstream>
+#endif
 
 namespace Metris{
 
@@ -535,6 +539,28 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   msh.met.setSpace(MetSpace::Exp);
   msh.setBasis(FEBasis::Lagrange);
 
+  #ifdef DIAGNOSIS_QUALALGO
+  std::string diagnosisFile = "diagnosisQualAlgo.txt";
+  std::fstream foutput;
+  foutput.open(diagnosisFile, std::fstream::out);
+  METRIS_ASSERT_MSG(foutput.good(), "Error opening file: " + diagnosisFile);
+
+  foutput << std::setw(4) << "Iter"
+          << std::setw(30) << "qualError"
+          << std::setw(30) << "xavgWorst"
+          << std::setw(30) << "yavgWorst"
+          << std::setw(30) << "trySmooth"
+          << std::setw(30) << "statusSmooth"
+          << std::setw(30) << "tryInsert"
+          << std::setw(30) << "statusInsert"
+          << std::setw(30) << "tryCollapse"
+          << std::setw(30) << "statusCollapse"
+          << std::setw(30) << "qualOp"
+          << std::setw(30) << "xavgOp"
+          << std::setw(30) << "yavgOp"
+          << std::endl;
+  #endif
+
   // This is the common thread for all routines. Tagged elements are ignored
   const int ithrdfro = 0;
   const int ithrd1 = 1;
@@ -562,7 +588,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   // sort from max (worst) to min (best) quality. The handler is expecting like this
   std::sort(sortedIDs.begin(), sortedIDs.end(),
             [&](int a, int b){ return lquae[a] > lquae[b]; });
-
 
   // initialize handler for top X% worst, K, and remainder, R
   BadEntHandler handlerTopX(badX, alpha);
@@ -605,7 +630,69 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
     for (auto itK = handlerTopX.K.begin(); itK != handlerTopX.K.end(); itK++){
 
       iter++;
+      #ifdef DIAGNOSIS_QUALALGO
+      const int nentt = msh.nentt(tdim);
+      lquae.set_n(nentt);
+      getmetquamesh<MFT, QuaFun::SizeShape>(msh,tdim,AsDeg::P1,AsDeg::P1,&iinva,&qmin,&qmax,&qavg,&lquae);
+
+      std::vector<int> enttList(nentt);
+      std::iota(enttList.begin(), enttList.end(), 0);
+
+      std::sort(enttList.begin(), enttList.end(),
+            [&](int a, int b){ return lquae[a] > lquae[b]; });
+
+      int iworst = 0;
+      while(isdeadent(enttList[iworst],ent2poi)) iworst++;
+
+      const int worstEntt = enttList[iworst];
+      METRIS_ASSERT(!isdeadent(worstEntt,ent2poi));
+      const double worstQual = lquae[worstEntt];
+
+      double xavgWorst = 0.;
+      double yavgWorst = 0.;
+      for (int ii = 0; ii < tdim + 1; ii++){
+
+        const int ipoin = ent2poi(worstEntt, ii);
+
+        xavgWorst += msh.coord(ipoin,0);
+        yavgWorst += msh.coord(ipoin,1);
+      }
+      xavgWorst /= double(tdim+1);
+      yavgWorst /= double(tdim+1);
+
+      foutput << std::setw(4) << iter
+              << std::setw(30) << std::setprecision(16) << std::scientific << worstQual
+              << std::setw(30) << std::setprecision(16) << std::scientific << xavgWorst
+              << std::setw(30) << std::setprecision(16) << std::scientific << yavgWorst;
+
+      #endif
+
       const int ientt = itK->ientt;
+
+      #ifdef DIAGNOSIS_QUALALGO
+
+      const bool trySmoo = 1;
+      bool tryIns = 0;
+      bool tryColl = 0;
+
+      bool statusSmoo = 0;
+      bool statusIns = 0;
+      bool statusColl = 0;
+
+      const double qualEntt = itK->qentt;
+
+      double xavg = 0.;
+      double yavg = 0.;
+      for (int ii = 0; ii < tdim + 1; ii++){
+
+        const int ipoin = ent2poi(ientt, ii);
+
+        xavg += msh.coord(ipoin,0);
+        yavg += msh.coord(ipoin,1);
+      }
+      xavg /= double(tdim+1);
+      yavg /= double(tdim+1);
+      #endif
 
       // we assume that if an operation is successful,
       // the operator takes care of informing the handler:
@@ -626,7 +713,14 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         didOperation = true;
         std::cout << "Successful smoothing in ientt = " << ientt << std::endl;
         handlerTopX.updateK(msh.nentt(tdim));
+        #ifdef DIAGNOSIS_QUALALGO
+        statusSmoo = 1;
+        statusIns = 0;
+        statusColl = 0;
+        // goto LOGSTATUS;
+        #else
         break;
+        #endif
       }
 
       // ----------------------------- //
@@ -662,7 +756,11 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         if (elen < shortestLen) { shortestLen = elen; iedMin = ied; }
       }
 
-      if (shortestLen >= lengthThreshold){
+      if (shortestLen >= lengthThreshold
+          #ifdef DIAGNOSIS_QUALALGO
+          && !(statusSmoo || statusIns || statusColl)
+          #endif
+         ){
 
         // all edges longer than long threshold, insert in longest
 
@@ -671,6 +769,9 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         // ----------------------------- //
 
         ntryInsert++;
+        #ifdef DIAGNOSIS_QUALALGO
+        tryIns = 1;
+        #endif
 
         INCVDEPTH(msh.param);
 
@@ -691,7 +792,14 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           msh.poicstr[cav.ipins] = false;
           std::cout << "Successful insertion in ientt = " << ientt << ", ied = " << iedMax << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
           handlerTopX.updateK(msh.nentt(tdim));
+           #ifdef DIAGNOSIS_QUALALGO
+          statusSmoo = 0;
+          statusIns = 1;
+          statusColl = 0;
+          // goto LOGSTATUS;
+          #else
           break;
+          #endif
         }
         else {
           CPRINTF2(" # longest-edge insertion failed ierro = {}\n", ierro);
@@ -743,7 +851,11 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         // ----------------------------- //
 
       }
-      else if (longestLen <= 1./lengthThreshold){
+      else if (longestLen <= 1./lengthThreshold
+               #ifdef DIAGNOSIS_QUALALGO
+               && !(statusSmoo || statusIns || statusColl)
+               #endif
+              ){
 
         // all edges shorter than short threshold, collapse shortest
 
@@ -752,6 +864,9 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         // ----------------------------- //
 
         ntryCollapse++;
+        #ifdef DIAGNOSIS_QUALALGO
+        tryColl = 1;
+        #endif
 
         INCVDEPTH(msh.param);
 
@@ -768,7 +883,14 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           didOperation = true;
           std::cout << "Successful collapse in ientt = " << ientt << ", ied = " << iedMin << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
           handlerTopX.updateK(msh.nentt(tdim));
+           #ifdef DIAGNOSIS_QUALALGO
+          statusSmoo = 0;
+          statusIns = 0;
+          statusColl = 1;
+          // goto LOGSTATUS;
+          #else
           break;
+          #endif
         }
         else{
           CPRINTF2(" # shortest-edge collapse failed ierro = {}\n", ierro);
@@ -779,7 +901,11 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         // ----------------------------- //
 
       }
-      else if (log(longestLen) >= log(1./shortestLen)){
+      else if (log(longestLen) >= log(1./shortestLen)
+               #ifdef DIAGNOSIS_QUALALGO
+               && !(statusSmoo || statusColl || statusIns)
+               #endif
+              ){
 
         // longest edge deviates from one more than shortest edge
 
@@ -788,6 +914,9 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         // ----------------------------- //
 
         ntryInsert++;
+        #ifdef DIAGNOSIS_QUALALGO
+        tryIns = 1;
+        #endif
 
         INCVDEPTH(msh.param);
 
@@ -808,7 +937,14 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           msh.poicstr[cav.ipins] = false;
           std::cout << "Successful insertion in ientt = " << ientt << ", ied = " << iedMax << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
           handlerTopX.updateK(msh.nentt(tdim));
+           #ifdef DIAGNOSIS_QUALALGO
+          statusSmoo = 0;
+          statusIns = 1;
+          statusColl = 0;
+          // goto LOGSTATUS;
+          #else
           break;
+          #endif
         }
         else {
           CPRINTF2(" # longest-edge insertion failed ierro = {}\n", ierro);
@@ -859,7 +995,11 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         //  End insertion in longest edge
         // ----------------------------- //
       }
-      else{
+      else if (1
+              #ifdef DIAGNOSIS_QUALALGO
+              && !(statusSmoo || statusIns || statusColl)
+              #endif
+              ){
 
         // shortest edge deviates from one more than longest edge
 
@@ -868,6 +1008,9 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         // ----------------------------- //
 
         ntryCollapse++;
+        #ifdef DIAGNOSIS_QUALALGO
+        tryColl = 1;
+        #endif
 
         INCVDEPTH(msh.param);
 
@@ -884,7 +1027,14 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           didOperation = true;
           std::cout << "Successful collapse in ientt = " << ientt << ", ied = " << iedMin << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
           handlerTopX.updateK(msh.nentt(tdim));
+           #ifdef DIAGNOSIS_QUALALGO
+          statusSmoo = 0;
+          statusIns = 0;
+          statusColl = 1;
+          // goto LOGSTATUS;
+          #else
           break;
+          #endif
         }
         else{
           CPRINTF2(" # shortest-edge collapse failed ierro = {}\n", ierro);
@@ -895,6 +1045,21 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         // ----------------------------- //
       }
 
+      #ifdef DIAGNOSIS_QUALALGO
+      // LOGSTATUS:
+      foutput << std::setw(30) << trySmoo
+              << std::setw(30) << statusSmoo
+              << std::setw(30) << tryIns
+              << std::setw(30) << statusIns
+              << std::setw(30) << tryColl
+              << std::setw(30) << statusColl
+              << std::setw(30) << std::scientific << qualEntt
+              << std::setw(30) << std::scientific << xavg
+              << std::setw(30) << std::scientific << yavg
+              << std::endl;
+
+      if (statusSmoo || statusIns || statusColl ) break;
+      #endif
     }
     if (!didOperation || smooStreak >= 2500 || iter >= 25000 ) break;
   }
@@ -904,6 +1069,10 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   std::cout << "-- ntrySmoothing = " << ntrySmoothing << ",  nSuccessSmoothing = " << nSuccessSmoothing << std::endl;
   std::cout << "-- ntryInsert = " << ntryInsert << ",  nSuccessInsert = " << nSuccessInsert << std::endl;
   std::cout << "-- ntryCollapse = " << ntryCollapse << ",  nSuccessCollapse = " << nSuccessCollapse << std::endl;
+
+  #ifdef DIAGNOSIS_QUALALGO
+  foutput.close();
+  #endif
 
 #endif
 }

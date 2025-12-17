@@ -13,6 +13,7 @@
 #ifdef TESTQUALITYALGO
 #define TESTQUAFSIZESHAPE
 #define INTQUALINRIEMSPACE
+#define DIAGNOSIS_QUALALGO
 #endif
 
 #include <array>
