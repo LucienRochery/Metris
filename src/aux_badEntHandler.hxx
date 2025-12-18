@@ -77,17 +77,18 @@ class BadEntHandler{
 
 public:
 
-  BadEntHandler(double topXpctg = 50., double alphaImpr = 0.5)
-  : topX(topXpctg), alpha(alphaImpr), sizeK(0), nentt(0), currentGen(1) {
+  BadEntHandler(const int tdim_ = 2, double topXpctg = 50., double alphaImpr = 0.5)
+  : tdim(tdim_), topX(topXpctg), alpha(alphaImpr), sizeK(0), nentt(0) {
 
       affectedEnttsAlive.reserve(100);
+      neighbToAffected.reserve(100);
+      seenEntts.reserve(100);
       deadEntts.reserve(100);
   }
 
   struct EntQual{
     int ientt;            // entity id
     double qentt;         // quality
-    std::uint64_t genStamp; // generation when recorded
   };
 
 private:
@@ -102,9 +103,6 @@ private:
 
   // max-heap comparator for R (largest quality at front; confusing because the comparator works in the opposite way here)
   struct CmpMaxQua { bool operator()(const EntQual& entA, const EntQual& entB) const { return entA.qentt < entB.qentt; } };
-
-  // latest known generation for entity id
-  std::unordered_map<int, std::uint64_t> latestGenStamp;
 
   // placeholder for getting quality of entt k
   std::function<double(int)> qua_at; // syntax std::function<RType(AType1,AType2,...,ATypeN)
@@ -128,8 +126,8 @@ public:
     nentt = sortedIDs.size();
     sizeK = std::max(1, (int)std::round(nentt * topX/100.));
 
-    K.clear(); R.clear(); latestGenStamp.clear(); inK.clear();
-    R.reserve(nentt); latestGenStamp.reserve(nentt); inK.reserve(nentt);
+    K.clear(); inK.clear(); inK.reserve(nentt);
+    R.clear(); inR.clear(); inK.reserve(nentt);
 
     int placedInK = 0;
     for (int ii = 0; ii < nentt; ii++){
@@ -138,8 +136,7 @@ public:
       if (is_dead(ientt)) continue;
 
       double q = qua_at(ientt);
-      EntQual entt{ientt, q, currentGen};
-      latestGenStamp[ientt] = currentGen;
+      EntQual entt{ientt, q};
 
       if (placedInK < sizeK){
 
@@ -154,45 +151,114 @@ public:
 
         // goes to R
 
-        R.push_back(entt);
+        auto [it, inserted] = R.insert(entt);
+        inR[ientt] = it;
+        // R.push_back(entt);
       }
     }
     // create max-heap in R
-    std::make_heap(R.begin(), R.end(), CmpMaxQua{});
+    // std::make_heap(R.begin(), R.end(), CmpMaxQua{});
 
   }
 
   // to update K after a successful operation
-  void updateK(const int nenttNew){
+  void updateK(const int icurrentEntt, const intAr2& ent2ent, intAr2& ent2tag, const int tag, const int ithrd){
 
     // std::cout << "Base number of alive entities = " << nentt << std::endl;
-    currentGen++;
 
     if (!deadEntts.empty()) nentt += affectedEnttsAlive.size() - deadEntts.size();
     sizeK = std::max(1, (int)std::round(nentt * topX/100.));
 
     // std::cout << "Modyfing/Inserting " << affectedEnttsAlive.size() << " entities" << std::endl;
-    for (const auto& entt : affectedEnttsAlive) insertEntt(entt.first, entt.second);
+
+    purgeFrontKUpTo(icurrentEntt);
+
+    for (const auto& entt: affectedEnttsAlive) ent2tag(ithrd,entt.first) = tag;
+
+    for (const auto& entt : affectedEnttsAlive){
+
+      const int ientt = entt.first;
+      const double quaentt = entt.second;
+
+      for (int ii = 0; ii < tdim+1; ii++){
+
+        const int ienei = ent2ent(ientt,ii);
+
+        if (ienei < 0 || is_dead(ienei) || ent2tag(ithrd,ienei) == tag) continue;
+
+        if (auto it = seenEntts.find(ienei); it != seenEntts.end()){
+          neighbToAffected[ienei] = seenEntts[ienei];
+          seenEntts.erase(ienei);
+          deadEntts.push_back(ienei); // being extra safe, I need to go back through all the logic again because I changed a few things
+        }
+      }
+      insertEntt(ientt,quaentt);
+    }
     affectedEnttsAlive.clear();
 
     // std::cout << "Killing " << deadEntts.size() << " entities" << std::endl;
-    for (const auto entt : deadEntts) killEnttK(entt);
+    for (const auto entt : deadEntts) killEntt(entt);
     deadEntts.clear();
+
+    for (const auto& entt : neighbToAffected) insertEntt(entt.first,entt.second);
+    neighbToAffected.clear();
 
     rebalance();
   }
 
 private:
 
+  void purgeFrontKUpTo(const int ientt){
+
+    auto findInK = inK.find(ientt);
+    METRIS_ASSERT(findInK != inK.end());
+
+    auto itKientt = findInK->second;
+
+    std::vector<int> ids;
+    ids.reserve(std::distance(K.begin(),itKientt));
+    for (auto it = K.begin(); it != itKientt; it++){
+
+      ids.push_back(it->ientt);
+      seenEntts[it->ientt] = it->qentt;
+    }
+
+    for (const int id : ids) inK.erase(id);
+
+    K.erase(K.begin(),itKientt);
+  }
+
   // to insert modified/created entity (general)
-  void insertEntt(int ientt, double qentt){
+  void insertEntt(int ientt, double qentt, const int insertionFlag = 0){
 
-    // first thing is to remove the entity if in K
-    killEnttK(ientt);
+    METRIS_ASSERT(!is_dead(ientt));
 
-    // then decide if fresh entity goes in K or R
-    if (qentt > qualCutoff())  insertInK(ientt,qentt);
-    else                       insertInR(ientt,qentt);
+    EntQual entt{ientt, qentt};
+
+    if (insertionFlag > 0){
+      auto [itNew, inserted] = K.insert(entt);
+      inK[ientt] = itNew;
+      return;
+    }
+
+    if (insertionFlag < 0){
+      auto [itNew, inserted] = R.insert(entt);
+      inR[ientt] = itNew;
+      return;
+    }
+
+    // first thing is to remove the entity if already in our arrays
+    killEntt(ientt);
+
+    // insert fresh entity
+    if (qentt > qualCutoff()){
+      auto [itNew, inserted] = K.insert(entt);
+      inK[ientt] = itNew;
+    }
+    else{
+      auto [itNew, inserted] = R.insert(entt);
+      inR[ientt] = itNew;
+    }
   }
 
   // fetch best quality in K, which represent the cutoff
@@ -200,38 +266,18 @@ private:
     return K.empty() ? -std::numeric_limits<double>::infinity() :  std::prev(K.end())->qentt;
   }
 
-  void insertInK(int ientt, double qentt){
-
-    latestGenStamp[ientt] = currentGen;
-
-    EntQual entt{ientt, qentt, currentGen};
-
-    // insert fresh entity
-    auto [itNew, inserted] = K.insert(entt);
-    inK[ientt] = itNew;
-  }
-
-  void insertInR(int ientt, double qentt){
-
-    // lazy insertion in R, we don't care if it is in R already
-    // if so, the old version would just become stale (via genStamp)
-    // the same logic does not apply in K because the size of K
-    // must represent the top X% worst elements, all of them fresh and alive
-
-    latestGenStamp[ientt] = currentGen;
-
-    EntQual entt{ientt, qentt, currentGen};
-
-    R.push_back(entt);
-    std::push_heap(R.begin(), R.end(), CmpMaxQua{});
-  }
-
-  void killEnttK(int ientt){
+  void killEntt(int ientt){
 
     if (auto it = inK.find(ientt); it != inK.end()){
 
       K.erase(it->second);
       inK.erase(it);
+    }
+
+    if (auto it = inR.find(ientt); it != inR.end()){
+
+      R.erase(it->second);
+      inR.erase(it);
     }
   }
 
@@ -245,9 +291,9 @@ private:
       EntQual frontR = getFrontR();
 
       // I think we are 100% sure the entity is not in K already
-      // but might want to call killEnttK here to be safer
+      // but might want to call killEntt here to be safer
 
-      insertInK(frontR.ientt, frontR.qentt);
+      insertEntt(frontR.ientt, frontR.qentt, 1);
     }
 
     // if K too big, send best in K to R
@@ -256,10 +302,10 @@ private:
       // remove best in K
       auto itBest = std::prev(K.end());
       EntQual bestInK = *itBest;
-      killEnttK(bestInK.ientt);
+      killEntt(bestInK.ientt);
 
       // put it in R
-      insertInR(bestInK.ientt, bestInK.qentt);
+      insertEntt(bestInK.ientt, bestInK.qentt,-1);
     }
 
     // std::cout << "New number total alive nentt = " << nentt << std::endl;
@@ -272,14 +318,16 @@ private:
 
     if (!R.empty()){
 
-      std::pop_heap(R.begin(), R.end(), CmpMaxQua{});
-      EntQual entt = R.back();
-      R.pop_back();
+      auto it = R.begin();
+      EntQual entt = *it;
+
+      R.erase(it);
+      inR.erase(entt.ientt);
 
       return entt;
     }
 
-    return EntQual{-1, 0., 0};
+    return EntQual{-1, 0.};
   }
 
   // to make the front of R fresh
@@ -287,19 +335,14 @@ private:
     while (!R.empty()){
 
       // check state of worst entt in R (its front)
-      const EntQual& entt = R.front();
-      const auto it = latestGenStamp.find(entt.ientt);
-      bool stale = it->second != entt.genStamp;
+      auto it = R.begin();
+      const EntQual& entt = *it;
       bool dead = is_dead(entt.ientt);
 
-      if (!stale && !dead) return; // front is valid, done
+      if (!dead) return; // front is valid, done
 
-      // else
-
-      // move invalid worst entt to last slot and re-heapifies the rest -- O(log |R|)
-      std::pop_heap(R.begin(), R.end(), CmpMaxQua{});
-      // then remove invalid worst entt
-      R.pop_back();
+      R.erase(it);
+      inR.erase(entt.ientt);
     }
   }
 
@@ -307,8 +350,8 @@ public:
 
   bool checkSuccess(const double quaNew, const double quaOld) const {
 
-    std::cout << "quaNew = " << quaNew << std::endl;
-    std::cout << "quaOld = " << quaOld << std::endl;
+    // std::cout << "quaNew = " << quaNew << std::endl;
+    // std::cout << "quaOld = " << quaOld << std::endl;
     return quaNew <= ((1. - alpha/100.) * quaOld );
   }
 
@@ -326,23 +369,33 @@ public:
   using SetIt = std::set<EntQual, CmpWorstFirst>::iterator; // to keep track of position of entities in K
   std::unordered_map<int, SetIt> inK;                       // map entt ID to iterator in K to keep track of "where" the entities are in K
 
+
+
 private:
 
   // max-heap by quality for R
-  std::vector<EntQual> R;                                   // remainder of elements, max-heap with lazy insertions
+  // std::vector<EntQual> R;                                   // remainder of elements, max-heap with lazy insertions
+
+  std::set<EntQual, CmpWorstFirst> R;
+  std::unordered_map<int, SetIt> inR;
+
+  std::unordered_map<int, double> seenEntts;
 
   // state info
   const double topX;                                        // percentage of entities we want in K
   int sizeK;                                                // current size of K (adapted as mesh grows)
-  int nentt;                                                // current number of entities
-  std::uint64_t currentGen;                                 // current generation (incremented after successful operation)
+  int nentt;
+
+private:
 
   double alpha;                                             // percentage of improvement to consider success
+  const int tdim;
 
 public:
 
   std::unordered_map<int, double> affectedEnttsAlive;       // keep track of entities modified/created during successful operation
                                                             // feed externally during the operation itself
+  std::unordered_map<int,double> neighbToAffected;
 
   std::vector<int> deadEntts;                               // keep track of entities killed during successful operation
                                                             // feed externally during the operation itself

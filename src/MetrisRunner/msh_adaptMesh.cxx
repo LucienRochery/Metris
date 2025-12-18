@@ -590,8 +590,12 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
             [&](int a, int b){ return lquae[a] > lquae[b]; });
 
   // initialize handler for top X% worst, K, and remainder, R
-  BadEntHandler handlerTopX(badX, alpha);
-  const intAr2 &ent2poi = msh.ent2poi(tdim);
+  BadEntHandler handlerTopX(tdim, badX, alpha);
+
+  const intAr2& ent2poi = msh.ent2poi(tdim);
+  const intAr2& ent2ent = msh.ent2ent(tdim);
+  intAr2& ent2tag = msh.ent2tag(tdim);
+
   handlerTopX.setCallbacks(
                             [&](int ientt){ return lquae[ientt]; },
                             [&](int ientt){ return isdeadent(ientt,ent2poi); });
@@ -628,6 +632,9 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
     bool didOperation = false;
 
     for (auto itK = handlerTopX.K.begin(); itK != handlerTopX.K.end(); itK++){
+
+      const int ientt = itK->ientt;
+      // if (itK->genStamp != handlerTopX.currentGen) continue;
 
       iter++;
       #ifdef DIAGNOSIS_QUALALGO
@@ -667,7 +674,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
       #endif
 
-      const int ientt = itK->ientt;
+
 
       #ifdef DIAGNOSIS_QUALALGO
 
@@ -712,7 +719,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         nSuccessSmoothing++;
         didOperation = true;
         std::cout << "Successful smoothing in ientt = " << ientt << std::endl;
-        handlerTopX.updateK(msh.nentt(tdim));
+        handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
         #ifdef DIAGNOSIS_QUALALGO
         statusSmoo = 1;
         statusIns = 0;
@@ -791,7 +798,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           didOperation = true;
           msh.poicstr[cav.ipins] = false;
           std::cout << "Successful insertion in ientt = " << ientt << ", ied = " << iedMax << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
-          handlerTopX.updateK(msh.nentt(tdim));
+          handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
            #ifdef DIAGNOSIS_QUALALGO
           statusSmoo = 0;
           statusIns = 1;
@@ -833,7 +840,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           //       // success
           //       didOperation = true;
           //       msh.poicstr[cav.ipins] = false;
-          //       handlerTopX.updateK(msh.nentt(tdim));
+          //       handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);;
           //       break;
           //     }
           //     else {
@@ -882,7 +889,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           nSuccessCollapse++;
           didOperation = true;
           std::cout << "Successful collapse in ientt = " << ientt << ", ied = " << iedMin << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
-          handlerTopX.updateK(msh.nentt(tdim));
+          handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
            #ifdef DIAGNOSIS_QUALALGO
           statusSmoo = 0;
           statusIns = 0;
@@ -936,7 +943,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           didOperation = true;
           msh.poicstr[cav.ipins] = false;
           std::cout << "Successful insertion in ientt = " << ientt << ", ied = " << iedMax << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
-          handlerTopX.updateK(msh.nentt(tdim));
+          handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
            #ifdef DIAGNOSIS_QUALALGO
           statusSmoo = 0;
           statusIns = 1;
@@ -978,7 +985,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           //       // success
           //       didOperation = true;
           //       msh.poicstr[cav.ipins] = false;
-          //       handlerTopX.updateK(msh.nentt(tdim));
+          //       handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);;
           //       break;
           //     }
           //     else {
@@ -1026,7 +1033,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           nSuccessCollapse++;
           didOperation = true;
           std::cout << "Successful collapse in ientt = " << ientt << ", ied = " << iedMin << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
-          handlerTopX.updateK(msh.nentt(tdim));
+          handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
            #ifdef DIAGNOSIS_QUALALGO
           statusSmoo = 0;
           statusIns = 0;
@@ -1061,7 +1068,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       if (statusSmoo || statusIns || statusColl ) break;
       #endif
     }
-    if (!didOperation || smooStreak >= 2500 || iter >= 25000 ) break;
+    if (!didOperation || smooStreak >= 2500 || iter >= 8000 ) break;
   }
 
   std::cout << "iter = " << iter << std::endl;
