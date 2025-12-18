@@ -613,15 +613,17 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
                                      &qnrm0,&qmax0,&qnrm1,&qmax1,work,iquaf);
         }
         double qsumNew = 0.;
+        double qmaxNew = 0.;
         for(auto ient2 : lball){
 
           if(isdeadent(ient2,ent2poi)) continue;
 
           double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ient2,difto);
           qsumNew += quael;
+          if (quael > qmaxNew) qmaxNew = quael;
 
         }
-        if(!handler.checkSuccess(qsumNew,qsum)){
+        if(!handler.checkSuccess(qsumNew,qsum) || qmaxNew > qmax){
           CPRINTF1(" - reject move, quality error increased: {:15.7e} > {:15.7e}\n",
                    qsumNew, qsum);
           for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];

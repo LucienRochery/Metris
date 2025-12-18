@@ -2158,8 +2158,10 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   const int tmpEntt = nentt0; // index for temporary entity to construct would-be elements
   const int ipins = cav.ipins;
 
-  double quaCav0 = 0.; // for current config
-  double quaCav1 = 0.; // for reconnected config
+  double quaCav0 = 0.; // for current config (sum of all qual)
+  double quaMax0 = 0.; // worst qual for current config
+  double quaCav1 = 0.; // for reconnected config (sum of all qual)
+  double quaMax1 = 0.; // worst qual for reconnected config
   double difto = 1.;
 
   std::cout << "ipins coord = ("  << msh.coord(ipins,0) << "," << msh.coord(ipins,1) << ")" << std::endl;
@@ -2184,13 +2186,21 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
     // first add elemental qual for current config
     if (tdim == 2){
-      if (msh.idim == 2)
-        quaCav0 += metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ienttCav,difto);
-      else
-        quaCav0 += metqua<MFT,3,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ienttCav,difto);
+      if (msh.idim == 2){
+        double qua = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ienttCav,difto);
+        quaCav0 += qua;
+        if (qua > quaMax0) quaMax0 = qua;
+      }
+      else{
+        double qua = metqua<MFT,3,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ienttCav,difto);
+        quaCav0 += qua;
+        if (qua > quaMax0) quaMax0 = qua;
+      }
     }
     else {
-      quaCav0 += metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ienttCav,difto);
+      double qua = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ienttCav,difto);
+      quaCav0 += qua;
+      if (qua > quaMax0) quaMax0 = qua;
     }
 
     // now identy boundary facets in this element to construct
@@ -2240,11 +2250,17 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
         double quaNewEnt = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
         std::cout << "Quality of new triangle is = " << quaNewEnt << std::endl;
-        if (msh.idim == 2)
-          quaCav1 += metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
-        else
-          quaCav1 += metqua<MFT,3,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+        if (msh.idim == 2){
+          double qua = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+          quaCav1 += qua;
+          if (qua > quaMax1) quaMax1 = qua;
+        }
+        else{
 
+          double qua = metqua<MFT,3,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+          quaCav1 += qua;
+          if (qua > quaMax1) quaMax1 = qua;
+        }
       }
       else {
 
@@ -2259,20 +2275,19 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
         ent2poi(tmpEntt,2) = ip2;
         ent2poi(tmpEntt,3) = ip3;
 
-        quaCav1 += metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+        double qua = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+        quaCav1 += qua;
+        if (qua > quaMax1) quaMax1 = qua;
 
       } // if tdim == 2 else 3
     } // for jj (bnd facets of ienttCav)
   } // for ienttCav
-
-
 
   std::cout << "For initial cavity:" << std::endl;
   std::cout << "quaCav0 = " << quaCav0 << std::endl;
   std::cout << "quaCav1 = " << quaCav1 << std::endl;
 
   std::cout << "Attempt now to grow cavity" << std::endl;
-
 
   // now attempt to grow cavity
 
@@ -2379,6 +2394,9 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
             // this is done first because if we find that a new element is invalid
             // we skip the boundary facet sooner
 
+            double quaMaxLocal = 0;
+            double quaMaxLocalReconnect = 0;
+
             const int ip1 = ent2poi(ientt,lnoed2[jj][0]);
             const int ip2 = ent2poi(ientt,lnoed2[jj][1]);
             if (ip1 == ipins || ip2 == ipins) continue;
@@ -2399,14 +2417,18 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
             ent2poi(tmpEntt,1) = ip1;
             ent2poi(tmpEntt,2) = ipOpp;
             if(!isvalideltP1<2,2>(msh, tmpEntt, NULL, &meas)) continue;
-            quaLocalReconnect += metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+            double qua = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+            quaLocalReconnect += qua;
+            if (qua > quaMaxLocalReconnect) quaMaxLocalReconnect = qua;
 
             // new tri 2: (ipins, ipOpp, ip2)
             ent2poi(tmpEntt,0) = ipins;
             ent2poi(tmpEntt,1) = ipOpp;
             ent2poi(tmpEntt,2) = ip2;
             if(!isvalideltP1<2,2>(msh, tmpEntt, NULL, &meas)) continue;
-            quaLocalReconnect += metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+            qua = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+            quaLocalReconnect += qua;
+            if (qua > quaMaxLocalReconnect) quaMaxLocalReconnect = qua;
 
             // 2 -
             // put together inside element in local patch
@@ -2416,9 +2438,13 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
             ent2poi(tmpEntt,0) = ipins;
             ent2poi(tmpEntt,1) = ip1;
             ent2poi(tmpEntt,2) = ip2;
-            double quaInsideEntt = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+            qua = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+            double quaInsideEntt = qua;
+            if (qua > quaMaxLocal) quaMaxLocal = qua;
 
-            double quaOutsideEntt = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ienei,difto);
+            qua = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ienei,difto);
+            double quaOutsideEntt = qua;
+            if (qua > quaMaxLocal) quaMaxLocal = qua;
 
             double quaLocal = quaInsideEntt + quaOutsideEntt;
 
@@ -2455,10 +2481,16 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
               quaCav0 += quaOutsideEntt;
               quaCav1 += quaLocalReconnect - quaInsideEntt;
 
+              if (quaMaxLocal > quaMax0) quaMax0 = quaMaxLocal;
+              if (quaMaxLocalReconnect > quaMax1) quaMax1 = quaMaxLocalReconnect;
+
             }
           }else {
 
             METRIS_ASSERT(enttInLocalPatch == 3);
+
+            double quaMaxLocal = 0.;
+            double quaMaxLocalReconnect = 0.;
 
             // this is the "ill" case, when the outside element is touching two elements in the cavity
             // requires different treatment
@@ -2476,16 +2508,22 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
             ent2poi(tmpEntt,0) = ipins;
             ent2poi(tmpEntt,1) = ipOutside1;
             ent2poi(tmpEntt,2) = ipInterior;
-            double quaInsideEntt1 = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+            double qua = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+            double quaInsideEntt1 = qua;
+            if (qua > quaMaxLocal) quaMaxLocal = qua;
 
             // inside tri 2: (ipins, ipOutside2, ipInterior)
             ent2poi(tmpEntt,0) = ipins;
             ent2poi(tmpEntt,1) = ipOutside2;
             ent2poi(tmpEntt,2) = ipInterior;
-            double quaInsideEntt2 = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+            qua = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+            double quaInsideEntt2 = qua;
+            if (qua > quaMaxLocal) quaMaxLocal = qua;
 
             // outside tri: ienei
-            double quaOutsideEntt = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ienei,difto);
+            qua = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ienei,difto);
+            double quaOutsideEntt = qua;
+            if (qua > quaMaxLocal) quaMaxLocal = qua;
 
             double quaLocal = quaInsideEntt1 + quaInsideEntt2 + quaOutsideEntt;
 
@@ -2496,7 +2534,9 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
             ent2poi(tmpEntt,0) = ipins;
             ent2poi(tmpEntt,1) = ipOutside1;
             ent2poi(tmpEntt,2) = ipOutside2;
-            double quaLocalReconnect = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+            qua = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+            double quaLocalReconnect = qua;
+            if (qua > quaMaxLocalReconnect) quaMaxLocalReconnect = qua;
 
             // here we do raw quality check and add outside element if improves quality even marginally
             // We do the actual threshold check with the final configs in the cavity
@@ -2526,6 +2566,9 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
               quaCav0 += quaOutsideEntt;
               quaCav1 += quaLocalReconnect - quaInsideEntt1 - quaInsideEntt2;
 
+              if (quaMaxLocal > quaMax0) quaMax0 = quaMaxLocal;
+              if (quaMaxLocalReconnect > quaMax1) quaMax1 = quaMaxLocalReconnect;
+
             }
           } // if/else for current config size == 2 or > 2
         }else {
@@ -2544,7 +2587,7 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   // restore to original number of entities in mesh
   msh.set_nentt(tdim,nentt0);
 
-  if (handler.checkSuccess(quaCav1,quaCav0)) return 0; // reconnected cavity has better quality than original config
+  if (handler.checkSuccess(quaCav1,quaCav0) && quaMax1 <= quaMax0) return 0; // reconnected cavity has better quality than original config
   else return -1;                                       // original config is better
 }
 

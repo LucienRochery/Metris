@@ -15,7 +15,7 @@
 #include <set>
 #include <cmath>
 #include <utility>
-
+#include <fstream>
 
 /*
 
@@ -78,14 +78,29 @@ class BadEntHandler{
 public:
 
   BadEntHandler(const int tdim_ = 2, double topXpctg = 50., double alphaImpr = 0.5)
-  : tdim(tdim_), topX(topXpctg), alpha(alphaImpr), sizeK(0), nentt(0) {
+  : tdim(tdim_), topX(topXpctg), alpha(alphaImpr), sizeK(0), nentt(0)
+  {
+    affectedEnttsAlive.reserve(100);
+    neighbToAffected.reserve(100);
+    seenEntts.reserve(100);
+    deadEntts.reserve(100);
 
-      affectedEnttsAlive.reserve(100);
-      neighbToAffected.reserve(100);
-      seenEntts.reserve(100);
-      deadEntts.reserve(100);
+
+    nImpro = 0;
+    std::string alphaFile = "alphaEvolution.txt";
+    falpha.open(alphaFile, std::fstream::out);
+    METRIS_ASSERT_MSG(falpha.good(), "Error opening file: " + alphaFile);
+
+    falpha << std::setw(4) << "nImpro"
+            << std::setw(30) << "alpha"
+            << std::setw(30) << "alphaThreshold = " << alpha
+            << std::endl;
+
   }
 
+  #ifdef DIAGNOSIS_QUALALGO
+  ~BadEntHandler() { falpha.close(); }
+  #endif
   struct EntQual{
     int ientt;            // entity id
     double qentt;         // quality
@@ -348,10 +363,17 @@ private:
 
 public:
 
-  bool checkSuccess(const double quaNew, const double quaOld) const {
+  bool checkSuccess(const double quaNew, const double quaOld) {
 
     // std::cout << "quaNew = " << quaNew << std::endl;
     // std::cout << "quaOld = " << quaOld << std::endl;
+    if (quaNew <= quaOld){
+      nImpro++;
+      double alphaTrue = (1. - quaNew/quaOld)*100.;
+      falpha << std::setw(4) << nImpro
+              << std::setw(30) << std::setprecision(16) << std::scientific << alphaTrue
+              << std::endl;
+    }
     return quaNew <= ((1. - alpha/100.) * quaOld );
   }
 
@@ -390,6 +412,9 @@ private:
 
   double alpha;                                             // percentage of improvement to consider success
   const int tdim;
+
+  int nImpro;
+  std::fstream falpha;
 
 public:
 

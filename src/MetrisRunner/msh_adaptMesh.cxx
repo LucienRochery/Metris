@@ -549,6 +549,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           << std::setw(30) << "qualError"
           << std::setw(30) << "xavgWorst"
           << std::setw(30) << "yavgWorst"
+          << std::setw(30) << "worstIndex"
           << std::setw(30) << "trySmooth"
           << std::setw(30) << "statusSmooth"
           << std::setw(30) << "tryInsert"
@@ -558,6 +559,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           << std::setw(30) << "qualOp"
           << std::setw(30) << "xavgOp"
           << std::setw(30) << "yavgOp"
+          << std::setw(30) << "OpIndex"
           << std::endl;
   #endif
 
@@ -634,7 +636,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
     for (auto itK = handlerTopX.K.begin(); itK != handlerTopX.K.end(); itK++){
 
       const int ientt = itK->ientt;
-      // if (itK->genStamp != handlerTopX.currentGen) continue;
 
       iter++;
       #ifdef DIAGNOSIS_QUALALGO
@@ -670,8 +671,8 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       foutput << std::setw(4) << iter
               << std::setw(30) << std::setprecision(16) << std::scientific << worstQual
               << std::setw(30) << std::setprecision(16) << std::scientific << xavgWorst
-              << std::setw(30) << std::setprecision(16) << std::scientific << yavgWorst;
-
+              << std::setw(30) << std::setprecision(16) << std::scientific << yavgWorst
+              << std::setw(30) << std::setprecision(16) << std::scientific << worstEntt;
       #endif
 
 
@@ -1063,12 +1064,13 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
               << std::setw(30) << std::scientific << qualEntt
               << std::setw(30) << std::scientific << xavg
               << std::setw(30) << std::scientific << yavg
+              << std::setw(30) << ientt
               << std::endl;
 
       if (statusSmoo || statusIns || statusColl ) break;
       #endif
     }
-    if (!didOperation || smooStreak >= 2500 || iter >= 8000 ) break;
+    if (!didOperation || smooStreak >= 2500 || iter >= 50000 ) break;
   }
 
   std::cout << "iter = " << iter << std::endl;
