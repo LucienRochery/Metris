@@ -69,7 +69,7 @@ int insertEdge(Mesh<MFT>& msh,
   CPRINTF1("-- START insertEdge tdimp = {} iseed = {}\n",
            insertionSeed.tdimp,insertionSeed.iseed);
 
-  cav.print(msh);
+  // cav.print(msh);
   CPRINTF1(" - cavity seed nedge {} nface {} ntetr {}\n",
            cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n());
   METRIS_ASSERT(cav.lcedg.get_n() > 0 || cav.lcfac.get_n() > 0 || cav.lctet.get_n() > 0);

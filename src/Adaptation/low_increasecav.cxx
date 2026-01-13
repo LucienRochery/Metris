@@ -694,7 +694,7 @@ int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &o
 
   ierro = increase_cavity_quality(msh,cav,tdim,5,handler,ithrd1);
   if(DOPRINTS2()){
-    writeMeshCavity("insert_cavity1",msh,cav);
+    // writeMeshCavity("insert_cavity1",msh,cav);
   }
   // if(ierro > 0){
   //   CPRINTF1(" # increase_cavity_quality error {}\n",ierro);
@@ -908,7 +908,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
   #endif
 
   CPRINTF1("-- START increase_cavity ipins {} dim {} list initial cavity:\n", cav.ipins, pdim);
-  cav.print(msh);
+  // cav.print(msh);
 
 
   // Get normal deviation of initial cavity.
@@ -1136,7 +1136,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
                      ent2pol[2], ientt, iref, nod2bpo[2],
                      intAr1(nibi,msh.bpo2ibi[nod2bpo[2]]));
               PRINTF("Cavity:\n");
-              cav.print(msh, 10);
+              // cav.print(msh, 10);
               PRINTF("\nInitial:\n");
               MPRINTF(" - Edge cavity: \n");
               for(int iecav : lcedg0){
@@ -1304,7 +1304,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
   }while(restart);
 
   CPRINTF1("-- END increase_cavity final cavity:\n");
-  cav.print(msh);
+  // cav.print(msh);
   return 0;
 }
 
@@ -2164,25 +2164,27 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   double quaMax1 = 0.; // worst qual for reconnected config
   double difto = 1.;
 
-  std::cout << "ipins coord = ("  << msh.coord(ipins,0) << "," << msh.coord(ipins,1) << ")" << std::endl;
+  // #ifdef EXTRADEBUG
+  // std::cout << "ipins coord = ("  << msh.coord(ipins,0) << "," << msh.coord(ipins,1) << ")" << std::endl;
+  // writeMesh("mshInsertion.meshb",msh);
+  // writeMeshCavity("cavInsertion.meshb",msh,cav);
 
-  writeMesh("mshInsertion.meshb",msh);
-  writeMeshCavity("cavInsertion.meshb",msh,cav);
-
-  std::cout << "Entities in initial cavity = " << lcent.get_n() << std::endl;
-  std::cout << "Computing quality of initial cavity for both configs" << std::endl;
+  // std::cout << "Entities in initial cavity = " << lcent.get_n() << std::endl;
+  // std::cout << "Computing quality of initial cavity for both configs" << std::endl;
+  // #endif
   for (const int ienttCav : lcent){
 
-    // added this to DEBUGQUAL
-    std::cout << "ienttCav = " << ienttCav << std::endl;
-    std::cout << "points = (" << ent2poi(ienttCav,0) << "," << ent2poi(ienttCav,1) << "," << ent2poi(ienttCav,2) << ")" << std::endl;
+    // #ifdef EXTRADEBUG
+    // std::cout << "ienttCav = " << ienttCav << std::endl;
+    // std::cout << "points = (" << ent2poi(ienttCav,0) << "," << ent2poi(ienttCav,1) << "," << ent2poi(ienttCav,2) << ")" << std::endl;
 
-    for (int ll = 0; ll < tdim + 1; ll++){
-      std::cout << "poi " << ent2poi(ienttCav,ll) << " coord = ("  << msh.coord(ent2poi(ienttCav,ll),0) << "," << msh.coord(ent2poi(ienttCav,ll),1) << ")" << std::endl;
-    }
+    // for (int ll = 0; ll < tdim + 1; ll++){
+    //   std::cout << "poi " << ent2poi(ienttCav,ll) << " coord = ("  << msh.coord(ent2poi(ienttCav,ll),0) << "," << msh.coord(ent2poi(ienttCav,ll),1) << ")" << std::endl;
+    // }
 
-    double quaEnt = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ienttCav,difto);
-    std::cout << "quaEnt = " << quaEnt << std::endl;
+    // double quaEnt = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ienttCav,difto);
+    // std::cout << "quaEnt = " << quaEnt << std::endl;
+    // #endif
 
     // first add elemental qual for current config
     if (tdim == 2){
@@ -2206,11 +2208,17 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
     // now identy boundary facets in this element to construct
     // and compute quality of reconnected config
 
-    std::cout << "Loop over facets in ienttCav to check neighbors" << std::endl;
+    // #ifdef EXTRADEBUG
+    // std::cout << "Loop over facets in ienttCav to check neighbors" << std::endl;
+    // #endif
+
     for(int jj = 0; jj < tdim + 1; jj++){
 
       const int ienei = ent2ent(ienttCav,jj);
-      std::cout << "ienei = " << ienei << std::endl;
+
+      // #ifdef EXTRADEBUG
+      // std::cout << "ienei = " << ienei << std::endl;
+      // #endif
 
       // if neighbor tagged skip
       if (ienei >= 0 && ent2tag(ithread,ienei) >= msh.tag[ithread]) continue;
@@ -2221,7 +2229,9 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
       if (tdim == 2){
 
-        std::cout << "local edge = " << jj << " is at boundary of cav" << std::endl;
+        // #ifdef EXTRADEBUG
+        // std::cout << "local edge = " << jj << " is at boundary of cav" << std::endl;
+        // #endif
 
         const int ip1 = ent2poi(ienttCav,lnoed2[jj][0]);
         const int ip2 = ent2poi(ienttCav,lnoed2[jj][1]);
@@ -2239,17 +2249,28 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
         ent2poi(tmpEntt,0) = cav.ipins;
         ent2poi(tmpEntt,1) = ip1;
         ent2poi(tmpEntt,2) = ip2;
-        std::cout << "New triangle is (ipins = " << ipins << ", ip1 = " << ip1 << ",ip2 = " << ip2 << ")" << std::endl;
+
+        // #ifdef EXTRADEBUG
+        // std::cout << "New triangle is (ipins = " << ipins << ", ip1 = " << ip1 << ",ip2 = " << ip2 << ")" << std::endl;
+        // #endif
+
         if(!isvalideltP1<2,2>(msh, tmpEntt, NULL, &meas)){
-          std::cout << "Not valid!" << std::endl;
+
+          // #ifdef EXTRADEBUG
+          // std::cout << "Not valid!" << std::endl;
+          // #endif
+
           continue;
         }
 
         // no need to check validity, reconnection of seed cavity should yield valid config
         // by construction of seed cavity
 
-        double quaNewEnt = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
-        std::cout << "Quality of new triangle is = " << quaNewEnt << std::endl;
+        // #ifdef EXTRADEBUG
+        // double quaNewEnt = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+        // std::cout << "Quality of new triangle is = " << quaNewEnt << std::endl;
+        // #endif
+
         if (msh.idim == 2){
           double qua = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
           quaCav1 += qua;
@@ -2264,30 +2285,32 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
       }
       else {
 
-        const int ip1 = ent2poi(ienttCav,lnoed3[jj][0]);
-        const int ip2 = ent2poi(ienttCav,lnoed3[jj][1]);
-        const int ip3 = ent2poi(ienttCav,lnoed3[jj][2]);
-        if (ip1 == ipins || ip2 == ipins || ip3 == ipins) continue;
+        // const int ip1 = ent2poi(ienttCav,lnoed3[jj][0]);
+        // const int ip2 = ent2poi(ienttCav,lnoed3[jj][1]);
+        // const int ip3 = ent2poi(ienttCav,lnoed3[jj][2]);
+        // if (ip1 == ipins || ip2 == ipins || ip3 == ipins) continue;
 
-        // put together the new triangle
-        ent2poi(tmpEntt,0) = cav.ipins;
-        ent2poi(tmpEntt,1) = ip1;
-        ent2poi(tmpEntt,2) = ip2;
-        ent2poi(tmpEntt,3) = ip3;
+        // // put together the new triangle
+        // ent2poi(tmpEntt,0) = cav.ipins;
+        // ent2poi(tmpEntt,1) = ip1;
+        // ent2poi(tmpEntt,2) = ip2;
+        // ent2poi(tmpEntt,3) = ip3;
 
-        double qua = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
-        quaCav1 += qua;
-        if (qua > quaMax1) quaMax1 = qua;
+        // double qua = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+        // quaCav1 += qua;
+        // if (qua > quaMax1) quaMax1 = qua;
 
       } // if tdim == 2 else 3
     } // for jj (bnd facets of ienttCav)
   } // for ienttCav
 
-  std::cout << "For initial cavity:" << std::endl;
-  std::cout << "quaCav0 = " << quaCav0 << std::endl;
-  std::cout << "quaCav1 = " << quaCav1 << std::endl;
+  // #ifdef EXTRADEBUG
+  // std::cout << "For initial cavity:" << std::endl;
+  // std::cout << "quaCav0 = " << quaCav0 << std::endl;
+  // std::cout << "quaCav1 = " << quaCav1 << std::endl;
 
-  std::cout << "Attempt now to grow cavity" << std::endl;
+  // std::cout << "Attempt now to grow cavity" << std::endl;
+  // #endif
 
   // now attempt to grow cavity
 

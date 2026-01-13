@@ -675,8 +675,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
               << std::setw(30) << std::setprecision(16) << std::scientific << worstEntt;
       #endif
 
-
-
       #ifdef DIAGNOSIS_QUALALGO
 
       const bool trySmoo = 1;
@@ -707,33 +705,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       // - new/modified entities, with their qualities
       // - deleted entities
 
-      // ----------------------------- //
-      // 1. Smoothing
-      // ----------------------------- //
-
-      ntrySmoothing++;
-
-      double statSmoothing = smoothElement_Ball<MFT>(msh,ientt,handlerTopX,QuaFun::SizeShape,ithrd1,ithrd2);
-
-      if (statSmoothing > 0){
-        smooStreak++;
-        nSuccessSmoothing++;
-        didOperation = true;
-        std::cout << "Successful smoothing in ientt = " << ientt << std::endl;
-        handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
-        #ifdef DIAGNOSIS_QUALALGO
-        statusSmoo = 1;
-        statusIns = 0;
-        statusColl = 0;
-        // goto LOGSTATUS;
-        #else
-        break;
-        #endif
-      }
-
-      // ----------------------------- //
-      //  -- End smoothing --
-      // ----------------------------- //
+      // SMOOTHING GOES HERE
 
       // ----------------------------- //
       // 2. Collapse or Insert
@@ -786,7 +758,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         // just for printing info
         const int ip1 = ent2poi(ientt, lnoed(iedMax,0));
         const int ip2 = ent2poi(ientt, lnoed(iedMax,1));
-        CPRINTF1(" - enact ins ientt = {} ied = {} edg {} {}\n",ientt,iedMax,ip1,ip2);
+        // CPRINTF1(" - enact ins ientt = {} ied = {} edg {} {}\n",ientt,iedMax,ip1,ip2);
 
         EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, iedMax);
         int ierro = insertEdge(msh,insertionSeed,0,false,
@@ -798,7 +770,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           nSuccessInsert++;
           didOperation = true;
           msh.poicstr[cav.ipins] = false;
-          std::cout << "Successful insertion in ientt = " << ientt << ", ied = " << iedMax << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
+          // std::cout << "Successful insertion in ientt = " << ientt << ", ied = " << iedMax << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
           handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
            #ifdef DIAGNOSIS_QUALALGO
           statusSmoo = 0;
@@ -810,7 +782,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           #endif
         }
         else {
-          CPRINTF2(" # longest-edge insertion failed ierro = {}\n", ierro);
+          // CPRINTF2(" # longest-edge insertion failed ierro = {}\n", ierro);
 
           // steiner fallback
           // TODO: for now don't do this.
@@ -881,7 +853,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         // just for printing info
         const int ip1 = ent2poi(ientt, lnoed(iedMin,0));
         const int ip2 = ent2poi(ientt, lnoed(iedMin,1));
-        CPRINTF1(" - enact collapse ientt = {} ied = {} edg {} {}\n",ientt,iedMin,ip1,ip2);
+        // CPRINTF1(" - enact collapse ientt = {} ied = {} edg {} {}\n",ientt,iedMin,ip1,ip2);
 
         int ierro = collapseEdge<MFT>(msh,tdim,ientt,iedMin,0,cav,work,lcaverr,handlerTopX,ithrd1,ithrd2,ithrd3);
 
@@ -889,7 +861,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           smooStreak = 0;
           nSuccessCollapse++;
           didOperation = true;
-          std::cout << "Successful collapse in ientt = " << ientt << ", ied = " << iedMin << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
+          // std::cout << "Successful collapse in ientt = " << ientt << ", ied = " << iedMin << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
           handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
            #ifdef DIAGNOSIS_QUALALGO
           statusSmoo = 0;
@@ -901,7 +873,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           #endif
         }
         else{
-          CPRINTF2(" # shortest-edge collapse failed ierro = {}\n", ierro);
+          // CPRINTF2(" # shortest-edge collapse failed ierro = {}\n", ierro);
         }
 
         // ----------------------------- //
@@ -931,7 +903,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         // just for printing info
         const int ip1 = ent2poi(ientt, lnoed(iedMax,0));
         const int ip2 = ent2poi(ientt, lnoed(iedMax,1));
-        CPRINTF1(" - enact ins ientt = {} ied = {} edg {} {}\n",ientt,iedMax,ip1,ip2);
+        // CPRINTF1(" - enact ins ientt = {} ied = {} edg {} {}\n",ientt,iedMax,ip1,ip2);
 
         EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, iedMax);
         int ierro = insertEdge(msh,insertionSeed,0,false,
@@ -943,7 +915,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           nSuccessInsert++;
           didOperation = true;
           msh.poicstr[cav.ipins] = false;
-          std::cout << "Successful insertion in ientt = " << ientt << ", ied = " << iedMax << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
+          // std::cout << "Successful insertion in ientt = " << ientt << ", ied = " << iedMax << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
           handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
            #ifdef DIAGNOSIS_QUALALGO
           statusSmoo = 0;
@@ -955,7 +927,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           #endif
         }
         else {
-          CPRINTF2(" # longest-edge insertion failed ierro = {}\n", ierro);
+          // CPRINTF2(" # longest-edge insertion failed ierro = {}\n", ierro);
 
           // steiner fallback
           // TODO: for now don't do this.
@@ -1025,7 +997,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         // just for printing info
         const int ip1 = ent2poi(ientt, lnoed(iedMin,0));
         const int ip2 = ent2poi(ientt, lnoed(iedMin,1));
-        CPRINTF1(" - enact collapse ientt = {} ied = {} edg {} {}\n",ientt,iedMin,ip1,ip2);
+        // CPRINTF1(" - enact collapse ientt = {} ied = {} edg {} {}\n",ientt,iedMin,ip1,ip2);
 
         int ierro = collapseEdge<MFT>(msh,tdim,ientt,iedMin,0,cav,work,lcaverr,handlerTopX,ithrd1,ithrd2,ithrd3);
 
@@ -1033,7 +1005,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           smooStreak = 0;
           nSuccessCollapse++;
           didOperation = true;
-          std::cout << "Successful collapse in ientt = " << ientt << ", ied = " << iedMin << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
+          // std::cout << "Successful collapse in ientt = " << ientt << ", ied = " << iedMin << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
           handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
            #ifdef DIAGNOSIS_QUALALGO
           statusSmoo = 0;
@@ -1053,6 +1025,34 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         // ----------------------------- //
       }
 
+      // ----------------------------- //
+      // 1. Smoothing
+      // ----------------------------- //
+
+      ntrySmoothing++;
+
+      double statSmoothing = smoothElement_Ball<MFT>(msh,ientt,handlerTopX,QuaFun::SizeShape,ithrd1,ithrd2);
+
+      if (statSmoothing > 0){
+        smooStreak++;
+        nSuccessSmoothing++;
+        didOperation = true;
+        // std::cout << "Successful smoothing in ientt = " << ientt << std::endl;
+        handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
+        #ifdef DIAGNOSIS_QUALALGO
+        statusSmoo = 1;
+        statusIns = 0;
+        statusColl = 0;
+        // goto LOGSTATUS;
+        #else
+        break;
+        #endif
+      }
+
+      // ----------------------------- //
+      //  -- End smoothing --
+      // ----------------------------- //
+
       #ifdef DIAGNOSIS_QUALALGO
       // LOGSTATUS:
       foutput << std::setw(30) << trySmoo
@@ -1070,7 +1070,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       if (statusSmoo || statusIns || statusColl ) break;
       #endif
     }
-    if (!didOperation || smooStreak >= 2500 || iter >= 50000 ) break;
+    if (!didOperation /* || smooStreak >= 2500 || iter >= 50000 */) break;
   }
 
   std::cout << "iter = " << iter << std::endl;

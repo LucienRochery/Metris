@@ -86,21 +86,21 @@ public:
     deadEntts.reserve(100);
 
 
-    nImpro = 0;
-    std::string alphaFile = "alphaEvolution.txt";
-    falpha.open(alphaFile, std::fstream::out);
-    METRIS_ASSERT_MSG(falpha.good(), "Error opening file: " + alphaFile);
+    // nImpro = 0;
+    // std::string alphaFile = "alphaEvolution.txt";
+    // falpha.open(alphaFile, std::fstream::out);
+    // METRIS_ASSERT_MSG(falpha.good(), "Error opening file: " + alphaFile);
 
-    falpha << std::setw(4) << "nImpro"
-            << std::setw(30) << "alpha"
-            << std::setw(30) << "alphaThreshold = " << alpha
-            << std::endl;
+    // falpha << std::setw(4) << "nImpro"
+    //         << std::setw(30) << "alpha"
+    //         << std::setw(30) << "alphaThreshold = " << alpha
+    //         << std::endl;
 
   }
 
-  #ifdef DIAGNOSIS_QUALALGO
-  ~BadEntHandler() { falpha.close(); }
-  #endif
+  // #ifdef DIAGNOSIS_QUALALGO
+  // ~BadEntHandler() { falpha.close(); }
+  // #endif
   struct EntQual{
     int ientt;            // entity id
     double qentt;         // quality
@@ -367,13 +367,13 @@ public:
 
     // std::cout << "quaNew = " << quaNew << std::endl;
     // std::cout << "quaOld = " << quaOld << std::endl;
-    if (quaNew <= quaOld){
-      nImpro++;
-      double alphaTrue = (1. - quaNew/quaOld)*100.;
-      falpha << std::setw(4) << nImpro
-              << std::setw(30) << std::setprecision(16) << std::scientific << alphaTrue
-              << std::endl;
-    }
+    // if (quaNew <= quaOld){
+    //   nImpro++;
+    //   double alphaTrue = (1. - quaNew/quaOld)*100.;
+    //   falpha << std::setw(4) << nImpro
+    //           << std::setw(30) << std::setprecision(16) << std::scientific << alphaTrue
+    //           << std::endl;
+    // }
     return quaNew <= ((1. - alpha/100.) * quaOld );
   }
 
@@ -413,8 +413,8 @@ private:
   double alpha;                                             // percentage of improvement to consider success
   const int tdim;
 
-  int nImpro;
-  std::fstream falpha;
+  // int nImpro;
+  // std::fstream falpha;
 
 public:
 
