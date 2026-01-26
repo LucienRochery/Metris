@@ -103,6 +103,10 @@ void MetrisRunner::statMesh0(int tdim, MeshStat* stat_){
   }
   #endif
 
+#ifdef OUTPUTTIMEANDUNITINFO
+  if (printUnit) foutputTimeUnit << std::setw(30) << stat.pctunit[tdim-1];
+#endif
+
   if(DOPRINTS1()) stat.print("",param->logFile);
   if(stat_) *stat_ = stat;
 }

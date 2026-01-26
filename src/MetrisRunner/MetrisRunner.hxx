@@ -17,6 +17,8 @@
 #include "fmt/format.h"
 #include "nlohmann/json_fwd.hpp"
 
+#include <fstream>
+// #include <string>
 
 namespace Metris{
 
@@ -116,6 +118,10 @@ private:
 
   int nbpo0;
 
+#ifdef OUTPUTTIMEANDUNITINFO
+  bool printUnit;
+  std::fstream foutputTimeUnit;
+#endif
   //// If an API has been initialized with this runner, we need to let it hard-copy
   //// when we free. Only one is allowed, we can make this an array in the future
   //// if necessary.

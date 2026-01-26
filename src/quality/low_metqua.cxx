@@ -288,7 +288,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                               BOOST_PP_SEQ_ELEM(1, SEQ),\
                               BOOST_PP_SEQ_ELEM(2, SEQ))
 #define MFT_SEQ (MetricFieldFE)(MetricFieldAnalytical)
-#define QUAFUN_SEQ (QuaFun::Distortion)(QuaFun::Unit)(QuaFun::SizeShape)
+#define QUAFUN_SEQ (QuaFun::Distortion)(QuaFun::Unit)(QuaFun::SizeShape)(QuaFun::HackCostFunctional)
 
 
 #define INSTANTIATE(MFT_VAL,QUAFUN,FTYPE)\

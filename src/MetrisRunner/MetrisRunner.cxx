@@ -32,6 +32,9 @@ namespace Metris{
 
 
 MetrisRunner::~MetrisRunner(){
+#ifdef OUTPUTTIMEANDUNITINFO
+  foutputTimeUnit.close();
+#endif
   delete msh_g; // virtual destructor -> calls the appropriate derived one
 }
 
@@ -54,13 +57,13 @@ void MetrisRunner::degElevate0(){
 
   Mesh<MFT> &msh = *( (Mesh<MFT>*) msh_g );
 
-  //if(param_.inpBack) METRIS_THROW_MSG( 
+  //if(param_.inpBack) METRIS_THROW_MSG(
   //  "Degree elevation with input back not implemented");
-  
-  double t1 = get_cpu_time(); 
-  
 
-  int ideg0 = msh.curdeg; 
+  double t1 = get_cpu_time();
+
+
+  int ideg0 = msh.curdeg;
   int nbpo0 = msh.nbpoi;
   int npoi0 = msh.npoin;
 
@@ -68,7 +71,7 @@ void MetrisRunner::degElevate0(){
     CT_FOR0_INC(ideg+1,METRIS_MAX_DEG,tdeg){
       INCVDEPTH(msh.param);
       if(ideg == ideg0 && tdeg == param_.usrTarDeg){
-        CPRINTF1("-- Degree elevation {} -> {} \n",ideg,tdeg);  
+        CPRINTF1("-- Degree elevation {} -> {} \n",ideg,tdeg);
         deg_elevate<MFT,ideg,tdeg>(msh);
       }
     }CT_FOR1(tdeg);
@@ -76,17 +79,17 @@ void MetrisRunner::degElevate0(){
 
   double t1_1 = get_cpu_time();
   CPRINTF1("-- DONE time {:.2e}s\n",t1_1 - t1);
- 
+
 
   CPRINTF1("-- Back metric interpolation back deg = {}\n",bak.curdeg);
-     
+
   CT_FOR0_INC(1,METRIS_MAX_DEG,bdeg){if(bak.curdeg == bdeg){
     // It's Lagrange nodes that should be localized.
     msh.setBasis(FEBasis::Lagrange);
     interpFrontBack<MFT,bdeg>(msh,bak,npoi0);
   }}CT_FOR1(bdeg);
   double t1_2 = get_cpu_time();
-  
+
 
   CPRINTF1("-- DONE time {:.2e}s\n",t1_2-t1_1);
   if(DOPRINTS2()) writeMesh("interpBack",msh);
@@ -178,7 +181,7 @@ void MetrisRunner::degElevate0(){
 
 
   // However both the optimizer (n order to use d_ccoef) and BezOffsets need
-  // Bézier 
+  // Bézier
   msh.setBasis(FEBasis::Bezier);
 
   if(param_.curveType > 0){
@@ -257,14 +260,14 @@ void MetrisRunner::degElevate0(){
       for(int ipoin = npoi0; ipoin < msh.npoin; ipoin++){
         if(msh.poi2tag(ithread,ipoin) < msh.tag[ithread]) continue;
         for(int ii = 0; ii < msh.idim; ii++)
-          msh.coord(ipoin,ii) = qbktr*msh.coord(ipoin,ii) 
+          msh.coord(ipoin,ii) = qbktr*msh.coord(ipoin,ii)
                               + (1.0 - qbktr)*coor0(ipoin-npoi0,ii) ;
       }
     }else{
       for(int ipoin = npoi0; ipoin < msh.npoin; ipoin++){
         if(msh.poi2tag(ithread,ipoin) < msh.tag[ithread]) continue;
         for(int ii = 0; ii < msh.idim; ii++)
-          msh.coord(ipoin,ii) = qbktr*msh.coord(ipoin,ii) 
+          msh.coord(ipoin,ii) = qbktr*msh.coord(ipoin,ii)
                               + (1.0 - qbktr)*coor0(ipoin,ii) ;
       }
     }
@@ -328,7 +331,7 @@ void MetrisRunner::degElevate0(){
 
     intAr1 idx_point(msh.npoin);
     idx_point.set_n(msh.npoin);
-    int npopt = 0; 
+    int npopt = 0;
 
     if(idofs == OptDoF::HO){
 
@@ -347,11 +350,11 @@ void MetrisRunner::degElevate0(){
         if(ibpoi >= 0){
           int itype = msh.bpo2ibi(ibpoi,1);
           if(itype == 0) continue;
-          if(ipoin < npoi0) continue; 
+          if(ipoin < npoi0) continue;
         }
         idx_point[ipoin] = npopt;
 
-        // ipoin >= npopt always 
+        // ipoin >= npopt always
         for(int ii = 0; ii < msh.idim; ii++)
           coor0(npopt,ii) = coor0(ipoin,ii);
         npopt++;
@@ -366,7 +369,7 @@ void MetrisRunner::degElevate0(){
                    || idofs == OptDoF::Full);
 
       CT_FOR0_INC(2,3,idim){if(idim == msh.idim){
-        bezGapsLP<idim, idim, ideg>(msh, idx_point, coor0, 
+        bezGapsLP<idim, idim, ideg>(msh, idx_point, coor0,
                                     LPMethod::IPM, LPLib::alglib);
       }}CT_FOR1(idim);
     }}CT_FOR1(ideg);
@@ -383,7 +386,7 @@ void MetrisRunner::degElevate0(){
       double min_ccoef = maximizeCcoef<2,2,2>(msh,OptDoF::HO, LPMethod::IPM, LPLib::alglib);
       // double min_ccoef = maximizeCcoef<2>(msh,OptDoF::HO, LPMethod::IPM);
       if(min_ccoef >= jtol) break;
-      // faces if surface 
+      // faces if surface
       for(int iedge = 0; iedge < msh.nedge; iedge++){
         if(isdeadent(iedge,msh.edg2poi)) continue;
         int ipoi1 = msh.edg2poi(iedge,0);
@@ -407,7 +410,7 @@ void MetrisRunner::degElevate0(){
     msh.setBasis(ibas0);
   }
 
-  double t2 = get_cpu_time(); 
+  double t2 = get_cpu_time();
   CPRINTF1("-- Degree elevation time = {:.2e}s\n",t2-t1);
 }
 

@@ -43,7 +43,7 @@ template<class MFT, int gdim, int ideg>
 double MetrisRunner::optimMesh0(){
   GETVDEPTH(this->param);
   Mesh<MFT> &msh = static_cast<Mesh<MFT>&>(*msh_g);
-  CPRINTF2("-- START optimMesh\n");
+  CPRINTF1("-- START optimMesh\n");
 
 
   if(param->anaSol && param->smoo_type == 1){
@@ -108,8 +108,13 @@ double MetrisRunner::optimMesh0(){
     //getLengthEdges(msh,msh.get_tdim(),-1,ilned,rlned,lenstat);
     //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
 
+    #ifdef TESTQUALITYALGO
+    getmetquamesh<MFT,QuaFun::SizeShape>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,
+                      &iinva,&qmin,&qmax,&qavg,&lquae);
+    #else
     getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,
                       &iinva,&qmin,&qmax,&qavg,&lquae);
+    #endif
     if(DOPRINTS2()){
       print_histogram(msh,lquae,IntrpTyp::Geometric,dum,"q","Element quality (As Pk)");
     }else{
@@ -187,8 +192,13 @@ double MetrisRunner::optimMesh0(){
         CPRINTF1("------------------------------------------------------------\n");
         CPRINTF1("- iteration {} smooth ball stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
         CPRINTF1("------------------------------------------------------------\n");
+        #ifdef TESTQUALITYALGO
+        getmetquamesh<MFT,QuaFun::SizeShape>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
+                           &iinva,&qmin,&qmax,&qavg,NULL);
+        #else
         getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                            &iinva,&qmin,&qmax,&qavg,NULL);
+        #endif
         CPRINTF1(" - Quality min = {:15.7e} \n",qmin);
         CPRINTF1("           max = {:15.7e} \n",qmax);
         CPRINTF1("           avg = {:15.7e} \n",qavg);
@@ -262,8 +272,13 @@ double MetrisRunner::optimMesh0(){
       CPRINTF1("------------------------------------------------------------\n");
       CPRINTF1("- iteration {} swaps stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
       CPRINTF1("------------------------------------------------------------\n");
+      #ifdef TESTQUALITYALGO
+      getmetquamesh<MFT,QuaFun::SizeShape>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
+                           &iinva,&qmin,&qmax,&qavg,NULL);
+      #else
       getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                            &iinva,&qmin,&qmax,&qavg,NULL);
+      #endif
       CPRINTF1(" - Quality min = {:15.7e} \n",qmin);
       CPRINTF1("           max = {:15.7e} \n",qmax);
       CPRINTF1("           avg = {:15.7e} \n",qavg);

@@ -312,6 +312,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
 
 
     #ifndef USE_LPLIB_SMOOTHINTERIOR
+    std::cout << "npoin = " << msh.npoin << std::endl;
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
       if(msh.isdeadpoint(ipoin)) continue;
       if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
@@ -372,6 +373,15 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
       double met0[nnmet];
       for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
       for(int ii = 0; ii < nnmet; ii++) met0[ii] = msh.met(ipoin,ii);
+
+      // std::cout << "printing qualities of elements in ball BEFORE smoobaldiff" << std::endl;
+
+      // for (int ieleInBall : lball){
+
+      //   double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ieleInBall,difto);
+      //   std::cout << "ele = " << ieleInBall << " q = " << quael << std::endl;
+      // }
+
       double qnrm0, qmax0, qnrm1, qmax1;
       try{
         //ierro = smooballdirect<MFT,idim,ideg>(msh,ipoin,lball,qball,
@@ -401,6 +411,26 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         CPRINTF1(" - success smoothing {} q avg {:10.6e} -> {:10.6e} "
                  "max {:10.6e} -> {:10.6e}\n",ipoin,qnrm0,qnrm1,qmax0,qmax1);
 
+        // std::cout << " - success smoothing ip = " << ipoin << " q avg " << qnrm0 << " -> " << qnrm1 << " qmax " << qmax0 << " -> " << qmax1 << std::endl;
+
+        // std::cout << "printing qualities of elements in ball AFTER success smoobaldiff" << std::endl;
+
+        // for (int ieleInBall : lball){
+
+        //   double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ieleInBall,difto);
+        //   std::cout << "ele = " << ieleInBall << " q = " << quael << std::endl;
+        // }
+
+        // double maxdx = 0.0;
+        // for(int ii=0; ii<idim; ++ii) maxdx = MAX(maxdx, fabs(msh.coord(ipoin,ii) - coor0[ii]));
+        // double maxdm = 0.0;
+        // for(int ii=0; ii<nnmet; ++ii) maxdm = MAX(maxdm, fabs(msh.met(ipoin,ii) - met0[ii]));
+        // std::cout << "ip = " << ipoin
+        //           << ", max|dx| = " << maxdx
+        //           << ", max|dmet| = " << maxdm << "\n";
+
+        // std::cout << "ip = " << ipoin << " dqavg = " << qnrm0-qnrm1 << " dqmax = " << qmax0-qmax1 << " tolavg = " << tolavg << " tolmax = " << tolmax << std::endl;
+
         bool imov = false;
         // qnrm1 should be < qnrm0 for there to be progress
         if(qnrm0 - qnrm1 > tolavg) imov = true;
@@ -428,6 +458,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
     CPRINTF1(" - Iteration end time = {:.2e}s nsuccess = {} nmov = {} \n",
                           t1-t0,nsucc,nmov);
     noper += nmov;
+
     if(nmov == 0) break;
   } // end for niter
 

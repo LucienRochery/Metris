@@ -2391,7 +2391,10 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
           int ieneinei = ent2ent(ienei,kk); // fetch neighbor of ienei
 
-          if(ieneinei < 0) continue; // Non manifold skip
+          if(ieneinei < 0){
+            ieneiOutsideFacet = kk;
+            continue; // Non manifold skip
+          }
 
           // if neighbor tagged means it belongs to cavity so increment count
           if(ent2tag(ithread,ieneinei) >= msh.tag[ithread]){

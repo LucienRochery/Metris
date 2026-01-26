@@ -93,7 +93,7 @@ double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
 #define EXPAND_TEMPLATE(r, SEQ) \
   INSTANTIATE(BOOST_PP_SEQ_ELEM(0, SEQ), BOOST_PP_SEQ_ELEM(1, SEQ))
 #define MFT_SEQ    (MetricFieldFE)(MetricFieldAnalytical)
-#define QUAFUN_SEQ (QuaFun::Distortion)(QuaFun::Unit)(QuaFun::SizeShape)
+#define QUAFUN_SEQ (QuaFun::Distortion)(QuaFun::Unit)(QuaFun::SizeShape)(QuaFun::HackCostFunctional)
 
 #define INSTANTIATE(MFT_VAL, QUAFUN_VAL) \
 template double getmetquamesh< MFT_VAL , QUAFUN_VAL >( \

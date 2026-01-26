@@ -16,7 +16,7 @@
 namespace Metris{
 
 
-MetrisRunner::MetrisRunner(int argc, char** argv) : 
+MetrisRunner::MetrisRunner(int argc, char** argv) :
 opt(argc,argv),
 param_(opt),
 param(&param_){
@@ -32,8 +32,8 @@ param(&param_){
   constructorCommon(NULL,NULL);
 }
 
-MetrisRunner::MetrisRunner(MetrisAPI *data_front, MetrisAPI *data_back, 
-                           MetrisParameters &param__): 
+MetrisRunner::MetrisRunner(MetrisAPI *data_front, MetrisAPI *data_back,
+                           MetrisParameters &param__):
 opt(),
 param_(param__),
 param(&param_){
@@ -119,13 +119,13 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
     MPRINTF("              OCC revision: {}\n\n",OCCrev);
     MPRINTF("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
   }
-  
+
   if(data_front == NULL && data_back == NULL && !param_.inpBack && !param_.inpMesh) METRIS_THROW_MSG(
     "No meshes provided either through data or files");
 
   if(data_back == NULL && !param_.inpBack){
     if(data_front){
-      data_back = data_front; 
+      data_back = data_front;
       data_front = NULL;
     }
   }
@@ -143,15 +143,31 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
     iniMetris<MetricFieldFE        >(data_front,data_back);
   }
 
-  if(param_.dbgfull) 
+  if(param_.dbgfull)
     check_topo(*msh_g, msh_g->nbpoi, msh_g->npoin, msh_g->nedge, msh_g->nface, msh_g->nelem,0);
+
+#ifdef OUTPUTTIMEANDUNITINFO
+  printUnit = false;
+  std::string outputTimeUnitFile = "timeAndUnitInfo.txt";
+  bool fileExists = std::filesystem::exists(outputTimeUnitFile);
+
+  foutputTimeUnit.open(outputTimeUnitFile, std::ios::app);
+  METRIS_ASSERT_MSG(foutputTimeUnit.good(), "Error opening file: " + outputTimeUnitFile);
+
+  if (!fileExists){
+
+    foutputTimeUnit << std::setw(30) << "Unit %"
+                    << std::setw(30) << "Time (s)"
+                    << std::endl;
+  }
+#endif
 }
 
 
 
 template<class MetricFieldType>
 void MetrisRunner::iniMetris(MetrisAPI *data_front, MetrisAPI *data_back){
-  
+
   Mesh<MetricFieldType> &msh = *( (Mesh<MetricFieldType>*) msh_g);
 
   //int idim = 0;
@@ -182,7 +198,7 @@ void MetrisRunner::iniMetris(MetrisAPI *data_front, MetrisAPI *data_back){
   msh.met.setBasis(FEBasis::Lagrange);
 
   if(param_.dbgfull) check_topo(msh,0);
-  
+
 
   //set_array_debugids<MetricFieldType>();
 }

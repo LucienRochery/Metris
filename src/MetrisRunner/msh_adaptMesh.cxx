@@ -636,6 +636,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
     for (auto itK = handlerTopX.K.begin(); itK != handlerTopX.K.end(); itK++){
 
       const int ientt = itK->ientt;
+      const double quaent = itK->qentt;
 
       iter++;
       #ifdef DIAGNOSIS_QUALALGO
@@ -705,7 +706,33 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       // - new/modified entities, with their qualities
       // - deleted entities
 
-      // SMOOTHING GOES HERE
+      // // ----------------------------- //
+      // // 1. Smoothing
+      // // ----------------------------- //
+
+      // ntrySmoothing++;
+
+      // double statSmoothing = smoothElement_Ball<MFT>(msh,ientt,handlerTopX,QuaFun::SizeShape,ithrd1,ithrd2);
+
+      // if (statSmoothing > 0){
+      //   smooStreak++;
+      //   nSuccessSmoothing++;
+      //   didOperation = true;
+      //   // std::cout << "Successful smoothing in ientt = " << ientt << std::endl;
+      //   handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
+      //   #ifdef DIAGNOSIS_QUALALGO
+      //   statusSmoo = 1;
+      //   statusIns = 0;
+      //   statusColl = 0;
+      //   // goto LOGSTATUS;
+      //   #else
+      //   break;
+      //   #endif
+      // }
+
+      // // ----------------------------- //
+      // //  -- End smoothing --
+      // // ----------------------------- //
 
       // ----------------------------- //
       // 2. Collapse or Insert
@@ -1028,27 +1055,27 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       // ----------------------------- //
       // 1. Smoothing
       // ----------------------------- //
+      if (quaent < .0025){
+        ntrySmoothing++;
 
-      ntrySmoothing++;
+        double statSmoothing = smoothElement_Ball<MFT>(msh,ientt,handlerTopX,QuaFun::SizeShape,ithrd1,ithrd2);
 
-      double statSmoothing = smoothElement_Ball<MFT>(msh,ientt,handlerTopX,QuaFun::SizeShape,ithrd1,ithrd2);
-
-      if (statSmoothing > 0){
-        smooStreak++;
-        nSuccessSmoothing++;
-        didOperation = true;
-        // std::cout << "Successful smoothing in ientt = " << ientt << std::endl;
-        handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
-        #ifdef DIAGNOSIS_QUALALGO
-        statusSmoo = 1;
-        statusIns = 0;
-        statusColl = 0;
-        // goto LOGSTATUS;
-        #else
-        break;
-        #endif
+        if (statSmoothing > 0){
+          smooStreak++;
+          nSuccessSmoothing++;
+          didOperation = true;
+          // std::cout << "Successful smoothing in ientt = " << ientt << std::endl;
+          handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
+          #ifdef DIAGNOSIS_QUALALGO
+          statusSmoo = 1;
+          statusIns = 0;
+          statusColl = 0;
+          // goto LOGSTATUS;
+          #else
+          break;
+          #endif
+        }
       }
-
       // ----------------------------- //
       //  -- End smoothing --
       // ----------------------------- //
@@ -1078,6 +1105,25 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   std::cout << "-- ntrySmoothing = " << ntrySmoothing << ",  nSuccessSmoothing = " << nSuccessSmoothing << std::endl;
   std::cout << "-- ntryInsert = " << ntryInsert << ",  nSuccessInsert = " << nSuccessInsert << std::endl;
   std::cout << "-- ntryCollapse = " << ntryCollapse << ",  nSuccessCollapse = " << nSuccessCollapse << std::endl;
+
+  // writeMesh("meshBeforeOptLoop.meshb",msh);
+
+  // // final number of elements
+  // const int nenttf = msh.nentt(tdim);
+
+  // // initial quality array
+  // bool iinvaf = false; double qminf = 0, qmaxf = 0, qavgf = 0;
+  // dblAr1 lquaef(nenttf);
+
+  // // initial quality computation
+  // getmetquamesh<MFT, QuaFun::HackCostFunctional>(msh,tdim,AsDeg::P1,AsDeg::P1,&iinvaf,&qminf,&qmaxf,&qavgf,&lquaef);
+
+  // double cost = 0;
+  // for (int ii = 0; ii < nenttf; ii++){
+  //   if (!isdeadent(ii,ent2poi)) cost += lquaef[ii];
+  // }
+
+  // std::cout << "Cost = " << cost << std::endl;
 
   #ifdef DIAGNOSIS_QUALALGO
   foutput.close();

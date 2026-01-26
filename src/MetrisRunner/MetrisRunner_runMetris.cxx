@@ -59,7 +59,7 @@ void MetrisRunner::runMetris(){
       if(param->smoo_type == 0){
         optimMesh();
       }
-      
+
       if(param->dbgfull) check_topo(*msh_g,0);
     }
 
@@ -70,7 +70,7 @@ void MetrisRunner::runMetris(){
     //}
     writeOutputs();
 
-
+    printUnit = true;
     if(DOPRINTS1()) statMesh();
 
     //#ifdef METRIS_USE_PETSC
@@ -92,6 +92,12 @@ void MetrisRunner::runMetris(){
   }
 
   t1 = get_cpu_time();
+
+#ifdef OUTPUTTIMEANDUNITINFO
+  foutputTimeUnit << std::setw(30) << t1-t0
+                  << std::endl;
+#endif
+
   MPRINTF("\n-- END Metris total runtime {:.2e}s\n",t1-t0);
 
 }
