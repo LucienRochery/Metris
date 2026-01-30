@@ -10,7 +10,6 @@
 #include "quafun_distortion.hxx"
 #include "quafun_unit.hxx"
 #include "quafun_sizeshape.hxx"
-#include "quafun_hackCostFunctional.hxx"
 
 #include "../metris_constants.hxx"
 #include "../aux_exceptions.hxx"
@@ -24,7 +23,7 @@ namespace Metris{
   // Distortion has additionally a normal deviation penalization term.
   // Weights are given by
 
-  enum class QuaFun{Distortion,Unit,SizeShape,HackCostFunctional};
+  enum class QuaFun{Distortion,Unit,SizeShape};
 
   template<class MFT, int gdim, int tdim,
            QuaFun iquaf, class ftype=double>
@@ -35,8 +34,6 @@ namespace Metris{
       return quafun_unit<MFT,gdim,tdim,ftype>;
     }else if(iquaf == QuaFun::SizeShape){
       return quafun_sizeshape<MFT,gdim,tdim,ftype>;
-    }else if(iquaf == QuaFun::HackCostFunctional){
-      return quafun_hackCostFunctional<MFT,gdim,tdim,ftype>;
     }else{
       METRIS_THROW_MSG("TODO: Implement QuaFun in get_quafun_xi");
     }

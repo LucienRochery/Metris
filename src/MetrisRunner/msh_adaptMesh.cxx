@@ -1093,23 +1093,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
   writeMesh("meshBeforeOptLoop.meshb",msh);
 
-  // // final number of elements
-  // const int nenttf = msh.nentt(tdim);
-
-  // // initial quality array
-  // bool iinvaf = false; double qminf = 0, qmaxf = 0, qavgf = 0;
-  // dblAr1 lquaef(nenttf);
-
-  // // initial quality computation
-  // getmetquamesh<MFT, QuaFun::HackCostFunctional>(msh,tdim,AsDeg::P1,AsDeg::P1,&iinvaf,&qminf,&qmaxf,&qavgf,&lquaef);
-
-  // double cost = 0;
-  // for (int ii = 0; ii < nenttf; ii++){
-  //   if (!isdeadent(ii,ent2poi)) cost += lquaef[ii];
-  // }
-
-  // std::cout << "Cost = " << cost << std::endl;
-
   #ifdef DIAGNOSIS_QUALALGO
   foutput.close();
   #endif
