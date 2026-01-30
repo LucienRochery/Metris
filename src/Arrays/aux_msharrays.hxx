@@ -37,7 +37,7 @@
 #include <limits>
 
 /*
-  Rewriting array classes. See docs/Arrays for preliminary benchmarks and explanations. 
+  Rewriting array classes. See docs/Arrays for preliminary benchmarks and explanations.
   Classes are templated to allow either an underlying type T*, or shared_ptr<T[]>
 */
 
@@ -48,10 +48,10 @@ template<typename T, typename INT1, typename INT2> class MeshArray2D;
 template<typename T, typename INT1> class MeshArray1D;
 
 // remove_extent strips [] from T[], yielding T
-// this is to avoid having to write cpp17_make_shared<T> 
-// instead of expected T[] as in make_shared syntax and avoid future bugs. 
-template<typename TT, typename INT1> 
-std::shared_ptr<TT> 
+// this is to avoid having to write cpp17_make_shared<T>
+// instead of expected T[] as in make_shared syntax and avoid future bugs.
+template<typename TT, typename INT1>
+std::shared_ptr<TT>
 cpp17_make_shared(INT1 m){
   using T = typename std::remove_extent<TT>::type;
   std::shared_ptr<T[]> dum(new T[m], [](T* pp) {delete[] pp;});
@@ -81,7 +81,7 @@ public:
     if(is_range) return i1;
     else         return 0;
   }
-  
+
   INT1 end(){
     if(is_range) return i2;
     else         return arr->get_n();
@@ -130,7 +130,7 @@ public:
   MeshArray1D();
   MeshArray1D(INT1 m);
 
-  // Dangerous: unamanaged memory. The caller is responsible. 
+  // Dangerous: unamanaged memory. The caller is responsible.
   MeshArray1D(INT1 n,       T *a);
   MeshArray1D(INT1 n, const T *a);
 
@@ -138,7 +138,7 @@ public:
   // Integer type requirement is that INT1 be larger or equal to max INT1_2, INT2_2
   // e.g. int32, int64 -> int64
   // i.e. of the type of INTL in MeshArray2D
-  // This has proven difficult to instantiate so it is implemented here. 
+  // This has proven difficult to instantiate so it is implemented here.
   template<typename INT1_2, typename INT2_2>
   MeshArray1D(MeshArray2D<T,INT1_2,INT2_2> &arr2){
     using INTL = typename MeshArray2D<T,INT1_2,INT2_2>::INTL;
@@ -153,7 +153,7 @@ public:
 
     array_sp = arr2.get_sp();
     array    = array_sp.get();
-    array_ro = array; 
+    array_ro = array;
   }
 
 
@@ -168,7 +168,7 @@ public:
   // Set n > 0 to copy first n elements and set n1 = n.
   bool allocate(INT1 m);
   void set_n(INT1 n){
-    METRIS_ASSERT(n >= 0); 
+    METRIS_ASSERT(n >= 0);
     this->allocate(n);
     n1 = n;
   }
@@ -186,9 +186,9 @@ public:
   ~MeshArray1D();
 
   // Soft copy: copies pointer and sizes and frees self.
-  MeshArray1D<T,INT1>& operator=(const MeshArray1D &cpy); 
-  MeshArray1D<T,INT1>& operator=(MeshArray1D &&mve); 
-  
+  MeshArray1D<T,INT1>& operator=(const MeshArray1D &cpy);
+  MeshArray1D<T,INT1>& operator=(MeshArray1D &&mve);
+
 
   void print(INT1 n, FILE* logfile = stdout) const;
   void print(FILE* logfile = stdout) const;
@@ -201,14 +201,14 @@ public:
   inline INT1 size1() const {return m1;}
 
   ALWAYS_INLINE T &operator[](const INT1 &i){
-    METRIS_ASSERT_MSG(i >= 0 && i < n1, 
-      "Array1D out of bounds (1) i = {} >= N = {} addr {} m1 = {}", 
+    METRIS_ASSERT_MSG(i >= 0 && i < n1,
+      "Array1D out of bounds (1) i = {} >= N = {} addr {} m1 = {}",
       i, n1, (void*) array, m1);
     return array[i];
   }
   ALWAYS_INLINE const T &operator[](const INT1 &i) const {
-    METRIS_ASSERT_MSG(i >= 0 && i < n1, 
-      "Array1D out of bounds (2) i = {} >= N = {} addr {} m1 = {}", 
+    METRIS_ASSERT_MSG(i >= 0 && i < n1,
+      "Array1D out of bounds (2) i = {} >= N = {} addr {} m1 = {}",
       i, n1, (void*) array, m1);
     return array_ro[i];
   }
@@ -219,7 +219,7 @@ public:
   const std::shared_ptr<T[]>& get_sp() const {return array_sp;}
         std::shared_ptr<T[]>& get_sp()       {return array_sp;}
 
-  template<class AA> 
+  template<class AA>
   class iterator{
   public:
     iterator(AA &arr_,INT1 idx_) : arr(arr_), idx(idx_){}
@@ -228,21 +228,21 @@ public:
     }
 
     typename std::conditional<std::is_const<AA>::value, const T&, T&>::type
-    operator* () { 
+    operator* () {
       return arr[idx];
-    } 
-    const T& operator* () const { 
+    }
+    const T& operator* () const {
       return arr[idx];
-    } 
+    }
 
-    const iterator& operator++(){ 
-      ++idx; 
-      return *this; 
-    } 
+    const iterator& operator++(){
+      ++idx;
+      return *this;
+    }
 
   private:
     AA &arr;
-    INT1 idx; 
+    INT1 idx;
   };
 
   using iterator_mutbl = iterator<MeshArray1D<T,INT1>>;
@@ -282,18 +282,18 @@ public:
                                            INT1, INT2>::type ;
 
   MeshArray2D();
-  MeshArray2D(INT1 m, INT2 s); 
-  //MeshArray2D(INT2 s, const std::initializer_list<T> & list); 
+  MeshArray2D(INT1 m, INT2 s);
+  //MeshArray2D(INT2 s, const std::initializer_list<T> & list);
 
-  // Dangerous: unamanaged memory. The caller is responsible. 
-  MeshArray2D(INT1 n, INT2 s, const T* ar); 
+  // Dangerous: unamanaged memory. The caller is responsible.
+  MeshArray2D(INT1 n, INT2 s, const T* ar);
   MeshArray2D(INT1 n, INT2 s, T* ar);
 
   MeshArray2D(const MeshArray2D &cpy);
   MeshArray2D(MeshArray2D &&cpy);
 
-  // Reallocates to different major size and stride, copying old info. 
-  // If the new stride is smaller, then the old data is truncated 
+  // Reallocates to different major size and stride, copying old info.
+  // If the new stride is smaller, then the old data is truncated
   bool allocate(INT1 m, INT2 s);
   void free();
 
@@ -322,8 +322,8 @@ public:
   ~MeshArray2D();
 
   MeshArray2D<T,INT1,INT2>& operator=(const std::initializer_list<T> & list);
-  MeshArray2D<T,INT1,INT2>& operator=(const MeshArray2D &cpy); 
-  MeshArray2D<T,INT1,INT2>& operator=(MeshArray2D &&cpy); 
+  MeshArray2D<T,INT1,INT2>& operator=(const MeshArray2D &cpy);
+  MeshArray2D<T,INT1,INT2>& operator=(MeshArray2D &&cpy);
 
   ALWAYS_INLINE T* operator[](INT1 i){
     METRIS_ASSERT_MSG(i >= 0 && i < n1, "i out of bounds i = {} n = {} m = {}", i, n1, m1);
@@ -340,8 +340,8 @@ public:
     return array[i*stride + j];
   }
   ALWAYS_INLINE const T& operator()(INT1 i, INT2 j) const{
-    METRIS_ASSERT_MSG(i >= 0 && i < n1, "i = {} out of bounds n = {}", i, n1);
-    METRIS_ASSERT_MSG(j >= 0 && j < stride, "j = {} out of bounds n = {}", j, stride);
+    // METRIS_ASSERT_MSG(i >= 0 && i < n1, "i = {} out of bounds n = {}", i, n1);
+    // METRIS_ASSERT_MSG(j >= 0 && j < stride, "j = {} out of bounds n = {}", j, stride);
     return array_ro[i*stride + j];
   }
 
@@ -362,11 +362,11 @@ public:
   inline INT2 size2() const {return stride;}
 
 protected:
-  INT2 stride; 
+  INT2 stride;
   //int64_t nmemalc;
-  INT1 m1, n1; 
-  // Largest of both types 
-  INTL nmemalc;   
+  INT1 m1, n1;
+  // Largest of both types
+  INTL nmemalc;
   std::shared_ptr<T[]> array_sp;
   T* array;
   const T* array_ro;
@@ -385,10 +385,10 @@ public:
     s2      = 0;
     array   = NULL;
     iowner  = false;
-    dbgid   = 0; 
+    dbgid   = 0;
   }
   MeshArray3D(int n,int s1_,int s2_){
-    dbgid   = 0; 
+    dbgid   = 0;
     METRIS_ASSERT(n >= 0 && s1_ > 0 && s2_ >= 0);
     s1  = s1_;
     s2  = s2_;
@@ -399,7 +399,7 @@ public:
   }
 
   MeshArray3D(int n,int s1_,int s2_, T* buff){
-    dbgid   = 0; 
+    dbgid   = 0;
     METRIS_ASSERT(n >= 0 && s1_ > 0 && s2_ >= 0);
     s1  = s1_;
     s2  = s2_;
@@ -410,7 +410,7 @@ public:
   }
 
   MeshArray3D(int s1_, int s2_,const std::initializer_list<T> & list){
-    dbgid   = 0; 
+    dbgid   = 0;
     METRIS_ASSERT(s1_ > 0 && s2_ > 0);
     METRIS_ASSERT(list.size()%(s2_*s1_) == 0);
 
@@ -425,7 +425,7 @@ public:
   }
 
   MeshArray3D(const MeshArray3D &cpy){
-    dbgid   = 0; 
+    dbgid   = 0;
     iowner = false;
     array  = cpy.array;
     nmemalc= cpy.nmemalc;
@@ -435,7 +435,7 @@ public:
 
 //  The only difference is we take control of the array.
   MeshArray3D(MeshArray3D &&cpy){
-    dbgid   = 0; 
+    dbgid   = 0;
     iowner = true;
     cpy.iowner = false;
     array  = cpy.array;
@@ -478,7 +478,7 @@ public:
   void fill(T x){
     for(int i = 0;i < nmemalc; i++) array[i] = x;
   }
-  
+
 
   void print(int n) const {
     int m = n < (nmemalc/s1/s2) ? n : (nmemalc/s1/s2);
@@ -509,7 +509,7 @@ public:
 
 //    inline       T &operator[](int i)       {return array[i*stride];}
 //    inline const T &operator[](int i) const {return array[i*stride];}
-  
+
   MeshArray3D<T>& operator=(const std::initializer_list<T> & list){
     METRIS_ASSERT(list.size()%(s1*s2) == 0)
     METRIS_ASSERT(list.size() <= nmemalc)
@@ -520,17 +520,17 @@ public:
 
 //    operator T*() const{return array;}
   inline  T &operator()(int i, int j, int k) {
-    return array[i*s1*s2 + j*s2 + k]; 
+    return array[i*s1*s2 + j*s2 + k];
   }
   inline const T &operator()(int i, int j, int k) const {
-    return array[i*s1*s2 + j*s2 + k]; 
+    return array[i*s1*s2 + j*s2 + k];
   }
 //    inline const T &operator()(int i,int j) {
 //        #ifdef OURDEBUG
 //            if(j >= stride) throw std::invalid_argument("INDEX LARGER THAN STRIDE !");
 //            if(i*stride + j >= nmemalc) throw std::invalid_argument("INDEX LARGER THAN SIZE !");
 //        #endif
-//        return array[i*stride + j]; 
+//        return array[i*stride + j];
 //    }
 
 //    inline int get_s1() const {return s1;}

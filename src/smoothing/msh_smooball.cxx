@@ -312,6 +312,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
 
 
     #ifndef USE_LPLIB_SMOOTHINTERIOR
+    // msh.cleanup();
     std::cout << "npoin = " << msh.npoin << std::endl;
     for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
       if(msh.isdeadpoint(ipoin)) continue;

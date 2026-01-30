@@ -63,10 +63,14 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
   // Relative decrease tolerance
   const double ftol = 1.0e-2;
+  // const double ftol = 1.0e-3;
 
   newton_drivertype_args<idim> nargs(msh.param);
+  #ifdef TESTQUALITYALGO
+  nargs.stpmin = 1.;
+  #else
   nargs.stpmin = 1.0e-6;
-  // nargs.stpmin = 1.;
+  #endif
   nargs.wlfc1 = 0.1;
   nargs.wlfc2 = 10.0;
   nargs.ratnew= 0.5;

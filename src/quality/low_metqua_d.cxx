@@ -217,7 +217,21 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     isvalideltP1<gdim,tdim>(msh,ientt,NULL,&meas);
     W = meas;
     #ifdef INTQUALINRIEMSPACE
-    W *= sqrt(met[0]*met[2] - met[1]*met[1]);
+    if (tdim == 2){
+      W *= sqrt(met[0]*met[2] - met[1]*met[1]);
+    }else {
+      const double m11 = met[0];
+      const double m12 = met[1];
+      const double m22 = met[2];
+      const double m13 = met[3];
+      const double m23 = met[4];
+      const double m33 = met[5];
+
+      W *= sqrt(
+        m11*(m22*m33 - m23*m23)
+      - m12*(m12*m33 - m13*m23)
+      + m13*(m12*m23 - m13*m22) );
+    }
     #endif
     #else
     if(pnorm == 2){

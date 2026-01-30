@@ -12,9 +12,9 @@
 
 #include <cmath>
 
-// Allowed prototype: 
+// Allowed prototype:
 //  void (*anamet)(void* ctx, double x, double y, double z, int idif1, double *met, double *dmet);
-// Met stored 1 2 4  
+// Met stored 1 2 4
 //              3 5
 //                6
 // Dmet [i][j] = d_i M_j
@@ -23,7 +23,7 @@ namespace Metris{
 
 
 void anamet3D_1([[maybe_unused]] const AnaMetCtx* ctx, [[maybe_unused]] const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
-  // Not too coarse at the scale of 1  
+  // Not too coarse at the scale of 1
   double h0 = 0.05;
 
   met[0] = 1/(h0*h0*scale*scale);
@@ -42,10 +42,8 @@ void anamet3D_1([[maybe_unused]] const AnaMetCtx* ctx, [[maybe_unused]] const do
   }
 }
 
-
-
 /*
-Sinusoidal BL cf "HIGH-ORDER METRIC INTERPOLATION FOR CURVED R-ADAPTION BY DISTORTION MINIMIZATION" 
+Sinusoidal BL cf "HIGH-ORDER METRIC INTERPOLATION FOR CURVED R-ADAPTION BY DISTORTION MINIMIZATION"
 Guillermo Aparicio-Estrems Abel Gargallo-Peiro Xevi Roca
 */
 void anamet3D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
@@ -86,17 +84,17 @@ void anamet3D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   SANS::SurrealS<3,double> d3phi3 = 10.0/(100.0 + 8.0*pi*pi);
 
   eigvec[0][0] = 1;
-  eigvec[0][1] = 0; 
-  eigvec[0][2] = 0; 
+  eigvec[0][1] = 0;
+  eigvec[0][2] = 0;
 
   eigvec[1][0] = 0;
-  eigvec[1][1] = 1; 
-  eigvec[1][2] = 0; 
+  eigvec[1][1] = 1;
+  eigvec[1][2] = 0;
 
   SANS::SurrealS<3,double> nrm = d1phi3*d1phi3
                                + d2phi3*d2phi3
                                + d3phi3*d3phi3;
-  
+
   //std::cout<<"norm"<<nrm<<"\n";
   //for(int idif = 0; idif < 3; idif++){
   //  printf("d{} phi\n",idif);
@@ -165,7 +163,7 @@ void anamet3D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 //  rot[2][0] = -sin(phi);
 //  rot[2][1] = cos(phi);
 //  rot[2][2] = 0;
-// 
+//
 //  SANS::SurrealS<3,double> eigval[3] = {1, 2, 3};
 //
 //  SANS::SurrealS<3,double> metS[6];
@@ -190,8 +188,8 @@ void anamet3D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
 
 /*
-Cylindrical around axis z 
-Centered around -1, -1, -1 to avoid singularity on common cube cases 
+Cylindrical around axis z
+Centered around -1, -1, -1 to avoid singularity on common cube cases
 */
 void anamet3D_3([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   double x0 = -0.6;
@@ -228,7 +226,7 @@ void anamet3D_3([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   rot[2][0] = 0;
   rot[2][1] = 0;
   rot[2][2] = 1;
- 
+
   SANS::SurrealS<2,double> eigval[3] = {1.0/(scale*scale), 2/(scale*scale), 10/(scale*scale)};
 
   SANS::SurrealS<2,double> metS[6];
@@ -241,8 +239,8 @@ void anamet3D_3([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
 
 /*
-Cylindrical around axis z 
-Centered around -1, -1, -1 to avoid singularity on common cube cases 
+Cylindrical around axis z
+Centered around -1, -1, -1 to avoid singularity on common cube cases
 */
 void anamet3D_4([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   double x0 = 0;
@@ -278,7 +276,7 @@ void anamet3D_4([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
 
 /*
-UGAWG (https://github.com/UGAWG/adapt-benchmarks/tree/master/cube) 
+UGAWG (https://github.com/UGAWG/adapt-benchmarks/tree/master/cube)
 cone-cone metric:
    + h_x^-2   0      0    +
 M =|   0    h_y^-2   0    |
@@ -311,7 +309,7 @@ void anamet3D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
 
 /*
-UGAWG (https://github.com/UGAWG/adapt-benchmarks/tree/master/cube) 
+UGAWG (https://github.com/UGAWG/adapt-benchmarks/tree/master/cube)
 cube & cube-cylinder linear metric:
    + h_x^-2   0      0    +
 M =|   0    h_y^-2   0    |
@@ -345,7 +343,7 @@ void anamet3D_6([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
 
 /*
-UGAWG (https://github.com/UGAWG/adapt-benchmarks/tree/master/cube) 
+UGAWG (https://github.com/UGAWG/adapt-benchmarks/tree/master/cube)
 cube-cylinder polar-1:
    + cos(t) -sin(t)   0    ++ h_r^-2   0      0    ++ cos(t)  sin(t)   0    +
 M =| sin(t)  cos(t)   0    ||   0    h_t^-2   0    ||-sin(t)  cos(t)   0    |
@@ -417,7 +415,7 @@ void anamet3D_7([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
 
 /*
-UGAWG (https://github.com/UGAWG/adapt-benchmarks/tree/master/cube) 
+UGAWG (https://github.com/UGAWG/adapt-benchmarks/tree/master/cube)
 cube-cylinder polar-2:
 A modified polar-1 metric that is easier to satisfy with high-quality elements by refining along theta near the layer,
 d = (0.6 - r)*10
@@ -428,7 +426,7 @@ void anamet3D_8([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double dx = ctx == NULL ? 0 : ctx->dx;
   double dy = ctx == NULL ? 0 : ctx->dy;
   double dz = ctx == NULL ? 0 : ctx->dz;
-  
+
   SANS::SurrealS<3,double> x = std::abs(crd[0] + dx);
   x.deriv(0) = crd[0] + dx > 0 ? 1 : -1;
   x.deriv(1) = 0;
@@ -513,8 +511,8 @@ void anamet3D_9([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   SANS::SurrealS<3,double> eigvec[9];
 
   eigvec[0] = 1.0;
-  eigvec[1] = 0.0; 
-  eigvec[2] = 0.0; 
+  eigvec[1] = 0.0;
+  eigvec[2] = 0.0;
 
   eigvec[3] = 0.0;
   eigvec[4] = 1.0;
@@ -563,8 +561,8 @@ void anamet3D_10([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict_
   SANS::SurrealS<3,double> eigvec[9];
 
   eigvec[0] = 1.0;
-  eigvec[1] = 0.0; 
-  eigvec[2] = 0.0; 
+  eigvec[1] = 0.0;
+  eigvec[2] = 0.0;
 
   eigvec[3] = 0.0;
   eigvec[4] = 1.0;
@@ -578,6 +576,29 @@ void anamet3D_10([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict_
   eig2met<3,SANS::SurrealS<3,double>>(eigval,eigvec,metS);
   getmet_SurS2dbl<3>(metS,met,idif1 > 0 ? dmet : NULL);
 
+}
+
+void anamet3D_11([[maybe_unused]] const AnaMetCtx* ctx, [[maybe_unused]] const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+  // Not too coarse at the scale of 1
+  double h0 = 0.05;
+  double anisoRatioZ = 16.;
+
+  double hz = h0/anisoRatioZ;
+
+  met[0] = 1/(h0*h0*scale*scale);
+  met[1] = 0.0;
+  met[2] = 1/(h0*h0*scale*scale);
+  met[3] = 0.0;
+  met[4] = 0.0;
+  met[5] = 1/(hz*hz*scale*scale);
+
+  if(idif1 > 0){
+    for(int ii = 0; ii < 3; ii++){
+      for(int jj = 0; jj < 6; jj++){
+        dmet[6*ii + jj] = 0;
+      }
+    }
+  }
 }
 
 } // End namespace

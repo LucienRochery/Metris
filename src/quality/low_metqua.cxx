@@ -174,7 +174,7 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
         qutet = pow(qutet, pnorm);
       }
 
-    #elif 1
+    #else
       METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
       double met[nnmet];
       for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim  + 1);
@@ -194,7 +194,22 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       isvalideltP1<gdim,tdim>(msh,ientt,NULL,&meas);
       qutet *= meas;
       #ifdef INTQUALINRIEMSPACE
-      const double sqrtDetM = sqrt(met[0]*met[2] - met[1]*met[1]);
+      double sqrtDetM = 1;
+      if (tdim == 2){
+        sqrtDetM = sqrt(met[0]*met[2] - met[1]*met[1]);
+      }else {
+        const double m11 = met[0];
+        const double m12 = met[1];
+        const double m22 = met[2];
+        const double m13 = met[3];
+        const double m23 = met[4];
+        const double m33 = met[5];
+
+        sqrtDetM = sqrt(
+          m11*(m22*m33 - m23*m23)
+        - m12*(m12*m33 - m13*m23)
+        + m13*(m12*m23 - m13*m22) );
+      }
       qutet *= sqrtDetM;
       #endif
       #endif
@@ -203,72 +218,6 @@ ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       }else if(pnorm > 2){
         qutet = pow(qutet, pnorm);
       }
-    #else
-    // do actual integration scheme
-    // quadrature points: vertices
-    // weigths: same for all -> |K|/(tdim+1)
-
-    METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
-
-    double meas = 0.;
-    isvalideltP1<gdim,tdim>(msh,ientt,NULL,&meas);
-
-    const double w = meas / double(tdim+1);
-
-    qutet = 0.;
-
-    for (int iquad = 0; iquad < tdim + 1; iquad++){
-
-      // bary coord for iquad
-      for (int ibary = 0; ibary < tdim + 1; ibary++) bary[ibary] = (ibary == iquad) ? 1. : 0.;
-
-      const int ipoin = ent2poi(ientt,iquad);
-
-      ftype quaPoin = quafun_xi(msh,AsDeg::P1,asdmet,ent2poi[ientt],bary,msh.met[ipoin]);
-
-      ftype quaErrPoin = abs(quaPoin - difto);
-      if (pnorm == 2) quaErrPoin *= quaErrPoin;
-      else if (pnorm > 2) quaErrPoin = pow(quaErrPoin,pnorm);
-
-      // allow integral in Riemannian space
-      double sqrtDetM;
-
-      #ifdef INTQUALINRIEMSPACE
-
-      const double* M = msh.met[ipoin];
-      if constexpr (gdim == 2){
-
-        const double m11 = M[0];
-        const double m12 = M[1];
-        const double m22 = M[2];
-        const double detM = m11*m22 - m12*m12;
-        METRIS_ASSERT(detM > 0.0);
-        sqrtDetM = sqrt(detM);
-      } else {
-
-        const double m11 = M[0];
-        const double m12 = M[1];
-        const double m13 = M[2];
-        const double m22 = M[3];
-        const double m23 = M[4];
-        const double m33 = M[5];
-
-        const double detM =
-          m11*(m22*m33 - m23*m23)
-        - m12*(m12*m33 - m13*m23)
-        + m13*(m12*m23 - m13*m22);
-
-        METRIS_ASSERT(detM > 0.0);
-        sqrtDetM = sqrt(detM);
-      }
-
-      #else
-      sqrtDetM = 1.;
-      #endif
-
-      qutet += w * quaErrPoin * sqrtDetM;
-    }
-
     #endif
 
   }

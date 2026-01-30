@@ -638,6 +638,9 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       const int ientt = itK->ientt;
       const double quaent = itK->qentt;
 
+      std::cout << "ientt = " << ientt << std::endl;
+      std::cout << "quantt = " << quaent << std::endl;
+
       iter++;
       #ifdef DIAGNOSIS_QUALALGO
       const int nentt = msh.nentt(tdim);
@@ -782,11 +785,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
         INCVDEPTH(msh.param);
 
-        // just for printing info
-        const int ip1 = ent2poi(ientt, lnoed(iedMax,0));
-        const int ip2 = ent2poi(ientt, lnoed(iedMax,1));
-        // CPRINTF1(" - enact ins ientt = {} ied = {} edg {} {}\n",ientt,iedMax,ip1,ip2);
-
         EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, iedMax);
         int ierro = insertEdge(msh,insertionSeed,0,false,
                                cav,work,lcaverr,handlerTopX,ithrd1,ithrd2);
@@ -877,11 +875,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
         INCVDEPTH(msh.param);
 
-        // just for printing info
-        const int ip1 = ent2poi(ientt, lnoed(iedMin,0));
-        const int ip2 = ent2poi(ientt, lnoed(iedMin,1));
-        // CPRINTF1(" - enact collapse ientt = {} ied = {} edg {} {}\n",ientt,iedMin,ip1,ip2);
-
         int ierro = collapseEdge<MFT>(msh,tdim,ientt,iedMin,0,cav,work,lcaverr,handlerTopX,ithrd1,ithrd2,ithrd3);
 
         if (ierro == 0){
@@ -926,11 +919,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         #endif
 
         INCVDEPTH(msh.param);
-
-        // just for printing info
-        const int ip1 = ent2poi(ientt, lnoed(iedMax,0));
-        const int ip2 = ent2poi(ientt, lnoed(iedMax,1));
-        // CPRINTF1(" - enact ins ientt = {} ied = {} edg {} {}\n",ientt,iedMax,ip1,ip2);
 
         EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, iedMax);
         int ierro = insertEdge(msh,insertionSeed,0,false,
@@ -1021,11 +1009,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
         INCVDEPTH(msh.param);
 
-        // just for printing info
-        const int ip1 = ent2poi(ientt, lnoed(iedMin,0));
-        const int ip2 = ent2poi(ientt, lnoed(iedMin,1));
-        // CPRINTF1(" - enact collapse ientt = {} ied = {} edg {} {}\n",ientt,iedMin,ip1,ip2);
-
         int ierro = collapseEdge<MFT>(msh,tdim,ientt,iedMin,0,cav,work,lcaverr,handlerTopX,ithrd1,ithrd2,ithrd3);
 
         if (ierro == 0){
@@ -1055,7 +1038,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       // ----------------------------- //
       // 1. Smoothing
       // ----------------------------- //
-      if (quaent < .0025){
+      if (quaent < .025){
         ntrySmoothing++;
 
         double statSmoothing = smoothElement_Ball<MFT>(msh,ientt,handlerTopX,QuaFun::SizeShape,ithrd1,ithrd2);
@@ -1097,7 +1080,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       if (statusSmoo || statusIns || statusColl ) break;
       #endif
     }
-    if (!didOperation /* || smooStreak >= 2500 || iter >= 50000 */) break;
+    if (!didOperation /* || smooStreak >= 2500 || iter >= 10000 */) break;
   }
 
   std::cout << "iter = " << iter << std::endl;
@@ -1106,7 +1089,9 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   std::cout << "-- ntryInsert = " << ntryInsert << ",  nSuccessInsert = " << nSuccessInsert << std::endl;
   std::cout << "-- ntryCollapse = " << ntryCollapse << ",  nSuccessCollapse = " << nSuccessCollapse << std::endl;
 
-  // writeMesh("meshBeforeOptLoop.meshb",msh);
+  msh.cleanup();
+
+  writeMesh("meshBeforeOptLoop.meshb",msh);
 
   // // final number of elements
   // const int nenttf = msh.nentt(tdim);
