@@ -55,7 +55,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
   //}
   double stat = 0;
 
-  
+
   MshCavity cav(64,2,0);
   CavWrkArrs work;
   intAr1 lshell(100);
@@ -64,10 +64,14 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
   *nswap = 0;
   int miter = msh.param->opt_swap_niter;
   msh.tag[ithrd1]++;
-  
+
+  #ifdef TESTQUALITYALGO
+  int nswapface = 0;
+  int nswaptet = 0;
+  #endif
   for(int tdim = 2; tdim <= msh.get_tdim(); tdim++){
     INCVDEPTH(msh.param);
-    
+
     int nerro_tdim = 0;
     int nswap_tdim = 0;
     int nswap3fa = 0;
@@ -93,10 +97,10 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
         INCVDEPTH(msh.param);
         if(isdeadent(ientt,msh.ent2poi(tdim))) continue;
         //ntry++;
-        
+
         if(ent2tag(ithrd1,ientt) >= msh.tag[ithrd1]) continue;
 
-        int info; 
+        int info;
         int nent1 = msh.nentt(tdim);
         double qumx0,qumx1;
         #ifndef NDEBUG
@@ -104,11 +108,17 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
         #endif
           if(tdim == 2){
             info = swapface<MFT,gdim,ideg>(msh, ientt, swapOpt, cav, work, &qumx0, &qumx1, ithrd2);
+            #ifdef TESTQUALITYALGO
+            if (info < 0) nswapface++;
+            #endif
           }else{
             if constexpr(gdim == 3){
               info = swaptetra<MFT,ideg>(msh, ientt, swapOpt, cav, work, &qumx0, &qumx1, ithrd2, ithrd3);
               //printf("## WAIT AFTER SWAPTETRA\n");
               //wait();
+              #ifdef TESTQUALITYALGO
+              if (info < 0) nswaptet++;
+              #endif
             }else{
               METRIS_THROW_MSG("in dim < 3, ntetra > 0");
             }
@@ -131,10 +141,10 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
         //CPRINTF2(" - swap try entity {} info = {} \n",ientt, info);
 
 
-        if(info == 0){ // Nothing done 
-          // Tag entity as inert 
+        if(info == 0){ // Nothing done
+          // Tag entity as inert
           ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
-        }else if(info > 0){ // Error 
+        }else if(info > 0){ // Error
           nerro_niter++;
         }else if(info < 0){ // Successful swap
           CPRINTF2(" - swap successful\n");
@@ -143,8 +153,8 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
             for(int ient1 = nent1; ient1 < msh.nentt(tdim); ient1++){
               for(int ii = 0; ii < 3; ii++){
                 int ifnei = msh.fac2fac(ient1,ii);
-                if(ifnei < 0) continue; // nm not eligible to swap w/ this either 
-                // Unmark as inert if tagged 
+                if(ifnei < 0) continue; // nm not eligible to swap w/ this either
+                // Unmark as inert if tagged
                 msh.fac2tag(ithrd1,ifnei) = msh.tag[ithrd1] - 1;
               }
             }
@@ -169,7 +179,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
           }// if tdim == 2
           nswap_niter++;
         }
-        ntry++; 
+        ntry++;
       }
       double t11 = get_cpu_time();
 
@@ -180,7 +190,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
       int ncallps_niter = 1000*(int)((nswap_niter / (t11-t01)) / 1000);
       CPRINTF2(" - swaps full iter {} ntry = {} nswap {} = {} /s; nerro {} stat {:.2e}",niter,
               ntry, nswap_niter, ncallps_niter,nerro_niter, stat0);
-      if(stat0 < msh.param->adp_stagn_stop && DOPRINTS2())  
+      if(stat0 < msh.param->adp_stagn_stop && DOPRINTS2())
         fmt::print(LOGFILE__," < adp_stagn_stop = {} -> break.\n",msh.param->adp_stagn_stop);
       else if(DOPRINTS2()) fmt::print(LOGFILE__,"\n");
       nswap_tdim += nswap_niter;
@@ -205,7 +215,13 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
 
 
   //msh.met.setSpace(ispac0);
-  
+
+  #ifdef TESTQUALITYALGO
+  std::cout << "End swapMesh" << std::endl;
+  std::cout << "nswapface = " << nswapface << std::endl;
+  std::cout << "nswaptet = " << nswaptet << std::endl;
+  #endif
+
   return stat;
 }
 

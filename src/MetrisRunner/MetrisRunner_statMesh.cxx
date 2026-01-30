@@ -68,7 +68,7 @@ void MetrisRunner::statMesh0(int tdim, MeshStat* stat_){
     for(int tdim_ = 2; tdim_ <= tdim; tdim_++){
       bool iinva;
       double qmin, qmax, qavg;
-      #ifdef TESTQUAFSIZESHAPE
+      #ifdef TESTQUALITYALGO
       getmetquamesh<MFT,QuaFun::SizeShape>(msh,tdim_,asdeg,asdeg,
                         &iinva,&qmin,&qmax,&qavg,&rquel);
       #else

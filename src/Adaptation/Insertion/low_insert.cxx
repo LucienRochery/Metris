@@ -141,7 +141,7 @@ int insertEdge(Mesh<MFT>& msh,
   #endif
 
   if(icollapse){
-    #ifdef TESTQUAFSIZESHAPE
+    #ifdef TESTQUALITYALGO
     ierro = increase_cavity_quality(msh,cav,insertionSeed.tdim_adp,5,handler,ithrd1);
     if(ierro != 0){
       CPRINTF1(" # increase_cavity_quality could not improve patch\n");
@@ -178,7 +178,7 @@ int insertEdge(Mesh<MFT>& msh,
 
   // -- This section only if !icollapse
 
-  #ifdef TESTQUAFSIZESHAPE
+  #ifdef TESTQUALITYALGO
   ierro = setCavityInsertionQuality(msh,cav,opts,insertionSeed,mgrow,handler,lenqua_short_max,nocomp,ithrd1,ithrd2);
   #else
   ierro = setCavityInsertion3(msh,cav,opts,insertionSeed,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);

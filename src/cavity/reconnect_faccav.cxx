@@ -1119,7 +1119,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
     METRIS_ASSERT(ideg == 1);
     double quael;
     if(msh.idim == 2){
-      #ifdef TESTQUAFSIZESHAPE
+      #ifdef TESTQUALITYALGO
       CPRINTF1("Using SizeShape qual in cavity operator\n");
       quael = metqua<MetricFieldType,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ifacn,1.0);
       #else
@@ -1127,7 +1127,7 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
       #endif
     }
     else{
-      #ifdef TESTQUAFSIZESHAPE
+      #ifdef TESTQUALITYALGO
       CPRINTF1("Using SizeShape qual in cavity operator\n");
       quael = metqua<MetricFieldType,3,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ifacn,1.0);
       #else

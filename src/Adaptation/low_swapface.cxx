@@ -72,7 +72,11 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
   double &qnrm0 = *qnrm0_;
   double &qnrm1 = *qnrm1_;
+  #ifdef TESTQUALITYALGO
+  const int spnorm = 0;
+  #else
   const int spnorm = opt.swap_norm; // swap norm -> < 0 is length, >= 0 is Lp over the 2
+  #endif
 
   if(spnorm > 0) METRIS_ASSERT(spnorm == msh.param->opt_pnorm);
 
@@ -108,10 +112,10 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   }
 
 
-  double quae1;
+  double quae1; // quality of current face iface
 
   if(spnorm >= 0){
-    #ifdef TESTQUAFSIZESHAPE
+    #ifdef TESTQUALITYALGO
     quae1 = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,iface,1.0);
     #else
     quae1 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,iface,1.0);
@@ -134,6 +138,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   // If pnorm >= 0, this is the p-norm of quality accross
   // Otherwise it is the length of the edge.
   double quaol[3], norfac[3], eval[18], norCAD[3][3];
+
   // If using regular quality (spnorm >= 0), the nordev is already taken into account
   // Otherwise, we add it here. Reuse normal of this face.
   if(gdim >= 3 && spnorm < 0){
@@ -158,7 +163,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
 
     if(spnorm >= 0){
-      #ifdef TESTQUAFSIZESHAPE
+      #ifdef TESTQUALITYALGO
       quaol[ied] = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,ifac2,1.0);
       #else
       quaol[ied] = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,ifac2,1.0);
@@ -256,6 +261,10 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     }
 
     // Quality of previous configuration
+    #ifdef TESTQUALITYALGO
+    const double qsum0 = quae1 + quae2; // current config
+    const double qmax0 = MAX(quae1,quae2);
+    #endif
     if(spnorm == 0){
       qnrm0 = MAX(quae1,quae2);
     }else if (spnorm > 0){
@@ -334,13 +343,19 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
     bool skipswap = false;
     double qunw[2];
+    #ifdef TESTQUALITYALGO
+    double qsum1 = 0;
+    double qmax1 = -1;
+    #endif
     if(spnorm >= 0){
 
       qnrm1 = spnorm == 0 ? -1 : 0;
       for(int ifanw = nfac0+0; ifanw < nfac0+2; ifanw++){
         //qunw1 = metqua0<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,fac2pol[0],1.0);
-        #ifdef TESTQUAFSIZESHAPE
+        #ifdef TESTQUALITYALGO
         qunw[ifanw-nfac0] = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,ifanw,1.0);
+        qsum1 += qunw[ifanw-nfac0];
+        if (qunw[ifanw-nfac0] > qmax1) qmax1 = qunw[ifanw-nfac0];
         #else
         qunw[ifanw-nfac0] = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,ifanw,1.0);
         #endif
@@ -357,6 +372,10 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
           qnrm1 += pow(qunw[ifanw-nfac0], spnorm);
         }
       }
+
+      #ifdef TESTQUALITYALGO
+      if (qsum1 > qsum0 || qmax1 > qmax0) skipswap = true;
+      #endif
 
       if(skipswap) goto cleanup;
 
@@ -407,6 +426,12 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       msh.rembpotag(msh.fac2poi(ifac2,ie2), ithread);
     }
 
+    // #ifdef TESTQUALITYALGO
+    // std::cout << "iix = " << iix << ", ied = " << ied << std::endl;
+    // std::cout << "face related qual info: " << std::endl;
+    // std::cout << "qmax1 = " << qmax1 << ", qmax0 = " << qmax0 << ", qsum1 = " << qsum1 << ", qsum0 = " << qsum0 << std::endl;
+    // #endif
+
     if(skipswap) continue;
 
     if(qnrm1 + opt.swap_thres > qnrm0) continue;
@@ -415,12 +440,98 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     cav.ipins = msh.fac2poi(iface,ied);
 
     cav.lctet.set_n(0);
+
+    // #ifdef TESTQUALITYALGO
+    // std::cout << "skipswap before cheking tets qual = " << skipswap << std::endl;
+    // #endif
     if(msh.get_tdim() == 3){
       // Fill tet cavity with edge shell
       intAr1 dum;
       int iopen;
       shell(msh, ip1, ip2, 3, iele0, dum, dum, cav.lctet, &iopen);
+
+      #ifdef TESTQUALITYALGO
+
+      // here it is important to compare the quality of the tets before and after reconnection
+      // so far we have that swapping the faces improves the quality of those faces, but if the tets quality go down I think we should reject the op
+
+      msh.tag[ithread]++;
+      double qtetsum0 = 0;
+      double qtetmax0 = -1;
+      // compute quality of original cavity (also tag tets in there for later)
+      for (int itet : cav.lctet){
+        msh.tet2tag(ithread,itet) = msh.tag[ithread];
+        double qua = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,itet,1.0);
+        qtetsum0 += qua;
+        if (qua > qtetmax0) qtetmax0 = qua;
+      }
+
+      // now put together reconnected config and probe quality
+
+      // add one temporary tet in mesh
+      const int ntet0 = msh.nentt(3);
+      msh.set_nentt(3,ntet0+1);
+      const int tmpEntt = ntet0;
+      const int ipins = cav.ipins;
+
+      double qtetsum1 = 0;
+      double qtetmax1 = -1;
+      int ninvalid = 0;
+      for (int itet : cav.lctet){
+
+        // loop over tet faces and fetch neighbors
+        for (int jj = 0; jj < 4; jj++){
+
+          const int itetnei = msh.tet2tet(itet,jj);
+          if (itetnei >= 0 && msh.tet2tag(ithread,itetnei) == msh.tag[ithread]) continue; // neighbor tet in cavity
+
+          // here we have either a neighbor not in cavity or no neighbor, so face jj is boundary face of cavity
+
+          // put together new tet
+          const int ip1 = msh.tet2poi(itet,lnofa3[jj][0]);
+          const int ip2 = msh.tet2poi(itet,lnofa3[jj][1]);
+          const int ip3 = msh.tet2poi(itet,lnofa3[jj][2]);
+
+          if (ip1 == ipins || ip2 == ipins || ip3 == ipins) continue;
+
+          msh.tet2poi(tmpEntt,jj) = ipins;
+          msh.tet2poi(tmpEntt,lnofa3[jj][0]) = ip1;
+          msh.tet2poi(tmpEntt,lnofa3[jj][1]) = ip2;
+          msh.tet2poi(tmpEntt,lnofa3[jj][2]) = ip3;
+
+          msh.tet2ref[tmpEntt] = msh.tet2ref[itet];
+
+          double meas;
+          if(!isvalideltP1<3,3>(msh, tmpEntt, nullptr, &meas)){
+            ninvalid++;
+            continue;
+          }
+          double qua = metqua<MFT,3,3,QuaFun::SizeShape>(msh, AsDeg::P1, AsDeg::P1, tmpEntt, 1.0);
+          qtetsum1 += qua;
+          if (qua > qtetmax1) qtetmax1 = qua;
+        }
+        if (skipswap) break;
+      }
+      // revert mesh back to original state
+      msh.set_nentt(3,ntet0);
+
+      if (qtetsum1 > qtetsum0 || qtetmax1 > qtetmax0) skipswap = true;
+
+      // std::cout << "tet related qual info: " << std::endl;
+      // std::cout << "qtetmax1 = " << qtetmax1 << ", qtetmax0 = " << qtetmax0 << ", qtetsum1 = " << qtetsum1 << ", qtetsum0 = " << qtetsum0 << std::endl;
+
+      if (ninvalid > 1) skipswap = true;
+      if (qtetmax1 < 0) skipswap = true; // just to be safe...
+      #endif
     }
+
+    // #ifdef TESTQUALITYALGO
+    // std::cout << "skipswap after cheking tets qual = " << skipswap << std::endl;
+    // #endif
+
+    #ifdef TESTQUALITYALGO
+    if (skipswap) continue;
+    #endif
 
     if(spnorm >= 0){
       CPRINTF1(" - enact swap ||({},{})|| = {} -> ||({},{})|| = {} \n ",
@@ -430,7 +541,16 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     }
     if(tdim == 3) CPRINTF1(" - cavity ntetr {} \n",cav.lctet.get_n());
 
+    // #ifdef TESTQUALITYALGO
+    // std::cout << "call cavity_operator " << std::endl;
+    // #endif
+
     int ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithread);
+
+    // #ifdef TESTQUALITYALGO
+    // std::cout << "ierro = " << ierro << std::endl;
+    // #endif
+
 
     #if 0
     if(istop){

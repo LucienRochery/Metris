@@ -293,7 +293,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
             quael = tt->second;
             CPRINTF2(" - found cached quality\n");
           }else{
-            #ifdef TESTQUAFSIZESHAPE
+            #ifdef TESTQUALITYALGO
             CPRINTF1("Using SizeShape qual in cavity operator\n");
             quael = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
             #else
@@ -302,7 +302,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
             cav.qtetr[key] = quael;
           }
         }else{
-          #ifdef TESTQUAFSIZESHAPE
+          #ifdef TESTQUALITYALGO
           CPRINTF1("Using SizeShape qual in cavity operator\n")
           quael = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
           #else

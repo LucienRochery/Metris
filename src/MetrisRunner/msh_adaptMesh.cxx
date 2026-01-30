@@ -303,7 +303,7 @@ void MetrisRunner::adaptMesh0(int tdim){
     if(msh.param->opt_unif && tdim == msh.get_tdim()){
       // 4. Smoothing (heuristic) -> fast but bad; improve
       t0 = get_cpu_time();
-      #ifdef TESTQUAFSIZESHAPE
+      #ifdef TESTQUALITYALGO
       double stat = smoothInterior_Ball<MFT>(msh,QuaFun::SizeShape,ithrd1,ithrd2);
       #else
       double stat = smoothInterior_Ball<MFT>(msh,QuaFun::Unit,ithrd1,ithrd2);
