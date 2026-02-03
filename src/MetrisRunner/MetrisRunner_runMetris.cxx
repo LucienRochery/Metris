@@ -43,27 +43,33 @@ void MetrisRunner::runMetris(){
     //  return 0;
     //}
 
+    int niter = 3;
+    int iter = 0;
+    while (iter < niter){
 
-    adaptMesh2();
+      adaptMesh2();
 
 
-    if(param->usrTarDeg > 1 || msh_g->curdeg > 1){
-      int ielev = degElevate();
+      if(param->usrTarDeg > 1 || msh_g->curdeg > 1){
+        int ielev = degElevate();
 
-      if(param->dbgfull) check_topo(*msh_g,0);
+        if(param->dbgfull) check_topo(*msh_g,0);
 
-      if(param->curveType > 0 && !ielev){ // Not really smoothing, rather metric based curving
-        curveMesh();
+        if(param->curveType > 0 && !ielev){ // Not really smoothing, rather metric based curving
+          curveMesh();
+        }
+
+        if(param->smoo_type == 0){
+          optimMesh();
+        }
+
+        if(param->dbgfull) check_topo(*msh_g,0);
       }
 
-      if(param->smoo_type == 0){
-        optimMesh();
-      }
+      optimMesh();
 
-      if(param->dbgfull) check_topo(*msh_g,0);
+      iter++;
     }
-
-    optimMesh();
 
     //if(param->anaSol && param->smoo_type == 1){
     //  optimMesh();

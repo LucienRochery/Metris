@@ -570,7 +570,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   const int ithrd3 = 3;
   msh.tag[ithrdfro]++;
 
-  const double alpha = 0.1;
+  const double alpha = 0.001;
   const double badX = 100;
   const double lengthThreshold = sqrt(2);
 
@@ -629,6 +629,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
   int iter = 0;
   int smooStreak = 0;
+  writeMesh("meshSTART.meshb",msh);
   while (true){
 
     bool didOperation = false;
@@ -639,7 +640,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       const double quaent = itK->qentt;
 
       std::cout << "ientt = " << ientt << std::endl;
-      std::cout << "quantt = " << quaent << std::endl;
+      std::cout << "quaent = " << quaent << std::endl;
 
       iter++;
       #ifdef DIAGNOSIS_QUALALGO
@@ -765,6 +766,17 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         if (elen > longestLen)  { longestLen  = elen; iedMax = ied; }
         if (elen < shortestLen) { shortestLen = elen; iedMin = ied; }
       }
+
+      #ifndef NDEBUG
+      int ip1 = msh.tet2poi(ientt,lnoed3[iedMax][0]);
+      int ip2 = msh.tet2poi(ientt,lnoed3[iedMax][1]);
+      std::cout << "Longest edge = " << iedMax << std::endl;
+      std::cout << "Points = (" << ip1 << "," << ip2 << ")" << std::endl;
+      ip1 = msh.tet2poi(ientt,lnoed3[iedMin][0]);
+      ip2 = msh.tet2poi(ientt,lnoed3[iedMin][1]);
+      std::cout << "Shortest edge = " << iedMin << std::endl;
+      std::cout << "Points = (" << ip1 << "," << ip2 << ")" << std::endl;
+      #endif
 
       if (shortestLen >= lengthThreshold
           #ifdef DIAGNOSIS_QUALALGO

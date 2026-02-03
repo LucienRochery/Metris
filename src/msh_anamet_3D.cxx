@@ -580,14 +580,16 @@ void anamet3D_10([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict_
 
 void anamet3D_11([[maybe_unused]] const AnaMetCtx* ctx, [[maybe_unused]] const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   // Not too coarse at the scale of 1
-  double h0 = 0.05;
+  double hx = 0.05;
+  double hy = hx;
   double anisoRatioZ = 16.;
 
-  double hz = h0/anisoRatioZ;
+  double hz = hx/anisoRatioZ;
+  // hy = hz;
 
-  met[0] = 1/(h0*h0*scale*scale);
+  met[0] = 1/(hx*hx*scale*scale);
   met[1] = 0.0;
-  met[2] = 1/(h0*h0*scale*scale);
+  met[2] = 1/(hy*hy*scale*scale);
   met[3] = 0.0;
   met[4] = 0.0;
   met[5] = 1/(hz*hz*scale*scale);
