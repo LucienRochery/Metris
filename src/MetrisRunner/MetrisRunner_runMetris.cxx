@@ -43,7 +43,7 @@ void MetrisRunner::runMetris(){
     //  return 0;
     //}
 
-    int niter = 3;
+    int niter = 1;
     int iter = 0;
     while (iter < niter){
 

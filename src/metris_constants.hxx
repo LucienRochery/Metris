@@ -14,6 +14,7 @@
 
 #ifdef TESTQUALITYALGO
 #define INTQUALINRIEMSPACE
+#define CAVGROWTH
 // #define DIAGNOSIS_QUALALGO
 #endif
 
