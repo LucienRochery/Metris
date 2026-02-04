@@ -2141,6 +2141,8 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   intAr1 &lcent = cav.lcent(tdim);
   intAr1 &lcsub = cav.lcent(tdim-1);
 
+  const bool ipinsOnBnd = lcsub.get_n() > 0;
+
   CPRINTF1("-- START increase_cavity_quality {}\n",tdim);
   const intAr2&  ent2ent = msh.ent2ent(tdim);
         intAr2&  ent2poi = msh.ent2poi(tdim);
@@ -2185,7 +2187,7 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
     // now identy boundary facets in this element to construct
     // and compute quality of reconnected config
 
-    double ent2pol[4];
+    int ent2pol[4];
     for(int jj = 0; jj < tdim + 1; jj++){
 
       const int ienei = ent2ent(ienttCav,jj);
@@ -2272,7 +2274,7 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
     if (qua > quaMaxSub0) quaMaxSub0 = qua;
 
     // loop over edges of this face
-    double ent2pol[3];
+    int ent2pol[3];
     for (int jj = 0; jj < 3; jj++){
 
       int ifnei = fac2fac(isubentt,jj);
@@ -2320,72 +2322,35 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
         int ieneijj = ent2ent(ientt,jj); // fetch neighbor
 
-        if(ieneijj < 0) continue; // Non manifold skip
+        if(ieneijj < 0) continue; // Non manifold skip, cannot grow in this direction, no entt there!
 
         // if neighbor tagged means it belongs to cavity so skip
-        if(ent2tag(ithread,ieneijj) >= msh.tag[ithread]){
-          CPRINTF1(" - ieneijj = {} is tagged {} >= {}\n",
-                   ieneijj,ent2tag(ithread,ieneijj),msh.tag[ithread]);
-          continue;
-        }
+        if(ent2tag(ithread,ieneijj) >= msh.tag[ithread]) continue;
 
-        // some checks that I don't fully understand, but I realize they must stay
-        int isube = -1;
-        if(tdim == 2){
-          int iref2 = msh.fac2ref[ieneijj];
-          if(msh.cfa2tag(ithread,iref2) < msh.tag[ithread] && msh.isboundary_faces()){
-            CPRINTF1(" - ieneijj = {} is wrong bdry ref {}\n",ieneijj,iref2);
-            continue;
-          }
-          isube = msh.fac2edg(ientt,jj);
-          if(isube >= 0){
-            if(msh.edg2tag(ithread,isube) >= msh.tag[ithread]){
-              CPRINTF1(" - iface {} -> iedge {} is tagged, skip\n",ientt,isube);
-              continue;
-            }
-            int iref1 = msh.edg2ref[isube];
-            if(msh.ced2tag(ithread,iref1) < msh.tag[ithread] && msh.isboundary_edges()){
-              CPRINTF1(" - iface {} -> iedge {} is wrong bdry ref {}\n",ieneijj,isube,iref1);
-              continue;
-            }
-          }
-        }else{
-          if(msh.tet2ref[ieneijj] != msh.tet2ref[ientt]){
-            CPRINTF1(" - ieneijj {} ref = {} != ientt {} ref {} -> skip\n",
-                     ieneijj,msh.tet2ref[ieneijj],ientt,msh.tet2ref[ientt]);
-                     continue;
-          }
-          isube = msh.tet2fac(ientt,jj);
-          if(isube >= 0){
-            if(msh.fac2tag(ithread,isube) >= msh.tag[ithread]){
-              CPRINTF1(" - itetr {} -> iface {} is tagged, skip\n",ientt,isube);
-              continue;
-            }
-            int iref1 = msh.fac2ref[isube];
-            if(msh.ced2tag(ithread,iref1) < msh.tag[ithread]){
-              CPRINTF1(" - itetr {} -> iface {} is wrong bdry ref {}\n",ieneijj,isube,iref1);
-              continue;
-            }
-          }
-        }
-
-        // at this point, we have that ieneijj is an OUTSIDE element to ientt across local facet jj
+        // at this point, we have that ieneijj is an OUTSIDE entt neighbor to ientt across local facet jj
 
         // next thing is to identify all the cavity elements that ieneijj is neighbor of
 
-        // those plus ieneijj itself form the current configuration of the local patch (think of it as a minicavity)
-
+        // those plus ieneijj itself form the current configuration of the local patch (think of it as a mini cavity)
 
         int facetsOfNeiTouchingCav[4];
-        for (int kk = 0; kk < 4; kk++) facetsOfNeiTouchingCav[kk] = -1; // initially mark all facets as not touching the cavity
+        for (int kk = 0; kk < 4; kk++) facetsOfNeiTouchingCav[kk] = -1; // initially mark all facets as not touching the cavity and interior to the domain
+        // the code then will be as follow:
+        // facetsOfNeiTouchingCav[kk] == -1, facet kk does not touch the cavity and is interior face in the domain (not a subentity)
+        // facetsOfNeiTouchingCav[kk] == -2, facet kk does not touch the cavity and is a boundary face of the domain
+        // facetsOfNeiTouchingCav[kk] ==  1, facet kk touches the cavity
+
         for(int kk = 0; kk < tdim + 1; kk++){
 
           int ieneinei = ent2ent(ieneijj,kk); // fetch neighbor of ienei
 
-          if(ieneinei < 0) continue; // TODO: here it would be useful to mark that the neighbor element is touching the boundary
+          if(ieneinei < 0){
+            facetsOfNeiTouchingCav[kk] = -2;
+            continue;
+          }
 
-          // if neighbor tagged means it belongs to cavity so increment count
-          if(ent2tag(ithread,ieneinei) >= msh.tag[ithread]) facetsOfNeiTouchingCav[kk] = 1; // mark facet as touching the cavity
+          // if neighbor tagged means it belongs to cavity
+          if(ent2tag(ithread,ieneinei) >= msh.tag[ithread]) facetsOfNeiTouchingCav[kk] = 1;
 
         }
 
@@ -2418,7 +2383,7 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
               }
               METRIS_ASSERT(iedgeFromInside >= 0);
 
-              double ent2pol[3];
+              int ent2pol[3];
               ent2pol[0] = ipins;
               ent2pol[lnoed2[0][0]] = ent2poi(ienttcav,lnoed2[iedgeFromInside][0]);
               ent2pol[lnoed2[0][1]] = ent2poi(ienttcav,lnoed2[iedgeFromInside][1]);
@@ -2445,7 +2410,7 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
             }else{ // this edge is NOT touching cavity, so it adds to the reconnected config
 
-              double ent2pol[4];
+              int ent2pol[4];
               ent2pol[0] = ipins;
               ent2pol[lnoed2[0][0]] = ent2poi(ieneijj,lnoed2[iedge][0]);
               ent2pol[lnoed2[0][1]] = ent2poi(ieneijj,lnoed2[iedge][1]);
@@ -2490,11 +2455,11 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
             lcent.stack(ieneijj);
             ent2tag(ithread,ieneijj) = msh.tag[ithread];
             CPRINTF1(" - stack dim {} ieneijj {}\n",tdim,ieneijj);
-            if(isube >= 0){
-              CPRINTF1(" - stack dim {} subent {}\n",tdim-1,isube);
-              sub2tag(ithread,isube) = msh.tag[ithread];
-              lcsub.stack(isube);
-            }
+            // if(isube >= 0){
+            //   CPRINTF1(" - stack dim {} subent {}\n",tdim-1,isube);
+            //   sub2tag(ithread,isube) = msh.tag[ithread];
+            //   lcsub.stack(isube);
+            // }
 
             // update quality of cavity for both configs
             quaCav0 += quaOutsideEntt;
@@ -2505,12 +2470,19 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
           }
 
-        }else { // tdim == 3
+        }
+        else{ // tdim == 3
 
           double quaLocalReconnect = 0;
           double quaMaxLocalReconnect = -1;
           double quaLocal = 0;
           double quaMaxLocal = -1;
+
+          bool worsenFaces = false;
+          double quaSub0Backup = quaSub0;
+          double quaSub1Backup = quaSub1;
+          double quaMaxSub0Backup = quaMaxSub0;
+          double quaMaxSub1Backup = quaMaxSub1;
 
           // loop over faces of ieneijj
           bool invalid = false;
@@ -2531,88 +2503,239 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
               }
               METRIS_ASSERT(ifaceFromInside >= 0);
 
-              double ent2pol[4];
+              int ent2pol[4];
               ent2pol[0] = ipins;
               ent2pol[lnofa3[0][0]] = ent2poi(ienttcav,lnofa3[ifaceFromInside][0]);
               ent2pol[lnofa3[0][1]] = ent2poi(ienttcav,lnofa3[ifaceFromInside][1]);
               ent2pol[lnofa3[0][2]] = ent2poi(ienttcav,lnofa3[ifaceFromInside][2]);
-              if (ent2pol[1] == ipins || ent2pol[2] == ipins || ent2pol[3]== ipins){
-
-                invalid = true;
-                break;
-              }
+              if (ent2pol[1] == ipins || ent2pol[2] == ipins || ent2pol[3]== ipins) continue;
 
               ent2poi(tmpEntt,0) = ent2pol[0];
               ent2poi(tmpEntt,1) = ent2pol[1];
               ent2poi(tmpEntt,2) = ent2pol[2];
               ent2poi(tmpEntt,3) = ent2pol[3];
 
+              // no need to check validity, current cavity should be valid at all times by construction
+
+              #ifndef NDEBUG
+              // put this for debug build anyways
               double meas;
-              if(!isvalideltP1<3,3>(msh, tmpEntt, NULL, &meas)){
+              bool isValid = isvalideltP1<3,3>(msh, tmpEntt, NULL, &meas);
+              METRIS_ASSERT_MSG(isValid,"Current cavity config invalid. Shouldn't ever happen")
+              #endif
 
-                invalid = true;
-                break;
-              }
               double qua = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
-
 
               quaLocal += qua;
               if (qua > quaMaxLocal) quaMaxLocal = qua;
 
-            }else{ // this face is NOT touching cavity, so it adds to the reconnected config
+            }else{ // this face is NOT touching cavity, so it might add to the reconnected config or else we need to see if it affects faces cavity
 
-              double ent2pol[4];
-              ent2pol[0] = ipins;
-              ent2pol[lnofa3[0][0]] = ent2poi(ieneijj,lnofa3[iface][0]);
-              ent2pol[lnofa3[0][1]] = ent2poi(ieneijj,lnofa3[iface][1]);
-              ent2pol[lnofa3[0][2]] = ent2poi(ieneijj,lnofa3[iface][2]);
-              if (ent2pol[1] == ipins || ent2pol[2] == ipins || ent2pol[3]== ipins){
+              bool coneFace = true;
+              if (facetsOfNeiTouchingCav[iface] == -2){ // facet is on boundary
 
-                invalid = true;
-                break;
+                // we check first if the insertion point is on a boundary
+                if (ipinsOnBnd){ // insertion point on boundary
+
+                  // fetch facet global ID
+                  int ifaceOutside = msh.tet2fac(ieneijj,iface); // notice ifaceOutside is the face OUTISDE the faces cavity
+                  METRIS_ASSERT(ifaceOutside >= 0);
+
+                  // next we check if our boundary face reference is the same as one of the existing faces in the cavity
+                  for (int isubentt : lcsub){
+                    if (msh.fac2ref[ifaceOutside] == msh.fac2ref[isubentt]){
+                      coneFace = false; // this means the facet shares boundary with the insertion point -> do not cone it
+                      break;
+                    }
+                  }
+
+                  // if we found out the facet shares boundary with the insertion point, we do not cone the facet
+                  // instead, we need to compare qualities of current faces vs the would-be faces if we add this facet to faces cavity (lcsub)
+                  // TODO: for now, missing case in which the insertion point is in a domain (i.e. CAD) EDGE
+                  if (!coneFace){
+
+                    double quaFaceLocalReconnect = 0.;
+                    double quaMaxFaceLocalReconnect = 0.;
+                    double quaFaceLocal = 0.;
+                    double quaMaxFaceLocal = 0.;
+                    for (int iedge = 0; iedge < 3; iedge++){
+
+                      int ifacenei = msh.fac2fac(ifaceOutside,iedge);
+
+                      #ifndef NDEBUG
+                      bool touchesCav = false;
+                      #endif
+
+                      if (ifacenei >=0 && msh.fac2tag(ithread,ifacenei) >= msh.tag[ithread]){ // this edge touches the faces cavity -> contributes to current config
+
+                        #ifndef NDEBUG
+                        touchesCav = true;
+                        #endif
+
+                        // ifacenei is an INSIDE face of faces cavity
+                        int ifaceInside = ifacenei; // just for more clarity
+
+                        if (msh.fac2ref[ifaceInside] != msh.fac2ref[ifaceOutside]){
+                          invalid = true; // TODO: deal with this special case
+                          break; // iedge loop (edges of the outside face)
+                        }
+
+                        // need to find the inside edge that leads to ifaceOutside
+                        int iedgeFromInside = -1;
+                        for (int ll = 0; ll < 3; ll++){
+                          if (fac2fac(ifaceInside,ll) == ifaceOutside){
+                            iedgeFromInside = ll;
+                            break;
+                          }
+                        }
+                        METRIS_ASSERT(iedgeFromInside >= 0);
+
+                        int ent2pol[3];
+                        ent2pol[0] = ipins;
+                        ent2pol[lnoed2[0][0]] = fac2poi(ifaceInside,lnoed2[iedgeFromInside][0]);
+                        ent2pol[lnoed2[0][1]] = fac2poi(ifaceInside,lnoed2[iedgeFromInside][1]);
+
+                        fac2poi(tmpSubEntt,0) = ent2pol[0];
+                        fac2poi(tmpSubEntt,1) = ent2pol[1];
+                        fac2poi(tmpSubEntt,2) = ent2pol[2];
+
+                        msh.fac2ref[tmpSubEntt] = msh.fac2ref[ifaceInside];
+
+                        // no need to check validity, current cavity should be valid at all times by construction
+
+                        #ifndef NDEBUG
+                        // put this for debug build anyways
+                        double meas;
+                        bool isValid = isvalideltP1<3,2>(msh, tmpSubEntt, NULL, &meas);
+                        METRIS_ASSERT_MSG(isValid, "Current cavity config invalid. Shouldn't ever happen");
+                        #endif
+
+                        double qua = metqua<MFT,3,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpSubEntt,difto);
+                        quaFaceLocal += qua;
+                        if (qua > quaMaxFaceLocal) quaMaxFaceLocal = qua;
+
+                      }
+                      else{ // this edge does not touch the faces cavity -> contributes to reconnection
+
+                        int ent2pol[3];
+                        ent2pol[0] = ipins;
+                        ent2pol[lnoed2[0][0]] = fac2poi(ifaceOutside,lnoed2[iedge][0]);
+                        ent2pol[lnoed2[0][1]] = fac2poi(ifaceOutside,lnoed2[iedge][1]);
+
+                        fac2poi(tmpSubEntt,0) = ent2pol[0];
+                        fac2poi(tmpSubEntt,1) = ent2pol[1];
+                        fac2poi(tmpSubEntt,2) = ent2pol[2];
+
+                        msh.fac2ref[tmpSubEntt] = msh.fac2ref[ifaceOutside];
+
+                        double meas;
+                        if(!isvalideltP1<3,2>(msh, tmpSubEntt, NULL, &meas)){
+                          invalid = true;
+                          break; // iedge loop (edges of the outside face)
+                        }
+
+                        double qua = metqua<MFT,3,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpSubEntt,difto);
+                        quaFaceLocalReconnect += qua;
+                        if (qua > quaMaxFaceLocalReconnect) quaMaxFaceLocalReconnect = qua;
+
+                      } // if edge touches cavity else not
+                    } // for iedge
+                    METRIS_ASSERT_MSG(touchesCav,"Boundary face of outside cavity element is not neighbor of any face in cavity!");
+
+                    if (invalid) break; // iface loop (faces of outside tet ieneijj)
+
+                    double quaFaceLocalInside = quaFaceLocal;
+                    double quaOutsideFace = metqua<MFT,3,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ifaceOutside,difto);
+                    quaFaceLocal = quaFaceLocalInside + quaOutsideFace;
+                    quaMaxFaceLocal = MAX(quaMaxFaceLocal,quaOutsideFace);
+
+                    // here we already check if this operation improves the faces quality. if not, we skip the tet ieneijj
+
+                    if (quaFaceLocalReconnect < quaFaceLocal){
+                      // NOTE: might seem risky to modify these without knowing if the volume will also imrove, but we have the backup values in case the volume gets worse
+
+                      quaSub0 += quaOutsideFace;
+                      quaSub1 += quaFaceLocalReconnect - quaFaceLocalInside;
+
+                      if (quaMaxFaceLocal > quaMaxSub0) quaMaxSub0 = quaMaxFaceLocal;
+                      if (quaMaxFaceLocalReconnect > quaMaxSub1) quaMaxSub1 = quaMaxFaceLocalReconnect;
+                    }
+                    else{
+                      worsenFaces = true;
+                    }
+                  } // if !coneFace
+                } // if insertion point in boundary
+
+                // if insertion point not in boundary, then it is safe to cone the facet, nothing else to do here
+
+              } // if facet is on boundary
+
+              if (facetsOfNeiTouchingCav[iface] == -1 || coneFace){ // interior facet or not sharing boundary with ipins
+
+                int ent2pol[4];
+                ent2pol[0] = ipins;
+                ent2pol[lnofa3[0][0]] = ent2poi(ieneijj,lnofa3[iface][0]);
+                ent2pol[lnofa3[0][1]] = ent2poi(ieneijj,lnofa3[iface][1]);
+                ent2pol[lnofa3[0][2]] = ent2poi(ieneijj,lnofa3[iface][2]);
+                if (ent2pol[1] == ipins || ent2pol[2] == ipins || ent2pol[3]== ipins) continue;
+
+                ent2poi(tmpEntt,0) = ent2pol[0];
+                ent2poi(tmpEntt,1) = ent2pol[1];
+                ent2poi(tmpEntt,2) = ent2pol[2];
+                ent2poi(tmpEntt,3) = ent2pol[3];
+
+                double meas;
+                if(!isvalideltP1<3,3>(msh, tmpEntt, NULL, &meas)){
+
+                  invalid = true;
+                  break; // iface loop (faces of outside tet ieneijj)
+                }
+                double qua = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+
+
+                quaLocalReconnect += qua;
+                if (qua > quaMaxLocalReconnect) quaMaxLocalReconnect = qua;
               }
-
-              ent2poi(tmpEntt,0) = ent2pol[0];
-              ent2poi(tmpEntt,1) = ent2pol[1];
-              ent2poi(tmpEntt,2) = ent2pol[2];
-              ent2poi(tmpEntt,3) = ent2pol[3];
-
-              double meas;
-              if(!isvalideltP1<3,3>(msh, tmpEntt, NULL, &meas)){
-
-                invalid = true;
-                break;
-              }
-              double qua = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
-
-
-              quaLocalReconnect += qua;
-              if (qua > quaMaxLocalReconnect) quaMaxLocalReconnect = qua;
-
             }
-          }
+          } // for iface (faces of outside tet ieneijj)
 
-          if (invalid) continue;
+          if (invalid || worsenFaces){
+            quaSub0 = quaSub0Backup;
+            quaSub1 = quaSub1Backup;
+            quaMaxSub0 = quaMaxSub0Backup;
+            quaMaxSub1 = quaMaxSub1Backup;
+            continue; // jj loop, neighbors of ientt (current entity in cavity lcent[icent])
+          }
 
           double quaLocalInside = quaLocal;
 
-          // outside element
+          // outside tet
           double quaOutsideEntt = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ieneijj,difto);
 
           quaLocal = quaLocalInside + quaOutsideEntt;
           quaMaxLocal = MAX(quaMaxLocal,quaOutsideEntt);
 
-
           if (quaLocalReconnect < quaLocal){
 
-            // first thing: add outside element to cavity
+            // first thing: add outside tet to cavity
             lcent.stack(ieneijj);
             ent2tag(ithread,ieneijj) = msh.tag[ithread];
             CPRINTF1(" - stack dim {} ieneijj {}\n",tdim,ieneijj);
-            if(isube >= 0){
-              CPRINTF1(" - stack dim {} subent {}\n",tdim-1,isube);
-              sub2tag(ithread,isube) = msh.tag[ithread];
-              lcsub.stack(isube);
+            // if(isube >= 0){
+            //   CPRINTF1(" - stack dim {} subent {}\n",tdim-1,isube);
+            //   sub2tag(ithread,isube) = msh.tag[ithread];
+            //   lcsub.stack(isube);
+            // }
+
+            // if we got here that means faces were not worsen, so add the corresponding ones to cavity
+            for (int kk = 0; kk < 4; kk++){
+
+              int iface = msh.tet2fac(ieneijj,kk);
+              if (iface >= 0) {
+                lcsub.stack(iface);
+                msh.fac2tag(ithread,iface) = msh.tag[ithread];
+              }
+
             }
 
             // update quality of cavity for both configs
@@ -2622,23 +2745,29 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
             if (quaMaxLocal > quaMax0) quaMax0 = quaMaxLocal;
             if (quaMaxLocalReconnect > quaMax1) quaMax1 = quaMaxLocalReconnect;
 
-          }
-        }
-      }// for jj = 0,tdim+1
-    }// for icent
+          } // if improves quality
 
+        } // if tdim == 2 else 3
+      }// for jj neighbor of icent
+    } // for icent
     icen0 = icen1;
     icen1 = lcent.get_n();
     CPRINTF1(" - del grow {} / {} + {} ent\n",igrow,ngrow,icen1-icen0);
-    if(icen1 == icen0) break;
-  }// for igrow
+    if(icen1 == icen0) break; // igrow loop
+  } // for igrow
   #endif
 
   // restore to original number of entities in mesh
   msh.set_nentt(tdim,nentt0);
   msh.set_nentt(tdim-1,nsube0);
 
-  if (handler.checkSuccess(quaCav1,quaCav0) && quaMax1 <= quaMax0) return 0; // reconnected cavity has better quality than original config
+  bool improveEntts    = handler.checkSuccess(quaCav1,quaCav0) && quaMax1 <= quaMax0;
+  bool improveSubEntts = true;
+  if (ipinsOnBnd){
+    improveSubEntts = handler.checkSuccess(quaSub1,quaSub0) && quaMaxSub1 <= quaMaxSub0;
+  }
+
+  if (improveEntts && improveSubEntts) return 0; // reconnected cavity has better quality than original config
   else return -1;                                       // original config is better
 }
 
