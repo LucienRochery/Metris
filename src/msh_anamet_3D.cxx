@@ -578,6 +578,7 @@ void anamet3D_10([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict_
 
 }
 
+// Euclidean-anisotropic, i.e. constant metric but anisotropic
 void anamet3D_11([[maybe_unused]] const AnaMetCtx* ctx, [[maybe_unused]] const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   // Not too coarse at the scale of 1
   double hx = 0.05;
@@ -601,6 +602,58 @@ void anamet3D_11([[maybe_unused]] const AnaMetCtx* ctx, [[maybe_unused]] const d
       }
     }
   }
+}
+
+// BL from Yano's thesis, p. 88
+// x: normal direction to BL
+// y and z: tangent to BL
+
+void anamet3D_12([[maybe_unused]] const AnaMetCtx* ctx, [[maybe_unused]] const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
+
+  SANS::SurrealS<3,double> X[3];
+
+  X[0] = crd[0];
+  X[0].deriv(0) = 1;
+  X[0].deriv(1) = 0;
+  X[0].deriv(2) = 0;
+
+  X[1] = crd[1];
+  X[1].deriv(0) = 0;
+  X[1].deriv(1) = 1;
+  X[1].deriv(2) = 0;
+
+  X[2] = crd[2];
+  X[2].deriv(0) = 0;
+  X[2].deriv(1) = 0;
+  X[2].deriv(2) = 1;
+
+  // parameters
+  double epsilon = 0.2;
+  double p = 1.;
+  double delta = epsilon * (p + 3./2.) * (1. - 1./(2*p*p + 7*p + 6));
+  double k1 = 1./delta;
+
+  SANS::SurrealS<3,double> h1 = scale * exp(k1*X[0]);
+
+  double betay = 1.;
+  double betaz = 1.;
+
+  SANS::SurrealS<3,double> ARy = 1./(epsilon * pow(betay,1./(p+1.))) * exp(-X[0]/(epsilon*(p+1)));
+  SANS::SurrealS<3,double> ARz = 1./(epsilon * pow(betaz,1./(p+1.))) * exp(-X[0]/(epsilon*(p+1)));
+
+  SANS::SurrealS<3,double> h2 = ARy * h1;
+  SANS::SurrealS<3,double> h3 = ARz * h1;
+
+  SANS::SurrealS<3,double> metS[6];
+  metS[0] = 1./(h1*h1);
+  metS[1] = 0;
+  metS[2] = 1./(h2*h2);
+  metS[3] = 0.;
+  metS[4] = 0.;
+  metS[5] = 1./(h3*h3);
+
+  getmet_SurS2dbl<3>(metS,met,idif1 > 0 ? dmet : NULL);
+
 }
 
 } // End namespace

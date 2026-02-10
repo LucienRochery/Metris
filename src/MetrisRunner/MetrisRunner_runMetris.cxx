@@ -43,12 +43,16 @@ void MetrisRunner::runMetris(){
     //  return 0;
     //}
 
+    #ifdef TESTQUALITYALGO
+    int niter = 10;
+    #else
     int niter = 1;
+    #endif
+
     int iter = 0;
     while (iter < niter){
 
       adaptMesh2();
-
 
       if(param->usrTarDeg > 1 || msh_g->curdeg > 1){
         int ielev = degElevate();

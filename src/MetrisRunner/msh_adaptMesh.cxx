@@ -632,7 +632,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   writeMesh("meshSTART.meshb",msh);
   while (true){
 
-    bool didOperation = false;
+    bool didOperation;
 
     for (auto itK = handlerTopX.K.begin(); itK != handlerTopX.K.end(); itK++){
 
@@ -1091,6 +1091,8 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
       if (statusSmoo || statusIns || statusColl ) break;
       #endif
+
+      didOperation = false;
     }
     if (!didOperation /* || smooStreak >= 2500 || iter >= 10000 */) break;
   }
