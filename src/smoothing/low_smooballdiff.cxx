@@ -331,10 +331,345 @@ template int smooballdiff<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 
+// =============================================================================================== //
+// =============================================================================================== //
+
+template<class MFT, int idim, int ideg>
+int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
+                   double& quaCav1, double& quaMaxCav1,
+                   QuaFun iquaf, int ithread){
+
+  GETVDEPTH(msh.param);
+
+  constexpr int tdim = idim;
+  constexpr int gdim = idim;
+
+  const intAr1& lcent = cav.lcent(tdim);
+  const intAr2& ent2ent = msh.ent2ent(tdim);
+  const int tmpEntt = msh.nentt(tdim);
+        intAr2& ent2poi = msh.ent2poi(tdim);
+        intAr2& ent2tag = msh.ent2tag(tdim);
+
+  const int ipins = cav.ipins;
+
+  CPRINTF1("-- START smoocavdiff ipins = {} ncav {}\n",ipins,lcent.get_n());
+
+  msh.tag[ithread]++;
+  for (int ienttCav : lcent) ent2tag(ithread,ienttCav) = msh.tag[ithread];
+
+  constexpr int nnmet = (idim*(idim+1))/2;
+  constexpr int nhess = nnmet;
+
+  const auto quafun = get_quafun<MFT,gdim,tdim>(iquaf);
+  const auto d_quafun = get_d_quafun<MFT,gdim,tdim>(iquaf);
+
+  int nenttCav = lcent.get_n();
+
+  // Optimization doesn't reinterpolate metric
+  int miter1 = MAX(1,msh.param->iflag1);
+  // int miter1 = 3;
+
+  // Relative decrease tolerance
+  const double ftol = 1.0e-2;
+  // const double ftol = 1.0e-3;
+
+  newton_drivertype_args<idim> nargs(msh.param);
+  #ifdef TESTQUALITYALGO
+  // nargs.stpmin = 1.;
+  nargs.stpmin = 1.0e-6;
+  #else
+  nargs.stpmin = 1.0e-6;
+  #endif
+  nargs.wlfc1 = 0.1;
+  nargs.wlfc2 = 10.0;
+  nargs.ratnew= 0.5;
+  nargs.maxit = 50;
+  nargs.ftol  = ftol;
+
+  int iflag = 0, ihess, ierro = 0;
+  double  xcur[idim], coor0[idim], met0[nnmet], fcur;
+  bool iinva;
+  double d1qua[idim], d2qua[nhess];
+
+  for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipins,ii);
+  for(int ii = 0; ii < idim; ii++) nargs.xopt[ii] = msh.coord(ipins,ii); // a backup in case no updates
+  for(int ii = 0; ii < nnmet;ii++) met0[ii]  = msh.met(ipins,ii);
+
+  for(int niter1 = 0; niter1 < miter1; niter1++){
+
+    for(int ii = 0; ii < idim; ii++) xcur[ii]  = msh.coord(ipins,ii);
+    while(true){
+      INCVDEPTH(msh.param);
+
+      ierro = optim_newton_drivertype(nargs, xcur, &fcur, d1qua, d2qua, &iflag, &ihess);
+
+      if(ierro > 0){
+        CPRINTF1(" # optim_newton_drivertype error {}\n",ierro);
+        goto finish;
+      }
+      if(iflag <= 0) {
+        CPRINTF1(" - iflag = 0 termination\n");
+        break;
+      }
+
+      for(int ii = 0; ii < idim; ii++) msh.coord(ipins,ii) = xcur[ii];
+
+      // reconnect on the fly, check validity and fill quality value and derivatives
+      iinva = false;
+      fcur = 0;
+      double dqelt[idim], hqelt[nhess];
+      for(int ii = 0; ii < idim; ii++) d1qua[ii] = 0;
+      for(int ii = 0; ii < nhess;ii++) d2qua[ii] = 0;
+      if constexpr (ideg == 1){
+
+        for (const int ienttCav : lcent){
+
+          int ent2pol[4];
+          for(int jj = 0; jj < tdim + 1; jj++){
+
+            const int ienei = ent2ent(ienttCav,jj);
+
+            // if neighbor tagged it is in cavity -> skip
+            if (ienei >= 0 && ent2tag(ithread,ienei) >= msh.tag[ithread]) continue;
+
+            // at this point, facet jj is at boundary of the cavity
+            // need to probe quality of the reconnected element
+
+            if constexpr (tdim == 2){
+
+              // TODO: for now this function should not be called for boundary points
+              // if (ipinsOnEdge){
+
+              //   // check that facet jj, if also on boundary, is not in same boundary as the insertion edge. otherwise the new triangle would be flat
+              //   int iedgeGlobal = msh.fac2edg(ienttCav,jj);
+              //   if (iedgeGlobal >= 0){
+              //     if (msh.edg2ref[iedgeGlobal] == msh.edg2ref[iedins]) continue;
+              //   }
+              // }
+
+              // put together new triangle
+              ent2pol[0] = ipins;
+              ent2pol[lnoed2[0][0]] = ent2poi(ienttCav,lnoed2[jj][0]);
+              ent2pol[lnoed2[0][1]] = ent2poi(ienttCav,lnoed2[jj][1]);
+
+              if (ent2pol[1] == ipins || ent2pol[2] == ipins) continue;
+
+              ent2poi(tmpEntt,0) = ent2pol[0];
+              ent2poi(tmpEntt,1) = ent2pol[1];
+              ent2poi(tmpEntt,2) = ent2pol[2];
+
+              double meas;
+              if (!isvalideltP1<2,2>(msh, tmpEntt, NULL, &meas)){
+
+                iinva = true;
+                break;
+              }
+
+              int ivar  = msh.template getverent<ideg>(tmpEntt,idim,ipins);
+              double quael;
+              if(ihess){
+                quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
+                                tmpEntt,ivar,
+                                msh.getBasis(),
+                                DifVar::None,dqelt,hqelt,1.);
+              }else{
+                quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
+                                tmpEntt,ivar,
+                                msh.getBasis(),
+                                DifVar::None,dqelt,NULL,1.);
+              }
+              fcur += quael;
+              if (quael > quaMaxCav1) quaMaxCav1 = quael;
+
+              for(int ii = 0; ii < idim; ii++) d1qua[ii] += dqelt[ii];
+              if(ihess)
+                for(int ii = 0; ii < nhess;ii++) d2qua[ii] += hqelt[ii];
+
+            }
+            else{ // tdim == 3
+
+              // TODO: for now, this function should not be called if ipins is on boundary
+              // // if boundary face itself is in cavity (tagged), it will be split => no single cone tet
+              // int ifaceGlobal = msh.tet2fac(ienttCav, jj);
+              // if(ifaceGlobal >= 0 && msh.fac2tag(ithread, ifaceGlobal) >= msh.tag[ithread]) continue;
+
+              int ent2pol[4];
+              ent2pol[0] = ipins;
+              ent2pol[lnofa3[0][0]] = ent2poi(ienttCav, lnofa3[jj][0]);
+              ent2pol[lnofa3[0][1]] = ent2poi(ienttCav, lnofa3[jj][1]);
+              ent2pol[lnofa3[0][2]] = ent2poi(ienttCav, lnofa3[jj][2]);
+
+              if(ent2pol[1]==ipins || ent2pol[2]==ipins || ent2pol[3]==ipins) continue;
+
+              // copy into tmpEntt for metqua
+              ent2poi(tmpEntt,0)=ent2pol[0];
+              ent2poi(tmpEntt,1)=ent2pol[1];
+              ent2poi(tmpEntt,2)=ent2pol[2];
+              ent2poi(tmpEntt,3)=ent2pol[3];
+
+              // put this for debug build anyways
+              double meas;
+              if (!isvalideltP1<3,3>(msh, tmpEntt, NULL, &meas)){
+
+                iinva = true;
+                break;
+              }
+
+              int ivar  = msh.template getverent<ideg>(tmpEntt,idim,ipins);
+              double quael;
+              if(ihess){
+                quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
+                                tmpEntt,ivar,
+                                msh.getBasis(),
+                                DifVar::None,dqelt,hqelt,1.);
+              }else{
+                quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
+                                tmpEntt,ivar,
+                                msh.getBasis(),
+                                DifVar::None,dqelt,NULL,1.);
+              }
+              fcur += quael;
+              if (quael > quaMaxCav1) quaMaxCav1 = quael;
+
+              for(int ii = 0; ii < idim; ii++) d1qua[ii] += dqelt[ii];
+              if(ihess)
+                for(int ii = 0; ii < nhess;ii++) d2qua[ii] += hqelt[ii];
+
+            } // if tdim == 2 else 3
+          } // for jj (bnd facets of ienttCav)
+          if (iinva) break;
+        } // for ienttCav
+      }else{
+        METRIS_THROW_MSG("Implement cavity smoothing for ideg > 1");
+      }
+
+      if(iinva){
+        fcur = 1e15;
+        quaCav1 = fcur;
+        quaMaxCav1 = 1e15;
+        // radical solution for now
+        CPRINTF1("# invalid config -> finish");
+        goto finish;
+      }
+
+      if(DOPRINTS1()){
+        CPRINTF1(" - Newton iter {} fcur = {} xcur = {} {}",nargs.niter,fcur,xcur[0],xcur[1]);
+        if(idim == 3){
+          PRINTF(" {}\n",xcur[2]);
+        }else{
+          PRINTF("\n");
+        }
+        CPRINTF2(" - grad = {}\n",dblAr1(idim,d1qua));
+      }
+
+      quaCav1 = fcur;
+    } // end while true
+
+    ierro = 0;
+
+    finish:
+    CPRINTF1(" -- END smoocavdiff fopt = {} xopt = {}\n",
+             nargs.fopt,dblAr1(idim,nargs.xopt));
+
+    for(int ii = 0; ii < idim; ii++) msh.coord(ipins,ii) = nargs.xopt[ii];
+
+    if(DOPRINTS2()) writeMesh("debug_smooth0.meshb",msh);
+
+    ierro = msh.interpMetBack(ipins);
+    if(ierro > 0){
+      CPRINTF1(" # smoocavdiff interpMetBack failure ierro = {} \n",ierro);
+      goto cleanup;
+    }
+
+    // CPRINTF1(" - Newton update initial quality avg {:15.7e} "
+    //                       "max {:15.7e} \n",*qnrm0,*qmax0);
+    // CPRINTF1(" -                 final quality avg {:15.7e} "
+    //                       "max {:15.7e} \n",*qnrm1,*qmax1);
+  }
 
 
+  // if(*qnrm1 > *qnrm0){
+  //   ierro = 2;
+  //   CPRINTF1(" # Local smoo reject: quality norm increase "
+  //              "{} -> {} \n", *qnrm0, *qnrm1);
+  //   goto cleanup;
+  // }
+
+  // if(msh.param->dbgfull){
+  //   for(int ientt : lball){
+  //     if constexpr (ideg == 1){
+  //       METRIS_ENFORCE((isvalideltP1<idim,idim>(msh,ientt)));
+  //     }else{
+  //       constexpr int jdeg = tdim*(ideg - 1);
+  //       constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
+  //                                       : getnnod3(jdeg);
+  //       double ccoef[ncoef];
+  //       for(int ientt : lball){
+  //         getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva);
+  //         METRIS_ENFORCE(!iinva);
+  //       }
+  //     }
+  //   }
+  // }
+
+  return 0;
+
+  cleanup:
+  for(int ii = 0; ii < idim; ii++) msh.coord(ipins,ii) = coor0[ii];
+  for(int ii = 0; ii < nnmet; ii++) msh.met(ipins,ii) = met0[ii];
+  // *qnrm1 = *qnrm0;
+  // *qmax1 = *qmax0;
+
+  // if(msh.param->dbgfull){
+  //   if constexpr (ideg >= 2){
+  //     constexpr int jdeg = tdim*(ideg - 1);
+  //     constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
+  //                                     : getnnod3(jdeg);
+  //     const double jtol = msh.param->jtol;
+  //     double ccoef[ncoef];
+  //     for(int ientt : lball){
+  //       double vol = getmeasentP1<idim>(ent2poi[ientt], msh.coord);
+  //       getccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef);
+  //       for(int ii = 0; ii < ncoef; ii++){
+  //         if(ccoef[ii] >= jtol * vol) continue;
+  //         METRIS_THROW_MSG(" - 1 reject validity coef {:15.7e} scaled {:15.7e} \n",
+  //                 ccoef[ii], ccoef[ii]/vol);
+  //       }
+  //     }
+  //   }else{
+  //     for(int ientt : lball){
+  //       if(isvalideltP1<idim,idim>(msh,ientt)) continue;
+  //       METRIS_THROW_MSG(" - 2 reject validity\n");
+  //     }
+  //   }
+  // }
+
+  return ierro;
+}
 
 
+#define BOOST_PP_LOCAL_MACRO(n)\
+template int smoocavdiff<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        >& msh,\
+                  MshCavity& cav, \
+                   double& quaCav1, double& quaMaxCav1, \
+                   QuaFun iquaf, int ithread);\
+template int smoocavdiff<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        >& msh,\
+                   MshCavity& cav, \
+                   double& quaCav1, double& quaMaxCav1, \
+                   QuaFun iquaf, int ithread);\
+template int smoocavdiff<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical>& msh,\
+                   MshCavity& cav, \
+                   double& quaCav1, double& quaMaxCav1, \
+                   QuaFun iquaf, int ithread);\
+template int smoocavdiff<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>& msh,\
+                   MshCavity& cav, \
+                   double& quaCav1, double& quaMaxCav1, \
+                   QuaFun iquaf, int ithread);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+// =============================================================================================== //
+// =============================================================================================== //
 
 template<class MFT, int idim, int ideg>
 double smooballdiff_fun([[maybe_unused]] unsigned int nvar,

@@ -44,7 +44,7 @@ void MetrisRunner::runMetris(){
     //}
 
     #ifdef TESTQUALITYALGO
-    int niter = 10;
+    int niter = 5;
     #else
     int niter = 1;
     #endif

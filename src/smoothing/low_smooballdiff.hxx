@@ -4,9 +4,9 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 /*
-Low level routine for "direct" P1 ball smoothing. 
-From each (facet, metric) pair, generate remaining vertex to be unit. Then average over ball. 
-Simplest possible approach. 
+Low level routine for "direct" P1 ball smoothing.
+From each (facet, metric) pair, generate remaining vertex to be unit. Then average over ball.
+Simplest possible approach.
 */
 
 #ifndef __METRIS_LOW_SMOOBALLDIFF__
@@ -14,30 +14,29 @@ Simplest possible approach.
 
 #include "../Mesh/MeshFwd.hxx"
 #include "../quality/quafun.hxx"
+#include "../cavity/msh_cavity.hxx"
 #include "../types.hxx"
 
 namespace Metris{
 
-
-
-// same as smooballdirect but gradient descent 
+// same as smooballdirect but gradient descent
 template<class MetricFieldType, int idim, int ideg>
 int smooballdiff(Mesh<MetricFieldType>& msh, int ipoin,
                  const intAr1 &lball,
-                 double*__restrict__ qavg0, double*__restrict__ qmax0, 
+                 double*__restrict__ qavg0, double*__restrict__ qmax0,
                  double*__restrict__ qavg1, double*__restrict__ qmax1,
                  QuaFun iquaf = QuaFun::Distortion);
 
 
 
 template<class MFT, int gdim, int ideg>
-double smooballdiff_fun(unsigned int nvar, const double *x, 
+double smooballdiff_fun(unsigned int nvar, const double *x,
                         double *grad, void *f_data);
 
 template<class MFT>
 struct smooballdiff_fun_data{
   smooballdiff_fun_data(Mesh<MFT> &msh_, const intAr1 &lball_, int ipoin_,
-                        QuaFun iquaf_, double *xopt_) : 
+                        QuaFun iquaf_, double *xopt_) :
   msh(&msh_), lball(&lball_), ipoin(ipoin_), iquaf(iquaf_), qnrm0(0), qmax0(-1.0e30),
   iqset(false), xopt(xopt_), fopt(1.0e30) {}
 
@@ -56,12 +55,18 @@ struct smooballdiff_fun_data{
 
 // inorm <= infi norm , p > 0 L^p norm (over ball)
 template<class MFT, int idim, int ideg>
-int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin, 
+int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
                         const intAr1 &lball,
-                        double*__restrict__ qnrm0, double*__restrict__ qmax0, 
+                        double*__restrict__ qnrm0, double*__restrict__ qmax0,
                         double*__restrict__ qnrm1, double*__restrict__ qmax1,
                         dblAr1 &work,
                         QuaFun iquaf);
 
+
+// same as smooballdiff but smooths cavity instead of ball: the difference is that we need to put together the reconnected elements on the fly
+template<class MetricFieldType, int idim, int ideg>
+int smoocavdiff(Mesh<MetricFieldType>& msh, MshCavity& cav,
+                   double& quaCav1, double& quaMaxCav1,
+                   QuaFun iquaf, int ithread);
 } // end namespace
 #endif

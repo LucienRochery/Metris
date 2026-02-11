@@ -16,6 +16,7 @@ Low-level drivers:
 #include "../Mesh/MeshFwd.hxx"
 #include "../quality/quafun.hxx"
 #include "../aux_badEntHandler.hxx"
+#include "../cavity/msh_cavity.hxx"
 
 namespace Metris{
 
@@ -40,6 +41,18 @@ double smoothElement_Ball(Mesh<MetricFieldType> &msh, const int ientt, BadEntHan
 template<class MetricFieldType, int idim, int ideg>
 double smoothElement_Ball0(Mesh<MetricFieldType> &msh, const int ientt, BadEntHandler& handler,
                            QuaFun iquaf, int ithrd1, int ithrd);
+
+// to do cavity smoothing: optimize the insertion point position
+template<class MetricFieldType>
+double smoothCavity(Mesh<MetricFieldType> &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf,
+                    const double quaCav0, const double quaMaxCav0,
+                    double& quaCav1, double& quaMaxCav1,
+                    int ithrd1, int ithrd2);
+
+template<class MetricFieldType, int idim, int ideg>
+double smoothCavity0(Mesh<MetricFieldType> &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, double& quaCav1, double& quaMaxCav1,
+                           int ithrd1, int ithrd2);
+
 
 } // end namespace
 #endif

@@ -708,4 +708,171 @@ template double smoothElement_Ball0<MetricFieldFE        ,3,n>(Mesh<MetricFieldF
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 
+// =============================================================================================== //
+// =============================================================================================== //
+
+template<class MFT>
+double smoothCavity(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf,
+                    const double quaCav0, const double quaMaxCav0,
+                    double& quaCav1, double& quaMaxCav1,
+                    int ithrd1, int ithrd2){
+
+  int tdimn = msh.get_tdim();
+
+  METRIS_ASSERT_MSG(tdimn > 1, "TODO: edge smooth interior ball");
+
+  // Geo and topo dimn must match otherwise surface specific
+  METRIS_ASSERT(tdimn == msh.idim);
+  double noper;
+  CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
+    if(tdimn == 2){
+      noper = smoothCavity0<MFT,2,ideg>(msh,cav,handler,iquaf,quaCav0,quaMaxCav0,quaCav1,quaMaxCav1,ithrd1,ithrd2);
+    }else{
+      noper = smoothCavity0<MFT,3,ideg>(msh,cav,handler,iquaf,quaCav0,quaMaxCav0,quaCav1,quaMaxCav1,ithrd1,ithrd2);
+    }
+  }}CT_FOR1(ideg);
+
+  return noper;
+}
+
+template double smoothCavity<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf,
+                                                    const double quaCav0, const double quaMaxCav0,
+                                                    double& quaCav1, double& quaMaxCav1,
+                                                    int ithrd1, int ithrd2);
+template double smoothCavity<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf,
+                                                    const double quaCav0, const double quaMaxCav0,
+                                                    double& quaCav1, double& quaMaxCav1,
+                                                    int ithrd1, int ithrd2);
+
+// =============================================================================================== //
+// =============================================================================================== //
+
+
+// idim: gdim = tdim
+template<class MFT, int idim, int ideg>
+double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, double& quaCav1, double& quaMaxCav1,
+                           int ithrd1, int ithrd2){
+  // TODO: for now just vertex smoothing. Add HO nodes in the future
+  GETVDEPTH(msh.param);
+
+  constexpr int tdim = idim;
+  //constexpr int gdim = idim;
+  if(ideg > idim + 1){
+    PRINTF("## SMOOTHING DISABLED FOR DEGREE {} and dim {} \n",ideg,idim);
+    return -1.0;
+  }
+
+  int nentt = msh.nentt(tdim);
+  const intAr2 &ent2poi = msh.ent2poi(tdim);
+  const intAr2 &ent2ent = msh.ent2ent(tdim);
+
+  // Eventually move all constants to MetrisParameters
+  // L2 conformity error from 0 to 1
+  const double difto = 1.0;
+  // const int miter = msh.param->opt_smoo_niter;
+  const int miter = 1;
+  //const double maxwt = 20.0;
+  //const double qrthr = 2.0;
+  const double tolavg = msh.param->opt_smoo_tol;
+  const double tolmax = msh.param->opt_smoo_tol;
+
+  constexpr int nnmet = (idim*(idim+1))/2;
+
+  METRIS_ENFORCE(ideg <= tdim + 1);
+
+  msh.tag[ithrd1]++;
+
+  double noper = 0;
+  for(int niter = 0; niter < miter; niter++){
+    INCVDEPTH(msh.param);
+
+    int nsucc = 0;
+    int nmov  = 0;
+
+    const int ipins = cav.ipins;
+
+    // TODO:
+    // skip if boundary point
+    // int ib = msh.poi2bpo[ipoin];
+    // if(ib >= 0) continue;
+
+    CPRINTF1(" - smoo cavity for insertion pt {} \n", ipins);
+    int ierro = 0;
+
+    double t0 = get_cpu_time();
+
+    double coor0[idim];
+    double met0[nnmet];
+    for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipins,ii);
+    for(int ii = 0; ii < nnmet; ii++) met0[ii] = msh.met(ipins,ii);
+    double qnrm0, qmax0, qnrm1, qmax1;
+    try{
+
+      ierro = smoocavdiff<MFT,idim,ideg>(msh,cav,quaCav1,quaMaxCav1,iquaf,ithrd1);
+
+      // std::cout << "In smoothCavity0" << std::endl;
+      // std::cout << "quaCav1 = " << quaCav1 << std::endl;
+      // std::cout << "quaMaxCav1 = " << quaMaxCav1 << std::endl;
+      // std::cout << "quaCav0 = " << quaCav0 << std::endl;
+      // std::cout << "quaMaxCav0 = " << quaMaxCav0 << std::endl;
+
+      if (ierro == 0){
+        bool improveCavSum = handler.checkSuccess(quaCav1,quaCav0);
+        bool improveCavMax = true;
+        #ifdef IMPROVEMAXQUAL
+        improveCavMax = quaMaxCav1 <= quaMaxCav0;
+        #endif
+        if(!improveCavSum || !improveCavMax){
+          CPRINTF1(" - reject move, quality error increased ({:15.7e} > {:15.7e}) or max error increased ({:15.7e} > {:15.7e})\n",
+                    quaCav1, quaCav0, quaMaxCav1, quaMaxCav0);
+          for(int ii = 0; ii < idim; ii++) msh.coord(ipins,ii) = coor0[ii];
+          for(int ii = 0; ii < nnmet;ii++) msh.met(ipins,ii)   =  met0[ii];
+
+          quaCav1 = quaCav0;
+          quaMaxCav1 = quaMaxCav0;
+          ierro = 1;
+        }
+      }
+      else{
+        for(int ii = 0; ii < idim; ii++) msh.coord(ipins,ii) = coor0[ii];
+        for(int ii = 0; ii < nnmet;ii++) msh.met(ipins,ii)   =  met0[ii];
+      }
+    }catch(const MetrisExcept &e){
+      PRINTF("## FAILED  smoocavdiff\n");
+      writeMesh("smooth_error.meshb",msh);
+      throw(e);
+    }
+    if(ierro == 0){
+      nsucc++;
+      CPRINTF1(" - success smoothing {} q avg {:10.6e} -> {:10.6e} "
+                "max {:10.6e} -> {:10.6e}\n",ipins,quaCav0,quaCav1,quaMaxCav0,quaMaxCav1);
+
+    }
+
+    double t1 = get_cpu_time();
+    CPRINTF1(" - Iteration end time = {:.2e}s nsuccess = {} nmov = {} \n",
+                          t1-t0,nsucc);
+    noper += nsucc;
+    if(nsucc == 0) break;
+  } // iter
+
+  return noper / (double) nentt;
+}
+
+#define BOOST_PP_LOCAL_MACRO(n)\
+template double smoothCavity0<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
+                                        MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, double& quaCav1, double& quaMaxCav1, \
+                           int ithrd1, int ithrd2);\
+template double smoothCavity0<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,\
+                                        MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, double& quaCav1, double& quaMaxCav1, \
+                           int ithrd1, int ithrd2);\
+template double smoothCavity0<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,\
+                                        MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, double& quaCav1, double& quaMaxCav1, \
+                           int ithrd1, int ithrd2);\
+template double smoothCavity0<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,\
+                                        MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, double& quaCav1, double& quaMaxCav1, \
+                           int ithrd1, int ithrd2);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
 } // end namespace
