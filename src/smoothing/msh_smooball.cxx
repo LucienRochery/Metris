@@ -580,9 +580,17 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
       if(msh.poi2tag(ithrd1,ipoin) >= msh.tag[ithrd1]) continue;
       INCVDEPTH(msh.param);
 
-      // skip if boundary point
-      int ib = msh.poi2bpo[ipoin];
-      if(ib >= 0) continue;
+      // check if boundary point
+      int ibpoin = msh.poi2bpo[ipoin];
+      bool pointOnEdge = false;
+      if (ibpoin >= 0){
+
+        METRIS_ASSERT(msh.bpo2ibi(ibpoin,0) == ipoin);
+
+        if      (msh.bpo2ibi(ibpoin,1) == 0) continue;           // point is a CAD corner, don't move
+        else if (msh.bpo2ibi(ibpoin,1) == 1) pointOnEdge = true; // point is in CAD edge
+        else if (msh.bpo2ibi(ibpoin,1) == 2) continue;           // point is in CAD face (surface), skip for now. TODO
+      }
 
       CPRINTF1(" - smoo pt {} seed elt {} \n", ipoin,ientt);
       int ierro = 0;
@@ -596,8 +604,11 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
       }else{
         ierro = ball3(msh,ipoin,ientt,lball,&iopen,ithrd2);
       }
-      METRIS_ASSERT(iopen == 0);
+      #ifndef NDEBUG
+      if (!pointOnEdge)  METRIS_ASSERT(iopen == 0);
+      else               METRIS_ASSERT(iopen == 1);
       METRIS_ASSERT(ierro == 0);
+      #endif
 
       // we now have the ball for ipoin, get initial qualities
 
@@ -631,14 +642,13 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
       double met0[nnmet];
       for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
       for(int ii = 0; ii < nnmet; ii++) met0[ii] = msh.met(ipoin,ii);
+      double tparam0 = -1e30;
+      if (pointOnEdge) tparam0 = msh.bpo2rbi(ibpoin,0); // back up for t parameter
       double qnrm0, qmax0, qnrm1, qmax1;
       try{
-        //ierro = smooballdirect<MFT,idim,ideg>(msh,ipoin,lball,qball,
-        //                       &qnrm0,&qmax0,&qnrm1,&qmax1,
-        //                       qpower,qpnorm,difto,maxwt,inorm,iverb,ithrd2);
         if(msh.param->iflag2 == 0){
-          ierro = smooballdiff<MFT,idim,ideg>(msh,ipoin,lball,
-                                 &qnrm0,&qmax0,&qnrm1,&qmax1,iquaf);
+          if (pointOnEdge) ierro = smooballdiff_boundary<MFT,idim,ideg>(msh,ipoin,1,lball,&qnrm0,&qmax0,&qnrm1,&qmax1,iquaf);
+          else             ierro = smooballdiff<MFT,idim,ideg>(msh,ipoin,lball,&qnrm0,&qmax0,&qnrm1,&qmax1,iquaf);
         }else{
           ierro = smooballdiff_luksan<MFT,idim,ideg>(msh,ipoin,lball,
                                      &qnrm0,&qmax0,&qnrm1,&qmax1,work,iquaf);
@@ -654,12 +664,59 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
           if (quael > qmaxNew) qmaxNew = quael;
 
         }
-        if(!handler.checkSuccess(qsumNew,qsum) || qmaxNew > qmax){
+        bool improveQuaSum = handler.checkSuccess(qsumNew,qsum);
+        bool improveQuaMax = true;
+        #ifdef IMPROVEMAXQUAL
+          improveQuaMax = qmaxNew < qmax;
+        #endif
+        if(!improveQuaSum || !improveQuaMax){
           CPRINTF1(" - reject move, quality error increased: {:15.7e} > {:15.7e}\n",
                    qsumNew, qsum);
           for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
           for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
+          if (pointOnEdge) msh.bpo2rbi(ibpoin,0) = tparam0;
+
           ierro = 1;
+        }else if(pointOnEdge){
+
+          // important: as we moved the point along the edge, we also need to update the (u,v) parameters
+          // of the point as part of the faces incident to the edge
+          double topt = msh.bpo2rbi(ibpoin,0);
+
+          const int iedge = msh.bpo2ibi(ibpoin,2); // a mesh edge attached to the point
+          METRIS_ASSERT(iedge >= 0 && iedge < msh.nedge);
+
+          const int irefEdge = msh.edg2ref[iedge]; // get CAD edge reference
+          ego cadEdge = msh.CAD.cad2edg[irefEdge]; // get actual CAD edge object
+
+          int ibpoinRecord = ibpoin;
+          while (ibpoinRecord != -1 && msh.bpo2ibi(ibpoinRecord,0) == ipoin){
+
+            if (msh.bpo2ibi(ibpoinRecord,1) == 2){ // same point we moved but as living in a face
+
+              // first get the CAD face object
+
+              const int iface = msh.bpo2ibi(ibpoinRecord,2); // a mesh face attached to the point
+              METRIS_ASSERT(iface >= 0 && iface < msh.nface);
+
+              const int irefFace = msh.fac2ref[iface]; // get CAD face reference
+              ego cadFace = msh.CAD.cad2fac[irefFace]; // get actual CAD face object
+
+              // retrieve (u,v) of the point given the new topt location along edge
+              double uv[2];
+              int icode = EG_getEdgeUV(cadFace, cadEdge, 0, topt, uv);
+              METRIS_ENFORCE_MSG(icode == EGADS_SUCCESS, "EG_getEdgeUV failed: {}", icode);
+
+              msh.bpo2rbi(ibpoinRecord,0) = uv[0];
+              msh.bpo2rbi(ibpoinRecord,1) = uv[1];
+
+            } // finish updating (u,v) of a face incident to the edge
+
+            // move on to next boundary point record in the linked list
+            ibpoinRecord = msh.bpo2ibi(ibpoinRecord,3);
+
+          }
+
         }
       }catch(const MetrisExcept &e){
         PRINTF("## FAILED  smooballdirect\n");

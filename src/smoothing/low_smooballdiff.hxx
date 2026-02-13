@@ -19,13 +19,21 @@ Simplest possible approach.
 
 namespace Metris{
 
-// same as smooballdirect but gradient descent
+// same as smooballdirect but gradient descent (interior point)
 template<class MetricFieldType, int idim, int ideg>
 int smooballdiff(Mesh<MetricFieldType>& msh, int ipoin,
                  const intAr1 &lball,
                  double*__restrict__ qavg0, double*__restrict__ qmax0,
                  double*__restrict__ qavg1, double*__restrict__ qmax1,
                  QuaFun iquaf = QuaFun::Distortion);
+
+// same as the above but for when the point is on a boundary
+template<class MetricFieldType, int idim, int ideg>
+int smooballdiff_boundary(Mesh<MetricFieldType>& msh, int ipoin, const int cadDim,
+                          const intAr1 &lball,
+                          double*__restrict__ qavg0, double*__restrict__ qmax0,
+                          double*__restrict__ qavg1, double*__restrict__ qmax1,
+                          QuaFun iquaf = QuaFun::Distortion);
 
 
 

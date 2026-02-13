@@ -335,6 +335,390 @@ template int smooballdiff<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>
 // =============================================================================================== //
 
 template<class MFT, int idim, int ideg>
+int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
+                          const intAr1 &lball,
+                          double*__restrict__ qnrm0, double*__restrict__ qmax0,
+                          double*__restrict__ qnrm1, double*__restrict__ qmax1,
+                          QuaFun iquaf){
+
+  GETVDEPTH(msh.param);
+
+  CPRINTF1("-- START smooballdiff_boundary ipoin = {} nball {}\n",ipoin,lball.get_n());
+
+  constexpr int tdim = idim;
+  constexpr int gdim = idim;
+
+  constexpr int nnmet = (idim*(idim+1))/2;
+  constexpr int nhess = nnmet;
+
+  const intAr2& ent2poi = msh.ent2poi(idim);
+
+  const auto quafun = get_quafun<MFT,gdim,tdim>(iquaf);
+  const auto d_quafun = get_d_quafun<MFT,gdim,tdim>(iquaf);
+
+  int nball = lball.get_n();
+
+  *qnrm0 = 0;
+  *qmax0 = -1.0e30;
+
+  const int ibpoin = msh.poi2bpo[ipoin];
+
+  // a few sanity checks
+  METRIS_ASSERT_MSG(ibpoin >= 0, "Interior point detected! This is boundary smoothing. Should call smooballdiff instead.");
+  METRIS_ASSERT(msh.bpo2ibi(ibpoin,0) == ipoin);
+  METRIS_ASSERT_MSG(msh.bpo2ibi(ibpoin,1) != 0, "CAD corner detected! Should not be moved");
+  METRIS_ASSERT(cadDim == 1 || cadDim == 2);
+  #ifndef NDEBUG
+  if      (cadDim == 1) METRIS_ASSERT(msh.bpo2ibi(ibpoin,1) == 1);
+  else if (cadDim == 2) METRIS_ASSERT(msh.bpo2ibi(ibpoin,1) == 2);
+  #endif
+
+  if (cadDim == 1){
+
+    const int iedge = msh.bpo2ibi(ibpoin,2); // a mesh edge attached to the point
+    METRIS_ASSERT(iedge >= 0 && iedge < msh.nedge);
+
+    const int iref = msh.edg2ref[iedge]; // get CAD edge reference
+    ego cadEdge = msh.CAD.cad2edg[iref]; // get actual CAD edge object, needed to compute derivatives of the edge curve wrt parameter t
+
+    double t0 = msh.bpo2rbi(ibpoin,0); // initial t parameter for current point location
+
+    double coor0[idim], met0[nnmet];
+    for(int ii=0; ii<idim;  ii++) coor0[ii] = msh.coord(ipoin,ii);
+    for(int ii=0; ii<nnmet; ii++) met0[ii]  = msh.met(ipoin,ii);
+
+    // Optimization doesn't reinterpolate metric
+    int miter1 = MAX(1,msh.param->iflag1);
+    // int miter1 = 3;
+
+    // Relative decrease tolerance
+    const double ftol = 1.0e-2;
+    // const double ftol = 1.0e-3;
+
+    constexpr int optDimension = 1; // optimization has just one variable: parameter t
+    newton_drivertype_args<optDimension> nargs(msh.param);
+    #ifdef TESTQUALITYALGO
+    nargs.stpmin = 1.;
+    #else
+    nargs.stpmin = 1.0e-6;
+    #endif
+    nargs.wlfc1 = 0.1;
+    nargs.wlfc2 = 10.0;
+    nargs.ratnew= 0.5;
+    nargs.maxit = 50;
+    nargs.ftol  = ftol;
+
+    int iflag = 0, ihess, ierro = 0;
+    bool iinva = false;
+
+    double tcur[1];
+    tcur[0] = t0;
+    nargs.xopt[0] = t0; // a backup in case no updated
+
+    double fcur    = 0.;   // objective function value
+    double d1t[1]  = {0.}; // first derivative wrt t
+    double d2t[1]  = {0.}; // second derivative wrt t
+
+    // derivatives wrt physical coord
+    double gradX[idim], hessX[nhess];
+
+    double Xt[3]  = {0.,0.,0.}; // edge tangent
+    double Xtt[3] = {0.,0.,0};  // t derivative of tangent vector
+
+    // CAD evaluation buffers
+    double egParam[2] = {t0, 0.};
+    double evalResult[18];
+
+    for(int niter1 = 0; niter1 < miter1; niter1++){
+
+      while(true){
+        INCVDEPTH(msh.param);
+
+        ierro = optim_newton_drivertype(nargs, tcur, &fcur, d1t, d2t, &iflag, &ihess);
+
+        if(ierro > 0){
+          CPRINTF1(" # optim_newton_drivertype error {}\n",ierro);
+          goto finish;
+        }
+        if(iflag <= 0) {
+          CPRINTF1(" - iflag = 0 termination\n");
+          break;
+        }
+
+        // map parameter t to physical coordinates
+        egParam[0] = tcur[0];
+        int estat = EG_evaluate(cadEdge, egParam, evalResult);
+        METRIS_ASSERT_MSG(estat == EGADS_SUCCESS, "EG_evaluate failed estat={}", estat);
+
+        // set point coordinates from CAD curve evaluation
+        for(int ii = 0; ii < idim; ii++) msh.coord(ipoin, ii) = evalResult[ii];
+
+        // get curve t derivatives
+        Xt[0]  = evalResult[3];  Xt[1]  = evalResult[4];  Xt[2]  = (idim==3 ? evalResult[5] : 0.0);
+        Xtt[0] = evalResult[6];  Xtt[1] = evalResult[7];  Xtt[2] = (idim==3 ? evalResult[8] : 0.0);
+
+        iinva = false;
+        if constexpr (ideg == 1){
+          for(int ientt : lball){
+            iinva = !isvalideltP1<gdim,tdim>(msh,ientt);
+            if(iinva) break;
+          }
+        }else{
+          constexpr int jdeg = tdim*(ideg - 1);
+          constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
+                                          : getnnod3(jdeg);
+          double ccoef[ncoef];
+          for(int ientt : lball){
+            getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva);
+            if(iinva) break;
+          }
+        }
+
+        if(iinva){
+          fcur = 1.0e10;
+          // radical solution for now
+          CPRINTF1("# invalid config -> finish");
+          goto finish;
+        }
+
+
+        fcur = 0;
+        double dqelt[idim], hqelt[nhess];
+        for(int ii = 0; ii < idim; ii++) gradX[ii] = 0;
+        for(int ii = 0; ii < nhess;ii++) hessX[ii] = 0;
+        for(int iball = 0; iball < nball && !iinva; iball++){
+          int ient2 = lball[iball];
+
+          // std::cout << "ient2 = " << ient2;
+
+          bool iflat = !isvalideltP1<idim,idim>(msh,ient2);
+          if(iflat){
+            fcur = 1.0e10;
+            break;
+          }
+
+          int ivar  = msh.template getverent<ideg>(ient2,idim,ipoin);
+          double quael;
+          if(ihess){
+            quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
+                            ient2,ivar,
+                            msh.getBasis(),
+                            DifVar::None,dqelt,hqelt,1);
+
+          }else{
+            quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
+                            ient2,ivar,
+                            msh.getBasis(),
+                            DifVar::None,dqelt,NULL,1);
+          }
+          fcur += quael;
+          for(int ii = 0; ii < idim; ii++) gradX[ii] += dqelt[ii];
+          if(ihess)
+            for(int ii = 0; ii < nhess;ii++) hessX[ii] += hqelt[ii];
+
+          if(nargs.niter == 1 && niter1 == 0){
+            *qnrm0 += quael;
+            *qmax0  = MAX(quael,*qmax0);
+          }
+        }// for iball
+
+        if(iinva){
+          CPRINTF1("# invalid/flat config -> finish");
+          goto finish;
+        }
+
+        // now we have the gradient nad hessian of objective function with respect to vertex position
+        // apply the chain rule to get t derivatives
+        // first derivative: gradX * Xt
+        double dfdt = 0.;
+        for(int ii = 0; ii < idim; ii++) dfdt += gradX[ii] * Xt[ii];
+
+        // second derivative: Xt^T * hessX * Xt + gradX * Xtt
+        double XtHXt = 0.0;
+        if (ihess){
+
+          auto H = [&](int i, int j) -> double {
+            if(i==j){
+              return hessX[i]; // 0->H00, 1->H11, 2->H22 (when idim==3)
+            }
+            if(idim==2){
+              // nhess==3: [H00,H11,H01]
+              return hessX[2];
+            }else{
+              // nhess==6: [H00,H11,H22,H01,H02,H12]
+              if((i==0 && j==1) || (i==1 && j==0)) return hessX[3];
+              if((i==0 && j==2) || (i==2 && j==0)) return hessX[4];
+              /* (1,2) */                             return hessX[5];
+            }
+          };
+
+          for(int i = 0; i < idim; i++){
+            for(int j = 0; j < idim; j++){
+              XtHXt += Xt[i] * H(i,j) * Xt[j];
+            }
+          }
+        }
+
+        double gradXdotXtt = 0.0;
+        for(int ii = 0; ii < idim; ii++) gradXdotXtt += gradX[ii] * Xtt[ii];
+
+        double d2fdt2 = (ihess ? XtHXt : 0.0) + gradXdotXtt;
+
+        // Feed optimizer with derivatives in parameter space
+        d1t[0] = dfdt;
+        if(ihess) d2t[0] = d2fdt2;
+
+
+        if(DOPRINTS1()){
+          CPRINTF1(" - Smoothing on edge: Newton iter {} fcur = {} tcur = {}",nargs.niter,fcur,tcur[0]);
+          CPRINTF2(" - dquadt = {}\n",d1t[0]);
+        }
+      } // end while true
+
+
+      ierro = 0;
+
+      finish:
+      // CPRINTF1(" -- END smooballdiff fopt = {} xopt = {}\n",
+      //         nargs.fopt,dblAr1(idim,nargs.xopt));
+
+      // set final t
+      double topt = nargs.xopt[0];
+      msh.bpo2rbi(ibpoin,0) = topt;
+
+      // map topt -> coords
+      egParam[0] = topt;
+      int estat = EG_evaluate(cadEdge, egParam, evalResult);
+      METRIS_ASSERT_MSG(estat == EGADS_SUCCESS, "EG_evaluate failed estat={}", estat);
+
+      for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = evalResult[ii];
+
+      if(DOPRINTS2()) writeMesh("debug_smooth0.meshb",msh);
+
+      ierro = msh.interpMetBack(ipoin);
+      if(ierro > 0){
+        CPRINTF1(" # smooballdiff interpMetBack failure ierro = {} \n",ierro);
+        goto cleanup;
+      }
+
+
+      for(int iball = 0; iball < nball; iball++){
+        int ient2 = lball[iball];
+        bool iflat = !isvalideltP1<idim,idim>(msh,ient2);
+        METRIS_ASSERT_MSG(!iflat,"Flat iball {} elt {}", iball, ient2);
+      }
+
+      *qnrm1 = 0;
+      *qmax1 = -1.0e30;
+      for(int iball = 0; iball < nball; iball++){
+        int ient2 = lball[iball];
+        double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,
+                              ient2,1);
+
+        *qnrm1 += quael;
+        *qmax1  = MAX(quael,*qmax1);
+      }
+      CPRINTF1(" - Newton update initial quality avg {:15.7e} "
+                            "max {:15.7e} \n",*qnrm0,*qmax0);
+      CPRINTF1(" -                 final quality avg {:15.7e} "
+                            "max {:15.7e} \n",*qnrm1,*qmax1);
+    }
+
+
+    if(*qnrm1 > *qnrm0){
+      ierro = 2;
+      CPRINTF1(" # Local smoo reject: quality norm increase "
+                "{} -> {} \n", *qnrm0, *qnrm1);
+      goto cleanup;
+    }
+
+    if(msh.param->dbgfull){
+      for(int ientt : lball){
+        if constexpr (ideg == 1){
+          METRIS_ENFORCE((isvalideltP1<idim,idim>(msh,ientt)));
+        }else{
+          constexpr int jdeg = tdim*(ideg - 1);
+          constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
+                                          : getnnod3(jdeg);
+          double ccoef[ncoef];
+          for(int ientt : lball){
+            getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva);
+            METRIS_ENFORCE(!iinva);
+          }
+        }
+      }
+    }
+
+    return 0;
+
+    cleanup:
+    for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
+    for(int ii = 0; ii < nnmet; ii++) msh.met(ipoin,ii) = met0[ii];
+    *qnrm1 = *qnrm0;
+    *qmax1 = *qmax0;
+
+    if(msh.param->dbgfull){
+      if constexpr (ideg >= 2){
+        constexpr int jdeg = tdim*(ideg - 1);
+        constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
+                                        : getnnod3(jdeg);
+        const double jtol = msh.param->jtol;
+        double ccoef[ncoef];
+        for(int ientt : lball){
+          double vol = getmeasentP1<idim>(ent2poi[ientt], msh.coord);
+          getccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef);
+          for(int ii = 0; ii < ncoef; ii++){
+            if(ccoef[ii] >= jtol * vol) continue;
+            METRIS_THROW_MSG(" - 1 reject validity coef {:15.7e} scaled {:15.7e} \n",
+                    ccoef[ii], ccoef[ii]/vol);
+          }
+        }
+      }else{
+        for(int ientt : lball){
+          if(isvalideltP1<idim,idim>(msh,ientt)) continue;
+          METRIS_THROW_MSG(" - 2 reject validity\n");
+        }
+      }
+    }
+
+    return ierro;
+  } // if cadDim == 1 (point on CAD edge)
+  // else if (cadDim == 2){
+  //   //TODO
+  // }
+}
+
+
+
+
+#define BOOST_PP_LOCAL_MACRO(n)\
+template int smooballdiff_boundary<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        >& msh,\
+ int ipoin, const int cadDim, const intAr1 &lball,\
+                   double*__restrict__ qnrm0, double*__restrict__ qmax0, \
+                   double*__restrict__ qnrm1, double*__restrict__ qmax1,\
+                   QuaFun iquaf);\
+template int smooballdiff_boundary<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        >& msh,\
+ int ipoin, const int cadDim,const intAr1 &lball,\
+                   double*__restrict__ qnrm0, double*__restrict__ qmax0, \
+                   double*__restrict__ qnrm1, double*__restrict__ qmax1,\
+                   QuaFun iquaf);\
+template int smooballdiff_boundary<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical>& msh,\
+ int ipoin, const int cadDim, const intAr1 &lball,\
+                   double*__restrict__ qnrm0, double*__restrict__ qmax0, \
+                   double*__restrict__ qnrm1, double*__restrict__ qmax1,\
+                   QuaFun iquaf);\
+template int smooballdiff_boundary<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>& msh,\
+ int ipoin, const int cadDim, const intAr1 &lball,\
+                   double*__restrict__ qnrm0, double*__restrict__ qmax0, \
+                   double*__restrict__ qnrm1, double*__restrict__ qmax1,\
+                   QuaFun iquaf);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+// =============================================================================================== //
+// =============================================================================================== //
+
+template<class MFT, int idim, int ideg>
 int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
                    double& quaCav1, double& quaMaxCav1,
                    QuaFun iquaf, int ithread){
