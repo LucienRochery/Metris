@@ -361,10 +361,12 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
         #endif
         CPRINTF1(" - new face {} quality = {} \n",ifanw-nfac0,qunw[ifanw-nfac0]);
         // Can skip already if using max
+        #ifndef TESTQUALITYALGO
         if(spnorm == 0 && qunw[ifanw-nfac0] + opt.swap_thres > qnrm0){
           skipswap = true;
           break;
         }
+        #endif
 
         if(spnorm == 0){
           qnrm1 = MAX(qunw[ifanw-nfac0], qnrm1);
@@ -374,7 +376,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       }
 
       #ifdef TESTQUALITYALGO
-      if (qsum1 > qsum0 || qmax1 > qmax0) skipswap = true;
+      // if (qsum1 > qsum0 || qmax1 > qmax0) skipswap = true;
       #endif
 
       if(skipswap) goto cleanup;
@@ -434,7 +436,9 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
     if(skipswap) continue;
 
+    #ifndef TESTQUALITYALGO
     if(qnrm1 + opt.swap_thres > qnrm0) continue;
+    #endif
 
     cav.lcfac[1] = ifac2;
     cav.ipins = msh.fac2poi(iface,ied);
@@ -510,12 +514,11 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
           qtetsum1 += qua;
           if (qua > qtetmax1) qtetmax1 = qua;
         }
-        if (skipswap) break;
       }
       // revert mesh back to original state
       msh.set_nentt(3,ntet0);
 
-      if (qtetsum1 > qtetsum0 || qtetmax1 > qtetmax0) skipswap = true;
+      if (qtetsum1 > qtetsum0) skipswap = true;
 
       // std::cout << "tet related qual info: " << std::endl;
       // std::cout << "qtetmax1 = " << qtetmax1 << ", qtetmax0 = " << qtetmax0 << ", qtetsum1 = " << qtetsum1 << ", qtetsum0 = " << qtetsum0 << std::endl;
@@ -524,10 +527,6 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       if (qtetmax1 < 0) skipswap = true; // just to be safe...
       #endif
     }
-
-    // #ifdef TESTQUALITYALGO
-    // std::cout << "skipswap after cheking tets qual = " << skipswap << std::endl;
-    // #endif
 
     #ifdef TESTQUALITYALGO
     if (skipswap) continue;

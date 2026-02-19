@@ -636,8 +636,10 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
     for (auto itK = handlerTopX.K.begin(); itK != handlerTopX.K.end(); itK++){
 
-      const int ientt = itK->ientt;
+      int ientt = itK->ientt;
+
       const double quaent = itK->qentt;
+      METRIS_ASSERT(quaent >= 0);
 
       std::cout << "ientt = " << ientt << std::endl;
       std::cout << "quaent = " << quaent << std::endl;

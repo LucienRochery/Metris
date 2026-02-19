@@ -2968,16 +2968,16 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
     double statSmooCav = smoothCavity(msh,cav,handler,QuaFun::SizeShape,quaCav1,quaMax1,quaCav1AfterSmoo,quaMax1AfterSmoo,ithread,ithread);
 
     if (quaCav1AfterSmoo > quaCav1) METRIS_THROW_MSG("Cavity smoothing worsen quality!");
-    if (statSmooCav > 0){
+    // if (statSmooCav > 0){
 
-      std::cout << "statSmooCav = " << statSmooCav << std::endl;
-      std::cout << "quaCav1 = " << quaCav1 << std::endl;
-      std::cout << "quaCav1AfterSmoo = " << quaCav1AfterSmoo << std::endl;
-      std::cout << "quaMax1 = " << quaMax1 << std::endl;
-      std::cout << "quaMax1AfterSmoo = " << quaMax1AfterSmoo << std::endl;
-      std::cout << "quaCav0 = " << quaCav0 << std::endl;
-      std::cout << "quaMax0 = " << quaMax0 << std::endl;
-    }
+    //   std::cout << "statSmooCav = " << statSmooCav << std::endl;
+    //   std::cout << "quaCav1 = " << quaCav1 << std::endl;
+    //   std::cout << "quaCav1AfterSmoo = " << quaCav1AfterSmoo << std::endl;
+    //   std::cout << "quaMax1 = " << quaMax1 << std::endl;
+    //   std::cout << "quaMax1AfterSmoo = " << quaMax1AfterSmoo << std::endl;
+    //   std::cout << "quaCav0 = " << quaCav0 << std::endl;
+    //   std::cout << "quaMax0 = " << quaMax0 << std::endl;
+    // }
     quaCav1 = quaCav1AfterSmoo;
     quaMax1 = quaMax1AfterSmoo;
   }

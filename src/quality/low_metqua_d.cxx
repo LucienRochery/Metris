@@ -250,7 +250,7 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       dquael[ii] = W * sg*pnorm*dquael[ii]*powm1;
     }
 
-    if(hquael == NULL) return qutet;
+    if(hquael == NULL) return W * qutet;
 
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = ii; jj < gdim; jj++){
@@ -275,7 +275,7 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     qutet = msh.param->qua_surf_wt_quality*qutet*W
           + msh.param->qua_surf_wt_normal*pow(nordev, pnorm); // for homogeneity
   }
-  return qutet;
+  return W * qutet;
 }
 
 //// While cumbersome, this replaces a bunch of manual instantiations, about to

@@ -67,7 +67,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
   newton_drivertype_args<idim> nargs(msh.param);
   #ifdef TESTQUALITYALGO
-  nargs.stpmin = 1.;
+  nargs.stpmin = 1.0e-6;
   #else
   nargs.stpmin = 1.0e-6;
   #endif
@@ -369,8 +369,8 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
   METRIS_ASSERT_MSG(msh.bpo2ibi(ibpoin,1) != 0, "CAD corner detected! Should not be moved");
   METRIS_ASSERT(cadDim == 1 || cadDim == 2);
   #ifndef NDEBUG
-  if      (cadDim == 1) METRIS_ASSERT(msh.bpo2ibi(ibpoin,1) == 1);
-  else if (cadDim == 2) METRIS_ASSERT(msh.bpo2ibi(ibpoin,1) == 2);
+  if      (cadDim == 1) {METRIS_ASSERT(msh.bpo2ibi(ibpoin,1) == 1);}
+  else if (cadDim == 2) {METRIS_ASSERT(msh.bpo2ibi(ibpoin,1) == 2);}
   #endif
 
   if (cadDim == 1){
@@ -398,7 +398,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
     constexpr int optDimension = 1; // optimization has just one variable: parameter t
     newton_drivertype_args<optDimension> nargs(msh.param);
     #ifdef TESTQUALITYALGO
-    nargs.stpmin = 1.;
+    nargs.stpmin = 1.0e-6;
     #else
     nargs.stpmin = 1.0e-6;
     #endif
@@ -434,11 +434,22 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
       while(true){
         INCVDEPTH(msh.param);
 
+        // std::cout << "Before calling Newton, niter1 = " << niter1 << ", nargs.niter = " << nargs.niter << std::endl;
+        // std::cout << std::setprecision(16) << std::scientific;
+        // std::cout << "tcur = " << tcur[0] << std::endl;
+        // std::cout << std::setprecision(16) << std::scientific;
+        // std::cout << "fcur = " << fcur << std::endl;
+        // std::cout << std::setprecision(16) << std::scientific;
+        // std::cout << "d1t = "  << d1t[0] << std::endl;
+        // std::cout << std::setprecision(16) << std::scientific;
+        // std::cout << "d2t = "  << d2t[0] << std::endl;
+        // std::cout << "ihess = " << ihess << std::endl;
+
         ierro = optim_newton_drivertype(nargs, tcur, &fcur, d1t, d2t, &iflag, &ihess);
 
         if(ierro > 0){
           CPRINTF1(" # optim_newton_drivertype error {}\n",ierro);
-          goto finish;
+          goto finishdim1;
         }
         if(iflag <= 0) {
           CPRINTF1(" - iflag = 0 termination\n");
@@ -478,7 +489,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
           fcur = 1.0e10;
           // radical solution for now
           CPRINTF1("# invalid config -> finish");
-          goto finish;
+          goto finishdim1;
         }
 
 
@@ -499,17 +510,23 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
 
           int ivar  = msh.template getverent<ideg>(ient2,idim,ipoin);
           double quael;
+          double quael_True;
           if(ihess){
             quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
                             ient2,ivar,
                             msh.getBasis(),
                             DifVar::None,dqelt,hqelt,1);
+            quael_True = quafun(msh,AsDeg::Pk,AsDeg::Pk,
+                              ient2,1);
 
           }else{
             quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
                             ient2,ivar,
                             msh.getBasis(),
                             DifVar::None,dqelt,NULL,1);
+
+            quael_True = quafun(msh,AsDeg::Pk,AsDeg::Pk,
+                              ient2,1);
           }
           fcur += quael;
           for(int ii = 0; ii < idim; ii++) gradX[ii] += dqelt[ii];
@@ -524,7 +541,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
 
         if(iinva){
           CPRINTF1("# invalid/flat config -> finish");
-          goto finish;
+          goto finishdim1;
         }
 
         // now we have the gradient nad hessian of objective function with respect to vertex position
@@ -578,7 +595,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
 
       ierro = 0;
 
-      finish:
+      finishdim1:
       // CPRINTF1(" -- END smooballdiff fopt = {} xopt = {}\n",
       //         nargs.fopt,dblAr1(idim,nargs.xopt));
 
@@ -598,7 +615,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
       ierro = msh.interpMetBack(ipoin);
       if(ierro > 0){
         CPRINTF1(" # smooballdiff interpMetBack failure ierro = {} \n",ierro);
-        goto cleanup;
+        goto cleanupdim1;
       }
 
 
@@ -629,7 +646,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
       ierro = 2;
       CPRINTF1(" # Local smoo reject: quality norm increase "
                 "{} -> {} \n", *qnrm0, *qnrm1);
-      goto cleanup;
+      goto cleanupdim1;
     }
 
     if(msh.param->dbgfull){
@@ -651,9 +668,11 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
 
     return 0;
 
-    cleanup:
+    cleanupdim1:
     for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
     for(int ii = 0; ii < nnmet; ii++) msh.met(ipoin,ii) = met0[ii];
+    msh.bpo2rbi(ibpoin,0) = t0;
+
     *qnrm1 = *qnrm0;
     *qmax1 = *qmax0;
 
@@ -683,9 +702,379 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
 
     return ierro;
   } // if cadDim == 1 (point on CAD edge)
-  // else if (cadDim == 2){
-  //   //TODO
-  // }
+  else if (cadDim == 2){
+
+    const int iface = msh.bpo2ibi(ibpoin,2); // a mesh face attached to the point
+    METRIS_ASSERT(iface >= 0 && iface < msh.nface);
+
+    const int iref = msh.fac2ref[iface]; // get CAD face reference
+    ego cadFace = msh.CAD.cad2fac[iref]; // get actual CAD face object, needed to compute derivatives of the face surface wrt parameters (u,v)
+
+    double u0 = msh.bpo2rbi(ibpoin,0); // initial u parameter for current point location
+    double v0 = msh.bpo2rbi(ibpoin,1); // initial v parameter for current point location
+
+    double coor0[idim], met0[nnmet];
+    for(int ii=0; ii<idim;  ii++) coor0[ii] = msh.coord(ipoin,ii);
+    for(int ii=0; ii<nnmet; ii++) met0[ii]  = msh.met(ipoin,ii);
+
+    // Optimization doesn't reinterpolate metric
+    int miter1 = MAX(1,msh.param->iflag1);
+    // int miter1 = 3;
+
+    // Relative decrease tolerance
+    const double ftol = 1.0e-2;
+    // const double ftol = 1.0e-3;
+
+    constexpr int optDimension = 2; // optimization has just two variables: parameters (u,v)
+    newton_drivertype_args<optDimension> nargs(msh.param);
+    #ifdef TESTQUALITYALGO
+    nargs.stpmin = 1.0e-6;
+    #else
+    nargs.stpmin = 1.0e-6;
+    #endif
+    nargs.wlfc1 = 0.1;
+    nargs.wlfc2 = 10.0;
+    nargs.ratnew= 0.5;
+    nargs.maxit = 50;
+    nargs.ftol  = ftol;
+
+    int iflag = 0, ihess, ierro = 0;
+    bool iinva = false;
+
+    double uvcur[2];
+    uvcur[0] = u0;
+    uvcur[1] = v0;
+    nargs.xopt[0] = u0; // a backup in case no updated
+    nargs.xopt[1] = v0; // a backup in case no updated
+
+    double fcur    = 0.;   // objective function value
+    double gradUV[2]  = {0., 0.};     // gradient wrt uv
+    double hessUV[3]  = {0., 0., 0.}; // hessian wrt uv
+
+    // derivatives wrt physical coord
+    double gradX[idim], hessX[nhess];
+
+    double Xu[3]  = {0.,0.,0.}; // surface tangent in u direction
+    double Xuu[3] = {0.,0.,0};
+    double Xv[3]  = {0.,0.,0.}; // surface tangent in v direction
+    double Xvv[3] = {0.,0.,0};
+    double Xuv[3] = {0.,0.,0};
+
+    // CAD evaluation buffers
+    double facParam[2] = {u0, v0};
+    double evalResult[18];
+
+    for(int niter1 = 0; niter1 < miter1; niter1++){
+
+      while(true){
+        INCVDEPTH(msh.param);
+
+        // std::cout << "Before calling Newton, niter1 = " << niter1 << ", nargs.niter = " << nargs.niter << std::endl;
+        // std::cout << std::setprecision(16) << std::scientific;
+        // std::cout << "ucur = " << uvcur[0] << std::endl;
+        // std::cout << std::setprecision(16) << std::scientific;
+        // std::cout << "vcur = " << uvcur[1] << std::endl;
+        // std::cout << std::setprecision(16) << std::scientific;
+        // std::cout << "fcur = " << fcur << std::endl;
+        // std::cout << std::setprecision(16) << std::scientific;
+        // std::cout << "gradUV[0] = "  << gradUV[0] << std::endl;
+        // std::cout << std::setprecision(16) << std::scientific;
+        // std::cout << "gradUV[1] = "  << gradUV[1] << std::endl;
+        // std::cout << std::setprecision(16) << std::scientific;
+        // std::cout << "hessUV[00] = "  << hessUV[0] << std::endl;
+        // std::cout << std::setprecision(16) << std::scientific;
+        // std::cout << "hessUV[01] = "  << hessUV[1] << std::endl;
+        // std::cout << std::setprecision(16) << std::scientific;
+        // std::cout << "hessUV[11] = "  << hessUV[2] << std::endl;
+        // std::cout << "ihess = " << ihess << std::endl;
+
+        ierro = optim_newton_drivertype(nargs, uvcur, &fcur, gradUV, hessUV, &iflag, &ihess);
+
+        if(ierro > 0){
+          CPRINTF1(" # optim_newton_drivertype error {}\n",ierro);
+          goto finishdim2;
+        }
+        if(iflag <= 0) {
+          CPRINTF1(" - iflag = 0 termination\n");
+          break;
+        }
+
+        // map parameter t to physical coordinates
+        facParam[0] = uvcur[0];
+        facParam[1] = uvcur[1];
+        int estat = EG_evaluate(cadFace, facParam, evalResult);
+        METRIS_ASSERT_MSG(estat == EGADS_SUCCESS, "EG_evaluate failed estat={}", estat);
+
+        // set point coordinates from CAD surface evaluation
+        for(int ii = 0; ii < idim; ii++) msh.coord(ipoin, ii) = evalResult[ii];
+
+        // get surface uv derivatives
+        Xu[0]  = evalResult[3];  Xu[1]  = evalResult[4];  Xu[2]  = (idim==3 ? evalResult[5] : 0.0);
+        Xv[0]  = evalResult[6];  Xv[1]  = evalResult[7];  Xv[2]  = (idim==3 ? evalResult[8] : 0.0);
+
+        // get surface uv second derivatives
+        Xuu[0] = evalResult[9];   Xuu[1] = evalResult[10];  Xuu[2] = (idim==3 ? evalResult[11] : 0.0);
+        Xuv[0] = evalResult[12];  Xuv[1] = evalResult[13];  Xuv[2] = (idim==3 ? evalResult[14] : 0.0);
+        Xvv[0] = evalResult[15];  Xvv[1] = evalResult[16];  Xvv[2] = (idim==3 ? evalResult[17] : 0.0);
+
+
+        iinva = false;
+        if constexpr (ideg == 1){
+          for(int ientt : lball){
+            iinva = !isvalideltP1<gdim,tdim>(msh,ientt);
+            if(iinva) break;
+          }
+        }else{
+          constexpr int jdeg = tdim*(ideg - 1);
+          constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
+                                          : getnnod3(jdeg);
+          double ccoef[ncoef];
+          for(int ientt : lball){
+            getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva);
+            if(iinva) break;
+          }
+        }
+
+        if(iinva){
+          fcur = 1.0e10;
+          // radical solution for now
+          CPRINTF1("# invalid config -> finish");
+          goto finishdim2;
+        }
+
+
+        fcur = 0;
+        double dqelt[idim], hqelt[nhess];
+        for(int ii = 0; ii < idim; ii++) gradX[ii] = 0;
+        for(int ii = 0; ii < nhess;ii++) hessX[ii] = 0;
+        for(int iball = 0; iball < nball && !iinva; iball++){
+          int ient2 = lball[iball];
+
+          // std::cout << "ient2 = " << ient2;
+
+          bool iflat = !isvalideltP1<idim,idim>(msh,ient2);
+          if(iflat){
+            fcur = 1.0e10;
+            break;
+          }
+
+          int ivar  = msh.template getverent<ideg>(ient2,idim,ipoin);
+          double quael;
+          if(ihess){
+            quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
+                            ient2,ivar,
+                            msh.getBasis(),
+                            DifVar::None,dqelt,hqelt,1);
+
+          }else{
+            quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
+                            ient2,ivar,
+                            msh.getBasis(),
+                            DifVar::None,dqelt,NULL,1);
+          }
+          fcur += quael;
+          for(int ii = 0; ii < idim; ii++) gradX[ii] += dqelt[ii];
+          if(ihess)
+            for(int ii = 0; ii < nhess;ii++) hessX[ii] += hqelt[ii];
+
+          if(nargs.niter == 1 && niter1 == 0){
+            *qnrm0 += quael;
+            *qmax0  = MAX(quael,*qmax0);
+          }
+        }// for iball
+
+        if(iinva){
+          CPRINTF1("# invalid/flat config -> finish");
+          goto finishdim2;
+        }
+
+        // now we have the gradient nad hessian of objective function with respect to vertex position
+        // apply the chain rule to get t derivatives
+        // first derivative: gradX * Xt
+        double dfdu = 0.;
+        double dfdv = 0.;
+        for(int ii = 0; ii < idim; ii++){
+
+          dfdu += gradX[ii] * Xu[ii];
+          dfdv += gradX[ii] * Xv[ii];
+        }
+
+        // second derivative wrt u: Xu^T * hessX * Xu + gradX * Xuu
+        // second derivative wrt v: Xv^T * hessX * Xv + gradX * Xvv
+        // mixed second derivative: Xu^T * hessX * Xv + gradX * Xuv
+        double XuHXu = 0.0;
+        double XvHXv = 0.0;
+        double XuHXv = 0.0;
+        if (ihess){
+
+          auto H = [&](int i, int j) -> double {
+            if(i==j){
+              return hessX[i]; // 0->H00, 1->H11, 2->H22 (when idim==3)
+            }
+            if(idim==2){
+              // nhess==3: [H00,H11,H01]
+              return hessX[2];
+            }else{
+              // nhess==6: [H00,H11,H22,H01,H02,H12]
+              if((i==0 && j==1) || (i==1 && j==0)) return hessX[3];
+              if((i==0 && j==2) || (i==2 && j==0)) return hessX[4];
+              /* (1,2) */                             return hessX[5];
+            }
+          };
+
+          for(int i = 0; i < idim; i++){
+            for(int j = 0; j < idim; j++){
+              XuHXu += Xu[i] * H(i,j) * Xu[j];
+              XvHXv += Xv[i] * H(i,j) * Xv[j];
+              XuHXv += Xu[i] * H(i,j) * Xv[j];
+            }
+          }
+        }
+
+        double gradXdotXuu = 0.0;
+        double gradXdotXvv = 0.0;
+        double gradXdotXuv = 0.0;
+        for(int ii = 0; ii < idim; ii++){
+
+          gradXdotXuu += gradX[ii] * Xuu[ii];
+          gradXdotXvv += gradX[ii] * Xvv[ii];
+          gradXdotXuv += gradX[ii] * Xuv[ii];
+        }
+
+        double d2fdu2 = (ihess ? XuHXu : 0.0) + gradXdotXuu;
+        double d2fdv2 = (ihess ? XvHXv : 0.0) + gradXdotXvv;
+        double d2fduv = (ihess ? XuHXv : 0.0) + gradXdotXuv;
+
+        // Feed optimizer with derivatives in parameter space
+        gradUV[0] = dfdu;
+        gradUV[1] = dfdv;
+        if(ihess){
+
+          hessUV[0] = d2fdu2;
+          hessUV[1] = d2fduv;
+          hessUV[2] = d2fdv2;
+        }
+
+
+        // if(DOPRINTS1()){
+        //   CPRINTF1(" - Smoothing on edge: Newton iter {} fcur = {} tcur = {}",nargs.niter,fcur,tcur[0]);
+        //   CPRINTF2(" - dquadt = {}\n",d1t[0]);
+        // }
+      } // end while true
+
+
+      ierro = 0;
+
+      finishdim2:
+      // CPRINTF1(" -- END smooballdiff fopt = {} xopt = {}\n",
+      //         nargs.fopt,dblAr1(idim,nargs.xopt));
+
+      // set final (u,v)
+      double uopt = nargs.xopt[0];
+      double vopt = nargs.xopt[1];
+      msh.bpo2rbi(ibpoin,0) = uopt;
+      msh.bpo2rbi(ibpoin,1) = vopt;
+
+      // map (u,v) opt -> coords
+      facParam[0] = uopt;
+      facParam[1] = vopt;
+      int estat = EG_evaluate(cadFace, facParam, evalResult);
+      METRIS_ASSERT_MSG(estat == EGADS_SUCCESS, "EG_evaluate failed estat={}", estat);
+
+      for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = evalResult[ii];
+
+      if(DOPRINTS2()) writeMesh("debug_smooth0.meshb",msh);
+
+      ierro = msh.interpMetBack(ipoin);
+      if(ierro > 0){
+        CPRINTF1(" # smooballdiff interpMetBack failure ierro = {} \n",ierro);
+        goto cleanupdim2;
+      }
+
+      for(int iball = 0; iball < nball; iball++){
+        int ient2 = lball[iball];
+        bool iflat = !isvalideltP1<idim,idim>(msh,ient2);
+        METRIS_ASSERT_MSG(!iflat,"Flat iball {} elt {}", iball, ient2);
+      }
+
+      *qnrm1 = 0;
+      *qmax1 = -1.0e30;
+      for(int iball = 0; iball < nball; iball++){
+        int ient2 = lball[iball];
+        double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,
+                              ient2,1);
+
+        *qnrm1 += quael;
+        *qmax1  = MAX(quael,*qmax1);
+      }
+      CPRINTF1(" - Newton update initial quality avg {:15.7e} "
+                            "max {:15.7e} \n",*qnrm0,*qmax0);
+      CPRINTF1(" -                 final quality avg {:15.7e} "
+                            "max {:15.7e} \n",*qnrm1,*qmax1);
+    }
+
+
+    if(*qnrm1 > *qnrm0){
+      ierro = 2;
+      CPRINTF1(" # Local smoo reject: quality norm increase "
+                "{} -> {} \n", *qnrm0, *qnrm1);
+      goto cleanupdim2;
+    }
+
+    if(msh.param->dbgfull){
+      for(int ientt : lball){
+        if constexpr (ideg == 1){
+          METRIS_ENFORCE((isvalideltP1<idim,idim>(msh,ientt)));
+        }else{
+          constexpr int jdeg = tdim*(ideg - 1);
+          constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
+                                          : getnnod3(jdeg);
+          double ccoef[ncoef];
+          for(int ientt : lball){
+            getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva);
+            METRIS_ENFORCE(!iinva);
+          }
+        }
+      }
+    }
+
+    return 0;
+
+    cleanupdim2:
+    for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
+    for(int ii = 0; ii < nnmet; ii++) msh.met(ipoin,ii) = met0[ii];
+    msh.bpo2rbi(ibpoin,0) = u0;
+    msh.bpo2rbi(ibpoin,1) = v0;
+
+    *qnrm1 = *qnrm0;
+    *qmax1 = *qmax0;
+
+    if(msh.param->dbgfull){
+      if constexpr (ideg >= 2){
+        constexpr int jdeg = tdim*(ideg - 1);
+        constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
+                                        : getnnod3(jdeg);
+        const double jtol = msh.param->jtol;
+        double ccoef[ncoef];
+        for(int ientt : lball){
+          double vol = getmeasentP1<idim>(ent2poi[ientt], msh.coord);
+          getccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef);
+          for(int ii = 0; ii < ncoef; ii++){
+            if(ccoef[ii] >= jtol * vol) continue;
+            METRIS_THROW_MSG(" - 1 reject validity coef {:15.7e} scaled {:15.7e} \n",
+                    ccoef[ii], ccoef[ii]/vol);
+          }
+        }
+      }else{
+        for(int ientt : lball){
+          if(isvalideltP1<idim,idim>(msh,ientt)) continue;
+          METRIS_THROW_MSG(" - 2 reject validity\n");
+        }
+      }
+    }
+
+    return ierro;
+  }
 }
 
 
@@ -730,7 +1119,7 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
 
   const intAr1& lcent = cav.lcent(tdim);
   const intAr2& ent2ent = msh.ent2ent(tdim);
-  const int tmpEntt = msh.nentt(tdim);
+  const int tmpEntt = msh.nentt(tdim)-1;
         intAr2& ent2poi = msh.ent2poi(tdim);
         intAr2& ent2tag = msh.ent2tag(tdim);
 

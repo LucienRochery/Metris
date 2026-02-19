@@ -23,7 +23,7 @@ struct newton_drivertype_args{
   int niter, maxit, isym;
   int iwork[3];
   double rwork[4 + nvar*10];
-  double xopt[nvar]; 
+  double xopt[nvar];
   double fopt;
 
   double fpre; // work
@@ -58,13 +58,13 @@ struct truncated_newton_work{
   dblAr1 pmajor;
 };
 
-void optim_newton_drivertype(const MetrisParameters &params, 
+void optim_newton_drivertype(const MetrisParameters &params,
                              int nvar ,
                              double *xcur ,double *fcur  ,double *gcur   ,double *hess ,
                              double xtol ,double stpmin,int isym,
                              double wlfc1,double wlfc2 ,double ratnew ,
                              int *niter,int maxit ,
-                             int *iflag,int *ihess , 
+                             int *iflag,int *ihess ,
                              int nrwrk,double *rwork ,
                              int niwrk,int *iwork ,
                              double *xopt ,double *fopt ,int *ierro);
@@ -78,7 +78,7 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
 
 template <int nvar>
 int optim_newton_drivertype_TNCG(newton_drivertype_args<nvar> &args,
-                                 truncated_newton_work &work, 
+                                 truncated_newton_work &work,
                                  double *xcur ,double *fcur ,
                                  double *gcur ,double *hess ,
                                  int *iflag, int *ihess);
@@ -86,19 +86,19 @@ int optim_newton_drivertype_TNCG(newton_drivertype_args<nvar> &args,
 #ifdef METRIS_USE_PETSC
 int optim_newton_drivertype_PETSc(int nvar ,
                              Vec &XCUR ,double *fcur  ,
-                             Vec &RHS, Mat &OJ, 
-                             double xtol ,double stpmin, 
+                             Vec &RHS, Mat &OJ,
+                             double xtol ,double stpmin,
                              double wlfc1,double wlfc2 ,double ratnew ,
                              int *niter,int maxit ,int iprt   ,
-                             int *iflag,int *ijaco , 
+                             int *iflag,int *ijaco ,
                              double *rwork ,
                              Vec &DESC);
 #endif
 
 
 template<int ndim>
-int truncated_newton_iteration(const MetrisParameters *params, 
-                               truncated_newton_work &work, 
+int truncated_newton_iteration(const MetrisParameters *params,
+                               truncated_newton_work &work,
                                int outer_iter,
                                const double *gcur, const double *hcur,
                                double *desc);
