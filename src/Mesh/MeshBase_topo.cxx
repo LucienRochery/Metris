@@ -185,10 +185,9 @@ void MeshBase::newfactopo(int ielem, int ifael, int iref, int iele2){
   int ip2 = tet2poi(ielem,lnofa3[ifael][1]);
   int ip3 = tet2poi(ielem,lnofa3[ifael][2]);
 
-  // TODO: seems wrong. should be instead poi2bpo[ip]?
-  int ib1 = ip1;
-  int ib2 = ip2;
-  int ib3 = ip3;
+  int ib1 = poi2bpo[ip1];
+  int ib2 = poi2bpo[ip2];
+  int ib3 = poi2bpo[ip3];
 
   // Don't overwrite edge/corner links
   if(ib1 >= 0 && bpo2ibi(ib1,1) > 1){

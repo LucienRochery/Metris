@@ -584,9 +584,6 @@ void iniMeshBdryTriangles(MeshBase &msh, HshTab_I3I &intfHshTab){
     if(s != msh.facHshTab.end()) continue;
 
     int ielem = t.second;
-    msh.fac2tet[msh.nface][0] = ielem; // TODO: seems like a bug passing msh.nface, should be nface-1?
-
-    msh.facHshTab[t.first] = msh.nface;
 
     int i1 = std::get<0>(t.first);
     int i2 = std::get<1>(t.first);
@@ -713,6 +710,8 @@ void iniMeshBdryCorners(MeshBase &msh){
 int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
   GETVDEPTH(msh.param);
 
+  writeMesh("debugginIniMeshBdryPoints.meshb",msh);
+
   const int ideg = msh.curdeg;
 
   //if(msh.isboundary_faces() && msh.param->refineConventionsInp)
@@ -797,6 +796,7 @@ int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
           CPRINTF2(" - create link ipoin {} ibpoi {} -> dim {} ent {}\n",
                    ipoin,ibpoi,tdim,ientt);
           if(tdim <= 1) ncor1++;
+          if(tdim == 1) continue;
           //continue;
         }else{
           // case several for one point

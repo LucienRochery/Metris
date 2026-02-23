@@ -507,6 +507,11 @@ void MeshBase::readConstants(int64_t libIdx, int usrMinDeg){
 
   GETVDEPTH(param);
 
+  METRIS_ENFORCE_MSG( GmfStatKwd(libIdx, GmfHexahedra)      == 0, "Hexahedra not supported");
+  METRIS_ENFORCE_MSG( GmfStatKwd(libIdx, GmfQuadrilaterals) == 0, "Quadrilaterals not supported");
+  METRIS_ENFORCE_MSG( GmfStatKwd(libIdx, GmfPrisms)         == 0, "Prisms not supported");
+  METRIS_ENFORCE_MSG( GmfStatKwd(libIdx, GmfPyramids)       == 0, "Pyramids not supported");
+
   set_npoin(GmfStatKwd( libIdx, GmfVertices ));
   if(npoin == 0) METRIS_THROW_MSG("EMPTY MESH (NO VERTICES)");
 

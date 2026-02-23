@@ -10,7 +10,7 @@
 
 #define OUTPUTTIMEANDUNITINFO
 
-#define TESTQUALITYALGO     // enable size aware quality-based algorithm
+// #define TESTQUALITYALGO     // enable size aware quality-based algorithm
 
 #ifdef TESTQUALITYALGO
 #define INTQUALINRIEMSPACE  // do quality error integration in Riemannian space (i.e. include sqrt(det M) in the volume element)
