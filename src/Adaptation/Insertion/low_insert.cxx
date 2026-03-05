@@ -227,6 +227,8 @@ restart_cavity:
   }}CT_FOR1(ideg);
   ierro_cavity = ierro;
 
+
+
   //if(DOPRINTS1()){
   //  msh.param->iverb = iverb0;
   //  msh.param->ivdepth = ivdepth0;
@@ -294,6 +296,7 @@ restart_cavity:
 
     // new entities with their qualities
     const int nenttNew = msh.nentt(tdim_adp);
+    intAr2& ent2poi = msh.ent2poi(tdim_adp);
     double difto = 1.;
     for (int ienttNew = nentt0; ienttNew < nenttNew; ienttNew++) {
 

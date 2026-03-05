@@ -345,7 +345,7 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
       }
       gnorm = abs(args.rwork[2*nvar+3]);
     }else if(nvar == 2) {
-      ierro = invmat<2>(hess);
+      ierro = invspd<2>(hess);
       if(ierro != 0) goto flag999;
       args.rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1]);
       args.rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1]);

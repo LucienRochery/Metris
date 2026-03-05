@@ -10,12 +10,12 @@ extern "C" {
 #define iabs(a) ((a) < 0 ? -(a) : (a))
 
 // These subs taken from nlopt_sopping.c:
-int nlopt_stop_forced(const nlopt_stopping *stop)
+static int nlopt_stop_forced(const nlopt_stopping *stop)
 {
   return stop->force_stop && *(stop->force_stop);
 }
 
-int nlopt_isnan(double x)
+static int nlopt_isnan(double x)
 {
 #if defined(HAVE_ISNAN)
   return isnan(x);
@@ -25,7 +25,7 @@ int nlopt_isnan(double x)
   return (x != x); /* might fail with aggressive optimization */
 #endif
 }
-int nlopt_isinf(double x)
+static int nlopt_isinf(double x)
 {
   return (fabs(x) >= HUGE_VAL * 0.99)
 #if defined(HAVE_ISINF)
@@ -43,11 +43,11 @@ static int relstop(double vold, double vnew, double reltol, double abstol)
   return (fabs(vnew - vold) < abstol || fabs(vnew - vold) < reltol * (fabs(vnew) + fabs(vold)) * 0.5 || (reltol > 0 && vnew == vold)); /* catch vnew == vold == 0 */
 }
 
-int nlopt_stop_ftol(const nlopt_stopping *s, double f, double oldf)
+static int nlopt_stop_ftol(const nlopt_stopping *s, double f, double oldf)
 {
   return (relstop(oldf, f, s->ftol_rel, s->ftol_abs));
 }
-int nlopt_stop_evals(const nlopt_stopping *s)
+static int nlopt_stop_evals(const nlopt_stopping *s)
 {
   return (s->maxeval > 0 && *(s->nevals_p) >= s->maxeval);
 }

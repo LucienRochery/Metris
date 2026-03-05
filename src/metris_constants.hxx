@@ -10,17 +10,27 @@
 
 #define OUTPUTTIMEANDUNITINFO
 
-// #define TESTQUALITYALGO     // enable size aware quality-based algorithm
+#define TESTQUALITYALGO     // enable size aware quality-based algorithm
 
 #ifdef TESTQUALITYALGO
+
 #define INTQUALINRIEMSPACE  // do quality error integration in Riemannian space (i.e. include sqrt(det M) in the volume element)
 #define CAVGROWTH           // enable quality-based cavity growth
+
 // #define CHECKSUBENTTQUAL // when the insertion point is on the boundary, also apply quality check to subentts (boundary faces in 3D)
-// #define CAVSMOOTHING        // perform cavity smoothing after growing the cavity
+#define CAVSMOOTHING        // perform cavity smoothing after growing the cavity
 // #define IMPROVEMAXQUAL   // apart from cheking the the average quality error goes down, check that the maximum error goes down
 
+#define ONEPOINTQUAL
+// #define TDIM1POINTSQUAL
+// #define KEAST4QUAL
+
+// #define WRITEQUALFIELD
 
 // #define DIAGNOSIS_QUALALGO
+
+#else
+#define ONEPOINTQUAL
 #endif
 
 #define SMOOTHFACES

@@ -34,6 +34,8 @@
 #include "../Adaptation/low_collapse.hxx"
 #include "../aux_badEntHandler.hxx"
 
+#include "../low_topo.hxx"
+
 #ifdef DIAGNOSIS_QUALALGO
 #include <iostream>
 #include <fstream>

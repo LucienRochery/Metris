@@ -59,6 +59,12 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   const int ideg_eff = asdmsh == AsDeg::P1 ? 1 : ideg;
   const int nnode = getnnode(tdim, ideg_eff);
 
+  #ifdef TESTQUALITYALGO
+  // Assumptions for quality algo:
+  METRIS_ASSERT(ideg_eff == 1);
+  METRIS_ASSERT(pnorm == 1);
+  #endif
+
   // Accumulate normal error at the nodes (depending on asdmsh)
   if(do_nordev){
     double result[18];
@@ -181,6 +187,8 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     }// for iquad
   }else{
 
+  #if defined(ONEPOINTQUAL)
+
     #if 0
     for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0/(tdim  + 1);
     qutet = d_quafun_xi(msh,asdmsh,asdmet,
@@ -266,8 +274,304 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
         }
       }
     }
-  }
 
+  #elif defined(TDIM1POINTSQUAL)
+
+    METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+    constexpr int nnmet = (gdim*(gdim+1))/2;
+
+    // zero outputs
+    if (ivar >= 0) {
+      for (int ii=0; ii<gdim; ++ii) dquael[ii] = 0;
+      if (hquael) for (int ii=0; ii<nhess; ++ii) hquael[ii] = 0;
+    }
+
+    auto sqrtDetM_of = [&](const double* metptr) -> double {
+      if constexpr (tdim == 2){
+        const double m11 = metptr[0];
+        const double m12 = metptr[1];
+        const double m22 = metptr[2];
+        const double det = m11*m22 - m12*m12;
+        return det > 0 ? std::sqrt(det) : 0.0;
+      } else { // tdim==3
+        const double m11 = metptr[0];
+        const double m12 = metptr[1];
+        const double m22 = metptr[2];
+        const double m13 = metptr[3];
+        const double m23 = metptr[4];
+        const double m33 = metptr[5];
+        const double det =
+            m11*(m22*m33 - m23*m23)
+          - m12*(m12*m33 - m13*m23)
+          + m13*(m12*m23 - m13*m22);
+        return det > 0 ? std::sqrt(det) : 0.0;
+      }
+    };
+
+    double meas = 1.0;
+    isvalideltP1<gdim,tdim>(msh, ientt, NULL, &meas);
+
+    // common weight factor = |T|/5
+    const ftype W0 = (ftype)(meas / 5.0);
+
+    ftype val_sum = 0;
+
+    // workspace for one sample
+    ftype q0, dq0[gdim], hq0[nhess];
+
+    auto accumulate_one_sample =
+      [&](const double* bary_in, const double* met_in)
+    {
+      // copy bary for the call
+      for(int ii=0; ii<tdim+1; ++ii) bary[ii] = bary_in[ii];
+
+      // eval q and its derivatives
+      if (hquael == NULL) {
+        q0 = d_quafun_xi(msh, asdmsh, asdmet,
+                        ent2poi[ientt], bary, met_in,
+                        ivar, dofbas, idifmet,
+                        dq0, NULL);
+      } else {
+        q0 = d_quafun_xi(msh, asdmsh, asdmet,
+                        ent2poi[ientt], bary, met_in,
+                        ivar, dofbas, idifmet,
+                        dq0, hq0);
+      }
+
+      const ftype e  = q0 - (ftype)difto;
+      const ftype ae = abs(e);
+      const int sg   = (e < 0) ? -1 : 1;
+
+      // value contribution: W0 * sqrt(detM) * |e|^p
+      ftype epow = ae;                   // p=1
+      if (pnorm == 2) epow = ae*ae;
+      else if (pnorm > 2) epow = ae*pow(ae, pnorm-1);
+
+      const ftype Wk = W0 * (ftype)sqrtDetM_of(met_in);
+
+      val_sum += Wk * epow;
+
+      if (ivar < 0) return;
+
+      // powm1 = |e|^(p-1) (with p=1 => 1)
+      ftype powm1 = 1;
+      if (pnorm == 2) powm1 = ae;
+      else if (pnorm > 2) powm1 = pow(ae, pnorm-1);
+
+      for (int ii=0; ii<gdim; ++ii) {
+        dquael[ii] += Wk * (ftype)(sg * pnorm) * dq0[ii] * powm1;
+      }
+
+      if (!hquael) return;
+
+      // Hessian term from Hq
+      for (int ii=0; ii<gdim; ++ii) {
+        for (int jj=ii; jj<gdim; ++jj) {
+          hquael[sym2idx(ii,jj)] += Wk * (ftype)(sg * pnorm) * hq0[sym2idx(ii,jj)] * powm1;
+        }
+      }
+
+      if (pnorm < 2) return;
+
+      // Outer-product term: p(p-1)|e|^(p-2) dq dq^T  (no sign)
+      ftype powm2 = 1;
+      if (pnorm == 2) powm2 = 1;
+      else powm2 = pow(ae, pnorm-2);
+
+      for (int ii=0; ii<gdim; ++ii) {
+        for (int jj=ii; jj<gdim; ++jj) {
+          hquael[sym2idx(ii,jj)] += Wk * (ftype)(pnorm*(pnorm-1)) * dq0[ii]*dq0[jj] * powm2;
+        }
+      }
+    };
+
+    // ---- 4 vertex samples ----
+    for (int iver=0; iver<tdim+1; ++iver) {
+      double bary_v[tdim+1] = {0};
+      bary_v[iver] = 1.0;
+
+      const int ipoin = ent2poi(ientt, iver);
+
+      double met_v[nnmet];
+      for (int jj=0; jj<nnmet; ++jj) met_v[jj] = msh.met(ipoin, jj);
+
+      accumulate_one_sample(bary_v, met_v);
+    }
+
+    // ---- centroid sample ----
+    double bary_c[tdim+1];
+    for (int ii=0; ii<tdim+1; ++ii) bary_c[ii] = 1.0/(tdim+1);
+
+    double met_c[nnmet];
+    // compute physical centroid coordinates
+    double coordC[3] = {0.0, 0.0, 0.0};
+    for (int iver = 0; iver < tdim + 1; ++iver) {
+      const int ip = ent2poi(ientt, iver);
+      coordC[0] += bary_c[iver] * msh.coord(ip, 0);
+      coordC[1] += bary_c[iver] * msh.coord(ip, 1);
+      coordC[2] += bary_c[iver] * msh.coord(ip, 2);
+    }
+
+    // evaluate metric at centroid (analytic)
+    if constexpr(std::is_same<MFT, MetricFieldAnalytical>::value) {
+      msh.met.getMetPhys(DifVar::None, msh.met.getSpace(), coordC, met_c, NULL);
+    } else {
+      METRIS_THROW_MSG("TDIM1POINTSQUAL deriv: metric eval at centroid not implemented for MetricFieldFE");
+    }
+
+    accumulate_one_sample(bary_c, met_c);
+
+    qutet = val_sum;
+
+  #elif defined(KEAST4QUAL)
+
+    METRIS_ASSERT_MSG(tdim == 3, "Keast degree-4 rule implemented for tetrahedra only (tdim=3).");
+    METRIS_ASSERT(gdim==3);
+
+    METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+
+    constexpr int nnmet = (gdim*(gdim+1))/2;
+
+    // zero outputs
+    if (ivar >= 0) {
+      for (int ii=0; ii<gdim; ii++) dquael[ii] = 0;
+      if (hquael) for (int ii=0; ii<nhess; ii++) hquael[ii] = 0;
+    }
+
+    auto sqrtDetM_of = [&](const double* metptr) -> double {
+      const double m11 = metptr[0];
+      const double m12 = metptr[1];
+      const double m22 = metptr[2];
+      const double m13 = metptr[3];
+      const double m23 = metptr[4];
+      const double m33 = metptr[5];
+
+      const double det =
+          m11*(m22*m33 - m23*m23)
+        - m12*(m12*m33 - m13*m23)
+        + m13*(m12*m23 - m13*m22);
+
+      return det > 0 ? std::sqrt(det) : 0.0;
+    };
+
+    double meas = 1.0;
+    isvalideltP1<gdim,tdim>(msh, ientt, NULL, &meas);
+
+    // Keast degree-4 (11-pt) rule on reference tetrahedron.
+    // Renormalize weights by 6 so they sum to 1 (to match "meas * weighted average").
+    constexpr double w0  =  0.013155555555555555;
+    constexpr double w1  =  0.007622222222222222;
+    constexpr double w2  =  0.024888888888888888;
+    constexpr double wn0 = 6.0*w0;
+    constexpr double wn1 = 6.0*w1;
+    constexpr double wn2 = 6.0*w2;
+
+    // [3,1] orbit parameter
+    constexpr double a  = 0.100596423833200785;
+    constexpr double b  = 1.0 - 3.0*a;
+
+    // [2,2] orbit parameters
+    constexpr double bb = 0.0714285714285714285;
+    constexpr double cc = 0.5 - bb;
+
+    // workspace
+    ftype q0 = 0;
+    ftype dq0[gdim];
+    ftype hq0[nhess];
+
+    ftype val_sum = 0;
+
+    auto accumulate_one =
+      [&](const double lam[4], double wn)
+    {
+      // bary for the call
+      for (int ii=0; ii<4; ii++) bary[ii] = lam[ii];
+
+      // physical coordinates of quadrature point
+      double coordQ[3] = {0.0, 0.0, 0.0};
+      for (int iv = 0; iv < 4; iv++) {
+        const int ip = ent2poi(ientt, iv);
+        coordQ[0] += lam[iv] * msh.coord(ip, 0);
+        coordQ[1] += lam[iv] * msh.coord(ip, 1);
+        coordQ[2] += lam[iv] * msh.coord(ip, 2);
+      }
+
+      // metric at quadrature point (analytic)
+      double metq[nnmet];
+      if constexpr(std::is_same<MFT, MetricFieldAnalytical>::value) {
+        msh.met.getMetPhys(DifVar::None, msh.met.getSpace(), coordQ, metq, NULL);
+      } else {
+        METRIS_THROW_MSG("KEAST4QUAL deriv: metric eval at quadrature points not implemented for MetricFieldFE");
+      }
+
+      const ftype Wk = (ftype)meas * (ftype)wn * (ftype)sqrtDetM_of(metq);
+
+      // evaluate q and derivatives
+      if (hquael == NULL) {
+        q0 = d_quafun_xi(msh, asdmsh, asdmet,
+                        ent2poi[ientt], bary, metq,
+                        ivar, dofbas, idifmet,
+                        dq0, NULL);
+      } else {
+        q0 = d_quafun_xi(msh, asdmsh, asdmet,
+                        ent2poi[ientt], bary, metq,
+                        ivar, dofbas, idifmet,
+                        dq0, hq0);
+      }
+
+      // pnorm==1: contribution is |q-difto|
+      const ftype e  = q0 - (ftype)difto;
+      const ftype ae = abs(e);
+      const int sg   = (e < 0) ? -1 : 1;
+
+      val_sum += Wk * ae;
+
+      if (ivar < 0) return;
+
+      // d|e| = sg * de
+      for (int ii=0; ii<gdim; ii++) {
+        dquael[ii] += Wk * (ftype)sg * dq0[ii];
+      }
+
+      if (!hquael) return;
+
+      // d2|e| = sg * d2e
+      for (int ii=0; ii<gdim; ii++) {
+        for (int jj=ii; jj<gdim; jj++) {
+          hquael[sym2idx(ii,jj)] += Wk * (ftype)sg * hq0[sym2idx(ii,jj)];
+        }
+      }
+    };
+
+    // centroid
+    {
+      const double lam[4] = {0.25, 0.25, 0.25, 0.25};
+      accumulate_one(lam, wn0);
+    }
+
+    // point orbit: permutations of (b,a,a,a)
+    for (int ibig=0; ibig<4; ++ibig) {
+      double lam[4] = {a, a, a, a};
+      lam[ibig] = b;
+      accumulate_one(lam, wn1);
+    }
+
+    // 6-point orbit: permutations of (bb,bb,cc,cc)
+    for (int i0=0; i0<4; ++i0) {
+      for (int i1=i0+1; i1<4; ++i1) {
+        double lam[4] = {cc, cc, cc, cc};
+        lam[i0] = bb;
+        lam[i1] = bb;
+        accumulate_one(lam, wn2);
+      }
+    }
+
+    qutet = val_sum;
+
+  #else
+    static_assert(tdim == 3, "No rule for quality integration defined!");
+  #endif
+  }
 
   if(do_nordev){
     METRIS_ASSERT(msh.param->qua_surf_wt_quality >= 0);

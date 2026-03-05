@@ -84,8 +84,6 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   constexpr int tdim = 2;
   constexpr AsDeg asdmet = AsDeg::P1;
 
-
-
   if(isdeadent(iface,msh.fac2poi)) return 0;
 
   CavOprOpt opts;
@@ -103,7 +101,6 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   cav.inewp = 0;
   if(msh.get_tdim() >= 3) cav.lctet.allocate(10);
 
-
   int iele0 = -1;
   if(msh.get_tdim() == 3){
     iele0 = msh.fac2tet(iface,0);
@@ -116,13 +113,17 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
   if(spnorm >= 0){
     #ifdef TESTQUALITYALGO
-    quae1 = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,iface,1.0);
+    if (msh.get_tdim() == 2){
+      quae1 = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,iface,1.0);
+    }
+    else{
+      quae1 = 1e30;
+    }
     #else
     quae1 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,iface,1.0);
-    #endif
     METRIS_ASSERT_MSG(quae1 > -1.0e-16, "Negative quae1 {:e} iface {}",quae1,iface);
+    #endif
   }
-
 
   CPRINTF1("-- START swapface iface = {} verts {} {} {}",iface
     ,msh.fac2poi(iface,0),msh.fac2poi(iface,1),msh.fac2poi(iface,2));
@@ -164,7 +165,12 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
     if(spnorm >= 0){
       #ifdef TESTQUALITYALGO
-      quaol[ied] = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,ifac2,1.0);
+      if (msh.get_tdim() == 2){
+        quaol[ied] = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,ifac2,1.0);
+      }
+      else{
+        quaol[ied] = 1e30;
+      }
       #else
       quaol[ied] = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,ifac2,1.0);
       #endif
@@ -353,7 +359,12 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       for(int ifanw = nfac0+0; ifanw < nfac0+2; ifanw++){
         //qunw1 = metqua0<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,fac2pol[0],1.0);
         #ifdef TESTQUALITYALGO
-        qunw[ifanw-nfac0] = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,ifanw,1.0);
+        if (msh.get_tdim() == 2){
+          qunw[ifanw-nfac0] = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,ifanw,1.0);
+        }
+        else{
+          qunw[ifanw-nfac0] = 1e30;
+        }
         qsum1 += qunw[ifanw-nfac0];
         if (qunw[ifanw-nfac0] > qmax1) qmax1 = qunw[ifanw-nfac0];
         #else
@@ -376,7 +387,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       }
 
       #ifdef TESTQUALITYALGO
-      // if (qsum1 > qsum0 || qmax1 > qmax0) skipswap = true;
+      if (msh.get_tdim() == 2 && qsum1 > qsum0) skipswap = true;
       #endif
 
       if(skipswap) goto cleanup;
@@ -427,12 +438,6 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       msh.rembpotag(msh.fac2poi(iface,ied), ithread);
       msh.rembpotag(msh.fac2poi(ifac2,ie2), ithread);
     }
-
-    // #ifdef TESTQUALITYALGO
-    // std::cout << "iix = " << iix << ", ied = " << ied << std::endl;
-    // std::cout << "face related qual info: " << std::endl;
-    // std::cout << "qmax1 = " << qmax1 << ", qmax0 = " << qmax0 << ", qsum1 = " << qsum1 << ", qsum0 = " << qsum0 << std::endl;
-    // #endif
 
     if(skipswap) continue;
 
