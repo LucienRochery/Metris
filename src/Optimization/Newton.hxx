@@ -69,7 +69,7 @@ void optim_newton_drivertype(const MetrisParameters &params,
                              int niwrk,int *iwork ,
                              double *xopt ,double *fopt ,int *ierro);
 
-template <int nvar>
+template <int nvar,bool inBoundary=false>
 int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
                             double *xcur ,double *fcur ,
                             double *gcur ,double *hess ,

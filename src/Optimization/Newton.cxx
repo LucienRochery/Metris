@@ -278,7 +278,7 @@ void optim_newton_drivertype(const MetrisParameters &param,
 
 
 
-template <int nvar>
+template <int nvar,bool inBoundary>
 int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
                             double *xcur ,double *fcur ,
                             double *gcur ,double *hess ,
@@ -345,7 +345,8 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
       }
       gnorm = abs(args.rwork[2*nvar+3]);
     }else if(nvar == 2) {
-      ierro = invspd<2>(hess);
+      if constexpr (inBoundary == true) ierro = invmat<2>(hess);
+      else                              ierro = invspd<2>(hess);
       if(ierro != 0) goto flag999;
       args.rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1]);
       args.rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1]);
@@ -503,22 +504,36 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
   return ierro;
 }
 template
-int optim_newton_drivertype<1>(newton_drivertype_args<1> &args,
+int optim_newton_drivertype<1,false>(newton_drivertype_args<1> &args,
                                double *xcur ,double *fcur ,
                                double *gcur ,double *hess ,
                                int *iflag, int *ihess);
 template
-int optim_newton_drivertype<2>(newton_drivertype_args<2> &args,
+int optim_newton_drivertype<2,false>(newton_drivertype_args<2> &args,
                                double *xcur ,double *fcur ,
                                double *gcur ,double *hess ,
                                int *iflag, int *ihess);
 template
-int optim_newton_drivertype<3>(newton_drivertype_args<3> &args,
+int optim_newton_drivertype<3,false>(newton_drivertype_args<3> &args,
                                double *xcur ,double *fcur ,
                                double *gcur ,double *hess ,
                                int *iflag, int *ihess);
 
-
+template
+int optim_newton_drivertype<1,true>(newton_drivertype_args<1> &args,
+                               double *xcur ,double *fcur ,
+                               double *gcur ,double *hess ,
+                               int *iflag, int *ihess);
+template
+int optim_newton_drivertype<2,true>(newton_drivertype_args<2> &args,
+                               double *xcur ,double *fcur ,
+                               double *gcur ,double *hess ,
+                               int *iflag, int *ihess);
+template
+int optim_newton_drivertype<3,true>(newton_drivertype_args<3> &args,
+                               double *xcur ,double *fcur ,
+                               double *gcur ,double *hess ,
+                               int *iflag, int *ihess);
 
 
 

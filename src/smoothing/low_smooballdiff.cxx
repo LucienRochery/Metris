@@ -395,6 +395,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
     const double ftol = 1.0e-2;
     // const double ftol = 1.0e-3;
 
+    constexpr bool inBoundary = true;
     constexpr int optDimension = 1; // optimization has just one variable: parameter t
     newton_drivertype_args<optDimension> nargs(msh.param);
     #ifdef TESTQUALITYALGO
@@ -445,7 +446,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
         // std::cout << "d2t = "  << d2t[0] << std::endl;
         // std::cout << "ihess = " << ihess << std::endl;
 
-        ierro = optim_newton_drivertype(nargs, tcur, &fcur, d1t, d2t, &iflag, &ihess);
+        ierro = optim_newton_drivertype<optDimension,inBoundary>(nargs, tcur, &fcur, d1t, d2t, &iflag, &ihess);
 
         if(ierro > 0){
           CPRINTF1(" # optim_newton_drivertype error {}\n",ierro);
@@ -725,6 +726,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
     const double ftol = 1.0e-2;
     // const double ftol = 1.0e-3;
 
+    constexpr bool inBoundary = true;
     constexpr int optDimension = 2; // optimization has just two variables: parameters (u,v)
     newton_drivertype_args<optDimension> nargs(msh.param);
     #ifdef TESTQUALITYALGO
@@ -788,7 +790,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
         // std::cout << "hessUV[11] = "  << hessUV[2] << std::endl;
         // std::cout << "ihess = " << ihess << std::endl;
 
-        ierro = optim_newton_drivertype(nargs, uvcur, &fcur, gradUV, hessUV, &iflag, &ihess);
+        ierro = optim_newton_drivertype<optDimension,inBoundary>(nargs, uvcur, &fcur, gradUV, hessUV, &iflag, &ihess);
 
         if(ierro > 0){
           CPRINTF1(" # optim_newton_drivertype error {}\n",ierro);
