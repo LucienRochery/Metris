@@ -218,7 +218,7 @@ public:
     fmt::print("-- Writing results to {}\n", out_dir);
 
     json_current["metadata"]["time_stamp"] = time_stamp;
-    json_current["metadata"]["git_repo"] = METRIS_GIT_URL;
+    json_current["metadata"]["git_repo"] = "https://github.com/LucienRochery/Metris";
     json_current["metadata"]["git_hash"] = METRIS_GIT_COMMIT_HASH;
     json_current["runs"] = nlohmann::json::object();
 

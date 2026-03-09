@@ -78,7 +78,7 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
     "See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n\n"
     );
 
-    MPRINTF("Metris Git repository URL " METRIS_GIT_URL "\n");
+    MPRINTF("Metris Git repository URL https://github.com/LucienRochery/Metris\n");
     MPRINTF("commit SHA1 {} ",METRIS_GIT_COMMIT_HASH);
 
     #ifndef NDEBUG

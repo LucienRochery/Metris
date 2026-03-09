@@ -57,14 +57,8 @@ add_library(metris_deps INTERFACE)
 
 
 find_package(Git REQUIRED)
-execute_process(COMMAND ${GIT_EXECUTABLE} config --get remote.origin.url
-                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} 
-                OUTPUT_VARIABLE GITURL
-                ERROR_QUIET
-                OUTPUT_STRIP_TRAILING_WHITESPACE)
-
 execute_process(COMMAND ${GIT_EXECUTABLE} branch --show-current
-                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} 
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                 OUTPUT_VARIABLE GIT_BRANCH
                 ERROR_QUIET
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -76,13 +70,17 @@ execute_process(
     OUTPUT_STRIP_TRAILING_WHITESPACE
     ERROR_QUIET)
 
-add_compile_definitions(METRIS_GIT_URL="${GITURL}")
 add_compile_definitions(METRIS_GIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
-message("Metris using METRIS_GIT_URL = ${GITURL}")
 message("In branch: ${GIT_BRANCH}")
-if(GITURL MATCHES "github.com")
+
+option(METRIS_CODEGEN "Enable codegen (requires GiNaC/CLN)" OFF)
+if(METRIS_CODEGEN)
+  message("-- Metris with codegen enabled")
+  set(LIGHT_BUILD OFF)
+  set(REQ_CODEGEN ON)
+else()
+  message("-- Codegen disabled (max degree 2). Enable with -DMETRIS_CODEGEN=ON.")
   set(LIGHT_BUILD ON)
-  message("-- Disabled codegen (max degree 2 supported).")
   set(REQ_CODEGEN OFF)
   set(CODEGEN_FILES ${PROJECT_SOURCE_DIR}/src/codegen_ccoef.hxx
                     ${PROJECT_SOURCE_DIR}/src/codegen_ccoef2.02.cxx
@@ -99,10 +97,6 @@ if(GITURL MATCHES "github.com")
       message(FATAL_ERROR "Codegen file ${f} does not exist")
     endif()
   endforeach()
-else()
-  message("-- Metris with codegen enabled ")
-  set(LIGHT_BUILD OFF)
-  set(REQ_CODEGEN ON)
 endif()
 
 
