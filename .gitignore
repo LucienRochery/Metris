@@ -140,6 +140,8 @@ bunit/regression/**/tmp/
 !bunit/regression/3D/UGAWG_cube-cylinder/cube-cylinder.meshb
 !bunit/regression/3D/UGAWG_cube-cylinder/cube-cylinder.surf.meshb
 
+examples/unit/
+
 docker/*
 !docker/Dockerfile
 !docker/entrypoint.sh

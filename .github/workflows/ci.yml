@@ -36,9 +36,6 @@ jobs:
       - name: CMake configure
         run: cmake -B build/release_clang -DMETRIS_BUILD_CORES=4
 
-      - name: Build unit tests
-        run: cmake --build build/release_clang --target unit_build --parallel 4
-
       - name: Run unit tests
         run: ctest --test-dir build/release_clang --output-on-failure -V -L unit
 
