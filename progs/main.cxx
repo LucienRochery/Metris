@@ -5,10 +5,6 @@
 
 #include "main_adap.hxx"
 #include "metris_options.hxx"
-#ifdef METRIS_USE_PETSC
-  #include <petscsys.h>
-#endif
-
 /*
 (tet2poi|tet2tet)\((iele[m2]),([a-Z0-9]*)\)
 (tet2poi|tet2tet)\((iele[m2]),(lno(fa|ed)3\[i(fa|ed)2?\]\[[0-9a-Z]\])\)
@@ -21,32 +17,8 @@ int main(int argc, char** argv){
 
 
 
-  //char **argv2 = (char**) malloc(256*sizeof(char*));
-  //int argc2;
-  //gen_argv(&argc2,argv2,"-ksp_monitor -start_in_debugger --with-strict-petscerrorcode");
-  Metris::cargHandler arg2("-ksp_monitor -start_in_debugger --with-strict-petscerrorcode");
+  int icod;
 
-  //printf("Call: ");
-  //for(int ii = 0; ii < argc; ii++){
-  //  printf(" %s ",argv[ii]);
-  //}
-  //printf("\n");
-//  gen_argv(&argc2,argv2,"");
-
-  #ifdef METRIS_USE_PETSC
-    PetscFunctionBeginUser;
-    //PetscCall(PetscInitialize(&arg2.c,&arg2.v,(char *)NULL, "Default help message"));
-    PetscCall(PetscInitialize(&argc,&argv,(char *)NULL, "Default help message"));
-  
-    PetscMPIInt MPI_Rank = 0;
-    PetscCallMPI(MPI_Comm_rank(PETSC_COMM_WORLD, &MPI_Rank));
-  #endif
-
-  int icod; 
-  
-#ifdef METRIS_USE_PETSC
-  if(MPI_Rank == 0){
-#endif
     //Mesh msh, bak;
     try{
       icod = Metris::main_metris(argc, argv);
@@ -55,22 +27,14 @@ int main(int argc, char** argv){
       fmt::print("\n################################################################\n");
       fmt::print(stderr,"## MAIN_METRIS THROWS EXCEPTION:\n");
       fmt::print(stderr,"## Message: {}\n",e.message);
-  
+
     #ifndef NO_BOOST_EXCEPT
       if(std::string const * ms=boost::get_error_info<excMessage>(e) )
-        std::cout<<"## Message: "<<*ms; 
+        std::cout<<"## Message: "<<*ms;
       if(boost::stacktrace::stacktrace const * tr=boost::get_error_info<excStackTrace>(e) )
         std::cerr << "## Call stack: \n" << *tr;
     #endif
     }
-#ifdef METRIS_USE_PETSC
-  }
-#endif
-  #ifdef METRIS_USE_PETSC
-    PetscCall(PetscFinalize());
-  #endif
-  //for(int ii = 0; ii < argc2; ii++) free(argv2[ii]);
-  //free(argv2);
 
   return icod;
 }

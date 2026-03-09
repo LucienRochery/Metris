@@ -19,12 +19,6 @@ if [[ `hostname` == *"reynolds"* ]]; then
   export LAPACK_DIR=/home/jenkins/util/lapack/lapack-3.6.1/install
   export ESP_DIR=/home/jenkins/util/ESP/EngSketchPad
   export CAS_DIR=/home/jenkins/util/ESP/OpenCASCADE-$CAS_VERSION
-  if [[ $builddir == *"coverage"* ]]; then
-    export PETSC_DIR=`ls -d /home/jenkins/util/PETSc/petsc*/install_dir_noMPI`
-  else
-    export PETSC_DIR=`ls -d /home/jenkins/util/PETSc/petsc*/install_dir`
-  fi
-  
   if [ -d /home/jenkins/util/NLOPT ]; then
     export NLOPT_DIR=`ls -d /home/jenkins/util/NLOPT/nlopt-*/install`
   fi
@@ -38,8 +32,6 @@ elif [[ `hostname` == *"macys"* ]]; then
   export LAPACK_DIR=/usr/local/opt/lapack/
   export ESP_DIR=/Users/jenkins/util/ESP/EngSketchPad
   export CAS_DIR=/Users/jenkins/util/ESP/OpenCASCADE-$CAS_VERSION
-  export PETSC_DIR=`ls -d /Users/jenkins/util/PETSc/petsc*/install_dir`
-
   export PATH=/Users/jenkins/util/fefloa/bin:$PATH
 
 elif [[ `hostname` == *"viggen"* ]]; then
@@ -48,8 +40,6 @@ elif [[ `hostname` == *"viggen"* ]]; then
   export LAPACK_DIR=/opt/homebrew/opt/lapack/
   export ESP_DIR=/Users/jenkins/util/ESP/EngSketchPad
   export CAS_DIR=/Users/jenkins/util/ESP/OpenCASCADE-$CAS_VERSION
-  export PETSC_DIR=`ls -d /Users/jenkins/util/PETSc/petsc*/install_dir`
-
 else
   if [ -z "$LAPACK_DIR" ]; then
     echo "Please set LAPACK_DIR in your environment."

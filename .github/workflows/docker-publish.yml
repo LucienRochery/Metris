@@ -1,0 +1,52 @@
+name: Publish CI Docker image
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - docker/Dockerfile
+      - docker/install_EGADS.sh
+      - docker/optional_deps_helper.sh
+      - docker/entrypoint.sh
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download ESP and OCC
+        run: |
+          mkdir -p docker/downloads/OCC docker/downloads/ESP
+          wget -q https://acdl.mit.edu/ESP/OCC781-linux-x86_64.tgz -O /tmp/OCC.tgz
+          tar --strip-components=1 -xf /tmp/OCC.tgz -C docker/downloads/OCC/
+          wget -q https://acdl.mit.edu/ESP/ESP.tgz -O /tmp/ESP.tgz
+          tar --strip-components=1 -xf /tmp/ESP.tgz -C docker/downloads/ESP/
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          target: metris_setup
+          build-args: |
+            INSTALL_EIGEN3=true
+            INSTALL_LAPACK=true
+            INSTALL_FMT=true
+          push: true
+          tags: |
+            ghcr.io/lucienrochery/metris-ci:latest
+            ghcr.io/lucienrochery/metris-ci:${{ github.sha }}
