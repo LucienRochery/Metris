@@ -163,10 +163,6 @@ target_link_libraries(metris PUBLIC libMetris
                                     ${Boost_LIBRARIES}
                                     )
 
-#if(METRIS_USE_PETSC STREQUAL "True")
-#  target_link_libraries(metris PUBLIC PkgConfig::PETSC ${MPI_C_LIBRARIES})
-#  #target_link_libraries(metris PUBLIC PETSc)
-#endif()
 
 target_link_libraries(egads2lite PUBLIC libMetris 
                                         Boost::headers # yes this is weird
@@ -320,7 +316,6 @@ foreach(test_file ${TEST_SOURCES})
                                                     Boost::headers # yes this is weird
                                                     ${Boost_LIBRARIES}
                                                     )
-  #target_include_directories(${test_target} PUBLIC "."  ${PETSC_INCLUDE}  ${ABSL_INCLUDE_DIRS})
 
 
   #add_custom_target(${test_target}

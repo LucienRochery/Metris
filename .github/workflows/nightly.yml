@@ -1,0 +1,42 @@
+name: Nightly regression
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/lucienrochery/metris-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Export ESP environment
+        run: |
+          . /progs/ESP/ESPenv.sh
+          echo "ESP_ROOT=${ESP_ROOT}" >> "$GITHUB_ENV"
+          echo "CASROOT=${CASROOT}"   >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
+          echo "${ESP_ROOT}/bin" >> "$GITHUB_PATH"
+
+      - name: CMake configure
+        run: cmake -B build/release_clang -DMETRIS_BUILD_CORES=4
+
+      - name: Run regression tests
+        env:
+          METRIS_CASES_DIR: ${{ github.workspace }}/examples/
+        run: ctest --test-dir build/release_clang --output-on-failure -V -L regression
+
+      - name: Assert no in-source generated files
+        run: |
+          count=$(git ls-files --others --exclude-standard | wc -l)
+          if [ "$count" -ne 0 ]; then
+            git ls-files --others --exclude-standard
+            exit 1
+          fi

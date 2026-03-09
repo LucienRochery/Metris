@@ -165,78 +165,6 @@ if(METRIS_USE_LAPACK)
 endif()
 
 
-if(METRIS_USE_PETSC)
-  message("PETSC enabled")
-
-  if(PETSC_FOUND AND NOT PETSC_PKGCONFIG)
-
-    message(STATUS "PETSC_FOUND = ${PETSC_FOUND}")
-    message(STATUS "PETSC_LIBRARIES = ${PETSC_LIBRARIES}")
-
-  else()
-
-    if(DEFINED PETSC_DIR AND DEFINED PETSC_ARCH)
-
-      message(STATUS "PETSC_DIR = ${PETSC_DIR} and PETSC_ARCH = ${PETSC_ARCH} already set: assuming PETSc target already defined")
-      #find_package(MPI)
-      set(PETSC ${PETSC_DIR}/${PETSC_ARCH})
-      set(PETSC_INCLUDE_DIRS ${PETSC_DIR}/include)
-      list(APPEND PETSC_INCLUDE_DIRS ${PETSC_DIR}/${PETSC_ARCH}/include)
-      list(APPEND PETSC_INCLUDE_DIRS ${MPI_INCLUDE_PATH})
-
-      message("PETSC_LIBRARIES = ${PETSC_LIBRARIES}")
-
-    else()
-
-      if(NOT(DEFINED ENV{PETSC_DIR}))
-        message(FATAL_ERROR "Set environment variables PETSC_DIR")
-      endif()
-      if(NOT(DEFINED ENV{PETSC_ARCH}))
-        message(WARNING "PETSC_ARCH not set.")
-      endif()
-      set(PETSC_DIR  $ENV{PETSC_DIR})
-      set(PETSC_ARCH $ENV{PETSC_ARCH})
-      find_package(MPI)
-      message("-- MPI_INCLUDE_DIRS = ${MPI_INCLUDE_DIRS}")
-      message("-- MPI_LIBRARIES    = ${MPI_LIBRARIES}")
-      list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${MPI_INCLUDE_DIRS})
-      #list(APPEND METRIS_DEPS_LIBRARIES    ${MPI_LIBRARIES})
-      target_link_libraries(metris_deps INTERFACE ${MPI_LIBRARIES})
-
-
-      set(PETSC_ARCH_DIR ${PETSC_DIR}/${PETSC_ARCH})
-      set(PETSC_INCLUDE_DIRS ${PETSC_DIR}/include)
-
-      list(APPEND PETSC_INCLUDE_DIRS ${PETSC_DIR}/${PETSC_ARCH}/include)
-      list(APPEND PETSC_INCLUDE_DIRS ${MPI_INCLUDE_PATH})
-
-      set(ENV{PKG_CONFIG_PATH} ${PETSC_ARCH_DIR}/lib/pkgconfig)
-      pkg_search_module(PETSC REQUIRED IMPORTED_TARGET PETSc)
-      if(NOT PETSC_FOUND)
-        message(FATAL_ERROR "PETSC NOT FOUND !")
-      endif()
-
-      message(" CASE 2 PETSC_LIBRARIES = ${PETSC_LIBRARIES}")
-      set(PETSC_LIBRARIES PkgConfig::PETSC ${MPI_C_LIBRARIES} CACHE INTERNAL "PETSC LIBRARIES (internal)")
-      message(" Set to PkgConfig + MPI_C_LIBRARIES -> PETSC_LIBRARIES = ${PETSC_LIBRARIES}")
-      set(PETSC_PKGCONFIG ON CACHE INTERNAL "Call PkgConfig::PETSC each reconfig")
-
-    endif()
-
-    add_compile_definitions(METRIS_USE_PETSC)
-
-    message("-- PETSC_INCLUDE_DIRS = ${PETSC_INCLUDE_DIRS}")
-    message("-- PETSC_LIBRARIES    = ${PETSC_LIBRARIES}")
-
-    list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${PETSC_INCLUDE_DIRS})
-    #list(APPEND METRIS_DEPS_LIBRARIES    ${PETSC_LIBRARIES})
-    target_link_libraries(metris_deps INTERFACE ${PETSC_LIBRARIES})
-  endif()
-else()
-  message("PETSC disabled")
-  set(PETSC_INCLUDE_DIRS "")
-endif()
-
 
 
 if(NOT DEFINED ESP_ROOT)
@@ -538,6 +466,9 @@ else()
             # Install NLopt headers if using FetchContent
     list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${nlopt_fetch_BINARY_DIR}>)
     list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
+    # CMAKE_BUILD_WITH_INSTALL_RPATH is TRUE, so build RPATHs use CMAKE_INSTALL_RPATH.
+    # Append the FetchContent build dir so executables can find libnlopt.so at runtime.
+    list(APPEND CMAKE_INSTALL_RPATH "${nlopt_fetch_BINARY_DIR}")
     #list(APPEND METRIS_DEPS_LIBRARIES NLopt::nlopt)
     target_link_libraries(metris_deps INTERFACE NLopt::nlopt)
     metris_register_dependency("FetchContent" "NLopt" "")

@@ -72,10 +72,14 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
 
   // We don't need to add all points as deps, only vertices. 
   // The others create subset dependencies. 
+  // Must include ALL nodes (P2 control nodes included), not just P1 vertices,
+  // otherwise LPlib runs separate elements sharing a P2 midpoint in parallel,
+  // producing a race condition that corrupts the metric for those nodes.
+  int npps_dep = getnnode(tdim, ideg);
   BeginDependency(LibIdx, LP_elt, LP_poi);
   for(int ientt = 0; ientt < nentt; ientt++){
     if(isdeadent(ientt,ent2poi)) continue;
-    for(int ii = 0; ii < tdim + 1; ii++) AddDependency(LibIdx, ientt+1, ent2poi(ientt,ii)+1);
+    for(int ii = 0; ii < npps_dep; ii++) AddDependency(LibIdx, ientt+1, ent2poi(ientt,ii)+1);
   }
   EndDependency(LibIdx, LP_stat);
   //printf("LP stat {:.2e} {} \n",LP_stat[0],LP_stat[1]);
@@ -105,8 +109,8 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
 
   CT_FOR0_INC(2,3,gdim){if(msh.idim == gdim){
     CT_FOR0_INC(2,c_gdim,tdim_){if(tdim_ == tdim){
-      acc = LaunchParallelMultiArg(LibIdx, LP_elt, LP_poi, (void*)getMetMesh0_lplib<MetricFieldType,gdim,tdim_,ideg>, 
-                                   2, &msh, &rwork, poitag);
+      acc = LaunchParallelMultiArg(LibIdx, LP_elt, LP_poi, (void*)getMetMesh0_lplib<MetricFieldType,gdim,tdim_,ideg>,
+                                   3, &msh, &rwork, poitag);
    }}CT_FOR1(tdim_);
   }}CT_FOR1(gdim);
 
@@ -116,7 +120,6 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
   CPRINTF2(" - intrinsic metric accel 2 = {} \n",acc);
 
 	if(ibas0 == FEBasis::Bezier) msh.met.setBasis(FEBasis::Bezier);
-	
 
 	StopParallel(LibIdx);
 }
