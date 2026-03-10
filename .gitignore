@@ -129,6 +129,7 @@ bunit/regression/**/*.mesh
 bunit/regression/**/*.solb
 bunit/regression/**/*.sol
 bunit/regression/**/tmp/
+bunit/regression/**/reg_*/
 
 !bunit/regression/2D/OAT15A/OAT15A.meshb
 !bunit/regression/2D/OAT15A/OAT15A.solb

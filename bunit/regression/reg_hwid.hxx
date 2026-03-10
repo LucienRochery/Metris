@@ -8,6 +8,7 @@
 
 #include <string>
 #include <thread>           // For std::thread::hardware_concurrency()
+#include <cstdlib>          // For std::getenv
 
 // Platform-specific includes
 #ifdef __APPLE__
@@ -79,6 +80,8 @@ struct HardwareID {
   }
   
   std::string to_string() const {
+    const char* ci_hwid = std::getenv("METRIS_CI_HWID");
+    if(ci_hwid) return std::string(ci_hwid);
     return fmt::format("{}_{}_{}c_{}",
                        cpu_model, cpu_architecture, num_cores, os_name);
   }
