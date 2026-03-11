@@ -29,19 +29,19 @@ namespace Metris{
 
 
 template<class MFT>
-int aux_findCloseConstrained(Mesh<MFT>& msh, MshCavity &cav, 
+int aux_findCloseConstrained(Mesh<MFT>& msh, MshCavity &cav,
                              int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
 
   int ierro = 0;
-  
+
   int nced0 = cav.lcedg.get_n();
   int ncfa0 = cav.lcfac.get_n();
   int ncte0 = cav.lctet.get_n();
 
   const int tdimm = msh.get_tdim();
   const intAr1 &lcent = cav.lcent(tdimm);
-  const int ncen0 = tdimm == 1 ? nced0 : 
+  const int ncen0 = tdimm == 1 ? nced0 :
                     tdimm == 2 ? ncfa0 : ncte0;
   int edg2pol[2] = {cav.ipins, -1};
   double sz[2];
@@ -50,7 +50,7 @@ int aux_findCloseConstrained(Mesh<MFT>& msh, MshCavity &cav,
 
   int iice0 = 0, iice1 = ncen0;
   // tag points whose dist to ipins and balls have been computed:
-  msh.tag[ithrd1]++; 
+  msh.tag[ithrd1]++;
   for(int niter = 0; niter < 2; niter++){
     // Loop over current neighbourhood and check if points close.
     for(int iicen = iice0; iicen < iice1; iicen++){
@@ -108,13 +108,13 @@ template int aux_findCloseConstrained<MetricFieldFE       >(
 
 
 template<class MFT>
-int aux_bisecPointLen(Mesh<MFT> &msh, 
+int aux_bisecPointLen(Mesh<MFT> &msh,
                       const EdgeSeed &insertionSeed,
-                      int ibins, 
-                      bool icollapse, 
+                      int ibins,
+                      bool icollapse,
                       const MshCavity &cav){
   GETVDEPTH(msh.param);
-  const auto lnoed = insertionSeed.tdimp == 1 ? lnoed1 : 
+  const auto lnoed = insertionSeed.tdimp == 1 ? lnoed1 :
                      insertionSeed.tdimp == 2 ? lnoed2 : lnoed3;
   const intAr2 &ent2poi = msh.ent2poi(insertionSeed.tdimp);
 
@@ -151,16 +151,17 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
 
   int ierro;
 //restart_bisection:
-  // Get bar1 s.t. new edges are not short. There can be other short edges, but 
-  // not from splitting the parent edge. 
+  // Get bar1 s.t. new edges are not short. There can be other short edges, but
+  // not from splitting the parent edge.
   bool fnd_len = false;
   double bar1_opt = -1, err_opt = 1.0e30, bar1;
-  for(int ntry_len = 0; ntry_len < 10; ntry_len++){
-    INCVDEPTH(msh.param);
-    bar1 = (bar1_min + bar1_max) / 2;
+
+  // helper that takes bar1 and updates the mesh data for the new point at that location
+  auto place_ipins = [&](double bar1) -> int {
+
     double bar2[2] = {bar1, 1 - bar1};
 
-    // Evaluate ipins on CAD or element, also get algnd for interpMetBack 
+    // Evaluate ipins on CAD or element, also get algnd for interpMetBack
     if(ibins >= 0 && msh.CAD()){
       int ib[2];
       // Correct ibs : attach to ref or edge/face as needed
@@ -171,7 +172,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
         METRIS_ASSERT(ib[ii] >= 0);
       }
 
-      for(int ii = 0; ii < 2; ii++) msh.bpo2rbi(ibins,ii) = 
+      for(int ii = 0; ii < 2; ii++) msh.bpo2rbi(ibins,ii) =
           bar1*msh.bpo2rbi[ib[0]][ii] + (1.0 - bar1)*msh.bpo2rbi[ib[1]][ii];
 
       CPRINTF1(" - boundary point bar1 {:.2e} new t/(u,v) = {:.2f} {:.2f} using ib1 = {} : {:.2f} {:.2f} ib2 = {} : {:.2f} {:.2f}\n",bar1,
@@ -191,7 +192,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
       }else{
         vecprod(&result[3], &result[6], algnd);
       }
-    }else if(ibins >= 0 && !msh.CAD()){ 
+    }else if(ibins >= 0 && !msh.CAD()){
       METRIS_ASSERT(insertionSeed.tdimp <= 2);
       // No reevaluation, but initialize algnd to edge tangent
       CPRINTF1(" - discrete algnd initialization tdimp {} \n",insertionSeed.tdimp);
@@ -221,6 +222,17 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
     ierro = msh.interpMetBack(cav.ipins, insertionSeed.tdimp, insertionSeed.iseed, insertionSeed.iref, algnd);
     if(ierro != 0) return INS2D_ERR_INTERPMETBACK1;
 
+    return 0;
+  };
+
+  // try putting ipins at different locations, based on the lengths of the resulting edges
+  for(int ntry_len = 0; ntry_len < 10; ntry_len++){
+    INCVDEPTH(msh.param);
+    bar1 = (bar1_min + bar1_max) / 2;
+
+    ierro = place_ipins(bar1);
+    if (ierro != 0) return ierro;
+
     //if(DOPRINTS3()){
     //  int ipnew = msh.newpoitopo(0);
     //  msh.newbpotopo(ipnew, 0, ipnew);
@@ -244,7 +256,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
     CPRINTF1(" - {} bar1 = {:.2e} lens = {:.2f} {:.2f} valid {} {} (err = {:.2e} {:.2e}) dist {:.2e} {:.2e} sumlen {:.2f} err to sqrt(2) = {:.2e}\n",
               ntry_len,bar1,len1,len2,
               len1 > 1/sqrt(2), len2 > 1/sqrt(2),
-              abs(len1 - 1/sqrt(2)), abs(len2 - 1/sqrt(2)), 
+              abs(len1 - 1/sqrt(2)), abs(len2 - 1/sqrt(2)),
               abs(len1-1), abs(len2-1),
               len1+len2,
               abs(sqrt(2) - len1 - len2));
@@ -260,9 +272,9 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
 
     if(ivalid){
       fnd_len = true;
-      // Once a viable is found, it is possible length distance to 1 will 
+      // Once a viable is found, it is possible length distance to 1 will
       // make a couple of iterates not viable, so it's important to keep a viable
-      // bar1. 
+      // bar1.
       double err = abs(abs(1-len1) - abs(1-len2));
       if(err < err_opt){
         err_opt = err;
@@ -285,17 +297,21 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
 
   if(!fnd_len) return INS2D_ERR_BISECLEN;
 
+  // Restore point state at the selected optimal split parameter.
+  // After the loop, the mesh state corresponds to the last tried bar1.
+  if (abs(bar1 - bar1_opt) > 1e-12) place_ipins(bar1_opt);
+
   CPRINTF1("-- END aux_bisecPointLen w/ bar1 = {}\n",bar1_opt);
   return 0;
 }
 
-template int aux_bisecPointLen<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, 
+template int aux_bisecPointLen<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh,
                                                       const EdgeSeed &insertionSeed,
                                                       int ibins,
                                                       bool icollapse,
                                                       const MshCavity &cav);
-template int aux_bisecPointLen<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, 
-                                                      const EdgeSeed &insertionSeed,  
+template int aux_bisecPointLen<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh,
+                                                      const EdgeSeed &insertionSeed,
                                                       int ibins,
                                                       bool icollapse,
                                                       const MshCavity &cav);
@@ -303,7 +319,7 @@ template int aux_bisecPointLen<MetricFieldFE        >(Mesh<MetricFieldFE        
 
 
 template<class MFT>
-int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav, 
+int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav,
                      int tdimp, int iseed, int iref, double *algnd){
   GETVDEPTH(msh.param);
   int ierro = 0;
@@ -339,8 +355,8 @@ int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav,
       }}CT_FOR1(gdim);
       if(iflat) continue;
 
-      //msh.met.getMetBary(AsDeg::P1, DifVar::None, msh.met.getSpace(), 
-      //                   ent2poi[ientt], msh.get_tdim(), bary, 
+      //msh.met.getMetBary(AsDeg::P1, DifVar::None, msh.met.getSpace(),
+      //                   ent2poi[ientt], msh.get_tdim(), bary,
       //                   metl, NULL);
 
       // For simply barycentre, use meas0
@@ -355,7 +371,7 @@ int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav,
     }
 
   }else{
-    // Boundary case. 
+    // Boundary case.
     return 0;
   }// if tdimp == msh.get_tdim()
 
@@ -365,15 +381,15 @@ int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav,
     CPRINTF1(" - interpMetBack failed ierro = {} \n",ierro);
     ierro = INS2D_ERR_INTERPMETBACK2;
   }
-  
+
   return ierro;
 }
 
 template
-int aux_movePointCav<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, 
+int aux_movePointCav<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav,
                      int tdimp, int iseed, int iref, double *algnd);
 template
-int aux_movePointCav<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, 
+int aux_movePointCav<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav,
                      int tdimp, int iseed, int iref, double *algnd);
 
 } // end namespace
