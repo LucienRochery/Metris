@@ -31,11 +31,11 @@ namespace Metris{
 
 // Return 0 if done nothing, 1 if error, -1 if done swap
 template<class MFT>
-int insertEdge(Mesh<MFT>& msh, 
+int insertEdge(Mesh<MFT>& msh,
                const EdgeSeed &insertionSeed,
                double lenqua_short_max, // maximum quality (error) a new short edge can have
                bool icollapse,
-               MshCavity &cav, CavWrkArrs &work, 
+               MshCavity &cav, CavWrkArrs &work,
                intAr1 &lerro, int ithrd1, int ithrd2){
 
   int iverb0   = msh.param->iverb;
@@ -52,7 +52,7 @@ int insertEdge(Mesh<MFT>& msh,
   opts.allow_topological_correction = true;
   opts.skip_topo_checks = false;
   opts.dryrun = false;
-  opts.allow_remove_points = true; 
+  opts.allow_remove_points = true;
   opts.allow_remove_points_superdim = true; // For boundary
   opts.qmax_nec = -1;
   opts.qmax_suf = -1;
@@ -82,16 +82,16 @@ int insertEdge(Mesh<MFT>& msh,
 
   double algnd[3];
 
-  // Create the point, set info for localization 
+  // Create the point, set info for localization
   //cav.ipins = msh.newpoitopo(insertionSeed.tdimp, insertionSeed.iseed);
   //int ibins = -1;
-  //if(msh.isboundary_tdim(insertionSeed.tdimp)) 
+  //if(msh.isboundary_tdim(insertionSeed.tdimp))
   //  ibins = msh.newbpotopo(cav.ipins,insertionSeed.tdimp,insertionSeed.iseed);
-  
+
   // Proper surface seeding
   cav.ipins = msh.newpoint(PointType::Vertex, insertionSeed.tdimp, insertionSeed.iseed);
 
-  if(msh.CAD()) METRIS_ASSERT(insertionSeed.obj != NULL 
+  if(msh.CAD()) METRIS_ASSERT(insertionSeed.obj != NULL
                     || insertionSeed.tdimp == 2 && !msh.isboundary_faces() || insertionSeed.tdimp == 3);
 
   // Append edge ends balls to the shell:
@@ -135,6 +135,8 @@ int insertEdge(Mesh<MFT>& msh,
     throw(exc);
   }
   #endif
+
+  if (ierro > 0) goto cleanup;
 
   if(icollapse){
     ierro = collrejcav_lenqua(msh, cav, false, false, false, -1, nocomp, ithrd2);
@@ -228,7 +230,7 @@ restart_cavity:
     cav.lctet.set_n(ncte0);
     int ierr2 = aux_movePointCav(msh, cav, insertionSeed.tdimp, insertionSeed.iseed, insertionSeed.iref, algnd);
     imoved_point = true;
-    writeMeshCavity("insert_cavity_fail_move0.meshb", 
+    writeMeshCavity("insert_cavity_fail_move0.meshb",
                                     msh,cav);
     if(ierr2 != 0){
       ierro = INS2D_ERR_MOVEPT;
@@ -285,15 +287,15 @@ restart_cavity:
 
 
 
-template int insertEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
+template int insertEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh,
                          const EdgeSeed &insertionSeed,
                          double lenqua_short_max, bool icollapse,
-                         MshCavity &cav, CavWrkArrs &work, 
+                         MshCavity &cav, CavWrkArrs &work,
                          intAr1 &lerro, int ithrd1, int ithrd2);
-template int insertEdge<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
+template int insertEdge<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh,
                          const EdgeSeed &insertionSeed,
                          double lenqua_short_max, bool icollapse,
-                         MshCavity &cav, CavWrkArrs &work, 
+                         MshCavity &cav, CavWrkArrs &work,
                          intAr1 &lerro, int ithrd1, int ithrd2);
 
 
