@@ -789,7 +789,7 @@ template void check_cavity_rempoint<MetricFieldFE        >
 
 // Increase for validity and Delaunay (if idelaunay == true) both.
 // Argument ref2nordev is optional unless surface is involved. It need not be filled prior.
-// returns 0 on success, and > 0 (1 or 2) otherwise
+// returns 0 on success, and > 0 (1, 2 or 3) otherwise
 template<class MFT>
 int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
                     bool idelaunay, int ithrd1, int ithrd2){
@@ -1054,6 +1054,13 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
                         :     tdim == 2 ? isvalideltP1<3,2>(msh, ent2pol, nod2bpo, NULL, &meas0, nordev_tol)
                                         : isvalideltP1<3,3>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol); // NORCAD
             iflat = !ivalid;
+            if (iflat){
+              if (msh.idim == 3 && tdim == 2){
+                // abort operation if the issue is that the normal deviation gets worse: cannot be corrected
+                bool ivalidNoNordev = isvalideltP1<3,2>(msh, ent2pol, nod2bpo, NULL, &meas0, -1);
+                if (ivalidNoNordev) return 3;
+              }
+            }
             CPRINTF1("   - inccav pdim {} tdim {} ent {} = {}\n",pdim,tdim,ientt,
                     intAr1(tdim+1,ent2pol));
             CPRINTF1("   - w/ vtol = {:e} got iflat = {} meas0 = {:15.7e} neighbour = {}\n",

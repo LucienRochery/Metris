@@ -27,13 +27,13 @@ void getnorfacP1(const int *fac2pol, const dblAr2 &coord, double *nrmal){
                coord[fac2pol[2]],coord[fac2pol[0]],nrmal);
 }
 
-void getnorfac(const MeshBase&__restrict__ msh, int iface, 
+void getnorfac(const MeshBase&__restrict__ msh, int iface,
                const double*__restrict__ bary, AsDeg asdmsh, double*__restrict__ nrmal){
   return getnorfac(msh, msh.fac2poi[iface], bary, asdmsh, nrmal);
 }
 
 
-void getnorfac(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol, 
+void getnorfac(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol,
                const double*__restrict__ bary, AsDeg asdmsh, double*__restrict__ nrmal){
 
   METRIS_ASSERT(msh.idim == 3);
@@ -45,8 +45,8 @@ void getnorfac(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol,
 
   double coop[3], jmat[2][3];
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-    eval2<3, ideg>(msh.coord, fac2pol, msh.getBasis(), 
-                   DifVar::Bary, DifVar::None, 
+    eval2<3, ideg>(msh.coord, fac2pol, msh.getBasis(),
+                   DifVar::Bary, DifVar::None,
                    bary, coop, jmat[0], NULL);
     vecprod(jmat[0],jmat[1],nrmal);
   }}CT_FOR1(ideg);
@@ -103,7 +103,7 @@ int getnorfacCAD(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
 
 
 // Return outgoing normal of edge (2D only)
-int getnorpoiCAD1(const MeshBase &msh, int ipoin, std::map<ego,int> &edgorient, 
+int getnorpoiCAD1(const MeshBase &msh, int ipoin, std::map<ego,int> &edgorient,
                   double *norpoi){
   METRIS_ASSERT(msh.idim == 2);
 
@@ -127,7 +127,7 @@ int getnorpoiCAD1(const MeshBase &msh, int ipoin, std::map<ego,int> &edgorient,
     norpoi[0] =  isens*du[1];
     norpoi[1] = -isens*du[0];
   }else{
-    // Else is corner 
+    // Else is corner
     norpoi[0] = 0;
     norpoi[1] = 0;
     do{
@@ -182,7 +182,7 @@ int getnorpoiCAD2(const MeshBase &msh, int ibpoi, double *norpoi){
   if(ierro != 0) return ierro;
   double *du = &result[3];
   double *dv = &result[6];
-  
+
   vecprod(du,dv,norpoi);
 
   if(normalize_vec<3>(norpoi)) return 1;
@@ -197,7 +197,7 @@ int getnorpoiCAD2(const MeshBase &msh, int ibpoi, double *norpoi){
 template <int ideg>
 void getnorballref(MeshBase &msh, const intAr1 &lball, int iref, double* norpoi){
   GETVDEPTH(msh.param);
-  // Discrete 
+  // Discrete
   for(int ii = 0; ii < 3; ii++) norpoi[ii] = 0;
   double norfac[3];
 
@@ -252,7 +252,7 @@ void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
   double norfac[3];
 
 
-  // Face point -> ref or not we can get the unique normal 
+  // Face point -> ref or not we can get the unique normal
 
   double result[18];
   double *du,*dv;
@@ -293,7 +293,7 @@ void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
       }
       getnorfac(msh, iface, bary, AsDeg::Pk, norfac);
     }
-    
+
     if(normalize_vec<3>(norfac)){
       // Attempt recovery by using a nearby point on the triangle.
       bool irecovered = false;
@@ -308,7 +308,7 @@ void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
         }
         double uv[2];
         for(int ii = 0; ii < 2; ii++){
-          uv[ii] = 0.9*msh.bpo2rbi(lbpo[iver], ii) 
+          uv[ii] = 0.9*msh.bpo2rbi(lbpo[iver], ii)
                  + 0.1*msh.bpo2rbi(lbpo[(iver+1)%3], ii)
                  + 0.1*msh.bpo2rbi(lbpo[(iver+2)%3], ii);
         }
@@ -328,7 +328,7 @@ void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
       }
 
       if(!irecovered){
-        MPRINTF("norfac vanishes in getnorpoiref for ipoin {}, iref {}\n", 
+        MPRINTF("norfac vanishes in getnorpoiref for ipoin {}, iref {}\n",
               ipoin, iref);
         MPRINTF("iface = {} nodes {}\n",iface,
                 intAr1(getnnode(msh.curdeg,2),msh.fac2poi[iface]));
@@ -342,7 +342,7 @@ void getnorpoiref(const MeshBase &msh, int ipoin, int iref, double* norpoi){
 
     for(int ii = 0; ii < 3; ii++) norpoi[ii] += norfac[ii];
   }
-  
+
   if(normalize_vec<3>(norpoi)) METRIS_THROW_MSG("## norpoi vanishes");
 
 }
@@ -412,14 +412,14 @@ int gettanpoiref(const MeshBase &msh, int ipoin, int iref, double* tanpoi){
       bary[iver1] = 1;
       CT_FOR0_INC(2,3,gdim_c){if(gdim_c == gdim){
       CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-        eval1<gdim_c,ideg>(msh.coord, msh.edg2poi[iedg1], msh.getBasis(), 
-                           DifVar::Bary, DifVar::None, 
+        eval1<gdim_c,ideg>(msh.coord, msh.edg2poi[iedg1], msh.getBasis(),
+                           DifVar::Bary, DifVar::None,
                            bary, dum, tane1, NULL);
         if(!skipref2){
           bary[iver1] = 0;
           bary[iver2] = 1;
-          eval1<gdim_c,ideg>(msh.coord, msh.edg2poi[iedg2], msh.getBasis(), 
-                             DifVar::Bary, DifVar::None, 
+          eval1<gdim_c,ideg>(msh.coord, msh.edg2poi[iedg2], msh.getBasis(),
+                             DifVar::Bary, DifVar::None,
                              bary, dum, tane2, NULL);
         }
       }}CT_FOR1(ideg);
@@ -427,8 +427,8 @@ int gettanpoiref(const MeshBase &msh, int ipoin, int iref, double* tanpoi){
     }
 
     if(!skipref2){
-      // Average normalized tans weighted by inverse of the edge lengths. 
-      // A proxy for this is the tangent norm. 
+      // Average normalized tans weighted by inverse of the edge lengths.
+      // A proxy for this is the tangent norm.
       // So we're doing the following average (of the unnormalized):
       // tane1 / norm(tane1)^2 + tane2 / norm(tane2)^2
       double nrm1 = gdim == 2 ? getnrml2<2>(tane1) : getnrml2<3>(tane1);
@@ -438,7 +438,7 @@ int gettanpoiref(const MeshBase &msh, int ipoin, int iref, double* tanpoi){
       METRIS_ASSERT(nrm1 > Constants::vecNrmTol);
       METRIS_ASSERT(nrm2 > Constants::vecNrmTol);
 
-      for(int ii = 0; ii < gdim; ii++) 
+      for(int ii = 0; ii < gdim; ii++)
         tanpoi[ii] = tane1[ii] / nrm1 + tane2[ii] / nrm2;
     }else{
       for(int ii = 0; ii < gdim; ii++) tanpoi[ii] = tane1[ii];
@@ -447,7 +447,7 @@ int gettanpoiref(const MeshBase &msh, int ipoin, int iref, double* tanpoi){
   }else{
 
     if(iref >= 0){
-      // Check loop case and throw error in debug mode. 
+      // Check loop case and throw error in debug mode.
       #ifndef NDEBUG
       if(msh.getpoitdim(ipoin) == 0){
         int nref = 0;
@@ -458,9 +458,9 @@ int gettanpoiref(const MeshBase &msh, int ipoin, int iref, double* tanpoi){
           int iref2 = msh.edg2ref[ientt];
           if(iref2 == iref) nref++;
         }
-        METRIS_ASSERT_MSG(nref <= 2, 
+        METRIS_ASSERT_MSG(nref <= 2,
           " ## {} edges of same ref at point {}", nref, ipoin)
-        if(nref == 2) METRIS_THROW_MSG( 
+        if(nref == 2) METRIS_THROW_MSG(
           "TODO: Implement case {} edges of same ref at point {}", nref, ipoin)
       }
       #endif
@@ -473,8 +473,8 @@ int gettanpoiref(const MeshBase &msh, int ipoin, int iref, double* tanpoi){
 
       for(int ii = 0; ii < gdim; ii++) tanpoi[ii] = result[3+ii];
     }else{
-      // Simply average all normalized tangents at the point. 
-      // If point is dim 1, we can get iref from ent2poi and do a single eval. 
+      // Simply average all normalized tangents at the point.
+      // If point is dim 1, we can get iref from ent2poi and do a single eval.
       // There would only be one entry anyways
       double result[18];
       for(int ii = 0; ii < gdim; ii++) tanpoi[ii] = 0;
@@ -524,9 +524,9 @@ template double getnordev<n>(const MeshBase&__restrict__ msh, int iface, const d
 
 
 // Normalized dotprod difference to 1 of CAD/elt normals accumulated over the nodes
-// nod2bpo holds the ibpois for the element nodes. 
+// nod2bpo holds the ibpois for the element nodes.
 template<int ideg>
-double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol, 
+double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol,
                  const int*__restrict__ nod2bpo, const double*__restrict__ norfac_){
   METRIS_ASSERT(msh.idim == 3);
   GETVDEPTH(msh.param);
@@ -554,7 +554,7 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
   #ifndef NDEBUG
   for(int inode = 0; inode < nnode; inode++){
     if(nod2bpo[inode] < 0) continue;
-    METRIS_ASSERT_MSG(iref == msh.fac2ref[msh.bpo2ibi(nod2bpo[inode],2)] , 
+    METRIS_ASSERT_MSG(iref == msh.fac2ref[msh.bpo2ibi(nod2bpo[inode],2)] ,
       "iref {}, inode {}, fac2poi {}, ibpoi {} : {},fac2ref = {}",
       iref, inode, fac2pol[inode], nod2bpo[inode], intAr1(nibi,msh.bpo2ibi[nod2bpo[inode]]),
       msh.fac2ref[msh.bpo2ibi(nod2bpo[inode],2)]);
@@ -590,7 +590,7 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
     }
   }
 
-
+  double maxnordev = -1;
   double nordev = 0;
   int nsum = 0;
   for(int inode = 0; inode < nnode; inode++){
@@ -661,23 +661,24 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
     //#endif
     double dtprd = getprdl2<gdim>(norelt, norCAD);
     double tmp = 1 - abs(dtprd);
-    METRIS_ASSERT_MSG(tmp >= -1.0e-15, 
+    METRIS_ASSERT_MSG(tmp >= -1.0e-15,
       "Normalized normals dotprod > ? tmp = {:e} (<0?)\n"
       "norelt = {}, norCAD = {}",tmp,dblAr1(3,norelt), dblAr1(3,norCAD));
     // Value can be slightly negative due to roundoff
     tmp = MAX(tmp, 0.0);
     nordev += abs(tmp);
     nsum++;
+    maxnordev = MAX(tmp,maxnordev);
     CPRINTF1(" - face {} {} {} inode = {} ibpoi = {} local dev = {}\n",fac2pol[0],fac2pol[1],fac2pol[2],inode,ibpoi,tmp);
-    CPRINTF2(" - ibpoi info = {} {} {} , ref = {}, t/(u,v) = {} {} \n", 
-             msh.bpo2ibi(ibpoi,0), msh.bpo2ibi(ibpoi,1), 
-             msh.bpo2ibi(ibpoi,2), 
+    CPRINTF2(" - ibpoi info = {} {} {} , ref = {}, t/(u,v) = {} {} \n",
+             msh.bpo2ibi(ibpoi,0), msh.bpo2ibi(ibpoi,1),
+             msh.bpo2ibi(ibpoi,2),
              msh.bpo2ibi(ibpoi,1) > 0 ? msh.ent2ref(msh.bpo2ibi(ibpoi,1))[msh.bpo2ibi(ibpoi,2)] : -1,
              msh.bpo2rbi(ibpoi,0), msh.bpo2rbi(ibpoi,1));
   }
   CPRINTF1("-- END getnordev got nordeg = {}\n",nordev/nsum);
   //if(DOPRINTS3()){
-  //  int facsave[nnode]; 
+  //  int facsave[nnode];
   //  int ifac0 = 0;
   //  for(int ii = 0; ii < inode; ii++) facsave[ii] = msh.fac2poi(ifac0,ii);
   //  for(int ii = 0; ii < inode; ii++) msh.fac2poi(ifac0,ii) = fac2pol[ii];
@@ -693,7 +694,10 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
   //  writeField("debug_norfac.solb", msh, SolTyp::CG, norpoifac.get_array(), 3);
   //  writeField("debug_norCAD.solb", msh, SolTyp::CG, norpoiCAD.get_array(), 3);
   //}
-  return nordev/nsum;
+
+  // return nordev/nsum; // to use averaged nordev at vertices
+
+  return maxnordev;   // to use maximum nordev over those at the vertices
 }
 #define BOOST_PP_LOCAL_MACRO(n)\
 template double getnordev<n>(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol, const int*__restrict__ nod2bpo, const double*__restrict__ norfac_);
