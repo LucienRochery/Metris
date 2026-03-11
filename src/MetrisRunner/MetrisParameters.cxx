@@ -447,14 +447,20 @@ void MetrisParametersData::setMetricScale(double sclmet){
 
 
 void MetrisParameters::setLogFile(std::string fname){
+  if(logFileOwner_ && logFile_ && logFile_ != stdout && logFile_ != stderr){
+    fclose(logFile_);
+  }
   logFileName_ = fname;
   if(fname == "stdout"){
     logFile_ = stdout;
+    logFileOwner_ = false;
   }else if(fname == "stderr"){
     logFile_ = stderr;
+    logFileOwner_ = false;
   }else{
     logFile_ = fopen(fname.c_str(), "w");
     METRIS_ENFORCE_MSG(logFile_ != NULL,"Error opening log file {}", fname);
+    logFileOwner_ = true;
   }
 }
 
