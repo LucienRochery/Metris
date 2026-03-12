@@ -248,6 +248,9 @@ public:
 
   MetrisParameters();
 
+  MetrisParameters(const MetrisParameters &other);
+  MetrisParameters& operator=(const MetrisParameters&) = delete;
+
   MetrisParameters(MetrisOptions &opt);
 
   ~MetrisParameters(){

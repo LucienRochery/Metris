@@ -1,4 +1,4 @@
-target_include_directories(metris_deps INTERFACE 
+target_include_directories(metris_deps INTERFACE
                             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
                             $<INSTALL_INTERFACE:include/libs>)
 
@@ -6,23 +6,22 @@ target_include_directories(metris_deps INTERFACE
 if(NOT TARGET libmeshb)
   add_library(libmeshb STATIC libmeshb7/libmeshb7.c)
   setMetrisCFlags(libmeshb PUBLIC)
-
-  if(METRIS_INSTALL)
-    install(TARGETS libmeshb
-            EXPORT libMetrisTargets 
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-  endif()
+endif()
+if(METRIS_INSTALL)
+  install(TARGETS libmeshb
+          EXPORT libMetrisTargets
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 target_link_libraries(metris_deps INTERFACE libmeshb)
 
 if(NOT TARGET lplib3)
   add_library(lplib3 STATIC lplib3/lplib3.c)
   target_link_libraries(lplib3 PUBLIC pthread)
-  if(METRIS_INSTALL)
-    install(TARGETS lplib3
-            EXPORT libMetrisTargets 
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-  endif()
+endif()
+if(METRIS_INSTALL)
+  install(TARGETS lplib3
+          EXPORT libMetrisTargets
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 target_link_libraries(metris_deps INTERFACE lplib3)
 
@@ -43,7 +42,7 @@ add_library(alglib STATIC ${ALGLIB_SRC})
 target_link_libraries(metris_deps INTERFACE alglib)
 if(METRIS_INSTALL)
   install(TARGETS alglib
-          EXPORT libMetrisTargets 
+          EXPORT libMetrisTargets
           ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()
 
