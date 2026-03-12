@@ -3,7 +3,8 @@
     "runs": {
       "Q2toQ2_cost0_met1": {
         "CPU_times": [
-          40.75541999999996
+          40.89941399999998,
+          41.52684700000009
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost0_met1.log",
         "metadata": {
@@ -100,7 +101,8 @@
       },
       "Q2toQ2_cost0_met1_geo": {
         "CPU_times": [
-          40.86389899999995
+          42.54230099999995,
+          41.41271199999983
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost0_met1_geo.log",
         "metadata": {
@@ -197,7 +199,8 @@
       },
       "Q2toQ2_cost0_met2": {
         "CPU_times": [
-          124.06491200000028
+          123.63266700000031,
+          126.87604400000009
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost0_met2.log",
         "metadata": {
@@ -294,7 +297,8 @@
       },
       "Q2toQ2_cost0_met2_geo": {
         "CPU_times": [
-          124.74631700000009
+          124.69921600000043,
+          126.52485999999999
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost0_met2_geo.log",
         "metadata": {
@@ -391,13 +395,14 @@
       },
       "Q2toQ2_cost1_met1": {
         "CPU_times": [
-          61.63296100000025
+          58.34076300000015,
+          62.2069690000003
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost1_met1.log",
         "metadata": {
-          "git_hash": "95d7b3f8426cea82ca80edbb35b4ab5cd71bfc5c",
+          "git_hash": "ecb228fb657c1ae0a6efb96e2257305b9f122c93",
           "git_repo": "https://github.com/LucienRochery/Metris",
-          "time_stamp": "2026-03-12-10-34-29"
+          "time_stamp": "2026-03-10-20-17-52"
         },
         "params": {
           "adp_line_adapt": false,
@@ -488,7 +493,8 @@
       },
       "Q2toQ2_cost1_met1_geo": {
         "CPU_times": [
-          61.40959600000042
+          63.04340899999988,
+          62.36501599999974
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost1_met1_geo.log",
         "metadata": {
@@ -585,7 +591,8 @@
       },
       "Q2toQ2_cost1_met2": {
         "CPU_times": [
-          183.0982270000004
+          180.58554400000003,
+          189.9815539999995
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost1_met2.log",
         "metadata": {
@@ -682,7 +689,8 @@
       },
       "Q2toQ2_cost1_met2_geo": {
         "CPU_times": [
-          182.43919499999993
+          185.53574799999978,
+          184.9057310000003
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost1_met2_geo.log",
         "metadata": {
@@ -779,7 +787,8 @@
       },
       "Q2toQ2_cost5_met1": {
         "CPU_times": [
-          107.88762999999994
+          108.35995400000002,
+          108.76878099999976
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost5_met1.log",
         "metadata": {
@@ -876,7 +885,8 @@
       },
       "Q2toQ2_cost5_met1_geo": {
         "CPU_times": [
-          107.8004269999999
+          107.63364899999988,
+          106.66536999999994
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost5_met1_geo.log",
         "metadata": {
@@ -973,7 +983,8 @@
       },
       "Q2toQ2_cost5_met2": {
         "CPU_times": [
-          299.4887120000001
+          301.91743199999996,
+          301.2614830000002
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost5_met2.log",
         "metadata": {
@@ -1070,7 +1081,8 @@
       },
       "Q2toQ2_cost5_met2_geo": {
         "CPU_times": [
-          303.6613749999999
+          305.85271799999987,
+          305.4340299999999
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost5_met2_geo.log",
         "metadata": {
