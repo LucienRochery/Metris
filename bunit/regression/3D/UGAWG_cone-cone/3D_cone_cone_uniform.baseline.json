@@ -6,7 +6,8 @@
           49.64893799999999,
           49.72438299999999,
           49.113797999999974,
-          47.15625399999999
+          47.15625399999999,
+          46.62025599999998
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/UGAWG_cone-cone/reg_uniform/2025-09-09-09-18-30/uniform.log",
         "metadata": {
@@ -97,7 +98,8 @@
           51.58104,
           52.39696499999998,
           52.18539999999999,
-          48.964657
+          48.964657,
+          48.977598
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/UGAWG_cone-cone/reg_uniform/2025-09-09-09-18-30/uniform_geo.log",
         "metadata": {
@@ -188,7 +190,8 @@
           84.85397300000001,
           86.09635200000001,
           84.913399,
-          80.069105
+          80.069105,
+          80.366739
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/UGAWG_cone-cone/reg_uniform/2025-09-09-09-18-30/uniform_geo_smoolen.log",
         "metadata": {
@@ -279,7 +282,8 @@
           45.13360900000001,
           44.85466199999996,
           44.21700799999999,
-          41.97655599999999
+          41.97655599999999,
+          41.709231999999986
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/UGAWG_cone-cone/reg_uniform/2025-09-09-09-18-30/uniform_smoolen.log",
         "metadata": {

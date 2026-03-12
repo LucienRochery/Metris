@@ -5,7 +5,8 @@
         "CPU_times": [
           9.299042,
           8.966538999999997,
-          8.973840999999997
+          8.973840999999997,
+          8.914711000000004
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/reg_x2_Q1toQ1/2025-09-09-09-15-10/Q1toQ1_cost-1.log",
         "metadata": {
@@ -88,7 +89,8 @@
         "CPU_times": [
           6.512179999999999,
           6.541490000000001,
-          6.563051999999999
+          6.563051999999999,
+          6.425168999999999
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/reg_x2_Q1toQ1/2025-09-09-09-15-10/Q1toQ1_cost-1_geo.log",
         "metadata": {
@@ -171,7 +173,8 @@
         "CPU_times": [
           1.427798,
           1.3714270000000004,
-          1.3700750000000004
+          1.3700750000000004,
+          1.325777
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/reg_x2_Q1toQ1/2025-09-09-09-15-10/Q1toQ1_cost0.log",
         "metadata": {
@@ -254,7 +257,8 @@
         "CPU_times": [
           1.595473,
           1.588618,
-          1.4397919999999997
+          1.4397919999999997,
+          1.436065
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/reg_x2_Q1toQ1/2025-09-09-09-15-10/Q1toQ1_cost0_geo.log",
         "metadata": {
@@ -337,7 +341,8 @@
         "CPU_times": [
           2.3901809999999992,
           2.3049670000000004,
-          2.1948820000000007
+          2.1948820000000007,
+          2.1351869999999993
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/reg_x2_Q1toQ1/2025-09-09-09-15-10/Q1toQ1_cost1.log",
         "metadata": {
@@ -420,7 +425,8 @@
         "CPU_times": [
           2.078536,
           2.0819539999999996,
-          1.9448019999999997
+          1.9448019999999997,
+          1.8879300000000003
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/reg_x2_Q1toQ1/2025-09-09-09-15-10/Q1toQ1_cost1_geo.log",
         "metadata": {
@@ -503,7 +509,8 @@
         "CPU_times": [
           3.738735,
           3.6225590000000008,
-          3.817788
+          3.817788,
+          3.63462
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/reg_x2_Q1toQ1/2025-09-09-09-15-10/Q1toQ1_cost5.log",
         "metadata": {
@@ -586,7 +593,8 @@
         "CPU_times": [
           3.300499000000001,
           3.0568790000000012,
-          3.090039
+          3.090039,
+          3.100611
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/2D/OAT15A/reg_x2_Q1toQ1/2025-09-09-09-15-10/Q1toQ1_cost5_geo.log",
         "metadata": {

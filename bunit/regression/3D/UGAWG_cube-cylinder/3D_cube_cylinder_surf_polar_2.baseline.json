@@ -6,7 +6,8 @@
           0.5634319999999988,
           0.5764930000000064,
           0.5586229999999972,
-          0.4786839999999941
+          0.4786839999999941,
+          0.47616899999999873
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/UGAWG_cube-cylinder/reg_surf_polar_2/2025-09-09-09-30-29/polar_2.log",
         "metadata": {
@@ -90,7 +91,8 @@
           0.7114189999999923,
           0.6810749999999999,
           0.6717790000000008,
-          0.5893449999999945
+          0.5893449999999945,
+          0.5826410000000024
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/UGAWG_cube-cylinder/reg_surf_polar_2/2025-09-09-09-30-29/polar_2_geo.log",
         "metadata": {
@@ -174,7 +176,8 @@
           0.8140520000000038,
           0.825491999999997,
           0.8107280000000046,
-          0.7072400000000059
+          0.7072400000000059,
+          0.7130160000000032
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/UGAWG_cube-cylinder/reg_surf_polar_2/2025-09-09-09-30-29/polar_2_geo_smoolen.log",
         "metadata": {
@@ -258,7 +261,8 @@
           0.48761399999999355,
           0.5020769999999999,
           0.48199800000000437,
-          0.4244899999999916
+          0.4244899999999916,
+          0.412072000000002
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/UGAWG_cube-cylinder/reg_surf_polar_2/2025-09-09-09-30-29/polar_2_smoolen.log",
         "metadata": {
