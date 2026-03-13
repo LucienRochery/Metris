@@ -861,6 +861,7 @@ void getCADCurveLengths(Mesh<MFT> &msh, [[maybe_unused]] double tol, dblAr1 &crv
 
   const int nref = msh.CAD.ncaded;
   crv_len.set_n(nref);
+  crv_len.fill(0.0);
 
   const int gdim = msh.idim;
 
@@ -956,6 +957,7 @@ void getCADCurveLengths_old(Mesh<MFT> &msh, double tol, dblAr1 &crv_len){
 
   const int nref = msh.CAD.ncaded;
   crv_len.set_n(nref);
+  crv_len.fill(0.0);
 
   CPRINTF2(" - START getCADCurveLengths_old\n");
 
