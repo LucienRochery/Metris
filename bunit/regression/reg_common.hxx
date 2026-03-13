@@ -405,7 +405,29 @@ public:
       fmt::print("Comparing case {}\n",test_name);
 
       if(!json_baseline["runs"].contains(test_name)){
-        fmt::print(stderr, "## ERROR: Baseline missing test {}\n", test_name);
+        bool current_has_except = json_current["runs"].contains(test_name) &&
+                                   json_current["runs"][test_name].contains("except");
+        if(current_has_except){
+          // Test crashed and was previously excluded from baseline. Soft failure.
+          fmt::print(stderr, "## ERROR: Baseline missing test {} (exception raised)\n", test_name);
+          BOOST_TEST(false);
+          continue;
+        } else if(update_baseline && json_current["runs"].contains(test_name)){
+          // Test was previously excluded (crashed), now passes. Add to baseline.
+          fmt::print("-- Test {} not in baseline, adding from current run.\n", test_name);
+          nlohmann::json new_entry = json_current["runs"][test_name];
+          double cpu_time = new_entry["CPU_time"];
+          new_entry.erase("CPU_time");
+          new_entry["CPU_times"] = nlohmann::json::array();
+          new_entry["CPU_times"].push_back(cpu_time);
+          new_entry["metadata"] = json_current["metadata"];
+          json_baseline["runs"][test_name] = new_entry;
+          updates_done = true;
+          fmt::print("-- Test {} added to baseline.\n", test_name);
+          continue;
+        } else {
+          fmt::print(stderr, "## ERROR: Baseline missing test {}\n", test_name);
+        }
       }
       BOOST_REQUIRE(json_baseline["runs"].contains(test_name));
       if(!json_current["runs"].contains(test_name)){
