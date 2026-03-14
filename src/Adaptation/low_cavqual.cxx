@@ -41,7 +41,7 @@ bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1){
     CPRINTF1(" - initial face {} nordev = {}\n",iface,nordev);
   }
   nordev0_avg /= cav.lcfac.get_n();
-  
+
   int nfac0 = msh.nface;
   msh.set_nface(nfac0+1);
   msh.fac2poi(nfac0,0) = cav.ipins;
@@ -76,7 +76,7 @@ bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1){
 }
 
 template<class MFT, QuaFun iquaf>
-void getquacav(Mesh<MFT>& msh, MshCavity &cav, 
+void getquacav(Mesh<MFT>& msh, MshCavity &cav,
                double *qumin0, double *qumin1,
                double *qumax0, double *qumax1,
                double *quavg0, double *quavg1, int ithrd1){
@@ -114,7 +114,7 @@ void getquacav(Mesh<MFT>& msh, MshCavity &cav,
   // Get final cavity quality
   msh.tag[ithrd1]++;
   for(int ientt : lcent) ent2tag(ithrd1,ientt) = msh.tag[ithrd1];
-  
+
   *qumin1 = 1.0e30;
   *qumax1 = -1.0e30;
   *quavg1 = 0;
@@ -152,32 +152,32 @@ void getquacav(Mesh<MFT>& msh, MshCavity &cav,
 }
 
 template
-void getquacav<MetricFieldAnalytical, QuaFun::Distortion>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, 
+void getquacav<MetricFieldAnalytical, QuaFun::Distortion>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav,
                double *qumin0, double *qumin1,
                double *qumax0, double *qumax1,
                double *quavg0, double *quavg1, int ithrd1);
 template
-void getquacav<MetricFieldFE        , QuaFun::Distortion>(Mesh<MetricFieldFE        >& msh, MshCavity &cav, 
+void getquacav<MetricFieldFE        , QuaFun::Distortion>(Mesh<MetricFieldFE        >& msh, MshCavity &cav,
                double *qumin0, double *qumin1,
                double *qumax0, double *qumax1,
                double *quavg0, double *quavg1, int ithrd1);
 
-// Reject proposed cavity based on edge length score same as in swaps. 
+// Reject proposed cavity based on edge length score same as in swaps.
 // If filter_long/short is set, then the output edges that are long/short
-// are ignored. In the case of an insertion, new long edges can be ignored. 
+// are ignored. In the case of an insertion, new long edges can be ignored.
 // Set grow_check to true to inspect elements outside the cavity. Only useful
-// for insertions. 
+// for insertions.
 // nocomp is work
 template<class MFT>
-int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav, 
-                      bool filter_long, bool filter_short, bool grow_check, 
-                      double lenqua_short_max, 
+int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
+                      bool filter_long, bool filter_short, bool grow_check,
+                      double lenqua_short_max,
                       std::unordered_set<std::tuple<int,int>,tup2_hash::hash> &nocomp,
                       int ithrd1){
 
   #ifdef TRACY_ENABLE
   // Tracy profiler:
-  ZoneScoped; 
+  ZoneScoped;
   #endif
 
   METRIS_ASSERT(!filter_long || !filter_short);
@@ -190,9 +190,9 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
 
 
   //// Tag points that won't be deleted: there is at least one elt outside
-  //// the cavity that has the point. 
-  //int tdim = cav.lctet.get_n() > 0 ? 3 
-  //         : cav.lcfac.get_n() > 0 ? 2 
+  //// the cavity that has the point.
+  //int tdim = cav.lctet.get_n() > 0 ? 3
+  //         : cav.lcfac.get_n() > 0 ? 2
   //                                 : 1;
   int tdim = MAX(1,msh.getpoitdim(cav.ipins));
   CPRINTF1("-- START collrejcav_lenqua filter long {} short {} grow {} tdim {}\n",
@@ -216,7 +216,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
 
   const int nedl = (tdim*(tdim+1))/2;
   double qua0 = -1;
-  const auto lnoed = tdim == 1 ? lnoed1 : 
+  const auto lnoed = tdim == 1 ? lnoed1 :
                      tdim == 2 ? lnoed2 : lnoed3;
   double len, sz[2];
 
@@ -224,7 +224,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
   #ifdef TRACY_ENABLE
   ZoneScopedN("Initial cavity");
   #endif
-  // Start by adding all edges on the cavity boundary to nocomp. 
+  // Start by adding all edges on the cavity boundary to nocomp.
   // In 3D, this doesn't mean they're on a boundary face... so we need to separate
   //auto ledfa = tdim == 2 ? ledfa2 : ledfa3;
   //int nedfa = tdim == 2 ? 1 : 3;
@@ -250,7 +250,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
     }// for itetr
   }
 
-  // Compute lengths of internal edges in initial cavity 
+  // Compute lengths of internal edges in initial cavity
   for(int ientt : lcent){
     for(int ied = 0; ied < nedl; ied++){
       #ifdef TRACY_ENABLE
@@ -273,20 +273,20 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
       ZoneScopedN("nocomp find 1");
       #endif
       if(nocomp.find(key) != nocomp.end()) continue;
-      }   
+      }
 
       {
       #ifdef TRACY_ENABLE
       ZoneScopedN("initial cav lenedg");
       #endif
       CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-        len = msh.idim == 2 ? 
+        len = msh.idim == 2 ?
           getlenedg_geosz<MFT,2,ideg>(msh,ientt,tdim,ied,sz) :
           getlenedg_geosz<MFT,3,ideg>(msh,ientt,tdim,ied,sz);
       }}CT_FOR1(ideg);
       }
 
-      double quaed = len < 1.0 ? 1.0 - len 
+      double quaed = len < 1.0 ? 1.0 - len
                                : 1.0 - 1.0 / len;
 
       CPRINTF1(" - orig edge {} {} len = {} score {} \n",
@@ -308,12 +308,12 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
   CPRINTF1(" - initial cavity lenqua = {:.2e}\n",qua0);
 
 
-  // Compute lengths of internal edges in final cavity 
+  // Compute lengths of internal edges in final cavity
   double qua1 = -1;
   int edg2pol[2] = {cav.ipins, -1};
   int ncent0 = lcent.get_n();
   int maxtag = msh.tag[ithrd1];
-  // Potentially grow the cavity (and then revert) to catch short edges. 
+  // Potentially grow the cavity (and then revert) to catch short edges.
   const int mgrow = 5;
   int icen0 = 0, icen1 = lcent.get_n();
   {
@@ -330,7 +330,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
       for(int ifa = 0; ifa < tdim + 1; ifa++){
         int ienei = ent2ent(ientt,ifa);
         // If no growth is allowed, ent2tag(ithrd1,ientt) is simply tag[ithrd1]
-        // Otherwise, it is tag + generation. 
+        // Otherwise, it is tag + generation.
         CPRINTF2(" - ientt {} ifa {} ienei {} tagged {} >=? {}\n",
                   ientt,ifa,ienei,
                   ienei >= 0 ? ent2tag(ithrd1,ienei) : -1, ent2tag(ithrd1,ientt));
@@ -346,12 +346,12 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
 
           edg2pol[1] = ipoin;
           //CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-            len = msh.idim == 2 ? 
+            len = msh.idim == 2 ?
               getlenedg_geosz<MFT,2,1>(msh,edg2pol,sz) :
               getlenedg_geosz<MFT,3,1>(msh,edg2pol,sz);
           //}}CT_FOR1(ideg);
 
-          double quaed = len < 1.0 ? 1.0 - len 
+          double quaed = len < 1.0 ? 1.0 - len
                                    : 1.0 - 1.0 / len;
 
           CPRINTF1(" - {} new edg2pol = {} {} len = {} score {} \n",ngrow+1,edg2pol[0],edg2pol[1],
@@ -372,10 +372,10 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
 
         // If cavity is allowed to grow, add the neighbour to the cavity.
         if(grow_check && ienei >= 0){
-          // We tag these outside elements at tag + 1. 
+          // We tag these outside elements at tag + 1.
           // Otherwise, we risk adding all the elements surrounding a cavity
-          // boundary point as if it were to be collapsed, and then not check 
-          // its length. 
+          // boundary point as if it were to be collapsed, and then not check
+          // its length.
           if(ent2tag(ithrd1,ienei) < msh.tag[ithrd1]){
             lcent.stack(ienei);
             ent2tag(ithrd1,ienei) = ent2tag(ithrd1,ientt) + 1;
@@ -401,7 +401,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
   msh.tag[ithrd1] = maxtag;
   lcent.set_n(ncent0);
 
-  CPRINTF1(" - END collrejcav_lenqua got lenqua {} -> {} >=? {}\n", 
+  CPRINTF1(" - END collrejcav_lenqua got lenqua {} -> {} >=? {}\n",
            qua0, qua1,0.99*qua0);
 
   if(qua1 >= 0.99*qua0) return 1;
@@ -439,8 +439,8 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, double *dens0_, double *dens
   //iverb__ = 5;
   //ivdepth__ = 5;
 
-  const int tdim = cav.lctet.get_n() > 0 ? 3 
-                 : cav.lcfac.get_n() > 0 ? 2 
+  const int tdim = cav.lctet.get_n() > 0 ? 3
+                 : cav.lcfac.get_n() > 0 ? 2
                                          : 1;
   METRIS_ASSERT(tdim != 1);
 
@@ -485,7 +485,7 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, double *dens0_, double *dens
     }
   }
 
-  // Tag points on cavity boundary, these are not internal 
+  // Tag points on cavity boundary, these are not internal
   // Also compute their cavity-internal impinging volume
   for(int icent = 0; icent < ncent; icent++){
     int ientt = lcent[icent];
@@ -559,7 +559,7 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, double *dens0_, double *dens
 
   const int ninspt = cav.inewp ? 1 : 0;
   double dens0 = (nrempt + nbdrpt) / voltot;
-  double dens1 = (nbdrpt + ninspt) / voltot; 
+  double dens1 = (nbdrpt + ninspt) / voltot;
   CPRINTF2(" - debug nrempt {} nbdrypt {} ninspt {}\n", nrempt, nbdrpt, ninspt);
 
   *dens0_ = dens0;
@@ -609,9 +609,9 @@ int collrejcav_len(Mesh<MFT>& msh, MshCavity &cav, int ithrd1){
   ivdepth__ = 5;
 
   // Tag points that won't be deleted: there is at least one elt outside
-  // the cavity that has the point. 
-  int tdim = cav.lctet.get_n() > 0 ? 3 
-           : cav.lcfac.get_n() > 0 ? 2 
+  // the cavity that has the point.
+  int tdim = cav.lctet.get_n() > 0 ? 3
+           : cav.lcfac.get_n() > 0 ? 2
                                    : 1;
   const intAr1& lcent = cav.lcent(tdim);
   const intAr2& ent2poi = msh.ent2poi(tdim);
@@ -627,7 +627,7 @@ int collrejcav_len(Mesh<MFT>& msh, MshCavity &cav, int ithrd1){
   }
 
 
-  // Start by adding all edges on the cavity boundary to the set. 
+  // Start by adding all edges on the cavity boundary to the set.
   // In 3D, this doesn't mean they're on a boundary face... so we need to separate
   //auto ledfa = tdim == 2 ? ledfa2 : ledfa3;
   //int nedfa = tdim == 2 ? 1 : 3;
@@ -669,7 +669,7 @@ int collrejcav_len(Mesh<MFT>& msh, MshCavity &cav, int ithrd1){
       if(nocomp.find(key) != nocomp.end()) continue;
 
       CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-        len = msh.idim == 2 ? 
+        len = msh.idim == 2 ?
           getlenedg_geosz<MFT,2,ideg>(msh,ientt,tdim,ied,sz) :
           getlenedg_geosz<MFT,3,ideg>(msh,ientt,tdim,ied,sz);
       }}CT_FOR1(ideg);
@@ -697,7 +697,7 @@ int collrejcav_len(Mesh<MFT>& msh, MshCavity &cav, int ithrd1){
 
         edg2pol[1] = ipoin;
         CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-          len = msh.idim == 2 ? 
+          len = msh.idim == 2 ?
             getlenedg_geosz<MFT,2,ideg>(msh,edg2pol,sz) :
             getlenedg_geosz<MFT,3,ideg>(msh,edg2pol,sz);
         }}CT_FOR1(ideg);
@@ -727,7 +727,150 @@ template int collrejcav_len<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& 
 template int collrejcav_len<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, int ithrd1);
 #endif
 
+template<bool usemax>
+bool seedCav_nordevOK(MeshBase &msh, const MshCavity &cav, int ithrd1){
 
+  GETVDEPTH(msh.param);
+  if(msh.get_tdim() != 3) return true;
+  if(cav.lcfac.get_n() == 0) return true;
+  METRIS_ENFORCE_MSG(msh.getpoitdim(cav.ipins) > 0, "seedCav_nordevOK: insertion point has dimension 0");
 
+  msh.tag[ithrd1]++;
+  for (int iface : cav.lcfac) msh.fac2tag(ithrd1,iface) = msh.tag[ithrd1];
+  for (int iedge : cav.lcedg) msh.edg2tag(ithrd1,iedge) = msh.tag[ithrd1];
+
+  int ent2pol[3];
+  ent2pol[0] = cav.ipins;
+
+  double result[18];
+  double norCADip1[3], norCADip2[3], norelt0[3], norelt1[3];
+  double *du = &result[3];
+  double *dv = &result[6];
+  int ierro = -1;
+
+  double maxnordevCav0 = -1;
+  double maxnordevCav1 = -1;
+  double avgnordevCav0 = 0;
+  int nsumCav0 = 0;
+  double avgnordevCav1 = 0;
+  int nsumCav1 = 0;
+
+  for (int iface : cav.lcfac){
+
+    // have ready the CAD face in which iface is
+    int ireffac = msh.fac2ref[iface];
+    const ego faceCAD  = msh.CAD.cad2fac[ireffac];
+
+    // get the normal of iface
+    getnorfacP1(msh.fac2poi[iface], msh.coord, norelt0);
+    if(normalize_vec<3>(norelt0)){
+      writeMesh("debug_ibpoi",msh);
+      MPRINTF("norfac vanished face nodes {}\n", intAr1(3, msh.fac2poi[iface]));
+      for(int ii = 0; ii < 3; ii++) MPRINTF("{}: {:23.15e}\n",ii,norelt0[ii]);
+      METRIS_THROW_MSG("Normal (elt) vanishes");
+    }
+
+    for (int ii = 0; ii < 3; ii++){
+
+      // skip if edge in cavity
+      int iedge = msh.fac2edg(iface,ii);
+      if (iedge >=0 && msh.edg2tag(ithrd1,iedge) == msh.tag[ithrd1]) continue;
+
+      // skip if neighbor face in cavity
+      int ifacnei = msh.fac2fac(iface,ii);
+      if (ifacnei >= 0 && msh.fac2tag(ithrd1,ifacnei) == msh.tag[ithrd1]) continue;
+
+      // get the two points on the edge (edge ii of iface)
+      int ip1 = msh.fac2poi(iface,lnoed2[ii][0]);
+      int ib1 = msh.poi2ebp(ip1, 2, iface, msh.fac2ref[ireffac]);
+
+      int ip2 = msh.fac2poi(iface,lnoed2[ii][1]);
+      int ib2 = msh.poi2ebp(ip2, 2, iface, msh.fac2ref[ireffac]);
+
+      // get CAD normal at those two points
+
+      // ip1
+      ierro = EG_evaluate(faceCAD, msh.bpo2rbi[ib1], result);
+      METRIS_ENFORCE_MSG(ierro == 0, "seedCav_nordevOK EG_evaluate error {}", ierro);
+      vecprod(du,dv,norCADip1);
+      if(normalize_vec<3>(norCADip1)){
+        if (msh.getpoitdim(ip1) != 0) METRIS_THROW_MSG("Normal (CAD) vanishes at ipoin {}", ip1);
+      }
+
+      // ip2
+      ierro = EG_evaluate(faceCAD, msh.bpo2rbi[ib2], result);
+      METRIS_ENFORCE_MSG(ierro == 0, "seedCav_nordevOK EG_evaluate error {}", ierro);
+      vecprod(du,dv,norCADip2);
+      if(normalize_vec<3>(norCADip2)){
+        if (msh.getpoitdim(ip2) != 0) METRIS_THROW_MSG("Normal (CAD) vanishes at ipoin {}", ip2);
+      }
+
+      // get normal deviations of iface and new face at those two points
+      auto evalipnordev = [&](double* norfac, double* norCADip) -> double {
+
+        double dtprd = getprdl2<3>(norfac, norCADip);
+        double nordevip = 1. - abs(dtprd);
+
+        return nordevip;
+      };
+
+      double nordevip1_0 = evalipnordev(norelt0,norCADip1);
+      double nordevip2_0 = evalipnordev(norelt0,norCADip2);
+
+      double ifacenordev;
+      if constexpr (usemax){
+        ifacenordev = MAX(nordevip1_0,nordevip2_0);
+      }else{
+        ifacenordev = 0.5 * (nordevip1_0 + nordevip2_0);
+      }
+      avgnordevCav0 += ifacenordev;
+      nsumCav0++;
+      maxnordevCav0 = MAX(maxnordevCav0,ifacenordev);
+
+      // now put together new face
+
+      ent2pol[1] = ip1;
+      ent2pol[2] = ip2;
+
+      // get the normal of new face
+      getnorfacP1(ent2pol, msh.coord, norelt1);
+      if(normalize_vec<3>(norelt1)){
+        writeMesh("debug_ibpoi",msh);
+        MPRINTF("norfac vanished face nodes {}\n", intAr1(3, ent2pol));
+        for(int ii = 0; ii < 3; ii++) MPRINTF("{}: {:23.15e}\n",ii,norelt1[ii]);
+        METRIS_THROW_MSG("Normal (elt) vanishes");
+      }
+
+      double nordevip1_1 = evalipnordev(norelt1,norCADip1);
+      double nordevip2_1 = evalipnordev(norelt1,norCADip2);
+
+      double newfacenordev;
+      if constexpr (usemax){
+        newfacenordev = MAX(nordevip1_1,nordevip2_1);
+      }else{
+        newfacenordev = 0.5 * (nordevip1_1 + nordevip2_1);
+      }
+      avgnordevCav1 += newfacenordev;
+      nsumCav1++;
+      maxnordevCav1 = MAX(maxnordevCav1,newfacenordev);
+    }
+  }
+
+  avgnordevCav0 /= (double)nsumCav0;
+  avgnordevCav1 /= (double)nsumCav1;
+
+  METRIS_ENFORCE(avgnordevCav0 <= 1 && avgnordevCav1 <= 1);
+
+  // if current nordev is already bad, do not allow worsening
+  if (avgnordevCav0 > msh.param->nordev_max) return avgnordevCav1 <= avgnordevCav0;
+
+  // allow a bit of worsening, but not let it go over maximum nordev
+  double nordevBound = MIN((1. - msh.param->nordev_tol) * avgnordevCav0 + msh.param->nordev_tol, msh.param->nordev_max);
+
+  return avgnordevCav1 <= nordevBound;
+}
+
+template bool seedCav_nordevOK<true >(MeshBase &msh, const MshCavity &cav, int ithrd1);
+template bool seedCav_nordevOK<false>(MeshBase &msh, const MshCavity &cav, int ithrd1);
 
 }// namespace

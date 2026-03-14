@@ -26,7 +26,7 @@ bool MetrisParametersData::operator==(const MetrisParametersData &other) const{
 bool MetrisParameters::operator==(const MetrisParameters &other) const{
   if(!MetrisParametersData::operator==(other)) return false;
 
-  // Check filename component of file names match, ignore path. 
+  // Check filename component of file names match, ignore path.
   std::string inpCAD = this->cadFileName.substr(this->cadFileName.find_last_of("/\\") + 1);
   std::string othCAD = other.cadFileName.substr(other.cadFileName.find_last_of("/\\") + 1);
   if(inpCAD != othCAD) return false;
@@ -60,7 +60,7 @@ void MetrisParametersData::printDifference(const MetrisParametersData &other, st
 void MetrisParameters::printDifference(const MetrisParameters &other, std::string thisName) const {
 
   MetrisParametersData::printDifference(other, thisName, logFile_);
-  // Check filename component of file names match, ignore path. 
+  // Check filename component of file names match, ignore path.
   std::string inpCAD = this->cadFileName.substr(this->cadFileName.find_last_of("/\\") + 1);
   std::string othCAD = other.cadFileName.substr(other.cadFileName.find_last_of("/\\") + 1);
   if(inpCAD != othCAD) fmt::print("-- CAD differs: {} != {}\n", inpCAD, othCAD);
@@ -80,7 +80,7 @@ void MetrisParameters::printDifference(const MetrisParameters &other, std::strin
 }
 
 void to_json(nlohmann::json& jj, const MetrisParametersData& param) {
-  
+
   jj = nlohmann::json{
     #define FIELD(type, name, default_value) {#name, param.name}
     METRIS_PARAMETER_FIELD1
@@ -122,17 +122,17 @@ void from_json(const nlohmann::json& jj, MetrisParameters& param) {
 
 
 
-MetrisParameters::MetrisParameters() : 
-  outmFileName(outmFileName_), 
-  cadFileName(cadFileName_), backFileName(backFileName_), 
-  metFileName(metFileName_), logFileName(logFileName_), 
+MetrisParameters::MetrisParameters() :
+  outmFileName(outmFileName_),
+  cadFileName(cadFileName_), backFileName(backFileName_),
+  metFileName(metFileName_), logFileName(logFileName_),
   meshFileName(meshFileName_), logFile(logFile_)
 {
 }
 
 MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
 
-  if(opt.count("help")) { 
+  if(opt.count("help")) {
     fmt::print("Flag --help:\n");
     std::cout << opt.s << std::endl;
     exit(0);
@@ -157,7 +157,7 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("refine-conventions-out")){
     refineConventionsOut = true;
   }
-  
+
 
   if(opt.count("opt-unif")){
     opt_unif = true;
@@ -183,7 +183,7 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   }
 
 
-  if(opt.count("out")) { 
+  if(opt.count("out")) {
     setMeshOut(opt.m["out"].template as<std::string>());
     CPRINTF1("-- Read output file name {}.\n", outmFileName.c_str());
   }else{
@@ -192,8 +192,8 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   }
 
   // usrMaxDeg is the very maximum the user is allowing for storage. It is hard bounded by the constant METRIS_MAX_DEG
-  // usrTarDeg is the minimum degree the user wants. 
-  if(opt.count("tardeg")){  
+  // usrTarDeg is the minimum degree the user wants.
+  if(opt.count("tardeg")){
     usrTarDeg = opt.m["tardeg"].template as<int>();
   }
 
@@ -245,6 +245,13 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     intp_pnorm = opt.m["intp-pnorm"].template as<int>();
   }
 
+  if(opt.count("nordev-tol")){
+    nordev_tol = opt.m["nordev-tol"].template as<double>();
+  }
+  if(opt.count("nordev-max")){
+    nordev_max = opt.m["nordev-max"].template as<double>();
+  }
+
   if(opt.count("sclmet")){
     setMetricScale(opt.m["sclmet"].template as<double>());
   }
@@ -264,12 +271,12 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("adp-smoo-len")){
     adp_smoo_len = true;
   }
-  
+
   if(opt.count("do-line-adp")){
-    adp_line_adapt = true; 
+    adp_line_adapt = true;
   }
 
-  
+
 
 
   if(opt.count("curve")){
@@ -298,8 +305,8 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("geo-abstoledg")){
     geo_abstoledg = opt.m["geo-abstoledg"].as<double>();
   }
-  
-  
+
+
 
   if(opt.count("hmin")){
     hmin = opt.m["hmin"].as<double>();
@@ -307,7 +314,7 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("hmax")){
     hmax = opt.m["hmax"].as<double>();
   }
-  
+
   if(opt.count("mdx")){
     anamet_dx = opt.m["mdx"].as<double>();
   }
@@ -317,7 +324,7 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("mdz")){
     anamet_dz = opt.m["mdz"].as<double>();
   }
-  
+
 
   if(opt.count("met-snap-tol")){
     met_snap_tol = opt.m["met-snap-tol"].as<double>();

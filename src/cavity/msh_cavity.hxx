@@ -15,7 +15,7 @@
 namespace Metris{
 
 
-enum Cavity_Errors {CAV_NOERR = 0, 
+enum Cavity_Errors {CAV_NOERR = 0,
                     CAV_ERR_NOBPO = 1,
                     CAV_ERR_TDIMN = 2,
                     CAV_ERR_DUPEDG = 3,
@@ -57,14 +57,17 @@ class MshCavity{
 public:
 	MshCavity(){}
 
-  MshCavity(int mctet_, int mcfac_, int mcedg_) 
+  MshCavity(int mctet_, int mcfac_, int mcedg_)
     : lctet(mctet_), lcfac(mcfac_), lcedg(mcedg_) {
       lctet.set_n(0);
       lcfac.set_n(0);
       lcedg.set_n(0);
       inewp = -1;
+      ipins_facrefs.set_n(0);
+      ipins_facuv.set_n(0);
+      ipins_facuv.set_stride(2);
     }
-  
+
 	void reset(){
 		ipins = -1;
 		nrempts = 0;
@@ -74,6 +77,9 @@ public:
     lcfac.set_n(0);
     lctet.set_n(0);
     qtetr.clear();
+    ipins_facrefs.set_n(0);
+    ipins_facuv.set_n(0);
+    ipins_facuv.set_stride(2);
 	}
 
   intAr1& lcent(int tdimn){
@@ -132,21 +138,21 @@ public:
   void print(const MeshBase &msh, int iforce = 0) const;
 
   /* User set data */
-  // Usage examples bunit/face_cavityX.cxx 
+  // Usage examples bunit/face_cavityX.cxx
   intAr1 lctet,lcfac,lcedg;
 
   // Optional array, as MshCavity is often reused
   intAr1 iwrk1;
   dblAr1 rwrk1;
 
-  // Provide precomputed tetrahedron qualities. Cavity also fills this in if some 
-  // provided or if flag cache_tetra_quality set.  
+  // Provide precomputed tetrahedron qualities. Cavity also fills this in if some
+  // provided or if flag cache_tetra_quality set.
   HshTab_I4R qtetr;
 
-  // Point to be inserted. ibpoi must be set. If needed, use newedgvirtual/newfacvirtual to give a surface ref 
-  // of the lowest topo dim, for a new point. See e.g. bunit/face_cavityX.cxx 
-  // Metric at ipins must be computed and naturally stored in msh.met[ipins] if quality is requested, i.e. 
-  // if options qmax_nec, qmax_suf or qmax_iff are set > 0. 
+  // Point to be inserted. ibpoi must be set. If needed, use newedgvirtual/newfacvirtual to give a surface ref
+  // of the lowest topo dim, for a new point. See e.g. bunit/face_cavityX.cxx
+  // Metric at ipins must be computed and naturally stored in msh.met[ipins] if quality is requested, i.e.
+  // if options qmax_nec, qmax_suf or qmax_iff are set > 0.
 	int ipins;
 
 
@@ -156,6 +162,9 @@ public:
 	int nrempts, iremcor, maxtag;
   int inewp; // is ipins a whole new point or already in the mesh?
 
+  // if insertion point is on CAD edge, we need to store (u,v) values for the point for different incident CAD faces
+  intAr1 ipins_facrefs;
+  dblAr2 ipins_facuv;
 
 };
 
@@ -163,12 +172,12 @@ public:
 struct CavOprOpt{
 	// If a partial initial cavity is supplied, this should be set to 1.
 	// Otherwise, if one is confident in the initial cavity, this should
-	// not be set if behaviour as close to initially intended is desired. 
+	// not be set if behaviour as close to initially intended is desired.
 	bool allow_topological_correction;
 
 
-	// If confident in one's cavity, this setting should be set to true. 
-	// It will no doubt provide a large speedup to the first stage. 
+	// If confident in one's cavity, this setting should be set to true.
+	// It will no doubt provide a large speedup to the first stage.
 	bool skip_topo_checks;
 
 	// Allow removing points of dimension >= as ipins ?
@@ -177,13 +186,13 @@ struct CavOprOpt{
   // Allow removing points of dimension > as ipins ?
 	bool allow_remove_points_superdim;
 
-  // allow_remove_points supersedes allow_remove_points_superdim: 
+  // allow_remove_points supersedes allow_remove_points_superdim:
   // if allow_remove_points, then allow_remove_points_superdim is not considered.
 
   // NB: allow_remove_points_subdim would make no sense.
 
-	// A corner (triple+ pt) is only removed if one is reinserting the same corner. 
-	// This defaults to false to avoid accidents. 
+	// A corner (triple+ pt) is only removed if one is reinserting the same corner.
+	// This defaults to false to avoid accidents.
 	bool allow_remove_corners;
 
 	// How many iterations of cavity extension for geometric reasons are allowed
@@ -192,32 +201,32 @@ struct CavOprOpt{
   // Geometric deviation tolerance for edges expressed in normalized dotprod
   double geodev1;
 
-  // In this mode, created elements are immediately tested for P1 validity and 
-  // the whole operation is rejected at the first failure. Thought for collapses 
-  // where several reinsertions are tested. 
+  // In this mode, created elements are immediately tested for P1 validity and
+  // the whole operation is rejected at the first failure. Thought for collapses
+  // where several reinsertions are tested.
   // It may be better (not tested) to disable this in order to know about all
-  // bad entities when using cavity correction after failure. 
-  // If cavity correction is disabled (max_increase_cav_geo == 0), this should always be true 
+  // bad entities when using cavity correction after failure.
+  // If cavity correction is disabled (max_increase_cav_geo == 0), this should always be true
   bool fast_reject;
 
   // In dryrun mode, modifications are rejected, but qualities are computed
-  // This is for collapses or swaps. 
+  // This is for collapses or swaps.
   bool dryrun;
 
 
   // Quality = conformity error (higher is worse)
   // qmax is max quality error across tdim == msh.get_tdim()
-  // elements and options only in effect if options > 0. 
+  // elements and options only in effect if options > 0.
   // Strongest prevails: iff > (nec | suf)
   //                     nec + suf == iff.
-  // If qmax is above value, run rejected. 
+  // If qmax is above value, run rejected.
   double qmax_nec;
   // If qmax is below value, run validated regardless of dryrun
   double qmax_suf;
   // Combines the two: run validated iff qmax < qmax_iff
   double qmax_iff;
-  // Other remarks on quality: 
-  // To delay metric interpolation at new vertices and save time, we use 
+  // Other remarks on quality:
+  // To delay metric interpolation at new vertices and save time, we use
   // the metric as a P1 field to compute qualities.
   // However this still means the metric at ipins must be computed !!
 
@@ -253,7 +262,7 @@ struct CavOprInfo{
   bool done; // flags whether change was done (dryrun) ; different from an error
 };
 
-// Don't worry about this, simply declare one and reuse for all cavity calls. 
+// Don't worry about this, simply declare one and reuse for all cavity calls.
 // Automatic reallocation is done, this is 10x faster than using boost pool allocators, if less elegant.
 struct CavWrkArrs{
   intAr2 lbad;
@@ -273,8 +282,8 @@ struct CavWrkArrs{
   intAr1 lseed; // store the seed edge (initially in the cavity) that lead to a new element
   intAr1 lnewe; // store the final edge associated to this seed
 
-  // Store edge (reference, sign) pairs 
-  // for edges that bound a connex component of the face cavity. 
+  // Store edge (reference, sign) pairs
+  // for edges that bound a connex component of the face cavity.
   MeshArray1D<MeshArray1D<std::pair<int,int>, int>, int> edcco;
 
   CavWrkArrs(){
@@ -307,27 +316,27 @@ int cavity_operator(Mesh<MetricFieldType> &msh ,
 // Check at most one corner
 // Check edges attached to faces attached to tets
 // Check no int points if norempts option set
-int check_cavity_topo(MeshBase &msh, MshCavity &cav, 
+int check_cavity_topo(MeshBase &msh, MshCavity &cav,
                       CavOprOpt &opts,//RoutineWorkMemory<int> &iwrk,
                       int ithread);
 
 template<class MetricFieldType, int ideg>
-int update_cavity(Mesh<MetricFieldType> &msh, MshCavity &cav, const CavWrkArrs &work, 
+int update_cavity(Mesh<MetricFieldType> &msh, MshCavity &cav, const CavWrkArrs &work,
                  int npoi0, int nedg0, int nfac0, int nele0, int ithread);
 
 
 // The boundary of the line cavity is simply the set of end points.
-// There can be arbitrarily many in a non-manifold mesh if a corner 
-// point is included in the line cavity. 
+// There can be arbitrarily many in a non-manifold mesh if a corner
+// point is included in the line cavity.
 template<class MetricFieldType, int ideg>
-int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts, 
+int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts,
                      int ithread);
 template<class MetricFieldType, int ideg>
-int reconnect_lincav2(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts, 
+int reconnect_lincav2(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts,
                      int ithread);
 
 
-// The boundary here is a set of edges. They will be reconnected to ipins. 
+// The boundary here is a set of edges. They will be reconnected to ipins.
 // Note: if the initial cavity includes edges, these have been reconnected
 // and the result is edges >= nedg0
 template<class MetricFieldType, int ideg>
@@ -341,12 +350,12 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts, CavWrk
               bool check_qua,
               int nedg0, int nfac0, double* qmax, int ithread);
 
-// Triangles, likewise. 
+// Triangles, likewise.
 template<class MetricFieldType, int ideg>
-int reconnect_tetcav(Mesh<MetricFieldType> &msh, 
-                     MshCavity& cav, CavOprOpt &opts, CavOprInfo &info, 
+int reconnect_tetcav(Mesh<MetricFieldType> &msh,
+                     MshCavity& cav, CavOprOpt &opts, CavOprInfo &info,
                      int nfac0, double *qumin, int ithread);
-                    
+
 
 int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
                       int npoi0, int nfac0, int ithreads);
@@ -356,13 +365,13 @@ int update_bpois_newp(MeshBase &msh, const MshCavity &cav, CavWrkArrs &work,
 // Note: if ideg = 1, this leads to the usual cavity correction by extension through faces yielding
 // invalid elements.
 template<class MetricFieldType,int ideg>
-int correct_cavity(Mesh<MetricFieldType> &msh, 
-                   MshCavity &cav, CavOprOpt &opts, 
+int correct_cavity(Mesh<MetricFieldType> &msh,
+                   MshCavity &cav, CavOprOpt &opts,
                    int npoi0, int nedg0, int nfac0, int nele0,
                    intAr2& lbad, CavWrkArrs &work, int ithread);
 template<class MetricFieldType, int gdim, int ideg>
-int correct_cavity0(Mesh<MetricFieldType> &msh, 
-                    MshCavity &cav, CavOprOpt &opts, 
+int correct_cavity0(Mesh<MetricFieldType> &msh,
+                    MshCavity &cav, CavOprOpt &opts,
                     int npoi0, int nedg0, int nfac0, int nele0,
                     intAr2& lbad,CavWrkArrs &work,int ithread);
 

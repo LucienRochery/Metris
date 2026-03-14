@@ -42,7 +42,7 @@ void from_json(const nlohmann::json& jj, MetrisParameters& param);
 
 /*------------------------------------
 2017 C++er's class reflection
-Add new entries to 
+Add new entries to
    METRIS_PARAMETER_OTHERFIELDS_JSON (most likely)
 or METRIS_PARAMETER_OTHERFIELDS_NOJSON
 depending on whether they should be serialized.
@@ -138,6 +138,9 @@ depending on whether they should be serialized.
     FIELD(int, ianasol, -1) \
     FIELD(int, intp_pdeg, 1) /* interpolation degree */ \
     FIELD(int, intp_pnorm, 1) /* interp error norm L2 or L1 */ \
+    /* ----------------- Normal deviation control */ \
+    FIELD(double, nordev_tol, 0) /* must be in [0,1]: 0 means tol is that of the current cavity, and from there the tol is increased towards 1 */ \
+    FIELD(double, nordev_max, 0.5) \
 
 #define METRIS_PARAMETERS_OTHERFIELDS_NOJSON \
     /* See anamet.hxx. Can implement your own with same prototype */ \
@@ -174,7 +177,7 @@ depending on whether they should be serialized.
 namespace internal {
   template<typename T>
   struct FieldNameType{
-    // string_view is basically a reference to a string 
+    // string_view is basically a reference to a string
     // that can do non-const operations
     std::string_view name;
     using type = T;
@@ -184,7 +187,7 @@ namespace internal {
   //template<typename... Args>
   //struct FieldInfoList {
   //  // sizeof...(Args) is the number of template parameters
-  //  // &Args... expands to the address of each parameter 
+  //  // &Args... expands to the address of each parameter
   //  // We store everything as void* since they may be FieldNameType<int>, FieldNameType<double>, etc.
   //  static constexpr std::array<const void*, sizeof...(Args)> fields = {&Args...};
   //  static constexpr size_t size = sizeof...(Args);
@@ -198,7 +201,7 @@ namespace internal {
 }
 
 // Aggregate type, plays well with Boost:pfr
-// This holds all the numeric parameters. 
+// This holds all the numeric parameters.
 // Strings could also be included but:
 //  - We want to compare them differently
 //  - I don't expect there'll be any more in the future (or much fewer)
@@ -207,9 +210,9 @@ struct MetrisParametersData{
 public:
 
   void setAnalyticalMetric(int ianamet);
-  void setAnalyticalMetric(AnaMetFun anamet_ptr); 
+  void setAnalyticalMetric(AnaMetFun anamet_ptr);
   void setAnalyticalSolution(int ianasol);
-  void setAnalyticalSolution(AnaSolFun anasol_ptr); 
+  void setAnalyticalSolution(AnaSolFun anasol_ptr);
   void setMetricScale(double sclmet);
 
   anamet_proto anamet_ptr = NULL;
@@ -221,7 +224,7 @@ public:
   #define FIELD(type, name, default_value) \
       type name{default_value};\
       static constexpr auto name##_info = internal::make_field_info<type>(#name);
-  
+
   METRIS_PARAMETER_FIELDS
   #undef FIELD
 
@@ -237,11 +240,11 @@ public:
     METRIS_PARAMETER_OTHERFIELDS
     #undef FIELD
   );
-  
+
 };
 
-// Parameters can be set manually, or initialized by a Runner from argc/argv 
-// If set manually, use MetrisRunner constructor taking a MetrisParameter as input. 
+// Parameters can be set manually, or initialized by a Runner from argc/argv
+// If set manually, use MetrisRunner constructor taking a MetrisParameter as input.
 struct MetrisParameters : public MetrisParametersData {
 public:
   friend void from_json(const nlohmann::json& jj, MetrisParameters& param);
@@ -279,7 +282,7 @@ public:
   const std::string& logFileName;
   const std::string& meshFileName;
   FILE* const & logFile;
-  
+
 private:
   std::string outmFileName_;
 public:

@@ -10,6 +10,10 @@
 #include "../Mesh/MeshFwd.hxx"
 #include "../types.hxx"
 #include "../quality/low_metqua.hxx"
+#include "../low_geo/misc.hxx"
+#include "../low_geo/normal.hxx"
+#include "../linalg/det.hxx"
+#include "../io_libmeshb.hxx"
 
 #include <unordered_set>
 
@@ -21,22 +25,22 @@ struct CavWrkArrs;
 
 // Get initial and final cavity quality stats
 template<class MFT, QuaFun iquaf = QuaFun::Distortion>
-void getquacav(Mesh<MFT>& msh, MshCavity &cav, 
+void getquacav(Mesh<MFT>& msh, MshCavity &cav,
                double *qumin0, double *qumin1,
                double *qumax0, double *qumax1,
                double *quavg0, double *quavg1, int ithrd1);
 
 
 bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1);
-               
-// Reject proposed cavity based on edge length score same as in swaps. 
+
+// Reject proposed cavity based on edge length score same as in swaps.
 // If filter_long/short is set, then the output edges that are long/short
-// are ignored. In the case of an insertion, new long edges can be ignored. 
+// are ignored. In the case of an insertion, new long edges can be ignored.
 // Set grow_check to true to inspect elements outside the cavity. Only useful
-// for insertions. 
+// for insertions.
 // nocomp is work array
 template<class MFT>
-int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav, 
+int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
                       bool filter_long, bool filter_short, bool grow_check,
                       double lenqua_short_max,
                       std::unordered_set<std::tuple<int,int>,tup2_hash::hash> &nocomp,
@@ -52,8 +56,8 @@ int collrejcav_dens(Mesh<MFT>& msh, MshCavity &cav, double *dens0_, double *dens
 //template<class MFT>
 //int collrejcav_len(Mesh<MFT>& msh, MshCavity &cav, int ithrd1);
 
-
-
+template<bool usemax>
+bool seedCav_nordevOK(MeshBase &msh, const MshCavity &cav, int ithrd1);
 
 }// namespace
 #endif
