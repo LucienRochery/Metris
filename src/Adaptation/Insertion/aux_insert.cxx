@@ -112,7 +112,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
                       const EdgeSeed &insertionSeed,
                       int ibins,
                       bool icollapse,
-                      const MshCavity &cav){
+                      MshCavity &cav){
   GETVDEPTH(msh.param);
   const auto lnoed = insertionSeed.tdimp == 1 ? lnoed1 :
                      insertionSeed.tdimp == 2 ? lnoed2 : lnoed3;
@@ -297,9 +297,44 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
 
   if(!fnd_len) return INS2D_ERR_BISECLEN;
 
-  // Restore point state at the selected optimal split parameter.
-  // After the loop, the mesh state corresponds to the last tried bar1.
+  // restore point state at the selected optimal split parameter.
+  // after the loop, the mesh state corresponds to the last tried bar1.
   if (abs(bar1 - bar1_opt) > 1e-12) place_ipins(bar1_opt);
+
+  // if point is on CAD edge, we have set its t parameter so far.
+  // go ahead and retrieve (u,v) for the incident CAD faces. we MIGHT need this if we want the CAD normal at the insertion point. For now, not used anyways
+  METRIS_ASSERT(cav.ipins_facrefs.get_n() == cav.ipins_facuv.get_n());
+  cav.ipins_facuv.set_stride(2);
+  if (insertionSeed.tdimp == 1){
+
+    METRIS_ASSERT(msh.bpo2ibi(ibins,1) == 1);
+    int iedge = msh.bpo2ibi(ibins,2);
+    double tedge = msh.bpo2rbi(ibins,0);
+
+    int irefedg = msh.edg2ref[iedge];
+    ego edgeCAD = msh.CAD.cad2edg[irefedg];
+
+    for (int ii = 0; ii < cav.ipins_facrefs.get_n(); ii++){
+
+      int ireffac = cav.ipins_facrefs[ii];
+      ego faceCAD = msh.CAD.cad2fac[ireffac];
+
+      int icode;
+      // this assumes the CAD edge appears only once in the CAD face loop
+      icode = EG_getEdgeUV(faceCAD, edgeCAD, 0, tedge, cav.ipins_facuv[ii]);
+
+      if (icode != 0){ // this might mean that the CAD edge appears twice in the face loop
+
+        // we just pick one orientation, the normal must be the same up to sign anyways
+        icode = EG_getEdgeUV(faceCAD, edgeCAD, 1, tedge, cav.ipins_facuv[ii]);
+        METRIS_ENFORCE_MSG(icode == 0,"EG_getEdgeUV error {}", icode); // if still an error, halt
+      }
+    }
+  }else if (insertionSeed.tdimp == 2){
+    METRIS_ASSERT(cav.ipins_facrefs.get_n() == 1);
+    cav.ipins_facuv(0,0) = msh.bpo2rbi(ibins,0);
+    cav.ipins_facuv(0,1) = msh.bpo2rbi(ibins,1);
+  }
 
   CPRINTF1("-- END aux_bisecPointLen w/ bar1 = {}\n",bar1_opt);
   return 0;
@@ -309,12 +344,12 @@ template int aux_bisecPointLen<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical
                                                       const EdgeSeed &insertionSeed,
                                                       int ibins,
                                                       bool icollapse,
-                                                      const MshCavity &cav);
+                                                      MshCavity &cav);
 template int aux_bisecPointLen<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh,
                                                       const EdgeSeed &insertionSeed,
                                                       int ibins,
                                                       bool icollapse,
-                                                      const MshCavity &cav);
+                                                      MshCavity &cav);
 
 
 

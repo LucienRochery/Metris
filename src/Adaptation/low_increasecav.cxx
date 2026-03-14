@@ -868,31 +868,31 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
     // We left place in ref2nordev for a second entry, only for periodic refs.
   }
 
-  dblWrkAr1 ref2nordev_ = msh.get_rwork(2*msh.CAD.ncadfa);
-  dblAr2 ref2nordev(msh.CAD.ncadfa, 2, &ref2nordev_[0]);
-  ref2nordev.fill(-1);
+  // dblWrkAr1 ref2nordev_ = msh.get_rwork(2*msh.CAD.ncadfa);
+  // dblAr2 ref2nordev(msh.CAD.ncadfa, 2, &ref2nordev_[0]);
+  // ref2nordev.fill(-1);
 
-  if(msh.idim >= 3){
-    for(int iface : cav.lcfac){
-      INCVDEPTH(msh.param);
-      int iref = msh.fac2ref[iface];
-      double nordev;
-      CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-        nordev = getnordev<ideg>(msh,iface,NULL);
-      }}CT_FOR1(ideg);
-      ref2nordev(iref,0) = MAX(ref2nordev(iref,0) , nordev);
-      CPRINTF1(" - iface {} nordev = {}\n",iface,nordev);
-    }
+  // if(msh.idim >= 3){
+  //   for(int iface : cav.lcfac){
+  //     INCVDEPTH(msh.param);
+  //     int iref = msh.fac2ref[iface];
+  //     double nordev;
+  //     CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
+  //       nordev = getnordev<ideg>(msh,iface,NULL);
+  //     }}CT_FOR1(ideg);
+  //     ref2nordev(iref,0) = MAX(ref2nordev(iref,0) , nordev);
+  //     CPRINTF1(" - iface {} nordev = {}\n",iface,nordev);
+  //   }
 
-    if(DOPRINTS1()){
-      CPRINTF1(" - initial cavity nordev:\n");
-      for(int iref = 0; iref < msh.CAD.ncadfa; iref++){
-        double nordev = ref2nordev(iref,0);
-        if(nordev < 0) continue;
-        CPRINTF1(" - iref {} nordev = {}\n", iref, nordev);
-      }
-    }
-  }
+  //   if(DOPRINTS1()){
+  //     CPRINTF1(" - initial cavity nordev:\n");
+  //     for(int iref = 0; iref < msh.CAD.ncadfa; iref++){
+  //       double nordev = ref2nordev(iref,0);
+  //       if(nordev < 0) continue;
+  //       CPRINTF1(" - iref {} nordev = {}\n", iref, nordev);
+  //     }
+  //   }
+  // }
 
 
 
@@ -1031,10 +1031,11 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
           #endif
 
 
+            // do not ehck nordev here anymore
             double nordev_tol = -1;
             if(msh.idim == 3 && tdim == 2){
               int iref = msh.fac2ref[ientt];
-              nordev_tol = ref2nordev(iref,0);
+              // nordev_tol = ref2nordev(iref,0);
               nod2bpo[0] = pdim == 2 ? msh.poi2ebp(cav.ipins, 2, ientt, iref) : -1;
               nod2bpo[1] = msh.poi2ebp(ent2pol[1], 2, ientt, iref);
               nod2bpo[2] = msh.poi2ebp(ent2pol[2], 2, ientt, iref);
@@ -1047,12 +1048,11 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
               METRIS_ASSERT(msh.fac2ref[msh.bpo2ibi(nod2bpo[2],2)] == iref);
             }
 
-
             // First, check if this is a sliver
             double meas0;
-            bool ivalid = msh.idim == 2 ? isvalideltP1<2,2>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol)
+            bool ivalid = msh.idim == 2 ? isvalideltP1<2,2>(msh, ent2pol, NULL, NULL, &meas0, nordev_tol)
                         :     tdim == 2 ? isvalideltP1<3,2>(msh, ent2pol, nod2bpo, NULL, &meas0, nordev_tol)
-                                        : isvalideltP1<3,3>(msh, ent2pol, NULL   , NULL, &meas0, nordev_tol); // NORCAD
+                                        : isvalideltP1<3,3>(msh, ent2pol, NULL, NULL, &meas0, nordev_tol); // NORCAD
             iflat = !ivalid;
             if (iflat){
               if (msh.idim == 3 && tdim == 2){

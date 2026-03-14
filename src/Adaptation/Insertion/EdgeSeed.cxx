@@ -17,18 +17,18 @@ namespace Metris{
 class MshCavity;
 
 EdgeSeed::EdgeSeed(MeshBase& msh, MshCavity& cav_, int tdim_adp_, int tdim_ent, int ientt, int iedl) : tdim_adp(tdim_adp_), cav(cav_){
-  
+
   obj = NULL;
   tdimp = -1;
   iseed = -1;
   iref  = -1;
-  
+
   cav.reset();
   cav.lcedg.allocate(1);
   cav.lcfac.allocate(10);
   if(msh.get_tdim() >= 3) cav.lctet.allocate(10);
 
-  const auto lnoed = tdim_ent == 1 ? lnoed1 : 
+  const auto lnoed = tdim_ent == 1 ? lnoed1 :
                      tdim_ent == 2 ? lnoed2 : lnoed3;
 
   ipedg[0] = msh.ent2poi(tdim_ent)(ientt,lnoed[iedl][0]);
@@ -48,7 +48,7 @@ EdgeSeed::EdgeSeed(MeshBase& msh, MshCavity& cav_, int tdim_adp_, int tdim_ent, 
     METRIS_ASSERT(iedge >= 0);
     iseed = iedge;
     iref = msh.edg2ref[iedge];
-    if(msh.isboundary_edges() && msh.CAD()) 
+    if(msh.isboundary_edges() && msh.CAD())
       obj = msh.CAD.cad2edg[iref];
   }else if(tdimp == 2){
     int iface = cav.lcfac[0];
@@ -61,6 +61,39 @@ EdgeSeed::EdgeSeed(MeshBase& msh, MshCavity& cav_, int tdim_adp_, int tdim_ent, 
     iseed = ientt;
     iref = msh.tet2ref[ientt];
   }
+
+  cav.ipins_facrefs.set_n(0);
+  cav.ipins_facuv.set_n(0);
+  cav.ipins_facuv.set_stride(2);
+
+  if (tdimp == 1){
+
+    for (int iface : cav.lcfac){
+      int ireffac = msh.fac2ref[iface];
+
+      bool found = false;
+      for (int jj = 0; jj < cav.ipins_facrefs.get_n(); jj++){
+        if (cav.ipins_facrefs[jj] == ireffac){
+          found = true;
+          break;
+        }
+      }
+
+      if (!found) cav.ipins_facrefs.stack(ireffac);
+    }
+
+    cav.ipins_facuv.set_n(cav.ipins_facrefs.get_n());
+    for (int ii = 0; ii < cav.ipins_facuv.get_n(); ii++){
+      cav.ipins_facuv(ii,0) = 0.;
+      cav.ipins_facuv(ii,1) = 0.;
+    }
+  }else if (tdimp == 2){
+    cav.ipins_facrefs.stack(iref);
+    cav.ipins_facuv.set_n(1);
+    cav.ipins_facuv(0,0) = 0.0;
+    cav.ipins_facuv(0,1) = 0.0;
+  }
+
 
   #ifndef NDEBUG
   bool ithrow = !(iseed >= 0 && iseed < msh.nentt(tdimp))
