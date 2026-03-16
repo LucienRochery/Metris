@@ -1,0 +1,11 @@
+build/
+docker/
+!docker/install_EGADS.sh
+!docker/optional_deps_helper.sh
+!docker/downloads/OCC/
+!docker/downloads/ESP/
+!docker/entrypoint.sh
+# Generated mesh files (gitignored) — must not be copied into the image.
+# The setup_unit_build_and_deploy ctest fixture regenerates them fresh
+# using the x86_64 metris binary inside the container.
+examples/unit/

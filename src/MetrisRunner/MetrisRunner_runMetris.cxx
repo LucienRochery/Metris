@@ -180,9 +180,6 @@ void MetrisRunner::runMetris(){
     printUnit = true;
     if(DOPRINTS1()) statMesh();
 
-    //#ifdef METRIS_USE_PETSC
-    //  PetscCall(PetscFinalize());
-    //#endif
   }catch(const MetrisExcept &e){
     printf("## Exception thrown, print mesh\n");
     std::string time_stamp = time2str();

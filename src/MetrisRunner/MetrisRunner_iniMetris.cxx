@@ -78,29 +78,21 @@ void MetrisRunner::constructorCommon(MetrisAPI *data_front, MetrisAPI *data_back
     "See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php\n\n"
     );
 
-    MPRINTF("Metris Git repository URL " METRIS_GIT_URL "\n");
+    MPRINTF("Metris Git repository URL https://github.com/LucienRochery/Metris\n");
     MPRINTF("commit SHA1 {} ",METRIS_GIT_COMMIT_HASH);
 
     #ifndef NDEBUG
     MPRINTF("\nDebug build.\n");
     #endif
 
-    bool METRIS_USE_PETSC = false, use_absl=false;
-
-
-    #ifdef METRIS_USE_PETSC
-    METRIS_USE_PETSC = true;
-    #endif
+    bool use_absl = false;
 
     #ifdef USE_ABSL
     use_absl = true;
     #endif
 
-    if(METRIS_USE_PETSC || use_absl){
-      MPRINTF("Compiled with libraries ");
-      if(METRIS_USE_PETSC) fmt::print(LOGFILE__,"petsc ");
-      if(use_absl) fmt::print(LOGFILE__,"absl");
-      fmt::print(LOGFILE__,"\n");
+    if(use_absl){
+      MPRINTF("Compiled with libraries absl\n");
     }
 
     if(param_.dbgfull){

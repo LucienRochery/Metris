@@ -1,5 +1,4 @@
 README.txt
-!.github/
 .obj
 *.lldb
 .lldbinit
@@ -15,6 +14,7 @@ cases/2D/*
 *data
 /codegen*
 .*/
+!.github/
 docs/libMeshb7.pdf
 tmp_results/
 src/CMakeFiles/
@@ -30,6 +30,7 @@ docs/API_notes.txt
 docs/log
 docs/Comparison/
 README.old.md
+cmake/tests
 
 clean.sh
 Release*
@@ -128,6 +129,7 @@ bunit/regression/**/*.mesh
 bunit/regression/**/*.solb
 bunit/regression/**/*.sol
 bunit/regression/**/tmp/
+bunit/regression/**/reg_*/
 
 !bunit/regression/2D/OAT15A/OAT15A.meshb
 !bunit/regression/2D/OAT15A/OAT15A.solb
@@ -138,3 +140,11 @@ bunit/regression/**/tmp/
 
 !bunit/regression/3D/UGAWG_cube-cylinder/cube-cylinder.meshb
 !bunit/regression/3D/UGAWG_cube-cylinder/cube-cylinder.surf.meshb
+
+examples/unit/
+
+docker/*
+!docker/Dockerfile
+!docker/entrypoint.sh
+!docker/install_EGADS.sh
+!docker/optional_deps_helper.sh

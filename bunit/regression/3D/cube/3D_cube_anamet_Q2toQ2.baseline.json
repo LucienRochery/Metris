@@ -3,13 +3,14 @@
     "runs": {
       "Q2toQ2_cost0_met1": {
         "CPU_times": [
-          40.89941399999998
+          40.89941399999998,
+          41.52684700000009
         ],
-        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2025-09-14-08-41-00/Q2toQ2_cost0_met1.log",
+        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost0_met1.log",
         "metadata": {
-          "git_hash": "a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3",
-          "git_repo": "git@github.com:LucienRochery/Metris.git",
-          "time_stamp": "2025-09-14-08-41-00"
+          "git_hash": "95d7b3f8426cea82ca80edbb35b4ab5cd71bfc5c",
+          "git_repo": "https://github.com/LucienRochery/Metris",
+          "time_stamp": "2026-03-12-10-34-29"
         },
         "params": {
           "adp_line_adapt": false,
@@ -67,14 +68,14 @@
         },
         "result": {
           "avglen1": 0.9090909090909076,
-          "avglen2": 0.9647011665590948,
-          "avglen3": 1.0289857553394155,
+          "avglen2": 0.9647011665590945,
+          "avglen3": 1.0289852997686038,
           "avgquaP1_1": 0.0,
           "avgquaP1_2": 0.02684572203329577,
-          "avgquaP1_3": 0.251670720273337,
+          "avgquaP1_3": 0.2516700355814665,
           "avgquaPk_1": 0.0,
-          "avgquaPk_2": 0.026845722033295768,
-          "avgquaPk_3": 0.19984547711455697,
+          "avgquaPk_2": 0.02684572203329577,
+          "avgquaPk_3": 0.19984532762698917,
           "maxlen1": 0.9445919117810629,
           "maxlen2": 1.9269813913884992,
           "maxlen3": 2.0707454845695286,
@@ -82,11 +83,11 @@
           "maxquaP1_2": 0.39874492965420794,
           "maxquaP1_3": 0.9999999999972631,
           "maxquaPk_1": -1e+30,
-          "maxquaPk_2": 0.3987449296542054,
+          "maxquaPk_2": 0.398744929654208,
           "maxquaPk_3": 0.9999996588281019,
           "minlen1": 0.8776533963006904,
           "minlen2": 0.6327647378763886,
-          "minlen3": 0.5045595786004082,
+          "minlen3": 0.5045595786004073,
           "minquaP1_1": 1e+30,
           "minquaP1_2": 9.75928924019047e-13,
           "minquaP1_3": 1.0111859707112066e-05,
@@ -100,13 +101,14 @@
       },
       "Q2toQ2_cost0_met1_geo": {
         "CPU_times": [
-          42.54230099999995
+          42.54230099999995,
+          41.41271199999983
         ],
-        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2025-09-14-08-41-00/Q2toQ2_cost0_met1_geo.log",
+        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost0_met1_geo.log",
         "metadata": {
-          "git_hash": "a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3",
-          "git_repo": "git@github.com:LucienRochery/Metris.git",
-          "time_stamp": "2025-09-14-08-41-00"
+          "git_hash": "95d7b3f8426cea82ca80edbb35b4ab5cd71bfc5c",
+          "git_repo": "https://github.com/LucienRochery/Metris",
+          "time_stamp": "2026-03-12-10-34-29"
         },
         "params": {
           "adp_line_adapt": true,
@@ -165,13 +167,13 @@
         "result": {
           "avglen1": 1.0526315789473666,
           "avglen2": 0.9674206739936623,
-          "avglen3": 1.0302320726899634,
+          "avglen3": 1.0302320726899594,
           "avgquaP1_1": 0.0,
-          "avgquaP1_2": 0.026019331110808105,
-          "avgquaP1_3": 0.2523705931790122,
+          "avgquaP1_2": 0.026019331110808112,
+          "avgquaP1_3": 0.2523705931790028,
           "avgquaPk_1": 0.0,
-          "avgquaPk_2": 0.02601933111080811,
-          "avgquaPk_3": 0.2007487080665004,
+          "avgquaPk_2": 0.026019331110808105,
+          "avgquaPk_3": 0.20074870806650363,
           "maxlen1": 1.0533453898185496,
           "maxlen2": 1.9540106069309635,
           "maxlen3": 1.9540106069309635,
@@ -185,10 +187,10 @@
           "minlen2": 0.5408057150224551,
           "minlen3": 0.3584255418659645,
           "minquaP1_1": 1e+30,
-          "minquaP1_2": 9.360895225720498e-12,
-          "minquaP1_3": 3.88201395294651e-06,
+          "minquaP1_2": 9.360895227758573e-12,
+          "minquaP1_3": 3.882013952945198e-06,
           "minquaPk_1": 1e+30,
-          "minquaPk_2": 9.360895226399856e-12,
+          "minquaPk_2": 9.360895227192438e-12,
           "minquaPk_3": 6.967287605470716e-05,
           "pctunit1": 100.0,
           "pctunit2": 98.22683533354957,
@@ -197,13 +199,14 @@
       },
       "Q2toQ2_cost0_met2": {
         "CPU_times": [
-          123.63266700000031
+          123.63266700000031,
+          126.87604400000009
         ],
-        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2025-09-14-08-41-00/Q2toQ2_cost0_met2.log",
+        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost0_met2.log",
         "metadata": {
-          "git_hash": "a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3",
-          "git_repo": "git@github.com:LucienRochery/Metris.git",
-          "time_stamp": "2025-09-14-08-41-00"
+          "git_hash": "95d7b3f8426cea82ca80edbb35b4ab5cd71bfc5c",
+          "git_repo": "https://github.com/LucienRochery/Metris",
+          "time_stamp": "2026-03-12-10-34-29"
         },
         "params": {
           "adp_line_adapt": false,
@@ -264,11 +267,11 @@
           "avglen2": 0.9868725324683328,
           "avglen3": 1.0257329210882717,
           "avgquaP1_1": 0.0,
-          "avgquaP1_2": 0.06119739861242841,
-          "avgquaP1_3": 0.2967144568385855,
+          "avgquaP1_2": 0.06119739861242843,
+          "avgquaP1_3": 0.2967144568385857,
           "avgquaPk_1": 0.0,
-          "avgquaPk_2": 0.072093680637593,
-          "avgquaPk_3": 0.23364292574452664,
+          "avgquaPk_2": 0.07209368063759303,
+          "avgquaPk_3": 0.23364292574452653,
           "maxlen1": 1.1494017979690925,
           "maxlen2": 2.2374608829365252,
           "maxlen3": 2.840967131238285,
@@ -283,7 +286,7 @@
           "minlen3": 0.07889359838317438,
           "minquaP1_1": 1e+30,
           "minquaP1_2": 2.63846987482231e-10,
-          "minquaP1_3": 1.2440571809866654e-05,
+          "minquaP1_3": 1.2440571809878402e-05,
           "minquaPk_1": 1e+30,
           "minquaPk_2": 8.811646970838358e-08,
           "minquaPk_3": 0.000513534345735196,
@@ -294,13 +297,14 @@
       },
       "Q2toQ2_cost0_met2_geo": {
         "CPU_times": [
-          124.69921600000043
+          124.69921600000043,
+          126.52485999999999
         ],
-        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2025-09-14-08-41-00/Q2toQ2_cost0_met2_geo.log",
+        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost0_met2_geo.log",
         "metadata": {
-          "git_hash": "a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3",
-          "git_repo": "git@github.com:LucienRochery/Metris.git",
-          "time_stamp": "2025-09-14-08-41-00"
+          "git_hash": "95d7b3f8426cea82ca80edbb35b4ab5cd71bfc5c",
+          "git_repo": "https://github.com/LucienRochery/Metris",
+          "time_stamp": "2026-03-12-10-34-29"
         },
         "params": {
           "adp_line_adapt": true,
@@ -359,13 +363,13 @@
         "result": {
           "avglen1": 1.0275293883395045,
           "avglen2": 0.9881168179044554,
-          "avglen3": 1.0267081429543259,
+          "avglen3": 1.026708142954326,
           "avgquaP1_1": 0.0,
-          "avgquaP1_2": 0.06162190386927505,
-          "avgquaP1_3": 0.29945505012152124,
+          "avgquaP1_2": 0.061621903869275095,
+          "avgquaP1_3": 0.2994550501215214,
           "avgquaPk_1": 0.0,
-          "avgquaPk_2": 0.07256604776125837,
-          "avgquaPk_3": 0.23573693346183117,
+          "avgquaPk_2": 0.0725660477612584,
+          "avgquaPk_3": 0.23573693346183122,
           "maxlen1": 1.3357511858400042,
           "maxlen2": 2.0665131629989997,
           "maxlen3": 3.838933450378224,
@@ -382,8 +386,8 @@
           "minquaP1_2": 1.9528334248637075e-10,
           "minquaP1_3": 9.738538512239008e-06,
           "minquaPk_1": 1e+30,
-          "minquaPk_2": 5.593732616610126e-07,
-          "minquaPk_3": 0.0007904359958093017,
+          "minquaPk_2": 5.593732616612224e-07,
+          "minquaPk_3": 0.0007904359958093218,
           "pctunit1": 100.0,
           "pctunit2": 93.42291371994342,
           "pctunit3": 92.8742551014266
@@ -391,13 +395,14 @@
       },
       "Q2toQ2_cost1_met1": {
         "CPU_times": [
-          58.34076300000015
+          58.34076300000015,
+          62.2069690000003
         ],
-        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2025-09-14-08-41-00/Q2toQ2_cost1_met1.log",
+        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost1_met1.log",
         "metadata": {
-          "git_hash": "a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3",
-          "git_repo": "git@github.com:LucienRochery/Metris.git",
-          "time_stamp": "2025-09-14-08-41-00"
+          "git_hash": "ecb228fb657c1ae0a6efb96e2257305b9f122c93",
+          "git_repo": "https://github.com/LucienRochery/Metris",
+          "time_stamp": "2026-03-10-20-17-52"
         },
         "params": {
           "adp_line_adapt": false,
@@ -455,46 +460,47 @@
         },
         "result": {
           "avglen1": 0.9090909090909076,
-          "avglen2": 0.9596446144548797,
-          "avglen3": 1.026100890199527,
+          "avglen2": 0.9596446144548793,
+          "avglen3": 1.0251980339871565,
           "avgquaP1_1": 0.0,
-          "avgquaP1_2": 0.02464281552941375,
-          "avgquaP1_3": 0.2434076110406057,
+          "avgquaP1_2": 0.024642815529413758,
+          "avgquaP1_3": 0.24293970810637786,
           "avgquaPk_1": 0.0,
-          "avgquaPk_2": 0.02464281552941374,
-          "avgquaPk_3": 0.19208334105393268,
+          "avgquaPk_2": 0.02464281552941375,
+          "avgquaPk_3": 0.1916096146409608,
           "maxlen1": 0.9445919117810629,
           "maxlen2": 1.5250583704558123,
-          "maxlen3": 1.9025770057057212,
+          "maxlen3": 1.8674883753886755,
           "maxquaP1_1": -1e+30,
           "maxquaP1_2": 0.2762346469365176,
-          "maxquaP1_3": 0.9999999998312561,
+          "maxquaP1_3": 0.9999999831243475,
           "maxquaPk_1": -1e+30,
           "maxquaPk_2": 0.2762346469365139,
-          "maxquaPk_3": 0.9999999034865351,
+          "maxquaPk_3": 0.9999999255872873,
           "minlen1": 0.8776533963006904,
           "minlen2": 0.6327647378763886,
-          "minlen3": 0.5152927925861878,
+          "minlen3": 0.536757754785358,
           "minquaP1_1": 1e+30,
           "minquaP1_2": 9.75928924019047e-13,
-          "minquaP1_3": 1.3130132223347847e-05,
+          "minquaP1_3": 1.5425188920592283e-05,
           "minquaPk_1": 1e+30,
           "minquaPk_2": 9.75928924019047e-13,
-          "minquaPk_3": 0.00020571176638775984,
+          "minquaPk_3": 0.0005256121840961562,
           "pctunit1": 100.0,
           "pctunit2": 99.35244161358811,
-          "pctunit3": 96.9276666054709
+          "pctunit3": 96.99161387190098
         }
       },
       "Q2toQ2_cost1_met1_geo": {
         "CPU_times": [
-          63.04340899999988
+          63.04340899999988,
+          62.36501599999974
         ],
-        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2025-09-14-08-41-00/Q2toQ2_cost1_met1_geo.log",
+        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost1_met1_geo.log",
         "metadata": {
-          "git_hash": "a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3",
-          "git_repo": "git@github.com:LucienRochery/Metris.git",
-          "time_stamp": "2025-09-14-08-41-00"
+          "git_hash": "95d7b3f8426cea82ca80edbb35b4ab5cd71bfc5c",
+          "git_repo": "https://github.com/LucienRochery/Metris",
+          "time_stamp": "2026-03-12-10-34-29"
         },
         "params": {
           "adp_line_adapt": true,
@@ -553,31 +559,31 @@
         "result": {
           "avglen1": 1.0526315789473666,
           "avglen2": 0.9582787182405402,
-          "avglen3": 1.0257136758271572,
+          "avglen3": 1.025713675827153,
           "avgquaP1_1": 0.0,
-          "avgquaP1_2": 0.020475131239788537,
-          "avgquaP1_3": 0.24342879016803318,
+          "avgquaP1_2": 0.020475131239788544,
+          "avgquaP1_3": 0.24342879016801036,
           "avgquaPk_1": 0.0,
-          "avgquaPk_2": 0.02047513123978855,
-          "avgquaPk_3": 0.1915073853217757,
+          "avgquaPk_2": 0.020475131239788547,
+          "avgquaPk_3": 0.19150738532176456,
           "maxlen1": 1.0533453898185496,
-          "maxlen2": 1.5615548487367406,
-          "maxlen3": 1.7956864732925133,
+          "maxlen2": 1.561554848736744,
+          "maxlen3": 1.795686473292513,
           "maxquaP1_1": -1e+30,
-          "maxquaP1_2": 0.3532771945148156,
+          "maxquaP1_2": 0.3532771945148151,
           "maxquaP1_3": 0.9999999997925169,
           "maxquaPk_1": -1e+30,
-          "maxquaPk_2": 0.3532771945148166,
+          "maxquaPk_2": 0.3532771945148159,
           "maxquaPk_3": 0.9999840602537919,
           "minlen1": 1.0397829832661776,
           "minlen2": 0.5962044272894522,
           "minlen3": 0.449450047737496,
           "minquaP1_1": 1e+30,
-          "minquaP1_2": 9.360895225720498e-12,
+          "minquaP1_2": 9.360895227758573e-12,
           "minquaP1_3": 5.084307195340827e-09,
           "minquaPk_1": 1e+30,
-          "minquaPk_2": 9.360895226399856e-12,
-          "minquaPk_3": 0.00028686946811463883,
+          "minquaPk_2": 9.360895227192438e-12,
+          "minquaPk_3": 0.00028686946811390314,
           "pctunit1": 100.0,
           "pctunit2": 99.17866666666667,
           "pctunit3": 96.98796286102242
@@ -585,13 +591,14 @@
       },
       "Q2toQ2_cost1_met2": {
         "CPU_times": [
-          180.58554400000003
+          180.58554400000003,
+          189.9815539999995
         ],
-        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2025-09-14-08-41-00/Q2toQ2_cost1_met2.log",
+        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost1_met2.log",
         "metadata": {
-          "git_hash": "a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3",
-          "git_repo": "git@github.com:LucienRochery/Metris.git",
-          "time_stamp": "2025-09-14-08-41-00"
+          "git_hash": "95d7b3f8426cea82ca80edbb35b4ab5cd71bfc5c",
+          "git_repo": "https://github.com/LucienRochery/Metris",
+          "time_stamp": "2026-03-12-10-34-29"
         },
         "params": {
           "adp_line_adapt": false,
@@ -649,17 +656,17 @@
         },
         "result": {
           "avglen1": 0.9040450557626482,
-          "avglen2": 0.9915648413868094,
-          "avglen3": 1.0258322252347865,
+          "avglen2": 0.991564841386809,
+          "avglen3": 1.0258322252347871,
           "avgquaP1_1": 0.0,
-          "avgquaP1_2": 0.051553819336016576,
-          "avgquaP1_3": 0.28586826059102943,
+          "avgquaP1_2": 0.05155381933601659,
+          "avgquaP1_3": 0.28586826059102916,
           "avgquaPk_1": 0.0,
-          "avgquaPk_2": 0.0626634855299158,
-          "avgquaPk_3": 0.22147327111312715,
+          "avgquaPk_2": 0.06266348552991577,
+          "avgquaPk_3": 0.22147327111312673,
           "maxlen1": 1.1494017979690925,
           "maxlen2": 1.7776200632424646,
-          "maxlen3": 2.88236471911269,
+          "maxlen3": 2.8823647191127124,
           "maxquaP1_1": -1e+30,
           "maxquaP1_2": 0.8798963802981341,
           "maxquaP1_3": 0.9999999999539986,
@@ -671,7 +678,7 @@
           "minlen3": 0.31781087948034803,
           "minquaP1_1": 1e+30,
           "minquaP1_2": 2.63846987482231e-10,
-          "minquaP1_3": 1.1198215819892592e-05,
+          "minquaP1_3": 1.1198215819900022e-05,
           "minquaPk_1": 1e+30,
           "minquaPk_2": 8.811646970838358e-08,
           "minquaPk_3": 0.0010716093289248874,
@@ -682,13 +689,14 @@
       },
       "Q2toQ2_cost1_met2_geo": {
         "CPU_times": [
-          185.53574799999978
+          185.53574799999978,
+          184.9057310000003
         ],
-        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2025-09-14-08-41-00/Q2toQ2_cost1_met2_geo.log",
+        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost1_met2_geo.log",
         "metadata": {
-          "git_hash": "a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3",
-          "git_repo": "git@github.com:LucienRochery/Metris.git",
-          "time_stamp": "2025-09-14-08-41-00"
+          "git_hash": "95d7b3f8426cea82ca80edbb35b4ab5cd71bfc5c",
+          "git_repo": "https://github.com/LucienRochery/Metris",
+          "time_stamp": "2026-03-12-10-34-29"
         },
         "params": {
           "adp_line_adapt": true,
@@ -747,16 +755,16 @@
         "result": {
           "avglen1": 1.0275293883395045,
           "avglen2": 0.994965538276499,
-          "avglen3": 1.0251111892618716,
+          "avglen3": 1.025111189261872,
           "avgquaP1_1": 0.0,
-          "avgquaP1_2": 0.05161446079179793,
-          "avgquaP1_3": 0.28611206478284057,
+          "avgquaP1_2": 0.05161446079179794,
+          "avgquaP1_3": 0.2861120647828407,
           "avgquaPk_1": 0.0,
-          "avgquaPk_2": 0.06271099728864298,
-          "avgquaPk_3": 0.2213518662129632,
+          "avgquaPk_2": 0.06271099728864296,
+          "avgquaPk_3": 0.22135186621296288,
           "maxlen1": 1.3357511858400042,
           "maxlen2": 1.856229103901156,
-          "maxlen3": 2.3604964617712487,
+          "maxlen3": 2.360496461771251,
           "maxquaP1_1": -1e+30,
           "maxquaP1_2": 0.7593320981113316,
           "maxquaP1_3": 0.9999999999998717,
@@ -768,10 +776,10 @@
           "minlen3": 0.20424255448006115,
           "minquaP1_1": 1e+30,
           "minquaP1_2": 1.9528334248637075e-10,
-          "minquaP1_3": 3.67509060400095e-05,
+          "minquaP1_3": 3.675090604000276e-05,
           "minquaPk_1": 1e+30,
-          "minquaPk_2": 5.593732616610126e-07,
-          "minquaPk_3": 0.0009275624574226594,
+          "minquaPk_2": 5.593732616612224e-07,
+          "minquaPk_3": 0.0009275624574226095,
           "pctunit1": 100.0,
           "pctunit2": 96.08267243451094,
           "pctunit3": 93.8253517934688
@@ -779,13 +787,14 @@
       },
       "Q2toQ2_cost5_met1": {
         "CPU_times": [
-          108.35995400000002
+          108.35995400000002,
+          108.76878099999976
         ],
-        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2025-09-14-08-41-00/Q2toQ2_cost5_met1.log",
+        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost5_met1.log",
         "metadata": {
-          "git_hash": "a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3",
-          "git_repo": "git@github.com:LucienRochery/Metris.git",
-          "time_stamp": "2025-09-14-08-41-00"
+          "git_hash": "95d7b3f8426cea82ca80edbb35b4ab5cd71bfc5c",
+          "git_repo": "https://github.com/LucienRochery/Metris",
+          "time_stamp": "2026-03-12-10-34-29"
         },
         "params": {
           "adp_line_adapt": false,
@@ -843,46 +852,47 @@
         },
         "result": {
           "avglen1": 0.9090909090909076,
-          "avglen2": 0.9596402303765647,
-          "avglen3": 1.0270895875784671,
+          "avglen2": 0.9596965065907688,
+          "avglen3": 1.0282255887739942,
           "avgquaP1_1": 0.0,
-          "avgquaP1_2": 0.02464086412275248,
-          "avgquaP1_3": 0.23742082212608626,
+          "avgquaP1_2": 0.02474598979449501,
+          "avgquaP1_3": 0.2356822177422729,
           "avgquaPk_1": 0.0,
-          "avgquaPk_2": 0.024640864122752473,
-          "avgquaPk_3": 0.1847807631739419,
+          "avgquaPk_2": 0.024745989794495,
+          "avgquaPk_3": 0.182868505159651,
           "maxlen1": 0.9445919117810629,
           "maxlen2": 1.5250583704558123,
-          "maxlen3": 2.042248886715545,
+          "maxlen3": 1.793855344688682,
           "maxquaP1_1": -1e+30,
           "maxquaP1_2": 0.284495657346317,
-          "maxquaP1_3": 0.9999999999999958,
+          "maxquaP1_3": 0.9999999999994356,
           "maxquaPk_1": -1e+30,
-          "maxquaPk_2": 0.28449565734632104,
-          "maxquaPk_3": 0.999998987617987,
+          "maxquaPk_2": 0.2844956573463201,
+          "maxquaPk_3": 0.9999999994056109,
           "minlen1": 0.8776533963006904,
           "minlen2": 0.6327647378763886,
-          "minlen3": 0.5364354263289793,
+          "minlen3": 0.5485949030036771,
           "minquaP1_1": 1e+30,
           "minquaP1_2": 9.75928924019047e-13,
-          "minquaP1_3": 9.422882879080486e-06,
+          "minquaP1_3": 1.3454772049828535e-05,
           "minquaPk_1": 1e+30,
           "minquaPk_2": 9.75928924019047e-13,
-          "minquaPk_3": 0.0006652503792427,
+          "minquaPk_3": 0.0005997423831317994,
           "pctunit1": 100.0,
           "pctunit2": 99.34182590233546,
-          "pctunit3": 97.50933539355812
+          "pctunit3": 97.41400070392531
         }
       },
       "Q2toQ2_cost5_met1_geo": {
         "CPU_times": [
-          107.63364899999988
+          107.63364899999988,
+          106.66536999999994
         ],
-        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2025-09-14-08-41-00/Q2toQ2_cost5_met1_geo.log",
+        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost5_met1_geo.log",
         "metadata": {
-          "git_hash": "a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3",
-          "git_repo": "git@github.com:LucienRochery/Metris.git",
-          "time_stamp": "2025-09-14-08-41-00"
+          "git_hash": "95d7b3f8426cea82ca80edbb35b4ab5cd71bfc5c",
+          "git_repo": "https://github.com/LucienRochery/Metris",
+          "time_stamp": "2026-03-12-10-34-29"
         },
         "params": {
           "adp_line_adapt": true,
@@ -941,16 +951,16 @@
         "result": {
           "avglen1": 1.0526315789473666,
           "avglen2": 0.9585251584587444,
-          "avglen3": 1.0294350015488298,
+          "avglen3": 1.0294350015488314,
           "avgquaP1_1": 0.0,
-          "avgquaP1_2": 0.02065813844580402,
-          "avgquaP1_3": 0.23600571362698988,
+          "avgquaP1_2": 0.02065813844580403,
+          "avgquaP1_3": 0.23600571362699144,
           "avgquaPk_1": 0.0,
-          "avgquaPk_2": 0.020658138445804036,
-          "avgquaPk_3": 0.18341046534006863,
+          "avgquaPk_2": 0.02065813844580403,
+          "avgquaPk_3": 0.18341046534006855,
           "maxlen1": 1.0533453898185496,
           "maxlen2": 1.797492858323192,
-          "maxlen3": 1.9445716801285329,
+          "maxlen3": 1.9445716801285948,
           "maxquaP1_1": -1e+30,
           "maxquaP1_2": 0.7129328905843205,
           "maxquaP1_3": 0.9999999999241806,
@@ -959,13 +969,13 @@
           "maxquaPk_3": 0.9999999921526911,
           "minlen1": 1.0397829832661776,
           "minlen2": 0.577511856977465,
-          "minlen3": 0.4829314947296205,
+          "minlen3": 0.4829314947296369,
           "minquaP1_1": 1e+30,
-          "minquaP1_2": 9.360895225720498e-12,
+          "minquaP1_2": 9.360895227758573e-12,
           "minquaP1_3": 5.084307195293329e-09,
           "minquaPk_1": 1e+30,
-          "minquaPk_2": 9.360895226399856e-12,
-          "minquaPk_3": 0.00044853816031448554,
+          "minquaPk_2": 9.360895227192438e-12,
+          "minquaPk_3": 0.000448538160314512,
           "pctunit1": 100.0,
           "pctunit2": 99.14639351259069,
           "pctunit3": 97.47138600350887
@@ -973,13 +983,14 @@
       },
       "Q2toQ2_cost5_met2": {
         "CPU_times": [
-          301.91743199999996
+          301.91743199999996,
+          301.2614830000002
         ],
-        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2025-09-14-08-41-00/Q2toQ2_cost5_met2.log",
+        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost5_met2.log",
         "metadata": {
-          "git_hash": "a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3",
-          "git_repo": "git@github.com:LucienRochery/Metris.git",
-          "time_stamp": "2025-09-14-08-41-00"
+          "git_hash": "95d7b3f8426cea82ca80edbb35b4ab5cd71bfc5c",
+          "git_repo": "https://github.com/LucienRochery/Metris",
+          "time_stamp": "2026-03-12-10-34-29"
         },
         "params": {
           "adp_line_adapt": false,
@@ -1037,17 +1048,17 @@
         },
         "result": {
           "avglen1": 0.9040450557626482,
-          "avglen2": 0.9942853253503153,
-          "avglen3": 1.027757535847822,
+          "avglen2": 0.9942853253503149,
+          "avglen3": 1.027757535847821,
           "avgquaP1_1": 0.0,
-          "avgquaP1_2": 0.051243392514548895,
-          "avgquaP1_3": 0.27562582657471,
+          "avgquaP1_2": 0.051243392514548916,
+          "avgquaP1_3": 0.27562582657470996,
           "avgquaPk_1": 0.0,
-          "avgquaPk_2": 0.06251666731753035,
-          "avgquaPk_3": 0.21009395634339173,
+          "avgquaPk_2": 0.06251666731753033,
+          "avgquaPk_3": 0.2100939563433915,
           "maxlen1": 1.1494017979690925,
           "maxlen2": 1.9817322700885662,
-          "maxlen3": 2.84511197321685,
+          "maxlen3": 2.845111973216848,
           "maxquaP1_1": -1e+30,
           "maxquaP1_2": 0.9820235408496466,
           "maxquaP1_3": 0.9999999999992331,
@@ -1056,13 +1067,13 @@
           "maxquaPk_3": 0.9999999989859327,
           "minlen1": 0.7121637249193601,
           "minlen2": 0.41956230252234816,
-          "minlen3": 0.29379102344902036,
+          "minlen3": 0.2937910234490205,
           "minquaP1_1": 1e+30,
           "minquaP1_2": 2.63846987482231e-10,
-          "minquaP1_3": 2.064807546232368e-05,
+          "minquaP1_3": 2.064807546232267e-05,
           "minquaPk_1": 1e+30,
           "minquaPk_2": 8.811646970838358e-08,
-          "minquaPk_3": 0.0016561910923595163,
+          "minquaPk_3": 0.0016561910923594586,
           "pctunit1": 100.0,
           "pctunit2": 95.80558055805581,
           "pctunit3": 94.56531551864224
@@ -1070,13 +1081,14 @@
       },
       "Q2toQ2_cost5_met2_geo": {
         "CPU_times": [
-          305.85271799999987
+          305.85271799999987,
+          305.4340299999999
         ],
-        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2025-09-14-08-41-00/Q2toQ2_cost5_met2_geo.log",
+        "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/cube/reg_anamet_Q2toQ2/2026-03-12-10-34-29/Q2toQ2_cost5_met2_geo.log",
         "metadata": {
-          "git_hash": "a5eeaf9c032206d896ccdd394e7e48d5c93bb6e3",
-          "git_repo": "git@github.com:LucienRochery/Metris.git",
-          "time_stamp": "2025-09-14-08-41-00"
+          "git_hash": "95d7b3f8426cea82ca80edbb35b4ab5cd71bfc5c",
+          "git_repo": "https://github.com/LucienRochery/Metris",
+          "time_stamp": "2026-03-12-10-34-29"
         },
         "params": {
           "adp_line_adapt": true,
@@ -1135,16 +1147,16 @@
         "result": {
           "avglen1": 1.0275293883395045,
           "avglen2": 0.9942551268112362,
-          "avglen3": 1.0281347274854118,
+          "avglen3": 1.0281347274854122,
           "avgquaP1_1": 0.0,
-          "avgquaP1_2": 0.050571058955744166,
-          "avgquaP1_3": 0.2761907458872017,
+          "avgquaP1_2": 0.05057105895574418,
+          "avgquaP1_3": 0.2761907458872018,
           "avgquaPk_1": 0.0,
-          "avgquaPk_2": 0.06179096497122663,
-          "avgquaPk_3": 0.21061998472517457,
+          "avgquaPk_2": 0.06179096497122662,
+          "avgquaPk_3": 0.2106199847251748,
           "maxlen1": 1.3357511858400042,
           "maxlen2": 1.8614607838525736,
-          "maxlen3": 2.3262257332597747,
+          "maxlen3": 2.326225733259773,
           "maxquaP1_1": -1e+30,
           "maxquaP1_2": 0.800402248938731,
           "maxquaP1_3": 0.9999999999865947,
@@ -1153,13 +1165,13 @@
           "maxquaPk_3": 0.999998291051555,
           "minlen1": 0.7335575067801978,
           "minlen2": 0.5334826400025336,
-          "minlen3": 0.2363019023120513,
+          "minlen3": 0.23630190231205114,
           "minquaP1_1": 1e+30,
           "minquaP1_2": 1.9528334248637075e-10,
-          "minquaP1_3": 1.2933527449679685e-05,
+          "minquaP1_3": 1.2933527449737977e-05,
           "minquaPk_1": 1e+30,
-          "minquaPk_2": 5.593732616610126e-07,
-          "minquaPk_3": 0.0008365225642407979,
+          "minquaPk_2": 5.593732616612224e-07,
+          "minquaPk_3": 0.0008365225642407959,
           "pctunit1": 100.0,
           "pctunit2": 96.21689785624211,
           "pctunit3": 94.55694903425768

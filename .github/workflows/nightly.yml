@@ -1,0 +1,60 @@
+name: Nightly regression
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/lucienrochery/metris-ci:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Export ESP environment
+        run: |
+          . /progs/ESP/ESPenv.sh
+          echo "ESP_ROOT=${ESP_ROOT}" >> "$GITHUB_ENV"
+          echo "CASROOT=${CASROOT}"   >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
+          echo "${ESP_ROOT}/bin" >> "$GITHUB_PATH"
+
+      - name: Download previous baselines
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          name: regression-baselines
+          path: bunit/regression/
+          workflow: nightly.yml
+          if_no_artifact_found: warn
+
+      - name: CMake configure
+        run: cmake -B build/release_clang -DMETRIS_BUILD_CORES=4
+
+      - name: Run regression tests
+        env:
+          METRIS_CASES_DIR: ${{ github.workspace }}/examples/
+          METRIS_CI_HWID: GitHub_Actions_ubuntu_latest
+        run: ctest --test-dir build/release_clang --output-on-failure -V -L regression
+
+      - name: Upload baselines
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-baselines
+          path: bunit/regression/**/*.baseline.json
+          retention-days: 90
+          overwrite: true
+
+      - name: Upload run results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression-runs-${{ github.sha }}
+          path: bunit/regression/**/runs.json
+          retention-days: 90

@@ -32,13 +32,19 @@ void initialize_baseline_hwid(const std::vector<std::string>& test_names,
   json_baseline_allhwid[str_hwid].erase("metadata");
 
   // Remove CPU_time and log into CPU_times.
+  // Skip tests that raised exceptions — they have no CPU_time to baseline.
   for(const std::string& test_name : test_names){
+    if(!json_baseline_allhwid[str_hwid]["runs"].contains(test_name)) continue;
     nlohmann::json& json_run = json_baseline_allhwid[str_hwid]["runs"][test_name];
+    if(json_run.contains("except")){
+      json_baseline_allhwid[str_hwid]["runs"].erase(test_name);
+      continue;
+    }
     double cpu_time = json_run["CPU_time"];
     json_run.erase("CPU_time");
     json_run["CPU_times"] = nlohmann::json::array();
     json_run["CPU_times"].push_back(cpu_time);
-    // metadata stored per run on the baseline, as each case 
+    // metadata stored per run on the baseline, as each case
     // might be updated at a different time.
     json_run["metadata"] = metadata;
   }
@@ -218,7 +224,7 @@ public:
     fmt::print("-- Writing results to {}\n", out_dir);
 
     json_current["metadata"]["time_stamp"] = time_stamp;
-    json_current["metadata"]["git_repo"] = METRIS_GIT_URL;
+    json_current["metadata"]["git_repo"] = "https://github.com/LucienRochery/Metris";
     json_current["metadata"]["git_hash"] = METRIS_GIT_COMMIT_HASH;
     json_current["runs"] = nlohmann::json::object();
 
@@ -291,7 +297,17 @@ public:
     param.setMeshOut(outfile);
 
     if(!CAD_base_name.empty()) param.setCAD(getCADIn(CAD_base_name));
-    if(!met_base_name.empty()) param.setMetricFile(getMetricIn(met_base_name));
+    // Don't set metric file when data_front already carries a metric: the
+    // constructor promotes data_front to data_back when data_back is NULL,
+    // and MeshBack rejects having both data->imet and param.inpMet set.
+    auto hasmet = [](MetrisAPI *d) -> bool {
+      if(!d) return false;
+      int idim,ideg,ncorn,npoin,nedge,nface,nelem; bool imet; FEBasis mb,mtb;
+      d->getConstants(&idim,&ideg,&ncorn,&npoin,&imet,&nedge,&nface,&nelem,&mb,&mtb);
+      return imet;
+    };
+    if(!met_base_name.empty() && !hasmet(data_front) && !hasmet(data_back))
+      param.setMetricFile(getMetricIn(met_base_name));
 
     MetrisRunner run(data_front, data_back, param);
     runTest(test_name, run);

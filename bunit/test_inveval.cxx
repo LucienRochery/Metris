@@ -91,17 +91,21 @@ int inveval_nloptD(MeshBase &msh, int ientt, const double*__restrict__ coor0,
 
   inventP1<gdim>(ent2poi[ientt], msh.coord, coor0, bary);
 
-  // NLOPT_LD_TNEWTON_PRECOND_RESTART.
-  // Second, simplified versions NLOPT_LD_TNEWTON_PRECOND (same without restarting), 
-  // NLOPT_LD_TNEWTON_RESTART (same without preconditioning), 
-  // and NLOPT_LD_TNEWTON (same without restarting or preconditioning).
-  //for(auto algo : {nlopt::LD_TNEWTON_PRECOND_RESTART,
-  //                 nlopt::LD_TNEWTON_RESTART,
-  //                 nlopt::LD_TNEWTON}){
+  // Mirror inveval0: scale tol by element size for high-order elements,
+  // then stop when f = ||F_K(xi) - x0||^2 <= (tol_adj)^2.
+  // Safety cap: maxeval=500 matching inveval_badNewton's maxit.
+  double tol_adj = tol;
+  if constexpr(ideg > 1){
+    double eps = getepsent<gdim>(msh, gdim, ientt);
+    tol_adj *= eps;
+  }
+
   auto algo = nlopt::LD_TNEWTON_PRECOND_RESTART;
     try{
       nlopt::opt optimizer(algo, gdim);
 
+      optimizer.set_stopval(tol_adj * tol_adj);
+      optimizer.set_maxeval(500);
 
       invevalfun_data mydata(msh,ent2poi[ientt],msh.coord,coor0,coopr);
 

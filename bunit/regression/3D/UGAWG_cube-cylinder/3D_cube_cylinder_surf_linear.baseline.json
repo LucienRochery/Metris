@@ -5,7 +5,8 @@
         "CPU_times": [
           6.582633000000005,
           6.665503000000005,
-          6.607282999999999
+          6.607282999999999,
+          5.7219770000000025
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/UGAWG_cube-cylinder/reg_surf_linear/2025-09-09-09-29-51/linear.log",
         "metadata": {
@@ -88,7 +89,8 @@
         "CPU_times": [
           15.662837000000003,
           15.777950999999998,
-          15.761209
+          15.761209,
+          13.671802000000001
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/UGAWG_cube-cylinder/reg_surf_linear/2025-09-09-09-29-51/linear_geo.log",
         "metadata": {
@@ -171,7 +173,8 @@
         "CPU_times": [
           7.14975,
           7.165630999999999,
-          7.186529
+          7.186529,
+          6.238524
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/UGAWG_cube-cylinder/reg_surf_linear/2025-09-09-09-29-51/linear_geo_smoolen.log",
         "metadata": {
@@ -254,7 +257,8 @@
         "CPU_times": [
           6.092420999999998,
           6.141869,
-          6.016214999999999
+          6.016214999999999,
+          5.278979
         ],
         "logfile": "/Users/lrochery/codes/Metris_public/bunit/regression/3D/UGAWG_cube-cylinder/reg_surf_linear/2025-09-09-09-29-51/linear_smoolen.log",
         "metadata": {

@@ -249,10 +249,13 @@ public:
 
   MetrisParameters();
 
+  MetrisParameters(const MetrisParameters &other);
+  MetrisParameters& operator=(const MetrisParameters&) = delete;
+
   MetrisParameters(MetrisOptions &opt);
 
   ~MetrisParameters(){
-    if(logFile_ && logFile_ != stdout && logFile_ != stderr){
+    if(logFileOwner_ && logFile_ && logFile_ != stdout && logFile_ != stderr){
       fclose(logFile_);
     }
   }
@@ -295,6 +298,7 @@ private:
   std::string metFileName_;
 
   FILE* logFile_{stdout};
+  bool logFileOwner_{false};
   std::string logFileName_;
 
   bool inpMet{false};

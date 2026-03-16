@@ -122,11 +122,40 @@ void from_json(const nlohmann::json& jj, MetrisParameters& param) {
 
 
 
-MetrisParameters::MetrisParameters() : 
-  outmFileName(outmFileName_), 
-  cadFileName(cadFileName_), backFileName(backFileName_), 
-  metFileName(metFileName_), logFileName(logFileName_), 
+MetrisParameters::MetrisParameters() :
+  outmFileName(outmFileName_),
+  cadFileName(cadFileName_), backFileName(backFileName_),
+  metFileName(metFileName_), logFileName(logFileName_),
   meshFileName(meshFileName_), logFile(logFile_)
+{
+}
+
+MetrisParameters::MetrisParameters(const MetrisParameters &other) :
+  MetrisParametersData(other),
+  // Public references → bind to THIS object's private strings
+  outmFileName(outmFileName_),
+  outmPrefix(other.outmPrefix),
+  cadFileName(cadFileName_),
+  backFileName(backFileName_),
+  metFileName(metFileName_),
+  logFileName(logFileName_),
+  meshFileName(meshFileName_),
+  logFile(logFile_),
+  // Private data — declaration order
+  outmFileName_(other.outmFileName_),
+  main_in_prefix(other.main_in_prefix),
+  wrtMesh(other.wrtMesh),
+  meshFileName_(other.meshFileName_),
+  cadFileName_(other.cadFileName_),
+  backFileName_(other.backFileName_),
+  metFileName_(other.metFileName_),
+  logFile_(other.logFile_),
+  logFileOwner_(false),       // copy does NOT own the FILE*
+  logFileName_(other.logFileName_),
+  inpMet(other.inpMet),
+  inpBack(other.inpBack),
+  inpCAD(other.inpCAD),
+  inpMesh(other.inpMesh)
 {
 }
 
@@ -447,14 +476,20 @@ void MetrisParametersData::setMetricScale(double sclmet){
 
 
 void MetrisParameters::setLogFile(std::string fname){
+  if(logFileOwner_ && logFile_ && logFile_ != stdout && logFile_ != stderr){
+    fclose(logFile_);
+  }
   logFileName_ = fname;
   if(fname == "stdout"){
     logFile_ = stdout;
+    logFileOwner_ = false;
   }else if(fname == "stderr"){
     logFile_ = stderr;
+    logFileOwner_ = false;
   }else{
     logFile_ = fopen(fname.c_str(), "w");
     METRIS_ENFORCE_MSG(logFile_ != NULL,"Error opening log file {}", fname);
+    logFileOwner_ = true;
   }
 }
 

@@ -6,10 +6,6 @@
 #ifndef __METRIS_OPTIMIZATION_NEWTON__
 #define __METRIS_OPTIMIZATION_NEWTON__
 
-#ifdef METRIS_USE_PETSC
-  #include <petscmat.h>
-#endif
-
 #include <functional>
 #include <nlopt.h>
 
@@ -82,18 +78,6 @@ int optim_newton_drivertype_TNCG(newton_drivertype_args<nvar> &args,
                                  double *xcur ,double *fcur ,
                                  double *gcur ,double *hess ,
                                  int *iflag, int *ihess);
-
-#ifdef METRIS_USE_PETSC
-int optim_newton_drivertype_PETSc(int nvar ,
-                             Vec &XCUR ,double *fcur  ,
-                             Vec &RHS, Mat &OJ,
-                             double xtol ,double stpmin,
-                             double wlfc1,double wlfc2 ,double ratnew ,
-                             int *niter,int maxit ,int iprt   ,
-                             int *iflag,int *ijaco ,
-                             double *rwork ,
-                             Vec &DESC);
-#endif
 
 
 template<int ndim>

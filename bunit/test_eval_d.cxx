@@ -82,14 +82,14 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
     Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
 
     INCVDEPTH((&prtparam));
-    CPRINTF1("-- Mesh : %s\n",s.c_str());
+    CPRINTF1("-- Mesh : {}\n",s.c_str());
 
     msh.cleanup();
 
     for(FEBasis ibasis : {FEBasis::Lagrange, FEBasis::Bezier}){
       INCVDEPTH((&prtparam));
       msh.setBasis(ibasis);
-      CPRINTF1(" - Running as FEBasis %s\n",basname[(int)ibasis].c_str());
+      CPRINTF1(" - Running as FEBasis {}\n",basname[(int)ibasis].c_str());
 
       CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
       CT_FOR0_INC(2,3,idim){if(idim == msh.idim){
