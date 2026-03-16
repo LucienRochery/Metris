@@ -17,19 +17,19 @@ struct CavWrkArrs;
 struct EdgeSeed;
 
 template<class MFT>
-int aux_bisecPointLen(Mesh<MFT> &msh, 
+int aux_bisecPointLen(Mesh<MFT> &msh,
                       const EdgeSeed &insertionSeed,
                       int ibins,
                       bool icollapse,
-                      const MshCavity &cav);
+                      MshCavity &cav);
 
 // Correct point location in case of cavity construction error (e.g. short edge)
 template<class MFT>
-int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav, 
+int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav,
                      int tdimp, int iseed, int iref, double *algnd);
 
 template<class MFT>
-int aux_findCloseConstrained(Mesh<MFT>& msh, MshCavity &cav, 
+int aux_findCloseConstrained(Mesh<MFT>& msh, MshCavity &cav,
                              int ithrd1, int ithrd2);
 
 }

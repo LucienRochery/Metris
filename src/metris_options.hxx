@@ -15,18 +15,18 @@
 
 namespace Metris{
 
-// Note: implicit_value: value if specified but no argument 
+// Note: implicit_value: value if specified but no argument
 //       default_value: value if not specified at all
-  
+
 struct MetrisOptions{
 
-  MetrisOptions(): s("Metris"){ 
+  MetrisOptions(): s("Metris"){
     namespace po = boost::program_options;
     s.add_options()
       ("help"   , "Print help message") // a bool parameter
-      ("verb"   , po::value<int>(), 
+      ("verb"   , po::value<int>(),
         "Verbosity level 0-3. 0: minimal prints. 1: large steps. 2: 1+. 3: full debug.")
-      ("vdepth"   , po::value<int>(), 
+      ("vdepth"   , po::value<int>(),
         "Verbosity depth 0+. Call stack / loop depth prints")
       ("in"     , po::value<std::string>(), "Input mesh file "     )
       ("cad"    , po::value<std::string>(), "Input CAD file "      )
@@ -60,12 +60,12 @@ struct MetrisOptions{
     s.add_options()
       ("refine-conventions-out", "Adopt Refine conventions for VerticesOnGeometricX");
 
-    // ----------------- Metric and solution options 
+    // ----------------- Metric and solution options
     s.add_options()
-      ("anamet" , po::value<int>(), 
+      ("anamet" , po::value<int>(),
         "Analytical metric index, see src/anamet.hxx for options")
-      ("sclmet" , po::value<double>(), 
-        "Analytical metric scaling") 
+      ("sclmet" , po::value<double>(),
+        "Analytical metric scaling")
       ("hmin" , po::value<double>(), "Minimum metric size"   )
       ("hmax" , po::value<double>(), "Maximum metric size"   )
       ("mdx" , po::value<double>(), "Analytical metric x offset"   )
@@ -73,36 +73,36 @@ struct MetrisOptions{
       ("mdz" , po::value<double>(), "Analytical metric z offset"   );
 
     s.add_options()
-      ("anasol" , po::value<int>(), 
+      ("anasol" , po::value<int>(),
         "Analytical solution index, see src/anasol.hxx for options")
-      ("intp-pdeg" , po::value<int>(), 
+      ("intp-pdeg" , po::value<int>(),
         "Solution interpolation degree <= mesh degree.")
-      ("intp-pnorm" , po::value<int>(), 
+      ("intp-pnorm" , po::value<int>(),
         "Interpolation error norm 1 or 2.");
 
-    // ----------------- Adaptation options  
+    // ----------------- Adaptation options
     s.add_options()
       ("adapt"  , po::value<int>(),
         "Adaptation iterations")
-      ("adp-unit-stop", po::value<double>(), 
+      ("adp-unit-stop", po::value<double>(),
         "Percent unit edges to stop adaptation, default 99.9%")
-      ("adp-stagn-stop", po::value<double>(), 
+      ("adp-stagn-stop", po::value<double>(),
         "Stat value (work / entities) threshold to stop adaptation. Default 1e-3")
-      ("adp-opt-niter", po::value<int>(), 
+      ("adp-opt-niter", po::value<int>(),
         "Smoothing in adaptation: -1 unlimited, N > 0 number of iter")
       ("do-line-adp",
         "Use adaptGeoLines (not very robust if boundary very coarse)")
       ("adp-smoo-len",
         "Use length-based smoothing in adaptation loop")
-      ("opt-unif" , 
+      ("opt-unif" ,
         "Shape preserving uniformization")
       ("geo-lentolfac", po::value<double>(),
         "Tolerance factor for geometric edge length in adaptGeoLines")
-      ("geo-abstoledg", po::value<double>(), 
+      ("geo-abstoledg", po::value<double>(),
         "Absolute distance tolerance such that point is considered on CAD edge");
 
-    // ----------------- Optimization options  
-    s.add_options()  
+    // ----------------- Optimization options
+    s.add_options()
       ("opt-niter" , po::value<int>(),
                     "Apply <x> itertions quality-based optim after of adaptation")
       ("opt-pnorm", po::value<int>(),
@@ -129,17 +129,24 @@ struct MetrisOptions{
       ("qua-surf-wt-normal", po::value<double>(),
                     "Weight of normal deviation in surface quality.");
 
-    
+
+    // ----------------- Normal deviation options
+    s.add_options()
+      ("nordev-tol" , po::value<double>(),
+                    "range in [0,1]. Loosen nordev tol obtained from the current cav. 0 keeps one from cav")
+      ("nordev-max", po::value<double>(),
+                    "range in [0,1]. Maximum nordev allowed");
+
 
     // ----------------- Generic flags. Used for quick debugging
-    s.add_options()  
+    s.add_options()
       ("iflag1", po::value<int>(), "Generic integer flag")
       ("iflag2", po::value<int>(), "Generic integer flag")
       ("iflag3", po::value<int>(), "Generic integer flag")
       ("rflag1", po::value<double>(), "Generic real flag")
       ("rflag2", po::value<double>(), "Generic real flag")
       ("rflag3", po::value<double>(), "Generic real flag")
-      ("interp-err-min-algo", po::value<int>(), 
+      ("interp-err-min-algo", po::value<int>(),
         "Interpolation error minimization algo: 0 for Newton, 1 for DIRECT");
   }
 
@@ -166,7 +173,7 @@ struct MetrisOptions{
   int count(std::string str){
     return m.count(str);
   }
-  
+
 };
 
 

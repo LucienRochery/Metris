@@ -140,6 +140,17 @@ int insertEdge(Mesh<MFT>& msh,
   }
   #endif
 
+  if (ierro > 0) goto cleanup;
+
+  // if boundary insertion, check normal deviation: if success skip growth and call cavity operator, otherwise abort operation
+  if (msh.get_tdim() == 3 && insertionSeed.tdimp < 3){
+
+    constexpr bool usemax = false;
+    bool nordevOK = seedCav_nordevOK<usemax>(msh,cav,ithrd1);
+
+    if (!nordevOK) goto cleanup;
+  }
+
   if(icollapse){
     #ifdef TESTQUALITYALGO
     ierro = increase_cavity_quality(msh,cav,insertionSeed.tdim_adp,5,handler,ithrd1);

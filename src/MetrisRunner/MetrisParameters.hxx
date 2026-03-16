@@ -139,6 +139,9 @@ depending on whether they should be serialized.
     FIELD(int, ianasol, -1) \
     FIELD(int, intp_pdeg, 1) /* interpolation degree */ \
     FIELD(int, intp_pnorm, 1) /* interp error norm L2 or L1 */ \
+    /* ----------------- Normal deviation control */ \
+    FIELD(double, nordev_tol, 0.4) /* must be in [0,1]: 0 means tol is that of the current cavity, and from there the tol is increased towards 1 */ \
+    FIELD(double, nordev_max, 0.7) \
 
 #define METRIS_PARAMETERS_OTHERFIELDS_NOJSON \
     /* See anamet.hxx. Can implement your own with same prototype */ \
