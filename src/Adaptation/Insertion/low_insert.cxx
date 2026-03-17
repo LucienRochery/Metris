@@ -138,13 +138,16 @@ int insertEdge(Mesh<MFT>& msh,
 
   if (ierro > 0) goto cleanup;
 
-  // if boundary insertion, check normal deviation: if success skip growth and call cavity operator, otherwise abort operation
+  // if boundary insertion, check normal deviation: if fails abort operation
   if (msh.get_tdim() == 3 && insertionSeed.tdimp < 3){
 
     constexpr bool usemax = false;
     bool nordevOK = seedCav_nordevOK<usemax>(msh,cav,ithrd1);
 
-    if (!nordevOK) goto cleanup;
+    if (!nordevOK){
+      ierro = 1;
+      goto cleanup;
+    }
   }
 
   if(icollapse){
