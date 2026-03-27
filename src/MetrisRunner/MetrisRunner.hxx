@@ -53,6 +53,10 @@ public:
 
   // Calls the other functions in a certain order, default call.
   void runMetris();
+  /* Similar to the above, but approaches slowly to the target metric,
+     taking into account the scale ratio between current metric and target
+  */
+  void runMetrisProgressive();
 
   // -tardeg <d> Mesh goes to degree d while conserving geometry
   int degElevate();

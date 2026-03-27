@@ -710,8 +710,6 @@ void iniMeshBdryCorners(MeshBase &msh){
 int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
   GETVDEPTH(msh.param);
 
-  writeMesh("debugginIniMeshBdryPoints.meshb",msh);
-
   const int ideg = msh.curdeg;
 
   //if(msh.isboundary_faces() && msh.param->refineConventionsInp)

@@ -9,11 +9,12 @@
 
 namespace Metris{
 
-int main_metris(int argc, char** argv){ 
+int main_metris(int argc, char** argv){
 
   MetrisRunner run(argc,argv);
 
-  run.runMetris();
+  if (run.param->progressiveAdapt) run.runMetrisProgressive();
+  else                             run.runMetris();
 
   return 0;
 }

@@ -142,6 +142,11 @@ depending on whether they should be serialized.
     /* ----------------- Normal deviation control */ \
     FIELD(double, nordev_tol, 0.4) /* must be in [0,1]: 0 means tol is that of the current cavity, and from there the tol is increased towards 1 */ \
     FIELD(double, nordev_max, 0.7) \
+    /* ----------------- Progressive adaptation flag */ \
+    /* Approaches the target metric scale slowly, sort of MOESS-like */ \
+    /* For qual-based algo, must be used if the target metric is too different from intial mesh */ \
+    FIELD(bool, progressiveAdapt, false) \
+
 
 #define METRIS_PARAMETERS_OTHERFIELDS_NOJSON \
     /* See anamet.hxx. Can implement your own with same prototype */ \

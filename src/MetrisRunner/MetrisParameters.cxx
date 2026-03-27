@@ -281,6 +281,10 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     nordev_max = opt.m["nordev-max"].template as<double>();
   }
 
+  if(opt.count("progressiveAdapt")){
+    progressiveAdapt = opt.m["progressiveAdapt"].template as<bool>();
+  }
+
   if(opt.count("sclmet")){
     setMetricScale(opt.m["sclmet"].template as<double>());
   }

@@ -137,6 +137,10 @@ struct MetrisOptions{
       ("nordev-max", po::value<double>(),
                     "range in [0,1]. Maximum nordev allowed");
 
+    // ----------------- Progressive adaptation
+    s.add_options()
+      ("progressiveAdapt" , po::value<bool>(),
+                    "For qual-based algo, must be used if target metric too different from intial mesh");
 
     // ----------------- Generic flags. Used for quick debugging
     s.add_options()

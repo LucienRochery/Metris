@@ -153,6 +153,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/msh_lag2bez.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_checktopo.cxx
     ${PROJECT_SOURCE_DIR}/src/msh_degelev.cxx
+    ${PROJECT_SOURCE_DIR}/src/msh_metricCost.cxx
 
     ${PROJECT_SOURCE_DIR}/src/utils/aux_misc.cxx
     ${PROJECT_SOURCE_DIR}/src/utils/aux_timer.cxx

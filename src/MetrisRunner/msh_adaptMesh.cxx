@@ -632,6 +632,8 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   int iter = 0;
   int smooStreak = 0;
   writeMesh("meshSTART.meshb",msh);
+
+  bool printedFirst = false;
   while (true){
 
     bool didOperation;
@@ -639,12 +641,17 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
     for (auto itK = handlerTopX.K.begin(); itK != handlerTopX.K.end(); itK++){
 
       int ientt = itK->ientt;
+      if (!printedFirst){
+        std::cout << "First entt in list = " << ientt << std::endl;
+        std::cout << "Quality of first entt = " << itK->qentt << std::endl;
+        printedFirst = true;
+      }
 
       const double quaent = itK->qentt;
       METRIS_ASSERT(quaent >= 0);
 
-      std::cout << "ientt = " << ientt << std::endl;
-      std::cout << "quaent = " << quaent << std::endl;
+      // std::cout << "ientt = " << ientt << std::endl;
+      // std::cout << "quaent = " << quaent << std::endl;
 
       iter++;
       #ifdef DIAGNOSIS_QUALALGO
@@ -772,14 +779,14 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       }
 
       #ifndef NDEBUG
-      int ip1 = msh.tet2poi(ientt,lnoed3[iedMax][0]);
-      int ip2 = msh.tet2poi(ientt,lnoed3[iedMax][1]);
-      std::cout << "Longest edge = " << iedMax << std::endl;
-      std::cout << "Points = (" << ip1 << "," << ip2 << ")" << std::endl;
-      ip1 = msh.tet2poi(ientt,lnoed3[iedMin][0]);
-      ip2 = msh.tet2poi(ientt,lnoed3[iedMin][1]);
-      std::cout << "Shortest edge = " << iedMin << std::endl;
-      std::cout << "Points = (" << ip1 << "," << ip2 << ")" << std::endl;
+      // int ip1 = msh.tet2poi(ientt,lnoed3[iedMax][0]);
+      // int ip2 = msh.tet2poi(ientt,lnoed3[iedMax][1]);
+      // std::cout << "Longest edge = " << iedMax << std::endl;
+      // std::cout << "Points = (" << ip1 << "," << ip2 << ")" << std::endl;
+      // ip1 = msh.tet2poi(ientt,lnoed3[iedMin][0]);
+      // ip2 = msh.tet2poi(ientt,lnoed3[iedMin][1]);
+      // std::cout << "Shortest edge = " << iedMin << std::endl;
+      // std::cout << "Points = (" << ip1 << "," << ip2 << ")" << std::endl;
       #endif
 
       if (shortestLen >= lengthThreshold

@@ -12,6 +12,7 @@
 
 #include "../io_libmeshb.hxx"
 #include "../msh_checktopo.hxx"
+#include "../msh_metricCost.hxx"
 
 #ifdef WRITEQUALFIELD
 #include "../quality/quafun.hxx"
@@ -27,7 +28,6 @@ void MetrisRunner::runMetris(){
 
   double t0, t1;
   t0 = get_cpu_time();
-
 
   try{
 
@@ -49,7 +49,7 @@ void MetrisRunner::runMetris(){
     //}
 
     #ifdef TESTQUALITYALGO
-    int niter = 10;
+    int niter = 1;
     #else
     int niter = 1;
     #endif
@@ -206,12 +206,179 @@ void MetrisRunner::runMetris(){
 
 }
 
+void MetrisRunner::runMetrisProgressive(){
 
+  GETVDEPTH(param);
+
+  std::string fileName = "scaleEvol_sclInpt_" + std::to_string(param->metScale) + ".txt";
+  std::fstream foutputScaleEvol(fileName, std::fstream::out);
+  METRIS_ENFORCE_MSG(foutputScaleEvol.good(), "Error opening file: " + fileName);
+
+  foutputScaleEvol  << "# scaleInput = " << param->metScale << std::endl;
+
+  double t0, t1;
+  t0 = get_cpu_time();
+
+  const int niterAdapt = 1;
+
+  // helper to set target metric scale
+  auto setMetScale = [&](double sclmet) -> void {
+
+    METRIS_ENFORCE(sclmet > 0);
+    param->setMetricScale(sclmet);
+    Mesh<MetricFieldAnalytical> &msh = (Mesh<MetricFieldAnalytical> &)(*msh_g);
+    msh.met.normalize(sclmet);
+    bak.met.normalize(sclmet);
+    for (int ipoin = 0; ipoin < msh.npoin; ipoin++){
+      msh.met.getMetPhys(DifVar::None,msh.met.getSpace(),msh.coord[ipoin],msh.met[ipoin],NULL);
+    }
+    // bak.met = msh.met
+  };
+
+  // helper to do a mesh adaptation cycle
+  auto runAdaptCycle = [&](double sclmet = -1.) -> void {
+
+    if (sclmet > 0) setMetScale(sclmet);
+
+    for (int iterAdapt = 0; iterAdapt < niterAdapt; iterAdapt++){
+
+      statMesh();
+
+      if(param->dbgfull) check_topo(*msh_g,0);
+
+      adaptMesh2();
+      optimMesh();
+    }
+  };
+
+  const double scaleInpt0 = param->metScale;
+
+  double currentMeshCost;
+  double currentMeshScale;
+  double targetCost;
+  double targetScale;
+
+  if (metricFE){
+    METRIS_THROW_MSG("runMetrisProgressive not yet implemented for MFT = MetricFieldFE");
+  }
+
+  Mesh<MetricFieldAnalytical> &msh = (Mesh<MetricFieldAnalytical> &)(*msh_g);
+  msh.cleanup();
+  currentMeshCost  = (double)msh.nentt(msh.get_tdim());
+  if (msh.get_tdim() == 2){
+    currentMeshCost *= sqrt(3.)/4.;
+  }else{
+    currentMeshCost *= sqrt(2.)/12.;
+  }
+  currentMeshScale = pow(currentMeshCost,-1./msh.get_tdim());
+
+  if (msh.get_tdim() == 2) targetCost = getMetricCost<2,2>(msh);
+  else                     targetCost = getMetricCost<3,3>(msh);
+
+  targetScale = pow(targetCost,-1./msh.get_tdim());
+
+  // the target mesh is coarser than initial mesh, no need to approach progressively, just call runMetris
+  if (targetScale >= currentMeshScale){
+
+    runAdaptCycle();
+
+    writeOutputs();
+
+    statMesh();
+
+    t1 = get_cpu_time();
+
+    MPRINTF("\n-- END Metris total runtime {:.2e}s\n",t1-t0);
+    return;
+  }
+
+  targetScale *= 0.85; // assume we are overestimating the target scale
+
+  foutputScaleEvol << "# Initial mesh scale = "   << currentMeshScale << std::endl;
+  foutputScaleEvol << "# Approx. target scale = " << targetScale << std::endl;
+
+  foutputScaleEvol  << std::setw(6) << "# Iter"
+                    << std::setw(30) << "currenMeshScale"
+                    << std::setw(30) << "targetScale"
+                    << std::setw(30) << "scaleRun"
+                    << std::endl;
+
+
+
+  // the target mesh is finer than initial mesh, approach progressively
+  double scaleRun = currentMeshScale/targetScale * scaleInpt0; // let first generation has similar target scale as current scale
+  double lastRatio;
+  int iiter = 0;
+  bool exitLoop = false;
+  while (true){
+
+    std::cout << "Running adaptation for scale = " << scaleRun * targetScale / scaleInpt0 << std::endl;
+    std::cout << "scaleRun = " << scaleRun << std::endl;
+
+    foutputScaleEvol << std::setw(6)  << iiter
+                     << std::setw(30) << currentMeshScale
+                     << std::setw(30) << targetScale
+                     << std::setw(30) << scaleRun
+                     << std::endl;
+
+    writeMesh("meshSTART_iter" + std::to_string(iiter) + ".meshb",msh);
+
+    runAdaptCycle(scaleRun);
+    msh.cleanup();
+    setMetScale(scaleInpt0);
+
+    writeMesh("meshEND_iter" + std::to_string(iiter) + ".meshb",msh);
+
+    currentMeshCost  = (double)msh.nentt(msh.get_tdim());
+    if (msh.get_tdim() == 2){
+      currentMeshCost *= sqrt(3.)/4.;
+    }else{
+      currentMeshCost *= sqrt(2.)/12.;
+    }
+    currentMeshScale = pow(currentMeshCost,-1./msh.get_tdim());
+
+    if (msh.get_tdim() == 2) targetCost = getMetricCost<2,2>(msh);
+    else                     targetCost = getMetricCost<3,3>(msh);
+
+    targetScale = pow(targetCost,-1./msh.get_tdim());
+
+    lastRatio = currentMeshScale/targetScale;
+
+    if (exitLoop){
+      foutputScaleEvol << "# Final mesh scale = "   << currentMeshScale << std::endl;
+      foutputScaleEvol << "# Approx. target scale = " << targetScale << std::endl;
+      break;
+    }
+
+    scaleRun = 0.85*currentMeshScale / targetScale * scaleInpt0;
+
+    std::cout << "After adaptation " << iiter << ":" << std::endl;
+    std::cout << "currentMeshScale = " << currentMeshScale << std::endl;
+    std::cout << "targetScale = " << targetScale << std::endl;
+    std::cout << "scaleInpt0 = " << scaleInpt0 << std::endl;
+    std::cout << "scaleRun = " << scaleRun << std::endl;
+    std::cout << "Last currentScale/targetScale ratio = " << lastRatio << std::endl;
+
+    if (scaleRun < scaleInpt0){
+
+      scaleRun = scaleInpt0;
+      exitLoop = true;
+    }
+
+    iiter++;
+  }
+
+  foutputScaleEvol.close();
+
+  writeOutputs();
+
+  statMesh();
+
+  t1 = get_cpu_time();
+
+  MPRINTF("\n-- END Metris total runtime {:.2e}s\n",t1-t0);
+
+  return;
+}
 
 } // end namespace
-
-
-
-
-
-
