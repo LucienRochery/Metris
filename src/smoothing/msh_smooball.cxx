@@ -399,7 +399,8 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
         writeMesh("smooth_error_0.meshb",msh);
         msh.met.writeMetricFile("smooth_error_metric_0.solb");
-        throw(e);
+        ierro = 1;
+        // throw(e);
       }
       if(ierro == 0){
         nsucc++;

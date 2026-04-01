@@ -43,9 +43,7 @@ void MetrisRunner::runMetris(){
     //  return 0;
     //}
 
-
     adaptMesh2();
-
 
     if(param->usrTarDeg > 1 || msh_g->curdeg > 1){
       int ielev = degElevate();
@@ -59,7 +57,7 @@ void MetrisRunner::runMetris(){
       if(param->smoo_type == 0){
         optimMesh();
       }
-      
+
       if(param->dbgfull) check_topo(*msh_g,0);
     }
 
