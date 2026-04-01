@@ -1074,7 +1074,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       // not to be a corner then there is no need to keep the link.
       // It will be deleted in iniMeshBdryPoints.
 
-      int iver = getveredg<1>(iedge, ipoin);
+      int iver = iedge >= 0 ? getveredg<1>(iedge, ipoin) : -1;
       int ibpoi = iver >= 0 ? newbpotopo(Vertex{ipoin},1,iedge) :
                               newbpotopo(CtrlPt{ipoin},1,iedge);
       if(ibpoi < 0) continue;
@@ -1145,7 +1145,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
 
 
-      int iver = getverfac<1>(iface, ipoin);
+      int iver = iface >= 0 ? getverfac<1>(iface, ipoin) : -1;
       int ibpoi = iver >= 0 ? newbpotopo(Vertex{ipoin},2,iface) :
                               newbpotopo(CtrlPt{ipoin},2,iface);
       if(ibpoi < 0) continue;
