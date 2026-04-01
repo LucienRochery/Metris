@@ -254,12 +254,12 @@ struct CavOprOpt{
 // Cavity operator returns
 struct CavOprInfo{
   // Anisotropic qualities start, end (for swaps, not implemented yet)
-  double qmax_ini,qavg_ini;
-  double qmax_end,qavg_end;
+  double qmax_ini = -1., qavg_ini = -1.;
+  double qmax_end = -1., qavg_end  = -1.;
 
-  double qcav3; // Quality of final tetra cavity in norm specified by msh.param
+  double qcav3 = -1.; // Quality of final tetra cavity in norm specified by msh.param
 
-  bool done; // flags whether change was done (dryrun) ; different from an error
+  bool done = false; // flags whether change was done (dryrun) ; different from an error
 };
 
 // Don't worry about this, simply declare one and reuse for all cavity calls.

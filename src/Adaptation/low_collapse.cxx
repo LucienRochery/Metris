@@ -30,15 +30,15 @@ namespace Metris{
 
 
 /*
-Collapse a vertex in short edge 
+Collapse a vertex in short edge
 Cavity is passed in to reuse allocations
 */
 template<class MFT>
-int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, [[maybe_unused]] double qmax_suf, 
-                 MshCavity &cav, CavWrkArrs &work, 
+int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, [[maybe_unused]] double qmax_suf,
+                 MshCavity &cav, CavWrkArrs &work,
                  intAr1 &lerro, int ithrd1, int ithrd2, [[maybe_unused]] int ithrd3){
-  
-  const auto lnoed = tdim == 1 ? lnoed1 : 
+
+  const auto lnoed = tdim == 1 ? lnoed1 :
                      tdim == 2 ? lnoed2 : lnoed3;
   const intAr2 &ent2poi = msh.ent2poi(tdim);
   int ip1 = ent2poi(ientt,lnoed[iedl][0]);
@@ -54,7 +54,7 @@ int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, [[maybe_unused]]
   }else{
     if(msh.poicstr[ip1] || msh.poicstr[ip2]) return 1;
     // Check they are same ref. If they're same dim as seed
-    // then that is always the case. 
+    // then that is always the case.
     if(pdim1 < tdim && pdim2 < tdim){
       METRIS_ASSERT(pdim1 == pdim2); // in case above changes
       int ib1 = msh.poi2bpo[ip1];
@@ -73,25 +73,25 @@ int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, [[maybe_unused]]
   }
 }
 
-template int collapseEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
-                                          int tdim, int ientt, int iedl, double qmax_suf, 
-                                          MshCavity &cav, CavWrkArrs &work, 
+template int collapseEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh,
+                                          int tdim, int ientt, int iedl, double qmax_suf,
+                                          MshCavity &cav, CavWrkArrs &work,
                                           intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
-template int collapseEdge<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
-                                          int tdim, int ientt, int iedl, double qmax_suf, 
-                                          MshCavity &cav, CavWrkArrs &work, 
+template int collapseEdge<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh,
+                                          int tdim, int ientt, int iedl, double qmax_suf,
+                                          MshCavity &cav, CavWrkArrs &work,
                                           intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
 
 
 
 
 /*
-Collapse a vertex in short edge 
+Collapse a vertex in short edge
 Cavity is passed in to reuse allocations
 */
 template<class MFT>
-int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf, 
-                  MshCavity &cav, CavWrkArrs &work, 
+int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf,
+                  MshCavity &cav, CavWrkArrs &work,
                   intAr1 &lerro, int ithrd1, int ithrd2, [[maybe_unused]] int ithrd3){
   METRIS_ASSERT(ientt >= 0);
   GETVDEPTH(msh.param);
@@ -106,7 +106,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
 
   intAr2& ent2poi = msh.ent2poi(tdim);
 
- 
+
   auto lnoed = tdim == 2 ? lnoed2 : lnoed3;
 
   int ip1 = ent2poi(ientt,lnoed[iedl][0]);
@@ -134,7 +134,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
   tdimc = MAX(tdimp[0], tdimp[1]);
 
   for(int iver = 0; iver < 2; iver++){
-    // Collapse this one 
+    // Collapse this one
     int ipcol = ent2poi(ientt,lnoed[iedl][iver]);
 
     // Collapse only among the highest-dimensional points
@@ -162,7 +162,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
     msh.tag[ithrd1]++;
     int tag0 = msh.tag[ithrd1]; // We'll reuse the tag for elements in subroutines
     // We'll stack on top of the ball, so we need to be able to prune to nbalf
-    // with each attempt, as well as restrict search of ipins to ball 
+    // with each attempt, as well as restrict search of ipins to ball
     int nbalt = cav.lctet.get_n();
     int nbalf = cav.lcfac.get_n();
     int nbale = cav.lcedg.get_n();
@@ -170,7 +170,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
     for(int icent : lcent){
       METRIS_ASSERT(!isdeadent(icent,ent2poi));
 
-      // Doesn't change but easy to get it here 
+      // Doesn't change but easy to get it here
       for(int ive2 = 0; ive2 < msh.get_tdim() + 1; ive2 ++){
         int ipins = ent2poi(icent,ive2);
         if(ipins == ipcol) continue;
@@ -179,7 +179,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
 
         // Check ipins has same (or lower) topological dimension as ipcol
         // e.g. a triangle point can be collapsed and reconnection done to an edge
-        // point, but not to a volume point. 
+        // point, but not to a volume point.
         if(msh.getpoitdim(ipins) > tdimp[iver]){
           CPRINTF1(" - point {} dim {} > ipins dim {} -> reject reconnection\n",
             ipins,msh.getpoitdim(ipins),tdimp[iver]);
@@ -187,13 +187,13 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
         }
 
         // Check ipins has same ref in topo dim of ipcol.
-        // Counter-example: a boundary point, ball's boundary hits other surface refs. 
+        // Counter-example: a boundary point, ball's boundary hits other surface refs.
         // This does not happen in the volume. Indeed, if a point's ball
         // has two domain refs, then the point itself has two domain refs.
-        // Hence it was actually a boundary point. 
+        // Hence it was actually a boundary point.
         if(tdimp[iver] < msh.get_tdim()){
           // As we never collapse a corner, the point's tdim is >= 1.
-          // Hence it has a unique ref to the lowest dim entity group. 
+          // Hence it has a unique ref to the lowest dim entity group.
           METRIS_ASSERT(cav.lcent(tdimp[iver]).get_n() > 0);
           int iref = msh.ent2ref(tdimp[iver])[cav.lcent(tdimp[iver])[0]];
           #ifndef NDEBUG
@@ -237,8 +237,8 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
 
         cav.ipins = ipins;
         cav.lctet.set_n(nbalt);
-        cav.lcfac.set_n(nbalf); // Revert to simple ball 
-        cav.lcedg.set_n(nbale); // Revert 
+        cav.lcfac.set_n(nbalf); // Revert to simple ball
+        cav.lcedg.set_n(nbale); // Revert
         CPRINTF1(" - try reinsert point {} tag = {} vs {} \n",
                              ipins,msh.poi2tag(ithrd1,ipins),tag0);
 
@@ -266,7 +266,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
           msh.poi2ent(ipcol,1) = -1;
         }
         if(msh.param->dbgfull){
-          check_topo(msh, msh.nbpoi, msh.npoin, msh.nedge, msh.nface, msh.nelem, ithrd2); 
+          check_topo(msh, msh.nbpoi, msh.npoin, msh.nedge, msh.nface, msh.nelem, ithrd2);
         }
         if(info.done) return 0;
 
@@ -286,19 +286,19 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
   return 1;
 }
 
-template int collapseEdge2<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
-                                          int tdim, int ientt, int iedl, double qmax_suf, 
-                                          MshCavity &cav, CavWrkArrs &work, 
+template int collapseEdge2<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh,
+                                          int tdim, int ientt, int iedl, double qmax_suf,
+                                          MshCavity &cav, CavWrkArrs &work,
                                           intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
-template int collapseEdge2<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
-                                          int tdim, int ientt, int iedl, double qmax_suf, 
-                                          MshCavity &cav, CavWrkArrs &work, 
+template int collapseEdge2<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh,
+                                          int tdim, int ientt, int iedl, double qmax_suf,
+                                          MshCavity &cav, CavWrkArrs &work,
                                           intAr1 &lerro, int ithrd1, int ithrd2, int ithrd3);
 
 
 template<class MFT>
-int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf, 
-                   MshCavity &cav, CavWrkArrs &work, 
+int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
+                   MshCavity &cav, CavWrkArrs &work,
                    intAr1 &lerro, int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
 
@@ -309,8 +309,8 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
   cav.reset();
   cav.inewp = 0;
 
-  CavOprOpt  opts;
-  CavOprInfo info;
+  CavOprOpt  opts{};
+  CavOprInfo info{};
   opts.allow_topological_correction = true; // To fetch missing edges
   opts.skip_topo_checks = false;
   opts.allow_remove_points = true;
@@ -346,7 +346,7 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
   int tag0 = msh.tag[ithrd1]; // We'll reuse the tag for elements in subroutines
 
   // We'll stack on top of the ball, so we need to be able to prune to nbalf
-  // with each attempt, as well as restrict search of ipins to ball 
+  // with each attempt, as well as restrict search of ipins to ball
   int nbalt = cav.lctet.get_n();
   int nbalf = cav.lcfac.get_n();
   int nbale = cav.lcedg.get_n();
@@ -358,7 +358,7 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
   for(int icent : lcent){
     METRIS_ASSERT(!isdeadent(icent,ent2poi));
 
-    // Doesn't change but easy to get it here 
+    // Doesn't change but easy to get it here
     for(int ive2 = 0; ive2 < tdim + 1; ive2 ++){
       int ipins = ent2poi(icent,ive2);
       if(ipins == ipcol) continue;
@@ -369,8 +369,8 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
 
       cav.ipins = ipins;
       cav.lctet.set_n(nbalt);
-      cav.lcfac.set_n(nbalf); // Revert to simple ball 
-      cav.lcedg.set_n(nbale); // Revert 
+      cav.lcfac.set_n(nbalf); // Revert to simple ball
+      cav.lcedg.set_n(nbale); // Revert
       CPRINTF1(" - try reinsert point {} tag = {} vs {} \n",
                            ipins,msh.poi2tag(ithrd1,ipins),tag0);
 
@@ -406,13 +406,13 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
 
 
 
-template int collapseVertex<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, 
-                   int ipcol, double qmax_suf, 
-                   MshCavity &cav, CavWrkArrs &work, 
+template int collapseVertex<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh,
+                   int ipcol, double qmax_suf,
+                   MshCavity &cav, CavWrkArrs &work,
                    intAr1 &lerro, int ithrd1, int ithrd2);
-template int collapseVertex<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, 
-                   int ipcol, double qmax_suf, 
-                   MshCavity &cav, CavWrkArrs &work, 
+template int collapseVertex<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh,
+                   int ipcol, double qmax_suf,
+                   MshCavity &cav, CavWrkArrs &work,
                    intAr1 &lerro, int ithrd1, int ithrd2);
 
 
