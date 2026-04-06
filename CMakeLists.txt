@@ -49,7 +49,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 
 include(cmake/BuildType.cmake)
 include(cmake/MetrisFlags.cmake)
- 
+
 
 # These are system-wide install paths only:
 set(METRIS_EXTERNAL_INCLUDE_DIRS "")
@@ -58,13 +58,13 @@ add_library(metris_deps INTERFACE)
 
 find_package(Git REQUIRED)
 execute_process(COMMAND ${GIT_EXECUTABLE} config --get remote.origin.url
-                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} 
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                 OUTPUT_VARIABLE GITURL
                 ERROR_QUIET
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 execute_process(COMMAND ${GIT_EXECUTABLE} branch --show-current
-                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR} 
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
                 OUTPUT_VARIABLE GIT_BRANCH
                 ERROR_QUIET
                 OUTPUT_STRIP_TRAILING_WHITESPACE)
@@ -158,7 +158,7 @@ add_executable(egads2lite EXCLUDE_FROM_ALL "progs/EGADS2lite.cxx")
 set_target_properties(metris PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 
-target_link_libraries(metris PUBLIC libMetris 
+target_link_libraries(metris PUBLIC libMetris
                                     Boost::headers # yes this is weird
                                     ${Boost_LIBRARIES}
                                     )
@@ -168,7 +168,7 @@ target_link_libraries(metris PUBLIC libMetris
 #  #target_link_libraries(metris PUBLIC PETSc)
 #endif()
 
-target_link_libraries(egads2lite PUBLIC libMetris 
+target_link_libraries(egads2lite PUBLIC libMetris
                                         Boost::headers # yes this is weird
                                         ${Boost_LIBRARIES}
                                         )
@@ -176,7 +176,7 @@ target_link_libraries(egads2lite PUBLIC libMetris
 #For some reason, not specifying the full path does not work for EXISTS
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/scatter_rh.cxx)
   add_executable(scatter_rh EXCLUDE_FROM_ALL "progs/scatter_rh.cxx")
-  target_link_libraries(scatter_rh PUBLIC libMetris 
+  target_link_libraries(scatter_rh PUBLIC libMetris
                                           Boost::headers # yes this is weird
                                           ${Boost_LIBRARIES}
                                           )
@@ -187,7 +187,7 @@ endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/extract_surf.cxx)
   add_executable(extract_surf EXCLUDE_FROM_ALL "progs/extract_surf.cxx")
-  target_link_libraries(extract_surf PUBLIC libMetris 
+  target_link_libraries(extract_surf PUBLIC libMetris
                                             Boost::headers # yes this is weird
                                             ${Boost_LIBRARIES}
                                             )
@@ -196,9 +196,20 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/extract_surf.cxx)
   setMetrisCXXFlags(extract_surf PUBLIC)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/meshStats.cxx)
+  add_executable(meshStats EXCLUDE_FROM_ALL "progs/meshStats.cxx")
+  target_link_libraries(meshStats PUBLIC    libMetris
+                                            Boost::headers # yes this is weird
+                                            ${Boost_LIBRARIES}
+                                            )
+  target_include_directories(meshStats PRIVATE  "."
+                             ${ESP_ROOT}/include)
+  setMetrisCXXFlags(meshStats PUBLIC)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/offset_coord.cxx)
   add_executable(offset_coord EXCLUDE_FROM_ALL "progs/offset_coord.cxx")
-  target_link_libraries(offset_coord PUBLIC libMetris 
+  target_link_libraries(offset_coord PUBLIC libMetris
                                             Boost::headers # yes this is weird
                                             ${Boost_LIBRARIES}
                                             )
@@ -208,7 +219,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/offset_coord.cxx)
 endif()
 
 # Note on includes: the src lib target (libMetris) already includes publicly everything that we need
-# The main.cxx itself only needs main.hxx additionally. 
+# The main.cxx itself only needs main.hxx additionally.
 target_include_directories(metris PRIVATE "progs/main.hxx"
                                   PUBLIC ${METRIS_DEPS_INCLUDE_DIRS}
                                   )
@@ -269,14 +280,14 @@ if(NOT DEFINED METRIS_BUILD_CORES)
 endif()
 
 # -- Get the required meshes by reading bunit/test_ files
-# Uses TEST_SOURCES 
+# Uses TEST_SOURCES
 include(cmake/FindUnitTestMeshes.cmake)
 # We can now concatenate TEST_SOURCES and TEST_REG_SOURCES
 set(TEST_SOURCES ${TEST_SOURCES} ${TEST_REG_SOURCES})
 
 #add_custom_command(OUTPUT ${METRIS_UNIT_TEST_MESHES}
 #                   DEPENDS metris
-#                   COMMAND ${CMAKE_COMMAND} -E env 
+#                   COMMAND ${CMAKE_COMMAND} -E env
 #                           METRIS_CASES_DIR=${METRIS_CASES_DIR}
 #                           ${METRIS_CASES_DIR}/gen_cases.sh)
 #add_custom_target(deploy_cases DEPENDS ${METRIS_UNIT_TEST_MESHES})
@@ -313,9 +324,9 @@ foreach(test_file ${TEST_SOURCES})
                                                          METRIS_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
                                                          )
                                                         # METRIS_REGRESSION_DIR="${METRIS_REGRESSION_DIR}"
-                                                         
+
   target_link_libraries(${test_target_build} PUBLIC ${Boost_UNIT_TEST_FRAMEWORK_LIBRARY})
-  target_link_libraries(${test_target_build} PUBLIC libMetris 
+  target_link_libraries(${test_target_build} PUBLIC libMetris
                                                     metris_deps
                                                     Boost::headers # yes this is weird
                                                     ${Boost_LIBRARIES}
@@ -325,12 +336,12 @@ foreach(test_file ${TEST_SOURCES})
 
   #add_custom_target(${test_target}
   #    DEPENDS ${test_target_build}
-  #    COMMAND $<TARGET_FILE:${test_target_build}> 
+  #    COMMAND $<TARGET_FILE:${test_target_build}>
   #)
 
-  
 
-  # Note: CMake uses regexp, not  bash-style globs. 
+
+  # Note: CMake uses regexp, not  bash-style globs.
   # Hence _* would match to any number of '_', but not to any number of any characters...
   if(test_target MATCHES "^test_.*")
     list(APPEND METRIS_TARGET_UNIT_TESTS_BUILD ${test_target_build})
@@ -339,7 +350,7 @@ foreach(test_file ${TEST_SOURCES})
              WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
             )
 
-    # Doing add_test(toto) doesn't create a toto target 
+    # Doing add_test(toto) doesn't create a toto target
     # that we can add deps to. Instead, we should use fixtures.
     set_tests_properties(${test_target} PROPERTIES
                          FIXTURES_REQUIRED "unit_build_and_deploy"
@@ -436,7 +447,7 @@ if(METRIS_INSTALL)
     list(GET dep_parts 1 dep_name)
     list(GET dep_parts 2 dep_components)
     message( "dep_type = ${dep_type}, dep_name = ${dep_name}, dep_components = ${dep_components}")
-    
+
     if(dep_type STREQUAL "find_package")
       if(dep_components)
         string(APPEND METRIS_DEPS_EXPORT_CODE "find_dependency(${dep_name} COMPONENTS ${dep_components})\n")
