@@ -22,7 +22,7 @@ namespace Metris{
 std::tuple<int,int,int> stup3(int i1,int i2,int i3);
 
 // Get the points surrounding a point, among dimension tdim elements.
-// Optionally fills lbent the ball of ipoin. 
+// Optionally fills lbent the ball of ipoin.
 int poi2poi(MeshBase& msh, int ipoin, int tdim, intAr1 &lpoin, intAr1 *lbent, int ithrd1){
   GETVDEPTH(msh.param);
 
@@ -53,7 +53,7 @@ int poi2poi(MeshBase& msh, int ipoin, int tdim, intAr1 &lpoin, intAr1 *lbent, in
   intAr1 *lbent_ = lbent;
   if(lbent == NULL){
     lbent_ = tdim == 1 ? &lbedg :
-             tdim == 2 ? &lbfac : &lbtet; 
+             tdim == 2 ? &lbfac : &lbtet;
   }else{
     CPRINTF1(" - using provided lbent with size {}\n",
              lbent_->get_n());
@@ -75,7 +75,7 @@ void poi2poi(MeshBase& msh, int ipoin, int tdim, const intAr1 &lbent, intAr1 &lp
 
   const int nnode = getnnode(tdim,msh.curdeg);
 
-  
+
   CPRINTF1("-- START poi2poi lbent.n = {}\n",lbent.get_n());
 
   msh.tag[ithrd1]++;
@@ -94,7 +94,7 @@ void poi2poi(MeshBase& msh, int ipoin, int tdim, const intAr1 &lbent, intAr1 &lp
 }
 
 // lbedg, lbfac and lbtet can be size 0 (allocated to 0)
-// in that case, they will not be filled. 
+// in that case, they will not be filled.
 int ball(MeshBase& msh, int ipoin,
          intAr1 &lbedg, intAr1 &lbfac, intAr1 &lbtet,
          int *iopen, bool append, int ithrd){
@@ -127,7 +127,7 @@ int ball(MeshBase& msh, int ipoin,
   }
 
   // In this case, we have boundary info that we can use.
-  if(pdim < msh.idim && (  (doedg && msh.isboundary_edges()) 
+  if(pdim < msh.idim && (  (doedg && msh.isboundary_edges())
                         || (dofac && msh.isboundary_faces())) ){
     int iedg0;
     for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
@@ -200,7 +200,7 @@ int ball(MeshBase& msh, int ipoin,
              lbedg.get_n(), lbfac.get_n());
   }
 
-  // Edges will always have been filled by the previous case. 
+  // Edges will always have been filled by the previous case.
   // Faces are filled if the point is dim 1 and the mesh is dim 3
   if(!dotet && pdim <= 1 && msh.idim == 3) return 0;
 
@@ -253,7 +253,7 @@ int ball(MeshBase& msh, int ipoin,
 
     intAr1 &lbent = tdim == 2 ? lbfac : lbtet;
     METRIS_ASSERT_MSG(lbent.get_n() > 0, "lbent is empty with "
-      "tdim = {} do_edge = {} do_face = {} do_tetra = {}", 
+      "tdim = {} do_edge = {} do_face = {} do_tetra = {}",
       tdim, doedg, dofac, dotet);
 
     ent2tag(ithrd, lbent[0]) = msh.tag[ithrd];
@@ -291,7 +291,7 @@ int ball(MeshBase& msh, int ipoin,
         // Lastly ient2 < -1 only if tdim == 2, non manifold case
         METRIS_ASSERT(tdim == 2);
 
-        // If one has been seen, all nm faces have been seen. 
+        // If one has been seen, all nm faces have been seen.
         if(msh.fac2tag(ithrd,-ient2-2) >= msh.tag[ithrd]) continue;
 
         int ip1 = msh.fac2poi(ientt,lnoed2[inei][0]);
@@ -299,7 +299,7 @@ int ball(MeshBase& msh, int ipoin,
         int ied2 = inei;
         int ifac3 = ientt;
         while(getnextfacnm(msh,ientt,ip1,ip2,&ifac3,&ied2)){
-          // If a nm face has been seen, all should have been seen. 
+          // If a nm face has been seen, all should have been seen.
           METRIS_ASSERT(msh.fac2tag(ithrd,ifac3) < msh.tag[ithrd]);
           lbfac.stack(ifac3);
           msh.fac2tag(ithrd,ifac3) = msh.tag[ithrd];
@@ -342,7 +342,7 @@ int shell(MeshBase& msh, int ipoi1, int ipoi2,
   }
 
   // In this case, we have boundary info that we can use.
-  if(pdim < msh.idim && (  doedg && msh.isboundary_edges() 
+  if(pdim < msh.idim && (  doedg && msh.isboundary_edges()
                         || dofac && msh.isboundary_faces()) ){
     for(int ibpoi = msh.poi2bpo[ipoin]; ibpoi >= 0; ibpoi = msh.bpo2ibi(ibpoi,3)){
       int tdim = msh.bpo2ibi(ibpoi,1);
@@ -365,12 +365,12 @@ int shell(MeshBase& msh, int ipoi1, int ipoi2,
 
 
 
-// Basic manifold ball, disregarding internal faces. 
+// Basic manifold ball, disregarding internal faces.
 // lball(:,0) stores elements
 // lball(:,1) stores rank of point in elements
 int ball3(MeshBase& __restrict__ msh,
-           int ipoin    , int iele0, 
-           intAr1& lball, 
+           int ipoin    , int iele0,
+           intAr1& lball,
            int* __restrict__ iopen,
            int ithrd){
 	int iball,ielem,i,iele2;
@@ -391,14 +391,14 @@ int ball3(MeshBase& __restrict__ msh,
 		if(msh.tet2poi(iele0,i) == ipoin) break;
 	}
 
-  lball.set_n(0); 
-  lball.stack(iele0); 
+  lball.set_n(0);
+  lball.stack(iele0);
 	msh.tet2tag(ithrd,iele0) = msh.tag[ithrd];
 
 	iball = 0;
 	while(iball < lball.get_n()){
 		ielem = lball[iball];
-    int iver = msh.getvertet<1>(ielem, ipoin); 
+    int iver = msh.getvertet<1>(ielem, ipoin);
 
 		assert("Ball element is alive " && !isdeadent(ielem,msh.tet2poi));
 
@@ -421,8 +421,8 @@ int ball3(MeshBase& __restrict__ msh,
 			if(msh.tet2tag(ithrd,iele2) >= msh.tag[ithrd]) continue;
       msh.tet2tag(ithrd,iele2) = msh.tag[ithrd];
 
-//    Add to stack 
-      lball.stack(iele2); 
+//    Add to stack
+      lball.stack(iele2);
 		}
 
 
@@ -434,13 +434,13 @@ int ball3(MeshBase& __restrict__ msh,
 
 
 // This version also gathers internal faces to the ball (including boundary if open)
-// Does not gather edges. 
+// Does not gather edges.
 void ball3_nm(MeshBase& __restrict__ msh,
-              int ipoin  ,int iele0, 
+              int ipoin  ,int iele0,
               int* __restrict__ nball_,
               int* __restrict__ nbfac_,
               intAr1&           lball,
-              [[maybe_unused]] intAr1&           lbfac, 
+              [[maybe_unused]] intAr1&           lbfac,
               int* __restrict__ iopen,
               int ithread){
 	int iball,ielem,i,iele2,nball,nbfac;
@@ -469,7 +469,7 @@ void ball3_nm(MeshBase& __restrict__ msh,
 	iball = 0;
 	while(iball < nball){
 		ielem = lball[iball];
-    int iver = msh.getvertet<1>(ielem, ipoin); 
+    int iver = msh.getvertet<1>(ielem, ipoin);
 
 		assert("Ball element is alive " && !isdeadent(ielem,msh.tet2poi));
 
@@ -481,11 +481,11 @@ void ball3_nm(MeshBase& __restrict__ msh,
 			//// The array was devised to avoid unnecessary hash table lookups
 			//if(msh.tet2ftg[ielem]){
 			//	int iface = msh.tetfac2glo(ielem,i);
-			//	if(iface < 0 || iface >= msh.nface) 
+			//	if(iface < 0 || iface >= msh.nface)
 			//		METRIS_THROW_MSG("Face missing or invalid in hash tab "<<iface<<"\n");
-      //  nbfac++; 
+      //  nbfac++;
 			//	METRIS_ASSERT(nbfac <= lbfac.size1());
-			//	lbfac[nbfac-1] = iface; 
+			//	lbfac[nbfac-1] = iface;
 			//}
 
 			iele2 = msh.tet2tet(ielem,i);
@@ -523,13 +523,13 @@ void ball3_nm(MeshBase& __restrict__ msh,
 // Seed can be any: edge, triangle or tetra
 void ball3_full([[maybe_unused]] MeshBase& __restrict__ msh,
                 [[maybe_unused]] int ipoin  ,
-                [[maybe_unused]] int tdimn, 
-                [[maybe_unused]] int iseed, 
+                [[maybe_unused]] int tdimn,
+                [[maybe_unused]] int iseed,
                 [[maybe_unused]] int* __restrict__ nbtet,
                 [[maybe_unused]] int* __restrict__ nbfac,
                 [[maybe_unused]] int* __restrict__ nbedg,
                 [[maybe_unused]] intAr1&           lbtet,
-                [[maybe_unused]] intAr1&           lbfac, 
+                [[maybe_unused]] intAr1&           lbfac,
                 [[maybe_unused]] intAr1&           lbedg,
                 [[maybe_unused]] int ithread){
 
@@ -565,19 +565,19 @@ void ball3_full([[maybe_unused]] MeshBase& __restrict__ msh,
     if(msh.isboundary_faces()) METRIS_ASSERT(ibpoi >= 0);
     // This will probably always hold but just in case, this is an assumption
     METRIS_ASSERT(msh.isboundary_edges());
-    // Unroll poi2bpo, we get the edges for free. 
-    #ifndef NDEBUG 
-      // Just in case, we'll check for duplicates. 
+    // Unroll poi2bpo, we get the edges for free.
+    #ifndef NDEBUG
+      // Just in case, we'll check for duplicates.
       msh.tag[ithread]++;
     #endif
     int ibpo2 = ibpoi;
     do{
-      int itype = msh.bpo2ibi(ibpo2,1); 
+      int itype = msh.bpo2ibi(ibpo2,1);
       int ientt = msh.bpo2ibi(ibpo2,2);
       METRIS_ASSERT(ientt >= 0);
       if(itype == 1){
         if(*nbedg >= lbedg.n) METRIS_THROW_MSG("Increase lbedg.ne")
-        #ifndef NDEBUG 
+        #ifndef NDEBUG
           METRIS_ASSERT(msh.edg2tag(ithread,ientt) < msh.tag[ithread]);
           msh.edg2tag(ithread,ientt) = msh.tag[ithread];
         #endif
@@ -585,7 +585,7 @@ void ball3_full([[maybe_unused]] MeshBase& __restrict__ msh,
         (*nbedg)++;
       }else if(itype == 2){
         if(*nbfac >= lbfac.n) METRIS_THROW_MSG("Increase lbfac.ne")
-        #ifndef NDEBUG 
+        #ifndef NDEBUG
           METRIS_ASSERT(msh.fac2tag(ithread,ientt) < msh.tag[ithread]);
           msh.fac2tag(ithread,ientt) = msh.tag[ithread];
         #endif
@@ -605,21 +605,21 @@ void ball3_full([[maybe_unused]] MeshBase& __restrict__ msh,
     return;
   }else{
     METRIS_THROW_MSG("TODO: eleme ball3 not implemented")
-    iele0 = iseed;    
+    iele0 = iseed;
   }
   */
 }
 
 
 
-// Can handle non manifold meshes. 
+// Can handle non manifold meshes.
 // imani returns wheter manifold (true) or non-manifold (false)
-// 
-// lbfac only stores iface, not the index. Just call getverfac if needed. 
-// 
-// If lbedg.n > 0, gather internal edges + bdry if iopen 
+//
+// lbfac only stores iface, not the index. Just call getverfac if needed.
+//
+// If lbedg.n > 0, gather internal edges + bdry if iopen
 int ball2(MeshBase& __restrict__ msh,
-          int ipoin  ,int ifac0, 
+          int ipoin  ,int ifac0,
           intAr1&           lbfac,
           intAr1&           lbedg,
           int* __restrict__ iopen,
@@ -634,7 +634,7 @@ int ball2(MeshBase& __restrict__ msh,
                   ||ipoin == msh.fac2poi(ifac0,2),"Sought point is inside element");
   METRIS_ASSERT_MSG(!isdeadent(ifac0,msh.fac2poi),"Input iface alive");
 
-  *imani = true; 
+  *imani = true;
 
   lbfac.set_n(0);
   lbedg.set_n(0);
@@ -659,8 +659,8 @@ int ball2(MeshBase& __restrict__ msh,
   }
 
 
-  // If the point is only attached to triangles, we have to do it 
-  // the usual way. 
+  // If the point is only attached to triangles, we have to do it
+  // the usual way.
   msh.tag[ithread] += 1;
   *iopen = 0;
 
@@ -684,7 +684,7 @@ int ball2(MeshBase& __restrict__ msh,
     for(int ied = 0; ied < 3; ied++){
 
       // Edge opposite to ipoin does not contain ipoin !
-      if(msh.fac2poi(iface,ied) == ipoin) continue; 
+      if(msh.fac2poi(iface,ied) == ipoin) continue;
 
       ifac2 = msh.fac2fac(iface,ied);
 
@@ -695,7 +695,7 @@ int ball2(MeshBase& __restrict__ msh,
       if(ifac2 < -1){
         *imani = false;
         // Non-manifold case
-        // This is where we'd glean the edges if we wanted them. 
+        // This is where we'd glean the edges if we wanted them.
         int ied2 = ied;
         int ifac3 = iface;
         while(getnextfacnm(msh,iface,ip1,ip2,&ifac3,&ied2)){
@@ -728,22 +728,22 @@ int ball2(MeshBase& __restrict__ msh,
           METRIS_ASSERT(iedge >= 0);
           if(msh.edg2tag(ithread,iedge) < msh.tag[ithread]){
             msh.edg2tag(ithread,iedge) = msh.tag[ithread];
-            lbedg.stack(iedge); 
+            lbedg.stack(iedge);
           }
         }
         continue;
       }
 
 
-      // There can be an edge between two triangles ! 
-      // Why is this not after the next continue? Because while the next face 
+      // There can be an edge between two triangles !
+      // Why is this not after the next continue? Because while the next face
       // may not be new, the edge may be first time seen !
       if(lbedg.size1() > 0){
         int iedge = getedgglo(msh,ip1,ip2);
         if(iedge >= 0){
           if(msh.edg2tag(ithread,iedge) < msh.tag[ithread]){
             msh.edg2tag(ithread,iedge) = msh.tag[ithread];
-            lbedg.stack(iedge); 
+            lbedg.stack(iedge);
           }
         }
       }
@@ -772,15 +772,15 @@ int ball2(MeshBase& __restrict__ msh,
 
 
 ///*
-//Shell3 was taking over half the time in degree elevate by this point. 
+//Shell3 was taking over half the time in degree elevate by this point.
 //Runtime on medium.meshb: 8.9S
 //Adding __restrict__ to every variable here dropped that to 7.9s !
-//Unfortunately, GCC doesn't seem to support generalized restrict as 
-//a compiler option. 
-//ICC has -fno-alias we can use. 
+//Unfortunately, GCC doesn't seem to support generalized restrict as
+//a compiler option.
+//ICC has -fno-alias we can use.
 //
 //Note: we don't need to keep the edge that has ip1, ip2 because we're never looping on edges.
-//Reduce storage and only compute if needed (outside). 
+//Reduce storage and only compute if needed (outside).
 //*/
 //
 //int shell3(int npoin  ,int nelem  ,
@@ -853,8 +853,8 @@ int ball2(MeshBase& __restrict__ msh,
 // Store boundary elements in lbdry if provided with non-zero allocation
 // does not support non-manifold -> only faces are on the boundary
 void shell(const MeshBase& msh,
-           int ipoi1, int ipoi2, 
-           int tdim , int iele0, 
+           int ipoi1, int ipoi2,
+           int tdim , int iele0,
            intAr1& lsedg, intAr1& lsfac, intAr1& lstet, int* iopen){
 
   METRIS_ASSERT(tdim >= 1 && tdim <= 3);
@@ -901,14 +901,14 @@ void shell(const MeshBase& msh,
   ibdry = msh.poi2bpo[ipoi1] >= 0 && msh.poi2bpo[ipoi2] >= 0;
 
 
-  // Seed edge. We need this only if doedg is true. 
-  // Both in cases 2D and 3D, this can be an edge only if 
+  // Seed edge. We need this only if doedg is true.
+  // Both in cases 2D and 3D, this can be an edge only if
   // ipoi1 and ipoi2 are both boundary.
   if(doedg && ibdry){
     iedg0 = getedgglo(msh,ipoi1,ipoi2);
     CPRINTF1(" - looking for edge {} {} -> got {}\n",ipoi1,ipoi2,iedg0);
   }
-  // Either seeded or provided as argument, the only possible shell edge: 
+  // Either seeded or provided as argument, the only possible shell edge:
   if(iedg0 >= 0) lsedg.stack(iedg0);
 
   // Seed face. We need this only if:
@@ -920,11 +920,11 @@ void shell(const MeshBase& msh,
     }
     // if iedg0 < 0, we are necessarily in case tdim == 3
     // we can't discover the face by using just the seed tetrahedron, it could
-    // be interior to an open ball. Hence we delay. 
+    // be interior to an open ball. Hence we delay.
   }
 
-  // Seed tetra. At this stage, if tdim was originally 1, we have ifac0. 
-  // If it was originally 2, we also have ifac0. 
+  // Seed tetra. At this stage, if tdim was originally 1, we have ifac0.
+  // If it was originally 2, we also have ifac0.
   if(itet0 < 0 && dotet){
     itet0 = msh.fac2tet(ifac0,0);
     if(itet0 < 0) itet0 = msh.fac2tet(ifac0,1);
@@ -932,16 +932,16 @@ void shell(const MeshBase& msh,
   }
 
   // Fill triangle shell
-  // If tdim == 3 and iedg0 < 0, we do not have a face seed yet. 
+  // If tdim == 3 and iedg0 < 0, we do not have a face seed yet.
   // If dotet, do nothing as we'll gather the faces naturally with the tet shell.
-  // Otherwise, try filling using boundary info. 
-  // If not ibdry, there is no shell in case tdim == 3 which assumes idim == 3. 
+  // Otherwise, try filling using boundary info.
+  // If not ibdry, there is no shell in case tdim == 3 which assumes idim == 3.
   if(ifac0 < 0 && dofac && !dotet && ibdry){
     METRIS_ASSERT(tdim == 3);
     METRIS_THROW_MSG("TODO: Implement nm / surf shell in case tet seed and no tet shell")
   }else if(dofac && !dotet){
     METRIS_ASSERT(ifac0 >= 0);
-    // 2D case 
+    // 2D case
     lsfac.stack(ifac0);
 
     int ied = getedgfac(msh,ifac0,ipoi1,ipoi2);
@@ -962,7 +962,7 @@ void shell(const MeshBase& msh,
     while(getnextfacnm(msh,ifac0,ipoi1,ipoi2,&ifac1,&ied)){
       lsfac.stack(ifac1);
     }
-    
+
     goto endfun;
   }
 
@@ -975,7 +975,7 @@ void shell(const MeshBase& msh,
 
   METRIS_ASSERT(itet0 >= 0);
   lstet.stack(itet0);
-  
+
 
   for(int ifa = 0; ifa < 4; ifa++){
     int ip = msh.tet2poi(itet0,ifa);
@@ -984,16 +984,16 @@ void shell(const MeshBase& msh,
     int iele2 = msh.tet2tet(itet0,ifa);
     int iele1 = itet0;
     int ifa1  = ifa;
-    // Only two faces remain after this check. 
+    // Only two faces remain after this check.
     // Unroll shell from either side untill hitting itet0 or boundary.
-    // If itet0 hit, shell finished. Otherwise, repeat with second face. 
+    // If itet0 hit, shell finished. Otherwise, repeat with second face.
     while(iele2 >= 0 && iele2 != itet0){
       INCVDEPTH(msh.param);
       lstet.stack(iele2);
       CPRINTF1(" - check iele2 = {} \n",iele2);
 
       for(int ifa2 = 0; ifa2 < 4; ifa2++){
-        int ipoin = msh.tet2poi(iele2,ifa2); 
+        int ipoin = msh.tet2poi(iele2,ifa2);
         if(ipoin == ipoi1 || ipoin == ipoi2) continue;
 
         int itmp = msh.tet2tet(iele2,ifa2);
@@ -1001,7 +1001,7 @@ void shell(const MeshBase& msh,
 
         ifa1  = ifa2;
         iele1 = iele2;
-        iele2 = itmp; 
+        iele2 = itmp;
         break;
       }
     }
@@ -1034,7 +1034,7 @@ void shell(const MeshBase& msh,
 // Store boundary elements in lbdry if provided with non-zero allocation
 // does not support non-manifold -> only faces are on the boundary
 void shell3(const MeshBase& msh,
-	          int ipoi1, int ipoi2, int iele0, 
+	          int ipoi1, int ipoi2, int iele0,
         	  intAr1& lshell, intAr1& lbdry, int* iopen){
 
 	METRIS_ASSERT_MSG(iele0 >= 0 && iele0 < msh.nelem, "Input iele0 within bounds");
@@ -1063,16 +1063,19 @@ void shell3(const MeshBase& msh,
 		int iele2 = msh.tet2tet(iele0,ifa);
 		int iele1 = iele0;
     int ifa1  = ifa;
-		// Only two faces remain after this check. 
+
+    // Only two faces remain after this check.
 		// Unroll shell from either side untill hitting iele0 or boundary.
-		// If iele0 hit, shell finished. Otherwise, repeat with second face. 
+		// If iele0 hit, shell finished. Otherwise, repeat with second face.
 		while(iele2 >= 0 && iele2 != iele0){
       INCVDEPTH(msh.param);
+      if (isdeadent(iele2,msh.ent2poi(3))) METRIS_THROW_MSG("shell3 visited dead tet! Should never happen");
       lshell.stack(iele2);
       CPRINTF1(" - check iele2 = {} \n",iele2);
 
 			for(int ifa2 = 0; ifa2 < 4; ifa2++){
-				int ipoin = msh.tet2poi(iele2,ifa2); 
+				int ipoin = msh.tet2poi(iele2,ifa2);
+
 				if(ipoin == ipoi1 || ipoin == ipoi2) continue;
 
 				int itmp = msh.tet2tet(iele2,ifa2);
@@ -1080,7 +1083,7 @@ void shell3(const MeshBase& msh,
 
         ifa1  = ifa2;
 				iele1 = iele2;
-				iele2 = itmp; 
+				iele2 = itmp;
 				break;
 			}
 		}
@@ -1100,14 +1103,14 @@ void shell3(const MeshBase& msh,
 
 
 
-// Gather triangles surrounding edge. 
+// Gather triangles surrounding edge.
 // There is no need to merge this with shell3 as we'll be operating
 // completely differently. We'll be using non-manifold neighbours directly,
 // rather than asking the hash table if there's a triangle stuffed
-// between two tets. 
-// shell2 cannot be open or closed. 
+// between two tets.
+// shell2 cannot be open or closed.
 void shell2_nm(const MeshBase& msh,
-	            int iedge, 
+	            int iedge,
         	    intAr1&           lshell){
   METRIS_ASSERT(iedge >= 0 && iedge < msh.nedge);
 
@@ -1121,14 +1124,14 @@ void shell2_nm(const MeshBase& msh,
 
 	int iface = msh.edg2fac[iedge];
 	assert(iface >= 0 && iface < msh.nface);
-  lshell.stack(iface); 
+  lshell.stack(iface);
 
 	int ied   = getedgfac(msh,iface,ip1,ip2);
 	assert(ied >= 0);
 
 	int ifac2 = iface;
 	while(getnextfacnm(msh,iface,ip1,ip2,&ifac2,&ied)){
-    lshell.stack(ifac2); 
+    lshell.stack(ifac2);
 	}
 }
 
@@ -1136,7 +1139,7 @@ void shell2_nm(const MeshBase& msh,
 
 // Same as previous but start from a triangle and local edge index iedl
 void shell2_nm(const MeshBase& msh,
-               int iface, 
+               int iface,
                int iedl,
                intAr1&           lshell){
   METRIS_ASSERT(iface >= 0 && iface < msh.nface);
@@ -1147,11 +1150,11 @@ void shell2_nm(const MeshBase& msh,
   int ip2 = msh.fac2poi(iface,lnoed2[iedl][1]);
 
   lshell.set_n(0);
-  lshell.stack(iface); 
+  lshell.stack(iface);
 
   int ifac2 = iface;
   while(getnextfacnm(msh,iface,ip1,ip2,&ifac2,&iedl)){
-    lshell.stack(ifac2); 
+    lshell.stack(ifac2);
   }
 }
 

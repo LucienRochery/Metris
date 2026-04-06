@@ -26,6 +26,7 @@
 #include "../utils/aux_timer.hxx"
 
 #include "../low_geo/misc.hxx"
+// #include "../low_topo.hxx"
 
 
 namespace Metris{
@@ -75,9 +76,6 @@ void MetrisRunner::adaptMesh0(int tdim){
 
   GETVDEPTH(this->param);
   Mesh<MFT> &msh = static_cast<Mesh<MFT>&>(*msh_g);
-
-
-  //METRIS_THROW(TODOExcept());
 
   // Make it an option
   const double minstat = 1.0e-12;
@@ -175,15 +173,16 @@ void MetrisRunner::adaptMesh0(int tdim){
   //double stat_prev = stat0;
   msh.tag[ithrdfro]++;
   for(int niter = 1; niter <= miter || (miter < 0 && niter < miter_max); niter++){
+
     stat0 = 0;
     double tloop0 = get_cpu_time();
-
 
     qmax_suf = qavg * MAX(10 / (niter * 1.0), 1.0);
     //qmax_suf = 1.0 - (niter - 1) / (double) miter;
     //qmax_suf = 0;
     double stat;
     // 1. Collapse short edges
+
     t0 = get_cpu_time();
     stat  = collapseShortEdges<MFT,gdim,ideg>(msh, tdim, qmax_suf, &ncoll, ithrdfro, ithrd1, ithrd2, ithrd3);
     stat0 = MAX(stat0,stat);
@@ -253,7 +252,6 @@ void MetrisRunner::adaptMesh0(int tdim){
     #endif
 
     // 3. Insert on long edges
-
 
     t0 = get_cpu_time();
     stat  = insertLongEdges<MFT,gdim,ideg>(msh, tdim, &ninser,ithrd1, ithrd2);

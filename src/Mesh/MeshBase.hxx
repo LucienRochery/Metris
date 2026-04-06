@@ -23,24 +23,24 @@
 namespace Metris{
 
 // Zero-cost wrappers for ipoin
-// Only used in set_poi2ent currently. 
+// Only used in set_poi2ent currently.
 enum class CtrlPt : int {};
 enum class Vertex : int {};
 enum class PointType {Vertex, CtrlPt};
 
 class MetricFieldFE;
 class MetricFieldAnalytical;
-class MetrisAPI; 
+class MetrisAPI;
 class MeshBase;
 class TagArray;
 
-/* N Integer Boundary Information: stride of bpo2ibi */                   
-const int nibi = 4; 
+/* N Integer Boundary Information: stride of bpo2ibi */
+const int nibi = 4;
 
 /* N Real Boundary Information: stride of bpo2rbi */
 // 0-2 U-V coordinates
-// Normals for edge / corner? 
-const int nrbi = 2; 
+// Normals for edge / corner?
+const int nrbi = 2;
 
 enum class MeshClass{MeshBase, MeshMetric, MeshBack, Mesh};
 enum class MetricClass;
@@ -61,7 +61,7 @@ enum class MeshSize{
 };
 
 class MeshBase{
-public: 
+public:
   friend class MetricFieldFE;
   friend class MetricFieldAnalytical;
   template<typename T>
@@ -93,7 +93,7 @@ public:
   void set_poi2ent(Vertex ipoin, int tdim, int ientt);
   void set_poi2ent(CtrlPt ipoin, int tdim, int ientt);
 protected:
-	intAr2  poi2ent_; // rw array internal only 
+	intAr2  poi2ent_; // rw array internal only
 public:
   inline bool isvertex(int ipoin) const {return poi2ent(ipoin,0) >= 0;}
   inline bool isctrlpt(int ipoin) const {
@@ -134,7 +134,7 @@ public:
 
   // ---- Boundary information
   CADInfo CAD; // CAD object
-	intAr1 edg2ref, fac2ref, tet2ref; // Surface/domain refs, map to CAD.cad2fac/edg. 
+	intAr1 edg2ref, fac2ref, tet2ref; // Surface/domain refs, map to CAD.cad2fac/edg.
   int ndomn; // number of tetra refs. Others are found in CAD.ncadfa, CAD.ncaded
   bool is_nonmanifold() const {return !is_manifold;} // is the domain manifold?
   // - Dimension-generic helpers:
@@ -146,25 +146,25 @@ public:
 
 
   // ---- Vertex boundary links: ipoin -> (u,v) or t CAD coordinates.
-  // Each boundary vertex has a linked list of t / (u,v) coordinates and seed information. 
-  // The entries in a given linked list are in ascending order of tdim. 
+  // Each boundary vertex has a linked list of t / (u,v) coordinates and seed information.
+  // The entries in a given linked list are in ascending order of tdim.
   // To handle periodic patches/curves:
   // - a dimension 0 point has an ibpoi per edge
   // - a dimension <= 1 point has an ibpoi per face
-  // This holds regardless of whether the surface is in fact periodic. In these cases, a vertex can have 
-  // two distinct t or (u,v) coordinates for a single CAD edge/face ref. 
+  // This holds regardless of whether the surface is in fact periodic. In these cases, a vertex can have
+  // two distinct t or (u,v) coordinates for a single CAD edge/face ref.
   intAr1  poi2bpo; // ipoin -> ibpoi (-1 if interior)
   intAr2  bpo2ibi; // ibpoi -> (ipoin, tdim, ientt, next ibpoi)
   dblAr2  bpo2rbi; // ibpoi -> t / (u,v) coordinates
   const int &nbpoi = nbpoi_;
   // - Helpers
   // Seek a ibpoi for ipoin of dim tdim that matches either ientt or, if not, then iref.
-  // Either (but not both) can be -1. 
+  // Either (but not both) can be -1.
   int poi2ebp(int ipoin, int tdim, int ientt, int iref) const; // POInt to Element Boundary Point
 
 
   // ---- Utilities
-  // - Work arrays can be manipulated like regular MeshArray1D. This tries to avoid unnecessary allocations. 
+  // - Work arrays can be manipulated like regular MeshArray1D. This tries to avoid unnecessary allocations.
   // The memory is automatically "freed" (not deallocated but allowed to be reused) when the objects are destroyed.
   // Shortcut names are intWrkAr1 and dblWrkAr1
   template<typename T>
@@ -180,13 +180,14 @@ public:
 
 
   TagArray get_tagarray(MeshSize itype);
+  void reset_tags();
 
   int tag[METRIS_MAXTAGS];
 	intAr2r tet2tag;
   intAr2  dom2tag; // tetra domain tags
 	intAr2r fac2tag;
-	intAr2r edg2tag; 
-	intAr2r poi2tag; 
+	intAr2r edg2tag;
+	intAr2r poi2tag;
   intAr2r bpo2tag;
   intAr2 cfa2tag, ced2tag, cno2tag;
 
@@ -206,14 +207,14 @@ public:
   // tet -> fac neighbours in facHshTab
   //    idem, search ip1,ip2,ip3 in tab, get iface
   // fac -> tet in fac2tet (holds both)
-  // edg -> fac in edg2fac (holds one). There can be arbitrarily many faces around a given edge. 
+  // edg -> fac in edg2fac (holds one). There can be arbitrarily many faces around a given edge.
   // edg -> tet:
   //   if ever needed: edg -> fac through edg2fac then fac2tet then shell. Or if HO, use HO node
-  // then poi2ent. 
+  // then poi2ent.
 	// Geometric edges (init as read from file)
 	// Store ip1,ip2,iedge. This is used to point to an edge from a triangle or tetrahedron
-  HshTab_I2I edgHshTab; 
-  // Similarly, used to point to a triangle from a tetrahedron. 
+  HshTab_I2I edgHshTab;
+  // Similarly, used to point to a triangle from a tetrahedron.
   HshTab_I3I facHshTab;
 
 
@@ -246,11 +247,11 @@ public:
 	void zeroArrays();
 
 	void readMeshFile(int64_t libmeshbIdx, int ithread);
-  // This destroys the data 
+  // This destroys the data
   void readMeshData(MetrisAPI &data);
 
 	void iniNeighbours();
-  // Returns nbpo0 s.t. ibpoi <= nbpo0 needs no projection. 
+  // Returns nbpo0 s.t. ibpoi <= nbpo0 needs no projection.
 	int iniBdryPoints(int ithread);
   void iniCADLink(int nbpo0);
 
@@ -270,17 +271,17 @@ public:
   int get_tdim() const;
 
 
-  // return edgHshTab (tdim = 1) or facHshTab reference 
-  template<int tdim> typename 
+  // return edgHshTab (tdim = 1) or facHshTab reference
+  template<int tdim> typename
               std::conditional<tdim==1,HshTab_I2I,HshTab_I3I>::type & hshTab();
 
 
 	// Flag whether being on an edge or triangle makes us an ibpoi
 	// Instead of checking everywhere if msh.nface > 0 || msh.nelem > 0
-	// And in case we want to change this, keep it in one place. 
+	// And in case we want to change this, keep it in one place.
 	bool isboundary_edges()const{return idim >= 2;}
 	bool isboundary_faces()const{return idim >= 3;}
-  bool isboundary_tdim(int tdim)const{return tdim == 0 ? true : 
+  bool isboundary_tdim(int tdim)const{return tdim == 0 ? true :
                                              tdim == 1 ? isboundary_edges() :
                                              tdim == 2 ? isboundary_faces() : false;}
 
@@ -291,22 +292,22 @@ protected:
   intAr1 iwork_lock, rwork_lock;
 
   // Track reference to underlying MeshArray1D
-  // of WorkArrays that track mesh sizes. 
-  // This is so we can reallocate them. 
-  MeshArray1D<intWrkAr1*> iwork_Point, 
+  // of WorkArrays that track mesh sizes.
+  // This is so we can reallocate them.
+  MeshArray1D<intWrkAr1*> iwork_Point,
                           iwork_Edge,
                           iwork_Face,
                           iwork_Tetra,
                           iwork_BPoint;
-  MeshArray1D<dblWrkAr1*> rwork_Point, 
+  MeshArray1D<dblWrkAr1*> rwork_Point,
                           rwork_Edge,
                           rwork_Face,
                           rwork_Tetra,
-                          rwork_BPoint;  
-  // Returns arrays iwork_Point, etc. 
+                          rwork_BPoint;
+  // Returns arrays iwork_Point, etc.
   MeshArray1D<intWrkAr1*> &get_iwork_tracked(MeshSize itype);
   MeshArray1D<dblWrkAr1*> &get_rwork_tracked(MeshSize itype);
-  template<typename T> 
+  template<typename T>
   auto& get_work_tracked(MeshSize itype){
     static_assert(std::is_same_v<T,int> || std::is_same_v<T,double>);
     if constexpr(std::is_same_v<T,int>) return get_iwork_tracked(itype);
@@ -315,24 +316,24 @@ protected:
 
 
   // Count how many currently tracked, so we can reset the
-  // arrays (i|r)work_Point, etc. 
+  // arrays (i|r)work_Point, etc.
   int n_iwork_tracked[(int) MeshSize::nTrackedType];
   int n_rwork_tracked[(int) MeshSize::nTrackedType];
 
-  template<typename T> 
+  template<typename T>
   constexpr auto n_work_tracked(){
     if constexpr (std::is_same_v<T,int>) return n_iwork_tracked;
     else                                 return n_rwork_tracked;
   }
 public: // for debug purposes only
-  // We are made to give it a unique name, otherwise the 
+  // We are made to give it a unique name, otherwise the
   // different scopes make this const version invisible.
-  template<typename T> 
+  template<typename T>
   constexpr const int* debug_n_work_tracked() const {
     if constexpr (std::is_same_v<T,int>) return n_iwork_tracked;
     else                                 return n_rwork_tracked;
   }
-  template<typename T> 
+  template<typename T>
   auto& debug_get_work_tracked(MeshSize itype){
     static_assert(std::is_same_v<T,int> || std::is_same_v<T,double>);
     if constexpr(std::is_same_v<T,int>) return get_iwork_tracked(itype);
@@ -340,7 +341,7 @@ public: // for debug purposes only
   }
 
 protected:
-  template<typename T> 
+  template<typename T>
   MeshArray1D<MeshArray1D<T>>& lwork_map(){
     static_assert(std::is_same<T,double>::value || std::is_same<T,int>::value);
     if constexpr(std::is_same<T, double>::value){
@@ -350,7 +351,7 @@ protected:
     }
   }
 
-  template<typename T> 
+  template<typename T>
   intAr1& lwork_lock_map(){
     static_assert(std::is_same<T,double>::value || std::is_same<T,int>::value);
     if constexpr(std::is_same<T, double>::value){
@@ -381,8 +382,8 @@ protected:
 
 public:
 
-  // Flag skipallocf determines whether main data (found in file) should be 
-  // allocated or not. This is for initialization from API, to use std::move. 
+  // Flag skipallocf determines whether main data (found in file) should be
+  // allocated or not. This is for initialization from API, to use std::move.
   virtual void set_nbpoi(int nbpoi);
   virtual void set_npoin(int npoin, bool skipallocf = false);
   virtual void set_nedge(int nedge, bool skipallocf = false);
@@ -395,7 +396,7 @@ public:
 public:
   // This should only be called from the top levels (Mesh and MeshBack)
   // Otherwise some auxiliary data structs may not be properly set.
-  
+
   // Prefer calling this, sets the surface:
 	int newpoint(PointType ptype, int tdim, int ientt);
 
@@ -452,8 +453,8 @@ protected:
 	void setLagrange();
 	void setBezier();
 
-  // Main init routine: pass a NULL data to read from param instead. 
-  // Note this shouldn't be called manually, use a MetrisRunner. 
+  // Main init routine: pass a NULL data to read from param instead.
+  // Note this shouldn't be called manually, use a MetrisRunner.
   void initialize(MetrisAPI *data, MetrisParameters &param);
   void iniFromFile(std::string fname, int usrTarDeg);
   void iniFromData(MetrisAPI &data, int usrTarDeg);
@@ -462,12 +463,12 @@ protected:
   int mpoin_,mbpoi_,medge_,mface_,melem_;
 
   // Store maximum deviation between surface directions and element directions:
-  // 1: edges, tangent 
+  // 1: edges, tangent
   // 2: faces, normal
-  // Deviation is 1 - abs(dtprd) 
-  double geodev[2];  // Also in back mesh... 
+  // Deviation is 1 - abs(dtprd)
+  double geodev[2];  // Also in back mesh...
 
-  // Store whether the mesh is non-manifold or not 
+  // Store whether the mesh is non-manifold or not
   bool is_manifold;
 public:
   MeshArray1D<bool> isperiodic_face;
@@ -514,7 +515,7 @@ class TagArray{
 public:
   friend class MeshBase;
 
-  TagArray(MeshBase& msh_, int ilock_, intAr1& array_, int& itag_) 
+  TagArray(MeshBase& msh_, int ilock_, intAr1& array_, int& itag_)
     : ilock(ilock_), array(array_), msh(msh_), itag(itag_), itag1(itag_){
       #ifndef NDEBUG
       itag0 = itag;
@@ -543,13 +544,13 @@ public:
 
   // Set tag value of element
   void tag(int ientt, int value){
-    array[ientt] = itag + value; 
+    array[ientt] = itag + value;
     itag1 = MAX(itag1, itag + value);
   }
 
   void tag(int ientt){ tag(ientt, 0); }
 
-  // Get entity tag. Should not be used often. 
+  // Get entity tag. Should not be used often.
   ALWAYS_INLINE int &operator[](const int &ii){ return array[ii]; }
   ALWAYS_INLINE const int &operator[](const int &ii) const { return array[ii]; }
 
