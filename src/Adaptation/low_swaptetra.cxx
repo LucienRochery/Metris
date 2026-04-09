@@ -83,6 +83,7 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
   for(int ifa = 0; ifa < 4; ifa++){
     int ierro = aux_swaptetface<MFT,ideg>(msh, opt, itetr, ifa, quael, cav, opts, work,
                                           qnrm0_, qnrm1_, ithrd1);
+
     CPRINTF1(" - tried face {} ierro {} got qual {} -> {}\n",ifa, ierro, *qnrm0_, *qnrm1_);
     if(ierro < 0){
       CPRINTF1(" - Accepted tet {} swap face {} quality {} -> {}\n",
@@ -349,9 +350,9 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
       break;
     }
     ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
+    qnrm1 = info.qmax_end;
     CPRINTF1("- aux_swaptetedge called cavity, ierro = {} info.done = {} qnrm1 = {}\n",
              ierro,info.done,qnrm1);
-    qnrm1 = info.qmax_end;
     if(info.done) return -1;
   }else if(nshell == 4){ // 4 -> 4 swap
     // Get the edge opposite iedgl.

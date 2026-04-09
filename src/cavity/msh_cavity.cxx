@@ -77,7 +77,6 @@ int cavity_operator(Mesh<MFT> &msh ,
 
   METRIS_ASSERT_MSG(cav.inewp == 0 || cav.inewp == 1, "Caller must set cav.inewp to 0 if new point, 1 otherwise.");
 
-
   try{
   INCVDEPTH(msh.param);
   info.done = false;
@@ -104,11 +103,9 @@ int cavity_operator(Mesh<MFT> &msh ,
 
 	int ierro = CAV_NOERR;
 
-
 	// In lbad, store: [2*i + 0] = entity rank in cavity
 	//                 [2*i + 1] = entity type: 0 = edg, 1 = fac, 2 = tet
   intAr2 &lbad = work.lbad;
-
 
 	int nbpo0 = msh.nbpoi,
 	    npoi0 = msh.npoin,
@@ -117,6 +114,12 @@ int cavity_operator(Mesh<MFT> &msh ,
 	    nele0 = msh.nelem;
 
   double qmax;
+
+  // reset tag arrays in case is about to overflow
+  if (msh.tag[ithread] >= INT_MAX - 1000000) {
+    CPRINTF1("   tag value about to overflow... reseting tag arrays\n");
+    msh.reset_tags();
+  }
 
   cav.maxtag = msh.tag[ithread];
 
@@ -137,11 +140,9 @@ int cavity_operator(Mesh<MFT> &msh ,
     }
 	}
 
-
   // This only implements norempts for now.
 	ierro = check_cavity_topo(msh, cav, opts, ithread);
 	if(ierro > 0) goto cleanup;
-
 
   // The minimum value we need to set to (note right ++ is fine as we need only >=)
   cav.maxtag = MAX(cav.maxtag,++msh.tag[ithread]);
@@ -157,12 +158,10 @@ int cavity_operator(Mesh<MFT> &msh ,
   CPRINTF1("-- reconnect_lincav done nedg0 = {} nedge = {} npoi0 = {} npoin = {}\n",
            nedg0,msh.nedge,npoi0,msh.npoin);
 
-
 	ierro = reconnect_faccav<MFT, ideg>(msh, cav, opts, work, nedg0, &qmax, ithread);
   if(msh.get_tdim() == 2) info.qmax_end = qmax;
 	if(ierro > 0) goto cleanup;
   CPRINTF1("-- reconnect_faccav done nfac0 = {} nface = {} \n",nfac0,msh.nface);
-
 
 	ierro = reconnect_tetcav<MFT, ideg>(msh, cav, opts, info, nfac0, &qmax, ithread);
   if(ierro > 0) goto cleanup;

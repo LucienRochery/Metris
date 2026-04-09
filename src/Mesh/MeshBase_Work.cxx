@@ -8,7 +8,7 @@
 #include "../utils/fmt_formatters.hxx"
 
 namespace Metris{
-           
+
 MeshArray1D<intWrkAr1*>& MeshBase::get_iwork_tracked(MeshSize itype){
   switch(itype){
     case(MeshSize::Point):  return iwork_Point;
@@ -43,8 +43,8 @@ void MeshBase::free_work(int ii, WorkArray1D<T>* obj){
   free_work<T>(ii);
 
   // This ampersand is load bearing:
-  // auto& is a dangerous return type that doesn't actually return 
-  // a reference if auto myret = function_that_returns_auto&(). 
+  // auto& is a dangerous return type that doesn't actually return
+  // a reference if auto myret = function_that_returns_auto&().
   auto& work_tracked = get_work_tracked<T>(obj->itype);
   //if(obj->itype == MeshSize::Point && std::is_same_v<T,int>){
   //  fmt::print("Debug: free_work<int> Point addr {} iref_tracked {}\n",(void*) obj, obj->iref_tracked);
@@ -78,7 +78,7 @@ void MeshBase::free_work(int ii, WorkArray1D<T>* obj){
     #endif
     work_tracked.set_n(0);
   }
-  
+
 }
 template void MeshBase::free_work<int>(int, WorkArray1D<int>* obj);
 template void MeshBase::free_work<double>(int, WorkArray1D<double>* obj);
@@ -140,9 +140,9 @@ WorkArray1D<T> MeshBase::get_work(MeshSize itype){
   auto& work_tracked = get_work_tracked<T>(itype);
   int ntracked = work_tracked.get_n();
 
-  // With mandatory RVO since C++17, this here ret should be 
+  // With mandatory RVO since C++17, this here ret should be
   // the same object we find in the caller routine... so its address
-  // is safe to use. 
+  // is safe to use.
   WorkArray1D<T> ret(*this, iarray, lwork_map<T>()[iarray], itype, ntracked);
   work_tracked.stack(&ret);
 
@@ -175,9 +175,9 @@ TagArray MeshBase::get_tagarray(MeshSize itype){
 
   int nentt = -1, mentt = -1;
   get_nMeshSize(itype, &nentt, &mentt);
-  
+
   int iarray = get_locked_array<intAr1>(mentt, tagarrs, tagarr_locks);
-  
+
   if(iarray < 0){
     iarray = tagarrs.get_n();
 
@@ -198,7 +198,21 @@ TagArray MeshBase::get_tagarray(MeshSize itype){
   return TagArray(*this, iarray, tagarrs[iarray], itags[iarray]);
 }
 
+void MeshBase::reset_tags(){
 
+  for (int ii = 0; ii < METRIS_MAXTAGS; ii++) tag[ii] = 1;
+
+  tet2tag.fill(0);
+  fac2tag.fill(0);
+  edg2tag.fill(0);
+  poi2tag.fill(0);
+  bpo2tag.fill(0);
+  dom2tag.fill(0);
+  cfa2tag.fill(0);
+  ced2tag.fill(0);
+  cno2tag.fill(0);
+
+}
 
 void MeshBase::update_tracked_work_arrays(MeshSize itype, int mentt, int nentt){
   MeshArray1D<intWrkAr1*>& iwork_tracked = get_work_tracked<int>(itype);
@@ -206,7 +220,7 @@ void MeshBase::update_tracked_work_arrays(MeshSize itype, int mentt, int nentt){
     intWrkAr1* wrkArMem = iwork_tracked[ii];
     if(wrkArMem == NULL) continue;
     // Reallocate our pooled array, then replace the Work's array
-    // memory with this one. 
+    // memory with this one.
     int ilock = wrkArMem->ilock; // index in the work array pool iwork
     iwork[ilock].allocate(mentt);
     iwork[ilock].set_n(nentt);
@@ -219,7 +233,7 @@ void MeshBase::update_tracked_work_arrays(MeshSize itype, int mentt, int nentt){
     dblWrkAr1* wrkArMem = rwork_tracked[ii];
     if(wrkArMem == NULL) continue;
     // Reallocate our pooled array, then replace the Work's array
-    // memory with this one. 
+    // memory with this one.
     int ilock = wrkArMem->ilock; // index in the work array pool iwork
     rwork[ilock].allocate(mentt);
     rwork[ilock].set_n(nentt);

@@ -322,8 +322,8 @@ int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
   cav.reset();
   cav.inewp = 0;
 
-  CavOprOpt  opts;
-  CavOprInfo info;
+  CavOprOpt  opts{};
+  CavOprInfo info{};
   opts.allow_topological_correction = true; // To fetch missing edges
   opts.skip_topo_checks = false;
   opts.allow_remove_points = true;

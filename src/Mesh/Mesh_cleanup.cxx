@@ -37,50 +37,50 @@ void Mesh<MetricFieldType>::cleanup(){
 
 
 
- 
-  // ----- Geometric links 
+
+  // ----- Geometric links
   int nbpon = 0;
   lentt.set_n(this->nbpoi);
   for(int ibpoi = 0; ibpoi < this->nbpoi; ibpoi++){
-    int ipoin = this->bpo2ibi(ibpoi,0); 
+    int ipoin = this->bpo2ibi(ibpoi,0);
     if(ipoin < 0) continue;
 
-    METRIS_ASSERT_MSG(ipoin < this->npoin, 
-      "ibpoi = {} nbpoi = {} points to ipoin = {} but npoin = {}", 
+    METRIS_ASSERT_MSG(ipoin < this->npoin,
+      "ibpoi = {} nbpoi = {} points to ipoin = {} but npoin = {}",
       ibpoi, this->nbpoi, ipoin, this->npoin);
 
-    int ibpon = nbpon; 
-    lentt[ibpoi] = ibpon; 
-    nbpon++; 
+    int ibpon = nbpon;
+    lentt[ibpoi] = ibpon;
+    nbpon++;
 
-    for(int ii = 0; ii < nibi; ii++) 
+    for(int ii = 0; ii < nibi; ii++)
       this->bpo2ibi(ibpon,ii) = this->bpo2ibi(ibpoi,ii);
 
-    for(int ii = 0; ii < nrbi; ii++) 
+    for(int ii = 0; ii < nrbi; ii++)
       this->bpo2rbi(ibpon,ii) = this->bpo2rbi(ibpoi,ii);
-    
-    if(this->poi2bpo[ipoin] == ibpoi) this->poi2bpo[ipoin] = ibpon; 
+
+    if(this->poi2bpo[ipoin] == ibpoi) this->poi2bpo[ipoin] = ibpon;
   }
 
   if(nbpon != this->nbpoi){
 
     CPRINTF3(" - cleanup bdry links {} -> {} \n",this->nbpoi,nbpon);
 
-    // Update link to next 
+    // Update link to next
     for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
-      int ibnxt = this->bpo2ibi(ibpoi,3); 
+      int ibnxt = this->bpo2ibi(ibpoi,3);
       if(ibnxt < 0) continue;
-      this->bpo2ibi(ibpoi,3) = lentt[ibnxt]; 
+      this->bpo2ibi(ibpoi,3) = lentt[ibnxt];
     }
   }
 
-  // ----- Vertices 
+  // ----- Vertices
   // Concerned arrays:
   // coord
-  // met 
-  // poi2bpo 
-  // poi2bak 
-  // poi2ent -> recompute 
+  // met
+  // poi2bpo
+  // poi2bak
+  // poi2ent -> recompute
   // poicstr
   const int idim = this->idim;
   const int nnmet = (idim*(idim+1))/2;
@@ -91,59 +91,59 @@ void Mesh<MetricFieldType>::cleanup(){
     int iponn = nponn;
     nponn++;
 
-    lpoin[ipoin] = iponn; 
+    lpoin[ipoin] = iponn;
 
     if(iponn == ipoin) continue;
 
-    for(int ii = 0; ii < idim; ii++) 
+    for(int ii = 0; ii < idim; ii++)
       this->coord(iponn,ii) = this->coord(ipoin,ii);
-    for(int ii = 0; ii < nnmet; ii++) 
+    for(int ii = 0; ii < nnmet; ii++)
       this->met(iponn,ii) = this->met(ipoin,ii);
-    
-    this->poi2bpo[iponn] = this->poi2bpo[ipoin]; 
-    this->poi2bak[iponn] = this->poi2bak[ipoin]; 
+
+    this->poi2bpo[iponn] = this->poi2bpo[ipoin];
+    this->poi2bak[iponn] = this->poi2bak[ipoin];
     this->poicstr[iponn] = this->poicstr[ipoin];
   }
 
-  if(this->npoin == nponn) goto update_tetras; 
+  if(this->npoin == nponn) goto update_tetras;
 
   CPRINTF3(" - cleanup vertices {} -> {} \n",this->npoin,nponn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
-    int ipoin = this->bpo2ibi(ibpoi,0); 
+    int ipoin = this->bpo2ibi(ibpoi,0);
     if(ipoin < 0) continue;
-    int ityp = this->bpo2ibi(ibpoi,1); 
+    int ityp = this->bpo2ibi(ibpoi,1);
 
-    this->bpo2ibi(ibpoi,0) = lpoin[ipoin]; 
-    if(ityp == 0) this->bpo2ibi(ibpoi,2) = lpoin[ipoin]; 
+    this->bpo2ibi(ibpoi,0) = lpoin[ipoin];
+    if(ityp == 0) this->bpo2ibi(ibpoi,2) = lpoin[ipoin];
   }
 
 
   // ----- Tetras
   update_tetras:
-  int nelen = 0; 
+  int nelen = 0;
   lentt.set_n(this->nelem);
   for(int ielem = 0; ielem < this->nelem; ielem++){
     if(isdeadent(ielem,this->tet2poi)) continue;
 
-    int ielen    = nelen; 
-    lentt[ielem] = ielen; 
-    nelen++; 
+    int ielen    = nelen;
+    lentt[ielem] = ielen;
+    nelen++;
 
-    int nnode = getnnod3(this->curdeg); 
-    // Not just copy but also translation using lpoin 
+    int nnode = getnnod3(this->curdeg);
+    // Not just copy but also translation using lpoin
     for(int ii = 0; ii < nnode; ii++)
-      this->tet2poi(ielen,ii) = lpoin[this->tet2poi(ielem,ii)]; 
+      this->tet2poi(ielen,ii) = lpoin[this->tet2poi(ielem,ii)];
 
-    // The next updates are only needed if the index changed. 
-    if(ielen == ielem) continue; 
+    // The next updates are only needed if the index changed.
+    if(ielen == ielem) continue;
 
-    this->tet2ref[ielen] = this->tet2ref[ielem]; 
+    this->tet2ref[ielen] = this->tet2ref[ielem];
 
-    for(int ii = 0; ii < 4; ii++) 
+    for(int ii = 0; ii < 4; ii++)
       this->tet2tet(ielen,ii) = this->tet2tet(ielem,ii);
   }
-  
+
   if(nelen == this->nelem) goto update_faces;
 
   CPRINTF3(" - cleanup tetras {} -> {} \n",this->nelem,nelen);
@@ -152,64 +152,64 @@ void Mesh<MetricFieldType>::cleanup(){
     for(int ii = 0; ii < 2; ii++){
       int ielem = this->fac2tet(iface,ii);
       if(ielem < 0) continue;
-      this->fac2tet(iface,ii) = lentt[ielem]; 
+      this->fac2tet(iface,ii) = lentt[ielem];
     }
   }
 
 
   for(int ielem = 0; ielem < nelen; ielem++){
     for(int ii = 0; ii < 4; ii++){
-      int ineig = this->tet2tet(ielem,ii); 
+      int ineig = this->tet2tet(ielem,ii);
       if(ineig < 0) continue;
-      this->tet2tet(ielem,ii) = lentt[ineig]; 
+      this->tet2tet(ielem,ii) = lentt[ineig];
     }
   }
 
 
   // ----- Faces
   update_faces:
-  // Concerned arrays: 
-  // fac2poi 
-  // fac2ref 
-  // fac2fac 
-  // fac2tet 
+  // Concerned arrays:
+  // fac2poi
+  // fac2ref
+  // fac2fac
+  // fac2tet
   // poi2bpo when ityp == 2
-  int nfacn = 0; 
+  int nfacn = 0;
   lentt.set_n(this->nface);
   this->facHshTab.erase(this->facHshTab.begin(), this->facHshTab.end());
   for(int iface = 0; iface < this->nface; iface++){
     if(isdeadent(iface,this->fac2poi)) continue;
 
-    int ifacn    = nfacn; 
-    lentt[iface] = ifacn; 
-    nfacn++; 
+    int ifacn    = nfacn;
+    lentt[iface] = ifacn;
+    nfacn++;
 
-    int nnode = getnnod2(this->curdeg); 
-    // Not just copy but also translation using lpoin 
-    for(int ii = 0; ii < nnode; ii++) 
-      this->fac2poi(ifacn,ii) = lpoin[this->fac2poi(iface,ii)]; 
+    int nnode = getnnod2(this->curdeg);
+    // Not just copy but also translation using lpoin
+    for(int ii = 0; ii < nnode; ii++)
+      this->fac2poi(ifacn,ii) = lpoin[this->fac2poi(iface,ii)];
 
-    //// Necessary to update both iface -> ifacn but also lpoin 
-    //auto key_old = stup3(this->fac2poi(iface,0), 
+    //// Necessary to update both iface -> ifacn but also lpoin
+    //auto key_old = stup3(this->fac2poi(iface,0),
     //                     this->fac2poi(iface,1),
     //                     this->fac2poi(iface,2));
-    //this->facHshTab.erase(key_old); 
+    //this->facHshTab.erase(key_old);
 
-    auto key_new = stup3(this->fac2poi(ifacn,0), 
+    auto key_new = stup3(this->fac2poi(ifacn,0),
                          this->fac2poi(ifacn,1),
                          this->fac2poi(ifacn,2));
-    this->facHshTab.insert({key_new,ifacn}); 
+    this->facHshTab.insert({key_new,ifacn});
 
-    // The next updates are only needed if the index changed. 
-    if(ifacn == iface) continue; 
+    // The next updates are only needed if the index changed.
+    if(ifacn == iface) continue;
 
-    this->fac2ref[ifacn] = this->fac2ref[iface]; 
+    this->fac2ref[ifacn] = this->fac2ref[iface];
     if(idim >= 3){
-      this->fac2tet(ifacn,0) = this->fac2tet(iface,0); 
-      this->fac2tet(ifacn,1) = this->fac2tet(iface,1); 
+      this->fac2tet(ifacn,0) = this->fac2tet(iface,0);
+      this->fac2tet(ifacn,1) = this->fac2tet(iface,1);
     }
 
-    for(int ii = 0; ii < 3; ii++) 
+    for(int ii = 0; ii < 3; ii++)
       this->fac2fac(ifacn,ii) = this->fac2fac(iface,ii);
 
   }
@@ -219,25 +219,25 @@ void Mesh<MetricFieldType>::cleanup(){
   CPRINTF3(" - cleanup faces {} -> {} \n",this->nface,nfacn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
-    int ipoin = this->bpo2ibi(ibpoi,0); 
+    int ipoin = this->bpo2ibi(ibpoi,0);
     if(ipoin < 0) continue;
-    int ityp = this->bpo2ibi(ibpoi,1); 
+    int ityp = this->bpo2ibi(ibpoi,1);
 
     if(ityp == 2){
-      this->bpo2ibi(ibpoi,2) = lentt[this->bpo2ibi(ibpoi,2)]; 
+      this->bpo2ibi(ibpoi,2) = lentt[this->bpo2ibi(ibpoi,2)];
     }
   }
 
   for(int iface = 0; iface < nfacn; iface++){
     for(int ii = 0; ii < 3; ii++){
-      int ineig = this->fac2fac(iface,ii); 
+      int ineig = this->fac2fac(iface,ii);
       if(ineig == -1) continue;
       if(ineig < 0){
         ineig = - ineig - 2;
-        ineig = lentt[ineig]; 
+        ineig = lentt[ineig];
         this->fac2fac(iface,ii) = - ineig - 2;
       }else{
-        this->fac2fac(iface,ii) = lentt[ineig]; 
+        this->fac2fac(iface,ii) = lentt[ineig];
       }
     }
   }
@@ -245,68 +245,68 @@ void Mesh<MetricFieldType>::cleanup(){
   for(int iedge = 0; iedge < this->nedge; iedge++){
     int iface = this->edg2fac[iedge];
     if(iface < 0) continue;
-    this->edg2fac[iedge] = lentt[iface]; 
+    this->edg2fac[iedge] = lentt[iface];
   }
 
 
   // ----- Edges
   update_edges:
-  // Concerned arrays: 
-  // edg2poi 
-  // edg2ref 
-  // edg2fac 
+  // Concerned arrays:
+  // edg2poi
+  // edg2ref
+  // edg2fac
   // poi2bpo when ityp == 1
-  // edg2edg 
-  int nedgn = 0; 
+  // edg2edg
+  int nedgn = 0;
   lentt.set_n(this->nedge);
-  // Outright erase edgHshTab. 
-  // This avoids shrinking the buffers. 
+  // Outright erase edgHshTab.
+  // This avoids shrinking the buffers.
   this->edgHshTab.erase(this->edgHshTab.begin(), this->edgHshTab.end());
   for(int iedge = 0; iedge < this->nedge; iedge++){
     if(isdeadent(iedge,this->edg2poi)) continue;
 
-    int iedgn    = nedgn; 
-    lentt[iedge] = iedgn; 
-    nedgn++; 
+    int iedgn    = nedgn;
+    lentt[iedge] = iedgn;
+    nedgn++;
 
-    int nnode = getnnod1(this->curdeg); 
-    // Not just copy but also translation using lpoin 
+    int nnode = getnnod1(this->curdeg);
+    // Not just copy but also translation using lpoin
     for(int ii = 0; ii < nnode; ii++){
-      METRIS_ASSERT(lpoin[this->edg2poi(iedge,ii)] >= 0 
+      METRIS_ASSERT(lpoin[this->edg2poi(iedge,ii)] >= 0
          && lpoin[this->edg2poi(iedge,ii)] < nponn);
-      this->edg2poi(iedgn,ii) = lpoin[this->edg2poi(iedge,ii)]; 
+      this->edg2poi(iedgn,ii) = lpoin[this->edg2poi(iedge,ii)];
     }
 
-    //// Necessary to update both iedge -> iedgn but also lpoin 
+    //// Necessary to update both iedge -> iedgn but also lpoin
     //auto key_old = stup2(this->edg2poi(iedge,0), this->edg2poi(iedge,1));
     //// ATTENTION! key_old may, per chance, be the nodes of a NEW edge !
-    //// Only erase if this is pointing to iedge. 
-    //if(this->edgHshTab[key_old] == iedge) this->edgHshTab.erase(key_old); 
-    
+    //// Only erase if this is pointing to iedge.
+    //if(this->edgHshTab[key_old] == iedge) this->edgHshTab.erase(key_old);
+
 
     auto key_new = stup2(this->edg2poi(iedgn,0), this->edg2poi(iedgn,1));
-    this->edgHshTab.insert({key_new,iedgn}); 
+    this->edgHshTab.insert({key_new,iedgn});
 
-    // The next updates are only needed if the index changed. 
-    if(iedgn == iedge) continue; 
+    // The next updates are only needed if the index changed.
+    if(iedgn == iedge) continue;
 
-    this->edg2ref[iedgn] = this->edg2ref[iedge]; 
-    this->edg2fac[iedgn] = this->edg2fac[iedge]; 
+    this->edg2ref[iedgn] = this->edg2ref[iedge];
+    this->edg2fac[iedgn] = this->edg2fac[iedge];
 
 
-    for(int ii = 0; ii < 2; ii++) 
+    for(int ii = 0; ii < 2; ii++)
       this->edg2edg(iedgn,ii) = this->edg2edg(iedge,ii);
 
   }
 
 
-  if(nedgn == this->nedge) goto update_final; 
+  if(nedgn == this->nedge) goto update_final;
 
 
   CPRINTF3(" - cleanup edges {} -> {} \n",this->nedge,nedgn);
 
   for(int ibpoi = 0; ibpoi < nbpon; ibpoi++){
-    int ipoin = this->bpo2ibi(ibpoi,0); 
+    int ipoin = this->bpo2ibi(ibpoi,0);
     if(ipoin < 0) continue;
     if(ipoin >= this->npoin){
       fmt::print("ipoin = {} >= npoin = {}\n",ipoin,this->npoin);
@@ -316,24 +316,24 @@ void Mesh<MetricFieldType>::cleanup(){
       }
     }
     METRIS_ASSERT(ipoin < this->npoin);
-    int ityp = this->bpo2ibi(ibpoi,1); 
+    int ityp = this->bpo2ibi(ibpoi,1);
 
-    // Now edge update proper. 
+    // Now edge update proper.
     if(ityp == 1){
-      this->bpo2ibi(ibpoi,2) = lentt[this->bpo2ibi(ibpoi,2)]; 
+      this->bpo2ibi(ibpoi,2) = lentt[this->bpo2ibi(ibpoi,2)];
     }
   }
 
   for(int iedge = 0; iedge < nedgn; iedge++){
     for(int ii = 0; ii < 2; ii++){
-      int ineig = this->edg2edg(iedge,ii); 
+      int ineig = this->edg2edg(iedge,ii);
       if(ineig == -1) continue;
       if(ineig < 0){
         ineig = - ineig - 2;
-        ineig = lentt[ineig]; 
+        ineig = lentt[ineig];
         this->edg2edg(iedge,ii) = - ineig - 2;
       }else{
-        this->edg2edg(iedge,ii) = lentt[ineig]; 
+        this->edg2edg(iedge,ii) = lentt[ineig];
       }
     }
   }
@@ -346,12 +346,12 @@ void Mesh<MetricFieldType>::cleanup(){
   this->set_npoin(nponn);
   this->set_nbpoi(nbpon);
 
-  // Recompute poi2ent 
+  // Recompute poi2ent
   int tdimm = this->get_tdim();
   for(int tdim = tdimm; tdim >= 1; tdim--){
     intAr2 &ent2poi = this->ent2poi(tdim);
     int nnode = getnnode(tdim,this->curdeg);
-    int nentt = this->nentt(tdim); 
+    int nentt = this->nentt(tdim);
     for(int ientt = 0; ientt < nentt; ientt++){
       for(int ii = 0; ii < tdim + 1; ii++){
         this->set_poi2ent(Vertex{ent2poi(ientt,ii)}, tdim, ientt);
@@ -363,7 +363,6 @@ void Mesh<MetricFieldType>::cleanup(){
   }
 
   if(this->param->dbgfull) check_topo(*this,0);
-
 
 }
 template void Mesh<MetricFieldFE>::cleanup();

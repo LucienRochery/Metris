@@ -56,6 +56,7 @@ char* itoa(int value, char* result, int base) {
 }
 
 void wait(){
+  return;
   std::cout << "Press Enter to continue..." << std::flush;
   std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
@@ -92,7 +93,7 @@ void stup2(uint32_t* key){
 }
 
 //template<int n>
-//typename std::conditional<n == 2, std::tuple<int,int>, std::tuple<int,int,int>>::type 
+//typename std::conditional<n == 2, std::tuple<int,int>, std::tuple<int,int,int>>::type
 //stupn(const int *ii){
 //  static_assert(n == 2 || n == 3);
 //  if constexpr(n == 2){
@@ -210,47 +211,47 @@ void gen_ordering_Vizir(int *ord){
 
     for(int i = 1; i < ideg; i++){
       ord[4*n+0]=ideg-i ;
-      ord[4*n+1]=i     ; 
+      ord[4*n+1]=i     ;
       ord[4*n+2]=0     ;
       ord[4*n+3]=0     ;
       n++ ;
     }
-    
+
     for(int i = 1; i < ideg; i++){
       ord[4*n+0]=0     ;
-      ord[4*n+1]=ideg-i   ; 
+      ord[4*n+1]=ideg-i   ;
       ord[4*n+2]=i     ;
       ord[4*n+3]=0     ;
       n++ ;
     }
-    
+
     for(int i = 1; i < ideg; i++){
       ord[4*n+0]=i     ;
-      ord[4*n+1]=0     ; 
+      ord[4*n+1]=0     ;
       ord[4*n+2]=ideg-i  ;
       ord[4*n+3]=0     ;
       n++ ;
     }
-    
+
     for(int i = 1; i < ideg; i++){
       ord[4*n+0]=ideg-i ;
-      ord[4*n+1]=0     ; 
+      ord[4*n+1]=0     ;
       ord[4*n+2]=0     ;
       ord[4*n+3]=i     ;
       n++ ;
     }
-    
+
     for(int i = 1; i < ideg; i++){
       ord[4*n+0]=0     ;
-      ord[4*n+1]=ideg-i   ; 
+      ord[4*n+1]=ideg-i   ;
       ord[4*n+2]=0     ;
       ord[4*n+3]=i     ;
       n++ ;
     }
-    
+
     for(int i = 1; i < ideg; i++){
       ord[4*n+0]=0     ;
-      ord[4*n+1]=0     ; 
+      ord[4*n+1]=0     ;
       ord[4*n+2]=ideg-i   ;
       ord[4*n+3]=i     ;
       n++ ;
@@ -264,32 +265,32 @@ void gen_ordering_Vizir(int *ord){
 
       for (int i = 0 ; i < nppSub ; i++){
         ord[4*n+0] = 1+subOrd[3*i+0];
-        ord[4*n+1] = 1+subOrd[3*i+1]; 
-        ord[4*n+2] = 1+subOrd[3*i+2]; 
+        ord[4*n+1] = 1+subOrd[3*i+1];
+        ord[4*n+2] = 1+subOrd[3*i+2];
         ord[4*n+3] = 0;
         n++;
       }
-      
+
       for (int i = 0 ; i < nppSub ; i++){
         ord[4*n+0] = 1+subOrd[3*i+0];
-        ord[4*n+1] = 1+subOrd[3*i+1]; 
-        ord[4*n+2] = 0              ; 
+        ord[4*n+1] = 1+subOrd[3*i+1];
+        ord[4*n+2] = 0              ;
         ord[4*n+3] = 1+subOrd[3*i+2];
         n++;
       }
-      
+
       for (int i = 0 ; i < nppSub ; i++){
         ord[4*n+0] = 0              ;
-        ord[4*n+1] = 1+subOrd[3*i+0]; 
-        ord[4*n+2] = 1+subOrd[3*i+1]; 
+        ord[4*n+1] = 1+subOrd[3*i+0];
+        ord[4*n+2] = 1+subOrd[3*i+1];
         ord[4*n+3] = 1+subOrd[3*i+2];
         n++;
       }
-      
+
       for (int i = 0 ; i < nppSub ; i++){
         ord[4*n+0] = 1+subOrd[3*i+1];
-        ord[4*n+1] = 0              ; 
-        ord[4*n+2] = 1+subOrd[3*i+0]; 
+        ord[4*n+1] = 0              ;
+        ord[4*n+2] = 1+subOrd[3*i+0];
         ord[4*n+3] = 1+subOrd[3*i+2];
         n++;
       }
@@ -318,8 +319,8 @@ template void gen_ordering_Vizir< n , 3 >(int *ord);
 
 ///*
 //This is a modified version of Vizir's recursive ordering based on P.-L.'s books
-//This one is coherent with neighbour ordering. 
-//Indeed, the i-th neighbour is opposite the i-th vertex. 
+//This one is coherent with neighbour ordering.
+//Indeed, the i-th neighbour is opposite the i-th vertex.
 //Naturally, the i-th face of a tet, or the i-th edge of a triangle, should not contain the i-th vertex...
 //*/
 //void gen_ordering_Vizir_coherentHO(int deg,int dim, int *ord){
@@ -420,47 +421,47 @@ template void gen_ordering_Vizir< n , 3 >(int *ord);
 //
 //        for(int i = 1; i < deg; i++){
 //            ord[4*n+0]=deg-i ;
-//            ord[4*n+1]=i     ; 
+//            ord[4*n+1]=i     ;
 //            ord[4*n+2]=0     ;
 //            ord[4*n+3]=0     ;
 //            n++ ;
 //        }
-//  
+//
 //        for(int i = 1; i < deg; i++){
 //            ord[4*n+0]=0     ;
-//            ord[4*n+1]=deg-i   ; 
+//            ord[4*n+1]=deg-i   ;
 //            ord[4*n+2]=i     ;
 //            ord[4*n+3]=0     ;
 //            n++ ;
 //        }
-//  
+//
 //        for(int i = 1; i < deg; i++){
 //            ord[4*n+0]=i     ;
-//            ord[4*n+1]=0     ; 
+//            ord[4*n+1]=0     ;
 //            ord[4*n+2]=deg-i  ;
 //            ord[4*n+3]=0     ;
 //            n++ ;
 //        }
-//  
+//
 //        for(int i = 1; i < deg; i++){
 //            ord[4*n+0]=deg-i ;
-//            ord[4*n+1]=0     ; 
+//            ord[4*n+1]=0     ;
 //            ord[4*n+2]=0     ;
 //            ord[4*n+3]=i     ;
 //            n++ ;
 //        }
-//  
+//
 //        for(int i = 1; i < deg; i++){
 //            ord[4*n+0]=0     ;
-//            ord[4*n+1]=deg-i   ; 
+//            ord[4*n+1]=deg-i   ;
 //            ord[4*n+2]=0     ;
 //            ord[4*n+3]=i     ;
 //            n++ ;
 //        }
-//  
+//
 //        for(int i = 1; i < deg; i++){
 //            ord[4*n+0]=0     ;
-//            ord[4*n+1]=0     ; 
+//            ord[4*n+1]=0     ;
 //            ord[4*n+2]=deg-i   ;
 //            ord[4*n+3]=i     ;
 //            n++ ;
@@ -471,40 +472,40 @@ template void gen_ordering_Vizir< n , 3 >(int *ord);
 //            int nppSub = getnnod2(deg - 3);
 //            int subOrd[nppSub];
 //            gen_ordering_Vizir_coherentHO(deg-3,2,subOrd);
-//  
+//
 //            for (int i = 0 ; i < nppSub ; i++){
 //                ord[4*n+0] = 0              ;
-//                ord[4*n+1] = 1+subOrd[3*i+0]; 
-//                ord[4*n+2] = 1+subOrd[3*i+1]; 
+//                ord[4*n+1] = 1+subOrd[3*i+0];
+//                ord[4*n+2] = 1+subOrd[3*i+1];
 //                ord[4*n+3] = 1+subOrd[3*i+2];
 //                n++;
 //            }
 //
 //            for (int i = 0 ; i < nppSub ; i++){
 //                ord[4*n+0] = 1+subOrd[3*i+1];
-//                ord[4*n+1] = 0              ; 
-//                ord[4*n+2] = 1+subOrd[3*i+0]; 
+//                ord[4*n+1] = 0              ;
+//                ord[4*n+2] = 1+subOrd[3*i+0];
 //                ord[4*n+3] = 1+subOrd[3*i+2];
 //                n++;
 //            }
 //
 //            for (int i = 0 ; i < nppSub ; i++){
 //                ord[4*n+0] = 1+subOrd[3*i+0];
-//                ord[4*n+1] = 1+subOrd[3*i+1]; 
-//                ord[4*n+2] = 0              ; 
+//                ord[4*n+1] = 1+subOrd[3*i+1];
+//                ord[4*n+2] = 0              ;
 //                ord[4*n+3] = 1+subOrd[3*i+2];
 //                n++;
 //            }
-//            
+//
 //            for (int i = 0 ; i < nppSub ; i++){
 //                ord[4*n+0] = 1+subOrd[3*i+0];
-//                ord[4*n+1] = 1+subOrd[3*i+1]; 
-//                ord[4*n+2] = 1+subOrd[3*i+2]; 
+//                ord[4*n+1] = 1+subOrd[3*i+1];
+//                ord[4*n+2] = 1+subOrd[3*i+2];
 //                ord[4*n+3] = 0;
 //                n++;
 //            }
-//  
-//  
+//
+//
 //        }
 //        if(deg >= 4){
 //            int nppSub = getnnod3(deg - 4);
@@ -534,26 +535,26 @@ void sortupto8_dec(T *tab,int n){
     if(tab[3-1]<tab[4-1])  swi(tab[3-1],tab[4-1]);
     if(tab[5-1]<tab[6-1])  swi(tab[5-1],tab[6-1]);
     if(tab[7-1]<tab[8-1])  swi(tab[7-1],tab[8-1]);
-    
+
     if(tab[1-1]<tab[3-1])  swi(tab[1-1],tab[3-1]);
     if(tab[2-1]<tab[4-1])  swi(tab[2-1],tab[4-1]) ;
     if(tab[5-1]<tab[7-1])  swi(tab[5-1],tab[7-1]) ;
     if(tab[6-1]<tab[8-1])  swi(tab[6-1],tab[8-1]) ;
-    
+
     if(tab[2-1]<tab[3-1])  swi(tab[2-1],tab[3-1]);
     if(tab[6-1]<tab[7-1])  swi(tab[6-1],tab[7-1]);
     if(tab[1-1]<tab[5-1])  swi(tab[1-1],tab[5-1]);
     if(tab[4-1]<tab[8-1])  swi(tab[4-1],tab[8-1]);
-    
+
     if(tab[2-1]<tab[6-1])  swi(tab[2-1],tab[6-1]);
     if(tab[3-1]<tab[7-1])  swi(tab[3-1],tab[7-1]);
-    
+
     if(tab[2-1]<tab[5-1])  swi(tab[2-1],tab[5-1]);
     if(tab[4-1]<tab[7-1])  swi(tab[4-1],tab[7-1]);
-    
+
     if(tab[3-1]<tab[5-1])  swi(tab[3-1],tab[5-1]);
     if(tab[4-1]<tab[6-1])  swi(tab[4-1],tab[6-1]);
-    
+
     if(tab[4-1]<tab[5-1])  swi(tab[4-1],tab[5-1]);
 
   }else if(n==7){
@@ -561,89 +562,89 @@ void sortupto8_dec(T *tab,int n){
     if(tab[2-1]<tab[3-1] )  swi(tab[2-1],tab[3-1]);
     if(tab[4-1]<tab[5-1] )  swi(tab[4-1],tab[5-1]);
     if(tab[6-1]<tab[7-1] )  swi(tab[6-1],tab[7-1]);
-    
+
     if(tab[1-1]<tab[3-1] )  swi(tab[1-1],tab[3-1]);
     if(tab[4-1]<tab[6-1] )  swi(tab[4-1],tab[6-1]);
     if(tab[5-1]<tab[7-1] )  swi(tab[5-1],tab[7-1]);
-    
+
     if(tab[1-1]<tab[2-1] )  swi(tab[1-1],tab[2-1]);
     if(tab[5-1]<tab[6-1] )  swi(tab[5-1],tab[6-1]);
     if(tab[3-1]<tab[7-1] )  swi(tab[3-1],tab[7-1]);
-    
+
     if(tab[1-1]<tab[5-1] )  swi(tab[1-1],tab[5-1]);
     if(tab[2-1]<tab[6-1] )  swi(tab[2-1],tab[6-1]);
-    
+
     if(tab[1-1]<tab[4-1] )  swi(tab[1-1],tab[4-1]);
     if(tab[3-1]<tab[6-1] )  swi(tab[3-1],tab[6-1]);
-    
+
     if(tab[2-1]<tab[4-1] )  swi(tab[2-1],tab[4-1]);
     if(tab[3-1]<tab[5-1] )  swi(tab[3-1],tab[5-1]);
-    
+
     if(tab[3-1]<tab[4-1] )  swi(tab[3-1],tab[4-1]);
-    
-    
+
+
   }else if(n==6){
-    
-    
+
+
     if(tab[2-1]<tab[3-1] )  swi(tab[2-1],tab[3-1]);
     if(tab[5-1]<tab[6-1] )  swi(tab[5-1],tab[6-1]);
-    
+
     if(tab[1-1]<tab[3-1] )  swi(tab[1-1],tab[3-1]);
     if(tab[4-1]<tab[6-1] )  swi(tab[4-1],tab[6-1]);
-    
+
     if(tab[1-1]<tab[2-1] )  swi(tab[1-1],tab[2-1]);
     if(tab[4-1]<tab[5-1] )  swi(tab[4-1],tab[5-1]);
     if(tab[3-1]<tab[6-1] )  swi(tab[3-1],tab[6-1]);
-    
+
     if(tab[1-1]<tab[4-1] )  swi(tab[1-1],tab[4-1]);
     if(tab[2-1]<tab[5-1] )  swi(tab[2-1],tab[5-1]);
-    
+
     if(tab[3-1]<tab[5-1] )  swi(tab[3-1],tab[5-1]);
     if(tab[2-1]<tab[4-1] )  swi(tab[2-1],tab[4-1]);
-    
+
     if(tab[3-1]<tab[4-1] )  swi(tab[3-1],tab[4-1]);
-    
-    
+
+
   }else if(n==5){
-    
-   
+
+
     if(tab[1-1]<tab[2-1] )  swi(tab[1-1],tab[2-1]);
     if(tab[4-1]<tab[5-1] )  swi(tab[4-1],tab[5-1]);
-    
+
     if(tab[3-1]<tab[5-1] )  swi(tab[3-1],tab[5-1]);
-    
+
     if(tab[3-1]<tab[4-1] )  swi(tab[3-1],tab[4-1]);
     if(tab[2-1]<tab[5-1] )  swi(tab[2-1],tab[5-1]);
-    
+
     if(tab[1-1]<tab[4-1] )  swi(tab[1-1],tab[4-1]);
-    
+
     if(tab[1-1]<tab[3-1] )  swi(tab[1-1],tab[3-1]);
     if(tab[2-1]<tab[4-1] )  swi(tab[2-1],tab[4-1]);
-    
+
     if(tab[2-1]<tab[3-1] )  swi(tab[2-1],tab[3-1]);
-    
-    
+
+
   }else if(n==4){
-    
-   
+
+
     if(tab[1-1]<tab[2-1] )  swi(tab[1-1],tab[2-1]);
     if(tab[3-1]<tab[4-1] )  swi(tab[3-1],tab[4-1]);
-    
+
     if(tab[1-1]<tab[3-1] )  swi(tab[1-1],tab[3-1]);
     if(tab[2-1]<tab[4-1] )  swi(tab[2-1],tab[4-1]);
-    
+
     if(tab[2-1]<tab[3-1] )  swi(tab[2-1],tab[3-1]);
-    
-    
+
+
   }else if(n==3){
-    
-   
+
+
     if(tab[2-1]<tab[3-1] )  swi(tab[2-1],tab[3-1]);
-    
+
     if(tab[1-1]<tab[3-1] )  swi(tab[1-1],tab[3-1]);
-    
+
     if(tab[1-1]<tab[2-1] )  swi(tab[1-1],tab[2-1]);
-    
+
 
   }else if(n==2){
 
@@ -664,26 +665,26 @@ void sortupto8_dec(T *tab, int *idx, int n){
     if(tab[idx[3-1]]<tab[idx[4-1]])  swi(idx[3-1],idx[4-1]);
     if(tab[idx[5-1]]<tab[idx[6-1]])  swi(idx[5-1],idx[6-1]);
     if(tab[idx[7-1]]<tab[idx[8-1]])  swi(idx[7-1],idx[8-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[3-1]])  swi(idx[1-1],idx[3-1]);
     if(tab[idx[2-1]]<tab[idx[4-1]])  swi(idx[2-1],idx[4-1]) ;
     if(tab[idx[5-1]]<tab[idx[7-1]])  swi(idx[5-1],idx[7-1]) ;
     if(tab[idx[6-1]]<tab[idx[8-1]])  swi(idx[6-1],idx[8-1]) ;
-    
+
     if(tab[idx[2-1]]<tab[idx[3-1]])  swi(idx[2-1],idx[3-1]);
     if(tab[idx[6-1]]<tab[idx[7-1]])  swi(idx[6-1],idx[7-1]);
     if(tab[idx[1-1]]<tab[idx[5-1]])  swi(idx[1-1],idx[5-1]);
     if(tab[idx[4-1]]<tab[idx[8-1]])  swi(idx[4-1],idx[8-1]);
-    
+
     if(tab[idx[2-1]]<tab[idx[6-1]])  swi(idx[2-1],idx[6-1]);
     if(tab[idx[3-1]]<tab[idx[7-1]])  swi(idx[3-1],idx[7-1]);
-    
+
     if(tab[idx[2-1]]<tab[idx[5-1]])  swi(idx[2-1],idx[5-1]);
     if(tab[idx[4-1]]<tab[idx[7-1]])  swi(idx[4-1],idx[7-1]);
-    
+
     if(tab[idx[3-1]]<tab[idx[5-1]])  swi(idx[3-1],idx[5-1]);
     if(tab[idx[4-1]]<tab[idx[6-1]])  swi(idx[4-1],idx[6-1]);
-    
+
     if(tab[idx[4-1]]<tab[idx[5-1]])  swi(idx[4-1],idx[5-1]);
 
   }else if(n==7){
@@ -691,89 +692,89 @@ void sortupto8_dec(T *tab, int *idx, int n){
     if(tab[idx[2-1]]<tab[idx[3-1]] )  swi(idx[2-1],idx[3-1]);
     if(tab[idx[4-1]]<tab[idx[5-1]] )  swi(idx[4-1],idx[5-1]);
     if(tab[idx[6-1]]<tab[idx[7-1]] )  swi(idx[6-1],idx[7-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[3-1]] )  swi(idx[1-1],idx[3-1]);
     if(tab[idx[4-1]]<tab[idx[6-1]] )  swi(idx[4-1],idx[6-1]);
     if(tab[idx[5-1]]<tab[idx[7-1]] )  swi(idx[5-1],idx[7-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[2-1]] )  swi(idx[1-1],idx[2-1]);
     if(tab[idx[5-1]]<tab[idx[6-1]] )  swi(idx[5-1],idx[6-1]);
     if(tab[idx[3-1]]<tab[idx[7-1]] )  swi(idx[3-1],idx[7-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[5-1]] )  swi(idx[1-1],idx[5-1]);
     if(tab[idx[2-1]]<tab[idx[6-1]] )  swi(idx[2-1],idx[6-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[4-1]] )  swi(idx[1-1],idx[4-1]);
     if(tab[idx[3-1]]<tab[idx[6-1]] )  swi(idx[3-1],idx[6-1]);
-    
+
     if(tab[idx[2-1]]<tab[idx[4-1]] )  swi(idx[2-1],idx[4-1]);
     if(tab[idx[3-1]]<tab[idx[5-1]] )  swi(idx[3-1],idx[5-1]);
-    
+
     if(tab[idx[3-1]]<tab[idx[4-1]] )  swi(idx[3-1],idx[4-1]);
-    
-    
+
+
   }else if(n==6){
-    
-    
+
+
     if(tab[idx[2-1]]<tab[idx[3-1]] )  swi(idx[2-1],idx[3-1]);
     if(tab[idx[5-1]]<tab[idx[6-1]] )  swi(idx[5-1],idx[6-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[3-1]] )  swi(idx[1-1],idx[3-1]);
     if(tab[idx[4-1]]<tab[idx[6-1]] )  swi(idx[4-1],idx[6-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[2-1]] )  swi(idx[1-1],idx[2-1]);
     if(tab[idx[4-1]]<tab[idx[5-1]] )  swi(idx[4-1],idx[5-1]);
     if(tab[idx[3-1]]<tab[idx[6-1]] )  swi(idx[3-1],idx[6-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[4-1]] )  swi(idx[1-1],idx[4-1]);
     if(tab[idx[2-1]]<tab[idx[5-1]] )  swi(idx[2-1],idx[5-1]);
-    
+
     if(tab[idx[3-1]]<tab[idx[5-1]] )  swi(idx[3-1],idx[5-1]);
     if(tab[idx[2-1]]<tab[idx[4-1]] )  swi(idx[2-1],idx[4-1]);
-    
+
     if(tab[idx[3-1]]<tab[idx[4-1]] )  swi(idx[3-1],idx[4-1]);
-    
-    
+
+
   }else if(n==5){
-    
-   
+
+
     if(tab[idx[1-1]]<tab[idx[2-1]] )  swi(idx[1-1],idx[2-1]);
     if(tab[idx[4-1]]<tab[idx[5-1]] )  swi(idx[4-1],idx[5-1]);
-    
+
     if(tab[idx[3-1]]<tab[idx[5-1]] )  swi(idx[3-1],idx[5-1]);
-    
+
     if(tab[idx[3-1]]<tab[idx[4-1]] )  swi(idx[3-1],idx[4-1]);
     if(tab[idx[2-1]]<tab[idx[5-1]] )  swi(idx[2-1],idx[5-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[4-1]] )  swi(idx[1-1],idx[4-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[3-1]] )  swi(idx[1-1],idx[3-1]);
     if(tab[idx[2-1]]<tab[idx[4-1]] )  swi(idx[2-1],idx[4-1]);
-    
+
     if(tab[idx[2-1]]<tab[idx[3-1]] )  swi(idx[2-1],idx[3-1]);
-    
-    
+
+
   }else if(n==4){
-    
-   
+
+
     if(tab[idx[1-1]]<tab[idx[2-1]] )  swi(idx[1-1],idx[2-1]);
     if(tab[idx[3-1]]<tab[idx[4-1]] )  swi(idx[3-1],idx[4-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[3-1]] )  swi(idx[1-1],idx[3-1]);
     if(tab[idx[2-1]]<tab[idx[4-1]] )  swi(idx[2-1],idx[4-1]);
-    
+
     if(tab[idx[2-1]]<tab[idx[3-1]] )  swi(idx[2-1],idx[3-1]);
-    
-    
+
+
   }else if(n==3){
-    
-   
+
+
     if(tab[idx[2-1]]<tab[idx[3-1]] )  swi(idx[2-1],idx[3-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[3-1]] )  swi(idx[1-1],idx[3-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[2-1]] )  swi(idx[1-1],idx[2-1]);
-    
+
 
   }else if(n==2){
 
@@ -792,26 +793,26 @@ void sortupto8_dec(T tab[n], int idx[n]){
     if(tab[idx[3-1]]<tab[idx[4-1]])  swi(idx[3-1],idx[4-1]);
     if(tab[idx[5-1]]<tab[idx[6-1]])  swi(idx[5-1],idx[6-1]);
     if(tab[idx[7-1]]<tab[idx[8-1]])  swi(idx[7-1],idx[8-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[3-1]])  swi(idx[1-1],idx[3-1]);
     if(tab[idx[2-1]]<tab[idx[4-1]])  swi(idx[2-1],idx[4-1]) ;
     if(tab[idx[5-1]]<tab[idx[7-1]])  swi(idx[5-1],idx[7-1]) ;
     if(tab[idx[6-1]]<tab[idx[8-1]])  swi(idx[6-1],idx[8-1]) ;
-    
+
     if(tab[idx[2-1]]<tab[idx[3-1]])  swi(idx[2-1],idx[3-1]);
     if(tab[idx[6-1]]<tab[idx[7-1]])  swi(idx[6-1],idx[7-1]);
     if(tab[idx[1-1]]<tab[idx[5-1]])  swi(idx[1-1],idx[5-1]);
     if(tab[idx[4-1]]<tab[idx[8-1]])  swi(idx[4-1],idx[8-1]);
-    
+
     if(tab[idx[2-1]]<tab[idx[6-1]])  swi(idx[2-1],idx[6-1]);
     if(tab[idx[3-1]]<tab[idx[7-1]])  swi(idx[3-1],idx[7-1]);
-    
+
     if(tab[idx[2-1]]<tab[idx[5-1]])  swi(idx[2-1],idx[5-1]);
     if(tab[idx[4-1]]<tab[idx[7-1]])  swi(idx[4-1],idx[7-1]);
-    
+
     if(tab[idx[3-1]]<tab[idx[5-1]])  swi(idx[3-1],idx[5-1]);
     if(tab[idx[4-1]]<tab[idx[6-1]])  swi(idx[4-1],idx[6-1]);
-    
+
     if(tab[idx[4-1]]<tab[idx[5-1]])  swi(idx[4-1],idx[5-1]);
 
   }else if(n==7){
@@ -819,89 +820,89 @@ void sortupto8_dec(T tab[n], int idx[n]){
     if(tab[idx[2-1]]<tab[idx[3-1]] )  swi(idx[2-1],idx[3-1]);
     if(tab[idx[4-1]]<tab[idx[5-1]] )  swi(idx[4-1],idx[5-1]);
     if(tab[idx[6-1]]<tab[idx[7-1]] )  swi(idx[6-1],idx[7-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[3-1]] )  swi(idx[1-1],idx[3-1]);
     if(tab[idx[4-1]]<tab[idx[6-1]] )  swi(idx[4-1],idx[6-1]);
     if(tab[idx[5-1]]<tab[idx[7-1]] )  swi(idx[5-1],idx[7-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[2-1]] )  swi(idx[1-1],idx[2-1]);
     if(tab[idx[5-1]]<tab[idx[6-1]] )  swi(idx[5-1],idx[6-1]);
     if(tab[idx[3-1]]<tab[idx[7-1]] )  swi(idx[3-1],idx[7-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[5-1]] )  swi(idx[1-1],idx[5-1]);
     if(tab[idx[2-1]]<tab[idx[6-1]] )  swi(idx[2-1],idx[6-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[4-1]] )  swi(idx[1-1],idx[4-1]);
     if(tab[idx[3-1]]<tab[idx[6-1]] )  swi(idx[3-1],idx[6-1]);
-    
+
     if(tab[idx[2-1]]<tab[idx[4-1]] )  swi(idx[2-1],idx[4-1]);
     if(tab[idx[3-1]]<tab[idx[5-1]] )  swi(idx[3-1],idx[5-1]);
-    
+
     if(tab[idx[3-1]]<tab[idx[4-1]] )  swi(idx[3-1],idx[4-1]);
-    
-    
+
+
   }else if(n==6){
-    
-    
+
+
     if(tab[idx[2-1]]<tab[idx[3-1]] )  swi(idx[2-1],idx[3-1]);
     if(tab[idx[5-1]]<tab[idx[6-1]] )  swi(idx[5-1],idx[6-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[3-1]] )  swi(idx[1-1],idx[3-1]);
     if(tab[idx[4-1]]<tab[idx[6-1]] )  swi(idx[4-1],idx[6-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[2-1]] )  swi(idx[1-1],idx[2-1]);
     if(tab[idx[4-1]]<tab[idx[5-1]] )  swi(idx[4-1],idx[5-1]);
     if(tab[idx[3-1]]<tab[idx[6-1]] )  swi(idx[3-1],idx[6-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[4-1]] )  swi(idx[1-1],idx[4-1]);
     if(tab[idx[2-1]]<tab[idx[5-1]] )  swi(idx[2-1],idx[5-1]);
-    
+
     if(tab[idx[3-1]]<tab[idx[5-1]] )  swi(idx[3-1],idx[5-1]);
     if(tab[idx[2-1]]<tab[idx[4-1]] )  swi(idx[2-1],idx[4-1]);
-    
+
     if(tab[idx[3-1]]<tab[idx[4-1]] )  swi(idx[3-1],idx[4-1]);
-    
-    
+
+
   }else if(n==5){
-    
-   
+
+
     if(tab[idx[1-1]]<tab[idx[2-1]] )  swi(idx[1-1],idx[2-1]);
     if(tab[idx[4-1]]<tab[idx[5-1]] )  swi(idx[4-1],idx[5-1]);
-    
+
     if(tab[idx[3-1]]<tab[idx[5-1]] )  swi(idx[3-1],idx[5-1]);
-    
+
     if(tab[idx[3-1]]<tab[idx[4-1]] )  swi(idx[3-1],idx[4-1]);
     if(tab[idx[2-1]]<tab[idx[5-1]] )  swi(idx[2-1],idx[5-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[4-1]] )  swi(idx[1-1],idx[4-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[3-1]] )  swi(idx[1-1],idx[3-1]);
     if(tab[idx[2-1]]<tab[idx[4-1]] )  swi(idx[2-1],idx[4-1]);
-    
+
     if(tab[idx[2-1]]<tab[idx[3-1]] )  swi(idx[2-1],idx[3-1]);
-    
-    
+
+
   }else if(n==4){
-    
-   
+
+
     if(tab[idx[1-1]]<tab[idx[2-1]] )  swi(idx[1-1],idx[2-1]);
     if(tab[idx[3-1]]<tab[idx[4-1]] )  swi(idx[3-1],idx[4-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[3-1]] )  swi(idx[1-1],idx[3-1]);
     if(tab[idx[2-1]]<tab[idx[4-1]] )  swi(idx[2-1],idx[4-1]);
-    
+
     if(tab[idx[2-1]]<tab[idx[3-1]] )  swi(idx[2-1],idx[3-1]);
-    
-    
+
+
   }else if(n==3){
-    
-   
+
+
     if(tab[idx[2-1]]<tab[idx[3-1]] )  swi(idx[2-1],idx[3-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[3-1]] )  swi(idx[1-1],idx[3-1]);
-    
+
     if(tab[idx[1-1]]<tab[idx[2-1]] )  swi(idx[1-1],idx[2-1]);
-    
+
 
   }else if(n==2){
 
@@ -915,7 +916,7 @@ void sortupto8_dec(T tab[n], int idx[n]){
 
 template<typename T>
 void sortupto8_inc(T *tab,int n){
-  
+
   METRIS_ASSERT(n >= 0);
 
   if(n == 8){
@@ -923,26 +924,26 @@ void sortupto8_inc(T *tab,int n){
     if(tab[3-1]>tab[4-1])  swi(tab[3-1],tab[4-1]);
     if(tab[5-1]>tab[6-1])  swi(tab[5-1],tab[6-1]);
     if(tab[7-1]>tab[8-1])  swi(tab[7-1],tab[8-1]);
-    
+
     if(tab[1-1]>tab[3-1])  swi(tab[1-1],tab[3-1]);
     if(tab[2-1]>tab[4-1])  swi(tab[2-1],tab[4-1]) ;
     if(tab[5-1]>tab[7-1])  swi(tab[5-1],tab[7-1]) ;
     if(tab[6-1]>tab[8-1])  swi(tab[6-1],tab[8-1]) ;
-    
+
     if(tab[2-1]>tab[3-1])  swi(tab[2-1],tab[3-1]);
     if(tab[6-1]>tab[7-1])  swi(tab[6-1],tab[7-1]);
     if(tab[1-1]>tab[5-1])  swi(tab[1-1],tab[5-1]);
     if(tab[4-1]>tab[8-1])  swi(tab[4-1],tab[8-1]);
-    
+
     if(tab[2-1]>tab[6-1])  swi(tab[2-1],tab[6-1]);
     if(tab[3-1]>tab[7-1])  swi(tab[3-1],tab[7-1]);
-    
+
     if(tab[2-1]>tab[5-1])  swi(tab[2-1],tab[5-1]);
     if(tab[4-1]>tab[7-1])  swi(tab[4-1],tab[7-1]);
-    
+
     if(tab[3-1]>tab[5-1])  swi(tab[3-1],tab[5-1]);
     if(tab[4-1]>tab[6-1])  swi(tab[4-1],tab[6-1]);
-    
+
     if(tab[4-1]>tab[5-1])  swi(tab[4-1],tab[5-1]);
 
   }else if(n==7){
@@ -950,89 +951,89 @@ void sortupto8_inc(T *tab,int n){
     if(tab[2-1]>tab[3-1] )  swi(tab[2-1],tab[3-1]);
     if(tab[4-1]>tab[5-1] )  swi(tab[4-1],tab[5-1]);
     if(tab[6-1]>tab[7-1] )  swi(tab[6-1],tab[7-1]);
-    
+
     if(tab[1-1]>tab[3-1] )  swi(tab[1-1],tab[3-1]);
     if(tab[4-1]>tab[6-1] )  swi(tab[4-1],tab[6-1]);
     if(tab[5-1]>tab[7-1] )  swi(tab[5-1],tab[7-1]);
-    
+
     if(tab[1-1]>tab[2-1] )  swi(tab[1-1],tab[2-1]);
     if(tab[5-1]>tab[6-1] )  swi(tab[5-1],tab[6-1]);
     if(tab[3-1]>tab[7-1] )  swi(tab[3-1],tab[7-1]);
-    
+
     if(tab[1-1]>tab[5-1] )  swi(tab[1-1],tab[5-1]);
     if(tab[2-1]>tab[6-1] )  swi(tab[2-1],tab[6-1]);
-    
+
     if(tab[1-1]>tab[4-1] )  swi(tab[1-1],tab[4-1]);
     if(tab[3-1]>tab[6-1] )  swi(tab[3-1],tab[6-1]);
-    
+
     if(tab[2-1]>tab[4-1] )  swi(tab[2-1],tab[4-1]);
     if(tab[3-1]>tab[5-1] )  swi(tab[3-1],tab[5-1]);
-    
+
     if(tab[3-1]>tab[4-1] )  swi(tab[3-1],tab[4-1]);
-    
-    
+
+
   }else if(n==6){
-    
-    
+
+
     if(tab[2-1]>tab[3-1] )  swi(tab[2-1],tab[3-1]);
     if(tab[5-1]>tab[6-1] )  swi(tab[5-1],tab[6-1]);
-    
+
     if(tab[1-1]>tab[3-1] )  swi(tab[1-1],tab[3-1]);
     if(tab[4-1]>tab[6-1] )  swi(tab[4-1],tab[6-1]);
-    
+
     if(tab[1-1]>tab[2-1] )  swi(tab[1-1],tab[2-1]);
     if(tab[4-1]>tab[5-1] )  swi(tab[4-1],tab[5-1]);
     if(tab[3-1]>tab[6-1] )  swi(tab[3-1],tab[6-1]);
-    
+
     if(tab[1-1]>tab[4-1] )  swi(tab[1-1],tab[4-1]);
     if(tab[2-1]>tab[5-1] )  swi(tab[2-1],tab[5-1]);
-    
+
     if(tab[3-1]>tab[5-1] )  swi(tab[3-1],tab[5-1]);
     if(tab[2-1]>tab[4-1] )  swi(tab[2-1],tab[4-1]);
-    
+
     if(tab[3-1]>tab[4-1] )  swi(tab[3-1],tab[4-1]);
-    
-    
+
+
   }else if(n==5){
-    
-   
+
+
     if(tab[1-1]>tab[2-1] )  swi(tab[1-1],tab[2-1]);
     if(tab[4-1]>tab[5-1] )  swi(tab[4-1],tab[5-1]);
-    
+
     if(tab[3-1]>tab[5-1] )  swi(tab[3-1],tab[5-1]);
-    
+
     if(tab[3-1]>tab[4-1] )  swi(tab[3-1],tab[4-1]);
     if(tab[2-1]>tab[5-1] )  swi(tab[2-1],tab[5-1]);
-    
+
     if(tab[1-1]>tab[4-1] )  swi(tab[1-1],tab[4-1]);
-    
+
     if(tab[1-1]>tab[3-1] )  swi(tab[1-1],tab[3-1]);
     if(tab[2-1]>tab[4-1] )  swi(tab[2-1],tab[4-1]);
-    
+
     if(tab[2-1]>tab[3-1] )  swi(tab[2-1],tab[3-1]);
-    
-    
+
+
   }else if(n==4){
-    
-   
+
+
     if(tab[1-1]>tab[2-1] )  swi(tab[1-1],tab[2-1]);
     if(tab[3-1]>tab[4-1] )  swi(tab[3-1],tab[4-1]);
-    
+
     if(tab[1-1]>tab[3-1] )  swi(tab[1-1],tab[3-1]);
     if(tab[2-1]>tab[4-1] )  swi(tab[2-1],tab[4-1]);
-    
+
     if(tab[2-1]>tab[3-1] )  swi(tab[2-1],tab[3-1]);
-    
-    
+
+
   }else if(n==3){
-    
-   
+
+
     if(tab[2-1]>tab[3-1] )  swi(tab[2-1],tab[3-1]);
-    
+
     if(tab[1-1]>tab[3-1] )  swi(tab[1-1],tab[3-1]);
-    
+
     if(tab[1-1]>tab[2-1] )  swi(tab[1-1],tab[2-1]);
-    
+
 
   }else if(n==2){
 

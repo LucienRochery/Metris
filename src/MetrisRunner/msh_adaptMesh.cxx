@@ -26,6 +26,7 @@
 #include "../utils/aux_timer.hxx"
 
 #include "../low_geo/misc.hxx"
+// #include "../low_topo.hxx"
 
 #include "../cavity/msh_cavity.hxx"
 #include "../Adaptation/Insertion/low_insert.hxx"
@@ -120,9 +121,9 @@ void MetrisRunner::adaptMesh0(int tdim){
   msh.met.setSpace(MetSpace::Exp);
   msh.setBasis(FEBasis::Lagrange);
 
-  double qmin, qmax, qavg;
-  double qmax_suf;
-  bool iinva;
+  double qmin = 1e30, qmax = -1., qavg = 0.;
+  double qmax_suf = -1.;
+  bool iinva = false;
 
   #ifndef NDEBUG
   check_topo(msh,1);
@@ -195,6 +196,7 @@ void MetrisRunner::adaptMesh0(int tdim){
   //double stat_prev = stat0;
   msh.tag[ithrdfro]++;
   for(int niter = 1; niter <= miter || (miter < 0 && niter < miter_max); niter++){
+
     stat0 = 0;
     double tloop0 = get_cpu_time();
 
@@ -203,6 +205,7 @@ void MetrisRunner::adaptMesh0(int tdim){
     //qmax_suf = 0;
     double stat;
     // 1. Collapse short edges
+
     t0 = get_cpu_time();
     stat  = collapseShortEdges<MFT,gdim,ideg>(msh, tdim, qmax_suf, &ncoll, ithrdfro, ithrd1, ithrd2, ithrd3);
     stat0 = MAX(stat0,stat);

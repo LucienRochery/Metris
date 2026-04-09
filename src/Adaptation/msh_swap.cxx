@@ -172,8 +172,9 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
                 int ip2 = msh.tet2poi(ient1,lnoed3[iedgl][1]);
                 int iopen;
                 shell3(msh, ip1, ip2, ient1, lshell, dum1, &iopen);
-                for(int ient2 : lshell)
+                for(int ient2 : lshell){
                   msh.tet2tag(ithrd1,ient2) = msh.tag[ithrd1] - 1;
+                }
               }// for iedgl
             }// for ient1
           }// if tdim == 2

@@ -143,7 +143,7 @@ int insertEdge(Mesh<MFT>& msh,
   if (ierro > 0) goto cleanup;
 
   // if boundary insertion, check normal deviation: if fails abort operation
-  if (msh.get_tdim() == 3 && insertionSeed.tdimp < 3){
+  if (msh.get_tdim() == 3 && insertionSeed.tdimp < 3 && !icollapse){
 
     constexpr bool usemax = false;
     bool nordevOK = seedCav_nordevOK<usemax>(msh,cav,ithrd1);

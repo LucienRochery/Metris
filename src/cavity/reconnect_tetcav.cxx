@@ -47,7 +47,6 @@ int reconnect_tetcav(Mesh<MFT> &msh,
   // ithread
   int cfatag = msh.tag[ithread];
 
-
   GETVDEPTH(msh.param);
   CPRINTF1(" - START reconnect_tetcav check_qua = {} qpnorm {} qpower {}\n",
             check_qua,qpnorm,msh.param->opt_power);
@@ -61,6 +60,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
   // Hence the only case where tets are created with new faces is if point
   // is interior. In that case it is quite simple, the tetrahedra are oriented
   // same as face with ipins in first position, and we are always the first fac2tet.
+
   for(int ielem : cav.lctet){
     msh.tet2tag(ithread, ielem) = msh.tag[ithread];
   }
@@ -202,8 +202,11 @@ int reconnect_tetcav(Mesh<MFT> &msh,
   // new faces, they do not generate tetrahedra, as those would have ipins twice.
   for(int iele0 : cav.lctet){
     INCVDEPTH(msh.param);
+
     for(int ifa0 = 0; ifa0 < 4; ifa0++){
+
       int ienei = msh.tet2tet(iele0,ifa0);
+
       if(ienei >= 0 && msh.tet2tag(ithread,ienei) >= msh.tag[ithread]){
         CPRINTF1(" - skip tetra creation from {} face {} due to cavity neighbour {} \n",
                  iele0, ifa0, ienei);
@@ -240,7 +243,6 @@ int reconnect_tetcav(Mesh<MFT> &msh,
         }
       }
 
-
       // Cavity boundary face, create tet.
       int ielen = msh.nelem;
       msh.set_nelem(msh.nelem+1);
@@ -254,6 +256,7 @@ int reconnect_tetcav(Mesh<MFT> &msh,
       msh.tet2poi(ielen, lnofa3[ifa0][0]) = msh.tet2poi(iele0, lnofa3[ifa0][0]);
       msh.tet2poi(ielen, lnofa3[ifa0][1]) = msh.tet2poi(iele0, lnofa3[ifa0][1]);
       msh.tet2poi(ielen, lnofa3[ifa0][2]) = msh.tet2poi(iele0, lnofa3[ifa0][2]);
+
       if constexpr(ideg > 1){
         int nnode = getnnod3(ideg);
         for(int ii = 4; ii < nnode; ii++){
@@ -583,7 +586,6 @@ int reconnect_tetcav(Mesh<MFT> &msh,
     info.qcav3 = pow(info.qcav3, 1.0 / qpnorm);
     CPRINTF1(" - Final tetra cavity quality = {:.3f}\n",info.qcav3);
   }
-
 
   return 0;
 }
