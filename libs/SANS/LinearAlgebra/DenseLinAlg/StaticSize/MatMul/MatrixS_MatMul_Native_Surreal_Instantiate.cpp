@@ -6,8 +6,8 @@
 #define MATRIXS_MATMUL_NATIVE_INSTANTIATE
 #include "MatrixS_MatMul_Native_impl.h"
 
-#include "SANS/Surreal/SurrealS.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "../../../../Surreal/SurrealS.h"
+#include "../../../../LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
 //#include "metris_constants.hxx"
 
@@ -40,7 +40,7 @@ MATRIXS_MATMUL_NATIVE( 3, 3, 3, 3, SurrealS<3>, SurrealS<3>, double, SurrealS<3>
 MATRIXS_MATMUL_NATIVE( 3, 3, 3, 3,      double, SurrealS<3>, double, SurrealS<3> );
 
 
-#if 0 
+#if 0
 
 //---- SurrealS = Real * Real x Real ----------------------------------------
 MATRIXS_MATMUL_NATIVE( 2,2, 2,1, Real, Real, Real, SurrealS<1> );

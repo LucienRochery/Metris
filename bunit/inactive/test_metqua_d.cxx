@@ -4,9 +4,9 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE My Test
 
-#include <boost/test/included/unit_test.hpp> 
+#include <boost/test/included/unit_test.hpp>
 #include <bunit/common_setup.hxx>
 
 #include <boost/timer/progress_display.hpp>
@@ -16,8 +16,8 @@
 #include "quality/low_metqua.hxx"
 #include "quality/low_metqua_d.hxx"
 
-#include "SANS/Surreal/SurrealS.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "..libs/SANS/Surreal/SurrealS.h"
+#include "..libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 //#include <src/msh_metric.hxx>
 
 namespace utf = boost::unit_test;
@@ -29,7 +29,7 @@ namespace Metris{
 typedef MetricFieldAnalytical MFT;
 
 
-BOOST_AUTO_TEST_CASE(test_metqua_d) 
+BOOST_AUTO_TEST_CASE(test_metqua_d)
 {//METRIS_MAX_DEG
 
 
@@ -38,12 +38,12 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
   using ftyp2 = float8;
 
   const int nstrmsh = 3;
-  std::vector<std::string> meshes = 
+  std::vector<std::string> meshes =
   {"../cases/debug/4tri.mesh",
    "../cases/2D/square.p1.10.meshb",
    //"../cases/2D/square.circmet.50.curved.meshb",
    "../cases/2D/square.circmet.5k.curved.meshb",
-   //"../cases/1200_p1.meshb", 
+   //"../cases/1200_p1.meshb",
    //"../cases/1200_p2.meshb",
    //"../cases/curved_p2.bez.meshb",
    //"../cases/curved_p2.meshb",
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
 
   double maxerr_eval = -1.0;
   double avgerr_eval = 0;
-  unsigned long long int nerr_eval = 0; 
+  unsigned long long int nerr_eval = 0;
 
   double maxerr_diff_rel = -1.0;
   double maxerr_diff_abs = -1.0;
@@ -74,8 +74,8 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
   double avgerr_diff_abs = 0;
   double avgerr_diff_abs_hess = 0;
   double avgerr_diff_abs_Hess = 0;
-  unsigned long long int nerr_diff = 0; 
-  unsigned long long int nerr_diff2 = 0; 
+  unsigned long long int nerr_diff = 0;
+  unsigned long long int nerr_diff2 = 0;
 
   int ndx = 0;
   for(ftyp1 dx = dx0; dx > dx1; dx /= qdx){
@@ -94,8 +94,8 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
 
   char **argv = (char**) malloc(256*sizeof(char*));
   int argc;
-  
-  std::vector<std::string> isomsh = 
+
+  std::vector<std::string> isomsh =
   {"cases/isotri.meshb",
    "cases/isotet.meshb",
    "cases/isotet_p2.bez.meshb"};
@@ -115,7 +115,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
     //msh.met.setSpace(MetSpace::Log);
 
     constexpr AsDeg asdmet = AsDeg::Pk;
-    constexpr FEBasis dofbas = FEBasis::Lagrange; 
+    constexpr FEBasis dofbas = FEBasis::Lagrange;
     constexpr DifVar idifmet = DifVar::None;
 
     msh.setBasis(dofbas);
@@ -138,12 +138,12 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
       constexpr int nHess2 = (gdim*2 * (gdim*2 + 1))/2; // Hess size for 2 pt
       ftyp2 qutet,dqutet[gdim],hqutet[nhess];
       ftyp1 hdum[nhess];
-      
+
       intAr2 &ent2poi = msh.ent2poi(tdim);
       int nentt = msh.nentt(tdim);
 
       CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-        constexpr int nrfld = tdim == 2 ? facnpps[ideg] : tetnpps[ideg]; 
+        constexpr int nrfld = tdim == 2 ? facnpps[ideg] : tetnpps[ideg];
         constexpr int nHess  = (gdim*nrfld*(gdim*nrfld+1))/2;
         #if 0
         for(int ientt = 0; ientt < nentt; ientt++){
@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
 
             ftyp1 qutet0;
             quafun_distortion<MFT,gdim,gdim,ideg,asdmet,ftyp1>(msh,ent2poi[ientt],power,bary,&qutet0);
-            
+
             double err = (double)abs((ftyp1)qutet - qutet0);
             double nrm = (double)abs(qutet0);
             maxerr_eval  = maxerr_eval > err/nrm ? maxerr_eval : err/nrm;
@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
               printf("Very large error %15.7e qutet0 = %15.7e \n",(double)err,(double)qutet0);
               wait();
             }
-          }   
+          }
         }
 
         printf("\n\n Tests passed for _xi \n\n");
@@ -200,7 +200,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
 
           ftyp1 qutet0;
           metqua<MFT,gdim,gdim,ideg,asdmet,ftyp1>(msh,ientt,power,&qutet0);
-          
+
           double err = (double)abs((ftyp1)qutet - qutet0);
           double nrm = (double)abs(qutet0);
           maxerr_eval  = maxerr_eval > err/nrm ? maxerr_eval : err/nrm;
@@ -223,9 +223,9 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
             printf("Very large error %15.7e qutet0 = %15.7e \n",(double)err,(double)qutet0);
             wait();
           }
-        }   
+        }
         #endif
-        
+
         printf("-- Value tests passed.\n");
         printf("-- Start diff tests.\n");
         // Test derivatives
@@ -260,8 +260,8 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
             for(ftyp1 dx = dx0*cc; dx > dx1*cc; dx /= qdx){
               double coor0[gdim];
               for(int i = 0; i < gdim; i++) coor0[i] = msh.coord(ipoin,i);
-              
-  
+
+
               for(int idim = 0 ; idim < gdim; idim++){
                 int jsig = 0;
                 for(int isig = -1; isig <= 1; isig += 2){
@@ -319,7 +319,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
             avgerr_diff_abs_hess += minerr_abs_hess;
             nerr_diff++;
 
-            bool iok = true; 
+            bool iok = true;
             double slope_grad, slope_hess;
             if(!ismall_grad){
               //bool ismall = false;
@@ -334,7 +334,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
               //}
               //double slope;
               //if(!ismall) slope = linearRegression(ndx,logdx,errdx_abs);
-              //iok = iok && (minsl < slope || ismall); 
+              //iok = iok && (minsl < slope || ismall);
               slope_grad = linearRegression(ndx,logdx,errdx_abs);
               iok = iok && minsl < slope_grad;
             }
@@ -361,7 +361,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
               printf("Slope grad = %f hess = %f \n",slope_grad,slope_hess);
               printf("logdx = \n");
               dblAr1(ndx,logdx).print();
-              
+
               printf("Analytical gradient:\n");
               MeshArray1D<ftyp1>(gdim,dqua_surr).print();
               printf("Diff gradient:\n");
@@ -390,15 +390,15 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
             //#endif
             BOOST_CHECK_MESSAGE(iok,
               " Slope grad "<<slope_grad<<" >? "<<minsl<<"\n"<<
-              " Slope Hess "<<slope_hess<<" >? "<<minsl<<"\n"<<             
+              " Slope Hess "<<slope_hess<<" >? "<<minsl<<"\n"<<
               " ivar = "<<ivar<<" last error "<<
               errdx_abs[ndx-1]<<" firsst "<<errdx_abs[0]<<
               " minimum "<<minerr_abs<<"\n");
-          } // for int ivar 
+          } // for int ivar
 
           //printf("Passed grad and single point hessian tests (1elt)\n");
 
-          // 2 nodes 
+          // 2 nodes
           ftyp2 Dqutet[nrfld][gdim];
           ftyp2 Hqutet[nHess];
 
@@ -409,12 +409,12 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
 
             for(int inod2 = inod1; inod2 < nrfld; inod2++){
               int ipoi2 = ent2poi(ientt,inod2);
-              
+
               double coor01[gdim], coor02[gdim];
               for(int i = 0; i < gdim; i++) coor01[i] = msh.coord(ipoi1,i);
               for(int i = 0; i < gdim; i++) coor02[i] = msh.coord(ipoi2,i);
 
-              // Move ipoi2 and use gradient with respect to ipoi1 
+              // Move ipoi2 and use gradient with respect to ipoi1
               ftyp1 cc = (ftyp1) getepsent<gdim>(msh,gdim,ientt);
               int idx = 0;
               bool ismall = false;
@@ -433,8 +433,8 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
                                msh,ent2poi[ientt],bary,power,
                                inod2,dofbas,idifmet,dqutets22[idim+1][jsig],hdum);
                     jsig++;
-                  } // for isig 
-                } // for idim 
+                  } // for isig
+                } // for idim
 
                 for(int idim = 0 ; idim < gdim; idim++){
                   int jsig = 0;
@@ -448,8 +448,8 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
                                msh,ent2poi[ientt],bary,power,
                                inod2,dofbas,idifmet,dqutets21[idim+1][jsig],hdum);
                     jsig++;
-                  } // for isig 
-                } // for idim 
+                  } // for isig
+                } // for idim
 
                 for(int ii = 0; ii < gdim; ii++) msh.coord(ipoi2,ii) = coor01[ii];
                 for(int ii = 0; ii < gdim; ii++) msh.coord(ipoi2,ii) = coor02[ii];
@@ -459,14 +459,14 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
                     // dxx
                     //std::cout<<" using values "<<dqutets11[ii+1][1][jj]<<" and "
                     //<<dqutets11[ii+1][0][jj]<<" \n";
-                    Hqua_disc[sym3idx(gdim*0+ii,gdim*0+jj)] 
+                    Hqua_disc[sym3idx(gdim*0+ii,gdim*0+jj)]
                          = (dqutets11[ii+1][1][jj] - dqutets11[ii+1][0][jj])/(2*dx);
-                    // dxy 
-                    Hqua_disc[sym3idx(gdim*0+jj,gdim*1+ii)] 
+                    // dxy
+                    Hqua_disc[sym3idx(gdim*0+jj,gdim*1+ii)]
                          = (dqutets12[ii+1][1][jj] - dqutets12[ii+1][0][jj])/(2*dx);
                          //- (dqutets21[ii+1][1][jj] - dqutets21[ii+1][0][jj])/(2*dx); // confirm finidiff ok
-                    // dyy 
-                    Hqua_disc[sym3idx(gdim*1+ii,gdim*1+jj)] 
+                    // dyy
+                    Hqua_disc[sym3idx(gdim*1+ii,gdim*1+jj)]
                          = (dqutets22[ii+1][1][jj] - dqutets22[ii+1][0][jj])/(2*dx);
 
                     Hqua_surr[sym3idx(gdim*0+ii,gdim*0+jj)] = Hqutet[sym3idx(gdim*inod1+ii,gdim*inod1+jj)];
@@ -482,13 +482,13 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
                 if(err_abs < tol0) ismall = true;
                 minerr_abs = MIN(minerr_abs,errdx_abs[idx]);
                 idx++;
-              } // for dx 
+              } // for dx
 
               maxerr_diff_abs_Hess = MAX(maxerr_diff_abs_Hess,minerr_abs);
               avgerr_diff_abs_Hess += minerr_abs;
               nerr_diff2++;
 
-              bool iok = true; 
+              bool iok = true;
               double slope;
               if(!ismall){
                 slope = linearRegression(ndx,logdx,errdx_abs);
@@ -513,7 +513,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
                 printf("Slope hess = %f ismall = %d\n",slope,ismall);
                 printf("logdx = \n");
                 dblAr1(ndx,logdx).print();
-                
+
                 printf("Analytical Hessian:\n");
                 MeshArray1D<ftyp1>(nHess2,Hqua_surr).print();
                 printf("Diff Hessian:\n");
@@ -538,11 +538,11 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
                 wait();
               }
               BOOST_CHECK_MESSAGE(iok,
-                " Slope Hess "<<slope<<" >? "<<minsl<<"\n"<<             
+                " Slope Hess "<<slope<<" >? "<<minsl<<"\n"<<
                 " inod1 = "<<inod1<<" last error "<<
                 errdx_abs[ndx-1]<<" firsst "<<errdx_abs[0]<<
                 " minimum "<<minerr_abs<<"\n");
-            } // for inod2 
+            } // for inod2
 
 
             //#ifndef NDEBUG
@@ -562,7 +562,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
             //  printf("Slope grad = %f hess = %f \n",slope_grad,slope_hess);
             //  printf("logdx = \n");
             //  dblAr1(ndx,logdx).print();
-            //  
+            //
             //  printf("Analytical gradient:\n");
             //  MeshArray1D<ftyp1>(gdim,dqua_surr).print();
             //  printf("Diff gradient:\n");
@@ -632,7 +632,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
       std::cout<<"-- All tests passed for mesh "<<s<<std::endl;
       //wait();
     }}CT_FOR1(gdim);
-  } // end for auto meshes 
+  } // end for auto meshes
 
   avgerr_eval /= nerr_eval;
   avgerr_diff_abs /= nerr_diff;

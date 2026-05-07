@@ -6,8 +6,8 @@
 #define MATRIXS_MATMUL_NATIVE_INSTANTIATE
 #include "MatrixS_MatMul_Native_impl.h"
 
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "../../../../LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
+#include "../../../../LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
 namespace SANS
 {

@@ -6,11 +6,11 @@
 #ifndef MATRIXS_MUL_NATIVE_H
 #define MATRIXS_MUL_NATIVE_H
 
-#include "SANS/tools/SANSnumerics.h"     // Real
-#include "SANS/tools/minmax.h"
+#include "../../../tools/SANSnumerics.h"     // Real
+#include "../../../tools/minmax.h"
 
-#include "SANS/tools/CacheLineSize.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
+#include "../../../tools/CacheLineSize.h"
+#include "MatrixS_Type.h"
 
 namespace SANS
 {

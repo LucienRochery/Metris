@@ -3,9 +3,9 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE My Test
 
-#include <boost/test/included/unit_test.hpp> 
+#include <boost/test/included/unit_test.hpp>
 #include "common_setup.hxx"
 
 #include <boost/timer/progress_display.hpp>
@@ -16,23 +16,23 @@
 #include "quality/low_metqua.hxx"
 #include "low_geo/misc.hxx"
 #include "Adaptation/low_cavqual.cxx"
-#include "SANS/Surreal/SurrealS.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
-#include <boost/hana.hpp> 
+#include "../libs/SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include <boost/hana.hpp>
 
 using namespace Metris;
 
 typedef MetricFieldAnalytical MFT;
 
 
-BOOST_AUTO_TEST_CASE(test_eval3) 
+BOOST_AUTO_TEST_CASE(test_eval3)
 {
 
   // bool is whether straight
   std::vector<std::pair<std::string,double>> meshes = {
      {METRIS_CASES_DIR "/unit/3D/cube/iso.p1.16k", 1.0}
     ,{METRIS_CASES_DIR "/unit/2D/square/iso.p1.10k.meshb",0.21}
-    }; 
+    };
 
 
   CavOprOpt opts;
@@ -40,8 +40,8 @@ BOOST_AUTO_TEST_CASE(test_eval3)
   opts.allow_topological_correction = true;
   opts.skip_topo_checks = false;
   opts.dryrun = false;
-  //opts.allow_remove_points = icollapse; 
-  opts.allow_remove_points = true; 
+  //opts.allow_remove_points = icollapse;
+  opts.allow_remove_points = true;
   opts.allow_remove_points_superdim = true; // For boundary
   opts.qmax_nec = -1;
   opts.qmax_suf = -1;
@@ -51,12 +51,12 @@ BOOST_AUTO_TEST_CASE(test_eval3)
   const int ithrd2 = 1;
 
   for(auto cases : meshes)
-  { 
+  {
     std::string mesh = cases.first;
     double sclmet = cases.second;
     cargHandler arg("-in " + mesh + "  -anamet 1 -sclmet " + std::to_string(sclmet) + " -verb 2 -vdepth 1 -prefix tmp/");
     MetrisRunner run(arg.c, arg.v);
-    Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g); 
+    Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
     run.degElevate();
 
 

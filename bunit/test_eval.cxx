@@ -5,7 +5,7 @@
 
 #define BOOST_TEST_MODULE test_eval
 
-#include <boost/test/included/unit_test.hpp> 
+#include <boost/test/included/unit_test.hpp>
 #include <bunit/common_setup.hxx>
 
 #include <boost/timer/progress_display.hpp>
@@ -13,11 +13,11 @@
 #include "ho_constants.hxx"
 #include "utils/aux_misc.hxx"
 #include "quality/low_metqua.hxx"
-#include "SANS/Surreal/SurrealS.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "..libs/SANS/Surreal/SurrealS.h"
+#include "..libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 #include "low_geo/misc.hxx"
 
-#include <boost/hana.hpp> 
+#include <boost/hana.hpp>
 namespace hana = boost::hana;
 using namespace hana::literals;
 
@@ -27,12 +27,12 @@ using namespace Metris;
 
 typedef MetricFieldAnalytical MFT;
 
-// -- Test metqua3_xi_d 
-// Constant metric fields should yield reliable derivatives in all cases 
+// -- Test metqua3_xi_d
+// Constant metric fields should yield reliable derivatives in all cases
 // In non constant metric fields, derivatives only defined for DoFs in back element
-// interiors... 
+// interiors...
 
-BOOST_AUTO_TEST_CASE(test_eval) 
+BOOST_AUTO_TEST_CASE(test_eval)
 {
 
   // bool is whether straight
@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(test_eval)
     ,{METRIS_CASES_DIR "/unit/3D/cube/curved.p2.2k -t 4",false}
     #endif
     #endif
-    }; 
+    };
 
     const double tol   = 1.0e-11;
 
@@ -66,12 +66,12 @@ BOOST_AUTO_TEST_CASE(test_eval)
     const double minsl = 0.5;
     int ndx = 0;
     for(double dx = dx0; dx > dx1; dx /= qdx) ndx++;
-    
+
     if(ndx > mdx) METRIS_THROW_MSG("Increase mdx")
     double err3dx[nbase][mdx], err6dx[nbase][mdx], logdx[mdx];
 
     for(auto testcase : meshes)
-    { 
+    {
       std::string s = testcase.first;
       bool istr8    = testcase.second;
 
@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE(test_eval)
             const int nsamp = nnode;
             double bar0[nsamp][idim+1];
             for(int ii = 0 ; ii < nsamp ; ii++){
-              for(int jj = 0; jj < idim + 1; jj++) 
+              for(int jj = 0; jj < idim + 1; jj++)
                 bar0[ii][jj] = ordent[ideg][ii][jj] / ((double) ideg);
             }
 
@@ -126,8 +126,8 @@ BOOST_AUTO_TEST_CASE(test_eval)
 
             if(istr8){
           // NB: although meshes are straight, this doesn't mean metrics are "straight"
-          // i.e. the metric field itself is not P1 due to how it is constructed at the 
-          // edges by averaging with neighbouring elements. 
+          // i.e. the metric field itself is not P1 due to how it is constructed at the
+          // edges by averaging with neighbouring elements.
               printf("-- Start value tests.\n");
               for(int ielem = 0; ielem < msh.nelem; ielem++){
                 for(int isamp = 0; isamp < nsamp; isamp++){
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(test_eval)
                   BOOST_REQUIRE_MESSAGE(errj3 < tol*nrmj3,
                     "Large coord jmat error:"<<errj3/nrmj3<<"\n");
                 }
-              }   
+              }
               printf("-- Value tests passed.\n");
 
             }
@@ -227,7 +227,7 @@ BOOST_AUTO_TEST_CASE(test_eval)
                     "Large err6 "<< err6dx[(int)FEBasis::Bezier][0]<<" Bézier ideg = "<<ideg<<"\n");
                   BOOST_CHECK_MESSAGE(err6dx[(int)FEBasis::Lagrange][0] < tol,
                     "Large err6 "<< err6dx[(int)FEBasis::Lagrange][0]<<" Lagrange ideg = "<<ideg<<"\n");
-                } 
+                }
 
 
 
@@ -252,7 +252,7 @@ BOOST_AUTO_TEST_CASE(test_eval)
                     for(int idif1 = 0; idif1 < idim; idif1++){
                       for(int idif2 = 0; idif2 < idim; idif2++){
                         for(int k = 0; k < idim; k++){
-                          hmat3_disc[sym2idx(idif1,idif2)][k] 
+                          hmat3_disc[sym2idx(idif1,idif2)][k]
                           = (jmat3s[1+idif1][idim*idif2+k] - jmat3s[0][idim*idif2+k])/dx;
                         }
                       }
@@ -260,7 +260,7 @@ BOOST_AUTO_TEST_CASE(test_eval)
                     for(int idif1 = 0; idif1 < idim; idif1++){
                       for(int idif2 = 0; idif2 < idim; idif2++){
                         for(int k = 0; k < nhess; k++){
-                          hmat6_disc[sym2idx(idif1,idif2)][k] 
+                          hmat6_disc[sym2idx(idif1,idif2)][k]
                           = (jmat6s[1+idif1][nhess*idif2+k] - jmat6s[0][nhess*idif2+k])/dx;
                         }
                       }
@@ -329,7 +329,7 @@ BOOST_AUTO_TEST_CASE(test_eval)
 
 
               }
-            }   
+            }
             printf("-- Diff tests passed.\n");
       // END body
         }}CT_FOR1(idim);

@@ -23,7 +23,7 @@
 #include "quality/quafun_tradet.hxx"
 #include "quality/quafun.hxx"
 
-#include "SANS/Surreal/SurrealS.h"
+#include "..libs/SANS/Surreal/SurrealS.h"
 
 namespace Metris{
 

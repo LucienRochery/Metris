@@ -15,12 +15,12 @@
 #include <iostream>
 #include <vector>
 
-#include "SANS/tools/SANSTraitsPOD.h"
-#include "SANS/tools/SANSException.h"
-#include "SANS/tools/SANSTraitsInitListAssign.h"
+#include "../../../tools/SANSTraitsPOD.h"
+#include "../../../tools/SANSException.h"
+#include "../../../tools/SANSTraitsInitListAssign.h"
 
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS_Mul.h"
+#include "../../../LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
+#include "../../../LinearAlgebra/DenseLinAlg/StaticSize/VectorS_Mul.h"
 
 namespace SANS
 {

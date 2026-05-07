@@ -16,8 +16,8 @@
 // not sure how to register them with std::is_arithmetic
 #include <boost/type_traits/is_arithmetic.hpp>
 
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/tools/PromoteSurreal.h"
+#include "../../../LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
+#include "../../../LinearAlgebra/DenseLinAlg/tools/PromoteSurreal.h"
 
 namespace SANS
 {

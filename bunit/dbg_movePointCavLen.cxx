@@ -3,9 +3,9 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE My Test
 
-#include <boost/test/included/unit_test.hpp> 
+#include <boost/test/included/unit_test.hpp>
 #include <bunit/common_setup.hxx>
 
 #include <boost/timer/progress_display.hpp>
@@ -14,8 +14,8 @@
 #include "io_libmeshb.hxx"
 #include "utils/aux_misc.hxx"
 #include "quality/low_metqua.hxx"
-#include "SANS/Surreal/SurrealS.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "..libs/SANS/Surreal/SurrealS.h"
+#include "..libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 #include "low_geo/misc.hxx"
 #include "Adaptation/low_cavqual.cxx"
 #include <boost/hana.hpp>
@@ -24,10 +24,10 @@ using namespace Metris;
 
 typedef MetricFieldAnalytical MFT;
 
-// -- Test metqua3_xi_d 
-// Constant metric fields should yield reliable derivatives in all cases 
+// -- Test metqua3_xi_d
+// Constant metric fields should yield reliable derivatives in all cases
 // In non constant metric fields, derivatives only defined for DoFs in back element
-// interiors... 
+// interiors...
 
 int get_nrempt(MeshBase &msh, const MshCavity &cav, int ithrd1){
   int tdim = cav.get_tdim();
@@ -35,7 +35,7 @@ int get_nrempt(MeshBase &msh, const MshCavity &cav, int ithrd1){
   const intAr2 &ent2poi = msh.ent2poi(tdim);
   const intAr2 &ent2ent = msh.ent2ent(tdim);
   intAr2 &ent2tag = msh.ent2tag(tdim);
-  
+
   msh.tag[ithrd1]++;
 
   for(int ientt : lcent) ent2tag(ithrd1, ientt) = msh.tag[ithrd1];
@@ -64,14 +64,14 @@ int get_nrempt(MeshBase &msh, const MshCavity &cav, int ithrd1){
   return nrempt;
 }
 
-BOOST_AUTO_TEST_CASE(test_eval3) 
+BOOST_AUTO_TEST_CASE(test_eval3)
 {
 
   // bool is whether straight
   std::vector<std::string> meshes = {
      METRIS_CASES_DIR "/unit/3D/cube/iso.p1.2k"
     ,METRIS_CASES_DIR "/unit/2D/square/circmet.p2.500"
-    }; 
+    };
 
 
   CavOprOpt opts;
@@ -79,8 +79,8 @@ BOOST_AUTO_TEST_CASE(test_eval3)
   opts.allow_topological_correction = true;
   opts.skip_topo_checks = false;
   opts.dryrun = false;
-  //opts.allow_remove_points = icollapse; 
-  opts.allow_remove_points = true; 
+  //opts.allow_remove_points = icollapse;
+  opts.allow_remove_points = true;
   opts.allow_remove_points_superdim = true; // For boundary
   opts.qmax_nec = -1;
   opts.qmax_suf = -1;
@@ -90,11 +90,11 @@ BOOST_AUTO_TEST_CASE(test_eval3)
   const int ithrd2 = 1;
 
   for(std::string mesh : meshes)
-  { 
+  {
 
     cargHandler arg("-in " + mesh + "  -anamet 1 -verb 0 -vdepth 0 -prefix tmp/");
     MetrisRunner run(arg.c, arg.v);
-    Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g); 
+    Mesh<MFT> &msh = *((Mesh<MFT>*) run.msh_g);
     run.degElevate();
 
 
@@ -164,7 +164,7 @@ BOOST_AUTO_TEST_CASE(test_eval3)
       if(cav.get_tdim() < tdim) continue;
       cav.inewp = 0; // Start at no point, to get initial density
       collrejcav_dens(msh,cav,&dens0,&dens1,ithrd1,ithrd2);
-      
+
       MPRINTF(" - Init cav edge %d face %d tetra %d dens0 %f dens1 %f optimal %f\n",
               cav.lcedg.get_n(),cav.lcfac.get_n(),cav.lctet.get_n(),dens0,dens1,opt_dens);
 
@@ -205,7 +205,7 @@ BOOST_AUTO_TEST_CASE(test_eval3)
       ierro = setCavityInsertion(msh,cav,opts,10,lenqua_short_max,nocomp,ithrd1,ithrd2);
       getquacav(msh,cav,&qumin0,&qumin1,&qumax0,&qumax1,&quavg0,&quavg1,ithrd1);
       printf(" - setCavityInsertion  returned %d ncent %d qumin %f -> %f max %f -> %f avg %f -> %f\n",ierro,
-             cav.lcent(tdim).get_n(),qumin0,qumin1,qumax0,qumax1,quavg0,quavg1); 
+             cav.lcent(tdim).get_n(),qumin0,qumin1,qumax0,qumax1,quavg0,quavg1);
       writeMeshCavity("cav1_" + std::to_string(iedge),msh,cav);
 
 
@@ -220,10 +220,10 @@ BOOST_AUTO_TEST_CASE(test_eval3)
              cav.lcent(tdim).get_n(),qumin0,qumin1,qumax0,qumax1,quavg0,quavg1);
       writeMeshCavity("cav2_" + std::to_string(iedge),msh,cav);
 
-             
+
 
       wait();
-      
+
 
 
 
@@ -254,11 +254,11 @@ BOOST_AUTO_TEST_CASE(test_eval3)
 
         getquacav(msh,cav,&qumin0,&qumin1,&qumax0,&qumax1,&quavg0,&quavg1,ithrd1);
         MPRINTF(" - iter %d + del, quacav: min0 %f min1 %f max0 %f max1 %f avg0 %f avg1 %f\n",
-                niter,qumin0,qumin1,qumax0,qumax1,quavg0,quavg1);         
+                niter,qumin0,qumin1,qumax0,qumax1,quavg0,quavg1);
         MPRINTF(" - iter %d + del, dens0 %f dens1 %f nentt %d nremp %d\n",niter,dens0,dens1,ncent,nrempt);
       }
 
-      
+
 
 
       writeMeshCavity("cav1_" + std::to_string(iedge),msh,cav);

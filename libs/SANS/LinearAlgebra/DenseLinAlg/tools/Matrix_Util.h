@@ -16,7 +16,7 @@
 
 #endif
 
-#include "SANS/tools/SANSnumerics.h" //Real
+#include "../../../tools/SANSnumerics.h" //Real
 
 #include <cmath>   // abs
 #include <utility> // std::move

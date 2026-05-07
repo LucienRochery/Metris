@@ -3,14 +3,14 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE My Test 
+#define BOOST_TEST_MODULE My Test
 
 //#include <src/codegen_ccoef_d.hxx>
 
 #include <src/low_ccoef_d.hxx>
 #include <src/low_geo/ccoef.hxx>
 
-#include <boost/test/included/unit_test.hpp> 
+#include <boost/test/included/unit_test.hpp>
 #include <bunit/common_setup.hxx>
 
 #include <boost/timer/progress_display.hpp>
@@ -19,11 +19,11 @@
 #include "quality/low_metqua.hxx"
 #include "quality/low_metqua_d.hxx"
 
-#include "SANS/Surreal/SurrealS.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "..libs/SANS/Surreal/SurrealS.h"
+#include "..libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
 
-#include <boost/hana.hpp> 
+#include <boost/hana.hpp>
 namespace hana = boost::hana;
 using namespace hana::literals;
 
@@ -35,14 +35,14 @@ namespace Metris{
 typedef MetricFieldFE MFT;
 
 
-BOOST_AUTO_TEST_CASE(test_ccoef2_d) 
+BOOST_AUTO_TEST_CASE(test_ccoef2_d)
 {
   std::vector<std::string> meshes = {
    "../cases/2D/square.circmet.50.curved.meshb",
    "../cases/2D/square.circmet.5k.curved.meshb"
   };
 
-  
+
   for(auto s : meshes)
   {
 
@@ -70,18 +70,18 @@ BOOST_AUTO_TEST_CASE(test_ccoef2_d)
       const intAr2& ent2poi = msh.ent2poi(idim);
 
       const double h = 1;
-      const double tol_relative = 1e-10; 
+      const double tol_relative = 1e-10;
       const double tol0 = 1.0e-14;
       int num_total = 0;
       int num_pass = 0;
 
       for (int ientt = 0; ientt < nentt; ientt++){
-        
+
         if(isdeadent(ientt,ent2poi)) continue;
 
-        double ccoef[nnodj], dum_ccoef[nnodj]; 
+        double ccoef[nnodj], dum_ccoef[nnodj];
         dblAr2 d_ccoef_x(nnodj,nnode), d_ccoef_y(nnodj,nnode);
-        
+
         //d_ccoef_genbez(ent2poi, msh.coord, ientt, 0, d_ccoef_x);
         //d_ccoef_genbez(ent2poi, msh.coord, ientt, 1, d_ccoef_y);
 
@@ -96,13 +96,13 @@ BOOST_AUTO_TEST_CASE(test_ccoef2_d)
           for (int j = 0; j < nnode; j++) //   P_j  -> compute D_{P_j} (N_i)
           {
             int idx = ent2poi(ientt,j);
-              
+
             msh.coord(idx,0) += h;
-            getccoef<idim,idim,ideg>(msh, ientt, NULL, ccoef_fd_x); 
+            getccoef<idim,idim,ideg>(msh, ientt, NULL, ccoef_fd_x);
             msh.coord(idx,0) -= h;
 
             msh.coord(idx,1) += h;
-            getccoef<idim,idim,ideg>(msh, ientt, NULL, ccoef_fd_y); 
+            getccoef<idim,idim,ideg>(msh, ientt, NULL, ccoef_fd_y);
             msh.coord(idx,1) -= h;
 
             d_ccoef_fd_x(i,j) = (ccoef_fd_x[i] - ccoef[i]) / h;
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(test_ccoef2_d)
             }
 
             //BOOST_CHECK_CLOSE(d_ccoef_fd_x[i][j], d_ccoef_x[i][j], tol_relative);
-            //BOOST_CHECK_CLOSE(d_ccoef_fd_y[i][j], d_ccoef_y[i][j], tol_relative); 
+            //BOOST_CHECK_CLOSE(d_ccoef_fd_y[i][j], d_ccoef_y[i][j], tol_relative);
 
           }
         }

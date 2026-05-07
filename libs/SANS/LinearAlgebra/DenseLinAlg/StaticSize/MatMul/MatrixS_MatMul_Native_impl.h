@@ -10,8 +10,8 @@
 #endif
 
 #include "MatrixS_MatMul_Native.h"
-#include "SANS/tools/SANSException.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
+#include "../../../../tools/SANSException.h"
+#include "../../../../LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
 
 #include <boost/mpl/assert.hpp>
 

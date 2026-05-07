@@ -26,7 +26,7 @@
 #include "MatrixS_Mul.h"
 
 #include "../tools/Matrix_Util.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/tools/Identity.h"
+#include "../../../LinearAlgebra/DenseLinAlg/tools/Identity.h"
 
 #include "../../../tools/SANSTraitsPOD.h"
 #include "../../../tools/SANSException.h"

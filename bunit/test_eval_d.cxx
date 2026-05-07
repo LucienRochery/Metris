@@ -5,7 +5,7 @@
 
 #define BOOST_TEST_MODULE test_eval_d
 
-#include <boost/test/included/unit_test.hpp> 
+#include <boost/test/included/unit_test.hpp>
 #include "common_setup.hxx"
 
 #include "low_eval.hxx"
@@ -15,7 +15,7 @@
 
 #include "utils/CT_loop.hxx"
 #include "utils/mprintf.hxx"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "..libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 #include "Mesh/Mesh.hxx"
 
 #include "low_eval_d.hxx"
@@ -28,7 +28,7 @@ namespace Metris{
 typedef  MetricFieldAnalytical MFT;
 
 // 1.0e-8 relative error -> 1.0e-6% utf::tolerance()
-BOOST_AUTO_TEST_CASE(test_eval_d) 
+BOOST_AUTO_TEST_CASE(test_eval_d)
 {
 //METRIS_MAX_DEG
 
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
 
         const int nentt = msh.nentt(tdim);
         const intAr2 &ent2poi = msh.ent2poi(tdim);
-    
+
         constexpr auto evalf = idim == 2 ? eval2<gdim,ideg> : eval3<gdim,ideg>;
         constexpr auto evalf_d0 = idim == 2 ? eval2_d<gdim,ideg,0,gdim> : eval3_d<gdim,ideg,0,gdim>;
 
@@ -126,27 +126,27 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
         double bary[nsamp][idim+1];
         constexpr auto ordent = ORDELT(tdim);
         for(int ii = 0 ;ii < nsamp; ii++)
-          for(int jj = 0; jj < tdim + 1; jj++) 
+          for(int jj = 0; jj < tdim + 1; jj++)
             bary[ii][jj] = ordent[ideg][ii][jj] / ((double) ideg);
 
         dum = 0.0;
-    
-    
+
+
         CPRINTF1(" - 1. Test evaluation and jmat (not diff)\n");
         for(int ientt = 0; ientt < nentt; ientt++){
           if(isdeadent(ientt,ent2poi)) continue;
           constexpr int ivar = 0;
 
           double epsent = getepsent<gdim>(msh,tdim,ientt);
-    
+
           // Test eval3_direct
           double errL2 = 0;
           for(int isamp = 0; isamp < nsamp; isamp++){
             evalf(msh.coord,ent2poi[ientt],
-                  ibasis, DifVar::Bary, DifVar::None, 
+                  ibasis, DifVar::Bary, DifVar::None,
                   bary[isamp],eval,jmat,NULL);
             eval_d_direct<gdim,tdim,ideg,ivar>(msh.coord,ent2poi[ientt],
-                                              ibasis, DifVar::Bary, DifVar::None, 
+                                              ibasis, DifVar::Bary, DifVar::None,
                                               bary[isamp],eva2,jmat2,NULL,deval[0],djmat[0],NULL);
             double errloc_eval = geterrl2<gdim>(eval,eva2);
             double errloc_jmat = geterrl2<njmat>(jmat,jmat2);
@@ -155,7 +155,7 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
             errL2 += errloc_eval + errloc_jmat;
           }
           BOOST_REQUIRE(errL2 < tol*tol*12*nsamp*epsent*epsent);
-    
+
           // Test eval3_SurrealS
           if(ibasis == FEBasis::Bezier){
             errL2 = 0;
@@ -163,10 +163,10 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
             double errL2_3 = 0;
             for(int isamp = 0; isamp < nsamp; isamp++){
               evalf(msh.coord,ent2poi[ientt],
-                    ibasis, DifVar::Bary, DifVar::None, 
+                    ibasis, DifVar::Bary, DifVar::None,
                     bary[isamp],eval,jmat,NULL);
               eval_d_SurrealS<idim,idim,ideg,ivar>(msh.coord,ent2poi[ientt],
-                                                  ibasis, DifVar::Bary, DifVar::None, 
+                                                  ibasis, DifVar::Bary, DifVar::None,
                                                   bary[isamp],eva2,jmat2,NULL,deval[0],djmat[0],NULL);
               double errloc_eval = geterrl2<gdim>(eval,eva2);
               double errloc_jmat = geterrl2<njmat>(jmat,jmat2);
@@ -176,7 +176,7 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
 
 
               eval_d_SurrealS_simple<idim,idim,ideg,idim>(msh.coord,ent2poi[ientt],
-                                                  ibasis, DifVar::Bary, DifVar::None, 
+                                                  ibasis, DifVar::Bary, DifVar::None,
                                                   bary[isamp],ivar,eva2,jmat2,
                                                   NULL,deval[0],djmat[0],NULL);
               errloc_eval = geterrl2<gdim>(eval,eva2);
@@ -184,11 +184,11 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
               BOOST_REQUIRE(errloc_eval <= tol*tol*epsent*epsent);
               BOOST_REQUIRE(errloc_jmat <= tol*tol*epsent*epsent);
               errL2_2 += errloc_eval + errloc_jmat;
-              
+
 
 
               eval_d_SurrealS_bcast<idim,idim,ideg,ivar,1>(msh.coord,ent2poi[ientt],
-                                                  ibasis, DifVar::Bary, DifVar::None, 
+                                                  ibasis, DifVar::Bary, DifVar::None,
                                                   bary[isamp],eva2,jmat2,
                                                   NULL,deval[0],djmat[0],NULL);
               errloc_eval = geterrl2<gdim>(eval,eva2);
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
             BOOST_REQUIRE(errL2_3 < tol*tol*12*nsamp*epsent*epsent);
           }
         }// for ientt
-    
+
 
         CPRINTF1(" - 2. Test eval derivatives\n");
         // Test derivatives
@@ -212,34 +212,34 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
         for(int ientt = 0; ientt < nentt; ientt++){
           if(isdeadent(ientt,ent2poi)) continue;
           double deval_disc[idim][idim], djmat_disc[idim][idim*idim];
-      
+
           CT_FOR0_EXC(0,nnode,ivar){
 
             int ipoin = ent2poi(ientt,ivar);
             double coor0[gdim];
             for(int ii = 0; ii < gdim; ii++) coor0[ii] = msh.coord(ipoin,ii);
-    
+
             for(int isamp = 0; isamp < nsamp; isamp++){
               eval_d_direct<gdim,tdim,ideg,ivar>(msh.coord,ent2poi[ientt],
-                                           ibasis, DifVar::Bary, DifVar::None, 
+                                           ibasis, DifVar::Bary, DifVar::None,
                                            bary[isamp],evals[0],jmats[0],
                                            NULL,deval[0],djmat[0],NULL);
               for(int ii = 0 ; ii < gdim; ii++){
                 for(int jj = 0; jj < idim; jj++) msh.coord(ipoin,jj) = coor0[jj];
                 msh.coord(ipoin,ii) = coor0[ii] + dx;
                 evalf(msh.coord,ent2poi[ientt],
-                      ibasis, DifVar::Bary, DifVar::None, 
+                      ibasis, DifVar::Bary, DifVar::None,
                       bary[isamp],evals[ii+1],jmats[ii+1],NULL);
               }
               for(int ii = 0; ii < gdim; ii++) msh.coord(ipoin,ii) = coor0[ii];
               for(int ii = 0; ii < idim; ii++)
                 for(int jj = 0; jj < idim; jj++)
                   deval_disc[jj][ii] = (evals[jj+1][ii] - evals[0][ii])/dx;
-              
+
               for(int ii = 0; ii < idim*idim; ii++)
                 for(int jj = 0; jj < idim; jj++)
                   djmat_disc[jj][ii] = (jmats[jj+1][ii] - jmats[0][ii])/dx;
-              
+
 
               double errdeval = sqrt(geterrl2<idim*idim>(deval_disc[0],deval[0]));
               double errdjmat = sqrt(geterrl2<idim*njmat>(djmat_disc[0],djmat[0]));
@@ -248,21 +248,21 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
               BOOST_REQUIRE(errdjmat < tol);
 
               eval_d_direct<gdim,tdim,ideg,ivar>(msh.coord,ent2poi[ientt],
-                                           ibasis, DifVar::Bary, DifVar::None, 
+                                           ibasis, DifVar::Bary, DifVar::None,
                                            bary[isamp],evals[0],jmats[0],
                                            NULL,deval[0],djmat[0],NULL,dfld0[0]);
               errdeval = sqrt(geterrl2<idim*idim>(deval_disc[0],deval[0]));
               errdjmat = sqrt(geterrl2<idim*njmat>(djmat_disc[0],djmat[0]));
               BOOST_REQUIRE(errdeval < tol);
               BOOST_REQUIRE(errdjmat < tol);
-    
+
 
               if(ibasis != FEBasis::Bezier) continue;
 
               for(const double* dfld : {dfld0[0], (double*)NULL}){
 
                 eval_d_SurrealS<idim,idim,ideg,ivar>(msh.coord,ent2poi[ientt],
-                                               ibasis, DifVar::Bary, DifVar::None, 
+                                               ibasis, DifVar::Bary, DifVar::None,
                                                bary[isamp],evals[0],jmats[0],
                                                NULL,deval[0],djmat[0],NULL, dfld);
                 errdeval = sqrt(geterrl2<idim*idim>(deval_disc[0],deval[0]));
@@ -272,7 +272,7 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
 
 
                 eval_d_SurrealS_simple<idim,idim,ideg,idim>(msh.coord,ent2poi[ientt],
-                                               ibasis, DifVar::Bary, DifVar::None, 
+                                               ibasis, DifVar::Bary, DifVar::None,
                                                bary[isamp], ivar, evals[0],jmats[0],
                                                NULL,deval[0],djmat[0],NULL, dfld);
                 errdeval = sqrt(geterrl2<idim*idim>(deval_disc[0],deval[0]));
@@ -282,7 +282,7 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
 
 
                 //eval_d_SurrealS_bcast<idim,idim,ideg,ivar,1>(msh.coord,ent2poi[ientt],
-                //                               ibasis, DifVar::Bary, DifVar::None, 
+                //                               ibasis, DifVar::Bary, DifVar::None,
                 //                               bary[isamp], evals[0],jmats[0],NULL,
                 //                               deval[0],djmat[0],NULL, dfld);
                 //errdeval = sqrt(geterrl2<idim*idim>(deval_disc[0],deval[0]));
@@ -292,13 +292,13 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
 
               }
 
-                
+
             }// for isamp
-    
+
           }CT_FOR1(ivar);
-        } 
-    
-    
+        }
+
+
       }}CT_FOR1(idim);
       }}CT_FOR1(ideg);
     }

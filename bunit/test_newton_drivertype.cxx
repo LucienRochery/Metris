@@ -5,21 +5,21 @@
 
 #define BOOST_TEST_MODULE test_newton_drivertype
 
-#include <boost/test/included/unit_test.hpp> 
+#include <boost/test/included/unit_test.hpp>
 #include "common_setup.hxx"
 
 #include <boost/timer/progress_display.hpp>
 
 #include "utils/aux_misc.hxx"
 #include "quality/low_metqua.hxx"
-#include "SANS/Surreal/SurrealS.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "..libs/SANS/Surreal/SurrealS.h"
+#include "..libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 //#include <src/msh_metric.hxx>
 #include "Localization/low_localization.hxx"
 
 #include "Optimization/opt_generic.hxx"
 
-#include <boost/hana.hpp> 
+#include <boost/hana.hpp>
 namespace hana = boost::hana;
 using namespace hana::literals;
 
@@ -63,7 +63,7 @@ double func(double *xcur, int ihess, double *gcur, double *hess){
 	return fcur;
 }
 
-BOOST_AUTO_TEST_CASE(test_newton_drivertype) 
+BOOST_AUTO_TEST_CASE(test_newton_drivertype)
 {//METRIS_MAX_DEG
 	constexpr int nvar = 3;
 	double fcur, xcur[3], gcur[3], hess[6];
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(test_newton_drivertype)
 
   newton_drivertype_args<nvar> args(&param);
   args.stpmin = 1.0e-12;
-  args.ratnew = 0.5; // LS step decrease factor 
+  args.ratnew = 0.5; // LS step decrease factor
   args.maxit = 500;
   args.wlfc1 = 1e-1;
   args.wlfc2 = 0.9;
@@ -98,16 +98,16 @@ BOOST_AUTO_TEST_CASE(test_newton_drivertype)
 		//                                  xtol ,stpmin,0, 1,
 		//                                  wlfc1,wlfc2 ,0.1 ,
 		//                                  &niter,maxit ,iprt   ,
-		//                                  &iflag,&ihess , 
+		//                                  &iflag,&ihess ,
 		//                                  nrwrk,rwork ,
 		//                                  niwrk,iwork ,
 		//                                  xopt ,&fopt ,&ierro);
-    ierro = optim_newton_drivertype<nvar>(args, 
+    ierro = optim_newton_drivertype<nvar>(args,
                                        xcur, &fcur, gcur, hess, &iflag, &ihess);
 
     BOOST_CHECK(ierro <= 0);
     if(ierro > 0) break;
-    
+
 		if(iflag <= 0){
 			//printf("Stop\n");
       istopped = true;
@@ -140,7 +140,7 @@ BOOST_AUTO_TEST_CASE(test_newton_drivertype)
   istopped = false;
   do{
     optim_newton_drivertype_TNCG<nvar>(args ,work, xcur, &fcur, gcur, hess, &iflag, &ihess);
-    
+
     BOOST_CHECK(ierro <= 0);
     if(ierro > 0) break;
 

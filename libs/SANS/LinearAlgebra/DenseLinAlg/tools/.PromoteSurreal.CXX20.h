@@ -6,8 +6,8 @@
 #ifndef DLA_PROMOTE_SURREAL_H
 #define DLA_PROMOTE_SURREAL_H
 
-#include "SANS//Surreal/PromoteSurreal.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
+#include "../../../Surreal/PromoteSurreal.h"
+#include "../../../LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
 
 namespace SANS
 {
