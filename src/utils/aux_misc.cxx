@@ -8,8 +8,8 @@
 #include "ho_constants.hxx"
 #include "aux_exceptions.hxx"
 
-#include "SANS/Surreal/SurrealS.h"
-#include "SANS/tools/minmax.h"
+#include "../libs/SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/tools/minmax.h"
 
 #include <boost/preprocessor/iteration/local.hpp>
 

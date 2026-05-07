@@ -15,14 +15,14 @@ namespace Defaults{
   // Tolerances
   // - jtol = normalized (by P1 measure) Jacobian control coefficient minimum
   // - vtol: e.g. 2D. Volume is c0 det (P2-P1, P3-P1)
-  // and det(u,v) <= ||u|| ||v|| 
+  // and det(u,v) <= ||u|| ||v||
   // For symmetry, we consider not the factor l_1 l_2 but (l_1l_2l_3)^{2/3}
-  // with l_i the edges. In 3D: (l_1l_2l_3l_4l_5l_6)^(1/2) 
-  // Hence an element passes the volume test iff: 
+  // with l_i the edges. In 3D: (l_1l_2l_3l_4l_5l_6)^(1/2)
+  // Hence an element passes the volume test iff:
   // det(li lj) >= vtol * (pi_i ||l_i||)^(2/(idim+1))   (idim / nnmet)
-  // The 1/idim! factor is not included. 
+  // The 1/idim! factor is not included.
   const double vtol = 1.0e-12;
-  // Absolute tolerance on edge length 
+  // Absolute tolerance on edge length
   const double ltol = 1.0e-12;
 
 

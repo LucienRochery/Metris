@@ -49,7 +49,7 @@ void MetrisRunner::runMetris(){
     //}
 
     #ifdef TESTQUALITYALGO
-    int niter = 1;
+    int niter = 5;
     #else
     int niter = 1;
     #endif
@@ -177,7 +177,10 @@ void MetrisRunner::runMetris(){
     //}
     writeOutputs();
 
+    #ifdef OUTPUTTIMEANDUNITINFO
     printUnit = true;
+    #endif
+
     if(DOPRINTS1()) statMesh();
 
   }catch(const MetrisExcept &e){

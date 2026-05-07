@@ -26,11 +26,11 @@
 #include <cmath>
 #include "../linalg/dsytrd.hxx"
 #include "../linalg/dsyevq.hxx"
-#include "SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/Surreal/SurrealS.h"
 #include "../utils/aux_misc.hxx"
 
 // Macros
-#define SQR(x)      ((x)*(x))                        // x^2 
+#define SQR(x)      ((x)*(x))                        // x^2
 
 
 namespace Metris{
@@ -66,7 +66,7 @@ int dsyevq(const T* __restrict__ mat, T* __restrict__ eigvec, T* __restrict__  e
 
   // Transform A to real tridiagonal form by the Householder method
   dsytrd<T,ndim>(mat, eigvec, eigval, e);
-  
+
   // Calculate eigensystem of the remaining real symmetric tridiagonal matrix
   // with the QL method
   //
@@ -86,7 +86,7 @@ int dsyevq(const T* __restrict__ mat, T* __restrict__ eigvec, T* __restrict__  e
       }
       if (m == l)
         break;
-      
+
       if (nIter++ >= 30)
         return -1;
 
@@ -118,7 +118,7 @@ int dsyevq(const T* __restrict__ mat, T* __restrict__ eigvec, T* __restrict__  e
           e[i+1] = g * r;
           s     *= (c = 1.0/r);
         }
-        
+
         g = eigval[i+1] - p;
         r = (eigval[i] - g)*s + 2.0*c*b;
         p = s * r;
@@ -148,7 +148,7 @@ int dsyevq(const T* __restrict__ mat, T* __restrict__ eigvec, T* __restrict__  e
     if(eigval[0] < eigval[1] && eigval[0] < eigval[2]){// 0 ..
       if(eigval[1] < eigval[2]){ // 0 1 2 already sorted
         return 0;
-      }else{ // 0 2 1 
+      }else{ // 0 2 1
         swi(eigval[1],eigval[2]);
         for(int i = 0; i < ndim; i++) swi(eigvec[ndim*1+i], eigvec[ndim*2+i]);
       }
@@ -157,7 +157,7 @@ int dsyevq(const T* __restrict__ mat, T* __restrict__ eigvec, T* __restrict__  e
         if(eigval[0] < eigval[2]){ // 1 0 2
           swi(eigval[1],eigval[0]);
           for(int i = 0; i < ndim; i++) swi(eigvec[ndim*1+i], eigvec[ndim*0+i]);
-        }else{ // 1 2 0 
+        }else{ // 1 2 0
           swi(eigval[0],eigval[2]);
           for(int i = 0; i < ndim; i++) swi(eigvec[ndim*2+i], eigvec[ndim*0+i]);
 

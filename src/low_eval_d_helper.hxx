@@ -13,14 +13,14 @@
 #include "low_eval_d_SurrealS.hxx"
 #include "low_eval_d_bezier.hxx"
 
-#include "SANS/Surreal/SurrealS.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
-#include <boost/hana.hpp> 
+#include "../libs/SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include <boost/hana.hpp>
 
 
 namespace Metris{
 
-  
+
 // Convert hana::tuple<stuff> into an std::tuple<stuff>
 // by using C++ template parameter deduction to get "stuff"
 template<typename... Ts>
@@ -28,7 +28,7 @@ auto to_std_tuple(hana::tuple<Ts...>){
   return std::tuple<Ts...>{};
 }
 /*
-Credit for replace_at_helper and replate_at_c goes to 
+Credit for replace_at_helper and replate_at_c goes to
 https://stackoverflow.com/questions/61225367/boosthana-tuple-best-way-to-modify-a-value
 */
 template <typename Xs, typename X, std::size_t ...before, std::size_t ...after>

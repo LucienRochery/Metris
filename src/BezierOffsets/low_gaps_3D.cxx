@@ -15,32 +15,32 @@
 #include "../ho_quadrature.hxx"
 #include "../low_localization.hxx"
 #include "../linalg/eigen.hxx"
-#include "SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/Surreal/SurrealS.h"
 
 #include "../low_geo/ccoef.hxx"
 
 
 namespace Metris{
-  
+
 void d2unittensor(const Mesh<MetricFieldAnalytical> &msh, int ielem, double *tens3sym_){
 
   METRIS_THROW_MSG("TODO: Read this over and consolidate with existing")
-  
-  double metP1[6],dmetP1[18]; 
+
+  double metP1[6],dmetP1[18];
   double eigval[3],eigvec[9],rwork[10];
   double srmet[6];
 
-  // Get metric used to get orientation and scaling 
+  // Get metric used to get orientation and scaling
   // Use metP1 for this
   double bary[4] = {0.25,0.25,0.25,0.25};
   double coop[3];
   eval3<3,1>(msh.coord,msh.tet2poi[ielem],msh.getBasis(),DifVar::None,DifVar::None,bary,coop,NULL,NULL);
   msh.anamet(NULL,coop,1,metP1,dmetP1);
 
-  // Compute square root 
+  // Compute square root
   geteigsym<3>(metP1,eigval,eigvec);
   for(int i = 0; i < 3; i++) eigval[i] = sqrt(eigval[i]);
-  eig2met<3>(eigval,eigvec,srmet); 
+  eig2met<3>(eigval,eigvec,srmet);
 
   // 1. Get P1 element scaling and R*J_0, also metric and derivatives at barycentre
   double scale, tJ0tR[9];
@@ -50,7 +50,7 @@ void d2unittensor(const Mesh<MetricFieldAnalytical> &msh, int ielem, double *ten
   SANS::SurrealS<3,double>  metS[6];
   SANS::SurrealS<3,double>  eigvalS[3];
   SANS::SurrealS<3,double>  eigvecS[9];
-  
+
   getmet_dbl2SurS<3,3>(metP1,dmetP1,metS);
 
   //for(int ii = 0; ii < 6; ii++){
@@ -91,7 +91,7 @@ void d2unittensor(const Mesh<MetricFieldAnalytical> &msh, int ielem, double *ten
   tens3sym1X1mat3sym<3>(dmetP1,metP1,tens3sym);
 
   // Next compute S = N x_2 T x_1 N^T
-  // with N = J_0^T R^T 
+  // with N = J_0^T R^T
   mat3X2tens3sym1X1tmat3(tJ0tR,tens3sym,tens3sym_);
   METRIS_THROW_MSG("TODO: Changed to non symmetric verify symmetric");
 
@@ -106,7 +106,7 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
 
   constexpr int ideg = 2;
   constexpr int gdim = 3;
-  constexpr int tdim = 3; 
+  constexpr int tdim = 3;
 
   GETVDEPTH(msh.param);
 
@@ -145,7 +145,7 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
   matXsym<3>(jmat,intmet,tJ0tR);
     // State is not intmet = M^{1/2}
 
-  
+
   // Physical derivatives of M^{-1/2}
   double dpMm12[18];
   // --------------------------------------------------------
@@ -173,10 +173,10 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
   // iii) conclude: tensor product
   mat3X1tens3sym1(dbMm12,invjmat,dpMm12);
 
-  
+
 
   // --------------------------------------------------------
-  // 3. Assemble everything: 
+  // 3. Assemble everything:
   // Denoting N = J°0^T R^T (tJ0tR)
   //          T = d_phy M^{-1/2} x_1 M^{-1/2}
   // compute N X_2 MM X_1 N
@@ -265,13 +265,13 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
 
 ///*
 //Compute element orientation and scale using P1 subjacent element.
-//See scitech24 paper. 
-//Also return metbar, the metric at the P1 barycentre. 
+//See scitech24 paper.
+//Also return metbar, the metric at the P1 barycentre.
 //And derivatives if dmetbar != NULL.
 //
-//Note: we could return RJ_0 directly, and thus never bother with J_0 at all. 
+//Note: we could return RJ_0 directly, and thus never bother with J_0 at all.
 //*/
-//void scalrot3(const Mesh &msh, int ielem , 
+//void scalrot3(const Mesh &msh, int ielem ,
 //              double* __restrict__ metbar,
 //              double* __restrict__ dmetbar,
 //              double* __restrict__ scale ,
@@ -301,7 +301,7 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
 //  double eigval[3],eigvec[9],rwork[10];
 //  geteigsym(metbar,10,rwork,eigval,eigvec);
 //  for(int i = 0; i < 3; i++) eigval[i] = sqrt(eigval[i]);
-//  eig2met(eigval,eigvec,metbar); 
+//  eig2met(eigval,eigvec,metbar);
 //
 //
 //  const double invtJ_0[3][3] = {
@@ -317,7 +317,7 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
 //
 //  /*
 //  Scale. If discrete metric, interpolate directly from front vertices as log-met, then expmet
-//  Otherwise, get 
+//  Otherwise, get
 //  */
 //  double detM;
 //  if(msh.ianamet <= 0){

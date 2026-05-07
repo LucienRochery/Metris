@@ -29,14 +29,14 @@ namespace Metris{
 
 
 
-// Very rudimentary routine to be enhanced with a kd-tree in the future 
-// Localize points, interpolate metric and store seed 
-// Needs two slots in tag arrays 
+// Very rudimentary routine to be enhanced with a kd-tree in the future
+// Localize points, interpolate metric and store seed
+// Needs two slots in tag arrays
 // if ipoi0 > 0, it should be the number of P1 points ! These points already have seeds.
 template<class MetricFieldType, int bdeg>
 void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
   INCVDEPTH(msh.param);
-  if(bak.getBasis() == FEBasis::Lagrange && bak.curdeg > 1) 
+  if(bak.getBasis() == FEBasis::Lagrange && bak.curdeg > 1)
       METRIS_THROW_MSG( "Back should be in Bézier format!");
 
   //METRIS_ENFORCE_MSG(msh.idim == msh.get_tdim(), "Mesh is surface or line in plane.");
@@ -76,7 +76,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
   }
 
 
-  // Match corners quadratically 
+  // Match corners quadratically
   intAr1 lcorb(10), lcorf(10);
   lcorb.set_n(0);
   lcorf.set_n(0);
@@ -133,9 +133,9 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
 
 
 
-  // Will increase in size if needed 
+  // Will increase in size if needed
   intAr1 lerro(100);
-  lerro.set_n(0); 
+  lerro.set_n(0);
 
   double t0 = get_cpu_time();
 
@@ -168,11 +168,11 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
   //    if(ierro != 0) METRIS_THROW_MSG("TODO: Implement bad stack to retry later");
   //  }
   //}else{
-    // Case where no points (except corners) are seeded. 
+    // Case where no points (except corners) are seeded.
     CPRINTF1("-- Frontal back -> front links\n");
-    // Create a point front. Each point gathers ball but only of tdim >= its own, 
+    // Create a point front. Each point gathers ball but only of tdim >= its own,
     // initializes neighbours' poi2bak using its own poi2bak and potentially edg2fac, fac2tet
-    // Add thusly initialized neighbours to stack, pop self. 
+    // Add thusly initialized neighbours to stack, pop self.
     //intAr1 lpfro(lcorf.get_n());
     //lcorf.copyTo(lpfro);
     METRIS_ASSERT(lcorf.get_n() > 0);
@@ -280,7 +280,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
               continue;
             }
 
-            // Get the ref of the point. 
+            // Get the ref of the point.
             int ipent = msh.poi2ent(ipoin,0);
             if(ipent < -1) ipent = -ipent - 2;
             int iref = msh.ent2ref(pdim)[ipent];
@@ -326,7 +326,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
   if(lerro.get_n() == 0) return;
 
   METRIS_THROW_MSG("TODO: Error handling unchanged since poi2bak 2D");
-  int tdim  = gdim; 
+  int tdim  = gdim;
 
   intAr1 lball(100);
   int nnode = msh.nnode(tdim);
@@ -341,10 +341,10 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
     nerro = 0;
     for(int ipoin : lerro){
       INCVDEPTH(msh.param);
-      // Fixed previously 
+      // Fixed previously
       if(msh.poi2tag(0,ipoin) < msh.tag[0]) continue;
-      // get ball and try using neighbours 
-      int ientt = getpoient(msh,ipoin,tdim); 
+      // get ball and try using neighbours
+      int ientt = getpoient(msh,ipoin,tdim);
       int iopen;
       bool imani;
       if(tdim == 2){
@@ -360,25 +360,25 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
         INCVDEPTH(msh.param);
         for(int ii = 0 ;ii < nnode; ii++){
           int ipoi2 = ent2poi(iebal,ii);
-          // These are the points that have failed 
+          // These are the points that have failed
           if(msh.poi2tag(0,ipoi2) >= msh.tag[0]) continue;
 
           int ieleg = msh.poi2bak[ipoi2];
-          // Skip any seeds that have been tried 
+          // Skip any seeds that have been tried
           if(bak_ent2tag(0,ieleg) >= bak.tag[0]) continue;
 
           double bary[4], coopr[3];
           for(int ii = 0; ii < tdim + 1; ii++)  bary[ii] = 1.0 / (tdim + 1);
           if(tdim == 2){
-            // dummy tdim 
-            METRIS_THROW_MSG( 
+            // dummy tdim
+            METRIS_THROW_MSG(
               "Error handling unchanged since poi2bak 2D");
             ierro = locMesh<2,2,bdeg>(bak,&ieleg,msh.coord[ipoin],
                                       msh.get_tdim(),NULL,-1,NULL,
                                       coopr,bary,1.0e-6,0,true);
           }else{
-            // dummy tdim 
-            METRIS_THROW_MSG( 
+            // dummy tdim
+            METRIS_THROW_MSG(
               "Error handling unchanged since poi2bak 2D");
             ierro = locMesh<3,2,bdeg>(bak,&ieleg,msh.coord[ipoin],
                                       msh.get_tdim(),NULL,-1,NULL,
@@ -388,7 +388,7 @@ void interpFrontBack(Mesh<MetricFieldType> &msh, MeshBack &bak, int ipoi0){
           if(ierro == 0){
             msh.poi2bak[ipoin] = ieleg;
             nfix++;
-            msh.poi2tag(0,ipoin)--; // untag as invalid, could help a neighbour 
+            msh.poi2tag(0,ipoin)--; // untag as invalid, could help a neighbour
             int *ent2pol = tdim == 2 ? bak.fac2poi[ieleg] : bak.tet2poi[ieleg];
             bak.met.getMetBary(AsDeg::Pk,
                                DifVar::None,MetSpace::Log,
