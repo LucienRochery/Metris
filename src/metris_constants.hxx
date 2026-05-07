@@ -8,7 +8,7 @@
 #ifndef __METRIS_CONSTANTS__
 #define __METRIS_CONSTANTS__
 
-#define OUTPUTTIMEANDUNITINFO
+// #define OUTPUTTIMEANDUNITINFO
 
 // #define TESTQUALITYALGO     // enable size aware quality-based algorithm
 
@@ -39,7 +39,7 @@
 #include <array>
 #include <boost/hana/map.hpp>
 #include <boost/hana/pair.hpp>
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
+#include "../libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
 #include "metris_defaults.hxx"
 #include "types_scalar.hxx"
 namespace hana = boost::hana;

@@ -7,7 +7,7 @@
 #define __LOW_EVAL_D_BEZIER__
 
 
-#include "SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/Surreal/SurrealS.h"
 #include "low_eval_d_helper.hxx"
 #include "ho_constants.hxx"
 #include "types.hxx"
@@ -23,11 +23,11 @@ Bezier eval 2D
 
 template <typename T, int szfld, int ideg, int nvar, int di=0,int dj=0, int dk=0>
 struct eval2_d_bezier{
-  eval2_d_bezier(const T& __restrict__  rfld,  
-                 DifVar idif1, DifVar idif2, 
-                 const double  * __restrict__  bary,  
-                 SANS::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>> *eval, 
-                 SANS::DLA::MatrixS<2,szfld,SANS::SurrealS<nvar,double>> *jmat, 
+  eval2_d_bezier(const T& __restrict__  rfld,
+                 DifVar idif1, DifVar idif2,
+                 const double  * __restrict__  bary,
+                 SANS::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>> *eval,
+                 SANS::DLA::MatrixS<2,szfld,SANS::SurrealS<nvar,double>> *jmat,
                  SANS::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *hmat){
 
 
@@ -56,9 +56,9 @@ struct eval2_d_bezier{
       for(int i=0; i<szfld; i++){
         // d11 (i.e. (d2-d1)(d2-d1))
         (*hmat)(0,i) = ideg*(jmat2(0,i) - jmat1(0,i));
-        // d21 
+        // d21
         (*hmat)(1,i) = ideg*(jmat3(0,i) - jmat1(0,i));
-        // d22 
+        // d22
         (*hmat)(2,i) = ideg*(jmat3(1,i) - jmat1(1,i));
       }
     }
@@ -68,14 +68,14 @@ struct eval2_d_bezier{
 
 template <typename T, int szfld, int nvar, int di,int dj, int dk>
 struct eval2_d_bezier<T,szfld,1,nvar,di,dj,dk>{
-  eval2_d_bezier(const T& __restrict__  rfld,  
-                 DifVar idif1, DifVar idif2, 
-                 const double  * __restrict__  bary,  
-                 SANS::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval, 
-                 SANS::DLA::MatrixS<2,szfld,SANS::SurrealS<nvar,double>> *jmat, 
+  eval2_d_bezier(const T& __restrict__  rfld,
+                 DifVar idif1, DifVar idif2,
+                 const double  * __restrict__  bary,
+                 SANS::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval,
+                 SANS::DLA::MatrixS<2,szfld,SANS::SurrealS<nvar,double>> *jmat,
                  SANS::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *hmat){
 
-    //constexpr int ideg = 1 + di + dj + dk + dl; // The true degree. 
+    //constexpr int ideg = 1 + di + dj + dk + dl; // The true degree.
 
     constexpr int i100 = mul2nod(1+di,0+dj,0+dk);
     constexpr int i010 = mul2nod(0+di,1+dj,0+dk);
@@ -89,10 +89,10 @@ struct eval2_d_bezier<T,szfld,1,nvar,di,dj,dk>{
 
     if(idif1 == DifVar::Bary){
       for(int i = 0; i < szfld; i++){
-        (*jmat)(0,i) = rfld[hana::int_c< i010 >][i] 
+        (*jmat)(0,i) = rfld[hana::int_c< i010 >][i]
                      - rfld[hana::int_c< i100 >][i];
 
-        (*jmat)(1,i) = rfld[hana::int_c< i001 >][i] 
+        (*jmat)(1,i) = rfld[hana::int_c< i001 >][i]
                      - rfld[hana::int_c< i100 >][i];
       }
     }
@@ -110,16 +110,16 @@ struct eval2_d_bezier<T,szfld,1,nvar,di,dj,dk>{
 
 template <typename T, int szfld,int nvar, int di,int dj, int dk>
   struct eval2_d_bezier<T,szfld,2,nvar,di,dj,dk>{
-    eval2_d_bezier(const T& __restrict__  rfld,  
-                   DifVar idif1, DifVar idif2, 
-                   const double  * __restrict__  bary,  
-                   SANS::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval, 
-                   SANS::DLA::MatrixS<2,szfld,SANS::SurrealS<nvar,double>> *jmat, 
+    eval2_d_bezier(const T& __restrict__  rfld,
+                   DifVar idif1, DifVar idif2,
+                   const double  * __restrict__  bary,
+                   SANS::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval,
+                   SANS::DLA::MatrixS<2,szfld,SANS::SurrealS<nvar,double>> *jmat,
                    SANS::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *hmat){
 
     if (idif1 == DifVar::Bary){
       // The Jacobian is quicker to compute recursively as it only uses the previous degree
-      // evals. 
+      // evals.
 
       SANS::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> eva1, eva2, eva3;
       SANS::DLA::MatrixS<2,szfld,SANS::SurrealS<nvar,double>> jmat1,jmat2,jmat3;
@@ -144,12 +144,12 @@ template <typename T, int szfld,int nvar, int di,int dj, int dk>
         for(int i=0; i<szfld; i++){
           // d11 (i.e. (d2-d1)(d2-d1))
           (*hmat)(0,i) = 2*(jmat2(0,i) - jmat1(0,i));
-          // d21 
+          // d21
           (*hmat)(1,i) = 2*(jmat3(0,i) - jmat1(0,i));
-    
-          // d22 
+
+          // d22
           (*hmat)(2,i) = 2*(jmat3(1,i) - jmat1(1,i));
-    
+
         }
       }
 
@@ -165,11 +165,11 @@ template <typename T, int szfld,int nvar, int di,int dj, int dk>
       constexpr int i101 = mul2nod(1+di,0+dj,1+dk);
 
       for(int i = 0; i < szfld; i++){
-        (*eval)[i] =   bary[0]*bary[0]*rfld[hana::int_c<i200>][i] 
-                   + 2*bary[0]*bary[1]*rfld[hana::int_c<i110>][i] 
-                   + 2*bary[0]*bary[2]*rfld[hana::int_c<i101>][i] 
-                   +   bary[1]*bary[1]*rfld[hana::int_c<i020>][i] 
-                   + 2*bary[1]*bary[2]*rfld[hana::int_c<i011>][i] 
+        (*eval)[i] =   bary[0]*bary[0]*rfld[hana::int_c<i200>][i]
+                   + 2*bary[0]*bary[1]*rfld[hana::int_c<i110>][i]
+                   + 2*bary[0]*bary[2]*rfld[hana::int_c<i101>][i]
+                   +   bary[1]*bary[1]*rfld[hana::int_c<i020>][i]
+                   + 2*bary[1]*bary[2]*rfld[hana::int_c<i011>][i]
                    +   bary[2]*bary[2]*rfld[hana::int_c<i002>][i]  ;
       }
     }
@@ -190,17 +190,17 @@ The Hessian is compressed as column first as usual:
 1 2 4
   3 5
     6
-However, note that each entry is, itself, comprised of szfld values. 
+However, note that each entry is, itself, comprised of szfld values.
 
-Eval, jmat and hmat are pointers in order to pass NULL when necessary. 
+Eval, jmat and hmat are pointers in order to pass NULL when necessary.
 */
 template <typename T, int szfld, int ideg, int nvar, int di=0,int dj=0, int dk=0, int dl=0>
 struct eval3_d_bezier{
-  eval3_d_bezier(const T& __restrict__  rfld,  
-                 DifVar idif1, DifVar idif2, 
-                 const double  * __restrict__  bary,  
-                 SANS::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval, 
-                 SANS::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *jmat, 
+  eval3_d_bezier(const T& __restrict__  rfld,
+                 DifVar idif1, DifVar idif2,
+                 const double  * __restrict__  bary,
+                 SANS::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval,
+                 SANS::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *jmat,
                  SANS::DLA::MatrixS<6,szfld,SANS::SurrealS<nvar,double>> *hmat){
 
 
@@ -232,17 +232,17 @@ struct eval3_d_bezier{
       for(int i=0; i<szfld; i++){
         // d11 (i.e. (d2-d1)(d2-d1))
         (*hmat)(0,i) = ideg*(jmat2(0,i) - jmat1(0,i));
-        // d21 
+        // d21
         (*hmat)(1,i) = ideg*(jmat3(0,i) - jmat1(0,i));
-        // d31 
+        // d31
         (*hmat)(3,i) = ideg*(jmat4(0,i) - jmat1(0,i));
-  
-        // d22 
+
+        // d22
         (*hmat)(2,i) = ideg*(jmat3(1,i) - jmat1(1,i));
-        // d32 
+        // d32
         (*hmat)(4,i) = ideg*(jmat4(1,i) - jmat1(1,i));
-  
-        // d33 
+
+        // d33
         (*hmat)(5,i) = ideg*(jmat4(2,i) - jmat1(2,i));
       }
     }
@@ -252,14 +252,14 @@ struct eval3_d_bezier{
 
 template <typename T, int szfld, int nvar, int di,int dj, int dk, int dl>
 struct eval3_d_bezier<T,szfld,1,nvar,di,dj,dk,dl>{
-  eval3_d_bezier(const T& __restrict__  rfld,  
-                 DifVar idif1, DifVar idif2, 
-                 const double  * __restrict__  bary,  
-                 SANS::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval, 
-                 SANS::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *jmat, 
+  eval3_d_bezier(const T& __restrict__  rfld,
+                 DifVar idif1, DifVar idif2,
+                 const double  * __restrict__  bary,
+                 SANS::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval,
+                 SANS::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *jmat,
                  SANS::DLA::MatrixS<6,szfld,SANS::SurrealS<nvar,double>> *hmat){
 
-    //constexpr int ideg = 1 + di + dj + dk + dl; // The true degree. 
+    //constexpr int ideg = 1 + di + dj + dk + dl; // The true degree.
 
     constexpr int i1000 = mul2nod(1+di,0+dj,0+dk,0+dl);
     constexpr int i0100 = mul2nod(0+di,1+dj,0+dk,0+dl);
@@ -275,13 +275,13 @@ struct eval3_d_bezier<T,szfld,1,nvar,di,dj,dk,dl>{
 
     if(idif1 == DifVar::Bary){
       for(int i = 0; i < szfld; i++){
-        (*jmat)(0,i) = rfld[hana::int_c< i0100 >][i] 
+        (*jmat)(0,i) = rfld[hana::int_c< i0100 >][i]
                      - rfld[hana::int_c< i1000 >][i];
 
-        (*jmat)(1,i) = rfld[hana::int_c< i0010 >][i] 
+        (*jmat)(1,i) = rfld[hana::int_c< i0010 >][i]
                      - rfld[hana::int_c< i1000 >][i];
 
-        (*jmat)(2,i) = rfld[hana::int_c< i0001 >][i] 
+        (*jmat)(2,i) = rfld[hana::int_c< i0001 >][i]
                      - rfld[hana::int_c< i1000 >][i];
       }
     }
@@ -303,16 +303,16 @@ struct eval3_d_bezier<T,szfld,1,nvar,di,dj,dk,dl>{
 
 template <typename T, int szfld,int nvar, int di,int dj, int dk, int dl>
   struct eval3_d_bezier<T,szfld,2,nvar,di,dj,dk,dl>{
-    eval3_d_bezier(const T& __restrict__  rfld,  
-                   DifVar idif1, DifVar idif2, 
-                   const double  * __restrict__  bary,  
-                   SANS::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval, 
-                   SANS::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *jmat, 
+    eval3_d_bezier(const T& __restrict__  rfld,
+                   DifVar idif1, DifVar idif2,
+                   const double  * __restrict__  bary,
+                   SANS::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval,
+                   SANS::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *jmat,
                    SANS::DLA::MatrixS<6,szfld,SANS::SurrealS<nvar,double>> *hmat){
 
     if (idif1 == DifVar::Bary){
       // The Jacobian is quicker to compute recursively as it only uses the previous degree
-      // evals. 
+      // evals.
 
       SANS::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> eva1, eva2, eva3, eva4;
       SANS::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> jmat1,jmat2,jmat3,jmat4;
@@ -342,17 +342,17 @@ template <typename T, int szfld,int nvar, int di,int dj, int dk, int dl>
         for(int i=0; i<szfld; i++){
           // d11 (i.e. (d2-d1)(d2-d1))
           (*hmat)(0,i) = 2*(jmat2(0,i) - jmat1(0,i));
-          // d21 
+          // d21
           (*hmat)(1,i) = 2*(jmat3(0,i) - jmat1(0,i));
-          // d31 
+          // d31
           (*hmat)(3,i) = 2*(jmat4(0,i) - jmat1(0,i));
-    
-          // d22 
+
+          // d22
           (*hmat)(2,i) = 2*(jmat3(1,i) - jmat1(1,i));
-          // d32 
+          // d32
           (*hmat)(4,i) = 2*(jmat4(1,i) - jmat1(1,i));
-    
-          // d33 
+
+          // d33
           (*hmat)(5,i) = 2*(jmat4(2,i) - jmat1(2,i));
         }
       }
@@ -372,14 +372,14 @@ template <typename T, int szfld,int nvar, int di,int dj, int dk, int dl>
       constexpr int i0011 = mul2nod(0+di,0+dj,1+dk,1+dl);
 
       for(int i = 0; i < szfld; i++){
-        (*eval)[i] =   bary[0]*bary[0]*rfld[hana::int_c<i2000>][i] 
-                   + 2*bary[0]*bary[1]*rfld[hana::int_c<i1100>][i] 
-                   + 2*bary[0]*bary[2]*rfld[hana::int_c<i1010>][i] 
+        (*eval)[i] =   bary[0]*bary[0]*rfld[hana::int_c<i2000>][i]
+                   + 2*bary[0]*bary[1]*rfld[hana::int_c<i1100>][i]
+                   + 2*bary[0]*bary[2]*rfld[hana::int_c<i1010>][i]
                    + 2*bary[0]*bary[3]*rfld[hana::int_c<i1001>][i]
-                   +   bary[1]*bary[1]*rfld[hana::int_c<i0200>][i] 
-                   + 2*bary[1]*bary[2]*rfld[hana::int_c<i0110>][i] 
+                   +   bary[1]*bary[1]*rfld[hana::int_c<i0200>][i]
+                   + 2*bary[1]*bary[2]*rfld[hana::int_c<i0110>][i]
                    + 2*bary[1]*bary[3]*rfld[hana::int_c<i0101>][i]
-                   +   bary[2]*bary[2]*rfld[hana::int_c<i0020>][i] 
+                   +   bary[2]*bary[2]*rfld[hana::int_c<i0020>][i]
                    + 2*bary[2]*bary[3]*rfld[hana::int_c<i0011>][i]
                    +   bary[3]*bary[3]*rfld[hana::int_c<i0002>][i] ;
       }

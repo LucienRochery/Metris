@@ -26,11 +26,11 @@
 #include <cmath>
 #include "../linalg/dsytrd.hxx"
 #include "../linalg/symidx.hxx"
-#include "SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/Surreal/SurrealS.h"
 
 
 // Macros
-#define SQR(x) ((x)*(x))                        // x^2 
+#define SQR(x) ((x)*(x))                        // x^2
 
 namespace Metris{
 
@@ -52,7 +52,7 @@ void dsytrd3(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
   T omega, f;
   T K, h, g;
   //int idx[3];
-  
+
   // Initialize Q to the identitity matrix
 #ifndef EVALS_ONLY
   for (int i=0; i < n; i++)
@@ -63,7 +63,7 @@ void dsytrd3(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
   }
 #endif
 
-  // Bring first row and column to the desired form 
+  // Bring first row and column to the desired form
   h = SQR(A[sym2idx(0,1)]) + SQR(A[sym2idx(0,2)]);
   if (A[sym2idx(0,1)] > 0)
     g = -sqrt(h);
@@ -73,7 +73,7 @@ void dsytrd3(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
   f    = g * A[sym2idx(0,1)];
   u[1] = A[sym2idx(0,1)] - g;
   u[2] = A[sym2idx(0,2)];
-  
+
   omega = h - f;
   if (omega > 0.0)
   {
@@ -89,7 +89,7 @@ void dsytrd3(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
 
     for (int i=1; i < n; i++)
       q[i] = q[i] - K * u[i];
-    
+
     d[0] = A[sym2idx(0,0)];
     d[1] = A[sym2idx(1,1)] - 2.0*q[1]*u[1];
     d[2] = A[sym2idx(2,2)] - 2.0*q[2]*u[2];
@@ -126,7 +126,7 @@ void dsytrd3(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
     //}
 
     //sortupto8_inc(d,3);
-    
+
     // Store inverse Householder transformation in Q
     for (int j=1; j < n; j++)
     {
@@ -165,7 +165,7 @@ void dsytrd2(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
   T u[n], q[n];
   T omega, f;
   T K, h, g;
-  
+
   // Initialize Q to the identitity matrix
 #ifndef EVALS_ONLY
   for (int i=0; i < n; i++)
@@ -176,7 +176,7 @@ void dsytrd2(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
   }
 #endif
 
-  // Bring first row and column to the desired form 
+  // Bring first row and column to the desired form
   h = SQR(A[sym2idx(0,1)]);
   if (A[sym2idx(0,1)] > 0)
     g = -sqrt(h);
@@ -185,7 +185,7 @@ void dsytrd2(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
   e[0] = g;
   f    = g * A[sym2idx(0,1)];
   u[1] = A[sym2idx(0,1)] - g;
-  
+
   omega = h - f;
   if (omega > 0.0)
   {
@@ -197,16 +197,16 @@ void dsytrd2(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
     K *= 0.5 * SQR(omega);
 
     q[1] = q[1] - K * u[1];
-    
+
     d[0] = A[sym2idx(0,0)];
     d[1] = A[sym2idx(1,1)] - 2.0*q[1]*u[1];
-    
+
     // Store inverse Householder transformation in Q
     f = omega * u[1];
     Q[2*1 + 1] = Q[2*1 + 1] - f*u[1];
 
     // Calculate updated A[sym2idx[1][+ ]2] and store it in e[1]
-    e[1] = 0; 
+    e[1] = 0;
   }
   else
   {
@@ -217,13 +217,13 @@ void dsytrd2(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
 }
 
 template void dsytrd3<double>(const double* __restrict__ A, double* __restrict__  Q, double* __restrict__  d, double* __restrict__  e);
-template void dsytrd3<SANS::SurrealS<3,double>>(const SANS::SurrealS<3,double>* __restrict__ A, SANS::SurrealS<3,double>* __restrict__  Q, 
+template void dsytrd3<SANS::SurrealS<3,double>>(const SANS::SurrealS<3,double>* __restrict__ A, SANS::SurrealS<3,double>* __restrict__  Q,
                                                       SANS::SurrealS<3,double>* __restrict__  d, SANS::SurrealS<3,double>* __restrict__  e);
-template void dsytrd3<SANS::SurrealS<2,double>>(const SANS::SurrealS<2,double>* __restrict__ A, SANS::SurrealS<2,double>* __restrict__  Q, 
+template void dsytrd3<SANS::SurrealS<2,double>>(const SANS::SurrealS<2,double>* __restrict__ A, SANS::SurrealS<2,double>* __restrict__  Q,
                                                       SANS::SurrealS<2,double>* __restrict__  d, SANS::SurrealS<2,double>* __restrict__  e);
 
 template void dsytrd2<double>(const double* __restrict__ A, double* __restrict__  Q, double* __restrict__  d, double* __restrict__  e);
-template void dsytrd2<SANS::SurrealS<2,double>>(const SANS::SurrealS<2,double>* __restrict__ A, SANS::SurrealS<2,double>* __restrict__  Q, 
+template void dsytrd2<SANS::SurrealS<2,double>>(const SANS::SurrealS<2,double>* __restrict__ A, SANS::SurrealS<2,double>* __restrict__  Q,
                                                   SANS::SurrealS<2,double>* __restrict__  d, SANS::SurrealS<2,double>* __restrict__  e);
 
 } // End namespace

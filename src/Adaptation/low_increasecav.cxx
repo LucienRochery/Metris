@@ -2117,6 +2117,27 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
   msh.tag[ithread]++;
 
+  #ifdef DEBUGCAV
+  std::cout << "INITIAL CAVITY" << std::endl;
+  for (int iedge : cav.lcedg){
+    std::cout << "iedge = " << iedge << std::endl;
+  }
+  for (int ifac : cav.lcfac){
+    std::cout << "ifac = " << ifac << std::endl;
+  }
+  for (int itet : cav.lctet){
+    std::cout << "itet = " << itet << std::endl;
+  }
+
+  int ipdbg =  msh.newpoitopo(PointType::Vertex,-1,-1);
+  int ibdbg =  msh.newbpotopo(Vertex{ipdbg},0,ipdbg);
+  for(int ii = 0; ii < msh.idim; ii++)
+    msh.coord(ipdbg,ii) = msh.coord(cav.ipins,ii);
+
+  writeMesh("mshCavSingDet.meshb",msh);
+  writeMeshCavity("cavSingDet_ini.meshb",msh,cav);
+  #endif
+
   // Tag point's surface references if any. Filter entities
   aux_taginsrefs(msh,cav,ithread);
 
@@ -2325,9 +2346,17 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   // }
   // #endif
 
+  #ifdef DEBUGCAV
+  std::cout << "GROWING CAVITY" << std::endl;
+  #endif
+
   #ifdef CAVGROWTH
   int icen0 = 0, icen1 = lcent.get_n();
   for(int igrow = 0; igrow < ngrow || ngrow < 0; igrow++){
+
+    #ifdef DEBUGCAV
+    std::cout << "  igrow = " << igrow << std::endl;
+    #endif
 
     // loop over current cavity entities
     for(int icent = icen0; icent < icen1; icent++){
@@ -2335,15 +2364,27 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
       int ientt = lcent[icent]; // fetch entity ID
 
+      #ifdef DEBUGCAV
+      std::cout << "    ientt = " << ientt << std::endl;
+      #endif
+
       // loop over boundary facets of ientt to fetch neighbors
       for(int jj = 0; jj < tdim + 1; jj++){
 
         int ieneijj = ent2ent(ientt,jj); // fetch neighbor
 
+        #ifdef DEBUGCAV
+        std::cout << "      ieneijj = " << ieneijj << std::endl;
+        #endif
+
         if(ieneijj < 0) continue; // cannot grow in this direction, no entt there!
 
         // if neighbor tagged means it belongs to cavity so skip
         if(ent2tag(ithread,ieneijj) >= msh.tag[ithread]) continue;
+
+        #ifdef DEBUGCAV
+        std::cout << "      outside nei identified" << std::endl;
+        #endif
 
         // at this point, we have that ieneijj is an OUTSIDE entt neighbor to ientt across local facet jj
 
@@ -2371,6 +2412,12 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
           if(ent2tag(ithread,ieneinei) >= msh.tag[ithread]) facetsOfNeiTouchingCav[kk] = 1;
 
         }
+
+        #ifdef DEBUGCAV
+        for(int kk = 0; kk < tdim + 1; kk++){
+          std::cout << "      face identifier kk = " << facetsOfNeiTouchingCav[kk] << std::endl;
+        }
+        #endif
 
         // now we need to compare current local patch configuration to the reconnected configuration
 
@@ -2517,11 +2564,23 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
           double quaMaxSub0Backup = quaMaxSub0;
           double quaMaxSub1Backup = quaMaxSub1;
 
+          #ifdef DEBUGCAV
+          std::cout << "      LOOP OVER FACES" << std::endl;
+          #endif
+
           // loop over faces of ieneijj
           bool invalid = false;
           for (int iface = 0; iface < 4; iface++){
 
+            #ifdef DEBUGCAV
+            std::cout << "        iface = " << iface << std::endl;
+            #endif
+
             if (facetsOfNeiTouchingCav[iface] > 0){ // this face is touching cavity, so it adds to the current config
+
+              #ifdef DEBUGCAV
+              std::cout << "        touching cav" << std::endl;
+              #endif
 
               // fetch the neighbor inside the cavity
               int ienttcav = ent2ent(ieneijj,iface);
@@ -2563,6 +2622,10 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
               if (qua > quaMaxLocal) quaMaxLocal = qua;
 
             }else{ // this face is NOT touching cavity, so it might add to the reconnected config or else we need to see if it affects faces cavity
+
+              #ifdef DEBUGCAV
+              std::cout << "        not touching cav" << std::endl;
+              #endif
 
               bool coneFace = true;
               if (facetsOfNeiTouchingCav[iface] == -2){ // facet is on boundary
@@ -2705,6 +2768,11 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
               } // if facet is on boundary
 
+              #ifdef DEBUGCAV
+              std::cout << "        coneFace = " << coneFace << std::endl;
+              std::cout << "        facetsOfNeiTouchingCav[iface] = " << facetsOfNeiTouchingCav[iface] << std::endl;
+              #endif
+
               if (facetsOfNeiTouchingCav[iface] == -1 || coneFace){ // interior facet or not sharing boundary with ipins
 
                 int ent2pol[4];
@@ -2718,6 +2786,13 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
                 ent2poi(tmpEntt,1) = ent2pol[1];
                 ent2poi(tmpEntt,2) = ent2pol[2];
                 ent2poi(tmpEntt,3) = ent2pol[3];
+
+                #ifdef DEBUGCAV
+                std::cout << "          probing new element with outside face " << iface << std::endl;
+                for (int oo = 0; oo < tdim+1; oo++){
+                  std::cout << "          point " << oo << ": " << ent2pol[oo] << std::endl;
+                }
+                #endif
 
                 double meas;
                 if(!isvalideltP1<3,3>(msh, tmpEntt, NULL, &meas)){
@@ -2768,9 +2843,19 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
           if (improveLocalSum && improveLocalMax){
 
+            #ifdef DEBUGCAV
+            std::cout << "      ADDING NEI = " << ieneijj << std::endl;
+            #endif
+
             // first thing: add outside tet to cavity
             lcent.stack(ieneijj);
             ent2tag(ithread,ieneijj) = msh.tag[ithread];
+
+            #ifdef DEBUGCAV
+            std::string cavName = "cavSingDet_ntet_" + std::to_string(cav.lctet.get_n()) + ".meshb";
+            writeMeshCavity(cavName,msh,cav);
+            #endif
+
             CPRINTF1(" - stack dim {} ieneijj {}\n",tdim,ieneijj);
             // if(isube >= 0){
             //   CPRINTF1(" - stack dim {} subent {}\n",tdim-1,isube);

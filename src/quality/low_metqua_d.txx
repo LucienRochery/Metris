@@ -15,7 +15,7 @@
 //#include "../low_eval_d.hxx"
 #include "../linalg/explogmet.hxx"
 
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
+#include "../libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
 
 
 namespace Metris{
@@ -26,13 +26,13 @@ namespace Metris{
 //#include "../low_geo/ccoef.hxx"
 
 #if 0
-template <class MFT, int gdim, int tdim, int mshdeg, 
+template <class MFT, int gdim, int tdim, int mshdeg,
           AsDeg metdeg, typename ftype>
-void d_quafun_distortion(Mesh<MFT> &msh, int ielem, int power, 
+void d_quafun_distortion(Mesh<MFT> &msh, int ielem, int power,
                  const double*__restrict__ bary, int ivar, DifVar metderiv, ftype* qutet){
 
   static_assert(gdim == 2 || gdim == 3);
-  static_assert(tdim <= gdim); 
+  static_assert(tdim <= gdim);
 
   METRIS_ASSERT(gdim == msh.idim);
 
@@ -41,10 +41,10 @@ void d_quafun_distortion(Mesh<MFT> &msh, int ielem, int power,
   if(msh.met.getSpace() != MetSpace::Log) METRIS_THROW_MSG(
       "## SET MESH METRIC TO LOG BEFORE CALLING metqua2_xi");
 
-  if(msh.getBasis() != FEBasis::Bezier ) METRIS_THROW_MSG( 
+  if(msh.getBasis() != FEBasis::Bezier ) METRIS_THROW_MSG(
       "## METQUA DIFF ONLY AVAILABLE IN BEZIER");
 
-  // Differentiate or don't, but there is no barycentric derivative in this context 
+  // Differentiate or don't, but there is no barycentric derivative in this context
   METRIS_ASSERT(metderiv == DifVar::None || metderiv == DifVar::Phys);
 
   constexpr int nnmet = (gdim*(gdim+1))/2;
@@ -62,7 +62,7 @@ void d_quafun_distortion(Mesh<MFT> &msh, int ielem, int power,
                                                           bary,coopr,jmat,NULL);
   }
 
-  auto ordent = 
+  auto ordent =
   double bezfun = eval_bezierfunc<ideg,tdim>()
 
   // Get metric interpolated at xi
@@ -72,11 +72,11 @@ void d_quafun_distortion(Mesh<MFT> &msh, int ielem, int power,
 
   // Compute J_0^{-T} J_K^T M J_K J_0^{-1}
   // Starting with J_K J_0^{-1}
-  // Note that J_K is stored transposed w.r.t. above ! -> jmat[i,j] = d_i F_j 
-  // whereas (J_K)_{ij} = d_j F_i .. 
+  // Note that J_K is stored transposed w.r.t. above ! -> jmat[i,j] = d_i F_j
+  // whereas (J_K)_{ij} = d_j F_i ..
 
 
-  // Get J_0^{-T} J_K^T -> the Jacobian depends on the variable. 
+  // Get J_0^{-T} J_K^T -> the Jacobian depends on the variable.
   SANS::SurrealS<gdim, ftype> invtJ_0tJ_K[tdim*gdim];
   matXmat<tdim,tdim,gdim>(Constants::invtJ_0[hana::type_c<ftype>][tdim],
                                                               jmatS,invtJ_0tJ_K);
@@ -86,8 +86,8 @@ void d_quafun_distortion(Mesh<MFT> &msh, int ielem, int power,
   matXsymXtmat_diag<gdim, tdim, double, ftype, ftype>(met, invtJ_0tJ_K, J0tJtMJJ0_diag);
   ftype tra = J0tJtMJJ0_diag[0] + J0tJtMJJ0_diag[1];
   if(tdim == 3) tra += J0tJtMJJ0_diag[2];
-  
-  // This is an actual exception that should never theoretically happen. 
+
+  // This is an actual exception that should never theoretically happen.
   if(tra < 1.0e-16) METRIS_THROW_MSG( "NEGATIVE J^TMJ trace "<<tra);
 
 
@@ -96,7 +96,7 @@ void d_quafun_distortion(Mesh<MFT> &msh, int ielem, int power,
     ftype det1 = detmat<gdim>(invtJ_0tJ_K); // Error of 10^{-19} = 10^-14 relative compared to Matlab on wonky case
     //ftype tmp = detsym<gdim>(met); // Error of 10^5 ... // Matlab yields 7.346639223296765e+09 we get 7.346911345315383e+09 // Even in relative this is terrible
     ftype tmp = detsym2<gdim>(met); // Also wrong, same error. Note Matlab gets 10^-9 final quality relative error ! Our determinant is terribly bad
-    det = det1*det1*tmp; 
+    det = det1*det1*tmp;
   }else{
     static_assert(tdim == 2);
     ftype J0tJtMJJ0[3];
@@ -104,7 +104,7 @@ void d_quafun_distortion(Mesh<MFT> &msh, int ielem, int power,
     det = detsym2<2>(J0tJtMJJ0);
   }
 
-  if(abs(det) < 1.0e-16 && power > 0) 
+  if(abs(det) < 1.0e-16 && power > 0)
      METRIS_THROW_MSG( "Singular J^TMJ det = "<<det);
 
   if constexpr (tdim == 2){
@@ -125,21 +125,21 @@ void d_quafun_distortion(Mesh<MFT> &msh, int ielem, int power,
 #endif
 
 template <class MFT, int gdim, int mshdeg, AsDeg metdeg, typename ftype>
-d_quafun_distortion<MFT,gdim,mshdeg,metdeg,ivar,ftype>::d_quafun_distortion(Mesh<MFT> &msh, 
-            int ielem, int power, 
-            const double*__restrict__ bary, DifVar metderiv, 
-            int ivar, 
+d_quafun_distortion<MFT,gdim,mshdeg,metdeg,ivar,ftype>::d_quafun_distortion(Mesh<MFT> &msh,
+            int ielem, int power,
+            const double*__restrict__ bary, DifVar metderiv,
+            int ivar,
             SANS::SurrealS<gdim,ftype>* qutet){
   static_assert(gdim == 2 || gdim == 3);
   METRIS_ASSERT(gdim == msh.idim);
   METRIS_ASSERT(power != 0);
   if(msh.met.getSpace() != MetSpace::Log) METRIS_THROW_MSG(
       "## SET MESH METRIC TO LOG BEFORE CALLING metqua2_xi");
-  if(msh.getBasis() != FEBasis::Bezier ) METRIS_THROW_MSG( 
+  if(msh.getBasis() != FEBasis::Bezier ) METRIS_THROW_MSG(
       "## METQUA DIFF ONLY AVAILABLE IN BEZIER");
-  // Differentiate or don't, but there is no barycentric derivative in this context 
+  // Differentiate or don't, but there is no barycentric derivative in this context
   METRIS_ASSERT(metderiv == DifVar::None || metderiv == DifVar::Phys);
-  if(metderiv != DifVar::None) METRIS_THROW_MSG( 
+  if(metderiv != DifVar::None) METRIS_THROW_MSG(
                            "Metric field derivative not implemented in quality")
 
   constexpr int tdim  = gdim;
@@ -167,11 +167,11 @@ d_quafun_distortion<MFT,gdim,mshdeg,metdeg,ivar,ftype>::d_quafun_distortion(Mesh
 
   // Compute J_0^{-T} J_K^T M J_K J_0^{-1}
   // Starting with J_K J_0^{-1}
-  // Note that J_K is stored transposed w.r.t. above ! -> jmat[i,j] = d_i F_j 
-  // whereas (J_K)_{ij} = d_j F_i .. 
+  // Note that J_K is stored transposed w.r.t. above ! -> jmat[i,j] = d_i F_j
+  // whereas (J_K)_{ij} = d_j F_i ..
 
 
-  // Get J_0^{-T} J_K^T -> the Jacobian depends on the variable. 
+  // Get J_0^{-T} J_K^T -> the Jacobian depends on the variable.
   SANS::SurrealS<gdim, ftype> invtJ_0tJ_K[tdim*gdim];
   //ftype invtJ_0tJ_K[tdim*gdim];
   //matXmat<tdim,tdim,gdim>(Constants::invtJ_0[hana::type_c<ftype>][tdim],
@@ -179,7 +179,7 @@ d_quafun_distortion<MFT,gdim,mshdeg,metdeg,ivar,ftype>::d_quafun_distortion(Mesh
   //HERE;
 
   METRIS_THROW_MSG("TODO: ORDELT ARRAY REMOVED -> FIX d_quafun_distortion here");
-  //constexpr auto ordent = ORDELT_ARRAY(tdim); 
+  //constexpr auto ordent = ORDELT_ARRAY(tdim);
   //constexpr std::array<int,tdim+1> idxP = ordent[mshdeg][ivar];
   //constexpr std::array<int,tdim+1> idx1 = ordent[mshdeg][ivar] - ordent[1][0];
   constexpr std::array<int,tdim+1> idxP = 0;
@@ -200,7 +200,7 @@ d_quafun_distortion<MFT,gdim,mshdeg,metdeg,ivar,ftype>::d_quafun_distortion(Mesh
   //  }
   //}();
   //for(int ii = 0; ii < tdim+1; ii++){
-  //  idx[ii] = ordent[mshdeg][ivar]; 
+  //  idx[ii] = ordent[mshdeg][ivar];
   //}
   double dbez0 = eval_bezierfunc<mshdeg,tdim>(ordent[mshdeg],bary,0,NULL);
   for(int ii = 0; ii < tdim; ii++){
@@ -215,8 +215,8 @@ d_quafun_distortion<MFT,gdim,mshdeg,metdeg,ivar,ftype>::d_quafun_distortion(Mesh
   matXsymXtmat_diag<gdim, tdim, double, ftype, ftype>(met, invtJ_0tJ_K, J0tJtMJJ0_diag);
   ftype tra = J0tJtMJJ0_diag[0] + J0tJtMJJ0_diag[1];
   if(tdim == 3) tra += J0tJtMJJ0_diag[2];
-  
-  // This is an actual exception that should never theoretically happen. 
+
+  // This is an actual exception that should never theoretically happen.
   if(tra < 1.0e-16) METRIS_THROW_MSG( "NEGATIVE J^TMJ trace "<<tra);
 
 
@@ -225,7 +225,7 @@ d_quafun_distortion<MFT,gdim,mshdeg,metdeg,ivar,ftype>::d_quafun_distortion(Mesh
     ftype det1 = detmat<gdim>(invtJ_0tJ_K); // Error of 10^{-19} = 10^-14 relative compared to Matlab on wonky case
     //ftype tmp = detsym<gdim>(met); // Error of 10^5 ... // Matlab yields 7.346639223296765e+09 we get 7.346911345315383e+09 // Even in relative this is terrible
     ftype tmp = detsym2<gdim>(met); // Also wrong, same error. Note Matlab gets 10^-9 final quality relative error ! Our determinant is terribly bad
-    det = det1*det1*tmp; 
+    det = det1*det1*tmp;
   }else{
     static_assert(tdim == 2);
     ftype J0tJtMJJ0[3];
@@ -233,7 +233,7 @@ d_quafun_distortion<MFT,gdim,mshdeg,metdeg,ivar,ftype>::d_quafun_distortion(Mesh
     det = detsym2<2>(J0tJtMJJ0);
   }
 
-  if(abs(det) < 1.0e-16 && power > 0) 
+  if(abs(det) < 1.0e-16 && power > 0)
      METRIS_THROW_MSG( "Singular J^TMJ det = "<<det);
 
   if constexpr (tdim == 2){
@@ -258,20 +258,20 @@ d_quafun_distortion<MFT,gdim,mshdeg,metdeg,ivar,ftype>::d_quafun_distortion(Mesh
 OLD IMPLEMENTATIONS
 -----------------*/
 ///*
-//  Differentiation of quality/low_volqua.hxx functions. 
+//  Differentiation of quality/low_volqua.hxx functions.
 //  New arguments:
-//   - gdim (template param, optional): number of variables, typically 3 (physical) or 4 (barycentric). 
-//   Default 3 and no dpoivar argument for physical coordinates. Could be 2 for surface-bound points. 
-//   - dmetvar (mandatory argument): derivatives of ivar-th metric w.r.t. the gdims. 
-//   - dpoivar (optional argument, mandatory if gdim != 3): derivatives of ivar-th control point/node 
-//   w.r.t. the gdims. 
+//   - gdim (template param, optional): number of variables, typically 3 (physical) or 4 (barycentric).
+//   Default 3 and no dpoivar argument for physical coordinates. Could be 2 for surface-bound points.
+//   - dmetvar (mandatory argument): derivatives of ivar-th metric w.r.t. the gdims.
+//   - dpoivar (optional argument, mandatory if gdim != 3): derivatives of ivar-th control point/node
+//   w.r.t. the gdims.
 //*/
 //template <int gdim, int tdim, int mshdeg, AsDeg metdeg, int ivar, int gdim, typename ftype>
 //metqua3_xi_d<gdim,tdim,mshdeg,metdeg,ivar,gdim,ftype>
-//::metqua3_xi_d(const Mesh &msh, int ielem, int power, 
-//               const double*__restrict__ bary, 
-//               const double*__restrict__ dmetvar, 
-//               const double*__restrict__ dpoivar, 
+//::metqua3_xi_d(const Mesh &msh, int ielem, int power,
+//               const double*__restrict__ bary,
+//               const double*__restrict__ dmetvar,
+//               const double*__restrict__ dpoivar,
 //               SANS::SurrealS<gdim,ftype>* qutet){
 //
 //  const double exptol = 1.0e-12;
@@ -291,7 +291,7 @@ OLD IMPLEMENTATIONS
 //  double jmat[9],djmat[3][9],lmet[6],met[6],dlmet(3,6),dmet[3][6],coopr[3],ddum[9];
 //
 //  // Get Jacobian matrix and derivatives at xi.
-//  // eval3_d handles whether dpoivar == NULL or not itself. 
+//  // eval3_d handles whether dpoivar == NULL or not itself.
 //  eval3_d<3,ideg,ilag,1,0,ivar,gdim>(msh.coord,msh.tet2poi[ielem],bary,coopr,jmat,NULL,
 //                                     ddum,djmat[0],NULL,dpoivar);
 //
@@ -304,8 +304,8 @@ OLD IMPLEMENTATIONS
 //  }
 //
 //  /*
-//  Interpolate metric and derivatives at xi. 
-//  Derivatives depend on dmetvar, the derivatives of the metric at ivar w.r.t. to the variables. 
+//  Interpolate metric and derivatives at xi.
+//  Derivatives depend on dmetvar, the derivatives of the metric at ivar w.r.t. to the variables.
 //  */
 //
 //
@@ -336,8 +336,8 @@ OLD IMPLEMENTATIONS
 //
 //  // Compute J_0^{-T} J_K^T M J_K J_0^{-1}
 //  // Starting with J_K J_0^{-1}
-//  // Note that J_K is stored transposed w.r.t. above 
-//  // The below J_0^{-1} is also transposed. 
+//  // Note that J_K is stored transposed w.r.t. above
+//  // The below J_0^{-1} is also transposed.
 //  ftype invtJ_0[3][3] = {
 //      -0.57735026918962562,-0.57735026918962562 , 0                 ,
 //      1                   ,-1                   , 0                 ,
@@ -368,16 +368,16 @@ OLD IMPLEMENTATIONS
 //                                 + J0tJtMJJ0_diag[1]
 //                                 + J0tJtMJJ0_diag[2];
 //
-//  SANS::SurrealS<gdim,ftype> det1 
+//  SANS::SurrealS<gdim,ftype> det1
 //   = detmat<3>(invtJ_0tJ_K); // <SANS::SurrealS<gdim,ftype>>
-//  SANS::SurrealS<gdim,ftype> det 
+//  SANS::SurrealS<gdim,ftype> det
 //  = det1*det1*detsym<3>(met_S); // <SANS::SurrealS<gdim,ftype>>
-//  //SANS::SurrealS<gdim,double> det 
+//  //SANS::SurrealS<gdim,double> det
 //  //  = detsym<3,SANS::SurrealS<gdim,double>>(J0tJtMJJ0);
 //
 //  if(tra.value() < 1.0e-16) METRIS_THROW_MSG(
 //    "NEGATIVE J^TMJ trace "<<tra.value());
-//    
+//
 //  if(abs(det.value()) < 1.0e-16 && power > 0){
 //    METRIS_THROW_MSG(
 //    "Singular J^TMJ det = "<<det.value()<<" met det "<<detsym<3>(met)
@@ -388,7 +388,7 @@ OLD IMPLEMENTATIONS
 //             jmat[3]<<" "<<jmat[4]<<" "<<jmat[5]<<
 //             jmat[6]<<" "<<jmat[7]<<" "<<jmat[8]<<
 //        "\n Use negative power to allow (almost-)singular elements.\n"<<power);
-//  } 
+//  }
 //
 //  if(power > 0){
 //    *qutet = pow(tra*tra*tra/det/27,power);
@@ -404,15 +404,15 @@ OLD IMPLEMENTATIONS
 //template <int ideg, int ilag, int ivar, int gdim, typename ftype>
 //metqua3_d<ideg,ilag,ivar,gdim,ftype>
 //::metqua3_d(const Mesh & msh, int ielem, int power,
-//            const double* __restrict__ dmetvar, 
-//            const double* __restrict__  dpoivar, 
+//            const double* __restrict__ dmetvar,
+//            const double* __restrict__  dpoivar,
 //            SANS::SurrealS<gdim,ftype> *qutet){
 //
 //  if constexpr(ideg > 1){
 //    double bary[4];
 //    *qutet = 0; // This takes care of derivatives
-//  
-//  
+//
+//
 //    SANS::SurrealS<gdim,ftype> qua0;
 //    int nquad = getnnod3(ideg - 1);
 //    for(int iquad = 0; iquad < nquad; iquad++){
@@ -446,10 +446,10 @@ OLD IMPLEMENTATIONS
 //template <int ideg, int ilag, int gdim>
 //metqua3_shell_d<ideg,ilag,gdim>
 //::metqua3_shell_d(const Mesh &msh, int ipoin, int iele0, int power,
-//                  int mshell, 
-//                  int* __restrict__ nshell, int* __restrict__ lshell, 
-//                  const double* __restrict__ dmetvar, 
-//                  const double* __restrict__ dpoivar, 
+//                  int mshell,
+//                  int* __restrict__ nshell, int* __restrict__ lshell,
+//                  const double* __restrict__ dmetvar,
+//                  const double* __restrict__ dpoivar,
 //                  SANS::SurrealS<gdim,double>*  qushe){
 //
 //  int ierro;
@@ -458,15 +458,15 @@ OLD IMPLEMENTATIONS
 //    int iver = getvertet<ideg>(iele0, msh.tet2poi, ipoin);
 //    if(iver < 4 || iver >= 4 + 6*(getnnod1(ideg)-2))
 //      METRIS_THROW_MSG("VERTEX NOT ON EDGE")
-//  
+//
 //    int ied = (iver - 4) / (getnnod1(ideg) - 2);
-//  
+//
 //    int ipoi1 = msh.tet2poi(iele0,lnoed3[ied][0]);
 //    int ipoi2 = msh.tet2poi(iele0,lnoed3[ied][1]);
 //    shell3(msh,ipoi1,ipoi2,iele0,mshell,nshell,lshell,&iopen);
 //    if(iopen >= 0) METRIS_THROW_MSG("SHELL IS OPEN IN OPTIM")
 //  }
-//  
+//
 //  constexpr int nrfld = getnnod3(ideg);
 //  auto nrfld_c = hana::int_c<nrfld>;
 //
@@ -485,7 +485,7 @@ OLD IMPLEMENTATIONS
 //        metqua3_d<ideg,ilag,ivar,gdim>(msh,ielem,power,dmetvar,dpoivar,&qutet);
 //        if(qutet < 0) METRIS_THROW_MSG(
 //          "NEGATIVE ELEMENT QUALITY = "<<qutet<<" ielem = "<<ielem)
-//    
+//
 //        (*qushe) += qutet;
 //      }
 //    return ivar_c+1_c;});

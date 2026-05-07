@@ -12,7 +12,7 @@
 #include "../Mesh/MeshFwd.hxx"
 #include "../metris_constants.hxx"
 
-#include "SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/Surreal/SurrealS.h"
 
 
 namespace Metris{
@@ -35,7 +35,7 @@ enum class FEBasis;
 
 
 
-// 
+//
 // Symmetric matrix indices: 0 1 3
 //                             2 4
 //                               5
@@ -63,7 +63,7 @@ bool isinfacP1(const double *p1, const double *p2,
                const double *p3, const double *pp, double tol = 1.0e-16);
 
 template<int gdim>
-void inventP1(const int*__restrict__ ent2pol, const dblAr2 &coord, const double*__restrict__ coor0, 
+void inventP1(const int*__restrict__ ent2pol, const dblAr2 &coord, const double*__restrict__ coor0,
               double*__restrict__ bary);
 
 // -----------------------------------------------------------------------------

@@ -7,37 +7,37 @@
 #define __LOW_EVAL_D_SURREALS__
 
 
-#include "SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/Surreal/SurrealS.h"
 #include "ho_constants.hxx"
 #include "types.hxx"
 #include "low_eval_d_bezier.hxx"
 #include "low_eval_d_helper.hxx"
 #include "utils/CT_loop.hxx"
-#include <boost/hana.hpp> 
+#include <boost/hana.hpp>
 
 
 namespace Metris{
 
 template <typename T, int szfld, int tdim, int ideg,  int nvar>
-void eval_d_SurrealS0(const T& __restrict__  rfld,   
-                      FEBasis ibasis, DifVar idif1, DifVar idif2, 
-                      const double * __restrict__  bary, 
-                      SANS::DLA::VectorS<     szfld,SANS::SurrealS<nvar,double>> *eval, 
-                      SANS::DLA::MatrixS<tdim,szfld,SANS::SurrealS<nvar,double>> *jmat, 
+void eval_d_SurrealS0(const T& __restrict__  rfld,
+                      FEBasis ibasis, DifVar idif1, DifVar idif2,
+                      const double * __restrict__  bary,
+                      SANS::DLA::VectorS<     szfld,SANS::SurrealS<nvar,double>> *eval,
+                      SANS::DLA::MatrixS<tdim,szfld,SANS::SurrealS<nvar,double>> *jmat,
                       SANS::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat){
   if constexpr (ideg == 1){
-    
+
     for(int icmp = 0; icmp < szfld; icmp++){
       (*eval)[icmp] = bary[0]*rfld[boost::hana::int_c<0>][icmp];
       // Note bounds included
-      CT_FOR0_INC(1,tdim,ii){  
+      CT_FOR0_INC(1,tdim,ii){
         // Macro creates c_ii
         (*eval)[icmp] += bary[ii]*rfld[c_ii][icmp];
       }CT_FOR1(ii);
     }
 
     if (idif1 == DifVar::Bary){
-      
+
       for(int i = 0; i < szfld; i++){
         // Note upper bound excluded
         CT_FOR0_INC(1,tdim,jj){
@@ -48,13 +48,13 @@ void eval_d_SurrealS0(const T& __restrict__  rfld,
     }
     if (idif2 == DifVar::Bary){
       constexpr int nnsym = tdim*(tdim+1)/2;
-      
+
       for(int i = 0; i < szfld; i++){
         for(int jj = 0; jj < nnsym; jj++) (*hmat)(jj,i) = 0;
       }
     }
     return;
-  } 
+  }
 
   if(ibasis == FEBasis::Bezier){
     if constexpr(tdim == 2){
@@ -64,17 +64,17 @@ void eval_d_SurrealS0(const T& __restrict__  rfld,
     }
   }else{
     METRIS_THROW_MSG("TODO: Implement eval3_d_LAGRANGE");
-  } 
+  }
   return;
 }
 
 
 template <int szfld, int tdim, int ideg,  int nvar>
-void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,   
-                             FEBasis ibasis, DifVar idif1, DifVar idif2, 
-                             const double * __restrict__  bary, 
-                             SANS::DLA::VectorS<     szfld,SANS::SurrealS<nvar,double>> *eval, 
-                             SANS::DLA::MatrixS<tdim,szfld,SANS::SurrealS<nvar,double>> *jmat, 
+void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
+                             FEBasis ibasis, DifVar idif1, DifVar idif2,
+                             const double * __restrict__  bary,
+                             SANS::DLA::VectorS<     szfld,SANS::SurrealS<nvar,double>> *eval,
+                             SANS::DLA::MatrixS<tdim,szfld,SANS::SurrealS<nvar,double>> *jmat,
                              SANS::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat){
   //printf("Debug surreal0 bary = {} {} {} {} field:\n",bary[0]
   //  ,bary[1],bary[2],bary[3]);
@@ -89,14 +89,14 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
   if constexpr (ideg == 1){
     //hana::while_(hana::less.than(szfld_c), boost::hana::int_c<0>, [&](auto i_c){
     //  constexpr int i = i_c;
-    
+
     for(int icmp = 0; icmp < szfld; icmp++){
       (*eval)[icmp] = bary[0]*rfld[boost::hana::int_c<0>][icmp];
       // Note bounds included
       for(int ii = 1; ii <= tdim; ii++){
         (*eval)[icmp] += bary[ii]*rfld[ii][icmp];
       }
-      //CT_FOR0_INC(1,tdim,ii){  
+      //CT_FOR0_INC(1,tdim,ii){
       //  // Macro creates c_ii
       //  (*eval)[icmp] += bary[ii]*rfld[c_ii][icmp];
       //}CT_FOR1(ii);
@@ -108,7 +108,7 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
     //return i_c+boost::hana::int_c<1>;});
 
     if (idif1 == DifVar::Bary){
-      
+
       for(int i = 0; i < szfld; i++){
         // Note upper bound excluded
         for(int jj = 1;jj <= tdim; jj++){
@@ -124,7 +124,7 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
     }
     if (idif2 == DifVar::Bary){
       constexpr int nnsym = tdim*(tdim+1)/2;
-      
+
       for(int i = 0; i < szfld; i++){
         for(int jj = 0; jj < nnsym; jj++) (*hmat)(jj,i) = 0;
         //(*hmat)(0,i) = 0;
@@ -136,7 +136,7 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
       }
     }
     return;
-  } 
+  }
 
   //std::cout<<"Debug simple:\n";
   //constexpr int npps = tdim == 2 ? getnnod2(ideg) : getnnod3(ideg);
@@ -153,7 +153,7 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
     }
   }else{
     METRIS_THROW_MSG("TODO: Implement eval3_d_LAGRANGE");
-  } 
+  }
   return;
 }
 
@@ -163,23 +163,23 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
 
 
 
-// SANS::SurrealS-based version can only handle Bézier for now. 
-// Slower in all cases except P2 + Jacobian. 
+// SANS::SurrealS-based version can only handle Bézier for now.
+// Slower in all cases except P2 + Jacobian.
 template <int szfld, int tdim, int ideg, int ivar, int nvar = szfld>
-void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,  
+void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
                      const int * __restrict__ lfld,
-                     FEBasis ibasis, DifVar idif1, DifVar idif2, 
+                     FEBasis ibasis, DifVar idif1, DifVar idif2,
                      const double * __restrict__ bary,
                      double * __restrict__  eval,
                      double * __restrict__  jmat,
                      double * __restrict__  hmat,
                      double * __restrict__  deval,
                      double * __restrict__  djmat,
-                     double * __restrict__  dhmat,  
+                     double * __restrict__  dhmat,
                      const double * __restrict__ dfld = NULL){
 
 
-  // -- For clarity. 
+  // -- For clarity.
   // Number of (r|l)fld entries
   constexpr int nrfld = getnnode(tdim,ideg);
   static_assert(nrfld < 31);
@@ -224,10 +224,10 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
 
   tuple_wrapper w_op(rfld_1);
 
-  // Populate w_op tuple with appropriate types. 
+  // Populate w_op tuple with appropriate types.
   // The idea is to get something like a tuple<double*, SANS::SurrealS*, double*, double*...>
-  // Storing, for the double*'s, the non-dof rfld entries and, for the one SANS::SurrealS*, 
-  // the DoF SANS::SurrealS array. 
+  // Storing, for the double*'s, the non-dof rfld entries and, for the one SANS::SurrealS*,
+  // the DoF SANS::SurrealS array.
   //imem = 0;
   hana::while_(hana::less.than(hana::int_c<nrfld>), boost::hana::int_c<0>, [&](auto i_c){
     constexpr int i = i_c;
@@ -238,7 +238,7 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
       w_op[i_c] = rfld[lfld[i]];
 //      imem++;
     }
-  return i_c+boost::hana::int_c<1>;});  
+  return i_c+boost::hana::int_c<1>;});
 //  SANS::SurrealS<nvar,double> seval[szfld];
   constexpr int nnsym = (tdim*(tdim+1))/2;
 
@@ -255,7 +255,7 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
   //  std::cout<<"0:"<<w_op[i_c][0]<<std::endl;
   //  std::cout<<"1:"<<w_op[i_c][1]<<std::endl;
   //  std::cout<<"2:"<<w_op[i_c][2]<<std::endl;
-  //return i_c+boost::hana::int_c<1>;});  
+  //return i_c+boost::hana::int_c<1>;});
 
 
   eval_d_SurrealS0<decltype(w_op),szfld,tdim,ideg>
@@ -273,7 +273,7 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
         jmat[itdim*szfld + icmp] = sjmat(itdim,icmp).value();
         for(int idof = 0; idof < nvar; idof++){
           djmat[idof*tdim*szfld + itdim*szfld + icmp] = sjmat(itdim,icmp).deriv(idof);
-        } 
+        }
       }
     }
 
@@ -293,21 +293,21 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
 
 
 
-// SANS::SurrealS-based version can only handle Bézier for now. 
-// Slower in all cases except P2 + Jacobian. 
+// SANS::SurrealS-based version can only handle Bézier for now.
+// Slower in all cases except P2 + Jacobian.
 template <int szfld, int tdim, int ideg, int nvar>
-void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,  
+void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
                      const int * __restrict__ lfld,
-                     FEBasis ibasis, DifVar idif1, DifVar idif2, 
+                     FEBasis ibasis, DifVar idif1, DifVar idif2,
                      const double * __restrict__ bary,
-                     int ivar_, 
+                     int ivar_,
                      SANS::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>>* eval,
                      SANS::DLA::MatrixS<tdim ,szfld,SANS::SurrealS<nvar,double>>* jmat,
                      SANS::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>>* hmat,
                      const SANS::DLA::MatrixS<szfld,nvar,double>* dfld = NULL){
 
 
-  // -- For clarity. 
+  // -- For clarity.
   // Number of (r|l)fld entries
   constexpr int nrfld = getnnode(tdim,ideg);
   static_assert(nrfld < 31);
@@ -345,10 +345,10 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
 
     tuple_wrapper w_op(rfld_1);
 
-    // Populate w_op tuple with appropriate types. 
+    // Populate w_op tuple with appropriate types.
     // The idea is to get something like a tuple<double*, SANS::SurrealS*, double*, double*...>
-    // Storing, for the double*'s, the non-dof rfld entries and, for the one SANS::SurrealS*, 
-    // the DoF SANS::SurrealS array. 
+    // Storing, for the double*'s, the non-dof rfld entries and, for the one SANS::SurrealS*,
+    // the DoF SANS::SurrealS array.
     // Replace c_ii by ii in this loop to bathe in compiler errors
     CT_FOR0_EXC(0, nrfld, ii){
       if constexpr(ii == ivar){
@@ -356,7 +356,7 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
       }else{
         w_op[c_ii] = rfld[lfld[ii]];
       }
-    }CT_FOR1(ii); 
+    }CT_FOR1(ii);
 
     eval_d_SurrealS0<decltype(w_op),szfld,tdim,ideg>
                        (w_op,ibasis,idif1,idif2,bary,eval,jmat,hmat);
@@ -367,23 +367,23 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
 
 
 // Unit tested: does not work currently (May 2025)
-// Same as eval_d_SurrealS 
+// Same as eval_d_SurrealS
 // but instead of computing szfld, compute size 1, then notice whole vector is repeated
 template <int szfld, int tdim, int ideg,  int ivar, int nvar>
-void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,  
+void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
                      const int * __restrict__ lfld,
-                     FEBasis ibasis, DifVar idif1, DifVar idif2, 
+                     FEBasis ibasis, DifVar idif1, DifVar idif2,
                      const double * __restrict__ bary,
                      double * __restrict__  eval,
                      double * __restrict__  jmat,
                      double * __restrict__  hmat,
                      double * __restrict__  deval,
                      double * __restrict__  djmat,
-                     double * __restrict__  dhmat,  
+                     double * __restrict__  dhmat,
                      const double * __restrict__ dfld = NULL){
 
 
-  // -- For clarity. 
+  // -- For clarity.
   // Number of (r|l)fld entries
   constexpr int nrfld = getnnode(tdim,ideg);
   static_assert(nrfld < 31);
@@ -426,10 +426,10 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
 
   tuple_wrapper w_op(rfld_1);
 
-  // Populate w_op tuple with appropriate types. 
+  // Populate w_op tuple with appropriate types.
   // The idea is to get something like a tuple<double*, SANS::SurrealS*, double*, double*...>
-  // Storing, for the double*'s, the non-dof rfld entries and, for the one SANS::SurrealS*, 
-  // the DoF SANS::SurrealS array. 
+  // Storing, for the double*'s, the non-dof rfld entries and, for the one SANS::SurrealS*,
+  // the DoF SANS::SurrealS array.
   //imem = 0;
   hana::while_(hana::less.than(hana::int_c<nrfld>), boost::hana::int_c<0>, [&](auto i_c){
     constexpr int i = i_c;
@@ -440,7 +440,7 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
       w_op[i_c] = rfld[lfld[i]];
 //      imem++;
     }
-  return i_c+boost::hana::int_c<1>;});  
+  return i_c+boost::hana::int_c<1>;});
 //  SANS::SurrealS<nvar,double> seval[szfld];
   constexpr int nnsym = (tdim*(tdim+1))/2;
 
@@ -457,7 +457,7 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
   //  std::cout<<"0:"<<w_op[i_c][0]<<std::endl;
   //  std::cout<<"1:"<<w_op[i_c][1]<<std::endl;
   //  std::cout<<"2:"<<w_op[i_c][2]<<std::endl;
-  //return i_c+boost::hana::int_c<1>;});  
+  //return i_c+boost::hana::int_c<1>;});
 
 
   eval_d_SurrealS0<decltype(w_op),szfld,tdim,ideg>
@@ -467,7 +467,7 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
 
   //std::cout<<"Debug sjmat = \n"<<sjmat<<"\n";
 
-  //std::cout<<"debug ideg = "<<ideg<< " bary = "; 
+  //std::cout<<"debug ideg = "<<ideg<< " bary = ";
   //dblAr1(tdim+1,bary).print();
 
 
@@ -486,7 +486,7 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
           jmat[itdim*szfld + icmp] = sjmat(itdim,icmp).value();
           for(int idof = 0; idof < nvareff; idof++){
             djmat[idof*tdim*szfld + itdim*szfld + icmp] = sjmat(itdim,icmp).deriv(idof);
-          } 
+          }
         }
       }
     }else{
@@ -500,7 +500,7 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
           jmat[itdim*szfld + icmp] = sjmat(itdim,icmp).value();
           for(int idof = 0; idof < nvareff; idof++){
             djmat[idof*tdim*szfld + itdim*szfld + icmp] = dj * (idof == icmp);
-          } 
+          }
         }
       }
     }
@@ -537,21 +537,21 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
 
 // This version just makes one large SurrealS buffer instead of trying to limit it to 1 variable
 template <int szfld, int tdim, int ideg, int nvar>
-void eval_d_SurrealS_simple(const dblAr2 & __restrict__ rfld,  
+void eval_d_SurrealS_simple(const dblAr2 & __restrict__ rfld,
                             const int * __restrict__ lfld,
-                            FEBasis ibasis, DifVar idif1, DifVar idif2, 
+                            FEBasis ibasis, DifVar idif1, DifVar idif2,
                             const double * __restrict__ bary,
-                            int ivar, 
+                            int ivar,
                             double * __restrict__  eval,
                             double * __restrict__  jmat,
                             double * __restrict__  hmat,
                             double * __restrict__  deval,
                             double * __restrict__  djmat,
-                            double * __restrict__  dhmat,  
+                            double * __restrict__  dhmat,
                             const double * __restrict__ dfld = NULL){
 
 
-  // -- For clarity. 
+  // -- For clarity.
   // Number of (r|l)fld entries
   constexpr int nrfld = getnnode(tdim,ideg);
   // -
@@ -605,7 +605,7 @@ void eval_d_SurrealS_simple(const dblAr2 & __restrict__ rfld,
         jmat[itdim*szfld + icmp] = sjmat(itdim,icmp).value();
         for(int idof = 0; idof < nvar; idof++){
           djmat[idof*tdim*szfld + itdim*szfld + icmp] = sjmat(itdim,icmp).deriv(idof);
-        } 
+        }
       }
     }
 

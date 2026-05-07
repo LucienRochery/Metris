@@ -6,7 +6,7 @@
 
 #include "anasol.hxx"
 
-#include "SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/Surreal/SurrealS.h"
 #include "../aux_exceptions.hxx"
 #include "../linalg/symidx.hxx"
 
@@ -18,8 +18,8 @@ namespace Metris{
 
 
 // Constant function = 1
-double anasol2D_1([[maybe_unused]] void *ctx, 
-                  [[maybe_unused]] const double*__restrict__ crd, 
+double anasol2D_1([[maybe_unused]] void *ctx,
+                  [[maybe_unused]] const double*__restrict__ crd,
                   std::initializer_list<double*> dfun){
 
   int ndiff = dfun.size();
@@ -39,17 +39,17 @@ double anasol2D_1([[maybe_unused]] void *ctx,
       it++;
       double *d2fun = *it;
       METRIS_ASSERT(d2fun != NULL);
-      for(int ii = 0; ii < 2; ii++) 
-        for(int jj = ii; jj < 2; jj++) 
+      for(int ii = 0; ii < 2; ii++)
+        for(int jj = ii; jj < 2; jj++)
           d2fun[sym2idx(ii,jj)] = 0;
     }
     if(ndiff >= 3){
       it++;
       double *d3fun = *it;
       METRIS_ASSERT(d3fun != NULL);
-      for(int ii = 0; ii < 2; ii++) 
-        for(int jj = ii; jj < 2; jj++) 
-          for(int kk = jj; kk < 2; kk++) 
+      for(int ii = 0; ii < 2; ii++)
+        for(int jj = ii; jj < 2; jj++)
+          for(int kk = jj; kk < 2; kk++)
             d3fun[sym3idx(ii,jj,kk)] = 0;
     }
     if(ndiff >= 4){
@@ -65,8 +65,8 @@ double anasol2D_1([[maybe_unused]] void *ctx,
 
 // Linear function = x + y + 1 if ctx == NULL, otherwise interpret ctx as double*
 // and get C, d_x and d_y in this order; not implemented
-double anasol2D_2([[maybe_unused]] void *ctx, 
-                  [[maybe_unused]] const double*__restrict__ crd, 
+double anasol2D_2([[maybe_unused]] void *ctx,
+                  [[maybe_unused]] const double*__restrict__ crd,
                   std::initializer_list<double*> dfun){
 
   int ndiff = dfun.size();
@@ -85,17 +85,17 @@ double anasol2D_2([[maybe_unused]] void *ctx,
       it++;
       double *d2fun = *it;
       METRIS_ASSERT(d2fun != NULL);
-      for(int ii = 0; ii < 2; ii++) 
-        for(int jj = ii; jj < 2; jj++) 
+      for(int ii = 0; ii < 2; ii++)
+        for(int jj = ii; jj < 2; jj++)
           d2fun[sym2idx(ii,jj)] = 0;
     }
     if(ndiff >= 3){
       it++;
       double *d3fun = *it;
       METRIS_ASSERT(d3fun != NULL);
-      for(int ii = 0; ii < 2; ii++) 
-        for(int jj = ii; jj < 2; jj++) 
-          for(int kk = jj; kk < 2; kk++) 
+      for(int ii = 0; ii < 2; ii++)
+        for(int jj = ii; jj < 2; jj++)
+          for(int kk = jj; kk < 2; kk++)
             d3fun[sym3idx(ii,jj,kk)] = 0;
     }
     if(ndiff >= 4){
@@ -110,9 +110,9 @@ double anasol2D_2([[maybe_unused]] void *ctx,
 
 
 // Quadratic x^2 + 2xy + y^2 + x + y + 1
-// TODO: read parameters from ctx. 
-double anasol2D_3([[maybe_unused]] void *ctx, 
-                  [[maybe_unused]] const double*__restrict__ crd, 
+// TODO: read parameters from ctx.
+double anasol2D_3([[maybe_unused]] void *ctx,
+                  [[maybe_unused]] const double*__restrict__ crd,
                   std::initializer_list<double*> dfun){
   int ndiff = dfun.size();
 
@@ -130,17 +130,17 @@ double anasol2D_3([[maybe_unused]] void *ctx,
       it++;
       double *d2fun = *it;
       METRIS_ASSERT(d2fun != NULL);
-      for(int ii = 0; ii < 2; ii++) 
-        for(int jj = ii; jj < 2; jj++) 
+      for(int ii = 0; ii < 2; ii++)
+        for(int jj = ii; jj < 2; jj++)
           d2fun[sym2idx(ii,jj)] = 2;
     }
     if(ndiff >= 3){
       it++;
       double *d3fun = *it;
       METRIS_ASSERT(d3fun != NULL);
-      for(int ii = 0; ii < 2; ii++) 
-        for(int jj = ii; jj < 2; jj++) 
-          for(int kk = jj; kk < 2; kk++) 
+      for(int ii = 0; ii < 2; ii++)
+        for(int jj = ii; jj < 2; jj++)
+          for(int kk = jj; kk < 2; kk++)
             d3fun[sym3idx(ii,jj,kk)] = 0;
     }
     if(ndiff >= 4){
@@ -154,10 +154,10 @@ double anasol2D_3([[maybe_unused]] void *ctx,
 }
 
 
-// Cubic x^2 + y^2 + x^3 + y^3 
-// TODO: read parameters from ctx. 
-double anasol2D_4([[maybe_unused]] void *ctx, 
-                  [[maybe_unused]] const double*__restrict__ crd, 
+// Cubic x^2 + y^2 + x^3 + y^3
+// TODO: read parameters from ctx.
+double anasol2D_4([[maybe_unused]] void *ctx,
+                  [[maybe_unused]] const double*__restrict__ crd,
                   std::initializer_list<double*> dfun){
   int ndiff = dfun.size();
 
@@ -176,8 +176,8 @@ double anasol2D_4([[maybe_unused]] void *ctx,
       it++;
       double *d2fun = *it;
       METRIS_ASSERT(d2fun != NULL);
-      for(int ii = 0; ii < 2; ii++) 
-        for(int jj = ii; jj < 2; jj++) 
+      for(int ii = 0; ii < 2; ii++)
+        for(int jj = ii; jj < 2; jj++)
           d2fun[sym2idx(ii,jj)] = 0;
       d2fun[sym2idx(0,0)] = 2 + 6*crd[0];
       d2fun[sym2idx(1,1)] = 2 + 6*crd[1];
@@ -186,9 +186,9 @@ double anasol2D_4([[maybe_unused]] void *ctx,
       it++;
       double *d3fun = *it;
       METRIS_ASSERT(d3fun != NULL);
-      for(int ii = 0; ii < 2; ii++) 
-        for(int jj = ii; jj < 2; jj++) 
-          for(int kk = jj; kk < 2; kk++) 
+      for(int ii = 0; ii < 2; ii++)
+        for(int jj = ii; jj < 2; jj++)
+          for(int kk = jj; kk < 2; kk++)
             d3fun[sym3idx(ii,jj,kk)] = 0;
       d3fun[sym3idx(0,0,0)] = 6;
       d3fun[sym3idx(1,1,1)] = 6;
@@ -206,8 +206,8 @@ double anasol2D_4([[maybe_unused]] void *ctx,
 
 
 // sin(2pi*x) sin(2pi*y) ; cf Arthur Bawin's thesis function f_1 pp28
-double anasol2D_5([[maybe_unused]] void *ctx, 
-                  [[maybe_unused]] const double*__restrict__ crd, 
+double anasol2D_5([[maybe_unused]] void *ctx,
+                  [[maybe_unused]] const double*__restrict__ crd,
                   std::initializer_list<double*> dfun){
   int ndiff = dfun.size();
 

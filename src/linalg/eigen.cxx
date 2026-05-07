@@ -11,7 +11,7 @@
 
 #include "../aux_exceptions.hxx"
 #include "../utils/fmt_formatters.hxx"
-#include "SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/Surreal/SurrealS.h"
 #include <Eigen/Dense>
 
 namespace Metris{
@@ -105,8 +105,8 @@ int geteigsym_Eigen(const T* __restrict__ met,T* __restrict__ eigval,T* __restri
   MatrixN met_Eigen;
   // SelfAdjointEigenSolver uses the lower triangular part of the matrix
   // Note Eigen stores column-major
-  for(int jj = 0; jj < ndim; jj++) 
-    for(int ii = jj; ii < ndim; ii++) 
+  for(int jj = 0; jj < ndim; jj++)
+    for(int ii = jj; ii < ndim; ii++)
       met_Eigen(ii, jj) = met[sym2idx(ii,jj)];
 
   Eigen::SelfAdjointEigenSolver<MatrixN> solver(met_Eigen);
@@ -115,8 +115,8 @@ int geteigsym_Eigen(const T* __restrict__ met,T* __restrict__ eigval,T* __restri
   MatrixN eigenvectors = solver.eigenvectors();
 
   for(int ii = 0; ii < ndim; ii++) eigval[ii] = eigenvalues[ii];
-  for(int jj = 0; jj < ndim; jj++) 
-    for(int ii = 0; ii < ndim; ii++) 
+  for(int jj = 0; jj < ndim; jj++)
+    for(int ii = 0; ii < ndim; ii++)
       eigvec[ndim*jj + ii] = eigenvectors(ii,jj);
 
   return 0;

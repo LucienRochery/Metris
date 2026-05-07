@@ -18,22 +18,22 @@
 #include "utils/aux_misc.hxx"
 
 
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
+#include "../libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
-#include <boost/hana.hpp> 
+#include <boost/hana.hpp>
 
 namespace Metris{
 // The main eval routine. Can be used for scalar fields (szfld = 1), element geometry (szfld = 3)
-// or metric interpolation (szfld = 6). 
+// or metric interpolation (szfld = 6).
 // eval3S: tetra
 // eval2: triangles
 // eval1: edges
 template <int szfld, int ideg, int ilag, int idif1, int idif2>
-void eval3S(const dblAr2  &rfld, 
-            const SANS::DLA::VectorS<getnnod3(ideg),int> &lfld, 
-            const SANS::DLA::VectorS<4,double> &bary, 
-            SANS::DLA::VectorS<  szfld,double> &eval, 
-            SANS::DLA::VectorS<3*szfld,double> &jmat,  
+void eval3S(const dblAr2  &rfld,
+            const SANS::DLA::VectorS<getnnod3(ideg),int> &lfld,
+            const SANS::DLA::VectorS<4,double> &bary,
+            SANS::DLA::VectorS<  szfld,double> &eval,
+            SANS::DLA::VectorS<3*szfld,double> &jmat,
             SANS::DLA::VectorS<9*szfld,double> &hmat);
 
 
@@ -43,13 +43,13 @@ The Hessian is compressed as column first as usual:
 1 2 4
   3 5
     6
-However, note that each entry is, itself, comprised of szfld values. 
+However, note that each entry is, itself, comprised of szfld values.
 */
 template <int szfld, int ideg, int idif1, int idif2, int di=0,int dj=0, int dk=0, int dl=0>
 struct eval3S_bezier{
-  eval3S_bezier(const dblAr2 & __restrict__  rfld,  
+  eval3S_bezier(const dblAr2 & __restrict__  rfld,
                const SANS::DLA::VectorS<getnnod3(ideg),int> &lfld,
-               const SANS::DLA::VectorS<4,double> &bary,  
+               const SANS::DLA::VectorS<4,double> &bary,
                SANS::DLA::VectorS<  szfld,double> &eval,
                SANS::DLA::VectorS<3*szfld,double> &jmat,
                SANS::DLA::VectorS<9*szfld,double> &hmat){
@@ -90,17 +90,17 @@ struct eval3S_bezier{
       for(int i=0; i<szfld; i++){
                   // d11 (i.e. (d2-d1)(d2-d1))
         hmat[0*szfld + i] = ideg * (jmat2[0*szfld+i] - jmat1[0*szfld+i]);
-                  // d21 
+                  // d21
         hmat[1*szfld + i] = ideg * (jmat3[0*szfld+i] - jmat1[0*szfld+i]);
-                  // d31 
+                  // d31
         hmat[3*szfld + i] = ideg * (jmat4[0*szfld+i] - jmat1[0*szfld+i]);
-  
-                  // d22 
+
+                  // d22
         hmat[2*szfld + i] = ideg * (jmat3[1*szfld+i] - jmat1[1*szfld+i]);
-                  // d32 
+                  // d32
         hmat[4*szfld + i] = ideg * (jmat4[1*szfld+i] - jmat1[1*szfld+i]);
-  
-                  // d33 
+
+                  // d33
         hmat[5*szfld + i] = ideg * (jmat4[2*szfld+i] - jmat1[2*szfld+i]);
       }
     }
@@ -110,14 +110,14 @@ struct eval3S_bezier{
 
 template <int szfld, int idif1, int idif2, int di,int dj, int dk, int dl>
 struct eval3S_bezier<szfld,1,idif1,idif2,di,dj,dk,dl>{
-  eval3S_bezier(const dblAr2 & __restrict__  rfld,  
+  eval3S_bezier(const dblAr2 & __restrict__  rfld,
                 const SANS::DLA::VectorS<getnnod3(1 + di + dj + dk + dl),int> &lfld,
-                const SANS::DLA::VectorS<4,double> &bary,  
+                const SANS::DLA::VectorS<4,double> &bary,
                 SANS::DLA::VectorS<  szfld,double> &eval,
                 SANS::DLA::VectorS<3*szfld,double> &jmat,
                 SANS::DLA::VectorS<9*szfld,double> &hmat){
 
-    constexpr int ideg = 1 + di + dj + dk + dl; // The true degree. 
+    constexpr int ideg = 1 + di + dj + dk + dl; // The true degree.
 
     constexpr int i1000 = mul2nod(1+di,0+dj,0+dk,0+dl);
     constexpr int i0100 = mul2nod(0+di,1+dj,0+dk,0+dl);
@@ -159,25 +159,25 @@ struct eval3S_bezier<szfld,1,idif1,idif2,di,dj,dk,dl>{
 
 template <int szfld, int idif1,int idif2,int di,int dj, int dk, int dl>
   struct eval3S_bezier<szfld,2,idif1,idif2,di,dj,dk,dl>{
-    eval3S_bezier(const dblAr2 & __restrict__  rfld,  
+    eval3S_bezier(const dblAr2 & __restrict__  rfld,
                  const SANS::DLA::VectorS<getnnod3(2 + di + dj + dk + dl),int> &lfld,
                  const SANS::DLA::VectorS<4,double> &bary,
                  SANS::DLA::VectorS<  szfld,double> &eval,
                  SANS::DLA::VectorS<3*szfld,double> &jmat,
                  SANS::DLA::VectorS<9*szfld,double> &hmat){
-    constexpr int ideg = 2 + di + dj + dk + dl; // The true degree. 
+    constexpr int ideg = 2 + di + dj + dk + dl; // The true degree.
 
-    
+
     if constexpr (idif1 > 0){
 
 
         // The Jacobian is quicker to compute recursively as it only uses the previous degree
-        // evals. 
+        // evals.
 
       SANS::DLA::VectorS<  szfld,double> eva1, eva2, eva3, eva4;
       SANS::DLA::VectorS<3*szfld,double> jmat1, jmat2, jmat3, jmat4;
       SANS::DLA::VectorS<9*szfld,double> hdum;
-    
+
       if constexpr(idif2 == 0){
         eval3S_bezier<szfld,ideg-1,0,0,di+1,dj+0,dk+0,dl+0>(rfld,lfld,bary,eva1,jmat1,hdum);
         eval3S_bezier<szfld,ideg-1,0,0,di+0,dj+1,dk+0,dl+0>(rfld,lfld,bary,eva2,jmat2,hdum);
@@ -211,17 +211,17 @@ template <int szfld, int idif1,int idif2,int di,int dj, int dk, int dl>
         for(int i=0; i<szfld; i++){
                     // d11 (i.e. (d2-d1)(d2-d1))
           hmat[0*szfld + i] = ideg * (jmat2[0*szfld+i] - jmat1[0*szfld+i]);
-                    // d21 
+                    // d21
           hmat[1*szfld + i] = ideg * (jmat3[0*szfld+i] - jmat1[0*szfld+i]);
-                    // d31 
+                    // d31
           hmat[3*szfld + i] = ideg * (jmat4[0*szfld+i] - jmat1[0*szfld+i]);
-    
-                    // d22 
+
+                    // d22
           hmat[2*szfld + i] = ideg * (jmat3[1*szfld+i] - jmat1[1*szfld+i]);
-                    // d32 
+                    // d32
           hmat[4*szfld + i] = ideg * (jmat4[1*szfld+i] - jmat1[1*szfld+i]);
-    
-                    // d33 
+
+                    // d33
           hmat[5*szfld + i] = ideg * (jmat4[2*szfld+i] - jmat1[2*szfld+i]);
         }
       }
@@ -241,14 +241,14 @@ template <int szfld, int idif1,int idif2,int di,int dj, int dk, int dl>
       constexpr int i0011 = mul2nod(0+di,0+dj,1+dk,1+dl);
 
       for(int i = 0; i < szfld; i++){
-        eval[i] =   bary[0]*bary[0]*rfld[lfld[i2000]][i] 
-                + 2*bary[0]*bary[1]*rfld[lfld[i1100]][i] 
-                + 2*bary[0]*bary[2]*rfld[lfld[i1010]][i] 
+        eval[i] =   bary[0]*bary[0]*rfld[lfld[i2000]][i]
+                + 2*bary[0]*bary[1]*rfld[lfld[i1100]][i]
+                + 2*bary[0]*bary[2]*rfld[lfld[i1010]][i]
                 + 2*bary[0]*bary[3]*rfld[lfld[i1001]][i]
-                +   bary[1]*bary[1]*rfld[lfld[i0200]][i] 
-                + 2*bary[1]*bary[2]*rfld[lfld[i0110]][i] 
+                +   bary[1]*bary[1]*rfld[lfld[i0200]][i]
+                + 2*bary[1]*bary[2]*rfld[lfld[i0110]][i]
                 + 2*bary[1]*bary[3]*rfld[lfld[i0101]][i]
-                +   bary[2]*bary[2]*rfld[lfld[i0020]][i] 
+                +   bary[2]*bary[2]*rfld[lfld[i0020]][i]
                 + 2*bary[2]*bary[3]*rfld[lfld[i0011]][i]
                 +   bary[3]*bary[3]*rfld[lfld[i0002]][i] ;
       }
@@ -258,14 +258,14 @@ template <int szfld, int idif1,int idif2,int di,int dj, int dk, int dl>
   }
 };
 template <int szfld, int ideg, int ilag, int idif1, int idif2>
-void eval3S(const dblAr2 & __restrict__  rfld,  
+void eval3S(const dblAr2 & __restrict__  rfld,
            const SANS::DLA::VectorS<getnnod3(ideg),int> &lfld,
-           const SANS::DLA::VectorS<4,double> &bary, 
-           SANS::DLA::VectorS<  szfld,double> &eval, 
-           SANS::DLA::VectorS<3*szfld,double> &jmat, 
+           const SANS::DLA::VectorS<4,double> &bary,
+           SANS::DLA::VectorS<  szfld,double> &eval,
+           SANS::DLA::VectorS<3*szfld,double> &jmat,
            SANS::DLA::VectorS<9*szfld,double> &hmat){
   if constexpr (ideg == 1){
-    
+
     for(int i=0;i<szfld;i++){
       eval[i] = bary[0]*rfld[lfld[0]][i]
               + bary[1]*rfld[lfld[1]][i]
@@ -273,7 +273,7 @@ void eval3S(const dblAr2 & __restrict__  rfld,
               + bary[3]*rfld[lfld[3]][i];
     }
     if constexpr(idif1 > 0){
-      
+
       for(int i=0;i<szfld;i++){
         jmat[0*szfld+i] = rfld[lfld[1]][i] - rfld[lfld[0]][i];
         jmat[1*szfld+i] = rfld[lfld[2]][i] - rfld[lfld[0]][i];
@@ -281,7 +281,7 @@ void eval3S(const dblAr2 & __restrict__  rfld,
       }
     }
     if constexpr(idif2 > 0){
-      
+
       for(int i=0;i<szfld;i++){
         hmat[0*szfld+i] = 0.0;
         hmat[1*szfld+i] = 0.0;
@@ -292,13 +292,13 @@ void eval3S(const dblAr2 & __restrict__  rfld,
       }
     }
     return;
-  } 
+  }
 
   if constexpr (ilag <= 0){
     eval3S_bezier<szfld,ideg,idif1,idif2>(rfld, lfld, bary, eval, jmat, hmat);
   }else{
     //eval3S_lagrange<szfld,ideg,idif1>(rfld, lfld, bary, eval, jmat);
-  } 
+  }
   return;
 }
 

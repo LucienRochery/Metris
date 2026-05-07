@@ -15,7 +15,7 @@
 #include "../low_eval_d.hxx"
 #include "../linalg/explogmet.hxx"
 
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
+#include "../libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
 
 
 
@@ -26,26 +26,26 @@
 //#include "../low_geo/ccoef.hxx"
 
 /*
-  Differentiation of quality/low_metqua.hxx functions. 
+  Differentiation of quality/low_metqua.hxx functions.
   New arguments:
-   - nvar (template param, optional): number of variables, typically 3 (physical) or 4 (barycentric). 
-   Default 3 and no dpoivar argument for physical coordinates. Could be 2 for surface-bound points. 
-   - dmetvar (mandatory argument): derivatives of ivar-th metric w.r.t. the nvars. 
-   - dpoivar (optional argument, mandatory if nvar != 3): derivatives of ivar-th control point/node 
-   w.r.t. the nvars. 
+   - nvar (template param, optional): number of variables, typically 3 (physical) or 4 (barycentric).
+   Default 3 and no dpoivar argument for physical coordinates. Could be 2 for surface-bound points.
+   - dmetvar (mandatory argument): derivatives of ivar-th metric w.r.t. the nvars.
+   - dpoivar (optional argument, mandatory if nvar != 3): derivatives of ivar-th control point/node
+   w.r.t. the nvars.
    gdim is the physical dimension of the mesh
 */
 template <class MFT, int ideg, int gdim, int ivar, int nvar, typename ftype>
 d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
-::d_quafun_distortion(const Mesh<MFT> &msh, const int* ent2poi, int power, 
-              const double* bary, 
-              const double* __restrict__ dmetvar, 
-              const double* __restrict__ dpoivar, 
+::d_quafun_distortion(const Mesh<MFT> &msh, const int* ent2poi, int power,
+              const double* bary,
+              const double* __restrict__ dmetvar,
+              const double* __restrict__ dpoivar,
               SANS::SurrealS<nvar,ftype>* qutet){
 
 	METRIS_ENFORCE_MSG(msh.met.getSpace() == MetSpace::Log, "Set metric to log before d_quafun_distortion call");
 
-  if constexpr (std::is_same<MFT,MetricFieldAnalytical>::value) 
+  if constexpr (std::is_same<MFT,MetricFieldAnalytical>::value)
                                                  METRIS_ASSERT(dmetvar != NULL);
 
   constexpr int nnmet = (gdim*(gdim+1))/2;
@@ -60,7 +60,7 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
          ddum[gdim*gdim];
 
   // Get Jacobian matrix and derivatives at xi.
-  // eval3_d handles whether dpoivar == NULL or not itself. 
+  // eval3_d handles whether dpoivar == NULL or not itself.
   if constexpr(gdim == 2){
    eval2_d<2,ideg,ivar,nvar>(msh.coord,ent2poi,msh.getBasis(),DifVar::Bary,0,bary,coopr,jmat,NULL,
                              ddum,djmat[0],NULL,dpoivar);
@@ -78,8 +78,8 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
   }
 
   /*
-  Interpolate metric and derivatives at xi. 
-  Derivatives depend on dmetvar, the derivatives of the metric at ivar w.r.t. to the variables. 
+  Interpolate metric and derivatives at xi.
+  Derivatives depend on dmetvar, the derivatives of the metric at ivar w.r.t. to the variables.
   */
 
   msh.met.getMetFullInfo_d()
@@ -111,8 +111,8 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
 
   // Compute J_0^{-T} J_K^T M J_K J_0^{-1}
   // Starting with J_K J_0^{-1}
-  // Note that J_K is stored transposed w.r.t. above 
-  // The below J_0^{-1} is also transposed. 
+  // Note that J_K is stored transposed w.r.t. above
+  // The below J_0^{-1} is also transposed.
 
   //ftype invtJ_0[gdim][gdim] = [&]() -> std::initializer_list<ftype> {
   //  if constexpr(gdim == 2){
@@ -123,7 +123,7 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
   //    -0.57735026918962562,-0.57735026918962562 , 0                 ,
   //    1                   ,-1                   , 0                 ,
   //    -0.40824829046386302,-0.4082482904638630  , 1.2247448713915889};
-  //  } 
+  //  }
   //}();
 
   // Get J_0^{-T} J_K^T
@@ -148,18 +148,18 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
 
   SANS::SurrealS<nvar,ftype> tra = J0tJtMJJ0_diag[0]
                                  + J0tJtMJJ0_diag[1];
-  if(gdim == 3) tra += J0tJtMJJ0_diag[2]; 
+  if(gdim == 3) tra += J0tJtMJJ0_diag[2];
 
 
   SANS::SurrealS<nvar,ftype> det1 = detmat<gdim>(invtJ_0tJ_K); // <SANS::SurrealS<nvar,ftype>>
   SANS::SurrealS<nvar,ftype> det = det1*det1*detsym<gdim>(met_S); // <SANS::SurrealS<nvar,ftype>>
-  //SANS::SurrealS<nvar,double> det 
+  //SANS::SurrealS<nvar,double> det
   //  = detsym<3,SANS::SurrealS<nvar,double>>(J0tJtMJJ0);
 
   if(tra.value() < 1.0e-16) METRIS_THROW_MSG(
     "NEGATIVE J^TMJ trace "<<tra.value());
-    
-	if(abs(det.value()) < 1.0e-16 && power > 0) 
+
+	if(abs(det.value()) < 1.0e-16 && power > 0)
      METRIS_THROW_MSG( "Singular J^TMJ det = "<<det);
 
   if(gdim == 2){
@@ -184,8 +184,8 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
 template <int ideg, int ilag, int ivar, int nvar, typename ftype>
 metqua_d<ideg,ilag,ivar,nvar,ftype>
 ::metqua_d(const Mesh & msh, int ielem, int power,
-            const double* __restrict__ dmetvar, 
-            const double* __restrict__  dpoivar, 
+            const double* __restrict__ dmetvar,
+            const double* __restrict__  dpoivar,
             SANS::SurrealS<nvar,ftype> *qutet){
 
   //int* ent2poi = tdim == 2 ? msh.fac2poi[ielem] : msh.tet2poi[ielem];
@@ -193,8 +193,8 @@ metqua_d<ideg,ilag,ivar,nvar,ftype>
   if constexpr(ideg > 1){
     double bary[4];
     *qutet = 0; // This takes care of derivatives
-  
-  
+
+
     SANS::SurrealS<nvar,ftype> qua0;
     int nquad = getnnod3(ideg - 1);
     for(int iquad = 0; iquad < nquad; iquad++){
@@ -228,10 +228,10 @@ metqua_d<ideg,ilag,ivar,nvar,ftype>
 template <int ideg, int ilag, int nvar>
 metqua_shell_d<ideg,ilag,nvar>
 ::metqua_shell_d(const Mesh &msh, int ipoin, int iele0, int power,
-                  int mshell, 
-                  int* __restrict__ nshell, int* __restrict__ lshell, 
-                  const double* __restrict__ dmetvar, 
-                  const double* __restrict__ dpoivar, 
+                  int mshell,
+                  int* __restrict__ nshell, int* __restrict__ lshell,
+                  const double* __restrict__ dmetvar,
+                  const double* __restrict__ dpoivar,
                   SANS::SurrealS<nvar,double>*  qushe){
 
   int ierro;
@@ -240,15 +240,15 @@ metqua_shell_d<ideg,ilag,nvar>
     int iver = msh.getvertet<ideg>(iele0, ipoin);
     if(iver < 4 || iver >= 4 + 6*(getnnod1(ideg)-2))
       METRIS_THROW_MSG("VERTEX NOT ON EDGE")
-  
+
     int ied = (iver - 4) / (getnnod1(ideg) - 2);
-  
+
     int ipoi1 = msh.tet2poi(iele0,lnoed3[ied][0]);
     int ipoi2 = msh.tet2poi(iele0,lnoed3[ied][1]);
     shell3(msh,ipoi1,ipoi2,iele0,mshell,nshell,lshell,&iopen);
     if(iopen >= 0) METRIS_THROW_MSG("SHELL IS OPEN IN OPTIM")
   }
-  
+
   constexpr int nrfld = getnnod3(ideg);
   auto nrfld_c = hana::int_c<nrfld>;
 
@@ -267,7 +267,7 @@ metqua_shell_d<ideg,ilag,nvar>
         metqua_d<ideg,ilag,ivar,nvar>(msh,ielem,power,dmetvar,dpoivar,&qutet);
         if(qutet < 0) METRIS_THROW_MSG(
           "NEGATIVE ELEMENT QUALITY = "<<qutet<<" ielem = "<<ielem)
-    
+
         (*qushe) += qutet;
       }
     return ivar_c+1_c;});

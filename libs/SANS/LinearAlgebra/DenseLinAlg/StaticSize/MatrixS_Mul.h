@@ -16,10 +16,10 @@
 // not sure how to register them with std::is_arithmetic
 #include <boost/type_traits/is_arithmetic.hpp>
 
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_MatMul_Native.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/tools/PromoteSurreal.h"
-#include "SANS//Surreal/SurrealS_Type.h"
+#include "libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
+#include "libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_MatMul_Native.h"
+#include "libs/SANS/LinearAlgebra/DenseLinAlg/tools/PromoteSurreal.h"
+#include "libs/SANS/Surreal/SurrealS_Type.h"
 
 namespace SANS
 {

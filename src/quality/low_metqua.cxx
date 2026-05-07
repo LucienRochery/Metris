@@ -6,7 +6,7 @@
 #include "low_metqua.hxx"
 
 #include "../ho_constants.hxx"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
+#include "../libs/SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
 #include "../aux_topo.hxx"
 #include "../low_geo/misc.hxx"
 #include "../low_geo/measure.hxx"

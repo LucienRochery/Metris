@@ -7,7 +7,7 @@
 #ifndef __METRIS_LOW_GEO_NRML2__
 #define __METRIS_LOW_GEO_NRML2__
 
-#include "SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/Surreal/SurrealS.h"
 #include "../types_scalar.hxx"
 #include "../Arrays/aux_msharrays.hxx"
 
@@ -32,7 +32,7 @@ template<> inline double geterrl2<1,double>(const double x[], const double y[]){
 template<int n, int m, typename ftype = double>
 inline ftype geterrl2(const SANS::SurrealS<m,ftype> x[], const SANS::SurrealS<m,ftype> y[]){
   static_assert(n > 0);
-  ftype ret = 0; 
+  ftype ret = 0;
   for(int i = 0; i < n ;i++){
     ret += (x[i].value()-y[i].value())*(x[i].value()-y[i].value());
   }
@@ -43,12 +43,12 @@ inline ftype geterrl2(const SANS::SurrealS<m,ftype> x[], const SANS::SurrealS<m,
 inline double geterrl2(int n, const double* x, const double *y){
   double ret = 0;
   for(int ii = 0; ii < n; ii++) ret += (x[ii] - y[ii])*(x[ii] - y[ii]);
-  return ret; 
+  return ret;
 }
 
 
 template<int n, typename ftype = double>
-inline ftype geterrl2(const MeshArray1D<ftype,int32_t> &x, 
+inline ftype geterrl2(const MeshArray1D<ftype,int32_t> &x,
                       const MeshArray1D<ftype,int32_t> &y){
   static_assert(n > 0);
   ftype ret = 0;
@@ -102,7 +102,7 @@ template<int n, typename ftype = double>
 inline ftype getprdl2(const ftype* __restrict__ x1,const ftype* __restrict__ x2,
                       const ftype* __restrict__ y1,const ftype* __restrict__ y2){
   static_assert(n > 0);
-  return (x1[0]-x2[0])*(y1[0]-y2[0]) 
+  return (x1[0]-x2[0])*(y1[0]-y2[0])
          + getprdl2<n-1,ftype>(&x1[1],&x2[1],&y1[1],&y2[1]);
 }
 template<> inline double getprdl2<1,double>(

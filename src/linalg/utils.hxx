@@ -8,13 +8,13 @@
 #ifndef __METRIS_LINALG_UTILS__
 #define __METRIS_LINALG_UTILS__
 
-#include "SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/Surreal/SurrealS.h"
 
 
 namespace Metris{
 
 template<int gdim, int nvar>
-void getmet_dbl2SurS(const double*__restrict__ met, const double*__restrict__ dmet, 
+void getmet_dbl2SurS(const double*__restrict__ met, const double*__restrict__ dmet,
 							       SANS::SurrealS<nvar,double>*__restrict__ metS);
 
 template<int gdim, int nvar>

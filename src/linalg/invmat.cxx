@@ -14,14 +14,14 @@
 #include "../low_geo/misc.hxx"
 #include "../metris_constants.hxx"
 
-#include "SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/Surreal/SurrealS.h"
 
 #include <Eigen/Dense>
 
 namespace Metris{
 
 // -----------------------------------------------------------------------------
-// met must be positive definite. Otherwise use inv3sym. 
+// met must be positive definite. Otherwise use inv3sym.
 #ifdef METRIS_USE_LAPACK
 int invspd_LAPACK(int nmat, double met[]){
 	char c = 'U';
@@ -66,7 +66,7 @@ int invspd(T* met){
   // LAPACK never worthwhile here
   //#ifdef METRIS_USE_LAPACK
   //return invspd_LAPACK(nmat, met);
-  //#else 
+  //#else
   return invspd_Eigen<ndim>(met, met);
   //#endif
 }
@@ -139,10 +139,10 @@ template int invmat_EigenLUFP<3,double>(double *mat, double* inv);
   	int info;
 
   	dgetrf_(&n,&n,mat,&n,ipiv,&info);
-    if(info != 0) return(abs(info)); 
+    if(info != 0) return(abs(info));
 
   	dgetri_(&n,mat,&n,ipiv,rwork,&nwork_,&info);
-    if(info != 0) return(abs(info)); 
+    if(info != 0) return(abs(info));
 
     return 0;
   }
@@ -155,7 +155,7 @@ int invmat_naive<3>(double *mat){
   if(abs(det) < Constants::detTol) return 1;
 
   double invdet = 1.0 / det;
-  
+
   // Calculate cofactor matrix and transpose to get adjugate
   double inv[9];
   inv[0] =  (mat[4]*mat[8] - mat[5]*mat[7]) * invdet;
@@ -167,19 +167,19 @@ int invmat_naive<3>(double *mat){
   inv[6] =  (mat[3]*mat[7] - mat[4]*mat[6]) * invdet;
   inv[7] = -(mat[0]*mat[7] - mat[1]*mat[6]) * invdet;
   inv[8] =  (mat[0]*mat[4] - mat[1]*mat[3]) * invdet;
-  
+
   // Copy result back to input matrix
   for(int i = 0; i < 9; i++){
     mat[i] = inv[i];
   }
-  
+
   return 0;
 }
 
 template<>
 int invmat_naive<2>(double *mat){
   double det = mat[0]*mat[3] - mat[1]*mat[2];
-  if(abs(det) < Constants::detTol) return 1; 
+  if(abs(det) < Constants::detTol) return 1;
 
   double tmp = mat[0];
   mat[0] = mat[3] / det;
@@ -191,7 +191,7 @@ int invmat_naive<2>(double *mat){
 
 template<>
 int invmat_naive<1>(double *mat){
-  if(abs(*mat) < Constants::detTol) return 1; 
+  if(abs(*mat) < Constants::detTol) return 1;
   *mat = 1.0 / (*mat);
   return 0;
 }
@@ -207,7 +207,7 @@ int invmat(double *mat){
     #else
     return invmat_EigenLUFP<ndim>(mat,mat);
     #endif
-  }                   
+  }
 }
 template int invmat<1>(double *mat);
 template int invmat<2>(double *mat);

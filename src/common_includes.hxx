@@ -35,7 +35,7 @@
 
 #include "utils/aux_timer.hxx"
 #include "aux_exceptions.hxx"
-#include "SANS/tools/minmax.h"
+#include "../libs/SANS/tools/minmax.h"
 
 
 //#include "utils/aux_misc.hxx"
@@ -60,7 +60,7 @@
 //#include <cassert>
 //#include <tuple>
 //
-//#include "SANS/Surreal/SurrealS.h"
+//#include "../libs/SANS/Surreal/SurrealS.h"
 
 
 
@@ -79,7 +79,7 @@
 //extern PtrSizePair2D<int> lnoed2;
 //
 //// Face to Vertex ELements
-//// Likewise. This means the 1st face is not opposed to the first vertex... 
+//// Likewise. This means the 1st face is not opposed to the first vertex...
 //extern int lnofa3___DISREGARD[12];
 //extern PtrSizePair2D<int> lnofa3;
 //

@@ -5,7 +5,7 @@
 
 #ifndef __METRIS_QUAFUN_TRADET__
 #define __METRIS_QUAFUN_TRADET__
-/* 
+/*
   Auxiliary functions to compute:
    - tr(J_K^T J_0^{-T} M J_0^{-1} J_K)
    - det(J_K^T M J_K)^(1/n)
@@ -13,7 +13,7 @@
 
 
 #include "../Mesh/MeshFwd.hxx"
-#include "SANS/Surreal/SurrealS_fwd.h"
+#include "../libs/SANS/Surreal/SurrealS_fwd.h"
 
 namespace SANS::DLA{
   template<int n, int m, typename T> class MatrixS;
@@ -26,45 +26,45 @@ enum class FEBasis;
 enum class DifVar;
 
 /* ---- Scale invariant distortion measure form tr / det ---- */
-// Pointwise 
-template <class MetricFieldType, int gdim, int tdim, 
+// Pointwise
+template <class MetricFieldType, int gdim, int tdim,
           typename ftype = double>
 void quafun_tradet(Mesh<MetricFieldType> &msh,
                    AsDeg asdmsh, AsDeg asdmet,
-                   const int*__restrict__ ent2poi,  
+                   const int*__restrict__ ent2poi,
                    const double*__restrict__ bary,
                    const double*__restrict__ met_,
                    ftype*__restrict__ tra,
                    ftype*__restrict__ det);
 
-// Differentiated w.r.t. ielem's ivar-th control point/node. 
+// Differentiated w.r.t. ielem's ivar-th control point/node.
 template <class MetricFieldType, int gdim, int tdim,
            typename ftype = double>
 void d_quafun_tradet(Mesh<MetricFieldType> &msh,
                      AsDeg asdmsh, AsDeg asdmet,
-                     const int* ent2poi, 
-                     const double*__restrict__ bary, 
+                     const int* ent2poi,
+                     const double*__restrict__ bary,
                      int ivar,
-                     FEBasis dofbas, 
-                     DifVar idifmet, 
+                     FEBasis dofbas,
+                     DifVar idifmet,
                      const double*__restrict__ met_,
-                     ftype*__restrict__ tra, 
-                     ftype*__restrict__ dtra, 
-                     ftype*__restrict__ htra, 
-                     ftype*__restrict__ det, 
-                     ftype*__restrict__ ddet, 
+                     ftype*__restrict__ tra,
+                     ftype*__restrict__ dtra,
+                     ftype*__restrict__ htra,
+                     ftype*__restrict__ det,
+                     ftype*__restrict__ ddet,
                      ftype*__restrict__ hdet);
 
 
 template <class MFT, int gdim, int tdim, int nvar>
 void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                               const int* ent2pol,
-                              const double*__restrict__ bary, 
-                              int ivar, 
-                              FEBasis dofbas, 
-                              DifVar idifmet, 
+                              const double*__restrict__ bary,
+                              int ivar,
+                              FEBasis dofbas,
+                              DifVar idifmet,
                               const double*__restrict__ met_,
-                              SANS::SurrealS<nvar, double>&__restrict__ tra, 
+                              SANS::SurrealS<nvar, double>&__restrict__ tra,
                               SANS::SurrealS<nvar, double>&__restrict__ det,
                               const SANS::DLA::MatrixS<gdim,nvar,double> *dpoint);
 

@@ -9,7 +9,7 @@
 
 #include "../MetrisRunner/MetrisParameters.hxx"
 #include "../Mesh/Mesh.hxx"
-#include "SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/Surreal/SurrealS.h"
 #include "../aux_exceptions.hxx"
 #include "../ho_constants.hxx"
 
@@ -30,26 +30,26 @@ namespace Metris{
 
 
 /*
-Only for degree 2 for now. 
+Only for degree 2 for now.
 - ientt element hosting edge
 - tdim topological dimension of element
 - dmet is a globally sized matrix:
   d2met(ipoin,j) = j-th component of the physical derivatives of the metric at ipoin
   The matrix can be size 0 if the metric is known analytically.
 
-The offset does not depend on the element the edge is seen from: 
+The offset does not depend on the element the edge is seen from:
 
-Delta_k = -1/2\sum_{st}  l_s l_t T_{skt}^M 
-Enforce symmetry by doing 
+Delta_k = -1/2\sum_{st}  l_s l_t T_{skt}^M
+Enforce symmetry by doing
 Delta_k = -1/4 sum_st l_s l_t (T_{skt} + T_{tks})
 
-CORRECTION: not l, but M^{+1/2}l !  obviously since originally N, and N = O(1) 
+CORRECTION: not l, but M^{+1/2}l !  obviously since originally N, and N = O(1)
 
-This way, no need to set constraints on metric derivatives tensor. 
+This way, no need to set constraints on metric derivatives tensor.
 */
 
 template<class MFT, int gdim, int ideg>
-void getBezOffsetsEdge(MeshMetric<MFT> &msh, 
+void getBezOffsetsEdge(MeshMetric<MFT> &msh,
   int tdim, const int* ent2pol, int iedgl, double* offsets){
   METRIS_ASSERT(ideg == msh.curdeg || ideg == 1);
   METRIS_ASSERT(tdim == 2 || tdim == 3);
@@ -68,7 +68,7 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
   double met[nnmet], dmet[gdim*nnmet];
   int ipoi1 = ent2pol[lnoed(iedgl,0)];
   int ipoi2 = ent2pol[lnoed(iedgl,1)];
-  for(int ii = 0; ii < gdim; ii++){ 
+  for(int ii = 0; ii < gdim; ii++){
     dedg0[ii] = msh.coord(ipoi2,ii) - msh.coord(ipoi1,ii);
   }
 
@@ -79,12 +79,12 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
   #endif
 
   // If metric field analytical, we can get derivative just from edge
-  // Otherwise, need the same dim element. 
+  // Otherwise, need the same dim element.
   double bary[gdim+1] = {0};
   if constexpr (std::is_same<MFT,MetricFieldAnalytical>::value){
     int edg2pol[getnnod1(ideg)];
-    edg2pol[0] = ipoi1; 
-    edg2pol[1] = ipoi2; 
+    edg2pol[0] = ipoi1;
+    edg2pol[1] = ipoi2;
     int idx0 = tdim + 1 + iedgl*(ideg-1);
     for(int ii = 0; ii < ideg-1; ii++)  edg2pol[2+ii] = ent2pol[idx0+ii];
 
@@ -118,16 +118,16 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
   //double len = getlenedg<gdim>(dedg0,met);
   //// if sqrt(u^T M u) = l, then u / l is unit in M: sqrt(u^T/l  M u/l) = 1
   //double scale = len;
-  //// Hence we rescale the offsets by scale at the end. 
-  //// We could also have rescaled the metric. 
+  //// Hence we rescale the offsets by scale at the end.
+  //// We could also have rescaled the metric.
   //// There is no perfect approach?
 
   // Compute M^{1/2} (no diff)
-  double met_p12[nnmet]; 
+  double met_p12[nnmet];
   double eigval[gdim], eigvec[gdim*gdim];
   geteigsym<gdim, double>(met,eigval,eigvec);
   for(int ii = 0; ii < gdim; ii++){
-    eigval[ii] = sqrt(eigval[ii]); 
+    eigval[ii] = sqrt(eigval[ii]);
   }
   eig2met<gdim, double>(eigval, eigvec, met_p12);
   symXvec<gdim>(met_p12, dedg0, dedg1);
@@ -146,18 +146,18 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
   #endif
 
 
-  typedef SANS::SurrealS<gdim,double> doubleS; 
+  typedef SANS::SurrealS<gdim,double> doubleS;
   doubleS metS[nnmet];
   getmet_dbl2SurS<gdim,gdim>(met,dmet,metS);
 
 
 
   // Get M^{-1/2} into met12_m12
-  doubleS met_m12[nnmet]; 
+  doubleS met_m12[nnmet];
   doubleS eigvalS[gdim], eigvecS[gdim*gdim];
   geteigsym<gdim, doubleS>(metS,eigvalS,eigvecS);
   for(int ii = 0; ii < gdim; ii++){
-    eigvalS[ii] = 1.0 / sqrt(eigvalS[ii]); 
+    eigvalS[ii] = 1.0 / sqrt(eigvalS[ii]);
   }
   eig2met<gdim, doubleS>(eigvalS, eigvecS, met_m12);
 
@@ -167,8 +167,8 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
   #endif
 
 
-  // Tensor T_ijk = sum_s g_si d_s g_kj 
-  // Compute C_ijk = T_ijk + T_kji has all the right symmetries. 
+  // Tensor T_ijk = sum_s g_si d_s g_kj
+  // Compute C_ijk = T_ijk + T_kji has all the right symmetries.
   // with g = M^{-1/2}
   double tens[gdim*nnmet];
   for(int ii = 0; ii < gdim; ii++){
@@ -176,10 +176,10 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
       for(int kk = jj; kk < gdim; kk++){
         tens[ii*nnmet + sym2idx(jj,kk)] = 0;
         for(int tt = 0; tt < gdim; tt++){
-          //tens[ii*nnmet + sym2idx(jj,kk)] += 
+          //tens[ii*nnmet + sym2idx(jj,kk)] +=
           //  (met_m12[sym2idx(ii,tt)].value()*met_m12[sym2idx(jj,kk)].deriv(tt)
           //+  met_m12[sym2idx(kk,tt)].value()*met_m12[sym2idx(jj,ii)].deriv(tt))/2;
-          tens[ii*nnmet + sym2idx(jj,kk)] += 
+          tens[ii*nnmet + sym2idx(jj,kk)] +=
             met_m12[sym2idx(ii,tt)].value()*met_m12[sym2idx(jj,kk)].deriv(tt);
         }
       }
@@ -197,7 +197,7 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
     }
   }
   #endif
-  
+
 
 
   for(int kk = 0; kk < gdim; kk++){
@@ -229,7 +229,7 @@ template void getBezOffsetsEdge<MetricFieldAnalytical,3,n>(MeshMetric<MetricFiel
 
 // srmet = M^{1/2}
 // stJ0tR holds scale * J0^T * R^T
-// In fact we don't really need the scale explicitely. 
+// In fact we don't really need the scale explicitely.
 template<int gdim>
 void scalrotJ0(const MeshBase &msh, int ielem  ,
                 const double* __restrict__ srmet  ,
@@ -260,7 +260,7 @@ void scalrotJ0(const MeshBase &msh, int ielem  ,
   double detJ0 = gdim == 2 ? sqrt(3)/2 : 1 / sqrt(2);
   MPRINTF("Not sqrt(3)??\n");
   wait();
-  
+
 
   /*Get orientation*/
 
@@ -275,7 +275,7 @@ void scalrotJ0(const MeshBase &msh, int ielem  ,
 
   /*
   Scale. If discrete metric, interpolate directly from front vertices as log-met, then expmet
-  Otherwise, get 
+  Otherwise, get
   */
   //double bary[gdim+1] = {1.0/(gdim+1),1.0/(gdim+1),1.0/(gdim+1)};
   double detM12 = detsym<gdim>(srmet);

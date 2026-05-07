@@ -6,7 +6,7 @@
 
 #include "anasol.hxx"
 
-#include "SANS/Surreal/SurrealS.h"
+#include "../libs/SANS/Surreal/SurrealS.h"
 #include "../aux_exceptions.hxx"
 #include "../linalg/symidx.hxx"
 
@@ -16,8 +16,8 @@
 namespace Metris{
 
 
-double anasol3D_1([[maybe_unused]] void *ctx, 
-                  [[maybe_unused]] const double*__restrict__ crd, 
+double anasol3D_1([[maybe_unused]] void *ctx,
+                  [[maybe_unused]] const double*__restrict__ crd,
                   std::initializer_list<double*> dfun){
 
   int ndiff = dfun.size();
@@ -37,17 +37,17 @@ double anasol3D_1([[maybe_unused]] void *ctx,
       it++;
       double *d2fun = *it;
       METRIS_ASSERT(d2fun != NULL);
-      for(int ii = 0; ii < 3; ii++) 
-        for(int jj = ii; jj < 3; jj++) 
+      for(int ii = 0; ii < 3; ii++)
+        for(int jj = ii; jj < 3; jj++)
           d2fun[sym2idx(ii,jj)] = 0;
     }
     if(ndiff >= 3){
       it++;
       double *d3fun = *it;
       METRIS_ASSERT(d3fun != NULL);
-      for(int ii = 0; ii < 3; ii++) 
-        for(int jj = ii; jj < 3; jj++) 
-          for(int kk = jj; kk < 3; kk++) 
+      for(int ii = 0; ii < 3; ii++)
+        for(int jj = ii; jj < 3; jj++)
+          for(int kk = jj; kk < 3; kk++)
             d3fun[sym3idx(ii,jj,kk)] = 0;
     }
     if(ndiff >= 4){

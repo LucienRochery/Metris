@@ -6,7 +6,7 @@
 #ifndef __METRIS_LPSOLVER__
 #define __METRIS_LPSOLVER__
 
-#include "alglib-cpp/src/optimization.h"
+#include "../libs/alglib-cpp/src/optimization.h"
 
 #include "../types.hxx"
 
@@ -31,7 +31,7 @@ enum class LPLib{alglib, clp};
 
 //template<LPLib ilib>
 // Let's just use runtime checks. The vast majority of time will be spent solving
-// anyways, and branch prediction will largely offset any ifs. 
+// anyways, and branch prediction will largely offset any ifs.
 class LPsolver{
 
 public:
@@ -44,7 +44,7 @@ public:
   double& obj(int i);
 
   void setConstraintMatrix(int i, int j, double x);
-  
+
   // void setVariableConstraints(int noptim_points, int ncoefglob, bool metricOn);
 
   void setVarCstr(int i, double lb, double ub);
@@ -57,8 +57,8 @@ public:
   // Returns the Value of the Objective Function
   double optimize();
 
-  // Sets coordinates to what's provided by x_ALG or model (CLP) times fac. 
-  // Only change coordinate icoor 
+  // Sets coordinates to what's provided by x_ALG or model (CLP) times fac.
+  // Only change coordinate icoor
   double updateCoord(MeshBase &msh, const intAr1 &idx_point, int icoor, double fac) const;
 
   alglib::minlpstate state;
@@ -75,7 +75,7 @@ public:
   alglib::real_1d_array LB_ALG, UB_ALG;
   alglib::real_1d_array obj_ALG, x_ALG;
 
-  // CLP 
+  // CLP
   #ifdef USE_CLP
   CoinPackedMatrix Acstr_CLP;
   // ClpSimplex model;
