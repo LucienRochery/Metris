@@ -113,8 +113,12 @@ bool MeshArray2D<T,INT1,INT2>::allocate(INT1 m, INT2 s){
   T* new_array = irealloc ? new_array_sp.get()
                           : array;
 
-  // Now we copy. 
-  METRIS_ASSERT(array != NULL || n1 <= 0);
+  // Now we copy.
+  // stride==0 is a legitimate "rows declared but no columns yet" transient
+  // state (e.g. edg2tag before any edge has been added) — array is NULL but
+  // there's nothing to copy from, and the loops below are guarded by
+  // scopy=stride=0. Allow that case.
+  METRIS_ASSERT(array != NULL || n1 <= 0 || stride == 0);
   // If the new stride is smaller, we copy from left to right. 
   // If is is greater, we copy from right to left, otherwise we overwrite data
   // to copy.
