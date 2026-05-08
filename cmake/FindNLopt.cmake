@@ -37,6 +37,23 @@ if(PkgConfig_FOUND)
       endif()
       set(NLOPT_VERSION ${PC_NLOPT_VERSION})
 
+      # Metris's solver code includes <nlopt.hpp> (C++ wrapper). Some distros
+      # ship NLopt's pkg-config + C library without the C++ header. If it's
+      # missing, treat NLopt as not found so the caller can fall back to a
+      # FetchContent build that provides the wrapper.
+      find_file(NLOPT_CXX_HEADER NAMES nlopt.hpp
+          HINTS ${PC_NLOPT_INCLUDE_DIRS})
+      if(NOT NLOPT_CXX_HEADER)
+        message(STATUS "NLopt found via pkg-config but C++ header nlopt.hpp is missing; treating NLopt as not found.")
+        unset(NLOPT_INCLUDE_DIRS)
+        unset(NLOPT_LIBRARIES)
+        unset(NLOPT_LIBRARY_DIRS)
+        unset(NLOPT_VERSION)
+        unset(NLOPT_CXX_HEADER CACHE)
+        set(NLopt_FOUND FALSE)
+        return()
+      endif()
+
       
 
       # Create the imported target
@@ -73,9 +90,10 @@ endif()
 
 ## Case where PkgConfig failed
 
-# Find include directory
+# Find include directory. Require the C++ wrapper since Metris's solver code
+# includes <nlopt.hpp>; nlopt.h alone is not enough.
 find_path(NLOPT_INCLUDE_DIRS
-    NAMES nlopt.h
+    NAMES nlopt.hpp
     HINTS ${NLOPT_DIR} $ENV{NLOPT_DIR}
     PATH_SUFFIXES include
 )

@@ -436,14 +436,21 @@ if(METRIS_INSTALL)
       # For FetchContent dependencies, we need a different approach
       string(APPEND METRIS_DEPS_EXPORT_CODE "# ${dep_name} was built via FetchContent and is included in the exported targets\n")
     elseif(dep_type STREQUAL "provided")
-      # Parse the space separated components into two items:
-      string(REPLACE " " ";" dep_components "${dep_components}")
-      list(GET dep_components 0 DEP_LIBRARIES)
-      list(GET dep_components 1 DEP_INCLUDE_DIRS)
+      if(dep_components STREQUAL "")
+        # No components: a parent project supplied a target by name and we have
+        # nothing to embed in MetrisConfig. The downstream find_package(Metris)
+        # consumer is responsible for making the target available themselves.
+        string(APPEND METRIS_DEPS_EXPORT_CODE "# ${dep_name} was supplied externally; consumer must provide it\n")
+      else()
+        # Parse the space separated components into two items:
+        string(REPLACE " " ";" dep_components "${dep_components}")
+        list(GET dep_components 0 DEP_LIBRARIES)
+        list(GET dep_components 1 DEP_INCLUDE_DIRS)
 
-      # For provided dependencies, we can just export the variables
-      string(APPEND METRIS_DEPS_EXPORT_CODE "list(APPEND METRIS_LIBRARIES ${DEP_LIBRARIES})\n")
-      string(APPEND METRIS_DEPS_EXPORT_CODE "list(APPEND METRIS_INCLUDE_DIRS ${DEP_INCLUDE_DIRS})\n")
+        # For provided dependencies, we can just export the variables
+        string(APPEND METRIS_DEPS_EXPORT_CODE "list(APPEND METRIS_LIBRARIES ${DEP_LIBRARIES})\n")
+        string(APPEND METRIS_DEPS_EXPORT_CODE "list(APPEND METRIS_INCLUDE_DIRS ${DEP_INCLUDE_DIRS})\n")
+      endif()
     else()
       message(FATAL_ERROR "Unknown dependency type: ${dep_type} for ${dep_name}")
     endif()
