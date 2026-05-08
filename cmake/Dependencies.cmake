@@ -317,20 +317,39 @@ target_link_libraries(metris_deps INTERFACE fmt::fmt)
 include(FetchContent)
 
 # nlohmann json library
-FetchContent_Declare(json_fetch URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
-FetchContent_MakeAvailable(json_fetch)
-if(NOT TARGET nlohmann_json::nlohmann_json)
-  add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)
+# Skip our own fetch if a parent project (or earlier find_package) has already
+# defined the nlohmann_json target; otherwise the second add_subdirectory of
+# json's tree collides with the first by re-creating the same target.
+if(TARGET nlohmann_json)
+  # Supplied by a parent project (e.g. Metris built via add_subdirectory by a
+  # consumer that already pulls nlohmann_json). Reuse their target and pull
+  # its include path into METRIS_EXTERNAL_INCLUDE_DIRS so libMetris sources
+  # (which include "nlohmann/json_fwd.hpp") see the header.
+  if(NOT TARGET nlohmann_json::nlohmann_json)
+    add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)
+  endif()
+  get_target_property(_metris_nj_includes nlohmann_json INTERFACE_INCLUDE_DIRECTORIES)
+  if(_metris_nj_includes)
+    list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${_metris_nj_includes})
+  endif()
+  unset(_metris_nj_includes)
+  metris_register_dependency("provided" "json" "")
+else()
+  FetchContent_Declare(json_fetch URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz)
+  FetchContent_MakeAvailable(json_fetch)
+  if(NOT TARGET nlohmann_json::nlohmann_json)
+    add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)
+  endif()
+  if(METRIS_INSTALL)
+    install(FILES ${json_fetch_SOURCE_DIR}/single_include/nlohmann/json.hpp
+                  ${json_fetch_SOURCE_DIR}/single_include/nlohmann/json_fwd.hpp
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/nlohmann/
+            )
+  endif()
+  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${json_fetch_SOURCE_DIR}/single_include>)
+  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
+  metris_register_dependency("FetchContent" "json" "")
 endif()
-if(METRIS_INSTALL)
-  install(FILES ${json_fetch_SOURCE_DIR}/single_include/nlohmann/json.hpp
-                ${json_fetch_SOURCE_DIR}/single_include/nlohmann/json_fwd.hpp
-          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/nlohmann/
-          )
-endif()
-list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${json_fetch_SOURCE_DIR}/single_include>)
-list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
-metris_register_dependency("FetchContent" "json" "")
 #target_link_libraries(foo PRIVATE nlohmann_json::nlohmann_json)
 
 if(USE_ABSL)
