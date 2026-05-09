@@ -334,10 +334,25 @@ void MeshBase::initialize(MetrisAPI *data,
       CPRINTF1("-- Domain is non-manifold\n");
     }
 
-    // Check if there are periodic surfaces. It suffice to find edges with two same ref attached triangles.
-    isperiodic_face.allocate(CAD.ncadfa);
-    isperiodic_face.set_n(CAD.ncadfa);
+    //METRIS_THROW_MSG("TODO: Implement edge and triangle orientation in 3D")
+  }
+
+  // Periodic-face detection for 3D meshes. Purely topological — looks for
+  // ridges sandwiched between two faces of the same ref — so it runs whether
+  // or not a CAD model is attached. Sized by the actual face-ref domain
+  // (max(fac2ref)+1) so the indexing works without needing CAD.ncadfa.
+  if(idim == 3){
+    int nref = 0;
+    for(int iface = 0; iface < nface; iface++){
+      if(isdeadent(iface, fac2poi)) continue;
+      int iref = fac2ref[iface];
+      if(iref + 1 > nref) nref = iref + 1;
+    }
+    isperiodic_face.allocate(nref);
+    isperiodic_face.set_n(nref);
     isperiodic_face.fill(false);
+    nperiodic_face = 0;
+
     for(int iedge = 0; iedge < nedge; iedge++){
       if(isdeadent(iedge,edg2poi)) continue;
       int ifac1 = edg2fac[iedge];
@@ -353,18 +368,15 @@ void MeshBase::initialize(MetrisAPI *data,
       if(ifac2 < 0) continue;
 
       int iref2 = fac2ref[ifac2];
-      if(iref1 != iref2) continue; 
+      if(iref1 != iref2) continue;
 
       // Same ref triangles with sandwiched edge -> periodic ref.
-      if(!isperiodic_face[iref1]) CPRINTF1(" # CAD face {} is periodic along edge ref {}\n", iref1, edg2ref[iedge]);
+      if(!isperiodic_face[iref1]) CPRINTF1(" # face ref {} is periodic along edge ref {}\n", iref1, edg2ref[iedge]);
       isperiodic_face[iref1] = true;
     }
 
-    nperiodic_face = 0;
     for(bool isper : isperiodic_face) nperiodic_face += isper;
-    CPRINTF1("-- Found {} periodic CAD faces\n",nperiodic_face);
-
-    //METRIS_THROW_MSG("TODO: Implement edge and triangle orientation in 3D")
+    CPRINTF1("-- Found {} periodic faces\n",nperiodic_face);
   }
 
 
