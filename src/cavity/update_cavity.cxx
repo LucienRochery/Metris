@@ -780,7 +780,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
   if(msh.isboundary_edges()){
     for(int iedgl = 0; iedgl < ncedg; iedgl++){
       int iedge = cav.lcedg[iedgl];
-      int nnode = getnnod1(ideg); 
+      int nnode = getnnod1(ideg);
       for(int ii = 0; ii < nnode; ii++){
         int ipoin = msh.edg2poi(iedge,ii);
         if((msh.poi2ent(ipoin,0) >= 0  && ii <  2)
@@ -797,7 +797,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
   if(msh.isboundary_faces()){
     for(int ifacl = 0; ifacl < ncfac; ifacl++){
       int iface = cav.lcfac[ifacl];
-      int nnode = getnnod2(ideg); 
+      int nnode = getnnod2(ideg);
       for(int ii = 0; ii < nnode; ii++){
         int ipoin = msh.fac2poi(iface,ii);
         if((msh.poi2ent(ipoin,0) >= 0  && ii <  3)
