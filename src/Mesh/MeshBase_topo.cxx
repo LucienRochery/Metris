@@ -400,7 +400,11 @@ void MeshBase::rembpotag(int ipoin, int ithread){
     bool rement = false;
 
     int ietag = -1;
-    if(ientt < 0) rement = true;
+    // Corners (tdim==0) legitimately carry ientt == -1 — the corner *is* the
+    // entity, no entity-index required. Removing them here demotes the
+    // vertex's pdim and corrupts downstream localization (poi2bak goes
+    // stale). Only treat ientt<0 as removable when it's not a corner.
+    if(ientt < 0 && tdim > 0) rement = true;
     else{
       ietag = tdim == 1 ? edg2tag(ithread,ientt) :
               tdim == 2 ? fac2tag(ithread,ientt) : itag-1; // corner
