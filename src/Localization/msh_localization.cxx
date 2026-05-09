@@ -44,12 +44,14 @@ int locMesh(MeshBase &msh, int *ientt,
 
   int ierro = 0;
 
-  // Instead of barycentrics, consider scalar product of displacement 
-  // with opposite edge or face and take minimum as the best nei crit. 
-  static int nwarnprt = 0;
+  // Instead of barycentrics, consider scalar product of displacement
+  // with opposite edge or face and take minimum as the best nei crit.
   const bool dir_nei_criterion = tdim != 3;
-  if(!dir_nei_criterion && nwarnprt++ < 10 && msh.param->iverb != 0) 
+  #ifndef NDEBUG
+  static int nwarnprt = 0;
+  if(!dir_nei_criterion && nwarnprt++ < 10 && msh.param->iverb != 0)
     MPRINTF("## WARNING dir_nei_criterion disabled\n");
+  #endif
 
   static_assert(gdim == 1 || gdim == 2 || gdim == 3);
   static_assert(tdim <= gdim && tdim > 0);

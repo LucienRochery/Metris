@@ -562,8 +562,10 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
   #endif
 
   if(!msh.CAD()){
+    #ifndef NDEBUG
     static int nwarnprt = 0;
     if(nwarnprt++ < 10) MPRINTF("\n\n ## IMPLEMENT DISCRETE NORMALS IN GETNORDEV\n\n");
+    #endif
     return 0.0;
   }
 

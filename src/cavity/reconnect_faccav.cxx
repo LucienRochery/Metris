@@ -76,10 +76,12 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
   dblAr1 &lnordevcco = work.lnordevcco;
   lnordevcco.set_n(0);
 
+  #ifndef NDEBUG
   static int nawrnprt0 = 5;
   if(!msh.CAD() && nawrnprt0 --> 0){
     PRINTF("## IMPLEMENT NORDEV CONTROL IN RECONNECT_FACCAV IN CASE NO CAD\n");
   }
+  #endif
 
   // Store edge references that bound a connex component. 
   MeshArray1D<MeshArray1D<std::pair<int,int>, int>, int> &edcco = work.edcco;
