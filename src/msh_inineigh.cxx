@@ -68,8 +68,11 @@ template <int ideg>
 void iniMeshNeighbours2D(MeshBase &msh){
   GETVDEPTH(msh.param);
 
-  // Ref to give when no refs
-  int iref_dum = 0;
+  // Sentinel ref written to edges created during reconstruction. Picked up
+  // by resolveEdgeRefs (called at the end of this routine) and replaced with
+  // a real ref propagated from any pre-existing edge in the same connected
+  // component, or freshly allocated.
+  int iref_dum = METRIS_IREF_UNRESOLVED;
 
   msh.edg2edg.fill(msh.nedge,2,-1);
   msh.fac2fac.fill(msh.nface,3,-1);
@@ -295,6 +298,7 @@ void iniMeshNeighbours2D(MeshBase &msh){
     msh.poi2tag(0,msh.edg2poi(iedge,1)) = 0;
   }
   iniMeshBdryCorners(msh);
+  resolveEdgeRefs(msh);
 }
 
 
@@ -303,7 +307,11 @@ template <int ideg>
 void iniMeshNeighbours3D(MeshBase &msh){
   GETVDEPTH(msh.param);
 
-  int iref_dum = 0;
+  // Sentinel ref written to edges created during reconstruction. Picked up
+  // by resolveEdgeRefs (called at the end of this routine) and replaced with
+  // a real ref propagated from any pre-existing edge in the same connected
+  // component, or freshly allocated.
+  int iref_dum = METRIS_IREF_UNRESOLVED;
 
   msh.edg2edg.fill(msh.nedge,2,-1);
   msh.fac2fac.fill(msh.nface,3,-1);
@@ -644,6 +652,7 @@ void iniMeshNeighbours3D(MeshBase &msh){
     msh.poi2tag(0,msh.edg2poi(iedge,1)) = 0;
   }
   iniMeshBdryCorners(msh);
+  resolveEdgeRefs(msh);
 }
 
 

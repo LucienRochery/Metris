@@ -640,8 +640,10 @@ void iniMeshBdryEdges(MeshBase &msh){
         CPRINTF2(" -> first creation, output mesh \n");
         writeMesh("debug_iniMeshBdryEdges",msh);
       }
-			// Create edge
-			msh.newedgtopo<ideg>(iface,ied,0);
+			// Create edge with the sentinel ref; resolveEdgeRefs (called at the
+			// end of iniMeshNeighbours{2D,3D}) replaces it with a propagated or
+			// freshly-allocated ref once corners are known.
+			msh.newedgtopo<ideg>(iface,ied,METRIS_IREF_UNRESOLVED);
 			ncree ++;
 		}
 	}
@@ -1388,21 +1390,99 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
 }
 
 
+// Walk one direction along the edge curve from ie_seed, painting every
+// neighbour with `ref`. The edge graph between corners is a 1-manifold
+// (every interior endpoint has degree 2) so there's no branching: knowing
+// which endpoint of the current edge we entered through (`ive_in`) uniquely
+// determines the next edge.
+//
+// Stop conditions:
+//   - neighbour is a corner: edg2edg < 0 (dangling -1 or non-manifold < -1);
+//   - neighbour already carries `ref`: this is either a closed-loop
+//     wrap-around back to the seed or a meet-point with the other walk
+//     direction or an earlier component traversal;
+//   - neighbour carries a different valid ref: real inconsistency, throw.
+//
+// Also doubles as the visited-tracker: edg2ref serves as both the data and
+// the "this edge has been processed" marker, so no auxiliary storage is
+// needed beyond walk state (current edge, entered endpoint).
+static void walkPaintEdgeComponent(MeshBase &msh, int ie_seed,
+                                   int ive_in_start, int ref){
+  GETVDEPTH(msh.param);
+  int ie_curr = ie_seed;
+  int ive_in  = ive_in_start;
+  while(true){
+    int ie_next = msh.edg2edg(ie_curr, ive_in);
+    if(ie_next < 0) break;
+    int existing = msh.edg2ref[ie_next];
+    if(existing == ref) break;
+    if(existing >= 0){
+      MPRINTF("## Inconsistent edge refs:\n");
+      MPRINTF("    walking from iedge {} (seed) with ref {}\n", ie_seed, ref);
+      MPRINTF("    iedge {} carries ref {}, edg2poi [{} {}]\n",
+              ie_next, existing,
+              msh.edg2poi(ie_next,0), msh.edg2poi(ie_next,1));
+      METRIS_THROW();
+    }
+    msh.edg2ref[ie_next] = ref;
+    // Find which slot of edg2edg(ie_next, .) holds the back-link to ie_curr.
+    // That slot is `1 - ive_in_next`, i.e. the slot opposite the endpoint we
+    // entered through.
+    if(msh.edg2edg(ie_next, 0) == ie_curr) ive_in = 1;
+    else                                   ive_in = 0;
+    ie_curr = ie_next;
+  }
+}
 
 
+// Resolve every active edge's edg2ref to a valid (>= 0) value with all edges
+// in a connected component sharing one ref. See header for full contract.
+//
+// Two passes, no auxiliary storage:
+//   Phase 1: for every edge that came in with a valid ref (>= 0), walk both
+//     directions through the component painting UNRESOLVED neighbours. After
+//     this pass every component that contained at least one valid seed is
+//     fully resolved.
+//   Phase 2: every still-UNRESOLVED edge belongs to an orphan component;
+//     allocate the next free ref and walk-paint.
+//
+// edg2ref itself doubles as the visited marker (an edge with edg2ref == ref
+// is "already painted"), so the algorithm needs no work arrays, no
+// edg2tag column, just O(1) walk state.
+void resolveEdgeRefs(MeshBase &msh){
+  GETVDEPTH(msh.param);
 
+  if(msh.nedge <= 0) return;
 
+  // Next free ref for orphan components: one above the maximum already in
+  // use, so fresh values can't collide with caller-supplied refs.
+  int next_ref = 0;
+  for(int iedge = 0; iedge < msh.nedge; iedge++){
+    if(isdeadent(iedge, msh.edg2poi)) continue;
+    int iref = msh.edg2ref[iedge];
+    if(iref >= 0 && iref >= next_ref) next_ref = iref + 1;
+  }
+
+  // Phase 1: propagate from every seeded edge. Re-walking from a non-canonical
+  // seed in the same component is O(1) — the first step lands on a
+  // same-ref neighbour and stops — so the total cost is still O(nedge).
+  for(int ie0 = 0; ie0 < msh.nedge; ie0++){
+    if(isdeadent(ie0, msh.edg2poi)) continue;
+    int iref = msh.edg2ref[ie0];
+    if(iref < 0) continue;
+    walkPaintEdgeComponent(msh, ie0, 0, iref);
+    walkPaintEdgeComponent(msh, ie0, 1, iref);
+  }
+
+  // Phase 2: every still-UNRESOLVED edge starts an orphan component.
+  for(int ie0 = 0; ie0 < msh.nedge; ie0++){
+    if(isdeadent(ie0, msh.edg2poi)) continue;
+    if(msh.edg2ref[ie0] >= 0) continue;
+    int ref = next_ref++;
+    msh.edg2ref[ie0] = ref;
+    walkPaintEdgeComponent(msh, ie0, 0, ref);
+    walkPaintEdgeComponent(msh, ie0, 1, ref);
+  }
+}
 
 } // End namespace
-
-
-
-
-
-
-
-
-
-
-
-
