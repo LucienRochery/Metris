@@ -181,7 +181,7 @@ double collapseShortEdges(Mesh<MFT> &msh, int tdim, double qmax_suf, int *ncoll,
 
     }// for ientt
 
-    if(ctrl_height && tdim == gdim) CPRINTF1(" - min bdry height = {}\n",minht);
+    if(ctrl_height && tdim == gdim) CPRINTF2(" - min bdry height = {}\n",minht);
 
 
 

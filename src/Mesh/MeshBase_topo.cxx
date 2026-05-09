@@ -102,14 +102,16 @@ int MeshBase::newpoint(PointType ptype, int tdimn, int ientt){
   if(ptype == PointType::Vertex) newbpotopo(Vertex{ipnew}, tdimn, ientt);
   else                           newbpotopo(CtrlPt{ipnew}, tdimn, ientt);
 
-  // No higher surface 
+  // No higher surface
   if(tdimn == 2) return ipnew;
 
+  #ifndef NDEBUG
   static int nwarnprt = 5;
   if(nwarnprt-- > 0){
     GETVDEPTH(this->param);
     PRINTF("## Warning: disabled face seeding in newpoint\n");
   }
+  #endif
   return ipnew;
 
 

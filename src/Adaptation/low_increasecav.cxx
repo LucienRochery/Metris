@@ -797,10 +797,12 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
   METRIS_ASSERT(cav.ipins >= 0 && cav.ipins < msh.npoin);
 
 
+  #ifndef NDEBUG
   static int nwarnprt = 0;
   if(nwarnprt++ < 4){
     if(msh.param->iverb > 0) PRINTF("## Could move nordev checks to increase_cavity. For this, we need to precompute the ccos as in reconnect_faccav.\n");
   }
+  #endif
 
   #ifndef NDEBUG
   intWrkAr1 lcedg0_ = msh.get_iwork(10);
@@ -1272,10 +1274,12 @@ template int increase_cavity(MeshMetric<MetricFieldFE        > &msh, MshCavity &
 int increase_cavity_validity(MeshBase &msh, MshCavity &cav, int ithread){
   GETVDEPTH(msh.param);
 
+  #ifndef NDEBUG
   static int nwarnprt = 0;
   if(nwarnprt++ < 4){
     if(msh.param->iverb > 0) PRINTF("## Could move nordev checks to increase_cavity. For this, we need to precompute the ccos as in reconnect_faccav.\n");
   }
+  #endif
   METRIS_ASSERT(cav.ipins >= 0 && cav.ipins < msh.npoin);
 
   msh.tag[ithread]++;
