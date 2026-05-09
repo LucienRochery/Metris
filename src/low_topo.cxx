@@ -181,12 +181,14 @@ int ball(MeshBase& msh, int ipoin,
           lbedg.stack(iedg1);
         }
       }else if(iedg1 < -1){
-        int inei;
         iedg1 = -iedg1 - 2;
         if(msh.edg2tag(ithrd,iedg1) < msh.tag[ithrd]){
           msh.edg2tag(ithrd,iedg1) = msh.tag[ithrd];
           lbedg.stack(iedg1);
         }
+        int inei = 1 - msh.getveredg<1>(iedg1, ipoin);
+        METRIS_ASSERT_MSG(inei == 0 || inei == 1,
+                          "ipoin {} not on non-manifold seed edge {}", ipoin, iedg1);
         while(getnextedgnm(msh,iedg0,ipoin,&iedg1,&inei)){
           if(msh.edg2tag(ithrd,iedg1) < msh.tag[ithrd]){
             msh.edg2tag(ithrd,iedg1) = msh.tag[ithrd];
