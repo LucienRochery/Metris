@@ -34,6 +34,13 @@ template <int ideg> void iniMeshBdryEdges(MeshBase &msh);
 void iniMeshBdryCorners(MeshBase &msh);
 int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread);
 
+// Resolve edg2ref values after surface reconstruction.
+void resolveEdgeRefs(MeshBase &msh);
+
+// Sentinel value written into edg2ref by reconstruction paths that don't yet
+// know the right ref.
+constexpr int METRIS_IREF_UNRESOLVED = -1;
+
 ///*
 //Generate corner information: 
 //	- lpoin size npoin, lpoin[i] > 0 iff corner
