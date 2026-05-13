@@ -68,6 +68,8 @@ get_d_quafun(QuaFun iquaf){
     return d_metqua<MFT,gdim,tdim,QuaFun::Unit,ftype>;
   }else if(iquaf == QuaFun::SizeShape){
     return d_metqua<MFT,gdim,tdim,QuaFun::SizeShape,ftype>;
+  }else if(iquaf == QuaFun::StepDistance){
+    return d_metqua<MFT,gdim,tdim,QuaFun::StepDistance,ftype>;
   }
   else{
     METRIS_THROW_MSG("TODO: cf quafun_")

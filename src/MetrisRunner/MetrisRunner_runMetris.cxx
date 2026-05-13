@@ -55,6 +55,12 @@ void MetrisRunner::runMetris(){
     #endif
 
     #ifdef WRITEQUALFIELD
+    #ifdef STEPDISTANCE
+    constexpr QuaFun iquaf = QuaFun::StepDistance;
+    #else
+    constexpr QuaFun iquaf = QuaFun::SizeShape;
+    #endif
+
     Mesh<MetricFieldAnalytical>& msh = static_cast<Mesh<MetricFieldAnalytical>&>(*msh_g);
     double scl = msh.param->metScale;
     const int tdim = msh.get_tdim();
@@ -86,8 +92,8 @@ void MetrisRunner::runMetris(){
         if (isdeadent(ientt,msh.ent2poi(tdim))) continue;
 
         double quaent;
-        if (tdim == 2) quaent = metqua<MetricFieldAnalytical,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ientt,1.);
-        else           quaent = metqua<MetricFieldAnalytical,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ientt,1.);
+        if (tdim == 2) quaent = metqua<MetricFieldAnalytical,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,ientt,1.);
+        else           quaent = metqua<MetricFieldAnalytical,3,3,iquaf>(msh,AsDeg::P1,AsDeg::P1,ientt,1.);
         rfldStart[ientt] = quaent;
 
       }
@@ -96,7 +102,7 @@ void MetrisRunner::runMetris(){
       writeField(qualFieldNameStart,   msh,SolTyp::P0Elt,rfldStart);
 
       intAr1 lball(100);
-      constexpr auto quafun_xi = get_quafun_xi<MetricFieldAnalytical,3,3,QuaFun::SizeShape,double>();
+      constexpr auto quafun_xi = get_quafun_xi<MetricFieldAnalytical,3,3,iquaf,double>();
       const int npoinStart = msh.npoin;
       dblAr1 quaCGP1(npoinStart);
       intAr2& ent2poi = msh.ent2poi(tdim);

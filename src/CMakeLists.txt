@@ -196,6 +196,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/quality/quafun_distortion.cxx
     ${PROJECT_SOURCE_DIR}/src/quality/quafun_unit.cxx
     ${PROJECT_SOURCE_DIR}/src/quality/quafun_sizeshape.cxx
+    ${PROJECT_SOURCE_DIR}/src/quality/quafun_stepDistance.cxx
     ${PROJECT_SOURCE_DIR}/src/quality/quafun_tradet.cxx
     ${PROJECT_SOURCE_DIR}/src/quality/low_metqua_d.cxx
     ${PROJECT_SOURCE_DIR}/src/quality/msh_metqua.cxx

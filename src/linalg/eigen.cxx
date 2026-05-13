@@ -91,6 +91,12 @@ template void geteigsym<3,double>(const double* __restrict__ met,
 template void geteigsym<2,SANS::SurrealS<2,double>>(const SANS::SurrealS<2,double>* __restrict__ met,
                                                           SANS::SurrealS<2,double>* __restrict__ eigval,
                                                           SANS::SurrealS<2,double>* __restrict__ eigvec);
+
+template void geteigsym<2,SANS::SurrealS<3,double>>(
+                                                    const SANS::SurrealS<3,double>* __restrict__ met,
+                                                    SANS::SurrealS<3,double>* __restrict__ eigval,
+                                                    SANS::SurrealS<3,double>* __restrict__ eigvec);
+
 template void geteigsym<3,SANS::SurrealS<3,double>>(const SANS::SurrealS<3,double>* __restrict__ met,
                                                           SANS::SurrealS<3,double>* __restrict__ eigval,
                                                           SANS::SurrealS<3,double>* __restrict__ eigvec);

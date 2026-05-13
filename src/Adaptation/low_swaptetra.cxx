@@ -59,7 +59,11 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
   // Precompute initial tetra quality and store in cavity hash table.
   cav.reset(); // this resets the quality hash table
   #ifdef TESTQUALITYALGO
+  #ifdef STEPDISTANCE
+  double quael = metqua<MFT,gdim,tdim,QuaFun::StepDistance>(msh,AsDeg::P1,asdmet,itetr,1.0);
+  #else
   double quael = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,itetr,1.0);
+  #endif
   #else
   double quael = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,itetr,1.0);
   #endif
@@ -179,7 +183,11 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
     CPRINTF2(" - found cached quality for neighbour tet {}: {}\n",itet2,quae2);
   }else{
     #ifdef TESTQUALITYALGO
+    #ifdef STEPDISTANCE
+    quae2 = metqua<MFT,gdim,tdim,QuaFun::StepDistance>(msh,AsDeg::P1,asdmet,itet2,1.0);
+    #else
     quae2 = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,itet2,1.0);
+    #endif
     #else
     quae2 = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,itet2,1.0);
     #endif
@@ -318,7 +326,11 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
       CPRINTF2(" - found cached quality for shell tet {}: {}\n",ielem,quael);
     }else{
       #ifdef TESTQUALITYALGO
+      #ifdef STEPDISTANCE
+      quael = metqua<MFT,gdim,tdim,QuaFun::StepDistance>(msh,AsDeg::P1,asdmet,ielem,1.0);
+      #else
       quael = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,ielem,1.0);
+      #endif
       #else
       quael = metqua<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,ielem,1.0);
       #endif

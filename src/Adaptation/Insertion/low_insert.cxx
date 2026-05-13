@@ -304,6 +304,12 @@ restart_cavity:
     // tell handler about killed and new entities
     const int tdim_adp = insertionSeed.tdim_adp;
 
+    #ifdef STEPDISTANCE
+    constexpr QuaFun iquaf = QuaFun::StepDistance;
+    #else
+    constexpr QuaFun iquaf = QuaFun::SizeShape;
+    #endif
+
     // killed entities
     const intAr1& deadEntts = cav.lcent(tdim_adp);
     for (const auto& ideadEntt : deadEntts) handler.deadEntts.push_back(ideadEntt);
@@ -316,10 +322,10 @@ restart_cavity:
 
       double quael;
       if (tdim_adp == 2){
-        quael = metqua<MFT,2,2,QuaFun::SizeShape>(msh,AsDeg::Pk,AsDeg::Pk,ienttNew,difto);
+        quael = metqua<MFT,2,2,iquaf>(msh,AsDeg::Pk,AsDeg::Pk,ienttNew,difto);
       }
       else {
-        quael = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::Pk,AsDeg::Pk,ienttNew,difto);
+        quael = metqua<MFT,3,3,iquaf>(msh,AsDeg::Pk,AsDeg::Pk,ienttNew,difto);
       }
       handler.affectedEnttsAlive[ienttNew] = quael;
     }

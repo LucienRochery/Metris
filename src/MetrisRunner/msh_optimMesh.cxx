@@ -109,8 +109,13 @@ double MetrisRunner::optimMesh0(){
     //print_histogram(msh,rlned,IntrpTyp::Linear,lenbds,"l","Edge length");
 
     #ifdef TESTQUALITYALGO
+    #ifdef STEPDISTANCE
+    getmetquamesh<MFT,QuaFun::StepDistance>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,
+                      &iinva,&qmin,&qmax,&qavg,&lquae);
+    #else
     getmetquamesh<MFT,QuaFun::SizeShape>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,
                       &iinva,&qmin,&qmax,&qavg,&lquae);
+    #endif
     #else
     getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::Pk,AsDeg::Pk,
                       &iinva,&qmin,&qmax,&qavg,&lquae);
@@ -180,7 +185,11 @@ double MetrisRunner::optimMesh0(){
 
       t0 = get_cpu_time();
       #ifdef TESTQUALITYALGO
+      #ifdef STEPDISTANCE
+      stat = smoothInterior_Ball<MFT>(msh,QuaFun::StepDistance, ithrd1, ithrd2);
+      #else
       stat = smoothInterior_Ball<MFT>(msh,QuaFun::SizeShape, ithrd1, ithrd2);
+      #endif
       #else
       stat = smoothInterior_Ball<MFT>(msh,QuaFun::Distortion, ithrd1, ithrd2);
       #endif
@@ -193,8 +202,13 @@ double MetrisRunner::optimMesh0(){
         CPRINTF1("- iteration {} smooth ball stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
         CPRINTF1("------------------------------------------------------------\n");
         #ifdef TESTQUALITYALGO
+        #ifdef STEPDISTANCE
+        getmetquamesh<MFT,QuaFun::StepDistance>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
+                           &iinva,&qmin,&qmax,&qavg,NULL);
+        #else
         getmetquamesh<MFT,QuaFun::SizeShape>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                            &iinva,&qmin,&qmax,&qavg,NULL);
+        #endif
         #else
         getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                            &iinva,&qmin,&qmax,&qavg,NULL);
@@ -273,8 +287,13 @@ double MetrisRunner::optimMesh0(){
       CPRINTF1("- iteration {} swaps stat = {:.2e} time = {:.2e}s \n",niter,stat,t1-t0);
       CPRINTF1("------------------------------------------------------------\n");
       #ifdef TESTQUALITYALGO
+      #ifdef STEPDISTANCE
+      getmetquamesh<MFT,QuaFun::StepDistance>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
+                           &iinva,&qmin,&qmax,&qavg,NULL);
+      #else
       getmetquamesh<MFT,QuaFun::SizeShape>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                            &iinva,&qmin,&qmax,&qavg,NULL);
+      #endif
       #else
       getmetquamesh<MFT>(msh,msh.get_tdim(),AsDeg::P1,AsDeg::P1,
                            &iinva,&qmin,&qmax,&qavg,NULL);

@@ -69,8 +69,13 @@ void MetrisRunner::statMesh0(int tdim, MeshStat* stat_){
       bool iinva;
       double qmin, qmax, qavg;
       #ifdef TESTQUALITYALGO
+      #ifdef STEPDISTANCE
+      getmetquamesh<MFT,QuaFun::StepDistance>(msh,tdim_,asdeg,asdeg,
+                        &iinva,&qmin,&qmax,&qavg,&rquel);
+      #else
       getmetquamesh<MFT,QuaFun::SizeShape>(msh,tdim_,asdeg,asdeg,
                         &iinva,&qmin,&qmax,&qavg,&rquel);
+      #endif
       #else
       getmetquamesh<MFT,QuaFun::Distortion>(msh,tdim_,asdeg,asdeg,
                         &iinva,&qmin,&qmax,&qavg,&rquel);

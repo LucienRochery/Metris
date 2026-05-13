@@ -39,6 +39,12 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
              MshCavity &cav, CavWrkArrs &work,
              double *qnrm0_, double *qnrm1_, int ithread){
 
+  #ifdef STEPDISTANCE
+  constexpr QuaFun iquaf = QuaFun::StepDistance;
+  #else
+  constexpr QuaFun iquaf = QuaFun::SizeShape;
+  #endif
+
   #if 0
   bool istop = false;
   static int nwarn = 0;
@@ -114,7 +120,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   if(spnorm >= 0){
     #ifdef TESTQUALITYALGO
     if (msh.get_tdim() == 2){
-      quae1 = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,iface,1.0);
+      quae1 = metqua<MFT,gdim,tdim,iquaf>(msh,AsDeg::P1,asdmet,iface,1.0);
     }
     else{
       quae1 = 1e30;
@@ -166,7 +172,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     if(spnorm >= 0){
       #ifdef TESTQUALITYALGO
       if (msh.get_tdim() == 2){
-        quaol[ied] = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,ifac2,1.0);
+        quaol[ied] = metqua<MFT,gdim,tdim,iquaf>(msh,AsDeg::P1,asdmet,ifac2,1.0);
       }
       else{
         quaol[ied] = 1e30;
@@ -360,7 +366,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
         //qunw1 = metqua0<MFT,gdim,tdim>(msh,AsDeg::P1,asdmet,fac2pol[0],1.0);
         #ifdef TESTQUALITYALGO
         if (msh.get_tdim() == 2){
-          qunw[ifanw-nfac0] = metqua<MFT,gdim,tdim,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,ifanw,1.0);
+          qunw[ifanw-nfac0] = metqua<MFT,gdim,tdim,iquaf>(msh,AsDeg::P1,asdmet,ifanw,1.0);
         }
         else{
           qunw[ifanw-nfac0] = 1e30;
@@ -470,7 +476,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       // compute quality of original cavity (also tag tets in there for later)
       for (int itet : cav.lctet){
         msh.tet2tag(ithread,itet) = msh.tag[ithread];
-        double qua = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,asdmet,itet,1.0);
+        double qua = metqua<MFT,3,3,iquaf>(msh,AsDeg::P1,asdmet,itet,1.0);
         qtetsum0 += qua;
         if (qua > qtetmax0) qtetmax0 = qua;
       }
@@ -515,7 +521,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
             ninvalid++;
             continue;
           }
-          double qua = metqua<MFT,3,3,QuaFun::SizeShape>(msh, AsDeg::P1, AsDeg::P1, tmpEntt, 1.0);
+          double qua = metqua<MFT,3,3,iquaf>(msh, AsDeg::P1, AsDeg::P1, tmpEntt, 1.0);
           qtetsum1 += qua;
           if (qua > qtetmax1) qtetmax1 = qua;
         }

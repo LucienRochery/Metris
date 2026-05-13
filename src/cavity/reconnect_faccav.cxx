@@ -1112,7 +1112,11 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
     }
   }
 
-
+  #ifdef STEPDISTANCE
+  constexpr QuaFun iquaf = QuaFun::StepDistance;
+  #else
+  constexpr QuaFun iquaf = QuaFun::SizeShape;
+  #endif
 
 
   if(check_qua){
@@ -1120,16 +1124,16 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
     double quael;
     if(msh.idim == 2){
       #ifdef TESTQUALITYALGO
-      CPRINTF1("Using SizeShape qual in cavity operator\n");
-      quael = metqua<MetricFieldType,2,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ifacn,1.0);
+      CPRINTF1("Using distance-based qual in cavity operator\n");
+      quael = metqua<MetricFieldType,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,ifacn,1.0);
       #else
       quael = metqua<MetricFieldType,2,2>(msh,AsDeg::P1,AsDeg::P1,ifacn,1.0);
       #endif
     }
     else{
       #ifdef TESTQUALITYALGO
-      CPRINTF1("Using SizeShape qual in cavity operator\n");
-      quael = metqua<MetricFieldType,3,2,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ifacn,1.0);
+      CPRINTF1("Using distance-based qual in cavity operator\n");
+      quael = metqua<MetricFieldType,3,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,ifacn,1.0);
       #else
       quael = metqua<MetricFieldType,3,2>(msh,AsDeg::P1,AsDeg::P1,ifacn,1.0);
       #endif

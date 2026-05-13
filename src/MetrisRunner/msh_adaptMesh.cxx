@@ -93,7 +93,7 @@ template<class MFT,int gdim,int ideg>
 void MetrisRunner::adaptMesh0(int tdim){
 
 #ifdef TESTQUALITYALGO
-  METRIS_ASSERT_MSG(0, "TESTQUALITYALGO must be undefined to use adaptMesh0");
+  METRIS_ENFORCE_MSG(0, "TESTQUALITYALGO must be undefined to use adaptMesh0");
 #else
   if(tdim > gdim) return;
 
@@ -587,7 +587,11 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   dblAr1 lquae(nentt0);
 
   // initial quality computation
+  #ifdef STEPDISTANCE
+  getmetquamesh<MFT, QuaFun::StepDistance>(msh,tdim,AsDeg::P1,AsDeg::P1,&iinva,&qmin,&qmax,&qavg,&lquae);
+  #else
   getmetquamesh<MFT, QuaFun::SizeShape>(msh,tdim,AsDeg::P1,AsDeg::P1,&iinva,&qmin,&qmax,&qavg,&lquae);
+  #endif
 
   std::vector<int> sortedIDs(nentt0);
   std::iota(sortedIDs.begin(), sortedIDs.end(), 0);
@@ -645,13 +649,18 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       int ientt = itK->ientt;
       const double quaent = itK->qentt;
       METRIS_ASSERT(quaent >= 0);
+      // std::cout << "quaent = " << quaent << std::endl;
 
       iter++;
 
       #ifdef DIAGNOSIS_QUALALGO
       const int nentt = msh.nentt(tdim);
       lquae.set_n(nentt);
+      #ifdef STEPDISTANCE
+      getmetquamesh<MFT, QuaFun::StepDistance>(msh,tdim,AsDeg::P1,AsDeg::P1,&iinva,&qmin,&qmax,&qavg,&lquae);
+      #else
       getmetquamesh<MFT, QuaFun::SizeShape>(msh,tdim,AsDeg::P1,AsDeg::P1,&iinva,&qmin,&qmax,&qavg,&lquae);
+      #endif
 
       std::vector<int> enttList(nentt);
       std::iota(enttList.begin(), enttList.end(), 0);
@@ -1016,10 +1025,20 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       // ----------------------------- //
       // 1. Smoothing
       // ----------------------------- //
-      if (quaent < .025){
+      double quaTryThreshold;
+      #ifdef STEPDISTANCE
+      quaTryThreshold = 0.025;
+      #else
+      quaTryThreshold = 0.025;
+      #endif
+      if (quaent < quaTryThreshold){
         ntrySmoothing++;
 
+        #ifdef STEPDISTANCE
+        double statSmoothing = smoothElement_Ball<MFT>(msh,ientt,handlerTopX,QuaFun::StepDistance,ithrd1,ithrd2);
+        #else
         double statSmoothing = smoothElement_Ball<MFT>(msh,ientt,handlerTopX,QuaFun::SizeShape,ithrd1,ithrd2);
+        #endif
 
         if (statSmoothing > 0){
           smooStreak++;

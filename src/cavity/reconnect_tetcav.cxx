@@ -284,6 +284,11 @@ int reconnect_tetcav(Mesh<MFT> &msh,
         if(ierro != 0) return ierro;
       }
 
+      #ifdef STEPDISTANCE
+      constexpr QuaFun iquaf = QuaFun::StepDistance;
+      #else
+      constexpr QuaFun iquaf = QuaFun::SizeShape;
+      #endif
 
       if(check_qua){
         // Regardless of degree, verify underlying P1 element is decent enough
@@ -297,8 +302,8 @@ int reconnect_tetcav(Mesh<MFT> &msh,
             CPRINTF2(" - found cached quality\n");
           }else{
             #ifdef TESTQUALITYALGO
-            CPRINTF1("Using SizeShape qual in cavity operator\n");
-            quael = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
+            CPRINTF1("Using distance-based qual in cavity operator\n");
+            quael = metqua<MFT,3,3,iquaf>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
             #else
             quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
             #endif
@@ -306,8 +311,8 @@ int reconnect_tetcav(Mesh<MFT> &msh,
           }
         }else{
           #ifdef TESTQUALITYALGO
-          CPRINTF1("Using SizeShape qual in cavity operator\n")
-          quael = metqua<MFT,3,3,QuaFun::SizeShape>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
+          CPRINTF1("Using dsitance-based qual in cavity operator\n")
+          quael = metqua<MFT,3,3,iquaf>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
           #else
           quael = metqua<MFT,3,3>(msh,AsDeg::P1,AsDeg::P1,ielen,1.0);
           #endif

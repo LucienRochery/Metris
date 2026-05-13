@@ -19,15 +19,14 @@
 #include "../utils/mprintf.hxx"
 #include "../utils/fmt_formatters.hxx"
 
-namespace Metris{
+#include "aux_volumeMeasure.hxx"
 
+namespace Metris{
 
 // START DEBUG
 
 //#define DEBUG_MACRO(r,SEQ)  toto(SEQ )
 //BOOST_PP_SEQ_FOR_EACH_PRODUCT(DEBUG_MACRO,(MFT_SEQ)(ASDEG_SEQ)(FTYPE_SEQ))
-
-
 
 template <class MFT, int gdim, int tdim, QuaFun iquaf, typename ftype>
 ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
@@ -58,6 +57,255 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   const int ideg = msh.curdeg;
   const int ideg_eff = asdmsh == AsDeg::P1 ? 1 : ideg;
   const int nnode = getnnode(tdim, ideg_eff);
+
+  #ifdef STEPDISTANCE
+
+  METRIS_ASSERT(ideg_eff == 1);
+  METRIS_ASSERT(pnorm == 1);
+  METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+
+  constexpr int nnmet = (gdim*(gdim+1))/2;
+
+  if(ivar >= 0){
+    for(int ii = 0; ii < gdim; ii++) dquael[ii] = 0;
+    if(hquael != NULL){
+      for(int ii = 0; ii < nhess; ii++) hquael[ii] = 0;
+    }
+  }
+
+  qutet = 0.;
+
+  constexpr int nquad = tdim + 2; // vertices + barycenter
+  for (int iquad = 0; iquad < nquad; iquad++){
+
+    // ------------------------------------------------------------
+    // Integration scheme: vertices: 0,...,tdim, + barycenter: tdim + 1
+    // ------------------------------------------------------------
+
+    for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 0.0;
+
+    if (iquad < tdim + 1){
+      bary[iquad] = 1.;
+    }else{
+      for (int ii = 0; ii < tdim+1; ii++){
+        bary[ii] = 1./(tdim+1);
+      }
+    }
+
+    const ftype wquad = (ftype)1./nquad;
+
+    // ------------------------------------------------------------
+    // Geometry: coopr and canonical-reference Jacobian.
+    //
+    // jmat is tdim x gdim: d_{canonical ref} F.
+    // ------------------------------------------------------------
+    double coopr[gdim];
+    double jmat[tdim*gdim];
+
+    if constexpr(tdim == 2){
+      eval2<gdim,1>(msh.coord, ent2poi[ientt], msh.getBasis(),
+                    DifVar::Bary, DifVar::None,
+                    bary, coopr, jmat, NULL);
+    }else{
+      eval3<gdim,1>(msh.coord, ent2poi[ientt], msh.getBasis(),
+                    DifVar::Bary, DifVar::None,
+                    bary, coopr, jmat, NULL);
+    }
+
+    // ------------------------------------------------------------
+    // Jreg_T = Jreg^T = J0^{-T} Jcanonical^T, J0: jac from cannonical reference to ideal
+    //
+    // Constants::invtJ_0 is J0^{-T} in this transposed convention.
+    // Shape: tdim x gdim.
+    // ------------------------------------------------------------
+    double Jreg_T[tdim*gdim];
+
+    for(int i = 0; i < tdim; i++){
+      for(int a = 0; a < gdim; a++){
+        Jreg_T[i*gdim+a] = 0.0;
+        for(int k = 0; k < tdim; k++){
+          Jreg_T[i*gdim+a] +=
+            Constants::invtJ_0[hana::type_c<double>][tdim][i*tdim+k]
+            *jmat[k*gdim+a];
+        }
+      }
+    }
+
+    // ------------------------------------------------------------
+    // Frozen metric at quadrature point.
+    //
+    // Important: DifVar::None. Metric is evaluated at this point,
+    // but treated as constant w.r.t. node motion.
+    // ------------------------------------------------------------
+    double met[nnmet];
+
+    auto get_frozen_metric_at_quad = [&](int iquad, const double* bary,
+                                     const double* coopr,
+                                     double* met){
+
+      if(iquad < tdim + 1){
+        // Vertex quadrature sample
+        const int ipoin = ent2poi(ientt, iquad);
+        for(int im = 0; im < nnmet; im++){
+          met[im] = msh.met(ipoin, im);
+        }
+        return;
+      }
+
+      // Barycenter quadrature sample
+      if constexpr(std::is_same<MFT, MetricFieldAnalytical>::value){
+        msh.met.getMetPhys(DifVar::None, msh.met.getSpace(),
+                          coopr, met, NULL);
+      }else{
+        msh.met.getMetBary(asdmet,
+                          DifVar::None,
+                          msh.met.getSpace(),
+                          ent2poi[ientt],
+                          tdim,
+                          bary,
+                          met,
+                          NULL);
+      }
+    };
+    get_frozen_metric_at_quad(iquad, bary, coopr, met);
+
+    // ------------------------------------------------------------
+    // Shape data for active local P1 vertex.
+    // ------------------------------------------------------------
+    double gradN[tdim];
+
+    if(ivar >= 0){
+      METRIS_ASSERT(ivar >= 0 && ivar < tdim + 1);
+
+      for(int i = 0; i < tdim; i++) gradN[i] = 0.0;
+
+      if(ivar == 0){
+        for(int a = 0; a < tdim; a++){
+          for(int i = 0; i < tdim; i++){
+            gradN[i] -=
+              Constants::invtJ_0[hana::type_c<double>][tdim][a*tdim+i];
+          }
+        }
+      }else{
+        const int row = ivar - 1;
+        for(int i = 0; i < tdim; i++){
+          gradN[i] =
+            Constants::invtJ_0[hana::type_c<double>][tdim][row*tdim+i];
+        }
+      }
+    }
+
+    // ------------------------------------------------------------
+    // Phi handled by d_quafun_xi.
+    //
+    // For frozen metric, phi derivatives should also ignore metric variation.
+    // That means d_quafun_xi should interpret idifmet = DifVar::None for this
+    // branch, or the step-distance quafun should not use metric derivatives.
+    // ------------------------------------------------------------
+    ftype phi;
+    ftype dphi[gdim];
+    ftype hphi[nhess];
+
+    if(ivar < 0){
+      phi = d_quafun_xi(msh, asdmsh, asdmet,
+                        ent2poi[ientt], bary, met,
+                        ivar, dofbas, DifVar::None,
+                        NULL, NULL);
+    }else if(hquael == NULL){
+      phi = d_quafun_xi(msh, asdmsh, asdmet,
+                        ent2poi[ientt], bary, met,
+                        ivar, dofbas, DifVar::None,
+                        dphi, NULL);
+    }else{
+      phi = d_quafun_xi(msh, asdmsh, asdmet,
+                        ent2poi[ientt], bary, met,
+                        ivar, dofbas, DifVar::None,
+                        dphi, hphi);
+    }
+
+    // ------------------------------------------------------------
+    // Theta value and optional derivatives.
+    // ------------------------------------------------------------
+    double theta_d;
+    double dtheta_d[gdim];
+    double htheta[nhess];
+
+    if(ivar < 0){
+      VolumeMeasureHelpers::eval_theta_fixed_metric_grad<gdim,tdim,double>(
+          Jreg_T, met, NULL,
+          &theta_d, NULL);
+    }else{
+      #ifdef STEPDISTANCE_INCLUDE_GEOM_THETA_DERIV
+
+      VolumeMeasureHelpers::eval_theta_fixed_metric_grad<gdim,tdim,double>(
+          Jreg_T, met, gradN,
+          &theta_d, dtheta_d);
+
+      if(hquael != NULL){
+        VolumeMeasureHelpers::eval_theta_fixed_metric_hess_by_surreal<gdim,tdim>(
+            Jreg_T, met, gradN,
+            htheta);
+      }
+
+      #else
+
+      VolumeMeasureHelpers::eval_theta_fixed_metric_grad<gdim,tdim,double>(
+          Jreg_T, met, NULL,
+          &theta_d, NULL);
+
+      for(int i = 0; i < gdim; i++) dtheta_d[i] = 0.0;
+      if(hquael != NULL){
+        for(int i = 0; i < nhess; i++) htheta[i] = 0.0;
+      }
+
+      #endif
+    }
+
+    const ftype theta = (ftype)theta_d;
+
+    // ------------------------------------------------------------
+    // Value.
+    // ------------------------------------------------------------
+    qutet += wquad*phi*theta;
+
+    if(ivar < 0) continue;
+
+    // ------------------------------------------------------------
+    // First derivative:
+    //
+    // d(phi theta) = theta dphi + phi dtheta.
+    // ------------------------------------------------------------
+    for(int i = 0; i < gdim; i++){
+      dquael[i] += wquad*(theta*dphi[i] + phi*(ftype)dtheta_d[i]);
+    }
+
+    if(hquael == NULL) continue;
+
+    // ------------------------------------------------------------
+    // Hessian:
+    //
+    // H(phi theta) =
+    //   theta Hphi
+    // + phi Htheta
+    // + dtheta dphi^T
+    // + dphi dtheta^T.
+    // ------------------------------------------------------------
+    for(int i = 0; i < gdim; i++){
+      for(int j = i; j < gdim; j++){
+        hquael[sym2idx(i,j)] += wquad*(
+            theta*hphi[sym2idx(i,j)]
+          + phi*(ftype)htheta[sym2idx(i,j)]
+          + (ftype)dtheta_d[i]*dphi[j]
+          + dphi[i]*(ftype)dtheta_d[j]
+        );
+      }
+    }
+  }
+
+  return qutet;
+
+#endif
+
 
   #ifdef TESTQUALITYALGO
   // Assumptions for quality algo:
@@ -615,7 +863,7 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                               BOOST_PP_SEQ_ELEM(1, SEQ),\
                               BOOST_PP_SEQ_ELEM(2, SEQ))
 #define MFT_SEQ (MetricFieldFE)(MetricFieldAnalytical)
-#define QUAFUN_SEQ (QuaFun::Distortion)(QuaFun::Unit)(QuaFun::SizeShape)
+#define QUAFUN_SEQ (QuaFun::Distortion)(QuaFun::Unit)(QuaFun::SizeShape)(QuaFun::StepDistance)
 #define INSTANTIATE(MFT_VAL,QUAFUN,FTYPE)\
 template FTYPE d_metqua< MFT_VAL , 2, 2, QUAFUN,FTYPE>\
                   (Mesh< MFT_VAL > &msh, AsDeg asdmsh, AsDeg asdmet,\
@@ -646,9 +894,6 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,\
 #undef INSTANTIATE
 #undef EXPAND_TEMPLATE
 #undef REPEAT_GDIM
-
-
-
 
 
 /*
@@ -1201,21 +1446,10 @@ template FTYPE D_metqua< MFT_VAL , 2+gdim, 1+ideg, ASDEG_VAL, FTYPE>\
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(REPEAT_IDEG,(MFT_SEQ)(ASDEG_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
 
-
-
-
-
-
-
 #undef EXPAND_TEMPLATE
 #undef REPEAT_GDIM
 #undef REPEAT_IDEG
 #undef MFT_SEQ // note these two could go into headers
 #undef ASDEG_SEQ
-
-
-
-
-
 
 } // End namespace

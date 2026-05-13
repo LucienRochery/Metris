@@ -19,6 +19,8 @@
 #include "../utils/mprintf.hxx"
 #include "../utils/fmt_formatters.hxx"
 
+#include "aux_volumeMeasure.hxx"
+
 namespace Metris
 {
 
@@ -74,6 +76,117 @@ namespace Metris
     const int ideg_eff = asdmsh == AsDeg::P1 ? 1 : ideg;
     const int nnode = getnnode(tdim, ideg_eff);
     constexpr int nnmet = (gdim * (gdim + 1)) / 2;
+
+    #ifdef STEPDISTANCE
+
+    METRIS_ASSERT(ideg_eff == 1);
+    METRIS_ASSERT(pnorm == 1);
+    METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+
+    qutet = 0.;
+
+    constexpr int nquad = tdim + 2; // vertices + barycenter
+
+    auto get_frozen_metric_at_quad = [&](int iquad,
+                                         const double* bary_in,
+                                         const double* coopr,
+                                         double* met){
+
+      if(iquad < tdim + 1){
+        const int ipoin = ent2poi(ientt, iquad);
+        for(int im = 0; im < nnmet; im++){
+          met[im] = msh.met(ipoin, im);
+        }
+        return;
+      }
+
+      if constexpr(std::is_same<MFT, MetricFieldAnalytical>::value){
+        msh.met.getMetPhys(DifVar::None, msh.met.getSpace(),
+                           coopr, met, NULL);
+      }else{
+        msh.met.getMetBary(asdmet,
+                           DifVar::None,
+                           msh.met.getSpace(),
+                           ent2poi[ientt],
+                           tdim,
+                           bary_in,
+                           met,
+                           NULL);
+      }
+    };
+
+    for(int iquad = 0; iquad < nquad; iquad++){
+
+      for(int ii = 0; ii < tdim + 1; ii++){
+        bary[ii] = 0.0;
+      }
+
+      if(iquad < tdim + 1){
+        bary[iquad] = 1.0;
+      }else{
+        for(int ii = 0; ii < tdim + 1; ii++){
+          bary[ii] = 1.0/(tdim + 1);
+        }
+      }
+
+      const ftype wquad = (ftype)(1.0/nquad);
+
+      // Geometry at quadrature point.
+      double coopr[gdim];
+      double jmat[tdim*gdim];
+
+      if constexpr(tdim == 2){
+        eval2<gdim,1>(msh.coord, ent2poi[ientt], msh.getBasis(),
+                      DifVar::Bary, DifVar::None,
+                      bary, coopr, jmat, NULL);
+      }else{
+        eval3<gdim,1>(msh.coord, ent2poi[ientt], msh.getBasis(),
+                      DifVar::Bary, DifVar::None,
+                      bary, coopr, jmat, NULL);
+      }
+
+      double met[nnmet];
+      get_frozen_metric_at_quad(iquad, bary, coopr, met);
+
+      const ftype phi = quafun_xi(msh,
+                                  asdmsh,
+                                  asdmet,
+                                  ent2poi[ientt],
+                                  bary,
+                                  met);
+
+      double Jreg_T[tdim*gdim];
+
+      for(int i = 0; i < tdim; i++){
+        for(int a = 0; a < gdim; a++){
+          Jreg_T[i*gdim+a] = 0.0;
+          for(int k = 0; k < tdim; k++){
+            Jreg_T[i*gdim+a] +=
+              Constants::invtJ_0[hana::type_c<double>][tdim][i*tdim+k]
+              *jmat[k*gdim+a];
+          }
+        }
+      }
+
+      double theta_d;
+
+      VolumeMeasureHelpers::eval_theta_fixed_metric_grad<gdim,tdim,double>(
+          Jreg_T, met, NULL,
+          &theta_d, NULL);
+
+      qutet += wquad*phi*(ftype)theta_d;
+    }
+
+    if(do_nordev){
+      METRIS_ASSERT(msh.param->qua_surf_wt_quality >= 0);
+      METRIS_ASSERT(msh.param->qua_surf_wt_normal  >= 0);
+      qutet = msh.param->qua_surf_wt_quality*qutet
+            + msh.param->qua_surf_wt_normal*pow(nordev, pnorm);
+    }
+
+    return qutet;
+
+#endif
 
 #ifdef TESTQUALITYALGO
     // Assumptions for quality algo:
@@ -499,7 +612,7 @@ namespace Metris
               BOOST_PP_SEQ_ELEM(1, SEQ), \
               BOOST_PP_SEQ_ELEM(2, SEQ))
 #define MFT_SEQ (MetricFieldFE)(MetricFieldAnalytical)
-#define QUAFUN_SEQ (QuaFun::Distortion)(QuaFun::Unit)(QuaFun::SizeShape)
+#define QUAFUN_SEQ (QuaFun::Distortion)(QuaFun::Unit)(QuaFun::SizeShape)(QuaFun::StepDistance)
 
 #define INSTANTIATE(MFT_VAL, QUAFUN, FTYPE)                                              \
   template FTYPE metqua<MFT_VAL, 2, 2, QUAFUN, FTYPE>(Mesh<MFT_VAL> & msh, AsDeg, AsDeg, \
