@@ -36,6 +36,7 @@
 #include "../aux_badEntHandler.hxx"
 
 #include "../low_topo.hxx"
+#include <numeric>
 
 #ifdef DIAGNOSIS_QUALALGO
 #include <iostream>
