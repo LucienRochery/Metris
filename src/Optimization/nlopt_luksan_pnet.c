@@ -175,8 +175,8 @@ static void pnet_(int *nf, int *nb, double *xcur, int *
 		  ix, double *xl, double *xu, double *gf, double *gn,
 		  double *s, double *xo, double *go, double *xs,
 		  double *gs, double *xm, double *gm, double *u1,
-		  double *u2, double *xmax, 
-      double *tolg, 
+		  double *u2, double *xmax,
+      double *tolg,
       nlopt_stopping *stop,
 		  double *minf_est, double *
 		  gmax, double *f, int *mit, int *mfv, int *mfg,
@@ -608,100 +608,100 @@ L11080:
     return;
 } /* pnet_ */
 
-/* NLopt wrapper around pnet_, handling dynamic allocation etc. */
-nlopt_result luksan_pnet(int n, nlopt_func f, void *f_data,
-			 const double *lb, const double *ub, /* bounds */
-			 double *x, /* in: initial guess, out: minimizer */
-			 double *minf,
-			 nlopt_stopping *stop,
-			 int mf, /* subspace dimension (0 for default) */
-			 int mos1, int mos2) /* 1 or 2 */
-{
+// /* NLopt wrapper around pnet_, handling dynamic allocation etc. */
+// nlopt_result luksan_pnet(int n, nlopt_func f, void *f_data,
+// 			 const double *lb, const double *ub, /* bounds */
+// 			 double *x, /* in: initial guess, out: minimizer */
+// 			 double *minf,
+// 			 nlopt_stopping *stop,
+// 			 int mf, /* subspace dimension (0 for default) */
+// 			 int mos1, int mos2) /* 1 or 2 */
+// {
 
-     int i, *ix, nb = 1;
-     double *work;
-     double *xl, *xu, *gf, *gn, *s, *xo, *go, *xs, *gs, *xm, *gm, *u1, *u2;
-     double gmax, minf_est;
-     double xmax = 0; /* no maximum */
-     double tolg = 0; /* default gradient tolerance */
-     int iest = 0; /* we have no estimate of min function value */
-     int mit = 0, mfg = 0; /* default no limit on #iterations */
-     int mfv = stop->maxeval;
-     stat_common stat;
-     int iterm;
+//      int i, *ix, nb = 1;
+//      double *work;
+//      double *xl, *xu, *gf, *gn, *s, *xo, *go, *xs, *gs, *xm, *gm, *u1, *u2;
+//      double gmax, minf_est;
+//      double xmax = 0; /* no maximum */
+//      double tolg = 0; /* default gradient tolerance */
+//      int iest = 0; /* we have no estimate of min function value */
+//      int mit = 0, mfg = 0; /* default no limit on #iterations */
+//      int mfv = stop->maxeval;
+//      stat_common stat;
+//      int iterm;
 
-     ix = (int*) malloc(sizeof(int) * n);
-     if (!ix) return NLOPT_OUT_OF_MEMORY;
+//      ix = (int*) malloc(sizeof(int) * n);
+//      if (!ix) return NLOPT_OUT_OF_MEMORY;
 
-     if (mf <= 0) {
-	  mf = MAX2(MEMAVAIL/n, 10);
-	  if (stop->maxeval && stop->maxeval <= mf)
-	       mf = MAX2(stop->maxeval, 1);
-     }
+//      if (mf <= 0) {
+// 	  mf = MAX2(MEMAVAIL/n, 10);
+// 	  if (stop->maxeval && stop->maxeval <= mf)
+// 	       mf = MAX2(stop->maxeval, 1);
+//      }
 
- retry_alloc:
-     work = (double*) malloc(sizeof(double) * (n * 9 + MAX2(n,n*mf)*2 +
-					       MAX2(n,mf)*2));
-     if (!work) {
-	  if (mf > 0) {
-	       mf = 0; /* allocate minimal memory */
-	       goto retry_alloc;
-	  }
-	  free(ix);
-	  return NLOPT_OUT_OF_MEMORY;
-     }
+//  retry_alloc:
+//      work = (double*) malloc(sizeof(double) * (n * 9 + MAX2(n,n*mf)*2 +
+// 					       MAX2(n,mf)*2));
+//      if (!work) {
+// 	  if (mf > 0) {
+// 	       mf = 0; /* allocate minimal memory */
+// 	       goto retry_alloc;
+// 	  }
+// 	  free(ix);
+// 	  return NLOPT_OUT_OF_MEMORY;
+//      }
 
-     xl = work; xu = xl + n;
-     gf = xu + n; gn = gf + n; s = gn + n;
-     xo = s + n; go = xo + n; xs = go + n; gs = xs + n;
-     xm = gs + n; gm = xm + MAX2(n*mf,n);
-     u1 = gm + MAX2(n*mf,n); u2 = u1 + MAX2(n,mf);
+//      xl = work; xu = xl + n;
+//      gf = xu + n; gn = gf + n; s = gn + n;
+//      xo = s + n; go = xo + n; xs = go + n; gs = xs + n;
+//      xm = gs + n; gm = xm + MAX2(n*mf,n);
+//      u1 = gm + MAX2(n*mf,n); u2 = u1 + MAX2(n,mf);
 
-     for (i = 0; i < n; ++i) {
-	  int lbu = lb[i] <= -0.99 * HUGE_VAL; /* lb unbounded */
-	  int ubu = ub[i] >= 0.99 * HUGE_VAL;  /* ub unbounded */
-	  ix[i] = lbu ? (ubu ? 0 : 2) : (ubu ? 1 : (lb[i] == ub[i] ? 5 : 3));
-	  xl[i] = lb[i];
-	  xu[i] = ub[i];
-     }
+//      for (i = 0; i < n; ++i) {
+// 	  int lbu = lb[i] <= -0.99 * HUGE_VAL; /* lb unbounded */
+// 	  int ubu = ub[i] >= 0.99 * HUGE_VAL;  /* ub unbounded */
+// 	  ix[i] = lbu ? (ubu ? 0 : 2) : (ubu ? 1 : (lb[i] == ub[i] ? 5 : 3));
+// 	  xl[i] = lb[i];
+// 	  xu[i] = ub[i];
+//      }
 
-     /* ?  xo does not seem to be initialized in the
-	original Fortran code, but it is used upon
-	input to pnet if mf > 0 ... perhaps ALLOCATE initializes
-	arrays to zero by default? */
-     memset(xo, 0, sizeof(double) * MAX2(n,n*mf));
+//      /* ?  xo does not seem to be initialized in the
+// 	original Fortran code, but it is used upon
+// 	input to pnet if mf > 0 ... perhaps ALLOCATE initializes
+// 	arrays to zero by default? */
+//      memset(xo, 0, sizeof(double) * MAX2(n,n*mf));
 
 
 
-     pnet_(&n, &nb, x, ix, xl, xu,
-	   gf, gn, s, xo, go, xs, gs, xm, gm, u1, u2,
-	   &xmax,
+//      pnet_(&n, &nb, x, ix, xl, xu,
+// 	   gf, gn, s, xo, go, xs, gs, xm, gm, u1, u2,
+// 	   &xmax,
 
-	   /* fixme: pass tol_rel and tol_abs and use NLopt check */
-	   &tolg,
-	   stop,
+// 	   /* fixme: pass tol_rel and tol_abs and use NLopt check */
+// 	   &tolg,
+// 	   stop,
 
-	   &minf_est, &gmax,
-	   minf,
-	   &mit, &mfv, &mfg,
-	   &iest,
-	   &mos1, &mos2,
-	   &mf,
-	   &iterm, &stat,
-	   f, f_data);
+// 	   &minf_est, &gmax,
+// 	   minf,
+// 	   &mit, &mfv, &mfg,
+// 	   &iest,
+// 	   &mos1, &mos2,
+// 	   &mf,
+// 	   &iterm, &stat,
+// 	   f, f_data);
 
-     free(work);
-     free(ix);
+//      free(work);
+//      free(ix);
 
-     switch (iterm) {
-	 case 1: return NLOPT_XTOL_REACHED;
-	 case 2: return NLOPT_FTOL_REACHED;
-	 case 3: return NLOPT_MINF_MAX_REACHED;
-	 case 4: return NLOPT_SUCCESS; /* gradient tolerance reached */
-	 case 6: return NLOPT_SUCCESS;
-	 case 12: case 13: return NLOPT_MAXEVAL_REACHED;
-	 case 100: return NLOPT_MAXTIME_REACHED;
-	 case -999: return NLOPT_FORCED_STOP;
-	 default: return NLOPT_FAILURE;
-     }
-}
+//      switch (iterm) {
+// 	 case 1: return NLOPT_XTOL_REACHED;
+// 	 case 2: return NLOPT_FTOL_REACHED;
+// 	 case 3: return NLOPT_MINF_MAX_REACHED;
+// 	 case 4: return NLOPT_SUCCESS; /* gradient tolerance reached */
+// 	 case 6: return NLOPT_SUCCESS;
+// 	 case 12: case 13: return NLOPT_MAXEVAL_REACHED;
+// 	 case 100: return NLOPT_MAXTIME_REACHED;
+// 	 case -999: return NLOPT_FORCED_STOP;
+// 	 default: return NLOPT_FAILURE;
+//      }
+// }
