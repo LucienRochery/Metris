@@ -635,7 +635,6 @@ void iniMeshBdryEdges(MeshBase &msh){
 			int ip2 = msh.fac2poi(iface,lnoed2[ied][1]);
 
 			if(getedgglo(msh,ip1,ip2) >= 0) continue; // Already exists
-			CPRINTF1("Debug creating edge from iface {}, ied {} neigh = {} ip1, ip2 = {} {} \n",iface,ied,ifac2,ip1,ip2);
       if(ncree == 0 && DOPRINTS2()){
         CPRINTF2(" -> first creation, output mesh \n");
         writeMesh("debug_iniMeshBdryEdges",msh);
