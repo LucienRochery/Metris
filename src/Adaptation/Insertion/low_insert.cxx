@@ -149,8 +149,7 @@ int insertEdge(Mesh<MFT>& msh,
 
       if(ierro != 0){
         CPRINTF1(" - Failed to move point in insertEdge\n");
-        PRINTF("## DEBUG WAIT HERE\n");
-        wait();
+        if(msh.param->interactive) wait();
         goto cleanup;
       }
       ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
