@@ -519,18 +519,23 @@ void MeshBase::readConstants(int64_t libIdx, int usrMinDeg){
 
   GETVDEPTH(param);
 
-  set_npoin(GmfStatKwd( libIdx, GmfVertices ));
+  int64_t npoif = GmfStatKwd( libIdx, GmfVertices );
+  METRIS_ENFORCE_MSG(npoif <= INT32_MAX,
+    "File vertex count {} exceeds 32-bit internal indexing", npoif);
+  set_npoin(npoif);
   if(npoin == 0) METRIS_THROW_MSG("EMPTY MESH (NO VERTICES)");
 
-  // We don't know yet. 
+  // We don't know yet.
   nbpoi_ = 0;
 
   int isuppr    = 0;
   nedge_ = nface_ = nelem_ = 0;
   for(int iDeg = 1; iDeg <= __MAX_LIBMESHB_DEG__; iDeg++){
-    int i1 = GmfStatKwd(libIdx, libmeshb::edgeKwds[iDeg]);
-    int i2 = GmfStatKwd(libIdx, libmeshb::faceKwds[iDeg]);
-    int i3 = GmfStatKwd(libIdx, libmeshb::elemKwds[iDeg]);
+    int64_t i1 = GmfStatKwd(libIdx, libmeshb::edgeKwds[iDeg]);
+    int64_t i2 = GmfStatKwd(libIdx, libmeshb::faceKwds[iDeg]);
+    int64_t i3 = GmfStatKwd(libIdx, libmeshb::elemKwds[iDeg]);
+    METRIS_ENFORCE_MSG(i1 <= INT32_MAX && i2 <= INT32_MAX && i3 <= INT32_MAX,
+      "File entity counts {} {} {} exceed 32-bit internal indexing", i1, i2, i3);
     if(i1 > 0 || i2 > 0 || i3 > 0){
       METRIS_ENFORCE_MSG(iDeg <= METRIS_MAX_DEG, 
         "readConstants iDeg = {} > METRIS_MAX_DEG have P3: {} edges {} faces {} tetras",
@@ -701,13 +706,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
   CPRINTF2("-- Start reading {:10} VerticesOnGeometricVertices (corners)\n",ncorn);
   if(ncorn > 0){
     intWrkAr1 iwork = this->get_iwork(2*ncorn);
-    //GmfGetBlock(libIdx, GmfVerticesOnGeometricVertices, 1, ncorn, 0, NULL, NULL,
-    //            GmfIntVec, &iwork[0] , &iwork[2*ncorn-1]);
     GmfGotoKwd(libIdx, GmfVerticesOnGeometricVertices);
-    for(int ii = 0; ii < ncorn; ii++){
-      GmfGetLin(libIdx, GmfVerticesOnGeometricVertices, 
-                &iwork[2*ii+0],&iwork[2*ii+1]);
-    }
+    GmfGetBlock(libIdx, GmfVerticesOnGeometricVertices, 1, ncorn, 0, NULL, NULL,
+                GmfIntVec, 2, &iwork[0] , &iwork[2*(ncorn-1)]);
 
     int ncor1 = 0; 
     for(int icor0 = 0; icor0 < ncorn; icor0++){
@@ -1037,11 +1038,9 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
 
 
     GmfGotoKwd(libIdx, GmfVerticesOnGeometricEdges);
-    for(int ii = 0; ii < ngpoe; ii++){
-      GmfGetLin(libIdx, GmfVerticesOnGeometricEdges, 
-                &lgpoe(ii,0),&lgpoe(ii,1),
-                &rgpoe(ii,0),&rgpoe(ii,1));
-    }
+    GmfGetBlock(libIdx, GmfVerticesOnGeometricEdges, 1, ngpoe, 0, NULL, NULL,
+                GmfIntVec   , 2, &lgpoe(0,0), &lgpoe(ngpoe-1,0),
+                GmfDoubleVec, 2, &rgpoe(0,0), &rgpoe(ngpoe-1,0));
 
     tag[0]++;
     int maxtag = tag[0];
@@ -1136,12 +1135,10 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
     lgpof.set_n(ngpof);
     rgpof.set_n(ngpof);
 
-    GmfGotoKwd(libIdx, GmfVerticesOnGeometricTriangles);  
-    for(int ii = 0; ii < ngpof; ii++){
-      GmfGetLin(libIdx, GmfVerticesOnGeometricTriangles, 
-                &lgpof(ii,0),&lgpof(ii,1),
-                &rgpof(ii,0),&rgpof(ii,1),&rgpof(ii,2));
-    }
+    GmfGotoKwd(libIdx, GmfVerticesOnGeometricTriangles);
+    GmfGetBlock(libIdx, GmfVerticesOnGeometricTriangles, 1, ngpof, 0, NULL, NULL,
+                GmfIntVec   , 2, &lgpof(0,0), &lgpof(ngpof-1,0),
+                GmfDoubleVec, 3, &rgpof(0,0), &rgpof(ngpof-1,0));
 
     for(int igpof = 0; igpof < ngpof; igpof++){
       int ipoin = lgpof(igpof,0) - 1;

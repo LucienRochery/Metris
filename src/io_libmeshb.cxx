@@ -65,8 +65,11 @@ For reference, file versions:
 3 |     32    |     64     |     8Exa Octet
 4 |     64    |     64     |     8Exa Octet
 
-If we are going the HPC route, we need to support 64bit integers. 
-For now, let's throw an error for any version not 2 or 3.
+Versions 2-4 are supported on read: block reads convert file integers (64-bit in
+version 4) to the user-supplied type, and entity counts are checked against 32-bit
+overflow in readConstants. Writes remain version 3 as internal indices are 32-bit.
+NB: GmfGetLin does NOT convert; with a version 4 file it pops int64_t* off the
+varargs for integer fields. Use block reads for anything holding indices.
 */
 
 
@@ -75,19 +78,19 @@ template<> int64_t MetrisOpenMeshFile<GmfWrite>(std::string meshName, int meshDi
 
   int64_t libIdx = GmfOpenMesh(meshName.c_str(), GmfWrite,  libVer, meshDim);
 
-  METRIS_ENFORCE_MSG(libIdx && (libVer == 2 || libVer == 3),
-    "FILE COULDNT BE OPENED OR WRONG VERSION: {}, name = {}", libVer, meshName);
-  
+  METRIS_ENFORCE_MSG(libIdx, "FILE COULDNT BE OPENED: {}", meshName);
+
   return libIdx;
 }
 
 template<> int64_t MetrisOpenMeshFile<GmfRead>(std::string meshName, int *meshDim){
-  int libVer; // Set for when rwtyp == GmfWrite
+  int libVer;
 
   int64_t libIdx = GmfOpenMesh(meshName.c_str(), GmfRead, &libVer, meshDim);
 
-  METRIS_ENFORCE_MSG(libIdx && (libVer == 2 || libVer == 3),
-    "FILE COULDNT BE OPENED OR WRONG VERSION: {}, name = {}", libVer, meshName);
+  METRIS_ENFORCE_MSG(libIdx, "FILE COULDNT BE OPENED: {}", meshName);
+  METRIS_ENFORCE_MSG(libVer >= 2 && libVer <= 4,
+    "UNSUPPORTED FILE VERSION: {}, name = {}", libVer, meshName);
 
   METRIS_ENFORCE_MSG(*meshDim == 3 || *meshDim == 2, "Unsupported dimension {}", *meshDim);
 
