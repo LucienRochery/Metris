@@ -135,7 +135,7 @@ template double getlenedg_log<2>(const double dx[], const double metl[],int mite
 template double getlenedg_log<3>(const double dx[], const double metl[],int miter, double tol);
 
 
-// Geometric size interpolation 
+// Geometric size interpolation
 // metric given in metSpac format
 template<class MetricFieldType, int gdim, int ideg>
 double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,
@@ -152,7 +152,7 @@ double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,
 // Same but also return the sizes (e.g. for insertion)
 template<class MetricFieldType, int gdim, int ideg>
 double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,
-                       int ientt, int tdimn, int iedg, 
+                       int ientt, int tdimn, int iedg,
                        double *sz){
   #ifdef TRACY_ENABLE
   ZoneScopedN("getlenedg_geosz1");
@@ -163,7 +163,7 @@ double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,
   const intAr2 lnoed(nedgl,2,tdimn == 1 ? lnoed1[0] :
                              tdimn == 2 ? lnoed2[0] : lnoed3[0]);
 
-  const intAr2 &ent2poi = tdimn == 1 ? msh.edg2poi : 
+  const intAr2 &ent2poi = tdimn == 1 ? msh.edg2poi :
                           tdimn == 2 ? msh.fac2poi : msh.tet2poi;
 
   int edg2pol[getnnod1(ideg)];
@@ -189,16 +189,16 @@ double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,const int *edg2pol
   constexpr int nnmet = (gdim*(gdim+1))/2;
   double dum[nnmet],tang[gdim];
   double bar1[2];//,bary[tdimn+1];
- 
+
   if constexpr (ideg > 1){
     for(int ii = 0; ii < 2; ii++){
       bar1[0] = 1.0 - (double) ii;
       bar1[1] = (double) ii;
-      eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), 
-                       DifVar::Bary, DifVar::None, 
+      eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(),
+                       DifVar::Bary, DifVar::None,
                        bar1, dum, tang, NULL);
 
-   
+
       if(msh.met.getSpace() == MetSpace::Log){
         sz[ii] = getlenedg_log<gdim>(tang,msh.met[edg2pol[ii]],100,1.0e-6);
       }else{
@@ -236,11 +236,11 @@ double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,const int *edg2pol
 
 
 
-// This version uses surface tangent directions to compute the metric size at 
-// the edge extremities. 
+// This version uses surface tangent directions to compute the metric size at
+// the edge extremities.
 template<class MetricFieldType, int gdim, int ideg>
 double getlenedg_geosz_plane(const MeshMetric<MetricFieldType> &msh,
-                             int ientt, int tdimn, int iedg, 
+                             int ientt, int tdimn, int iedg,
                              double *sz){
   static_assert(gdim == 3);
   METRIS_ASSERT(tdimn < gdim);
@@ -252,7 +252,7 @@ double getlenedg_geosz_plane(const MeshMetric<MetricFieldType> &msh,
   const intAr2 lnoed(nedgl,2,tdimn == 1 ? lnoed1[0] :
                              tdimn == 2 ? lnoed2[0] : lnoed3[0]);
 
-  const intAr2 &ent2poi = tdimn == 1 ? msh.edg2poi : 
+  const intAr2 &ent2poi = tdimn == 1 ? msh.edg2poi :
                           tdimn == 2 ? msh.fac2poi : msh.tet2poi;
 
   int edg2pol[getnnod1(ideg)];
@@ -272,7 +272,7 @@ double getlenedg_geosz_plane(const MeshMetric<MetricFieldType> &msh,
   return getlenedg_geosz_plane<MetricFieldType,gdim,ideg>(msh,&edg2pol[0],nrmals[0],sz);
 }
 
-// Provide unit normals to project on plane. 
+// Provide unit normals to project on plane.
 template<class MetricFieldType, int gdim, int ideg>
 double getlenedg_geosz_plane(const MeshMetric<MetricFieldType> &msh,
                              const int *edg2pol, double *nrmals, double *sz){
@@ -280,18 +280,18 @@ double getlenedg_geosz_plane(const MeshMetric<MetricFieldType> &msh,
   double dum[nnmet],tang[gdim];
   double bar1[2];//,bary[tdimn+1];
   static_assert(gdim == 3);
- 
+
   if constexpr (ideg > 1){
     for(int ii = 0; ii < 2; ii++){
       bar1[0] = 1.0 - (double) ii;
       bar1[1] = (double) ii;
-      eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), 
-                       DifVar::Bary, DifVar::None, 
+      eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(),
+                       DifVar::Bary, DifVar::None,
                        bar1, dum, tang, NULL);
 
       double dtprd = getprdl2<gdim>(tang, &nrmals[gdim*ii]);
       for(int jj = 0; jj < gdim; jj++) tang[jj] -= dtprd*nrmals[gdim*ii + jj];
-   
+
       if(msh.met.getSpace() == MetSpace::Log){
         sz[ii] = getlenedg_log<gdim>(tang,msh.met[edg2pol[ii]],100,1.0e-6);
       }else{
@@ -333,7 +333,7 @@ double getlenedg_geosz_plane(const MeshMetric<MetricFieldType> &msh,
 
   return len;
 }
- 
+
 // See https://www.boost.org/doc/libs/1_82_0/libs/preprocessor/doc/AppendixA-AnIntroductiontoPreprocessorMetaprogramming.html
 // Section A.4.1.2 Vertical Repetition
 #define BOOST_PP_LOCAL_MACRO(n)\
@@ -375,14 +375,14 @@ template double getlenedg_geosz_plane<MetricFieldFE        , 3, n >(\
 
 
 ///*
-//Compute length by uniform quadrature. 
+//Compute length by uniform quadrature.
 //Metric is log-Euclidean interpolated along edge
 //Improve this with better quadrature schemes in the future.
 //*/
 //template<int gdim, int ideg>
-//double getlenedg_quad(const int* __restrict__ edg2pol, 
-//                      const dblAr2& __restrict__ coord, 
-//                      const dblAr2& __restrict__ met, 
+//double getlenedg_quad(const int* __restrict__ edg2pol,
+//                      const dblAr2& __restrict__ coord,
+//                      const dblAr2& __restrict__ met,
 //                      int nquad){
 //  constexpr int nnmet = (gdim*(gdim+1))/2;
 //
@@ -432,7 +432,7 @@ double getlenedg_quad(MeshMetric<MetricFieldType> &msh,
 
   int edg2pol[getnnod1(ideg)];
 
-  // In this case, metric does not need reinterpolating. 
+  // In this case, metric does not need reinterpolating.
   bool atnodes = nquad == msh.nnode(1);
   METRIS_ASSERT(!(atnodes && (  msh.met.getBasis() != FEBasis::Lagrange
                              || msh.met.getSpace() != MetSpace::Exp)));
@@ -465,7 +465,7 @@ double getlenedg_quad(MeshMetric<MetricFieldType> &msh,
         bar1[0] = 0.5;
         bar1[1] = 0.5;
       }
-      eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), DifVar::Bary, DifVar::None, 
+      eval1<gdim,ideg>(msh.coord, edg2pol, msh.getBasis(), DifVar::Bary, DifVar::None,
                        bar1,  dum, tang, NULL);
     }
 
@@ -479,7 +479,7 @@ double getlenedg_quad(MeshMetric<MetricFieldType> &msh,
           bar1[1] = 0.5;
         }
       }
-      msh.met.getMetBary(AsDeg::Pk, DifVar::None, 
+      msh.met.getMetBary(AsDeg::Pk, DifVar::None,
                          MetSpace::Exp, edg2pol, 1, bar1, metl, NULL);
       len += getlenedg<gdim>(tang,metl)*dx;
     }else{

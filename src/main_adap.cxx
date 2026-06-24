@@ -13,8 +13,11 @@ int main_metris(int argc, char** argv){
 
   MetrisRunner run(argc,argv);
 
-  if (run.param->progressiveAdapt) run.runMetrisProgressive();
-  else                             run.runMetris();
+  if (run.param->progressiveAdapt){
+    if (run.metricFE) run.runMetrisProgressive<MetricFieldFE>();
+    else              run.runMetrisProgressive<MetricFieldAnalytical>();
+  }
+  else run.runMetris();
 
   return 0;
 }

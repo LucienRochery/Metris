@@ -192,7 +192,7 @@ int insertEdge(Mesh<MFT>& msh,
 
   // -- This section only if !icollapse
 
-  #ifdef TESTQUALITYALGO
+  #if defined(TESTQUALITYALGO) && !defined(TESTINSERTIONCLASSIC)
   ierro = setCavityInsertionQuality(msh,cav,opts,insertionSeed,mgrow,handler,lenqua_short_max,nocomp,ithrd1,ithrd2);
   #else
   ierro = setCavityInsertion3(msh,cav,opts,insertionSeed,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);

@@ -34,7 +34,7 @@ MetricFieldFE::MetricFieldFE(MeshBase &msh_) : msh(msh_){
   nspace_miss = 0;
   rfld.set_n(msh.npoin);
 }
-  
+
 
 void MetricFieldFE::setSpace(MetSpace ispacn, bool iforce){
   #ifndef NDEBUG
@@ -103,7 +103,7 @@ void MetricFieldFE::setExp(){
     CPRINTF1("# WARNING: Metric field basis not defined, possible surface or line mesh: skip setExp()\n");
     return;
   }
-  
+
   METRIS_ASSERT(msh.idim == 2 || msh.idim == 3);
 
   if(this->ispace == MetSpace::Exp) return;
@@ -120,7 +120,7 @@ void MetricFieldFE::setExp(){
 
 
 void MetricFieldFE::setLagrange(){
-  if(this->ibasis == FEBasis::Lagrange) return; 
+  if(this->ibasis == FEBasis::Lagrange) return;
 
   CT_FOR0_INC(2,METRIS_MAX_DEG,ideg){
     if(ideg == this->msh.curdeg){
@@ -179,7 +179,7 @@ void MetricFieldFE::readMetricFile(std::string inpname){
   if(ncom) CPRINTF1("Metric file contains {} comments\n", ncom);
 
   char buff[257];
-  GmfGotoKwd(libIdx, GmfComments);  
+  GmfGotoKwd(libIdx, GmfComments);
   for(int icom = 0; icom < ncom; icom++){
     GmfGetLin(libIdx, GmfComments, buff);
     std::string strbuf(buff);
@@ -206,7 +206,7 @@ void MetricFieldFE::readMetricFile(std::string inpname){
 
   // Possible reallocation
   this->rfld.allocate(msh.mpoin,nnmet);
-  this->rfld.set_n(msh.npoin); 
+  this->rfld.set_n(msh.npoin);
 
   GmfGotoKwd(libIdx, GmfSolAtVertices);
 
@@ -220,7 +220,7 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
 
   GETVDEPTH(msh.param);
 
-  // For now, always force writing as exp metric. 
+  // For now, always force writing as exp metric.
   const MetSpace outspac = MetSpace::Exp;
 
   if(ibasis == FEBasis::Undefined){
@@ -268,12 +268,12 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
   int64_t libIdx;
 
   libIdx = MetrisOpenMeshFile<GmfWrite>(metName, idim);
-  if(this->ibasis == FEBasis::Bezier) GmfSetKwd( libIdx, GmfBezierBasis, 1); 
+  if(this->ibasis == FEBasis::Bezier) GmfSetKwd( libIdx, GmfBezierBasis, 1);
   if(outspac == MetSpace::Log ){
     GmfSetKwd(libIdx,GmfComments,1);
     const char buf[8] = "log";
     GmfSetLin(libIdx,GmfComments,buf);
-  } 
+  }
 
   CPRINTF1("-- Write file file {} npoin {}\n",metName,msh.npoin);
 
@@ -345,15 +345,15 @@ void MetricFieldFE::correctMetric(){
 
 // ----
 void MetricFieldFE::getMetBary(AsDeg asdmet,
-                               DifVar idiff,  MetSpace tarspac, 
-                               const int* __restrict__ ent2pol, int tdimn, 
-                               const double*__restrict__  bary,  
-                               double*__restrict__ metl, 
+                               DifVar idiff,  MetSpace tarspac,
+                               const int* __restrict__ ent2pol, int tdimn,
+                               const double*__restrict__  bary,
+                               double*__restrict__ metl,
                                double*__restrict__ dmet) {
   METRIS_ENFORCE_MSG(ibasis != FEBasis::Undefined, "Metric was not initialized.");
 
   // barycentric is defined but not physical. Probably a mistake either way
-  if(msh.idim != tdimn && idiff != DifVar::None) 
+  if(msh.idim != tdimn && idiff != DifVar::None)
     METRIS_THROW_MSG( "Differing tdim = {} and gdim = {} are you sure about idiff?", tdimn, msh.idim)
 
 
@@ -391,15 +391,15 @@ void MetricFieldFE::getMetBary(AsDeg asdmet,
 
 // ----
 void MetricFieldFE::getMetFullinfo(AsDeg asdmet,
-                                   DifVar idiff, MetSpace tarspac, 
-                                   const int*__restrict__ ent2pol, 
+                                   DifVar idiff, MetSpace tarspac,
+                                   const int*__restrict__ ent2pol,
                                    int tdimn,
-                                   const double*__restrict__  bary,  
-                                   [[maybe_unused]] const double*__restrict__  coop,  
-                                   double*__restrict__ metl, 
+                                   const double*__restrict__  bary,
+                                   [[maybe_unused]] const double*__restrict__  coop,
+                                   double*__restrict__ metl,
                                    double*__restrict__ dmet) {
-  METRIS_ENFORCE_MSG(ibasis != FEBasis::Undefined, 
-                     "Metric was not initialized.");  
+  METRIS_ENFORCE_MSG(ibasis != FEBasis::Undefined,
+                     "Metric was not initialized.");
   getMetBary(asdmet,idiff,tarspac,ent2pol,tdimn,bary,metl,dmet);
 }
 
@@ -409,16 +409,16 @@ void MetricFieldFE::getMetFullinfo(AsDeg asdmet,
 
 
 template<int gdim, int ideg>
-void MetricFieldFE::getMetBary0( DifVar idiff,  MetSpace tarspac, 
-                                const int*__restrict__ ent2pol, 
+void MetricFieldFE::getMetBary0( DifVar idiff,  MetSpace tarspac,
+                                const int*__restrict__ ent2pol,
                                 int tdimn,
-                                const double*__restrict__ bary,  
-                                      double*__restrict__ metl, 
+                                const double*__restrict__ bary,
+                                      double*__restrict__ metl,
                                       double*__restrict__ dmet) {
   constexpr int nnmet = (gdim*(gdim+1))/2;
 
-  METRIS_ASSERT_MSG(this->ispace == MetSpace::Log, 
-                    "Do not call getMetBary on an Exp met field");
+  // METRIS_ASSERT_MSG(this->ispace == MetSpace::Log,
+  //                   "Do not call getMetBary on an Exp met field");
 
   double *dmet0 = dmet;
   RoutineWorkMemory<double> tmp(this->rwrkmem);
@@ -428,7 +428,7 @@ void MetricFieldFE::getMetBary0( DifVar idiff,  MetSpace tarspac,
     idife = DifVar::Bary;
   }
 
-  // Get M(xi) and dM / dxi at bary 
+  // Get M(xi) and dM / dxi at bary
   if(tdimn == 1){
     eval1<nnmet,ideg>(rfld,ent2pol,this->ibasis,idife,DifVar::None,bary,metl,dmet0,NULL);
   }else if(tdimn == 2){
@@ -482,7 +482,7 @@ void MetricFieldFE::getMetBary0( DifVar idiff,  MetSpace tarspac,
   }
 
   if(tarspac != this->ispace){
-    // This is undesireable but we rather prepare for it. 
+    // This is undesireable but we rather prepare for it.
     // Let's log that it happened.
     this->nspace_miss++;
 

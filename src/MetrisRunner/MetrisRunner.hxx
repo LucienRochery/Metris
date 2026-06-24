@@ -56,6 +56,7 @@ public:
   /* Similar to the above, but approaches slowly to the target metric,
      taking into account the scale ratio between current metric and target
   */
+  template <class MetricFieldType>
   void runMetrisProgressive();
 
   // -tardeg <d> Mesh goes to degree d while conserving geometry

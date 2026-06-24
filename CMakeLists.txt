@@ -203,6 +203,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/meshStats.cxx)
   setMetrisCXXFlags(meshStats PUBLIC)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/genBackMetAndMesh.cxx)
+  add_executable(genBackMetAndMesh EXCLUDE_FROM_ALL "progs/genBackMetAndMesh.cxx")
+  target_link_libraries(genBackMetAndMesh PUBLIC    libMetris
+                                            Boost::headers # yes this is weird
+                                            ${Boost_LIBRARIES}
+                                            )
+  target_include_directories(genBackMetAndMesh PRIVATE  "."
+                             ${ESP_ROOT}/include)
+  setMetrisCXXFlags(genBackMetAndMesh PUBLIC)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/offset_coord.cxx)
   add_executable(offset_coord EXCLUDE_FROM_ALL "progs/offset_coord.cxx")
   target_link_libraries(offset_coord PUBLIC libMetris

@@ -24,6 +24,17 @@ namespace Metris{
 
 void MetrisRunner::runMetris(){
 
+  // // TODO: debug target cost
+  // std::cout << "WRITING INITIAL MESH AND METRIC" << std::endl;
+  // writeMesh("METRIS_INITIAL_MESH.meshb",*msh_g);
+  // if(metricFE){
+  //   Mesh<MetricFieldFE> &msh = (Mesh<MetricFieldFE> &)(*msh_g);
+  //   msh.met.writeMetricFile("METRIS_INITIAL_METRIC.solb");
+  // }else{
+  //   Mesh<MetricFieldAnalytical> &msh = (Mesh<MetricFieldAnalytical> &)(*msh_g);
+  //   msh.met.writeMetricFile("METRIS_INITIAL_METRIC.solb");
+  // }
+
   GETVDEPTH(param);
 
   double t0, t1;
@@ -204,17 +215,46 @@ void MetrisRunner::runMetris(){
     throw(e);
   }
 
-  t1 = get_cpu_time();
-
 #ifdef OUTPUTTIMEANDUNITINFO
   foutputTimeUnit << std::setw(30) << t1-t0
                   << std::endl;
 #endif
 
+
+  double actualCost = 0;
+
+  double integratedCost = 0;
+  if(metricFE){
+    Mesh<MetricFieldFE> &msh = (Mesh<MetricFieldFE> &)(*msh_g);
+    actualCost  = (double)msh.nentt(msh.get_tdim());
+    if (msh.get_tdim() == 2){
+      actualCost *= sqrt(3.)/4.;
+    }else{
+      actualCost *= sqrt(2.)/12.;
+    }
+    if (msh.get_tdim() == 2) integratedCost = getMetricCost<MetricFieldFE,2,2>(msh);
+    else                     integratedCost = getMetricCost<MetricFieldFE,3,3>(msh);
+  }else{
+    Mesh<MetricFieldAnalytical> &msh = (Mesh<MetricFieldAnalytical> &)(*msh_g);
+    actualCost  = (double)msh.nentt(msh.get_tdim());
+    if (msh.get_tdim() == 2){
+      actualCost *= sqrt(3.)/4.;
+    }else{
+      actualCost *= sqrt(2.)/12.;
+    }
+    if (msh.get_tdim() == 2) integratedCost = getMetricCost<MetricFieldAnalytical,2,2>(msh);
+    else                     integratedCost = getMetricCost<MetricFieldAnalytical,3,3>(msh);
+  }
+
+  std::cout << std::setprecision(16) << "Integrated target cost = " << integratedCost << std::endl;
+  std::cout << std::setprecision(16) << "Actual cost = " << actualCost << std::endl;
+
+  t1 = get_cpu_time();
   MPRINTF("\n-- END Metris total runtime {:.2e}s\n",t1-t0);
 
 }
 
+template <class MFT>
 void MetrisRunner::runMetrisProgressive(){
 
   GETVDEPTH(param);
@@ -235,13 +275,67 @@ void MetrisRunner::runMetrisProgressive(){
 
     METRIS_ENFORCE(sclmet > 0);
     param->setMetricScale(sclmet);
-    Mesh<MetricFieldAnalytical> &msh = (Mesh<MetricFieldAnalytical> &)(*msh_g);
+    Mesh<MFT> &msh = (Mesh<MFT> &)(*msh_g);
     msh.met.normalize(sclmet);
     bak.met.normalize(sclmet);
+
     for (int ipoin = 0; ipoin < msh.npoin; ipoin++){
-      msh.met.getMetPhys(DifVar::None,msh.met.getSpace(),msh.coord[ipoin],msh.met[ipoin],NULL);
+      if constexpr(std::is_same<MFT, MetricFieldAnalytical>::value){
+        msh.met.getMetPhys(DifVar::None,msh.met.getSpace(),msh.coord[ipoin],msh.met[ipoin],NULL);
+      }else{
+
+        int tdim = msh.get_tdim();
+        int ientt = getpoient(msh,ipoin,tdim);
+        intAr2& ent2poi = msh.ent2poi(tdim);
+
+        // if (tdim == 2){
+        //   int enttdim = msh.poi2ent(ipoin,1);
+        //   if (enttdim == 2) ientt = msh.poi2ent(ipoin,0);
+        //   else if (enttdim == 1){
+        //     int iedge = msh.poi2ent(ipoin,0);
+        //     ientt = msh.edg2fac[iedge];
+        //   }
+        //   else METRIS_THROW_MSG("poi2ent points to a tdim=0 entt");
+        // }
+        // else{
+        //   int enttdim = msh.poi2ent(ipoin,1);
+        //   if (enttdim == 3) ientt = msh.poi2ent(ipoin,0);
+        //   else if (enttdim == 2){
+        //     int ifac = msh.poi2ent(ipoin,0);
+        //     ientt = msh.fac2tet(ifac,0);
+        //   }
+        //   else if (enttdim == 1){
+        //     int iedge = msh.poi2ent(ipoin,0);
+        //     int ifac = msh.edg2fac[iedge];
+        //     ientt = msh.fac2tet(ifac,0);
+        //   }
+        //   else METRIS_THROW_MSG("poi2ent points to a tdim=0 entt");
+        // }
+
+        int ibary = -1;
+
+        for (int iver = 0; iver < tdim+1; iver++){
+          if (ent2poi(ientt,iver) == ipoin){
+            ibary = iver;
+            break;
+          }
+        }
+        METRIS_ENFORCE(ibary >=0);
+
+        double bary[tdim+1];
+        for (int ii = 0; ii < tdim+1; ii++) bary[ii] = 0.;
+        bary[ibary] = 1.;
+
+        msh.met.getMetBary(AsDeg::P1,
+                          DifVar::None,
+                          msh.met.getSpace(),
+                          ent2poi[ientt],
+                          tdim,
+                          bary,
+                          msh.met[ipoin],
+                          NULL);
+      }
     }
-    // bak.met = msh.met
   };
 
   // helper to do a mesh adaptation cycle
@@ -267,11 +361,7 @@ void MetrisRunner::runMetrisProgressive(){
   double targetCost;
   double targetScale;
 
-  if (metricFE){
-    METRIS_THROW_MSG("runMetrisProgressive not yet implemented for MFT = MetricFieldFE");
-  }
-
-  Mesh<MetricFieldAnalytical> &msh = (Mesh<MetricFieldAnalytical> &)(*msh_g);
+  Mesh<MFT> &msh = (Mesh<MFT> &)(*msh_g);
   msh.cleanup();
   currentMeshCost  = (double)msh.nentt(msh.get_tdim());
   if (msh.get_tdim() == 2){
@@ -281,8 +371,8 @@ void MetrisRunner::runMetrisProgressive(){
   }
   currentMeshScale = pow(currentMeshCost,-1./msh.get_tdim());
 
-  if (msh.get_tdim() == 2) targetCost = getMetricCost<2,2>(msh);
-  else                     targetCost = getMetricCost<3,3>(msh);
+  if (msh.get_tdim() == 2) targetCost = getMetricCost<MFT,2,2>(msh);
+  else                     targetCost = getMetricCost<MFT,3,3>(msh);
 
   targetScale = pow(targetCost,-1./msh.get_tdim());
 
@@ -311,8 +401,6 @@ void MetrisRunner::runMetrisProgressive(){
                     << std::setw(30) << "targetScale"
                     << std::setw(30) << "scaleRun"
                     << std::endl;
-
-
 
   // the target mesh is finer than initial mesh, approach progressively
   double scaleRun = currentMeshScale/targetScale * scaleInpt0; // let first generation has similar target scale as current scale
@@ -346,8 +434,8 @@ void MetrisRunner::runMetrisProgressive(){
     }
     currentMeshScale = pow(currentMeshCost,-1./msh.get_tdim());
 
-    if (msh.get_tdim() == 2) targetCost = getMetricCost<2,2>(msh);
-    else                     targetCost = getMetricCost<3,3>(msh);
+    if (msh.get_tdim() == 2) targetCost = getMetricCost<MFT,2,2>(msh);
+    else                     targetCost = getMetricCost<MFT,3,3>(msh);
 
     targetScale = pow(targetCost,-1./msh.get_tdim());
 
@@ -389,5 +477,8 @@ void MetrisRunner::runMetrisProgressive(){
 
   return;
 }
+
+template void MetrisRunner::runMetrisProgressive<MetricFieldAnalytical>();
+template void MetrisRunner::runMetrisProgressive<MetricFieldFE>();
 
 } // end namespace

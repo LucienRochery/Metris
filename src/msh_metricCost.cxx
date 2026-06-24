@@ -7,8 +7,8 @@
 
 namespace Metris{
 
-template<int gdim,int tdim>
-double getMetricCost(MeshMetric<MetricFieldAnalytical>& msh){
+template<class MFT,int gdim,int tdim>
+double getMetricCost(MeshMetric<MFT>& msh){
 
   // TODO: HO, only linear case for now
   const int ideg = msh.curdeg;
@@ -70,10 +70,24 @@ double getMetricCost(MeshMetric<MetricFieldAnalytical>& msh){
       }
     }
 
+    double bary[tdim+1];
+    for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0/(tdim + 1);
+
     constexpr int nnmet = (gdim*(gdim+1))/2;
     double metBary[nnmet];
 
-    msh.met.getMetPhys(DifVar::None,msh.met.getSpace(),coordBary,metBary,NULL);
+    if constexpr(std::is_same<MFT, MetricFieldAnalytical>::value){
+        msh.met.getMetPhys(DifVar::None, msh.met.getSpace(),coordBary, metBary, NULL);
+      }else{
+        msh.met.getMetBary(AsDeg::P1,
+                           DifVar::None,
+                           msh.met.getSpace(),
+                           ent2poi[ientt],
+                           tdim,
+                           bary,
+                           metBary,
+                           NULL);
+      }
 
     costEntt += sqrt(evalMetDet(metBary));
     nsample++;
@@ -84,16 +98,9 @@ double getMetricCost(MeshMetric<MetricFieldAnalytical>& msh){
   return cost;
 }
 
-template double getMetricCost<2,2>(MeshMetric<MetricFieldAnalytical>& msh);
-template double getMetricCost<3,3>(MeshMetric<MetricFieldAnalytical>& msh);
-
-template<int gdim,int tdim>
-double getMetricCost(MeshMetric<MetricFieldFE>& msh){
-
-  METRIS_THROW_MSG("Implement metric cost for MFT = MetricFieldFE");
-}
-
-template double getMetricCost<2,2>(MeshMetric<MetricFieldFE>& msh);
-template double getMetricCost<3,3>(MeshMetric<MetricFieldFE>& msh);
+template double getMetricCost<MetricFieldAnalytical,2,2>(MeshMetric<MetricFieldAnalytical>& msh);
+template double getMetricCost<MetricFieldAnalytical,3,3>(MeshMetric<MetricFieldAnalytical>& msh);
+template double getMetricCost<MetricFieldFE,2,2>(MeshMetric<MetricFieldFE>& msh);
+template double getMetricCost<MetricFieldFE,3,3>(MeshMetric<MetricFieldFE>& msh);
 
 } // end namespace

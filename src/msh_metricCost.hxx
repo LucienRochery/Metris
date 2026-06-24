@@ -12,11 +12,8 @@
 
 namespace Metris{
 
-template<int gdim, int tdim>
-double getMetricCost(MeshMetric<MetricFieldAnalytical> &msh);
-
-template<int gdim, int tdim>
-double getMetricCost(MeshMetric<MetricFieldFE> &msh);
+template<class MFT,int gdim, int tdim>
+double getMetricCost(MeshMetric<MFT> &msh);
 
 }// end namespace
 #endif

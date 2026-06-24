@@ -97,13 +97,13 @@ void MeshBack::set_nedge(int nedge, bool skip_allocf){
 
 void MeshBack::set_nface(int nface, bool skip_allocf){
   MeshMetric<MetricFieldFE>::set_nface(nface, skip_allocf);
-  
+
   // Allocate fac2dev
   fac2dev.allocate(mface);
   fac2dev.set_n(nface);
 }
 
-void MeshBack::initialize(MetrisAPI *data, 
+void MeshBack::initialize(MetrisAPI *data,
   MetrisParameters &param){
   MeshBase::initialize(data,param);
   setBasis(FEBasis::Bezier);
@@ -115,8 +115,8 @@ void MeshBack::initialize(MetrisAPI *data,
   met.forceBasisFlag(FEBasis::Undefined);
 
 
-  // If no input file: 
-  if(  (!param.inpMet && data == NULL) 
+  // If no input file:
+  if(  (!param.inpMet && data == NULL)
     || (data != NULL && !data->imet)  ){
     // If analytical:
     if(param.anamet_ptr != NULL || param.ianamet >= 1){
@@ -137,7 +137,7 @@ void MeshBack::initialize(MetrisAPI *data,
       met.rfld.set_n(npoin);
       for(int ipoin = 0; ipoin < npoin; ipoin++){
         anamet(NULL, coord[ipoin], param.metScale, 0, met[ipoin], NULL);
-      } 
+      }
 
       if(DOPRINTS2()) met.writeMetricFile("backmet.solb");
       met.setSpace(MetSpace::Log, true);
@@ -164,9 +164,9 @@ void MeshBack::initialize(MetrisAPI *data,
     #endif
 
   }else if(param.inpMet){
-    
+
     CPRINTF1("(back)  - Get metric from file {}\n",param.metFileName.c_str());
-    METRIS_ENFORCE_MSG(data == NULL || !data->imet, 
+    METRIS_ENFORCE_MSG(data == NULL || !data->imet,
                        "Metric specified both in data and file");
 
     met.readMetricFile(param.metFileName);
@@ -176,7 +176,7 @@ void MeshBack::initialize(MetrisAPI *data,
 
     CPRINTF1("(back)  - Get metric from data\n");
 
-    met.rfld = std::move(data->metfld); 
+    met.rfld = std::move(data->metfld);
     met.forceBasisFlag(data->metbasis);
     met.forceSpaceFlag(data->metspace);
 
@@ -189,7 +189,7 @@ void MeshBack::initialize(MetrisAPI *data,
   }
 
 
-  // Correct metric if needed 
+  // Correct metric if needed
   //met.correctMetric();
 
   met.setBasis(FEBasis::Bezier);
@@ -201,7 +201,7 @@ void MeshBack::initialize(MetrisAPI *data,
 
 
   #if 0
-  // Compute edg2con 
+  // Compute edg2con
   if(this->CAD()){
 
     for(int iedge = 0; iedge < nedge; iedge++){
@@ -212,7 +212,7 @@ void MeshBack::initialize(MetrisAPI *data,
       for(int ii = 0; ii < 2; ii++){
         int ipoin = edg2poi(iedge,ii);
 
-        // Get CAD tangent 
+        // Get CAD tangent
         int ibpoi = poi2bpo[ipoin];
         METRIS_ASSERT(ibpoi >= 0);
         ibpoi = getref2bpo(*this,ibpoi,iref,1);
@@ -226,18 +226,18 @@ void MeshBack::initialize(MetrisAPI *data,
 
 
 
-      }// for int ii 
+      }// for int ii
 
-    }// for int iedge 
+    }// for int iedge
 
   }else{
     printf("## WARNING: No CAD: no normal control in loc\n");
   }
   #endif
 
-  // Compute geodev 
-  
-  // For edges, the tangent deviation is computed at the vertices. 
+  // Compute geodev
+
+  // For edges, the tangent deviation is computed at the vertices.
   // check edges only belong to one loop
   geodev[0] = -1;
   geodev[1] = -1;
@@ -277,7 +277,7 @@ void MeshBack::initialize(MetrisAPI *data,
         for(int ii = 0; ii < tdim + 1; ii++){
           int ipoin = ent2poi(ientt,ii);
 
-          // Get CAD tangent 
+          // Get CAD tangent
           int ibpoi = poi2ebp(ipoin,tdim,-1,iref);
           METRIS_ASSERT(ibpoi >= 0);
 
@@ -287,8 +287,8 @@ void MeshBack::initialize(MetrisAPI *data,
           double *dirCAD;
 
           double buf[3];
-          if(tdim == 1){ 
-            // If edge, simply take the tangent. 
+          if(tdim == 1){
+            // If edge, simply take the tangent.
             dirCAD = &result[3];
           }else{
             // Otherwise, compute normal
@@ -315,7 +315,7 @@ void MeshBack::initialize(MetrisAPI *data,
                               getBasis(), DifVar::Bary, DifVar::None,
                               bary, dum, dirent, NULL);
               }
-            }}CT_FOR1(ideg); 
+            }}CT_FOR1(ideg);
           }else{
             double jmat[2][3];
             CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == curdeg){
@@ -326,18 +326,18 @@ void MeshBack::initialize(MetrisAPI *data,
               }else{
                 METRIS_THROW_MSG("TODO: How are we in idim = {} in face bdry case?", idim);
               }
-            }}CT_FOR1(ideg); 
+            }}CT_FOR1(ideg);
             vecprod(jmat[0], jmat[1], dirent);
           }
 
-          // Normalize both 
+          // Normalize both
           int iCADsing = 0;
           if(idim == 2){
             iCADsing = normalize_vec<2>(dirCAD);
-            METRIS_ENFORCE(normalize_vec<2>(dirent) == 0); 
+            METRIS_ENFORCE(normalize_vec<2>(dirent) == 0);
           }else{
             iCADsing = normalize_vec<3>(dirCAD);
-            METRIS_ENFORCE(normalize_vec<3>(dirent) == 0); 
+            METRIS_ENFORCE(normalize_vec<3>(dirent) == 0);
           }
 
           if(iCADsing){
@@ -352,8 +352,8 @@ void MeshBack::initialize(MetrisAPI *data,
           double dtprd = idim == 2 ? getprdl2<2>(dirCAD,dirent)
                                    : getprdl2<3>(dirCAD,dirent);
 
-          // Force dtprd to be positive. We can do this because entities have been 
-          // oriented, so there's nothing to check here. 
+          // Force dtprd to be positive. We can do this because entities have been
+          // oriented, so there's nothing to check here.
           dtprd = abs(dtprd);
 
           if(DOPRINTS3()){
@@ -372,7 +372,6 @@ void MeshBack::initialize(MetrisAPI *data,
 
           METRIS_ASSERT_MSG(dtprd >= 1.0e-16,"zero dtprd = {:e}", dtprd);
 
-
           double dev = 1 - abs(dtprd);
 
           ent2dev[ientt] = MAX(ent2dev[ientt], dev);
@@ -382,7 +381,7 @@ void MeshBack::initialize(MetrisAPI *data,
             geodev[tdim-1] = dev;
           }
 
-        }// for int ii 
+        }// for int ii
         CPRINTF3(" - ientt {} final dev = {:15.7e} \n",ientt,ent2dev[ientt]);
 
       }
@@ -394,7 +393,7 @@ void MeshBack::initialize(MetrisAPI *data,
     geodev[0] = 1;
     geodev[1] = 1;
   }
-  
+
   CPRINTF1("-- Computed max geodev, edges: {:15.7e} at {} faces {:15.7e} at {}\n",
                                geodev[0], imax[0], geodev[1], imax[1]);
 
@@ -410,9 +409,9 @@ double MeshBack::getMetComplexity(){
 
   //std::cout<<"Domain volume = " << vol0 << "\n";// << " aniso = "<<volM<<"\n";
   //// 1) If an element is unit, its volume under the metric is vK0
-  //// Thus the volume of a unit mesh is Nelem * vK0 
+  //// Thus the volume of a unit mesh is Nelem * vK0
   //// 2) The volume under cM, v_{cM}, of the mesh is c^{1/2} v_M
-  //// Conclusion) c such that the mesh is unit under cM verifies 
+  //// Conclusion) c such that the mesh is unit under cM verifies
   //// c^{1/2} v_M = Nelem * vK_0
   //double coeff = (nelem * Constants::vK0[gdim] / volM)
   //             * (nelem * Constants::vK0[gdim] / volM);

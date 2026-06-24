@@ -31,17 +31,17 @@ template<class MFT>
 int Mesh<MFT>::interpMetBack(int ipoin){
   GETVDEPTH(this->param);
   METRIS_ASSERT(ipoin >= 0 && ipoin < this->npoin);
-  
+
   int tdim = this->getpoitdim(ipoin);
   METRIS_ASSERT_MSG(tdim > 0, "Interpolate corners manually");
-  
+
   int iseed = this->poi2ent(ipoin,0);
   // Control point case
   if(iseed < -1) iseed = - iseed - 2;
   METRIS_ASSERT(this->poi2ent(ipoin,1) == tdim);
   METRIS_ASSERT(iseed >= 0 && iseed < this->nentt(tdim));
   METRIS_ASSERT(!isdeadent(iseed,this->ent2poi(tdim)));
-  
+
   int iref = this->ent2ref(tdim)[iseed];
   METRIS_ASSERT(iref >= 0);
 
@@ -52,7 +52,7 @@ int Mesh<MFT>::interpMetBack(int ipoin){
   double algnd[3];
   this->get_algnd(ipoin, algnd);
 
-  // First try seeding point with itself, if already initialized. 
+  // First try seeding point with itself, if already initialized.
   if(this->poi2bak[ipoin] >= 0){
     if(this->interpMetBack00(ipoin, tdim, iref, ipoin, algnd) == 0) return 0;
     CPRINTF1(" - self-seeded interpmet back failed, retry with seed {} \n", iseed);
@@ -67,9 +67,9 @@ template int Mesh<MetricFieldAnalytical>::interpMetBack(int ipoin);
 
 
 // tdim is the dimension of iseed (front elt), AND of the point !
-// iref and algnd only necessary if doing boundary localization. 
+// iref and algnd only necessary if doing boundary localization.
 template<class MFT>
-int Mesh<MFT>::interpMetBack(int ipoin, int tdim, int iseed, 
+int Mesh<MFT>::interpMetBack(int ipoin, int tdim, int iseed,
                              int iref, const double* algnd){
   METRIS_ASSERT_MSG(tdim == this->getpoitdim(ipoin) || this->getpoitdim(ipoin) == 0,
     "seed is dim {} point is {} ipoin = {}", tdim, this->getpoitdim(ipoin), ipoin);
@@ -89,7 +89,7 @@ int Mesh<MFT>::interpMetBack(int ipoin, int tdim, int iseed,
   METRIS_ASSERT_MSG(tdim == this->idim || (algnd != NULL && iref >= 0),
     "Boundary dim {} but algnd = {} and iref = {}", tdim, (void*) algnd, iref);
 
-  METRIS_ASSERT_MSG(ipoin >= 0 && ipoin < this->npoin, 
+  METRIS_ASSERT_MSG(ipoin >= 0 && ipoin < this->npoin,
     "interpMetBack ipoin out of bounds {} < ? {}", ipoin, this->npoin);
 
   int ierro = this->interpMetBack0(ipoin, tdim, iseed, iref, algnd);
@@ -102,39 +102,39 @@ int Mesh<MFT>::interpMetBack(int ipoin, int tdim, int iseed,
   return ierro;
 }
 
-template int Mesh<MetricFieldFE>::interpMetBack(int ipoin, int tdim, int iseed, 
+template int Mesh<MetricFieldFE>::interpMetBack(int ipoin, int tdim, int iseed,
                                                  int iref, const double* algnd);
-template int Mesh<MetricFieldAnalytical>::interpMetBack(int ipoin, int tdim, int iseed, 
+template int Mesh<MetricFieldAnalytical>::interpMetBack(int ipoin, int tdim, int iseed,
                                                  int iref, const double* algnd);
 
 template<class MFT>
-int Mesh<MFT>::interpMetBack0(int ipoi0,int tdim, int iseed, int iref, 
+int Mesh<MFT>::interpMetBack0(int ipoi0,int tdim, int iseed, int iref,
                               const double*__restrict__ algnd){
 
   GETVDEPTH(this->param)
 
   if constexpr(std::is_same<MFT,MetricFieldAnalytical>::value){
     this->met.getMetPhys(DifVar::None,this->met.getSpace(),
-                         this->coord[ipoi0],this->met[ipoi0],NULL); 
+                         this->coord[ipoi0],this->met[ipoi0],NULL);
     return 0;
   }else{
 
-    //if(this->idim == 3) METRIS_THROW_MSG( 
+    //if(this->idim == 3) METRIS_THROW_MSG(
     //                                     "Metric interpolation in surface case")
 
-    const int nnode = tdim == 1 ? getnnod1(this->curdeg) 
+    const int nnode = tdim == 1 ? getnnod1(this->curdeg)
                     : tdim == 2 ? getnnod2(this->curdeg) : getnnod3(this->curdeg);
 
     const intAr2& ent2poi = this->ent2poi(tdim);
     METRIS_ASSERT_MSG(!isdeadent(iseed,ent2poi),"Dead seed passed to interpMetBack");
 
     // First time around, skip ref mismatches
-    // Second time, try localizing with no ref expectation. 
+    // Second time, try localizing with no ref expectation.
     for(int itry_ref = 0; itry_ref <= 1; itry_ref++){
 
       bool iskipped_lowdim = false;
 
-      // Do two passes: in the first, we skip lower dim points 
+      // Do two passes: in the first, we skip lower dim points
       for(int iskiplow = 0; iskiplow <= 1; iskiplow++){
         if(iskiplow == 1 && !iskipped_lowdim) break;
 
@@ -154,29 +154,29 @@ int Mesh<MFT>::interpMetBack0(int ipoi0,int tdim, int iseed, int iref,
 
           if(this->interpMetBack00(ipoi0, tdim, iref, ipseed, algnd) == 0) return 0;
 
-        }// for ii 
+        }// for ii
       } // for iskiplow
     }// for itry_ref
     return 1;
   }
 
-  // Point has been found 
-  // Update all the poi2baks of higher topological dimension 
+  // Point has been found
+  // Update all the poi2baks of higher topological dimension
 
 
 
   return 0;
 }
 
-template int Mesh<MetricFieldFE>::interpMetBack0(int ipoi0,int tdim, int iseed, 
+template int Mesh<MetricFieldFE>::interpMetBack0(int ipoi0,int tdim, int iseed,
                                      int iref, const double*__restrict__ algnd);
-template int Mesh<MetricFieldAnalytical>::interpMetBack0(int ipoi0,int tdim, 
+template int Mesh<MetricFieldAnalytical>::interpMetBack0(int ipoi0,int tdim,
                           int iseed, int iref, const double*__restrict__ algnd);
 
 
 // ipoi0 to locate of dimension pdim0 with ref constraint iref (or < 0)
 // ipseed in front mesh has been interpMetBack's in the past
-// algnd is tangent or normal for localization, as usual. 
+// algnd is tangent or normal for localization, as usual.
 template<class MFT>
 int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
                                const double*__restrict__ algnd){
@@ -184,7 +184,7 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
 
   if constexpr(std::is_same<MFT,MetricFieldAnalytical>::value){
     this->met.getMetPhys(DifVar::None,this->met.getSpace(),
-                         this->coord[ipoi0],this->met[ipoi0],NULL); 
+                         this->coord[ipoi0],this->met[ipoi0],NULL);
     return 0;
   }
 
@@ -225,7 +225,7 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
   // Otherwise, the seed is dim < tdim: it can have several refs elts of dim tdim.
   if(pdim_seed == 0){
     // This is the easiest case, because we get a link to a vertex (corner)
-    // in the back mesh. 
+    // in the back mesh.
     int ibpob = this->bak->poi2ebp(ieleb, tdim, -1, iref);
     if(ibpob < 0){
       CPRINTF1(" # could not find seed element dim {} ref {} from point {}\n",
@@ -255,8 +255,8 @@ int Mesh<MFT>::interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
     goto ieleb_initialized;
   }
 
-  // Last case is pdim_seed >= 1, iref >= 0. If tdim is boundary, we have 
-  // poi2ebp. We can use this on a vertex of the back seed. 
+  // Last case is pdim_seed >= 1, iref >= 0. If tdim is boundary, we have
+  // poi2ebp. We can use this on a vertex of the back seed.
   if(this->isboundary_tdim(tdim)){
     int nnode = getnnode(pdim_seed, this->bak->curdeg);
     for(int inode = 0; inode < nnode; inode++){
@@ -335,12 +335,12 @@ ieleb_initialized:
 
     int ipdbg = this->bak->newpoitopo(PointType::Vertex,-1,-1);
     int ibdbg = this->bak->newbpotopo(Vertex{ipdbg},0,ipdbg);
-    for(int ii = 0; ii < this->idim; ii++) 
+    for(int ii = 0; ii < this->idim; ii++)
       this->bak->coord(ipdbg,ii) = this->coord(ipoi0,ii);
 
     int ipdb2 = this->bak->newpoitopo(PointType::Vertex,-1,-1);
     this->bak->newbpotopo(Vertex{ipdb2},0,ipdb2);
-    for(int ii = 0; ii < this->idim; ii++) 
+    for(int ii = 0; ii < this->idim; ii++)
       this->bak->coord(ipdb2,ii) = coopr[ii];
 
 
@@ -361,12 +361,12 @@ ieleb_initialized:
   if(ierro != 0 && DOPRINTS2() && this->param->dbgfull){
     int ipdbg = this->bak->newpoitopo(PointType::Vertex,-1,-1);
     int ibdbg = this->bak->newbpotopo(Vertex{ipdbg},0,ipdbg);
-    for(int ii = 0; ii < this->idim; ii++) 
+    for(int ii = 0; ii < this->idim; ii++)
       this->bak->coord(ipdbg,ii) = this->coord(ipoi0,ii);
 
     int ipdb2 = this->bak->newpoitopo(PointType::Vertex,-1,-1);
     this->bak->newbpotopo(Vertex{ipdb2},0,ipdb2);
-    for(int ii = 0; ii < this->idim; ii++) 
+    for(int ii = 0; ii < this->idim; ii++)
       this->bak->coord(ipdb2,ii) = coopr[ii];
 
 
@@ -378,9 +378,9 @@ ieleb_initialized:
     writeMesh("debug-front.meshb", *(this));
   }
 
-  // Check if projected is close in the metric, then keep it. 
+  // Check if projected is close in the metric, then keep it.
   // Error LOC_ERR_ALLPOS can be caused by point actually outside domain
-  // And conversely, loc might not error out but default to 
+  // And conversely, loc might not error out but default to
   // projection on boundary, could be an error if point too far
   // (e.g. loc stuck opposite side of hole)
   METRIS_ASSERT(ieleb >= 0 && ieleb < bak->nentt(tdim));
@@ -388,7 +388,7 @@ ieleb_initialized:
     "got iref = {} ieleb = {} tdim {} ieleb ref {}", iref, ieleb, tdim, bak->ent2ref(tdim)[ieleb]);
 
 
-  
+
   const intAr2& bak2poi = bak->ent2poi(tdim);
   this->bak->met.getMetBary(AsDeg::Pk,
                             DifVar::None,
@@ -461,12 +461,12 @@ ieleb_initialized:
   if(DOPRINTS2() && len >= 0.5){
     int ipdbg = this->bak->newpoitopo(PointType::Vertex,-1,-1);
     int ibdbg = this->bak->newbpotopo(Vertex{ipdbg},0,ipdbg);
-    for(int ii = 0; ii < this->idim; ii++) 
+    for(int ii = 0; ii < this->idim; ii++)
       this->bak->coord(ipdbg,ii) = this->coord(ipoi0,ii);
 
     int ipdb2 = this->bak->newpoitopo(PointType::Vertex,-1,-1);
     this->bak->newbpotopo(Vertex{ipdb2},0,ipdb2);
-    for(int ii = 0; ii < this->idim; ii++) 
+    for(int ii = 0; ii < this->idim; ii++)
       this->bak->coord(ipdb2,ii) = coopr[ii];
 
     const int nnmet = (this->idim*(this->idim + 1))/2;
@@ -501,9 +501,9 @@ ieleb_initialized:
 
   return ierro > 0 ? 10+ierro : 0;
 }
-template int Mesh<MetricFieldFE>::interpMetBack00(int ipoi0, int tdim, 
+template int Mesh<MetricFieldFE>::interpMetBack00(int ipoi0, int tdim,
                           int iref, int ipseed,const double*__restrict__ algnd);
-template int Mesh<MetricFieldAnalytical>::interpMetBack00(int ipoi0, int tdim, 
+template int Mesh<MetricFieldAnalytical>::interpMetBack00(int ipoi0, int tdim,
                           int iref, int ipseed,const double*__restrict__ algnd);
 
 } // End namespace

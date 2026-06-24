@@ -35,6 +35,8 @@
 #include "../Adaptation/low_collapse.hxx"
 #include "../aux_badEntHandler.hxx"
 
+#include "../msh_metricCost.hxx"
+
 #include "../low_topo.hxx"
 #include <numeric>
 
@@ -578,7 +580,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
   const double alpha = 0.001;
   const double badX = 100;
-  const double lengthThreshold = sqrt(2);
+  const double lengthThreshold = 1.;
 
   // initial number of elements
   const int nentt0 = msh.nentt(tdim);
@@ -651,7 +653,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       const double quaent = itK->qentt;
       METRIS_ASSERT(quaent >= 0);
       // std::cout << "quaent = " << quaent << std::endl;
-
       iter++;
 
       #ifdef DIAGNOSIS_QUALALGO

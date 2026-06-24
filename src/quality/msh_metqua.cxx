@@ -43,6 +43,7 @@ double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
 
     for(int ientt = 0; ientt < nentt; ientt++){
       INCVDEPTH(msh.param);
+
       if(isdeadent(ientt,ent2poi)) continue;
       ncnt ++;
       double quent = 0;
