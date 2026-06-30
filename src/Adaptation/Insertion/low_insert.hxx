@@ -30,6 +30,8 @@ int insertEdge(Mesh<MFT>& msh,
                intAr1 &lerro,
                #ifdef TESTQUALITYALGO
                BadEntHandler& handler,
+               const bool lengthBased,
+               const double worsenPctg,
                #endif
                int ithrd1, int ithrd2);
 

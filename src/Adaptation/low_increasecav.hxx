@@ -100,6 +100,11 @@ template<class MFT>
 int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav,
                              int tdim, int ngrow, BadEntHandler& handler, int ithread);
 
+// Check cavity quality
+template<class MFT>
+int checkCavityQuality(Mesh<MFT> &msh, MshCavity &cav,
+                       int tdim, int ngrow, BadEntHandler& handler, const double worsenPctg, int ithread);
+
 // Tag cav.ipins's surface references if any. Used to filter in the other routines
 void aux_taginsrefs(MeshBase &msh, MshCavity &cav, int ithread);
 

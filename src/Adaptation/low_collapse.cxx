@@ -69,9 +69,15 @@ int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, [[maybe_unused]]
       if(iref1 != iref2) return INS2D_ERR_COLREF;
     }
     EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, iedl);
+    #ifdef TESTQUALITYALGO
+    constexpr bool lengthBased = false;
+    constexpr double worsenPctg = 0.;
+    #endif
     int ierro = insertEdge(msh, insertionSeed, -1, true, cav, work, lerro,
                            #ifdef TESTQUALITYALGO
                            handler,
+                           lengthBased,
+                           worsenPctg,
                            #endif
                            ithrd1, ithrd2);
     if(ierro < 0) return 0;

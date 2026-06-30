@@ -578,9 +578,9 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   const int ithrd3 = 3;
   msh.tag[ithrdfro]++;
 
-  const double alpha = 0.001;
+  const double alpha = 0.00001;
   const double badX = 100;
-  const double lengthThreshold = 1.;
+  const double lengthThreshold = sqrt(2);
 
   // initial number of elements
   const int nentt0 = msh.nentt(tdim);
@@ -595,6 +595,15 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   #else
   getmetquamesh<MFT, QuaFun::SizeShape>(msh,tdim,AsDeg::P1,AsDeg::P1,&iinva,&qmin,&qmax,&qavg,&lquae);
   #endif
+
+  lenStat lenstat0;
+  intAr2 ilned;
+  dblAr1 rlned;
+  dblAr1 lenbds = {1.0/sqrt(2), sqrt(2)};
+  getLengthEdges<MFT>(msh,tdim,-1,ilned,rlned,lenstat0);
+  CPRINTF1(" - Length qua short = {}\n",lenstat0.qua_short);
+  CPRINTF1(" -            long  = {}\n",lenstat0.qua_long);
+  double lenqua_short_max = (lenstat0.qua_short + lenstat0.qua_long)/2;
 
   std::vector<int> sortedIDs(nentt0);
   std::iota(sortedIDs.begin(), sortedIDs.end(), 0);
@@ -637,6 +646,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
   int ntrySmoothing = 0; int nSuccessSmoothing = 0;
   int ntryInsert = 0; int nSuccessInsert = 0;
+  int ntryInsertLength = 0; int nSuccessInsertLength = 0;
   int ntryCollapse = 0; int nSuccessCollapse = 0;
 
   int iter = 0;
@@ -649,9 +659,12 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
     for (auto itK = handlerTopX.K.begin(); itK != handlerTopX.K.end(); itK++){
 
+      didOperation = false;
+
       int ientt = itK->ientt;
       const double quaent = itK->qentt;
       METRIS_ASSERT(quaent >= 0);
+      // std::cout << "ientt = " << ientt << std::endl;
       // std::cout << "quaent = " << quaent << std::endl;
       iter++;
 
@@ -731,297 +744,111 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       // 2. Collapse or Insert
       // ----------------------------- //
 
-      // we'll compute edge lengths in ientt and
-      // use it to decide if we do collapse or insertion
-
-      const int nedgl = tdim * (tdim+1)/2;
+      const int nedgl = tdim * (tdim + 1) / 2;
       const intAr2& ent2poi = msh.ent2poi(tdim);
 
       const intAr2 lnoed(nedgl, 2,
-                         tdim == 1 ? lnoed1[0] :
-                         tdim == 2 ? lnoed2[0] :
-                         lnoed3[0]);
+                        tdim == 1 ? lnoed1[0] :
+                        tdim == 2 ? lnoed2[0] :
+                                    lnoed3[0]);
 
-      double shortestLen = 1e30; int iedMin = -1;
-      double longestLen  = 0;    int iedMax = -1;
+      double shortestLen = 1e30; int iedMin = -1; double longestLen = 0; int iedMax = -1;
 
-      dblAr1 edgeLengths(nedgl);
+      struct EdgeOpCandidate {
+        int ied;
+        double len;
+        double dev;
+        bool doInsert;
+      };
 
-      for (int ied = 0; ied < nedgl; ied++){
+      std::vector<EdgeOpCandidate> candidates;
+      candidates.reserve(nedgl);
+
+      const double lenLowerBound = 1.0 / lengthThreshold;
+      const double lenUpperBound = lengthThreshold;
+
+      for (int ied = 0; ied < nedgl; ied++) {
+
         double sz[2];
-        double elen = getlenedg_geosz<MFT,gdim,ideg>(msh,ientt,tdim,ied,sz);
-        edgeLengths[ied] = elen;
+        double elen = getlenedg_geosz<MFT,gdim,ideg>(msh, ientt, tdim, ied, sz);
 
-        if (elen > longestLen)  { longestLen  = elen; iedMax = ied; }
+        if (elen > longestLen)  { longestLen = elen; iedMax = ied; }
         if (elen < shortestLen) { shortestLen = elen; iedMin = ied; }
+
+        if (elen > lenUpperBound) {
+          candidates.push_back({ied, elen, std::log(elen), true});
+        }
+        else if (elen < lenLowerBound) {
+          candidates.push_back({ied, elen, std::log(1.0 / elen), false});
+        }
       }
 
-      if (shortestLen >= lengthThreshold
-          #ifdef DIAGNOSIS_QUALALGO
-          && !(statusSmoo || statusIns || statusColl)
-          #endif
-         ){
+      std::sort(candidates.begin(), candidates.end(),
+                [](const EdgeOpCandidate& a, const EdgeOpCandidate& b) {
+                  return a.dev > b.dev;
+                });
 
-        // all edges longer than long threshold, insert in longest
+      for (const EdgeOpCandidate& cand : candidates) {
 
-        // ----------------------------- //
-        //  Insertion in longest edge
-        // ----------------------------- //
+        const int ied = cand.ied;
 
-        ntryInsert++;
-        #ifdef DIAGNOSIS_QUALALGO
-        tryIns = 1;
-        #endif
+        if (cand.doInsert) {
 
-        INCVDEPTH(msh.param);
+          INCVDEPTH(msh.param);
 
-        EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, iedMax);
-        int ierro = insertEdge(msh,insertionSeed,0,false,
-                               cav,work,lcaverr,handlerTopX,ithrd1,ithrd2);
+          ntryInsert++;
 
-        if (ierro <= 0){
-          // success
-          smooStreak = 0;
-          nSuccessInsert++;
-          didOperation = true;
-          msh.poicstr[cav.ipins] = false;
-          handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
-           #ifdef DIAGNOSIS_QUALALGO
-          statusSmoo = 0;
-          statusIns = 1;
-          statusColl = 0;
-          // goto LOGSTATUS;
-          #else
-          break;
-          #endif
+          EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, ied);
+          int ierro = insertEdge(msh, insertionSeed, lenqua_short_max, false,
+                                cav, work, lcaverr, handlerTopX,false,0,
+                                ithrd1, ithrd2);
+
+          if (ierro <= 0) {
+            didOperation = true;
+            nSuccessInsert++;
+            msh.poicstr[cav.ipins] = false;
+            break;
+          }
+
+          // try a length-based insertion with an upper bound for quality worsening
+          bool lengthBased = true;
+          double worsenPctg = 20.;
+          ierro = insertEdge(msh, insertionSeed, lenqua_short_max, false,
+                             cav, work, lcaverr, handlerTopX, lengthBased, worsenPctg,
+                             ithrd1, ithrd2);
+
+          ntryInsertLength++;
+
+          if (ierro <= 0) {
+            didOperation = true;
+            nSuccessInsertLength++;
+            msh.poicstr[cav.ipins] = false;
+            break;
+          }
+
+        } else {
+
+          INCVDEPTH(msh.param);
+
+          ntryCollapse++;
+
+          int ierro = collapseEdge<MFT>(msh, tdim, ientt, ied, 0,
+                                        cav, work, lcaverr, handlerTopX,
+                                        ithrd1, ithrd2, ithrd3);
+
+          if (ierro == 0) {
+            didOperation = true;
+            nSuccessCollapse++;
+            break;
+          }
         }
-        else {
-          // CPRINTF2(" # longest-edge insertion failed ierro = {}\n", ierro);
-
-          // steiner fallback
-          // TODO: for now don't do this.
-          // TODO: if we want to do this, needs to be modified to inform the handler
-          // TODO: about deleted/new entities, similar to insertEdge
-          // const bool doSteiner = false;
-
-          // if (doSteiner && tdim <= 2 && insertionSeed.tdimp <= tdim && insertionSeed.tdimp < msh.get_tdim()){
-
-          //   CPRINTF1(" -> try Steiner point insertion\n");
-          //   int ierro_Steiner = insertSteiner(msh,insertionSeed,cav,work,lcaverr,ithrd1,ithrd2);
-
-          //   if (ierro_Steiner == -1){
-          //     CPRINTF1(" - insertSteiner succeeded, retry edge split\n");
-
-          //     // rebuild the cavity around the original edge and retry insertEdge
-          //     int iopen;
-          //     intAr1 dum;
-          //     shell(msh, insertionSeed.ipedg[0], insertionSeed.ipedg[1],
-          //           tdim, ientt, dum, dum, cav.lctet, &iopen);
-          //     METRIS_ASSERT(cav.lctet.get_n() > 0);
-
-          //     // retry insertion
-          //     ierro = insertEdge(msh,insertionSeed,0,false,
-          //                       cav,work,lcaverr,handlerTopX,ithrd1,ithrd2);
-
-          //     if (ierro <= 0){
-          //       // success
-          //       didOperation = true;
-          //       msh.poicstr[cav.ipins] = false;
-          //       handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);;
-          //       break;
-          //     }
-          //     else {
-          //       CPRINTF2(" # retry after Steiner failed ierro = %d\n", ierro);
-          //     }
-            // }
-            // else {
-            //   CPRINTF1(" # insertSteiner failed ierro %d\n", ierro_Steiner);
-            // }
-          // }
-        }
-
-        // ----------------------------- //
-        //  End insertion in longest edge
-        // ----------------------------- //
-
       }
-      else if (longestLen <= 1./lengthThreshold
-               #ifdef DIAGNOSIS_QUALALGO
-               && !(statusSmoo || statusIns || statusColl)
-               #endif
-              ){
 
-        // all edges shorter than short threshold, collapse shortest
-
-        // ----------------------------- //
-        //  Collapse shortest edge
-        // ----------------------------- //
-
-        ntryCollapse++;
-        #ifdef DIAGNOSIS_QUALALGO
-        tryColl = 1;
-        #endif
-
-        INCVDEPTH(msh.param);
-
-        int ierro = collapseEdge<MFT>(msh,tdim,ientt,iedMin,0,cav,work,lcaverr,handlerTopX,ithrd1,ithrd2,ithrd3);
-
-        if (ierro == 0){
-          smooStreak = 0;
-          nSuccessCollapse++;
-          didOperation = true;
-          // std::cout << "Successful collapse in ientt = " << ientt << ", ied = " << iedMin << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
-          handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
-           #ifdef DIAGNOSIS_QUALALGO
-          statusSmoo = 0;
-          statusIns = 0;
-          statusColl = 1;
-          // goto LOGSTATUS;
-          #else
-          break;
-          #endif
-        }
-        else{
-          // CPRINTF2(" # shortest-edge collapse failed ierro = {}\n", ierro);
-        }
-
-        // ----------------------------- //
-        //  End collapse shortest edge
-        // ----------------------------- //
-
-      }
-      else if (log(longestLen) >= log(1./shortestLen)
-               #ifdef DIAGNOSIS_QUALALGO
-               && !(statusSmoo || statusColl || statusIns)
-               #endif
-              ){
-
-        // longest edge deviates from one more than shortest edge
-
-        // ----------------------------- //
-        //  Insertion in longest edge
-        // ----------------------------- //
-
-        ntryInsert++;
-        #ifdef DIAGNOSIS_QUALALGO
-        tryIns = 1;
-        #endif
-
-        INCVDEPTH(msh.param);
-
-        EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, iedMax);
-        int ierro = insertEdge(msh,insertionSeed,0,false,
-                               cav,work,lcaverr,handlerTopX,ithrd1,ithrd2);
-
-        if (ierro <= 0){
-          // success
-          smooStreak = 0;
-          nSuccessInsert++;
-          didOperation = true;
-          msh.poicstr[cav.ipins] = false;
-          // std::cout << "Successful insertion in ientt = " << ientt << ", ied = " << iedMax << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
-          handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
-           #ifdef DIAGNOSIS_QUALALGO
-          statusSmoo = 0;
-          statusIns = 1;
-          statusColl = 0;
-          // goto LOGSTATUS;
-          #else
-          break;
-          #endif
-        }
-        else {
-          // CPRINTF2(" # longest-edge insertion failed ierro = {}\n", ierro);
-
-          // steiner fallback
-          // TODO: for now don't do this.
-          // TODO: if we want to do this, needs to be modified to inform the handler
-          // TODO: about deleted/new entities, similar to insertEdge
-          // const bool doSteiner = false;
-
-          // if (doSteiner && tdim <= 2 && insertionSeed.tdimp <= tdim && insertionSeed.tdimp < msh.get_tdim()){
-
-          //   CPRINTF1(" -> try Steiner point insertion\n");
-          //   int ierro_Steiner = insertSteiner(msh,insertionSeed,cav,work,lcaverr,ithrd1,ithrd2);
-
-          //   if (ierro_Steiner == -1){
-          //     CPRINTF1(" - insertSteiner succeeded, retry edge split\n");
-
-          //     // rebuild the cavity around the original edge and retry insertEdge
-          //     int iopen;
-          //     intAr1 dum;
-          //     shell(msh, insertionSeed.ipedg[0], insertionSeed.ipedg[1],
-          //           tdim, ientt, dum, dum, cav.lctet, &iopen);
-          //     METRIS_ASSERT(cav.lctet.get_n() > 0);
-
-          //     // retry insertion
-          //     ierro = insertEdge(msh,insertionSeed,0,false,
-          //                       cav,work,lcaverr,handlerTopX,ithrd1,ithrd2);
-
-          //     if (ierro <= 0){
-          //       // success
-          //       didOperation = true;
-          //       msh.poicstr[cav.ipins] = false;
-          //       handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);;
-          //       break;
-          //     }
-          //     else {
-          //       CPRINTF2(" # retry after Steiner failed ierro = %d\n", ierro);
-          //     }
-            // }
-            // else {
-            //   CPRINTF1(" # insertSteiner failed ierro %d\n", ierro_Steiner);
-            // }
-          // }
-        }
-
-        // ----------------------------- //
-        //  End insertion in longest edge
-        // ----------------------------- //
-      }
-      else if (1
-              #ifdef DIAGNOSIS_QUALALGO
-              && !(statusSmoo || statusIns || statusColl)
-              #endif
-              ){
-
-        // shortest edge deviates from one more than longest edge
-
-        // ----------------------------- //
-        //  Collapse shortest edge
-        // ----------------------------- //
-
-        ntryCollapse++;
-        #ifdef DIAGNOSIS_QUALALGO
-        tryColl = 1;
-        #endif
-
-        INCVDEPTH(msh.param);
-
-        int ierro = collapseEdge<MFT>(msh,tdim,ientt,iedMin,0,cav,work,lcaverr,handlerTopX,ithrd1,ithrd2,ithrd3);
-
-        if (ierro == 0){
-          smooStreak = 0;
-          nSuccessCollapse++;
-          didOperation = true;
-          // std::cout << "Successful collapse in ientt = " << ientt << ", ied = " << iedMin << ", edg (" << ip1 << "," << ip2 << ")" << std::endl;
-          handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
-           #ifdef DIAGNOSIS_QUALALGO
-          statusSmoo = 0;
-          statusIns = 0;
-          statusColl = 1;
-          // goto LOGSTATUS;
-          #else
-          break;
-          #endif
-        }
-        else{
-          CPRINTF2(" # shortest-edge collapse failed ierro = {}\n", ierro);
-        }
-
-        // ----------------------------- //
-        //  End collapse shortest edge
-        // ----------------------------- //
+      if (didOperation) {
+        smooStreak = 0;
+        handlerTopX.updateK(ientt, ent2ent, ent2tag,
+                            msh.tag[ithrd1] + 1, ithrd1);
+        break;
       }
 
       // ----------------------------- //
@@ -1029,9 +856,9 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       // ----------------------------- //
       double quaTryThreshold;
       #ifdef STEPDISTANCE
-      quaTryThreshold = 0.025;
+      quaTryThreshold = 0.01;
       #else
-      quaTryThreshold = 0.025;
+      quaTryThreshold = 0.01;
       #endif
       if (quaent < quaTryThreshold){
         ntrySmoothing++;
@@ -1078,8 +905,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
       if (statusSmoo || statusIns || statusColl ) break;
       #endif
-
-      didOperation = false;
     }
     if (!didOperation /* || smooStreak >= 2500 || iter >= 10000 */) break;
   }
@@ -1088,6 +913,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   std::cout << "-- END adaptMeshQuality tdim = " << tdim << std::endl;
   std::cout << "-- ntrySmoothing = " << ntrySmoothing << ",  nSuccessSmoothing = " << nSuccessSmoothing << std::endl;
   std::cout << "-- ntryInsert = " << ntryInsert << ",  nSuccessInsert = " << nSuccessInsert << std::endl;
+  std::cout << "-- ntryInsertLength = " << ntryInsertLength << ",  nSuccessInsertLength = " << nSuccessInsertLength << std::endl;
   std::cout << "-- ntryCollapse = " << ntryCollapse << ",  nSuccessCollapse = " << nSuccessCollapse << std::endl;
 
   msh.cleanup();
