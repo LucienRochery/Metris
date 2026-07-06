@@ -123,6 +123,8 @@ private:
 
   int nbpo0;
 
+  std::fstream foutputAdaptStats;
+
 #ifdef OUTPUTTIMEANDUNITINFO
   bool printUnit;
   std::fstream foutputTimeUnit;

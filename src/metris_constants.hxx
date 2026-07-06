@@ -11,11 +11,11 @@
 
 // #define OUTPUTTIMEANDUNITINFO
 
-// #define TESTQUALITYALGO     // enable size aware quality-based algorithm
+#define TESTQUALITYALGO     // enable size aware quality-based algorithm
 
 #ifdef TESTQUALITYALGO
 
-// #define STEPDISTANCE // define to use step distance objective function; otherwise the size aware quality is used
+#define STEPDISTANCE // define to use step distance objective function; otherwise the size aware quality is used
 
 #define INTQUALINRIEMSPACE  // do quality error integration in Riemannian space (i.e. include sqrt(det M) in the volume element)
 #define CAVGROWTH           // enable quality-based cavity growth

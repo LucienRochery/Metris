@@ -285,6 +285,10 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     progressiveAdapt = opt.m["progressiveAdapt"].template as<bool>();
   }
 
+  if(opt.count("MOESS_adapt_it")){
+    MOESS_adapt_it = opt.m["MOESS_adapt_it"].template as<int>();
+  }
+
   if(opt.count("sclmet")){
     setMetricScale(opt.m["sclmet"].template as<double>());
   }

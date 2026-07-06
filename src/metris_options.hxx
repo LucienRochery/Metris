@@ -142,7 +142,12 @@ struct MetrisOptions{
       ("progressiveAdapt" , po::value<bool>(),
                     "For qual-based algo, must be used if target metric too different from intial mesh");
 
-    // ----------------- Generic flags. Used for quick debugging
+    // ----------------- Progressive adaptation
+    s.add_options()
+      ("MOESS_adapt_it" , po::value<int>(),
+                    "To easily append this number to any outputs and do not overwrite them");
+
+                    // ----------------- Generic flags. Used for quick debugging
     s.add_options()
       ("iflag1", po::value<int>(), "Generic integer flag")
       ("iflag2", po::value<int>(), "Generic integer flag")

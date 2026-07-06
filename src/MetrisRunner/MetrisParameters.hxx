@@ -145,6 +145,9 @@ depending on whether they should be serialized.
     /* Approaches the target metric scale slowly, sort of MOESS-like */ \
     /* For qual-based algo, must be used if the target metric is too different from intial mesh */ \
     FIELD(bool, progressiveAdapt, false) \
+    /* ----------------- MOESS adaptive iteration */ \
+    /* To easily append this number to any outputs and do not overwrite them */ \
+    FIELD(int, MOESS_adapt_it, -1) \
 
 
 #define METRIS_PARAMETERS_OTHERFIELDS_NOJSON \

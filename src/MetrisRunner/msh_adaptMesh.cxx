@@ -813,11 +813,12 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           // try a length-based insertion with an upper bound for quality worsening
           bool lengthBased = true;
           double worsenPctg = 20.;
+
+          ntryInsertLength++;
+
           ierro = insertEdge(msh, insertionSeed, lenqua_short_max, false,
                              cav, work, lcaverr, handlerTopX, lengthBased, worsenPctg,
                              ithrd1, ithrd2);
-
-          ntryInsertLength++;
 
           if (ierro <= 0) {
             didOperation = true;
@@ -856,9 +857,9 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       // ----------------------------- //
       double quaTryThreshold;
       #ifdef STEPDISTANCE
-      quaTryThreshold = 0.01;
+      quaTryThreshold = 0.0025;
       #else
-      quaTryThreshold = 0.01;
+      quaTryThreshold = 0.0025;
       #endif
       if (quaent < quaTryThreshold){
         ntrySmoothing++;
@@ -915,6 +916,16 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   std::cout << "-- ntryInsert = " << ntryInsert << ",  nSuccessInsert = " << nSuccessInsert << std::endl;
   std::cout << "-- ntryInsertLength = " << ntryInsertLength << ",  nSuccessInsertLength = " << nSuccessInsertLength << std::endl;
   std::cout << "-- ntryCollapse = " << ntryCollapse << ",  nSuccessCollapse = " << nSuccessCollapse << std::endl;
+
+  foutputAdaptStats << std::setw(30) << ntrySmoothing
+                    << std::setw(30) << nSuccessSmoothing
+                    << std::setw(30) << ntryInsert
+                    << std::setw(30) << nSuccessInsert
+                    << std::setw(30) << ntryInsertLength
+                    << std::setw(30) << nSuccessInsertLength
+                    << std::setw(30) << ntryCollapse
+                    << std::setw(30) << nSuccessCollapse
+                    << std::endl;
 
   msh.cleanup();
 
