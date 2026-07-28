@@ -812,7 +812,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
           // try a length-based insertion with an upper bound for quality worsening
           bool lengthBased = true;
-          double worsenPctg = 20.;
+          double worsenPctg = 0.;
 
           ntryInsertLength++;
 
@@ -857,9 +857,9 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       // ----------------------------- //
       double quaTryThreshold;
       #ifdef STEPDISTANCE
-      quaTryThreshold = 0.0025;
+      quaTryThreshold = 0.01;
       #else
-      quaTryThreshold = 0.0025;
+      quaTryThreshold = 0.01;
       #endif
       if (quaent < quaTryThreshold){
         ntrySmoothing++;

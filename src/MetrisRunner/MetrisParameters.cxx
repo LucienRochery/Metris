@@ -95,7 +95,7 @@ void to_json(nlohmann::json& jj, const MetrisParametersData& param) {
 void from_json(const nlohmann::json& jj, MetrisParametersData& param) {
 
   #define FIELD(type, name, default_value) \
-  jj.at(#name).get_to(param.name);
+  if(jj.contains(#name)) jj.at(#name).get_to(param.name);
   METRIS_PARAMETER_FIELDS_JSON
   #undef FIELD
 
@@ -376,6 +376,21 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("opt-power")){
     opt_power = opt.m["opt-power"].as<int>();
   }
+  if(opt.count("step-distance-p")){
+    step_distance_p = opt.m["step-distance-p"].as<double>();
+  }
+  if(opt.count("step-distance-regularization")){
+    step_distance_regularization =
+        opt.m["step-distance-regularization"].as<double>();
+  }
+  if(opt.count("step-distance-barrier-rho0")){
+    step_distance_barrier_rho0 =
+        opt.m["step-distance-barrier-rho0"].as<double>();
+  }
+  if(opt.count("step-distance-barrier-beta")){
+    step_distance_barrier_beta =
+        opt.m["step-distance-barrier-beta"].as<double>();
+  }
   if(opt.count("opt-smoo-niter")){
     opt_smoo_niter = opt.m["opt-smoo-niter"].as<int>();
   }
@@ -431,6 +446,14 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
 
 void MetrisParameters::checkParameters(){
   METRIS_ENFORCE_MSG(abs(opt_power) == 1, "opt_power can be set to -1 or 1");
+  METRIS_ENFORCE_MSG(step_distance_p > 0.0,
+                     "step_distance_p must be positive");
+  METRIS_ENFORCE_MSG(step_distance_regularization > 0.0,
+                     "step_distance_regularization must be positive");
+  METRIS_ENFORCE_MSG(step_distance_barrier_rho0 >= 0.0,
+                     "step_distance_barrier_rho0 must be nonnegative");
+  METRIS_ENFORCE_MSG(step_distance_barrier_beta >= 0.0,
+                     "step_distance_barrier_beta must be nonnegative");
   METRIS_ENFORCE(geo_abstoledg >= 0.0);
   METRIS_ENFORCE(geo_lentolfac >= 1.0);
   METRIS_ENFORCE_MSG(usrTarDeg >= 1, "Degree < 1 provided through tardeg.");

@@ -20,6 +20,15 @@
 
 namespace Metris{
 
+template<typename T>
+T step_distance_power_from_squared(const T& distance2,
+                                   double power,
+                                   double regularization){
+  const T eps2 = T(regularization*regularization);
+  return pow(distance2 + eps2, power/2.0)
+       - T(std::pow(regularization,power));
+}
+
 // For some special barys (nodes), met is already known -> pass it in
 template <class MFT, int gdim, int tdim, typename ftype>
 ftype quafun_stepDistance(Mesh<MFT> &msh,
@@ -149,17 +158,21 @@ ftype quafun_stepDistance(Mesh<MFT> &msh,
   geteigsym<tdim,ftype>(Ap, eigval, eigvec);
 
   // ------------------------------------------------------------
-  // phi = sum_i log(lambda_i)^2.
+  // phi = ||log(A)||_F^p. A small smooth norm regularization is used so
+  // p < 2 remains differentiable at the ideal state A = I.
   // ------------------------------------------------------------
-  ftype phi = ftype(0);
+  ftype distance2 = ftype(0);
 
   for(int i = 0; i < tdim; i++){
     METRIS_ENFORCE(eigval[i] > ftype(0));
     ftype li = log(eigval[i]);
-    phi += li*li;
+    distance2 += li*li;
   }
 
-  return phi;
+  return step_distance_power_from_squared(
+      distance2,
+      msh.param->step_distance_p,
+      msh.param->step_distance_regularization);
 }
 
 
@@ -204,15 +217,16 @@ void get_gradN_P1_regular(int ivar, double* gradN){
   for(int i = 0; i < tdim; i++) gradN[i] = 0.0;
 
   if(ivar == 0){
-    for(int a = 0; a < tdim; a++){
-      for(int i = 0; i < tdim; i++){
-        gradN[i] -= Constants::invtJ_0[hana::type_c<double>][tdim][a*tdim+i];
+    for(int i = 0; i < tdim; i++){
+      for(int k = 0; k < tdim; k++){
+        gradN[i] -= Constants::invtJ_0[hana::type_c<double>][tdim][i*tdim+k];
       }
     }
   }else{
-    const int row = ivar - 1;
+    const int column = ivar - 1;
     for(int i = 0; i < tdim; i++){
-      gradN[i] = Constants::invtJ_0[hana::type_c<double>][tdim][row*tdim+i];
+      gradN[i] =
+          Constants::invtJ_0[hana::type_c<double>][tdim][i*tdim+column];
     }
   }
 }
@@ -271,6 +285,8 @@ template<int gdim, int tdim, typename T>
 void eval_phi_grad_impl(const T* Jreg_T,
                         const T* met,
                         const T* gradN,
+                        double power,
+                        double regularization,
                         T* phi,
                         T* dphi){
 
@@ -303,15 +319,22 @@ void eval_phi_grad_impl(const T* Jreg_T,
   T loglam[tdim];
   T invloglam[tdim];
 
-  *phi = T(0);
+  T distance2 = T(0);
 
   for(int i = 0; i < tdim; i++){
     loglam[i] = log(eigval[i]);
     invloglam[i] = loglam[i]/eigval[i];
-    *phi += loglam[i]*loglam[i];
+    distance2 += loglam[i]*loglam[i];
   }
 
+  *phi = step_distance_power_from_squared(
+      distance2,power,regularization);
+
   if(dphi == NULL) return;
+
+  const T eps2 = T(regularization*regularization);
+  const T power_scale = T(power/2.0)
+      *pow(distance2 + eps2,power/2.0 - 1.0);
 
   // A^{-1} log(A)
   T AinvlogA[tdim*tdim];
@@ -342,7 +365,9 @@ void eval_phi_grad_impl(const T* Jreg_T,
       const int imet = symidx_met<gdim,T>(a,b);
       dphi[a] += met[imet]*u[b];
     }
-    dphi[a] *= T(4);
+    // The final factor is (p/2)(distance2 + eps^2)^(p/2 - 1)
+    // times the p=2 derivative of distance2.
+    dphi[a] *= T(4)*power_scale;
   }
 }
 
@@ -448,6 +473,8 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
     ftype phi;
     eval_phi_grad_impl<gdim,tdim,ftype>(
         Jreg_T_f, met_f, NULL,
+        msh.param->step_distance_p,
+        msh.param->step_distance_regularization,
         &phi, NULL);
 
     return phi;
@@ -475,6 +502,8 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
 
   eval_phi_grad_impl<gdim,tdim,ftype>(
       Jreg_T_f, met_f, gradN_f,
+      msh.param->step_distance_p,
+      msh.param->step_distance_regularization,
       &phi, dphi);
 
   for(int i = 0; i < gdim; i++){
@@ -526,6 +555,8 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
 
     eval_phi_grad_impl<gdim,tdim,S>(
         Jreg_TS, metS, gradNS,
+        msh.param->step_distance_p,
+        msh.param->step_distance_regularization,
         &phiS, dphiS);
 
     for(int i = 0; i < gdim; i++){

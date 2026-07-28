@@ -949,11 +949,8 @@ double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, Qua
     int nmov  = 0;
 
     const int ipins = cav.ipins;
-
-    // TODO:
-    // skip if boundary point
-    // int ib = msh.poi2bpo[ipoin];
-    // if(ib >= 0) continue;
+    quaCav1 = quaCav0;
+    quaMaxCav1 = quaMaxCav0;
 
     CPRINTF1(" - smoo cavity for insertion pt {} \n", ipins);
     int ierro = 0;
@@ -967,7 +964,13 @@ double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, Qua
     double qnrm0, qmax0, qnrm1, qmax1;
     try{
 
-      ierro = smoocavdiff<MFT,idim,ideg>(msh,cav,quaCav1,quaMaxCav1,iquaf,ithrd1);
+      int ibpoin = msh.poi2bpo[ipins];
+      if(ibpoin >= 0){
+        int cadDim = msh.bpo2ibi(ibpoin,1);
+        ierro = smoocavdiff_boundary<MFT,idim,ideg>(msh,cav,cadDim,quaCav1,quaMaxCav1,iquaf,ithrd1);
+      }else{
+        ierro = smoocavdiff<MFT,idim,ideg>(msh,cav,quaCav1,quaMaxCav1,iquaf,ithrd1);
+      }
 
       // std::cout << "In smoothCavity0" << std::endl;
       // std::cout << "quaCav1 = " << quaCav1 << std::endl;

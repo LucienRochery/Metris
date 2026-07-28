@@ -76,5 +76,12 @@ template<class MetricFieldType, int idim, int ideg>
 int smoocavdiff(Mesh<MetricFieldType>& msh, MshCavity& cav,
                    double& quaCav1, double& quaMaxCav1,
                    QuaFun iquaf, int ithread);
+
+// boundary variant of smoocavdiff
+template<class MetricFieldType, int idim, int ideg>
+int smoocavdiff_boundary(Mesh<MetricFieldType>& msh, MshCavity& cav,
+                         const int cadDim,
+                         double& quaCav1, double& quaMaxCav1,
+                         QuaFun iquaf, int ithread);
 } // end namespace
 #endif

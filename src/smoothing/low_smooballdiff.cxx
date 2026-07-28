@@ -27,6 +27,9 @@ Simplest possible approach.
 #include "../utils/mprintf.hxx"
 #include "../utils/fmt_formatters.hxx"
 
+#include <cstdlib>
+#include <fstream>
+
 namespace Metris{
 
 // inorm <= infi norm , p > 0 L^p norm (over ball)
@@ -1356,6 +1359,63 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
       goto cleanup;
     }
 
+    // Recompute after restoring xopt.
+    quaCav1 = 0;
+    quaMaxCav1 = -1.0e30;
+    iinva = false;
+    for(const int ienttCav : lcent){
+      int ent2pol[4];
+      for(int jj = 0; jj < tdim + 1; jj++){
+        const int ienei = ent2ent(ienttCav,jj);
+        if(ienei >= 0 && ent2tag(ithread,ienei) >= msh.tag[ithread]) continue;
+
+        if constexpr (tdim == 2){
+          ent2pol[0] = ipins;
+          ent2pol[lnoed2[0][0]] = ent2poi(ienttCav,lnoed2[jj][0]);
+          ent2pol[lnoed2[0][1]] = ent2poi(ienttCav,lnoed2[jj][1]);
+
+          if(ent2pol[1] == ipins || ent2pol[2] == ipins) continue;
+
+          ent2poi(tmpEntt,0) = ent2pol[0];
+          ent2poi(tmpEntt,1) = ent2pol[1];
+          ent2poi(tmpEntt,2) = ent2pol[2];
+
+          double meas;
+          if(!isvalideltP1<2,2>(msh, tmpEntt, NULL, &meas)){
+            iinva = true;
+            break;
+          }
+        }else{
+          ent2pol[0] = ipins;
+          ent2pol[lnofa3[0][0]] = ent2poi(ienttCav, lnofa3[jj][0]);
+          ent2pol[lnofa3[0][1]] = ent2poi(ienttCav, lnofa3[jj][1]);
+          ent2pol[lnofa3[0][2]] = ent2poi(ienttCav, lnofa3[jj][2]);
+
+          if(ent2pol[1] == ipins || ent2pol[2] == ipins || ent2pol[3] == ipins) continue;
+
+          ent2poi(tmpEntt,0) = ent2pol[0];
+          ent2poi(tmpEntt,1) = ent2pol[1];
+          ent2poi(tmpEntt,2) = ent2pol[2];
+          ent2poi(tmpEntt,3) = ent2pol[3];
+
+          double meas;
+          if(!isvalideltP1<3,3>(msh, tmpEntt, NULL, &meas)){
+            iinva = true;
+            break;
+          }
+        }
+
+        double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,tmpEntt,1.);
+        quaCav1 += quael;
+        quaMaxCav1 = MAX(quaMaxCav1, quael);
+      }
+      if(iinva) break;
+    }
+    if(iinva){
+      CPRINTF1(" # smoocavdiff final xopt quality recompute invalid\n");
+      goto cleanup;
+    }
+
     // CPRINTF1(" - Newton update initial quality avg {:15.7e} "
     //                       "max {:15.7e} \n",*qnrm0,*qmax0);
     // CPRINTF1(" -                 final quality avg {:15.7e} "
@@ -1438,6 +1498,480 @@ template int smoocavdiff<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical>&
                    QuaFun iquaf, int ithread);\
 template int smoocavdiff<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>& msh,\
                    MshCavity& cav, \
+                   double& quaCav1, double& quaMaxCav1, \
+                   QuaFun iquaf, int ithread);
+#define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
+#include BOOST_PP_LOCAL_ITERATE()
+
+// =============================================================================================== //
+// =============================================================================================== //
+
+template<class MFT, int idim, int ideg>
+int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
+                         double& quaCav1, double& quaMaxCav1,
+                         QuaFun iquaf, int ithread){
+
+  GETVDEPTH(msh.param);
+
+  constexpr int tdim = idim;
+  constexpr int gdim = idim;
+
+  METRIS_ASSERT(cadDim == 1 || cadDim == 2);
+
+  if(cadDim != 1){
+    CPRINTF1(" # smoocavdiff_boundary only implemented for CAD edges for now\n");
+    return 1;
+  }
+
+  const intAr1& lcent = cav.lcent(tdim);
+  const intAr2& ent2ent = msh.ent2ent(tdim);
+  const int tmpEntt = msh.nentt(tdim)-1;
+        intAr2& ent2poi = msh.ent2poi(tdim);
+        intAr2& ent2tag = msh.ent2tag(tdim);
+
+  const int ipins = cav.ipins;
+
+  CPRINTF1("-- START smoocavdiff_boundary ipins = {} ncav {}\n",ipins,lcent.get_n());
+
+  msh.tag[ithread]++;
+  for (int ienttCav : lcent) ent2tag(ithread,ienttCav) = msh.tag[ithread];
+
+  constexpr int nnmet = (idim*(idim+1))/2;
+  constexpr int nhess = nnmet;
+
+  const auto quafun = get_quafun<MFT,gdim,tdim>(iquaf);
+  const auto d_quafun = get_d_quafun<MFT,gdim,tdim>(iquaf);
+
+  const int ibpoin = msh.poi2bpo[ipins];
+  METRIS_ASSERT(ibpoin >= 0);
+  METRIS_ASSERT(msh.bpo2ibi(ibpoin,0) == ipins);
+  METRIS_ASSERT(msh.bpo2ibi(ibpoin,1) == 1);
+
+  const int iedins = msh.bpo2ibi(ibpoin,2);
+  METRIS_ASSERT(iedins >= 0 && iedins < msh.nedge);
+  const int irefins = msh.edg2ref[iedins];
+  ego cadEdge = msh.CAD.cad2edg[irefins];
+
+  double range[2];
+  int iperi;
+  int ierro = 0;
+  ierro = EG_getRange(cadEdge,range,&iperi);
+  METRIS_ASSERT_MSG(ierro == EGADS_SUCCESS, "EG_getRange failed estat={}", ierro);
+  if(range[0] > range[1]){
+    double tmp = range[0];
+    range[0] = range[1];
+    range[1] = tmp;
+  }
+
+  int miter1 = MAX(1,msh.param->iflag1);
+
+  const double ftol = 1.0e-2;
+
+  constexpr bool inBoundary = true;
+  constexpr int optDimension = 1;
+  newton_drivertype_args<optDimension> nargs(msh.param);
+  nargs.stpmin = 1.0e-6;
+  nargs.wlfc1 = 0.1;
+  nargs.wlfc2 = 10.0;
+  nargs.ratnew= 0.5;
+  nargs.maxit = 50;
+  nargs.ftol  = ftol;
+
+  int iflag = 0, ihess;
+  bool iinva;
+  double tcur[1], coor0[idim], met0[nnmet], fcur;
+  double t0 = msh.bpo2rbi(ibpoin,0);
+  double d1t[1] = {0.};
+  double d2t[1] = {0.};
+
+  for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipins,ii);
+  for(int ii = 0; ii < nnmet;ii++) met0[ii]  = msh.met(ipins,ii);
+  nargs.xopt[0] = t0;
+
+  std::ofstream dbg;
+  if(const char* dbgfile = std::getenv("METRIS_SMOOCAVDIFF_BOUNDARY_TRACE")){
+    dbg.open(dbgfile,std::ios::app);
+    dbg << "smoocavdiff_boundary start"
+        << " ipins " << ipins
+        << " cadDim " << cadDim
+        << " iedins " << iedins
+        << " irefins " << irefins
+        << " ncav " << lcent.get_n()
+        << " range [" << range[0] << " " << range[1] << "]"
+        << " periodic " << iperi
+        << " t0 " << t0
+        << " coord0 [";
+    for(int ii = 0; ii < idim; ii++){
+      if(ii > 0) dbg << " ";
+      dbg << msh.coord(ipins,ii);
+    }
+    dbg << "]\n";
+  }
+
+  double egParam[2] = {t0,0.};
+  double evalResult[18];
+  double Xt[3] = {0.,0.,0.};
+  double Xtt[3] = {0.,0.,0.};
+
+  for(int niter1 = 0; niter1 < miter1; niter1++){
+
+    tcur[0] = msh.bpo2rbi(ibpoin,0);
+    while(true){
+      INCVDEPTH(msh.param);
+
+      if(dbg.good()){
+        dbg << "  driver_in"
+            << " niter " << nargs.niter
+            << " iflag " << iflag
+            << " ihess " << ihess
+            << " tcur " << tcur[0]
+            << " fcur " << fcur
+            << " d1t " << d1t[0]
+            << " d2t " << d2t[0]
+            << " fopt " << nargs.fopt
+            << " xopt " << nargs.xopt[0]
+            << "\n";
+      }
+
+      ierro = optim_newton_drivertype<optDimension,inBoundary>(nargs, tcur,
+                                                               &fcur, d1t, d2t,
+                                                               &iflag, &ihess);
+
+      if(dbg.good()){
+        dbg << "  driver_out"
+            << " niter " << nargs.niter
+            << " iflag " << iflag
+            << " ihess " << ihess
+            << " ierro " << ierro
+            << " tcur " << tcur[0]
+            << " fcur " << fcur
+            << " d1t " << d1t[0]
+            << " d2t " << d2t[0]
+            << " fopt " << nargs.fopt
+            << " xopt " << nargs.xopt[0]
+            << "\n";
+      }
+
+      if(ierro > 0){
+        CPRINTF1(" # optim_newton_drivertype error {}\n",ierro);
+        goto finish;
+      }
+      if(iflag <= 0) {
+        CPRINTF1(" - iflag = 0 termination\n");
+        if(dbg.good()){
+          dbg << "  driver_termination"
+              << " iflag " << iflag
+              << " ierro " << ierro
+              << " tcur " << tcur[0]
+              << " fopt " << nargs.fopt
+              << " xopt " << nargs.xopt[0]
+              << "\n";
+        }
+        break;
+      }
+
+      const double ttol = 1.0e-12*MAX(1.0,range[1] - range[0]);
+      if(tcur[0] < range[0] - ttol || tcur[0] > range[1] + ttol){
+        fcur = 1.0e15;
+        quaCav1 = fcur;
+        quaMaxCav1 = fcur;
+        if(dbg.good()){
+          dbg << "  trial_out_of_range"
+              << " tcur " << tcur[0]
+              << " range [" << range[0] << " " << range[1] << "]"
+              << "\n";
+        }
+        continue;
+      }
+      if(tcur[0] < range[0]){
+        tcur[0] = range[0];
+      }else if(tcur[0] > range[1]){
+        tcur[0] = range[1];
+      }
+      msh.bpo2rbi(ibpoin,0) = tcur[0];
+      egParam[0] = tcur[0];
+      int estat = EG_evaluate(cadEdge, egParam, evalResult);
+      METRIS_ASSERT_MSG(estat == EGADS_SUCCESS, "EG_evaluate failed estat={}", estat);
+
+      for(int ii = 0; ii < idim; ii++) msh.coord(ipins,ii) = evalResult[ii];
+      Xt[0]  = evalResult[3]; Xt[1]  = evalResult[4]; Xt[2]  = idim == 3 ? evalResult[5] : 0.0;
+      Xtt[0] = evalResult[6]; Xtt[1] = evalResult[7]; Xtt[2] = idim == 3 ? evalResult[8] : 0.0;
+
+      iinva = false;
+      fcur = 0;
+      quaMaxCav1 = -1.0e30;
+      double gradX[idim], hessX[nhess];
+      double dqelt[idim], hqelt[nhess];
+      for(int ii = 0; ii < idim; ii++) gradX[ii] = 0;
+      for(int ii = 0; ii < nhess;ii++) hessX[ii] = 0;
+
+      if constexpr (ideg == 1){
+        for (const int ienttCav : lcent){
+
+          int ent2pol[4];
+          for(int jj = 0; jj < tdim + 1; jj++){
+
+            const int ienei = ent2ent(ienttCav,jj);
+
+            if (ienei >= 0 && ent2tag(ithread,ienei) >= msh.tag[ithread]) continue;
+
+            if constexpr (tdim == 2){
+
+              int iedgeGlobal = msh.fac2edg(ienttCav,jj);
+              if(iedgeGlobal >= 0 && msh.edg2ref[iedgeGlobal] == irefins) continue;
+
+              ent2pol[0] = ipins;
+              ent2pol[lnoed2[0][0]] = ent2poi(ienttCav,lnoed2[jj][0]);
+              ent2pol[lnoed2[0][1]] = ent2poi(ienttCav,lnoed2[jj][1]);
+
+              if (ent2pol[1] == ipins || ent2pol[2] == ipins) continue;
+
+              ent2poi(tmpEntt,0) = ent2pol[0];
+              ent2poi(tmpEntt,1) = ent2pol[1];
+              ent2poi(tmpEntt,2) = ent2pol[2];
+
+              double meas;
+              if (!isvalideltP1<2,2>(msh, tmpEntt, NULL, &meas)){
+                iinva = true;
+                break;
+              }
+
+              int ivar  = msh.template getverent<ideg>(tmpEntt,idim,ipins);
+              double quael;
+              if(ihess){
+                quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
+                                tmpEntt,ivar,
+                                msh.getBasis(),
+                                DifVar::None,dqelt,hqelt,1.);
+              }else{
+                quael = d_quafun(msh,AsDeg::Pk,AsDeg::Pk,
+                                tmpEntt,ivar,
+                                msh.getBasis(),
+                                DifVar::None,dqelt,NULL,1.);
+              }
+              fcur += quael;
+              if (quael > quaMaxCav1) quaMaxCav1 = quael;
+
+              for(int ii = 0; ii < idim; ii++) gradX[ii] += dqelt[ii];
+              if(ihess)
+                for(int ii = 0; ii < nhess;ii++) hessX[ii] += hqelt[ii];
+
+            }else{
+              METRIS_THROW_MSG("Implement CAD edge cavity smoothing in 3D");
+            }
+          }
+          if (iinva) break;
+        }
+      }else{
+        METRIS_THROW_MSG("Implement cavity smoothing for ideg > 1");
+      }
+
+      if(iinva){
+        fcur = 1e15;
+        quaCav1 = fcur;
+        quaMaxCav1 = 1e15;
+        CPRINTF1("# invalid config -> continue");
+        if(dbg.good()){
+          dbg << "  trial_invalid"
+              << " tcur " << tcur[0]
+              << "\n";
+        }
+        continue;
+      }
+
+      double dfdt = 0.;
+      for(int ii = 0; ii < idim; ii++) dfdt += gradX[ii] * Xt[ii];
+
+      double XtHXt = 0.;
+      if(ihess){
+        auto H = [&](int i, int j) -> double {
+          if(i == j) return hessX[i];
+          if constexpr (idim == 2){
+            return hessX[2];
+          }else{
+            if((i == 0 && j == 1) || (i == 1 && j == 0)) return hessX[3];
+            if((i == 0 && j == 2) || (i == 2 && j == 0)) return hessX[4];
+            return hessX[5];
+          }
+        };
+        for(int ii = 0; ii < idim; ii++)
+          for(int jj = 0; jj < idim; jj++)
+            XtHXt += Xt[ii] * H(ii,jj) * Xt[jj];
+      }
+
+      double gradXdotXtt = 0.;
+      for(int ii = 0; ii < idim; ii++) gradXdotXtt += gradX[ii] * Xtt[ii];
+
+      d1t[0] = dfdt;
+      if(ihess) d2t[0] = XtHXt + gradXdotXtt;
+
+      bool useGrad = false;
+      double dtmaxGrad = 0.;
+      if(ihess && std::abs(d2t[0]) > 0){
+        double dtnew = -d1t[0] / d2t[0];
+        if(dtnew * d1t[0] >= 0){
+          dtmaxGrad = 0.1*(range[1] - range[0]);
+          double distToBnd = d1t[0] > 0 ? tcur[0] - range[0]
+                                        : range[1] - tcur[0];
+          if(distToBnd > 0) dtmaxGrad = MIN(dtmaxGrad,0.5*distToBnd);
+          dtmaxGrad = MAX(dtmaxGrad,1.0e-12);
+          d2t[0] = std::abs(d1t[0]) / dtmaxGrad;
+          useGrad = true;
+        }
+      }
+
+      if(dbg.good()){
+        dbg << "  objective"
+            << " tcur " << tcur[0]
+            << " coord [";
+        for(int ii = 0; ii < idim; ii++){
+          if(ii > 0) dbg << " ";
+          dbg << msh.coord(ipins,ii);
+        }
+        dbg << "] fcur " << fcur
+            << " ihess " << ihess
+            << " gradX [";
+        for(int ii = 0; ii < idim; ii++){
+          if(ii > 0) dbg << " ";
+          dbg << gradX[ii];
+        }
+        dbg << "] Xt [" << Xt[0] << " " << Xt[1] << " " << Xt[2] << "]"
+            << " Xtt [" << Xtt[0] << " " << Xtt[1] << " " << Xtt[2] << "]"
+            << " d1t " << d1t[0]
+            << " d2t " << d2t[0];
+        if(ihess && std::abs(d2t[0]) > 0){
+          dbg << " newton_dt " << -d1t[0]/d2t[0];
+        }
+        if(useGrad) dbg << " use_grad_descent 1"
+                         << " grad_dtmax " << dtmaxGrad;
+        dbg << "\n";
+      }
+
+      if(DOPRINTS1()){
+        CPRINTF1(" - Newton iter {} fcur = {} tcur = {}",nargs.niter,fcur,tcur[0]);
+        PRINTF("\n");
+        CPRINTF2(" - dquadt = {}\n",d1t[0]);
+      }
+
+      quaCav1 = fcur;
+    }
+
+    ierro = 0;
+
+    finish:
+    CPRINTF1(" -- END smoocavdiff_boundary fopt = {} xopt = {}\n",
+             nargs.fopt,dblAr1(optDimension,nargs.xopt));
+    if(dbg.good()){
+      dbg << "  finish"
+          << " fopt " << nargs.fopt
+          << " xopt " << nargs.xopt[0]
+          << " ierro " << ierro
+          << "\n";
+    }
+
+    msh.bpo2rbi(ibpoin,0) = nargs.xopt[0];
+    egParam[0] = nargs.xopt[0];
+    int estat = EG_evaluate(cadEdge, egParam, evalResult);
+    METRIS_ASSERT_MSG(estat == EGADS_SUCCESS, "EG_evaluate failed estat={}", estat);
+    for(int ii = 0; ii < idim; ii++) msh.coord(ipins,ii) = evalResult[ii];
+
+    if(DOPRINTS2()) writeMesh("debug_smooth0.meshb",msh);
+
+    ierro = msh.interpMetBack(ipins);
+    if(ierro > 0){
+      CPRINTF1(" # smoocavdiff_boundary interpMetBack failure ierro = {} \n",ierro);
+      goto cleanup;
+    }
+
+    quaCav1 = 0;
+    quaMaxCav1 = -1.0e30;
+    iinva = false;
+    for(const int ienttCav : lcent){
+      int ent2pol[4];
+      for(int jj = 0; jj < tdim + 1; jj++){
+        const int ienei = ent2ent(ienttCav,jj);
+        if(ienei >= 0 && ent2tag(ithread,ienei) >= msh.tag[ithread]) continue;
+
+        if constexpr (tdim == 2){
+          int iedgeGlobal = msh.fac2edg(ienttCav,jj);
+          if(iedgeGlobal >= 0 && msh.edg2ref[iedgeGlobal] == irefins) continue;
+
+          ent2pol[0] = ipins;
+          ent2pol[lnoed2[0][0]] = ent2poi(ienttCav,lnoed2[jj][0]);
+          ent2pol[lnoed2[0][1]] = ent2poi(ienttCav,lnoed2[jj][1]);
+
+          if(ent2pol[1] == ipins || ent2pol[2] == ipins) continue;
+
+          ent2poi(tmpEntt,0) = ent2pol[0];
+          ent2poi(tmpEntt,1) = ent2pol[1];
+          ent2poi(tmpEntt,2) = ent2pol[2];
+
+          double meas;
+          if(!isvalideltP1<2,2>(msh, tmpEntt, NULL, &meas)){
+            iinva = true;
+            break;
+          }
+        }else{
+          METRIS_THROW_MSG("Implement CAD edge cavity smoothing in 3D");
+        }
+
+        double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,tmpEntt,1.);
+        quaCav1 += quael;
+        quaMaxCav1 = MAX(quaMaxCav1, quael);
+      }
+      if(iinva) break;
+    }
+    if(iinva){
+      CPRINTF1(" # smoocavdiff_boundary final xopt quality recompute invalid\n");
+      goto cleanup;
+    }
+    if(dbg.good()){
+      dbg << "  final_recompute"
+          << " quaCav1 " << quaCav1
+          << " quaMaxCav1 " << quaMaxCav1
+          << " coord [";
+      for(int ii = 0; ii < idim; ii++){
+        if(ii > 0) dbg << " ";
+        dbg << msh.coord(ipins,ii);
+      }
+      dbg << "]\n";
+    }
+  }
+
+  if(dbg.good()) dbg << "smoocavdiff_boundary return 0\n";
+  return 0;
+
+  cleanup:
+  for(int ii = 0; ii < idim; ii++) msh.coord(ipins,ii) = coor0[ii];
+  for(int ii = 0; ii < nnmet; ii++) msh.met(ipins,ii) = met0[ii];
+  msh.bpo2rbi(ibpoin,0) = t0;
+
+  if(dbg.good()){
+    dbg << "smoocavdiff_boundary cleanup"
+        << " ierro " << ierro
+        << " restore_t " << t0
+        << "\n";
+  }
+
+  return ierro;
+}
+
+
+#define BOOST_PP_LOCAL_MACRO(n)\
+template int smoocavdiff_boundary<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        >& msh,\
+                  MshCavity& cav, const int cadDim, \
+                   double& quaCav1, double& quaMaxCav1, \
+                   QuaFun iquaf, int ithread);\
+template int smoocavdiff_boundary<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        >& msh,\
+                   MshCavity& cav, const int cadDim, \
+                   double& quaCav1, double& quaMaxCav1, \
+                   QuaFun iquaf, int ithread);\
+template int smoocavdiff_boundary<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical>& msh,\
+                   MshCavity& cav, const int cadDim, \
+                   double& quaCav1, double& quaMaxCav1, \
+                   QuaFun iquaf, int ithread);\
+template int smoocavdiff_boundary<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>& msh,\
+                   MshCavity& cav, const int cadDim, \
                    double& quaCav1, double& quaMaxCav1, \
                    QuaFun iquaf, int ithread);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)

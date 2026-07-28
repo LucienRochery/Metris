@@ -20,12 +20,16 @@
 #include "../../msh_checktopo.hxx"
 #include "../../aux_histogram.hxx"
 #include "../../msh_lenedg.hxx"
+#include "../../quality/msh_metqua.hxx"
 #include "../../low_topo.hxx"
 
 #include "../../utils/aux_timer.hxx"
 #include "../../utils/mprintf.hxx"
 
 #include <cmath>
+#include <algorithm>
+#include <numeric>
+#include <vector>
 
 
 namespace Metris{
@@ -86,6 +90,26 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
   CPRINTF1(" -            long  = {}\n",lenstat0.qua_long);
   double lenqua_short_max = (lenstat0.qua_short + lenstat0.qua_long)/2;
   CPRINTF1(" - {:.2f}% unit using qua threshold {}\n",lenstat0.prop_unit*100,lenqua_short_max);
+
+  #ifdef TESTQUALITYALGO
+  bool iinva = false;
+  double qmin = 0., qmax = 0., qavg = 0.;
+  dblAr1 lquae(msh.nentt(tdim));
+  getmetquamesh<MFT,DefaultQualityFunction>(msh,tdim,AsDeg::P1,AsDeg::P1,
+                                            &iinva,&qmin,&qmax,&qavg,&lquae);
+  BadEntHandler handler(tdim,100.,0.00001);
+  handler.setCallbacks([&](int ientt){ return lquae[ientt]; },
+                       [&](int ientt){
+                         return isdeadent(ientt,msh.ent2poi(tdim));
+                       });
+  std::vector<int> sorted_ids(msh.nentt(tdim));
+  std::iota(sorted_ids.begin(),sorted_ids.end(),0);
+  std::sort(sorted_ids.begin(),sorted_ids.end(),
+            [&](int ient1, int ient2){
+              return lquae[ient1] > lquae[ient2];
+            });
+  handler.seedFromSortedIDs(sorted_ids);
+  #endif
 
   double stat = 0;
 
@@ -193,7 +217,11 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
       iSteiner++;
       EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, ied);
       ierro = insertEdge(msh,insertionSeed,lenqua_short_max,false,
-                         cav,work,lcaverr,ithrd1,ithrd2);
+                         cav,work,lcaverr,
+                         #ifdef TESTQUALITYALGO
+                         handler,true,0.,
+                         #endif
+                         ithrd1,ithrd2);
       //if(ierro > 0 && iSteiner == 1){
       //  printf("## DEBUG WAIT error after Steiner = %d\n",ierro);
       //  wait();

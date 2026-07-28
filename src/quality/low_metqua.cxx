@@ -79,6 +79,8 @@ namespace Metris
 
     #ifdef STEPDISTANCE
 
+    if constexpr(iquaf == QuaFun::StepDistance){
+
     METRIS_ASSERT(ideg_eff == 1);
     METRIS_ASSERT(pnorm == 1);
     METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
@@ -174,7 +176,16 @@ namespace Metris
           Jreg_T, met, NULL,
           &theta_d, NULL);
 
-      qutet += wquad*phi*(ftype)theta_d;
+      double rho_d;
+      double barrier_d;
+      VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
+          gdim,tdim,double>(
+              Jreg_T,met,NULL,
+              msh.param->step_distance_barrier_rho0,
+              msh.param->step_distance_barrier_beta,
+              &rho_d,&barrier_d,NULL);
+
+      qutet += wquad*(phi*(ftype)theta_d + (ftype)barrier_d);
     }
 
     if(do_nordev){
@@ -185,6 +196,7 @@ namespace Metris
     }
 
     return qutet;
+    }
 
 #endif
 

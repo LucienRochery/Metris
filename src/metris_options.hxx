@@ -110,6 +110,14 @@ struct MetrisOptions{
       ("opt-power", po::value<int>(),
                     "Optimization power parameter. If power == -1, Q ~ det / tra. "
                     "Otherwise ~ tra / det.")
+      ("step-distance-p", po::value<double>(),
+                    "Pointwise StepDistance exponent p (> 0).")
+      ("step-distance-regularization", po::value<double>(),
+                    "Smooth StepDistance norm regularization epsilon (> 0).")
+      ("step-distance-barrier-rho0", po::value<double>(),
+                    "Metric-volume threshold rho0 for the StepDistance collapse barrier.")
+      ("step-distance-barrier-beta", po::value<double>(),
+                    "Nonnegative StepDistance collapse-barrier coefficient beta.")
       ("opt-smoo-niter", po::value<int>(),
                     "Inner optimization loop global smoothing iterations")
       ("opt-smoo-tol", po::value<double>(),

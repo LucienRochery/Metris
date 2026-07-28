@@ -101,6 +101,11 @@ depending on whether they should be serialized.
     FIELD(int, opt_niter, 5) \
     FIELD(int, opt_pnorm, 1) \
     FIELD(int, opt_power, 1) \
+    /* StepDistance pointwise power and collapse barrier. */ \
+    FIELD(double, step_distance_p, 2.0) \
+    FIELD(double, step_distance_regularization, 1.0e-12) \
+    FIELD(double, step_distance_barrier_rho0, 0.7) \
+    FIELD(double, step_distance_barrier_beta, 0.0) \
     FIELD(int, opt_smoo_niter, 10) \
     FIELD(double, opt_smoo_tol, 0.005)  \
     /* Surface qualities weight the main term by qua_surf_w_quality */ \

@@ -26,6 +26,12 @@ namespace Metris{
 
   enum class QuaFun{Distortion,Unit,SizeShape,StepDistance};
 
+  #ifdef STEPDISTANCE
+  inline constexpr QuaFun DefaultQualityFunction = QuaFun::StepDistance;
+  #else
+  inline constexpr QuaFun DefaultQualityFunction = QuaFun::SizeShape;
+  #endif
+
   template<class MFT, int gdim, int tdim,
            QuaFun iquaf, class ftype=double>
   constexpr auto get_quafun_xi(){

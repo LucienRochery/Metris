@@ -30,7 +30,7 @@
 namespace Metris{
 
 // Return 0 if done nothing, 1 if error, -1 if done swap
-template<class MFT>
+template<class MFT, QuaFun iquaf>
 int insertEdge(Mesh<MFT>& msh,
                const EdgeSeed &insertionSeed,
                double lenqua_short_max, // maximum quality (error) a new short edge can have
@@ -158,7 +158,7 @@ int insertEdge(Mesh<MFT>& msh,
 
   if(icollapse){
     #ifdef TESTQUALITYALGO
-    ierro = increase_cavity_quality(msh,cav,insertionSeed.tdim_adp,5,handler,ithrd1);
+    ierro = increase_cavity_quality<MFT,iquaf>(msh,cav,insertionSeed.tdim_adp,5,handler,ithrd1);
     if(ierro != 0){
       CPRINTF1(" # increase_cavity_quality could not improve patch\n");
       ierro = INS2D_ERR_NOQUALIMPROV;
@@ -202,7 +202,7 @@ int insertEdge(Mesh<MFT>& msh,
     if (ierro != 0) ierro = INS2D_ERR_NOQUALIMPROV;
   }
   else{
-    ierro = setCavityInsertionQuality(msh,cav,opts,insertionSeed,mgrow,handler,lenqua_short_max,nocomp,ithrd1,ithrd2);
+    ierro = setCavityInsertionQuality<MFT,iquaf>(msh,cav,opts,insertionSeed,mgrow,handler,lenqua_short_max,nocomp,ithrd1,ithrd2);
   }
   #else
   ierro = setCavityInsertion3(msh,cav,opts,insertionSeed,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);
@@ -279,7 +279,7 @@ restart_cavity:
       goto cleanup;
     }
     #ifdef TESTQUALITYALGO
-    ierro = increase_cavity_quality(msh,cav,insertionSeed.tdim_adp,5,handler,ithrd1);
+    ierro = increase_cavity_quality<MFT,iquaf>(msh,cav,insertionSeed.tdim_adp,5,handler,ithrd1);
     if(ierro != 0){
       CPRINTF1(" - +cav error {}\n",ierro);
       ierro = INS2D_ERR_NOQUALIMPROV;
@@ -313,12 +313,6 @@ restart_cavity:
     #ifdef TESTQUALITYALGO
     // tell handler about killed and new entities
     const int tdim_adp = insertionSeed.tdim_adp;
-
-    #ifdef STEPDISTANCE
-    constexpr QuaFun iquaf = QuaFun::StepDistance;
-    #else
-    constexpr QuaFun iquaf = QuaFun::SizeShape;
-    #endif
 
     // killed entities
     const intAr1& deadEntts = cav.lcent(tdim_adp);
@@ -369,29 +363,30 @@ restart_cavity:
 
 
 
-template int insertEdge<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh,
-                         const EdgeSeed &insertionSeed,
-                         double lenqua_short_max, bool icollapse,
-                         MshCavity &cav, CavWrkArrs &work,
-                         intAr1 &lerro,
-                         #ifdef TESTQUALITYALGO
-                         BadEntHandler& handler,
-                         const bool lengthBased,
-                         const double worsenPctg,
-                         #endif
+#ifdef TESTQUALITYALGO
+#define INSTANTIATE_INSERT_EDGE(MFT_VAL, QUAFUN_VAL) \
+template int insertEdge<MFT_VAL,QUAFUN_VAL>(Mesh<MFT_VAL>& msh, \
+                         const EdgeSeed &insertionSeed, \
+                         double lenqua_short_max, bool icollapse, \
+                         MshCavity &cav, CavWrkArrs &work, \
+                         intAr1 &lerro, BadEntHandler& handler, \
+                         const bool lengthBased, const double worsenPctg, \
                          int ithrd1, int ithrd2);
+#else
+#define INSTANTIATE_INSERT_EDGE(MFT_VAL, QUAFUN_VAL) \
+template int insertEdge<MFT_VAL,QUAFUN_VAL>(Mesh<MFT_VAL>& msh, \
+                         const EdgeSeed &insertionSeed, \
+                         double lenqua_short_max, bool icollapse, \
+                         MshCavity &cav, CavWrkArrs &work, intAr1 &lerro, \
+                         int ithrd1, int ithrd2);
+#endif
 
-template int insertEdge<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh,
-                         const EdgeSeed &insertionSeed,
-                         double lenqua_short_max, bool icollapse,
-                         MshCavity &cav, CavWrkArrs &work,
-                         intAr1 &lerro,
-                         #ifdef TESTQUALITYALGO
-                         BadEntHandler& handler,
-                         const bool lengthBased,
-                         const double worsenPctg,
-                         #endif
-                         int ithrd1, int ithrd2);
+INSTANTIATE_INSERT_EDGE(MetricFieldAnalytical, QuaFun::SizeShape)
+INSTANTIATE_INSERT_EDGE(MetricFieldAnalytical, QuaFun::StepDistance)
+INSTANTIATE_INSERT_EDGE(MetricFieldFE, QuaFun::SizeShape)
+INSTANTIATE_INSERT_EDGE(MetricFieldFE, QuaFun::StepDistance)
+
+#undef INSTANTIATE_INSERT_EDGE
 
 
 

@@ -7,6 +7,7 @@
 #define BOOST_TEST_MODULE test_metqua_d2
 
 #include <boost/test/included/unit_test.hpp>
+#include <algorithm>
 #include <random>
 
 #include "gen_bary.hxx"
@@ -22,14 +23,264 @@
 #include "quality/low_metqua.hxx"
 #include "quality/quafun_tradet.hxx"
 #include "quality/quafun.hxx"
+#include "quality/aux_volumeMeasure.hxx"
 
-#include "..libs/SANS/Surreal/SurrealS.h"
+#include "libs/SANS/Surreal/SurrealS.h"
 
 namespace Metris{
 
 typedef MetricFieldAnalytical MFT;
 typedef double ftype;
 typedef std::pair<AsDeg,AsDeg> AsDegPair;
+
+BOOST_AUTO_TEST_CASE(test_stepdistance_arbitrary_p_derivatives)
+{
+  MetrisParameters param;
+  param.iverb = 0;
+  Mesh<MetricFieldFE> msh;
+  msh.idim = 2;
+  msh.curdeg = 1;
+  msh.strdeg = 1;
+  msh.forceBasisFlag(FEBasis::Lagrange);
+  msh.param = &param;
+  msh.set_npoin(3);
+  msh.set_nface(1);
+  msh.coord(0,0) = 0.0; msh.coord(0,1) = 0.0;
+  msh.coord(1,0) = 1.2; msh.coord(1,1) = 0.1;
+  msh.coord(2,0) = 0.2; msh.coord(2,1) = 0.7;
+  msh.fac2poi(0,0) = 0;
+  msh.fac2poi(0,1) = 1;
+  msh.fac2poi(0,2) = 2;
+
+  constexpr int gdim = 2;
+  constexpr int tdim = 2;
+  constexpr int nhess = 3;
+  constexpr auto quafun =
+      get_quafun_xi<MetricFieldFE,gdim,tdim,
+                    QuaFun::StepDistance,double>();
+  constexpr auto dquafun =
+      get_d_quafun_xi<MetricFieldFE,gdim,tdim,
+                      QuaFun::StepDistance,double>();
+
+  const int iface = 0;
+  const int* nodes = msh.fac2poi[iface];
+  const double bary[3] = {1./3.,1./3.,1./3.};
+  const double met[3] = {1.,0.,1.};
+  const double fd_step = 2.e-6;
+  msh.param->step_distance_regularization = 1.e-8;
+
+  for(double power : {0.5,1.0,1.5,2.0,3.25}){
+    msh.param->step_distance_p = power;
+    for(int ivar = 0; ivar < 3; ivar++){
+      double grad[2];
+      double hess[nhess];
+      const double value = quafun(
+          msh,AsDeg::P1,AsDeg::P1,nodes,bary,met);
+      const double differentiated_value = dquafun(
+          msh,AsDeg::P1,AsDeg::P1,nodes,bary,met,
+          ivar,msh.getBasis(),DifVar::None,grad,hess);
+      BOOST_CHECK_SMALL(value-differentiated_value,1.e-12);
+
+      const int ipoin = nodes[ivar];
+      for(int j = 0; j < gdim; j++){
+        const double coordinate = msh.coord(ipoin,j);
+        double grad_plus[gdim];
+        double grad_minus[gdim];
+
+        msh.coord(ipoin,j) = coordinate+fd_step;
+        const double value_plus = quafun(
+            msh,AsDeg::P1,AsDeg::P1,nodes,bary,met);
+        dquafun(msh,AsDeg::P1,AsDeg::P1,nodes,bary,met,
+                ivar,msh.getBasis(),DifVar::None,grad_plus,NULL);
+
+        msh.coord(ipoin,j) = coordinate-fd_step;
+        const double value_minus = quafun(
+            msh,AsDeg::P1,AsDeg::P1,nodes,bary,met);
+        dquafun(msh,AsDeg::P1,AsDeg::P1,nodes,bary,met,
+                ivar,msh.getBasis(),DifVar::None,grad_minus,NULL);
+        msh.coord(ipoin,j) = coordinate;
+
+        const double grad_fd = (value_plus-value_minus)/(2.*fd_step);
+        BOOST_CHECK_SMALL(
+            grad[j]-grad_fd,2.e-5*std::max(1.,std::abs(grad_fd)));
+
+        for(int i = 0; i <= j; i++){
+          const double hess_fd =
+              (grad_plus[i]-grad_minus[i])/(2.*fd_step);
+          BOOST_CHECK_SMALL(
+              hess[sym2idx(i,j)]-hess_fd,
+              5.e-4*std::max(1.,std::abs(hess_fd)));
+        }
+      }
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_stepdistance_metric_volume_barrier_derivatives)
+{
+  constexpr int gdim = 2;
+  constexpr int tdim = 2;
+  constexpr int nhess = 3;
+  const double met[3] = {2.0,0.2,1.3};
+  const double gradN[2] = {-0.7,0.3};
+  const double rho0 = 0.7;
+  const double beta = 2.0;
+  const double fd_step = 1.e-6;
+  double Jreg_T[4] = {0.4,0.1,0.05,0.8};
+
+  double rho;
+  double barrier;
+  double grad[gdim];
+  double hess[nhess];
+  VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
+      gdim,tdim,double>(
+          Jreg_T,met,gradN,rho0,beta,&rho,&barrier,grad);
+  VolumeMeasureHelpers::
+      eval_metric_volume_barrier_fixed_metric_hess_by_surreal<gdim,tdim>(
+          Jreg_T,met,gradN,rho0,beta,hess);
+
+  BOOST_TEST(rho < rho0);
+  BOOST_TEST(barrier > 0.0);
+
+  for(int j = 0; j < gdim; j++){
+    double Jplus[4];
+    double Jminus[4];
+    std::copy(Jreg_T,Jreg_T+4,Jplus);
+    std::copy(Jreg_T,Jreg_T+4,Jminus);
+    for(int i = 0; i < tdim; i++){
+      Jplus[i*gdim+j] += fd_step*gradN[i];
+      Jminus[i*gdim+j] -= fd_step*gradN[i];
+    }
+
+    double rho_plus,rho_minus,barrier_plus,barrier_minus;
+    double grad_plus[gdim],grad_minus[gdim];
+    VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
+        gdim,tdim,double>(
+            Jplus,met,gradN,rho0,beta,
+            &rho_plus,&barrier_plus,grad_plus);
+    VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
+        gdim,tdim,double>(
+            Jminus,met,gradN,rho0,beta,
+            &rho_minus,&barrier_minus,grad_minus);
+
+    const double grad_fd = (barrier_plus-barrier_minus)/(2.*fd_step);
+    BOOST_CHECK_SMALL(
+        grad[j]-grad_fd,1.e-7*std::max(1.,std::abs(grad_fd)));
+    for(int i = 0; i <= j; i++){
+      const double hess_fd =
+          (grad_plus[i]-grad_minus[i])/(2.*fd_step);
+      BOOST_CHECK_SMALL(
+          hess[sym2idx(i,j)]-hess_fd,
+          2.e-6*std::max(1.,std::abs(hess_fd)));
+    }
+  }
+
+  double inactive_barrier;
+  double inactive_grad[gdim];
+  double inactive_rho;
+  VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
+      gdim,tdim,double>(
+          Jreg_T,met,gradN,0.1,beta,
+          &inactive_rho,&inactive_barrier,inactive_grad);
+  BOOST_CHECK_SMALL(inactive_barrier,1.e-15);
+  BOOST_CHECK_SMALL(inactive_grad[0],1.e-15);
+  BOOST_CHECK_SMALL(inactive_grad[1],1.e-15);
+}
+
+BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_barrier_derivatives)
+{
+  MetrisParameters param;
+  param.iverb = 0;
+  param.opt_pnorm = 1;
+  param.step_distance_p = 1.0;
+  param.step_distance_regularization = 1.e-8;
+  param.step_distance_barrier_rho0 = 0.7;
+
+  Mesh<MetricFieldFE> msh;
+  msh.idim = 2;
+  msh.curdeg = 1;
+  msh.strdeg = 1;
+  msh.forceBasisFlag(FEBasis::Lagrange);
+  msh.param = &param;
+  msh.set_npoin(3);
+  msh.set_nface(1);
+  msh.met.forceBasisFlag(FEBasis::Lagrange);
+  msh.met.forceSpaceFlag(MetSpace::Exp);
+
+  msh.coord(0,0) = 0.0; msh.coord(0,1) = 0.0;
+  msh.coord(1,0) = 0.5; msh.coord(1,1) = 0.0;
+  msh.coord(2,0) = 0.1; msh.coord(2,1) = 0.3;
+  msh.fac2poi(0,0) = 0;
+  msh.fac2poi(0,1) = 1;
+  msh.fac2poi(0,2) = 2;
+  for(int ipoin = 0; ipoin < 3; ipoin++){
+    msh.met(ipoin,0) = 1.0;
+    msh.met(ipoin,1) = 0.0;
+    msh.met(ipoin,2) = 1.0;
+  }
+
+  constexpr int gdim = 2;
+  constexpr int tdim = 2;
+  constexpr int nhess = 3;
+  const int ivar = 0;
+  const int ipoin = msh.fac2poi(0,ivar);
+  const double fd_step = 1.e-6;
+
+  auto evaluate = [&](double beta,
+                      double* grad,
+                      double* hess){
+    msh.param->step_distance_barrier_beta = beta;
+    if(grad == NULL){
+      return metqua<MetricFieldFE,gdim,tdim,
+                    QuaFun::StepDistance,double>(
+          msh,AsDeg::P1,AsDeg::P1,0,1.0);
+    }
+    return d_metqua<MetricFieldFE,gdim,tdim,
+                    QuaFun::StepDistance,double>(
+        msh,AsDeg::P1,AsDeg::P1,0,ivar,
+        msh.getBasis(),DifVar::None,grad,hess,1.0);
+  };
+
+  double grad_active[gdim],grad_inactive[gdim];
+  double hess_active[nhess],hess_inactive[nhess];
+  const double value_active = evaluate(2.0,grad_active,hess_active);
+  const double value_inactive = evaluate(0.0,grad_inactive,hess_inactive);
+  BOOST_TEST(value_active > value_inactive);
+
+  for(int j = 0; j < gdim; j++){
+    const double coordinate = msh.coord(ipoin,j);
+    msh.coord(ipoin,j) = coordinate+fd_step;
+    const double barrier_plus = evaluate(2.0,NULL,NULL)-evaluate(0.0,NULL,NULL);
+    double grad_plus_active[gdim],grad_plus_inactive[gdim];
+    evaluate(2.0,grad_plus_active,NULL);
+    evaluate(0.0,grad_plus_inactive,NULL);
+
+    msh.coord(ipoin,j) = coordinate-fd_step;
+    const double barrier_minus = evaluate(2.0,NULL,NULL)-evaluate(0.0,NULL,NULL);
+    double grad_minus_active[gdim],grad_minus_inactive[gdim];
+    evaluate(2.0,grad_minus_active,NULL);
+    evaluate(0.0,grad_minus_inactive,NULL);
+    msh.coord(ipoin,j) = coordinate;
+
+    const double barrier_grad = grad_active[j]-grad_inactive[j];
+    const double barrier_grad_fd =
+        (barrier_plus-barrier_minus)/(2.*fd_step);
+    BOOST_CHECK_SMALL(
+        barrier_grad-barrier_grad_fd,
+        1.e-7*std::max(1.,std::abs(barrier_grad_fd)));
+
+    for(int i = 0; i <= j; i++){
+      const double barrier_hess =
+          hess_active[sym2idx(i,j)]-hess_inactive[sym2idx(i,j)];
+      const double barrier_hess_fd =
+          ((grad_plus_active[i]-grad_plus_inactive[i])
+           -(grad_minus_active[i]-grad_minus_inactive[i]))/(2.*fd_step);
+      BOOST_CHECK_SMALL(
+          barrier_hess-barrier_hess_fd,
+          2.e-6*std::max(1.,std::abs(barrier_hess_fd)));
+    }
+  }
+}
 
 BOOST_AUTO_TEST_CASE(test_metqua_d2)
 {

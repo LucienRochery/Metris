@@ -60,6 +60,8 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
   #ifdef STEPDISTANCE
 
+  if constexpr(iquaf == QuaFun::StepDistance){
+
   METRIS_ASSERT(ideg_eff == 1);
   METRIS_ASSERT(pnorm == 1);
   METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
@@ -180,17 +182,17 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       for(int i = 0; i < tdim; i++) gradN[i] = 0.0;
 
       if(ivar == 0){
-        for(int a = 0; a < tdim; a++){
-          for(int i = 0; i < tdim; i++){
+        for(int i = 0; i < tdim; i++){
+          for(int k = 0; k < tdim; k++){
             gradN[i] -=
-              Constants::invtJ_0[hana::type_c<double>][tdim][a*tdim+i];
+              Constants::invtJ_0[hana::type_c<double>][tdim][i*tdim+k];
           }
         }
       }else{
-        const int row = ivar - 1;
+        const int column = ivar - 1;
         for(int i = 0; i < tdim; i++){
           gradN[i] =
-            Constants::invtJ_0[hana::type_c<double>][tdim][row*tdim+i];
+            Constants::invtJ_0[hana::type_c<double>][tdim][i*tdim+column];
         }
       }
     }
@@ -264,19 +266,56 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     const ftype theta = (ftype)theta_d;
 
     // ------------------------------------------------------------
+    // Unweighted metric-volume barrier.
+    // rho = sqrt(det(Jreg^T M Jreg)); M is frozen, but J derivatives are
+    // always retained because preventing geometric collapse is its purpose.
+    // ------------------------------------------------------------
+    double rho_d;
+    double barrier_d;
+    double dbarrier_d[gdim];
+    double hbarrier_d[nhess];
+
+    if(ivar < 0){
+      VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
+          gdim,tdim,double>(
+              Jreg_T,met,NULL,
+              msh.param->step_distance_barrier_rho0,
+              msh.param->step_distance_barrier_beta,
+              &rho_d,&barrier_d,NULL);
+    }else{
+      VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
+          gdim,tdim,double>(
+              Jreg_T,met,gradN,
+              msh.param->step_distance_barrier_rho0,
+              msh.param->step_distance_barrier_beta,
+              &rho_d,&barrier_d,dbarrier_d);
+      if(hquael != NULL){
+        VolumeMeasureHelpers::
+            eval_metric_volume_barrier_fixed_metric_hess_by_surreal<
+                gdim,tdim>(
+                    Jreg_T,met,gradN,
+                    msh.param->step_distance_barrier_rho0,
+                    msh.param->step_distance_barrier_beta,
+                    hbarrier_d);
+      }
+    }
+
+    // ------------------------------------------------------------
     // Value.
     // ------------------------------------------------------------
-    qutet += wquad*phi*theta;
+    qutet += wquad*(phi*theta + (ftype)barrier_d);
 
     if(ivar < 0) continue;
 
     // ------------------------------------------------------------
     // First derivative:
     //
-    // d(phi theta) = theta dphi + phi dtheta.
+    // d(phi theta + B) = theta dphi + phi dtheta + dB.
     // ------------------------------------------------------------
     for(int i = 0; i < gdim; i++){
-      dquael[i] += wquad*(theta*dphi[i] + phi*(ftype)dtheta_d[i]);
+      dquael[i] += wquad*(
+          theta*dphi[i] + phi*(ftype)dtheta_d[i]
+          + (ftype)dbarrier_d[i]);
     }
 
     if(hquael == NULL) continue;
@@ -284,11 +323,12 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     // ------------------------------------------------------------
     // Hessian:
     //
-    // H(phi theta) =
+    // H(phi theta + B) =
     //   theta Hphi
     // + phi Htheta
     // + dtheta dphi^T
-    // + dphi dtheta^T.
+    // + dphi dtheta^T
+    // + HB.
     // ------------------------------------------------------------
     for(int i = 0; i < gdim; i++){
       for(int j = i; j < gdim; j++){
@@ -297,12 +337,14 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
           + phi*(ftype)htheta[sym2idx(i,j)]
           + (ftype)dtheta_d[i]*dphi[j]
           + dphi[i]*(ftype)dtheta_d[j]
+          + (ftype)hbarrier_d[sym2idx(i,j)]
         );
       }
     }
   }
 
   return qutet;
+  }
 
 #endif
 

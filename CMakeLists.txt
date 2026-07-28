@@ -203,6 +203,17 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/meshStats.cxx)
   setMetrisCXXFlags(meshStats PUBLIC)
 endif()
 
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/edgeLengthStats.cxx)
+  add_executable(edgeLengthStats EXCLUDE_FROM_ALL "progs/edgeLengthStats.cxx")
+  target_link_libraries(edgeLengthStats PUBLIC libMetris
+                                              Boost::headers # yes this is weird
+                                              ${Boost_LIBRARIES}
+                                              )
+  target_include_directories(edgeLengthStats PRIVATE "."
+                             ${ESP_ROOT}/include)
+  setMetrisCXXFlags(edgeLengthStats PUBLIC)
+endif()
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/genBackMetAndMesh.cxx)
   add_executable(genBackMetAndMesh EXCLUDE_FROM_ALL "progs/genBackMetAndMesh.cxx")
   target_link_libraries(genBackMetAndMesh PUBLIC    libMetris

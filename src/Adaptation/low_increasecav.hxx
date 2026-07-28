@@ -10,6 +10,7 @@
 #include "../types_arrays.hxx"
 #include "../aux_hashtab.hxx"
 #include "../aux_badEntHandler.hxx"
+#include "../quality/quafun.hxx"
 #include <unordered_set>
 
 /*
@@ -52,7 +53,7 @@ int setCavityInsertion2(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
                        int ithrd1, int ithrd2);
 
-template<class MFT>
+template<class MFT, QuaFun iquaf = DefaultQualityFunction>
 int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
                               const EdgeSeed &insertionSeed, int mgrow, BadEntHandler& handler, double lenqua_short_max,
                               std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
@@ -96,7 +97,7 @@ int increase_cavity_lenedg0(MeshMetric<MFT> &msh, MshCavity &cav, const CavOprOp
                               int ipins, int ithrd1, int ithrd2);
 
 // Increase cavity based on quality
-template<class MFT>
+template<class MFT, QuaFun iquaf = DefaultQualityFunction>
 int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav,
                              int tdim, int ngrow, BadEntHandler& handler, int ithread);
 

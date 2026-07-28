@@ -8,6 +8,9 @@
 
 #ifdef STEPDISTANCE
 
+#include "../linalg/symidx.hxx"
+#include "../libs/SANS/Surreal/SurrealS.h"
+
 namespace Metris{
 
 namespace VolumeMeasureHelpers{
@@ -194,6 +197,134 @@ void eval_theta_fixed_metric_hess_by_surreal(
   for(int i = 0; i < gdim; i++){
     for(int j = i; j < gdim; j++){
       htheta[sym2idx(i,j)] = dthetaS[i].deriv(j);
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// Metric-volume collapse barrier.
+//
+// rho = sqrt(det(J^T M J)) is the element volume in metric space, normalized
+// by the regular reference simplex. The barrier is deliberately not multiplied
+// by theta: beta * max(0,log(rho0/rho))^4 must diverge as rho -> 0.
+//
+// Only J varies here. The metric is frozen consistently with StepDistance.
+// -----------------------------------------------------------------------------
+template<int gdim, int tdim, typename T>
+void eval_metric_volume_barrier_fixed_metric_grad(
+    const T*__restrict__ Jreg_T,
+    const T*__restrict__ met,
+    const T*__restrict__ gradN,
+    double rho0,
+    double beta,
+    T*__restrict__ rho,
+    T*__restrict__ barrier,
+    T*__restrict__ dbarrier)
+{
+  T M[gdim*gdim];
+  sym_packed_to_full<gdim,T>(met,M);
+
+  T A[tdim*tdim];
+  for(int i = 0; i < tdim; i++){
+    for(int j = 0; j < tdim; j++){
+      A[i*tdim+j] = T(0);
+      for(int a = 0; a < gdim; a++){
+        for(int b = 0; b < gdim; b++){
+          A[i*tdim+j] +=
+              Jreg_T[i*gdim+a]*M[a*gdim+b]*Jreg_T[j*gdim+b];
+        }
+      }
+    }
+  }
+
+  const T detA = det_full<tdim,T>(A);
+  METRIS_ENFORCE(get_val(detA) > 0.0);
+  *rho = sqrt(detA);
+  *barrier = T(0);
+
+  if(dbarrier != NULL){
+    for(int a = 0; a < gdim; a++) dbarrier[a] = T(0);
+  }
+  if(beta <= 0.0 || rho0 <= 0.0 || get_val(*rho) >= rho0) return;
+
+  const T h = log(T(rho0)/(*rho));
+  const T h2 = h*h;
+  *barrier = T(beta)*h2*h2;
+
+  if(dbarrier == NULL) return;
+
+  T Ainv[tdim*tdim];
+  inv_full<tdim,T>(A,Ainv);
+
+  // d log(rho) / d X_q = M J A^{-1} gradN.
+  T Ainv_gradN[tdim];
+  for(int i = 0; i < tdim; i++){
+    Ainv_gradN[i] = T(0);
+    for(int j = 0; j < tdim; j++){
+      Ainv_gradN[i] += Ainv[i*tdim+j]*gradN[j];
+    }
+  }
+
+  T J_Ainv_gradN[gdim];
+  for(int a = 0; a < gdim; a++){
+    J_Ainv_gradN[a] = T(0);
+    for(int i = 0; i < tdim; i++){
+      J_Ainv_gradN[a] += Jreg_T[i*gdim+a]*Ainv_gradN[i];
+    }
+  }
+
+  for(int a = 0; a < gdim; a++){
+    T dlogrho = T(0);
+    for(int b = 0; b < gdim; b++){
+      dlogrho += M[a*gdim+b]*J_Ainv_gradN[b];
+    }
+    dbarrier[a] = T(-4.0*beta)*h2*h*dlogrho;
+  }
+}
+
+template<int gdim, int tdim>
+void eval_metric_volume_barrier_fixed_metric_hess_by_surreal(
+    const double*__restrict__ Jreg_T,
+    const double*__restrict__ met,
+    const double*__restrict__ gradN,
+    double rho0,
+    double beta,
+    double*__restrict__ hbarrier)
+{
+  constexpr int nnmet = (gdim*(gdim+1))/2;
+  using S = SANS::SurrealS<gdim,double>;
+
+  S Jreg_TS[tdim*gdim];
+  S metS[nnmet];
+  S gradNS[tdim];
+
+  for(int i = 0; i < tdim; i++){
+    for(int a = 0; a < gdim; a++){
+      const int idx = i*gdim+a;
+      Jreg_TS[idx].value() = Jreg_T[idx];
+      for(int k = 0; k < gdim; k++){
+        Jreg_TS[idx].deriv(k) = (a == k) ? gradN[i] : 0.0;
+      }
+    }
+  }
+  for(int im = 0; im < nnmet; im++){
+    metS[im].value() = met[im];
+    for(int k = 0; k < gdim; k++) metS[im].deriv(k) = 0.0;
+  }
+  for(int i = 0; i < tdim; i++){
+    gradNS[i].value() = gradN[i];
+    for(int k = 0; k < gdim; k++) gradNS[i].deriv(k) = 0.0;
+  }
+
+  S rhoS;
+  S barrierS;
+  S dbarrierS[gdim];
+  eval_metric_volume_barrier_fixed_metric_grad<gdim,tdim,S>(
+      Jreg_TS,metS,gradNS,rho0,beta,&rhoS,&barrierS,dbarrierS);
+
+  for(int i = 0; i < gdim; i++){
+    for(int j = i; j < gdim; j++){
+      hbarrier[sym2idx(i,j)] = dbarrierS[i].deriv(j);
     }
   }
 }

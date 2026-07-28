@@ -668,7 +668,7 @@ int setCavityInsertion2<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh,
                        int ithrd1, int ithrd2);
 
 // Cavity growth based on quality
-template<class MFT>
+template<class MFT, QuaFun iquaf>
 int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,
                        const EdgeSeed &insertionSeed, int mgrow, BadEntHandler& handler, double lenqua_short_max,
                        std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
@@ -693,7 +693,7 @@ int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &o
   intWrkAr1 lrempoi = msh.get_iwork(10);
   lrempoi.set_n(0);
 
-  ierro = increase_cavity_quality(msh,cav,tdim,5,handler,ithrd1);
+  ierro = increase_cavity_quality<MFT,iquaf>(msh,cav,tdim,5,handler,ithrd1);
   if(DOPRINTS2()){
     // writeMeshCavity("insert_cavity1",msh,cav);
   }
@@ -709,16 +709,20 @@ int setCavityInsertionQuality(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &o
   return 0;
 }
 
-template
-int setCavityInsertionQuality<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical>& msh, MshCavity &cav, const CavOprOpt &opts,
-                              const EdgeSeed &insertionSeed, int mgrow, BadEntHandler& handler, double lenqua_short_max,
-                              std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
-                              int ithrd1, int ithrd2);
-template
-int setCavityInsertionQuality<MetricFieldFE        >(Mesh<MetricFieldFE        >& msh, MshCavity &cav, const CavOprOpt &opts,
-                              const EdgeSeed &insertionSeed, int mgrow, BadEntHandler& handler, double lenqua_short_max,
-                              std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp,
-                              int ithrd1, int ithrd2);
+#define INSTANTIATE_SET_CAVITY_QUALITY(MFT_VAL, QUAFUN_VAL) \
+template int setCavityInsertionQuality<MFT_VAL,QUAFUN_VAL>( \
+    Mesh<MFT_VAL>& msh, MshCavity &cav, const CavOprOpt &opts, \
+    const EdgeSeed &insertionSeed, int mgrow, BadEntHandler& handler, \
+    double lenqua_short_max, \
+    std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp, \
+    int ithrd1, int ithrd2);
+
+INSTANTIATE_SET_CAVITY_QUALITY(MetricFieldAnalytical, QuaFun::SizeShape)
+INSTANTIATE_SET_CAVITY_QUALITY(MetricFieldAnalytical, QuaFun::StepDistance)
+INSTANTIATE_SET_CAVITY_QUALITY(MetricFieldFE, QuaFun::SizeShape)
+INSTANTIATE_SET_CAVITY_QUALITY(MetricFieldFE, QuaFun::StepDistance)
+
+#undef INSTANTIATE_SET_CAVITY_QUALITY
 
 
 
@@ -2102,17 +2106,11 @@ template int increase_cavity_lenedg0<MetricFieldFE        ,3>(
 
 
 // Increase cavity based on quality
-template<class MFT>
+template<class MFT, QuaFun iquaf>
 int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
                              int ngrow, BadEntHandler& handler, int ithread){
 
   if(tdim <= 1) return 0;
-
-  #ifdef STEPDISTANCE
-  constexpr QuaFun iquaf = QuaFun::StepDistance;
-  #else
-  constexpr QuaFun iquaf = QuaFun::SizeShape;
-  #endif
 
   GETVDEPTH(msh.param);
   METRIS_ASSERT(tdim <= cav.get_tdim());
@@ -2208,11 +2206,179 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
   double difto = 1.;
 
+  auto restoreIpins = [&](const double* coor0, const double* met0,
+                          const intAr1& lbpoi0, const dblAr2& rbpoi0){
+    for(int ii = 0; ii < msh.idim; ii++) msh.coord(ipins,ii) = coor0[ii];
+    for(int ii = 0; ii < nnmet; ii++) msh.met(ipins,ii) = met0[ii];
+
+    for(int ib = 0; ib < lbpoi0.get_n(); ib++){
+      int ibpoi = lbpoi0[ib];
+      for(int jj = 0; jj < nrbi; jj++) msh.bpo2rbi(ibpoi,jj) = rbpoi0(ib,jj);
+    }
+  };
+
+  auto retagCavity = [&](){
+    aux_taginsrefs(msh,cav,ithread);
+
+    for(int ielem : cav.lctet) msh.tet2tag(ithread,ielem) = msh.tag[ithread];
+    for(int iface : cav.lcfac) msh.fac2tag(ithread,iface) = msh.tag[ithread];
+    for(int iedge : cav.lcedg) msh.edg2tag(ithread,iedge) = msh.tag[ithread];
+  };
+
+  auto stackCavityBoundaryEdges = [&]([[maybe_unused]] int iface){
+    if(tdim != 2) return;
+    if(!ipinsOnEdge) return;
+
+    for(int kk = 0; kk < 3; kk++){
+
+      int iedge = msh.fac2edg(iface,kk);
+      if(iedge < 0) continue;
+
+      int iref = msh.edg2ref[iedge];
+      if(msh.ced2tag(ithread,iref) < msh.tag[ithread]) continue;
+
+      if(msh.edg2tag(ithread,iedge) >= msh.tag[ithread]) continue;
+      lcsub.stack(iedge);
+      sub2tag(ithread,iedge) = msh.tag[ithread];
+      CPRINTF1(" - stack dim {} subent {}\n",tdim-1,iedge);
+    }
+  };
+
+  auto getCavityQuality2D = [&](double& qua0, double& qua1,
+                                double& qmax0, double& qmax1) -> bool{
+    qua0 = 0.;
+    qua1 = 0.;
+    qmax0 = -1.;
+    qmax1 = -1.;
+
+    for(const int ienttCav : lcent){
+
+      double qua = metqua<MFT,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,
+                                         ienttCav,difto);
+      qua0 += qua;
+      if(qua > qmax0) qmax0 = qua;
+
+      int ent2pol[3];
+      for(int jj = 0; jj < 3; jj++){
+
+        const int ienei = ent2ent(ienttCav,jj);
+        if(ienei >= 0 && ent2tag(ithread,ienei) >= msh.tag[ithread]) continue;
+
+        if(ipinsOnEdge){
+          int iedgeGlobal = msh.fac2edg(ienttCav,jj);
+          if(iedgeGlobal >= 0){
+            if(msh.edg2ref[iedgeGlobal] == msh.edg2ref[iedins]) continue;
+          }
+        }
+
+        ent2pol[0] = ipins;
+        ent2pol[lnoed2[0][0]] = ent2poi(ienttCav,lnoed2[jj][0]);
+        ent2pol[lnoed2[0][1]] = ent2poi(ienttCav,lnoed2[jj][1]);
+
+        if(ent2pol[1] == ipins || ent2pol[2] == ipins) return false;
+
+        ent2poi(tmpEntt,0) = ent2pol[0];
+        ent2poi(tmpEntt,1) = ent2pol[1];
+        ent2poi(tmpEntt,2) = ent2pol[2];
+
+        double meas;
+        if(!isvalideltP1<2,2>(msh, tmpEntt, NULL, &meas)) return false;
+
+        qua = metqua<MFT,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+        qua1 += qua;
+        if(qua > qmax1) qmax1 = qua;
+      }
+    }
+
+    return true;
+  };
+
   #ifdef DEBUGCAV
   std::cout << "GROWING CAVITY" << std::endl;
   #endif
 
   #ifdef CAVGROWTH
+
+  #ifdef CAVSMOOTHING
+  double quaCav1BeforeGrowth = 0.;
+  double quaMax1BeforeGrowth = -1.;
+
+  for (const int ienttCav : lcent){
+
+    int ent2pol[4];
+    for(int jj = 0; jj < tdim + 1; jj++){
+
+      const int ienei = ent2ent(ienttCav,jj);
+
+      if (ienei >= 0 && ent2tag(ithread,ienei) >= msh.tag[ithread]) continue;
+
+      if (tdim == 2){
+
+        if (ipinsOnEdge){
+          int iedgeGlobal = msh.fac2edg(ienttCav,jj);
+          if (iedgeGlobal >= 0){
+            if (msh.edg2ref[iedgeGlobal] == msh.edg2ref[iedins]) continue;
+          }
+        }
+
+        ent2pol[0] = ipins;
+        ent2pol[lnoed2[0][0]] = ent2poi(ienttCav,lnoed2[jj][0]);
+        ent2pol[lnoed2[0][1]] = ent2poi(ienttCav,lnoed2[jj][1]);
+
+        if (ent2pol[1] == ipins || ent2pol[2] == ipins) continue;
+
+        ent2poi(tmpEntt,0) = ent2pol[0];
+        ent2poi(tmpEntt,1) = ent2pol[1];
+        ent2poi(tmpEntt,2) = ent2pol[2];
+
+        #ifndef NDEBUG
+        double meas;
+        bool isValid = isvalideltP1<2,2>(msh, tmpEntt, NULL, &meas);
+        METRIS_ASSERT_MSG(isValid, "Initial cavity has invalid element when reconnected. Shouldn't ever happen");
+        #endif
+
+        double qua = metqua<MFT,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
+        quaCav1BeforeGrowth += qua;
+        if (qua > quaMax1BeforeGrowth) quaMax1BeforeGrowth = qua;
+      }
+      else{
+
+        int ifaceGlobal = msh.tet2fac(ienttCav, jj);
+        if(ifaceGlobal >= 0 && msh.fac2tag(ithread, ifaceGlobal) >= msh.tag[ithread]) continue;
+
+        ent2pol[0] = ipins;
+        ent2pol[lnofa3[0][0]] = ent2poi(ienttCav, lnofa3[jj][0]);
+        ent2pol[lnofa3[0][1]] = ent2poi(ienttCav, lnofa3[jj][1]);
+        ent2pol[lnofa3[0][2]] = ent2poi(ienttCav, lnofa3[jj][2]);
+
+        if(ent2pol[1]==ipins || ent2pol[2]==ipins || ent2pol[3]==ipins) continue;
+
+        ent2poi(tmpEntt,0)=ent2pol[0];
+        ent2poi(tmpEntt,1)=ent2pol[1];
+        ent2poi(tmpEntt,2)=ent2pol[2];
+        ent2poi(tmpEntt,3)=ent2pol[3];
+
+        #ifndef NDEBUG
+        double meas;
+        bool isValid = isvalideltP1<3,3>(msh, tmpEntt, NULL, &meas);
+        METRIS_ASSERT_MSG(isValid, "Initial cavity has invalid element when reconnected. Shouldn't ever happen");
+        #endif
+
+        double qua = metqua<MFT,3,3,iquaf>(msh, AsDeg::P1, AsDeg::P1, tmpEntt, difto);
+        quaCav1BeforeGrowth += qua;
+        if(qua > quaMax1BeforeGrowth) quaMax1BeforeGrowth = qua;
+      }
+    }
+  }
+
+  double quaCav1AfterInitialSmoo;
+  double quaMax1AfterInitialSmoo;
+  double statInitialSmooCav = smoothCavity(msh,cav,handler,iquaf,quaCav1BeforeGrowth,quaMax1BeforeGrowth,quaCav1AfterInitialSmoo,quaMax1AfterInitialSmoo,ithread,ithread);
+  retagCavity();
+
+  METRIS_ENFORCE_MSG(quaCav1AfterInitialSmoo <= quaCav1BeforeGrowth, "Cavity smoothing worsen quality!");
+  #endif
+
   int icen0 = 0, icen1 = lcent.get_n();
   for(int igrow = 0; igrow < ngrow || ngrow < 0; igrow++){
 
@@ -2390,17 +2556,89 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
           improveLocalMax = quaMaxLocalReconnect <= quaMaxLocal;
           #endif
 
-          if (improveLocalSum && improveLocalMax){
+          const double nearMissRel = 5.0e-1;
+          bool nearMissLocalSum = quaLocalReconnect <= (1.0 + nearMissRel)*quaLocal;
+          bool acceptCandidate = improveLocalSum && improveLocalMax;
 
-            // first thing: add outside element to cavity
+          #ifdef CAVSMOOTHING
+          if (!acceptCandidate && nearMissLocalSum && improveLocalMax){
+
+            double coor0[3] = {};
+            double met0[6] = {};
+            for(int ii = 0; ii < msh.idim; ii++) coor0[ii] = msh.coord(ipins,ii);
+            for(int ii = 0; ii < nnmet; ii++) met0[ii] = msh.met(ipins,ii);
+
+            int nbpoi0 = 0;
+            for(int ibpoi = msh.poi2bpo[ipins]; ibpoi >= 0;
+                ibpoi = msh.bpo2ibi(ibpoi,3)) nbpoi0++;
+
+            intAr1 lbpoi0(nbpoi0);
+            dblAr2 rbpoi0(nbpoi0,nrbi);
+            int ib = 0;
+            for(int ibpoi = msh.poi2bpo[ipins]; ibpoi >= 0;
+                ibpoi = msh.bpo2ibi(ibpoi,3)){
+              lbpoi0[ib] = ibpoi;
+              for(int jj = 0; jj < nrbi; jj++) rbpoi0(ib,jj) = msh.bpo2rbi(ibpoi,jj);
+              ib++;
+            }
+
+            int ncent0 = lcent.get_n();
+            int nsub0  = lcsub.get_n();
+
             lcent.stack(ieneijj);
             ent2tag(ithread,ieneijj) = msh.tag[ithread];
-            CPRINTF1(" - stack dim {} ieneijj {}\n",tdim,ieneijj);
-            // if(isube >= 0){
-            //   CPRINTF1(" - stack dim {} subent {}\n",tdim-1,isube);
-            //   sub2tag(ithread,isube) = msh.tag[ithread];
-            //   lcsub.stack(isube);
-            // }
+            stackCavityBoundaryEdges(ieneijj);
+
+            double quaNear0, quaNear1, quaMaxNear0, quaMaxNear1;
+            bool validNear = getCavityQuality2D(quaNear0,quaNear1,
+                                                quaMaxNear0,quaMaxNear1);
+            if(validNear){
+              double quaNearAfterSmoo;
+              double quaMaxNearAfterSmoo;
+              double statNearSmooCav = smoothCavity(msh,cav,handler,iquaf,
+                                                    quaNear1,quaMaxNear1,
+                                                    quaNearAfterSmoo,
+                                                    quaMaxNearAfterSmoo,
+                                                    ithread,ithread);
+              retagCavity();
+
+              bool improveNearSum = handler.checkSuccess(quaNearAfterSmoo,quaNear0);
+              bool improveNearMax = true;
+              #ifdef IMPROVEMAXQUAL
+              improveNearMax = quaMaxNearAfterSmoo <= quaMaxNear0;
+              #endif
+
+              acceptCandidate = improveNearSum && improveNearMax;
+              CPRINTF1(" - near miss smoothing dim {} ieneijj {} qsum {} -> {} accepted {}\n",
+                       tdim,ieneijj,quaNear0,quaNearAfterSmoo,acceptCandidate);
+            }
+
+            if(!acceptCandidate){
+              restoreIpins(coor0,met0,lbpoi0,rbpoi0);
+
+              for(int ii = nsub0; ii < lcsub.get_n(); ii++){
+                int isub = lcsub[ii];
+                sub2tag(ithread,isub) = 0;
+              }
+              lcsub.set_n(nsub0);
+
+              ent2tag(ithread,ieneijj) = 0;
+              lcent.set_n(ncent0);
+            }
+          }
+          #endif
+
+          if (acceptCandidate){
+
+            // first thing: add outside element to cavity
+            if(ent2tag(ithread,ieneijj) < msh.tag[ithread]){
+              lcent.stack(ieneijj);
+              ent2tag(ithread,ieneijj) = msh.tag[ithread];
+              CPRINTF1(" - stack dim {} ieneijj {}\n",tdim,ieneijj);
+            }
+
+            // stack also boundary edges that need to be split
+            stackCavityBoundaryEdges(ieneijj);
 
             // update quality of cavity for both configs
 
@@ -2908,25 +3146,15 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   #endif
 
   #ifdef CAVSMOOTHING
-  if (!ipinsOnBnd){
-    double quaCav1AfterSmoo;
-    double quaMax1AfterSmoo;
-    double statSmooCav = smoothCavity(msh,cav,handler,iquaf,quaCav1,quaMax1,quaCav1AfterSmoo,quaMax1AfterSmoo,ithread,ithread);
+  double quaCav1AfterSmoo;
+  double quaMax1AfterSmoo;
+  double statSmooCav = smoothCavity(msh,cav,handler,iquaf,quaCav1,quaMax1,quaCav1AfterSmoo,quaMax1AfterSmoo,ithread,ithread);
+  retagCavity();
 
-    if (quaCav1AfterSmoo > quaCav1) METRIS_THROW_MSG("Cavity smoothing worsen quality!");
-    // if (statSmooCav > 0){
+  METRIS_ENFORCE_MSG(quaCav1AfterSmoo <= quaCav1, "Cavity smoothing worsen quality!");
 
-    //   std::cout << "statSmooCav = " << statSmooCav << std::endl;
-    //   std::cout << "quaCav1 = " << quaCav1 << std::endl;
-    //   std::cout << "quaCav1AfterSmoo = " << quaCav1AfterSmoo << std::endl;
-    //   std::cout << "quaMax1 = " << quaMax1 << std::endl;
-    //   std::cout << "quaMax1AfterSmoo = " << quaMax1AfterSmoo << std::endl;
-    //   std::cout << "quaCav0 = " << quaCav0 << std::endl;
-    //   std::cout << "quaMax0 = " << quaMax0 << std::endl;
-    // }
-    quaCav1 = quaCav1AfterSmoo;
-    quaMax1 = quaMax1AfterSmoo;
-  }
+  quaCav1 = quaCav1AfterSmoo;
+  quaMax1 = quaMax1AfterSmoo;
   #endif
 
   // restore to original number of entities in mesh
@@ -2954,10 +3182,17 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   else return -1;                                       // original config is better
 }
 
-template int increase_cavity_quality(Mesh<MetricFieldAnalytical> &msh,
-                                      MshCavity &cav, int tdim, int ngrow, BadEntHandler& handler, int ithread);
-template int increase_cavity_quality(Mesh<MetricFieldFE        > &msh,
-                                      MshCavity &cav, int tdim, int ngrow, BadEntHandler& handler, int ithread);
+#define INSTANTIATE_INCREASE_CAVITY_QUALITY(MFT_VAL, QUAFUN_VAL) \
+template int increase_cavity_quality<MFT_VAL,QUAFUN_VAL>( \
+    Mesh<MFT_VAL> &msh, MshCavity &cav, int tdim, int ngrow, \
+    BadEntHandler& handler, int ithread);
+
+INSTANTIATE_INCREASE_CAVITY_QUALITY(MetricFieldAnalytical, QuaFun::SizeShape)
+INSTANTIATE_INCREASE_CAVITY_QUALITY(MetricFieldAnalytical, QuaFun::StepDistance)
+INSTANTIATE_INCREASE_CAVITY_QUALITY(MetricFieldFE, QuaFun::SizeShape)
+INSTANTIATE_INCREASE_CAVITY_QUALITY(MetricFieldFE, QuaFun::StepDistance)
+
+#undef INSTANTIATE_INCREASE_CAVITY_QUALITY
 
 
 // Check cavity quality
@@ -3186,28 +3421,6 @@ int checkCavityQuality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
       if (qua > quaMaxSub1) quaMaxSub1 = qua;
 
     }
-  }
-  #endif
-
-  #ifdef CAVSMOOTHING
-  if (!ipinsOnBnd){
-    double quaCav1AfterSmoo;
-    double quaMax1AfterSmoo;
-    double statSmooCav = smoothCavity(msh,cav,handler,iquaf,quaCav1,quaMax1,quaCav1AfterSmoo,quaMax1AfterSmoo,ithread,ithread);
-
-    if (quaCav1AfterSmoo > quaCav1) METRIS_THROW_MSG("Cavity smoothing worsen quality!");
-    // if (statSmooCav > 0){
-
-    //   std::cout << "statSmooCav = " << statSmooCav << std::endl;
-    //   std::cout << "quaCav1 = " << quaCav1 << std::endl;
-    //   std::cout << "quaCav1AfterSmoo = " << quaCav1AfterSmoo << std::endl;
-    //   std::cout << "quaMax1 = " << quaMax1 << std::endl;
-    //   std::cout << "quaMax1AfterSmoo = " << quaMax1AfterSmoo << std::endl;
-    //   std::cout << "quaCav0 = " << quaCav0 << std::endl;
-    //   std::cout << "quaMax0 = " << quaMax0 << std::endl;
-    // }
-    quaCav1 = quaCav1AfterSmoo;
-    quaMax1 = quaMax1AfterSmoo;
   }
   #endif
 

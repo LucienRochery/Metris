@@ -12,6 +12,7 @@
 
 #include "insert_errors.hxx"
 #include "../../aux_badEntHandler.hxx"
+#include "../../quality/quafun.hxx"
 
 namespace Metris{
 
@@ -21,7 +22,7 @@ struct EdgeSeed;
 
 // Collapse edge iedl of triangle iface
 // bar1 is t along the edge with 1 if lnoed[iedl][0]
-template<class MFT>
+template<class MFT, QuaFun iquaf = DefaultQualityFunction>
 int insertEdge(Mesh<MFT>& msh,
                const EdgeSeed &insertionSeed,
                double lenqua_short_max,
