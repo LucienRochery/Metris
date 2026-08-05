@@ -31,7 +31,7 @@ void gen_ccoeff2_d(){
 }
 
 
-void insert_map2(std::map<std::pair<int, int>, std::vector<SANS::DLA::VectorS<4, int>>> &d_ccoef_map,
+void insert_map2(std::map<std::pair<int, int>, std::vector<Metris::DLA::VectorS<4, int>>> &d_ccoef_map,
             std::pair<int,int> &key, int up, int lo, int irnk1, int irnk2){
 
   // Might be necessary to call oneself if an entry is modified (could then cancel/combine with new entries)
@@ -90,7 +90,7 @@ void insert_map2(std::map<std::pair<int, int>, std::vector<SANS::DLA::VectorS<4,
   }
 
 
-  d_ccoef_map[key].push_back(SANS::DLA::VectorS<4, int>{up,lo,irnk1,irnk2});
+  d_ccoef_map[key].push_back(Metris::DLA::VectorS<4, int>{up,lo,irnk1,irnk2});
   return;
 
 }
@@ -124,7 +124,7 @@ void getccoef2_map_coord(int ideg){
 
   // Store up, lo, irnk1, irnk2 s.t. term is up*(coord(irnk1,1-icoor) - coord(irnk2,1-icoor))/lo
   // Store all entries to be summed for a given pair idof icoef
-  std::map<std::pair<int, int>, std::vector<SANS::DLA::VectorS<4, int>>> d_ccoef_map;
+  std::map<std::pair<int, int>, std::vector<Metris::DLA::VectorS<4, int>>> d_ccoef_map;
 
   int npp_c = facnpps[2*(ideg-1)];
 
@@ -314,7 +314,7 @@ void get_point_derivatives(int ideg){
  
 
   std::map<std::pair<int, int>, std::string> d_ccoef_map_old; 
-  std::map<std::pair<int, int>, std::vector<SANS::DLA::VectorS<4, int>>> d_ccoef_map;
+  std::map<std::pair<int, int>, std::vector<Metris::DLA::VectorS<4, int>>> d_ccoef_map;
 
   int nnodj = facnpps[2*(ideg-1)];
   int nnode = facnpps[ideg];

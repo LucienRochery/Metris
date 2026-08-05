@@ -506,7 +506,7 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                               const double*__restrict__ met_,
                               SANS::SurrealS<nvar,double>&__restrict__ tra, 
                               SANS::SurrealS<nvar,double>&__restrict__ det,
-                              const SANS::DLA::MatrixS<gdim,nvar,double> *dpoint){
+                              const Metris::DLA::MatrixS<gdim,nvar,double> *dpoint){
 
   static_assert(gdim == 2 || gdim == 3);
   METRIS_ASSERT(gdim == msh.idim);
@@ -527,8 +527,8 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   // Get Jacobian matrix at xi  
   // Derivatives are not needed, we compute them ourselves, as they greatly simplify
   // see docs/quality/qualityiff.pdf
-  SANS::DLA::MatrixS<tdim ,gdim,doubleS> jmat;
-  SANS::DLA::VectorS<      gdim,doubleS> coopr;
+  Metris::DLA::MatrixS<tdim ,gdim,doubleS> jmat;
+  Metris::DLA::VectorS<      gdim,doubleS> coopr;
   // Get Jacobian matrix at xi
   if(asdmsh == AsDeg::P1){
     eval_d_SurrealS<gdim, tdim, 1, nvar>(msh.coord, ent2pol, 
@@ -546,9 +546,9 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   // whereas (J_K)_{ij} = d_j F_i .. 
 
   // Get J_0^{-T} J_K^T 
-  SANS::DLA::MatrixS<tdim ,tdim, double> 
+  Metris::DLA::MatrixS<tdim ,tdim, double>
     invtJ_0(Constants::invtJ_0[hana::type_c<double>][tdim], tdim*tdim);
-  SANS::DLA::MatrixS<tdim ,gdim,doubleS> invtJ0_tJK = invtJ_0*jmat;
+  Metris::DLA::MatrixS<tdim ,gdim,doubleS> invtJ0_tJK = invtJ_0*jmat;
 
   // Get metric interpolated at xi
   // The metric field class fetches geometric dimension from the mesh
@@ -565,7 +565,7 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   // Store as vector.
   if(idifmet != DifVar::None) METRIS_THROW_MSG( 
     "Multiply dmet by point Jacobian matrix.");
-  SANS::DLA::MatSymS<gdim,doubleS> metS;
+  Metris::DLA::MatSymS<gdim,doubleS> metS;
   for(int ii = 0; ii < nnmet; ii++){
     metS[ii].value() = (double) met[ii];
     //if(idifmet != DifVar::None){
@@ -577,8 +577,8 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
 
   // Compute the trace. Matrix is sized tdim x tdim and symmetric.
-  //SANS::DLA::VectorS<(tdim*(tdim+1))/2,doubleS> tJ0_tJK_M_JK_J0;
-  SANS::DLA::MatSymS<tdim,doubleS> tJ0_tJK_M_JK_J0;
+  //Metris::DLA::VectorS<(tdim*(tdim+1))/2,doubleS> tJ0_tJK_M_JK_J0;
+  Metris::DLA::MatSymS<tdim,doubleS> tJ0_tJK_M_JK_J0;
   matXsymXtmat(metS,invtJ0_tJK,tJ0_tJK_M_JK_J0);
   //matXsymXtmat<tdim,gdim,
   //             doubleS,
@@ -629,7 +629,7 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 2, 2, 2>\
                    const double*__restrict__ met_,\
                    SANS::SurrealS<2>&__restrict__ tra,\
                    SANS::SurrealS<2>&__restrict__ det,\
-                   const SANS::DLA::MatrixS<2,2,double> *dpoint);\
+                   const Metris::DLA::MatrixS<2,2,double> *dpoint);\
 template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 3, 3>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
@@ -641,7 +641,7 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 3, 3>\
                    const double*__restrict__ met_,\
                    SANS::SurrealS<3>&__restrict__ tra,\
                    SANS::SurrealS<3>&__restrict__ det,\
-                   const SANS::DLA::MatrixS<3,3,double> *dpoint);\
+                   const Metris::DLA::MatrixS<3,3,double> *dpoint);\
 template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 2>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
@@ -653,7 +653,7 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 2>\
                    const double*__restrict__ met_,\
                    SANS::SurrealS<2>&__restrict__ tra,\
                    SANS::SurrealS<2>&__restrict__ det,\
-                   const SANS::DLA::MatrixS<3,2,double> *dpoint);\
+                   const Metris::DLA::MatrixS<3,2,double> *dpoint);\
 template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 3>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
@@ -665,7 +665,7 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 3>\
                    const double*__restrict__ met_,\
                    SANS::SurrealS<3>&__restrict__ tra,\
                    SANS::SurrealS<3>&__restrict__ det,\
-                   const SANS::DLA::MatrixS<3,3,double> *dpoint);
+                   const Metris::DLA::MatrixS<3,3,double> *dpoint);
 INSTANTIATE(MetricFieldAnalytical)
 INSTANTIATE(MetricFieldFE)
 

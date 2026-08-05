@@ -28,7 +28,7 @@ inline T detmat(const T mat[]){
 }
 // With MatrixS type.
 template<int ndimn, typename T = double>
-inline T detmat(const SANS::DLA::MatrixS<ndimn,ndimn,T> &mat){
+inline T detmat(const Metris::DLA::MatrixS<ndimn,ndimn,T> &mat){
   static_assert(ndimn == 2 || ndimn == 3);
   if constexpr(ndimn == 2){
     return mat(0,0)*mat(1,1) - mat(1,0)*mat(0,1);
@@ -210,7 +210,7 @@ inline T detsym3(const T met[]){
 
 // MatrixS version
 template<int ndimn, typename T = double>
-inline T detsym2(const SANS::DLA::MatSymS<ndimn,T> &met){
+inline T detsym2(const Metris::DLA::MatSymS<ndimn,T> &met){
   static_assert(ndimn == 2 || ndimn == 3);
   if constexpr(ndimn == 2){
     return met[0]*met[2] - met[1]*met[1];

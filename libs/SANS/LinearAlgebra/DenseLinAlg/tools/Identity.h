@@ -3,10 +3,10 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef DENSEMATRIX_IDENTITY_H
-#define DENSEMATRIX_IDENTITY_H
+#ifndef METRIS_DLA_DENSEMATRIX_IDENTITY_H
+#define METRIS_DLA_DENSEMATRIX_IDENTITY_H
 
-namespace SANS
+namespace Metris
 {
 namespace DLA
 {
@@ -28,7 +28,7 @@ protected:
 };
 
 } //namespace DLA
-} //namespace SANS
+} //namespace Metris
 
 
-#endif //DENSEMATRIX_IDENTITY_H
+#endif // METRIS_DLA_DENSEMATRIX_IDENTITY_H

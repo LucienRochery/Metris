@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d2)
         constexpr int nvar = gdim;
         auto d_quafun = d_quafun_tradet_SurrealS<MFT,gdim,tdim,gdim>;
         auto   quafun =   quafun_tradet         <MFT,gdim,tdim,ftype>;
-        SANS::DLA::MatrixS<gdim,nvar,double> dpoint = SANS::DLA::Identity();
+        Metris::DLA::MatrixS<gdim,nvar,double> dpoint = Metris::DLA::Identity();
         //for(int ii = 0; ii < gdim; ii++){
         //  for(int jj = 0; jj < gdim; jj++){
         //    dpoint(ii,jj) = ii == jj;

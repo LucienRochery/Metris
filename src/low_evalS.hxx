@@ -30,11 +30,11 @@ namespace Metris{
 // eval1: edges
 template <int szfld, int ideg, int ilag, int idif1, int idif2>
 void eval3S(const dblAr2  &rfld, 
-            const SANS::DLA::VectorS<getnnod3(ideg),int> &lfld, 
-            const SANS::DLA::VectorS<4,double> &bary, 
-            SANS::DLA::VectorS<  szfld,double> &eval, 
-            SANS::DLA::VectorS<3*szfld,double> &jmat,  
-            SANS::DLA::VectorS<9*szfld,double> &hmat);
+            const Metris::DLA::VectorS<getnnod3(ideg),int> &lfld,
+            const Metris::DLA::VectorS<4,double> &bary,
+            Metris::DLA::VectorS<  szfld,double> &eval,
+            Metris::DLA::VectorS<3*szfld,double> &jmat,
+            Metris::DLA::VectorS<9*szfld,double> &hmat);
 
 
 /*
@@ -48,14 +48,14 @@ However, note that each entry is, itself, comprised of szfld values.
 template <int szfld, int ideg, int idif1, int idif2, int di=0,int dj=0, int dk=0, int dl=0>
 struct eval3S_bezier{
   eval3S_bezier(const dblAr2 & __restrict__  rfld,  
-               const SANS::DLA::VectorS<getnnod3(ideg),int> &lfld,
-               const SANS::DLA::VectorS<4,double> &bary,  
-               SANS::DLA::VectorS<  szfld,double> &eval,
-               SANS::DLA::VectorS<3*szfld,double> &jmat,
-               SANS::DLA::VectorS<9*szfld,double> &hmat){
-    SANS::DLA::VectorS<  szfld,double> eva1, eva2, eva3, eva4;
-    SANS::DLA::VectorS<3*szfld,double> jmat1, jmat2, jmat3, jmat4;
-    SANS::DLA::VectorS<9*szfld,double> hdum;
+               const Metris::DLA::VectorS<getnnod3(ideg),int> &lfld,
+               const Metris::DLA::VectorS<4,double> &bary,
+               Metris::DLA::VectorS<  szfld,double> &eval,
+               Metris::DLA::VectorS<3*szfld,double> &jmat,
+               Metris::DLA::VectorS<9*szfld,double> &hmat){
+    Metris::DLA::VectorS<  szfld,double> eva1, eva2, eva3, eva4;
+    Metris::DLA::VectorS<3*szfld,double> jmat1, jmat2, jmat3, jmat4;
+    Metris::DLA::VectorS<9*szfld,double> hdum;
 
     if constexpr(idif2 == 0){
       eval3S_bezier<szfld,ideg-1,0,0,di+1,dj+0,dk+0,dl+0>(rfld,lfld,bary,eva1,jmat1,hdum);
@@ -111,11 +111,11 @@ struct eval3S_bezier{
 template <int szfld, int idif1, int idif2, int di,int dj, int dk, int dl>
 struct eval3S_bezier<szfld,1,idif1,idif2,di,dj,dk,dl>{
   eval3S_bezier(const dblAr2 & __restrict__  rfld,  
-                const SANS::DLA::VectorS<getnnod3(1 + di + dj + dk + dl),int> &lfld,
-                const SANS::DLA::VectorS<4,double> &bary,  
-                SANS::DLA::VectorS<  szfld,double> &eval,
-                SANS::DLA::VectorS<3*szfld,double> &jmat,
-                SANS::DLA::VectorS<9*szfld,double> &hmat){
+                const Metris::DLA::VectorS<getnnod3(1 + di + dj + dk + dl),int> &lfld,
+                const Metris::DLA::VectorS<4,double> &bary,
+                Metris::DLA::VectorS<  szfld,double> &eval,
+                Metris::DLA::VectorS<3*szfld,double> &jmat,
+                Metris::DLA::VectorS<9*szfld,double> &hmat){
 
     constexpr int ideg = 1 + di + dj + dk + dl; // The true degree. 
 
@@ -160,11 +160,11 @@ struct eval3S_bezier<szfld,1,idif1,idif2,di,dj,dk,dl>{
 template <int szfld, int idif1,int idif2,int di,int dj, int dk, int dl>
   struct eval3S_bezier<szfld,2,idif1,idif2,di,dj,dk,dl>{
     eval3S_bezier(const dblAr2 & __restrict__  rfld,  
-                 const SANS::DLA::VectorS<getnnod3(2 + di + dj + dk + dl),int> &lfld,
-                 const SANS::DLA::VectorS<4,double> &bary,
-                 SANS::DLA::VectorS<  szfld,double> &eval,
-                 SANS::DLA::VectorS<3*szfld,double> &jmat,
-                 SANS::DLA::VectorS<9*szfld,double> &hmat){
+                 const Metris::DLA::VectorS<getnnod3(2 + di + dj + dk + dl),int> &lfld,
+                 const Metris::DLA::VectorS<4,double> &bary,
+                 Metris::DLA::VectorS<  szfld,double> &eval,
+                 Metris::DLA::VectorS<3*szfld,double> &jmat,
+                 Metris::DLA::VectorS<9*szfld,double> &hmat){
     constexpr int ideg = 2 + di + dj + dk + dl; // The true degree. 
 
     
@@ -174,9 +174,9 @@ template <int szfld, int idif1,int idif2,int di,int dj, int dk, int dl>
         // The Jacobian is quicker to compute recursively as it only uses the previous degree
         // evals. 
 
-      SANS::DLA::VectorS<  szfld,double> eva1, eva2, eva3, eva4;
-      SANS::DLA::VectorS<3*szfld,double> jmat1, jmat2, jmat3, jmat4;
-      SANS::DLA::VectorS<9*szfld,double> hdum;
+      Metris::DLA::VectorS<  szfld,double> eva1, eva2, eva3, eva4;
+      Metris::DLA::VectorS<3*szfld,double> jmat1, jmat2, jmat3, jmat4;
+      Metris::DLA::VectorS<9*szfld,double> hdum;
     
       if constexpr(idif2 == 0){
         eval3S_bezier<szfld,ideg-1,0,0,di+1,dj+0,dk+0,dl+0>(rfld,lfld,bary,eva1,jmat1,hdum);
@@ -259,11 +259,11 @@ template <int szfld, int idif1,int idif2,int di,int dj, int dk, int dl>
 };
 template <int szfld, int ideg, int ilag, int idif1, int idif2>
 void eval3S(const dblAr2 & __restrict__  rfld,  
-           const SANS::DLA::VectorS<getnnod3(ideg),int> &lfld,
-           const SANS::DLA::VectorS<4,double> &bary, 
-           SANS::DLA::VectorS<  szfld,double> &eval, 
-           SANS::DLA::VectorS<3*szfld,double> &jmat, 
-           SANS::DLA::VectorS<9*szfld,double> &hmat){
+           const Metris::DLA::VectorS<getnnod3(ideg),int> &lfld,
+           const Metris::DLA::VectorS<4,double> &bary,
+           Metris::DLA::VectorS<  szfld,double> &eval,
+           Metris::DLA::VectorS<3*szfld,double> &jmat,
+           Metris::DLA::VectorS<9*szfld,double> &hmat){
   if constexpr (ideg == 1){
     
     for(int i=0;i<szfld;i++){

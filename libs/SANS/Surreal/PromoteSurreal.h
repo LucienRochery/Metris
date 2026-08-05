@@ -92,6 +92,21 @@ APPLY_TO_REALTYPE(double)
 #endif
 #undef APPLY_TO_REALTYPE
 
+template <>
+struct promote_Surreal<unsigned long, double> {
+    typedef double type;
+};
+
+template <>
+struct promote_Surreal<double, unsigned long> {
+    typedef double type;
+};
+
+template <>
+struct promote_Surreal<unsigned long, unsigned long> {
+    typedef unsigned long type;
+};
+
 
 } // namespace SANS
 

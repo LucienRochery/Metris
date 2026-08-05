@@ -581,7 +581,7 @@ void gen_ccoef2(){
 
 
 // Aux
-void insert_map2(std::map<std::pair<int, int>, std::vector<SANS::DLA::VectorS<4, int>>> &d_ccoef_map,
+void insert_map2(std::map<std::pair<int, int>, std::vector<Metris::DLA::VectorS<4, int>>> &d_ccoef_map,
             std::pair<int,int> &key, int up, int lo, int irnk1, int irnk2){
 
   // Might be necessary to call oneself if an entry is modified (could then cancel/combine with new entries)
@@ -640,7 +640,7 @@ void insert_map2(std::map<std::pair<int, int>, std::vector<SANS::DLA::VectorS<4,
   }
 
 
-  d_ccoef_map[key].push_back(SANS::DLA::VectorS<4, int>{up,lo,irnk1,irnk2});
+  d_ccoef_map[key].push_back(Metris::DLA::VectorS<4, int>{up,lo,irnk1,irnk2});
   return;
 
 }

@@ -3,8 +3,8 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef MATRIXS_MUL_H
-#define MATRIXS_MUL_H
+#ifndef METRIS_DLA_MATRIXS_MUL_H
+#define METRIS_DLA_MATRIXS_MUL_H
 
 #include <type_traits>
 
@@ -21,7 +21,7 @@
 #include "SANS/LinearAlgebra/DenseLinAlg/tools/PromoteSurreal.h"
 #include "SANS//Surreal/SurrealS_Type.h"
 
-namespace SANS
+namespace Metris
 {
 namespace DLA
 {
@@ -126,7 +126,7 @@ class OpMulS : public MatrixSType< OpMulS<ExprL, ExprR>, true, true >
 public:
   typedef typename ExprL::Ttype TL;
   typedef typename ExprR::Ttype TR;
-  typedef typename promote_Surreal<TL,TR>::type Ttype;
+  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
 
   BOOST_MPL_ASSERT_RELATION( ExprL::N, ==, ExprR::M );
 
@@ -204,7 +204,7 @@ class OpMulS< MatrixS<M_,N_,TL>, Expr > : public MatrixSType< OpMulS< MatrixS<M_
 {
 public:
   typedef typename Expr::Ttype TR;
-  typedef typename promote_Surreal<TL,TR>::type Ttype;
+  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
 
   BOOST_MPL_ASSERT_RELATION( N_, ==, Expr::M );
 
@@ -276,7 +276,7 @@ class OpMulS< Expr, MatrixS<M_,N_,TR> > : public MatrixSType< OpMulS< Expr, Matr
 {
 public:
   typedef typename Expr::Ttype TL;
-  typedef typename promote_Surreal<TL,TR>::type Ttype;
+  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
 
   BOOST_MPL_ASSERT_RELATION( Expr::N, ==, M_ );
 
@@ -347,7 +347,7 @@ template<int ML, int NL, class TL, int MR, int NR, class TR>
 class OpMulS< MatrixS<ML,NL,TL>, MatrixS<MR,NR,TR> > : public MatrixSType< OpMulS< MatrixS<ML,NL,TL>, MatrixS<MR,NR,TR> >, true, true >
 {
 public:
-  typedef typename promote_Surreal<TL,TR>::type Ttype;
+  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
   BOOST_MPL_ASSERT_RELATION( NL, ==, MR );
 
   typedef MatrixS<ML,NL,TL> MatrixSL;
@@ -412,7 +412,7 @@ template<class TL, class TR>
 class OpMulS< MatrixSymS<1,TL>, MatrixSymS<1,TR> > : public MatrixSType< OpMulS< MatrixSymS<1,TL>, MatrixSymS<1,TR> >, true, true >
 {
 public:
-  typedef typename promote_Surreal<TL,TR>::type Ttype;
+  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
 
   static const int M = 1;
   static const int N = 1;
@@ -487,7 +487,7 @@ template<class Expr, class S, bool useRF, bool MatrixFull>
 class OpMulSScalar : public MatrixSType< OpMulSScalar<Expr, S, useRF, MatrixFull>, useRF, MatrixFull >
 {
 public:
-  typedef typename promote_Surreal< S, typename Expr::Ttype >::type Ttype;
+  typedef typename SANS::promote_Surreal< S, typename Expr::Ttype >::type Ttype;
   static const int M = Expr::M;
   static const int N = Expr::N;
 
@@ -562,19 +562,19 @@ operator/(const MatrixSType<Expr, useRF, MatrixFull>& e, const T& s)
 #ifdef SURREAL_LAZY
 
 //=============================================================================
-// Overloaded operators specific to working with SurrealS
+// Overloaded operators specific to working with SANS::SurrealS
 template<class ExprL, class ExprR, bool useRF, bool MatrixFull, typename T>
-inline OpMulSScalar<ExprL, SurrealS<ExprR::N,T>, useRF, MatrixFull >
-operator*(const MatrixSType<ExprL, useRF, MatrixFull>& e, const SurrealS<ExprR::N,T>& s)
+inline OpMulSScalar<ExprL, SANS::SurrealS<ExprR::N,T>, useRF, MatrixFull >
+operator*(const MatrixSType<ExprL, useRF, MatrixFull>& e, const SANS::SurrealS<ExprR::N,T>& s)
 {
-  return OpMulSScalar<ExprL, SurrealS<ExprR::N,T>, useRF, MatrixFull >( e.cast(), s );
+  return OpMulSScalar<ExprL, SANS::SurrealS<ExprR::N,T>, useRF, MatrixFull >( e.cast(), s );
 }
 
 template<class ExprL, class ExprR, bool useRF, bool MatrixFull, typename T>
-inline OpMulSScalar<ExprR, SurrealS<ExprL::N,T>, useRF, MatrixFull >
-operator*(const SurrealSType<ExprL, T>& s, const MatrixSType<ExprR, useRF, MatrixFull>& e)
+inline OpMulSScalar<ExprR, SANS::SurrealS<ExprL::N,T>, useRF, MatrixFull >
+operator*(const SANS::SurrealSType<ExprL, T>& s, const MatrixSType<ExprR, useRF, MatrixFull>& e)
 {
-  return OpMulSScalar<ExprR, SurrealS<ExprL::N,T>, useRF, MatrixFull>( e.cast(), s );
+  return OpMulSScalar<ExprR, SANS::SurrealS<ExprL::N,T>, useRF, MatrixFull>( e.cast(), s );
 }
 
 #endif
@@ -709,7 +709,7 @@ operator*(const MatrixSType<ExprL, useRFL, MatrixFullL>& eL, const OpMulSScalar<
 
 
 } //namespace DLA
-} //namespace SANS
+} //namespace Metris
 
 
-#endif //MATRIXS_MUL_H
+#endif // METRIS_DLA_MATRIXS_MUL_H

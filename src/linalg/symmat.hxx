@@ -11,7 +11,7 @@
 #include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
 
-namespace SANS::DLA{
+namespace Metris::DLA{
 
 //template<int M, class T>
 //using MatSymS = VectorS<(M*(M+1))/2, T>;

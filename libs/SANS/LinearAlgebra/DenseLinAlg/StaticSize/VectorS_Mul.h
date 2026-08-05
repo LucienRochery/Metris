@@ -3,8 +3,8 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef VECTORS_MUL_H
-#define VECTORS_MUL_H
+#ifndef METRIS_DLA_VECTORS_MUL_H
+#define METRIS_DLA_VECTORS_MUL_H
 
 #include <type_traits>
 
@@ -19,7 +19,7 @@
 #include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
 #include "SANS/LinearAlgebra/DenseLinAlg/tools/PromoteSurreal.h"
 
-namespace SANS
+namespace Metris
 {
 namespace DLA
 {
@@ -44,7 +44,7 @@ public:
   static const int MR = Expr::M;
   BOOST_MPL_ASSERT_RELATION( Expr::N, ==, 1 );
 
-  typedef typename promote_Surreal<TL,TR>::type Ttype;
+  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
 
   typedef VectorS<ML,TL> VectorSL;
 
@@ -104,7 +104,7 @@ operator*(const VectorS<ML, TL>& vL, const MatrixSType<Expr, false, true>& er)
 
 
 } //namespace DLA
-} //namespace SANS
+} //namespace Metris
 
 
-#endif //VECTORS_MUL_H
+#endif // METRIS_DLA_VECTORS_MUL_H

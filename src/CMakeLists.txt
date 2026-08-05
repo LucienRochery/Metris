@@ -300,7 +300,9 @@ setMetrisCXXFlags(libMetris PUBLIC)
 set_property(TARGET libMetris PROPERTY CXX_STANDARD 17)
 
 target_include_directories(libMetris PUBLIC  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> # 
+                                             $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/libs>
                                              $<INSTALL_INTERFACE:include/src>
+                                             $<INSTALL_INTERFACE:include/libs>
                                              ${METRIS_EXTERNAL_INCLUDE_DIRS}
                                              )
 target_link_libraries(libMetris PUBLIC metris_deps)

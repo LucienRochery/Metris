@@ -3,8 +3,8 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef VECTORS_CLASS_H
-#define VECTORS_CLASS_H
+#ifndef METRIS_DLA_VECTORS_CLASS_H
+#define METRIS_DLA_VECTORS_CLASS_H
 
 // Vector class with compile-time size
 
@@ -22,9 +22,9 @@
 #include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
 #include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS_Mul.h"
 
-namespace SANS
-{
 #ifdef __INTEL_COMPILER
+namespace Metris
+{
 namespace DLA
 {
 
@@ -34,20 +34,27 @@ class VectorS;
 
 }
 
+}
+
 //Create a specialization so to allow for the syntax
 //   VectorD< VectorS<2,Real> >
 //      v = { {3,3}, {3,2} };
 //
 // This is completely unnessary if the intel compiler could use templated initializer_list functions....
 //
+namespace SANS
+{
 template<int M, class T>
-struct initializer_list_assign< DLA::VectorS< M, T > >
+struct initializer_list_assign< Metris::DLA::VectorS< M, T > >
 {
   template<class U>
-  initializer_list_assign(DLA::VectorS< M, T >& val, const std::initializer_list<U>& s) { val = s; }
+  initializer_list_assign(Metris::DLA::VectorS< M, T >& val, const std::initializer_list<U>& s) { val = s; }
 };
+}
 #endif
 
+namespace Metris
+{
 namespace DLA
 {
 
@@ -291,6 +298,6 @@ operator<<( std::ostream& out, const VectorS<M,T>& v )
 
 
 } //namespace DLA
-} //namespace SANS
+} //namespace Metris
 
-#endif // VECTORS_CLASS_H
+#endif // METRIS_DLA_VECTORS_CLASS_H

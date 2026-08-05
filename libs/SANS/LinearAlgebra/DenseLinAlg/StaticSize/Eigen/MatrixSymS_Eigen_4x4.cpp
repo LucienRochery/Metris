@@ -9,8 +9,10 @@
 
 #include "tools/SANSnumerics.h"
 
-namespace SANS
+namespace Metris
 {
+using SANS::SurrealS;
+
 namespace DLA
 {
 

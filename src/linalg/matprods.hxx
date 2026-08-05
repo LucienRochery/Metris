@@ -384,9 +384,9 @@ inline void matXsymXtmat(const T1* sym, const T2* mat, T3* out){
 
 // Same as previous but with VectorS/MatrixS types. Ti could be SurrealS. 
 template <int n1, int n2, typename T1, typename T2, typename T3>
-inline void matXsymXtmat(const SANS::DLA::MatSymS<n2   ,T1> &sym, 
-                         const SANS::DLA::MatrixS<n1,n2,T2> &mat, 
-                               SANS::DLA::MatSymS<n1   ,T3> &out){
+inline void matXsymXtmat(const Metris::DLA::MatSymS<n2   ,T1> &sym,
+                         const Metris::DLA::MatrixS<n1,n2,T2> &mat,
+                               Metris::DLA::MatSymS<n1   ,T3> &out){
   static_assert(n1 == 2 || n1 == 3);
   static_assert(n2 == 2 || n2 == 3);
 

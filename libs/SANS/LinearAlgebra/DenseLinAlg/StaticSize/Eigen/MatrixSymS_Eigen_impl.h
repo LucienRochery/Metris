@@ -20,7 +20,7 @@
 // Calculates the eigenvalues and normalized eigenvectors of a symmetric 3x3
 // matrix A using the Jacobi algorithm. Based on dsyevj3 in 3x3-C
 
-namespace SANS
+namespace Metris
 {
 namespace DLA
 {
