@@ -78,6 +78,7 @@ struct ObjectiveInsertComparison{
   ObjectiveInsertCandidate candidate;
   InsertAttemptResult size_shape;
   InsertAttemptResult step_distance;
+  InsertAttemptResult step_distance_length;
   std::string category;
 };
 
@@ -89,8 +90,10 @@ struct ObjectiveInsertSummary{
   int n_neither = 0;
   int n_size_shape_noop = 0;
   int n_step_distance_noop = 0;
+  int n_step_distance_length_success = 0;
   std::map<int,int> size_shape_errors;
   std::map<int,int> step_distance_errors;
+  std::map<int,int> step_distance_length_errors;
   std::vector<ObjectiveInsertComparison> comparisons;
 };
 
@@ -209,6 +212,17 @@ struct CavityQualityStats{
   double qsum1 = 0;
 };
 
+const char* insertion_error_name(int error){
+  switch(error){
+  case -1: return "success";
+  case INS2D_NOERR: return "no operation";
+  case INS2D_ERR_CAVITYOPERATOR: return "cavity operator";
+  case INS2D_ERR_LENQUA: return "length quality";
+  case INS2D_ERR_NOQUALIMPROV: return "no objective improvement";
+  default: return "other";
+  }
+}
+
 CavOprOpt diagnostic_cavity_options();
 
 std::string case_dir(){
@@ -234,6 +248,22 @@ int adaptive_iteration(){
     return std::atoi(iter.c_str());
   }
   return 1;
+}
+
+int diagnostic_verbosity(){
+  if(const char* env_verb =
+      std::getenv("METRIS_QUALITY_INSERT_VERBOSITY")){
+    return std::atoi(env_verb);
+  }
+  return 0;
+}
+
+int diagnostic_vdepth(){
+  if(const char* env_vdepth =
+      std::getenv("METRIS_QUALITY_INSERT_VDEPTH")){
+    return std::atoi(env_vdepth);
+  }
+  return 20;
 }
 
 int trace_ientt(){
@@ -271,6 +301,34 @@ int stateful_adapt_max_iter(){
   return 10000;
 }
 
+int stateful_adapt_trace_interval(){
+  if(const char* env_iter = std::getenv("METRIS_QUALITY_ADAPT_TRACE_INTERVAL")){
+    return std::atoi(env_iter);
+  }
+  return 0;
+}
+
+int stateful_adapt_trace_start(){
+  if(const char* env_iter = std::getenv("METRIS_QUALITY_ADAPT_TRACE_START")){
+    return std::atoi(env_iter);
+  }
+  return 0;
+}
+
+int stateful_adapt_save_iteration(){
+  if(const char* env_iter = std::getenv("METRIS_QUALITY_ADAPT_SAVE_ITER")){
+    return std::atoi(env_iter);
+  }
+  return 0;
+}
+
+std::string stateful_adapt_save_dir(){
+  if(const char* env_dir = std::getenv("METRIS_QUALITY_ADAPT_SAVE_DIR")){
+    return std::string(env_dir);
+  }
+  return {};
+}
+
 std::string input_command(){
   const std::string dir = case_dir();
   const std::string adapt_suffix = "a" + std::to_string(adaptive_iteration());
@@ -285,8 +343,15 @@ std::string input_command(){
   BOOST_REQUIRE_MESSAGE(std::filesystem::exists(cad),
                         "Missing diagnostic CAD: " + cad);
 
-  return "-in " + mesh + " -met " + met + " -cad " + cad
-       + " -verb 0 -vdepth 0 -adapt 0 -opt-niter 0 -adp-opt-niter 0";
+  std::string command = "-in " + mesh + " -met " + met + " -cad " + cad
+      + " -verb " + std::to_string(diagnostic_verbosity())
+      + " -vdepth " + std::to_string(diagnostic_vdepth())
+      + " -adapt 0 -opt-niter 0 -adp-opt-niter 0";
+  if(const char* extra = std::getenv("METRIS_QUALITY_INSERT_EXTRA_ARGS")){
+    command += " ";
+    command += extra;
+  }
+  return command;
 }
 
 std::string input_command_from_files(const std::string& mesh,
@@ -384,6 +449,10 @@ std::string objective_compare_input_command(){
 }
 
 std::filesystem::path objective_compare_output_dir(){
+  if(const char* output =
+      std::getenv("METRIS_OBJECTIVE_COMPARE_OUTPUT_DIR")){
+    return output;
+  }
   return std::filesystem::current_path() / "build" / "codex_diagnostic"
                                       / "objective_insert_comparison";
 }
@@ -436,6 +505,35 @@ void setup_quality_mesh(Mesh<MFT>& msh){
   BOOST_REQUIRE_EQUAL(msh.curdeg, ideg);
   msh.met.setSpace(MetSpace::Exp);
   msh.setBasis(FEBasis::Lagrange);
+}
+
+template<class MFT, int gdim>
+void setup_handler_objective_weights(Mesh<MFT>& msh,
+                                     int tdim,
+                                     BadEntHandler& handler){
+#ifdef STEPDISTANCE
+  if(!msh.param->step_distance_cavity_target_average) return;
+  handler.setBestWeightedObjectiveStorage(
+      &msh.param->step_distance_cavity_best_objective);
+  handler.setObjectiveWeightCallback([&msh,tdim](int ientt){
+    if constexpr(gdim == 2){
+      METRIS_ENFORCE(tdim == 2);
+      return step_distance_element_target_weight<MFT,2,2>(
+          msh,AsDeg::P1,ientt);
+    }else{
+      if(tdim == 2){
+        return step_distance_element_target_weight<MFT,3,2>(
+            msh,AsDeg::P1,ientt);
+      }
+      return step_distance_element_target_weight<MFT,3,3>(
+          msh,AsDeg::P1,ientt);
+    }
+  });
+#else
+  (void)msh;
+  (void)tdim;
+  (void)handler;
+#endif
 }
 
 template<class MFT>
@@ -1638,6 +1736,23 @@ BadEntHandler* build_handler_for_mesh(Mesh<MFT>& msh, int tdim, dblAr1*& lquae_s
   const intAr2& ent2poi = msh.ent2poi(tdim);
   handler->setCallbacks([&lquae](int ientt){ return lquae[ientt]; },
                         [&](int ientt){ return isdeadent(ientt,ent2poi); });
+  if(msh.param->step_distance_cavity_target_average){
+    handler->setBestWeightedObjectiveStorage(
+        &msh.param->step_distance_cavity_best_objective);
+    handler->setObjectiveWeightCallback([&msh,tdim](int ientt){
+      if(msh.idim == 2){
+        METRIS_ENFORCE(tdim == 2);
+        return step_distance_element_target_weight<MFT,2,2>(
+            msh,AsDeg::P1,ientt);
+      }
+      if(tdim == 2){
+        return step_distance_element_target_weight<MFT,3,2>(
+            msh,AsDeg::P1,ientt);
+      }
+      return step_distance_element_target_weight<MFT,3,3>(
+          msh,AsDeg::P1,ientt);
+    });
+  }
 
   std::vector<int> sorted_ids(msh.nentt(tdim));
   std::iota(sorted_ids.begin(), sorted_ids.end(), 0);
@@ -1977,6 +2092,8 @@ void trace_exact_case_impl(const std::string& cmd,
     const intAr2& ent2poi_insert = msh_insert.ent2poi(tdim);
     handler_insert.setCallbacks([&](int ientt_){ return lquae_insert[ientt_]; },
                                 [&](int ientt_){ return isdeadent(ientt_,ent2poi_insert); });
+    setup_handler_objective_weights<MFT,gdim>(
+        msh_insert,tdim,handler_insert);
 
     std::vector<int> sorted_ids(msh_insert.nentt(tdim));
     std::iota(sorted_ids.begin(), sorted_ids.end(), 0);
@@ -2119,18 +2236,26 @@ void trace_exact_case_impl(const std::string& cmd,
   #endif
 
   double initial_smooth_noper = 0;
+  double quality_initial_smooth_target_weight = 0.;
   const int nface_before_initial_smoothing = msh_quality->nface;
-  msh_quality->set_nface(nface_before_initial_smoothing + 1);
-  initial_smooth_noper =
-    smoothCavity(*msh_quality, *cav_quality, *handler_quality,
-                 quality_smooth_fun,
-                 quality_initial_unsmoothed_stats.qsum1,
-                 quality_initial_unsmoothed_stats.qmax1,
-                 quality_initial_smooth_qsum,
-                 quality_initial_smooth_qmax,
-                 ithrd1, ithrd2);
-  msh_quality->fac2poi(nface_before_initial_smoothing,0) = -1;
-  msh_quality->set_nface(nface_before_initial_smoothing);
+  if(!msh_quality->param->step_distance_cavity_target_average){
+    msh_quality->set_nface(nface_before_initial_smoothing + 1);
+    initial_smooth_noper =
+      smoothCavity(*msh_quality, *cav_quality, *handler_quality,
+                   quality_smooth_fun,
+                   quality_initial_unsmoothed_stats.qsum1,
+                   quality_initial_unsmoothed_stats.qmax1,
+                   0.,
+                   quality_initial_smooth_qsum,
+                   quality_initial_smooth_qmax,
+                   quality_initial_smooth_target_weight,
+                   ithrd1, ithrd2);
+    msh_quality->fac2poi(nface_before_initial_smoothing,0) = -1;
+    msh_quality->set_nface(nface_before_initial_smoothing);
+  }else{
+    log << "quality initial smoothing diagnostic skipped: raw-quality "
+           "decomposition has no cavity target-weight accumulator\n";
+  }
 
   #ifdef STEPDISTANCE
   CavityQualityStats quality_initial_smoothed_stats =
@@ -2221,18 +2346,26 @@ void trace_exact_case_impl(const std::string& cmd,
                      *msh_quality, cav_quality->ipins, log);
 
   double smooth_noper = 0;
+  double quality_smooth_target_weight = 0.;
   const int nface_before_smoothing = msh_quality->nface;
-  msh_quality->set_nface(nface_before_smoothing + 1);
-  smooth_noper =
-    smoothCavity(*msh_quality, *cav_quality, *handler_quality,
-                 quality_smooth_fun,
-                 quality_unsmoothed_stats.qsum1,
-                 quality_unsmoothed_stats.qmax1,
-                 quality_smooth_qsum,
-                 quality_smooth_qmax,
-                 ithrd1, ithrd2);
-  msh_quality->fac2poi(nface_before_smoothing,0) = -1;
-  msh_quality->set_nface(nface_before_smoothing);
+  if(!msh_quality->param->step_distance_cavity_target_average){
+    msh_quality->set_nface(nface_before_smoothing + 1);
+    smooth_noper =
+      smoothCavity(*msh_quality, *cav_quality, *handler_quality,
+                   quality_smooth_fun,
+                   quality_unsmoothed_stats.qsum1,
+                   quality_unsmoothed_stats.qmax1,
+                   0.,
+                   quality_smooth_qsum,
+                   quality_smooth_qmax,
+                   quality_smooth_target_weight,
+                   ithrd1, ithrd2);
+    msh_quality->fac2poi(nface_before_smoothing,0) = -1;
+    msh_quality->set_nface(nface_before_smoothing);
+  }else{
+    log << "quality smoothing diagnostic skipped: raw-quality decomposition "
+           "has no cavity target-weight accumulator\n";
+  }
 
   #ifdef STEPDISTANCE
   CavityQualityStats quality_smoothed_stats =
@@ -2313,6 +2446,7 @@ void trace_exact_case_impl(const std::string& cmd,
                                                            log);
 
   double sizeshape_initial_smooth_noper = 0;
+  double sizeshape_initial_smooth_target_weight = 0.;
   const int nface_before_sizeshape_initial_smoothing = msh_quality_sizeshape->nface;
   msh_quality_sizeshape->set_nface(nface_before_sizeshape_initial_smoothing + 1);
   sizeshape_initial_smooth_noper =
@@ -2321,8 +2455,10 @@ void trace_exact_case_impl(const std::string& cmd,
                  QuaFun::SizeShape,
                  quality_sizeshape_initial_unsmoothed_stats.qsum1,
                  quality_sizeshape_initial_unsmoothed_stats.qmax1,
+                 0.,
                  quality_sizeshape_initial_smooth_qsum,
                  quality_sizeshape_initial_smooth_qmax,
+                 sizeshape_initial_smooth_target_weight,
                  ithrd1, ithrd2);
   msh_quality_sizeshape->fac2poi(nface_before_sizeshape_initial_smoothing,0) = -1;
   msh_quality_sizeshape->set_nface(nface_before_sizeshape_initial_smoothing);
@@ -2387,6 +2523,7 @@ void trace_exact_case_impl(const std::string& cmd,
                      *msh_quality_sizeshape, cav_quality_sizeshape->ipins, log);
 
   double sizeshape_smooth_noper = 0;
+  double sizeshape_smooth_target_weight = 0.;
   const int nface_before_sizeshape_smoothing = msh_quality_sizeshape->nface;
   msh_quality_sizeshape->set_nface(nface_before_sizeshape_smoothing + 1);
   sizeshape_smooth_noper =
@@ -2395,8 +2532,10 @@ void trace_exact_case_impl(const std::string& cmd,
                  QuaFun::SizeShape,
                  quality_sizeshape_unsmoothed_stats.qsum1,
                  quality_sizeshape_unsmoothed_stats.qmax1,
+                 0.,
                  quality_sizeshape_smooth_qsum,
                  quality_sizeshape_smooth_qmax,
+                 sizeshape_smooth_target_weight,
                  ithrd1, ithrd2);
   msh_quality_sizeshape->fac2poi(nface_before_sizeshape_smoothing,0) = -1;
   msh_quality_sizeshape->set_nface(nface_before_sizeshape_smoothing);
@@ -2718,6 +2857,7 @@ InsertAttemptResult attempt_insert(const std::string& cmd,
   const intAr2& ent2poi = msh.ent2poi(tdim);
   handler.setCallbacks([&](int ientt_){ return lquae[ientt_]; },
                        [&](int ientt_){ return isdeadent(ientt_,ent2poi); });
+  setup_handler_objective_weights<MFT,gdim>(msh,tdim,handler);
 
   std::vector<int> sorted_ids(msh.nentt(tdim));
   std::iota(sorted_ids.begin(), sorted_ids.end(), 0);
@@ -2837,6 +2977,10 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
       attempt_insert<MFT,gdim,ideg,QuaFun::StepDistance>(
           cmd,tdim,candidate.ientt,candidate.ied,
           false,0.,lenqua_short_max);
+    comparison.step_distance_length =
+      attempt_insert<MFT,gdim,ideg,QuaFun::StepDistance>(
+          cmd,tdim,candidate.ientt,candidate.ied,
+          true,0.,lenqua_short_max);
 
     const bool size_success = comparison.size_shape.ierro < 0;
     const bool step_success = comparison.step_distance.ierro < 0;
@@ -2855,6 +2999,12 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
     }
     if(comparison.size_shape.ierro == 0) summary.n_size_shape_noop++;
     if(comparison.step_distance.ierro == 0) summary.n_step_distance_noop++;
+    if(comparison.step_distance_length.ierro < 0){
+      summary.n_step_distance_length_success++;
+    }else{
+      summary.step_distance_length_errors[
+          comparison.step_distance_length.ierro]++;
+    }
     if(!size_success) summary.size_shape_errors[comparison.size_shape.ierro]++;
     if(!step_success) summary.step_distance_errors[comparison.step_distance.ierro]++;
     summary.comparisons.push_back(comparison);
@@ -2871,9 +3021,10 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
   std::ofstream fout(csv);
   BOOST_REQUIRE_MESSAGE(fout.good(),"Could not open comparison CSV: " + csv.string());
   fout << "ientt,ied,ip1,ip2,length,size_shape_quality,step_distance_quality,"
-          "size_shape_ierro,step_distance_ierro,category,"
-          "size_shape_ipins,step_distance_ipins,"
-          "size_shape_nface,step_distance_nface\n";
+          "size_shape_ierro,step_distance_ierro,step_distance_length_ierro,"
+          "category,size_shape_ipins,step_distance_ipins,"
+          "step_distance_length_ipins,size_shape_nface,step_distance_nface,"
+          "step_distance_length_nface\n";
   fout.precision(17);
   for(const ObjectiveInsertComparison& comparison : summary.comparisons){
     const auto& c = comparison.candidate;
@@ -2882,11 +3033,14 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
          << c.step_distance_quality << ','
          << comparison.size_shape.ierro << ','
          << comparison.step_distance.ierro << ','
+         << comparison.step_distance_length.ierro << ','
          << comparison.category << ','
          << comparison.size_shape.ipins << ','
          << comparison.step_distance.ipins << ','
+         << comparison.step_distance_length.ipins << ','
          << comparison.size_shape.ncfac << ','
-         << comparison.step_distance.ncfac << '\n';
+         << comparison.step_distance.ncfac << ','
+         << comparison.step_distance_length.ncfac << '\n';
   }
 
   fmt::print("\n-- Initial insertion comparison summary\n");
@@ -2896,6 +3050,8 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
   fmt::print("   neither succeeds   : {}\n",summary.n_neither);
   fmt::print("   SizeShape no-op    : {}\n",summary.n_size_shape_noop);
   fmt::print("   StepDistance no-op : {}\n",summary.n_step_distance_noop);
+  fmt::print("   StepDistance length fallback succeeds: {}\n",
+             summary.n_step_distance_length_success);
   fmt::print("   CSV                 : {}\n",csv.string());
   fmt::print("   SizeShape non-success return codes:");
   for(const auto& [ierro,count] : summary.size_shape_errors){
@@ -2903,7 +3059,11 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
   }
   fmt::print("\n   StepDistance non-success return codes:");
   for(const auto& [ierro,count] : summary.step_distance_errors){
-    fmt::print(" {}:{}",ierro,count);
+    fmt::print(" {} ({}):{}",ierro,insertion_error_name(ierro),count);
+  }
+  fmt::print("\n   StepDistance length non-success return codes:");
+  for(const auto& [ierro,count] : summary.step_distance_length_errors){
+    fmt::print(" {} ({}):{}",ierro,insertion_error_name(ierro),count);
   }
   fmt::print("\n");
 
@@ -3260,6 +3420,7 @@ InsertAttemptResult attempt_quality_insert_with_smoothing(const std::string& cmd
   const intAr2& ent2poi = msh.ent2poi(tdim);
   handler.setCallbacks([&](int ientt_){ return lquae[ientt_]; },
                        [&](int ientt_){ return isdeadent(ientt_,ent2poi); });
+  setup_handler_objective_weights<MFT,gdim>(msh,tdim,handler);
 
   std::vector<int> sorted_ids(msh.nentt(tdim));
   std::iota(sorted_ids.begin(), sorted_ids.end(), 0);
@@ -3300,14 +3461,17 @@ InsertAttemptResult attempt_quality_insert_with_smoothing(const std::string& cmd
 
     double smooth_qsum = initial_stats.qsum1;
     double smooth_qmax = initial_stats.qmax1;
+    double smooth_target_weight = 0.;
 
     const int nface0 = msh.nface;
     msh.set_nface(nface0 + 1);
     smoothCavity(msh, cav, handler, iquaf,
                  initial_stats.qsum1,
                  initial_stats.qmax1,
+                 0.,
                  smooth_qsum,
                  smooth_qmax,
+                 smooth_target_weight,
                  ithrd1, ithrd2);
     msh.fac2poi(nface0,0) = -1;
     msh.set_nface(nface0);
@@ -3329,14 +3493,17 @@ InsertAttemptResult attempt_quality_insert_with_smoothing(const std::string& cmd
 
   double smooth_qsum = before_smoothing.qsum1;
   double smooth_qmax = before_smoothing.qmax1;
+  double smooth_target_weight = 0.;
 
   const int nface0 = msh.nface;
   msh.set_nface(nface0 + 1);
   smoothCavity(msh, cav, handler, iquaf,
                before_smoothing.qsum1,
                before_smoothing.qmax1,
+               0.,
                smooth_qsum,
                smooth_qmax,
+               smooth_target_weight,
                ithrd1, ithrd2);
   msh.fac2poi(nface0,0) = -1;
   msh.set_nface(nface0);
@@ -3391,6 +3558,7 @@ DivergenceCase find_quality_insert_divergence(const std::string& cmd,
   const intAr2& ent2poi = msh.ent2poi(tdim);
   handler.setCallbacks([&](int ientt){ return lquae[ientt]; },
                        [&](int ientt){ return isdeadent(ientt,ent2poi); });
+  setup_handler_objective_weights<MFT,gdim>(msh,tdim,handler);
   handler.seedFromSortedIDs(sorted_ids);
 
   const double length_threshold = std::sqrt(2.0);
@@ -3544,6 +3712,7 @@ StatefulAdaptResult find_stateful_quality_adapt_divergence(const std::string& cm
         intAr2& ent2tag = msh.ent2tag(tdim);
   handler.setCallbacks([&](int ientt){ return lquae[ientt]; },
                        [&](int ientt){ return isdeadent(ientt,ent2poi); });
+  setup_handler_objective_weights<MFT,gdim>(msh,tdim,handler);
   handler.seedFromSortedIDs(sorted_ids);
 
   MshCavity cav(100,100,1);
@@ -3552,6 +3721,9 @@ StatefulAdaptResult find_stateful_quality_adapt_divergence(const std::string& cm
 
   StatefulAdaptResult result;
   const int max_iter = stateful_adapt_max_iter();
+  const int trace_interval = stateful_adapt_trace_interval();
+  const int trace_start = stateful_adapt_trace_start();
+  const int save_iteration = stateful_adapt_save_iteration();
 
   while(true){
 
@@ -3564,6 +3736,77 @@ StatefulAdaptResult find_stateful_quality_adapt_divergence(const std::string& cm
       const double quaent = itK->qentt;
       result.iter++;
       if(result.iter > max_iter) return result;
+
+      if(save_iteration > 0 && result.iter == save_iteration){
+        const std::string save_dir = stateful_adapt_save_dir();
+        BOOST_REQUIRE(!save_dir.empty());
+        std::filesystem::create_directories(save_dir);
+        writeMesh(save_dir + "/mesh_MOESS_initial_a1.meshb",msh);
+        msh.met.writeMetricFile(save_dir + "/met_MOESS_initial_a1.solb");
+        fmt::print("Saved stateful adaptation state at iteration {} to {}\n",
+                   result.iter,save_dir);
+        return result;
+      }
+
+      const bool trace_iteration = trace_interval > 0
+                                && result.iter >= trace_start
+                                && result.iter % trace_interval == 0;
+      if(trace_iteration){
+        lquae.set_n(msh.nentt(tdim));
+        #ifdef STEPDISTANCE
+        getmetquamesh<MFT, QuaFun::StepDistance>(
+            msh,tdim,AsDeg::P1,AsDeg::P1,
+            &iinva,&qmin,&qmax,&qavg,&lquae);
+        #else
+        getmetquamesh<MFT, QuaFun::SizeShape>(
+            msh,tdim,AsDeg::P1,AsDeg::P1,
+            &iinva,&qmin,&qmax,&qavg,&lquae);
+        #endif
+
+        double exact_weighted_sum = 0.;
+        double exact_weight_sum = 0.;
+        int exact_alive = 0;
+        for(int ielem = 0; ielem < msh.nentt(tdim); ielem++){
+          if(isdeadent(ielem,ent2poi)) continue;
+          double weight = 1.;
+          #ifdef STEPDISTANCE
+          if(msh.param->step_distance_cavity_target_average){
+            if constexpr(gdim == 2){
+              METRIS_ENFORCE(tdim == 2);
+              weight = step_distance_element_target_weight<MFT,2,2>(
+                  msh,AsDeg::P1,ielem);
+            }else if(tdim == 2){
+              weight = step_distance_element_target_weight<MFT,3,2>(
+                  msh,AsDeg::P1,ielem);
+            }else{
+              weight = step_distance_element_target_weight<MFT,3,3>(
+                  msh,AsDeg::P1,ielem);
+            }
+          }
+          #endif
+          exact_weighted_sum += weight*lquae[ielem];
+          exact_weight_sum += weight;
+          exact_alive++;
+        }
+
+        fmt::print(
+            "TRACE iter={} npoin={} slots={} alive={} K={} "
+            "ins={}/{} col={}/{} smoo={}/{} "
+            "handler_obj={:.16e} exact_obj={:.16e} best={:.16e} "
+            "handler_count={} handler_weight={:.16e} exact_weight={:.16e} "
+            "handler_num={:.16e} exact_num={:.16e} "
+            "qworst={:.16e} ent={}\n",
+            result.iter,msh.npoin,msh.nentt(tdim),exact_alive,handler.K.size(),
+            result.nSuccessInsert,result.ntryInsert,
+            result.nSuccessCollapse,result.ntryCollapse,
+            result.nSuccessSmoothing,result.ntrySmoothing,
+            handler.getWeightedQualitySum()/handler.getObjectiveWeightSum(),
+            exact_weighted_sum/exact_weight_sum,
+            handler.getBestWeightedObjective(),handler.getQualityCount(),
+            handler.getObjectiveWeightSum(),exact_weight_sum,
+            handler.getWeightedQualitySum(),exact_weighted_sum,
+            quaent,ientt);
+      }
 
       const int nedgl = tdim * (tdim + 1) / 2;
       const intAr2 lnoed(nedgl, 2,
@@ -3599,6 +3842,18 @@ StatefulAdaptResult find_stateful_quality_adapt_divergence(const std::string& cm
                 [](const LocalEdgeOpCandidate& a, const LocalEdgeOpCandidate& b){
                   return a.dev > b.dev;
                 });
+
+      if(trace_iteration){
+        fmt::print("TRACE candidates={}",candidates.size());
+        for(const LocalEdgeOpCandidate& cand : candidates){
+          const int ip1 = ent2poi(ientt,lnoed(cand.ied,0));
+          const int ip2 = ent2poi(ientt,lnoed(cand.ied,1));
+          fmt::print(" [{} edge=({}, {}) len={:.16e}]",
+                     cand.doInsert ? "insert" : "collapse",
+                     ip1,ip2,cand.len);
+        }
+        fmt::print("\n");
+      }
 
       for(const LocalEdgeOpCandidate& cand : candidates){
 

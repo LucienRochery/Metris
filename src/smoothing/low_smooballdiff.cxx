@@ -153,6 +153,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
 
       fcur = 0;
+      double targetWeightCurrent = 0.;
       double dqelt[idim], hqelt[nhess];
       for(int ii = 0; ii < idim; ii++) d1qua[ii] = 0;
       for(int ii = 0; ii < nhess;ii++) d2qua[ii] = 0;
@@ -185,16 +186,45 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
         }
         // std::cout << " q = " << quaelTrue << std::endl;
         // std::cout << "d_quafun = " << quael << ", quafun = " << quaelTrue << std::endl;
-        fcur += quael;
-        for(int ii = 0; ii < idim; ii++) d1qua[ii] += dqelt[ii];
+        double regionWeight = 1.;
+        if(iquaf == QuaFun::StepDistance
+           && msh.param->step_distance_cavity_target_average){
+          regionWeight =
+              step_distance_element_target_weight<MFT,idim,idim>(
+                  msh,AsDeg::Pk,ient2);
+          targetWeightCurrent += regionWeight;
+        }
+
+        fcur += regionWeight*quael;
+        for(int ii = 0; ii < idim; ii++){
+          d1qua[ii] += regionWeight*dqelt[ii];
+        }
         if(ihess)
-          for(int ii = 0; ii < nhess;ii++) d2qua[ii] += hqelt[ii];
+          for(int ii = 0; ii < nhess;ii++){
+            d2qua[ii] += regionWeight*hqelt[ii];
+          }
 
         if(nargs.niter == 1 && niter1 == 0){
-          *qnrm0 += quael;
+          *qnrm0 += regionWeight*quael;
           *qmax0  = MAX(quael,*qmax0);
         }
       }// for iball
+      if(iquaf == QuaFun::StepDistance
+         && msh.param->step_distance_cavity_target_average){
+        METRIS_ENFORCE(targetWeightCurrent > 0.);
+        fcur /= targetWeightCurrent;
+        for(int ii = 0; ii < idim; ii++){
+          d1qua[ii] /= targetWeightCurrent;
+        }
+        if(ihess){
+          for(int ii = 0; ii < nhess; ii++){
+            d2qua[ii] /= targetWeightCurrent;
+          }
+        }
+        if(nargs.niter == 1 && niter1 == 0){
+          *qnrm0 /= targetWeightCurrent;
+        }
+      }
       if(DOPRINTS1()){
         CPRINTF1(" - Newton iter {} fcur = {} xcur = {} {}",nargs.niter,fcur,xcur[0],xcur[1]);
         if(idim == 3){
@@ -233,13 +263,27 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
     *qnrm1 = 0;
     *qmax1 = -1.0e30;
+    double targetWeightFinal = 0.;
     for(int iball = 0; iball < nball; iball++){
       int ient2 = lball[iball];
       double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,
                             ient2,1);
 
-      *qnrm1 += quael;
+      double regionWeight = 1.;
+      if(iquaf == QuaFun::StepDistance
+         && msh.param->step_distance_cavity_target_average){
+        regionWeight =
+            step_distance_element_target_weight<MFT,idim,idim>(
+                msh,AsDeg::Pk,ient2);
+        targetWeightFinal += regionWeight;
+      }
+      *qnrm1 += regionWeight*quael;
       *qmax1  = MAX(quael,*qmax1);
+    }
+    if(iquaf == QuaFun::StepDistance
+       && msh.param->step_distance_cavity_target_average){
+      METRIS_ENFORCE(targetWeightFinal > 0.);
+      *qnrm1 /= targetWeightFinal;
     }
     CPRINTF1(" - Newton update initial quality avg {:15.7e} "
                           "max {:15.7e} \n",*qnrm0,*qmax0);
@@ -498,6 +542,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
 
 
         fcur = 0;
+        double targetWeightCurrent = 0.;
         double dqelt[idim], hqelt[nhess];
         for(int ii = 0; ii < idim; ii++) gradX[ii] = 0;
         for(int ii = 0; ii < nhess;ii++) hessX[ii] = 0;
@@ -532,16 +577,41 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
             quael_True = quafun(msh,AsDeg::Pk,AsDeg::Pk,
                               ient2,1);
           }
-          fcur += quael;
-          for(int ii = 0; ii < idim; ii++) gradX[ii] += dqelt[ii];
+          double regionWeight = 1.;
+          if(iquaf == QuaFun::StepDistance
+             && msh.param->step_distance_cavity_target_average){
+            regionWeight =
+                step_distance_element_target_weight<MFT,idim,idim>(
+                    msh,AsDeg::Pk,ient2);
+            targetWeightCurrent += regionWeight;
+          }
+          fcur += regionWeight*quael;
+          for(int ii = 0; ii < idim; ii++){
+            gradX[ii] += regionWeight*dqelt[ii];
+          }
           if(ihess)
-            for(int ii = 0; ii < nhess;ii++) hessX[ii] += hqelt[ii];
+            for(int ii = 0; ii < nhess;ii++){
+              hessX[ii] += regionWeight*hqelt[ii];
+            }
 
           if(nargs.niter == 1 && niter1 == 0){
-            *qnrm0 += quael;
+            *qnrm0 += regionWeight*quael;
             *qmax0  = MAX(quael,*qmax0);
           }
         }// for iball
+
+        if(iquaf == QuaFun::StepDistance
+           && msh.param->step_distance_cavity_target_average){
+          METRIS_ENFORCE(targetWeightCurrent > 0.);
+          fcur /= targetWeightCurrent;
+          for(int ii = 0; ii < idim; ii++) gradX[ii] /= targetWeightCurrent;
+          if(ihess){
+            for(int ii = 0; ii < nhess; ii++) hessX[ii] /= targetWeightCurrent;
+          }
+          if(nargs.niter == 1 && niter1 == 0){
+            *qnrm0 /= targetWeightCurrent;
+          }
+        }
 
         if(iinva){
           CPRINTF1("# invalid/flat config -> finish");
@@ -631,13 +701,27 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
 
       *qnrm1 = 0;
       *qmax1 = -1.0e30;
+      double targetWeightFinal = 0.;
       for(int iball = 0; iball < nball; iball++){
         int ient2 = lball[iball];
         double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,
                               ient2,1);
 
-        *qnrm1 += quael;
+        double regionWeight = 1.;
+        if(iquaf == QuaFun::StepDistance
+           && msh.param->step_distance_cavity_target_average){
+          regionWeight =
+              step_distance_element_target_weight<MFT,idim,idim>(
+                  msh,AsDeg::Pk,ient2);
+          targetWeightFinal += regionWeight;
+        }
+        *qnrm1 += regionWeight*quael;
         *qmax1  = MAX(quael,*qmax1);
+      }
+      if(iquaf == QuaFun::StepDistance
+         && msh.param->step_distance_cavity_target_average){
+        METRIS_ENFORCE(targetWeightFinal > 0.);
+        *qnrm1 /= targetWeightFinal;
       }
       CPRINTF1(" - Newton update initial quality avg {:15.7e} "
                             "max {:15.7e} \n",*qnrm0,*qmax0);
@@ -849,6 +933,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
 
 
         fcur = 0;
+        double targetWeightCurrent = 0.;
         double dqelt[idim], hqelt[nhess];
         for(int ii = 0; ii < idim; ii++) gradX[ii] = 0;
         for(int ii = 0; ii < nhess;ii++) hessX[ii] = 0;
@@ -877,16 +962,41 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
                             msh.getBasis(),
                             DifVar::None,dqelt,NULL,1);
           }
-          fcur += quael;
-          for(int ii = 0; ii < idim; ii++) gradX[ii] += dqelt[ii];
+          double regionWeight = 1.;
+          if(iquaf == QuaFun::StepDistance
+             && msh.param->step_distance_cavity_target_average){
+            regionWeight =
+                step_distance_element_target_weight<MFT,idim,idim>(
+                    msh,AsDeg::Pk,ient2);
+            targetWeightCurrent += regionWeight;
+          }
+          fcur += regionWeight*quael;
+          for(int ii = 0; ii < idim; ii++){
+            gradX[ii] += regionWeight*dqelt[ii];
+          }
           if(ihess)
-            for(int ii = 0; ii < nhess;ii++) hessX[ii] += hqelt[ii];
+            for(int ii = 0; ii < nhess;ii++){
+              hessX[ii] += regionWeight*hqelt[ii];
+            }
 
           if(nargs.niter == 1 && niter1 == 0){
-            *qnrm0 += quael;
+            *qnrm0 += regionWeight*quael;
             *qmax0  = MAX(quael,*qmax0);
           }
         }// for iball
+
+        if(iquaf == QuaFun::StepDistance
+           && msh.param->step_distance_cavity_target_average){
+          METRIS_ENFORCE(targetWeightCurrent > 0.);
+          fcur /= targetWeightCurrent;
+          for(int ii = 0; ii < idim; ii++) gradX[ii] /= targetWeightCurrent;
+          if(ihess){
+            for(int ii = 0; ii < nhess; ii++) hessX[ii] /= targetWeightCurrent;
+          }
+          if(nargs.niter == 1 && niter1 == 0){
+            *qnrm0 /= targetWeightCurrent;
+          }
+        }
 
         if(iinva){
           CPRINTF1("# invalid/flat config -> finish");
@@ -1004,13 +1114,27 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
 
       *qnrm1 = 0;
       *qmax1 = -1.0e30;
+      double targetWeightFinal = 0.;
       for(int iball = 0; iball < nball; iball++){
         int ient2 = lball[iball];
         double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,
                               ient2,1);
 
-        *qnrm1 += quael;
+        double regionWeight = 1.;
+        if(iquaf == QuaFun::StepDistance
+           && msh.param->step_distance_cavity_target_average){
+          regionWeight =
+              step_distance_element_target_weight<MFT,idim,idim>(
+                  msh,AsDeg::Pk,ient2);
+          targetWeightFinal += regionWeight;
+        }
+        *qnrm1 += regionWeight*quael;
         *qmax1  = MAX(quael,*qmax1);
+      }
+      if(iquaf == QuaFun::StepDistance
+         && msh.param->step_distance_cavity_target_average){
+        METRIS_ENFORCE(targetWeightFinal > 0.);
+        *qnrm1 /= targetWeightFinal;
       }
       CPRINTF1(" - Newton update initial quality avg {:15.7e} "
                             "max {:15.7e} \n",*qnrm0,*qmax0);
@@ -1080,6 +1204,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
 
     return ierro;
   }
+  return 1;
 }
 
 
@@ -1115,6 +1240,7 @@ template int smooballdiff_boundary<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAn
 template<class MFT, int idim, int ideg>
 int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
                    double& quaCav1, double& quaMaxCav1,
+                   double& targetWeightCav1,
                    QuaFun iquaf, int ithread){
 
   GETVDEPTH(msh.param);
@@ -1129,6 +1255,7 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
         intAr2& ent2tag = msh.ent2tag(tdim);
 
   const int ipins = cav.ipins;
+  targetWeightCav1 = 0.;
 
   CPRINTF1("-- START smoocavdiff ipins = {} ncav {}\n",ipins,lcent.get_n());
 
@@ -1195,6 +1322,7 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
       // reconnect on the fly, check validity and fill quality value and derivatives
       iinva = false;
       fcur = 0;
+      double targetWeightCurrent = 0.;
       double dqelt[idim], hqelt[nhess];
       for(int ii = 0; ii < idim; ii++) d1qua[ii] = 0;
       for(int ii = 0; ii < nhess;ii++) d2qua[ii] = 0;
@@ -1256,12 +1384,24 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
                                 msh.getBasis(),
                                 DifVar::None,dqelt,NULL,1.);
               }
-              fcur += quael;
+              double regionWeight = 1.;
+              if(iquaf == QuaFun::StepDistance
+                 && msh.param->step_distance_cavity_target_average){
+                regionWeight =
+                    step_distance_element_target_weight<MFT,idim,idim>(
+                        msh,AsDeg::Pk,tmpEntt);
+                targetWeightCurrent += regionWeight;
+              }
+              fcur += regionWeight*quael;
               if (quael > quaMaxCav1) quaMaxCav1 = quael;
 
-              for(int ii = 0; ii < idim; ii++) d1qua[ii] += dqelt[ii];
+              for(int ii = 0; ii < idim; ii++){
+                d1qua[ii] += regionWeight*dqelt[ii];
+              }
               if(ihess)
-                for(int ii = 0; ii < nhess;ii++) d2qua[ii] += hqelt[ii];
+                for(int ii = 0; ii < nhess;ii++){
+                  d2qua[ii] += regionWeight*hqelt[ii];
+                }
 
             }
             else{ // tdim == 3
@@ -1306,12 +1446,24 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
                                 msh.getBasis(),
                                 DifVar::None,dqelt,NULL,1.);
               }
-              fcur += quael;
+              double regionWeight = 1.;
+              if(iquaf == QuaFun::StepDistance
+                 && msh.param->step_distance_cavity_target_average){
+                regionWeight =
+                    step_distance_element_target_weight<MFT,idim,idim>(
+                        msh,AsDeg::Pk,tmpEntt);
+                targetWeightCurrent += regionWeight;
+              }
+              fcur += regionWeight*quael;
               if (quael > quaMaxCav1) quaMaxCav1 = quael;
 
-              for(int ii = 0; ii < idim; ii++) d1qua[ii] += dqelt[ii];
+              for(int ii = 0; ii < idim; ii++){
+                d1qua[ii] += regionWeight*dqelt[ii];
+              }
               if(ihess)
-                for(int ii = 0; ii < nhess;ii++) d2qua[ii] += hqelt[ii];
+                for(int ii = 0; ii < nhess;ii++){
+                  d2qua[ii] += regionWeight*hqelt[ii];
+                }
 
             } // if tdim == 2 else 3
           } // for jj (bnd facets of ienttCav)
@@ -1319,6 +1471,20 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
         } // for ienttCav
       }else{
         METRIS_THROW_MSG("Implement cavity smoothing for ideg > 1");
+      }
+
+      if(!iinva && iquaf == QuaFun::StepDistance
+         && msh.param->step_distance_cavity_target_average){
+        METRIS_ENFORCE(targetWeightCurrent > 0.);
+        fcur /= targetWeightCurrent;
+        for(int ii = 0; ii < idim; ii++){
+          d1qua[ii] /= targetWeightCurrent;
+        }
+        if(ihess){
+          for(int ii = 0; ii < nhess; ii++){
+            d2qua[ii] /= targetWeightCurrent;
+          }
+        }
       }
 
       if(iinva){
@@ -1362,6 +1528,7 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
     // Recompute after restoring xopt.
     quaCav1 = 0;
     quaMaxCav1 = -1.0e30;
+    double targetWeightFinal = 0.;
     iinva = false;
     for(const int ienttCav : lcent){
       int ent2pol[4];
@@ -1406,7 +1573,15 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
         }
 
         double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,tmpEntt,1.);
-        quaCav1 += quael;
+        double regionWeight = 1.;
+        if(iquaf == QuaFun::StepDistance
+           && msh.param->step_distance_cavity_target_average){
+          regionWeight =
+              step_distance_element_target_weight<MFT,idim,idim>(
+                  msh,AsDeg::Pk,tmpEntt);
+          targetWeightFinal += regionWeight;
+        }
+        quaCav1 += regionWeight*quael;
         quaMaxCav1 = MAX(quaMaxCav1, quael);
       }
       if(iinva) break;
@@ -1414,6 +1589,11 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
     if(iinva){
       CPRINTF1(" # smoocavdiff final xopt quality recompute invalid\n");
       goto cleanup;
+    }
+    if(iquaf == QuaFun::StepDistance
+       && msh.param->step_distance_cavity_target_average){
+      METRIS_ENFORCE(targetWeightFinal > 0.);
+      targetWeightCav1 = targetWeightFinal;
     }
 
     // CPRINTF1(" - Newton update initial quality avg {:15.7e} "
@@ -1487,18 +1667,22 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
 template int smoocavdiff<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        >& msh,\
                   MshCavity& cav, \
                    double& quaCav1, double& quaMaxCav1, \
+                   double& targetWeightCav1, \
                    QuaFun iquaf, int ithread);\
 template int smoocavdiff<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        >& msh,\
-                   MshCavity& cav, \
+                  MshCavity& cav, \
                    double& quaCav1, double& quaMaxCav1, \
+                   double& targetWeightCav1, \
                    QuaFun iquaf, int ithread);\
 template int smoocavdiff<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical>& msh,\
-                   MshCavity& cav, \
+                  MshCavity& cav, \
                    double& quaCav1, double& quaMaxCav1, \
+                   double& targetWeightCav1, \
                    QuaFun iquaf, int ithread);\
 template int smoocavdiff<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>& msh,\
-                   MshCavity& cav, \
+                  MshCavity& cav, \
                    double& quaCav1, double& quaMaxCav1, \
+                   double& targetWeightCav1, \
                    QuaFun iquaf, int ithread);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
@@ -1509,6 +1693,7 @@ template int smoocavdiff<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>&
 template<class MFT, int idim, int ideg>
 int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
                          double& quaCav1, double& quaMaxCav1,
+                         double& targetWeightCav1,
                          QuaFun iquaf, int ithread){
 
   GETVDEPTH(msh.param);
@@ -1530,6 +1715,7 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
         intAr2& ent2tag = msh.ent2tag(tdim);
 
   const int ipins = cav.ipins;
+  targetWeightCav1 = 0.;
 
   CPRINTF1("-- START smoocavdiff_boundary ipins = {} ncav {}\n",ipins,lcent.get_n());
 
@@ -1700,6 +1886,7 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
       iinva = false;
       fcur = 0;
       quaMaxCav1 = -1.0e30;
+      double targetWeightCurrent = 0.;
       double gradX[idim], hessX[nhess];
       double dqelt[idim], hqelt[nhess];
       for(int ii = 0; ii < idim; ii++) gradX[ii] = 0;
@@ -1749,12 +1936,24 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
                                 msh.getBasis(),
                                 DifVar::None,dqelt,NULL,1.);
               }
-              fcur += quael;
+              double regionWeight = 1.;
+              if(iquaf == QuaFun::StepDistance
+                 && msh.param->step_distance_cavity_target_average){
+                regionWeight =
+                    step_distance_element_target_weight<MFT,idim,idim>(
+                        msh,AsDeg::Pk,tmpEntt);
+                targetWeightCurrent += regionWeight;
+              }
+              fcur += regionWeight*quael;
               if (quael > quaMaxCav1) quaMaxCav1 = quael;
 
-              for(int ii = 0; ii < idim; ii++) gradX[ii] += dqelt[ii];
+              for(int ii = 0; ii < idim; ii++){
+                gradX[ii] += regionWeight*dqelt[ii];
+              }
               if(ihess)
-                for(int ii = 0; ii < nhess;ii++) hessX[ii] += hqelt[ii];
+                for(int ii = 0; ii < nhess;ii++){
+                  hessX[ii] += regionWeight*hqelt[ii];
+                }
 
             }else{
               METRIS_THROW_MSG("Implement CAD edge cavity smoothing in 3D");
@@ -1764,6 +1963,20 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
         }
       }else{
         METRIS_THROW_MSG("Implement cavity smoothing for ideg > 1");
+      }
+
+      if(!iinva && iquaf == QuaFun::StepDistance
+         && msh.param->step_distance_cavity_target_average){
+        METRIS_ENFORCE(targetWeightCurrent > 0.);
+        fcur /= targetWeightCurrent;
+        for(int ii = 0; ii < idim; ii++){
+          gradX[ii] /= targetWeightCurrent;
+        }
+        if(ihess){
+          for(int ii = 0; ii < nhess; ii++){
+            hessX[ii] /= targetWeightCurrent;
+          }
+        }
       }
 
       if(iinva){
@@ -1885,6 +2098,7 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
 
     quaCav1 = 0;
     quaMaxCav1 = -1.0e30;
+    double targetWeightFinal = 0.;
     iinva = false;
     for(const int ienttCav : lcent){
       int ent2pol[4];
@@ -1916,7 +2130,15 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
         }
 
         double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,tmpEntt,1.);
-        quaCav1 += quael;
+        double regionWeight = 1.;
+        if(iquaf == QuaFun::StepDistance
+           && msh.param->step_distance_cavity_target_average){
+          regionWeight =
+              step_distance_element_target_weight<MFT,idim,idim>(
+                  msh,AsDeg::Pk,tmpEntt);
+          targetWeightFinal += regionWeight;
+        }
+        quaCav1 += regionWeight*quael;
         quaMaxCav1 = MAX(quaMaxCav1, quael);
       }
       if(iinva) break;
@@ -1924,6 +2146,11 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
     if(iinva){
       CPRINTF1(" # smoocavdiff_boundary final xopt quality recompute invalid\n");
       goto cleanup;
+    }
+    if(iquaf == QuaFun::StepDistance
+       && msh.param->step_distance_cavity_target_average){
+      METRIS_ENFORCE(targetWeightFinal > 0.);
+      targetWeightCav1 = targetWeightFinal;
     }
     if(dbg.good()){
       dbg << "  final_recompute"
@@ -1961,18 +2188,22 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
 template int smoocavdiff_boundary<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        >& msh,\
                   MshCavity& cav, const int cadDim, \
                    double& quaCav1, double& quaMaxCav1, \
+                   double& targetWeightCav1, \
                    QuaFun iquaf, int ithread);\
 template int smoocavdiff_boundary<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        >& msh,\
                    MshCavity& cav, const int cadDim, \
                    double& quaCav1, double& quaMaxCav1, \
+                   double& targetWeightCav1, \
                    QuaFun iquaf, int ithread);\
 template int smoocavdiff_boundary<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical>& msh,\
                    MshCavity& cav, const int cadDim, \
                    double& quaCav1, double& quaMaxCav1, \
+                   double& targetWeightCav1, \
                    QuaFun iquaf, int ithread);\
 template int smoocavdiff_boundary<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>& msh,\
                    MshCavity& cav, const int cadDim, \
                    double& quaCav1, double& quaMaxCav1, \
+                   double& targetWeightCav1, \
                    QuaFun iquaf, int ithread);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()

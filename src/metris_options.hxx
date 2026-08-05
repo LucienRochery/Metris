@@ -114,6 +114,16 @@ struct MetrisOptions{
                     "Pointwise StepDistance exponent p (> 0).")
       ("step-distance-regularization", po::value<double>(),
                     "Smooth StepDistance norm regularization epsilon (> 0).")
+      ("step-distance-cavity-target-average",
+                    "Use a cavity-level StepDistance average with the combined "
+                    "mesh-metric and target-metric volume density. This path "
+                    "does not use the collapse barrier.")
+      ("step-distance-cavity-global-tolerance", po::value<double>(),
+                    "Relative best-so-far global objective envelope allowed "
+                    "for a locally improving cavity-target replacement.")
+      ("step-distance-cavity-global-gain-fraction", po::value<double>(),
+                    "Maximum global worsening as a fraction of the "
+                    "mesh-scaled local cavity-target improvement.")
       ("step-distance-barrier-rho0", po::value<double>(),
                     "Metric-volume threshold rho0 for the StepDistance collapse barrier.")
       ("step-distance-barrier-beta", po::value<double>(),

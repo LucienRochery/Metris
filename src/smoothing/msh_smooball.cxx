@@ -29,6 +29,20 @@ Simplest possible approach.
 namespace Metris{
 
 template<class MFT>
+double smoothing_region_objective(const Mesh<MFT>& msh,
+                                  QuaFun iquaf,
+                                  double numerator,
+                                  double targetWeight){
+  if(iquaf == QuaFun::StepDistance
+     && msh.param->step_distance_cavity_target_average){
+    METRIS_ENFORCE_MSG(targetWeight > 0.,
+                       "Nonpositive StepDistance smoothing target weight");
+    return numerator/targetWeight;
+  }
+  return numerator;
+}
+
+template<class MFT>
 double smoothInterior_Ball(Mesh<MFT> &msh, QuaFun iquaf, int ithrd1, int ithrd2){
 
   int tdimn = msh.get_tdim();
@@ -147,6 +161,40 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
   msh.tag[ithrd1]++;
 
   auto quafun = get_quafun<MFT,idim,idim>(iquaf);
+
+  const bool useGlobalStepDistance =
+      iquaf == QuaFun::StepDistance
+      && msh.param->step_distance_cavity_target_average;
+  StepDistanceObjectiveState globalStepDistance;
+  if(useGlobalStepDistance){
+    globalStepDistance = step_distance_global_objective_state<MFT,idim,idim>(
+        msh,AsDeg::Pk,AsDeg::Pk);
+  }
+
+  auto accumulateStepDistanceRegion = [&](const intAr1& region,
+                                           double& numerator,
+                                           int& count,
+                                           double& targetWeight){
+    numerator = 0.;
+    count = 0;
+    targetWeight = 0.;
+    for(const int ient2 : region){
+      if(isdeadent(ient2,ent2poi)) continue;
+      const double quality = quafun(
+          msh,AsDeg::Pk,AsDeg::Pk,ient2,difto);
+      if(iquaf == QuaFun::StepDistance
+         && msh.param->step_distance_cavity_target_average){
+        const double weight =
+            step_distance_element_target_weight<MFT,idim,idim>(
+                msh,AsDeg::Pk,ient2);
+        numerator += weight*quality;
+        targetWeight += weight;
+      }else{
+        numerator += quality;
+      }
+      count++;
+    }
+  };
 
   double noper = 0;
   for(int niter = 0; niter < miter; niter++){
@@ -397,6 +445,13 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
       }
       METRIS_ASSERT(ierro == 0);
 
+      double oldObjectiveNumerator = 0.;
+      double oldObjectiveTargetWeight = 0.;
+      int oldObjectiveCount = 0;
+      accumulateStepDistanceRegion(
+          lball,oldObjectiveNumerator,oldObjectiveCount,
+          oldObjectiveTargetWeight);
+
       double coor0[idim];
       double met0[nnmet];
       for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
@@ -420,6 +475,10 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
       // }
 
       double qnrm0, qmax0, qnrm1, qmax1;
+      double newObjectiveNumerator = 0.;
+      double newObjectiveTargetWeight = 0.;
+      int newObjectiveCount = 0;
+      bool objectiveReplacementAccepted = true;
       try{
         //ierro = smooballdirect<MFT,idim,ideg>(msh,ipoin,lball,qball,
         //                       &qnrm0,&qmax0,&qnrm1,&qmax1,
@@ -432,7 +491,39 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
           ierro = smooballdiff_luksan<MFT,idim,ideg>(msh,ipoin,lball,
                                      &qnrm0,&qmax0,&qnrm1,&qmax1,work,iquaf);
         }
-        if(qmax1 > qmax){
+        if(ierro == 0){
+          accumulateStepDistanceRegion(
+              lball,newObjectiveNumerator,newObjectiveCount,
+              newObjectiveTargetWeight);
+          if(useGlobalStepDistance){
+            objectiveReplacementAccepted =
+                globalStepDistance.accepts_replacement(
+                    oldObjectiveNumerator,oldObjectiveCount,
+                    oldObjectiveTargetWeight,
+                    newObjectiveNumerator,newObjectiveCount,
+                    newObjectiveTargetWeight);
+          }else{
+            const double objectiveOld = smoothing_region_objective(
+                msh,iquaf,oldObjectiveNumerator,
+                oldObjectiveTargetWeight);
+            const double objectiveNew = smoothing_region_objective(
+                msh,iquaf,newObjectiveNumerator,
+                newObjectiveTargetWeight);
+            objectiveReplacementAccepted =
+                objective_strictly_improves(objectiveNew,objectiveOld);
+          }
+        }
+        if(!objectiveReplacementAccepted){
+          CPRINTF1(" - reject move: configured StepDistance replacement objective did not improve\n");
+          for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
+          for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
+          if (pointOnEdge) msh.bpo2rbi(ibpoin,0) = tparam0;
+          if (pointOnFace){
+            msh.bpo2rbi(ibpoin,0) = uparam0;
+            msh.bpo2rbi(ibpoin,1) = vparam0;
+          }
+          ierro = 1;
+        }else if(qmax1 > qmax){
           CPRINTF1(" - reject move, worst above last worst {:15.7e} > {:15.7e}\n",
                    qmax1, qmax);
           for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
@@ -497,6 +588,13 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         throw(e);
       }
       if(ierro == 0){
+        if(useGlobalStepDistance){
+          globalStepDistance.replace(
+              oldObjectiveNumerator,oldObjectiveCount,
+              oldObjectiveTargetWeight,
+              newObjectiveNumerator,newObjectiveCount,
+              newObjectiveTargetWeight);
+        }
         nsucc++;
         CPRINTF1(" - success smoothing {} q avg {:10.6e} -> {:10.6e} "
                  "max {:10.6e} -> {:10.6e}\n",ipoin,qnrm0,qnrm1,qmax0,qmax1);
@@ -627,6 +725,23 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
 
   auto quafun = get_quafun<MFT,idim,idim>(iquaf);
 
+  const bool useGlobalStepDistance =
+      iquaf == QuaFun::StepDistance
+      && msh.param->step_distance_cavity_target_average;
+  StepDistanceObjectiveState globalStepDistance;
+  if(useGlobalStepDistance){
+    globalStepDistance.cavity_global_relative_tolerance =
+        msh.param->step_distance_cavity_global_tolerance;
+    globalStepDistance.cavity_global_gain_fraction =
+        msh.param->step_distance_cavity_global_gain_fraction;
+    globalStepDistance.element_count = handler.getQualityCount();
+    globalStepDistance.numerator = handler.getWeightedQualitySum();
+    globalStepDistance.target_weight = handler.getObjectiveWeightSum();
+    globalStepDistance.best_objective = handler.getBestWeightedObjective();
+    globalStepDistance.best_objective_storage =
+        &msh.param->step_distance_cavity_best_objective;
+  }
+
   double noper = 0;
   for(int niter = 0; niter < miter; niter++){
     INCVDEPTH(msh.param);
@@ -700,6 +815,7 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
 
       double qmin = 1.0e30,qmax = -1.0e30, qnrm = 0.0;
       double qsum = 0.;
+      double targetWeightSum = 0.;
       int imax = -1;
       int navg = 0;
       for(auto ient2 : lball){
@@ -711,6 +827,15 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
         double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ient2,difto);
 
         qnrm += quael;
+        double regionWeight = 1.;
+        if(iquaf == QuaFun::StepDistance
+           && msh.param->step_distance_cavity_target_average){
+          regionWeight =
+              step_distance_element_target_weight<MFT,idim,idim>(
+                  msh,AsDeg::Pk,ient2);
+          targetWeightSum += regionWeight;
+        }
+        qsum += regionWeight*quael;
         qmin = MIN(qmin,quael);
         if(qmax < quael){
           imax = ient2;
@@ -718,7 +843,6 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
         }
       }
 
-      qsum = qnrm;
       qnrm /= navg;
       double t0 = get_cpu_time();
       CPRINTF1(" - smoo iter {:3}, ipoin {} (ientt {}, point {}), ball init {:10.6e} < q < {:10.6e} (at {}), avg = {:10.6e} "
@@ -738,6 +862,8 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
         vparam0 = msh.bpo2rbi(ibpoin,1);
       }
       double qnrm0, qmax0, qnrm1, qmax1;
+      double qsumNew = 0.;
+      double targetWeightSumNew = 0.;
       try{
         if(msh.param->iflag2 == 0){
           if (pointOnEdge)   ierro = smooballdiff_boundary<MFT,idim,ideg>(msh,ipoin,1,lball,&qnrm0,&qmax0,&qnrm1,&qmax1,iquaf);
@@ -747,25 +873,53 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
           ierro = smooballdiff_luksan<MFT,idim,ideg>(msh,ipoin,lball,
                                      &qnrm0,&qmax0,&qnrm1,&qmax1,work,iquaf);
         }
-        double qsumNew = 0.;
         double qmaxNew = 0.;
         for(auto ient2 : lball){
 
           if(isdeadent(ient2,ent2poi)) continue;
 
           double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ient2,difto);
-          qsumNew += quael;
+          double regionWeight = 1.;
+          if(iquaf == QuaFun::StepDistance
+             && msh.param->step_distance_cavity_target_average){
+            regionWeight =
+                step_distance_element_target_weight<MFT,idim,idim>(
+                    msh,AsDeg::Pk,ient2);
+            targetWeightSumNew += regionWeight;
+          }
+          qsumNew += regionWeight*quael;
           if (quael > qmaxNew) qmaxNew = quael;
 
         }
-        bool improveQuaSum = handler.checkSuccess(qsumNew,qsum);
+        const double objectiveSum = smoothing_region_objective(
+            msh,iquaf,qsum,targetWeightSum);
+        const double objectiveSumNew = smoothing_region_objective(
+            msh,iquaf,qsumNew,targetWeightSumNew);
+        bool improveQuaSum =
+            handler.checkSuccess(objectiveSumNew,objectiveSum);
+        bool improveGlobalObjective = true;
+        if(useGlobalStepDistance && improveQuaSum){
+          const double globalObjective = globalStepDistance.value();
+          const double globalObjectiveNew = globalStepDistance.replaced_value(
+              qsum,navg,targetWeightSum,
+              qsumNew,navg,targetWeightSumNew);
+          improveGlobalObjective =
+              cavity_target_average_global_filter_accepts(
+                  objectiveSum,objectiveSumNew,
+                  globalObjective,globalObjectiveNew,
+                  globalStepDistance.best_objective,
+                  targetWeightSum,targetWeightSumNew,
+                  globalStepDistance.target_weight,
+                  msh.param->step_distance_cavity_global_tolerance,
+                  msh.param->step_distance_cavity_global_gain_fraction);
+        }
         bool improveQuaMax = true;
         #ifdef IMPROVEMAXQUAL
           improveQuaMax = qmaxNew < qmax;
         #endif
-        if(!improveQuaSum || !improveQuaMax){
+        if(!improveQuaSum || !improveGlobalObjective || !improveQuaMax){
           CPRINTF1(" - reject move, quality error increased: {:15.7e} > {:15.7e}\n",
-                   qsumNew, qsum);
+                   objectiveSumNew, objectiveSum);
           for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
           for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
           #ifdef SMOOTHEDGES
@@ -826,6 +980,11 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
         throw(e);
       }
       if(ierro == 0){
+        if(useGlobalStepDistance){
+          globalStepDistance.replace(
+              qsum,navg,targetWeightSum,
+              qsumNew,navg,targetWeightSumNew);
+        }
         nsucc++;
         CPRINTF1(" - success smoothing {} q avg {:10.6e} -> {:10.6e} "
                  "max {:10.6e} -> {:10.6e}\n",ipoin,qnrm0,qnrm1,qmax0,qmax1);
@@ -873,7 +1032,9 @@ template double smoothElement_Ball0<MetricFieldFE        ,3,n>(Mesh<MetricFieldF
 template<class MFT>
 double smoothCavity(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf,
                     const double quaCav0, const double quaMaxCav0,
+                    const double targetWeightCav0,
                     double& quaCav1, double& quaMaxCav1,
+                    double& targetWeightCav1,
                     int ithrd1, int ithrd2){
 
   int tdimn = msh.get_tdim();
@@ -885,9 +1046,13 @@ double smoothCavity(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, QuaF
   double noper;
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
     if(tdimn == 2){
-      noper = smoothCavity0<MFT,2,ideg>(msh,cav,handler,iquaf,quaCav0,quaMaxCav0,quaCav1,quaMaxCav1,ithrd1,ithrd2);
+      noper = smoothCavity0<MFT,2,ideg>(msh,cav,handler,iquaf,
+          quaCav0,quaMaxCav0,targetWeightCav0,
+          quaCav1,quaMaxCav1,targetWeightCav1,ithrd1,ithrd2);
     }else{
-      noper = smoothCavity0<MFT,3,ideg>(msh,cav,handler,iquaf,quaCav0,quaMaxCav0,quaCav1,quaMaxCav1,ithrd1,ithrd2);
+      noper = smoothCavity0<MFT,3,ideg>(msh,cav,handler,iquaf,
+          quaCav0,quaMaxCav0,targetWeightCav0,
+          quaCav1,quaMaxCav1,targetWeightCav1,ithrd1,ithrd2);
     }
   }}CT_FOR1(ideg);
 
@@ -896,11 +1061,15 @@ double smoothCavity(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, QuaF
 
 template double smoothCavity<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf,
                                                     const double quaCav0, const double quaMaxCav0,
+                                                    const double targetWeightCav0,
                                                     double& quaCav1, double& quaMaxCav1,
+                                                    double& targetWeightCav1,
                                                     int ithrd1, int ithrd2);
 template double smoothCavity<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf,
                                                     const double quaCav0, const double quaMaxCav0,
+                                                    const double targetWeightCav0,
                                                     double& quaCav1, double& quaMaxCav1,
+                                                    double& targetWeightCav1,
                                                     int ithrd1, int ithrd2);
 
 // =============================================================================================== //
@@ -909,7 +1078,7 @@ template double smoothCavity<MetricFieldFE        >(Mesh<MetricFieldFE        > 
 
 // idim: gdim = tdim
 template<class MFT, int idim, int ideg>
-double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, double& quaCav1, double& quaMaxCav1,
+double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, const double targetWeightCav0, double& quaCav1, double& quaMaxCav1, double& targetWeightCav1,
                            int ithrd1, int ithrd2){
   // TODO: for now just vertex smoothing. Add HO nodes in the future
   GETVDEPTH(msh.param);
@@ -951,6 +1120,7 @@ double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, Qua
     const int ipins = cav.ipins;
     quaCav1 = quaCav0;
     quaMaxCav1 = quaMaxCav0;
+    targetWeightCav1 = targetWeightCav0;
 
     CPRINTF1(" - smoo cavity for insertion pt {} \n", ipins);
     int ierro = 0;
@@ -961,15 +1131,20 @@ double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, Qua
     double met0[nnmet];
     for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipins,ii);
     for(int ii = 0; ii < nnmet; ii++) met0[ii] = msh.met(ipins,ii);
+    const int ibpoin = msh.poi2bpo[ipins];
+    const double tparam0 = ibpoin >= 0 ? msh.bpo2rbi(ibpoin,0) : 0.;
     double qnrm0, qmax0, qnrm1, qmax1;
     try{
 
-      int ibpoin = msh.poi2bpo[ipins];
       if(ibpoin >= 0){
         int cadDim = msh.bpo2ibi(ibpoin,1);
-        ierro = smoocavdiff_boundary<MFT,idim,ideg>(msh,cav,cadDim,quaCav1,quaMaxCav1,iquaf,ithrd1);
+        ierro = smoocavdiff_boundary<MFT,idim,ideg>(
+            msh,cav,cadDim,quaCav1,quaMaxCav1,targetWeightCav1,
+            iquaf,ithrd1);
       }else{
-        ierro = smoocavdiff<MFT,idim,ideg>(msh,cav,quaCav1,quaMaxCav1,iquaf,ithrd1);
+        ierro = smoocavdiff<MFT,idim,ideg>(
+            msh,cav,quaCav1,quaMaxCav1,targetWeightCav1,
+            iquaf,ithrd1);
       }
 
       // std::cout << "In smoothCavity0" << std::endl;
@@ -979,7 +1154,11 @@ double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, Qua
       // std::cout << "quaMaxCav0 = " << quaMaxCav0 << std::endl;
 
       if (ierro == 0){
-        bool improveCavSum = handler.checkSuccess(quaCav1,quaCav0);
+        const double objectiveCav0 = smoothing_region_objective(
+            msh,iquaf,quaCav0,targetWeightCav0);
+        const double objectiveCav1 = smoothing_region_objective(
+            msh,iquaf,quaCav1,targetWeightCav1);
+        bool improveCavSum = handler.checkSuccess(objectiveCav1,objectiveCav0);
         bool improveCavMax = true;
         #ifdef IMPROVEMAXQUAL
         improveCavMax = quaMaxCav1 <= quaMaxCav0;
@@ -989,15 +1168,19 @@ double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, Qua
                     quaCav1, quaCav0, quaMaxCav1, quaMaxCav0);
           for(int ii = 0; ii < idim; ii++) msh.coord(ipins,ii) = coor0[ii];
           for(int ii = 0; ii < nnmet;ii++) msh.met(ipins,ii)   =  met0[ii];
+          if(ibpoin >= 0) msh.bpo2rbi(ibpoin,0) = tparam0;
 
           quaCav1 = quaCav0;
           quaMaxCav1 = quaMaxCav0;
+          targetWeightCav1 = targetWeightCav0;
           ierro = 1;
         }
       }
       else{
         for(int ii = 0; ii < idim; ii++) msh.coord(ipins,ii) = coor0[ii];
         for(int ii = 0; ii < nnmet;ii++) msh.met(ipins,ii)   =  met0[ii];
+        if(ibpoin >= 0) msh.bpo2rbi(ibpoin,0) = tparam0;
+        targetWeightCav1 = targetWeightCav0;
       }
     }catch(const MetrisExcept &e){
       PRINTF("## FAILED  smoocavdiff\n");
@@ -1013,7 +1196,7 @@ double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, Qua
 
     double t1 = get_cpu_time();
     CPRINTF1(" - Iteration end time = {:.2e}s nsuccess = {} nmov = {} \n",
-                          t1-t0,nsucc);
+                          t1-t0,nsucc,nmov);
     noper += nsucc;
     if(nsucc == 0) break;
   } // iter
@@ -1023,16 +1206,16 @@ double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, Qua
 
 #define BOOST_PP_LOCAL_MACRO(n)\
 template double smoothCavity0<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
-                                        MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, double& quaCav1, double& quaMaxCav1, \
+                                        MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, const double targetWeightCav0, double& quaCav1, double& quaMaxCav1, double& targetWeightCav1, \
                            int ithrd1, int ithrd2);\
 template double smoothCavity0<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,\
-                                        MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, double& quaCav1, double& quaMaxCav1, \
+                                        MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, const double targetWeightCav0, double& quaCav1, double& quaMaxCav1, double& targetWeightCav1, \
                            int ithrd1, int ithrd2);\
 template double smoothCavity0<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,\
-                                        MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, double& quaCav1, double& quaMaxCav1, \
+                                        MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, const double targetWeightCav0, double& quaCav1, double& quaMaxCav1, double& targetWeightCav1, \
                            int ithrd1, int ithrd2);\
 template double smoothCavity0<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,\
-                                        MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, double& quaCav1, double& quaMaxCav1, \
+                                        MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, const double targetWeightCav0, double& quaCav1, double& quaMaxCav1, double& targetWeightCav1, \
                            int ithrd1, int ithrd2);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()

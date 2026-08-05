@@ -77,6 +77,15 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
   qutet = 0.;
 
+  // Denominator of the P1 target-volume normalized element value used by
+  // CavityTargetAverage. With the target metric frozen, this denominator and
+  // the resulting normalized quadrature weights are constant in the local
+  // derivative model. For high order, the full point-dependent theta and its
+  // quotient derivatives belong here.
+  double target_average_denominator = 0.;
+  const bool use_target_average =
+      msh.param->step_distance_cavity_target_average;
+
   constexpr int nquad = tdim + 2; // vertices + barycenter
   for (int iquad = 0; iquad < nquad; iquad++){
 
@@ -225,6 +234,32 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                         dphi, hphi);
     }
 
+    if(use_target_average){
+      const double target_density =
+          VolumeMeasureHelpers::eval_target_metric_volume_density<
+              gdim,double>(met);
+      const ftype target_weight = wquad*(ftype)target_density;
+
+      qutet += target_weight*phi;
+      target_average_denominator += wquad*target_density;
+
+      if(ivar < 0) continue;
+
+      for(int i = 0; i < gdim; i++){
+        dquael[i] += target_weight*dphi[i];
+      }
+
+      if(hquael == NULL) continue;
+
+      for(int i = 0; i < gdim; i++){
+        for(int j = i; j < gdim; j++){
+          hquael[sym2idx(i,j)] +=
+              target_weight*hphi[sym2idx(i,j)];
+        }
+      }
+      continue;
+    }
+
     // ------------------------------------------------------------
     // Theta value and optional derivatives.
     // ------------------------------------------------------------
@@ -339,6 +374,23 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
           + dphi[i]*(ftype)dtheta_d[j]
           + (ftype)hbarrier_d[sym2idx(i,j)]
         );
+      }
+    }
+  }
+
+  if(use_target_average){
+    METRIS_ENFORCE_MSG(target_average_denominator > 0.0,
+                       "Nonpositive StepDistance target-volume denominator");
+    qutet /= target_average_denominator;
+
+    if(ivar >= 0){
+      for(int i = 0; i < gdim; i++){
+        dquael[i] /= target_average_denominator;
+      }
+      if(hquael != NULL){
+        for(int i = 0; i < nhess; i++){
+          hquael[i] /= target_average_denominator;
+        }
       }
     }
   }

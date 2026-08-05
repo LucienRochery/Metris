@@ -21,8 +21,108 @@
 
 #include "aux_volumeMeasure.hxx"
 
+#include <algorithm>
+#include <cmath>
+
 namespace Metris
 {
+
+  template <class MFT, int gdim, int tdim>
+  double step_distance_element_target_weight(Mesh<MFT> &msh,
+                                             AsDeg asdmet,
+                                             int ientt)
+  {
+    static_assert(gdim == 2 || gdim == 3);
+    static_assert(tdim == 2 || tdim == 3);
+    METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+
+    constexpr int nnmet = (gdim*(gdim+1))/2;
+    constexpr int nquad = tdim + 2;
+    const intAr2 &ent2poi = msh.ent2poi(tdim);
+    double target_weight = 0.0;
+
+    for(int iquad = 0; iquad < nquad; iquad++){
+      double bary[tdim + 1] = {};
+      if(iquad < tdim + 1){
+        bary[iquad] = 1.0;
+      }else{
+        for(int ii = 0; ii < tdim + 1; ii++){
+          bary[ii] = 1.0/(tdim + 1);
+        }
+      }
+
+      double met[nnmet];
+      if(iquad < tdim + 1){
+        const int ipoin = ent2poi(ientt,iquad);
+        for(int im = 0; im < nnmet; im++) met[im] = msh.met(ipoin,im);
+      }else if constexpr(std::is_same<MFT,MetricFieldAnalytical>::value){
+        double coopr[gdim];
+        double jmat[tdim*gdim];
+        if constexpr(tdim == 2){
+          eval2<gdim,1>(msh.coord,ent2poi[ientt],msh.getBasis(),
+                        DifVar::Bary,DifVar::None,
+                        bary,coopr,jmat,NULL);
+        }else{
+          eval3<gdim,1>(msh.coord,ent2poi[ientt],msh.getBasis(),
+                        DifVar::Bary,DifVar::None,
+                        bary,coopr,jmat,NULL);
+        }
+        msh.met.getMetPhys(DifVar::None,msh.met.getSpace(),
+                           coopr,met,NULL);
+      }else{
+        msh.met.getMetBary(asdmet,DifVar::None,msh.met.getSpace(),
+                           ent2poi[ientt],tdim,bary,met,NULL);
+      }
+
+      target_weight +=
+          VolumeMeasureHelpers::eval_target_metric_volume_density<
+              gdim,double>(met)/nquad;
+    }
+
+    METRIS_ENFORCE_MSG(target_weight > 0.0,
+                       "Nonpositive StepDistance element target weight");
+    return target_weight;
+  }
+
+  template <class MFT, int gdim, int tdim>
+  StepDistanceObjectiveState step_distance_global_objective_state(
+      Mesh<MFT> &msh,
+      AsDeg asdmsh,
+      AsDeg asdmet)
+  {
+    StepDistanceObjectiveState state;
+    METRIS_ENFORCE(msh.param->step_distance_cavity_target_average);
+    state.cavity_global_relative_tolerance =
+        msh.param->step_distance_cavity_global_tolerance;
+    state.cavity_global_gain_fraction =
+        msh.param->step_distance_cavity_global_gain_fraction;
+
+    const intAr2 &ent2poi = msh.ent2poi(tdim);
+    for(int ientt = 0; ientt < msh.nentt(tdim); ientt++){
+      if(isdeadent(ientt,ent2poi)) continue;
+      const double quality = metqua<MFT,gdim,tdim,QuaFun::StepDistance>(
+          msh,asdmsh,asdmet,ientt,1.0);
+      const double weight =
+          step_distance_element_target_weight<MFT,gdim,tdim>(
+              msh,asdmet,ientt);
+      state.numerator += weight*quality;
+      state.target_weight += weight;
+      state.element_count++;
+    }
+    METRIS_ENFORCE(state.element_count > 0);
+    METRIS_ENFORCE(state.target_weight > 0.);
+    const double current_objective = state.value();
+    state.best_objective_storage =
+        &msh.param->step_distance_cavity_best_objective;
+    if(!std::isfinite(*state.best_objective_storage)){
+      *state.best_objective_storage = current_objective;
+    }else{
+      *state.best_objective_storage = std::min(
+          *state.best_objective_storage,current_objective);
+    }
+    state.best_objective = *state.best_objective_storage;
+    return state;
+  }
 
   template <class MFT, int gdim, int tdim, QuaFun iquaf, typename ftype>
   ftype metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
@@ -86,6 +186,19 @@ namespace Metris
     METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
 
     qutet = 0.;
+
+    // CavityTargetAverage uses a P1 target-volume normalized element value:
+    //
+    //   e_K = (sum_r w_r phi_r theta_r)/(sum_r w_r theta_r)
+    //       = (sum_r w_r phi_r mu_r)/(sum_r w_r mu_r),
+    //
+    // because the P1 geometric Jacobian factor in theta_r is constant over K
+    // and cancels. Keep numerator and denominator explicit so a future
+    // high-order implementation can replace mu_r by the full theta_r.
+    ftype target_average_numerator = 0.;
+    double target_average_denominator = 0.;
+    const bool use_target_average =
+        msh.param->step_distance_cavity_target_average;
 
     constexpr int nquad = tdim + 2; // vertices + barycenter
 
@@ -157,6 +270,16 @@ namespace Metris
                                   bary,
                                   met);
 
+      if(use_target_average){
+        const double target_density =
+            VolumeMeasureHelpers::eval_target_metric_volume_density<
+                gdim,double>(met);
+        target_average_numerator +=
+            wquad*(ftype)target_density*phi;
+        target_average_denominator += wquad*target_density;
+        continue;
+      }
+
       double Jreg_T[tdim*gdim];
 
       for(int i = 0; i < tdim; i++){
@@ -186,6 +309,12 @@ namespace Metris
               &rho_d,&barrier_d,NULL);
 
       qutet += wquad*(phi*(ftype)theta_d + (ftype)barrier_d);
+    }
+
+    if(use_target_average){
+      METRIS_ENFORCE_MSG(target_average_denominator > 0.0,
+                         "Nonpositive StepDistance target-volume denominator");
+      qutet = target_average_numerator/target_average_denominator;
     }
 
     if(do_nordev){
@@ -639,5 +768,25 @@ namespace Metris
 #undef QUAFUN_SEQ
 #undef MFT_SEQ // note these two could go into headers
 #undef EXPAND_TEMPLATE
+
+#define INSTANTIATE_STEPDISTANCE_TARGET_WEIGHT(MFT_VAL)                    \
+  template double step_distance_element_target_weight<MFT_VAL,2,2>(       \
+      Mesh<MFT_VAL>&,AsDeg,int);                                           \
+  template double step_distance_element_target_weight<MFT_VAL,3,2>(       \
+      Mesh<MFT_VAL>&,AsDeg,int);                                           \
+  template double step_distance_element_target_weight<MFT_VAL,3,3>(       \
+      Mesh<MFT_VAL>&,AsDeg,int);                                           \
+  template StepDistanceObjectiveState                                     \
+  step_distance_global_objective_state<MFT_VAL,2,2>(                      \
+      Mesh<MFT_VAL>&,AsDeg,AsDeg);                                        \
+  template StepDistanceObjectiveState                                     \
+  step_distance_global_objective_state<MFT_VAL,3,2>(                      \
+      Mesh<MFT_VAL>&,AsDeg,AsDeg);                                        \
+  template StepDistanceObjectiveState                                     \
+  step_distance_global_objective_state<MFT_VAL,3,3>(                      \
+      Mesh<MFT_VAL>&,AsDeg,AsDeg);
+INSTANTIATE_STEPDISTANCE_TARGET_WEIGHT(MetricFieldFE)
+INSTANTIATE_STEPDISTANCE_TARGET_WEIGHT(MetricFieldAnalytical)
+#undef INSTANTIATE_STEPDISTANCE_TARGET_WEIGHT
 
 } // End namespace

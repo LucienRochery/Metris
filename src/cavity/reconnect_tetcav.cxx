@@ -42,6 +42,11 @@ int reconnect_tetcav(Mesh<MFT> &msh,
   const int qpnorm = msh.param->opt_pnorm;
   *qmax = -1;
   info.qcav3 = qpnorm == 0 ? -1 : 0;
+  info.objective_numerator_end = 0.;
+  info.objective_target_weight_end = 0.;
+  info.objective_element_count_end = 0;
+  int nqual_cav3 = 0;
+  double targetWeightCav3 = 0.;
 
   // We need to increment this independently per element, avoid conflict with
   // ithread
@@ -322,11 +327,40 @@ int reconnect_tetcav(Mesh<MFT> &msh,
           msh.tet2poi(ielen,0), msh.tet2poi(ielen,1), msh.tet2poi(ielen,2),
           msh.tet2poi(ielen,3) ,iele0,quael);
         *qmax = MAX(quael, *qmax);
+        #ifdef STEPDISTANCE
+        if(msh.param->step_distance_cavity_target_average){
+          const double objectiveWeight =
+              step_distance_element_target_weight<MFT,3,3>(
+                  msh,AsDeg::P1,ielen);
+          info.objective_numerator_end += objectiveWeight*quael;
+          info.objective_target_weight_end += objectiveWeight;
+        }else{
+          info.objective_numerator_end += quael;
+        }
+        #else
+        info.objective_numerator_end += quael;
+        #endif
+        info.objective_element_count_end++;
         if(qpnorm == 0){
           info.qcav3 = MAX(info.qcav3, quael);
         }else{
-          info.qcav3 += pow(abs(quael), qpnorm);
+          const double poweredQuality = pow(abs(quael),qpnorm);
+          #ifdef STEPDISTANCE
+          if(msh.param->step_distance_cavity_target_average){
+            const double targetWeight =
+                step_distance_element_target_weight<MFT,3,3>(
+                    msh,AsDeg::P1,ielen);
+            info.qcav3 += step_distance_region_contribution(
+                poweredQuality,targetWeight,true);
+            targetWeightCav3 += targetWeight;
+          }else{
+            info.qcav3 += poweredQuality;
+          }
+          #else
+          info.qcav3 += poweredQuality;
+          #endif
         }
+        nqual_cav3++;
         if(quael > opts.qmax_nec && opts.qmax_nec > 0.0){
           CPRINTF1(" # quael = {} > {} = qmax_nec -> reject\n",quael, opts.qmax_nec);
           return CAV_ERR_QMAXNEC; // Run rejected
@@ -588,6 +622,13 @@ int reconnect_tetcav(Mesh<MFT> &msh,
   }// for iele0
 
   if(check_qua && qpnorm > 0){
+    #ifdef STEPDISTANCE
+    if(nqual_cav3 > 0){
+      info.qcav3 = step_distance_region_objective(
+          info.qcav3,targetWeightCav3,
+          msh.param->step_distance_cavity_target_average);
+    }
+    #endif
     info.qcav3 = pow(info.qcav3, 1.0 / qpnorm);
     CPRINTF1(" - Final tetra cavity quality = {:.3f}\n",info.qcav3);
   }

@@ -383,6 +383,17 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     step_distance_regularization =
         opt.m["step-distance-regularization"].as<double>();
   }
+  if(opt.count("step-distance-cavity-target-average")){
+    step_distance_cavity_target_average = true;
+  }
+  if(opt.count("step-distance-cavity-global-tolerance")){
+    step_distance_cavity_global_tolerance =
+        opt.m["step-distance-cavity-global-tolerance"].as<double>();
+  }
+  if(opt.count("step-distance-cavity-global-gain-fraction")){
+    step_distance_cavity_global_gain_fraction =
+        opt.m["step-distance-cavity-global-gain-fraction"].as<double>();
+  }
   if(opt.count("step-distance-barrier-rho0")){
     step_distance_barrier_rho0 =
         opt.m["step-distance-barrier-rho0"].as<double>();
@@ -452,6 +463,10 @@ void MetrisParameters::checkParameters(){
                      "step_distance_regularization must be positive");
   METRIS_ENFORCE_MSG(step_distance_barrier_rho0 >= 0.0,
                      "step_distance_barrier_rho0 must be nonnegative");
+  METRIS_ENFORCE_MSG(step_distance_cavity_global_tolerance >= 0.0,
+                     "step_distance_cavity_global_tolerance must be nonnegative");
+  METRIS_ENFORCE_MSG(step_distance_cavity_global_gain_fraction >= 0.0,
+                     "step_distance_cavity_global_gain_fraction must be nonnegative");
   METRIS_ENFORCE_MSG(step_distance_barrier_beta >= 0.0,
                      "step_distance_barrier_beta must be nonnegative");
   METRIS_ENFORCE(geo_abstoledg >= 0.0);

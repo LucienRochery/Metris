@@ -259,6 +259,14 @@ struct CavOprInfo{
 
   double qcav3 = -1.; // Quality of final tetra cavity in norm specified by msh.param
 
+  // Raw additive data for the top-dimensional objective of a hypothetical
+  // reconnected tetrahedral cavity.  Unlike qcav3 these values are not
+  // normalized or p-norm transformed, so callers can replace the cavity in a
+  // mesh-wide normalized objective before committing it.
+  double objective_numerator_end = 0.;
+  double objective_target_weight_end = 0.;
+  int objective_element_count_end = 0;
+
   bool done = false; // flags whether change was done (dryrun) ; different from an error
 };
 

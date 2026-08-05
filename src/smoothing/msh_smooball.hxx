@@ -46,11 +46,13 @@ double smoothElement_Ball0(Mesh<MetricFieldType> &msh, const int ientt, BadEntHa
 template<class MetricFieldType>
 double smoothCavity(Mesh<MetricFieldType> &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf,
                     const double quaCav0, const double quaMaxCav0,
+                    const double targetWeightCav0,
                     double& quaCav1, double& quaMaxCav1,
+                    double& targetWeightCav1,
                     int ithrd1, int ithrd2);
 
 template<class MetricFieldType, int idim, int ideg>
-double smoothCavity0(Mesh<MetricFieldType> &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, double& quaCav1, double& quaMaxCav1,
+double smoothCavity0(Mesh<MetricFieldType> &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, const double targetWeightCav0, double& quaCav1, double& quaMaxCav1, double& targetWeightCav1,
                            int ithrd1, int ithrd2);
 
 

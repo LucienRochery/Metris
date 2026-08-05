@@ -17,6 +17,7 @@
 #include "../utils/mprintf.hxx"
 #include "../utils/aux_misc.hxx"
 #include "../msh_checktopo.hxx"
+#include "../quality/low_metqua.hxx"
 
 
 
@@ -69,6 +70,25 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
   int nswapface = 0;
   int nswaptet = 0;
   #endif
+
+  StepDistanceObjectiveState globalStepDistance;
+  StepDistanceObjectiveState *globalStepDistancePtr = nullptr;
+  #ifdef STEPDISTANCE
+  if(msh.param->step_distance_cavity_target_average){
+    if(msh.get_tdim() == 2){
+      globalStepDistance =
+          step_distance_global_objective_state<MFT,gdim,2>(
+              msh,AsDeg::P1,AsDeg::P1);
+    }else{
+      if constexpr(gdim == 3){
+        globalStepDistance =
+            step_distance_global_objective_state<MFT,3,3>(
+                msh,AsDeg::P1,AsDeg::P1);
+      }
+    }
+    globalStepDistancePtr = &globalStepDistance;
+  }
+  #endif
   for(int tdim = 2; tdim <= msh.get_tdim(); tdim++){
     INCVDEPTH(msh.param);
 
@@ -107,13 +127,18 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
           try{
         #endif
           if(tdim == 2){
-            info = swapface<MFT,gdim,ideg>(msh, ientt, swapOpt, cav, work, &qumx0, &qumx1, ithrd2);
+            info = swapface<MFT,gdim,ideg>(msh, ientt, swapOpt, cav, work,
+                                           &qumx0, &qumx1,
+                                           globalStepDistancePtr,ithrd2);
             #ifdef TESTQUALITYALGO
             if (info < 0) nswapface++;
             #endif
           }else{
             if constexpr(gdim == 3){
-              info = swaptetra<MFT,ideg>(msh, ientt, swapOpt, cav, work, &qumx0, &qumx1, ithrd2, ithrd3);
+              info = swaptetra<MFT,ideg>(msh, ientt, swapOpt, cav, work,
+                                         &qumx0, &qumx1,
+                                         globalStepDistancePtr,
+                                         ithrd2, ithrd3);
               //printf("## WAIT AFTER SWAPTETRA\n");
               //wait();
               #ifdef TESTQUALITYALGO

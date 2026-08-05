@@ -26,6 +26,8 @@ double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
   int nentt = msh.nentt(tdim);
 
   double qtot = 0;
+  double qlocaltot = 0;
+  double target_weight_sum = 0;
   *qmin = 1.0e30;
   *qmax = 0;
 
@@ -67,7 +69,31 @@ double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
       //  *iinva = true;
       //} // Ignore exceptions in this context.
       if(lquae != NULL) (*lquae)[ientt] = quent;
-      qtot += quent;
+      qlocaltot += quent;
+      if constexpr(iquaf == QuaFun::StepDistance){
+        if(msh.param->step_distance_cavity_target_average){
+          double target_weight = 0.;
+          if(msh.idim == 2){
+            if constexpr(tdim_c == 2){
+              target_weight =
+                  step_distance_element_target_weight<MFT,2,2>(
+                      msh,asdmet,ientt);
+            }
+          }else{
+            target_weight =
+                step_distance_element_target_weight<MFT,3,tdim_c>(
+                    msh,asdmet,ientt);
+          }
+          METRIS_ENFORCE(target_weight > 0.);
+          qtot += step_distance_region_contribution(
+              quent,target_weight,true);
+          target_weight_sum += target_weight;
+        }else{
+          qtot += quent;
+        }
+      }else{
+        qtot += quent;
+      }
       (*qmin) = MIN(*qmin,quent);
       (*qmax) = MAX(*qmax,quent);
       CPRINTF3(" - getmetquamesh ientt {} dim {} qual = {}\n",ientt,tdim,quent);
@@ -75,9 +101,14 @@ double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
   }}CT_FOR1(tdim_c);
   }}CT_FOR1(ideg);
 
-  *qavg = qtot / ncnt;
+  *qavg = qlocaltot / ncnt;
 
   //msh.met.setSpace(metspac0);
+  if constexpr(iquaf == QuaFun::StepDistance){
+    qtot = step_distance_region_objective(
+        qtot,target_weight_sum,
+        msh.param->step_distance_cavity_target_average);
+  }
   return pow(qtot,1.0/msh.param->opt_pnorm);
 }
 

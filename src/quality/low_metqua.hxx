@@ -33,6 +33,21 @@ ftype metqua(Mesh<MetricFieldType> &msh,
              AsDeg asdmsh, AsDeg asdmet,
              int ielem, ftype difto = 1);
 
+// P1 reference-element integral of sqrt(det(M^*)). This is the denominator
+// associated with the combined sqrt(det(M_K))*sqrt(det(M^*)) physical weight,
+// after sqrt(det(M_K))*|det(J_K)| cancels pointwise.
+template <class MetricFieldType, int gdim, int tdim>
+double step_distance_element_target_weight(Mesh<MetricFieldType> &msh,
+                                           AsDeg asdmet,
+                                           int ielem);
+
+// Build the exact mesh-wide totals used to assess a local replacement.
+template <class MetricFieldType, int gdim, int tdim>
+StepDistanceObjectiveState step_distance_global_objective_state(
+    Mesh<MetricFieldType> &msh,
+    AsDeg asdmsh,
+    AsDeg asdmet);
+
 
 
 /* ----------------------------------------------

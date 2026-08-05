@@ -99,6 +99,7 @@ struct ScanStats{
   int substantive = 0;
   int accepted_local_max_worse = 0;
   int rejected_local = 0;
+  int rejected_global_objective = 0;
   int rejected_global_max = 0;
   int exceptions = 0;
   std::map<int,int> errors;
@@ -165,10 +166,18 @@ std::string input_command(){
   std::string command = "-in " + mesh + " -met " + metric + " -cad " + cad
       + " -verb 0 -vdepth 0 -adapt 0 -opt-niter 0 -adp-opt-niter 0"
       + " -opt-pnorm 1 -opt-power 1 -opt-smoo-niter 1"
-      + " --step-distance-p 1"
-      + " --step-distance-regularization 1e-8"
-      + " --step-distance-barrier-rho0 0.7"
-      + " --step-distance-barrier-beta 2";
+      ;
+
+  if(const char* step_args =
+      std::getenv("METRIS_SMOOTHING_STEP_DISTANCE_ARGS")){
+    command += " ";
+    command += step_args;
+  }else{
+    command += " --step-distance-p 1"
+               " --step-distance-regularization 1e-8"
+               " --step-distance-barrier-rho0 0.7"
+               " --step-distance-barrier-beta 2";
+  }
 
   if(const char* extra = std::getenv("METRIS_SMOOTHING_EXTRA_ARGS")){
     command += " ";
@@ -354,6 +363,8 @@ void write_summary(const ScanStats& stats, const std::filesystem::path& file){
       << "substantive " << stats.substantive << '\n'
       << "accepted_local_max_worse " << stats.accepted_local_max_worse << '\n'
       << "rejected_local " << stats.rejected_local << '\n'
+      << "rejected_global_objective "
+      << stats.rejected_global_objective << '\n'
       << "rejected_global_max " << stats.rejected_global_max << '\n'
       << "exceptions " << stats.exceptions << '\n'
       << "success_fraction "
@@ -416,6 +427,8 @@ void print_summary(const ScanStats& stats){
             << "  accepted with worse local maximum: "
             << stats.accepted_local_max_worse << '\n'
             << "  rejected locally: " << stats.rejected_local
+            << ", rejected by global objective: "
+            << stats.rejected_global_objective
             << ", rejected by global max: " << stats.rejected_global_max
             << ", setup failures: " << stats.setup_failures
             << ", exceptions: " << stats.exceptions << '\n'
@@ -426,9 +439,39 @@ void print_summary(const ScanStats& stats){
 }
 
 template<class MFT>
+struct RegionTotals{
+  double numerator = 0.;
+  double target_weight = 0.;
+  int count = 0;
+};
+
+template<class MFT>
+RegionTotals<MFT> region_totals(Mesh<MFT>& msh, const intAr1& region){
+  const auto quafun = get_quafun<MFT,gdim,tdim>(QuaFun::StepDistance);
+  RegionTotals<MFT> totals;
+  for(const int iface : region){
+    if(isdeadent(iface,msh.fac2poi)) continue;
+    const double quality =
+        quafun(msh,AsDeg::P1,AsDeg::P1,iface,1.);
+    if(msh.param->step_distance_cavity_target_average){
+      const double weight =
+          step_distance_element_target_weight<MFT,gdim,tdim>(
+              msh,AsDeg::P1,iface);
+      totals.numerator += weight*quality;
+      totals.target_weight += weight;
+    }else{
+      totals.numerator += quality;
+    }
+    totals.count++;
+  }
+  return totals;
+}
+
+template<class MFT>
 ScanStats run_scan(const std::string& command,
                    const std::string& phase,
-                   bool commit){
+                   bool commit,
+                   bool require_global_improvement = false){
   cargHandler arg(command);
   MetrisRunner run(arg.c,arg.v);
   BOOST_REQUIRE(run.metricFE);
@@ -444,6 +487,12 @@ ScanStats run_scan(const std::string& command,
   stats.commit = commit;
   stats.before = mesh_quality(msh);
   const double global_qmax = stats.before.maximum;
+  StepDistanceObjectiveState global_objective;
+  if(require_global_improvement){
+    global_objective =
+        step_distance_global_objective_state<MFT,gdim,tdim>(
+            msh,AsDeg::P1,AsDeg::P1);
+  }
 
   std::vector<double> initial_coordinates(msh.npoin*gdim);
   std::vector<double> initial_metrics(msh.npoin*nnmet);
@@ -524,6 +573,7 @@ ScanStats run_scan(const std::string& command,
     for(int i = 0; i < gdim; i++) coordinate0[i] = msh.coord(ipoin,i);
     for(int i = 0; i < nnmet; i++) metric0[i] = msh.met(ipoin,i);
     const std::vector<BoundarySnapshot> boundary0 = snapshot_boundary(msh,ipoin);
+    const RegionTotals<MFT> old_region = region_totals(msh,lball);
 
     stats.attempted++;
     if(kind == PointKind::Interior) stats.attempted_interior++;
@@ -549,7 +599,19 @@ ScanStats run_scan(const std::string& command,
     row.solver_success = row.error == 0;
     if(row.solver_success) stats.solver_success++;
 
-    if(row.solver_success && row.qmax1 > global_qmax){
+    RegionTotals<MFT> new_region;
+    bool global_improves = true;
+    if(row.solver_success && require_global_improvement){
+      new_region = region_totals(msh,lball);
+      global_improves = global_objective.accepts_replacement(
+          old_region.numerator,old_region.count,old_region.target_weight,
+          new_region.numerator,new_region.count,new_region.target_weight);
+    }
+
+    if(row.solver_success && !global_improves){
+      row.error = -3;
+      stats.rejected_global_objective++;
+    }else if(row.solver_success && row.qmax1 > global_qmax){
       row.error = -2;
       stats.rejected_global_max++;
     }else if(row.solver_success){
@@ -559,6 +621,11 @@ ScanStats run_scan(const std::string& command,
                      || row.qmax0-row.qmax1 > msh.param->opt_smoo_tol;
       if(row.substantive) stats.substantive++;
       if(row.qmax1 > row.qmax0) stats.accepted_local_max_worse++;
+      if(require_global_improvement){
+        global_objective.replace(
+            old_region.numerator,old_region.count,old_region.target_weight,
+            new_region.numerator,new_region.count,new_region.target_weight);
+      }
     }else{
       stats.rejected_local++;
     }
@@ -599,8 +666,8 @@ ScanStats run_scan(const std::string& command,
     const std::filesystem::path dir = output_dir();
     std::filesystem::create_directories(dir);
     const std::string suffix = "a" + std::to_string(case_iteration());
-    writeMesh((dir/("committed_"+suffix+".meshb")).string(),msh,false);
-    msh.met.writeMetricFile((dir/("committed_"+suffix+".solb")).string());
+    writeMesh((dir/(phase+"_"+suffix+".meshb")).string(),msh,false);
+    msh.met.writeMetricFile((dir/(phase+"_"+suffix+".solb")).string());
   }
 
   return stats;
@@ -638,40 +705,52 @@ ProductionPassStats run_production_pass(const std::string& command){
 BOOST_AUTO_TEST_CASE(test_stepdistance_smoothing_scan)
 {
   const std::string command = input_command();
+  const std::string cavity_command =
+      command + " --step-distance-cavity-target-average";
   const std::filesystem::path dir = output_dir();
   std::filesystem::create_directories(dir);
 
   const ScanStats isolated =
       run_scan<MetricFieldFE>(command,"isolated",false);
-  const ScanStats committed =
-      run_scan<MetricFieldFE>(command,"committed",true);
+  const ScanStats local_committed =
+      run_scan<MetricFieldFE>(command,"local_committed",true);
+  const ScanStats global_committed =
+      run_scan<MetricFieldFE>(cavity_command,"global_committed",true,true);
   const ProductionPassStats production =
-      run_production_pass<MetricFieldFE>(command);
+      run_production_pass<MetricFieldFE>(cavity_command);
 
   write_rows(isolated,dir/"isolated_attempts.csv");
-  write_rows(committed,dir/"committed_attempts.csv");
+  write_rows(local_committed,dir/"local_committed_attempts.csv");
+  write_rows(global_committed,dir/"global_committed_attempts.csv");
   write_summary(isolated,dir/"isolated_summary.txt");
-  write_summary(committed,dir/"committed_summary.txt");
+  write_summary(local_committed,dir/"local_committed_summary.txt");
+  write_summary(global_committed,dir/"global_committed_summary.txt");
   print_summary(isolated);
-  print_summary(committed);
+  print_summary(local_committed);
+  print_summary(global_committed);
   std::cout << "  production-pass substantive moves: "
             << production.substantive << '\n'
             << "  production-pass whole-mesh sum: " << production.before.sum
             << " -> " << production.after.sum << '\n';
 
   BOOST_REQUIRE_GT(isolated.attempted,0);
-  BOOST_REQUIRE_GT(committed.attempted,0);
+  BOOST_REQUIRE_GT(local_committed.attempted,0);
+  BOOST_REQUIRE_GT(global_committed.attempted,0);
   BOOST_CHECK_EQUAL(isolated.before.invalid,0);
   BOOST_CHECK_EQUAL(isolated.after.invalid,0);
-  BOOST_CHECK_EQUAL(committed.after.invalid,0);
+  BOOST_CHECK_EQUAL(local_committed.after.invalid,0);
+  BOOST_CHECK_EQUAL(global_committed.after.invalid,0);
   BOOST_CHECK_SMALL(isolated.after.sum-isolated.before.sum,
                     1.e-12*std::max(1.,isolated.before.sum));
-  BOOST_CHECK_LE(committed.after.sum,
-                 committed.before.sum
-                   + 1.e-10*std::max(1.,committed.before.sum));
-  BOOST_CHECK_EQUAL(production.substantive,committed.substantive);
-  BOOST_CHECK_CLOSE(production.after.sum,committed.after.sum,1.e-10);
-  BOOST_CHECK_CLOSE(production.after.maximum,committed.after.maximum,1.e-10);
+  BOOST_CHECK_LE(local_committed.after.sum,
+                 local_committed.before.sum
+                   + 1.e-10*std::max(1.,local_committed.before.sum));
+  if(max_attempts() == 0 || global_committed.substantive == 0){
+    BOOST_CHECK_EQUAL(production.substantive,global_committed.substantive);
+    BOOST_CHECK_CLOSE(production.after.sum,global_committed.after.sum,1.e-10);
+    BOOST_CHECK_CLOSE(production.after.maximum,
+                      global_committed.after.maximum,1.e-10);
+  }
 }
 
 #else

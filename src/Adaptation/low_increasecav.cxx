@@ -30,6 +30,97 @@
 
 namespace Metris{
 
+template<QuaFun iquaf, class MFT, int gdim, int tdim>
+double cavity_element_contribution(Mesh<MFT>& msh,
+                                   AsDeg asdmet,
+                                   int ientt,
+                                   double element_value,
+                                   double& target_weight_sum){
+  if constexpr(iquaf == QuaFun::StepDistance){
+    if(msh.param->step_distance_cavity_target_average){
+      const double target_weight =
+          step_distance_element_target_weight<MFT,gdim,tdim>(
+              msh,asdmet,ientt);
+      target_weight_sum += target_weight;
+      return step_distance_region_contribution(
+          element_value,target_weight,true);
+    }
+  }
+  return element_value;
+}
+
+template<QuaFun iquaf, class MFT>
+double cavity_region_objective(const Mesh<MFT>& msh,
+                               double elemental_sum,
+                               int element_count,
+                               double target_weight_sum = 0.0){
+  if constexpr(iquaf == QuaFun::StepDistance){
+    return step_distance_region_objective(
+        elemental_sum,target_weight_sum,
+        msh.param->step_distance_cavity_target_average);
+  }
+  return elemental_sum;
+}
+
+template<QuaFun iquaf, class MFT>
+void cavity_replacement_objectives(
+    const Mesh<MFT>& msh,
+    const BadEntHandler& handler,
+    double old_elemental_sum,
+    int old_element_count,
+    double new_elemental_sum,
+    int new_element_count,
+    double old_target_weight_sum,
+    double new_target_weight_sum,
+    double& old_local_objective,
+    double& new_local_objective,
+    double& old_global_objective,
+    double& new_global_objective){
+  old_local_objective = cavity_region_objective<iquaf>(
+      msh,old_elemental_sum,old_element_count,old_target_weight_sum);
+  new_local_objective = cavity_region_objective<iquaf>(
+      msh,new_elemental_sum,new_element_count,new_target_weight_sum);
+
+  if constexpr(iquaf == QuaFun::StepDistance){
+    if(msh.param->step_distance_cavity_target_average){
+      old_global_objective = step_distance_region_objective(
+          handler.getWeightedQualitySum(),handler.getObjectiveWeightSum(),true);
+      new_global_objective = step_distance_replaced_region_objective(
+          handler.getWeightedQualitySum(),old_elemental_sum,new_elemental_sum,
+          handler.getObjectiveWeightSum(),old_target_weight_sum,
+          new_target_weight_sum);
+      return;
+    }
+  }
+
+  old_global_objective = old_local_objective;
+  new_global_objective = new_local_objective;
+}
+
+template<QuaFun iquaf, class MFT>
+bool cavity_replacement_global_filter_accepts(
+    const Mesh<MFT>& msh,
+    const BadEntHandler& handler,
+    double old_local_objective,
+    double new_local_objective,
+    double old_global_objective,
+    double new_global_objective,
+    double old_target_weight_sum,
+    double new_target_weight_sum){
+  if constexpr(iquaf == QuaFun::StepDistance){
+    if(msh.param->step_distance_cavity_target_average){
+      return cavity_target_average_global_filter_accepts(
+          old_local_objective,new_local_objective,
+          old_global_objective,new_global_objective,
+          handler.getBestWeightedObjective(),
+          old_target_weight_sum,new_target_weight_sum,
+          handler.getObjectiveWeightSum(),
+          msh.param->step_distance_cavity_global_tolerance,
+          msh.param->step_distance_cavity_global_gain_fraction);
+    }
+  }
+  return handler.checkSuccess(new_global_objective,old_global_objective);
+}
 
 
 template<class MFT>
@@ -2194,12 +2285,20 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   double quaMax0 = -1.; // worst qual for current config
   double quaCav1 = 0.; // for reconnected config (sum of all qual)
   double quaMax1 = 1.; // worst qual for reconnected config
+  int nQuaCav0 = 0;
+  int nQuaCav1 = 0;
+  double targetWeightCav0 = 0.;
+  double targetWeightCav1 = 0.;
 
   // same as above but for subentities (faces when tdim == 3)
   double quaSub0 = 0.;
   double quaMaxSub0 = -1.;
   double quaSub1 = 0.;
   double quaMaxSub1 = -1.;
+  int nQuaSub0 = 0;
+  int nQuaSub1 = 0;
+  double targetWeightSub0 = 0.;
+  double targetWeightSub1 = 0.;
   const int nsube0 = msh.nentt(tdim-1);
   msh.set_nentt(tdim-1,nsube0+1); // in case we need to create temporary subentities
   const int tmpSubEntt = nsube0;
@@ -2245,17 +2344,26 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   };
 
   auto getCavityQuality2D = [&](double& qua0, double& qua1,
-                                double& qmax0, double& qmax1) -> bool{
+                                double& qmax0, double& qmax1,
+                                int& nqua0, int& nqua1,
+                                double& targetWeight0,
+                                double& targetWeight1) -> bool{
     qua0 = 0.;
     qua1 = 0.;
     qmax0 = -1.;
     qmax1 = -1.;
+    nqua0 = 0;
+    nqua1 = 0;
+    targetWeight0 = 0.;
+    targetWeight1 = 0.;
 
     for(const int ienttCav : lcent){
 
       double qua = metqua<MFT,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,
                                          ienttCav,difto);
-      qua0 += qua;
+      qua0 += cavity_element_contribution<iquaf,MFT,2,2>(
+          msh,AsDeg::P1,ienttCav,qua,targetWeight0);
+      nqua0++;
       if(qua > qmax0) qmax0 = qua;
 
       int ent2pol[3];
@@ -2285,11 +2393,18 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
         if(!isvalideltP1<2,2>(msh, tmpEntt, NULL, &meas)) return false;
 
         qua = metqua<MFT,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
-        qua1 += qua;
+        qua1 += cavity_element_contribution<iquaf,MFT,2,2>(
+            msh,AsDeg::P1,tmpEntt,qua,targetWeight1);
+        nqua1++;
         if(qua > qmax1) qmax1 = qua;
       }
     }
 
+    if constexpr(iquaf == QuaFun::StepDistance){
+      if(msh.param->step_distance_cavity_target_average){
+        return nqua0 > 0 && nqua1 > 0;
+      }
+    }
     return true;
   };
 
@@ -2302,6 +2417,8 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   #ifdef CAVSMOOTHING
   double quaCav1BeforeGrowth = 0.;
   double quaMax1BeforeGrowth = -1.;
+  double targetWeightBeforeGrowth = 0.;
+  int nQuaBeforeGrowth = 0;
 
   for (const int ienttCav : lcent){
 
@@ -2338,7 +2455,10 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
         #endif
 
         double qua = metqua<MFT,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
-        quaCav1BeforeGrowth += qua;
+        quaCav1BeforeGrowth +=
+            cavity_element_contribution<iquaf,MFT,2,2>(
+                msh,AsDeg::P1,tmpEntt,qua,targetWeightBeforeGrowth);
+        nQuaBeforeGrowth++;
         if (qua > quaMax1BeforeGrowth) quaMax1BeforeGrowth = qua;
       }
       else{
@@ -2365,7 +2485,10 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
         #endif
 
         double qua = metqua<MFT,3,3,iquaf>(msh, AsDeg::P1, AsDeg::P1, tmpEntt, difto);
-        quaCav1BeforeGrowth += qua;
+        quaCav1BeforeGrowth +=
+            cavity_element_contribution<iquaf,MFT,3,3>(
+                msh,AsDeg::P1,tmpEntt,qua,targetWeightBeforeGrowth);
+        nQuaBeforeGrowth++;
         if(qua > quaMax1BeforeGrowth) quaMax1BeforeGrowth = qua;
       }
     }
@@ -2373,10 +2496,25 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
   double quaCav1AfterInitialSmoo;
   double quaMax1AfterInitialSmoo;
-  double statInitialSmooCav = smoothCavity(msh,cav,handler,iquaf,quaCav1BeforeGrowth,quaMax1BeforeGrowth,quaCav1AfterInitialSmoo,quaMax1AfterInitialSmoo,ithread,ithread);
+  double targetWeightAfterInitialSmoo;
+  const double objCav1BeforeInitialSmoo =
+      cavity_region_objective<iquaf>(
+          msh,quaCav1BeforeGrowth,nQuaBeforeGrowth,
+          targetWeightBeforeGrowth);
+  double statInitialSmooCav = smoothCavity(
+      msh,cav,handler,iquaf,
+      quaCav1BeforeGrowth,quaMax1BeforeGrowth,targetWeightBeforeGrowth,
+      quaCav1AfterInitialSmoo,quaMax1AfterInitialSmoo,
+      targetWeightAfterInitialSmoo,ithread,ithread);
   retagCavity();
 
-  METRIS_ENFORCE_MSG(quaCav1AfterInitialSmoo <= quaCav1BeforeGrowth, "Cavity smoothing worsen quality!");
+  const double objCav1AfterInitialSmoo =
+      cavity_region_objective<iquaf>(
+          msh,quaCav1AfterInitialSmoo,nQuaBeforeGrowth,
+          targetWeightAfterInitialSmoo);
+  METRIS_ENFORCE_MSG(
+      objCav1AfterInitialSmoo <= objCav1BeforeInitialSmoo,
+      "Initial cavity smoothing worsen quality!");
   #endif
 
   int icen0 = 0, icen1 = lcent.get_n();
@@ -2455,6 +2593,10 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
           double quaMaxLocalReconnect = -1;
           double quaLocal = 0;
           double quaMaxLocal = -1;
+          int nQuaLocalReconnect = 0;
+          int nQuaLocal = 0;
+          double targetWeightLocalReconnect = 0.;
+          double targetWeightLocal = 0.;
 
           // loop over faces of ieneijj
           bool invalid = false;
@@ -2498,7 +2640,9 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
               }
               double qua = metqua<MFT,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
 
-              quaLocal += qua;
+              quaLocal += cavity_element_contribution<iquaf,MFT,2,2>(
+                  msh,AsDeg::P1,tmpEntt,qua,targetWeightLocal);
+              nQuaLocal++;
               if (qua > quaMaxLocal) quaMaxLocal = qua;
 
             }else{ // this edge is NOT touching cavity, so it might add to the reconnected config if not on same boundary as insertion edge
@@ -2534,30 +2678,51 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
               }
               double qua = metqua<MFT,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
 
-              quaLocalReconnect += qua;
+              quaLocalReconnect +=
+                  cavity_element_contribution<iquaf,MFT,2,2>(
+                      msh,AsDeg::P1,tmpEntt,qua,
+                      targetWeightLocalReconnect);
+              nQuaLocalReconnect++;
               if (qua > quaMaxLocalReconnect) quaMaxLocalReconnect = qua;
 
             }
           }
 
           if (invalid) continue;
+          if constexpr(iquaf == QuaFun::StepDistance){
+            if(msh.param->step_distance_cavity_target_average
+               && nQuaLocalReconnect == 0) continue;
+          }
 
           double quaLocalInside = quaLocal;
 
           // outside element
           double quaOutsideEntt = metqua<MFT,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,ieneijj,difto);
 
-          quaLocal = quaLocalInside + quaOutsideEntt;
+          quaLocal = quaLocalInside
+              + cavity_element_contribution<iquaf,MFT,2,2>(
+                  msh,AsDeg::P1,ieneijj,quaOutsideEntt,
+                  targetWeightLocal);
+          nQuaLocal++;
           quaMaxLocal = MAX(quaMaxLocal,quaOutsideEntt);
 
-          bool improveLocalSum = quaLocalReconnect <= quaLocal;
+          const double objLocalReconnect =
+              cavity_region_objective<iquaf>(
+                  msh,quaLocalReconnect,nQuaLocalReconnect,
+                  targetWeightLocalReconnect);
+          const double objLocal =
+              cavity_region_objective<iquaf>(
+                  msh,quaLocal,nQuaLocal,targetWeightLocal);
+
+          bool improveLocalSum = objLocalReconnect <= objLocal;
           bool improveLocalMax = true;
           #ifdef IMPROVEMAXQUAL
           improveLocalMax = quaMaxLocalReconnect <= quaMaxLocal;
           #endif
 
           const double nearMissRel = 5.0e-1;
-          bool nearMissLocalSum = quaLocalReconnect <= (1.0 + nearMissRel)*quaLocal;
+          bool nearMissLocalSum =
+              objLocalReconnect <= (1.0 + nearMissRel)*objLocal;
           bool acceptCandidate = improveLocalSum && improveLocalMax;
 
           #ifdef CAVSMOOTHING
@@ -2590,19 +2755,41 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
             stackCavityBoundaryEdges(ieneijj);
 
             double quaNear0, quaNear1, quaMaxNear0, quaMaxNear1;
+            int nQuaNear0, nQuaNear1;
+            double targetWeightNear0, targetWeightNear1;
             bool validNear = getCavityQuality2D(quaNear0,quaNear1,
-                                                quaMaxNear0,quaMaxNear1);
+                                                quaMaxNear0,quaMaxNear1,
+                                                nQuaNear0,nQuaNear1,
+                                                targetWeightNear0,
+                                                targetWeightNear1);
             if(validNear){
               double quaNearAfterSmoo;
               double quaMaxNearAfterSmoo;
-              double statNearSmooCav = smoothCavity(msh,cav,handler,iquaf,
-                                                    quaNear1,quaMaxNear1,
-                                                    quaNearAfterSmoo,
-                                                    quaMaxNearAfterSmoo,
-                                                    ithread,ithread);
+              double targetWeightNearAfterSmoo;
+              double statNearSmooCav = smoothCavity(
+                  msh,cav,handler,iquaf,
+                  quaNear1,quaMaxNear1,targetWeightNear1,
+                  quaNearAfterSmoo,quaMaxNearAfterSmoo,
+                  targetWeightNearAfterSmoo,ithread,ithread);
               retagCavity();
+              targetWeightNear1 = targetWeightNearAfterSmoo;
 
-              bool improveNearSum = handler.checkSuccess(quaNearAfterSmoo,quaNear0);
+              if(msh.param->step_distance_cavity_target_average){
+                validNear = getCavityQuality2D(
+                    quaNear0,quaNearAfterSmoo,
+                    quaMaxNear0,quaMaxNearAfterSmoo,
+                    nQuaNear0,nQuaNear1,
+                    targetWeightNear0,targetWeightNear1);
+              }
+
+              const double objNearAfterSmoo =
+                  cavity_region_objective<iquaf>(
+                      msh,quaNearAfterSmoo,nQuaNear1,targetWeightNear1);
+              const double objNear0 =
+                  cavity_region_objective<iquaf>(
+                      msh,quaNear0,nQuaNear0,targetWeightNear0);
+              bool improveNearSum =
+                  handler.checkSuccess(objNearAfterSmoo,objNear0);
               bool improveNearMax = true;
               #ifdef IMPROVEMAXQUAL
               improveNearMax = quaMaxNearAfterSmoo <= quaMaxNear0;
@@ -2657,6 +2844,10 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
           double quaMaxLocalReconnect = -1;
           double quaLocal = 0;
           double quaMaxLocal = -1;
+          int nQuaLocalReconnect = 0;
+          int nQuaLocal = 0;
+          double targetWeightLocalReconnect = 0.;
+          double targetWeightLocal = 0.;
 
           bool worsenFaces = false;
           double quaSub0Backup = quaSub0;
@@ -2718,7 +2909,9 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
               double qua = metqua<MFT,3,3,iquaf>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
 
-              quaLocal += qua;
+              quaLocal += cavity_element_contribution<iquaf,MFT,3,3>(
+                  msh,AsDeg::P1,tmpEntt,qua,targetWeightLocal);
+              nQuaLocal++;
               if (qua > quaMaxLocal) quaMaxLocal = qua;
 
             }else{ // this face is NOT touching cavity, so it might add to the reconnected config or else we need to see if it affects faces cavity
@@ -2903,7 +3096,11 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
                 double qua = metqua<MFT,3,3,iquaf>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
 
 
-                quaLocalReconnect += qua;
+                quaLocalReconnect +=
+                    cavity_element_contribution<iquaf,MFT,3,3>(
+                        msh,AsDeg::P1,tmpEntt,qua,
+                        targetWeightLocalReconnect);
+                nQuaLocalReconnect++;
                 if (qua > quaMaxLocalReconnect) quaMaxLocalReconnect = qua;
               }
             }
@@ -2927,15 +3124,31 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
           }
           #endif
 
+          if constexpr(iquaf == QuaFun::StepDistance){
+            if(msh.param->step_distance_cavity_target_average
+               && nQuaLocalReconnect == 0) continue;
+          }
+
           double quaLocalInside = quaLocal;
 
           // outside tet
           double quaOutsideEntt = metqua<MFT,3,3,iquaf>(msh,AsDeg::P1,AsDeg::P1,ieneijj,difto);
 
-          quaLocal = quaLocalInside + quaOutsideEntt;
+          quaLocal = quaLocalInside
+              + cavity_element_contribution<iquaf,MFT,3,3>(
+                  msh,AsDeg::P1,ieneijj,quaOutsideEntt,
+                  targetWeightLocal);
+          nQuaLocal++;
           quaMaxLocal = MAX(quaMaxLocal,quaOutsideEntt);
 
-          bool improveLocalSum = quaLocalReconnect <= quaLocal;
+          const double objLocalReconnect =
+              cavity_region_objective<iquaf>(
+                  msh,quaLocalReconnect,nQuaLocalReconnect,
+                  targetWeightLocalReconnect);
+          const double objLocal =
+              cavity_region_objective<iquaf>(
+                  msh,quaLocal,nQuaLocal,targetWeightLocal);
+          bool improveLocalSum = objLocalReconnect <= objLocal;
           bool improveLocalMax = true;
           #ifdef IMPROVEMAXQUAL
           improveLocalMax = quaMaxLocalReconnect <= quaMaxLocal;
@@ -3010,7 +3223,14 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
     double qua;
     if (tdim == 2) qua = metqua<MFT,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,ienttCav,difto);
     else           qua = metqua<MFT,3,3,iquaf>(msh,AsDeg::P1,AsDeg::P1,ienttCav,difto);
-    quaCav0 += qua;
+    if(tdim == 2){
+      quaCav0 += cavity_element_contribution<iquaf,MFT,2,2>(
+          msh,AsDeg::P1,ienttCav,qua,targetWeightCav0);
+    }else{
+      quaCav0 += cavity_element_contribution<iquaf,MFT,3,3>(
+          msh,AsDeg::P1,ienttCav,qua,targetWeightCav0);
+    }
+    nQuaCav0++;
     if (qua > quaMax0) quaMax0 = qua;
 
     // now identy boundary facets in this element to construct
@@ -3059,7 +3279,9 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
         #endif
 
         qua = metqua<MFT,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
-        quaCav1 += qua;
+        quaCav1 += cavity_element_contribution<iquaf,MFT,2,2>(
+            msh,AsDeg::P1,tmpEntt,qua,targetWeightCav1);
+        nQuaCav1++;
         if (qua > quaMax1) quaMax1 = qua;
       }
       else{ // tdim == 3
@@ -3092,7 +3314,9 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
         #endif
 
         double qua = metqua<MFT,3,3,iquaf>(msh, AsDeg::P1, AsDeg::P1, tmpEntt, difto);
-        quaCav1 += qua;
+        quaCav1 += cavity_element_contribution<iquaf,MFT,3,3>(
+            msh,AsDeg::P1,tmpEntt,qua,targetWeightCav1);
+        nQuaCav1++;
         if(qua > quaMax1) quaMax1 = qua;
       } // if tdim == 2 else 3
     } // for jj (bnd facets of ienttCav)
@@ -3107,7 +3331,9 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
     double qua;
     qua = metqua<MFT,3,2,iquaf>(msh, AsDeg::P1, AsDeg::P1, isubentt, difto);
-    quaSub0 += qua;
+    quaSub0 += cavity_element_contribution<iquaf,MFT,3,2>(
+        msh,AsDeg::P1,isubentt,qua,targetWeightSub0);
+    nQuaSub0++;
     if (qua > quaMaxSub0) quaMaxSub0 = qua;
 
     // loop over edges of this face
@@ -3138,7 +3364,9 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
       #endif
 
       qua = metqua<MFT,3,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,tmpSubEntt,difto);
-      quaSub1 += qua;
+      quaSub1 += cavity_element_contribution<iquaf,MFT,3,2>(
+          msh,AsDeg::P1,tmpSubEntt,qua,targetWeightSub1);
+      nQuaSub1++;
       if (qua > quaMaxSub1) quaMaxSub1 = qua;
 
     }
@@ -3148,20 +3376,56 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   #ifdef CAVSMOOTHING
   double quaCav1AfterSmoo;
   double quaMax1AfterSmoo;
-  double statSmooCav = smoothCavity(msh,cav,handler,iquaf,quaCav1,quaMax1,quaCav1AfterSmoo,quaMax1AfterSmoo,ithread,ithread);
+  double targetWeightCav1AfterSmoo;
+  const double objCav1BeforeSmoo =
+      cavity_region_objective<iquaf>(
+          msh,quaCav1,nQuaCav1,targetWeightCav1);
+  double statSmooCav = smoothCavity(
+      msh,cav,handler,iquaf,
+      quaCav1,quaMax1,targetWeightCav1,
+      quaCav1AfterSmoo,quaMax1AfterSmoo,targetWeightCav1AfterSmoo,
+      ithread,ithread);
   retagCavity();
-
-  METRIS_ENFORCE_MSG(quaCav1AfterSmoo <= quaCav1, "Cavity smoothing worsen quality!");
 
   quaCav1 = quaCav1AfterSmoo;
   quaMax1 = quaMax1AfterSmoo;
+  targetWeightCav1 = targetWeightCav1AfterSmoo;
+  if(tdim == 2 && msh.param->step_distance_cavity_target_average){
+    const bool validAfterSmoo = getCavityQuality2D(
+        quaCav0,quaCav1,quaMax0,quaMax1,
+        nQuaCav0,nQuaCav1,targetWeightCav0,targetWeightCav1);
+    METRIS_ENFORCE(validAfterSmoo);
+  }
+  const double objCav1AfterSmoo =
+      cavity_region_objective<iquaf>(
+          msh,quaCav1,nQuaCav1,targetWeightCav1);
+  METRIS_ENFORCE_MSG(objCav1AfterSmoo <= objCav1BeforeSmoo,
+                     "Cavity smoothing worsen quality!");
   #endif
 
   // restore to original number of entities in mesh
   msh.set_nentt(tdim,nentt0);
   msh.set_nentt(tdim-1,nsube0);
 
-  bool improveEnttsSum = handler.checkSuccess(quaCav1,quaCav0);
+  double objCav0;
+  double objCav1;
+  double objGlobal0;
+  double objGlobal1;
+  cavity_replacement_objectives<iquaf>(
+      msh,handler,
+      quaCav0,nQuaCav0,
+      quaCav1,nQuaCav1,
+      targetWeightCav0,targetWeightCav1,
+      objCav0,objCav1,objGlobal0,objGlobal1);
+  CPRINTF2(" - replacement objective local {} -> {}, global {} -> {}; "
+           "numerator {} -> {}, target weight {} -> {}, elements {} -> {}\n",
+           objCav0,objCav1,objGlobal0,objGlobal1,
+           quaCav0,quaCav1,targetWeightCav0,targetWeightCav1,
+           nQuaCav0,nQuaCav1);
+  bool improveEnttsSum = handler.checkSuccess(objCav1,objCav0)
+                      && cavity_replacement_global_filter_accepts<iquaf>(
+                          msh,handler,objCav0,objCav1,objGlobal0,objGlobal1,
+                          targetWeightCav0,targetWeightCav1);
   bool improveEnttsMax = true;
   #ifdef IMPROVEMAXQUAL
   improveEnttsMax = quaMax1 <= quaMax0;
@@ -3171,7 +3435,13 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   bool improveSubEnttsMax = true;
   #ifdef CHECKSUBENTTQUAL
   if (ipinsOnBnd){
-    improveSubEnttsSum = handler.checkSuccess(quaSub1,quaSub0);
+    const double objSub0 =
+        cavity_region_objective<iquaf>(
+            msh,quaSub0,nQuaSub0,targetWeightSub0);
+    const double objSub1 =
+        cavity_region_objective<iquaf>(
+            msh,quaSub1,nQuaSub1,targetWeightSub1);
+    improveSubEnttsSum = handler.checkSuccess(objSub1,objSub0);
     #ifdef IMPROVEMAXQUAL
     improveSubEnttsMax = quaMaxSub1 <= quaMaxSub0;
     #endif
@@ -3269,12 +3539,20 @@ int checkCavityQuality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   double quaMax0 = -1.; // worst qual for current config
   double quaCav1 = 0.; // for reconnected config (sum of all qual)
   double quaMax1 = 1.; // worst qual for reconnected config
+  int nQuaCav0 = 0;
+  int nQuaCav1 = 0;
+  double targetWeightCav0 = 0.;
+  double targetWeightCav1 = 0.;
 
   // same as above but for subentities (faces when tdim == 3)
   double quaSub0 = 0.;
   double quaMaxSub0 = -1.;
   double quaSub1 = 0.;
   double quaMaxSub1 = -1.;
+  int nQuaSub0 = 0;
+  int nQuaSub1 = 0;
+  double targetWeightSub0 = 0.;
+  double targetWeightSub1 = 0.;
   const int nsube0 = msh.nentt(tdim-1);
   msh.set_nentt(tdim-1,nsube0+1); // in case we need to create temporary subentities
   const int tmpSubEntt = nsube0;
@@ -3289,7 +3567,14 @@ int checkCavityQuality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
     double qua;
     if (tdim == 2) qua = metqua<MFT,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,ienttCav,difto);
     else           qua = metqua<MFT,3,3,iquaf>(msh,AsDeg::P1,AsDeg::P1,ienttCav,difto);
-    quaCav0 += qua;
+    if(tdim == 2){
+      quaCav0 += cavity_element_contribution<iquaf,MFT,2,2>(
+          msh,AsDeg::P1,ienttCav,qua,targetWeightCav0);
+    }else{
+      quaCav0 += cavity_element_contribution<iquaf,MFT,3,3>(
+          msh,AsDeg::P1,ienttCav,qua,targetWeightCav0);
+    }
+    nQuaCav0++;
     if (qua > quaMax0) quaMax0 = qua;
 
     // now identy boundary facets in this element to construct
@@ -3338,7 +3623,9 @@ int checkCavityQuality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
         #endif
 
         qua = metqua<MFT,2,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,tmpEntt,difto);
-        quaCav1 += qua;
+        quaCav1 += cavity_element_contribution<iquaf,MFT,2,2>(
+            msh,AsDeg::P1,tmpEntt,qua,targetWeightCav1);
+        nQuaCav1++;
         if (qua > quaMax1) quaMax1 = qua;
       }
       else{ // tdim == 3
@@ -3371,7 +3658,9 @@ int checkCavityQuality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
         #endif
 
         double qua = metqua<MFT,3,3,iquaf>(msh, AsDeg::P1, AsDeg::P1, tmpEntt, difto);
-        quaCav1 += qua;
+        quaCav1 += cavity_element_contribution<iquaf,MFT,3,3>(
+            msh,AsDeg::P1,tmpEntt,qua,targetWeightCav1);
+        nQuaCav1++;
         if(qua > quaMax1) quaMax1 = qua;
       } // if tdim == 2 else 3
     } // for jj (bnd facets of ienttCav)
@@ -3386,7 +3675,9 @@ int checkCavityQuality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
     double qua;
     qua = metqua<MFT,3,2,iquaf>(msh, AsDeg::P1, AsDeg::P1, isubentt, difto);
-    quaSub0 += qua;
+    quaSub0 += cavity_element_contribution<iquaf,MFT,3,2>(
+        msh,AsDeg::P1,isubentt,qua,targetWeightSub0);
+    nQuaSub0++;
     if (qua > quaMaxSub0) quaMaxSub0 = qua;
 
     // loop over edges of this face
@@ -3417,7 +3708,9 @@ int checkCavityQuality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
       #endif
 
       qua = metqua<MFT,3,2,iquaf>(msh,AsDeg::P1,AsDeg::P1,tmpSubEntt,difto);
-      quaSub1 += qua;
+      quaSub1 += cavity_element_contribution<iquaf,MFT,3,2>(
+          msh,AsDeg::P1,tmpSubEntt,qua,targetWeightSub1);
+      nQuaSub1++;
       if (qua > quaMaxSub1) quaMaxSub1 = qua;
 
     }
@@ -3428,7 +3721,32 @@ int checkCavityQuality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   msh.set_nentt(tdim,nentt0);
   msh.set_nentt(tdim-1,nsube0);
 
-  bool cavAccepted = quaCav1 <= (1. + worsenPctg/100.) * quaCav0;
+  double objCav0;
+  double objCav1;
+  double objGlobal0;
+  double objGlobal1;
+  cavity_replacement_objectives<iquaf>(
+      msh,handler,
+      quaCav0,nQuaCav0,
+      quaCav1,nQuaCav1,
+      targetWeightCav0,targetWeightCav1,
+      objCav0,objCav1,objGlobal0,objGlobal1);
+  CPRINTF2(" - replacement objective local {} -> {}, global {} -> {}; "
+           "numerator {} -> {}, target weight {} -> {}, elements {} -> {}\n",
+           objCav0,objCav1,objGlobal0,objGlobal1,
+           quaCav0,quaCav1,targetWeightCav0,targetWeightCav1,
+           nQuaCav0,nQuaCav1);
+  // A committed topology change is always a descent step for its configured
+  // acceptance objective. worsenPctg may be used while probing/growing a
+  // candidate cavity, but it must not relax the final test (otherwise an
+  // operation and its inverse can both be accepted). CavityTargetAverage uses
+  // local descent followed by its bounded best-so-far global filter.
+  (void)worsenPctg;
+  const bool cavAccepted =
+      handler.checkSuccess(objCav1,objCav0)
+      && cavity_replacement_global_filter_accepts<iquaf>(
+          msh,handler,objCav0,objCav1,objGlobal0,objGlobal1,
+          targetWeightCav0,targetWeightCav1);
 
   bool improveEnttsMax = true;
   #ifdef IMPROVEMAXQUAL
@@ -3439,7 +3757,13 @@ int checkCavityQuality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   bool improveSubEnttsMax = true;
   #ifdef CHECKSUBENTTQUAL
   if (ipinsOnBnd){
-    improveSubEnttsSum = handler.checkSuccess(quaSub1,quaSub0);
+    const double objSub0 =
+        cavity_region_objective<iquaf>(
+            msh,quaSub0,nQuaSub0,targetWeightSub0);
+    const double objSub1 =
+        cavity_region_objective<iquaf>(
+            msh,quaSub1,nQuaSub1,targetWeightSub1);
+    improveSubEnttsSum = handler.checkSuccess(objSub1,objSub0);
     #ifdef IMPROVEMAXQUAL
     improveSubEnttsMax = quaMaxSub1 <= quaMaxSub0;
     #endif

@@ -584,6 +584,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
   // initial number of elements
   const int nentt0 = msh.nentt(tdim);
+  const int maxIterations = MAX(10000,1000000*nentt0);
 
   // initial quality array
   bool iinva = false; double qmin = 0, qmax = 0, qavg = 0;
@@ -622,6 +623,26 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   handlerTopX.setCallbacks(
                             [&](int ientt){ return lquae[ientt]; },
                             [&](int ientt){ return isdeadent(ientt,ent2poi); });
+
+  #ifdef STEPDISTANCE
+  if(msh.param->step_distance_cavity_target_average){
+    handlerTopX.setBestWeightedObjectiveStorage(
+        &msh.param->step_distance_cavity_best_objective);
+    handlerTopX.setObjectiveWeightCallback([&](int ientt){
+      if(msh.idim == 2){
+        METRIS_ENFORCE(tdim == 2);
+        return step_distance_element_target_weight<MFT,2,2>(
+            msh,AsDeg::P1,ientt);
+      }
+      if(tdim == 2){
+        return step_distance_element_target_weight<MFT,3,2>(
+            msh,AsDeg::P1,ientt);
+      }
+      return step_distance_element_target_weight<MFT,3,3>(
+          msh,AsDeg::P1,ientt);
+    });
+  }
+  #endif
 
   // builds K and R
   handlerTopX.seedFromSortedIDs(sortedIDs);
@@ -907,7 +928,12 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       if (statusSmoo || statusIns || statusColl ) break;
       #endif
     }
-    if (!didOperation /* || smooStreak >= 2500 || iter >= 10000 */) break;
+    if (!didOperation) break;
+    // if (iter >= maxIterations){
+    //   MPRINTF("## WARNING adaptMeshQuality reached its iteration limit "
+    //           "{} in dimension {}\n",maxIterations,tdim);
+    //   break;
+    // }
   }
 
   std::cout << "iter = " << iter << std::endl;

@@ -8,6 +8,7 @@
 
 #include <boost/test/included/unit_test.hpp>
 #include <algorithm>
+#include <array>
 #include <random>
 
 #include "gen_bary.hxx"
@@ -19,6 +20,7 @@
 #include "metris_options.hxx"
 #include "MetrisRunner/MetrisRunner.hxx"
 #include "Mesh/Mesh.hxx"
+#include "aux_badEntHandler.hxx"
 
 #include "quality/low_metqua.hxx"
 #include "quality/quafun_tradet.hxx"
@@ -32,6 +34,65 @@ namespace Metris{
 typedef MetricFieldAnalytical MFT;
 typedef double ftype;
 typedef std::pair<AsDeg,AsDeg> AsDegPair;
+
+BOOST_AUTO_TEST_CASE(test_bad_ent_handler_global_totals_include_seen_entities)
+{
+  std::array<double,3> qualities = {3.0,2.0,1.0};
+  const std::array<double,3> weights = {2.0,3.0,5.0};
+  std::array<bool,3> alive = {true,true,true};
+
+  BadEntHandler handler(1,100.0,0.00001);
+  handler.setCallbacks(
+      [&](int ientt){ return qualities[ientt]; },
+      [&](int ientt){ return !alive[ientt]; });
+  handler.setObjectiveWeightCallback(
+      [&](int ientt){ return weights[ientt]; });
+  handler.seedFromSortedIDs({0,1,2});
+
+  intAr2 ent2ent(3,2);
+  intAr2 ent2tag(2,3);
+  for(int ientt = 0; ientt < 3; ientt++){
+    for(int ii = 0; ii < 2; ii++) ent2ent(ientt,ii) = -1;
+  }
+  for(int ithrd = 0; ithrd < 2; ithrd++){
+    for(int ientt = 0; ientt < 3; ientt++) ent2tag(ithrd,ientt) = 0;
+  }
+
+  BOOST_CHECK_EQUAL(handler.getQualityCount(),3);
+  BOOST_CHECK_CLOSE_FRACTION(handler.getQualitySum(),6.0,1.e-15);
+  BOOST_CHECK_CLOSE_FRACTION(handler.getObjectiveWeightSum(),10.0,1.e-15);
+  BOOST_CHECK_CLOSE_FRACTION(handler.getWeightedQualitySum(),17.0,1.e-15);
+
+  // Processing entity 1 moves the worse entity 0 out of K and into
+  // seenEntts. Its aggregate contribution must nevertheless stay tracked.
+  qualities[1] = 1.5;
+  handler.affectedEnttsAlive[1] = qualities[1];
+  handler.updateK(1,ent2ent,ent2tag,1,0);
+  BOOST_CHECK_EQUAL(handler.getQualityCount(),3);
+  BOOST_CHECK_CLOSE_FRACTION(handler.getQualitySum(),5.5,1.e-15);
+  BOOST_CHECK_CLOSE_FRACTION(handler.getWeightedQualitySum(),15.5,1.e-15);
+
+  // Updating an element that is already in seenEntts replaces its old global
+  // contribution; it must not be counted as a newly created element.
+  qualities[0] = 2.5;
+  handler.affectedEnttsAlive[0] = qualities[0];
+  handler.updateK(2,ent2ent,ent2tag,2,0);
+  BOOST_CHECK_EQUAL(handler.getQualityCount(),3);
+  BOOST_CHECK_CLOSE_FRACTION(handler.getQualitySum(),5.0,1.e-15);
+  BOOST_CHECK_CLOSE_FRACTION(handler.getObjectiveWeightSum(),10.0,1.e-15);
+  BOOST_CHECK_CLOSE_FRACTION(handler.getWeightedQualitySum(),14.5,1.e-15);
+
+  // Deleting another seen element must remove its stored contribution.
+  alive[1] = false;
+  qualities[0] = 2.4;
+  handler.deadEntts.push_back(1);
+  handler.affectedEnttsAlive[0] = qualities[0];
+  handler.updateK(0,ent2ent,ent2tag,3,0);
+  BOOST_CHECK_EQUAL(handler.getQualityCount(),2);
+  BOOST_CHECK_CLOSE_FRACTION(handler.getQualitySum(),3.4,1.e-15);
+  BOOST_CHECK_CLOSE_FRACTION(handler.getObjectiveWeightSum(),7.0,1.e-15);
+  BOOST_CHECK_CLOSE_FRACTION(handler.getWeightedQualitySum(),9.8,1.e-15);
+}
 
 BOOST_AUTO_TEST_CASE(test_stepdistance_arbitrary_p_derivatives)
 {
@@ -187,7 +248,7 @@ BOOST_AUTO_TEST_CASE(test_stepdistance_metric_volume_barrier_derivatives)
   BOOST_CHECK_SMALL(inactive_grad[1],1.e-15);
 }
 
-BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_barrier_derivatives)
+BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_objective_derivatives)
 {
   MetrisParameters param;
   param.iverb = 0;
@@ -278,6 +339,309 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_barrier_derivatives)
       BOOST_CHECK_SMALL(
           barrier_hess-barrier_hess_fd,
           2.e-6*std::max(1.,std::abs(barrier_hess_fd)));
+    }
+  }
+
+  // Exercise the P1 target-volume normalized element value used by
+  // CavityTargetAverage with nonuniform target densities. The metric samples
+  // and their normalized weights are frozen in the derivative model.
+  msh.met(0,0) = 1.0; msh.met(0,1) = 0.0; msh.met(0,2) = 1.0;
+  msh.met(1,0) = 4.0; msh.met(1,1) = 0.0; msh.met(1,2) = 1.0;
+  msh.met(2,0) = 1.0; msh.met(2,1) = 0.0; msh.met(2,2) = 9.0;
+
+  msh.param->step_distance_cavity_target_average = true;
+  double grad_target_average[gdim],hess_target_average[nhess];
+  const double value_target_average =
+      evaluate(2.0,grad_target_average,hess_target_average);
+  double grad_target_average_no_barrier[gdim];
+  double hess_target_average_no_barrier[nhess];
+  const double value_target_average_no_barrier =
+      evaluate(0.0,grad_target_average_no_barrier,
+               hess_target_average_no_barrier);
+
+  constexpr auto pointwise_step_distance =
+      get_quafun_xi<MetricFieldFE,gdim,tdim,
+                    QuaFun::StepDistance,double>();
+  double expected_numerator = 0.0;
+  double expected_denominator = 0.0;
+  for(int iquad = 0; iquad < tdim + 2; iquad++){
+    double bary[tdim + 1] = {};
+    if(iquad < tdim + 1){
+      bary[iquad] = 1.0;
+    }else{
+      for(int i = 0; i < tdim + 1; i++){
+        bary[i] = 1.0/(tdim + 1);
+      }
+    }
+
+    double met[3];
+    if(iquad < tdim + 1){
+      const int metric_point = msh.fac2poi(0,iquad);
+      for(int i = 0; i < 3; i++) met[i] = msh.met(metric_point,i);
+    }else{
+      msh.met.getMetBary(AsDeg::P1,DifVar::None,MetSpace::Exp,
+                         msh.fac2poi[0],tdim,bary,
+                         met,NULL);
+    }
+
+    const double target_density =
+        VolumeMeasureHelpers::eval_target_metric_volume_density<
+            gdim,double>(met);
+    const double phi = pointwise_step_distance(
+        msh,AsDeg::P1,AsDeg::P1,msh.fac2poi[0],bary,met);
+    expected_numerator += target_density*phi;
+    expected_denominator += target_density;
+  }
+  BOOST_CHECK_CLOSE_FRACTION(
+      value_target_average,
+      expected_numerator/expected_denominator,
+      2.e-14);
+
+  BOOST_CHECK_SMALL(
+      value_target_average-value_target_average_no_barrier,1.e-14);
+  for(int i = 0; i < gdim; i++){
+    BOOST_CHECK_SMALL(
+        grad_target_average[i]-grad_target_average_no_barrier[i],1.e-14);
+  }
+  for(int i = 0; i < nhess; i++){
+    BOOST_CHECK_SMALL(
+        hess_target_average[i]-hess_target_average_no_barrier[i],1.e-14);
+  }
+
+  for(int j = 0; j < gdim; j++){
+    const double coordinate = msh.coord(ipoin,j);
+    msh.coord(ipoin,j) = coordinate+fd_step;
+    const double value_plus = evaluate(2.0,NULL,NULL);
+    double grad_plus[gdim];
+    evaluate(2.0,grad_plus,NULL);
+
+    msh.coord(ipoin,j) = coordinate-fd_step;
+    const double value_minus = evaluate(2.0,NULL,NULL);
+    double grad_minus[gdim];
+    evaluate(2.0,grad_minus,NULL);
+    msh.coord(ipoin,j) = coordinate;
+
+    const double grad_fd = (value_plus-value_minus)/(2.*fd_step);
+    BOOST_CHECK_SMALL(
+        grad_target_average[j]-grad_fd,
+        2.e-5*std::max(1.,std::abs(grad_fd)));
+
+    for(int i = 0; i <= j; i++){
+      const double hess_fd =
+          (grad_plus[i]-grad_minus[i])/(2.*fd_step);
+      BOOST_CHECK_SMALL(
+          hess_target_average[sym2idx(i,j)]-hess_fd,
+          5.e-4*std::max(1.,std::abs(hess_fd)));
+    }
+  }
+
+  double moving_coordinates[4];
+  for(int ip = 1; ip < 3; ip++){
+    for(int j = 0; j < gdim; j++){
+      moving_coordinates[(ip-1)*gdim+j] = msh.coord(ip,j);
+      msh.coord(ip,j) *= 1.e-8;
+    }
+  }
+  const double collapsed_value = evaluate(2.0,NULL,NULL);
+  for(int ip = 1; ip < 3; ip++){
+    for(int j = 0; j < gdim; j++){
+      msh.coord(ip,j) = moving_coordinates[(ip-1)*gdim+j];
+    }
+  }
+  BOOST_TEST(collapsed_value > value_target_average);
+
+  const double global_sum = 5.0;
+  const int global_count = 10;
+  const int old_cavity_count = 2;
+  const int new_cavity_count = 3;
+
+  // Improving the cavity ratio alone does not imply improvement of the full
+  // mesh ratio when the replacement changes the target-weight denominator.
+  const double old_weighted_cavity_sum = 2.0;
+  const double old_cavity_weight = 2.0;
+  const double new_weighted_cavity_sum = 2.7;
+  const double new_cavity_weight = 3.0;
+  BOOST_TEST(new_weighted_cavity_sum/new_cavity_weight
+             < old_weighted_cavity_sum/old_cavity_weight);
+  const double new_weighted_global_objective =
+      step_distance_replaced_region_objective(
+          global_sum,old_weighted_cavity_sum,new_weighted_cavity_sum,
+          10.0,old_cavity_weight,new_cavity_weight);
+  BOOST_TEST(new_weighted_global_objective
+             > global_sum/10.0);
+  BOOST_CHECK_CLOSE_FRACTION(
+      new_weighted_global_objective,5.7/11.0,1.e-15);
+
+  StepDistanceObjectiveState cavity_average_state;
+  cavity_average_state.numerator = global_sum;
+  cavity_average_state.element_count = global_count;
+  cavity_average_state.target_weight = 10.;
+  cavity_average_state.best_objective = global_sum/10.;
+  cavity_average_state.cavity_global_relative_tolerance = 1.e-6;
+  cavity_average_state.cavity_global_gain_fraction = 0.05;
+
+  // A substantial global worsening is rejected despite local improvement.
+  BOOST_CHECK(!cavity_average_state.accepts_replacement(
+      old_weighted_cavity_sum,old_cavity_count,old_cavity_weight,
+      new_weighted_cavity_sum,new_cavity_count,new_cavity_weight));
+
+  // A tiny global worsening supported by a strong mesh-scaled local gain is
+  // accepted inside the best-so-far envelope.
+  const double filtered_cavity_sum = 2.500001;
+  BOOST_CHECK(cavity_average_state.accepts_replacement(
+      old_weighted_cavity_sum,old_cavity_count,old_cavity_weight,
+      filtered_cavity_sum,new_cavity_count,new_cavity_weight));
+
+  cavity_average_state.best_objective = 0.499;
+  BOOST_CHECK(!cavity_average_state.accepts_replacement(
+      old_weighted_cavity_sum,old_cavity_count,old_cavity_weight,
+      filtered_cavity_sum,new_cavity_count,new_cavity_weight));
+  cavity_average_state.best_objective = global_sum/10.;
+
+  BOOST_CHECK(!cavity_target_average_global_filter_accepts(
+      1.0,0.999999,0.5,0.5000001,0.5,
+      2.0,3.0,10.0,1.e-6,0.05));
+
+  // Local worsening never reaches the global filter.
+  BOOST_CHECK(!cavity_average_state.accepts_replacement(
+      old_weighted_cavity_sum,old_cavity_count,old_cavity_weight,
+      3.3,new_cavity_count,new_cavity_weight));
+
+  const double best_before_replace = cavity_average_state.best_objective;
+  cavity_average_state.replace(
+      old_weighted_cavity_sum,old_cavity_count,old_cavity_weight,
+      filtered_cavity_sum,new_cavity_count,new_cavity_weight);
+  BOOST_CHECK_EQUAL(cavity_average_state.best_objective,best_before_replace);
+
+  // Cavity-level target average. Regional aggregation uses
+  // sum_K(D_K e_K)/sum_K(D_K).
+  msh.set_npoin(4);
+  msh.set_nface(2);
+  msh.coord(3,0) = 0.7; msh.coord(3,1) = 0.4;
+  msh.fac2poi(1,0) = 1;
+  msh.fac2poi(1,1) = 3;
+  msh.fac2poi(1,2) = 2;
+  msh.met(3,0) = 16.0; msh.met(3,1) = 0.0; msh.met(3,2) = 0.25;
+
+  msh.param->step_distance_cavity_target_average = true;
+
+  auto evaluate_cavity_target_average = [&](double* grad,
+                                             double* hess){
+    double numerator = 0.;
+    double denominator = 0.;
+    for(int iface = 0; iface < 2; iface++){
+      double element_gradient[gdim] = {};
+      double element_hessian[nhess] = {};
+      double element_value;
+      if(iface == 0 && grad != NULL){
+        element_value =
+            d_metqua<MetricFieldFE,gdim,tdim,
+                     QuaFun::StepDistance,double>(
+                msh,AsDeg::P1,AsDeg::P1,iface,ivar,
+                msh.getBasis(),DifVar::None,
+                element_gradient,hess == NULL ? NULL : element_hessian,1.0);
+      }else{
+        element_value =
+            metqua<MetricFieldFE,gdim,tdim,
+                   QuaFun::StepDistance,double>(
+                msh,AsDeg::P1,AsDeg::P1,iface,1.0);
+      }
+
+      const double element_weight =
+          step_distance_element_target_weight<MetricFieldFE,gdim,tdim>(
+              msh,AsDeg::P1,iface);
+      numerator += step_distance_region_contribution(
+          element_value,element_weight,true);
+      denominator += element_weight;
+
+      if(iface == 0 && grad != NULL){
+        for(int i = 0; i < gdim; i++){
+          grad[i] = element_weight*element_gradient[i];
+        }
+        if(hess != NULL){
+          for(int i = 0; i < nhess; i++){
+            hess[i] = element_weight*element_hessian[i];
+          }
+        }
+      }
+    }
+
+    if(grad != NULL){
+      for(int i = 0; i < gdim; i++) grad[i] /= denominator;
+      if(hess != NULL){
+        for(int i = 0; i < nhess; i++) hess[i] /= denominator;
+      }
+    }
+    return step_distance_region_objective(
+        numerator,denominator,true);
+  };
+
+  double cavity_gradient[gdim];
+  double cavity_hessian[nhess];
+  msh.param->step_distance_barrier_beta = 50.0;
+  const double cavity_value =
+      evaluate_cavity_target_average(cavity_gradient,cavity_hessian);
+  msh.param->step_distance_barrier_beta = 0.0;
+  const double cavity_value_no_barrier =
+      evaluate_cavity_target_average(NULL,NULL);
+  BOOST_CHECK_SMALL(cavity_value-cavity_value_no_barrier,1.e-14);
+
+  const double element_value0 =
+      metqua<MetricFieldFE,gdim,tdim,QuaFun::StepDistance,double>(
+          msh,AsDeg::P1,AsDeg::P1,0,1.0);
+  const double element_value1 =
+      metqua<MetricFieldFE,gdim,tdim,QuaFun::StepDistance,double>(
+          msh,AsDeg::P1,AsDeg::P1,1,1.0);
+  const double element_weight0 =
+      step_distance_element_target_weight<MetricFieldFE,gdim,tdim>(
+          msh,AsDeg::P1,0);
+  const double element_weight1 =
+      step_distance_element_target_weight<MetricFieldFE,gdim,tdim>(
+          msh,AsDeg::P1,1);
+  const double expected_cavity_value =
+      (element_weight0*element_value0 + element_weight1*element_value1)
+      /(element_weight0 + element_weight1);
+  BOOST_CHECK_CLOSE_FRACTION(
+      cavity_value,expected_cavity_value,2.e-14);
+
+  // Regression for cavity smoothing acceptance: a decreasing weighted
+  // numerator is not sufficient when the target-volume denominator changes.
+  // These are the values from the BL a0 cavity that originally triggered the
+  // post-smoothing assertion.
+  const double before_numerator = 2.13698184801736318e+02;
+  const double before_denominator = 2.24266627232477333e+02;
+  const double after_numerator = 2.13686305062136768e+02;
+  const double after_denominator = 2.24237408380270040e+02;
+  const double before_objective = step_distance_region_objective(
+      before_numerator,before_denominator,true);
+  const double after_objective = step_distance_region_objective(
+      after_numerator,after_denominator,true);
+  BOOST_CHECK(after_numerator < before_numerator);
+  BOOST_CHECK(after_objective > before_objective);
+
+  for(int j = 0; j < gdim; j++){
+    const double coordinate = msh.coord(ipoin,j);
+    msh.coord(ipoin,j) = coordinate+fd_step;
+    const double value_plus = evaluate_cavity_target_average(NULL,NULL);
+    double gradient_plus[gdim];
+    evaluate_cavity_target_average(gradient_plus,NULL);
+
+    msh.coord(ipoin,j) = coordinate-fd_step;
+    const double value_minus = evaluate_cavity_target_average(NULL,NULL);
+    double gradient_minus[gdim];
+    evaluate_cavity_target_average(gradient_minus,NULL);
+    msh.coord(ipoin,j) = coordinate;
+
+    const double gradient_fd = (value_plus-value_minus)/(2.*fd_step);
+    BOOST_CHECK_SMALL(
+        cavity_gradient[j]-gradient_fd,
+        2.e-5*std::max(1.,std::abs(gradient_fd)));
+    for(int i = 0; i <= j; i++){
+      const double hessian_fd =
+          (gradient_plus[i]-gradient_minus[i])/(2.*fd_step);
+      BOOST_CHECK_SMALL(
+          cavity_hessian[sym2idx(i,j)]-hessian_fd,
+          5.e-4*std::max(1.,std::abs(hessian_fd)));
     }
   }
 }

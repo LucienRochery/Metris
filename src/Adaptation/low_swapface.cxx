@@ -37,7 +37,9 @@ namespace Metris{
 template<class MFT, int gdim, int ideg>
 int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
              MshCavity &cav, CavWrkArrs &work,
-             double *qnrm0_, double *qnrm1_, int ithread){
+             double *qnrm0_, double *qnrm1_,
+             StepDistanceObjectiveState *globalObjective,
+             int ithread){
 
   #ifdef STEPDISTANCE
   constexpr QuaFun iquaf = QuaFun::StepDistance;
@@ -262,6 +264,12 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   cav.lcfac.set_n(2);
   cav.lcfac[0] = iface;
   for(int iix = 0; iix < 3; iix++){
+    double acceptedOldNumerator = 0.;
+    double acceptedNewNumerator = 0.;
+    double acceptedOldTargetWeight = 0.;
+    double acceptedNewTargetWeight = 0.;
+    int acceptedOldCount = 0;
+    int acceptedNewCount = 0;
     int ied = idx[iix];
     double quae2 = quaol[ied];
     if(quae2 < 0) continue;
@@ -284,7 +292,6 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     }else{
       qnrm0 = quae2;
     }
-
     int ip1 = msh.fac2poi(iface,lnoed2[ied][0]);
     int ip2 = msh.fac2poi(iface,lnoed2[ied][1]);
 
@@ -393,13 +400,77 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       }
 
       #ifdef TESTQUALITYALGO
-      if (msh.get_tdim() == 2 && qsum1 > qsum0) skipswap = true;
+      if(msh.get_tdim() == 2){
+        acceptedOldNumerator = qsum0;
+        acceptedNewNumerator = qsum1;
+        acceptedOldCount = 2;
+        acceptedNewCount = 2;
+        if constexpr(iquaf == QuaFun::StepDistance){
+          if(msh.param->step_distance_cavity_target_average){
+            const double weightOld0 =
+                step_distance_element_target_weight<MFT,gdim,tdim>(
+                    msh,asdmet,iface);
+            const double weightOld1 =
+                step_distance_element_target_weight<MFT,gdim,tdim>(
+                    msh,asdmet,ifac2);
+            const double weightNew0 =
+                step_distance_element_target_weight<MFT,gdim,tdim>(
+                    msh,asdmet,nfac0);
+            const double weightNew1 =
+                step_distance_element_target_weight<MFT,gdim,tdim>(
+                    msh,asdmet,nfac0+1);
+            acceptedOldNumerator = weightOld0*quae1 + weightOld1*quae2;
+            acceptedNewNumerator = weightNew0*qunw[0] + weightNew1*qunw[1];
+            acceptedOldTargetWeight = weightOld0 + weightOld1;
+            acceptedNewTargetWeight = weightNew0 + weightNew1;
+          }
+        }
+        const double objectiveOld = step_distance_region_objective(
+            acceptedOldNumerator,acceptedOldTargetWeight,
+            iquaf == QuaFun::StepDistance
+                && msh.param->step_distance_cavity_target_average);
+        const double objectiveNew = step_distance_region_objective(
+            acceptedNewNumerator,acceptedNewTargetWeight,
+            iquaf == QuaFun::StepDistance
+                && msh.param->step_distance_cavity_target_average);
+        if(!objective_strictly_improves(objectiveNew,objectiveOld)){
+          skipswap = true;
+        }
+        if(!skipswap && globalObjective != nullptr
+           && !globalObjective->accepts_replacement(
+                acceptedOldNumerator,acceptedOldCount,
+                acceptedOldTargetWeight,
+                acceptedNewNumerator,acceptedNewCount,
+                acceptedNewTargetWeight)){
+          skipswap = true;
+        }
+      }
       #endif
 
       if(skipswap) goto cleanup;
 
       if(spnorm > 0){
         qnrm1 = pow(qnrm1, 1.0/spnorm);
+        if constexpr(iquaf == QuaFun::StepDistance){
+          if(msh.param->step_distance_cavity_target_average){
+            const double weightOld0 =
+                step_distance_element_target_weight<MFT,gdim,tdim>(
+                    msh,asdmet,iface);
+            const double weightOld1 =
+                step_distance_element_target_weight<MFT,gdim,tdim>(
+                    msh,asdmet,ifac2);
+            const double weightNew0 =
+                step_distance_element_target_weight<MFT,gdim,tdim>(
+                    msh,asdmet,nfac0);
+            const double weightNew1 =
+                step_distance_element_target_weight<MFT,gdim,tdim>(
+                    msh,asdmet,nfac0+1);
+            qnrm0 = (weightOld0*quae1 + weightOld1*quae2)
+                    /(weightOld0 + weightOld1);
+            qnrm1 = (weightNew0*qunw[0] + weightNew1*qunw[1])
+                    /(weightNew0 + weightNew1);
+          }
+        }
       }
 
     }else{
@@ -472,12 +543,27 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
       msh.tag[ithread]++;
       double qtetsum0 = 0;
+      double qtetweight0 = 0;
       double qtetmax0 = -1;
+      int ntetqual0 = 0;
       // compute quality of original cavity (also tag tets in there for later)
       for (int itet : cav.lctet){
         msh.tet2tag(ithread,itet) = msh.tag[ithread];
         double qua = metqua<MFT,3,3,iquaf>(msh,AsDeg::P1,asdmet,itet,1.0);
-        qtetsum0 += qua;
+        if constexpr(iquaf == QuaFun::StepDistance){
+          if(msh.param->step_distance_cavity_target_average){
+            const double weight =
+                step_distance_element_target_weight<MFT,3,3>(
+                    msh,asdmet,itet);
+            qtetsum0 += step_distance_region_contribution(qua,weight,true);
+            qtetweight0 += weight;
+          }else{
+            qtetsum0 += qua;
+          }
+        }else{
+          qtetsum0 += qua;
+        }
+        ntetqual0++;
         if (qua > qtetmax0) qtetmax0 = qua;
       }
 
@@ -490,8 +576,10 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       const int ipins = cav.ipins;
 
       double qtetsum1 = 0;
+      double qtetweight1 = 0;
       double qtetmax1 = -1;
       int ninvalid = 0;
+      int ntetqual1 = 0;
       for (int itet : cav.lctet){
 
         // loop over tet faces and fetch neighbors
@@ -522,14 +610,52 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
             continue;
           }
           double qua = metqua<MFT,3,3,iquaf>(msh, AsDeg::P1, AsDeg::P1, tmpEntt, 1.0);
-          qtetsum1 += qua;
+          if constexpr(iquaf == QuaFun::StepDistance){
+            if(msh.param->step_distance_cavity_target_average){
+              const double weight =
+                  step_distance_element_target_weight<MFT,3,3>(
+                      msh,AsDeg::P1,tmpEntt);
+              qtetsum1 += step_distance_region_contribution(qua,weight,true);
+              qtetweight1 += weight;
+            }else{
+              qtetsum1 += qua;
+            }
+          }else{
+            qtetsum1 += qua;
+          }
+          ntetqual1++;
           if (qua > qtetmax1) qtetmax1 = qua;
         }
       }
       // revert mesh back to original state
       msh.set_nentt(3,ntet0);
 
-      if (qtetsum1 > qtetsum0) skipswap = true;
+      if(ntetqual1 == 0) skipswap = true;
+      acceptedOldNumerator = qtetsum0;
+      acceptedNewNumerator = qtetsum1;
+      acceptedOldTargetWeight = qtetweight0;
+      acceptedNewTargetWeight = qtetweight1;
+      acceptedOldCount = ntetqual0;
+      acceptedNewCount = ntetqual1;
+      if constexpr(iquaf == QuaFun::StepDistance){
+        if(ntetqual1 > 0){
+          qtetsum0 = step_distance_region_objective(
+              qtetsum0,qtetweight0,
+              msh.param->step_distance_cavity_target_average);
+          qtetsum1 = step_distance_region_objective(
+              qtetsum1,qtetweight1,
+              msh.param->step_distance_cavity_target_average);
+        }
+      }
+      if (!objective_strictly_improves(qtetsum1,qtetsum0)) skipswap = true;
+      if(!skipswap && globalObjective != nullptr
+         && !globalObjective->accepts_replacement(
+              acceptedOldNumerator,acceptedOldCount,
+              acceptedOldTargetWeight,
+              acceptedNewNumerator,acceptedNewCount,
+              acceptedNewTargetWeight)){
+        skipswap = true;
+      }
 
       // std::cout << "tet related qual info: " << std::endl;
       // std::cout << "qtetmax1 = " << qtetmax1 << ", qtetmax0 = " << qtetmax0 << ", qtetsum1 = " << qtetsum1 << ", qtetsum0 = " << qtetsum0 << std::endl;
@@ -575,6 +701,13 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     }
     #endif
     if(info.done && ierro == 0){
+      if(globalObjective != nullptr){
+        globalObjective->replace(
+            acceptedOldNumerator,acceptedOldCount,
+            acceptedOldTargetWeight,
+            acceptedNewNumerator,acceptedNewCount,
+            acceptedNewTargetWeight);
+      }
       CPRINTF1("-- END swapface did {} - {} -> {} - {} \n",iface,
                                                  ifac2,msh.nface-2,msh.nface-1);
       return -1; // Return did op
@@ -598,19 +731,23 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 template int swapface<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical>& msh, \
                                     int iface, swapOptions opt, \
                                     MshCavity &cav, CavWrkArrs &work, \
-                                    double *qumx0, double *qnrm1, int ithread);\
+                                    double *qumx0, double *qnrm1, \
+                                    StepDistanceObjectiveState*, int ithread);\
 template int swapface<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        >& msh, \
                                     int iface, swapOptions opt, \
                                     MshCavity &cav, CavWrkArrs &work, \
-                                    double *qumx0, double *qnrm1, int ithread);\
+                                    double *qumx0, double *qnrm1, \
+                                    StepDistanceObjectiveState*, int ithread);\
 template int swapface<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>& msh, \
                                     int iface, swapOptions opt, \
                                     MshCavity &cav, CavWrkArrs &work, \
-                                    double *qumx0, double *qnrm1,int ithread);\
+                                    double *qumx0, double *qnrm1,\
+                                    StepDistanceObjectiveState*, int ithread);\
 template int swapface<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        >& msh, \
                                     int iface, swapOptions opt, \
                                     MshCavity &cav, CavWrkArrs &work, \
-                                    double *qumx0, double *qnrm1, int ithread);
+                                    double *qumx0, double *qnrm1, \
+                                    StepDistanceObjectiveState*, int ithread);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

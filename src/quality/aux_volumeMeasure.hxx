@@ -6,8 +6,6 @@
 #ifndef __AUX_VOLUMEMEASURE__
 #define __AUX_VOLUMEMEASURE__
 
-#ifdef STEPDISTANCE
-
 #include "../linalg/symidx.hxx"
 #include "../libs/SANS/Surreal/SurrealS.h"
 
@@ -76,6 +74,25 @@ void sym_packed_to_full(const T* met, T* M){
     M[3] = met[1]; M[4] = met[2]; M[5] = met[4];
     M[6] = met[3]; M[7] = met[4]; M[8] = met[5];
   }
+}
+
+// Target-metric volume density relative to the Cartesian background measure:
+//
+//   mu_* = sqrt(det(M^*)).
+//
+// CavityTargetAverage uses this after cancelling the constant geometric
+// Jacobian factor between the elemental numerator and denominator. Keeping
+// this operation separate makes that P1-only cancellation explicit; a future
+// high-order path can instead accumulate the complete, point-dependent
+// target-volume factor theta at each quadrature point.
+template<int gdim, typename T>
+T eval_target_metric_volume_density(const T*__restrict__ met){
+  T M[gdim*gdim];
+  sym_packed_to_full<gdim,T>(met,M);
+
+  const T detM = det_full<gdim,T>(M);
+  METRIS_ENFORCE(get_val(detM) > 0.0);
+  return sqrt(detM);
 }
 
 
@@ -332,7 +349,5 @@ void eval_metric_volume_barrier_fixed_metric_hess_by_surreal(
 } //namespace VolumeMeasureHelpers
 
 } // namespace Metris
-
-#endif // STEPDISTANCE
 
 #endif // __AUX_VOLUMEMEASURE__

@@ -20,7 +20,93 @@
 #include "../io_libmeshb.hxx"
 #include "../quality/low_metqua.hxx"
 
+#include <limits>
+
 namespace Metris{
+
+template<class MFT>
+void accumulate_tet_objective(Mesh<MFT>& msh,
+                              const intAr1& region,
+                              double& numerator,
+                              int& elementCount,
+                              double& targetWeight){
+  #ifdef STEPDISTANCE
+  constexpr QuaFun iquaf = QuaFun::StepDistance;
+  #else
+  constexpr QuaFun iquaf = QuaFun::SizeShape;
+  #endif
+  numerator = 0.;
+  elementCount = 0;
+  targetWeight = 0.;
+  for(const int itet : region){
+    if(isdeadent(itet,msh.tet2poi)) continue;
+    const double quality = metqua<MFT,3,3,iquaf>(
+        msh,AsDeg::P1,AsDeg::P1,itet,1.0);
+    #ifdef STEPDISTANCE
+    if(msh.param->step_distance_cavity_target_average){
+      const double weight = step_distance_element_target_weight<MFT,3,3>(
+          msh,AsDeg::P1,itet);
+      numerator += weight*quality;
+      targetWeight += weight;
+    }else{
+      numerator += quality;
+    }
+    #else
+    numerator += quality;
+    #endif
+    elementCount++;
+  }
+}
+
+template<class MFT, int ideg>
+int attempt_tet_objective_reconnection(
+    Mesh<MFT>& msh,
+    MshCavity& cav,
+    CavOprOpt& opts,
+    CavWrkArrs& work,
+    double oldNumerator,
+    int oldCount,
+    double oldTargetWeight,
+    StepDistanceObjectiveState *globalObjective,
+    double& qnrm1,
+    int ithread){
+  opts.dryrun = true;
+  opts.qmax_nec = std::numeric_limits<double>::max();
+  CavOprInfo probeInfo;
+  int ierro = cavity_operator<MFT,ideg>(
+      msh,cav,opts,work,probeInfo,ithread);
+  qnrm1 = probeInfo.qmax_end;
+
+  bool accepted = probeInfo.objective_element_count_end > 0;
+  if(accepted && globalObjective != nullptr){
+    accepted = globalObjective->accepts_replacement(
+        oldNumerator,oldCount,oldTargetWeight,
+        probeInfo.objective_numerator_end,
+        probeInfo.objective_element_count_end,
+        probeInfo.objective_target_weight_end);
+  }else if(accepted){
+    accepted = objective_strictly_improves(
+            probeInfo.objective_numerator_end,oldNumerator);
+  }
+  if(!accepted) return ierro == CAV_ERR_DRYFAIL1 ? 0 : ierro;
+
+  opts.dryrun = false;
+  CavOprInfo commitInfo;
+  ierro = cavity_operator<MFT,ideg>(
+      msh,cav,opts,work,commitInfo,ithread);
+  opts.dryrun = true;
+  qnrm1 = commitInfo.qmax_end;
+  if(!commitInfo.done) return ierro;
+
+  if(globalObjective != nullptr){
+    globalObjective->replace(
+        oldNumerator,oldCount,oldTargetWeight,
+        commitInfo.objective_numerator_end,
+        commitInfo.objective_element_count_end,
+        commitInfo.objective_target_weight_end);
+  }
+  return -1;
+}
 
 // Return > 0 if error
 //          0 if nothing done
@@ -33,6 +119,7 @@ template<class MFT, int ideg>
 int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
              MshCavity &cav, CavWrkArrs &work,
              double *qnrm0_, double *qnrm1_,
+             StepDistanceObjectiveState *globalObjective,
              int ithrd1, int ithrd2){
   INCVDEPTH(msh.param);
   constexpr int tdim = 3;
@@ -74,19 +161,13 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
 
   CPRINTF1("-- START swaptetra itetr {} quael {} ilazy {}\n", itetr, quael,ilazy);
 
-  if(ilazy){
-    // In case lazy, simply set a quality threshold.
-    opts.dryrun = false;
-    opts.qmax_nec = 1.0e-12; // This is set in the children routines
-  }else{
-    opts.dryrun = true;
-    opts.qmax_suf = quael*0.5; // Dryrun but accept if final quality considerably better.
-  }
+  opts.dryrun = true;
+  opts.qmax_nec = std::numeric_limits<double>::max();
 
 
   for(int ifa = 0; ifa < 4; ifa++){
     int ierro = aux_swaptetface<MFT,ideg>(msh, opt, itetr, ifa, quael, cav, opts, work,
-                                          qnrm0_, qnrm1_, ithrd1);
+                                          qnrm0_, qnrm1_,globalObjective,ithrd1);
 
     CPRINTF1(" - tried face {} ierro {} got qual {} -> {}\n",ifa, ierro, *qnrm0_, *qnrm1_);
     if(ierro < 0){
@@ -100,7 +181,8 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
 
   for(int ied = 0; ied < 6; ied++){
     int ierro = aux_swaptetedge<MFT,ideg>(msh, opt, itetr, ied, quael, cav, opts, work,
-                                          qnrm0_, qnrm1_, ithrd1, ithrd2);
+                                          qnrm0_, qnrm1_,globalObjective,
+                                          ithrd1, ithrd2);
     CPRINTF1(" - tried edge {} ierro {} got qual {} -> {}\n",ied, ierro, *qnrm0_, *qnrm1_);
     if(ierro < 0){
       CPRINTF1(" - Accepted tet {} swap edge {} quality {} -> {}\n",
@@ -117,11 +199,13 @@ int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
 template int swaptetra<MetricFieldAnalytical,n>(Mesh<MetricFieldAnalytical>& msh, \
                                     int itetr, swapOptions opt, \
                                     MshCavity &cav, CavWrkArrs &work, \
-                                    double *qumx0, double *qnrm1,int ithrd1, int ithrd2);\
+                                    double *qumx0, double *qnrm1,\
+                                    StepDistanceObjectiveState*, int ithrd1, int ithrd2);\
 template int swaptetra<MetricFieldFE        ,n>(Mesh<MetricFieldFE        >& msh, \
                                     int itetr, swapOptions opt, \
                                     MshCavity &cav, CavWrkArrs &work, \
-                                    double *qumx0, double *qnrm1,int ithrd1, int ithrd2);
+                                    double *qumx0, double *qnrm1,\
+                                    StepDistanceObjectiveState*, int ithrd1, int ithrd2);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 
@@ -131,6 +215,7 @@ template<class MFT, int ideg>
 int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, double quae1,
                     MshCavity &cav, CavOprOpt &opts, CavWrkArrs &work,
                     double *qnrm0_, double *qnrm1_,
+                    StepDistanceObjectiveState *globalObjective,
                     int ithread){
   GETVDEPTH(msh.param);
   constexpr int tdim = 3;
@@ -195,9 +280,6 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
   }
 
   qnrm0 = MAX(quae1,quae2);
-  opts.qmax_nec = qnrm0*0.99;
-
-
   int ifa2 = -1;
   for(int itmp = 0; itmp < 4; itmp++){
     if(msh.tet2tet(itet2,itmp) != itetr) continue;
@@ -220,15 +302,16 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
   cav.lctet.stack(itetr);
   cav.lctet.stack(itet2);
 
-
-  CavOprInfo info;
-  int ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithread);
-  qnrm1 = info.qmax_end;
-  CPRINTF1("- aux_swaptetface called cavity, ierro = {} info.done = {} qnrm1 = {}\n",
-           ierro,info.done,qnrm1);
-
-  if(info.done) return -1;
-
+  double oldNumerator,oldTargetWeight;
+  int oldCount;
+  accumulate_tet_objective(
+      msh,cav.lctet,oldNumerator,oldCount,oldTargetWeight);
+  const int ierro = attempt_tet_objective_reconnection<MFT,ideg>(
+      msh,cav,opts,work,
+      oldNumerator,oldCount,oldTargetWeight,
+      globalObjective,qnrm1,ithread);
+  CPRINTF1("- aux_swaptetface objective cavity result {} qnrm1 = {}\n",
+           ierro,qnrm1);
   return ierro;
 }
 
@@ -237,12 +320,12 @@ template int aux_swaptetface<MetricFieldAnalytical,n>(Mesh<MetricFieldAnalytical
                         swapOptions opt, int itetr, int ifacl, double quae1,\
                         MshCavity &cav, CavOprOpt &opts, CavWrkArrs &work,\
                         double *qnrm0_, double *qnrm1_,\
-                        int ithread);\
+                        StepDistanceObjectiveState*, int ithread);\
 template int aux_swaptetface<MetricFieldFE,n>(Mesh<MetricFieldFE>& msh, \
                         swapOptions opt, int itetr, int ifacl, double quae1,\
                         MshCavity &cav, CavOprOpt &opts, CavWrkArrs &work,\
                         double *qnrm0_, double *qnrm1_,\
-                        int ithread);
+                        StepDistanceObjectiveState*, int ithread);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 
@@ -257,6 +340,7 @@ template<class MFT, int ideg>
 int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, double quae1,
                     MshCavity &cav, CavOprOpt &opts, CavWrkArrs &work,
                     double *qnrm0_, double *qnrm1_,
+                    StepDistanceObjectiveState *globalObjective,
                     int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
   constexpr int tdim = 3;
@@ -339,7 +423,10 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
     }
     qnrm0 = MAX(qnrm0, quael);
   }
-  opts.qmax_nec = qnrm0*0.99;
+  double oldNumerator,oldTargetWeight;
+  int oldCount;
+  accumulate_tet_objective(
+      msh,cav.lctet,oldNumerator,oldCount,oldTargetWeight);
 
   // A shell to face(s) (= n -> 2(n-2) ) swap can be made in as many ways as
   // there exist triangulations of the n vertices in the shell but not on the edge
@@ -348,7 +435,6 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
   // For the case n = 3 (single face) and n = 4, there are resp. 1/2 unique
   // combinations. Otherwise, loop over all i = 1,n.
 
-  CavOprInfo info;
   int ierro = 0;
   int nshell = cav.lctet.get_n();
   if(nshell == 3){ // 3 -> 2 swap
@@ -361,11 +447,13 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
       cav.ipins = msh.tet2poi(itetr, iver);
       break;
     }
-    ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
-    qnrm1 = info.qmax_end;
-    CPRINTF1("- aux_swaptetedge called cavity, ierro = {} info.done = {} qnrm1 = {}\n",
-             ierro,info.done,qnrm1);
-    if(info.done) return -1;
+    ierro = attempt_tet_objective_reconnection<MFT,ideg>(
+        msh,cav,opts,work,
+        oldNumerator,oldCount,oldTargetWeight,
+        globalObjective,qnrm1,ithrd2);
+    CPRINTF1("- aux_swaptetedge objective cavity result {} qnrm1 = {}\n",
+             ierro,qnrm1);
+    if(ierro < 0) return -1;
   }else if(nshell == 4){ // 4 -> 4 swap
     // Get the edge opposite iedgl.
     int iedgo = -1;
@@ -383,11 +471,13 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
     // Two possible configs, using either point.
     for(int icfg = 0; icfg < 2; icfg++){
       cav.ipins = msh.tet2poi(itetr, lnoed3[iedgo][icfg]);
-      ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
-      CPRINTF1("- aux_swaptetedge called cavity, ierro = {} info.done = {} qnrm1 = {}\n",
-               ierro,info.done,qnrm1);
-      qnrm1 = info.qmax_end;
-      if(info.done) return -1;
+      ierro = attempt_tet_objective_reconnection<MFT,ideg>(
+          msh,cav,opts,work,
+          oldNumerator,oldCount,oldTargetWeight,
+          globalObjective,qnrm1,ithrd2);
+      CPRINTF1("- aux_swaptetedge objective cavity result {} qnrm1 = {}\n",
+               ierro,qnrm1);
+      if(ierro < 0) return -1;
     }
   }else{ // general n -> 2(n-2) swap
     CPRINTF1(" - aux_swaptetedge general {} -> {}\n",nshell, 2*(nshell-2));
@@ -403,11 +493,13 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
         msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1];
         CPRINTF1(" - {} -> {} swap try point {} from elt {}\n",nshell, 2*(nshell-2), ipoin,ielem);
         cav.ipins = ipoin;
-        ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd2);
-        CPRINTF1("- aux_swaptetedge called cavity, ierro = {} info.done = {} qnrm1 = {}\n",
-                 ierro,info.done,qnrm1);
-        qnrm1 = info.qmax_end;
-        if(info.done) return -1;
+        ierro = attempt_tet_objective_reconnection<MFT,ideg>(
+            msh,cav,opts,work,
+            oldNumerator,oldCount,oldTargetWeight,
+            globalObjective,qnrm1,ithrd2);
+        CPRINTF1("- aux_swaptetedge objective cavity result {} qnrm1 = {}\n",
+                 ierro,qnrm1);
+        if(ierro < 0) return -1;
       }
     }
     return 0;
@@ -422,12 +514,12 @@ template int aux_swaptetedge<MetricFieldAnalytical,n>(Mesh<MetricFieldAnalytical
                         swapOptions opt, int itetr, int ifacl, double quae1,\
                         MshCavity &cav, CavOprOpt &opts, CavWrkArrs &work,\
                         double *qnrm0_, double *qnrm1_,\
-                        int ithrd1, int ithrd2);\
+                        StepDistanceObjectiveState*, int ithrd1, int ithrd2);\
 template int aux_swaptetedge<MetricFieldFE,n>(Mesh<MetricFieldFE>& msh, \
                         swapOptions opt, int itetr, int ifacl, double quae1,\
                         MshCavity &cav, CavOprOpt &opts, CavWrkArrs &work,\
                         double *qnrm0_, double *qnrm1_,\
-                        int ithrd1, int ithrd2);
+                        StepDistanceObjectiveState*, int ithrd1, int ithrd2);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 

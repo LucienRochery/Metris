@@ -16,6 +16,7 @@ class MshCavity;
 struct CavWrkArrs;
 struct CavOprOpt;
 struct swapOptions;
+struct StepDistanceObjectiveState;
 
 // Swap edge between two triangles (including surface w/ tets)
 // looking for best swap involving iface (low quality triangle). 
@@ -26,25 +27,31 @@ struct swapOptions;
 template<class MFT, int gdim, int ideg>
 int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
              MshCavity &cav, CavWrkArrs &work, 
-             double *qumx0, double *qumx1, int ithread);
+             double *qumx0, double *qumx1,
+             StepDistanceObjectiveState *globalObjective,
+             int ithread);
 
 
 // low_swaptetra.cxx
 template<class MFT,int ideg>
 int swaptetra(Mesh<MFT>& msh, int itetr, swapOptions opt,
               MshCavity &cav, CavWrkArrs &work, 
-              double *qumx0, double *qumx1, int ithrd1, int ithrd2);
+              double *qumx0, double *qumx1,
+              StepDistanceObjectiveState *globalObjective,
+              int ithrd1, int ithrd2);
 
 template<class MFT,int ideg>
 int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, double quae1,
                     MshCavity &cav, CavOprOpt &opts, CavWrkArrs &work,
                     double *qnrm0_, double *qnrm1_,
+                    StepDistanceObjectiveState *globalObjective,
                     int ithread);
 
 template<class MFT,int ideg>
 int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, double quae1,
                     MshCavity &cav, CavOprOpt &opts, CavWrkArrs &work,
                     double *qnrm0_, double *qnrm1_,
+                    StepDistanceObjectiveState *globalObjective,
                     int ithrd1, int ithrd2);
 
 } // end namespace
