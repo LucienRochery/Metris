@@ -1396,11 +1396,17 @@ void genOnGeometricEntLists(const MeshBase &msh, intAr1& lcorn, intAr1& lpoic,
 // determines the next edge.
 //
 // Stop conditions:
-//   - neighbour is a corner: edg2edg < 0 (dangling -1 or non-manifold < -1);
+//   - no neighbour through this endpoint: edg2edg < 0 (dangling -1 or
+//     non-manifold < -1);
+//   - the endpoint is a corner: it ends this curve, and the edge on the other
+//     side belongs to the next one, with its own ref. Note edg2edg does NOT
+//     break at a corner joining exactly two edges, so this must be tested;
 //   - neighbour already carries `ref`: this is either a closed-loop
 //     wrap-around back to the seed or a meet-point with the other walk
 //     direction or an earlier component traversal;
-//   - neighbour carries a different valid ref: real inconsistency, throw.
+//   - neighbour carries a different valid ref: real inconsistency, throw. Two
+//     differing refs always meet at a corner (iniMeshNeighbours creates one),
+//     so the corner test above catches the legitimate case first.
 //
 // Also doubles as the visited-tracker: edg2ref serves as both the data and
 // the "this edge has been processed" marker, so no auxiliary storage is
@@ -1411,6 +1417,12 @@ static void walkPaintEdgeComponent(MeshBase &msh, int ie_seed,
   int ie_curr = ie_seed;
   int ive_in  = ive_in_start;
   while(true){
+    // Slot ive_in holds the neighbour through vertex 1 - ive_in: that's the
+    // point we're about to walk across.
+    int ipoin = msh.edg2poi(ie_curr, 1 - ive_in);
+    int ibpoi = msh.poi2bpo[ipoin];
+    if(ibpoi >= 0 && msh.bpo2ibi(ibpoi,1) == 0) break;
+
     int ie_next = msh.edg2edg(ie_curr, ive_in);
     if(ie_next < 0) break;
     int existing = msh.edg2ref[ie_next];

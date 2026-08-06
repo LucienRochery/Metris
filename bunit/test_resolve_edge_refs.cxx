@@ -14,6 +14,7 @@
 
 using namespace Metris;
 
+typedef std::array<double,2> Point2;
 typedef std::array<double,3> Point3;
 typedef std::array<int,2>    Edge2;
 typedef std::array<int,3>    Tri3;
@@ -99,11 +100,16 @@ static MeshBack *new_surface_mesh(const std::vector<Point3> &coord,
 }
 
 
-// Walk the edge graph from a seed edge through edg2edg neighbours (stopping at
-// corners, i.e. neighbour value < 0) and return the set of edge indices in
-// the connected component. Matches what resolveEdgeRefs walks internally;
-// duplicating the walk in the test lets us check the post-condition without
-// trusting the SUT to report it.
+static bool is_corner(const MeshBase &msh, int ipoin){
+  int ibpoi = msh.poi2bpo[ipoin];
+  return ibpoi >= 0 && msh.bpo2ibi(ibpoi,1) == 0;
+}
+
+// Walk the edge graph from a seed edge and return the set of edge indices in
+// the connected component. A component is one curve: it stops where there is
+// no neighbour (edg2edg < 0) and at corners, which bound curves. Matches what
+// resolveEdgeRefs walks internally; duplicating the walk in the test lets us
+// check the post-condition without trusting the SUT to report it.
 static std::set<int> connected_component(const MeshBase &msh, int ie0){
   std::set<int> seen;
   std::vector<int> stack;
@@ -113,6 +119,7 @@ static std::set<int> connected_component(const MeshBase &msh, int ie0){
     int ie = stack.back();
     stack.pop_back();
     for(int ive = 0; ive < 2; ive++){
+      if(is_corner(msh, msh.edg2poi(ie, ive))) continue;
       int ien = msh.edg2edg(ie, 1-ive);
       if(ien < 0) continue;
       if(seen.find(ien) != seen.end()) continue;
@@ -125,13 +132,22 @@ static std::set<int> connected_component(const MeshBase &msh, int ie0){
 
 // Verify the post-condition resolveEdgeRefs is supposed to enforce:
 //  1. every active edge has a non-negative ref;
-//  2. within each connected component of the edge graph, all edges share the
-//     same ref.
+//  2. within each curve (connected component up to corners), all edges share
+//     the same ref.
 static void check_post_condition(const MeshBase &msh){
   std::vector<int> visited(msh.nedge, 0);
   for(int ie = 0; ie < msh.nedge; ie++){
     if(isdeadent(ie, msh.edg2poi)) continue;
     BOOST_TEST_REQUIRE(msh.edg2ref[ie] >= 0);
+    // The convention walkPaintEdgeComponent relies on to know which point it
+    // is about to walk across: slot ive holds the neighbour through the
+    // vertex of index 1 - ive.
+    for(int ive = 0; ive < 2; ive++){
+      int ien = msh.edg2edg(ie, ive);
+      if(ien < 0) continue;
+      int ipoin = msh.edg2poi(ie, 1 - ive);
+      BOOST_TEST_REQUIRE((msh.edg2poi(ien,0) == ipoin || msh.edg2poi(ien,1) == ipoin));
+    }
   }
   for(int ie0 = 0; ie0 < msh.nedge; ie0++){
     if(isdeadent(ie0, msh.edg2poi)) continue;
@@ -143,6 +159,90 @@ static void check_post_condition(const MeshBase &msh){
       BOOST_TEST_REQUIRE(msh.edg2ref[ie] == ref0);
     }
   }
+}
+
+
+// Build a 2D MeshBack: triangles are the elements, edges are the boundary.
+static MeshBack *new_2d_mesh(const std::vector<Point2> &coord,
+                             const std::vector<Edge2>  &edges,
+                             const std::vector<int>    &edgref,
+                             const std::vector<Tri3>   &faces,
+                             const std::vector<int>    &facref,
+                             const std::vector<int>    &corners){
+  BOOST_REQUIRE(edges.size() == edgref.size());
+  BOOST_REQUIRE(faces.size() == facref.size());
+
+  MetrisAPI *data = new MetrisAPI(2, 1,
+                                  (int) corners.size(), 0, 0,
+                                  (int) coord.size(), true,
+                                  (int) edges.size(), (int) faces.size(), 0,
+                                  FEBasis::Lagrange, FEBasis::Lagrange, MetSpace::Exp);
+
+  for(int ipoin = 0; ipoin < (int) coord.size(); ipoin++){
+    data->setCoord(ipoin, &coord[ipoin][0]);
+    double met[3] = {1.0,0.0,1.0};
+    data->setMetric(ipoin, met);
+  }
+  for(int iedge = 0; iedge < (int) edges.size(); iedge++){
+    data->setElement(1, iedge, &edges[iedge][0], edgref[iedge]);
+  }
+  for(int iface = 0; iface < (int) faces.size(); iface++){
+    data->setElement(2, iface, &faces[iface][0], facref[iface]);
+  }
+  for(int icorn = 0; icorn < (int) corners.size(); icorn++){
+    data->setCorner(icorn, corners[icorn]);
+  }
+
+  MetrisParameters *param = new MetrisParameters;
+  param->iverb = 0;
+  param->ivdepth = 0;
+
+  MeshBack *msh = new MeshBack;
+  msh->initialize(data, *param);
+  return msh;
+}
+
+
+// The unit square: four sides, four refs, meeting at four corners of degree 2.
+// This is the case the cube misses entirely — there every ridge endpoint is a
+// triple junction, so edg2edg is already negative and the walk cannot cross it.
+// At a degree-2 corner edg2edg links straight through, so the walk has to stop
+// on the corner itself or it wanders into the next side and its different ref.
+// Run with and without the corners declared in the input: undeclared, they get
+// reconstructed from the ref change.
+static void check_square(bool declare_corners){
+  std::vector<Point2> coord = {
+    Point2{0.0,0.0}, Point2{1.0,0.0}, Point2{1.0,1.0}, Point2{0.0,1.0}
+  };
+  std::vector<Edge2> edges  = {Edge2{0,1}, Edge2{1,2}, Edge2{2,3}, Edge2{3,0}};
+  std::vector<int>   edgref = {0, 1, 2, 3};
+  std::vector<Tri3>  faces  = {Tri3{0,1,2}, Tri3{0,2,3}};
+  std::vector<int>   facref = {0, 0};
+  std::vector<int>   corners;
+  if(declare_corners) corners = {0,1,2,3};
+
+  MeshBack *msh = new_2d_mesh(coord, edges, edgref, faces, facref, corners);
+
+  BOOST_REQUIRE_EQUAL(msh->nedge, 4);
+  check_post_condition(*msh);
+
+  // Every side keeps the ref it came in with: no propagation across a corner.
+  for(int ie = 0; ie < msh->nedge; ie++){
+    BOOST_TEST_REQUIRE(msh->edg2ref[ie] == edgref[ie]);
+  }
+  for(int ipoin = 0; ipoin < 4; ipoin++){
+    BOOST_TEST_REQUIRE(is_corner(*msh, ipoin));
+  }
+}
+
+BOOST_AUTO_TEST_CASE(square_four_refs_no_corners)
+{
+  check_square(false);
+}
+
+BOOST_AUTO_TEST_CASE(square_four_refs_with_corners)
+{
+  check_square(true);
 }
 
 
