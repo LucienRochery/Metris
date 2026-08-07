@@ -245,20 +245,23 @@ BOOST_AUTO_TEST_CASE(test_eigen)
       }// for isamp
 
       errseigD[ndim-2][0] += erreigD.avg();
-      errseigL[ndim-2][0] += erreigL.avg();
       errseigE[ndim-2][0] += erreigE.avg();
 
       errseicD[ndim-2][0] += erreicD.avg();
-      errseicL[ndim-2][0] += erreicL.avg();
       errseicE[ndim-2][0] += erreicE.avg();
 
       errseigD[ndim-2][1] += erreigD.max();
-      errseigL[ndim-2][1] += erreigL.max();
       errseigE[ndim-2][1] += erreigE.max();
 
       errseicD[ndim-2][1] += erreicD.max();
-      errseicL[ndim-2][1] += erreicL.max();
       errseicE[ndim-2][1] += erreicE.max();
+
+      #ifdef METRIS_USE_LAPACK
+      errseigL[ndim-2][0] += erreigL.avg();
+      errseicL[ndim-2][0] += erreicL.avg();
+      errseigL[ndim-2][1] += erreigL.max();
+      errseicL[ndim-2][1] += erreicL.max();
+      #endif
 
       printf("   - metric error min = %e avg = %e max = %e (DSYEV)\n",errmetD.min(),errmetD.avg(),errmetD.max());
       printf("   - eigvec error min = %e avg = %e max = %e (DSYEV)\n",erreigD.min(),erreigD.avg(),erreigD.max());
