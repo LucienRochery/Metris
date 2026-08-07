@@ -79,6 +79,9 @@ BOOST_AUTO_TEST_CASE(test_metqua_d2)
                                AsDegPair({AsDeg::Pk, AsDeg::Pk})}){
           std::string asdmsh_str = asdeg.first  == AsDeg::P1 ? "P1" : "Pk";
           std::string asdmet_str = asdeg.second == AsDeg::P1 ? "P1" : "Pk";
+          // Taken as P1, the element only has its tdim + 1 vertices as degrees
+          // of freedom: the high order nodes are not ones to differentiate by.
+          const int nvarnode = asdeg.first == AsDeg::P1 ? getnnode(tdim,1) : nnode;
           double err_min = 1.0e30;
           double err_max = -1.0;
           double err_avg = 0;
@@ -88,8 +91,8 @@ BOOST_AUTO_TEST_CASE(test_metqua_d2)
               double qua = quafun_xi(msh, asdeg.first, asdeg.second, ent2poi[ientt], 
                                      bary[tdim][isamp], NULL);
               double dquael[gdim], hquael[nhess];
-              for(int ivar = 0; ivar < nnode; ivar++){
-                double qua_d = d_quafun_xi(msh, asdeg.first, asdeg.second, ent2poi[ientt], 
+              for(int ivar = 0; ivar < nvarnode; ivar++){
+                double qua_d = d_quafun_xi(msh, asdeg.first, asdeg.second, ent2poi[ientt],
                                            bary[tdim][isamp], NULL,
                                            ivar, msh.getBasis(), DifVar::None, 
                                            dquael, hquael);
@@ -126,6 +129,8 @@ BOOST_AUTO_TEST_CASE(test_metqua_d2)
         for(AsDegPair asdeg : {AsDegPair({AsDeg::P1, AsDeg::P1}),
                                AsDegPair({AsDeg::Pk, AsDeg::P1}),
                                AsDegPair({AsDeg::Pk, AsDeg::Pk})}){
+          // See above: P1 leaves only the vertices as degrees of freedom.
+          const int nvarnode = asdeg.first == AsDeg::P1 ? getnnode(tdim,1) : nnode;
           double ntest = 0;
           for(int ientt = 0; ientt < msh.nentt(tdim); ientt++){
             for(int isamp = 0; isamp < nsamp; isamp++){
@@ -136,7 +141,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d2)
                      ent2poi[ientt], bary[tdim][isamp],
                      NULL, 
                      &tra0, &det0);
-              for(int ivar = 0; ivar < nnode; ivar++){
+              for(int ivar = 0; ivar < nvarnode; ivar++){
                 d_quafun(msh, asdeg.first, asdeg.second,
                          ent2poi[ientt], bary[tdim][isamp],
                          ivar, msh.getBasis(), DifVar::None,
