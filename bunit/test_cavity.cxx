@@ -294,7 +294,7 @@ BOOST_AUTO_TEST_CASE(test_cavity_insert_2D)
 
   MshCavity  cav(0, 10, 0);
   cav.ipins = ipnew;
-  cav.inewp = 0; // brand-new point
+  cav.inewp = 1; // brand-new point
   cav.lcfac.stack(iface_int);
 
   CavOprOpt opts;
@@ -390,7 +390,7 @@ BOOST_AUTO_TEST_CASE(test_cavity_insert_3D)
 
   MshCavity  cav(10, 0, 0);
   cav.ipins = ipnew;
-  cav.inewp = 0;
+  cav.inewp = 1; // brand-new point
   cav.lctet.stack(itet_int);
 
   CavOprOpt opts;
