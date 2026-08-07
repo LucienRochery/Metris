@@ -353,10 +353,10 @@ void MeshBase::initialize(MetrisAPI *data,
     isperiodic_face.fill(false);
     nperiodic_face = 0;
 
+    intAr1 lshell(8);
     for(int iedge = 0; iedge < nedge; iedge++){
       if(isdeadent(iedge,edg2poi)) continue;
       int ifac1 = edg2fac[iedge];
-      int iref1 = fac2ref[ifac1];
 
       int ip1 = edg2poi(iedge,0);
       int ip2 = edg2poi(iedge,1);
@@ -365,14 +365,30 @@ void MeshBase::initialize(MetrisAPI *data,
       METRIS_ASSERT(ied1 >= 0);
 
       int ifac2 = fac2fac(ifac1, ied1);
-      if(ifac2 < 0) continue;
+      if(ifac2 == -1) continue; // Ridge with a single triangle: open boundary.
 
-      int iref2 = fac2ref[ifac2];
-      if(iref1 != iref2) continue;
+      // Triangles around the ridge. A manifold ridge has the two fac2fac gives
+      // directly; a non-manifold one stores -(next + 2) there and cycles, so a
+      // negative entry is a neighbour rather than an absent one.
+      lshell.set_n(0);
+      lshell.stack(ifac1);
+      if(ifac2 >= 0){
+        lshell.stack(ifac2);
+      }else{
+        int ifacn = ifac1, iedn = ied1;
+        while(getnextfacnm(*this, ifac1, ip1, ip2, &ifacn, &iedn)) lshell.stack(ifacn);
+      }
 
-      // Same ref triangles with sandwiched edge -> periodic ref.
-      if(!isperiodic_face[iref1]) CPRINTF1(" # face ref {} is periodic along edge ref {}\n", iref1, edg2ref[iedge]);
-      isperiodic_face[iref1] = true;
+      // A ref carried by two of them sits on both sides of the ridge, so its
+      // points get two normals. lshell holds a handful of entries at most.
+      for(int ii = 0; ii < lshell.get_n(); ii++){
+        for(int jj = ii + 1; jj < lshell.get_n(); jj++){
+          int irefn = fac2ref[lshell[ii]];
+          if(fac2ref[lshell[jj]] != irefn) continue;
+          if(!isperiodic_face[irefn]) CPRINTF1(" # face ref {} is periodic along edge ref {}\n", irefn, edg2ref[iedge]);
+          isperiodic_face[irefn] = true;
+        }
+      }
     }
 
     for(bool isper : isperiodic_face) nperiodic_face += isper;
