@@ -277,10 +277,10 @@ namespace Constants{
     #endif
   );
 
-  static SANS::DLA::MatrixS<4,9,double> r8MSinvtJ_0(r8invtJ_0[0],36);
+  static Metris::DLA::MatrixS<4,9,double> r8MSinvtJ_0(r8invtJ_0[0],36);
   #ifdef USE_MULTIPRECISION
-    static SANS::DLA::MatrixS<4,9,float4> r16MSinvtJ_0(r16invtJ_0[0],36);
-    static SANS::DLA::MatrixS<4,9,float8> r32MSinvtJ_0(r32invtJ_0[0],36);
+    static Metris::DLA::MatrixS<4,9,float4> r16MSinvtJ_0(r16invtJ_0[0],36);
+    static Metris::DLA::MatrixS<4,9,float8> r32MSinvtJ_0(r32invtJ_0[0],36);
   #endif
 
   static auto invtJ_0_MS = 

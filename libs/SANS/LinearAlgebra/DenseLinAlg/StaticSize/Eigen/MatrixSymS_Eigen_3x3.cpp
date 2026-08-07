@@ -17,8 +17,10 @@
 #include <cmath> // sqrt
 #include <limits>
 
-namespace SANS
+namespace Metris
 {
+using SANS::SurrealS;
+
 namespace DLA
 {
 

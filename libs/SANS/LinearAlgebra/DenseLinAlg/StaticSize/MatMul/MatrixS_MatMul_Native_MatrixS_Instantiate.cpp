@@ -9,7 +9,7 @@
 #include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
 #include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
-namespace SANS
+namespace Metris
 {
 namespace DLA
 {
@@ -195,4 +195,4 @@ MATRIXS_MATMUL_NATIVE( 3,3, 3,1, MatrixS88, VectorS8, Real, VectorS8 );
 MATRIXS_MATMUL_NATIVE( 1,2, 2,1, MatrixS88, MatrixS88, Real, MatrixS88 );
 
 } //namespace DLA
-} //namespace SANS
+} //namespace Metris

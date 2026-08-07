@@ -22,9 +22,9 @@ template <typename T, int szfld, int tdim, int ideg,  int nvar>
 void eval_d_SurrealS0(const T& __restrict__  rfld,   
                       FEBasis ibasis, DifVar idif1, DifVar idif2, 
                       const double * __restrict__  bary, 
-                      SANS::DLA::VectorS<     szfld,SANS::SurrealS<nvar,double>> *eval, 
-                      SANS::DLA::MatrixS<tdim,szfld,SANS::SurrealS<nvar,double>> *jmat, 
-                      SANS::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat){
+                      Metris::DLA::VectorS<     szfld,SANS::SurrealS<nvar,double>> *eval,
+                      Metris::DLA::MatrixS<tdim,szfld,SANS::SurrealS<nvar,double>> *jmat,
+                      Metris::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat){
   if constexpr (ideg == 1){
     
     for(int icmp = 0; icmp < szfld; icmp++){
@@ -73,9 +73,9 @@ template <int szfld, int tdim, int ideg,  int nvar>
 void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,   
                              FEBasis ibasis, DifVar idif1, DifVar idif2, 
                              const double * __restrict__  bary, 
-                             SANS::DLA::VectorS<     szfld,SANS::SurrealS<nvar,double>> *eval, 
-                             SANS::DLA::MatrixS<tdim,szfld,SANS::SurrealS<nvar,double>> *jmat, 
-                             SANS::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat){
+                             Metris::DLA::VectorS<     szfld,SANS::SurrealS<nvar,double>> *eval,
+                             Metris::DLA::MatrixS<tdim,szfld,SANS::SurrealS<nvar,double>> *jmat,
+                             Metris::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat){
   //printf("Debug surreal0 bary = {} {} {} {} field:\n",bary[0]
   //  ,bary[1],bary[2],bary[3]);
   //std::cout<<"0: "<<rfld[boost::hana::int_c<0>][0]<<" "<<rfld[boost::hana::int_c<0>][1]<<" "
@@ -242,10 +242,10 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
 //  SANS::SurrealS<nvar,double> seval[szfld];
   constexpr int nnsym = (tdim*(tdim+1))/2;
 
-  SANS::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>> seval;
-  SANS::DLA::MatrixS<tdim ,szfld,SANS::SurrealS<nvar,double>> sjmat;
+  Metris::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>> seval;
+  Metris::DLA::MatrixS<tdim ,szfld,SANS::SurrealS<nvar,double>> sjmat;
 //  SANS::SurrealS<nvar,double> sjmat[tdim3*szfld];
-  SANS::DLA::MatrixS<nnsym,szfld,SANS::SurrealS<nvar,double>> shmat;
+  Metris::DLA::MatrixS<nnsym,szfld,SANS::SurrealS<nvar,double>> shmat;
 //  SANS::SurrealS<nvar,double> shmat[sdim3*szfld];
 
 
@@ -301,10 +301,10 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
                      FEBasis ibasis, DifVar idif1, DifVar idif2, 
                      const double * __restrict__ bary,
                      int ivar_, 
-                     SANS::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>>* eval,
-                     SANS::DLA::MatrixS<tdim ,szfld,SANS::SurrealS<nvar,double>>* jmat,
-                     SANS::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>>* hmat,
-                     const SANS::DLA::MatrixS<szfld,nvar,double>* dfld = NULL){
+                     Metris::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>>* eval,
+                     Metris::DLA::MatrixS<tdim ,szfld,SANS::SurrealS<nvar,double>>* jmat,
+                     Metris::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>>* hmat,
+                     const Metris::DLA::MatrixS<szfld,nvar,double>* dfld = NULL){
 
 
   // -- For clarity. 
@@ -444,10 +444,10 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
 //  SANS::SurrealS<nvar,double> seval[szfld];
   constexpr int nnsym = (tdim*(tdim+1))/2;
 
-  SANS::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>> seval;
-  SANS::DLA::MatrixS<tdim ,szfld,SANS::SurrealS<nvar,double>> sjmat;
+  Metris::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>> seval;
+  Metris::DLA::MatrixS<tdim ,szfld,SANS::SurrealS<nvar,double>> sjmat;
 //  SANS::SurrealS<nvar,double> sjmat[tdim3*szfld];
-  SANS::DLA::MatrixS<nnsym,szfld,SANS::SurrealS<nvar,double>> shmat;
+  Metris::DLA::MatrixS<nnsym,szfld,SANS::SurrealS<nvar,double>> shmat;
 //  SANS::SurrealS<nvar,double> shmat[sdim3*szfld];
 
 
@@ -586,9 +586,9 @@ void eval_d_SurrealS_simple(const dblAr2 & __restrict__ rfld,
 
   constexpr int nnsym = (tdim*(tdim+1))/2;
 
-  SANS::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>> seval;
-  SANS::DLA::MatrixS<tdim ,szfld,SANS::SurrealS<nvar,double>> sjmat;
-  SANS::DLA::MatrixS<nnsym,szfld,SANS::SurrealS<nvar,double>> shmat;
+  Metris::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>> seval;
+  Metris::DLA::MatrixS<tdim ,szfld,SANS::SurrealS<nvar,double>> sjmat;
+  Metris::DLA::MatrixS<nnsym,szfld,SANS::SurrealS<nvar,double>> shmat;
 
   eval_d_SurrealS0_simple<szfld,tdim,ideg>
                            (rfllS,ibasis,idif1,idif2,bary,&seval,&sjmat,&shmat);

@@ -15,7 +15,7 @@
 
 #include <boost/mpl/assert.hpp>
 
-namespace SANS
+namespace Metris
 {
 namespace DLA
 {

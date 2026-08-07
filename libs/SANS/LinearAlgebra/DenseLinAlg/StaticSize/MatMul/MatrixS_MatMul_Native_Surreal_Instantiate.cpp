@@ -11,8 +11,10 @@
 
 //#include "metris_constants.hxx"
 
-namespace SANS
+namespace Metris
 {
+using SANS::SurrealS;
+
 namespace DLA
 {
 //-----------------------------------------------------------------------------
@@ -558,4 +560,4 @@ MATRIXS_MATMUL_NATIVE( 4,4,4,4, SurrealS<50>,SurrealS<50>,Real,SurrealS<50>);
 #endif
 
 } //namespace DLA
-} //namespace SANS
+} //namespace Metris

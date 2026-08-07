@@ -3,8 +3,8 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef MATRIXS_CLASS_H
-#define MATRIXS_CLASS_H
+#ifndef METRIS_DLA_MATRIXS_CLASS_H
+#define METRIS_DLA_MATRIXS_CLASS_H
 
 // Matrix class with compile-time size
 
@@ -32,14 +32,16 @@
 #include "../../../tools/SANSException.h"
 #include "../../../tools/SANSTraitsInitListAssign.h"
 
-namespace SANS
-{
 #ifdef __INTEL_COMPILER
+namespace Metris
+{
 namespace DLA
 {
 
 //Forward declaration
 template< int M,  int N, class T > class MatrixS;
+
+}
 
 }
 
@@ -49,14 +51,19 @@ template< int M,  int N, class T > class MatrixS;
 //
 // This is completely unnessary if the intel compiler could use templated initializer_list functions....
 //
+namespace SANS
+{
 template<int M, int N, class T>
-struct initializer_list_assign< DLA::MatrixS< M, N, T > >
+struct initializer_list_assign< Metris::DLA::MatrixS< M, N, T > >
 {
   template<class U>
-  initializer_list_assign(DLA::MatrixS< M, N, T >& val, const std::initializer_list< std::initializer_list<U> >& s) { val = s; }
+  initializer_list_assign(Metris::DLA::MatrixS< M, N, T >& val, const std::initializer_list< std::initializer_list<U> >& s) { val = s; }
 };
+}
 #endif
 
+namespace Metris
+{
 namespace DLA
 {
 
@@ -822,6 +829,6 @@ operator>>( std::istream &in, MatrixS<M,N,T>& m )
 }
 
 } //namespace DLA
-} //namespace SANS
+} //namespace Metris
 
-#endif // MatrixS_H
+#endif // METRIS_DLA_MATRIXS_CLASS_H

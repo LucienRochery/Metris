@@ -18,36 +18,6 @@ template<class T>
 struct Scalar { typedef T type; };
 
 
-//template<class T>
-//struct Scalar< DLA::MatrixD<T> >
-//{
-//  typedef typename Scalar<T>::type type;
-//};
-//
-//template<class T>
-//struct Scalar< DLA::VectorD<T> >
-//{
-//  typedef typename Scalar<T>::type type;
-//};
-
-template<int M, int N, class T>
-struct Scalar< DLA::MatrixS<M,N,T> >
-{
-  typedef typename Scalar<T>::type type;
-};
-
-template<int M, class T>
-struct Scalar< DLA::MatrixSymS<M,T> >
-{
-  typedef typename Scalar<T>::type type;
-};
-
-template<int M, class T>
-struct Scalar< DLA::VectorS<M,T> >
-{
-  typedef typename Scalar<T>::type type;
-};
-
 // C++ 20 required
 //template<typename T>
 //concept real_type = std::is_floating_point_v<T> 

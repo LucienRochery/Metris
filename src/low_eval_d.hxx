@@ -148,9 +148,9 @@ void eval_d_direct(const dblAr2 & __restrict__ rfld,
 //void eval_d_SurrealS0(const       T& __restrict__  rfld,  
 //                      FEBasis ibasis, DifVar idif1, DifVar idif2, 
 //                      const double * __restrict__  bary, 
-//                      SANS::DLA::VectorS<                  szfld,SANS::SurrealS<nvar,double>> *eval, 
-//                      SANS::DLA::MatrixS< tdim,            szfld,SANS::SurrealS<nvar,double>> *jmat, 
-//                      SANS::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat);
+//                      Metris::DLA::VectorS<                  szfld,SANS::SurrealS<nvar,double>> *eval,
+//                      Metris::DLA::MatrixS< tdim,            szfld,SANS::SurrealS<nvar,double>> *jmat,
+//                      Metris::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat);
 
 
 

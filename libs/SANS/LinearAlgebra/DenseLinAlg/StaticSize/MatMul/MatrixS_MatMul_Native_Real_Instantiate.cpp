@@ -8,7 +8,7 @@
 
 #include <boost/preprocessor/repetition/repeat_from_to.hpp>
 
-namespace SANS
+namespace Metris
 {
 namespace DLA
 {
@@ -160,4 +160,4 @@ MATRIXS_MATMUL_NATIVE( n,n, n,n, Real, Real, Real, Real );
 BOOST_PP_REPEAT_FROM_TO(1, 16, DECL, )
 
 } //namespace DLA
-} //namespace SANS
+} //namespace Metris

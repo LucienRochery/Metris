@@ -15,7 +15,7 @@
 #include "../Mesh/MeshFwd.hxx"
 #include "SANS/Surreal/SurrealS_fwd.h"
 
-namespace SANS::DLA{
+namespace Metris::DLA{
   template<int n, int m, typename T> class MatrixS;
 }
 
@@ -66,7 +66,7 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                               const double*__restrict__ met_,
                               SANS::SurrealS<nvar, double>&__restrict__ tra, 
                               SANS::SurrealS<nvar, double>&__restrict__ det,
-                              const SANS::DLA::MatrixS<gdim,nvar,double> *dpoint);
+                              const Metris::DLA::MatrixS<gdim,nvar,double> *dpoint);
 
 
 } // End namespace

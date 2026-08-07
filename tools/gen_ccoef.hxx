@@ -13,7 +13,7 @@
 #include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS.h"
 
 void simpfrac(int x, int y, int *xs, int *ys);
-void insert_map2(std::map<std::pair<int, int>, std::vector<SANS::DLA::VectorS<4, int>>> &d_ccoef_map,
+void insert_map2(std::map<std::pair<int, int>, std::vector<Metris::DLA::VectorS<4, int>>> &d_ccoef_map,
             std::pair<int,int> &key, int up, int lo, int irnk1, int irnk2);
 
 void gen_ccoef();

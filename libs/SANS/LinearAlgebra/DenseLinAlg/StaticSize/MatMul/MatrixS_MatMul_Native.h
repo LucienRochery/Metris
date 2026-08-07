@@ -3,8 +3,8 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef MATRIXS_MUL_NATIVE_H
-#define MATRIXS_MUL_NATIVE_H
+#ifndef METRIS_DLA_MATRIXS_MATMUL_NATIVE_H
+#define METRIS_DLA_MATRIXS_MATMUL_NATIVE_H
 
 #include "tools/SANSnumerics.h"     // Real
 #include "tools/minmax.h"
@@ -12,7 +12,7 @@
 #include "tools/CacheLineSize.h"
 #include "LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
 
-namespace SANS
+namespace Metris
 {
 namespace DLA
 {
@@ -39,6 +39,6 @@ public:
 };
 
 } //namespace DLA
-} //namespace SANS
+} //namespace Metris
 
-#endif //MATRIXS_MUL_NATIVE_H
+#endif // METRIS_DLA_MATRIXS_MATMUL_NATIVE_H

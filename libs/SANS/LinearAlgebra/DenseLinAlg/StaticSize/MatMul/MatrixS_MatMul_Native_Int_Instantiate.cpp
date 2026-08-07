@@ -6,7 +6,7 @@
 #define MATRIXS_MATMUL_NATIVE_INSTANTIATE
 #include "MatrixS_MatMul_Native_impl.h"
 
-namespace SANS
+namespace Metris
 {
 namespace DLA
 {
@@ -26,4 +26,4 @@ MATRIXS_MATMUL_NATIVE( 3,2, 2,2, int, int, Real, int );
 MATRIXS_MATMUL_NATIVE( 3,2, 2,3, int, int, Real, int );
 
 } //namespace DLA
-} //namespace SANS
+} //namespace Metris

@@ -3,8 +3,8 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef MATRIXS_ADD_H
-#define MATRIXS_ADD_H
+#ifndef METRIS_DLA_MATRIXS_ADD_H
+#define METRIS_DLA_MATRIXS_ADD_H
 
 // Use boost static assert to show the integers in the compiler error messages.
 // C++11 static_assert lacks this ability
@@ -13,7 +13,7 @@
 #include "MatrixS_Type.h"
 #include "../tools/PromoteSurreal.h"
 
-namespace SANS
+namespace Metris
 {
 namespace DLA
 {
@@ -29,7 +29,7 @@ class OpAddS : public MatrixSType< OpAddS<ExprL, ExprR, useRF, MatrixFull>, useR
 public:
   typedef typename ExprL::Ttype TL;
   typedef typename ExprR::Ttype TR;
-  typedef typename promote_Surreal<TL,TR>::type Ttype;
+  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
   BOOST_MPL_ASSERT_RELATION( ExprL::M, ==, ExprR::M );
   BOOST_MPL_ASSERT_RELATION( ExprL::N, ==, ExprR::N );
   static const int M = ExprL::M;
@@ -84,7 +84,7 @@ class OpSubS : public MatrixSType< OpSubS<ExprL, ExprR, useRF, MatrixFull>, useR
 public:
   typedef typename ExprL::Ttype TL;
   typedef typename ExprR::Ttype TR;
-  typedef typename promote_Surreal<TL,TR>::type Ttype;
+  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
   BOOST_MPL_ASSERT_RELATION( ExprL::M, ==, ExprR::M );
   BOOST_MPL_ASSERT_RELATION( ExprL::N, ==, ExprR::N );
   static const int M = ExprL::M;
@@ -151,11 +151,11 @@ operator-(const MatrixSType<ExprL, useRFL, MatrixFullL>& L, const MatrixSType<Ex
 }
 
 } //namespace DLA
-} //namespace SANS
+} //namespace Metris
 
 
 /* This is dissabled until we decide that it's a good idea to add/subtract scalar quantities with a matrix
-namespace SANS
+namespace Metris
 {
 namespace DLA
 {
@@ -227,4 +227,4 @@ operator-(const Real& s, const MatrixSType<Expr>& e)
 }
 */
 
-#endif //MATRIXS_ADD_H
+#endif // METRIS_DLA_MATRIXS_ADD_H

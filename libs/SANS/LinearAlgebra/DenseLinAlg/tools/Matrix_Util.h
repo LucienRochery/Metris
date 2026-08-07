@@ -3,8 +3,8 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef MATRIXD_UTIL_H
-#define MATRIXD_UTIL_H
+#ifndef METRIS_DLA_MATRIX_UTIL_H
+#define METRIS_DLA_MATRIX_UTIL_H
 
 #if defined( DLA_BLAS_ATLAS ) || \
     defined(DLA_BLAS_GOTO) || \
@@ -23,7 +23,7 @@
 
 //Matrix utility functions that take advantage of BLAS routines if they are available
 
-namespace SANS
+namespace Metris
 {
 namespace DLA
 {
@@ -141,6 +141,6 @@ struct MatrixUtil<double, double> : public MatrixUtil_BLAS<double> {};
 #endif
 
 } //namespace DLA
-} //namespace SANS
+} //namespace Metris
 
-#endif //MATRIXD_UTIL_H
+#endif // METRIS_DLA_MATRIX_UTIL_H
