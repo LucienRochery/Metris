@@ -114,6 +114,11 @@ struct MetrisOptions{
                     "Pointwise StepDistance exponent p (> 0).")
       ("step-distance-regularization", po::value<double>(),
                     "Smooth StepDistance norm regularization epsilon (> 0).")
+      ("step-distance-shape-volume",
+                    "Use the volume-stiffened shape/volume SPD distance. "
+                    "Requires step-distance-p > 1/2. "
+                    "This path uses the frozen geometric volume factor and "
+                    "does not use the collapse barrier.")
       ("step-distance-cavity-target-average",
                     "Use a cavity-level StepDistance average with the combined "
                     "mesh-metric and target-metric volume density. This path "

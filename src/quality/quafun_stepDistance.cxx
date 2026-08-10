@@ -23,6 +23,60 @@
 
 namespace Metris{
 
+namespace{
+
+// ShapeVolume is deliberately singular as det(A) -> 0.  Do not pass a
+// numerically singular trial element to the spectral value/derivative code:
+// cavity operations must see a large, finite quality and reject the trial in
+// their normal rollback path.
+constexpr double shape_volume_minimum_determinant = 1.0e-12;
+constexpr double shape_volume_minimum_scaled_determinant = 1.0e-12;
+
+template<typename T>
+double step_distance_primal_value(const T& value){
+  return static_cast<double>(value);
+}
+
+template<int nvar>
+double step_distance_primal_value(
+    const SANS::SurrealS<nvar,double>& value){
+  return value.value();
+}
+
+template<int tdim, typename T>
+bool shape_volume_matrix_is_numerically_admissible(
+    const T*__restrict__ A){
+  long double matrix[tdim*tdim];
+  for(int i = 0; i < tdim*tdim; i++){
+    matrix[i] = step_distance_primal_value(A[i]);
+    if(!std::isfinite(matrix[i])) return false;
+  }
+
+  long double trace = 0.;
+  for(int i = 0; i < tdim; i++) trace += matrix[i*tdim+i];
+  if(!(trace > 0.) || !std::isfinite(trace)) return false;
+
+  long double determinant;
+  if constexpr(tdim == 2){
+    determinant = matrix[0]*matrix[3] - matrix[1]*matrix[2];
+  }else{
+    determinant =
+          matrix[0]*(matrix[4]*matrix[8] - matrix[5]*matrix[7])
+        - matrix[1]*(matrix[3]*matrix[8] - matrix[5]*matrix[6])
+        + matrix[2]*(matrix[3]*matrix[7] - matrix[4]*matrix[6]);
+  }
+  if(!(determinant >= shape_volume_minimum_determinant)
+     || !std::isfinite(determinant)) return false;
+
+  const long double mean_eigenvalue = trace/tdim;
+  const long double scaled_determinant =
+      determinant/std::pow(mean_eigenvalue,tdim);
+  return std::isfinite(scaled_determinant)
+      && scaled_determinant >= shape_volume_minimum_scaled_determinant;
+}
+
+} // anonymous namespace
+
 bool objective_strictly_improves(double value_new,
                                  double value_old,
                                  double relative_improvement){
@@ -301,14 +355,59 @@ ftype quafun_stepDistance(Mesh<MFT> &msh,
     Ap[5] = A[8];
   }
 
+  if(msh.param->step_distance_shape_volume
+     && !shape_volume_matrix_is_numerically_admissible<tdim>(A)){
+    return ftype(step_distance_shape_volume_rejection_quality);
+  }
+
   ftype eigval[tdim];
   ftype eigvec[tdim*tdim];
 
   geteigsym<tdim,ftype>(Ap, eigval, eigvec);
 
   // ------------------------------------------------------------
-  // phi = ||log(A)||_F^p. A small smooth norm regularization is used so
-  // p < 2 remains differentiable at the ideal state A = I.
+  // Step Distance Shape Volume:
+  //
+  //   Ahat = A / det(A)^(1/tdim)
+  //   v(A) = det(A) - 1/det(A)
+  //   d^2  = ||log(Ahat)||_F^2 + v(A)^2/(4*tdim),
+  //   phi  = (d^2 + eps^2)^(p/2) - eps^p, p > 1/2.
+  //
+  // This is the squared distance associated with the injective Euclidean
+  // embedding A -> (log(Ahat),v(A)/(2*sqrt(tdim))).  It agrees to second
+  // order with ||log(A)||_F^2 at A = I and diverges algebraically when A
+  // approaches the SPD boundary.
+  // ------------------------------------------------------------
+  if(msh.param->step_distance_shape_volume){
+    ftype detA = ftype(1);
+    ftype mean_log = ftype(0);
+    ftype loglam[tdim];
+
+    for(int i = 0; i < tdim; i++){
+      METRIS_ENFORCE(eigval[i] > ftype(0));
+      detA *= eigval[i];
+      loglam[i] = log(eigval[i]);
+      mean_log += loglam[i]/ftype(tdim);
+    }
+
+    ftype distance2 = ftype(0);
+    for(int i = 0; i < tdim; i++){
+      const ftype centered_log = loglam[i] - mean_log;
+      distance2 += centered_log*centered_log;
+    }
+
+    const ftype volume_coordinate = detA - ftype(1)/detA;
+    distance2 +=
+        volume_coordinate*volume_coordinate/ftype(4*tdim);
+    return step_distance_power_from_squared(
+        distance2,
+        msh.param->step_distance_p,
+        msh.param->step_distance_regularization);
+  }
+
+  // ------------------------------------------------------------
+  // Original StepDistance: phi = ||log(A)||_F^p. A small smooth norm
+  // regularization is used so p < 2 remains differentiable at A = I.
   // ------------------------------------------------------------
   ftype distance2 = ftype(0);
 
@@ -520,6 +619,121 @@ void eval_phi_grad_impl(const T* Jreg_T,
   }
 }
 
+template<int gdim, int tdim, typename T>
+void eval_shape_volume_phi_grad_impl(const T* Jreg_T,
+                                     const T* met,
+                                     const T* gradN,
+                                     double power,
+                                     double regularization,
+                                     T* phi,
+                                     T* dphi){
+
+  constexpr int nnmet_tdim = (tdim*(tdim+1))/2;
+
+  // A = J^T M J = Jreg_T M Jreg_T^T.
+  T A[tdim*tdim];
+  for(int i = 0; i < tdim; i++){
+    for(int j = 0; j < tdim; j++){
+      A[i*tdim+j] = T(0);
+      for(int a = 0; a < gdim; a++){
+        for(int b = 0; b < gdim; b++){
+          const int imet = symidx_met<gdim,T>(a,b);
+          A[i*tdim+j] +=
+              Jreg_T[i*gdim+a]*met[imet]*Jreg_T[j*gdim+b];
+        }
+      }
+    }
+  }
+
+  if(!shape_volume_matrix_is_numerically_admissible<tdim>(A)){
+    *phi = T(step_distance_shape_volume_rejection_quality);
+    if(dphi != NULL){
+      for(int a = 0; a < gdim; a++) dphi[a] = T(0);
+    }
+    return;
+  }
+
+  T Ap[nnmet_tdim];
+  sym_full_to_packed_tdim<tdim,T>(A,Ap);
+
+  T eigval[tdim];
+  T eigvec[tdim*tdim];
+  geteigsym<tdim,T>(Ap,eigval,eigvec);
+
+  T detA = T(1);
+  T mean_log = T(0);
+  T loglam[tdim];
+  for(int i = 0; i < tdim; i++){
+    METRIS_ENFORCE(eigval[i] > T(0));
+    detA *= eigval[i];
+    loglam[i] = log(eigval[i]);
+    mean_log += loglam[i]/T(tdim);
+  }
+
+  T distance2 = T(0);
+  T centered_log[tdim];
+  for(int i = 0; i < tdim; i++){
+    centered_log[i] = loglam[i] - mean_log;
+    distance2 += centered_log[i]*centered_log[i];
+  }
+
+  const T invdetA = T(1)/detA;
+  const T volume_coordinate = detA - invdetA;
+  distance2 += volume_coordinate*volume_coordinate/T(4*tdim);
+  *phi = step_distance_power_from_squared(
+      distance2,power,regularization);
+
+  if(dphi == NULL) return;
+
+  // For the unpowered squared distance s(A) above,
+  //
+  //   d s / d A = 2 A^{-1} log(Ahat)
+  //               + (det(A)^2-det(A)^(-2))/(2*tdim) A^{-1}.
+  //
+  // The power_scale below is d phi/ds.
+  //
+  // If one P1 vertex moves, dJ = dx gradN^T and therefore
+  // grad_x phi = 2 M J (d phi/dA) gradN.
+  const T volume_scale =
+      (detA*detA - invdetA*invdetA)/T(2*tdim);
+  const T eps2 = T(regularization*regularization);
+  const T power_scale = T(power/2.0)
+      *pow(distance2 + eps2,power/2.0 - 1.0);
+  T gradA_eig[tdim];
+  for(int i = 0; i < tdim; i++){
+    gradA_eig[i] = power_scale
+        *(T(2)*centered_log[i] + volume_scale)/eigval[i];
+  }
+
+  T gradA[tdim*tdim];
+  spectral_matrix_from_eigs<tdim,T>(eigval,eigvec,gradA_eig,gradA);
+
+  T v[tdim];
+  for(int i = 0; i < tdim; i++){
+    v[i] = T(0);
+    for(int j = 0; j < tdim; j++){
+      v[i] += gradA[i*tdim+j]*gradN[j];
+    }
+  }
+
+  T Jv[gdim];
+  for(int a = 0; a < gdim; a++){
+    Jv[a] = T(0);
+    for(int i = 0; i < tdim; i++){
+      Jv[a] += Jreg_T[i*gdim+a]*v[i];
+    }
+  }
+
+  for(int a = 0; a < gdim; a++){
+    dphi[a] = T(0);
+    for(int b = 0; b < gdim; b++){
+      const int imet = symidx_met<gdim,T>(a,b);
+      dphi[a] += met[imet]*Jv[b];
+    }
+    dphi[a] *= T(2);
+  }
+}
+
 /*
 NOTE: This does not yet use the metric field derivatives.
 That is something we might not want, it'll be costlier as we can no longer
@@ -620,11 +834,19 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
     for(int i = 0; i < nnmet; i++)     met_f[i]    = (ftype)met[i];
 
     ftype phi;
-    eval_phi_grad_impl<gdim,tdim,ftype>(
-        Jreg_T_f, met_f, NULL,
-        msh.param->step_distance_p,
-        msh.param->step_distance_regularization,
-        &phi, NULL);
+    if(msh.param->step_distance_shape_volume){
+      eval_shape_volume_phi_grad_impl<gdim,tdim,ftype>(
+          Jreg_T_f,met_f,NULL,
+          msh.param->step_distance_p,
+          msh.param->step_distance_regularization,
+          &phi,NULL);
+    }else{
+      eval_phi_grad_impl<gdim,tdim,ftype>(
+          Jreg_T_f, met_f, NULL,
+          msh.param->step_distance_p,
+          msh.param->step_distance_regularization,
+          &phi, NULL);
+    }
 
     return phi;
   }
@@ -649,11 +871,19 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
   ftype phi;
   ftype dphi[gdim];
 
-  eval_phi_grad_impl<gdim,tdim,ftype>(
-      Jreg_T_f, met_f, gradN_f,
-      msh.param->step_distance_p,
-      msh.param->step_distance_regularization,
-      &phi, dphi);
+  if(msh.param->step_distance_shape_volume){
+    eval_shape_volume_phi_grad_impl<gdim,tdim,ftype>(
+        Jreg_T_f,met_f,gradN_f,
+        msh.param->step_distance_p,
+        msh.param->step_distance_regularization,
+        &phi,dphi);
+  }else{
+    eval_phi_grad_impl<gdim,tdim,ftype>(
+        Jreg_T_f, met_f, gradN_f,
+        msh.param->step_distance_p,
+        msh.param->step_distance_regularization,
+        &phi, dphi);
+  }
 
   for(int i = 0; i < gdim; i++){
     dquael[i] = dphi[i];
@@ -702,11 +932,19 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
     S phiS;
     S dphiS[gdim];
 
-    eval_phi_grad_impl<gdim,tdim,S>(
-        Jreg_TS, metS, gradNS,
-        msh.param->step_distance_p,
-        msh.param->step_distance_regularization,
-        &phiS, dphiS);
+    if(msh.param->step_distance_shape_volume){
+      eval_shape_volume_phi_grad_impl<gdim,tdim,S>(
+          Jreg_TS,metS,gradNS,
+          msh.param->step_distance_p,
+          msh.param->step_distance_regularization,
+          &phiS,dphiS);
+    }else{
+      eval_phi_grad_impl<gdim,tdim,S>(
+          Jreg_TS, metS, gradNS,
+          msh.param->step_distance_p,
+          msh.param->step_distance_regularization,
+          &phiS, dphiS);
+    }
 
     for(int i = 0; i < gdim; i++){
       for(int j = i; j < gdim; j++){

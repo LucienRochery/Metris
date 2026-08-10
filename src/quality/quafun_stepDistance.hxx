@@ -17,6 +17,12 @@ enum class AsDeg;
 enum class FEBasis;
 enum class DifVar;
 
+// Finite sentinel returned for a ShapeVolume trial whose metric-space matrix
+// is too singular to evaluate robustly.  Integrated quality routines detect
+// it and return immediately, so cavity logic rejects the operation without
+// evaluating geometric weights or derivatives on the bad element.
+inline constexpr double step_distance_shape_volume_rejection_quality = 1.e100;
+
 // Running value of the mesh-wide CavityTargetAverage objective. A local
 // operation replaces one regional contribution (old) by another (new). A
 // local descent test is followed by a bounded global filter because the

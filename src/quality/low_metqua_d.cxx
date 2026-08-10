@@ -85,6 +85,9 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   double target_average_denominator = 0.;
   const bool use_target_average =
       msh.param->step_distance_cavity_target_average;
+  METRIS_ENFORCE_MSG(
+      !(msh.param->step_distance_shape_volume && use_target_average),
+      "Step Distance Shape Volume is a distinct integration variant");
 
   constexpr int nquad = tdim + 2; // vertices + barycenter
   for (int iquad = 0; iquad < nquad; iquad++){
@@ -234,6 +237,11 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                         dphi, hphi);
     }
 
+    if(msh.param->step_distance_shape_volume
+       && phi >= ftype(0.5*step_distance_shape_volume_rejection_quality)){
+      return ftype(step_distance_shape_volume_rejection_quality);
+    }
+
     if(use_target_average){
       const double target_density =
           VolumeMeasureHelpers::eval_target_metric_volume_density<
@@ -271,6 +279,15 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       VolumeMeasureHelpers::eval_theta_fixed_metric_grad<gdim,tdim,double>(
           Jreg_T, met, NULL,
           &theta_d, NULL);
+    }else if(msh.param->step_distance_shape_volume){
+      // Step Distance Shape Volume deliberately keeps theta frozen.  Its
+      // pointwise SPD distance supplies the collapse coercivity.
+      VolumeMeasureHelpers::eval_theta_fixed_metric_grad<gdim,tdim,double>(
+          Jreg_T,met,NULL,&theta_d,NULL);
+      for(int i = 0; i < gdim; i++) dtheta_d[i] = 0.0;
+      if(hquael != NULL){
+        for(int i = 0; i < nhess; i++) htheta[i] = 0.0;
+      }
     }else{
       #ifdef STEPDISTANCE_INCLUDE_GEOM_THETA_DERIV
 
@@ -309,20 +326,23 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     double barrier_d;
     double dbarrier_d[gdim];
     double hbarrier_d[nhess];
+    const double barrier_beta = msh.param->step_distance_shape_volume
+                              ? 0.0
+                              : msh.param->step_distance_barrier_beta;
 
     if(ivar < 0){
       VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
           gdim,tdim,double>(
               Jreg_T,met,NULL,
               msh.param->step_distance_barrier_rho0,
-              msh.param->step_distance_barrier_beta,
+              barrier_beta,
               &rho_d,&barrier_d,NULL);
     }else{
       VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
           gdim,tdim,double>(
               Jreg_T,met,gradN,
               msh.param->step_distance_barrier_rho0,
-              msh.param->step_distance_barrier_beta,
+              barrier_beta,
               &rho_d,&barrier_d,dbarrier_d);
       if(hquael != NULL){
         VolumeMeasureHelpers::
@@ -330,7 +350,7 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                 gdim,tdim>(
                     Jreg_T,met,gradN,
                     msh.param->step_distance_barrier_rho0,
-                    msh.param->step_distance_barrier_beta,
+                    barrier_beta,
                     hbarrier_d);
       }
     }

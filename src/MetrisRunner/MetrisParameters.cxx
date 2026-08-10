@@ -383,6 +383,9 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     step_distance_regularization =
         opt.m["step-distance-regularization"].as<double>();
   }
+  if(opt.count("step-distance-shape-volume")){
+    step_distance_shape_volume = true;
+  }
   if(opt.count("step-distance-cavity-target-average")){
     step_distance_cavity_target_average = true;
   }
@@ -457,10 +460,19 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
 
 void MetrisParameters::checkParameters(){
   METRIS_ENFORCE_MSG(abs(opt_power) == 1, "opt_power can be set to -1 or 1");
-  METRIS_ENFORCE_MSG(step_distance_p > 0.0,
-                     "step_distance_p must be positive");
+  METRIS_ENFORCE_MSG(
+      step_distance_shape_volume ? step_distance_p > 0.5
+                                 : step_distance_p > 0.0,
+      step_distance_shape_volume
+          ? "step_distance_p must be greater than 1/2 for Step Distance "
+            "Shape Volume"
+          : "step_distance_p must be positive");
   METRIS_ENFORCE_MSG(step_distance_regularization > 0.0,
                      "step_distance_regularization must be positive");
+  METRIS_ENFORCE_MSG(
+      !(step_distance_shape_volume && step_distance_cavity_target_average),
+      "step-distance-shape-volume and "
+      "step-distance-cavity-target-average are distinct variants");
   METRIS_ENFORCE_MSG(step_distance_barrier_rho0 >= 0.0,
                      "step_distance_barrier_rho0 must be nonnegative");
   METRIS_ENFORCE_MSG(step_distance_cavity_global_tolerance >= 0.0,

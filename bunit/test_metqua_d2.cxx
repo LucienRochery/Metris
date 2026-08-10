@@ -177,6 +177,383 @@ BOOST_AUTO_TEST_CASE(test_stepdistance_arbitrary_p_derivatives)
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_stepdistance_shape_volume_value_and_derivatives)
+{
+  MetrisParameters param;
+  param.iverb = 0;
+  param.opt_pnorm = 1;
+  param.step_distance_shape_volume = true;
+
+  Mesh<MetricFieldFE> msh;
+  msh.idim = 2;
+  msh.curdeg = 1;
+  msh.strdeg = 1;
+  msh.forceBasisFlag(FEBasis::Lagrange);
+  msh.param = &param;
+  msh.set_npoin(3);
+  msh.set_nface(1);
+  msh.coord(0,0) = 0.0; msh.coord(0,1) = 0.0;
+  msh.coord(1,0) = 1.15; msh.coord(1,1) = 0.12;
+  msh.coord(2,0) = 0.18; msh.coord(2,1) = 0.73;
+  msh.fac2poi(0,0) = 0;
+  msh.fac2poi(0,1) = 1;
+  msh.fac2poi(0,2) = 2;
+
+  constexpr int gdim = 2;
+  constexpr int tdim = 2;
+  constexpr int nhess = 3;
+  constexpr auto quafun =
+      get_quafun_xi<MetricFieldFE,gdim,tdim,
+                    QuaFun::StepDistance,double>();
+  constexpr auto dquafun =
+      get_d_quafun_xi<MetricFieldFE,gdim,tdim,
+                      QuaFun::StepDistance,double>();
+
+  const int* nodes = msh.fac2poi[0];
+  const double bary[3] = {1./3.,1./3.,1./3.};
+  const double met[3] = {1.7,0.18,0.95};
+  const double fd_step = 1.e-6;
+  param.step_distance_regularization = 1.e-7;
+
+  // Independent value evaluation from the two eigenvalues of A.
+  double coopr[2];
+  double jmat[4];
+  eval2<2,1>(msh.coord,nodes,msh.getBasis(),
+             DifVar::Bary,DifVar::None,bary,coopr,jmat,NULL);
+  double Jreg_T[4] = {};
+  for(int i = 0; i < 2; i++){
+    for(int a = 0; a < 2; a++){
+      for(int k = 0; k < 2; k++){
+        Jreg_T[2*i+a] +=
+            Constants::invtJ_0[hana::type_c<double>][2][2*i+k]
+            *jmat[2*k+a];
+      }
+    }
+  }
+  double A[4] = {};
+  for(int i = 0; i < 2; i++){
+    for(int j = 0; j < 2; j++){
+      A[2*i+j] =
+          Jreg_T[2*i]   *met[0]*Jreg_T[2*j]
+        + Jreg_T[2*i]   *met[1]*Jreg_T[2*j+1]
+        + Jreg_T[2*i+1] *met[1]*Jreg_T[2*j]
+        + Jreg_T[2*i+1] *met[2]*Jreg_T[2*j+1];
+    }
+  }
+  const double traceA = A[0]+A[3];
+  const double detA = A[0]*A[3]-A[1]*A[2];
+  const double discriminant =
+      std::sqrt(std::max(0.0,traceA*traceA-4.0*detA));
+  const double lambda0 = 0.5*(traceA-discriminant);
+  const double lambda1 = 0.5*(traceA+discriminant);
+  const double centered_log = 0.5*std::log(lambda1/lambda0);
+  const double volume_coordinate = detA-1.0/detA;
+  const double expected_distance2 =
+      2.0*centered_log*centered_log
+      + volume_coordinate*volume_coordinate/8.0;
+  for(double power : {0.51,0.6,1.0,1.5,2.0,3.25}){
+    param.step_distance_p = power;
+    const double expected_value = std::pow(
+        expected_distance2
+            + param.step_distance_regularization
+             *param.step_distance_regularization,
+        power/2.0)
+        - std::pow(param.step_distance_regularization,power);
+    const double value = quafun(
+        msh,AsDeg::P1,AsDeg::P1,nodes,bary,met);
+    BOOST_CHECK_CLOSE_FRACTION(value,expected_value,2.e-13);
+
+    for(int ivar = 0; ivar < 3; ivar++){
+      double grad[gdim];
+      double hess[nhess];
+      const double differentiated_value = dquafun(
+          msh,AsDeg::P1,AsDeg::P1,nodes,bary,met,
+          ivar,msh.getBasis(),DifVar::None,grad,hess);
+      BOOST_CHECK_CLOSE_FRACTION(
+          differentiated_value,expected_value,2.e-13);
+
+      const int ipoin = nodes[ivar];
+      for(int j = 0; j < gdim; j++){
+        const double coordinate = msh.coord(ipoin,j);
+        double grad_plus[gdim];
+        double grad_minus[gdim];
+
+        msh.coord(ipoin,j) = coordinate+fd_step;
+        const double value_plus = quafun(
+            msh,AsDeg::P1,AsDeg::P1,nodes,bary,met);
+        dquafun(msh,AsDeg::P1,AsDeg::P1,nodes,bary,met,
+                ivar,msh.getBasis(),DifVar::None,grad_plus,NULL);
+
+        msh.coord(ipoin,j) = coordinate-fd_step;
+        const double value_minus = quafun(
+            msh,AsDeg::P1,AsDeg::P1,nodes,bary,met);
+        dquafun(msh,AsDeg::P1,AsDeg::P1,nodes,bary,met,
+                ivar,msh.getBasis(),DifVar::None,grad_minus,NULL);
+        msh.coord(ipoin,j) = coordinate;
+
+        const double grad_fd = (value_plus-value_minus)/(2.*fd_step);
+        BOOST_CHECK_SMALL(
+            grad[j]-grad_fd,3.e-6*std::max(1.,std::abs(grad_fd)));
+
+        for(int i = 0; i <= j; i++){
+          const double hess_fd =
+              (grad_plus[i]-grad_minus[i])/(2.*fd_step);
+          BOOST_CHECK_SMALL(
+              hess[sym2idx(i,j)]-hess_fd,
+              3.e-5*std::max(1.,std::abs(hess_fd)));
+        }
+      }
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_stepdistance_shape_volume_rejects_metric_singular_trial)
+{
+  MetrisParameters param;
+  param.iverb = 0;
+  param.opt_pnorm = 1;
+  param.step_distance_shape_volume = true;
+  param.step_distance_p = 1.;
+  param.step_distance_regularization = 1.e-8;
+
+  Mesh<MetricFieldFE> msh;
+  msh.idim = 2;
+  msh.curdeg = 1;
+  msh.strdeg = 1;
+  msh.forceBasisFlag(FEBasis::Lagrange);
+  msh.param = &param;
+  msh.set_npoin(3);
+  msh.set_nface(1);
+  msh.met.forceBasisFlag(FEBasis::Lagrange);
+  msh.met.forceSpaceFlag(MetSpace::Exp);
+
+  // The tentative child found in the failed 32K BL insertion.  It passes the
+  // run's physical vtol=1e-9 check by a factor of 1.9, but its metric-space
+  // A has det(A) ~= 9e-14 and condition number ~= 7e13.
+  msh.coord(0,0) = 0.0042921271622144881;
+  msh.coord(0,1) = 0.021340367746288360;
+  msh.coord(1,0) = 0.0043169023560162790;
+  msh.coord(1,1) = 0.016931879088477399;
+  msh.coord(2,0) = 0.0043664322547759390;
+  msh.coord(2,1) = 0.0081185673603782465;
+  msh.fac2poi(0,0) = 0;
+  msh.fac2poi(0,1) = 1;
+  msh.fac2poi(0,2) = 2;
+
+  const double metric[3] = {
+      20071133.894653562,
+      68766.628909583873,
+      14126.155610519469
+  };
+  const double nodal_metrics[3][3] = {
+      {20071133.894653562,68766.628909583873,14126.155610519469},
+      {21898726.732338544,106853.36235114858,14007.958102696508},
+      {25158057.479453683,147740.84065935668,14753.758161757154}
+  };
+  for(int ipoin = 0; ipoin < 3; ipoin++){
+    for(int imet = 0; imet < 3; imet++){
+      msh.met(ipoin,imet) = nodal_metrics[ipoin][imet];
+    }
+  }
+  const double bary[3] = {1.,0.,0.};
+  constexpr auto quafun =
+      get_quafun_xi<MetricFieldFE,2,2,QuaFun::StepDistance,double>();
+  constexpr auto dquafun =
+      get_d_quafun_xi<MetricFieldFE,2,2,QuaFun::StepDistance,double>();
+
+  const double value = quafun(
+      msh,AsDeg::P1,AsDeg::P1,msh.fac2poi[0],bary,metric);
+  BOOST_CHECK(std::isfinite(value));
+  BOOST_CHECK_GE(value,1.e90);
+
+  double gradient[2];
+  double hessian[3];
+  const double differentiated_value = dquafun(
+      msh,AsDeg::P1,AsDeg::P1,msh.fac2poi[0],bary,metric,
+      0,msh.getBasis(),DifVar::None,gradient,hessian);
+  BOOST_CHECK_EQUAL(differentiated_value,value);
+  for(double component : gradient) BOOST_CHECK_EQUAL(component,0.);
+  for(double component : hessian) BOOST_CHECK_EQUAL(component,0.);
+
+  const double integrated_value =
+      metqua<MetricFieldFE,2,2,QuaFun::StepDistance,double>(
+          msh,AsDeg::P1,AsDeg::P1,0,1.);
+  BOOST_CHECK(std::isfinite(integrated_value));
+  BOOST_CHECK_GE(integrated_value,1.e90);
+
+  double integrated_gradient[2];
+  double integrated_hessian[3];
+  const double differentiated_integrated_value =
+      d_metqua<MetricFieldFE,2,2,QuaFun::StepDistance,double>(
+          msh,AsDeg::P1,AsDeg::P1,0,0,msh.getBasis(),DifVar::None,
+          integrated_gradient,integrated_hessian,1.);
+  BOOST_CHECK_EQUAL(differentiated_integrated_value,integrated_value);
+  for(double component : integrated_gradient) BOOST_CHECK_EQUAL(component,0.);
+  for(double component : integrated_hessian) BOOST_CHECK_EQUAL(component,0.);
+}
+
+BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_shape_volume_frozen_theta)
+{
+  MetrisParameters param;
+  param.iverb = 0;
+  param.opt_pnorm = 1;
+  param.step_distance_shape_volume = true;
+  param.step_distance_p = 1.3;
+  param.step_distance_regularization = 1.e-7;
+  param.step_distance_barrier_rho0 = 10.0;
+  param.step_distance_barrier_beta = 1.e6;
+
+  Mesh<MetricFieldFE> msh;
+  msh.idim = 2;
+  msh.curdeg = 1;
+  msh.strdeg = 1;
+  msh.forceBasisFlag(FEBasis::Lagrange);
+  msh.param = &param;
+  msh.set_npoin(3);
+  msh.set_nface(1);
+  msh.met.forceBasisFlag(FEBasis::Lagrange);
+  msh.met.forceSpaceFlag(MetSpace::Exp);
+  msh.coord(0,0) = 0.0; msh.coord(0,1) = 0.0;
+  msh.coord(1,0) = 0.62; msh.coord(1,1) = 0.04;
+  msh.coord(2,0) = 0.08; msh.coord(2,1) = 0.41;
+  msh.fac2poi(0,0) = 0;
+  msh.fac2poi(0,1) = 1;
+  msh.fac2poi(0,2) = 2;
+  for(int ipoin = 0; ipoin < 3; ipoin++){
+    msh.met(ipoin,0) = 1.4;
+    msh.met(ipoin,1) = 0.12;
+    msh.met(ipoin,2) = 0.9;
+  }
+
+  constexpr int gdim = 2;
+  constexpr int tdim = 2;
+  constexpr int nhess = 3;
+  constexpr auto pointwise =
+      get_d_quafun_xi<MetricFieldFE,gdim,tdim,
+                      QuaFun::StepDistance,double>();
+  const int ivar = 0;
+  const double bary[3] = {1./3.,1./3.,1./3.};
+  const double met[3] = {1.4,0.12,0.9};
+
+  double point_grad[gdim];
+  double point_hess[nhess];
+  const double point_value = pointwise(
+      msh,AsDeg::P1,AsDeg::P1,msh.fac2poi[0],bary,met,
+      ivar,msh.getBasis(),DifVar::None,point_grad,point_hess);
+
+  double coopr[2];
+  double jmat[4];
+  eval2<2,1>(msh.coord,msh.fac2poi[0],msh.getBasis(),
+             DifVar::Bary,DifVar::None,bary,coopr,jmat,NULL);
+  double Jreg_T[4] = {};
+  for(int i = 0; i < 2; i++){
+    for(int a = 0; a < 2; a++){
+      for(int k = 0; k < 2; k++){
+        Jreg_T[2*i+a] +=
+            Constants::invtJ_0[hana::type_c<double>][2][2*i+k]
+            *jmat[2*k+a];
+      }
+    }
+  }
+  double theta;
+  VolumeMeasureHelpers::eval_theta_fixed_metric_grad<2,2,double>(
+      Jreg_T,met,NULL,&theta,NULL);
+
+  double integrated_grad[gdim];
+  double integrated_hess[nhess];
+  const double integrated_value =
+      d_metqua<MetricFieldFE,gdim,tdim,QuaFun::StepDistance,double>(
+          msh,AsDeg::P1,AsDeg::P1,0,ivar,msh.getBasis(),DifVar::None,
+          integrated_grad,integrated_hess,1.0);
+
+  BOOST_CHECK_CLOSE_FRACTION(integrated_value,theta*point_value,2.e-13);
+  for(int i = 0; i < gdim; i++){
+    BOOST_CHECK_CLOSE_FRACTION(
+        integrated_grad[i],theta*point_grad[i],2.e-12);
+  }
+  for(int i = 0; i < nhess; i++){
+    BOOST_CHECK_CLOSE_FRACTION(
+        integrated_hess[i],theta*point_hess[i],2.e-11);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_stepdistance_shape_volume_3d_derivatives)
+{
+  MetrisParameters param;
+  param.iverb = 0;
+  param.opt_pnorm = 1;
+  param.step_distance_shape_volume = true;
+
+  Mesh<MetricFieldFE> msh;
+  msh.idim = 3;
+  msh.curdeg = 1;
+  msh.strdeg = 1;
+  msh.forceBasisFlag(FEBasis::Lagrange);
+  msh.param = &param;
+  msh.set_npoin(4);
+  msh.set_nelem(1);
+  msh.coord(0,0) = 0.02; msh.coord(0,1) = -0.03; msh.coord(0,2) = 0.01;
+  msh.coord(1,0) = 1.08; msh.coord(1,1) =  0.10; msh.coord(1,2) = 0.04;
+  msh.coord(2,0) = 0.16; msh.coord(2,1) =  0.91; msh.coord(2,2) = 0.13;
+  msh.coord(3,0) = 0.11; msh.coord(3,1) =  0.19; msh.coord(3,2) = 0.78;
+  for(int i = 0; i < 4; i++) msh.tet2poi(0,i) = i;
+
+  constexpr int gdim = 3;
+  constexpr int tdim = 3;
+  constexpr int nhess = 6;
+  constexpr auto quafun =
+      get_quafun_xi<MetricFieldFE,gdim,tdim,
+                    QuaFun::StepDistance,double>();
+  constexpr auto dquafun =
+      get_d_quafun_xi<MetricFieldFE,gdim,tdim,
+                      QuaFun::StepDistance,double>();
+  const int* nodes = msh.tet2poi[0];
+  const double bary[4] = {0.25,0.25,0.25,0.25};
+  const double met[6] = {1.5,0.12,1.1,-0.08,0.07,0.85};
+  const double fd_step = 8.e-7;
+  const int ivar = 0;
+
+  double grad[gdim];
+  double hess[nhess];
+  const double value = quafun(
+      msh,AsDeg::P1,AsDeg::P1,nodes,bary,met);
+  const double differentiated_value = dquafun(
+      msh,AsDeg::P1,AsDeg::P1,nodes,bary,met,
+      ivar,msh.getBasis(),DifVar::None,grad,hess);
+  BOOST_CHECK_CLOSE_FRACTION(value,differentiated_value,2.e-13);
+
+  const int ipoin = nodes[ivar];
+  for(int j = 0; j < gdim; j++){
+    const double coordinate = msh.coord(ipoin,j);
+    double grad_plus[gdim];
+    double grad_minus[gdim];
+
+    msh.coord(ipoin,j) = coordinate+fd_step;
+    const double value_plus = quafun(
+        msh,AsDeg::P1,AsDeg::P1,nodes,bary,met);
+    dquafun(msh,AsDeg::P1,AsDeg::P1,nodes,bary,met,
+            ivar,msh.getBasis(),DifVar::None,grad_plus,NULL);
+
+    msh.coord(ipoin,j) = coordinate-fd_step;
+    const double value_minus = quafun(
+        msh,AsDeg::P1,AsDeg::P1,nodes,bary,met);
+    dquafun(msh,AsDeg::P1,AsDeg::P1,nodes,bary,met,
+            ivar,msh.getBasis(),DifVar::None,grad_minus,NULL);
+    msh.coord(ipoin,j) = coordinate;
+
+    const double grad_fd = (value_plus-value_minus)/(2.*fd_step);
+    BOOST_CHECK_SMALL(
+        grad[j]-grad_fd,4.e-6*std::max(1.,std::abs(grad_fd)));
+    for(int i = 0; i <= j; i++){
+      const double hess_fd =
+          (grad_plus[i]-grad_minus[i])/(2.*fd_step);
+      BOOST_CHECK_SMALL(
+          hess[sym2idx(i,j)]-hess_fd,
+          4.e-5*std::max(1.,std::abs(hess_fd)));
+    }
+  }
+}
+
 BOOST_AUTO_TEST_CASE(test_stepdistance_metric_volume_barrier_derivatives)
 {
   constexpr int gdim = 2;

@@ -105,6 +105,7 @@ depending on whether they should be serialized.
     /* StepDistance pointwise power, aggregation, and collapse barrier. */ \
     FIELD(double, step_distance_p, 2.0) \
     FIELD(double, step_distance_regularization, 1.0e-12) \
+    FIELD(bool, step_distance_shape_volume, false) \
     FIELD(bool, step_distance_cavity_target_average, false) \
     FIELD(double, step_distance_cavity_global_tolerance, 1.0e-6) \
     FIELD(double, step_distance_cavity_global_gain_fraction, 0.05) \

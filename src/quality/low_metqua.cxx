@@ -199,6 +199,9 @@ namespace Metris
     double target_average_denominator = 0.;
     const bool use_target_average =
         msh.param->step_distance_cavity_target_average;
+    METRIS_ENFORCE_MSG(
+        !(msh.param->step_distance_shape_volume && use_target_average),
+        "Step Distance Shape Volume is a distinct integration variant");
 
     constexpr int nquad = tdim + 2; // vertices + barycenter
 
@@ -270,6 +273,11 @@ namespace Metris
                                   bary,
                                   met);
 
+      if(msh.param->step_distance_shape_volume
+         && phi >= ftype(0.5*step_distance_shape_volume_rejection_quality)){
+        return ftype(step_distance_shape_volume_rejection_quality);
+      }
+
       if(use_target_average){
         const double target_density =
             VolumeMeasureHelpers::eval_target_metric_volume_density<
@@ -301,11 +309,14 @@ namespace Metris
 
       double rho_d;
       double barrier_d;
+      const double barrier_beta = msh.param->step_distance_shape_volume
+                                ? 0.0
+                                : msh.param->step_distance_barrier_beta;
       VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
           gdim,tdim,double>(
               Jreg_T,met,NULL,
               msh.param->step_distance_barrier_rho0,
-              msh.param->step_distance_barrier_beta,
+              barrier_beta,
               &rho_d,&barrier_d,NULL);
 
       qutet += wquad*(phi*(ftype)theta_d + (ftype)barrier_d);
