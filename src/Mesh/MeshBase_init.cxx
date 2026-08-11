@@ -353,7 +353,8 @@ void MeshBase::initialize(MetrisAPI *data,
     isperiodic_face.fill(false);
     nperiodic_face = 0;
 
-    intAr1 lshell(8);
+    intWrkAr1 lshell_ = get_iwork(8);
+    intAr1 &lshell = lshell_.get_array();
     for(int iedge = 0; iedge < nedge; iedge++){
       if(isdeadent(iedge,edg2poi)) continue;
       int ifac1 = edg2fac[iedge];
