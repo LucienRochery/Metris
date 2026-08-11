@@ -307,12 +307,10 @@ else()
     add_library(fmt::fmt ALIAS fmt)
   endif()
 
-  # Append the FetchContent build dir so executables can find libfmt.so at
-  # runtime when built with BUILD_SHARED_LIBS. Same as NLopt below. Only the
-  # install one is read today, CMAKE_BUILD_WITH_INSTALL_RPATH being TRUE, but
-  # set both as everywhere else so this keeps working if that ever changes.
-  list(APPEND CMAKE_BUILD_RPATH   ${fmt_fetch_BINARY_DIR})
-  list(APPEND CMAKE_INSTALL_RPATH ${fmt_fetch_BINARY_DIR})
+  # No RPATH bookkeeping needed here: the build tree gets the fetch build dir
+  # from CMake's own link-line-derived build RPATH, and the install tree finds
+  # libfmt next to the binary via the relocatable CMAKE_INSTALL_RPATH set in the
+  # top-level CMakeLists.txt, install(TARGETS fmt ...) above having put it there.
 
   list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${fmt_fetch_SOURCE_DIR}/include>)
   list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
@@ -472,9 +470,7 @@ else()
     if(NOT nlopt_fetch_POPULATED)
       message(FATAL_ERROR "NLopt was not fetched correctly.")
     endif()
-    # Add NLopt library directory to RPATH so the runtime linker can find libnlopt.so
-    list(APPEND CMAKE_BUILD_RPATH   ${nlopt_fetch_BINARY_DIR})
-    list(APPEND CMAKE_INSTALL_RPATH ${nlopt_fetch_BINARY_DIR})
+    # No RPATH bookkeeping needed here, see the fmt fetch above.
     # We do this because find_package() uses this naming.
     if(NOT TARGET NLopt::nlopt)
       add_library(NLopt::nlopt ALIAS nlopt)

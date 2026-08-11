@@ -318,11 +318,6 @@ if(REQ_CODEGEN)
   add_dependencies(libMetris codegen1 codegen2)
 endif()
 
-SET_TARGET_PROPERTIES(libMetris PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
-
-list(APPEND CMAKE_BUILD_RPATH ${CMAKE_BINARY_DIR}/src/ ${CMAKE_BINARY_DIR}/SANS/)
-list(APPEND CMAKE_INSTALL_RPATH ${CMAKE_BINARY_DIR}/src/ ${CMAKE_BINARY_DIR}/SANS/)
-
 # C Prepro target for debugging (optional)
 add_library(metrisPrepro STATIC ${SRC_SOURCES})
 set_property(TARGET metrisPrepro PROPERTY CXX_STANDARD 17)
