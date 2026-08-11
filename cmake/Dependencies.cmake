@@ -416,7 +416,11 @@ target_link_libraries(metris_deps INTERFACE Boost::program_options)
 
 # A CMake project including Metris should prefer to find its own NLopt installation and provide
 # NLOPT_LIBRARIES and NLOPT_INCLUDE_DIRS.
-if(DEFINED NLOPT_LIBRARIES AND DEFINED NLOPT_INCLUDE_DIRS)
+# Tested for truth, not DEFINED: a find_path/find_library that failed once caches
+# the literal string NLOPT_INCLUDE_DIRS-NOTFOUND, which is DEFINED and would take
+# this branch on every later configure of that build dir, passing the sentinel
+# through as an include directory. CMake reads *-NOTFOUND as false.
+if(NLOPT_LIBRARIES AND NLOPT_INCLUDE_DIRS)
   message(STATUS "Using provided NLOPT_LIBRARIES and NLOPT_INCLUDE_DIRS.")
   message(STATUS "NLOPT_LIBRARIES = ${NLOPT_LIBRARIES}")
   message(STATUS "NLOPT_INCLUDE_DIRS = ${NLOPT_INCLUDE_DIRS}")
