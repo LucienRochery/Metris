@@ -492,9 +492,6 @@ else()
             # Install NLopt headers if using FetchContent
     list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${nlopt_fetch_BINARY_DIR}>)
     list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
-    # CMAKE_BUILD_WITH_INSTALL_RPATH is TRUE, so build RPATHs use CMAKE_INSTALL_RPATH.
-    # Append the FetchContent build dir so executables can find libnlopt.so at runtime.
-    list(APPEND CMAKE_INSTALL_RPATH "${nlopt_fetch_BINARY_DIR}")
     #list(APPEND METRIS_DEPS_LIBRARIES NLopt::nlopt)
     target_link_libraries(metris_deps INTERFACE NLopt::nlopt)
     metris_register_dependency("FetchContent" "NLopt" "")
