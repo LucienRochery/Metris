@@ -310,7 +310,18 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
 
   if(ivar < 0) return;
-  // See docs/quality/qualityiff.pdf for details 
+
+  // Taken as P1 the element only has its tdim + 1 vertices as DoFs. ordent below
+  // is indexed by msh.curdeg, so a higher ivar picks up a valid Pk multi-index
+  // and hands it to the degree 1 basis evaluation further down, which is
+  // silently meaningless rather than out of bounds. eval_d_SurrealS asserts the
+  // same bound on the Surreal path.
+  METRIS_ASSERT_MSG(ivar < getnnode(tdim, asdmsh == AsDeg::P1 ? 1 : msh.curdeg),
+    "ivar = {} out of range: asdmsh = {} curdeg = {} gives {} DoFs",
+    ivar, asdmsh == AsDeg::P1 ? "P1" : "Pk", msh.curdeg,
+    getnnode(tdim, asdmsh == AsDeg::P1 ? 1 : msh.curdeg));
+
+  // See docs/quality/qualityiff.pdf for details
 
 
   // Get the derivatives (d_k+1 - d_1) f
