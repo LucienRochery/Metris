@@ -1106,9 +1106,19 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       // The link created in edg2bpo is temporary: if the point turns out 
       // not to be a corner then there is no need to keep the link. 
       // It will be deleted in iniMeshBdryPoints. 
-      int iver = getveredg<1>(iedge, ipoin);
-      int ibpoi = iver >= 0 ? newbpotopo(Vertex{ipoin},1,iedge) : 
-                              newbpotopo(CtrlPt{ipoin},1,iedge);
+      // In refine convention iedge is the negated CAD ref, not a mesh edge: it is
+      // stored as is and resolved to an entity in iniMeshBdryPoints. getveredg
+      // would index edg2poi with it, and newbpotopo0 only reads the
+      // Vertex/CtrlPt nature when the entry is non-negative, so there is nothing
+      // to classify here.
+      int ibpoi;
+      if(param->refineConventionsInp){
+        ibpoi = newbpotopo(Vertex{ipoin},1,iedge);
+      }else{
+        int iver = getveredg<1>(iedge, ipoin);
+        ibpoi = iver >= 0 ? newbpotopo(Vertex{ipoin},1,iedge) :
+                            newbpotopo(CtrlPt{ipoin},1,iedge);
+      }
       if(ibpoi < 0) continue;
       bpo2rbi(ibpoi,0) = rgpoe(igpoe,0);
       bpo2rbi(ibpoi,1) = 0.0;
@@ -1175,9 +1185,15 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       }
 
 
-      int iver = getverfac<1>(iface, ipoin);
-      int ibpoi = iver >= 0 ? newbpotopo(Vertex{ipoin},2,iface) : 
-                              newbpotopo(CtrlPt{ipoin},2,iface);
+      // See the edge case above: refine convention stores the negated ref here.
+      int ibpoi;
+      if(param->refineConventionsInp){
+        ibpoi = newbpotopo(Vertex{ipoin},2,iface);
+      }else{
+        int iver = getverfac<1>(iface, ipoin);
+        ibpoi = iver >= 0 ? newbpotopo(Vertex{ipoin},2,iface) :
+                            newbpotopo(CtrlPt{ipoin},2,iface);
+      }
       if(ibpoi < 0) continue;
       // Third value is unused
       bpo2rbi(ibpoi,0) = rgpof(igpof,0);
