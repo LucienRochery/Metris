@@ -307,6 +307,13 @@ else()
     add_library(fmt::fmt ALIAS fmt)
   endif()
 
+  # Append the FetchContent build dir so executables can find libfmt.so at
+  # runtime when built with BUILD_SHARED_LIBS. Same as NLopt below. Only the
+  # install one is read today, CMAKE_BUILD_WITH_INSTALL_RPATH being TRUE, but
+  # set both as everywhere else so this keeps working if that ever changes.
+  list(APPEND CMAKE_BUILD_RPATH   ${fmt_fetch_BINARY_DIR})
+  list(APPEND CMAKE_INSTALL_RPATH ${fmt_fetch_BINARY_DIR})
+
   list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${fmt_fetch_SOURCE_DIR}/include>)
   list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
   metris_register_dependency("FetchContent" "fmt" "")
