@@ -353,11 +353,18 @@ void MeshBase::initialize(MetrisAPI *data,
     isperiodic_face.fill(false);
     nperiodic_face = 0;
 
-    intWrkAr1 lshell_ = get_iwork(8);
-    intAr1 &lshell = lshell_.get_array();
+    // Ref last seen around the ridge being walked, tagged with iedge so there is
+    // nothing to clear between ridges. Not cfa2tag: that one is sized by
+    // CAD.ncadfa, which is 0 without a CAD model, and this walk is topological.
+    intWrkAr1 ref2edg_ = get_iwork(nref);
+    intAr1 &ref2edg = ref2edg_.get_array();
+    ref2edg.set_n(nref);
+    ref2edg.fill(-1);
+
     for(int iedge = 0; iedge < nedge; iedge++){
       if(isdeadent(iedge,edg2poi)) continue;
       int ifac1 = edg2fac[iedge];
+      int iref1 = fac2ref[ifac1];
 
       int ip1 = edg2poi(iedge,0);
       int ip2 = edg2poi(iedge,1);
@@ -368,26 +375,24 @@ void MeshBase::initialize(MetrisAPI *data,
       int ifac2 = fac2fac(ifac1, ied1);
       if(ifac2 == -1) continue; // Ridge with a single triangle: open boundary.
 
-      // Triangles around the ridge. A manifold ridge has the two fac2fac gives
-      // directly; a non-manifold one stores -(next + 2) there and cycles, so a
-      // negative entry is a neighbour rather than an absent one.
-      lshell.set_n(0);
-      lshell.stack(ifac1);
+      // A ref carried by two triangles of the ridge sits on both its sides, so
+      // its points get two normals. Manifold ridges are just the two fac2fac
+      // gives; non-manifold ones store -(next + 2) there and cycle, so tag each
+      // ref with iedge while walking and catch the second visit.
       if(ifac2 >= 0){
-        lshell.stack(ifac2);
+        if(fac2ref[ifac2] != iref1) continue;
+        if(!isperiodic_face[iref1]) CPRINTF1(" # face ref {} is periodic along edge ref {}\n", iref1, edg2ref[iedge]);
+        isperiodic_face[iref1] = true;
       }else{
+        ref2edg[iref1] = iedge;
         int ifacn = ifac1, iedn = ied1;
-        while(getnextfacnm(*this, ifac1, ip1, ip2, &ifacn, &iedn)) lshell.stack(ifacn);
-      }
-
-      // A ref carried by two of them sits on both sides of the ridge, so its
-      // points get two normals. lshell holds a handful of entries at most.
-      for(int ii = 0; ii < lshell.get_n(); ii++){
-        for(int jj = ii + 1; jj < lshell.get_n(); jj++){
-          int irefn = fac2ref[lshell[ii]];
-          if(fac2ref[lshell[jj]] != irefn) continue;
-          if(!isperiodic_face[irefn]) CPRINTF1(" # face ref {} is periodic along edge ref {}\n", irefn, edg2ref[iedge]);
-          isperiodic_face[irefn] = true;
+        while(getnextfacnm(*this, ifac1, ip1, ip2, &ifacn, &iedn)){
+          int irefn = fac2ref[ifacn];
+          if(ref2edg[irefn] == iedge){
+            if(!isperiodic_face[irefn]) CPRINTF1(" # face ref {} is periodic along edge ref {}\n", irefn, edg2ref[iedge]);
+            isperiodic_face[irefn] = true;
+          }
+          ref2edg[irefn] = iedge;
         }
       }
     }
