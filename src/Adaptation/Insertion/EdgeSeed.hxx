@@ -16,10 +16,11 @@ class MeshBase;
 struct EdgeSeed{
 
   EdgeSeed() = delete;
-  // Pass icollapse to have the seed reject edges a collapse cannot merge. The
-  // caller must check ierro before using the seed.
+  // icollapse rejects edges a collapse cannot merge, then seeds the balls of both
+  // ends, a collapse removing them. tdimp is read from the seeded cavity, so it
+  // must be complete here. The caller must check ierro before using the seed.
   EdgeSeed(MeshBase& msh, MshCavity& cav, int tdim_adp, int tdim_ent, int ientt, int iedl,
-           bool icollapse = false);
+           bool icollapse = false, int ithrd = 0);
 
   int ierro; // INS2D_ERR_*, 0 if the seed is usable
   int tdim_adp; // Context of insertion

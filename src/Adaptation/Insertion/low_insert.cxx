@@ -94,15 +94,8 @@ int insertEdge(Mesh<MFT>& msh,
   if(msh.CAD()) METRIS_ASSERT(insertionSeed.obj != NULL 
                     || insertionSeed.tdimp == 2 && !msh.isboundary_faces() || insertionSeed.tdimp == 3);
 
-  // Append edge ends balls to the shell:
-  if(icollapse){
-    for(int ii = 0; ii < 2; ii++){
-      int ipoin = insertionSeed.ipedg[ii];
-      int iopen;
-      ball(msh, ipoin, cav.lcedg, cav.lcfac, cav.lctet, &iopen, true, ithrd1);
-    }
-  }
-
+  // The edge ends balls are seeded by EdgeSeed when icollapse, before it reads
+  // tdimp, so the point created just above has the dimension it will inherit.
 
   // work for collrejcav_lenqua
   #ifndef NDEBUG
