@@ -108,9 +108,27 @@ else()
   add_compile_definitions(NO_BOOST_EXCEPT)
 endif()
 
+# CMAKE_INSTALL_LIBDIR/BINDIR/INCLUDEDIR are used throughout this file, in
+# cmake/Dependencies.cmake and in libs/CMakeLists.txt. Include the module that
+# defines them rather than relying on a fetched dependency to do it for us.
+include(GNUInstallDirs)
+
 set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+# Installed binaries find our shared deps next to themselves, so the install
+# tree can be moved. Set before Dependencies.cmake, which appends the absolute
+# ESP/OpenCASCADE paths to this same variable.
+if(APPLE)
+  set(CMAKE_INSTALL_RPATH "@loader_path/../${CMAKE_INSTALL_LIBDIR}")
+else()
+  set(CMAKE_INSTALL_RPATH "$ORIGIN/../${CMAKE_INSTALL_LIBDIR}")
+endif()
+# Deliberately NOT setting CMAKE_BUILD_WITH_INSTALL_RPATH: build-tree binaries
+# must carry the build RPATH that CMake derives from the real link line, which
+# covers every fetched shared dependency automatically. Forcing the install
+# RPATH there instead meant each such dependency needed a hand-written
+# list(APPEND CMAKE_INSTALL_RPATH ...), and fmt was missed for exactly that
+# reason.
 
 include(${PROJECT_SOURCE_DIR}/cmake/Dependencies.cmake)
 
@@ -148,8 +166,6 @@ add_subdirectory(src)
 
 add_executable(metris "progs/main.cxx")
 add_executable(egads2lite EXCLUDE_FROM_ALL "progs/EGADS2lite.cxx")
-
-set_target_properties(metris PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 
 target_link_libraries(metris PUBLIC libMetris 

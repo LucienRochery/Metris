@@ -68,16 +68,15 @@ void adaptGeoLines2(Mesh<MFT> &msh){
     for(int ii = 0; ii < 2; ii++){
       int ip = msh.edg2poi(iedge,ii);
       int ib = msh.poi2bpo[ip];
-      if(msh.bpo2ibi(ib,1) == 0){
-        ib = msh.poi2ebp(ip,1,iedge,-1);
-        METRIS_ASSERT(ib >= 0);
-        double tcorn = msh.bpo2rbi(ib,0);
-        int iupd = 0;
-        if(ref2cor(iref,0) >= 0) iupd = 1;
-        ref2cor(iref,iupd) = ip;
-        ref2rng(iref,iupd) = tcorn;
-        break;
-      }
+      if(msh.bpo2ibi(ib,1) != 0) continue;
+      ib = msh.poi2ebp(ip,1,iedge,-1);
+      METRIS_ASSERT(ib >= 0);
+      // Both ends can be corners of the same edge, when the curve is a single
+      // edge. Stopping at the first, as the one corner per ref loop in
+      // msh_lineadapt.cxx does, left the second slot unset.
+      int iupd = ref2cor(iref,0) >= 0 ? 1 : 0;
+      ref2cor(iref,iupd) = ip;
+      ref2rng(iref,iupd) = msh.bpo2rbi(ib,0);
     }
   }
 

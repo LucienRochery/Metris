@@ -65,7 +65,8 @@ int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, [[maybe_unused]]
       int iref2 = msh.ent2ref(pdim2)[ient2];
       if(iref1 != iref2) return INS2D_ERR_COLREF;
     }
-    EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, iedl);
+    EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, iedl, true, ithrd1);
+    if(insertionSeed.ierro > 0) return insertionSeed.ierro;
     int ierro = insertEdge(msh, insertionSeed, -1, true, cav, work, lerro, ithrd1, ithrd2);
     if(ierro < 0) return 0;
     if(ierro == 0) return INS2D_ERR_NOOPERATION;

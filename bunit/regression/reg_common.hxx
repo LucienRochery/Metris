@@ -390,6 +390,19 @@ public:
 
         std::ofstream baseline_json_file(baseline_json_fname);
         baseline_json_file << json_baseline_allhwid.dump(2);  // Pretty print with 2-space indent
+
+        // Initializing is not a free pass. initialize_baseline_hwid leaves out
+        // the runs that raised an exception, so without this a first run on a
+        // new machine reports success however many cases threw, and every run
+        // after it compares against their absence instead. This is how the
+        // refine convention cases went unnoticed for a year.
+        for(const std::string& test_name : test_names){
+          if(!json_current["runs"].contains(test_name)) continue;
+          if(!json_current["runs"][test_name].contains("except")) continue;
+          fmt::print(stderr,"## ERROR: test {} raised an exception, left out of the "
+                            "initialized baseline\n", test_name);
+          BOOST_TEST(false);
+        }
       }else{
         fmt::print("## Baseline doesn't exist or doesn't contain data for HWID, and should not be updated (uncommitted changes)\n");
         BOOST_FAIL("No baseline data to compare against and dirty Git tree.");

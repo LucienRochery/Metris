@@ -137,7 +137,7 @@ void test_workArray2(MeshBase& msh){
       //  fmt::print("## ii = %d itype_work[ii] = {}, save_itype_work[ii] = {}\n", ii, itype_work[ii], save_itype_work[ii]);
       //}
       //fmt::print("## ii = %d itype_work[ii] = {}, save_itype_work[ii] = {}\n", ii, itype_work[ii], save_itype_work[ii]);
-      METRIS_ASSERT_MSG(itype_work[ii] == save_itype_work[ii], "itype_work[ii] = "<< itype_work[ii] <<", save_itype_work[ii] ="<< save_itype_work[ii]<< " ii = "<<ii<< " nent0 = "<<nent0);
+      METRIS_ASSERT_MSG(itype_work[ii] == save_itype_work[ii], "itype_work[ii] = {}, save_itype_work[ii] = {} ii = {} nent0 = {}", itype_work[ii], save_itype_work[ii], ii, nent0);
       BOOST_REQUIRE(itype_work[ii] == save_itype_work[ii]);
     }
   }

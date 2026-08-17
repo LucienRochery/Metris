@@ -137,7 +137,10 @@ foreach(meshname ${METRIS_UNIT_TEST_MESHES})
                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/examples/${meshdir_relative}
                      COMMAND ${CMAKE_COMMAND} -E env 
                              METRIS_CASES_DIR=${METRIS_CASES_DIR}
-                             PATH="$ENV{PATH}:${CMAKE_CURRENT_BINARY_DIR}"
+                             # Prepended, not appended: the generation scripts
+                             # call bare `metris`, and this build's own binary
+                             # must win over any metris already on PATH.
+                             PATH="${CMAKE_CURRENT_BINARY_DIR}:$ENV{PATH}"
                              ${gen_script}
                      COMMENT "Generating ${meshname}")
   message(STATUS "New command outputs ${meshname}")

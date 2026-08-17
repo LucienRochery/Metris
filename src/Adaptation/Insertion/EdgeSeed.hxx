@@ -16,8 +16,11 @@ class MeshBase;
 struct EdgeSeed{
 
   EdgeSeed() = delete;
-  EdgeSeed(MeshBase& msh, MshCavity& cav, int tdim_adp, int tdim_ent, int ientt, int iedl);
+  // icollapse seeds for a collapse and checks dimensional compatibility, setting ierro if unmet.
+  EdgeSeed(MeshBase& msh, MshCavity& cav, int tdim_adp, int tdim_ent, int ientt, int iedl,
+           bool icollapse = false, int ithrd = 0);
 
+  int ierro; // INS2D_ERR_*, 0 if the seed is usable
   int tdim_adp; // Context of insertion
   int tdimp; // Topo dim of a point on this edge
   int iseed; // Lowest dimensional entity that contains edge
