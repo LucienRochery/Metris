@@ -94,9 +94,6 @@ int insertEdge(Mesh<MFT>& msh,
   if(msh.CAD()) METRIS_ASSERT(insertionSeed.obj != NULL 
                     || insertionSeed.tdimp == 2 && !msh.isboundary_faces() || insertionSeed.tdimp == 3);
 
-  // The edge ends balls are seeded by EdgeSeed when icollapse, before it reads
-  // tdimp, so the point created just above has the dimension it will inherit.
-
   // work for collrejcav_lenqua
   #ifndef NDEBUG
   static int nwarnprt = 0;

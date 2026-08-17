@@ -353,9 +353,8 @@ void MeshBase::initialize(MetrisAPI *data,
     isperiodic_face.fill(false);
     nperiodic_face = 0;
 
-    // Ref last seen around the ridge being walked, tagged with iedge so there is
-    // nothing to clear between ridges. Not cfa2tag: that one is sized by
-    // CAD.ncadfa, which is 0 without a CAD model, and this walk is topological.
+    // Ref last seen around the ridge, tagged with iedge so there's nothing to clear.
+    // Not cfa2tag: sized by CAD.ncadfa, zero without CAD; this walk is topological.
     intWrkAr1 ref2edg_ = get_iwork(nref);
     intAr1 &ref2edg = ref2edg_.get_array();
     ref2edg.set_n(nref);
@@ -375,10 +374,8 @@ void MeshBase::initialize(MetrisAPI *data,
       int ifac2 = fac2fac(ifac1, ied1);
       if(ifac2 == -1) continue; // Ridge with a single triangle: open boundary.
 
-      // A ref carried by two triangles of the ridge sits on both its sides, so
-      // its points get two normals. Manifold ridges are just the two fac2fac
-      // gives; non-manifold ones store -(next + 2) there and cycle, so tag each
-      // ref with iedge while walking and catch the second visit.
+      // A ref on two triangles of the ridge is on both its sides: two normals.
+      // Non-manifold fac2fac holds -(next + 2) and cycles: tag, catch the 2nd visit.
       if(ifac2 >= 0){
         if(fac2ref[ifac2] != iref1) continue;
         if(!isperiodic_face[iref1]) CPRINTF1(" # face ref {} is periodic along edge ref {}\n", iref1, edg2ref[iedge]);
@@ -1106,11 +1103,8 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
       // The link created in edg2bpo is temporary: if the point turns out 
       // not to be a corner then there is no need to keep the link. 
       // It will be deleted in iniMeshBdryPoints. 
-      // In refine convention iedge is the negated CAD ref, not a mesh edge: it is
-      // stored as is and resolved to an entity in iniMeshBdryPoints. getveredg
-      // would index edg2poi with it, and newbpotopo0 only reads the
-      // Vertex/CtrlPt nature when the entry is non-negative, so there is nothing
-      // to classify here.
+      // In refine convention iedge is the negated ref, resolved in iniMeshBdryPoints.
+      // Nothing to classify: newbpotopo0 only reads Vertex/CtrlPt if the entry is >= 0.
       int ibpoi;
       if(param->refineConventionsInp){
         ibpoi = newbpotopo(Vertex{ipoin},1,iedge);
