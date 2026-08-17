@@ -1,7 +1,7 @@
-// Metris: high-order metric-based non-manifold tetrahedral remesher
-// Copyright (C) 2023-2025, Massachusetts Institute of Technology
-// Licensed under The GNU Lesser General Public License, version 2.1
-// See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
+//Metris: high-order metric-based non-manifold tetrahedral remesher
+//Copyright (C) 2023-2025, Massachusetts Institute of Technology
+//Licensed under The GNU Lesser General Public License, version 2.1
+//See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 #include "EdgeSeed.hxx"
 #include "insert_errors.hxx"
@@ -18,15 +18,8 @@ namespace Metris {
 
 class MshCavity;
 
-EdgeSeed::EdgeSeed(MeshBase& msh,
-        MshCavity& cav_,
-        int tdim_adp_,
-        int tdim_ent,
-        int ientt,
-        int iedl,
-        bool icollapse,
-        int ithrd)
-    : tdim_adp(tdim_adp_), cav(cav_) {
+EdgeSeed::EdgeSeed(MeshBase& msh, MshCavity& cav_, int tdim_adp_, int tdim_ent, int ientt, int iedl, bool icollapse, int ithrd) : tdim_adp(tdim_adp_), cav(cav_) {
+    
     ierro = 0;
     obj = NULL;
     tdimp = -1;
