@@ -90,95 +90,79 @@ bool cavity_target_average_global_filter_accepts(
     double global_current,
     double global_trial,
     double global_best,
-    double old_region_target_weight,
-    double new_region_target_weight,
-    double global_target_weight,
+    double old_region_unit_weight,
+    double new_region_unit_weight,
+    double global_unit_weight,
     double global_relative_tolerance,
     double global_gain_fraction){
-  METRIS_ENFORCE(global_relative_tolerance >= 0.);
-  METRIS_ENFORCE(global_gain_fraction >= 0.);
-  METRIS_ENFORCE(old_region_target_weight > 0.);
-  METRIS_ENFORCE(new_region_target_weight > 0.);
-  METRIS_ENFORCE(global_target_weight > 0.);
-  METRIS_ENFORCE(local_new < local_old);
-
-  if(global_trial <= global_current) return true;
-
-  const double effective_best = std::isfinite(global_best)
-                              ? global_best : global_current;
-  const bool inside_best_envelope =
-      global_trial <= (1. + global_relative_tolerance)*effective_best;
-  const double mesh_scaled_local_gain =
-      std::min(old_region_target_weight,new_region_target_weight)
-      /global_target_weight*(local_old-local_new);
-  const bool inside_gain_budget =
-      global_trial-global_current
-      <= global_gain_fraction*mesh_scaled_local_gain;
-  return inside_best_envelope && inside_gain_budget;
+  (void)local_old;
+  (void)local_new;
+  (void)global_best;
+  (void)old_region_unit_weight;
+  (void)new_region_unit_weight;
+  (void)global_unit_weight;
+  (void)global_relative_tolerance;
+  (void)global_gain_fraction;
+  return objective_strictly_improves(global_trial,global_current);
 }
 
 double StepDistanceObjectiveState::value() const{
   return step_distance_region_objective(
-      numerator,target_weight,true);
+      numerator,element_count,true);
 }
 
 double StepDistanceObjectiveState::region_value(
     double region_numerator,
     int region_element_count,
-    double region_target_weight) const{
+    double region_unit_weight) const{
+  (void)region_unit_weight;
   return step_distance_region_objective(
-      region_numerator,region_target_weight,true);
+      region_numerator,region_element_count,true);
 }
 
 double StepDistanceObjectiveState::replaced_value(
     double old_region_numerator,
     int old_region_element_count,
-    double old_region_target_weight,
+    double old_region_unit_weight,
     double new_region_numerator,
     int new_region_element_count,
-    double new_region_target_weight) const{
+    double new_region_unit_weight) const{
+  (void)old_region_unit_weight;
+  (void)new_region_unit_weight;
   return step_distance_replaced_region_objective(
       numerator,old_region_numerator,new_region_numerator,
-      target_weight,old_region_target_weight,new_region_target_weight);
+      element_count,old_region_element_count,new_region_element_count);
 }
 
 bool StepDistanceObjectiveState::accepts_replacement(
     double old_region_numerator,
     int old_region_element_count,
-    double old_region_target_weight,
+    double old_region_unit_weight,
     double new_region_numerator,
     int new_region_element_count,
-    double new_region_target_weight,
+    double new_region_unit_weight,
     double relative_improvement) const{
-  const double local_old = region_value(
-      old_region_numerator,old_region_element_count,old_region_target_weight);
-  const double local_new = region_value(
-      new_region_numerator,new_region_element_count,new_region_target_weight);
-  if(!objective_strictly_improves(
-         local_new,local_old,relative_improvement)) return false;
-
   const double global_old = value();
   const double global_new = replaced_value(
-      old_region_numerator,old_region_element_count,old_region_target_weight,
-      new_region_numerator,new_region_element_count,new_region_target_weight);
-  return cavity_target_average_global_filter_accepts(
-      local_old,local_new,global_old,global_new,best_objective,
-      old_region_target_weight,new_region_target_weight,target_weight,
-      cavity_global_relative_tolerance,cavity_global_gain_fraction);
+      old_region_numerator,old_region_element_count,old_region_unit_weight,
+      new_region_numerator,new_region_element_count,new_region_unit_weight);
+  return objective_strictly_improves(
+      global_new,global_old,relative_improvement);
 }
 
 void StepDistanceObjectiveState::replace(
     double old_region_numerator,
     int old_region_element_count,
-    double old_region_target_weight,
+    double old_region_unit_weight,
     double new_region_numerator,
     int new_region_element_count,
-    double new_region_target_weight){
+    double new_region_unit_weight){
+  (void)old_region_unit_weight;
+  (void)new_region_unit_weight;
   numerator += new_region_numerator - old_region_numerator;
   element_count += new_region_element_count - old_region_element_count;
-  target_weight += new_region_target_weight - old_region_target_weight;
   METRIS_ENFORCE(element_count > 0);
-  METRIS_ENFORCE(target_weight > 0.);
+  target_weight = element_count;
   best_objective = std::min(best_objective,value());
   if(best_objective_storage != nullptr){
     *best_objective_storage = std::min(*best_objective_storage,best_objective);
@@ -186,41 +170,40 @@ void StepDistanceObjectiveState::replace(
 }
 
 double step_distance_region_objective(double elemental_sum,
-                                      double target_weight_sum,
+                                      double element_count,
                                       bool cavity_target_average){
   if(cavity_target_average){
-    METRIS_ENFORCE_MSG(target_weight_sum > 0.0,
-                       "Nonpositive StepDistance cavity target weight");
-    return elemental_sum/target_weight_sum;
+    METRIS_ENFORCE_MSG(element_count > 0,
+                       "Nonpositive StepDistance element count");
+    return elemental_sum/element_count;
   }
   return elemental_sum;
 }
 
 double step_distance_region_contribution(double element_value,
-                                         double target_weight,
+                                         double unit_weight,
                                          bool cavity_target_average){
-  if(!cavity_target_average) return element_value;
-  METRIS_ENFORCE_MSG(target_weight > 0.0,
-                     "Nonpositive StepDistance element target weight");
-  return target_weight*element_value;
+  (void)unit_weight;
+  (void)cavity_target_average;
+  return element_value;
 }
 
 double step_distance_replaced_region_objective(
     double global_elemental_sum,
     double old_region_elemental_sum,
     double new_region_elemental_sum,
-    double global_target_weight_sum,
-    double old_region_target_weight_sum,
-    double new_region_target_weight_sum){
-  const double new_global_target_weight =
-      global_target_weight_sum - old_region_target_weight_sum
-      + new_region_target_weight_sum;
-  METRIS_ENFORCE_MSG(new_global_target_weight > 0.0,
-                     "Nonpositive replaced StepDistance target weight");
+    double global_element_count,
+    double old_region_element_count,
+    double new_region_element_count){
+  const double new_global_element_count =
+      global_element_count - old_region_element_count
+      + new_region_element_count;
+  METRIS_ENFORCE_MSG(new_global_element_count > 0,
+                     "Nonpositive replaced StepDistance element count");
   const double new_global_sum =
       global_elemental_sum - old_region_elemental_sum
       + new_region_elemental_sum;
-  return new_global_sum/new_global_target_weight;
+  return new_global_sum/new_global_element_count;
 }
 
 template<typename T>

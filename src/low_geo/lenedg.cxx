@@ -221,14 +221,19 @@ double getlenedg_geosz(const MeshMetric<MetricFieldType> &msh,const int *edg2pol
     //         dblAr1(gdim,tang), sz[0], sz[1]);
   }
 
-  if(abs(sz[1]) < Defaults::ltol) return 0;
+  if(!(sz[0] > 0.0) || !(sz[1] > 0.0)) return 0;
 
-  double a = sz[0]/sz[1];
-  double len = -1;
-  if(abs(a-1.0) < 1.0e-12){
-    len = sz[1];
+  // Logarithmic mean of the two endpoint metric sizes.  Forming sz[0]/sz[1]
+  // first can overflow or underflow for strongly graded analytical metrics,
+  // while treating a small positive endpoint size as zero incorrectly gives
+  // a zero edge length.  This equivalent form remains valid across the full
+  // positive floating-point range.
+  const double log_ratio = log(sz[0]) - log(sz[1]);
+  double len;
+  if(abs(log_ratio) < 1.0e-12){
+    len = 0.5 * (sz[0] + sz[1]);
   }else{
-    len = sz[1] * (a-1.0)/log(a);
+    len = (sz[0] - sz[1]) / log_ratio;
   }
 
   return len;

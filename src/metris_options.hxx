@@ -120,15 +120,16 @@ struct MetrisOptions{
                     "This path uses the frozen geometric volume factor and "
                     "does not use the collapse barrier.")
       ("step-distance-cavity-target-average",
-                    "Use a cavity-level StepDistance average with the combined "
-                    "mesh-metric and target-metric volume density. This path "
+                    "Use the arithmetic mean of unweighted reference-space "
+                    "elemental StepDistance integrals. Cavity replacements "
+                    "must strictly improve the mesh-wide mean. This path "
                     "does not use the collapse barrier.")
       ("step-distance-cavity-global-tolerance", po::value<double>(),
-                    "Relative best-so-far global objective envelope allowed "
-                    "for a locally improving cavity-target replacement.")
+                    "Deprecated compatibility option; ignored by the strict "
+                    "global-improvement CavityTargetAverage criterion.")
       ("step-distance-cavity-global-gain-fraction", po::value<double>(),
-                    "Maximum global worsening as a fraction of the "
-                    "mesh-scaled local cavity-target improvement.")
+                    "Deprecated compatibility option; ignored by the strict "
+                    "global-improvement CavityTargetAverage criterion.")
       ("step-distance-barrier-rho0", po::value<double>(),
                     "Metric-volume threshold rho0 for the StepDistance collapse barrier.")
       ("step-distance-barrier-beta", po::value<double>(),

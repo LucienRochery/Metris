@@ -33,9 +33,8 @@ ftype metqua(Mesh<MetricFieldType> &msh,
              AsDeg asdmsh, AsDeg asdmet,
              int ielem, ftype difto = 1);
 
-// P1 reference-element integral of sqrt(det(M^*)). This is the denominator
-// associated with the combined sqrt(det(M_K))*sqrt(det(M^*)) physical weight,
-// after sqrt(det(M_K))*|det(J_K)| cancels pointwise.
+// Unit aggregation weight for the historical CavityTargetAverage plumbing.
+// The restored formulation is averaged by element count, not target volume.
 template <class MetricFieldType, int gdim, int tdim>
 double step_distance_element_target_weight(Mesh<MetricFieldType> &msh,
                                            AsDeg asdmet,

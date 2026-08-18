@@ -433,7 +433,8 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
             acceptedNewNumerator,acceptedNewTargetWeight,
             iquaf == QuaFun::StepDistance
                 && msh.param->step_distance_cavity_target_average);
-        if(!objective_strictly_improves(objectiveNew,objectiveOld)){
+        if(globalObjective == nullptr
+           && !objective_strictly_improves(objectiveNew,objectiveOld)){
           skipswap = true;
         }
         if(!skipswap && globalObjective != nullptr
@@ -647,7 +648,8 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
               msh.param->step_distance_cavity_target_average);
         }
       }
-      if (!objective_strictly_improves(qtetsum1,qtetsum0)) skipswap = true;
+      if(globalObjective == nullptr
+         && !objective_strictly_improves(qtetsum1,qtetsum0)) skipswap = true;
       if(!skipswap && globalObjective != nullptr
          && !globalObjective->accepts_replacement(
               acceptedOldNumerator,acceptedOldCount,

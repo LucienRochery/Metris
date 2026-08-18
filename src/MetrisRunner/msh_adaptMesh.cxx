@@ -66,8 +66,20 @@ void MetrisRunner::adaptMesh2(){
     CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh_g->curdeg == ideg){
       #ifdef TESTQUALITYALGO
       if(this->metricFE){
-        adaptMeshQuality0<MetricFieldFE        ,gdim,ideg>(msh_g->get_tdim());
+        Mesh<MetricFieldFE>& msh =
+            static_cast<Mesh<MetricFieldFE>&>(*msh_g);
+        if(msh.CAD() && param->adp_line_adapt && !objectiveLineAdapted){
+          adaptGeoLines<MetricFieldFE>(msh);
+          objectiveLineAdapted = true;
+        }
+        adaptMeshQuality0<MetricFieldFE,gdim,ideg>(msh_g->get_tdim());
       }else{
+        Mesh<MetricFieldAnalytical>& msh =
+            static_cast<Mesh<MetricFieldAnalytical>&>(*msh_g);
+        if(msh.CAD() && param->adp_line_adapt && !objectiveLineAdapted){
+          adaptGeoLines<MetricFieldAnalytical>(msh);
+          objectiveLineAdapted = true;
+        }
         adaptMeshQuality0<MetricFieldAnalytical,gdim,ideg>(msh_g->get_tdim());
       }
       #else

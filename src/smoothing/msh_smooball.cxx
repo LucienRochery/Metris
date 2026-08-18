@@ -735,8 +735,8 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
     globalStepDistance.cavity_global_gain_fraction =
         msh.param->step_distance_cavity_global_gain_fraction;
     globalStepDistance.element_count = handler.getQualityCount();
-    globalStepDistance.numerator = handler.getWeightedQualitySum();
-    globalStepDistance.target_weight = handler.getObjectiveWeightSum();
+    globalStepDistance.numerator = handler.getQualitySum();
+    globalStepDistance.target_weight = handler.getQualityCount();
     globalStepDistance.best_objective = handler.getBestWeightedObjective();
     globalStepDistance.best_objective_storage =
         &msh.param->step_distance_cavity_best_objective;

@@ -16,6 +16,8 @@ namespace Metris{
 template<int nvar>
 struct newton_drivertype_args{
   double xtol, stpmin, wlfc1, wlfc2, ratnew, ftol;
+  // Optional spherical trust region. A non-positive radius disables it.
+  double trust_radius, trust_center[nvar];
   int niter, maxit, isym;
   int iwork[3];
   double rwork[4 + nvar*10];
@@ -34,6 +36,8 @@ struct newton_drivertype_args{
     wlfc2  = 10.0;
     ratnew = 0.5;
     ftol   = -1;
+    trust_radius = -1.;
+    for(int ii = 0; ii < nvar; ii++) trust_center[ii] = 0.;
 
     niter = 0;
     maxit = 50;

@@ -302,8 +302,8 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("adp-unit-stop")){
     adp_unit_stop = opt.m["adp-unit-stop"].as<double>();
   }
-  if(opt.count("adp-stat-stop")){
-    adp_stagn_stop = opt.m["adp-stat-stop"].as<double>();
+  if(opt.count("adp-stagn-stop")){
+    adp_stagn_stop = opt.m["adp-stagn-stop"].as<double>();
   }
   if(opt.count("adp-smoo-len")){
     adp_smoo_len = true;

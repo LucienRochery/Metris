@@ -11,7 +11,7 @@
 
 // #define OUTPUTTIMEANDUNITINFO
 
-#define TESTQUALITYALGO     // enable size aware quality-based algorithm
+// #define TESTQUALITYALGO     // enable size aware quality-based algorithm
 
 #ifdef TESTQUALITYALGO
 

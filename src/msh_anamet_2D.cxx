@@ -317,8 +317,9 @@ void anamet2D_7([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 // h2 = AR * h1
 void anamet2D_8([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
-  const double epsilon = 0.1;
-  const double beta = 1.;
+  // Parameters for the P1 analytical boundary-layer experiment.
+  const double epsilon = 0.085;
+  const double beta = 4.;
   const int p = 1;
 
   const double delta = epsilon * (p + 3./2.) * (1. - 1./(4.*p*p + 12.*p + 9.));

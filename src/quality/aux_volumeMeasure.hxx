@@ -76,26 +76,6 @@ void sym_packed_to_full(const T* met, T* M){
   }
 }
 
-// Target-metric volume density relative to the Cartesian background measure:
-//
-//   mu_* = sqrt(det(M^*)).
-//
-// CavityTargetAverage uses this after cancelling the constant geometric
-// Jacobian factor between the elemental numerator and denominator. Keeping
-// this operation separate makes that P1-only cancellation explicit; a future
-// high-order path can instead accumulate the complete, point-dependent
-// target-volume factor theta at each quadrature point.
-template<int gdim, typename T>
-T eval_target_metric_volume_density(const T*__restrict__ met){
-  T M[gdim*gdim];
-  sym_packed_to_full<gdim,T>(met,M);
-
-  const T detM = det_full<gdim,T>(M);
-  METRIS_ENFORCE(get_val(detM) > 0.0);
-  return sqrt(detM);
-}
-
-
 // -----------------------------------------------------------------------------
 // Frozen-metric theta:
 //

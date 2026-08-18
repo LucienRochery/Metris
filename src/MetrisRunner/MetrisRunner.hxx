@@ -122,6 +122,7 @@ private:
   void set_array_debugids();
 
   int nbpo0;
+  bool objectiveLineAdapted = false;
 
   std::fstream foutputAdaptStats;
 

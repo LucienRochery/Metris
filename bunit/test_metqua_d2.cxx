@@ -719,9 +719,9 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_objective_derivatives)
     }
   }
 
-  // Exercise the P1 target-volume normalized element value used by
-  // CavityTargetAverage with nonuniform target densities. The metric samples
-  // and their normalized weights are frozen in the derivative model.
+  // Exercise the restored CavityTargetAverage formulation with nonuniform
+  // target densities. In reference space theta is one, so every quadrature
+  // point has only its quadrature weight.
   msh.met(0,0) = 1.0; msh.met(0,1) = 0.0; msh.met(0,2) = 1.0;
   msh.met(1,0) = 4.0; msh.met(1,1) = 0.0; msh.met(1,2) = 1.0;
   msh.met(2,0) = 1.0; msh.met(2,1) = 0.0; msh.met(2,2) = 9.0;
@@ -739,8 +739,7 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_objective_derivatives)
   constexpr auto pointwise_step_distance =
       get_quafun_xi<MetricFieldFE,gdim,tdim,
                     QuaFun::StepDistance,double>();
-  double expected_numerator = 0.0;
-  double expected_denominator = 0.0;
+  double expected_reference_integral = 0.0;
   for(int iquad = 0; iquad < tdim + 2; iquad++){
     double bary[tdim + 1] = {};
     if(iquad < tdim + 1){
@@ -761,17 +760,13 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_objective_derivatives)
                          met,NULL);
     }
 
-    const double target_density =
-        VolumeMeasureHelpers::eval_target_metric_volume_density<
-            gdim,double>(met);
     const double phi = pointwise_step_distance(
         msh,AsDeg::P1,AsDeg::P1,msh.fac2poi[0],bary,met);
-    expected_numerator += target_density*phi;
-    expected_denominator += target_density;
+    expected_reference_integral += phi/(tdim + 2);
   }
   BOOST_CHECK_CLOSE_FRACTION(
       value_target_average,
-      expected_numerator/expected_denominator,
+      expected_reference_integral,
       2.e-14);
 
   BOOST_CHECK_SMALL(
@@ -832,66 +827,53 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_objective_derivatives)
   const int old_cavity_count = 2;
   const int new_cavity_count = 3;
 
-  // Improving the cavity ratio alone does not imply improvement of the full
-  // mesh ratio when the replacement changes the target-weight denominator.
-  const double old_weighted_cavity_sum = 2.0;
-  const double old_cavity_weight = 2.0;
-  const double new_weighted_cavity_sum = 2.7;
-  const double new_cavity_weight = 3.0;
-  BOOST_TEST(new_weighted_cavity_sum/new_cavity_weight
-             < old_weighted_cavity_sum/old_cavity_weight);
-  const double new_weighted_global_objective =
+  // Local improvement can still worsen the mesh-wide mean when the operation
+  // changes the number of elements; that replacement must be rejected.
+  const double old_cavity_sum = 2.0;
+  const double new_cavity_sum = 2.7;
+  BOOST_TEST(new_cavity_sum/new_cavity_count
+             < old_cavity_sum/old_cavity_count);
+  const double worsening_global_objective =
       step_distance_replaced_region_objective(
-          global_sum,old_weighted_cavity_sum,new_weighted_cavity_sum,
-          10.0,old_cavity_weight,new_cavity_weight);
-  BOOST_TEST(new_weighted_global_objective
+          global_sum,old_cavity_sum,new_cavity_sum,
+          global_count,old_cavity_count,new_cavity_count);
+  BOOST_TEST(worsening_global_objective
              > global_sum/10.0);
   BOOST_CHECK_CLOSE_FRACTION(
-      new_weighted_global_objective,5.7/11.0,1.e-15);
+      worsening_global_objective,5.7/11.0,1.e-15);
 
   StepDistanceObjectiveState cavity_average_state;
   cavity_average_state.numerator = global_sum;
   cavity_average_state.element_count = global_count;
-  cavity_average_state.target_weight = 10.;
-  cavity_average_state.best_objective = global_sum/10.;
-  cavity_average_state.cavity_global_relative_tolerance = 1.e-6;
-  cavity_average_state.cavity_global_gain_fraction = 0.05;
+  cavity_average_state.target_weight = global_count;
 
-  // A substantial global worsening is rejected despite local improvement.
+  // Global worsening is rejected despite local improvement.
   BOOST_CHECK(!cavity_average_state.accepts_replacement(
-      old_weighted_cavity_sum,old_cavity_count,old_cavity_weight,
-      new_weighted_cavity_sum,new_cavity_count,new_cavity_weight));
+      old_cavity_sum,old_cavity_count,old_cavity_count,
+      new_cavity_sum,new_cavity_count,new_cavity_count));
 
-  // A tiny global worsening supported by a strong mesh-scaled local gain is
-  // accepted inside the best-so-far envelope.
-  const double filtered_cavity_sum = 2.500001;
-  BOOST_CHECK(cavity_average_state.accepts_replacement(
-      old_weighted_cavity_sum,old_cavity_count,old_cavity_weight,
-      filtered_cavity_sum,new_cavity_count,new_cavity_weight));
-
-  cavity_average_state.best_objective = 0.499;
-  BOOST_CHECK(!cavity_average_state.accepts_replacement(
-      old_weighted_cavity_sum,old_cavity_count,old_cavity_weight,
-      filtered_cavity_sum,new_cavity_count,new_cavity_weight));
-  cavity_average_state.best_objective = global_sum/10.;
-
+  // The former tolerance/gain filter cannot admit even a tiny worsening.
   BOOST_CHECK(!cavity_target_average_global_filter_accepts(
       1.0,0.999999,0.5,0.5000001,0.5,
       2.0,3.0,10.0,1.e-6,0.05));
 
-  // Local worsening never reaches the global filter.
-  BOOST_CHECK(!cavity_average_state.accepts_replacement(
-      old_weighted_cavity_sum,old_cavity_count,old_cavity_weight,
-      3.3,new_cavity_count,new_cavity_weight));
-
-  const double best_before_replace = cavity_average_state.best_objective;
+  // Conversely, a locally worsening replacement is accepted when the global
+  // element-count average improves.
+  const double locally_good_old_sum = 0.2;
+  const double locally_worse_new_sum = 0.45;
+  BOOST_TEST(locally_worse_new_sum/new_cavity_count
+             > locally_good_old_sum/old_cavity_count);
+  BOOST_CHECK(cavity_average_state.accepts_replacement(
+      locally_good_old_sum,old_cavity_count,old_cavity_count,
+      locally_worse_new_sum,new_cavity_count,new_cavity_count));
   cavity_average_state.replace(
-      old_weighted_cavity_sum,old_cavity_count,old_cavity_weight,
-      filtered_cavity_sum,new_cavity_count,new_cavity_weight);
-  BOOST_CHECK_EQUAL(cavity_average_state.best_objective,best_before_replace);
+      locally_good_old_sum,old_cavity_count,old_cavity_count,
+      locally_worse_new_sum,new_cavity_count,new_cavity_count);
+  BOOST_CHECK_EQUAL(cavity_average_state.element_count,11);
+  BOOST_CHECK_CLOSE_FRACTION(
+      cavity_average_state.value(),5.25/11.0,1.e-15);
 
-  // Cavity-level target average. Regional aggregation uses
-  // sum_K(D_K e_K)/sum_K(D_K).
+  // Cavity-level aggregation is the arithmetic mean over elements.
   msh.set_npoin(4);
   msh.set_nface(2);
   msh.coord(3,0) = 0.7; msh.coord(3,1) = 0.4;
@@ -905,7 +887,7 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_objective_derivatives)
   auto evaluate_cavity_target_average = [&](double* grad,
                                              double* hess){
     double numerator = 0.;
-    double denominator = 0.;
+    int element_count = 0;
     for(int iface = 0; iface < 2; iface++){
       double element_gradient[gdim] = {};
       double element_hessian[nhess] = {};
@@ -924,33 +906,30 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_objective_derivatives)
                 msh,AsDeg::P1,AsDeg::P1,iface,1.0);
       }
 
-      const double element_weight =
-          step_distance_element_target_weight<MetricFieldFE,gdim,tdim>(
-              msh,AsDeg::P1,iface);
       numerator += step_distance_region_contribution(
-          element_value,element_weight,true);
-      denominator += element_weight;
+          element_value,1.0,true);
+      element_count++;
 
       if(iface == 0 && grad != NULL){
         for(int i = 0; i < gdim; i++){
-          grad[i] = element_weight*element_gradient[i];
+          grad[i] = element_gradient[i];
         }
         if(hess != NULL){
           for(int i = 0; i < nhess; i++){
-            hess[i] = element_weight*element_hessian[i];
+            hess[i] = element_hessian[i];
           }
         }
       }
     }
 
     if(grad != NULL){
-      for(int i = 0; i < gdim; i++) grad[i] /= denominator;
+      for(int i = 0; i < gdim; i++) grad[i] /= element_count;
       if(hess != NULL){
-        for(int i = 0; i < nhess; i++) hess[i] /= denominator;
+        for(int i = 0; i < nhess; i++) hess[i] /= element_count;
       }
     }
     return step_distance_region_objective(
-        numerator,denominator,true);
+        numerator,element_count,true);
   };
 
   double cavity_gradient[gdim];
@@ -969,32 +948,10 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_objective_derivatives)
   const double element_value1 =
       metqua<MetricFieldFE,gdim,tdim,QuaFun::StepDistance,double>(
           msh,AsDeg::P1,AsDeg::P1,1,1.0);
-  const double element_weight0 =
-      step_distance_element_target_weight<MetricFieldFE,gdim,tdim>(
-          msh,AsDeg::P1,0);
-  const double element_weight1 =
-      step_distance_element_target_weight<MetricFieldFE,gdim,tdim>(
-          msh,AsDeg::P1,1);
   const double expected_cavity_value =
-      (element_weight0*element_value0 + element_weight1*element_value1)
-      /(element_weight0 + element_weight1);
+      (element_value0 + element_value1)/2.0;
   BOOST_CHECK_CLOSE_FRACTION(
       cavity_value,expected_cavity_value,2.e-14);
-
-  // Regression for cavity smoothing acceptance: a decreasing weighted
-  // numerator is not sufficient when the target-volume denominator changes.
-  // These are the values from the BL a0 cavity that originally triggered the
-  // post-smoothing assertion.
-  const double before_numerator = 2.13698184801736318e+02;
-  const double before_denominator = 2.24266627232477333e+02;
-  const double after_numerator = 2.13686305062136768e+02;
-  const double after_denominator = 2.24237408380270040e+02;
-  const double before_objective = step_distance_region_objective(
-      before_numerator,before_denominator,true);
-  const double after_objective = step_distance_region_objective(
-      after_numerator,after_denominator,true);
-  BOOST_CHECK(after_numerator < before_numerator);
-  BOOST_CHECK(after_objective > before_objective);
 
   for(int j = 0; j < gdim; j++){
     const double coordinate = msh.coord(ipoin,j);

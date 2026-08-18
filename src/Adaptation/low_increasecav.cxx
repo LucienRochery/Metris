@@ -38,12 +38,11 @@ double cavity_element_contribution(Mesh<MFT>& msh,
                                    double& target_weight_sum){
   if constexpr(iquaf == QuaFun::StepDistance){
     if(msh.param->step_distance_cavity_target_average){
-      const double target_weight =
-          step_distance_element_target_weight<MFT,gdim,tdim>(
-              msh,asdmet,ientt);
-      target_weight_sum += target_weight;
+      (void)asdmet;
+      (void)ientt;
+      target_weight_sum += 1.0;
       return step_distance_region_contribution(
-          element_value,target_weight,true);
+          element_value,1.0,true);
     }
   }
   return element_value;
@@ -54,9 +53,10 @@ double cavity_region_objective(const Mesh<MFT>& msh,
                                double elemental_sum,
                                int element_count,
                                double target_weight_sum = 0.0){
+  (void)target_weight_sum;
   if constexpr(iquaf == QuaFun::StepDistance){
     return step_distance_region_objective(
-        elemental_sum,target_weight_sum,
+        elemental_sum,element_count,
         msh.param->step_distance_cavity_target_average);
   }
   return elemental_sum;
@@ -84,11 +84,10 @@ void cavity_replacement_objectives(
   if constexpr(iquaf == QuaFun::StepDistance){
     if(msh.param->step_distance_cavity_target_average){
       old_global_objective = step_distance_region_objective(
-          handler.getWeightedQualitySum(),handler.getObjectiveWeightSum(),true);
+          handler.getQualitySum(),handler.getQualityCount(),true);
       new_global_objective = step_distance_replaced_region_objective(
-          handler.getWeightedQualitySum(),old_elemental_sum,new_elemental_sum,
-          handler.getObjectiveWeightSum(),old_target_weight_sum,
-          new_target_weight_sum);
+          handler.getQualitySum(),old_elemental_sum,new_elemental_sum,
+          handler.getQualityCount(),old_element_count,new_element_count);
       return;
     }
   }
@@ -114,7 +113,7 @@ bool cavity_replacement_global_filter_accepts(
           old_global_objective,new_global_objective,
           handler.getBestWeightedObjective(),
           old_target_weight_sum,new_target_weight_sum,
-          handler.getObjectiveWeightSum(),
+          handler.getQualityCount(),
           msh.param->step_distance_cavity_global_tolerance,
           msh.param->step_distance_cavity_global_gain_fraction);
     }
@@ -2414,7 +2413,18 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
   #ifdef CAVGROWTH
 
-  #ifdef CAVSMOOTHING
+  bool useGlobalCavityGrowth = false;
+  if constexpr(iquaf == QuaFun::StepDistance){
+    useGlobalCavityGrowth =
+        msh.param->step_distance_cavity_target_average;
+  }
+  StepDistanceObjectiveState cavityGrowthObjective;
+
+  // The growth probe normally compares only the patch changed by adding one
+  // outside neighbor. CavityTargetAverage is different because its arithmetic
+  // mean changes denominator when the reconnection changes the element count.
+  // Build the current tentative reconnection once, then maintain its global
+  // numerator/count with each accepted local replacement.
   double quaCav1BeforeGrowth = 0.;
   double quaMax1BeforeGrowth = -1.;
   double targetWeightBeforeGrowth = 0.;
@@ -2494,6 +2504,34 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
     }
   }
 
+  if(useGlobalCavityGrowth){
+    double quaCav0BeforeGrowth = 0.;
+    int nQuaCav0BeforeGrowth = 0;
+    for(const int ienttCav : lcent){
+      double qua;
+      if(tdim == 2){
+        qua = metqua<MFT,2,2,iquaf>(
+            msh,AsDeg::P1,AsDeg::P1,ienttCav,difto);
+      }else{
+        qua = metqua<MFT,3,3,iquaf>(
+            msh,AsDeg::P1,AsDeg::P1,ienttCav,difto);
+      }
+      quaCav0BeforeGrowth += qua;
+      nQuaCav0BeforeGrowth++;
+    }
+
+    cavityGrowthObjective.numerator =
+        handler.getQualitySum()
+        - quaCav0BeforeGrowth + quaCav1BeforeGrowth;
+    cavityGrowthObjective.element_count =
+        handler.getQualityCount()
+        - nQuaCav0BeforeGrowth + nQuaBeforeGrowth;
+    METRIS_ENFORCE(cavityGrowthObjective.element_count > 0);
+    cavityGrowthObjective.target_weight =
+        cavityGrowthObjective.element_count;
+  }
+
+  #ifdef CAVSMOOTHING
   double quaCav1AfterInitialSmoo;
   double quaMax1AfterInitialSmoo;
   double targetWeightAfterInitialSmoo;
@@ -2515,6 +2553,14 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   METRIS_ENFORCE_MSG(
       objCav1AfterInitialSmoo <= objCav1BeforeInitialSmoo,
       "Initial cavity smoothing worsen quality!");
+
+  if(useGlobalCavityGrowth){
+    cavityGrowthObjective.numerator +=
+        quaCav1AfterInitialSmoo - quaCav1BeforeGrowth;
+  }
+  quaCav1BeforeGrowth = quaCav1AfterInitialSmoo;
+  quaMax1BeforeGrowth = quaMax1AfterInitialSmoo;
+  targetWeightBeforeGrowth = targetWeightAfterInitialSmoo;
   #endif
 
   int icen0 = 0, icen1 = lcent.get_n();
@@ -2714,19 +2760,36 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
               cavity_region_objective<iquaf>(
                   msh,quaLocal,nQuaLocal,targetWeightLocal);
 
-          bool improveLocalSum = objLocalReconnect <= objLocal;
+          double candidateGlobalNumerator = cavityGrowthObjective.numerator;
+          int candidateGlobalElementCount =
+              cavityGrowthObjective.element_count;
+          double objGrowthCurrent = objLocal;
+          double objGrowthCandidate = objLocalReconnect;
+          bool improveGrowthSum = objLocalReconnect <= objLocal;
+          if(useGlobalCavityGrowth){
+            candidateGlobalNumerator +=
+                quaLocalReconnect - quaLocal;
+            candidateGlobalElementCount +=
+                nQuaLocalReconnect - nQuaLocal;
+            METRIS_ENFORCE(candidateGlobalElementCount > 0);
+            objGrowthCurrent = cavityGrowthObjective.value();
+            objGrowthCandidate = step_distance_region_objective(
+                candidateGlobalNumerator,candidateGlobalElementCount,true);
+            improveGrowthSum = objective_strictly_improves(
+                objGrowthCandidate,objGrowthCurrent);
+          }
           bool improveLocalMax = true;
           #ifdef IMPROVEMAXQUAL
           improveLocalMax = quaMaxLocalReconnect <= quaMaxLocal;
           #endif
 
           const double nearMissRel = 5.0e-1;
-          bool nearMissLocalSum =
-              objLocalReconnect <= (1.0 + nearMissRel)*objLocal;
-          bool acceptCandidate = improveLocalSum && improveLocalMax;
+          bool nearMissGrowthSum =
+              objGrowthCandidate <= (1.0 + nearMissRel)*objGrowthCurrent;
+          bool acceptCandidate = improveGrowthSum && improveLocalMax;
 
           #ifdef CAVSMOOTHING
-          if (!acceptCandidate && nearMissLocalSum && improveLocalMax){
+          if (!acceptCandidate && nearMissGrowthSum && improveLocalMax){
 
             double coor0[3] = {};
             double met0[6] = {};
@@ -2763,6 +2826,8 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
                                                 targetWeightNear0,
                                                 targetWeightNear1);
             if(validNear){
+              const double quaNear1BeforeSmoo = quaNear1;
+              const int nQuaNear1BeforeSmoo = nQuaNear1;
               double quaNearAfterSmoo;
               double quaMaxNearAfterSmoo;
               double targetWeightNearAfterSmoo;
@@ -2774,7 +2839,7 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
               retagCavity();
               targetWeightNear1 = targetWeightNearAfterSmoo;
 
-              if(msh.param->step_distance_cavity_target_average){
+              if(useGlobalCavityGrowth){
                 validNear = getCavityQuality2D(
                     quaNear0,quaNearAfterSmoo,
                     quaMaxNear0,quaMaxNearAfterSmoo,
@@ -2782,22 +2847,45 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
                     targetWeightNear0,targetWeightNear1);
               }
 
-              const double objNearAfterSmoo =
-                  cavity_region_objective<iquaf>(
-                      msh,quaNearAfterSmoo,nQuaNear1,targetWeightNear1);
-              const double objNear0 =
-                  cavity_region_objective<iquaf>(
-                      msh,quaNear0,nQuaNear0,targetWeightNear0);
-              bool improveNearSum =
-                  handler.checkSuccess(objNearAfterSmoo,objNear0);
-              bool improveNearMax = true;
-              #ifdef IMPROVEMAXQUAL
-              improveNearMax = quaMaxNearAfterSmoo <= quaMaxNear0;
-              #endif
+              if(validNear){
+                const double objNearAfterSmoo =
+                    cavity_region_objective<iquaf>(
+                        msh,quaNearAfterSmoo,nQuaNear1,
+                        targetWeightNear1);
+                const double objNear0 =
+                    cavity_region_objective<iquaf>(
+                        msh,quaNear0,nQuaNear0,targetWeightNear0);
+                bool improveNearSum;
+                if(useGlobalCavityGrowth){
+                  candidateGlobalNumerator +=
+                      quaNearAfterSmoo - quaNear1BeforeSmoo;
+                  candidateGlobalElementCount +=
+                      nQuaNear1 - nQuaNear1BeforeSmoo;
+                  METRIS_ENFORCE(candidateGlobalElementCount > 0);
+                  objGrowthCurrent = cavityGrowthObjective.value();
+                  objGrowthCandidate = step_distance_region_objective(
+                      candidateGlobalNumerator,
+                      candidateGlobalElementCount,true);
+                  improveNearSum = objective_strictly_improves(
+                      objGrowthCandidate,objGrowthCurrent);
+                }else{
+                  objGrowthCurrent = objNear0;
+                  objGrowthCandidate = objNearAfterSmoo;
+                  improveNearSum =
+                      handler.checkSuccess(objNearAfterSmoo,objNear0);
+                }
+                bool improveNearMax = true;
+                #ifdef IMPROVEMAXQUAL
+                improveNearMax = quaMaxNearAfterSmoo <= quaMaxNear0;
+                #endif
 
-              acceptCandidate = improveNearSum && improveNearMax;
-              CPRINTF1(" - near miss smoothing dim {} ieneijj {} qsum {} -> {} accepted {}\n",
-                       tdim,ieneijj,quaNear0,quaNearAfterSmoo,acceptCandidate);
+                acceptCandidate = improveNearSum && improveNearMax;
+                CPRINTF1(" - near miss smoothing dim {} ieneijj {} objective {} -> {} accepted {}\n",
+                         tdim,ieneijj,objGrowthCurrent,
+                         objGrowthCandidate,acceptCandidate);
+              }else{
+                acceptCandidate = false;
+              }
             }
 
             if(!acceptCandidate){
@@ -2816,6 +2904,15 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
           #endif
 
           if (acceptCandidate){
+
+            if(useGlobalCavityGrowth){
+              cavityGrowthObjective.numerator =
+                  candidateGlobalNumerator;
+              cavityGrowthObjective.element_count =
+                  candidateGlobalElementCount;
+              cavityGrowthObjective.target_weight =
+                  candidateGlobalElementCount;
+            }
 
             // first thing: add outside element to cavity
             if(ent2tag(ithread,ieneijj) < msh.tag[ithread]){
@@ -3148,13 +3245,38 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
           const double objLocal =
               cavity_region_objective<iquaf>(
                   msh,quaLocal,nQuaLocal,targetWeightLocal);
-          bool improveLocalSum = objLocalReconnect <= objLocal;
+          double candidateGlobalNumerator = cavityGrowthObjective.numerator;
+          int candidateGlobalElementCount =
+              cavityGrowthObjective.element_count;
+          bool improveGrowthSum = objLocalReconnect <= objLocal;
+          if(useGlobalCavityGrowth){
+            candidateGlobalNumerator +=
+                quaLocalReconnect - quaLocal;
+            candidateGlobalElementCount +=
+                nQuaLocalReconnect - nQuaLocal;
+            METRIS_ENFORCE(candidateGlobalElementCount > 0);
+            const double objGrowthCandidate =
+                step_distance_region_objective(
+                    candidateGlobalNumerator,
+                    candidateGlobalElementCount,true);
+            improveGrowthSum = objective_strictly_improves(
+                objGrowthCandidate,cavityGrowthObjective.value());
+          }
           bool improveLocalMax = true;
           #ifdef IMPROVEMAXQUAL
           improveLocalMax = quaMaxLocalReconnect <= quaMaxLocal;
           #endif
 
-          if (improveLocalSum && improveLocalMax){
+          if (improveGrowthSum && improveLocalMax){
+
+            if(useGlobalCavityGrowth){
+              cavityGrowthObjective.numerator =
+                  candidateGlobalNumerator;
+              cavityGrowthObjective.element_count =
+                  candidateGlobalElementCount;
+              cavityGrowthObjective.target_weight =
+                  candidateGlobalElementCount;
+            }
 
             #ifdef DEBUGCAV
             std::cout << "      ADDING NEI = " << ieneijj << std::endl;
@@ -3373,6 +3495,25 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   }
   #endif
 
+  #if defined(CAVGROWTH) && !defined(NDEBUG)
+  if constexpr(iquaf == QuaFun::StepDistance){
+    if(msh.param->step_distance_cavity_target_average){
+      const double expectedGrowthNumerator =
+          handler.getQualitySum() - quaCav0 + quaCav1;
+      const int expectedGrowthElementCount =
+          handler.getQualityCount() - nQuaCav0 + nQuaCav1;
+      const double growthScale =
+          MAX(1.,std::abs(expectedGrowthNumerator));
+      METRIS_ASSERT(
+          std::abs(cavityGrowthObjective.numerator
+                   - expectedGrowthNumerator)
+          <= 1.e-11*growthScale);
+      METRIS_ASSERT(cavityGrowthObjective.element_count
+                    == expectedGrowthElementCount);
+    }
+  }
+  #endif
+
   #ifdef CAVSMOOTHING
   double quaCav1AfterSmoo;
   double quaMax1AfterSmoo;
@@ -3390,11 +3531,13 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   quaCav1 = quaCav1AfterSmoo;
   quaMax1 = quaMax1AfterSmoo;
   targetWeightCav1 = targetWeightCav1AfterSmoo;
-  if(tdim == 2 && msh.param->step_distance_cavity_target_average){
-    const bool validAfterSmoo = getCavityQuality2D(
-        quaCav0,quaCav1,quaMax0,quaMax1,
-        nQuaCav0,nQuaCav1,targetWeightCav0,targetWeightCav1);
-    METRIS_ENFORCE(validAfterSmoo);
+  if constexpr(iquaf == QuaFun::StepDistance){
+    if(tdim == 2 && msh.param->step_distance_cavity_target_average){
+      const bool validAfterSmoo = getCavityQuality2D(
+          quaCav0,quaCav1,quaMax0,quaMax1,
+          nQuaCav0,nQuaCav1,targetWeightCav0,targetWeightCav1);
+      METRIS_ENFORCE(validAfterSmoo);
+    }
   }
   const double objCav1AfterSmoo =
       cavity_region_objective<iquaf>(
@@ -3418,14 +3561,14 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
       targetWeightCav0,targetWeightCav1,
       objCav0,objCav1,objGlobal0,objGlobal1);
   CPRINTF2(" - replacement objective local {} -> {}, global {} -> {}; "
-           "numerator {} -> {}, target weight {} -> {}, elements {} -> {}\n",
+           "numerator {} -> {}, unit weight {} -> {}, elements {} -> {}\n",
            objCav0,objCav1,objGlobal0,objGlobal1,
            quaCav0,quaCav1,targetWeightCav0,targetWeightCav1,
            nQuaCav0,nQuaCav1);
-  bool improveEnttsSum = handler.checkSuccess(objCav1,objCav0)
-                      && cavity_replacement_global_filter_accepts<iquaf>(
-                          msh,handler,objCav0,objCav1,objGlobal0,objGlobal1,
-                          targetWeightCav0,targetWeightCav1);
+  const bool improveEnttsSum =
+      cavity_replacement_global_filter_accepts<iquaf>(
+          msh,handler,objCav0,objCav1,objGlobal0,objGlobal1,
+          targetWeightCav0,targetWeightCav1);
   bool improveEnttsMax = true;
   #ifdef IMPROVEMAXQUAL
   improveEnttsMax = quaMax1 <= quaMax0;
@@ -3732,19 +3875,18 @@ int checkCavityQuality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
       targetWeightCav0,targetWeightCav1,
       objCav0,objCav1,objGlobal0,objGlobal1);
   CPRINTF2(" - replacement objective local {} -> {}, global {} -> {}; "
-           "numerator {} -> {}, target weight {} -> {}, elements {} -> {}\n",
+           "numerator {} -> {}, unit weight {} -> {}, elements {} -> {}\n",
            objCav0,objCav1,objGlobal0,objGlobal1,
            quaCav0,quaCav1,targetWeightCav0,targetWeightCav1,
            nQuaCav0,nQuaCav1);
   // A committed topology change is always a descent step for its configured
   // acceptance objective. worsenPctg may be used while probing/growing a
-  // candidate cavity, but it must not relax the final test (otherwise an
-  // operation and its inverse can both be accepted). CavityTargetAverage uses
-  // local descent followed by its bounded best-so-far global filter.
+  // candidate cavity, but it must not relax the final test. For
+  // CavityTargetAverage, the configured objective is the mesh-wide arithmetic
+  // mean; no separate local descent condition is imposed.
   (void)worsenPctg;
   const bool cavAccepted =
-      handler.checkSuccess(objCav1,objCav0)
-      && cavity_replacement_global_filter_accepts<iquaf>(
+      cavity_replacement_global_filter_accepts<iquaf>(
           msh,handler,objCav0,objCav1,objGlobal0,objGlobal1,
           targetWeightCav0,targetWeightCav1);
 

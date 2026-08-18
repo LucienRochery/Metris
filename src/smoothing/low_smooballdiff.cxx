@@ -29,6 +29,7 @@ Simplest possible approach.
 
 #include <cstdlib>
 #include <fstream>
+#include <limits>
 
 namespace Metris{
 
@@ -1300,6 +1301,60 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
   for(int ii = 0; ii < idim; ii++) nargs.xopt[ii] = msh.coord(ipins,ii); // a backup in case no updates
   for(int ii = 0; ii < nnmet;ii++) met0[ii]  = msh.met(ipins,ii);
 
+  // Keep all smoothing trials in a ball contained in the cavity kernel.  Its
+  // radius is the distance from the initial insertion point to the nearest
+  // supporting line (2D) or plane (3D) of a cavity-boundary facet.  This is
+  // deliberately local: an ill-conditioned Hessian must not send an analytic
+  // metric evaluation far outside the cavity or its physical domain.
+  double kernelRadius = std::numeric_limits<double>::max();
+  for(const int ienttCav : lcent){
+    for(int jj = 0; jj < tdim + 1; jj++){
+      const int ienei = ent2ent(ienttCav,jj);
+      if(ienei >= 0 && ent2tag(ithread,ienei) >= msh.tag[ithread]) continue;
+
+      if constexpr (idim == 2){
+        const int ipoi0 = ent2poi(ienttCav,lnoed2[jj][0]);
+        const int ipoi1 = ent2poi(ienttCav,lnoed2[jj][1]);
+        if(ipoi0 == ipins || ipoi1 == ipins) continue;
+        const double edg0 = msh.coord(ipoi1,0) - msh.coord(ipoi0,0);
+        const double edg1 = msh.coord(ipoi1,1) - msh.coord(ipoi0,1);
+        const double edgeLength = sqrt(edg0*edg0 + edg1*edg1);
+        if(edgeLength <= 0.) continue;
+        const double rel0 = coor0[0] - msh.coord(ipoi0,0);
+        const double rel1 = coor0[1] - msh.coord(ipoi0,1);
+        const double distance = abs(edg0*rel1 - edg1*rel0)/edgeLength;
+        kernelRadius = MIN(kernelRadius,distance);
+      }else{
+        const int ipoi0 = ent2poi(ienttCav,lnofa3[jj][0]);
+        const int ipoi1 = ent2poi(ienttCav,lnofa3[jj][1]);
+        const int ipoi2 = ent2poi(ienttCav,lnofa3[jj][2]);
+        if(ipoi0 == ipins || ipoi1 == ipins || ipoi2 == ipins) continue;
+        double edge0[3], edge1[3], normal[3], rel[3];
+        for(int ii = 0; ii < 3; ii++){
+          edge0[ii] = msh.coord(ipoi1,ii) - msh.coord(ipoi0,ii);
+          edge1[ii] = msh.coord(ipoi2,ii) - msh.coord(ipoi0,ii);
+          rel[ii] = coor0[ii] - msh.coord(ipoi0,ii);
+        }
+        normal[0] = edge0[1]*edge1[2] - edge0[2]*edge1[1];
+        normal[1] = edge0[2]*edge1[0] - edge0[0]*edge1[2];
+        normal[2] = edge0[0]*edge1[1] - edge0[1]*edge1[0];
+        const double normalNorm = sqrt(normal[0]*normal[0]
+                                     + normal[1]*normal[1]
+                                     + normal[2]*normal[2]);
+        if(normalNorm <= 0.) continue;
+        const double distance = abs(normal[0]*rel[0]
+                                  + normal[1]*rel[1]
+                                  + normal[2]*rel[2])/normalNorm;
+        kernelRadius = MIN(kernelRadius,distance);
+      }
+    }
+  }
+  if(kernelRadius < std::numeric_limits<double>::max() && kernelRadius > 0.){
+    nargs.trust_radius = 0.9*kernelRadius;
+    for(int ii = 0; ii < idim; ii++) nargs.trust_center[ii] = coor0[ii];
+    CPRINTF2(" - cavity smoothing trust radius = {}\n",nargs.trust_radius);
+  }
+
   for(int niter1 = 0; niter1 < miter1; niter1++){
 
     for(int ii = 0; ii < idim; ii++) xcur[ii]  = msh.coord(ipins,ii);
@@ -1749,6 +1804,57 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
     range[1] = tmp;
   }
 
+  // The CAD edge range is generally much larger than the boundary portion
+  // removed by the cavity.  Restricting the optimization only to the former
+  // allows ipins to cross a cavity endpoint (or coincide with it), which makes
+  // one of the reconnected elements degenerate.
+  double localRange[2] = { std::numeric_limits<double>::max(),
+                          -std::numeric_limits<double>::max() };
+  int nLocalParameters = 0;
+  auto addEdgeParameters = [&](const int iedge){
+    if(iedge < 0 || msh.edg2ref[iedge] != irefins) return;
+    for(int iver = 0; iver < 2; iver++){
+      const int ipoin = msh.edg2poi(iedge,iver);
+      if(ipoin == ipins) continue;
+      const int ibpoi = msh.poi2ebp(ipoin,1,iedge,irefins);
+      if(ibpoi < 0) continue;
+      const double t = msh.bpo2rbi(ibpoi,0);
+      localRange[0] = MIN(localRange[0],t);
+      localRange[1] = MAX(localRange[1],t);
+      nLocalParameters++;
+    }
+  };
+
+  for(const int ienttCav : lcent){
+    for(int iedl = 0; iedl < 3; iedl++){
+      addEdgeParameters(msh.fac2edg(ienttCav,iedl));
+    }
+  }
+  // The insertion edge is also a reliable fallback when the cavity data no
+  // longer expose all of the original boundary edges.
+  if(nLocalParameters < 2) addEdgeParameters(iedins);
+
+  if(nLocalParameters < 2 || !(localRange[0] < localRange[1])){
+    CPRINTF1(" # could not determine local CAD interval for cavity smoothing\n");
+    return 1;
+  }
+
+  localRange[0] = MAX(localRange[0],range[0]);
+  localRange[1] = MIN(localRange[1],range[1]);
+  const double localSpan = localRange[1] - localRange[0];
+  const double localScale = MAX(1.0,MAX(std::abs(localRange[0]),
+                                       std::abs(localRange[1])));
+  const double endpointMargin = MAX(
+      std::sqrt(std::numeric_limits<double>::epsilon())*localSpan,
+      64.0*std::numeric_limits<double>::epsilon()*localScale);
+  range[0] = localRange[0] + endpointMargin;
+  range[1] = localRange[1] - endpointMargin;
+
+  if(!(range[0] < range[1])){
+    CPRINTF1(" # local CAD interval is too small for cavity smoothing\n");
+    return 1;
+  }
+
   int miter1 = MAX(1,msh.param->iflag1);
 
   const double ftol = 1.0e-2;
@@ -1772,6 +1878,10 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
 
   for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipins,ii);
   for(int ii = 0; ii < nnmet;ii++) met0[ii]  = msh.met(ipins,ii);
+  if(!(t0 > range[0] && t0 < range[1])){
+    CPRINTF1(" # insertion point lies outside the local CAD interval\n");
+    return 1;
+  }
   nargs.xopt[0] = t0;
 
   std::ofstream dbg;
@@ -1856,11 +1966,12 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
         break;
       }
 
-      const double ttol = 1.0e-12*MAX(1.0,range[1] - range[0]);
-      if(tcur[0] < range[0] - ttol || tcur[0] > range[1] + ttol){
+      if(tcur[0] <= range[0] || tcur[0] >= range[1]){
         fcur = 1.0e15;
         quaCav1 = fcur;
         quaMaxCav1 = fcur;
+        d1t[0] = 0.;
+        d2t[0] = 0.;
         if(dbg.good()){
           dbg << "  trial_out_of_range"
               << " tcur " << tcur[0]
@@ -1868,11 +1979,6 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
               << "\n";
         }
         continue;
-      }
-      if(tcur[0] < range[0]){
-        tcur[0] = range[0];
-      }else if(tcur[0] > range[1]){
-        tcur[0] = range[1];
       }
       msh.bpo2rbi(ibpoin,0) = tcur[0];
       egParam[0] = tcur[0];
@@ -1983,6 +2089,8 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
         fcur = 1e15;
         quaCav1 = fcur;
         quaMaxCav1 = 1e15;
+        d1t[0] = 0.;
+        d2t[0] = 0.;
         CPRINTF1("# invalid config -> continue");
         if(dbg.good()){
           dbg << "  trial_invalid"

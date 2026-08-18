@@ -375,6 +375,44 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
                       abs(args.rwork[2*nvar+5]));
     }
 
+    // Restrict the full Newton trial to the optional spherical trust region.
+    // Backtracking only shortens this direction, so all subsequent line-search
+    // trials remain in the region as well.
+    if(args.trust_radius > 0.){
+      double aa = 0.;
+      double bb = 0.;
+      double cc = -args.trust_radius*args.trust_radius;
+      for(int ii = 0; ii < nvar; ii++){
+        const double disp = xcur[ii] - args.trust_center[ii];
+        const double desc = args.rwork[2*nvar+3+ii];
+        aa += desc*desc;
+        bb += disp*desc;
+        cc += disp*disp;
+      }
+      if(aa > 0.){
+        const double discr = bb*bb - aa*cc;
+        if(discr <= 0.){
+          ierro = 1;
+          goto flag999;
+        }
+        const double step_bound = (-bb + sqrt(discr))/aa;
+        if(step_bound <= 0.){
+          ierro = 1;
+          goto flag999;
+        }
+        if(step_bound <= 1.){
+          const double step_scale = 0.99*step_bound;
+          for(int ii = 0; ii < nvar; ii++){
+            args.rwork[2*nvar+3+ii] *= step_scale;
+          }
+        }
+      }
+      gnorm = 0.;
+      for(int ii = 0; ii < nvar; ii++){
+        gnorm = MAX(gnorm,abs(args.rwork[2*nvar+3+ii]));
+      }
+    }
+
     if(args.niter == 1){
       CPRINTF1(" First dir norm {} \n",gnorm);
       args.rwork[10*nvar+4-1] = MAX(gnorm,1.0e-12);
@@ -1039,4 +1077,3 @@ int luksan_pnet_worksize(int n){
 
 
 } // End namespace
-
