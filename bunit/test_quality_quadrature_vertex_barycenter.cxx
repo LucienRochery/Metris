@@ -133,27 +133,37 @@ void check_vertex_barycenter_rule()
 }
 
 template <int tdim>
-void check_objective_order_zero_selects_vertex_barycenter()
+void check_same_rule(const SimplexQuadratureView<tdim> selected_rule,
+                     const SimplexQuadratureView<tdim> expected_rule)
 {
-  const SimplexQuadratureView<tdim> selected_rule
-      = get_objective_quadrature<tdim>(0);
-  const SimplexQuadratureView<tdim> historical_rule
-      = get_vertex_barycenter_quadrature<tdim>();
-
-  BOOST_TEST(selected_rule.size() == historical_rule.size());
-  for(int iquad = 0; iquad < historical_rule.size(); iquad++)
+  BOOST_TEST(selected_rule.size() == expected_rule.size());
+  for(int iquad = 0; iquad < expected_rule.size(); iquad++)
   {
     const SimplexQuadraturePointView<tdim> selected_point
         = selected_rule[iquad];
-    const SimplexQuadraturePointView<tdim> historical_point
-        = historical_rule[iquad];
-    BOOST_TEST(selected_point.weight == historical_point.weight);
+    const SimplexQuadraturePointView<tdim> expected_point
+        = expected_rule[iquad];
+    BOOST_TEST(selected_point.weight == expected_point.weight);
     for(int ibary = 0; ibary < tdim + 1; ibary++)
     {
       BOOST_TEST(selected_point.bary[ibary]
-                 == historical_point.bary[ibary]);
+                 == expected_point.bary[ibary]);
     }
   }
+}
+
+template <int tdim>
+void check_objective_quadrature_selection()
+{
+  check_same_rule(
+      get_objective_quadrature<tdim>(0),
+      get_vertex_barycenter_quadrature<tdim>());
+  check_same_rule(
+      get_objective_quadrature<tdim>(2),
+      get_positive_simplex_quadrature<tdim, 2>());
+  check_same_rule(
+      get_objective_quadrature<tdim>(3),
+      get_positive_simplex_quadrature<tdim, 3>());
 }
 
 template <int tdim>
@@ -307,12 +317,14 @@ BOOST_AUTO_TEST_CASE(vertex_barycenter_tetrahedron_rule)
 
 BOOST_AUTO_TEST_CASE(objective_quadrature_order_selection)
 {
-  check_objective_order_zero_selects_vertex_barycenter<2>();
-  check_objective_order_zero_selects_vertex_barycenter<3>();
+  check_objective_quadrature_selection<2>();
+  check_objective_quadrature_selection<3>();
   BOOST_CHECK_THROW(
       get_objective_quadrature<2>(-1),Metris::MetrisExcept);
   BOOST_CHECK_THROW(
       get_objective_quadrature<3>(1),Metris::MetrisExcept);
+  BOOST_CHECK_THROW(
+      get_objective_quadrature<2>(4),Metris::MetrisExcept);
 }
 
 BOOST_AUTO_TEST_CASE(imported_positive_quadrature_tables_are_available)
@@ -330,12 +342,6 @@ BOOST_AUTO_TEST_CASE(imported_positive_quadrature_tables_are_available)
   BOOST_TEST(triangle_degree_three.size() == 6);
   BOOST_TEST(tetrahedron_degree_two.size() == 4);
   BOOST_TEST(tetrahedron_degree_three.size() == 8);
-
-  // Importing the tables does not activate them in the runtime selector.
-  BOOST_CHECK_THROW(
-      get_objective_quadrature<2>(2), Metris::MetrisExcept);
-  BOOST_CHECK_THROW(
-      get_objective_quadrature<3>(3), Metris::MetrisExcept);
 }
 
 BOOST_AUTO_TEST_CASE(positive_triangle_degree_two_rule_contract)

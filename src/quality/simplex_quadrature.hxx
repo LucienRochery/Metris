@@ -206,9 +206,7 @@ get_vertex_barycenter_quadrature() noexcept
           detail::VertexBarycenterQuadratureStorage<tdim>::weights};
 }
 
-// Compile-time access to the staged positive rules. Runtime objective-rule
-// selection remains separate so imported tables can be tested before use by
-// the objective integrators.
+// Compile-time access to the positive rules.
 template <int tdim, int order>
 constexpr SimplexQuadratureView<tdim>
 get_positive_simplex_quadrature() noexcept
@@ -220,16 +218,24 @@ get_positive_simplex_quadrature() noexcept
 }
 
 // Runtime selection entry point shared by every objective-driven consumer.
-// Positive-order rules are added here only after their tables and exactness
-// tests are in place; unsupported requests must never fall back silently.
+// Unsupported requests must never fall back silently.
 template <int tdim>
 SimplexQuadratureView<tdim> get_objective_quadrature(int order)
 {
   METRIS_ENFORCE_MSG(
-      order == 0,
-      "Unsupported objective quadrature order {}: only order 0 is available",
+      order == 0 || order == 2 || order == 3,
+      "Unsupported objective quadrature order {}: available orders are "
+      "0, 2, and 3",
       order);
-  return get_vertex_barycenter_quadrature<tdim>();
+  if (order == 0)
+  {
+    return get_vertex_barycenter_quadrature<tdim>();
+  }
+  if (order == 2)
+  {
+    return get_positive_simplex_quadrature<tdim, 2>();
+  }
+  return get_positive_simplex_quadrature<tdim, 3>();
 }
 
 } // namespace Metris
