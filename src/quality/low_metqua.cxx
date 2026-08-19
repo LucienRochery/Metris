@@ -379,18 +379,12 @@ namespace Metris
                                NULL);
           }
 
-          ftype integrand = quafun_xi(msh,
+          const ftype psi = quafun_xi(msh,
                                       AsDeg::P1,
                                       asdmet,
                                       ent2poi[ientt],
                                       bary,
                                       met);
-          integrand = abs(integrand - difto);
-          if(pnorm == 2){
-            integrand *= integrand;
-          }else if(pnorm > 2){
-            integrand = pow(integrand,pnorm);
-          }
 
           ftype weight = static_cast<ftype>(quadrature_point.weight);
           #ifdef TESTQUALITYALGO
@@ -399,7 +393,7 @@ namespace Metris
           weight *= static_cast<ftype>(sqrt(detsym<gdim>(met)));
           #endif
           #endif
-          qutet += weight*integrand;
+          qutet += weight*psi;
         }
 
         if(do_nordev){

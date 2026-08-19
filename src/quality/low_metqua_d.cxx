@@ -20,6 +20,7 @@
 #include "../utils/fmt_formatters.hxx"
 
 #include "aux_volumeMeasure.hxx"
+#include "pointwise_objective.hxx"
 #include "simplex_quadrature.hxx"
 
 namespace Metris{
@@ -449,6 +450,132 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     }
     nordev /= nnode;
     nordev = sqrt(nordev);
+  }
+
+  if constexpr(iquaf == QuaFun::SizeShape){
+    if(ideg_eff == 1){
+      METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+      constexpr int nnmet = gdim*(gdim + 1)/2;
+
+      if(ivar >= 0){
+        for(int icomponent = 0; icomponent < gdim; icomponent++){
+          dquael[icomponent] = 0;
+        }
+        if(hquael != NULL){
+          for(int ihessian = 0; ihessian < nhess; ihessian++){
+            hquael[ihessian] = 0;
+          }
+        }
+      }
+
+      const SimplexQuadratureView<tdim> quadrature
+          = get_vertex_barycenter_quadrature<tdim>();
+
+      #ifdef TESTQUALITYALGO
+      double measure;
+      isvalideltP1<gdim,tdim>(msh,ientt,NULL,&measure);
+      #endif
+
+      for(int iquad = 0; iquad < quadrature.size(); iquad++){
+        const SimplexQuadraturePointView<tdim> quadrature_point
+            = quadrature[iquad];
+        for(int ibary = 0; ibary < tdim + 1; ibary++){
+          bary[ibary] = quadrature_point.bary[ibary];
+        }
+
+        // The sample metric and the complete integration weight are frozen
+        // for differentiation, following the objective formulation.
+        double metric[nnmet];
+        if(iquad < tdim + 1){
+          const int ipoin = ent2poi(ientt,iquad);
+          for(int imetric = 0; imetric < nnmet; imetric++){
+            metric[imetric] = msh.met(ipoin,imetric);
+          }
+        }else if constexpr(
+            std::is_same<MFT,MetricFieldAnalytical>::value){
+          double physical_point[gdim];
+          if constexpr(tdim == 2){
+            eval2<gdim,1>(msh.coord,ent2poi[ientt],msh.getBasis(),
+                          DifVar::None,DifVar::None,
+                          bary,physical_point,NULL,NULL);
+          }else{
+            eval3<gdim,1>(msh.coord,ent2poi[ientt],msh.getBasis(),
+                          DifVar::None,DifVar::None,
+                          bary,physical_point,NULL,NULL);
+          }
+          msh.met.getMetPhys(DifVar::None,msh.met.getSpace(),
+                             physical_point,metric,NULL);
+        }else{
+          msh.met.getMetBary(asdmet,
+                             DifVar::None,
+                             msh.met.getSpace(),
+                             ent2poi[ientt],
+                             tdim,
+                             bary,
+                             metric,
+                             NULL);
+        }
+
+        PointwiseObjectiveResult<gdim,ftype> pointwise_result;
+        if(ivar < 0){
+          pointwise_result
+              = evaluate_pointwise_objective_value<
+                    MFT,gdim,tdim,QuaFun::SizeShape,ftype>(
+                        msh,AsDeg::P1,asdmet,ent2poi[ientt],bary,metric);
+        }else{
+          const PointwiseDerivativeOrder derivative_order
+              = hquael == NULL
+              ? PointwiseDerivativeOrder::Gradient
+              : PointwiseDerivativeOrder::Hessian;
+          pointwise_result
+              = evaluate_pointwise_objective_derivatives<
+                    MFT,gdim,tdim,QuaFun::SizeShape,ftype>(
+                        msh,AsDeg::P1,asdmet,ent2poi[ientt],bary,metric,
+                        ivar,dofbas,DifVar::None,derivative_order);
+        }
+
+        ftype weight = static_cast<ftype>(quadrature_point.weight);
+        #ifdef TESTQUALITYALGO
+        weight *= static_cast<ftype>(measure);
+        #ifdef INTQUALINRIEMSPACE
+        weight *= static_cast<ftype>(sqrt(detsym<gdim>(metric)));
+        #endif
+        #endif
+
+        qutet += weight*pointwise_result.psi;
+        if(ivar < 0) continue;
+
+        for(int icomponent = 0; icomponent < gdim; icomponent++){
+          dquael[icomponent]
+              += weight*pointwise_result.gradient[icomponent];
+        }
+        if(hquael == NULL) continue;
+
+        for(int ihessian = 0; ihessian < nhess; ihessian++){
+          hquael[ihessian]
+              += weight*pointwise_result.hessian[ihessian];
+        }
+      }
+
+      if(do_nordev){
+        METRIS_ASSERT(msh.param->qua_surf_wt_quality >= 0);
+        METRIS_ASSERT(msh.param->qua_surf_wt_normal >= 0);
+        qutet = msh.param->qua_surf_wt_quality*qutet
+              + msh.param->qua_surf_wt_normal*pow(nordev,pnorm);
+        if(ivar >= 0){
+          for(int icomponent = 0; icomponent < gdim; icomponent++){
+            dquael[icomponent] *= msh.param->qua_surf_wt_quality;
+          }
+          if(hquael != NULL){
+            for(int ihessian = 0; ihessian < nhess; ihessian++){
+              hquael[ihessian] *= msh.param->qua_surf_wt_quality;
+            }
+          }
+        }
+      }
+
+      return qutet;
+    }
   }
 
   if(ideg_eff > 1){
