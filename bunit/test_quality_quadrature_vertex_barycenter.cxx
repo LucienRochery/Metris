@@ -12,6 +12,7 @@
 using Metris::SimplexQuadraturePointView;
 using Metris::SimplexQuadratureView;
 using Metris::get_objective_quadrature;
+using Metris::get_positive_simplex_quadrature;
 using Metris::get_vertex_barycenter_quadrature;
 
 namespace
@@ -155,4 +156,27 @@ BOOST_AUTO_TEST_CASE(objective_quadrature_order_selection)
       get_objective_quadrature<2>(-1),Metris::MetrisExcept);
   BOOST_CHECK_THROW(
       get_objective_quadrature<3>(1),Metris::MetrisExcept);
+}
+
+BOOST_AUTO_TEST_CASE(imported_positive_quadrature_tables_are_available)
+{
+  const SimplexQuadratureView<2> triangle_degree_two
+      = get_positive_simplex_quadrature<2, 2>();
+  const SimplexQuadratureView<2> triangle_degree_three
+      = get_positive_simplex_quadrature<2, 3>();
+  const SimplexQuadratureView<3> tetrahedron_degree_two
+      = get_positive_simplex_quadrature<3, 2>();
+  const SimplexQuadratureView<3> tetrahedron_degree_three
+      = get_positive_simplex_quadrature<3, 3>();
+
+  BOOST_TEST(triangle_degree_two.size() == 3);
+  BOOST_TEST(triangle_degree_three.size() == 6);
+  BOOST_TEST(tetrahedron_degree_two.size() == 4);
+  BOOST_TEST(tetrahedron_degree_three.size() == 8);
+
+  // Importing the tables does not activate them in the runtime selector.
+  BOOST_CHECK_THROW(
+      get_objective_quadrature<2>(2), Metris::MetrisExcept);
+  BOOST_CHECK_THROW(
+      get_objective_quadrature<3>(3), Metris::MetrisExcept);
 }

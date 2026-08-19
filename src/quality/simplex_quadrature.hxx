@@ -95,6 +95,103 @@ struct VertexBarycenterQuadratureStorage<3>
       1.0 / 5.0, 1.0 / 5.0, 1.0 / 5.0, 1.0 / 5.0, 1.0 / 5.0};
 };
 
+template <int tdim, int order>
+struct PositiveSimplexQuadratureStorage;
+
+// Positive degree-2 and degree-3 rules imported from SANS
+//   src/Quadrature/QuadratureArea_Triangle.cpp
+//   src/Quadrature/QuadratureVolume_Tetrahedron.cpp
+// SANS stores triangle points as (x, y) and tetrahedron points as (x, y, z).
+// The tables below preserve its point ordering and convert each point to the
+// Metris barycentric convention (1 - sum(x_i), x_1, ...). SANS normalizes the
+// weights of these reference-simplex rules to sum to one.
+template <>
+struct PositiveSimplexQuadratureStorage<2, 2>
+{
+  static constexpr int nquad = 3;
+
+  inline static constexpr double bary[nquad * 3] = {
+      1.0 / 6.0, 1.0 / 6.0, 2.0 / 3.0,
+      1.0 / 6.0, 2.0 / 3.0, 1.0 / 6.0,
+      2.0 / 3.0, 1.0 / 6.0, 1.0 / 6.0};
+
+  inline static constexpr double weights[nquad] = {
+      1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0};
+};
+
+template <>
+struct PositiveSimplexQuadratureStorage<2, 3>
+{
+  static constexpr int nquad = 6;
+  inline static constexpr double a
+      = 0.65902762237409221517838077125540;
+  inline static constexpr double b
+      = 0.23193336855303057249678456117469;
+  inline static constexpr double c
+      = 0.10903900907287721232483466756991;
+
+  inline static constexpr double bary[nquad * 3] = {
+      c, a, b,
+      a, b, c,
+      b, c, a,
+      b, a, c,
+      c, b, a,
+      a, c, b};
+
+  inline static constexpr double weights[nquad] = {
+      1.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0,
+      1.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0};
+};
+
+template <>
+struct PositiveSimplexQuadratureStorage<3, 2>
+{
+  static constexpr int nquad = 4;
+  inline static constexpr double a
+      = 0.13819660112501051517954131656344;
+  inline static constexpr double b
+      = 0.58541019662496845446137605030969;
+
+  inline static constexpr double bary[nquad * 4] = {
+      a, b, a, a,
+      a, a, b, a,
+      a, a, a, b,
+      b, a, a, a};
+
+  inline static constexpr double weights[nquad] = {
+      1.0 / 4.0, 1.0 / 4.0, 1.0 / 4.0, 1.0 / 4.0};
+};
+
+template <>
+struct PositiveSimplexQuadratureStorage<3, 3>
+{
+  static constexpr int nquad = 8;
+  inline static constexpr double a = 3.2805469671142667e-01;
+  inline static constexpr double b = 1.5835909865719922e-02;
+  inline static constexpr double c = 1.0695227393293068e-01;
+  inline static constexpr double d = 6.7914317820120795e-01;
+
+  inline static constexpr double bary[nquad * 4] = {
+      a, a, a, b,
+      a, a, b, a,
+      a, b, a, a,
+      b, a, a, a,
+      c, c, c, d,
+      c, c, d, c,
+      c, d, c, c,
+      d, c, c, c};
+
+  inline static constexpr double weights[nquad] = {
+      2.3087994418643690e-02 * 6.0,
+      2.3087994418643690e-02 * 6.0,
+      2.3087994418643690e-02 * 6.0,
+      2.3087994418643690e-02 * 6.0,
+      1.8578672248022978e-02 * 6.0,
+      1.8578672248022978e-02 * 6.0,
+      1.8578672248022978e-02 * 6.0,
+      1.8578672248022978e-02 * 6.0};
+};
+
 } // namespace detail
 
 // Historical quality integration rule: all reference-simplex vertices followed
@@ -107,6 +204,19 @@ get_vertex_barycenter_quadrature() noexcept
   return {detail::VertexBarycenterQuadratureStorage<tdim>::nquad,
           detail::VertexBarycenterQuadratureStorage<tdim>::bary,
           detail::VertexBarycenterQuadratureStorage<tdim>::weights};
+}
+
+// Compile-time access to the staged positive rules. Runtime objective-rule
+// selection remains separate so imported tables can be tested before use by
+// the objective integrators.
+template <int tdim, int order>
+constexpr SimplexQuadratureView<tdim>
+get_positive_simplex_quadrature() noexcept
+{
+  static_assert(order == 2 || order == 3);
+  return {detail::PositiveSimplexQuadratureStorage<tdim, order>::nquad,
+          detail::PositiveSimplexQuadratureStorage<tdim, order>::bary,
+          detail::PositiveSimplexQuadratureStorage<tdim, order>::weights};
 }
 
 // Runtime selection entry point shared by every objective-driven consumer.
