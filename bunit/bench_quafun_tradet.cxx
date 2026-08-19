@@ -228,7 +228,8 @@ BOOST_AUTO_TEST_CASE(bench_quafun_tradet)
             double t0_full = get_cpu_time();
             for(int ientt = 0; ientt < nentt; ientt++){
               double tra, det;
-              quafun(msh, AsDeg::Pk, AsDeg::Pk, ent2poi[ientt], bary, NULL, &tra, &det);
+              quafun(msh, AsDeg::Pk, AsDeg::Pk, ent2poi[ientt], bary, NULL,
+                      &tra, &det, QualitySingularityPolicy::Reject);
               dum += tra*det;
             }// for ientt
             double t1_full = get_cpu_time();

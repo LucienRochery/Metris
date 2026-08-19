@@ -15,6 +15,8 @@
 
 #include "../utils/aux_pp_inc.hxx"
 
+#include <limits>
+
 namespace Metris{
 
 // For some special barys (nodes), met is already known -> pass it in
@@ -29,30 +31,33 @@ ftype quafun_sizeshape(Mesh<MFT> &msh,
   static_assert(tdim <= gdim);
 
   METRIS_ASSERT(gdim == msh.idim);
-  const int power = msh.param->opt_power;
-  METRIS_ASSERT(power == 1 || power == -1);
-
-
   ftype tra, det;
   quafun_tradet<MFT,gdim,tdim,ftype>(msh,asdmsh,asdmet,ent2pol,bary,
-                                     met_,&tra,&det);
+                                     met_,&tra,&det,
+                                     QualitySingularityPolicy::Reject);
 
-  ftype quent;
+  ftype size_shape_quality;
   if constexpr (tdim == 2){
-    if(power > 0){
-      quent = tra*tra*(1.+1./(det*det))/8.;
-    }else{
-      quent = 8./(tra*tra*(1.+1./(det*det)));
-    }
+    size_shape_quality = tra*tra*(1.+1./(det*det))/8.;
   }else{
-    if(power > 0){
-      quent = tra*tra*tra*(1.+1./(det*det))/54.;
-    }else{
-      quent = 54./(tra*tra*tra*(1.+1./(det*det)));
-    }
+    size_shape_quality = tra*tra*tra*(1.+1./(det*det))/54.;
   }
 
-  return quent;
+  ftype size_shape_error = size_shape_quality - 1.;
+  constexpr double ideal_roundoff_tolerance
+      = 32.0*std::numeric_limits<double>::epsilon();
+  if(abs(size_shape_error) <= ideal_roundoff_tolerance){
+    size_shape_error = 0.;
+  }else if(size_shape_error < 0.){
+    METRIS_THROW_MSG(
+        "SizeShape quality below its ideal minimum: {:e}",
+        size_shape_quality);
+  }
+
+  const double objective_p = msh.param->objective_p;
+  METRIS_ASSERT(objective_p >= 1.0);
+  if(objective_p == 1.0) return size_shape_error;
+  return pow(size_shape_error,objective_p);
 }
 
 
@@ -132,7 +137,8 @@ ftype d_quafun_sizeshape(Mesh<MFT> &msh,
       (msh,asdmsh,asdmet,ent2pol,bary,ivar,dofbas,idifmet,
        met_,
        &tra,dtra,htra,
-       &det,ddet,hdet);
+       &det,ddet,hdet,
+       QualitySingularityPolicy::Reject);
 
   // This is used later on -> store it
   int dpowd = iipow<tdim>(tdim);              // n^n

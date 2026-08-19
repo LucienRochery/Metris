@@ -34,7 +34,10 @@ ftype quafun_unit(Mesh<MFT> &msh,
 
   ftype tra, det;
   quafun_tradet<MFT,gdim,tdim,ftype>
-              (msh,asdmsh,asdmet,ent2poi,bary,met_,&tra,&det);
+              (msh,asdmsh,asdmet,ent2poi,bary,met_,&tra,&det,
+               msh.param->opt_power > 0
+               ? QualitySingularityPolicy::Reject
+               : QualitySingularityPolicy::Allow);
 
 
 
@@ -148,7 +151,10 @@ ftype d_quafun_unit(Mesh<MFT> &msh,
       (msh,asdmsh,asdmet,
        ent2poi,bary,ivar,dofbas,idifmet,met_,
        &tra,dtra,htra,
-       &det,ddet,hdet);
+       &det,ddet,hdet,
+       msh.param->opt_power > 0
+       ? QualitySingularityPolicy::Reject
+       : QualitySingularityPolicy::Allow);
 
 
   double coef_det = msh.param->opt_coef_det; 

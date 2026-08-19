@@ -34,7 +34,10 @@ ftype quafun_distortion(Mesh<MFT> &msh,
 
   ftype tra, det;
   quafun_tradet<MFT,gdim,tdim,ftype>(msh,asdmsh,asdmet,ent2pol,bary,
-                                     met_,&tra,&det);
+                                     met_,&tra,&det,
+                                     power > 0
+                                     ? QualitySingularityPolicy::Reject
+                                     : QualitySingularityPolicy::Allow);
 
 
   ftype quent; 
@@ -135,7 +138,10 @@ ftype d_quafun_distortion(Mesh<MFT> &msh,
       (msh,asdmsh,asdmet,ent2pol,bary,ivar,dofbas,idifmet,
        met_,
        &tra,dtra,htra,
-       &det,ddet,hdet);
+       &det,ddet,hdet,
+       power > 0
+       ? QualitySingularityPolicy::Reject
+       : QualitySingularityPolicy::Allow);
 
 
   // This is used later on -> store it 

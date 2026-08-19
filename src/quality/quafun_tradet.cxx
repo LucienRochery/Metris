@@ -27,7 +27,8 @@ void quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                    const double*__restrict__ bary,
                    const double*__restrict__ met_,
                    ftype*__restrict__ tra,
-                   ftype*__restrict__ det){
+                   ftype*__restrict__ det,
+                   QualitySingularityPolicy singularity_policy){
 
   static_assert(gdim == 2 || gdim == 3);
   static_assert(tdim <= gdim);
@@ -124,7 +125,8 @@ void quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     *det = detsym2<2>(tJ0_tJK_M_JK_J0);
   }
 
-  if(abs(*det) < 1.0e-17 && msh.param->opt_power > 0)
+  if(abs(*det) < 1.0e-17
+     && singularity_policy == QualitySingularityPolicy::Reject)
      METRIS_THROW_MSG("Singular J^TMJ det = {:e}",*det);
 
    return;
@@ -145,7 +147,8 @@ template void quafun_tradet< MFT_VAL , 2, 2, FTYPE>\
                    const double*__restrict__ bary,\
                    const double*__restrict__ met,\
                    FTYPE*__restrict__ tra,\
-                   FTYPE*__restrict__ det); \
+                   FTYPE*__restrict__ det,\
+                   QualitySingularityPolicy singularity_policy); \
 template void quafun_tradet< MFT_VAL , 3, 2, FTYPE>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
@@ -153,7 +156,8 @@ template void quafun_tradet< MFT_VAL , 3, 2, FTYPE>\
                    const double*__restrict__ bary,\
                    const double*__restrict__ met,\
                    FTYPE*__restrict__ tra,\
-                   FTYPE*__restrict__ det); \
+                   FTYPE*__restrict__ det,\
+                   QualitySingularityPolicy singularity_policy); \
 template void quafun_tradet< MFT_VAL , 3, 3, FTYPE>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
@@ -161,7 +165,8 @@ template void quafun_tradet< MFT_VAL , 3, 3, FTYPE>\
                    const double*__restrict__ bary,\
                    const double*__restrict__ met,\
                    FTYPE*__restrict__ tra,\
-                   FTYPE*__restrict__ det);
+                   FTYPE*__restrict__ det,\
+                   QualitySingularityPolicy singularity_policy);
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,\
                               (MFT_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
@@ -197,7 +202,8 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                      ftype*__restrict__ htra,
                      ftype*__restrict__ det_,
                      ftype*__restrict__ ddet,
-                     ftype*__restrict__ hdet){
+                     ftype*__restrict__ hdet,
+                     QualitySingularityPolicy singularity_policy){
 
 
   static_assert(gdim == 2 || gdim == 3);
@@ -298,7 +304,8 @@ void d_quafun_tradet(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     det = detsym2<2>(tJ0_tJK_M_JK_J0);
   }
 
-  if(abs(det) < 1.0e-16 && msh.param->opt_power > 0)
+  if(abs(det) < 1.0e-16
+     && singularity_policy == QualitySingularityPolicy::Reject)
      METRIS_THROW_MSG( "Singular J^TMJ det = {:e}",det);
 
 
@@ -454,7 +461,8 @@ template void d_quafun_tradet< MFT_VAL , 2, 2, FTYPE>\
                    FTYPE*__restrict__ htra,\
                    FTYPE*__restrict__ det,\
                    FTYPE*__restrict__ ddet,\
-                   FTYPE*__restrict__ hdet);\
+                   FTYPE*__restrict__ hdet,\
+                   QualitySingularityPolicy singularity_policy);\
 template void d_quafun_tradet< MFT_VAL , 3, 2, FTYPE>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
@@ -469,7 +477,8 @@ template void d_quafun_tradet< MFT_VAL , 3, 2, FTYPE>\
                    FTYPE*__restrict__ htra,\
                    FTYPE*__restrict__ det,\
                    FTYPE*__restrict__ ddet,\
-                   FTYPE*__restrict__ hdet); \
+                   FTYPE*__restrict__ hdet,\
+                   QualitySingularityPolicy singularity_policy); \
 template void d_quafun_tradet< MFT_VAL , 3, 3, FTYPE>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
@@ -484,7 +493,8 @@ template void d_quafun_tradet< MFT_VAL , 3, 3, FTYPE>\
                    FTYPE*__restrict__ htra,\
                    FTYPE*__restrict__ det,\
                    FTYPE*__restrict__ ddet,\
-                   FTYPE*__restrict__ hdet);
+                   FTYPE*__restrict__ hdet,\
+                   QualitySingularityPolicy singularity_policy);
 BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,\
                               (MFT_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
@@ -506,7 +516,8 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                               const double*__restrict__ met_,
                               SANS::SurrealS<nvar,double>&__restrict__ tra,
                               SANS::SurrealS<nvar,double>&__restrict__ det,
-                              const SANS::DLA::MatrixS<gdim,nvar,double> *dpoint){
+                              const SANS::DLA::MatrixS<gdim,nvar,double> *dpoint,
+                              QualitySingularityPolicy singularity_policy){
 
   static_assert(gdim == 2 || gdim == 3);
   METRIS_ASSERT(gdim == msh.idim);
@@ -610,7 +621,8 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     //det = detsym2<tdim, doubleS>(tJ0_tJK_M_JK_J0);
   }
 
-  if(abs(det.value()) < 1.0e-16 && msh.param->opt_power > 0)
+  if(abs(det.value()) < 1.0e-16
+     && singularity_policy == QualitySingularityPolicy::Reject)
      METRIS_THROW_MSG( "Singular J^TMJ det = {:e}",det.value());
 
   return;
@@ -629,7 +641,8 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 2, 2, 2>\
                    const double*__restrict__ met_,\
                    SANS::SurrealS<2>&__restrict__ tra,\
                    SANS::SurrealS<2>&__restrict__ det,\
-                   const SANS::DLA::MatrixS<2,2,double> *dpoint);\
+                   const SANS::DLA::MatrixS<2,2,double> *dpoint,\
+                   QualitySingularityPolicy singularity_policy);\
 template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 3, 3>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
@@ -641,7 +654,8 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 3, 3>\
                    const double*__restrict__ met_,\
                    SANS::SurrealS<3>&__restrict__ tra,\
                    SANS::SurrealS<3>&__restrict__ det,\
-                   const SANS::DLA::MatrixS<3,3,double> *dpoint);\
+                   const SANS::DLA::MatrixS<3,3,double> *dpoint,\
+                   QualitySingularityPolicy singularity_policy);\
 template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 2>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
@@ -653,7 +667,8 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 2>\
                    const double*__restrict__ met_,\
                    SANS::SurrealS<2>&__restrict__ tra,\
                    SANS::SurrealS<2>&__restrict__ det,\
-                   const SANS::DLA::MatrixS<3,2,double> *dpoint);\
+                   const SANS::DLA::MatrixS<3,2,double> *dpoint,\
+                   QualitySingularityPolicy singularity_policy);\
 template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 3>\
                   (Mesh< MFT_VAL > &msh,\
                    AsDeg asdmsh, AsDeg asdmet,\
@@ -665,7 +680,8 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 3>\
                    const double*__restrict__ met_,\
                    SANS::SurrealS<3>&__restrict__ tra,\
                    SANS::SurrealS<3>&__restrict__ det,\
-                   const SANS::DLA::MatrixS<3,3,double> *dpoint);
+                   const SANS::DLA::MatrixS<3,3,double> *dpoint,\
+                   QualitySingularityPolicy singularity_policy);
 INSTANTIATE(MetricFieldAnalytical)
 INSTANTIATE(MetricFieldFE)
 

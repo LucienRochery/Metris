@@ -7,8 +7,9 @@
 #ifndef __METRIS_QUAFUN_SIZESHAPE__
 #define __METRIS_QUAFUN_SIZESHAPE__
 /*
-  Functions relating to Q_M(K)
-   = 1/n tr(J_0^{-T} J_K^T  M  J_K J_0^{-1}) / det(J_0^{-T} J_K^T  M  J_K J_0^{-1})^(1/n) * (1/2 * ( det(J_K^T M J_K) + 1/det(J_K^T M J_K) ) )^(2/n)
+  Pointwise SizeShape objective
+    psi_SS,p(A) = (q_SS(A) - 1)^p,
+  where q_SS is the scale-aware distortion measure with ideal value one.
 */
 
 #include "../Mesh/MeshFwd.hxx"
@@ -19,7 +20,7 @@ enum class AsDeg;
 enum class FEBasis;
 enum class DifVar;
 
-/* ---- Scale aware distortion measure from tr / det ---- */
+/* ---- Complete SizeShape objective from tr / det ---- */
 // Pointwise
 template <class MetricFieldType, int gdim, int tdim,
           typename ftype = double>

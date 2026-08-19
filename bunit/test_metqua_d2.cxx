@@ -1087,13 +1087,15 @@ BOOST_AUTO_TEST_CASE(test_metqua_d2)
               quafun(msh, asdeg.first, asdeg.second,
                      ent2poi[ientt], bary[tdim][isamp],
                      NULL,
-                     &tra0, &det0);
+                     &tra0, &det0,
+                     QualitySingularityPolicy::Reject);
               for(int ivar = 0; ivar < nnode; ivar++){
                 d_quafun(msh, asdeg.first, asdeg.second,
                          ent2poi[ientt], bary[tdim][isamp],
                          ivar, msh.getBasis(), DifVar::None,
                          NULL,
-                         tra, det, &dpoint);
+                         tra, det, &dpoint,
+                         QualitySingularityPolicy::Reject);
                 ntest += 1;
               }
             }// for isamp

@@ -25,6 +25,12 @@ enum class AsDeg;
 enum class FEBasis;
 enum class DifVar;
 
+enum class QualitySingularityPolicy
+{
+  Allow,
+  Reject
+};
+
 /* ---- Scale invariant distortion measure form tr / det ---- */
 // Pointwise
 template <class MetricFieldType, int gdim, int tdim,
@@ -35,7 +41,8 @@ void quafun_tradet(Mesh<MetricFieldType> &msh,
                    const double*__restrict__ bary,
                    const double*__restrict__ met_,
                    ftype*__restrict__ tra,
-                   ftype*__restrict__ det);
+                   ftype*__restrict__ det,
+                   QualitySingularityPolicy singularity_policy);
 
 // Differentiated w.r.t. ielem's ivar-th control point/node.
 template <class MetricFieldType, int gdim, int tdim,
@@ -53,7 +60,8 @@ void d_quafun_tradet(Mesh<MetricFieldType> &msh,
                      ftype*__restrict__ htra,
                      ftype*__restrict__ det,
                      ftype*__restrict__ ddet,
-                     ftype*__restrict__ hdet);
+                     ftype*__restrict__ hdet,
+                     QualitySingularityPolicy singularity_policy);
 
 
 template <class MFT, int gdim, int tdim, int nvar>
@@ -66,7 +74,8 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                               const double*__restrict__ met_,
                               SANS::SurrealS<nvar, double>&__restrict__ tra,
                               SANS::SurrealS<nvar, double>&__restrict__ det,
-                              const SANS::DLA::MatrixS<gdim,nvar,double> *dpoint);
+                              const SANS::DLA::MatrixS<gdim,nvar,double> *dpoint,
+                              QualitySingularityPolicy singularity_policy);
 
 
 } // End namespace
