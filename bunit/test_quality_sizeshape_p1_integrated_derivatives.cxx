@@ -77,6 +77,100 @@ void test_analytical_metric_3d(
   metric_derivative[2*6 + 5] = scale*0.08;
 }
 
+template<int gdim>
+std::array<double,gdim*(gdim + 1)/2> constant_anisotropic_metric()
+{
+  static_assert(gdim == 2 || gdim == 3);
+  if constexpr(gdim == 2){
+    return {1.70,0.18,0.82};
+  }else{
+    return {1.65,0.08,1.12,-0.04,0.06,0.78};
+  }
+}
+
+template<int gdim>
+std::array<double,gdim*(gdim + 1)/2> identity_metric()
+{
+  static_assert(gdim == 2 || gdim == 3);
+  if constexpr(gdim == 2){
+    return {1.0,0.0,1.0};
+  }else{
+    return {1.0,0.0,1.0,0.0,0.0,1.0};
+  }
+}
+
+template<int gdim>
+void write_constant_analytical_metric(
+    double scale,
+    int derivative_order,
+    const std::array<double,gdim*(gdim + 1)/2> &constant_metric,
+    double *metric,
+    double *metric_derivative)
+{
+  constexpr int nmetric = gdim*(gdim + 1)/2;
+  for(int imetric = 0; imetric < nmetric; imetric++){
+    metric[imetric] = scale*constant_metric[imetric];
+  }
+  if(derivative_order == 0) return;
+  for(int iderivative = 0;
+      iderivative < gdim*nmetric;
+      iderivative++){
+    metric_derivative[iderivative] = 0.0;
+  }
+}
+
+void test_constant_anisotropic_metric_2d(
+    const AnaMetCtx *,
+    const double *,
+    double scale,
+    int derivative_order,
+    double *metric,
+    double *metric_derivative)
+{
+  write_constant_analytical_metric<2>(
+      scale,derivative_order,constant_anisotropic_metric<2>(),
+      metric,metric_derivative);
+}
+
+void test_constant_anisotropic_metric_3d(
+    const AnaMetCtx *,
+    const double *,
+    double scale,
+    int derivative_order,
+    double *metric,
+    double *metric_derivative)
+{
+  write_constant_analytical_metric<3>(
+      scale,derivative_order,constant_anisotropic_metric<3>(),
+      metric,metric_derivative);
+}
+
+void test_identity_metric_2d(
+    const AnaMetCtx *,
+    const double *,
+    double scale,
+    int derivative_order,
+    double *metric,
+    double *metric_derivative)
+{
+  write_constant_analytical_metric<2>(
+      scale,derivative_order,identity_metric<2>(),
+      metric,metric_derivative);
+}
+
+void test_identity_metric_3d(
+    const AnaMetCtx *,
+    const double *,
+    double scale,
+    int derivative_order,
+    double *metric,
+    double *metric_derivative)
+{
+  write_constant_analytical_metric<3>(
+      scale,derivative_order,identity_metric<3>(),
+      metric,metric_derivative);
+}
+
 template<class MFT, int gdim>
 void initialize_element(Mesh<MFT> &msh,
                         MetrisParameters &parameters)
@@ -156,6 +250,82 @@ void initialize_element(Mesh<MFT> &msh,
       }
     }
   }
+}
+
+template<class MFT, int gdim>
+void assign_constant_anisotropic_metric(
+    Mesh<MFT> &msh,
+    MetrisParameters &parameters)
+{
+  constexpr int nmetric = gdim*(gdim + 1)/2;
+  const std::array<double,nmetric> metric
+      = constant_anisotropic_metric<gdim>();
+  if constexpr(std::is_same<MFT,MetricFieldAnalytical>::value){
+    if constexpr(gdim == 2){
+      parameters.setAnalyticalMetric(
+          AnaMetFun(test_constant_anisotropic_metric_2d));
+    }else{
+      parameters.setAnalyticalMetric(
+          AnaMetFun(test_constant_anisotropic_metric_3d));
+    }
+    msh.met.setAnalyticalMetric(parameters);
+  }
+
+  for(int ipoin = 0; ipoin < gdim + 1; ipoin++){
+    for(int imetric = 0; imetric < nmetric; imetric++){
+      msh.met(ipoin,imetric) = metric[imetric];
+    }
+  }
+}
+
+template<class MFT, int gdim>
+void assign_identity_metric(Mesh<MFT> &msh,
+                            MetrisParameters &parameters)
+{
+  constexpr int nmetric = gdim*(gdim + 1)/2;
+  const std::array<double,nmetric> metric = identity_metric<gdim>();
+  if constexpr(std::is_same<MFT,MetricFieldAnalytical>::value){
+    if constexpr(gdim == 2){
+      parameters.setAnalyticalMetric(AnaMetFun(test_identity_metric_2d));
+    }else{
+      parameters.setAnalyticalMetric(AnaMetFun(test_identity_metric_3d));
+    }
+    msh.met.setAnalyticalMetric(parameters);
+  }
+
+  for(int ipoin = 0; ipoin < gdim + 1; ipoin++){
+    for(int imetric = 0; imetric < nmetric; imetric++){
+      msh.met(ipoin,imetric) = metric[imetric];
+    }
+  }
+}
+
+template<class MFT, int gdim>
+void make_element_ideal(Mesh<MFT> &msh,
+                        MetrisParameters &parameters)
+{
+  if constexpr(gdim == 2){
+    msh.coord(0,0) = 0.0;
+    msh.coord(0,1) = 0.0;
+    msh.coord(1,0) = 1.0;
+    msh.coord(1,1) = 0.0;
+    msh.coord(2,0) = 0.5;
+    msh.coord(2,1) = std::sqrt(3.0)/2.0;
+  }else{
+    msh.coord(0,0) = 0.0;
+    msh.coord(0,1) = 0.0;
+    msh.coord(0,2) = 0.0;
+    msh.coord(1,0) = -std::sqrt(3.0)/2.0;
+    msh.coord(1,1) = 0.5;
+    msh.coord(1,2) = 0.0;
+    msh.coord(2,0) = -std::sqrt(3.0)/2.0;
+    msh.coord(2,1) = -0.5;
+    msh.coord(2,2) = 0.0;
+    msh.coord(3,0) = -1.0/std::sqrt(3.0);
+    msh.coord(3,1) = 0.0;
+    msh.coord(3,2) = std::sqrt(2.0/3.0);
+  }
+  assign_identity_metric<MFT,gdim>(msh,parameters);
 }
 
 void initialize_embedded_surface_triangle(
@@ -406,6 +576,151 @@ double evaluate_frozen_derivatives(
 }
 
 template<class MFT, int gdim>
+void check_metric_sampling_contracts(Mesh<MFT> &msh,
+                                     MetrisParameters &parameters)
+{
+  constexpr int nmetric = gdim*(gdim + 1)/2;
+  constexpr int nhessian = nmetric;
+  const int *nodes = msh.ent2poi(gdim)[0];
+  std::array<double,gdim + 1> barycenter{};
+  for(int ibary = 0; ibary < gdim + 1; ibary++){
+    barycenter[ibary] = 1.0/static_cast<double>(gdim + 1);
+  }
+
+  // A varying anisotropic metric must be integrated pointwise. Averaging the
+  // sampled tensor first and evaluating psi once is a different operation.
+  const FrozenQuadratureSamples<gdim> varying_samples
+      = capture_frozen_samples<MFT,gdim>(msh);
+  const SimplexQuadratureView<gdim> quadrature
+      = get_vertex_barycenter_quadrature<gdim>();
+  std::array<double,nmetric> average_metric{};
+  double total_quadrature_weight = 0.0;
+  double total_integration_weight = 0.0;
+  for(int iquad = 0; iquad < quadrature.size(); iquad++){
+    const double quadrature_weight = quadrature[iquad].weight;
+    total_quadrature_weight += quadrature_weight;
+    total_integration_weight += varying_samples.weights[iquad];
+    for(int imetric = 0; imetric < nmetric; imetric++){
+      average_metric[imetric]
+          += quadrature_weight*varying_samples.metrics[iquad][imetric];
+    }
+  }
+  for(int imetric = 0; imetric < nmetric; imetric++){
+    average_metric[imetric] /= total_quadrature_weight;
+  }
+
+  const double integrated_varying_value
+      = metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
+            msh,AsDeg::P1,AsDeg::P1,0,1.0);
+  const double averaged_metric_value
+      = total_integration_weight
+       *quafun_sizeshape<MFT,gdim,gdim,double>(
+            msh,AsDeg::P1,AsDeg::P1,nodes,barycenter.data(),
+            average_metric.data());
+  const double sampling_difference
+      = std::abs(integrated_varying_value - averaged_metric_value);
+  BOOST_CHECK_GT(
+      sampling_difference,
+      1.0e-7*(1.0 + std::abs(integrated_varying_value)));
+
+  // With a constant metric, every quadrature sample has the same integrand.
+  // The complete traversal must therefore equal one pointwise evaluation
+  // multiplied by the sum of its integration weights, for values and all
+  // geometry derivatives.
+  assign_constant_anisotropic_metric<MFT,gdim>(msh,parameters);
+  const FrozenQuadratureSamples<gdim> constant_samples
+      = capture_frozen_samples<MFT,gdim>(msh);
+  total_integration_weight = 0.0;
+  for(int iquad = 0;
+      iquad < FrozenQuadratureSamples<gdim>::nquad;
+      iquad++){
+    total_integration_weight += constant_samples.weights[iquad];
+    for(int imetric = 0; imetric < nmetric; imetric++){
+      BOOST_CHECK_CLOSE_FRACTION(
+          constant_samples.metrics[iquad][imetric],
+          constant_samples.metrics[0][imetric],2.0e-15);
+    }
+  }
+
+  const double integrated_constant_value
+      = metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
+            msh,AsDeg::P1,AsDeg::P1,0,1.0);
+  const double pointwise_constant_value
+      = quafun_sizeshape<MFT,gdim,gdim,double>(
+            msh,AsDeg::P1,AsDeg::P1,nodes,barycenter.data(),
+            constant_samples.metrics[0].data());
+  BOOST_CHECK_CLOSE_FRACTION(
+      integrated_constant_value,
+      total_integration_weight*pointwise_constant_value,3.0e-14);
+
+  for(int ivar = 0; ivar < gdim + 1; ivar++){
+    double integrated_gradient[gdim];
+    double integrated_hessian[nhessian];
+    const double differentiated_value
+        = d_metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
+              msh,AsDeg::P1,AsDeg::P1,0,ivar,
+              FEBasis::Lagrange,DifVar::None,
+              integrated_gradient,integrated_hessian,1.0);
+
+    double pointwise_gradient[gdim];
+    double pointwise_hessian[nhessian];
+    const double differentiated_pointwise_value
+        = d_quafun_sizeshape<MFT,gdim,gdim,double>(
+              msh,AsDeg::P1,AsDeg::P1,nodes,barycenter.data(),
+              constant_samples.metrics[0].data(),ivar,
+              FEBasis::Lagrange,DifVar::None,
+              pointwise_gradient,pointwise_hessian);
+    BOOST_CHECK_CLOSE_FRACTION(
+        differentiated_value,
+        total_integration_weight*differentiated_pointwise_value,3.0e-14);
+    for(int icomponent = 0; icomponent < gdim; icomponent++){
+      const double expected_gradient
+          = total_integration_weight*pointwise_gradient[icomponent];
+      BOOST_CHECK_SMALL(
+          integrated_gradient[icomponent] - expected_gradient,
+          3.0e-14*(1.0 + std::abs(expected_gradient)));
+    }
+    for(int ihessian = 0; ihessian < nhessian; ihessian++){
+      const double expected_hessian
+          = total_integration_weight*pointwise_hessian[ihessian];
+      BOOST_CHECK_SMALL(
+          integrated_hessian[ihessian] - expected_hessian,
+          3.0e-14*(1.0 + std::abs(expected_hessian)));
+    }
+  }
+
+  // The ideal regular simplex in the identity metric has zero integrated
+  // objective. For p > 1 its gradient and Hessian vanish as well.
+  make_element_ideal<MFT,gdim>(msh,parameters);
+  const double objective_powers[3] = {1.0,1.5,2.0};
+  for(int ipower = 0; ipower < 3; ipower++){
+    parameters.objective_p = objective_powers[ipower];
+    const double ideal_value
+        = metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
+              msh,AsDeg::P1,AsDeg::P1,0,1.0);
+    BOOST_CHECK_SMALL(ideal_value,1.0e-28);
+  }
+
+  parameters.objective_p = 1.5;
+  for(int ivar = 0; ivar < gdim + 1; ivar++){
+    double ideal_gradient[gdim];
+    double ideal_hessian[nhessian];
+    const double differentiated_ideal_value
+        = d_metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
+              msh,AsDeg::P1,AsDeg::P1,0,ivar,
+              FEBasis::Lagrange,DifVar::None,
+              ideal_gradient,ideal_hessian,1.0);
+    BOOST_CHECK_SMALL(differentiated_ideal_value,1.0e-28);
+    for(int icomponent = 0; icomponent < gdim; icomponent++){
+      BOOST_CHECK_SMALL(ideal_gradient[icomponent],1.0e-26);
+    }
+    for(int ihessian = 0; ihessian < nhessian; ihessian++){
+      BOOST_CHECK_SMALL(ideal_hessian[ihessian],1.0e-24);
+    }
+  }
+}
+
+template<class MFT, int gdim>
 void check_integrated_derivatives(Mesh<MFT> &msh)
 {
   constexpr int nhessian = gdim*(gdim + 1)/2;
@@ -569,6 +884,19 @@ void run_integrated_derivative_case()
   check_integrated_derivatives<MFT,gdim>(msh);
 }
 
+template<class MFT, int gdim>
+void run_metric_sampling_contract_case()
+{
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_p = 1.5;
+  parameters.opt_pnorm = 1;
+
+  Mesh<MFT> msh;
+  initialize_element<MFT,gdim>(msh,parameters);
+  check_metric_sampling_contracts<MFT,gdim>(msh,parameters);
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(test_fe_triangle_integrated_derivatives)
@@ -589,6 +917,26 @@ BOOST_AUTO_TEST_CASE(test_analytical_triangle_integrated_derivatives)
 BOOST_AUTO_TEST_CASE(test_analytical_tetrahedron_integrated_derivatives)
 {
   run_integrated_derivative_case<MetricFieldAnalytical,3>();
+}
+
+BOOST_AUTO_TEST_CASE(test_fe_triangle_metric_sampling_contracts)
+{
+  run_metric_sampling_contract_case<MetricFieldFE,2>();
+}
+
+BOOST_AUTO_TEST_CASE(test_fe_tetrahedron_metric_sampling_contracts)
+{
+  run_metric_sampling_contract_case<MetricFieldFE,3>();
+}
+
+BOOST_AUTO_TEST_CASE(test_analytical_triangle_metric_sampling_contracts)
+{
+  run_metric_sampling_contract_case<MetricFieldAnalytical,2>();
+}
+
+BOOST_AUTO_TEST_CASE(test_analytical_tetrahedron_metric_sampling_contracts)
+{
+  run_metric_sampling_contract_case<MetricFieldAnalytical,3>();
 }
 
 BOOST_AUTO_TEST_CASE(test_objectives_exclude_cad_normal_deviation)
