@@ -15,6 +15,7 @@
 #include "low_geo/measure.hxx"
 #include "quality/low_metqua.hxx"
 #include "quality/low_metqua_d.hxx"
+#include "quality/objective_quadrature_derivatives.hxx"
 #include "quality/quafun_sizeshape.hxx"
 #include "quality/simplex_quadrature.hxx"
 
@@ -870,6 +871,359 @@ void check_integrated_derivatives(Mesh<MFT> &msh)
   #endif
 }
 
+template<int gdim>
+SimplexQuadratureView<gdim> explicit_objective_quadrature(const int order)
+{
+  if (order == 0)
+  {
+    return get_vertex_barycenter_quadrature<gdim>();
+  }
+  if (order == 2)
+  {
+    return get_positive_simplex_quadrature<gdim,2>();
+  }
+  METRIS_ENFORCE(order == 3);
+  return get_positive_simplex_quadrature<gdim,3>();
+}
+
+template<int gdim>
+struct FrozenObjectiveRuleSamples
+{
+  using Sample = ObjectiveQuadratureSample<gdim,gdim,1>;
+  static constexpr int maximum_quadrature_points = 8;
+
+  std::array<Sample,maximum_quadrature_points> samples{};
+  int nquad = 0;
+  ObjectiveQuadratureTheta theta_mode
+      = ObjectiveQuadratureTheta::ReferenceAverage;
+};
+
+template<class MFT, int gdim, QuaFun iquaf>
+FrozenObjectiveRuleSamples<gdim> capture_objective_rule_samples(
+    Mesh<MFT> &msh,
+    const int order)
+{
+  using Policy = ObjectiveQuadratureValuePolicy<
+      MFT,gdim,gdim,1,iquaf,double>;
+  using Sample = ObjectiveQuadratureSample<gdim,gdim,1>;
+
+  FrozenObjectiveRuleSamples<gdim> frozen;
+  frozen.theta_mode = Policy::theta_mode(msh);
+  const SimplexQuadratureView<gdim> quadrature
+      = explicit_objective_quadrature<gdim>(order);
+  frozen.nquad = quadrature.size();
+  BOOST_REQUIRE_LE(
+      frozen.nquad,
+      FrozenObjectiveRuleSamples<gdim>::maximum_quadrature_points);
+
+  const int *nodes = msh.ent2poi(gdim)[0];
+  for (int iquad = 0; iquad < frozen.nquad; iquad++)
+  {
+    const SimplexQuadraturePointView<gdim> quadrature_point
+        = quadrature[iquad];
+    const Sample sample
+        = prepare_objective_quadrature_sample<MFT,gdim,gdim,1>(
+              msh,AsDeg::P1,nodes,quadrature_point,frozen.theta_mode);
+    BOOST_REQUIRE(sample.theta_is_valid);
+    frozen.samples[iquad] = sample;
+  }
+  return frozen;
+}
+
+template<class MFT, int gdim>
+ObjectiveQuadratureSample<gdim,gdim,1> prepare_current_frozen_sample(
+    Mesh<MFT> &msh,
+    const ObjectiveQuadratureSample<gdim,gdim,1> &frozen_sample,
+    const ObjectiveQuadratureTheta theta_mode)
+{
+  using Sample = ObjectiveQuadratureSample<gdim,gdim,1>;
+  const SimplexQuadraturePointView<gdim> quadrature_point = {
+      frozen_sample.barycentric_coordinates.data(),
+      frozen_sample.quadrature_weight};
+  const int *nodes = msh.ent2poi(gdim)[0];
+  Sample current_sample
+      = prepare_objective_quadrature_sample<MFT,gdim,gdim,1>(
+            msh,AsDeg::P1,nodes,quadrature_point,theta_mode);
+
+  // Target metric and theta are frozen at the baseline quadrature samples.
+  current_sample.metric = frozen_sample.metric;
+  current_sample.theta = frozen_sample.theta;
+  current_sample.theta_is_valid = frozen_sample.theta_is_valid;
+  return current_sample;
+}
+
+template<class MFT, int gdim, QuaFun iquaf>
+double evaluate_frozen_objective_value(
+    Mesh<MFT> &msh,
+    const FrozenObjectiveRuleSamples<gdim> &frozen)
+{
+  using Policy = ObjectiveQuadratureValuePolicy<
+      MFT,gdim,gdim,1,iquaf,double>;
+  using Evaluation = ObjectiveQuadratureValueEvaluation<gdim,double>;
+
+  const int *nodes = msh.ent2poi(gdim)[0];
+  double integral = 0.0;
+  for (int iquad = 0; iquad < frozen.nquad; iquad++)
+  {
+    const ObjectiveQuadratureSample<gdim,gdim,1> sample
+        = prepare_current_frozen_sample<MFT,gdim>(
+              msh,frozen.samples[iquad],frozen.theta_mode);
+    const Evaluation evaluation = Policy::evaluate(
+        msh,AsDeg::P1,AsDeg::P1,nodes,sample);
+    BOOST_REQUIRE(!evaluation.reject_element);
+
+    const double weighted_pointwise
+        = sample.theta*evaluation.psi;
+    const double weighted_additive
+        = evaluation.has_additive_value ? evaluation.additive_value : 0.0;
+    integral += sample.quadrature_weight
+               *(weighted_pointwise + weighted_additive);
+  }
+  return integral;
+}
+
+template<class MFT, int gdim, QuaFun iquaf>
+double evaluate_frozen_objective_derivatives(
+    Mesh<MFT> &msh,
+    const FrozenObjectiveRuleSamples<gdim> &frozen,
+    const int ivar,
+    double *gradient,
+    double *hessian)
+{
+  constexpr int nhessian = gdim*(gdim + 1)/2;
+  using Policy = ObjectiveQuadratureDerivativePolicy<
+      MFT,gdim,gdim,1,iquaf,double>;
+  using Evaluation = ObjectiveQuadratureDerivativeEvaluation<gdim,double>;
+
+  for (int icomponent = 0; icomponent < gdim; icomponent++)
+  {
+    gradient[icomponent] = 0.0;
+  }
+  if (hessian != NULL)
+  {
+    for (int ihessian = 0; ihessian < nhessian; ihessian++)
+    {
+      hessian[ihessian] = 0.0;
+    }
+  }
+
+  const PointwiseDerivativeOrder derivative_order
+      = hessian == NULL
+      ? PointwiseDerivativeOrder::Gradient
+      : PointwiseDerivativeOrder::Hessian;
+  const int *nodes = msh.ent2poi(gdim)[0];
+  double integral = 0.0;
+
+  for (int iquad = 0; iquad < frozen.nquad; iquad++)
+  {
+    const ObjectiveQuadratureSample<gdim,gdim,1> sample
+        = prepare_current_frozen_sample<MFT,gdim>(
+              msh,frozen.samples[iquad],frozen.theta_mode);
+    const std::array<double,gdim> regular_basis_gradient
+        = objective_regular_basis_gradient<gdim,1>(
+              msh.getBasis(),ivar,
+              sample.barycentric_coordinates.data());
+    const Evaluation evaluation = Policy::evaluate(
+        msh,AsDeg::P1,AsDeg::P1,nodes,sample,ivar,msh.getBasis(),
+        derivative_order,regular_basis_gradient.data());
+    BOOST_REQUIRE(!evaluation.reject_element);
+    BOOST_REQUIRE(!evaluation.differentiate_theta);
+
+    const double additive_value
+        = evaluation.has_additive_value ? evaluation.additive_value : 0.0;
+    const double quadrature_weight = sample.quadrature_weight;
+    integral += quadrature_weight
+               *(sample.theta*evaluation.pointwise.psi + additive_value);
+
+    for (int icomponent = 0; icomponent < gdim; icomponent++)
+    {
+      gradient[icomponent] += quadrature_weight
+          *(sample.theta*evaluation.pointwise.gradient[icomponent]
+            + evaluation.additive_gradient[icomponent]);
+    }
+    if (hessian == NULL)
+    {
+      continue;
+    }
+    for (int ihessian = 0; ihessian < nhessian; ihessian++)
+    {
+      hessian[ihessian] += quadrature_weight
+          *(sample.theta*evaluation.pointwise.hessian[ihessian]
+            + evaluation.additive_hessian[ihessian]);
+    }
+  }
+  return integral;
+}
+
+template<class MFT, int gdim, QuaFun iquaf>
+void check_objective_rule_value_gradient_hessian(
+    Mesh<MFT> &msh,
+    const int order)
+{
+  constexpr int nhessian = gdim*(gdim + 1)/2;
+  constexpr double reconstruction_tolerance = 5.0e-13;
+  constexpr double finite_difference_step = 2.0e-6;
+  constexpr double gradient_tolerance = 3.0e-5;
+  constexpr double hessian_tolerance = 5.0e-4;
+
+  msh.param->objective_quadrature_order = order;
+  const FrozenObjectiveRuleSamples<gdim> frozen
+      = capture_objective_rule_samples<MFT,gdim,iquaf>(msh,order);
+  const double integrated_value
+      = metqua<MFT,gdim,gdim,iquaf,double>(
+            msh,AsDeg::P1,AsDeg::P1,0,1.0);
+  const double frozen_value
+      = evaluate_frozen_objective_value<MFT,gdim,iquaf>(msh,frozen);
+  BOOST_CHECK_SMALL(
+      integrated_value - frozen_value,
+      reconstruction_tolerance*(1.0 + std::abs(frozen_value)));
+
+  for (int ivar = 0; ivar < gdim + 1; ivar++)
+  {
+    double integrated_gradient[gdim];
+    double integrated_hessian[nhessian];
+    const double differentiated_value
+        = d_metqua<MFT,gdim,gdim,iquaf,double>(
+              msh,AsDeg::P1,AsDeg::P1,0,ivar,
+              msh.getBasis(),DifVar::Phys,
+              integrated_gradient,integrated_hessian,1.0);
+
+    double reconstructed_gradient[gdim];
+    double reconstructed_hessian[nhessian];
+    const double reconstructed_value
+        = evaluate_frozen_objective_derivatives<MFT,gdim,iquaf>(
+              msh,frozen,ivar,
+              reconstructed_gradient,reconstructed_hessian);
+    BOOST_CHECK_SMALL(
+        differentiated_value - integrated_value,
+        reconstruction_tolerance*(1.0 + std::abs(integrated_value)));
+    BOOST_CHECK_SMALL(
+        reconstructed_value - integrated_value,
+        reconstruction_tolerance*(1.0 + std::abs(integrated_value)));
+
+    for (int icomponent = 0; icomponent < gdim; icomponent++)
+    {
+      BOOST_CHECK_SMALL(
+          integrated_gradient[icomponent]
+              - reconstructed_gradient[icomponent],
+          reconstruction_tolerance
+              *(1.0 + std::abs(reconstructed_gradient[icomponent])));
+    }
+    for (int ihessian = 0; ihessian < nhessian; ihessian++)
+    {
+      BOOST_CHECK_SMALL(
+          integrated_hessian[ihessian]
+              - reconstructed_hessian[ihessian],
+          reconstruction_tolerance
+              *(1.0 + std::abs(reconstructed_hessian[ihessian])));
+    }
+
+    const int ipoin = msh.ent2poi(gdim)(0,ivar);
+    for (int jcomponent = 0; jcomponent < gdim; jcomponent++)
+    {
+      const double coordinate = msh.coord(ipoin,jcomponent);
+      double plus_gradient[gdim];
+      double minus_gradient[gdim];
+
+      msh.coord(ipoin,jcomponent)
+          = coordinate + finite_difference_step;
+      const double plus_value
+          = evaluate_frozen_objective_value<MFT,gdim,iquaf>(msh,frozen);
+      evaluate_frozen_objective_derivatives<MFT,gdim,iquaf>(
+          msh,frozen,ivar,plus_gradient,NULL);
+
+      msh.coord(ipoin,jcomponent)
+          = coordinate - finite_difference_step;
+      const double minus_value
+          = evaluate_frozen_objective_value<MFT,gdim,iquaf>(msh,frozen);
+      evaluate_frozen_objective_derivatives<MFT,gdim,iquaf>(
+          msh,frozen,ivar,minus_gradient,NULL);
+      msh.coord(ipoin,jcomponent) = coordinate;
+
+      const double finite_difference_gradient
+          = (plus_value - minus_value)/(2.0*finite_difference_step);
+      BOOST_CHECK_SMALL(
+          integrated_gradient[jcomponent] - finite_difference_gradient,
+          gradient_tolerance
+              *(1.0 + std::abs(finite_difference_gradient)));
+
+      for (int icomponent = 0;
+           icomponent <= jcomponent;
+           icomponent++)
+      {
+        const double finite_difference_hessian
+            = (plus_gradient[icomponent] - minus_gradient[icomponent])
+             /(2.0*finite_difference_step);
+        const int ihessian = sym2idx(icomponent,jcomponent);
+        BOOST_CHECK_SMALL(
+            integrated_hessian[ihessian] - finite_difference_hessian,
+            hessian_tolerance
+                *(1.0 + std::abs(finite_difference_hessian)));
+      }
+    }
+  }
+}
+
+template<class MFT, int gdim, QuaFun iquaf>
+void check_objective_all_quadrature_orders(Mesh<MFT> &msh)
+{
+  const int orders[3] = {0,2,3};
+  for (int iorder = 0; iorder < 3; iorder++)
+  {
+    const int order = orders[iorder];
+    BOOST_TEST_CONTEXT("quadrature order = " << order)
+    {
+      check_objective_rule_value_gradient_hessian<MFT,gdim,iquaf>(
+          msh,order);
+    }
+  }
+}
+
+template<class MFT, int gdim>
+void run_objective_quadrature_matrix_case()
+{
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_p = 1.5;
+  parameters.opt_pnorm = 1;
+  parameters.step_distance_regularization = 1.0e-7;
+  parameters.step_distance_barrier_rho0 = 2.0;
+  parameters.step_distance_barrier_beta = 0.3;
+
+  Mesh<MFT> msh;
+  initialize_element<MFT,gdim>(msh,parameters);
+
+  BOOST_TEST_CONTEXT("SizeShape")
+  {
+    check_objective_all_quadrature_orders<
+        MFT,gdim,QuaFun::SizeShape>(msh);
+  }
+
+  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_cavity_target_average = false;
+  BOOST_TEST_CONTEXT("StepDistance")
+  {
+    check_objective_all_quadrature_orders<
+        MFT,gdim,QuaFun::StepDistance>(msh);
+  }
+
+  parameters.step_distance_shape_volume = true;
+  parameters.step_distance_cavity_target_average = false;
+  BOOST_TEST_CONTEXT("StepDistance ShapeVolume")
+  {
+    check_objective_all_quadrature_orders<
+        MFT,gdim,QuaFun::StepDistance>(msh);
+  }
+
+  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_cavity_target_average = true;
+  BOOST_TEST_CONTEXT("StepDistance CavityTargetAverage")
+  {
+    check_objective_all_quadrature_orders<
+        MFT,gdim,QuaFun::StepDistance>(msh);
+  }
+}
+
 template<class MFT, int gdim>
 void run_integrated_derivative_case()
 {
@@ -937,6 +1291,26 @@ BOOST_AUTO_TEST_CASE(test_analytical_triangle_metric_sampling_contracts)
 BOOST_AUTO_TEST_CASE(test_analytical_tetrahedron_metric_sampling_contracts)
 {
   run_metric_sampling_contract_case<MetricFieldAnalytical,3>();
+}
+
+BOOST_AUTO_TEST_CASE(test_fe_triangle_objective_quadrature_matrix)
+{
+  run_objective_quadrature_matrix_case<MetricFieldFE,2>();
+}
+
+BOOST_AUTO_TEST_CASE(test_fe_tetrahedron_objective_quadrature_matrix)
+{
+  run_objective_quadrature_matrix_case<MetricFieldFE,3>();
+}
+
+BOOST_AUTO_TEST_CASE(test_analytical_triangle_objective_quadrature_matrix)
+{
+  run_objective_quadrature_matrix_case<MetricFieldAnalytical,2>();
+}
+
+BOOST_AUTO_TEST_CASE(test_analytical_tetrahedron_objective_quadrature_matrix)
+{
+  run_objective_quadrature_matrix_case<MetricFieldAnalytical,3>();
 }
 
 BOOST_AUTO_TEST_CASE(test_objectives_exclude_cad_normal_deviation)
