@@ -11,6 +11,7 @@
 #include "../low_geo/misc.hxx"
 #include "../low_geo/measure.hxx"
 #include "../low_geo/normal.hxx"
+#include "../low_geo/lenedg.hxx"
 #include "../io_libmeshb.hxx"
 #include "../Mesh/Mesh.hxx"
 #include "../linalg/det.hxx"
@@ -23,9 +24,56 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 namespace Metris
 {
+
+  template <class MFT, int gdim, QuaFun iquaf>
+  double metqua1_length(Mesh<MFT> &msh, const int *edg2pol)
+  {
+    static_assert(gdim == 2 || gdim == 3);
+    static_assert(iquaf == QuaFun::SizeShape
+                  || iquaf == QuaFun::StepDistance);
+
+    double endpoint_sizes[2];
+    const double length = getlenedg_geosz<MFT,gdim,1>(
+        msh,edg2pol,endpoint_sizes);
+    if(!(length > 0.0) || !std::isfinite(length)){
+      return std::numeric_limits<double>::infinity();
+    }
+
+    const double log_length = std::log(length);
+    if constexpr(iquaf == QuaFun::SizeShape){
+      // In one dimension A = L_M^2 and the natural SizeShape quality is
+      // (A + A^{-1})/2 = cosh(2 log(L_M)).
+      const double direct_quality = std::cosh(2.0*log_length);
+      const double raw_quality = msh.param->opt_power > 0
+                               ? direct_quality
+                               : 1.0/direct_quality;
+      double error = std::abs(raw_quality - 1.0);
+      const int pnorm = msh.param->opt_pnorm;
+      if(pnorm == 2) error *= error;
+      else if(pnorm > 2) error = std::pow(error,pnorm);
+      return error;
+    }else{
+      double distance2;
+      if(msh.param->step_distance_shape_volume){
+        // tdim = 1 has no shape coordinate.  Its ShapeVolume coordinate is
+        // (A - A^{-1})/2, with A = L_M^2.
+        const double volume_coordinate = 2.0*std::sinh(2.0*log_length);
+        distance2 = 0.25*volume_coordinate*volume_coordinate;
+      }else{
+        const double log_metric_ratio = 2.0*log_length;
+        distance2 = log_metric_ratio*log_metric_ratio;
+      }
+      const double regularization =
+          msh.param->step_distance_regularization;
+      return std::pow(distance2 + regularization*regularization,
+                      msh.param->step_distance_p/2.0)
+           - std::pow(regularization,msh.param->step_distance_p);
+    }
+  }
 
   template <class MFT, int gdim, int tdim>
   double step_distance_element_target_weight(Mesh<MFT> &msh,
@@ -718,5 +766,14 @@ namespace Metris
 INSTANTIATE_STEPDISTANCE_TARGET_WEIGHT(MetricFieldFE)
 INSTANTIATE_STEPDISTANCE_TARGET_WEIGHT(MetricFieldAnalytical)
 #undef INSTANTIATE_STEPDISTANCE_TARGET_WEIGHT
+
+#define INSTANTIATE_METQUA1_LENGTH(MFT_VAL, GDIM_VAL, QUAFUN_VAL)          \
+  template double metqua1_length<MFT_VAL,GDIM_VAL,QUAFUN_VAL>(            \
+      Mesh<MFT_VAL>&,const int*);
+INSTANTIATE_METQUA1_LENGTH(MetricFieldFE,2,QuaFun::SizeShape)
+INSTANTIATE_METQUA1_LENGTH(MetricFieldFE,2,QuaFun::StepDistance)
+INSTANTIATE_METQUA1_LENGTH(MetricFieldAnalytical,2,QuaFun::SizeShape)
+INSTANTIATE_METQUA1_LENGTH(MetricFieldAnalytical,2,QuaFun::StepDistance)
+#undef INSTANTIATE_METQUA1_LENGTH
 
 } // End namespace

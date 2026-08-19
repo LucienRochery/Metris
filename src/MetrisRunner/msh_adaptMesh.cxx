@@ -68,7 +68,11 @@ void MetrisRunner::adaptMesh2(){
       if(this->metricFE){
         Mesh<MetricFieldFE>& msh =
             static_cast<Mesh<MetricFieldFE>&>(*msh_g);
-        if(msh.CAD() && param->adp_line_adapt && !objectiveLineAdapted){
+        // First implementation of dimension-ordered quality adaptation:
+        // adapt the CAD-edge mesh by metric length before adapting triangles.
+        // Keep this scoped to genuine 2D volume meshes for now.
+        if(gdim == 2 && msh.get_tdim() == 2 && msh.CAD()
+           && param->adp_line_adapt && !objectiveLineAdapted){
           adaptGeoLines<MetricFieldFE>(msh);
           objectiveLineAdapted = true;
         }
@@ -76,7 +80,8 @@ void MetrisRunner::adaptMesh2(){
       }else{
         Mesh<MetricFieldAnalytical>& msh =
             static_cast<Mesh<MetricFieldAnalytical>&>(*msh_g);
-        if(msh.CAD() && param->adp_line_adapt && !objectiveLineAdapted){
+        if(gdim == 2 && msh.get_tdim() == 2 && msh.CAD()
+           && param->adp_line_adapt && !objectiveLineAdapted){
           adaptGeoLines<MetricFieldAnalytical>(msh);
           objectiveLineAdapted = true;
         }
@@ -679,7 +684,11 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
   int ntrySmoothing = 0; int nSuccessSmoothing = 0;
   int ntryInsert = 0; int nSuccessInsert = 0;
-  int ntryInsertLength = 0; int nSuccessInsertLength = 0;
+  // Retain the legacy statistics columns for compatibility with existing
+  // MOESS post-processing.  The experimental length fallback is no longer
+  // part of the quality-adaptation algorithm, so these remain zero.
+  const int ntryInsertLength = 0;
+  const int nSuccessInsertLength = 0;
   int ntryCollapse = 0; int nSuccessCollapse = 0;
 
   int iter = 0;
@@ -839,23 +848,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           if (ierro <= 0) {
             didOperation = true;
             nSuccessInsert++;
-            msh.poicstr[cav.ipins] = false;
-            break;
-          }
-
-          // try a length-based insertion with an upper bound for quality worsening
-          bool lengthBased = true;
-          double worsenPctg = 0.;
-
-          ntryInsertLength++;
-
-          ierro = insertEdge(msh, insertionSeed, lenqua_short_max, false,
-                             cav, work, lcaverr, handlerTopX, lengthBased, worsenPctg,
-                             ithrd1, ithrd2);
-
-          if (ierro <= 0) {
-            didOperation = true;
-            nSuccessInsertLength++;
             msh.poicstr[cav.ipins] = false;
             break;
           }

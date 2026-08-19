@@ -26,6 +26,9 @@
 #include "../utils/mprintf.hxx"
 #include "../utils/fmt_formatters.hxx"
 
+#include <cmath>
+#include <limits>
+
 //#define NODELSURF
 
 namespace Metris{
@@ -119,6 +122,53 @@ bool cavity_replacement_global_filter_accepts(
     }
   }
   return handler.checkSuccess(new_global_objective,old_global_objective);
+}
+
+template<class MFT, QuaFun iquaf>
+bool edge_cavity_length_objective_nonworsening_2d(
+    Mesh<MFT>& msh, MshCavity& cav, int ithread,
+    double& objective_old, double& objective_new){
+  objective_old = 0.0;
+  objective_new = 0.0;
+
+  const bool protect_edges = msh.idim == 2
+                          && msh.get_tdim() == 2
+                          && msh.CAD()
+                          && msh.param->adp_line_adapt
+                          && cav.lcedg.get_n() > 0;
+  if(!protect_edges) return true;
+
+  // Match reconnect_lincav's definition of the old 1D cavity and of its
+  // reconnected boundary.  In particular, a non-manifold incidence is kept
+  // as a distinct new edge.
+  for(const int iedge : cav.lcedg){
+    msh.edg2tag(ithread,iedge) = msh.tag[ithread];
+    objective_old += metqua1_length<MFT,2,iquaf>(
+        msh,msh.edg2poi[iedge]);
+  }
+
+  int number_new_edges = 0;
+  for(const int iedge : cav.lcedg){
+    for(int inei = 0; inei < 2; inei++){
+      const int iedge_neighbor = msh.edg2edg(iedge,inei);
+      if(iedge_neighbor >= 0
+         && msh.edg2tag(ithread,iedge_neighbor) >= msh.tag[ithread]){
+        continue;
+      }
+
+      const int ipseed = msh.edg2poi(iedge,1-inei);
+      if(ipseed == cav.ipins) continue;
+
+      const int edge_points[2] = {cav.ipins,ipseed};
+      objective_new += metqua1_length<MFT,2,iquaf>(msh,edge_points);
+      number_new_edges++;
+    }
+  }
+
+  if(number_new_edges == 0) return false;
+  const double tolerance = 64.0*std::numeric_limits<double>::epsilon()
+                         * MAX(1.0,std::abs(objective_old));
+  return objective_new <= objective_old + tolerance;
 }
 
 
@@ -2880,6 +2930,20 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
                 #endif
 
                 acceptCandidate = improveNearSum && improveNearMax;
+                if(acceptCandidate){
+                  double edgeObjectiveNear0 = 0.0;
+                  double edgeObjectiveNear1 = 0.0;
+                  acceptCandidate =
+                      edge_cavity_length_objective_nonworsening_2d<MFT,iquaf>(
+                          msh,cav,ithread,
+                          edgeObjectiveNear0,edgeObjectiveNear1);
+                  if(cav.lcedg.get_n() > 0 && msh.idim == 2
+                     && msh.CAD() && msh.param->adp_line_adapt){
+                    CPRINTF2(" - growth 1D objective {} -> {}, accepted {}\n",
+                             edgeObjectiveNear0,edgeObjectiveNear1,
+                             acceptCandidate);
+                  }
+                }
                 CPRINTF1(" - near miss smoothing dim {} ieneijj {} objective {} -> {} accepted {}\n",
                          tdim,ieneijj,objGrowthCurrent,
                          objGrowthCandidate,acceptCandidate);
@@ -2902,6 +2966,35 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
             }
           }
           #endif
+
+          // A directly accepted 2D growth candidate has not yet been stacked.
+          // Probe the complete would-be CAD-edge subcavity before committing
+          // the growth.  A near-miss candidate was stacked and checked above.
+          if(acceptCandidate
+             && ent2tag(ithread,ieneijj) < msh.tag[ithread]){
+            const int nsub0 = lcsub.get_n();
+            stackCavityBoundaryEdges(ieneijj);
+
+            double edgeObjectiveCandidate0 = 0.0;
+            double edgeObjectiveCandidate1 = 0.0;
+            const bool edgeCandidateOK =
+                edge_cavity_length_objective_nonworsening_2d<MFT,iquaf>(
+                    msh,cav,ithread,
+                    edgeObjectiveCandidate0,edgeObjectiveCandidate1);
+            if(cav.lcedg.get_n() > 0 && msh.idim == 2
+               && msh.CAD() && msh.param->adp_line_adapt){
+              CPRINTF2(" - growth 1D objective {} -> {}, accepted {}\n",
+                       edgeObjectiveCandidate0,edgeObjectiveCandidate1,
+                       edgeCandidateOK);
+            }
+            if(!edgeCandidateOK){
+              for(int ii = nsub0; ii < lcsub.get_n(); ii++){
+                sub2tag(ithread,lcsub[ii]) = 0;
+              }
+              lcsub.set_n(nsub0);
+              acceptCandidate = false;
+            }
+          }
 
           if (acceptCandidate){
 
@@ -3546,6 +3639,17 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
                      "Cavity smoothing worsen quality!");
   #endif
 
+  double edgeObjective0 = 0.0;
+  double edgeObjective1 = 0.0;
+  const bool improveEdgeCavity =
+      edge_cavity_length_objective_nonworsening_2d<MFT,iquaf>(
+          msh,cav,ithread,edgeObjective0,edgeObjective1);
+  if(cav.lcedg.get_n() > 0 && msh.idim == 2
+     && msh.CAD() && msh.param->adp_line_adapt){
+    CPRINTF2(" - 1D length objective {} -> {}, accepted {}\n",
+             edgeObjective0,edgeObjective1,improveEdgeCavity);
+  }
+
   // restore to original number of entities in mesh
   msh.set_nentt(tdim,nentt0);
   msh.set_nentt(tdim-1,nsube0);
@@ -3591,7 +3695,8 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   }
   #endif
 
-  if (improveEnttsSum && improveEnttsMax && improveSubEnttsSum && improveSubEnttsMax) return 0; // reconnected cavity has better quality than original config
+  if (improveEnttsSum && improveEnttsMax && improveSubEnttsSum
+      && improveSubEnttsMax && improveEdgeCavity) return 0; // reconnected cavity has better quality than original config
   else return -1;                                       // original config is better
 }
 
@@ -3860,6 +3965,17 @@ int checkCavityQuality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   }
   #endif
 
+  double edgeObjective0 = 0.0;
+  double edgeObjective1 = 0.0;
+  const bool improveEdgeCavity =
+      edge_cavity_length_objective_nonworsening_2d<MFT,iquaf>(
+          msh,cav,ithread,edgeObjective0,edgeObjective1);
+  if(cav.lcedg.get_n() > 0 && msh.idim == 2
+     && msh.CAD() && msh.param->adp_line_adapt){
+    CPRINTF2(" - 1D length objective {} -> {}, accepted {}\n",
+             edgeObjective0,edgeObjective1,improveEdgeCavity);
+  }
+
   // restore to original number of entities in mesh
   msh.set_nentt(tdim,nentt0);
   msh.set_nentt(tdim-1,nsube0);
@@ -3912,7 +4028,8 @@ int checkCavityQuality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   }
   #endif
 
-  if (cavAccepted && improveEnttsMax && improveSubEnttsSum && improveSubEnttsMax) return 0; // reconnected cavity has an acceptable quality
+  if (cavAccepted && improveEnttsMax && improveSubEnttsSum
+      && improveSubEnttsMax && improveEdgeCavity) return 0; // reconnected cavity has an acceptable quality
   else return -1;                                       // original config must be kept
 }
 

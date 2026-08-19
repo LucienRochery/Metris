@@ -234,7 +234,16 @@ double collapseShortEdges(Mesh<MFT> &msh, int tdim, double qmax_suf, int *ncoll,
         if(msh.getpoitdim(ent2poi(ientt,lnoed(ied,1))) == 0) icorner = 1;
         
         if(icorner < 0){
+          #ifdef TESTQUALITYALGO
+          // collapseShortEdges belongs to the Classic driver and has no
+          // quality handler.  Keep it compilable when the quality driver is
+          // enabled; that driver calls collapseEdge itself with its handler.
+          ierro = collapseEdge2(msh, tdim, ientt, ied, qmax_suf,
+                                cav, work, lcaver1,
+                                ithrd2, ithrd3, ithrd4);
+          #else
           ierro = collapseEdge(msh, tdim, ientt, ied, qmax_suf, cav, work, lcaver1, ithrd2, ithrd3, ithrd4);
+          #endif
         }else{
           CPRINTF1(" # collapseEdge vertex {} = {} is corner, call collapseVertex\n",
                    icorner,ent2poi(ientt,lnoed(ied,icorner)));

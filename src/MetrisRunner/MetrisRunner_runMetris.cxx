@@ -308,6 +308,8 @@ void MetrisRunner::runMetrisProgressive(){
   auto setMetScale = [&](double sclmet) -> void {
 
     METRIS_ENFORCE(sclmet > 0);
+    // The 1D pass must be repeated for each progressive target metric.
+    objectiveLineAdapted = false;
     param->step_distance_cavity_best_objective =
         std::numeric_limits<double>::infinity();
     param->setMetricScale(sclmet);

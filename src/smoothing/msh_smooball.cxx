@@ -23,6 +23,9 @@ Simplest possible approach.
 
 #include "lplib3/lplib3.h"
 
+#include <cmath>
+#include <limits>
+
 #undef USE_LPLIB_SMOOTHINTERIOR
 
 
@@ -848,6 +851,33 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
       CPRINTF1(" - smoo iter {:3}, ipoin {} (ientt {}, point {}), ball init {:10.6e} < q < {:10.6e} (at {}), avg = {:10.6e} "
                      "(p = {})\n",niter,ipoin,ientt,ii,qmin,qmax,imax,qnrm,msh.param->opt_pnorm);
 
+      const bool protectEdgeObjective = idim == 2
+                                     && pointOnEdge
+                                     && msh.CAD()
+                                     && msh.param->adp_line_adapt;
+      auto incidentEdgeLengthObjective = [&]() -> double{
+        if constexpr(idim != 2){
+          return 0.0;
+        }else{
+          if(!protectEdgeObjective) return 0.0;
+          double objective = 0.0;
+          for(int iedge = 0; iedge < msh.nedge; iedge++){
+            if(isdeadent(iedge,msh.edg2poi)) continue;
+            if(msh.edg2poi(iedge,0) != ipoin
+               && msh.edg2poi(iedge,1) != ipoin) continue;
+            if(iquaf == QuaFun::StepDistance){
+              objective += metqua1_length<MFT,2,QuaFun::StepDistance>(
+                  msh,msh.edg2poi[iedge]);
+            }else{
+              objective += metqua1_length<MFT,2,QuaFun::SizeShape>(
+                  msh,msh.edg2poi[iedge]);
+            }
+          }
+          return objective;
+        }
+      };
+      const double edgeObjectiveOld = incidentEdgeLengthObjective();
+
       double coor0[idim];
       double met0[nnmet];
       for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
@@ -917,9 +947,21 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
         #ifdef IMPROVEMAXQUAL
           improveQuaMax = qmaxNew < qmax;
         #endif
-        if(!improveQuaSum || !improveGlobalObjective || !improveQuaMax){
+        const double edgeObjectiveNew = incidentEdgeLengthObjective();
+        const double edgeTolerance =
+            64.0*std::numeric_limits<double>::epsilon()
+            * MAX(1.0,std::abs(edgeObjectiveOld));
+        const bool improveEdgeObjective = !protectEdgeObjective
+            || edgeObjectiveNew <= edgeObjectiveOld + edgeTolerance;
+        if(!improveQuaSum || !improveGlobalObjective || !improveQuaMax
+           || !improveEdgeObjective){
           CPRINTF1(" - reject move, quality error increased: {:15.7e} > {:15.7e}\n",
                    objectiveSumNew, objectiveSum);
+          if(!improveEdgeObjective){
+            CPRINTF2(" - reject move, 1D length objective increased: "
+                     "{:15.7e} > {:15.7e}\n",
+                     edgeObjectiveNew,edgeObjectiveOld);
+          }
           for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
           for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
           #ifdef SMOOTHEDGES

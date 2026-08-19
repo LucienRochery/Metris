@@ -14,6 +14,7 @@
 #include "Adaptation/low_collapse.hxx"
 #include "Adaptation/low_cavqual.hxx"
 #include "Adaptation/low_increasecav.hxx"
+#include "Adaptation/msh_lineadapt.hxx"
 #include "MetrisRunner/MetrisRunner.hxx"
 #include "aux_badEntHandler.hxx"
 #include "cavity/msh_cavity.hxx"
@@ -183,6 +184,8 @@ struct StatefulAdaptResult{
   int nSuccessInsert = 0;
   int ntryInsertLength = 0;
   int nSuccessInsertLength = 0;
+  int nSuccessInsertLengthInterior = 0;
+  int nSuccessInsertLengthBoundary = 0;
   int ntryCollapse = 0;
   int nSuccessCollapse = 0;
   int ientt = -1;
@@ -299,6 +302,14 @@ int stateful_adapt_max_iter(){
     return std::atoi(env_iter);
   }
   return 10000;
+}
+
+bool stateful_adapt_require_boundary_divergence(){
+  if(const char* env_boundary =
+      std::getenv("METRIS_QUALITY_ADAPT_REQUIRE_BOUNDARY")){
+    return std::atoi(env_boundary) != 0;
+  }
+  return false;
 }
 
 int stateful_adapt_trace_interval(){
@@ -3530,6 +3541,14 @@ DivergenceCase find_quality_insert_divergence(const std::string& cmd,
   const int tdim = msh.get_tdim();
   BOOST_REQUIRE(tdim == 2 || tdim == 3);
 
+  // Match MetrisRunner::adaptMesh2: the dimension-ordered variant adapts
+  // CAD edges immediately before entering the first 2D quality pass.
+  if constexpr(gdim == 2){
+    if(tdim == 2 && msh.CAD() && msh.param->adp_line_adapt){
+      adaptGeoLines<MFT>(msh);
+    }
+  }
+
   bool iinva = false;
   double qmin = 0, qmax = 0, qavg = 0;
   dblAr1 lquae(msh.nentt(tdim));
@@ -3673,6 +3692,14 @@ StatefulAdaptResult find_stateful_quality_adapt_divergence(const std::string& cm
   const int tdim = msh.get_tdim();
   BOOST_REQUIRE(tdim == 2 || tdim == 3);
 
+  // Match MetrisRunner::adaptMesh2: the dimension-ordered variant adapts
+  // CAD edges immediately before entering the first 2D quality pass.
+  if constexpr(gdim == 2){
+    if(tdim == 2 && msh.CAD() && msh.param->adp_line_adapt){
+      adaptGeoLines<MFT>(msh);
+    }
+  }
+
   const int ithrd1 = 1;
   const int ithrd2 = 2;
   const int ithrd3 = 3;
@@ -3724,6 +3751,8 @@ StatefulAdaptResult find_stateful_quality_adapt_divergence(const std::string& cm
   const int trace_interval = stateful_adapt_trace_interval();
   const int trace_start = stateful_adapt_trace_start();
   const int save_iteration = stateful_adapt_save_iteration();
+  const bool require_boundary =
+      stateful_adapt_require_boundary_divergence();
 
   while(true){
 
@@ -3893,26 +3922,33 @@ StatefulAdaptResult find_stateful_quality_adapt_divergence(const std::string& cm
                              ithrd1, ithrd2);
 
           if(ierro <= 0){
-            result.found = true;
-            result.ientt = ientt;
-            result.ied = ied;
-            result.ip1 = ent2poi(ientt, lnoed(ied,0));
-            result.ip2 = ent2poi(ientt, lnoed(ied,1));
-            result.qentt = quaent;
-            result.len = cand.len;
-            result.ierro_quality = ierro_quality;
-            result.ierro_length = ierro;
-            result.ipins = cav.ipins;
-            result.ncedg = cav.lcedg.get_n();
-            result.ncfac = cav.lcfac.get_n();
-            result.nctet = cav.lctet.get_n();
-            if(save_pre_state){
-              result.pre_mesh = pre_base.string() + ".meshb";
-              result.pre_met = pre_base.string() + ".solb";
-            }
             result.nSuccessInsertLength++;
             msh.poicstr[cav.ipins] = false;
-            return result;
+            const bool touches_boundary = cav.lcedg.get_n() > 0;
+            if(touches_boundary) result.nSuccessInsertLengthBoundary++;
+            else                 result.nSuccessInsertLengthInterior++;
+            if(!require_boundary || touches_boundary){
+              result.found = true;
+              result.ientt = ientt;
+              result.ied = ied;
+              result.ip1 = ent2poi(ientt, lnoed(ied,0));
+              result.ip2 = ent2poi(ientt, lnoed(ied,1));
+              result.qentt = quaent;
+              result.len = cand.len;
+              result.ierro_quality = ierro_quality;
+              result.ierro_length = ierro;
+              result.ipins = cav.ipins;
+              result.ncedg = cav.lcedg.get_n();
+              result.ncfac = cav.lcfac.get_n();
+              result.nctet = cav.lctet.get_n();
+              if(save_pre_state){
+                result.pre_mesh = pre_base.string() + ".meshb";
+                result.pre_met = pre_base.string() + ".solb";
+              }
+              return result;
+            }
+            didOperation = true;
+            break;
           }
 
         }else{
@@ -3939,7 +3975,8 @@ StatefulAdaptResult find_stateful_quality_adapt_divergence(const std::string& cm
         break;
       }
 
-      const double quaTryThreshold = 0.0025;
+      // Keep this replay synchronized with adaptMeshQuality0.
+      const double quaTryThreshold = 0.01;
       if(quaent < quaTryThreshold){
 
         result.ntrySmoothing++;
@@ -4184,6 +4221,10 @@ BOOST_AUTO_TEST_CASE(test_stateful_quality_adapt_divergence)
   fmt::print("   nSuccessInsert        : {}\n", found.nSuccessInsert);
   fmt::print("   ntryInsertLength      : {}\n", found.ntryInsertLength);
   fmt::print("   nSuccessInsertLength  : {}\n", found.nSuccessInsertLength);
+  fmt::print("     interior            : {}\n",
+             found.nSuccessInsertLengthInterior);
+  fmt::print("     boundary            : {}\n",
+             found.nSuccessInsertLengthBoundary);
   fmt::print("   ntryCollapse          : {}\n", found.ntryCollapse);
   fmt::print("   nSuccessCollapse      : {}\n", found.nSuccessCollapse);
 

@@ -33,6 +33,15 @@ ftype metqua(Mesh<MetricFieldType> &msh,
              AsDeg asdmsh, AsDeg asdmet,
              int ielem, ftype difto = 1);
 
+// Length-based quality error for an embedded P1 edge.  The ambient metric is
+// restricted to the edge direction by getlenedg_geosz; the resulting metric
+// length is then passed through the selected 1D objective.  This deliberately
+// measures total edge length, rather than a pointwise 1D map distortion.
+template <class MetricFieldType, int gdim,
+          QuaFun iquaf = DefaultQualityFunction>
+double metqua1_length(Mesh<MetricFieldType> &msh,
+                      const int *edg2pol);
+
 // Unit aggregation weight for the historical CavityTargetAverage plumbing.
 // The restored formulation is averaged by element count, not target volume.
 template <class MetricFieldType, int gdim, int tdim>
