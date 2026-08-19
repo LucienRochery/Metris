@@ -463,10 +463,8 @@ FrozenQuadratureSamples<gdim> capture_frozen_samples(Mesh<MFT> &msh)
       = get_vertex_barycenter_quadrature<gdim>();
   const int *nodes = msh.ent2poi(gdim)[0];
 
-  double measure = 1.0;
-  #ifdef TESTQUALITYALGO
+  double measure;
   BOOST_REQUIRE((isvalideltP1<gdim,gdim>(msh,0,NULL,&measure)));
-  #endif
 
   for(int iquad = 0; iquad < quadrature.size(); iquad++){
     const SimplexQuadraturePointView<gdim> quadrature_point
@@ -504,10 +502,8 @@ FrozenQuadratureSamples<gdim> capture_frozen_samples(Mesh<MFT> &msh)
     }
 
     double weight = quadrature_point.weight*measure;
-    #ifdef TESTQUALITYALGO
     #ifdef INTQUALINRIEMSPACE
     weight *= std::sqrt(detsym<gdim>(metric));
-    #endif
     #endif
     samples.weights[iquad] = weight;
   }
@@ -913,12 +909,10 @@ FrozenObjectiveRuleSamples<gdim> capture_objective_rule_samples(
     Mesh<MFT> &msh,
     const int order)
 {
-  using Policy = ObjectiveQuadratureValuePolicy<
-      MFT,gdim,gdim,1,iquaf,double>;
   using Sample = ObjectiveQuadratureSample<gdim,gdim,1>;
 
   FrozenObjectiveRuleSamples<gdim> frozen;
-  frozen.theta_mode = Policy::theta_mode(msh);
+  frozen.theta_mode = objective_quadrature_theta_mode<iquaf>(msh);
   const SimplexQuadratureView<gdim> quadrature
       = explicit_objective_quadrature<gdim>(order);
   frozen.nquad = quadrature.size();

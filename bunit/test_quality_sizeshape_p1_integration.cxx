@@ -112,10 +112,8 @@ double reconstruct_vertex_barycenter_sizeshape(
   const SimplexQuadratureView<tdim> quadrature
       = get_vertex_barycenter_quadrature<tdim>();
 
-  double measure = 1.0;
-  #ifdef TESTQUALITYALGO
+  double measure;
   BOOST_REQUIRE((isvalideltP1<gdim,tdim>(msh,0,NULL,&measure)));
-  #endif
 
   double expected = 0.0;
   for(int iquad = 0; iquad < quadrature.size(); iquad++){
@@ -155,10 +153,8 @@ double reconstruct_vertex_barycenter_sizeshape(
                      : std::pow(size_shape_error,objective_p);
 
     double weight = quadrature_point.weight*measure;
-    #ifdef TESTQUALITYALGO
     #ifdef INTQUALINRIEMSPACE
     weight *= std::sqrt(detsym<gdim>(metric));
-    #endif
     #endif
     expected += weight*psi;
   }
@@ -168,6 +164,8 @@ double reconstruct_vertex_barycenter_sizeshape(
 template<int gdim, int tdim>
 void check_p1_sizeshape_integration(Mesh<MetricFieldFE> &msh)
 {
+  // This regression independently reconstructs the historical rule.
+  msh.param->objective_quadrature_order = 0;
   msh.param->objective_p = 1.0;
   msh.param->opt_power = 1;
   msh.param->opt_pnorm = 1;

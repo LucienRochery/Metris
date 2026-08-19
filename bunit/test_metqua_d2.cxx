@@ -442,23 +442,16 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_shape_volume_frozen_theta)
       msh,AsDeg::P1,AsDeg::P1,msh.fac2poi[0],bary,met,
       ivar,msh.getBasis(),DifVar::None,point_grad,point_hess);
 
-  double coopr[2];
-  double jmat[4];
-  eval2<2,1>(msh.coord,msh.fac2poi[0],msh.getBasis(),
-             DifVar::Bary,DifVar::None,bary,coopr,jmat,NULL);
-  double Jreg_T[4] = {};
-  for(int i = 0; i < 2; i++){
-    for(int a = 0; a < 2; a++){
-      for(int k = 0; k < 2; k++){
-        Jreg_T[2*i+a] +=
-            Constants::invtJ_0[hana::type_c<double>][2][2*i+k]
-            *jmat[2*k+a];
-      }
-    }
-  }
-  double theta;
-  VolumeMeasureHelpers::eval_theta_fixed_metric_grad<2,2,double>(
-      Jreg_T,met,NULL,&theta,NULL);
+  const double jacobian_determinant
+      = (msh.coord(1,0)-msh.coord(0,0))
+       *(msh.coord(2,1)-msh.coord(0,1))
+       -(msh.coord(1,1)-msh.coord(0,1))
+       *(msh.coord(2,0)-msh.coord(0,0));
+  double theta = 0.5*std::abs(jacobian_determinant);
+  #ifdef INTQUALINRIEMSPACE
+  const double metric_determinant = met[0]*met[2]-met[1]*met[1];
+  theta *= std::sqrt(metric_determinant);
+  #endif
 
   double integrated_grad[gdim];
   double integrated_hess[nhess];
@@ -632,6 +625,9 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_objective_derivatives)
   param.iverb = 0;
   param.opt_pnorm = 1;
   param.objective_p = 1.0;
+  // The independent CavityTargetAverage reconstruction below spells out the
+  // historical vertex-barycenter samples explicitly.
+  param.objective_quadrature_order = 0;
   param.step_distance_regularization = 1.e-8;
   param.step_distance_barrier_rho0 = 0.7;
 

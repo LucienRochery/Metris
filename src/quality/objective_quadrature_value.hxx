@@ -27,6 +27,27 @@ struct ObjectiveQuadratureValueEvaluation
   ftype rejection_value{};
 };
 
+// All paper-aligned objective variants share the same integration measure.
+// CavityTargetAverage is deliberately a normalized reference-space average,
+// not an instance of that integral, and therefore remains the sole exception.
+template<QuaFun iquaf, class MFT>
+ObjectiveQuadratureTheta objective_quadrature_theta_mode(Mesh<MFT> &msh)
+{
+  static_assert(iquaf == QuaFun::SizeShape
+                || iquaf == QuaFun::StepDistance);
+  if constexpr(iquaf == QuaFun::StepDistance){
+    const bool use_target_average
+        = msh.param->step_distance_cavity_target_average;
+    METRIS_ENFORCE_MSG(
+        !(msh.param->step_distance_shape_volume && use_target_average),
+        "Step Distance Shape Volume is a distinct integration variant");
+    if(use_target_average){
+      return ObjectiveQuadratureTheta::ReferenceAverage;
+    }
+  }
+  return standard_objective_quadrature_theta_mode();
+}
+
 template<class MFT, int gdim, int tdim, int mshdeg,
          QuaFun iquaf, typename ftype>
 struct ObjectiveQuadratureValuePolicy;
@@ -37,20 +58,6 @@ struct ObjectiveQuadratureValuePolicy<
 {
   using Sample = ObjectiveQuadratureSample<gdim,tdim,mshdeg>;
   using Evaluation = ObjectiveQuadratureValueEvaluation<gdim,ftype>;
-
-  static ObjectiveQuadratureTheta theta_mode(Mesh<MFT> &msh)
-  {
-    (void)msh;
-    ObjectiveQuadratureTheta mode
-        = ObjectiveQuadratureTheta::ReferenceAverage;
-    #ifdef TESTQUALITYALGO
-    mode = ObjectiveQuadratureTheta::PhysicalMeasure;
-    #ifdef INTQUALINRIEMSPACE
-    mode = ObjectiveQuadratureTheta::PhysicalMetricMeasure;
-    #endif
-    #endif
-    return mode;
-  }
 
   static Evaluation evaluate(Mesh<MFT> &msh,
                              AsDeg asdmsh,
@@ -83,21 +90,6 @@ struct ObjectiveQuadratureValuePolicy<
 {
   using Sample = ObjectiveQuadratureSample<gdim,tdim,mshdeg>;
   using Evaluation = ObjectiveQuadratureValueEvaluation<gdim,ftype>;
-
-  static ObjectiveQuadratureTheta theta_mode(Mesh<MFT> &msh)
-  {
-    // CavityTargetAverage uses the normalized reference average of psi.
-    // Every other StepDistance variant retains the regular-reference metric
-    // measure used by its historical integration path.
-    const bool use_target_average
-        = msh.param->step_distance_cavity_target_average;
-    METRIS_ENFORCE_MSG(
-        !(msh.param->step_distance_shape_volume && use_target_average),
-        "Step Distance Shape Volume is a distinct integration variant");
-    return use_target_average
-         ? ObjectiveQuadratureTheta::ReferenceAverage
-         : ObjectiveQuadratureTheta::RegularMetricMeasure;
-  }
 
   static Evaluation evaluate(Mesh<MFT> &msh,
                              AsDeg asdmsh,
@@ -173,7 +165,8 @@ ftype integrate_objective_quadrature_value(
   using Sample = ObjectiveQuadratureSample<gdim,tdim,mshdeg>;
   using Evaluation = ObjectiveQuadratureValueEvaluation<gdim,ftype>;
 
-  const ObjectiveQuadratureTheta theta_mode = Policy::theta_mode(msh);
+  const ObjectiveQuadratureTheta theta_mode
+      = objective_quadrature_theta_mode<iquaf>(msh);
   ftype integral = ftype(0);
 
   for(int iquad = 0; iquad < quadrature.size(); iquad++){

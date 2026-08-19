@@ -89,11 +89,6 @@ struct ObjectiveQuadratureDerivativePolicy<
   using Sample = ObjectiveQuadratureSample<gdim,tdim,mshdeg>;
   using Evaluation = ObjectiveQuadratureDerivativeEvaluation<gdim,ftype>;
 
-  static ObjectiveQuadratureTheta theta_mode(Mesh<MFT> &msh)
-  {
-    return ValuePolicy::theta_mode(msh);
-  }
-
   static Evaluation evaluate(
       Mesh<MFT> &msh,
       AsDeg asdmsh,
@@ -136,11 +131,6 @@ struct ObjectiveQuadratureDerivativePolicy<
       MFT,gdim,tdim,mshdeg,QuaFun::StepDistance,ftype>;
   using Sample = ObjectiveQuadratureSample<gdim,tdim,mshdeg>;
   using Evaluation = ObjectiveQuadratureDerivativeEvaluation<gdim,ftype>;
-
-  static ObjectiveQuadratureTheta theta_mode(Mesh<MFT> &msh)
-  {
-    return ValuePolicy::theta_mode(msh);
-  }
 
   static Evaluation evaluate(
       Mesh<MFT> &msh,
@@ -280,7 +270,8 @@ ftype integrate_objective_quadrature_derivatives(
     }
   }
 
-  const ObjectiveQuadratureTheta theta_mode = Policy::theta_mode(msh);
+  const ObjectiveQuadratureTheta theta_mode
+      = objective_quadrature_theta_mode<iquaf>(msh);
   ftype integral = ftype(0);
 
   for(int iquad = 0; iquad < quadrature.size(); iquad++){

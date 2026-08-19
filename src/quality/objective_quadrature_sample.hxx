@@ -22,10 +22,10 @@
 namespace Metris
 {
 
-// The sample-preparation layer supports the integration conventions that are
-// already present while exposing one explicit theta to its consumer. The
-// objective paths can converge on one convention later without duplicating
-// geometry or metric evaluation again.
+// The sample-preparation layer supports the integration conventions needed by
+// focused tests and compatibility code while exposing one explicit theta to
+// its consumer. Production objective traversal selects its mode through the
+// common helper below, independently of the pointwise objective.
 enum class ObjectiveQuadratureTheta
 {
   ReferenceAverage,
@@ -33,6 +33,16 @@ enum class ObjectiveQuadratureTheta
   PhysicalMetricMeasure,
   RegularMetricMeasure
 };
+
+constexpr ObjectiveQuadratureTheta
+standard_objective_quadrature_theta_mode() noexcept
+{
+  #ifdef INTQUALINRIEMSPACE
+  return ObjectiveQuadratureTheta::PhysicalMetricMeasure;
+  #else
+  return ObjectiveQuadratureTheta::PhysicalMeasure;
+  #endif
+}
 
 template<int gdim, int tdim, int mshdeg>
 struct ObjectiveQuadratureSample
@@ -79,6 +89,27 @@ bool objective_jacobian_measure(
     double reference_measure,
     double *measure)
 {
+  // For a full-dimensional map, compute |det(J)| directly. Forming J*J^T
+  // first is mathematically equivalent, but squares the condition number and
+  // can round a positive determinant to zero for valid anisotropic elements.
+  if constexpr(gdim == tdim){
+    const double jacobian_determinant
+        = VolumeMeasureHelpers::det_full<tdim,double>(jacobian_transpose);
+    const double absolute_jacobian_determinant
+        = std::abs(jacobian_determinant);
+    if(!(absolute_jacobian_determinant > 0.0)
+       || !std::isfinite(absolute_jacobian_determinant)){
+      *measure = 0.0;
+      return false;
+    }
+    *measure = reference_measure*absolute_jacobian_determinant;
+    if(!(*measure > 0.0) || !std::isfinite(*measure)){
+      *measure = 0.0;
+      return false;
+    }
+    return true;
+  }
+
   double gram[tdim*tdim];
   for(int i = 0; i < tdim; i++){
     for(int j = 0; j < tdim; j++){

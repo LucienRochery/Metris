@@ -432,4 +432,73 @@ BOOST_AUTO_TEST_CASE(test_invalid_theta_is_reported_without_early_throw)
   BOOST_CHECK_EQUAL(sample.theta,0.0);
 }
 
+BOOST_AUTO_TEST_CASE(full_dimensional_theta_avoids_gram_cancellation)
+{
+  constexpr double perturbation = 1.0e-8;
+  const double jacobian_transpose[4]
+      = {1.0,1.0,1.0,1.0 + perturbation};
+
+  const double gram[4] = {
+      2.0,
+      2.0 + perturbation,
+      2.0 + perturbation,
+      1.0 + (1.0 + perturbation)*(1.0 + perturbation)};
+  const double gram_determinant
+      = VolumeMeasureHelpers::det_full<2,double>(gram);
+  BOOST_CHECK(!(gram_determinant > 0.0));
+
+  double measure = 0.0;
+  const bool is_valid = detail::objective_jacobian_measure<2,2>(
+      jacobian_transpose,0.5,&measure);
+  const double expected_measure
+      = 0.5*std::abs(
+          VolumeMeasureHelpers::det_full<2,double>(jacobian_transpose));
+
+  BOOST_REQUIRE(expected_measure > 0.0);
+  BOOST_CHECK(is_valid);
+  BOOST_CHECK_CLOSE_FRACTION(measure,expected_measure,1.0e-15);
+}
+
+BOOST_AUTO_TEST_CASE(objective_theta_mode_is_shared_except_target_average)
+{
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  Mesh<MetricFieldFE> msh;
+  initialize_p1_fe_element<2>(msh,parameters);
+
+  #ifdef INTQUALINRIEMSPACE
+  constexpr ObjectiveQuadratureTheta expected_mode
+      = ObjectiveQuadratureTheta::PhysicalMetricMeasure;
+  #else
+  constexpr ObjectiveQuadratureTheta expected_mode
+      = ObjectiveQuadratureTheta::PhysicalMeasure;
+  #endif
+
+  BOOST_CHECK(
+      objective_quadrature_theta_mode<QuaFun::SizeShape>(msh)
+      == expected_mode);
+
+  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_cavity_target_average = false;
+  BOOST_CHECK(
+      objective_quadrature_theta_mode<QuaFun::StepDistance>(msh)
+      == expected_mode);
+
+  parameters.step_distance_shape_volume = true;
+  BOOST_CHECK(
+      objective_quadrature_theta_mode<QuaFun::StepDistance>(msh)
+      == expected_mode);
+
+  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_cavity_target_average = true;
+  BOOST_CHECK(
+      objective_quadrature_theta_mode<QuaFun::StepDistance>(msh)
+      == ObjectiveQuadratureTheta::ReferenceAverage);
+
+  parameters.step_distance_shape_volume = true;
+  BOOST_CHECK_THROW(
+      objective_quadrature_theta_mode<QuaFun::StepDistance>(msh),
+      MetrisExcept);
+}
+
 } // namespace Metris

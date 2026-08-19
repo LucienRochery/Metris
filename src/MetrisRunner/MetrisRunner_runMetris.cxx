@@ -108,16 +108,8 @@ void MetrisRunner::runMetris(){
 
       msh.cleanup();
 
-      #ifdef ONEPOINTQUAL
-      std::string meshQualFieldNameStart = "meshWithQualField1Point_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".meshb";
-      std::string qualFieldNameStart     = "meshWithQualField1Point_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".solb";
-      #elif defined(TDIM1POINTSQUAL)
-      std::string meshQualFieldNameStart = "meshWithQualFieldTDIM1Points_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".meshb";
-      std::string qualFieldNameStart     = "meshWithQualFieldTDIM1Points_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".solb";
-      #elif defined(KEAST4QUAL)
-      std::string meshQualFieldNameStart = "meshWithQualFieldKEAST4_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".meshb";
-      std::string qualFieldNameStart     = "meshWithQualFieldKEAST4_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".solb";
-      #endif
+      std::string meshQualFieldNameStart = "meshWithQualField_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".meshb";
+      std::string qualFieldNameStart     = "meshWithQualField_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".solb";
 
       const int nenttStart = msh.nentt(tdim);
       dblAr1 rfldStart(nenttStart);
@@ -173,16 +165,8 @@ void MetrisRunner::runMetris(){
 
       // for (int ipoin = 0; ipoin < npoinStart; ipoin++) quaCGP1[ipoin] = 1./quaCGP1[ipoin];
 
-      #if defined(ONEPOINTQUAL)
-      std::string meshPointwiseQualFieldNameStart = "meshWithPointWiseQual1Point_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".meshb";
-      std::string pointwiseQualFieldNameStart     = "meshWithPointWiseQual1Point_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".solb";
-      #elif defined(TDIM1POINTSQUAL)
-      std::string meshPointwiseQualFieldNameStart = "meshWithPointWiseQualTDIM1Points_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".meshb";
-      std::string pointwiseQualFieldNameStart     = "meshWithPointWiseQualTDIM1Points_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".solb";
-      #elif defined(KEAST4QUAL)
-      std::string meshPointwiseQualFieldNameStart = "meshWithPointWiseQualKEAST4_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".meshb";
-      std::string pointwiseQualFieldNameStart     = "meshWithPointWiseQualKEAST4_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".solb";
-      #endif
+      std::string meshPointwiseQualFieldNameStart = "meshWithPointWiseQual_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".meshb";
+      std::string pointwiseQualFieldNameStart     = "meshWithPointWiseQual_scl_" + std::to_string(scl) + "_StartIter" + std::to_string(iter) + ".solb";
 
       writeMesh(meshPointwiseQualFieldNameStart,msh);
       writeField(pointwiseQualFieldNameStart, msh, SolTyp::CG, quaCGP1, 1);

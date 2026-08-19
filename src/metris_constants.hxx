@@ -26,16 +26,10 @@
 
 // #define DEBUGCAV
 
-#define ONEPOINTQUAL
-// #define TDIM1POINTSQUAL
-// #define KEAST4QUAL
-
 // #define WRITEQUALFIELD
 
 // #define DIAGNOSIS_QUALALGO
 
-#else
-#define ONEPOINTQUAL
 #endif
 
 #define SMOOTHFACES
