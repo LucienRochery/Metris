@@ -384,7 +384,7 @@ ftype quafun_stepDistance(Mesh<MFT> &msh,
         volume_coordinate*volume_coordinate/ftype(4*tdim);
     return step_distance_power_from_squared(
         distance2,
-        msh.param->step_distance_p,
+        msh.param->objective_p,
         msh.param->step_distance_regularization);
   }
 
@@ -402,7 +402,7 @@ ftype quafun_stepDistance(Mesh<MFT> &msh,
 
   return step_distance_power_from_squared(
       distance2,
-      msh.param->step_distance_p,
+      msh.param->objective_p,
       msh.param->step_distance_regularization);
 }
 
@@ -820,13 +820,13 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
     if(msh.param->step_distance_shape_volume){
       eval_shape_volume_phi_grad_impl<gdim,tdim,ftype>(
           Jreg_T_f,met_f,NULL,
-          msh.param->step_distance_p,
+          msh.param->objective_p,
           msh.param->step_distance_regularization,
           &phi,NULL);
     }else{
       eval_phi_grad_impl<gdim,tdim,ftype>(
           Jreg_T_f, met_f, NULL,
-          msh.param->step_distance_p,
+          msh.param->objective_p,
           msh.param->step_distance_regularization,
           &phi, NULL);
     }
@@ -857,13 +857,13 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
   if(msh.param->step_distance_shape_volume){
     eval_shape_volume_phi_grad_impl<gdim,tdim,ftype>(
         Jreg_T_f,met_f,gradN_f,
-        msh.param->step_distance_p,
+        msh.param->objective_p,
         msh.param->step_distance_regularization,
         &phi,dphi);
   }else{
     eval_phi_grad_impl<gdim,tdim,ftype>(
         Jreg_T_f, met_f, gradN_f,
-        msh.param->step_distance_p,
+        msh.param->objective_p,
         msh.param->step_distance_regularization,
         &phi, dphi);
   }
@@ -918,13 +918,13 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
     if(msh.param->step_distance_shape_volume){
       eval_shape_volume_phi_grad_impl<gdim,tdim,S>(
           Jreg_TS,metS,gradNS,
-          msh.param->step_distance_p,
+          msh.param->objective_p,
           msh.param->step_distance_regularization,
           &phiS,dphiS);
     }else{
       eval_phi_grad_impl<gdim,tdim,S>(
           Jreg_TS, metS, gradNS,
-          msh.param->step_distance_p,
+          msh.param->objective_p,
           msh.param->step_distance_regularization,
           &phiS, dphiS);
     }

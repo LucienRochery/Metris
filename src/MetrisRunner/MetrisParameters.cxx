@@ -376,8 +376,18 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("opt-power")){
     opt_power = opt.m["opt-power"].as<int>();
   }
+  if(opt.count("objective-p")){
+    objective_p = opt.m["objective-p"].as<double>();
+  }
   if(opt.count("step-distance-p")){
-    step_distance_p = opt.m["step-distance-p"].as<double>();
+    const double compatibility_value
+        = opt.m["step-distance-p"].as<double>();
+    METRIS_ENFORCE_MSG(
+        !opt.count("objective-p") || compatibility_value == objective_p,
+        "Conflicting --objective-p ({}) and deprecated --step-distance-p "
+        "({}) values",
+        objective_p,compatibility_value);
+    objective_p = compatibility_value;
   }
   if(opt.count("step-distance-regularization")){
     step_distance_regularization =
@@ -460,13 +470,8 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
 
 void MetrisParameters::checkParameters(){
   METRIS_ENFORCE_MSG(abs(opt_power) == 1, "opt_power can be set to -1 or 1");
-  METRIS_ENFORCE_MSG(
-      step_distance_shape_volume ? step_distance_p > 0.5
-                                 : step_distance_p > 0.0,
-      step_distance_shape_volume
-          ? "step_distance_p must be greater than 1/2 for Step Distance "
-            "Shape Volume"
-          : "step_distance_p must be positive");
+  METRIS_ENFORCE_MSG(objective_p >= 1.0,
+                     "objective_p must be greater than or equal to 1");
   METRIS_ENFORCE_MSG(step_distance_regularization > 0.0,
                      "step_distance_regularization must be positive");
   METRIS_ENFORCE_MSG(

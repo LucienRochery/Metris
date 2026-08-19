@@ -71,8 +71,8 @@ namespace Metris
       const double regularization =
           msh.param->step_distance_regularization;
       return std::pow(distance2 + regularization*regularization,
-                      msh.param->step_distance_p/2.0)
-           - std::pow(regularization,msh.param->step_distance_p);
+                      msh.param->objective_p/2.0)
+           - std::pow(regularization,msh.param->objective_p);
     }
   }
 
@@ -326,6 +326,90 @@ namespace Metris
           }
         }
         CT_FOR1(ideg);
+      }
+    }
+
+    if constexpr(iquaf == QuaFun::SizeShape){
+      if(ideg_eff == 1){
+        METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+
+        const SimplexQuadratureView<tdim> quadrature
+            = get_vertex_barycenter_quadrature<tdim>();
+
+        #ifdef TESTQUALITYALGO
+        double measure;
+        isvalideltP1<gdim,tdim>(msh,ientt,NULL,&measure);
+        #endif
+
+        for(int iquad = 0; iquad < quadrature.size(); iquad++){
+          const SimplexQuadraturePointView<tdim> quadrature_point
+              = quadrature[iquad];
+          for(int ii = 0; ii < tdim + 1; ii++){
+            bary[ii] = quadrature_point.bary[ii];
+          }
+
+          double met[nnmet];
+          if(iquad < tdim + 1){
+            const int ipoin = ent2poi(ientt,iquad);
+            for(int imet = 0; imet < nnmet; imet++){
+              met[imet] = msh.met(ipoin,imet);
+            }
+          }else if constexpr(
+              std::is_same<MFT,MetricFieldAnalytical>::value){
+            double coopr[gdim];
+            if constexpr(tdim == 2){
+              eval2<gdim,1>(msh.coord,ent2poi[ientt],msh.getBasis(),
+                            DifVar::None,DifVar::None,
+                            bary,coopr,NULL,NULL);
+            }else{
+              eval3<gdim,1>(msh.coord,ent2poi[ientt],msh.getBasis(),
+                            DifVar::None,DifVar::None,
+                            bary,coopr,NULL,NULL);
+            }
+            msh.met.getMetPhys(DifVar::None,msh.met.getSpace(),
+                               coopr,met,NULL);
+          }else{
+            msh.met.getMetBary(asdmet,
+                               DifVar::None,
+                               msh.met.getSpace(),
+                               ent2poi[ientt],
+                               tdim,
+                               bary,
+                               met,
+                               NULL);
+          }
+
+          ftype integrand = quafun_xi(msh,
+                                      AsDeg::P1,
+                                      asdmet,
+                                      ent2poi[ientt],
+                                      bary,
+                                      met);
+          integrand = abs(integrand - difto);
+          if(pnorm == 2){
+            integrand *= integrand;
+          }else if(pnorm > 2){
+            integrand = pow(integrand,pnorm);
+          }
+
+          ftype weight = static_cast<ftype>(quadrature_point.weight);
+          #ifdef TESTQUALITYALGO
+          weight *= static_cast<ftype>(measure);
+          #ifdef INTQUALINRIEMSPACE
+          weight *= static_cast<ftype>(sqrt(detsym<gdim>(met)));
+          #endif
+          #endif
+          qutet += weight*integrand;
+        }
+
+        if(do_nordev){
+          METRIS_ASSERT(msh.param->qua_surf_wt_quality >= 0);
+          METRIS_ASSERT(msh.param->qua_surf_wt_normal >= 0);
+          qutet = msh.param->qua_surf_wt_quality*qutet
+                + msh.param->qua_surf_wt_normal*pow(nordev,pnorm);
+        }
+
+        return qutet;
       }
     }
 

@@ -470,11 +470,10 @@ std::vector<ElementObjectiveValues> evaluateElementObjectives(
   }
 
   const int sizeShapePower = msh.param->opt_pnorm;
-  const double stepDistancePower = msh.param->step_distance_p;
-  if (sizeShapePower < 1 || !(stepDistancePower > 0.5)) {
+  const double stepDistancePower = msh.param->objective_p;
+  if (sizeShapePower < 1 || stepDistancePower < 1.0) {
     throw std::runtime_error(
-        "objective powers must satisfy SizeShape p >= 1 and "
-        "StepDistance p > 1/2");
+        "objective powers must be greater than or equal to 1");
   }
 
   // Statistics always evaluate the paper's positive SizeShape objective,
@@ -635,7 +634,7 @@ void outputObjectiveStats(
   }
 
   const double sizeShapePower = msh.param->opt_pnorm;
-  const double stepDistancePower = msh.param->step_distance_p;
+  const double stepDistancePower = msh.param->objective_p;
   const ObjectiveSummary sizeShapeSummary = summarizeObjective(
       sizeShapePower, sizeShapeEnergies, sizeShapeValues,
       sizeShapeTargetVolumes);

@@ -130,8 +130,8 @@ BOOST_AUTO_TEST_CASE(test_stepdistance_arbitrary_p_derivatives)
   const double fd_step = 2.e-6;
   msh.param->step_distance_regularization = 1.e-8;
 
-  for(double power : {0.5,1.0,1.5,2.0,3.25}){
-    msh.param->step_distance_p = power;
+  for(double power : {1.0,1.5,2.0,3.25}){
+    msh.param->objective_p = power;
     for(int ivar = 0; ivar < 3; ivar++){
       double grad[2];
       double hess[nhess];
@@ -251,8 +251,8 @@ BOOST_AUTO_TEST_CASE(test_stepdistance_shape_volume_value_and_derivatives)
   const double expected_distance2 =
       2.0*centered_log*centered_log
       + volume_coordinate*volume_coordinate/8.0;
-  for(double power : {0.51,0.6,1.0,1.5,2.0,3.25}){
-    param.step_distance_p = power;
+  for(double power : {1.0,1.5,2.0,3.25}){
+    param.objective_p = power;
     const double expected_value = std::pow(
         expected_distance2
             + param.step_distance_regularization
@@ -313,7 +313,7 @@ BOOST_AUTO_TEST_CASE(test_stepdistance_shape_volume_rejects_metric_singular_tria
   param.iverb = 0;
   param.opt_pnorm = 1;
   param.step_distance_shape_volume = true;
-  param.step_distance_p = 1.;
+  param.objective_p = 1.;
   param.step_distance_regularization = 1.e-8;
 
   Mesh<MetricFieldFE> msh;
@@ -398,7 +398,7 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_shape_volume_frozen_theta)
   param.iverb = 0;
   param.opt_pnorm = 1;
   param.step_distance_shape_volume = true;
-  param.step_distance_p = 1.3;
+  param.objective_p = 1.3;
   param.step_distance_regularization = 1.e-7;
   param.step_distance_barrier_rho0 = 10.0;
   param.step_distance_barrier_beta = 1.e6;
@@ -630,7 +630,7 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_objective_derivatives)
   MetrisParameters param;
   param.iverb = 0;
   param.opt_pnorm = 1;
-  param.step_distance_p = 1.0;
+  param.objective_p = 1.0;
   param.step_distance_regularization = 1.e-8;
   param.step_distance_barrier_rho0 = 0.7;
 

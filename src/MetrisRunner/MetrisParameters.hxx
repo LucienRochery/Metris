@@ -102,8 +102,9 @@ depending on whether they should be serialized.
     FIELD(int, opt_niter, 5) \
     FIELD(int, opt_pnorm, 1) \
     FIELD(int, opt_power, 1) \
-    /* StepDistance pointwise power, aggregation, and collapse barrier. */ \
-    FIELD(double, step_distance_p, 2.0) \
+    /* Pointwise objective exponent, fixed for a run. */ \
+    FIELD(double, objective_p, 1.0) \
+    /* StepDistance regularization, aggregation, and collapse barrier. */ \
     FIELD(double, step_distance_regularization, 1.0e-12) \
     FIELD(bool, step_distance_shape_volume, false) \
     FIELD(bool, step_distance_cavity_target_average, false) \

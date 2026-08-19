@@ -110,13 +110,15 @@ struct MetrisOptions{
       ("opt-power", po::value<int>(),
                     "Optimization power parameter. If power == -1, Q ~ det / tra. "
                     "Otherwise ~ tra / det.")
+      ("objective-p", po::value<double>(),
+                    "Pointwise objective exponent p (>= 1, default 1).")
       ("step-distance-p", po::value<double>(),
-                    "Pointwise StepDistance exponent p (> 0).")
+                    "Deprecated alias for --objective-p.")
       ("step-distance-regularization", po::value<double>(),
                     "Smooth StepDistance norm regularization epsilon (> 0).")
       ("step-distance-shape-volume",
                     "Use the volume-stiffened shape/volume SPD distance. "
-                    "Requires step-distance-p > 1/2. "
+                    "Requires objective-p >= 1. "
                     "This path uses the frozen geometric volume factor and "
                     "does not use the collapse barrier.")
       ("step-distance-cavity-target-average",
