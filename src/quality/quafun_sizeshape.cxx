@@ -119,7 +119,6 @@ ftype d_quafun_sizeshape(Mesh<MFT> &msh,
                   ftype*__restrict__ dquael,
                   ftype*__restrict__ hquael){
 
-  const int power = msh.param->opt_power;
   constexpr int nhess = (gdim*(gdim+1))/2;
   ftype tra, det;
   ftype dtra[gdim], htra_[nhess];
@@ -140,91 +139,111 @@ ftype d_quafun_sizeshape(Mesh<MFT> &msh,
        &det,ddet,hdet,
        QualitySingularityPolicy::Reject);
 
-  // This is used later on -> store it
-  int dpowd = iipow<tdim>(tdim);              // n^n
-  ftype trapowdm2 = irpow<tdim-2,ftype>(tra); // tra^(n-2)
-  ftype trapowdm1 = trapowdm2*tra;            // tra^(n-1)
-  ftype trapowd   = trapowdm1*tra;            // tra^n
+  const int dimension_power = iipow<tdim>(tdim);
+  const ftype trace_power_dimension_minus_two
+      = irpow<tdim-2,ftype>(tra);
+  const ftype trace_power_dimension_minus_one
+      = trace_power_dimension_minus_two*tra;
+  const ftype trace_power_dimension
+      = trace_power_dimension_minus_one*tra;
 
-  ftype quael1;
-  quael1 = trapowd*(1. + 1./(det*det))/(2.*dpowd);
-
-  ftype quael;
-  const int ppower = abs(power);
-  if(ivar < 0)
-  {
-    if (power < 0)
-      quael1 = 1./quael1;
-
-    quael = pow(quael1, ppower);
-
-    return quael;
+  const ftype size_shape_quality
+      = trace_power_dimension*(1. + 1./(det*det))
+       /(2.*dimension_power);
+  ftype size_shape_error = size_shape_quality - 1.;
+  constexpr double ideal_roundoff_tolerance
+      = 32.0*std::numeric_limits<double>::epsilon();
+  if(abs(size_shape_error) <= ideal_roundoff_tolerance){
+    size_shape_error = 0.;
+  }else if(size_shape_error < 0.){
+    METRIS_THROW_MSG(
+        "SizeShape quality below its ideal minimum: {:e}",
+        size_shape_quality);
   }
-  // From here, we compute derivatives.
+
+  const double objective_p = msh.param->objective_p;
+  METRIS_ASSERT(objective_p >= 1.0);
+  const ftype psi = objective_p == 1.0
+                  ? size_shape_error
+                  : pow(size_shape_error,objective_p);
+  if(ivar < 0) return psi;
 
   // Quality function base is 1/(2*d^d) * tra^d * (1 + 1/det^2)
   // derivative then:
   // 1/(2*d^d) * [ d * tra^(d-1) * dtra * (1 + 1/det^2) - 2 * tra^d/det^3 * ddet ]
   // hessian is to cumbersome to write...
   for(int ii = 0; ii < gdim; ii++){
-    dquael[ii] = 1./(2.*dpowd) * (tdim * trapowdm1 * dtra[ii] * (1. + 1./(det*det))
-                                - 2. * trapowd / (det*det*det) * ddet[ii]
-                               );
+    dquael[ii]
+        = 1./(2.*dimension_power)
+        * (tdim*trace_power_dimension_minus_one*dtra[ii]
+                     *(1. + 1./(det*det))
+           - 2.*trace_power_dimension/(det*det*det)*ddet[ii]);
   }
   if(hquael != NULL){ // asking for hessian as well
     for(int ii = 0; ii < gdim; ii++){
       for(int jj = ii; jj < gdim; jj++){
-        hquael[sym2idx(ii,jj)] = 1./(2.*dpowd) * ( tdim * ( (tdim-1) * trapowdm2 * dtra[ii] * dtra[jj] * (1. + 1./(det*det))
-                                                          + trapowdm1 * ( htra[sym2idx(ii,jj)] * (1. + 1./(det*det)) - 2. * dtra[ii] / (det*det*det) * ddet[jj])
-                                                        )
-                                                 -2 * ( tdim * trapowdm1 * dtra[jj] / (det*det*det) * ddet[ii] + trapowd * ( -3./(det*det*det*det) * ddet[ii]*ddet[jj]
-                                                                                                                             + hdet[sym2idx(ii,jj)]/(det*det*det)
-                                                                                                                           )
-                                                      )
-                                               );
+        hquael[sym2idx(ii,jj)]
+            = 1./(2.*dimension_power)
+            * (tdim
+               *((tdim - 1)*trace_power_dimension_minus_two
+                              *dtra[ii]*dtra[jj]
+                              *(1. + 1./(det*det))
+                 + trace_power_dimension_minus_one
+                              *(htra[sym2idx(ii,jj)]
+                                   *(1. + 1./(det*det))
+                                - 2.*dtra[ii]/(det*det*det)*ddet[jj]))
+               - 2.*(tdim*trace_power_dimension_minus_one*dtra[jj]
+                              /(det*det*det)*ddet[ii]
+                      + trace_power_dimension
+                              *(-3./(det*det*det*det)*ddet[ii]*ddet[jj]
+                                + hdet[sym2idx(ii,jj)]/(det*det*det))));
       }
     }
   }
-  if(power < 0){
 
-    if(hquael != NULL){
-      // modify Hessian first, as it uses the gradient
-      for(int ii = 0; ii < gdim; ii++){
-        for(int jj = ii; jj < gdim; jj++)
-          hquael[sym2idx(ii,jj)] = 2. / (quael1*quael1*quael1) * dquael[ii] * dquael[jj] - 1. / (quael1*quael1) * hquael[sym2idx(ii,jj)];
-      }
-    }
+  if(objective_p == 1.0) return psi;
 
-    // now modify the gradient
-    for(int ii = 0; ii < gdim; ii++)
-      dquael[ii] = -dquael[ii]/(quael1*quael1);
-
-    // finaly modify value itself
-    quael1 = 1./quael1;
-  }
-
-  quael = quael1;
-
-  // if we have the final quality as the base Q raised to a positive power
-  // modify value and derivatives accordingly
-  if(ppower != 1){
-    // Q^(abs(power)) , quael is Q^p, quael1 is just Q
-
-    quael = pow(quael, ppower);
-
-    if(hquael != NULL){
-      for(int ii = 0; ii < gdim; ii++){
-        for(int jj = ii; jj < gdim; jj++)
-          hquael[sym2idx(ii,jj)] = ppower * (ppower-1) * quael / (quael1*quael1) * dquael[ii] * dquael[jj] + ppower * quael/quael1 * hquael[sym2idx(ii,jj)];
-      }
-    }
-
+  if(size_shape_error == 0.){
     for(int ii = 0; ii < gdim; ii++){
-      dquael[ii] = ppower * dquael[ii] * quael/quael1;
+      dquael[ii] = 0.;
+    }
+    if(hquael != NULL){
+      for(int ihessian = 0; ihessian < nhess; ihessian++){
+        hquael[ihessian] = 0.;
+      }
+    }
+    return psi;
+  }
+
+  ftype gradient_scale;
+  ftype gradient_outer_product_scale;
+  if(objective_p == 2.0){
+    gradient_scale = 2.*size_shape_error;
+    gradient_outer_product_scale = 2.;
+  }else{
+    gradient_scale
+        = objective_p*pow(size_shape_error,objective_p - 1.0);
+    gradient_outer_product_scale
+        = objective_p*(objective_p - 1.0)
+         *pow(size_shape_error,objective_p - 2.0);
+  }
+
+  if(hquael != NULL){
+    for(int ii = 0; ii < gdim; ii++){
+      for(int jj = ii; jj < gdim; jj++){
+        const int ihessian = sym2idx(ii,jj);
+        hquael[ihessian]
+            = gradient_outer_product_scale*dquael[ii]*dquael[jj]
+            + gradient_scale*hquael[ihessian];
+      }
     }
   }
 
-  return quael;
+  for(int ii = 0; ii < gdim; ii++){
+    dquael[ii] *= gradient_scale;
+  }
+
+  return psi;
 }
 
 // While cumbersome, this replaces a bunch of manual instantiations, about to

@@ -1225,7 +1225,7 @@ BOOST_AUTO_TEST_CASE(test_quafun_sizeshape)
           // use identity metric for this test
           const double metI[3] = { 1., 0., 1.};
 
-          double trueQuality = 1.;
+          double expected_psi = 0.;
 
           for (int powerSign : {+1, -1}) {
             msh.param->opt_power = powerSign;
@@ -1239,8 +1239,8 @@ BOOST_AUTO_TEST_CASE(test_quafun_sizeshape)
                                     metI, /*ivar=*/0, msh.getBasis(), DifVar::None,
                                     dquael_loc, hquael_loc);
 
-            BOOST_CHECK_SMALL(qv - trueQuality, 1e-13);
-            BOOST_CHECK_SMALL(qv_d - trueQuality, 1e-13);
+            BOOST_CHECK_SMALL(qv - expected_psi, 1e-13);
+            BOOST_CHECK_SMALL(qv_d - expected_psi, 1e-13);
           }
 
           // ===================
@@ -1253,7 +1253,8 @@ BOOST_AUTO_TEST_CASE(test_quafun_sizeshape)
           msh.coord(ent2poi(ientt,1),0) *= scale; msh.coord(ent2poi(ientt,1),1) *= scale;
           msh.coord(ent2poi(ientt,2),0) *= scale; msh.coord(ent2poi(ientt,2),1) *= scale;
 
-          trueQuality = 1./2. * (pow(scale,4.) + pow(scale,-4.));
+          expected_psi
+              = 1./2.*(pow(scale,4.) + pow(scale,-4.)) - 1.;
 
           for (int powerSign : {+1, -1}) {
             msh.param->opt_power = powerSign;
@@ -1267,14 +1268,8 @@ BOOST_AUTO_TEST_CASE(test_quafun_sizeshape)
                                     metI, /*ivar=*/0, msh.getBasis(), DifVar::None,
                                     dquael_loc, hquael_loc);
 
-            if (powerSign == 1){
-              BOOST_CHECK_SMALL(qv - trueQuality, 1e-12);
-              BOOST_CHECK_SMALL(qv_d - trueQuality, 1e-12);
-            }
-            else{
-              BOOST_CHECK_SMALL(qv - 1./trueQuality, 1e-12);
-              BOOST_CHECK_SMALL(qv_d - 1./trueQuality, 1e-12);
-            }
+            BOOST_CHECK_SMALL(qv - expected_psi, 1e-12);
+            BOOST_CHECK_SMALL(qv_d - expected_psi, 1e-12);
           }
 
           // ===================
@@ -1293,7 +1288,8 @@ BOOST_AUTO_TEST_CASE(test_quafun_sizeshape)
           double tra = 4./3. * (e1[0]*e1[0] + e1[1]*e1[1] +  e2[0]*e2[0] + e2[1]*e2[1] - e1[0]*e2[0] - e1[1]*e2[1]);
           double det = 4./3. * (e1[0]*e2[1] - e1[1]*e2[0])*(e1[0]*e2[1] - e1[1]*e2[0]);
 
-          trueQuality = 1./(2*2*2) * tra * tra * (1. + 1./(det*det));
+          expected_psi
+              = 1./(2*2*2)*tra*tra*(1. + 1./(det*det)) - 1.;
 
           for (int powerSign : {+1, -1}) {
             msh.param->opt_power = powerSign;
@@ -1307,14 +1303,8 @@ BOOST_AUTO_TEST_CASE(test_quafun_sizeshape)
                                     metI, /*ivar=*/0, msh.getBasis(), DifVar::None,
                                     dquael_loc, hquael_loc);
 
-            if (powerSign == 1){
-              BOOST_CHECK_SMALL(qv - trueQuality, 1e-12);
-              BOOST_CHECK_SMALL(qv_d - trueQuality, 1e-12);
-            }
-            else{
-              BOOST_CHECK_SMALL(qv - 1./trueQuality, 1e-12);
-              BOOST_CHECK_SMALL(qv_d - 1./trueQuality, 1e-12);
-            }
+            BOOST_CHECK_SMALL(qv - expected_psi, 1e-12);
+            BOOST_CHECK_SMALL(qv_d - expected_psi, 1e-12);
           }
 
           // Restore original coords
