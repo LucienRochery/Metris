@@ -6,6 +6,8 @@
 #ifndef __METRIS_SIMPLEX_QUADRATURE__
 #define __METRIS_SIMPLEX_QUADRATURE__
 
+#include "../aux_exceptions.hxx"
+
 namespace Metris
 {
 
@@ -105,6 +107,19 @@ get_vertex_barycenter_quadrature() noexcept
   return {detail::VertexBarycenterQuadratureStorage<tdim>::nquad,
           detail::VertexBarycenterQuadratureStorage<tdim>::bary,
           detail::VertexBarycenterQuadratureStorage<tdim>::weights};
+}
+
+// Runtime selection entry point shared by every objective-driven consumer.
+// Positive-order rules are added here only after their tables and exactness
+// tests are in place; unsupported requests must never fall back silently.
+template <int tdim>
+SimplexQuadratureView<tdim> get_objective_quadrature(int order)
+{
+  METRIS_ENFORCE_MSG(
+      order == 0,
+      "Unsupported objective quadrature order {}: only order 0 is available",
+      order);
+  return get_vertex_barycenter_quadrature<tdim>();
 }
 
 } // namespace Metris

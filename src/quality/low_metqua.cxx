@@ -136,7 +136,8 @@ namespace Metris
         METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
 
         const SimplexQuadratureView<tdim> quadrature
-            = get_vertex_barycenter_quadrature<tdim>();
+            = get_objective_quadrature<tdim>(
+                  msh.param->objective_quadrature_order);
         return integrate_objective_quadrature_value<
             MFT,gdim,tdim,1,iquaf,ftype>(
                 msh,asdmsh,asdmet,ent2poi[ientt],quadrature);

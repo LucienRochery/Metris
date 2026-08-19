@@ -379,6 +379,10 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("objective-p")){
     objective_p = opt.m["objective-p"].as<double>();
   }
+  if(opt.count("objective-quadrature-order")){
+    objective_quadrature_order
+        = opt.m["objective-quadrature-order"].as<int>();
+  }
   if(opt.count("step-distance-p")){
     const double compatibility_value
         = opt.m["step-distance-p"].as<double>();
@@ -472,6 +476,9 @@ void MetrisParameters::checkParameters(){
   METRIS_ENFORCE_MSG(abs(opt_power) == 1, "opt_power can be set to -1 or 1");
   METRIS_ENFORCE_MSG(objective_p >= 1.0,
                      "objective_p must be greater than or equal to 1");
+  METRIS_ENFORCE_MSG(
+      objective_quadrature_order == 0,
+      "objective-quadrature-order currently supports only order 0");
   METRIS_ENFORCE_MSG(step_distance_regularization > 0.0,
                      "step_distance_regularization must be positive");
   METRIS_ENFORCE_MSG(

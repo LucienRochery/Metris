@@ -112,6 +112,10 @@ struct MetrisOptions{
                     "Otherwise ~ tra / det.")
       ("objective-p", po::value<double>(),
                     "Pointwise objective exponent p (>= 1, default 1).")
+      ("objective-quadrature-order", po::value<int>(),
+                    "Objective quadrature order. Order 0 selects the "
+                    "historical vertex-barycenter rule; positive orders "
+                    "are not available yet.")
       ("step-distance-p", po::value<double>(),
                     "Deprecated alias for --objective-p.")
       ("step-distance-regularization", po::value<double>(),

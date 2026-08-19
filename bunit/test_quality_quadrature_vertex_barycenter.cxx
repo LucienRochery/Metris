@@ -11,6 +11,7 @@
 
 using Metris::SimplexQuadraturePointView;
 using Metris::SimplexQuadratureView;
+using Metris::get_objective_quadrature;
 using Metris::get_vertex_barycenter_quadrature;
 
 namespace
@@ -110,6 +111,30 @@ void check_vertex_barycenter_rule()
              boost::test_tools::tolerance(tolerance));
 }
 
+template <int tdim>
+void check_objective_order_zero_selects_vertex_barycenter()
+{
+  const SimplexQuadratureView<tdim> selected_rule
+      = get_objective_quadrature<tdim>(0);
+  const SimplexQuadratureView<tdim> historical_rule
+      = get_vertex_barycenter_quadrature<tdim>();
+
+  BOOST_TEST(selected_rule.size() == historical_rule.size());
+  for(int iquad = 0; iquad < historical_rule.size(); iquad++)
+  {
+    const SimplexQuadraturePointView<tdim> selected_point
+        = selected_rule[iquad];
+    const SimplexQuadraturePointView<tdim> historical_point
+        = historical_rule[iquad];
+    BOOST_TEST(selected_point.weight == historical_point.weight);
+    for(int ibary = 0; ibary < tdim + 1; ibary++)
+    {
+      BOOST_TEST(selected_point.bary[ibary]
+                 == historical_point.bary[ibary]);
+    }
+  }
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(vertex_barycenter_triangle_rule)
@@ -120,4 +145,14 @@ BOOST_AUTO_TEST_CASE(vertex_barycenter_triangle_rule)
 BOOST_AUTO_TEST_CASE(vertex_barycenter_tetrahedron_rule)
 {
   check_vertex_barycenter_rule<3>();
+}
+
+BOOST_AUTO_TEST_CASE(objective_quadrature_order_selection)
+{
+  check_objective_order_zero_selects_vertex_barycenter<2>();
+  check_objective_order_zero_selects_vertex_barycenter<3>();
+  BOOST_CHECK_THROW(
+      get_objective_quadrature<2>(-1),Metris::MetrisExcept);
+  BOOST_CHECK_THROW(
+      get_objective_quadrature<3>(1),Metris::MetrisExcept);
 }

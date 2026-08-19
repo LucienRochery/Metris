@@ -29,14 +29,17 @@ BOOST_AUTO_TEST_CASE(test_objective_power_default_and_command_line_names)
 {
   MetrisParameters default_parameters;
   BOOST_CHECK_EQUAL(default_parameters.objective_p,1.0);
+  BOOST_CHECK_EQUAL(default_parameters.objective_quadrature_order,0);
   BOOST_CHECK_NO_THROW(default_parameters.checkParameters());
 
   cargHandler canonical_arguments(
-      "--objective-p 1.75 --out objective_parameter_test.meshb --verb 0");
+      "--objective-p 1.75 --objective-quadrature-order 0 "
+      "--out objective_parameter_test.meshb --verb 0");
   MetrisOptions canonical_options(canonical_arguments.c,
                                   canonical_arguments.v);
   MetrisParameters canonical_parameters(canonical_options);
   BOOST_CHECK_EQUAL(canonical_parameters.objective_p,1.75);
+  BOOST_CHECK_EQUAL(canonical_parameters.objective_quadrature_order,0);
   BOOST_CHECK_NO_THROW(canonical_parameters.checkParameters());
 
   cargHandler compatibility_arguments(
@@ -61,6 +64,16 @@ BOOST_AUTO_TEST_CASE(test_objective_power_rejects_invalid_or_conflicting_values)
   MetrisParameters invalid_parameters;
   invalid_parameters.objective_p = 0.999;
   BOOST_CHECK_THROW(invalid_parameters.checkParameters(),MetrisExcept);
+
+  MetrisParameters negative_quadrature_order;
+  negative_quadrature_order.objective_quadrature_order = -1;
+  BOOST_CHECK_THROW(
+      negative_quadrature_order.checkParameters(),MetrisExcept);
+
+  MetrisParameters unavailable_quadrature_order;
+  unavailable_quadrature_order.objective_quadrature_order = 2;
+  BOOST_CHECK_THROW(
+      unavailable_quadrature_order.checkParameters(),MetrisExcept);
 
   cargHandler conflicting_arguments(
       "--objective-p 1.5 --step-distance-p 2.0 --verb 0");
