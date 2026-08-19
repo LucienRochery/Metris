@@ -155,6 +155,19 @@ void check_same_rule(const SimplexQuadratureView<tdim> selected_rule,
 template <int tdim>
 void check_objective_quadrature_selection()
 {
+  if constexpr(tdim == 2)
+  {
+    check_same_rule(
+        get_objective_quadrature<tdim>(-1),
+        get_positive_simplex_quadrature<tdim, 4>());
+  }
+  else
+  {
+    static_assert(tdim == 3);
+    check_same_rule(
+        get_objective_quadrature<tdim>(-1),
+        get_positive_simplex_quadrature<tdim, 3>());
+  }
   check_same_rule(
       get_objective_quadrature<tdim>(0),
       get_vertex_barycenter_quadrature<tdim>());
@@ -164,6 +177,12 @@ void check_objective_quadrature_selection()
   check_same_rule(
       get_objective_quadrature<tdim>(3),
       get_positive_simplex_quadrature<tdim, 3>());
+  check_same_rule(
+      get_objective_quadrature<tdim>(4),
+      get_positive_simplex_quadrature<tdim, 4>());
+  check_same_rule(
+      get_objective_quadrature<tdim>(5),
+      get_positive_simplex_quadrature<tdim, 5>());
 }
 
 template <int tdim>
@@ -320,11 +339,11 @@ BOOST_AUTO_TEST_CASE(objective_quadrature_order_selection)
   check_objective_quadrature_selection<2>();
   check_objective_quadrature_selection<3>();
   BOOST_CHECK_THROW(
-      get_objective_quadrature<2>(-1),Metris::MetrisExcept);
+      get_objective_quadrature<2>(-2),Metris::MetrisExcept);
   BOOST_CHECK_THROW(
       get_objective_quadrature<3>(1),Metris::MetrisExcept);
   BOOST_CHECK_THROW(
-      get_objective_quadrature<2>(4),Metris::MetrisExcept);
+      get_objective_quadrature<2>(6),Metris::MetrisExcept);
 }
 
 BOOST_AUTO_TEST_CASE(imported_positive_quadrature_tables_are_available)
@@ -337,11 +356,24 @@ BOOST_AUTO_TEST_CASE(imported_positive_quadrature_tables_are_available)
       = get_positive_simplex_quadrature<3, 2>();
   const SimplexQuadratureView<3> tetrahedron_degree_three
       = get_positive_simplex_quadrature<3, 3>();
+  const SimplexQuadratureView<2> triangle_degree_four
+      = get_positive_simplex_quadrature<2, 4>();
+  const SimplexQuadratureView<3> tetrahedron_degree_four
+      = get_positive_simplex_quadrature<3, 4>();
+  const SimplexQuadratureView<2> triangle_degree_five
+      = get_positive_simplex_quadrature<2, 5>();
+  const SimplexQuadratureView<3> tetrahedron_degree_five
+      = get_positive_simplex_quadrature<3, 5>();
 
   BOOST_TEST(triangle_degree_two.size() == 3);
   BOOST_TEST(triangle_degree_three.size() == 6);
   BOOST_TEST(tetrahedron_degree_two.size() == 4);
   BOOST_TEST(tetrahedron_degree_three.size() == 8);
+  BOOST_TEST(triangle_degree_four.size() == 6);
+  BOOST_TEST(tetrahedron_degree_four.size() == 14);
+  BOOST_TEST(triangle_degree_five.size() == 7);
+  BOOST_TEST(tetrahedron_degree_five.size() == 14);
+  check_same_rule(tetrahedron_degree_four,tetrahedron_degree_five);
 }
 
 BOOST_AUTO_TEST_CASE(positive_triangle_degree_two_rule_contract)
@@ -362,4 +394,24 @@ BOOST_AUTO_TEST_CASE(positive_tetrahedron_degree_two_rule_contract)
 BOOST_AUTO_TEST_CASE(positive_tetrahedron_degree_three_rule_contract)
 {
   check_positive_tetrahedron_rule<3>();
+}
+
+BOOST_AUTO_TEST_CASE(positive_triangle_degree_four_rule_contract)
+{
+  check_positive_triangle_rule<4>();
+}
+
+BOOST_AUTO_TEST_CASE(positive_tetrahedron_degree_four_rule_contract)
+{
+  check_positive_tetrahedron_rule<4>();
+}
+
+BOOST_AUTO_TEST_CASE(positive_triangle_degree_five_rule_contract)
+{
+  check_positive_triangle_rule<5>();
+}
+
+BOOST_AUTO_TEST_CASE(positive_tetrahedron_degree_five_rule_contract)
+{
+  check_positive_tetrahedron_rule<5>();
 }

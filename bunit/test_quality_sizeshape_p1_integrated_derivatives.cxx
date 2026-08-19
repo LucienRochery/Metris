@@ -20,7 +20,9 @@
 #include "quality/simplex_quadrature.hxx"
 
 #include <array>
+#include <chrono>
 #include <cmath>
+#include <limits>
 #include <type_traits>
 
 namespace Metris
@@ -882,15 +884,23 @@ SimplexQuadratureView<gdim> explicit_objective_quadrature(const int order)
   {
     return get_positive_simplex_quadrature<gdim,2>();
   }
-  METRIS_ENFORCE(order == 3);
-  return get_positive_simplex_quadrature<gdim,3>();
+  if (order == 3)
+  {
+    return get_positive_simplex_quadrature<gdim,3>();
+  }
+  if (order == 4)
+  {
+    return get_positive_simplex_quadrature<gdim,4>();
+  }
+  METRIS_ENFORCE(order == 5);
+  return get_positive_simplex_quadrature<gdim,5>();
 }
 
 template<int gdim>
 struct FrozenObjectiveRuleSamples
 {
   using Sample = ObjectiveQuadratureSample<gdim,gdim,1>;
-  static constexpr int maximum_quadrature_points = 8;
+  static constexpr int maximum_quadrature_points = 14;
 
   std::array<Sample,maximum_quadrature_points> samples{};
   int nquad = 0;
@@ -1167,8 +1177,8 @@ void check_objective_rule_value_gradient_hessian(
 template<class MFT, int gdim, QuaFun iquaf>
 void check_objective_all_quadrature_orders(Mesh<MFT> &msh)
 {
-  const int orders[3] = {0,2,3};
-  for (int iorder = 0; iorder < 3; iorder++)
+  const int orders[5] = {0,2,3,4,5};
+  for (int iorder = 0; iorder < 5; iorder++)
   {
     const int order = orders[iorder];
     BOOST_TEST_CONTEXT("quadrature order = " << order)
@@ -1224,6 +1234,384 @@ void run_objective_quadrature_matrix_case()
   }
 }
 
+template<int gdim>
+struct OwnedReferenceQuadrature
+{
+  static constexpr int maximum_points = 512;
+  std::array<double,maximum_points*(gdim + 1)> bary{};
+  std::array<double,maximum_points> weights{};
+  int nquad = 0;
+
+  SimplexQuadratureView<gdim> view() const
+  {
+    return {nquad,bary.data(),weights.data()};
+  }
+};
+
+template<int gdim>
+OwnedReferenceQuadrature<gdim> make_duffy_gauss_reference_quadrature()
+{
+  static_assert(gdim == 2 || gdim == 3);
+  constexpr int ngauss = 8;
+  constexpr double points[ngauss] = {
+      0.019855071751231884,
+      0.10166676129318663,
+      0.23723379504183550,
+      0.40828267875217510,
+      0.59171732124782490,
+      0.76276620495816450,
+      0.89833323870681337,
+      0.98014492824876812};
+  constexpr double weights[ngauss] = {
+      0.05061426814518813,
+      0.11119051722668724,
+      0.15685332293894364,
+      0.18134189168918099,
+      0.18134189168918099,
+      0.15685332293894364,
+      0.11119051722668724,
+      0.05061426814518813};
+
+  OwnedReferenceQuadrature<gdim> quadrature;
+  for (int iu = 0; iu < ngauss; iu++)
+  {
+    const double u = points[iu];
+    for (int iv = 0; iv < ngauss; iv++)
+    {
+      const double v = points[iv];
+      if constexpr(gdim == 2)
+      {
+        const int iquad = quadrature.nquad;
+        quadrature.bary[iquad*3] = (1.0 - u)*(1.0 - v);
+        quadrature.bary[iquad*3 + 1] = u;
+        quadrature.bary[iquad*3 + 2] = (1.0 - u)*v;
+        quadrature.weights[iquad]
+            = 2.0*weights[iu]*weights[iv]*(1.0 - u);
+        quadrature.nquad++;
+      }
+      else
+      {
+        for (int iw = 0; iw < ngauss; iw++)
+        {
+          const double w = points[iw];
+          const int iquad = quadrature.nquad;
+          quadrature.bary[iquad*4]
+              = (1.0 - u)*(1.0 - v)*(1.0 - w);
+          quadrature.bary[iquad*4 + 1] = u;
+          quadrature.bary[iquad*4 + 2] = (1.0 - u)*v;
+          quadrature.bary[iquad*4 + 3]
+              = (1.0 - u)*(1.0 - v)*w;
+          quadrature.weights[iquad]
+              = 6.0*weights[iu]*weights[iv]*weights[iw]
+               *(1.0 - u)*(1.0 - u)*(1.0 - v);
+          quadrature.nquad++;
+        }
+      }
+    }
+  }
+  return quadrature;
+}
+
+struct ObjectiveOrderConvergence
+{
+  double reference = 0.0;
+  double degree_two = 0.0;
+  double degree_three = 0.0;
+  double degree_four = 0.0;
+  double degree_five = 0.0;
+};
+
+template<class MFT, int gdim, QuaFun iquaf>
+ObjectiveOrderConvergence compare_objective_order_convergence(
+    Mesh<MFT> &msh,
+    const OwnedReferenceQuadrature<gdim> &reference_quadrature)
+{
+  const int *nodes = msh.ent2poi(gdim)[0];
+  ObjectiveOrderConvergence comparison;
+  comparison.reference = integrate_objective_quadrature_value<
+      MFT,gdim,gdim,1,iquaf,double>(
+          msh,AsDeg::P1,AsDeg::P1,nodes,reference_quadrature.view());
+  comparison.degree_two = integrate_objective_quadrature_value<
+      MFT,gdim,gdim,1,iquaf,double>(
+          msh,AsDeg::P1,AsDeg::P1,nodes,
+          get_positive_simplex_quadrature<gdim,2>());
+  comparison.degree_three = integrate_objective_quadrature_value<
+      MFT,gdim,gdim,1,iquaf,double>(
+          msh,AsDeg::P1,AsDeg::P1,nodes,
+          get_positive_simplex_quadrature<gdim,3>());
+  comparison.degree_four = integrate_objective_quadrature_value<
+      MFT,gdim,gdim,1,iquaf,double>(
+          msh,AsDeg::P1,AsDeg::P1,nodes,
+          get_positive_simplex_quadrature<gdim,4>());
+  comparison.degree_five = integrate_objective_quadrature_value<
+      MFT,gdim,gdim,1,iquaf,double>(
+          msh,AsDeg::P1,AsDeg::P1,nodes,
+          get_positive_simplex_quadrature<gdim,5>());
+
+  BOOST_CHECK(std::isfinite(comparison.reference));
+  BOOST_CHECK(std::isfinite(comparison.degree_two));
+  BOOST_CHECK(std::isfinite(comparison.degree_three));
+  BOOST_CHECK(std::isfinite(comparison.degree_four));
+  BOOST_CHECK(std::isfinite(comparison.degree_five));
+
+  const double degree_two_error
+      = std::abs(comparison.degree_two - comparison.reference);
+  const double degree_three_error
+      = std::abs(comparison.degree_three - comparison.reference);
+  const double degree_four_error
+      = std::abs(comparison.degree_four - comparison.reference);
+  const double degree_five_error
+      = std::abs(comparison.degree_five - comparison.reference);
+  BOOST_TEST_MESSAGE(
+      "reference=" << comparison.reference
+      << ", q2=" << comparison.degree_two
+      << " (error " << degree_two_error << ")"
+      << ", q3=" << comparison.degree_three
+      << " (error " << degree_three_error << ")"
+      << ", q4=" << comparison.degree_four
+      << " (error " << degree_four_error << ")"
+      << ", q5=" << comparison.degree_five
+      << " (error " << degree_five_error << ")");
+
+  // Degree 5 should improve materially over the lowest-order positive rule.
+  BOOST_CHECK_LE(
+      degree_five_error,
+      degree_two_error + 2.0e-13*(1.0 + std::abs(comparison.reference)));
+  return comparison;
+}
+
+template<class MFT, int gdim>
+void run_objective_order_convergence_case()
+{
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_p = 1.5;
+  parameters.step_distance_regularization = 1.0e-7;
+  parameters.step_distance_barrier_rho0 = 2.0;
+  parameters.step_distance_barrier_beta = 0.3;
+
+  Mesh<MFT> msh;
+  initialize_element<MFT,gdim>(msh,parameters);
+  const OwnedReferenceQuadrature<gdim> reference_quadrature
+      = make_duffy_gauss_reference_quadrature<gdim>();
+
+  BOOST_TEST_CONTEXT("SizeShape")
+  {
+    compare_objective_order_convergence<MFT,gdim,QuaFun::SizeShape>(
+        msh,reference_quadrature);
+  }
+
+  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_cavity_target_average = false;
+  BOOST_TEST_CONTEXT("StepDistance")
+  {
+    compare_objective_order_convergence<MFT,gdim,QuaFun::StepDistance>(
+        msh,reference_quadrature);
+  }
+
+  parameters.step_distance_shape_volume = true;
+  parameters.step_distance_cavity_target_average = false;
+  BOOST_TEST_CONTEXT("StepDistance ShapeVolume")
+  {
+    compare_objective_order_convergence<MFT,gdim,QuaFun::StepDistance>(
+        msh,reference_quadrature);
+  }
+
+  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_cavity_target_average = true;
+  BOOST_TEST_CONTEXT("StepDistance CavityTargetAverage")
+  {
+    compare_objective_order_convergence<MFT,gdim,QuaFun::StepDistance>(
+        msh,reference_quadrature);
+  }
+}
+
+struct MovingVertexOptimizationResult
+{
+  double initial_value = 0.0;
+  double final_value = 0.0;
+  std::array<double,2> final_coordinate{};
+  int accepted_steps = 0;
+  int value_evaluations = 0;
+};
+
+template<QuaFun iquaf>
+MovingVertexOptimizationResult optimize_triangle_moving_vertex(
+    Mesh<MetricFieldFE> &msh,
+    const int order)
+{
+  constexpr int gdim = 2;
+  constexpr int tdim = 2;
+  constexpr int ivar = 2;
+  constexpr int maximum_iterations = 20;
+  constexpr int maximum_line_search_iterations = 16;
+  constexpr double gradient_tolerance = 1.0e-9;
+  const int ipoin = msh.fac2poi(0,ivar);
+  msh.param->objective_quadrature_order = order;
+
+  MovingVertexOptimizationResult result;
+  result.initial_value = metqua<MetricFieldFE,gdim,tdim,iquaf,double>(
+      msh,AsDeg::P1,AsDeg::P1,0,1.0);
+  result.value_evaluations++;
+  result.final_value = result.initial_value;
+
+  for (int iteration = 0; iteration < maximum_iterations; iteration++)
+  {
+    double gradient[gdim];
+    double hessian[3];
+    d_metqua<MetricFieldFE,gdim,tdim,iquaf,double>(
+        msh,AsDeg::P1,AsDeg::P1,0,ivar,msh.getBasis(),DifVar::None,
+        gradient,hessian,1.0);
+    const double gradient_norm
+        = std::sqrt(gradient[0]*gradient[0] + gradient[1]*gradient[1]);
+    if (gradient_norm < gradient_tolerance)
+    {
+      break;
+    }
+
+    double direction[2] = {-gradient[0],-gradient[1]};
+    const double determinant = hessian[0]*hessian[2]
+                             - hessian[1]*hessian[1];
+    if (hessian[0] > 0.0 && determinant > 1.0e-12)
+    {
+      direction[0]
+          = (-hessian[2]*gradient[0] + hessian[1]*gradient[1])
+           /determinant;
+      direction[1]
+          = (hessian[1]*gradient[0] - hessian[0]*gradient[1])
+           /determinant;
+      if (direction[0]*gradient[0] + direction[1]*gradient[1] >= 0.0)
+      {
+        direction[0] = -gradient[0];
+        direction[1] = -gradient[1];
+      }
+    }
+
+    const double direction_norm
+        = std::sqrt(direction[0]*direction[0]
+                    + direction[1]*direction[1]);
+    if (direction_norm > 0.25)
+    {
+      direction[0] *= 0.25/direction_norm;
+      direction[1] *= 0.25/direction_norm;
+    }
+
+    const double original_coordinate[2] = {
+        msh.coord(ipoin,0),msh.coord(ipoin,1)};
+    bool accepted = false;
+    double step = 1.0;
+    for (int iline = 0;
+         iline < maximum_line_search_iterations;
+         iline++)
+    {
+      msh.coord(ipoin,0) = original_coordinate[0] + step*direction[0];
+      msh.coord(ipoin,1) = original_coordinate[1] + step*direction[1];
+      double trial_value = std::numeric_limits<double>::infinity();
+      try
+      {
+        trial_value = metqua<MetricFieldFE,gdim,tdim,iquaf,double>(
+            msh,AsDeg::P1,AsDeg::P1,0,1.0);
+      }
+      catch (const MetrisExcept &)
+      {
+      }
+      result.value_evaluations++;
+      if (std::isfinite(trial_value) && trial_value < result.final_value)
+      {
+        result.final_value = trial_value;
+        result.accepted_steps++;
+        accepted = true;
+        break;
+      }
+      step *= 0.5;
+    }
+    if (!accepted)
+    {
+      msh.coord(ipoin,0) = original_coordinate[0];
+      msh.coord(ipoin,1) = original_coordinate[1];
+      break;
+    }
+  }
+
+  result.final_coordinate[0] = msh.coord(ipoin,0);
+  result.final_coordinate[1] = msh.coord(ipoin,1);
+  BOOST_CHECK(std::isfinite(result.final_value));
+  BOOST_CHECK_LE(result.final_value,result.initial_value);
+  return result;
+}
+
+template<QuaFun iquaf>
+void compare_triangle_optimization_orders(Mesh<MetricFieldFE> &msh)
+{
+  const int ipoin = msh.fac2poi(0,2);
+  const double initial_coordinate[2] = {
+      msh.coord(ipoin,0),msh.coord(ipoin,1)};
+  const int orders[4] = {2,3,4,5};
+  for (int iorder = 0; iorder < 4; iorder++)
+  {
+    msh.coord(ipoin,0) = initial_coordinate[0];
+    msh.coord(ipoin,1) = initial_coordinate[1];
+    const MovingVertexOptimizationResult result
+        = optimize_triangle_moving_vertex<iquaf>(msh,orders[iorder]);
+    BOOST_TEST_MESSAGE(
+        "order=" << orders[iorder]
+        << ", initial=" << result.initial_value
+        << ", final=" << result.final_value
+        << ", coordinate=(" << result.final_coordinate[0]
+        << ", " << result.final_coordinate[1] << ")"
+        << ", accepted steps=" << result.accepted_steps
+        << ", value evaluations=" << result.value_evaluations);
+  }
+  msh.coord(ipoin,0) = initial_coordinate[0];
+  msh.coord(ipoin,1) = initial_coordinate[1];
+}
+
+template<class MFT, int gdim, QuaFun iquaf>
+double benchmark_objective_quadrature_order(
+    Mesh<MFT> &msh,
+    const int order,
+    const int repetitions,
+    double *sink)
+{
+  constexpr int nhessian = gdim*(gdim + 1)/2;
+  double gradient[gdim];
+  double hessian[nhessian];
+  msh.param->objective_quadrature_order = order;
+  const std::chrono::steady_clock::time_point start
+      = std::chrono::steady_clock::now();
+  for (int irepeat = 0; irepeat < repetitions; irepeat++)
+  {
+    *sink += metqua<MFT,gdim,gdim,iquaf,double>(
+        msh,AsDeg::P1,AsDeg::P1,0,1.0);
+    *sink += d_metqua<MFT,gdim,gdim,iquaf,double>(
+        msh,AsDeg::P1,AsDeg::P1,0,0,msh.getBasis(),DifVar::None,
+        gradient,hessian,1.0);
+  }
+  const std::chrono::steady_clock::time_point finish
+      = std::chrono::steady_clock::now();
+  const std::chrono::duration<double,std::micro> elapsed = finish - start;
+  return elapsed.count()/static_cast<double>(repetitions);
+}
+
+template<QuaFun iquaf>
+void compare_tetrahedron_runtime_orders(Mesh<MetricFieldAnalytical> &msh)
+{
+  constexpr int repetitions = 1000;
+  const int orders[4] = {2,3,4,5};
+  double sink = 0.0;
+  for (int iorder = 0; iorder < 4; iorder++)
+  {
+    const double microseconds = benchmark_objective_quadrature_order<
+        MetricFieldAnalytical,3,iquaf>(
+            msh,orders[iorder],repetitions,&sink);
+    BOOST_TEST_MESSAGE(
+        "order=" << orders[iorder]
+        << ", value+gradient+Hessian microseconds=" << microseconds);
+    BOOST_CHECK_GT(microseconds,0.0);
+  }
+  BOOST_CHECK(std::isfinite(sink));
+}
+
 template<class MFT, int gdim>
 void run_integrated_derivative_case()
 {
@@ -1232,6 +1620,8 @@ void run_integrated_derivative_case()
   parameters.objective_p = 1.5;
   parameters.opt_pnorm = 1;
   parameters.opt_power = -1;
+  // This regression reconstructs the historical vertex-barycenter samples.
+  parameters.objective_quadrature_order = 0;
 
   Mesh<MFT> msh;
   initialize_element<MFT,gdim>(msh,parameters);
@@ -1245,6 +1635,8 @@ void run_metric_sampling_contract_case()
   parameters.iverb = 0;
   parameters.objective_p = 1.5;
   parameters.opt_pnorm = 1;
+  // This regression reconstructs the historical vertex-barycenter samples.
+  parameters.objective_quadrature_order = 0;
 
   Mesh<MFT> msh;
   initialize_element<MFT,gdim>(msh,parameters);
@@ -1311,6 +1703,67 @@ BOOST_AUTO_TEST_CASE(test_analytical_triangle_objective_quadrature_matrix)
 BOOST_AUTO_TEST_CASE(test_analytical_tetrahedron_objective_quadrature_matrix)
 {
   run_objective_quadrature_matrix_case<MetricFieldAnalytical,3>();
+}
+
+BOOST_AUTO_TEST_CASE(test_objective_quadrature_order_convergence)
+{
+  BOOST_TEST_CONTEXT("FE triangle")
+  {
+    run_objective_order_convergence_case<MetricFieldFE,2>();
+  }
+  BOOST_TEST_CONTEXT("FE tetrahedron")
+  {
+    run_objective_order_convergence_case<MetricFieldFE,3>();
+  }
+  BOOST_TEST_CONTEXT("analytical triangle")
+  {
+    run_objective_order_convergence_case<MetricFieldAnalytical,2>();
+  }
+  BOOST_TEST_CONTEXT("analytical tetrahedron")
+  {
+    run_objective_order_convergence_case<MetricFieldAnalytical,3>();
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_objective_quadrature_order_optimization_behavior)
+{
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_p = 1.5;
+  parameters.step_distance_regularization = 1.0e-7;
+  parameters.step_distance_cavity_target_average = true;
+
+  Mesh<MetricFieldFE> msh;
+  initialize_element<MetricFieldFE,2>(msh,parameters);
+  BOOST_TEST_CONTEXT("SizeShape")
+  {
+    compare_triangle_optimization_orders<QuaFun::SizeShape>(msh);
+  }
+  BOOST_TEST_CONTEXT("StepDistance CavityTargetAverage")
+  {
+    compare_triangle_optimization_orders<QuaFun::StepDistance>(msh);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_objective_quadrature_order_runtime)
+{
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_p = 1.5;
+  parameters.step_distance_regularization = 1.0e-7;
+  parameters.step_distance_barrier_rho0 = 2.0;
+  parameters.step_distance_barrier_beta = 0.3;
+
+  Mesh<MetricFieldAnalytical> msh;
+  initialize_element<MetricFieldAnalytical,3>(msh,parameters);
+  BOOST_TEST_CONTEXT("SizeShape")
+  {
+    compare_tetrahedron_runtime_orders<QuaFun::SizeShape>(msh);
+  }
+  BOOST_TEST_CONTEXT("StepDistance")
+  {
+    compare_tetrahedron_runtime_orders<QuaFun::StepDistance>(msh);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(test_objectives_exclude_cad_normal_deviation)

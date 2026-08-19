@@ -98,7 +98,7 @@ struct VertexBarycenterQuadratureStorage<3>
 template <int tdim, int order>
 struct PositiveSimplexQuadratureStorage;
 
-// Positive degree-2 and degree-3 rules imported from SANS
+// Positive degree-2 through degree-5 rules imported from SANS
 //   src/Quadrature/QuadratureArea_Triangle.cpp
 //   src/Quadrature/QuadratureVolume_Tetrahedron.cpp
 // SANS stores triangle points as (x, y) and tetrahedron points as (x, y, z).
@@ -141,6 +141,63 @@ struct PositiveSimplexQuadratureStorage<2, 3>
   inline static constexpr double weights[nquad] = {
       1.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0,
       1.0 / 6.0, 1.0 / 6.0, 1.0 / 6.0};
+};
+
+template <>
+struct PositiveSimplexQuadratureStorage<2, 4>
+{
+  static constexpr int nquad = 6;
+  inline static constexpr double a = 0.44594849091596489;
+  inline static constexpr double b = 1.0 - 2.0*a;
+  inline static constexpr double c = 0.091576213509770743;
+  inline static constexpr double d = 1.0 - 2.0*c;
+
+  inline static constexpr double bary[nquad * 3] = {
+      b, a, a,
+      a, a, b,
+      a, b, a,
+      d, c, c,
+      c, c, d,
+      c, d, c};
+
+  inline static constexpr double weights[nquad] = {
+      0.22338158967801147,
+      0.22338158967801147,
+      0.22338158967801147,
+      0.10995174365532186,
+      0.10995174365532186,
+      0.10995174365532186};
+};
+
+template <>
+struct PositiveSimplexQuadratureStorage<2, 5>
+{
+  static constexpr int nquad = 7;
+  // a = 2/7 + sqrt(15)/21 and c = 2/7 - sqrt(15)/21.
+  inline static constexpr double a = 0.47014206410511505;
+  inline static constexpr double b = 1.0 - 2.0*a;
+  inline static constexpr double c = 0.10128650732345632;
+  inline static constexpr double d = 1.0 - 2.0*c;
+
+  inline static constexpr double bary[nquad * 3] = {
+      1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0,
+      b, a, a,
+      a, a, b,
+      a, b, a,
+      d, c, c,
+      c, c, d,
+      c, d, c};
+
+  inline static constexpr double weights[nquad] = {
+      9.0 / 40.0,
+      // 31/240 + sqrt(15)/1200.
+      0.13239415278850619,
+      0.13239415278850619,
+      0.13239415278850619,
+      // 31/240 - sqrt(15)/1200.
+      0.12593918054482717,
+      0.12593918054482717,
+      0.12593918054482717};
 };
 
 template <>
@@ -192,6 +249,58 @@ struct PositiveSimplexQuadratureStorage<3, 3>
       1.8578672248022978e-02 * 6.0};
 };
 
+template <>
+struct PositiveSimplexQuadratureStorage<3, 5>
+{
+  static constexpr int nquad = 14;
+  inline static constexpr double a = 3.1088591926330061e-01;
+  inline static constexpr double b = 6.7342242210098213e-02;
+  inline static constexpr double c = 9.2735250310891221e-02;
+  inline static constexpr double d = 7.2179424906732637e-01;
+  inline static constexpr double e = 4.5503704125649649e-02;
+  inline static constexpr double f = 4.5449629587435036e-01;
+
+  inline static constexpr double bary[nquad * 4] = {
+      a, a, a, b,
+      a, a, b, a,
+      a, b, a, a,
+      b, a, a, a,
+      c, c, c, d,
+      c, c, d, c,
+      c, d, c, c,
+      d, c, c, c,
+      e, e, f, f,
+      e, f, e, f,
+      e, f, f, e,
+      f, e, f, e,
+      f, e, e, f,
+      f, f, e, e};
+
+  inline static constexpr double weights[nquad] = {
+      1.8781320953002643e-02 * 6.0,
+      1.8781320953002643e-02 * 6.0,
+      1.8781320953002643e-02 * 6.0,
+      1.8781320953002643e-02 * 6.0,
+      1.2248840519393659e-02 * 6.0,
+      1.2248840519393659e-02 * 6.0,
+      1.2248840519393659e-02 * 6.0,
+      1.2248840519393659e-02 * 6.0,
+      7.0910034628469112e-03 * 6.0,
+      7.0910034628469112e-03 * 6.0,
+      7.0910034628469112e-03 * 6.0,
+      7.0910034628469112e-03 * 6.0,
+      7.0910034628469112e-03 * 6.0,
+      7.0910034628469112e-03 * 6.0};
+};
+
+// SANS disables its separate tetrahedron degree-4 branch because it is the
+// same 14-point rule as degree 5. Keep one table and expose it at both orders.
+template <>
+struct PositiveSimplexQuadratureStorage<3, 4>
+    : PositiveSimplexQuadratureStorage<3, 5>
+{
+};
+
 } // namespace detail
 
 // Historical quality integration rule: all reference-simplex vertices followed
@@ -211,22 +320,35 @@ template <int tdim, int order>
 constexpr SimplexQuadratureView<tdim>
 get_positive_simplex_quadrature() noexcept
 {
-  static_assert(order == 2 || order == 3);
+  static_assert(order >= 2 && order <= 5);
   return {detail::PositiveSimplexQuadratureStorage<tdim, order>::nquad,
           detail::PositiveSimplexQuadratureStorage<tdim, order>::bary,
           detail::PositiveSimplexQuadratureStorage<tdim, order>::weights};
 }
 
 // Runtime selection entry point shared by every objective-driven consumer.
-// Unsupported requests must never fall back silently.
+// Order -1 selects the balanced dimension-dependent default. Unsupported
+// requests must never fall back silently.
 template <int tdim>
 SimplexQuadratureView<tdim> get_objective_quadrature(int order)
 {
   METRIS_ENFORCE_MSG(
-      order == 0 || order == 2 || order == 3,
+      order == -1 || order == 0 || (order >= 2 && order <= 5),
       "Unsupported objective quadrature order {}: available orders are "
-      "0, 2, and 3",
+      "-1 (automatic), 0, 2, 3, 4, and 5",
       order);
+  if (order == -1)
+  {
+    if constexpr(tdim == 2)
+    {
+      return get_positive_simplex_quadrature<2, 4>();
+    }
+    else
+    {
+      static_assert(tdim == 3);
+      return get_positive_simplex_quadrature<3, 3>();
+    }
+  }
   if (order == 0)
   {
     return get_vertex_barycenter_quadrature<tdim>();
@@ -235,7 +357,15 @@ SimplexQuadratureView<tdim> get_objective_quadrature(int order)
   {
     return get_positive_simplex_quadrature<tdim, 2>();
   }
-  return get_positive_simplex_quadrature<tdim, 3>();
+  if (order == 3)
+  {
+    return get_positive_simplex_quadrature<tdim, 3>();
+  }
+  if (order == 4)
+  {
+    return get_positive_simplex_quadrature<tdim, 4>();
+  }
+  return get_positive_simplex_quadrature<tdim, 5>();
 }
 
 } // namespace Metris

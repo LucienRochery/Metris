@@ -113,9 +113,12 @@ struct MetrisOptions{
       ("objective-p", po::value<double>(),
                     "Pointwise objective exponent p (>= 1, default 1).")
       ("objective-quadrature-order", po::value<int>(),
-                    "Objective quadrature order. Order 0 selects the "
-                    "historical vertex-barycenter rule; orders 2 and 3 "
-                    "select positive simplex rules of those degrees.")
+                    "Objective quadrature order. By default, order 4 is used "
+                    "for triangles and order 3 for tetrahedra. Order -1 "
+                    "selects this automatic behavior explicitly; order 0 "
+                    "selects the historical vertex-barycenter rule; orders "
+                    "2 through 5 select positive simplex rules of those "
+                    "degrees.")
       ("step-distance-p", po::value<double>(),
                     "Deprecated alias for --objective-p.")
       ("step-distance-regularization", po::value<double>(),
