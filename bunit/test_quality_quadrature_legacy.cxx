@@ -7,57 +7,65 @@
 
 #include <boost/test/included/unit_test.hpp>
 
+#include "quality/simplex_quadrature.hxx"
+
 #include <array>
 #include <cmath>
+
+using Metris::SimplexQuadratureView;
+using Metris::SimplexQuadraturePointView;
 
 namespace
 {
 
 // Test-local specification of the legacy integration scheme currently embedded
 // in low_metqua.cxx and low_metqua_d.cxx. Step 3 of the quadrature plan will
-// replace this generator with the shared production SimplexQuadrature view.
+// replace this test data with a production legacy-rule factory.
 template <int tdim>
-struct LegacyReferenceQuadrature
+struct LegacyReferenceQuadratureData
 {
   static_assert(tdim == 2 || tdim == 3);
 
   static constexpr int nquad = tdim + 2;
-  using BarycentricPoint = std::array<double, tdim + 1>;
+  std::array<double, nquad * (tdim + 1)> bary{};
+  std::array<double, nquad> weights{};
 
-  static constexpr double weight()
+  LegacyReferenceQuadratureData()
   {
-    return 1.0 / static_cast<double>(nquad);
-  }
-
-  static BarycentricPoint point(int iquad)
-  {
-    BarycentricPoint bary{};
-
-    if (iquad < tdim + 1)
+    for (int iquad = 0; iquad < nquad; iquad++)
     {
-      bary[iquad] = 1.0;
-    }
-    else
-    {
-      for (double &lambda : bary)
+      weights[iquad] = 1.0 / static_cast<double>(nquad);
+
+      if (iquad < tdim + 1)
       {
-        lambda = 1.0 / static_cast<double>(tdim + 1);
+        bary[iquad * (tdim + 1) + iquad] = 1.0;
+      }
+      else
+      {
+        for (int icoord = 0; icoord < tdim + 1; icoord++)
+        {
+          bary[iquad * (tdim + 1) + icoord]
+              = 1.0 / static_cast<double>(tdim + 1);
+        }
       }
     }
+  }
 
-    return bary;
+  SimplexQuadratureView<tdim> view() const
+  {
+    return {nquad, bary.data(), weights.data()};
   }
 };
 
 template <int tdim>
-double integrate_barycentric_coordinate(int icoord)
+double integrate_barycentric_coordinate(const SimplexQuadratureView<tdim> rule,
+                                        int icoord)
 {
-  using Rule = LegacyReferenceQuadrature<tdim>;
-
   double integral = 0.0;
-  for (int iquad = 0; iquad < Rule::nquad; ++iquad)
+  for (int iquad = 0; iquad < rule.size(); iquad++)
   {
-    integral += Rule::weight() * Rule::point(iquad)[icoord];
+    const SimplexQuadraturePointView<tdim> point = rule[iquad];
+    integral += point.weight * point.bary[icoord];
   }
   return integral;
 }
@@ -65,23 +73,24 @@ double integrate_barycentric_coordinate(int icoord)
 template <int tdim>
 void check_legacy_rule()
 {
-  using Rule = LegacyReferenceQuadrature<tdim>;
   constexpr double tolerance = 1.0e-15;
+  const LegacyReferenceQuadratureData<tdim> data;
+  const SimplexQuadratureView<tdim> rule = data.view();
 
-  BOOST_TEST(Rule::nquad == tdim + 2);
+  BOOST_TEST(rule.size() == tdim + 2);
 
   double weight_sum = 0.0;
-  for (int iquad = 0; iquad < Rule::nquad; ++iquad)
+  for (int iquad = 0; iquad < rule.size(); iquad++)
   {
-    const auto bary = Rule::point(iquad);
-    const double weight = Rule::weight();
+    const SimplexQuadraturePointView<tdim> point = rule[iquad];
 
-    BOOST_TEST(weight > 0.0);
-    weight_sum += weight;
+    BOOST_TEST(point.weight > 0.0);
+    weight_sum += point.weight;
 
     double bary_sum = 0.0;
-    for (double lambda : bary)
+    for (int icoord = 0; icoord < tdim + 1; icoord++)
     {
+      const double lambda = point.bary[icoord];
       BOOST_TEST(lambda >= 0.0);
       BOOST_TEST(lambda <= 1.0);
       bary_sum += lambda;
@@ -90,17 +99,18 @@ void check_legacy_rule()
 
     if (iquad < tdim + 1)
     {
-      for (int icoord = 0; icoord < tdim + 1; ++icoord)
+      for (int icoord = 0; icoord < tdim + 1; icoord++)
       {
         const double expected = icoord == iquad ? 1.0 : 0.0;
-        BOOST_TEST(bary[icoord] == expected);
+        BOOST_TEST(point.bary[icoord] == expected);
       }
     }
     else
     {
-      for (double lambda : bary)
+      for (int icoord = 0; icoord < tdim + 1; icoord++)
       {
-        BOOST_TEST(lambda == 1.0 / static_cast<double>(tdim + 1),
+        BOOST_TEST(point.bary[icoord]
+                       == 1.0 / static_cast<double>(tdim + 1),
                    boost::test_tools::tolerance(tolerance));
       }
     }
@@ -110,9 +120,9 @@ void check_legacy_rule()
   BOOST_TEST(weight_sum == 1.0, boost::test_tools::tolerance(tolerance));
 
   // Exactness for the barycentric affine basis.
-  for (int icoord = 0; icoord < tdim + 1; ++icoord)
+  for (int icoord = 0; icoord < tdim + 1; icoord++)
   {
-    BOOST_TEST(integrate_barycentric_coordinate<tdim>(icoord)
+    BOOST_TEST(integrate_barycentric_coordinate(rule, icoord)
                    == 1.0 / static_cast<double>(tdim + 1),
                boost::test_tools::tolerance(tolerance));
   }
@@ -120,19 +130,19 @@ void check_legacy_rule()
   // One nontrivial affine function, independent of the basis checks above.
   double computed = 0.0;
   constexpr double constant = -0.75;
-  for (int iquad = 0; iquad < Rule::nquad; ++iquad)
+  for (int iquad = 0; iquad < rule.size(); iquad++)
   {
-    const auto bary = Rule::point(iquad);
+    const SimplexQuadraturePointView<tdim> point = rule[iquad];
     double value = constant;
-    for (int icoord = 0; icoord < tdim + 1; ++icoord)
+    for (int icoord = 0; icoord < tdim + 1; icoord++)
     {
-      value += static_cast<double>(2 * icoord + 1) * bary[icoord];
+      value += static_cast<double>(2 * icoord + 1) * point.bary[icoord];
     }
-    computed += Rule::weight() * value;
+    computed += point.weight * value;
   }
 
   double expected = constant;
-  for (int icoord = 0; icoord < tdim + 1; ++icoord)
+  for (int icoord = 0; icoord < tdim + 1; icoord++)
   {
     expected += static_cast<double>(2 * icoord + 1)
               / static_cast<double>(tdim + 1);
