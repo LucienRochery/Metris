@@ -20,6 +20,7 @@
 #include "../utils/fmt_formatters.hxx"
 
 #include "aux_volumeMeasure.hxx"
+#include "simplex_quadrature.hxx"
 
 namespace Metris{
 
@@ -86,24 +87,17 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       !(msh.param->step_distance_shape_volume && use_target_average),
       "Step Distance Shape Volume is a distinct integration variant");
 
-  constexpr int nquad = tdim + 2; // vertices + barycenter
-  for (int iquad = 0; iquad < nquad; iquad++){
+  const SimplexQuadratureView<tdim> quadrature
+      = get_vertex_barycenter_quadrature<tdim>();
+  for (int iquad = 0; iquad < quadrature.size(); iquad++){
 
-    // ------------------------------------------------------------
-    // Integration scheme: vertices: 0,...,tdim, + barycenter: tdim + 1
-    // ------------------------------------------------------------
-
-    for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 0.0;
-
-    if (iquad < tdim + 1){
-      bary[iquad] = 1.;
-    }else{
-      for (int ii = 0; ii < tdim+1; ii++){
-        bary[ii] = 1./(tdim+1);
-      }
+    const SimplexQuadraturePointView<tdim> quadrature_point
+        = quadrature[iquad];
+    for(int ii = 0; ii < tdim + 1; ii++){
+      bary[ii] = quadrature_point.bary[ii];
     }
 
-    const ftype wquad = (ftype)1./nquad;
+    const ftype wquad = static_cast<ftype>(quadrature_point.weight);
 
     // ------------------------------------------------------------
     // Geometry: coopr and canonical-reference Jacobian.
