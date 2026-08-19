@@ -21,6 +21,7 @@
 #include "../utils/fmt_formatters.hxx"
 
 #include "aux_volumeMeasure.hxx"
+#include "simplex_quadrature.hxx"
 
 #include <algorithm>
 #include <cmath>
@@ -181,7 +182,8 @@ namespace Metris
         !(msh.param->step_distance_shape_volume && use_target_average),
         "Step Distance Shape Volume is a distinct integration variant");
 
-    constexpr int nquad = tdim + 2; // vertices + barycenter
+    const SimplexQuadratureView<tdim> quadrature
+        = get_vertex_barycenter_quadrature<tdim>();
 
     auto get_frozen_metric_at_quad = [&](int iquad,
                                          const double* bary_in,
@@ -211,21 +213,15 @@ namespace Metris
       }
     };
 
-    for(int iquad = 0; iquad < nquad; iquad++){
+    for(int iquad = 0; iquad < quadrature.size(); iquad++){
 
+      const SimplexQuadraturePointView<tdim> quadrature_point
+          = quadrature[iquad];
       for(int ii = 0; ii < tdim + 1; ii++){
-        bary[ii] = 0.0;
+        bary[ii] = quadrature_point.bary[ii];
       }
 
-      if(iquad < tdim + 1){
-        bary[iquad] = 1.0;
-      }else{
-        for(int ii = 0; ii < tdim + 1; ii++){
-          bary[ii] = 1.0/(tdim + 1);
-        }
-      }
-
-      const ftype wquad = (ftype)(1.0/nquad);
+      const ftype wquad = static_cast<ftype>(quadrature_point.weight);
 
       // Geometry at quadrature point.
       double coopr[gdim];
