@@ -20,9 +20,7 @@
 #include "../utils/mprintf.hxx"
 #include "../utils/fmt_formatters.hxx"
 
-#include "aux_volumeMeasure.hxx"
-#include "objective_quadrature_sample.hxx"
-#include "pointwise_objective.hxx"
+#include "objective_quadrature_value.hxx"
 #include "simplex_quadrature.hxx"
 
 #include <algorithm>
@@ -163,70 +161,11 @@ namespace Metris
     METRIS_ASSERT(ideg_eff == 1);
     METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
 
-    qutet = 0.;
-
-    // CavityTargetAverage retains its historical option name, but uses only
-    // sqrt(det(M_K)) in physical space. After changing to the element
-    // reference space, theta is identically one and the elemental value is
-    // simply the unweighted reference integral of psi = d_S(M_K,M^*).
-    const bool use_target_average =
-        msh.param->step_distance_cavity_target_average;
-    METRIS_ENFORCE_MSG(
-        !(msh.param->step_distance_shape_volume && use_target_average),
-        "Step Distance Shape Volume is a distinct integration variant");
-
     const SimplexQuadratureView<tdim> quadrature
         = get_vertex_barycenter_quadrature<tdim>();
-    const ObjectiveQuadratureTheta theta_mode
-        = use_target_average
-        ? ObjectiveQuadratureTheta::ReferenceAverage
-        : ObjectiveQuadratureTheta::RegularMetricMeasure;
-
-    for(int iquad = 0; iquad < quadrature.size(); iquad++){
-
-      const SimplexQuadraturePointView<tdim> quadrature_point
-          = quadrature[iquad];
-      const ObjectiveQuadratureSample<gdim,tdim,1> sample
-          = prepare_objective_quadrature_sample<MFT,gdim,tdim,1>(
-                msh,asdmet,ent2poi[ientt],quadrature_point,theta_mode);
-      const ftype wquad = static_cast<ftype>(sample.quadrature_weight);
-
-      const PointwiseObjectiveResult<gdim,ftype> pointwise_result
-          = evaluate_pointwise_objective_value<
-                MFT,gdim,tdim,QuaFun::StepDistance,ftype>(
-                    msh,asdmsh,asdmet,ent2poi[ientt],
-                    sample.barycentric_coordinates.data(),
-                    sample.metric.data());
-      const ftype psi = pointwise_result.psi;
-
-      if(msh.param->step_distance_shape_volume
-         && psi >= ftype(0.5*step_distance_shape_volume_rejection_quality)){
-        return ftype(step_distance_shape_volume_rejection_quality);
-      }
-      METRIS_ENFORCE_MSG(sample.theta_is_valid,
-                         "Invalid StepDistance quadrature theta");
-
-      if(use_target_average){
-        qutet += wquad*static_cast<ftype>(sample.theta)*psi;
-        continue;
-      }
-
-      double rho_d;
-      double barrier_d;
-      const double barrier_beta = msh.param->step_distance_shape_volume
-                                ? 0.0
-                                : msh.param->step_distance_barrier_beta;
-      VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
-          gdim,tdim,double>(
-              sample.regular_jacobian_transpose.data(),
-              sample.metric.data(),NULL,
-              msh.param->step_distance_barrier_rho0,
-              barrier_beta,
-              &rho_d,&barrier_d,NULL);
-
-      qutet += wquad*(psi*static_cast<ftype>(sample.theta)
-                      + static_cast<ftype>(barrier_d));
-    }
+    qutet = integrate_objective_quadrature_value<
+        MFT,gdim,tdim,1,QuaFun::StepDistance,ftype>(
+            msh,asdmsh,asdmet,ent2poi[ientt],quadrature);
 
     // CAD normal deviation is a separate geometric acceptance concern. It is
     // deliberately not part of the StepDistance pointwise or integral value.
@@ -273,35 +212,9 @@ namespace Metris
 
         const SimplexQuadratureView<tdim> quadrature
             = get_vertex_barycenter_quadrature<tdim>();
-        ObjectiveQuadratureTheta theta_mode
-            = ObjectiveQuadratureTheta::ReferenceAverage;
-        #ifdef TESTQUALITYALGO
-        theta_mode = ObjectiveQuadratureTheta::PhysicalMeasure;
-        #ifdef INTQUALINRIEMSPACE
-        theta_mode = ObjectiveQuadratureTheta::PhysicalMetricMeasure;
-        #endif
-        #endif
-
-        for(int iquad = 0; iquad < quadrature.size(); iquad++){
-          const SimplexQuadraturePointView<tdim> quadrature_point
-              = quadrature[iquad];
-          const ObjectiveQuadratureSample<gdim,tdim,1> sample
-              = prepare_objective_quadrature_sample<MFT,gdim,tdim,1>(
-                    msh,asdmet,ent2poi[ientt],quadrature_point,theta_mode);
-
-          const ftype psi = quafun_xi(msh,
-                                      AsDeg::P1,
-                                      asdmet,
-                                      ent2poi[ientt],
-                                      sample.barycentric_coordinates.data(),
-                                      sample.metric.data());
-          METRIS_ENFORCE_MSG(sample.theta_is_valid,
-                             "Invalid SizeShape quadrature theta");
-
-          const ftype weight
-              = static_cast<ftype>(sample.quadrature_weight*sample.theta);
-          qutet += weight*psi;
-        }
+        qutet = integrate_objective_quadrature_value<
+            MFT,gdim,tdim,1,QuaFun::SizeShape,ftype>(
+                msh,AsDeg::P1,asdmet,ent2poi[ientt],quadrature);
 
         if(do_nordev){
           METRIS_ASSERT(msh.param->qua_surf_wt_quality >= 0);
