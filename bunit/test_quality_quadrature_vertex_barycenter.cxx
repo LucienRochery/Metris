@@ -3,59 +3,18 @@
 // Licensed under the GNU Lesser General Public License, version 2.1
 // See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE test_quality_quadrature_legacy
+#define BOOST_TEST_MODULE test_quality_quadrature_vertex_barycenter
 
 #include <boost/test/included/unit_test.hpp>
 
 #include "quality/simplex_quadrature.hxx"
 
-#include <array>
-#include <cmath>
-
-using Metris::SimplexQuadratureView;
 using Metris::SimplexQuadraturePointView;
+using Metris::SimplexQuadratureView;
+using Metris::get_vertex_barycenter_quadrature;
 
 namespace
 {
-
-// Test-local specification of the legacy integration scheme currently embedded
-// in low_metqua.cxx and low_metqua_d.cxx. Step 3 of the quadrature plan will
-// replace this test data with a production legacy-rule factory.
-template <int tdim>
-struct LegacyReferenceQuadratureData
-{
-  static_assert(tdim == 2 || tdim == 3);
-
-  static constexpr int nquad = tdim + 2;
-  std::array<double, nquad * (tdim + 1)> bary{};
-  std::array<double, nquad> weights{};
-
-  LegacyReferenceQuadratureData()
-  {
-    for (int iquad = 0; iquad < nquad; iquad++)
-    {
-      weights[iquad] = 1.0 / static_cast<double>(nquad);
-
-      if (iquad < tdim + 1)
-      {
-        bary[iquad * (tdim + 1) + iquad] = 1.0;
-      }
-      else
-      {
-        for (int icoord = 0; icoord < tdim + 1; icoord++)
-        {
-          bary[iquad * (tdim + 1) + icoord]
-              = 1.0 / static_cast<double>(tdim + 1);
-        }
-      }
-    }
-  }
-
-  SimplexQuadratureView<tdim> view() const
-  {
-    return {nquad, bary.data(), weights.data()};
-  }
-};
 
 template <int tdim>
 double integrate_barycentric_coordinate(const SimplexQuadratureView<tdim> rule,
@@ -71,11 +30,11 @@ double integrate_barycentric_coordinate(const SimplexQuadratureView<tdim> rule,
 }
 
 template <int tdim>
-void check_legacy_rule()
+void check_vertex_barycenter_rule()
 {
   constexpr double tolerance = 1.0e-15;
-  const LegacyReferenceQuadratureData<tdim> data;
-  const SimplexQuadratureView<tdim> rule = data.view();
+  const SimplexQuadratureView<tdim> rule
+      = get_vertex_barycenter_quadrature<tdim>();
 
   BOOST_TEST(rule.size() == tdim + 2);
 
@@ -153,12 +112,12 @@ void check_legacy_rule()
 
 } // namespace
 
-BOOST_AUTO_TEST_CASE(legacy_triangle_rule)
+BOOST_AUTO_TEST_CASE(vertex_barycenter_triangle_rule)
 {
-  check_legacy_rule<2>();
+  check_vertex_barycenter_rule<2>();
 }
 
-BOOST_AUTO_TEST_CASE(legacy_tetrahedron_rule)
+BOOST_AUTO_TEST_CASE(vertex_barycenter_tetrahedron_rule)
 {
-  check_legacy_rule<3>();
+  check_vertex_barycenter_rule<3>();
 }
