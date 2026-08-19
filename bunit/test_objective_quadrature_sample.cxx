@@ -14,6 +14,7 @@
 #include "low_eval.hxx"
 #include "low_geo/measure.hxx"
 #include "quality/aux_volumeMeasure.hxx"
+#include "quality/objective_quadrature_derivatives.hxx"
 #include "quality/objective_quadrature_sample.hxx"
 #include "quality/simplex_quadrature.hxx"
 
@@ -76,6 +77,60 @@ void initialize_p1_fe_element(Mesh<MetricFieldFE> &msh,
       msh.met(ipoin,3) = -0.02;
       msh.met(ipoin,4) = 0.025;
       msh.met(ipoin,5) = 0.85 + 0.10*ipoin;
+    }
+  }
+}
+
+template<int gdim, int mshdeg>
+void check_regular_basis_gradient_against_geometry_perturbation(
+    Mesh<MetricFieldFE> &msh,
+    FEBasis dofbas,
+    int local_control_point,
+    const double *barycentric_coordinates)
+{
+  const std::array<double,gdim> regular_basis_gradient
+      = objective_regular_basis_gradient<gdim,mshdeg>(
+            dofbas,local_control_point,barycentric_coordinates);
+  const SimplexQuadraturePointView<gdim> quadrature_point
+      = {barycentric_coordinates,1.0};
+  const int *nodes = msh.ent2poi(gdim)[0];
+  constexpr double perturbation = 1.e-7;
+
+  for(int perturbed_component = 0;
+      perturbed_component < gdim;
+      perturbed_component++){
+    const int ipoin = nodes[local_control_point];
+    const double coordinate = msh.coord(ipoin,perturbed_component);
+
+    msh.coord(ipoin,perturbed_component) = coordinate + perturbation;
+    const ObjectiveQuadratureSample<gdim,gdim,mshdeg> plus_sample
+        = prepare_objective_quadrature_sample<
+              MetricFieldFE,gdim,gdim,mshdeg>(
+                  msh,AsDeg::P1,nodes,quadrature_point,
+                  ObjectiveQuadratureTheta::ReferenceAverage);
+
+    msh.coord(ipoin,perturbed_component) = coordinate - perturbation;
+    const ObjectiveQuadratureSample<gdim,gdim,mshdeg> minus_sample
+        = prepare_objective_quadrature_sample<
+              MetricFieldFE,gdim,gdim,mshdeg>(
+                  msh,AsDeg::P1,nodes,quadrature_point,
+                  ObjectiveQuadratureTheta::ReferenceAverage);
+    msh.coord(ipoin,perturbed_component) = coordinate;
+
+    for(int iregular = 0; iregular < gdim; iregular++){
+      for(int component = 0; component < gdim; component++){
+        const int ientry = iregular*gdim + component;
+        const double finite_difference
+            = (plus_sample.regular_jacobian_transpose[ientry]
+               - minus_sample.regular_jacobian_transpose[ientry])
+             /(2.0*perturbation);
+        const double expected_derivative
+            = component == perturbed_component
+            ? regular_basis_gradient[iregular]
+            : 0.0;
+        BOOST_CHECK_SMALL(
+            finite_difference - expected_derivative,2.e-9);
+      }
     }
   }
 }
@@ -193,6 +248,9 @@ void check_p1_fe_sample()
   for(int imetric = 0; imetric < nmetric; imetric++){
     BOOST_CHECK_EQUAL(vertex_sample.metric[imetric],msh.met(nodes[1],imetric));
   }
+
+  check_regular_basis_gradient_against_geometry_perturbation<gdim,1>(
+      msh,FEBasis::Lagrange,1,quadrature_point.bary);
 }
 
 void analytical_metric_2d(
@@ -343,6 +401,12 @@ BOOST_AUTO_TEST_CASE(test_quadratic_geometry_degree_is_not_baked_to_p1)
                  - linear_sample.canonical_jacobian_transpose[ientry]));
   }
   BOOST_TEST(geometry_difference > 1.e-3);
+
+  check_regular_basis_gradient_against_geometry_perturbation<2,2>(
+      msh,FEBasis::Lagrange,3,barycentric_coordinates);
+  msh.forceBasisFlag(FEBasis::Bezier);
+  check_regular_basis_gradient_against_geometry_perturbation<2,2>(
+      msh,FEBasis::Bezier,3,barycentric_coordinates);
 }
 
 BOOST_AUTO_TEST_CASE(test_invalid_theta_is_reported_without_early_throw)

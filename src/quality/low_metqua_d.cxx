@@ -19,9 +19,7 @@
 #include "../utils/mprintf.hxx"
 #include "../utils/fmt_formatters.hxx"
 
-#include "aux_volumeMeasure.hxx"
-#include "objective_quadrature_sample.hxx"
-#include "pointwise_objective.hxx"
+#include "objective_quadrature_derivatives.hxx"
 #include "simplex_quadrature.hxx"
 
 namespace Metris{
@@ -38,265 +36,37 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                ftype*__restrict__ dquael, ftype*__restrict__ hquael,
                double difto){
   static_assert(gdim==2 || gdim==3);
-  constexpr int nhess = (gdim*(gdim+1))/2;
 
   const intAr2 &ent2poi = msh.ent2poi(tdim);
-
-  double bary[tdim+1];
-
-  ftype qutet = 0;
-
-  constexpr auto d_quafun_xi = get_d_quafun_xi<MFT,gdim,tdim,iquaf,ftype>();
 
   const int ideg = msh.curdeg;
   const int ideg_eff = asdmsh == AsDeg::P1 ? 1 : ideg;
 
-  if constexpr(iquaf == QuaFun::StepDistance){
+  constexpr bool objective_driven
+      = iquaf == QuaFun::SizeShape || iquaf == QuaFun::StepDistance;
+  if constexpr(objective_driven){
+    // SizeShape retains its historical high-order compatibility path for
+    // now. StepDistance has always required this P1 objective path.
+    const bool use_p1_objective_path
+        = ideg_eff == 1 || iquaf == QuaFun::StepDistance;
+    if(use_p1_objective_path){
+      METRIS_ASSERT(ideg_eff == 1);
+      METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
 
-  METRIS_ASSERT(ideg_eff == 1);
-  METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
-
-  if(ivar >= 0){
-    for(int ii = 0; ii < gdim; ii++) dquael[ii] = 0;
-    if(hquael != NULL){
-      for(int ii = 0; ii < nhess; ii++) hquael[ii] = 0;
+      const SimplexQuadratureView<tdim> quadrature
+          = get_vertex_barycenter_quadrature<tdim>();
+      return integrate_objective_quadrature_derivatives<
+          MFT,gdim,tdim,1,iquaf,ftype>(
+              msh,asdmsh,asdmet,ent2poi[ientt],quadrature,
+              ivar,dofbas,dquael,hquael);
     }
   }
 
-  qutet = 0.;
-
-  // CavityTargetAverage retains its historical option name, but its physical
-  // weight is sqrt(det(M_K)) only. In reference space theta is identically one,
-  // so values and derivatives are unweighted quadrature sums of psi.
-  const bool use_target_average =
-      msh.param->step_distance_cavity_target_average;
-  METRIS_ENFORCE_MSG(
-      !(msh.param->step_distance_shape_volume && use_target_average),
-      "Step Distance Shape Volume is a distinct integration variant");
-
-  const SimplexQuadratureView<tdim> quadrature
-      = get_vertex_barycenter_quadrature<tdim>();
-  const ObjectiveQuadratureTheta theta_mode
-      = use_target_average
-      ? ObjectiveQuadratureTheta::ReferenceAverage
-      : ObjectiveQuadratureTheta::RegularMetricMeasure;
-  for (int iquad = 0; iquad < quadrature.size(); iquad++){
-
-    const SimplexQuadraturePointView<tdim> quadrature_point
-        = quadrature[iquad];
-    const ObjectiveQuadratureSample<gdim,tdim,1> sample
-        = prepare_objective_quadrature_sample<MFT,gdim,tdim,1>(
-              msh,asdmet,ent2poi[ientt],quadrature_point,theta_mode);
-    const ftype wquad = static_cast<ftype>(sample.quadrature_weight);
-
-    // ------------------------------------------------------------
-    // Shape data for active local P1 vertex.
-    // ------------------------------------------------------------
-    double gradN[tdim];
-
-    if(ivar >= 0){
-      METRIS_ASSERT(ivar >= 0 && ivar < tdim + 1);
-
-      for(int i = 0; i < tdim; i++) gradN[i] = 0.0;
-
-      if(ivar == 0){
-        for(int i = 0; i < tdim; i++){
-          for(int k = 0; k < tdim; k++){
-            gradN[i] -=
-              Constants::invtJ_0[hana::type_c<double>][tdim][i*tdim+k];
-          }
-        }
-      }else{
-        const int column = ivar - 1;
-        for(int i = 0; i < tdim; i++){
-          gradN[i] =
-            Constants::invtJ_0[hana::type_c<double>][tdim][i*tdim+column];
-        }
-      }
-    }
-
-    // ------------------------------------------------------------
-    // The pointwise objective owns the complete regularized psi and its
-    // derivatives, including objective_p. The target metric is frozen here.
-    // ------------------------------------------------------------
-    PointwiseObjectiveResult<gdim,ftype> pointwise_result;
-
-    if(ivar < 0){
-      pointwise_result = evaluate_pointwise_objective_value<
-          MFT,gdim,tdim,QuaFun::StepDistance,ftype>(
-              msh,asdmsh,asdmet,ent2poi[ientt],
-              sample.barycentric_coordinates.data(),sample.metric.data());
-    }else{
-      const PointwiseDerivativeOrder derivative_order
-          = hquael == NULL
-          ? PointwiseDerivativeOrder::Gradient
-          : PointwiseDerivativeOrder::Hessian;
-      pointwise_result = evaluate_pointwise_objective_derivatives<
-          MFT,gdim,tdim,QuaFun::StepDistance,ftype>(
-              msh,asdmsh,asdmet,ent2poi[ientt],
-              sample.barycentric_coordinates.data(),sample.metric.data(),
-              ivar,dofbas,DifVar::None,derivative_order);
-    }
-    const ftype psi = pointwise_result.psi;
-
-    if(msh.param->step_distance_shape_volume
-       && psi >= ftype(0.5*step_distance_shape_volume_rejection_quality)){
-      return ftype(step_distance_shape_volume_rejection_quality);
-    }
-    METRIS_ENFORCE_MSG(sample.theta_is_valid,
-                       "Invalid StepDistance quadrature theta");
-
-    if(use_target_average){
-      qutet += wquad*static_cast<ftype>(sample.theta)*psi;
-
-      if(ivar < 0) continue;
-
-      for(int i = 0; i < gdim; i++){
-        dquael[i] += wquad*pointwise_result.gradient[i];
-      }
-
-      if(hquael == NULL) continue;
-
-      for(int i = 0; i < gdim; i++){
-        for(int j = i; j < gdim; j++){
-          hquael[sym2idx(i,j)] +=
-              wquad*pointwise_result.hessian[sym2idx(i,j)];
-        }
-      }
-      continue;
-    }
-
-    // ------------------------------------------------------------
-    // Theta value and optional derivatives.
-    // ------------------------------------------------------------
-    double theta_d;
-    double dtheta_d[gdim];
-    double htheta[nhess];
-
-    if(ivar < 0){
-      theta_d = sample.theta;
-    }else if(msh.param->step_distance_shape_volume){
-      // Step Distance Shape Volume deliberately keeps theta frozen.  Its
-      // pointwise SPD distance supplies the collapse coercivity.
-      theta_d = sample.theta;
-      for(int i = 0; i < gdim; i++) dtheta_d[i] = 0.0;
-      if(hquael != NULL){
-        for(int i = 0; i < nhess; i++) htheta[i] = 0.0;
-      }
-    }else{
-      #ifdef STEPDISTANCE_INCLUDE_GEOM_THETA_DERIV
-
-      VolumeMeasureHelpers::eval_theta_fixed_metric_grad<gdim,tdim,double>(
-          sample.regular_jacobian_transpose.data(),sample.metric.data(),gradN,
-          &theta_d, dtheta_d);
-
-      if(hquael != NULL){
-        VolumeMeasureHelpers::eval_theta_fixed_metric_hess_by_surreal<gdim,tdim>(
-            sample.regular_jacobian_transpose.data(),sample.metric.data(),gradN,
-            htheta);
-      }
-
-      #else
-
-      theta_d = sample.theta;
-
-      for(int i = 0; i < gdim; i++) dtheta_d[i] = 0.0;
-      if(hquael != NULL){
-        for(int i = 0; i < nhess; i++) htheta[i] = 0.0;
-      }
-
-      #endif
-    }
-
-    const ftype theta = (ftype)theta_d;
-
-    // ------------------------------------------------------------
-    // Unweighted metric-volume barrier.
-    // rho = sqrt(det(Jreg^T M Jreg)); M is frozen, but J derivatives are
-    // always retained because preventing geometric collapse is its purpose.
-    // ------------------------------------------------------------
-    double rho_d;
-    double barrier_d;
-    double dbarrier_d[gdim];
-    double hbarrier_d[nhess];
-    const double barrier_beta = msh.param->step_distance_shape_volume
-                              ? 0.0
-                              : msh.param->step_distance_barrier_beta;
-
-    if(ivar < 0){
-      VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
-          gdim,tdim,double>(
-              sample.regular_jacobian_transpose.data(),
-              sample.metric.data(),NULL,
-              msh.param->step_distance_barrier_rho0,
-              barrier_beta,
-              &rho_d,&barrier_d,NULL);
-    }else{
-      VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
-          gdim,tdim,double>(
-              sample.regular_jacobian_transpose.data(),
-              sample.metric.data(),gradN,
-              msh.param->step_distance_barrier_rho0,
-              barrier_beta,
-              &rho_d,&barrier_d,dbarrier_d);
-      if(hquael != NULL){
-        VolumeMeasureHelpers::
-            eval_metric_volume_barrier_fixed_metric_hess_by_surreal<
-                gdim,tdim>(
-                    sample.regular_jacobian_transpose.data(),
-                    sample.metric.data(),gradN,
-                    msh.param->step_distance_barrier_rho0,
-                    barrier_beta,
-                    hbarrier_d);
-      }
-    }
-
-    // ------------------------------------------------------------
-    // Value.
-    // ------------------------------------------------------------
-    qutet += wquad*(psi*theta + (ftype)barrier_d);
-
-    if(ivar < 0) continue;
-
-    // ------------------------------------------------------------
-    // First derivative:
-    //
-    // d(psi theta + B) = theta dpsi + psi dtheta + dB.
-    // ------------------------------------------------------------
-    for(int i = 0; i < gdim; i++){
-      dquael[i] += wquad*(
-          theta*pointwise_result.gradient[i]
-          + psi*(ftype)dtheta_d[i]
-          + (ftype)dbarrier_d[i]);
-    }
-
-    if(hquael == NULL) continue;
-
-    // ------------------------------------------------------------
-    // Hessian:
-    //
-    // H(psi theta + B) =
-    //   theta Hpsi
-    // + psi Htheta
-    // + dtheta dpsi^T
-    // + dpsi dtheta^T
-    // + HB.
-    // ------------------------------------------------------------
-    for(int i = 0; i < gdim; i++){
-      for(int j = i; j < gdim; j++){
-        hquael[sym2idx(i,j)] += wquad*(
-            theta*pointwise_result.hessian[sym2idx(i,j)]
-          + psi*(ftype)htheta[sym2idx(i,j)]
-          + (ftype)dtheta_d[i]*pointwise_result.gradient[j]
-          + pointwise_result.gradient[i]*(ftype)dtheta_d[j]
-          + (ftype)hbarrier_d[sym2idx(i,j)]
-        );
-      }
-    }
-  }
-
-  return qutet;
-  }
+  constexpr int nhess = (gdim*(gdim+1))/2;
+  double bary[tdim+1];
+  ftype qutet = 0;
+  constexpr auto d_quafun_xi = get_d_quafun_xi<
+      MFT,gdim,tdim,iquaf,ftype>();
 
   const int pnorm = msh.param->opt_pnorm;
   METRIS_ASSERT(pnorm > 0);
@@ -369,102 +139,6 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     }
     nordev /= nnode;
     nordev = sqrt(nordev);
-  }
-
-  if constexpr(iquaf == QuaFun::SizeShape){
-    if(ideg_eff == 1){
-      METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
-
-      if(ivar >= 0){
-        for(int icomponent = 0; icomponent < gdim; icomponent++){
-          dquael[icomponent] = 0;
-        }
-        if(hquael != NULL){
-          for(int ihessian = 0; ihessian < nhess; ihessian++){
-            hquael[ihessian] = 0;
-          }
-        }
-      }
-
-      const SimplexQuadratureView<tdim> quadrature
-          = get_vertex_barycenter_quadrature<tdim>();
-      ObjectiveQuadratureTheta theta_mode
-          = ObjectiveQuadratureTheta::ReferenceAverage;
-      #ifdef TESTQUALITYALGO
-      theta_mode = ObjectiveQuadratureTheta::PhysicalMeasure;
-      #ifdef INTQUALINRIEMSPACE
-      theta_mode = ObjectiveQuadratureTheta::PhysicalMetricMeasure;
-      #endif
-      #endif
-
-      for(int iquad = 0; iquad < quadrature.size(); iquad++){
-        const SimplexQuadraturePointView<tdim> quadrature_point
-            = quadrature[iquad];
-        const ObjectiveQuadratureSample<gdim,tdim,1> sample
-            = prepare_objective_quadrature_sample<MFT,gdim,tdim,1>(
-                  msh,asdmet,ent2poi[ientt],quadrature_point,theta_mode);
-
-        PointwiseObjectiveResult<gdim,ftype> pointwise_result;
-        if(ivar < 0){
-          pointwise_result
-              = evaluate_pointwise_objective_value<
-                    MFT,gdim,tdim,QuaFun::SizeShape,ftype>(
-                        msh,AsDeg::P1,asdmet,ent2poi[ientt],
-                        sample.barycentric_coordinates.data(),
-                        sample.metric.data());
-        }else{
-          const PointwiseDerivativeOrder derivative_order
-              = hquael == NULL
-              ? PointwiseDerivativeOrder::Gradient
-              : PointwiseDerivativeOrder::Hessian;
-          pointwise_result
-              = evaluate_pointwise_objective_derivatives<
-                    MFT,gdim,tdim,QuaFun::SizeShape,ftype>(
-                        msh,AsDeg::P1,asdmet,ent2poi[ientt],
-                        sample.barycentric_coordinates.data(),
-                        sample.metric.data(),
-                        ivar,dofbas,DifVar::None,derivative_order);
-        }
-        METRIS_ENFORCE_MSG(sample.theta_is_valid,
-                           "Invalid SizeShape quadrature theta");
-
-        const ftype weight
-            = static_cast<ftype>(sample.quadrature_weight*sample.theta);
-
-        qutet += weight*pointwise_result.psi;
-        if(ivar < 0) continue;
-
-        for(int icomponent = 0; icomponent < gdim; icomponent++){
-          dquael[icomponent]
-              += weight*pointwise_result.gradient[icomponent];
-        }
-        if(hquael == NULL) continue;
-
-        for(int ihessian = 0; ihessian < nhess; ihessian++){
-          hquael[ihessian]
-              += weight*pointwise_result.hessian[ihessian];
-        }
-      }
-
-      if(do_nordev){
-        METRIS_ASSERT(msh.param->qua_surf_wt_quality >= 0);
-        METRIS_ASSERT(msh.param->qua_surf_wt_normal >= 0);
-        qutet = msh.param->qua_surf_wt_quality*qutet
-              + msh.param->qua_surf_wt_normal*pow(nordev,pnorm);
-        if(ivar >= 0){
-          for(int icomponent = 0; icomponent < gdim; icomponent++){
-            dquael[icomponent] *= msh.param->qua_surf_wt_quality;
-          }
-          if(hquael != NULL){
-            for(int ihessian = 0; ihessian < nhess; ihessian++){
-              hquael[ihessian] *= msh.param->qua_surf_wt_quality;
-            }
-          }
-        }
-      }
-
-      return qutet;
-    }
   }
 
   #ifdef TESTQUALITYALGO

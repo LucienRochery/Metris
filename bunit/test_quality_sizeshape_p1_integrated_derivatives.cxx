@@ -158,6 +158,119 @@ void initialize_element(Mesh<MFT> &msh,
   }
 }
 
+void initialize_embedded_surface_triangle(
+    Mesh<MetricFieldFE> &msh,
+    MetrisParameters &parameters)
+{
+  msh.idim = 3;
+  msh.curdeg = 1;
+  msh.strdeg = 1;
+  msh.forceBasisFlag(FEBasis::Lagrange);
+  msh.param = &parameters;
+  msh.set_npoin(3);
+  msh.set_nface(1);
+  msh.met.forceBasisFlag(FEBasis::Lagrange);
+  msh.met.forceSpaceFlag(MetSpace::Exp);
+
+  msh.coord(0,0) = 0.05;
+  msh.coord(0,1) = 0.10;
+  msh.coord(0,2) = 0.02;
+  msh.coord(1,0) = 1.10;
+  msh.coord(1,1) = 0.16;
+  msh.coord(1,2) = 0.12;
+  msh.coord(2,0) = 0.22;
+  msh.coord(2,1) = 0.94;
+  msh.coord(2,2) = 0.18;
+  for(int inode = 0; inode < 3; inode++){
+    msh.fac2poi(0,inode) = inode;
+  }
+
+  const double nodal_metrics[3][6] = {
+    {1.45, 0.05,1.02, 0.02,-0.03,0.88},
+    {1.95, 0.09,1.25,-0.04, 0.02,0.96},
+    {1.10,-0.04,1.72, 0.03, 0.05,1.28}
+  };
+  for(int ipoin = 0; ipoin < 3; ipoin++){
+    for(int imetric = 0; imetric < 6; imetric++){
+      msh.met(ipoin,imetric) = nodal_metrics[ipoin][imetric];
+    }
+  }
+}
+
+// Advertise CAD presence without supplying usable CAD entities. Objective
+// integration must not inspect this token; any legacy nordev evaluation would.
+class ScopedCadPresence
+{
+public:
+  explicit ScopedCadPresence(CADInfo &cad) : cad_(cad)
+  {
+    METRIS_ENFORCE(cad_.EGADS_model == NULL);
+    cad_.EGADS_model = reinterpret_cast<ego>(&presence_token_);
+  }
+
+  ~ScopedCadPresence()
+  {
+    cad_.EGADS_model = NULL;
+  }
+
+private:
+  CADInfo &cad_;
+  char presence_token_ = 0;
+};
+
+template<QuaFun iquaf>
+void check_objective_ignores_surface_quality_parameters(
+    Mesh<MetricFieldFE> &msh)
+{
+  constexpr int gdim = 3;
+  constexpr int tdim = 2;
+  constexpr int nhessian = gdim*(gdim + 1)/2;
+
+  msh.param->qua_surf_wt_quality = 0.75;
+  msh.param->qua_surf_wt_normal = 1.25;
+
+  const double baseline_value
+      = metqua<MetricFieldFE,gdim,tdim,iquaf,double>(
+            msh,AsDeg::P1,AsDeg::P1,0,1.0);
+  double baseline_gradient[gdim];
+  double baseline_hessian[nhessian];
+  const double baseline_derivative_value
+      = d_metqua<MetricFieldFE,gdim,tdim,iquaf,double>(
+            msh,AsDeg::P1,AsDeg::P1,0,0,
+            FEBasis::Lagrange,DifVar::None,
+            baseline_gradient,baseline_hessian,1.0);
+  const double baseline_value_only_derivative_entry
+      = d_metqua<MetricFieldFE,gdim,tdim,iquaf,double>(
+            msh,AsDeg::P1,AsDeg::P1,0,-1,
+            FEBasis::Lagrange,DifVar::None,NULL,NULL,1.0);
+
+  msh.param->qua_surf_wt_quality = 17.0;
+  msh.param->qua_surf_wt_normal = 1.e40;
+
+  const double changed_value
+      = metqua<MetricFieldFE,gdim,tdim,iquaf,double>(
+            msh,AsDeg::P1,AsDeg::P1,0,1.0);
+  double changed_gradient[gdim];
+  double changed_hessian[nhessian];
+  const double changed_derivative_value
+      = d_metqua<MetricFieldFE,gdim,tdim,iquaf,double>(
+            msh,AsDeg::P1,AsDeg::P1,0,0,
+            FEBasis::Lagrange,DifVar::None,
+            changed_gradient,changed_hessian,1.0);
+  const double changed_value_only_derivative_entry
+      = d_metqua<MetricFieldFE,gdim,tdim,iquaf,double>(
+            msh,AsDeg::P1,AsDeg::P1,0,-1,
+            FEBasis::Lagrange,DifVar::None,NULL,NULL,1.0);
+
+  BOOST_CHECK_EQUAL(changed_value,baseline_value);
+  BOOST_CHECK_EQUAL(changed_derivative_value,baseline_derivative_value);
+  BOOST_CHECK_EQUAL(
+      changed_value_only_derivative_entry,
+      baseline_value_only_derivative_entry);
+  BOOST_CHECK_EQUAL(baseline_derivative_value,baseline_value);
+  BOOST_CHECK_EQUAL(baseline_value_only_derivative_entry,baseline_value);
+}
+
 template<int gdim>
 struct FrozenQuadratureSamples
 {
@@ -476,6 +589,47 @@ BOOST_AUTO_TEST_CASE(test_analytical_triangle_integrated_derivatives)
 BOOST_AUTO_TEST_CASE(test_analytical_tetrahedron_integrated_derivatives)
 {
   run_integrated_derivative_case<MetricFieldAnalytical,3>();
+}
+
+BOOST_AUTO_TEST_CASE(test_objectives_exclude_cad_normal_deviation)
+{
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_p = 1.5;
+  parameters.step_distance_barrier_rho0 = 2.0;
+  parameters.step_distance_barrier_beta = 0.2;
+
+  Mesh<MetricFieldFE> msh;
+  initialize_embedded_surface_triangle(msh,parameters);
+  ScopedCadPresence cad_presence(msh.CAD);
+
+  BOOST_TEST_CONTEXT("SizeShape")
+  {
+    check_objective_ignores_surface_quality_parameters<QuaFun::SizeShape>(msh);
+  }
+
+  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_cavity_target_average = false;
+  BOOST_TEST_CONTEXT("StepDistance")
+  {
+    check_objective_ignores_surface_quality_parameters<
+        QuaFun::StepDistance>(msh);
+  }
+
+  parameters.step_distance_cavity_target_average = true;
+  BOOST_TEST_CONTEXT("StepDistance cavity target average")
+  {
+    check_objective_ignores_surface_quality_parameters<
+        QuaFun::StepDistance>(msh);
+  }
+
+  parameters.step_distance_cavity_target_average = false;
+  parameters.step_distance_shape_volume = true;
+  BOOST_TEST_CONTEXT("StepDistance ShapeVolume")
+  {
+    check_objective_ignores_surface_quality_parameters<
+        QuaFun::StepDistance>(msh);
+  }
 }
 
 } // namespace Metris

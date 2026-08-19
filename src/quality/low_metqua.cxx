@@ -121,14 +121,36 @@ namespace Metris
 
     static_assert(gdim == 2 || gdim == 3);
 
-    double bary[tdim + 1];
+    const int ideg = msh.curdeg;
+    const int ideg_eff = asdmsh == AsDeg::P1 ? 1 : ideg;
 
+    constexpr bool objective_driven
+        = iquaf == QuaFun::SizeShape || iquaf == QuaFun::StepDistance;
+    if constexpr(objective_driven){
+      // SizeShape retains its historical high-order compatibility path for
+      // now. StepDistance has always required this P1 objective path.
+      const bool use_p1_objective_path
+          = ideg_eff == 1 || iquaf == QuaFun::StepDistance;
+      if(use_p1_objective_path){
+        METRIS_ASSERT(ideg_eff == 1);
+        METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+
+        const SimplexQuadratureView<tdim> quadrature
+            = get_vertex_barycenter_quadrature<tdim>();
+        return integrate_objective_quadrature_value<
+            MFT,gdim,tdim,1,iquaf,ftype>(
+                msh,asdmsh,asdmet,ent2poi[ientt],quadrature);
+      }
+    }
+
+    double bary[tdim + 1];
     ftype qutet = 0;
     if (tdim == 1 && gdim >= 2)
       METRIS_THROW_MSG("TODO: TODO: Edge quality with normal dev")
 
     // Performance impact should be zero
     constexpr auto quafun_xi = get_quafun_xi<MFT, gdim, tdim, iquaf, ftype>();
+    constexpr int nnmet = (gdim * (gdim + 1)) / 2;
 
     //// Compute normal at the nodes. This is then used to interpolate a normal
     //// within the element. Fewer EG_evaluate calls needed and more robust as
@@ -152,25 +174,6 @@ namespace Metris
     //    if(normalize_vec<gdim>(norfld[inode])) METRIS_THROW_MSG( "Normal vanishes");
     //  }
     //}
-    const int ideg = msh.curdeg;
-    const int ideg_eff = asdmsh == AsDeg::P1 ? 1 : ideg;
-    constexpr int nnmet = (gdim * (gdim + 1)) / 2;
-
-    if constexpr(iquaf == QuaFun::StepDistance){
-
-    METRIS_ASSERT(ideg_eff == 1);
-    METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
-
-    const SimplexQuadratureView<tdim> quadrature
-        = get_vertex_barycenter_quadrature<tdim>();
-    qutet = integrate_objective_quadrature_value<
-        MFT,gdim,tdim,1,QuaFun::StepDistance,ftype>(
-            msh,asdmsh,asdmet,ent2poi[ientt],quadrature);
-
-    // CAD normal deviation is a separate geometric acceptance concern. It is
-    // deliberately not part of the StepDistance pointwise or integral value.
-    return qutet;
-    }
 
     const int pnorm = msh.param->opt_pnorm;
     double nordev = 0;
@@ -203,27 +206,6 @@ namespace Metris
           }
         }
         CT_FOR1(ideg);
-      }
-    }
-
-    if constexpr(iquaf == QuaFun::SizeShape){
-      if(ideg_eff == 1){
-        METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
-
-        const SimplexQuadratureView<tdim> quadrature
-            = get_vertex_barycenter_quadrature<tdim>();
-        qutet = integrate_objective_quadrature_value<
-            MFT,gdim,tdim,1,QuaFun::SizeShape,ftype>(
-                msh,AsDeg::P1,asdmet,ent2poi[ientt],quadrature);
-
-        if(do_nordev){
-          METRIS_ASSERT(msh.param->qua_surf_wt_quality >= 0);
-          METRIS_ASSERT(msh.param->qua_surf_wt_normal >= 0);
-          qutet = msh.param->qua_surf_wt_quality*qutet
-                + msh.param->qua_surf_wt_normal*pow(nordev,pnorm);
-        }
-
-        return qutet;
       }
     }
 
