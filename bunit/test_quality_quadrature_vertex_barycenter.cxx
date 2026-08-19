@@ -18,6 +18,26 @@ using Metris::get_vertex_barycenter_quadrature;
 namespace
 {
 
+int factorial(const int value)
+{
+  int result = 1;
+  for (int factor = 2; factor <= value; factor++)
+  {
+    result *= factor;
+  }
+  return result;
+}
+
+double integer_power(const double base, const int exponent)
+{
+  double result = 1.0;
+  for (int ipower = 0; ipower < exponent; ipower++)
+  {
+    result *= base;
+  }
+  return result;
+}
+
 template <int tdim>
 double integrate_barycentric_coordinate(const SimplexQuadratureView<tdim> rule,
                                         int icoord)
@@ -136,6 +156,143 @@ void check_objective_order_zero_selects_vertex_barycenter()
   }
 }
 
+template <int tdim>
+void check_positive_rule_geometry(const SimplexQuadratureView<tdim> rule)
+{
+  constexpr double tolerance = 1.0e-14;
+  double weight_sum = 0.0;
+
+  for (int iquad = 0; iquad < rule.size(); iquad++)
+  {
+    const SimplexQuadraturePointView<tdim> point = rule[iquad];
+    BOOST_TEST(point.weight > 0.0);
+    weight_sum += point.weight;
+
+    double bary_sum = 0.0;
+    for (int ibary = 0; ibary < tdim + 1; ibary++)
+    {
+      BOOST_TEST(point.bary[ibary] >= 0.0);
+      BOOST_TEST(point.bary[ibary] <= 1.0);
+      bary_sum += point.bary[ibary];
+    }
+    BOOST_TEST(bary_sum == 1.0,
+               boost::test_tools::tolerance(tolerance));
+  }
+
+  BOOST_TEST(weight_sum == 1.0,
+             boost::test_tools::tolerance(tolerance));
+}
+
+double integrate_triangle_monomial(const SimplexQuadratureView<2> rule,
+                                   const int x_power,
+                                   const int y_power)
+{
+  double integral = 0.0;
+  for (int iquad = 0; iquad < rule.size(); iquad++)
+  {
+    const SimplexQuadraturePointView<2> point = rule[iquad];
+    integral += point.weight
+              * integer_power(point.bary[1], x_power)
+              * integer_power(point.bary[2], y_power);
+  }
+  return integral;
+}
+
+double exact_normalized_triangle_monomial(const int x_power,
+                                          const int y_power)
+{
+  const int total_degree = x_power + y_power;
+  return 2.0 * static_cast<double>(factorial(x_power))
+             * static_cast<double>(factorial(y_power))
+       / static_cast<double>(factorial(total_degree + 2));
+}
+
+template <int degree>
+void check_positive_triangle_rule()
+{
+  constexpr double tolerance = 1.0e-13;
+  const SimplexQuadratureView<2> rule
+      = get_positive_simplex_quadrature<2, degree>();
+  check_positive_rule_geometry(rule);
+
+  for (int x_power = 0; x_power <= degree; x_power++)
+  {
+    for (int y_power = 0; y_power <= degree - x_power; y_power++)
+    {
+      BOOST_TEST_CONTEXT("x power = " << x_power
+                         << ", y power = " << y_power)
+      {
+        const double computed
+            = integrate_triangle_monomial(rule, x_power, y_power);
+        const double expected
+            = exact_normalized_triangle_monomial(x_power, y_power);
+        BOOST_TEST(computed == expected,
+                   boost::test_tools::tolerance(tolerance));
+      }
+    }
+  }
+}
+
+double integrate_tetrahedron_monomial(const SimplexQuadratureView<3> rule,
+                                      const int x_power,
+                                      const int y_power,
+                                      const int z_power)
+{
+  double integral = 0.0;
+  for (int iquad = 0; iquad < rule.size(); iquad++)
+  {
+    const SimplexQuadraturePointView<3> point = rule[iquad];
+    integral += point.weight
+              * integer_power(point.bary[1], x_power)
+              * integer_power(point.bary[2], y_power)
+              * integer_power(point.bary[3], z_power);
+  }
+  return integral;
+}
+
+double exact_normalized_tetrahedron_monomial(const int x_power,
+                                             const int y_power,
+                                             const int z_power)
+{
+  const int total_degree = x_power + y_power + z_power;
+  return 6.0 * static_cast<double>(factorial(x_power))
+             * static_cast<double>(factorial(y_power))
+             * static_cast<double>(factorial(z_power))
+       / static_cast<double>(factorial(total_degree + 3));
+}
+
+template <int degree>
+void check_positive_tetrahedron_rule()
+{
+  constexpr double tolerance = 1.0e-13;
+  const SimplexQuadratureView<3> rule
+      = get_positive_simplex_quadrature<3, degree>();
+  check_positive_rule_geometry(rule);
+
+  for (int x_power = 0; x_power <= degree; x_power++)
+  {
+    for (int y_power = 0; y_power <= degree - x_power; y_power++)
+    {
+      for (int z_power = 0;
+           z_power <= degree - x_power - y_power;
+           z_power++)
+      {
+        BOOST_TEST_CONTEXT("x power = " << x_power
+                           << ", y power = " << y_power
+                           << ", z power = " << z_power)
+        {
+          const double computed = integrate_tetrahedron_monomial(
+              rule, x_power, y_power, z_power);
+          const double expected = exact_normalized_tetrahedron_monomial(
+              x_power, y_power, z_power);
+          BOOST_TEST(computed == expected,
+                     boost::test_tools::tolerance(tolerance));
+        }
+      }
+    }
+  }
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(vertex_barycenter_triangle_rule)
@@ -179,4 +336,24 @@ BOOST_AUTO_TEST_CASE(imported_positive_quadrature_tables_are_available)
       get_objective_quadrature<2>(2), Metris::MetrisExcept);
   BOOST_CHECK_THROW(
       get_objective_quadrature<3>(3), Metris::MetrisExcept);
+}
+
+BOOST_AUTO_TEST_CASE(positive_triangle_degree_two_rule_contract)
+{
+  check_positive_triangle_rule<2>();
+}
+
+BOOST_AUTO_TEST_CASE(positive_triangle_degree_three_rule_contract)
+{
+  check_positive_triangle_rule<3>();
+}
+
+BOOST_AUTO_TEST_CASE(positive_tetrahedron_degree_two_rule_contract)
+{
+  check_positive_tetrahedron_rule<2>();
+}
+
+BOOST_AUTO_TEST_CASE(positive_tetrahedron_degree_three_rule_contract)
+{
+  check_positive_tetrahedron_rule<3>();
 }
