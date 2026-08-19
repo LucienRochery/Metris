@@ -104,7 +104,16 @@ double step_distance_replaced_region_objective(
     double old_region_element_count,
     double new_region_element_count);
 
-// Pointwise
+// Complete pointwise objective. The original variant evaluates
+//
+//   psi(A) = (||log(A)||_F^2 + eps^2)^(p/2) - eps^p,
+//
+// while ShapeVolume replaces the squared distance inside the same explicit
+// regularized formula by its injective shape-volume distance. Each variant
+// owns its full value and derivative formulas, including objective_p and
+// step_distance_regularization. The ShapeVolume invalid-state sentinel is an
+// integration rejection policy, and the metric-volume barrier is a separate
+// additive integration term; neither is part of psi.
 template <class MetricFieldType, int gdim, int tdim,
           typename ftype = double>
 ftype quafun_stepDistance(Mesh<MetricFieldType> &msh,

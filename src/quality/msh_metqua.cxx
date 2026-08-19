@@ -109,6 +109,13 @@ double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
         qtot,target_weight_sum,
         msh.param->step_distance_cavity_target_average);
   }
+  if constexpr(iquaf == QuaFun::SizeShape
+               || iquaf == QuaFun::StepDistance){
+    // Objective pointwise values already contain their complete exponent p.
+    // Preserve their additive sum (or the explicit StepDistance mean above)
+    // without applying the Classical opt_pnorm transform a second time.
+    return qtot;
+  }
   return pow(qtot,1.0/msh.param->opt_pnorm);
 }
 

@@ -37,8 +37,6 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                ftype*__restrict__ dquael, ftype*__restrict__ hquael,
                double difto){
   static_assert(gdim==2 || gdim==3);
-  const int pnorm = msh.param->opt_pnorm;
-  METRIS_ASSERT(pnorm > 0);
   constexpr int nhess = (gdim*(gdim+1))/2;
 
   const intAr2 &ent2poi = msh.ent2poi(tdim);
@@ -46,26 +44,15 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   double bary[tdim+1];
 
   ftype qutet = 0;
-  ftype W = 1;
-  double nordev = 0;
-  bool do_nordev = tdim == 2 && gdim == 3
-    && msh.CAD()
-    && abs(msh.param->qua_surf_wt_normal) > 1.0e-9*abs(msh.param->qua_surf_wt_quality);
-
 
   constexpr auto d_quafun_xi = get_d_quafun_xi<MFT,gdim,tdim,iquaf,ftype>();
-  constexpr auto ordelt = ORDELT(tdim);
 
   const int ideg = msh.curdeg;
   const int ideg_eff = asdmsh == AsDeg::P1 ? 1 : ideg;
-  const int nnode = getnnode(tdim, ideg_eff);
-
-  #ifdef STEPDISTANCE
 
   if constexpr(iquaf == QuaFun::StepDistance){
 
   METRIS_ASSERT(ideg_eff == 1);
-  METRIS_ASSERT(pnorm == 1);
   METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
 
   constexpr int nnmet = (gdim*(gdim+1))/2;
@@ -81,7 +68,7 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
   // CavityTargetAverage retains its historical option name, but its physical
   // weight is sqrt(det(M_K)) only. In reference space theta is identically one,
-  // so values and derivatives are unweighted quadrature sums of phi.
+  // so values and derivatives are unweighted quadrature sums of psi.
   const bool use_target_average =
       msh.param->step_distance_cavity_target_average;
   METRIS_ENFORCE_MSG(
@@ -202,45 +189,39 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     }
 
     // ------------------------------------------------------------
-    // Phi handled by d_quafun_xi.
-    //
-    // For frozen metric, phi derivatives should also ignore metric variation.
-    // That means d_quafun_xi should interpret idifmet = DifVar::None for this
-    // branch, or the step-distance quafun should not use metric derivatives.
+    // The pointwise objective owns the complete regularized psi and its
+    // derivatives, including objective_p. The target metric is frozen here.
     // ------------------------------------------------------------
-    ftype phi;
-    ftype dphi[gdim];
-    ftype hphi[nhess];
+    PointwiseObjectiveResult<gdim,ftype> pointwise_result;
 
     if(ivar < 0){
-      phi = d_quafun_xi(msh, asdmsh, asdmet,
-                        ent2poi[ientt], bary, met,
-                        ivar, dofbas, DifVar::None,
-                        NULL, NULL);
-    }else if(hquael == NULL){
-      phi = d_quafun_xi(msh, asdmsh, asdmet,
-                        ent2poi[ientt], bary, met,
-                        ivar, dofbas, DifVar::None,
-                        dphi, NULL);
+      pointwise_result = evaluate_pointwise_objective_value<
+          MFT,gdim,tdim,QuaFun::StepDistance,ftype>(
+              msh,asdmsh,asdmet,ent2poi[ientt],bary,met);
     }else{
-      phi = d_quafun_xi(msh, asdmsh, asdmet,
-                        ent2poi[ientt], bary, met,
-                        ivar, dofbas, DifVar::None,
-                        dphi, hphi);
+      const PointwiseDerivativeOrder derivative_order
+          = hquael == NULL
+          ? PointwiseDerivativeOrder::Gradient
+          : PointwiseDerivativeOrder::Hessian;
+      pointwise_result = evaluate_pointwise_objective_derivatives<
+          MFT,gdim,tdim,QuaFun::StepDistance,ftype>(
+              msh,asdmsh,asdmet,ent2poi[ientt],bary,met,
+              ivar,dofbas,DifVar::None,derivative_order);
     }
+    const ftype psi = pointwise_result.psi;
 
     if(msh.param->step_distance_shape_volume
-       && phi >= ftype(0.5*step_distance_shape_volume_rejection_quality)){
+       && psi >= ftype(0.5*step_distance_shape_volume_rejection_quality)){
       return ftype(step_distance_shape_volume_rejection_quality);
     }
 
     if(use_target_average){
-      qutet += wquad*phi;
+      qutet += wquad*psi;
 
       if(ivar < 0) continue;
 
       for(int i = 0; i < gdim; i++){
-        dquael[i] += wquad*dphi[i];
+        dquael[i] += wquad*pointwise_result.gradient[i];
       }
 
       if(hquael == NULL) continue;
@@ -248,7 +229,7 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       for(int i = 0; i < gdim; i++){
         for(int j = i; j < gdim; j++){
           hquael[sym2idx(i,j)] +=
-              wquad*hphi[sym2idx(i,j)];
+              wquad*pointwise_result.hessian[sym2idx(i,j)];
         }
       }
       continue;
@@ -344,18 +325,19 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     // ------------------------------------------------------------
     // Value.
     // ------------------------------------------------------------
-    qutet += wquad*(phi*theta + (ftype)barrier_d);
+    qutet += wquad*(psi*theta + (ftype)barrier_d);
 
     if(ivar < 0) continue;
 
     // ------------------------------------------------------------
     // First derivative:
     //
-    // d(phi theta + B) = theta dphi + phi dtheta + dB.
+    // d(psi theta + B) = theta dpsi + psi dtheta + dB.
     // ------------------------------------------------------------
     for(int i = 0; i < gdim; i++){
       dquael[i] += wquad*(
-          theta*dphi[i] + phi*(ftype)dtheta_d[i]
+          theta*pointwise_result.gradient[i]
+          + psi*(ftype)dtheta_d[i]
           + (ftype)dbarrier_d[i]);
     }
 
@@ -364,20 +346,20 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     // ------------------------------------------------------------
     // Hessian:
     //
-    // H(phi theta + B) =
-    //   theta Hphi
-    // + phi Htheta
-    // + dtheta dphi^T
-    // + dphi dtheta^T
+    // H(psi theta + B) =
+    //   theta Hpsi
+    // + psi Htheta
+    // + dtheta dpsi^T
+    // + dpsi dtheta^T
     // + HB.
     // ------------------------------------------------------------
     for(int i = 0; i < gdim; i++){
       for(int j = i; j < gdim; j++){
         hquael[sym2idx(i,j)] += wquad*(
-            theta*hphi[sym2idx(i,j)]
-          + phi*(ftype)htheta[sym2idx(i,j)]
-          + (ftype)dtheta_d[i]*dphi[j]
-          + dphi[i]*(ftype)dtheta_d[j]
+            theta*pointwise_result.hessian[sym2idx(i,j)]
+          + psi*(ftype)htheta[sym2idx(i,j)]
+          + (ftype)dtheta_d[i]*pointwise_result.gradient[j]
+          + pointwise_result.gradient[i]*(ftype)dtheta_d[j]
           + (ftype)hbarrier_d[sym2idx(i,j)]
         );
       }
@@ -387,13 +369,21 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   return qutet;
   }
 
-#endif
+  const int pnorm = msh.param->opt_pnorm;
+  METRIS_ASSERT(pnorm > 0);
+  ftype W = 1;
+  double nordev = 0;
+  const bool do_nordev = tdim == 2 && gdim == 3
+                      && msh.CAD()
+                      && abs(msh.param->qua_surf_wt_normal)
+                         > 1.0e-9*abs(msh.param->qua_surf_wt_quality);
+  constexpr auto ordelt = ORDELT(tdim);
+  const int nnode = getnnode(tdim,ideg_eff);
 
 
   #ifdef TESTQUALITYALGO
   // Assumptions for quality algo:
   METRIS_ASSERT(ideg_eff == 1);
-  METRIS_ASSERT(pnorm == 1);
   #endif
 
   // Accumulate normal error at the nodes (depending on asdmsh)
@@ -577,6 +567,12 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       return qutet;
     }
   }
+
+  #ifdef TESTQUALITYALGO
+  // The historical Classical quality integration assumes opt_pnorm == 1.
+  // P1 objective paths return above and do not use this scalar transform.
+  METRIS_ASSERT(pnorm == 1);
+  #endif
 
   if(ideg_eff > 1){
 

@@ -18,7 +18,9 @@ namespace Metris{
 
 
 // -- Whole mesh qualities
-// Prefer calling this one. Computes L^2 conformity error
+// SizeShape and StepDistance return their complete additive objective (or the
+// explicitly selected StepDistance mean). Classical Distortion and Unit retain
+// the historical opt_pnorm aggregation.
 template <class MFT, QuaFun iquaf = QuaFun::Distortion>
 double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
                      bool *iinva, double *qmin, double *qmax,

@@ -17,6 +17,7 @@
 #include "utils/mprintf.hxx"
 #include "quality/low_metqua.hxx"
 #include "quality/low_metqua_d.hxx"
+#include "quality/msh_metqua.hxx"
 #include "metris_options.hxx"
 #include "MetrisRunner/MetrisRunner.hxx"
 #include "Mesh/Mesh.hxx"
@@ -685,6 +686,55 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_objective_derivatives)
   const double value_inactive = evaluate(0.0,grad_inactive,hess_inactive);
   BOOST_TEST(value_active > value_inactive);
 
+  // The complete StepDistance psi owns objective_p. Neither the elemental
+  // value nor its derivatives may be transformed by difto or opt_pnorm.
+  msh.param->step_distance_barrier_beta = 2.0;
+  double gradient_other_difto[gdim];
+  double hessian_other_difto[nhess];
+  const double value_other_difto =
+      metqua<MetricFieldFE,gdim,tdim,QuaFun::StepDistance,double>(
+          msh,AsDeg::P1,AsDeg::P1,0,-3.25);
+  const double differentiated_value_other_difto =
+      d_metqua<MetricFieldFE,gdim,tdim,QuaFun::StepDistance,double>(
+          msh,AsDeg::P1,AsDeg::P1,0,ivar,
+          msh.getBasis(),DifVar::None,
+          gradient_other_difto,hessian_other_difto,8.5);
+  BOOST_CHECK_CLOSE_FRACTION(value_other_difto,value_active,2.e-14);
+  BOOST_CHECK_CLOSE_FRACTION(
+      differentiated_value_other_difto,value_active,2.e-14);
+  for(int i = 0; i < gdim; i++){
+    BOOST_CHECK_CLOSE_FRACTION(
+        gradient_other_difto[i],grad_active[i],2.e-14);
+  }
+  for(int i = 0; i < nhess; i++){
+    BOOST_CHECK_CLOSE_FRACTION(
+        hessian_other_difto[i],hess_active[i],2.e-14);
+  }
+
+  msh.param->opt_pnorm = 4;
+  double gradient_other_pnorm[gdim];
+  double hessian_other_pnorm[nhess];
+  const double value_other_pnorm =
+      metqua<MetricFieldFE,gdim,tdim,QuaFun::StepDistance,double>(
+          msh,AsDeg::P1,AsDeg::P1,0,27.0);
+  const double differentiated_value_other_pnorm =
+      d_metqua<MetricFieldFE,gdim,tdim,QuaFun::StepDistance,double>(
+          msh,AsDeg::P1,AsDeg::P1,0,ivar,
+          msh.getBasis(),DifVar::None,
+          gradient_other_pnorm,hessian_other_pnorm,-12.0);
+  BOOST_CHECK_CLOSE_FRACTION(value_other_pnorm,value_active,2.e-14);
+  BOOST_CHECK_CLOSE_FRACTION(
+      differentiated_value_other_pnorm,value_active,2.e-14);
+  for(int i = 0; i < gdim; i++){
+    BOOST_CHECK_CLOSE_FRACTION(
+        gradient_other_pnorm[i],grad_active[i],2.e-14);
+  }
+  for(int i = 0; i < nhess; i++){
+    BOOST_CHECK_CLOSE_FRACTION(
+        hessian_other_pnorm[i],hess_active[i],2.e-14);
+  }
+  msh.param->opt_pnorm = 1;
+
   for(int j = 0; j < gdim; j++){
     const double coordinate = msh.coord(ipoin,j);
     msh.coord(ipoin,j) = coordinate+fd_step;
@@ -760,9 +810,9 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_objective_derivatives)
                          met,NULL);
     }
 
-    const double phi = pointwise_step_distance(
+    const double psi = pointwise_step_distance(
         msh,AsDeg::P1,AsDeg::P1,msh.fac2poi[0],bary,met);
-    expected_reference_integral += phi/(tdim + 2);
+    expected_reference_integral += psi/(tdim + 2);
   }
   BOOST_CHECK_CLOSE_FRACTION(
       value_target_average,
@@ -952,6 +1002,26 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_objective_derivatives)
       (element_value0 + element_value1)/2.0;
   BOOST_CHECK_CLOSE_FRACTION(
       cavity_value,expected_cavity_value,2.e-14);
+
+  bool invalid_mesh = false;
+  double mesh_minimum;
+  double mesh_maximum;
+  double mesh_average;
+  msh.param->opt_pnorm = 1;
+  const double mesh_objective_pnorm_one =
+      getmetquamesh<MetricFieldFE,QuaFun::StepDistance>(
+          msh,tdim,AsDeg::P1,AsDeg::P1,
+          &invalid_mesh,&mesh_minimum,&mesh_maximum,&mesh_average,NULL);
+  msh.param->opt_pnorm = 4;
+  const double mesh_objective_pnorm_four =
+      getmetquamesh<MetricFieldFE,QuaFun::StepDistance>(
+          msh,tdim,AsDeg::P1,AsDeg::P1,
+          &invalid_mesh,&mesh_minimum,&mesh_maximum,&mesh_average,NULL);
+  BOOST_CHECK_CLOSE_FRACTION(
+      mesh_objective_pnorm_one,expected_cavity_value,2.e-14);
+  BOOST_CHECK_CLOSE_FRACTION(
+      mesh_objective_pnorm_four,expected_cavity_value,2.e-14);
+  msh.param->opt_pnorm = 1;
 
   for(int j = 0; j < gdim; j++){
     const double coordinate = msh.coord(ipoin,j);

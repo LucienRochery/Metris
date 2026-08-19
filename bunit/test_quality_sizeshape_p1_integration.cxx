@@ -12,6 +12,7 @@
 #include "linalg/det.hxx"
 #include "low_geo/measure.hxx"
 #include "quality/low_metqua.hxx"
+#include "quality/msh_metqua.hxx"
 #include "quality/quafun_tradet.hxx"
 #include "quality/simplex_quadrature.hxx"
 
@@ -178,6 +179,25 @@ void check_p1_sizeshape_integration(Mesh<MetricFieldFE> &msh)
           msh,AsDeg::P1,AsDeg::P1,0,1.0);
   BOOST_CHECK_CLOSE_FRACTION(
       integrated_value,historical_direct_value,2.0e-14);
+
+  bool invalid_mesh = false;
+  double mesh_minimum;
+  double mesh_maximum;
+  double mesh_average;
+  const double mesh_objective_pnorm_one
+      = getmetquamesh<MetricFieldFE,QuaFun::SizeShape>(
+          msh,tdim,AsDeg::P1,AsDeg::P1,
+          &invalid_mesh,&mesh_minimum,&mesh_maximum,&mesh_average,NULL);
+  msh.param->opt_pnorm = 3;
+  const double mesh_objective_pnorm_three
+      = getmetquamesh<MetricFieldFE,QuaFun::SizeShape>(
+          msh,tdim,AsDeg::P1,AsDeg::P1,
+          &invalid_mesh,&mesh_minimum,&mesh_maximum,&mesh_average,NULL);
+  BOOST_CHECK_CLOSE_FRACTION(
+      mesh_objective_pnorm_one,integrated_value,2.0e-14);
+  BOOST_CHECK_CLOSE_FRACTION(
+      mesh_objective_pnorm_three,integrated_value,2.0e-14);
+  msh.param->opt_pnorm = 1;
 
   const double different_difto_value
       = metqua<MetricFieldFE,gdim,tdim,QuaFun::SizeShape,double>(

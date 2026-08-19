@@ -206,15 +206,6 @@ double step_distance_replaced_region_objective(
   return new_global_sum/new_global_element_count;
 }
 
-template<typename T>
-T step_distance_power_from_squared(const T& distance2,
-                                   double power,
-                                   double regularization){
-  const T eps2 = T(regularization*regularization);
-  return pow(distance2 + eps2, power/2.0)
-       - T(std::pow(regularization,power));
-}
-
 // For some special barys (nodes), met is already known -> pass it in
 template <class MFT, int gdim, int tdim, typename ftype>
 ftype quafun_stepDistance(Mesh<MFT> &msh,
@@ -354,7 +345,7 @@ ftype quafun_stepDistance(Mesh<MFT> &msh,
   //   Ahat = A / det(A)^(1/tdim)
   //   v(A) = det(A) - 1/det(A)
   //   d^2  = ||log(Ahat)||_F^2 + v(A)^2/(4*tdim),
-  //   phi  = (d^2 + eps^2)^(p/2) - eps^p, p > 1/2.
+  //   psi  = (d^2 + eps^2)^(p/2) - eps^p, p >= 1.
   //
   // This is the squared distance associated with the injective Euclidean
   // embedding A -> (log(Ahat),v(A)/(2*sqrt(tdim))).  It agrees to second
@@ -382,15 +373,20 @@ ftype quafun_stepDistance(Mesh<MFT> &msh,
     const ftype volume_coordinate = detA - ftype(1)/detA;
     distance2 +=
         volume_coordinate*volume_coordinate/ftype(4*tdim);
-    return step_distance_power_from_squared(
-        distance2,
-        msh.param->objective_p,
-        msh.param->step_distance_regularization);
+    const double power = msh.param->objective_p;
+    const double regularization
+        = msh.param->step_distance_regularization;
+    const ftype regularization_squared
+        = ftype(regularization*regularization);
+    return pow(distance2 + regularization_squared,power/2.0)
+         - ftype(std::pow(regularization,power));
   }
 
   // ------------------------------------------------------------
-  // Original StepDistance: phi = ||log(A)||_F^p. A small smooth norm
-  // regularization is used so p < 2 remains differentiable at A = I.
+  // Original StepDistance:
+  //   psi = (||log(A)||_F^2 + eps^2)^(p/2) - eps^p.
+  // A small smooth norm regularization is used so p < 2 remains
+  // differentiable at A = I.
   // ------------------------------------------------------------
   ftype distance2 = ftype(0);
 
@@ -400,10 +396,12 @@ ftype quafun_stepDistance(Mesh<MFT> &msh,
     distance2 += li*li;
   }
 
-  return step_distance_power_from_squared(
-      distance2,
-      msh.param->objective_p,
-      msh.param->step_distance_regularization);
+  const double power = msh.param->objective_p;
+  const double regularization = msh.param->step_distance_regularization;
+  const ftype regularization_squared
+      = ftype(regularization*regularization);
+  return pow(distance2 + regularization_squared,power/2.0)
+       - ftype(std::pow(regularization,power));
 }
 
 
@@ -513,13 +511,13 @@ void spectral_matrix_from_eigs(const T* eigval,
 }
 
 template<int gdim, int tdim, typename T>
-void eval_phi_grad_impl(const T* Jreg_T,
-                        const T* met,
-                        const T* gradN,
-                        double power,
-                        double regularization,
-                        T* phi,
-                        T* dphi){
+void eval_step_distance_psi_gradient(const T* Jreg_T,
+                                     const T* met,
+                                     const T* gradN,
+                                     double power,
+                                     double regularization,
+                                     T* psi,
+                                     T* dpsi){
 
   constexpr int nnmet_tdim = (tdim*(tdim+1))/2;
 
@@ -558,14 +556,14 @@ void eval_phi_grad_impl(const T* Jreg_T,
     distance2 += loglam[i]*loglam[i];
   }
 
-  *phi = step_distance_power_from_squared(
-      distance2,power,regularization);
+  const T regularization_squared = T(regularization*regularization);
+  *psi = pow(distance2 + regularization_squared,power/2.0)
+       - T(std::pow(regularization,power));
 
-  if(dphi == NULL) return;
+  if(dpsi == NULL) return;
 
-  const T eps2 = T(regularization*regularization);
   const T power_scale = T(power/2.0)
-      *pow(distance2 + eps2,power/2.0 - 1.0);
+      *pow(distance2 + regularization_squared,power/2.0 - 1.0);
 
   // A^{-1} log(A)
   T AinvlogA[tdim*tdim];
@@ -589,27 +587,27 @@ void eval_phi_grad_impl(const T* Jreg_T,
     }
   }
 
-  // dphi = 4 M u
+  // dpsi = 4 power_scale M u.
   for(int a = 0; a < gdim; a++){
-    dphi[a] = T(0);
+    dpsi[a] = T(0);
     for(int b = 0; b < gdim; b++){
       const int imet = symidx_met<gdim,T>(a,b);
-      dphi[a] += met[imet]*u[b];
+      dpsi[a] += met[imet]*u[b];
     }
     // The final factor is (p/2)(distance2 + eps^2)^(p/2 - 1)
     // times the p=2 derivative of distance2.
-    dphi[a] *= T(4)*power_scale;
+    dpsi[a] *= T(4)*power_scale;
   }
 }
 
 template<int gdim, int tdim, typename T>
-void eval_shape_volume_phi_grad_impl(const T* Jreg_T,
-                                     const T* met,
-                                     const T* gradN,
-                                     double power,
-                                     double regularization,
-                                     T* phi,
-                                     T* dphi){
+void eval_shape_volume_psi_gradient(const T* Jreg_T,
+                                    const T* met,
+                                    const T* gradN,
+                                    double power,
+                                    double regularization,
+                                    T* psi,
+                                    T* dpsi){
 
   constexpr int nnmet_tdim = (tdim*(tdim+1))/2;
 
@@ -629,9 +627,9 @@ void eval_shape_volume_phi_grad_impl(const T* Jreg_T,
   }
 
   if(!shape_volume_matrix_is_numerically_admissible<tdim>(A)){
-    *phi = T(step_distance_shape_volume_rejection_quality);
-    if(dphi != NULL){
-      for(int a = 0; a < gdim; a++) dphi[a] = T(0);
+    *psi = T(step_distance_shape_volume_rejection_quality);
+    if(dpsi != NULL){
+      for(int a = 0; a < gdim; a++) dpsi[a] = T(0);
     }
     return;
   }
@@ -663,25 +661,25 @@ void eval_shape_volume_phi_grad_impl(const T* Jreg_T,
   const T invdetA = T(1)/detA;
   const T volume_coordinate = detA - invdetA;
   distance2 += volume_coordinate*volume_coordinate/T(4*tdim);
-  *phi = step_distance_power_from_squared(
-      distance2,power,regularization);
+  const T regularization_squared = T(regularization*regularization);
+  *psi = pow(distance2 + regularization_squared,power/2.0)
+       - T(std::pow(regularization,power));
 
-  if(dphi == NULL) return;
+  if(dpsi == NULL) return;
 
   // For the unpowered squared distance s(A) above,
   //
   //   d s / d A = 2 A^{-1} log(Ahat)
   //               + (det(A)^2-det(A)^(-2))/(2*tdim) A^{-1}.
   //
-  // The power_scale below is d phi/ds.
+  // The power_scale below is d psi/ds.
   //
   // If one P1 vertex moves, dJ = dx gradN^T and therefore
-  // grad_x phi = 2 M J (d phi/dA) gradN.
+  // grad_x psi = 2 M J (d psi/dA) gradN.
   const T volume_scale =
       (detA*detA - invdetA*invdetA)/T(2*tdim);
-  const T eps2 = T(regularization*regularization);
   const T power_scale = T(power/2.0)
-      *pow(distance2 + eps2,power/2.0 - 1.0);
+      *pow(distance2 + regularization_squared,power/2.0 - 1.0);
   T gradA_eig[tdim];
   for(int i = 0; i < tdim; i++){
     gradA_eig[i] = power_scale
@@ -708,12 +706,12 @@ void eval_shape_volume_phi_grad_impl(const T* Jreg_T,
   }
 
   for(int a = 0; a < gdim; a++){
-    dphi[a] = T(0);
+    dpsi[a] = T(0);
     for(int b = 0; b < gdim; b++){
       const int imet = symidx_met<gdim,T>(a,b);
-      dphi[a] += met[imet]*Jv[b];
+      dpsi[a] += met[imet]*Jv[b];
     }
-    dphi[a] *= T(2);
+    dpsi[a] *= T(2);
   }
 }
 
@@ -816,22 +814,22 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
     for(int i = 0; i < tdim*gdim; i++) Jreg_T_f[i] = (ftype)Jreg_T[i];
     for(int i = 0; i < nnmet; i++)     met_f[i]    = (ftype)met[i];
 
-    ftype phi;
+    ftype psi;
     if(msh.param->step_distance_shape_volume){
-      eval_shape_volume_phi_grad_impl<gdim,tdim,ftype>(
+      eval_shape_volume_psi_gradient<gdim,tdim,ftype>(
           Jreg_T_f,met_f,NULL,
           msh.param->objective_p,
           msh.param->step_distance_regularization,
-          &phi,NULL);
+          &psi,NULL);
     }else{
-      eval_phi_grad_impl<gdim,tdim,ftype>(
+      eval_step_distance_psi_gradient<gdim,tdim,ftype>(
           Jreg_T_f, met_f, NULL,
           msh.param->objective_p,
           msh.param->step_distance_regularization,
-          &phi, NULL);
+          &psi, NULL);
     }
 
-    return phi;
+    return psi;
   }
 
   // ------------------------------------------------------------
@@ -851,25 +849,25 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
   for(int i = 0; i < nnmet; i++)     met_f[i]    = (ftype)met[i];
   for(int i = 0; i < tdim; i++)      gradN_f[i]  = (ftype)gradN_d[i];
 
-  ftype phi;
-  ftype dphi[gdim];
+  ftype psi;
+  ftype dpsi[gdim];
 
   if(msh.param->step_distance_shape_volume){
-    eval_shape_volume_phi_grad_impl<gdim,tdim,ftype>(
+    eval_shape_volume_psi_gradient<gdim,tdim,ftype>(
         Jreg_T_f,met_f,gradN_f,
         msh.param->objective_p,
         msh.param->step_distance_regularization,
-        &phi,dphi);
+        &psi,dpsi);
   }else{
-    eval_phi_grad_impl<gdim,tdim,ftype>(
+    eval_step_distance_psi_gradient<gdim,tdim,ftype>(
         Jreg_T_f, met_f, gradN_f,
         msh.param->objective_p,
         msh.param->step_distance_regularization,
-        &phi, dphi);
+        &psi, dpsi);
   }
 
   for(int i = 0; i < gdim; i++){
-    dquael[i] = dphi[i];
+    dquael[i] = dpsi[i];
   }
 
   // ------------------------------------------------------------
@@ -912,31 +910,31 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
       }
     }
 
-    S phiS;
-    S dphiS[gdim];
+    S psiS;
+    S dpsiS[gdim];
 
     if(msh.param->step_distance_shape_volume){
-      eval_shape_volume_phi_grad_impl<gdim,tdim,S>(
+      eval_shape_volume_psi_gradient<gdim,tdim,S>(
           Jreg_TS,metS,gradNS,
           msh.param->objective_p,
           msh.param->step_distance_regularization,
-          &phiS,dphiS);
+          &psiS,dpsiS);
     }else{
-      eval_phi_grad_impl<gdim,tdim,S>(
+      eval_step_distance_psi_gradient<gdim,tdim,S>(
           Jreg_TS, metS, gradNS,
           msh.param->objective_p,
           msh.param->step_distance_regularization,
-          &phiS, dphiS);
+          &psiS, dpsiS);
     }
 
     for(int i = 0; i < gdim; i++){
       for(int j = i; j < gdim; j++){
-        hquael[sym2idx(i,j)] = (ftype)dphiS[i].deriv(j);
+        hquael[sym2idx(i,j)] = (ftype)dpsiS[i].deriv(j);
       }
     }
   }
 
-  return phi;
+  return psi;
 }
 
 // While cumbersome, this replaces a bunch of manual instantiations, about to

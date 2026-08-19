@@ -21,6 +21,7 @@
 #include "../utils/fmt_formatters.hxx"
 
 #include "aux_volumeMeasure.hxx"
+#include "pointwise_objective.hxx"
 #include "simplex_quadrature.hxx"
 
 #include <algorithm>
@@ -123,17 +124,12 @@ namespace Metris
 
     double bary[tdim + 1];
 
-    const int pnorm = msh.param->opt_pnorm;
-
     ftype qutet = 0;
-    double nordev = 0;
-    bool do_nordev = tdim == 2 && gdim == 3 && msh.CAD() && abs(msh.param->qua_surf_wt_normal) > 1.0e-9 * abs(msh.param->qua_surf_wt_quality);
     if (tdim == 1 && gdim >= 2)
       METRIS_THROW_MSG("TODO: TODO: Edge quality with normal dev")
 
     // Performance impact should be zero
     constexpr auto quafun_xi = get_quafun_xi<MFT, gdim, tdim, iquaf, ftype>();
-    constexpr auto ordelt = ORDELT(tdim);
 
     //// Compute normal at the nodes. This is then used to interpolate a normal
     //// within the element. Fewer EG_evaluate calls needed and more robust as
@@ -159,15 +155,11 @@ namespace Metris
     //}
     const int ideg = msh.curdeg;
     const int ideg_eff = asdmsh == AsDeg::P1 ? 1 : ideg;
-    const int nnode = getnnode(tdim, ideg_eff);
     constexpr int nnmet = (gdim * (gdim + 1)) / 2;
-
-    #ifdef STEPDISTANCE
 
     if constexpr(iquaf == QuaFun::StepDistance){
 
     METRIS_ASSERT(ideg_eff == 1);
-    METRIS_ASSERT(pnorm == 1);
     METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
 
     qutet = 0.;
@@ -175,7 +167,7 @@ namespace Metris
     // CavityTargetAverage retains its historical option name, but uses only
     // sqrt(det(M_K)) in physical space. After changing to the element
     // reference space, theta is identically one and the elemental value is
-    // simply the unweighted reference integral of phi = d_S(M_K,M^*).
+    // simply the unweighted reference integral of psi = d_S(M_K,M^*).
     const bool use_target_average =
         msh.param->step_distance_cavity_target_average;
     METRIS_ENFORCE_MSG(
@@ -240,20 +232,19 @@ namespace Metris
       double met[nnmet];
       get_frozen_metric_at_quad(iquad, bary, coopr, met);
 
-      const ftype phi = quafun_xi(msh,
-                                  asdmsh,
-                                  asdmet,
-                                  ent2poi[ientt],
-                                  bary,
-                                  met);
+      const PointwiseObjectiveResult<gdim,ftype> pointwise_result
+          = evaluate_pointwise_objective_value<
+                MFT,gdim,tdim,QuaFun::StepDistance,ftype>(
+                    msh,asdmsh,asdmet,ent2poi[ientt],bary,met);
+      const ftype psi = pointwise_result.psi;
 
       if(msh.param->step_distance_shape_volume
-         && phi >= ftype(0.5*step_distance_shape_volume_rejection_quality)){
+         && psi >= ftype(0.5*step_distance_shape_volume_rejection_quality)){
         return ftype(step_distance_shape_volume_rejection_quality);
       }
 
       if(use_target_average){
-        qutet += wquad*phi;
+        qutet += wquad*psi;
         continue;
       }
 
@@ -288,24 +279,25 @@ namespace Metris
               barrier_beta,
               &rho_d,&barrier_d,NULL);
 
-      qutet += wquad*(phi*(ftype)theta_d + (ftype)barrier_d);
+      qutet += wquad*(psi*(ftype)theta_d + (ftype)barrier_d);
     }
 
-    if(do_nordev){
-      METRIS_ASSERT(msh.param->qua_surf_wt_quality >= 0);
-      METRIS_ASSERT(msh.param->qua_surf_wt_normal  >= 0);
-      qutet = msh.param->qua_surf_wt_quality*qutet
-            + msh.param->qua_surf_wt_normal*pow(nordev, pnorm);
-    }
-
+    // CAD normal deviation is a separate geometric acceptance concern. It is
+    // deliberately not part of the StepDistance pointwise or integral value.
     return qutet;
     }
 
-#endif
+    const int pnorm = msh.param->opt_pnorm;
+    double nordev = 0;
+    const bool do_nordev = tdim == 2 && gdim == 3
+                        && msh.CAD()
+                        && abs(msh.param->qua_surf_wt_normal)
+                           > 1.0e-9*abs(msh.param->qua_surf_wt_quality);
+    constexpr auto ordelt = ORDELT(tdim);
+    const int nnode = getnnode(tdim,ideg_eff);
 
 #ifdef TESTQUALITYALGO
     // Assumptions for quality algo:
-    METRIS_ASSERT(pnorm == 1);
     METRIS_ASSERT(ideg_eff == 1);
 #endif
 
@@ -406,6 +398,12 @@ namespace Metris
         return qutet;
       }
     }
+
+#ifdef TESTQUALITYALGO
+    // The historical Classical quality integration assumes opt_pnorm == 1.
+    // P1 objective paths return above and do not use this scalar transform.
+    METRIS_ASSERT(pnorm == 1);
+#endif
 
     if (ideg_eff > 1)
     {
