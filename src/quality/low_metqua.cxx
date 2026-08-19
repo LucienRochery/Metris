@@ -21,6 +21,7 @@
 #include "../utils/fmt_formatters.hxx"
 
 #include "aux_volumeMeasure.hxx"
+#include "objective_quadrature_sample.hxx"
 #include "pointwise_objective.hxx"
 #include "simplex_quadrature.hxx"
 
@@ -176,96 +177,39 @@ namespace Metris
 
     const SimplexQuadratureView<tdim> quadrature
         = get_vertex_barycenter_quadrature<tdim>();
-
-    auto get_frozen_metric_at_quad = [&](int iquad,
-                                         const double* bary_in,
-                                         const double* coopr,
-                                         double* met){
-
-      if(iquad < tdim + 1){
-        const int ipoin = ent2poi(ientt, iquad);
-        for(int im = 0; im < nnmet; im++){
-          met[im] = msh.met(ipoin, im);
-        }
-        return;
-      }
-
-      if constexpr(std::is_same<MFT, MetricFieldAnalytical>::value){
-        msh.met.getMetPhys(DifVar::None, msh.met.getSpace(),
-                           coopr, met, NULL);
-      }else{
-        msh.met.getMetBary(asdmet,
-                           DifVar::None,
-                           msh.met.getSpace(),
-                           ent2poi[ientt],
-                           tdim,
-                           bary_in,
-                           met,
-                           NULL);
-      }
-    };
+    const ObjectiveQuadratureTheta theta_mode
+        = use_target_average
+        ? ObjectiveQuadratureTheta::ReferenceAverage
+        : ObjectiveQuadratureTheta::RegularMetricMeasure;
 
     for(int iquad = 0; iquad < quadrature.size(); iquad++){
 
       const SimplexQuadraturePointView<tdim> quadrature_point
           = quadrature[iquad];
-      for(int ii = 0; ii < tdim + 1; ii++){
-        bary[ii] = quadrature_point.bary[ii];
-      }
-
-      const ftype wquad = static_cast<ftype>(quadrature_point.weight);
-
-      // Geometry at quadrature point.
-      double coopr[gdim];
-      double jmat[tdim*gdim];
-
-      if constexpr(tdim == 2){
-        eval2<gdim,1>(msh.coord, ent2poi[ientt], msh.getBasis(),
-                      DifVar::Bary, DifVar::None,
-                      bary, coopr, jmat, NULL);
-      }else{
-        eval3<gdim,1>(msh.coord, ent2poi[ientt], msh.getBasis(),
-                      DifVar::Bary, DifVar::None,
-                      bary, coopr, jmat, NULL);
-      }
-
-      double met[nnmet];
-      get_frozen_metric_at_quad(iquad, bary, coopr, met);
+      const ObjectiveQuadratureSample<gdim,tdim,1> sample
+          = prepare_objective_quadrature_sample<MFT,gdim,tdim,1>(
+                msh,asdmet,ent2poi[ientt],quadrature_point,theta_mode);
+      const ftype wquad = static_cast<ftype>(sample.quadrature_weight);
 
       const PointwiseObjectiveResult<gdim,ftype> pointwise_result
           = evaluate_pointwise_objective_value<
                 MFT,gdim,tdim,QuaFun::StepDistance,ftype>(
-                    msh,asdmsh,asdmet,ent2poi[ientt],bary,met);
+                    msh,asdmsh,asdmet,ent2poi[ientt],
+                    sample.barycentric_coordinates.data(),
+                    sample.metric.data());
       const ftype psi = pointwise_result.psi;
 
       if(msh.param->step_distance_shape_volume
          && psi >= ftype(0.5*step_distance_shape_volume_rejection_quality)){
         return ftype(step_distance_shape_volume_rejection_quality);
       }
+      METRIS_ENFORCE_MSG(sample.theta_is_valid,
+                         "Invalid StepDistance quadrature theta");
 
       if(use_target_average){
-        qutet += wquad*psi;
+        qutet += wquad*static_cast<ftype>(sample.theta)*psi;
         continue;
       }
-
-      double Jreg_T[tdim*gdim];
-
-      for(int i = 0; i < tdim; i++){
-        for(int a = 0; a < gdim; a++){
-          Jreg_T[i*gdim+a] = 0.0;
-          for(int k = 0; k < tdim; k++){
-            Jreg_T[i*gdim+a] +=
-              Constants::invtJ_0[hana::type_c<double>][tdim][i*tdim+k]
-              *jmat[k*gdim+a];
-          }
-        }
-      }
-
-      double theta_d;
-
-      VolumeMeasureHelpers::eval_theta_fixed_metric_grad<gdim,tdim,double>(
-          Jreg_T, met, NULL,
-          &theta_d, NULL);
 
       double rho_d;
       double barrier_d;
@@ -274,12 +218,14 @@ namespace Metris
                                 : msh.param->step_distance_barrier_beta;
       VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
           gdim,tdim,double>(
-              Jreg_T,met,NULL,
+              sample.regular_jacobian_transpose.data(),
+              sample.metric.data(),NULL,
               msh.param->step_distance_barrier_rho0,
               barrier_beta,
               &rho_d,&barrier_d,NULL);
 
-      qutet += wquad*(psi*(ftype)theta_d + (ftype)barrier_d);
+      qutet += wquad*(psi*static_cast<ftype>(sample.theta)
+                      + static_cast<ftype>(barrier_d));
     }
 
     // CAD normal deviation is a separate geometric acceptance concern. It is
@@ -327,64 +273,33 @@ namespace Metris
 
         const SimplexQuadratureView<tdim> quadrature
             = get_vertex_barycenter_quadrature<tdim>();
-
+        ObjectiveQuadratureTheta theta_mode
+            = ObjectiveQuadratureTheta::ReferenceAverage;
         #ifdef TESTQUALITYALGO
-        double measure;
-        isvalideltP1<gdim,tdim>(msh,ientt,NULL,&measure);
+        theta_mode = ObjectiveQuadratureTheta::PhysicalMeasure;
+        #ifdef INTQUALINRIEMSPACE
+        theta_mode = ObjectiveQuadratureTheta::PhysicalMetricMeasure;
+        #endif
         #endif
 
         for(int iquad = 0; iquad < quadrature.size(); iquad++){
           const SimplexQuadraturePointView<tdim> quadrature_point
               = quadrature[iquad];
-          for(int ii = 0; ii < tdim + 1; ii++){
-            bary[ii] = quadrature_point.bary[ii];
-          }
-
-          double met[nnmet];
-          if(iquad < tdim + 1){
-            const int ipoin = ent2poi(ientt,iquad);
-            for(int imet = 0; imet < nnmet; imet++){
-              met[imet] = msh.met(ipoin,imet);
-            }
-          }else if constexpr(
-              std::is_same<MFT,MetricFieldAnalytical>::value){
-            double coopr[gdim];
-            if constexpr(tdim == 2){
-              eval2<gdim,1>(msh.coord,ent2poi[ientt],msh.getBasis(),
-                            DifVar::None,DifVar::None,
-                            bary,coopr,NULL,NULL);
-            }else{
-              eval3<gdim,1>(msh.coord,ent2poi[ientt],msh.getBasis(),
-                            DifVar::None,DifVar::None,
-                            bary,coopr,NULL,NULL);
-            }
-            msh.met.getMetPhys(DifVar::None,msh.met.getSpace(),
-                               coopr,met,NULL);
-          }else{
-            msh.met.getMetBary(asdmet,
-                               DifVar::None,
-                               msh.met.getSpace(),
-                               ent2poi[ientt],
-                               tdim,
-                               bary,
-                               met,
-                               NULL);
-          }
+          const ObjectiveQuadratureSample<gdim,tdim,1> sample
+              = prepare_objective_quadrature_sample<MFT,gdim,tdim,1>(
+                    msh,asdmet,ent2poi[ientt],quadrature_point,theta_mode);
 
           const ftype psi = quafun_xi(msh,
                                       AsDeg::P1,
                                       asdmet,
                                       ent2poi[ientt],
-                                      bary,
-                                      met);
+                                      sample.barycentric_coordinates.data(),
+                                      sample.metric.data());
+          METRIS_ENFORCE_MSG(sample.theta_is_valid,
+                             "Invalid SizeShape quadrature theta");
 
-          ftype weight = static_cast<ftype>(quadrature_point.weight);
-          #ifdef TESTQUALITYALGO
-          weight *= static_cast<ftype>(measure);
-          #ifdef INTQUALINRIEMSPACE
-          weight *= static_cast<ftype>(sqrt(detsym<gdim>(met)));
-          #endif
-          #endif
+          const ftype weight
+              = static_cast<ftype>(sample.quadrature_weight*sample.theta);
           qutet += weight*psi;
         }
 

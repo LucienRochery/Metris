@@ -20,6 +20,7 @@
 #include "../utils/fmt_formatters.hxx"
 
 #include "aux_volumeMeasure.hxx"
+#include "objective_quadrature_sample.hxx"
 #include "pointwise_objective.hxx"
 #include "simplex_quadrature.hxx"
 
@@ -55,8 +56,6 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   METRIS_ASSERT(ideg_eff == 1);
   METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
 
-  constexpr int nnmet = (gdim*(gdim+1))/2;
-
   if(ivar >= 0){
     for(int ii = 0; ii < gdim; ii++) dquael[ii] = 0;
     if(hquael != NULL){
@@ -77,90 +76,18 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
   const SimplexQuadratureView<tdim> quadrature
       = get_vertex_barycenter_quadrature<tdim>();
+  const ObjectiveQuadratureTheta theta_mode
+      = use_target_average
+      ? ObjectiveQuadratureTheta::ReferenceAverage
+      : ObjectiveQuadratureTheta::RegularMetricMeasure;
   for (int iquad = 0; iquad < quadrature.size(); iquad++){
 
     const SimplexQuadraturePointView<tdim> quadrature_point
         = quadrature[iquad];
-    for(int ii = 0; ii < tdim + 1; ii++){
-      bary[ii] = quadrature_point.bary[ii];
-    }
-
-    const ftype wquad = static_cast<ftype>(quadrature_point.weight);
-
-    // ------------------------------------------------------------
-    // Geometry: coopr and canonical-reference Jacobian.
-    //
-    // jmat is tdim x gdim: d_{canonical ref} F.
-    // ------------------------------------------------------------
-    double coopr[gdim];
-    double jmat[tdim*gdim];
-
-    if constexpr(tdim == 2){
-      eval2<gdim,1>(msh.coord, ent2poi[ientt], msh.getBasis(),
-                    DifVar::Bary, DifVar::None,
-                    bary, coopr, jmat, NULL);
-    }else{
-      eval3<gdim,1>(msh.coord, ent2poi[ientt], msh.getBasis(),
-                    DifVar::Bary, DifVar::None,
-                    bary, coopr, jmat, NULL);
-    }
-
-    // ------------------------------------------------------------
-    // Jreg_T = Jreg^T = J0^{-T} Jcanonical^T, J0: jac from cannonical reference to ideal
-    //
-    // Constants::invtJ_0 is J0^{-T} in this transposed convention.
-    // Shape: tdim x gdim.
-    // ------------------------------------------------------------
-    double Jreg_T[tdim*gdim];
-
-    for(int i = 0; i < tdim; i++){
-      for(int a = 0; a < gdim; a++){
-        Jreg_T[i*gdim+a] = 0.0;
-        for(int k = 0; k < tdim; k++){
-          Jreg_T[i*gdim+a] +=
-            Constants::invtJ_0[hana::type_c<double>][tdim][i*tdim+k]
-            *jmat[k*gdim+a];
-        }
-      }
-    }
-
-    // ------------------------------------------------------------
-    // Frozen metric at quadrature point.
-    //
-    // Important: DifVar::None. Metric is evaluated at this point,
-    // but treated as constant w.r.t. node motion.
-    // ------------------------------------------------------------
-    double met[nnmet];
-
-    auto get_frozen_metric_at_quad = [&](int iquad, const double* bary,
-                                     const double* coopr,
-                                     double* met){
-
-      if(iquad < tdim + 1){
-        // Vertex quadrature sample
-        const int ipoin = ent2poi(ientt, iquad);
-        for(int im = 0; im < nnmet; im++){
-          met[im] = msh.met(ipoin, im);
-        }
-        return;
-      }
-
-      // Barycenter quadrature sample
-      if constexpr(std::is_same<MFT, MetricFieldAnalytical>::value){
-        msh.met.getMetPhys(DifVar::None, msh.met.getSpace(),
-                          coopr, met, NULL);
-      }else{
-        msh.met.getMetBary(asdmet,
-                          DifVar::None,
-                          msh.met.getSpace(),
-                          ent2poi[ientt],
-                          tdim,
-                          bary,
-                          met,
-                          NULL);
-      }
-    };
-    get_frozen_metric_at_quad(iquad, bary, coopr, met);
+    const ObjectiveQuadratureSample<gdim,tdim,1> sample
+        = prepare_objective_quadrature_sample<MFT,gdim,tdim,1>(
+              msh,asdmet,ent2poi[ientt],quadrature_point,theta_mode);
+    const ftype wquad = static_cast<ftype>(sample.quadrature_weight);
 
     // ------------------------------------------------------------
     // Shape data for active local P1 vertex.
@@ -197,7 +124,8 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     if(ivar < 0){
       pointwise_result = evaluate_pointwise_objective_value<
           MFT,gdim,tdim,QuaFun::StepDistance,ftype>(
-              msh,asdmsh,asdmet,ent2poi[ientt],bary,met);
+              msh,asdmsh,asdmet,ent2poi[ientt],
+              sample.barycentric_coordinates.data(),sample.metric.data());
     }else{
       const PointwiseDerivativeOrder derivative_order
           = hquael == NULL
@@ -205,7 +133,8 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
           : PointwiseDerivativeOrder::Hessian;
       pointwise_result = evaluate_pointwise_objective_derivatives<
           MFT,gdim,tdim,QuaFun::StepDistance,ftype>(
-              msh,asdmsh,asdmet,ent2poi[ientt],bary,met,
+              msh,asdmsh,asdmet,ent2poi[ientt],
+              sample.barycentric_coordinates.data(),sample.metric.data(),
               ivar,dofbas,DifVar::None,derivative_order);
     }
     const ftype psi = pointwise_result.psi;
@@ -214,9 +143,11 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
        && psi >= ftype(0.5*step_distance_shape_volume_rejection_quality)){
       return ftype(step_distance_shape_volume_rejection_quality);
     }
+    METRIS_ENFORCE_MSG(sample.theta_is_valid,
+                       "Invalid StepDistance quadrature theta");
 
     if(use_target_average){
-      qutet += wquad*psi;
+      qutet += wquad*static_cast<ftype>(sample.theta)*psi;
 
       if(ivar < 0) continue;
 
@@ -243,14 +174,11 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     double htheta[nhess];
 
     if(ivar < 0){
-      VolumeMeasureHelpers::eval_theta_fixed_metric_grad<gdim,tdim,double>(
-          Jreg_T, met, NULL,
-          &theta_d, NULL);
+      theta_d = sample.theta;
     }else if(msh.param->step_distance_shape_volume){
       // Step Distance Shape Volume deliberately keeps theta frozen.  Its
       // pointwise SPD distance supplies the collapse coercivity.
-      VolumeMeasureHelpers::eval_theta_fixed_metric_grad<gdim,tdim,double>(
-          Jreg_T,met,NULL,&theta_d,NULL);
+      theta_d = sample.theta;
       for(int i = 0; i < gdim; i++) dtheta_d[i] = 0.0;
       if(hquael != NULL){
         for(int i = 0; i < nhess; i++) htheta[i] = 0.0;
@@ -259,20 +187,18 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
       #ifdef STEPDISTANCE_INCLUDE_GEOM_THETA_DERIV
 
       VolumeMeasureHelpers::eval_theta_fixed_metric_grad<gdim,tdim,double>(
-          Jreg_T, met, gradN,
+          sample.regular_jacobian_transpose.data(),sample.metric.data(),gradN,
           &theta_d, dtheta_d);
 
       if(hquael != NULL){
         VolumeMeasureHelpers::eval_theta_fixed_metric_hess_by_surreal<gdim,tdim>(
-            Jreg_T, met, gradN,
+            sample.regular_jacobian_transpose.data(),sample.metric.data(),gradN,
             htheta);
       }
 
       #else
 
-      VolumeMeasureHelpers::eval_theta_fixed_metric_grad<gdim,tdim,double>(
-          Jreg_T, met, NULL,
-          &theta_d, NULL);
+      theta_d = sample.theta;
 
       for(int i = 0; i < gdim; i++) dtheta_d[i] = 0.0;
       if(hquael != NULL){
@@ -300,14 +226,16 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     if(ivar < 0){
       VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
           gdim,tdim,double>(
-              Jreg_T,met,NULL,
+              sample.regular_jacobian_transpose.data(),
+              sample.metric.data(),NULL,
               msh.param->step_distance_barrier_rho0,
               barrier_beta,
               &rho_d,&barrier_d,NULL);
     }else{
       VolumeMeasureHelpers::eval_metric_volume_barrier_fixed_metric_grad<
           gdim,tdim,double>(
-              Jreg_T,met,gradN,
+              sample.regular_jacobian_transpose.data(),
+              sample.metric.data(),gradN,
               msh.param->step_distance_barrier_rho0,
               barrier_beta,
               &rho_d,&barrier_d,dbarrier_d);
@@ -315,7 +243,8 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
         VolumeMeasureHelpers::
             eval_metric_volume_barrier_fixed_metric_hess_by_surreal<
                 gdim,tdim>(
-                    Jreg_T,met,gradN,
+                    sample.regular_jacobian_transpose.data(),
+                    sample.metric.data(),gradN,
                     msh.param->step_distance_barrier_rho0,
                     barrier_beta,
                     hbarrier_d);
@@ -445,7 +374,6 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   if constexpr(iquaf == QuaFun::SizeShape){
     if(ideg_eff == 1){
       METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
-      constexpr int nnmet = gdim*(gdim + 1)/2;
 
       if(ivar >= 0){
         for(int icomponent = 0; icomponent < gdim; icomponent++){
@@ -460,58 +388,30 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
 
       const SimplexQuadratureView<tdim> quadrature
           = get_vertex_barycenter_quadrature<tdim>();
-
+      ObjectiveQuadratureTheta theta_mode
+          = ObjectiveQuadratureTheta::ReferenceAverage;
       #ifdef TESTQUALITYALGO
-      double measure;
-      isvalideltP1<gdim,tdim>(msh,ientt,NULL,&measure);
+      theta_mode = ObjectiveQuadratureTheta::PhysicalMeasure;
+      #ifdef INTQUALINRIEMSPACE
+      theta_mode = ObjectiveQuadratureTheta::PhysicalMetricMeasure;
+      #endif
       #endif
 
       for(int iquad = 0; iquad < quadrature.size(); iquad++){
         const SimplexQuadraturePointView<tdim> quadrature_point
             = quadrature[iquad];
-        for(int ibary = 0; ibary < tdim + 1; ibary++){
-          bary[ibary] = quadrature_point.bary[ibary];
-        }
-
-        // The sample metric and the complete integration weight are frozen
-        // for differentiation, following the objective formulation.
-        double metric[nnmet];
-        if(iquad < tdim + 1){
-          const int ipoin = ent2poi(ientt,iquad);
-          for(int imetric = 0; imetric < nnmet; imetric++){
-            metric[imetric] = msh.met(ipoin,imetric);
-          }
-        }else if constexpr(
-            std::is_same<MFT,MetricFieldAnalytical>::value){
-          double physical_point[gdim];
-          if constexpr(tdim == 2){
-            eval2<gdim,1>(msh.coord,ent2poi[ientt],msh.getBasis(),
-                          DifVar::None,DifVar::None,
-                          bary,physical_point,NULL,NULL);
-          }else{
-            eval3<gdim,1>(msh.coord,ent2poi[ientt],msh.getBasis(),
-                          DifVar::None,DifVar::None,
-                          bary,physical_point,NULL,NULL);
-          }
-          msh.met.getMetPhys(DifVar::None,msh.met.getSpace(),
-                             physical_point,metric,NULL);
-        }else{
-          msh.met.getMetBary(asdmet,
-                             DifVar::None,
-                             msh.met.getSpace(),
-                             ent2poi[ientt],
-                             tdim,
-                             bary,
-                             metric,
-                             NULL);
-        }
+        const ObjectiveQuadratureSample<gdim,tdim,1> sample
+            = prepare_objective_quadrature_sample<MFT,gdim,tdim,1>(
+                  msh,asdmet,ent2poi[ientt],quadrature_point,theta_mode);
 
         PointwiseObjectiveResult<gdim,ftype> pointwise_result;
         if(ivar < 0){
           pointwise_result
               = evaluate_pointwise_objective_value<
                     MFT,gdim,tdim,QuaFun::SizeShape,ftype>(
-                        msh,AsDeg::P1,asdmet,ent2poi[ientt],bary,metric);
+                        msh,AsDeg::P1,asdmet,ent2poi[ientt],
+                        sample.barycentric_coordinates.data(),
+                        sample.metric.data());
         }else{
           const PointwiseDerivativeOrder derivative_order
               = hquael == NULL
@@ -520,17 +420,16 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
           pointwise_result
               = evaluate_pointwise_objective_derivatives<
                     MFT,gdim,tdim,QuaFun::SizeShape,ftype>(
-                        msh,AsDeg::P1,asdmet,ent2poi[ientt],bary,metric,
+                        msh,AsDeg::P1,asdmet,ent2poi[ientt],
+                        sample.barycentric_coordinates.data(),
+                        sample.metric.data(),
                         ivar,dofbas,DifVar::None,derivative_order);
         }
+        METRIS_ENFORCE_MSG(sample.theta_is_valid,
+                           "Invalid SizeShape quadrature theta");
 
-        ftype weight = static_cast<ftype>(quadrature_point.weight);
-        #ifdef TESTQUALITYALGO
-        weight *= static_cast<ftype>(measure);
-        #ifdef INTQUALINRIEMSPACE
-        weight *= static_cast<ftype>(sqrt(detsym<gdim>(metric)));
-        #endif
-        #endif
+        const ftype weight
+            = static_cast<ftype>(sample.quadrature_weight*sample.theta);
 
         qutet += weight*pointwise_result.psi;
         if(ivar < 0) continue;
