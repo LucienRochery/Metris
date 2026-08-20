@@ -16,6 +16,7 @@
 #include "quality/low_metqua.hxx"
 #include "smoothing/low_smooballdiff.hxx"
 #include "smoothing/msh_smooball.hxx"
+#include "smoothing/smoothing_progress.hxx"
 
 #include <algorithm>
 #include <array>
@@ -153,7 +154,15 @@ std::string input_command(){
   const std::string suffix = "a" + std::to_string(case_iteration());
   const std::string mesh = dir + "/mesh_MOESS_initial_" + suffix + ".meshb";
   const std::string metric = dir + "/met_MOESS_initial_" + suffix + ".solb";
-  std::string cad = dir + "/CAD_MOESS.egads";
+  std::string cad;
+  if (const char* value = std::getenv("METRIS_SMOOTHING_CAD"))
+  {
+    cad = value;
+  }
+  else
+  {
+    cad = dir + "/CAD_MOESS.egads";
+  }
   if(!std::filesystem::exists(cad)){
     cad = "/Users/renat/MIT/HOMeshing/"
           "L2Project_MOESS_ConfBasedXClassicInsertions/CAD_MOESS.egads";
@@ -617,8 +626,9 @@ ScanStats run_scan(const std::string& command,
     }else if(row.solver_success){
       row.accepted = true;
       stats.accepted++;
-      row.substantive = row.qsum0-row.qsum1 > msh.param->opt_smoo_tol
-                     || row.qmax0-row.qmax1 > msh.param->opt_smoo_tol;
+      row.substantive = smoothing_neighborhood_should_be_reactivated(
+          row.qsum0,row.qsum1,row.qmax0,row.qmax1,
+          msh.param->opt_smoo_tol,msh.param->opt_smoo_tol);
       if(row.substantive) stats.substantive++;
       if(row.qmax1 > row.qmax0) stats.accepted_local_max_worse++;
       if(require_global_improvement){

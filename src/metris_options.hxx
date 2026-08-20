@@ -94,6 +94,9 @@ struct MetrisOptions{
         "Use adaptGeoLines (not very robust if boundary very coarse)")
       ("adp-smoo-len",
         "Use length-based smoothing in adaptation loop")
+      ("adp-quality-smoothing",
+        "Enable element-ball smoothing after all quality-adaptation edge "
+        "operations on an element fail (disabled by default)")
       ("opt-unif" ,
         "Shape preserving uniformization")
       ("geo-lentolfac", po::value<double>(),
@@ -146,8 +149,8 @@ struct MetrisOptions{
       ("opt-smoo-niter", po::value<int>(),
                     "Inner optimization loop global smoothing iterations")
       ("opt-smoo-tol", po::value<double>(),
-                    "Quality improvement tolerance (absolute for qual in range 0-1)"
-                    " to freeze vertex smoothing. Default 0.005")
+                    "Relative local-objective reduction needed to revisit "
+                    "neighboring vertices during quality smoothing. Default 0.005")
       ("opt-swap-pnorm", po::value<int>(),
                     "Optimization pnorm parameter (default same as smoothing). "
                     "Compute Q^(opt-power) in norm pnorm")

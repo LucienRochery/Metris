@@ -11,7 +11,10 @@
 
 // #define OUTPUTTIMEANDUNITINFO
 
-// #define TESTQUALITYALGO     // enable size aware quality-based algorithm
+// Keep algorithm and objective selection source-controlled in this block.
+// Do not override these definitions with compiler command-line -D arguments.
+
+#define TESTQUALITYALGO     // enable size aware quality-based algorithm
 
 #ifdef TESTQUALITYALGO
 

@@ -8,7 +8,6 @@
 #include "types.hxx"
 #include "MetricField/MetricField.hxx"
 #include "Mesh/MeshMetric.hxx"
-#include "low_geo/measure.hxx"
 
 namespace Metris{
 

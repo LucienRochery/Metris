@@ -74,6 +74,8 @@ depending on whether they should be serialized.
     FIELD(bool, adp_line_adapt, false) \
     FIELD(double, adp_stagn_stop, 1.0e-2) /* stat threshold for stagnation (default 1e-3) */ \
     FIELD(bool, adp_smoo_len, false) /* use len-based smoothing in adaptation loop */ \
+    /* Smooth an element after all of its quality-adaptation edge operations fail. */ \
+    FIELD(bool, adp_quality_smoothing, false) \
     /* Metric min/max size control */ \
     FIELD(double, hmin, 1.0e-30) \
     FIELD(double, hmax, 1.0e30) \
@@ -116,6 +118,7 @@ depending on whether they should be serialized.
     FIELD(double, step_distance_barrier_rho0, 0.7) \
     FIELD(double, step_distance_barrier_beta, 0.0) \
     FIELD(int, opt_smoo_niter, 10) \
+    /* Relative local-objective reduction needed to revisit neighboring points. */ \
     FIELD(double, opt_smoo_tol, 0.005)  \
     /* Surface qualities weight the main term by qua_surf_w_quality */ \
     /* and the normal deviation term by qua_surf_w_normal */ \

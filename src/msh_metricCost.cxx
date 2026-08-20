@@ -5,41 +5,23 @@
 
 #include "msh_metricCost.hxx"
 
+#include "quality/objective_quadrature_sample.hxx"
+#include "quality/simplex_quadrature.hxx"
+
+#include "utils/CT_loop.hxx"
+
 namespace Metris{
 
-template<class MFT,int gdim,int tdim>
-double getMetricCost(MeshMetric<MFT>& msh){
+namespace{
 
-  // TODO: HO, only linear case for now
-  const int ideg = msh.curdeg;
-  METRIS_ENFORCE_MSG(ideg == 1, "Implement metric cost for HO");
+template<class MFT,int gdim,int tdim,int mshdeg>
+double getMetricCost0(Mesh<MFT>& msh){
   static_assert(tdim == gdim, "Implement metric cost for surface mesh in 3D");
 
   const intAr2& ent2poi = msh.ent2poi(tdim);
-
-  // helper to compute metric determinant
-  auto evalMetDet = [&](const double* met) -> double {
-
-    double det = -1.;
-    if constexpr (tdim == 2){
-      det = met[0]*met[2] - met[1]*met[1];
-    }else {
-
-      const double m11 = met[0];
-      const double m12 = met[1];
-      const double m22 = met[2];
-      const double m13 = met[3];
-      const double m23 = met[4];
-      const double m33 = met[5];
-
-      det =    m11*(m22*m33 - m23*m23)
-             - m12*(m12*m33 - m13*m23)
-             + m13*(m12*m23 - m13*m22);
-    }
-
-    METRIS_ENFORCE_MSG(det > 0.,"Non-positive metric determinant!");
-    return det;
-  };
+  const SimplexQuadratureView<tdim> quadrature
+      = get_objective_quadrature<tdim>(
+            msh.param->objective_quadrature_order);
 
   double cost = 0.;
 
@@ -47,54 +29,44 @@ double getMetricCost(MeshMetric<MFT>& msh){
 
     if(isdeadent(ientt,ent2poi)) continue;
 
-    double measEntt = 0.;
-    isvalideltP1<gdim,tdim>(msh, ientt, NULL, &measEntt);
-
-    double costEntt = 0.;
-
-    int nsample = 0;
-    // compute integrand at vertices of the element
-    for (int iver = 0; iver < tdim + 1; iver++){
-
-      const int ipoin = ent2poi(ientt,iver);
-      costEntt += sqrt(evalMetDet(msh.met[ipoin]));
-      nsample++;
+    for(int iquad = 0; iquad < quadrature.size(); iquad++){
+      const auto sample
+          = prepare_objective_quadrature_sample<MFT,gdim,tdim,mshdeg>(
+                msh,AsDeg::P1,ent2poi[ientt],quadrature[iquad],
+                ObjectiveQuadratureTheta::PhysicalMetricMeasure);
+      METRIS_ENFORCE_MSG(sample.theta_is_valid,
+                         "Invalid metric-cost quadrature sample");
+      cost += sample.quadrature_weight*sample.theta;
     }
-
-    // compute integrand at barycenter of element
-    double coordBary[gdim];
-    for(int icoord = 0; icoord < gdim; icoord++){
-      coordBary[icoord] = 0.;
-      for(int ibary = 0; ibary < tdim+1; ibary++){
-        coordBary[icoord] += msh.coord(ent2poi(ientt,ibary),icoord)/((double)tdim+1.);
-      }
-    }
-
-    double bary[tdim+1];
-    for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0/(tdim + 1);
-
-    constexpr int nnmet = (gdim*(gdim+1))/2;
-    double metBary[nnmet];
-
-    if constexpr(std::is_same<MFT, MetricFieldAnalytical>::value){
-        msh.met.getMetPhys(DifVar::None, msh.met.getSpace(),coordBary, metBary, NULL);
-      }else{
-        msh.met.getMetBary(AsDeg::P1,
-                           DifVar::None,
-                           msh.met.getSpace(),
-                           ent2poi[ientt],
-                           tdim,
-                           bary,
-                           metBary,
-                           NULL);
-      }
-
-    costEntt += sqrt(evalMetDet(metBary));
-    nsample++;
-
-    cost += measEntt * costEntt/(double)nsample;
   }
 
+  return cost;
+}
+
+} // namespace
+
+template<class MFT,int gdim,int tdim>
+double getMetricCost(MeshMetric<MFT>& mesh_metric){
+  auto &msh = static_cast<Mesh<MFT>&>(mesh_metric);
+  const MetSpace original_metric_space = msh.met.getSpace();
+  msh.met.setSpace(MetSpace::Exp);
+
+  double cost = 0.;
+  bool degree_found = false;
+  try{
+    CT_FOR0_INC(1,METRIS_MAX_DEG,mshdeg){if(msh.curdeg == mshdeg){
+      cost = getMetricCost0<MFT,gdim,tdim,mshdeg>(msh);
+      degree_found = true;
+    }}CT_FOR1(mshdeg);
+    METRIS_ENFORCE_MSG(degree_found,
+                       "Unsupported mesh degree {} in metric-cost integration",
+                       msh.curdeg);
+  }catch(...){
+    msh.met.setSpace(original_metric_space);
+    throw;
+  }
+
+  msh.met.setSpace(original_metric_space);
   return cost;
 }
 

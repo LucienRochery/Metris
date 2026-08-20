@@ -13,6 +13,7 @@ Simplest possible approach.
 
 #include "../smoothing/msh_smooball.hxx"
 #include "../smoothing/low_smooballdiff.hxx"
+#include "../smoothing/smoothing_progress.hxx"
 
 #include "../aux_topo.hxx"
 #include "../utils/aux_timer.hxx"
@@ -322,11 +323,8 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
                                      " {:10.6e} -> {:10.6e} max {:10.6e} -> {:10.6e}\n",
                                      ipoin,qnrm0,qnrm1,qmax0,qmax1);
 
-            bool imov = false;
-            // qnrm1 should be < qnrm0 for there to be progress
-            if(qnrm0 - qnrm1 > tolavg) imov = true;
-            // idem qmax
-            if(qmax0 - qmax1 > tolmax) imov = true;
+            const bool imov = smoothing_neighborhood_should_be_reactivated(
+                qnrm0,qnrm1,qmax0,qmax1,tolavg,tolmax);
             if(imov){
               (*nmovthr)[ithread]++;
               for(int iele2 : lball){
@@ -603,11 +601,8 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
                  "max {:10.6e} -> {:10.6e}\n",ipoin,qnrm0,qnrm1,qmax0,qmax1);
 
 
-        bool imov = false;
-        // qnrm1 should be < qnrm0 for there to be progress
-        if(qnrm0 - qnrm1 > tolavg) imov = true;
-        // idem qmax
-        if(qmax0 - qmax1 > tolmax) imov = true;
+        const bool imov = smoothing_neighborhood_should_be_reactivated(
+            qnrm0,qnrm1,qmax0,qmax1,tolavg,tolmax);
         if(imov){
           nmov ++;
           for(int iele2 : lball){

@@ -367,6 +367,10 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
     met_snap_tol = opt.m["met-snap-tol"].as<double>();
   }
 
+  if(opt.count("adp-quality-smoothing")){
+    adp_quality_smoothing = true;
+  }
+
   if(opt.count("opt-niter")){
     opt_niter = opt.m["opt-niter"].as<int>();
   }
@@ -496,6 +500,8 @@ void MetrisParameters::checkParameters(){
                      "step_distance_cavity_global_gain_fraction must be nonnegative");
   METRIS_ENFORCE_MSG(step_distance_barrier_beta >= 0.0,
                      "step_distance_barrier_beta must be nonnegative");
+  METRIS_ENFORCE_MSG(opt_smoo_tol >= 0.0 && opt_smoo_tol < 1.0,
+                     "opt-smoo-tol must be in [0,1)");
   METRIS_ENFORCE(geo_abstoledg >= 0.0);
   METRIS_ENFORCE(geo_lentolfac >= 1.0);
   METRIS_ENFORCE_MSG(usrTarDeg >= 1, "Degree < 1 provided through tardeg.");

@@ -184,21 +184,20 @@ void MetrisRunner::runMetris(){
           curveMesh();
         }
 
-        if(param->smoo_type == 0){
-          optimMesh();
-        }
-
         if(param->dbgfull) check_topo(*msh_g,0);
       }
 
+      // Run the requested optimizer once, after any degree elevation and
+      // high-order curving.
       optimMesh();
 
       iter++;
     }
 
-    //if(param->anaSol && param->smoo_type == 1){
-    //  optimMesh();
-    //}
+    // A successful high-order run must finish with a degree-aware validity
+    // check even when the expensive debug checks are otherwise disabled.
+    if(msh_g->curdeg > 1) check_topo(*msh_g,0);
+
     writeOutputs();
 
     #ifdef OUTPUTTIMEANDUNITINFO

@@ -2919,6 +2919,25 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
   BOOST_REQUIRE(!iinva_size);
   BOOST_REQUIRE(!iinva_step);
 
+  constexpr double legacy_smoothing_threshold = 0.01;
+  const intAr2& ent2poi = msh.ent2poi(tdim);
+  int alive_elements = 0;
+  int size_shape_below_threshold = 0;
+  int step_distance_below_threshold = 0;
+  for (int ientt = 0; ientt < msh.nentt(tdim); ientt++)
+  {
+    if (isdeadent(ientt,ent2poi)) continue;
+    alive_elements++;
+    if (lquae_size[ientt] < legacy_smoothing_threshold)
+    {
+      size_shape_below_threshold++;
+    }
+    if (lquae_step[ientt] < legacy_smoothing_threshold)
+    {
+      step_distance_below_threshold++;
+    }
+  }
+
   lenStat lenstat0;
   intAr2 ilned;
   dblAr1 rlned;
@@ -2929,7 +2948,6 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
 
   const int nedgl = tdim * (tdim + 1) / 2;
   const intAr2 lnoed(nedgl,2,lnoed2[0]);
-  const intAr2& ent2poi = msh.ent2poi(tdim);
   std::set<std::pair<int,int>> seen_edges;
   std::vector<ObjectiveInsertCandidate> candidates;
 
@@ -2975,6 +2993,12 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
              qmin_size,qavg_size,qmax_size);
   fmt::print("   StepDistance quality min/avg/max : {:.8e} {:.8e} {:.8e}\n",
              qmin_step,qavg_step,qmax_step);
+  fmt::print("   Elements below legacy 0.01 gate : "
+             "SizeShape {} ({:.2f}%), StepDistance {} ({:.2f}%)\n",
+             size_shape_below_threshold,
+             100.0*size_shape_below_threshold/alive_elements,
+             step_distance_below_threshold,
+             100.0*step_distance_below_threshold/alive_elements);
 
   for(std::size_t ii = 0; ii < candidates.size(); ii++){
     const ObjectiveInsertCandidate& candidate = candidates[ii];
@@ -3977,7 +4001,8 @@ StatefulAdaptResult find_stateful_quality_adapt_divergence(const std::string& cm
 
       // Keep this replay synchronized with adaptMeshQuality0.
       const double quaTryThreshold = 0.01;
-      if(quaent < quaTryThreshold){
+      if(msh.param->adp_quality_smoothing
+          && quaent < quaTryThreshold){
 
         result.ntrySmoothing++;
 

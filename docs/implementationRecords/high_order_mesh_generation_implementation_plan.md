@@ -1,0 +1,374 @@
+# High-Order Mesh Generation Implementation Plan
+
+## Purpose and provenance
+
+This document records the high-order implementation plan developed immediately
+after the initial audit of Metris's P2 support. It is intended to be the starting
+reference for a fresh implementation task.
+
+The plan predates the completed objective-quadrature refactor. Consequently,
+file locations and individual restrictions must be verified against the current
+source before changing code. The architectural intent remains applicable: first
+restore and qualify the existing Classic P2 path, then extend the common
+objective-driven integration machinery to P2.
+
+## Audit baseline
+
+The audit established that P2 support is substantial rather than merely
+experimental. The historical Classic workflow was designed to:
+
+1. adapt a P1 mesh;
+2. elevate it to P2;
+3. treat P2 edge control points as smoothing variables;
+4. evaluate the size-invariant distortion using the P2 mapping; and
+5. reject trial configurations whose scaled Jacobian Bernstein coefficients
+   fall below `jtol`.
+
+At the time of the audit, the principal blockers were:
+
+- 2D boundary P2 control-point smoothing assumed two adjacent triangles;
+- the objective-driven SizeShape and StepDistance paths were restricted to P1;
+- final metric-cost reporting was P1-only and could make a successful P2 run
+  end with an exception;
+- an already-P2 3D adaptation could reach an unimplemented P2 triangular-face
+  projection;
+- several local smoothing and topological acceptance paths were P1-only or
+  evaluated only the underlying P1 quality;
+- some P2 regressions caught and printed exceptions without failing; and
+- the top-level high-order workflow invoked optimization twice.
+
+These are historical audit findings, not assertions that every issue remains in
+the current source. Phase 1 begins by checking them again.
+
+## Governing principles
+
+1. P2 is the initial supported high-order target. P3 and higher degrees remain
+   outside the implementation scope until P2 is complete and qualified.
+2. Quadrature accuracy and element validity are logically independent.
+   Quadrature samples the objective; it must never be used as proof that a
+   high-order element is valid.
+3. All pointwise objectives should consume the same degree-aware geometric and
+   quadrature data. Objective choice should not create a separate high-order
+   integration path.
+4. High-order validity should be enforced by one common certificate in trial
+   moves, accepted moves, cavity operations, reconnection, and final checks.
+5. Each phase should be implemented as small, independently tested changes.
+
+## Phase 1: Make the baseline trustworthy
+
+1. Re-audit the current source against every blocker listed above and record
+   which items are fixed, still present, or changed by later refactors.
+2. Make every high-order regression fail on an unexpected `MetrisExcept`.
+3. Generalize or bypass the P1-only metric-cost postprocessor so a successful
+   P2 run does not end with an unrelated exception.
+4. Remove any duplicate high-order optimization invocation.
+5. Establish four small deterministic baseline mesh workflows:
+
+   - 2D P1 to P2 elevation;
+   - 2D native P2 input;
+   - 3D P1 to P2 elevation; and
+   - 3D native P2 input.
+
+6. Run these baseline meshes in debug and release builds before modifying
+   smoothing or objective behavior.
+
+## Phase 2: Recover Classic P2 smoothing
+
+1. Use only the Classic size-invariant distortion objective.
+2. Confirm that interior P2 edge control points are selected as smoothing
+   variables.
+3. Fix the 2D boundary-edge control-point neighborhood. A boundary edge has one
+   adjacent triangle and must not be forced through a two-triangle patch.
+4. Exercise the existing CAD-edge boundary optimizer for a boundary P2 control
+   point.
+5. Add focused tests for:
+
+   - one interior 2D P2 edge control point;
+   - one boundary 2D P2 edge control point;
+   - a complete small 2D P2 mesh; and
+   - one interior 3D P2 edge control point and its tetrahedral edge shell.
+
+6. Establish that Classic P2 smoothing succeeds before involving objective
+   variants, CAD surfaces, or full adaptation.
+
+## Phase 3: Consolidate high-order validity
+
+### Full-dimensional elements
+
+For a degree-`p` simplex in topological dimension `d`,
+
+\[
+\deg(\det DF_K) \leq d(p-1).
+\]
+
+Writing the determinant in the Bernstein basis,
+
+\[
+\det DF_K(\xi) = \sum_\alpha c_\alpha B_\alpha(\xi),
+\]
+
+the nonnegative partition-of-unity property gives
+
+\[
+\det DF_K(\xi) \geq \min_\alpha c_\alpha.
+\]
+
+Strictly positive Bernstein coefficients therefore give a sufficient
+certificate of a positive Jacobian determinant everywhere. This condition is
+not necessary: a nonpositive coefficient means that the element is not
+certified by the current bound, not necessarily that it is inverted.
+
+### Incremental validity work
+
+1. Unit-test coefficient generation against direct Jacobian evaluation for P2
+   triangles and tetrahedra.
+2. Give the validity result explicit semantics:
+
+   - `certified`;
+   - `invalid`; and
+   - `uncertified`.
+
+3. Conservatively reject uncertified trial moves initially.
+4. Use the same validity routine in:
+
+   - line-search trials;
+   - accepted-move checks;
+   - cavity construction and correction;
+   - reconnection; and
+   - final topology and validity checks.
+
+5. Make the final high-order validity check unconditional rather than dependent
+   on `dbgfull`.
+6. Add Bernstein subdivision later to refine inconclusive bounds and reduce
+   conservative false rejections.
+
+### Embedded surface elements
+
+The magnitude of a surface Jacobian contains a square root and is not a
+polynomial, so samples of that magnitude cannot be converted into rigorous
+Bernstein bounds.
+
+For a curved surface triangle, instead certify the polynomial
+
+\[
+g(\xi) = n_0 \cdot
+\left(
+\partial_{\xi_1}F_K \times \partial_{\xi_2}F_K
+\right),
+\]
+
+where `n_0` is a fixed, consistently oriented reference normal. Positive
+Bernstein coefficients of `g` certify a nonzero, consistently oriented surface
+Jacobian. A future subdivision implementation may choose a separate reference
+normal on each subpatch.
+
+## Phase 4: Generalize SizeShape to P2
+
+1. Remove the P1 restriction for SizeShape value evaluation.
+2. Evaluate the P2 geometry and metric at the shared quadrature points. Keep
+   the metric-degree choice explicit: the current compatibility contract uses
+   `AsDeg::P1` for FE metrics even on a P2 mesh, whereas analytical metrics are
+   evaluated directly at the physical P2 sample location. Moving FE metric
+   interpolation to `AsDeg::Pk` is separate work and must not happen
+   implicitly as part of geometry generalization.
+3. Compare element values with an independent dense reference sampler.
+4. Generalize differentiated evaluation for an active P2 edge control point.
+5. Check gradients with centered finite differences of the same frozen-sample
+   functional used by the production derivative contract.
+6. Check Hessians independently.
+7. Cover Lagrange and Bezier geometry representations where both are supported.
+8. Enable SizeShape P2 smoothing only after value, gradient, Hessian, and
+   validity tests pass.
+
+The shared objective-quadrature traversal should remain the only integration
+path. Degree awareness belongs in sample preparation and basis gradients, while
+the SizeShape policy continues to provide its own pointwise value and
+derivatives.
+
+## Phase 5: Generalize StepDistance to P2
+
+1. Replace any remaining hard-coded degree-one geometry evaluation.
+2. Remove assumptions that the active variable must be a P1 vertex.
+3. Implement and validate the basic StepDistance variant first.
+4. Add the collapse-barrier variant.
+5. Add ShapeVolume.
+6. Add CavityTargetAverage as its deliberately distinct aggregation convention.
+7. Verify each variant independently in 2D before enabling it in 3D.
+8. For each variant, test values, gradients, Hessians, validity rejection, and
+   smoothing behavior for P2 edge control points.
+
+Objective selection should occur only in the lower-level pointwise policy. The
+integrator should consume the common objective sample and `psi` abstraction in
+the same way for SizeShape and every StepDistance variant.
+
+## Phase 6: CAD and boundary support
+
+1. Complete 2D curved CAD-boundary control-point smoothing.
+2. Implement P2 triangular-face projection for 3D localization.
+3. Test the polynomial orientation certificate for P2 surface triangles.
+4. Add small CAD-curve and CAD-surface regression meshes.
+5. Verify that CAD parameters, projected coordinates, and high-order validity
+   remain consistent after every accepted move.
+6. Add checks for curved-boundary self-intersection where local Jacobian
+   positivity alone is insufficient.
+
+## Phase 7: Generalize adaptation operations
+
+Proceed one operation at a time, retaining a P1 compatibility test beside each
+new P2 test.
+
+1. Make insertion acceptance use both the P2 objective and P2 validity.
+2. Do the same for collapse.
+3. Generalize face and edge swaps.
+4. Implement P2 length smoothing or disable it explicitly; it must not silently
+   return while appearing to be supported.
+5. Generalize cavity-targeted smoothing to high-order variables.
+6. Ensure all neighboring high-order control points and affected elements are
+   reactivated after a successful move.
+7. Confirm that newly created cavity elements share P2 edge control points
+   correctly and pass the common validity certificate.
+
+## Phase 8: End-to-end qualification
+
+The final qualification matrix should cover:
+
+- 2D and 3D;
+- analytical and FE metrics;
+- P1 to P2 elevation and native P2 input;
+- interior, CAD-curve, and CAD-surface variables;
+- Classic, SizeShape, and every StepDistance variant;
+- historical and real objective quadrature;
+- optimization-only and full adaptation workflows; and
+- debug and release builds.
+
+For every configuration, record:
+
+- successful completion and exit status;
+- minimum high-order validity coefficient;
+- objective decrease and accepted/rejected smoothing moves;
+- topology-operation attempts and successes;
+- output mesh degree and entity counts; and
+- final independent validity verification.
+
+## Initial restoration milestone
+
+The shortest first milestone is a trustworthy Classic P2 generator:
+
+1. repair 2D boundary control-point smoothing;
+2. remove the P1-only final metric-cost failure;
+3. eliminate duplicate high-order optimization;
+4. make the P2 regressions hard-failing; and
+5. demonstrate the four baseline workflows with unconditional high-order
+   validity checks.
+
+Only after that milestone should the objective-driven SizeShape and
+StepDistance policies be enabled for P2 smoothing.
+
+## Phase 1 current-source audit and execution record
+
+This section is the living, numbered implementation record for the high-order
+work. The immediate target is P2 in full-dimensional 2D. The same step covers
+full-dimensional 3D whenever the implementation and focused test extend
+naturally. P3 is a design constraint, not a current acceptance requirement;
+explicit P2 or 2D code remains acceptable when a premature generalization
+would obstruct the first working path.
+
+1. **Done (2026-08-20): re-audited the historical blockers.** The current
+   classifications are:
+
+   - **Still present:** a 2D P2 edge control point constructs its smoothing
+     region by unconditionally requiring the triangle across the associated
+     edge. `smoothInterior_Ball0` asserts that this neighbor is nonnegative,
+     so a boundary P2 edge control point cannot use its correct one-triangle
+     region. This is the first Phase 2 repair.
+   - **Still present by design:** high-order SizeShape uses the historical
+     nodal compatibility integration, while StepDistance enters the common
+     objective traversal only for effective degree one. These restrictions
+     remain assigned to Phases 4 and 5.
+   - **Still present:** `projptfac<ideg>` throws for `ideg > 1`. A native P2
+     3D workflow that requires localization on a triangular face can therefore
+     still reach an unimplemented projection. The Phase 1 3D baseline mesh
+     excludes CAD and does not claim to cover this path.
+   - **Still present:** several reconnection, swapping, and cavity-acceptance
+     paths evaluate `AsDeg::P1`, call `isvalideltP1`, or both. Cavity correction
+     does contain degree-aware Bernstein-coefficient checks, but the acceptance
+     system is not yet consolidated. This remains Phase 3 and Phase 7 work.
+   - **Still present:** high-order length smoothing reports that adjacent
+     high-order nodes are not updated. It must eventually be implemented or
+     explicitly disabled as described in Phase 7.
+   - **Changed since the original audit:** the regression manager records a
+     caught `MetrisExcept` and later compares that state with the baseline.
+     It was strengthened in step 2 below so an exception fails immediately,
+     including while a new baseline is being initialized.
+   - **Confirmed present, then fixed in steps 3 and 4:** duplicate top-level
+     optimization and the P1-only final metric-cost postprocessor.
+   - **Confirmed present, then fixed in step 5:** the final high-order validity
+     check depended on `dbgfull`.
+
+2. **Done (2026-08-20): made regression exceptions hard failures.**
+   `RegressionTestManager` still records the exception text in `runs.json`, but
+   now also emits an immediate Boost test error. An unexpected exception can no
+   longer disappear when the first baseline for a machine is initialized.
+
+3. **Done (2026-08-20): removed duplicate high-order optimization.** The main
+   workflow now calls `optimMesh()` once after adaptation, degree elevation,
+   and optional curving. The previous call inside the high-order branch was
+   removed. The separate optimization used internally by curvature mode 3 is
+   retained because it is part of that curving algorithm rather than the
+   duplicated top-level pass.
+
+4. **Done (2026-08-20): generalized final metric-cost integration to the mesh
+   degree.** The postprocessor now dispatches on `msh.curdeg` and reuses the
+   shared degree-aware quadrature-sample preparation to evaluate physical
+   geometry and the target metric. It selects the same positive quadrature rule
+   as objective integration through `objective_quadrature_order`, including the
+   automatic dimension-dependent defaults.
+
+   **Important metric-degree boundary:** degree-aware metric-cost integration
+   currently applies to the **geometry**, not to the polynomial degree of a
+   discrete FE metric. On a P2 or higher-order element, the physical position
+   and Jacobian use the full `msh.curdeg` geometry, but an FE metric is still
+   requested with `AsDeg::P1`. Consequently, only corner metric values enter
+   its interpolation; metric values at high-order control points are not used.
+   An analytical metric behaves differently: at nonvertex quadrature points it
+   is evaluated directly at the physical point produced by the high-order
+   geometry. This asymmetry is the intentional Phase 1 compatibility contract,
+   not a claim that P2 FE metric interpolation is supported. Switching FE
+   metrics to `AsDeg::Pk` is deferred, must be coordinated with the objective
+   kernels, and requires dedicated value and derivative tests.
+
+   The metric is evaluated in exponential SPD space and the caller's original
+   metric storage space is restored, which is necessary because degree
+   elevation can leave the front metric in logarithmic storage. Straight P1
+   and elevated P2 baseline meshes produce the same cost.
+
+5. **Done (2026-08-20): made the final full-dimensional high-order check
+   unconditional.** Every successful `runMetris()` with `curdeg > 1` now calls
+   `check_topo` before output, independently of `dbgfull`. For the present P2
+   2D and 3D volume scope, this checks the scaled Jacobian Bernstein
+   coefficients against `jtol` in addition to the underlying P1 orientation
+   and topology. Phase 3 will replace this boolean legacy interface with the
+   explicit `certified`/`invalid`/`uncertified` validity contract.
+   A focused negative test displaces one P2 edge control point while leaving
+   the P1 triangle unchanged and verifies that the top-level run throws at the
+   final high-order check with `dbgfull` disabled.
+
+6. **Done (2026-08-20): established four small deterministic baseline
+   workflows.** `test_high_order_phase1_baselines` covers:
+
+   - a two-triangle 2D P1 mesh elevated to P2;
+   - the resulting two-triangle mesh re-entering as native P2 data;
+   - a one-tetrahedron 3D P1 mesh elevated to P2; and
+   - the resulting one-tetrahedron mesh re-entering as native P2 data.
+
+   Each workflow runs the top-level driver with adaptation and optimization
+   disabled, checks the degree and exact entity counts, exercises final metric
+   cost, and reaches the unconditional high-order validity check. The baseline
+   meshes pass in both release and debug builds. They intentionally establish
+   the trustworthy Phase 1 floor; they do not yet claim that smoothing, CAD,
+   or adaptation operations work at P2.
+
+7. **Next:** begin Phase 2 with the one-triangle boundary neighborhood repair
+   and focused control-point smoothing tests. The 2D boundary case is the
+   priority; the existing 3D tetrahedral edge-shell construction should be
+   covered in the same test series without delaying the 2D repair.

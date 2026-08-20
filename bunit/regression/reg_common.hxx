@@ -345,6 +345,9 @@ private:
       except_message = e.what();
       fmt::print(stderr,"## Test {} raised exception:\n{}\n", test_name, except_message);
       json_entry["except"] = except_message;
+      BOOST_ERROR("Regression case " << test_name
+                  << " raised an unexpected MetrisExcept: "
+                  << except_message);
     }
  
     json_entry["logfile"]  = run.param->logFileName;
@@ -546,6 +549,5 @@ public:
 } // namespace Metris
 
 #endif
-
 
 

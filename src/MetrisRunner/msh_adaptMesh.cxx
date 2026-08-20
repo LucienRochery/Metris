@@ -692,7 +692,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   int ntryCollapse = 0; int nSuccessCollapse = 0;
 
   int iter = 0;
-  int smooStreak = 0;
   writeMesh("meshSTART.meshb",msh);
 
   while (true){
@@ -871,7 +870,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       }
 
       if (didOperation) {
-        smooStreak = 0;
         handlerTopX.updateK(ientt, ent2ent, ent2tag,
                             msh.tag[ithrd1] + 1, ithrd1);
         break;
@@ -880,13 +878,9 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       // ----------------------------- //
       // 1. Smoothing
       // ----------------------------- //
-      double quaTryThreshold;
-      #ifdef STEPDISTANCE
-      quaTryThreshold = 0.01;
-      #else
-      quaTryThreshold = 0.01;
-      #endif
-      if (quaent < quaTryThreshold){
+      const double quaTryThreshold = 0.01;
+      if (msh.param->adp_quality_smoothing
+          && quaent < quaTryThreshold){
         ntrySmoothing++;
 
         #ifdef STEPDISTANCE
@@ -896,7 +890,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
         #endif
 
         if (statSmoothing > 0){
-          smooStreak++;
           nSuccessSmoothing++;
           didOperation = true;
           // std::cout << "Successful smoothing in ientt = " << ientt << std::endl;
