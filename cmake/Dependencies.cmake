@@ -112,26 +112,29 @@ endif()
 
 set(EIGEN3_INCLUDE_DIRS "$ENV{EIGEN_DIR}")
 if (NOT EIGEN3_INCLUDE_DIRS)
+  # Source archive, not a git clone: gitlab.com refuses anonymous clones over
+  # the git endpoint (HTTP 403), while the archive endpoint serves fine. The
+  # hash pins the contents exactly, as the tag did.
+  set(EIGEN3_COMMIT bcce88c99ed687b756b7a537554cb7c1780b816e)
   FetchContent_Declare(
     Eigen3
-    GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-    GIT_TAG bcce88c99ed687b756b7a537554cb7c1780b816e
-    #GIT_TAG master
-    #FIND_PACKAGE_ARGS NAMES Eigen3
+    URL https://gitlab.com/libeigen/eigen/-/archive/${EIGEN3_COMMIT}/eigen-${EIGEN3_COMMIT}.tar.gz
+    URL_HASH SHA256=8dc65837d855a1614564da892ebc0224fbd078f6540f19120f15493c0c9433b3
     EXCLUDE_FROM_ALL
   )
   FetchContent_MakeAvailable(Eigen3)
   set(EIGEN3_INCLUDE_DIRS "${CMAKE_BINARY_DIR}/_deps/eigen3-src/")
-  if(METRIS_INSTALL)
-    install(DIRECTORY ${EIGEN3_INCLUDE_DIRS}/Eigen ${EIGEN3_INCLUDE_DIRS}/unsupported
-            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-  endif()
-  message("EIGEN3_INCLUDE_DIRS = ${EIGEN3_INCLUDE_DIRS}")
-  #list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIRS})
-  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIRS}>)
-  list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
-  
 endif()
+
+# Outside the if: EIGEN_DIR builds need the include dir on the path just the
+# same, otherwise setting it configures fine and then fails to compile.
+if(METRIS_INSTALL)
+  install(DIRECTORY ${EIGEN3_INCLUDE_DIRS}/Eigen ${EIGEN3_INCLUDE_DIRS}/unsupported
+          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+endif()
+message("EIGEN3_INCLUDE_DIRS = ${EIGEN3_INCLUDE_DIRS}")
+list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<BUILD_INTERFACE:${EIGEN3_INCLUDE_DIRS}>)
+list(APPEND METRIS_EXTERNAL_INCLUDE_DIRS $<INSTALL_INTERFACE:include>)
 
 
 if(METRIS_USE_LAPACK)

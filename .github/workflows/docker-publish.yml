@@ -43,7 +43,6 @@ jobs:
           file: docker/Dockerfile
           target: metris_setup
           build-args: |
-            INSTALL_EIGEN3=true
             INSTALL_LAPACK=true
             INSTALL_FMT=true
           push: true
