@@ -3,8 +3,8 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef SANSTRAITSSCALAR_H
-#define SANSTRAITSSCALAR_H
+#ifndef METRIS_SANSTRAITSSCALAR_H
+#define METRIS_SANSTRAITSSCALAR_H
 
 #include "../LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
 //#include "types_scalar.hxx"
@@ -27,4 +27,4 @@ struct Scalar { typedef T type; };
 
 }  // namespace SANS
 
-#endif  // SANSTRAITSSCALAR_H
+#endif  // METRIS_SANSTRAITSSCALAR_H
