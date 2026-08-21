@@ -29,7 +29,8 @@
 
 namespace Metris{
 
-// Return 0 if done nothing, 1 if error, -1 if done swap
+// Return -1 if an insertion was done, 0 if nothing was done, and an
+// INS2D_ERR_* value on failure.
 template<class MFT>
 int insertEdge(Mesh<MFT>& msh, 
                const EdgeSeed &insertionSeed,
@@ -126,6 +127,11 @@ int insertEdge(Mesh<MFT>& msh,
   }
   #endif
 
+  if(ierro != 0){
+    ierro = INS2D_ERR_INCCAVVAL1;
+    goto cleanup;
+  }
+
   if(icollapse){
     ierro = collrejcav_lenqua(msh, cav, false, false, false, -1, nocomp, ithrd2);
     if(ierro > 0){
@@ -143,6 +149,10 @@ int insertEdge(Mesh<MFT>& msh,
         goto cleanup;
       }
       ierro = increase_cavity(msh, cav, false, ithrd1, ithrd2);
+      if(ierro != 0){
+        ierro = INS2D_ERR_INCCAVVAL2;
+        goto cleanup;
+      }
       ierro = collrejcav_lenqua(msh, cav, false, false, false, -1, nocomp, ithrd2);
       if(ierro > 0){
         CPRINTF1(" # collrejcav_lenqua rejects cavity after fix\n");

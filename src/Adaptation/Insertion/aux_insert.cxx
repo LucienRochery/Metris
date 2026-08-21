@@ -155,9 +155,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
   // not from splitting the parent edge. 
   bool fnd_len = false;
   double bar1_opt = -1, err_opt = 1.0e30, bar1;
-  for(int ntry_len = 0; ntry_len < 10; ntry_len++){
-    INCVDEPTH(msh.param);
-    bar1 = (bar1_min + bar1_max) / 2;
+  auto placeInsertionPoint = [&](double bar1) -> int {
     double bar2[2] = {bar1, 1 - bar1};
 
     // Evaluate ipins on CAD or element, also get algnd for interpMetBack 
@@ -220,6 +218,16 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
 
     ierro = msh.interpMetBack(cav.ipins, insertionSeed.tdimp, insertionSeed.iseed, insertionSeed.iref, algnd);
     if(ierro != 0) return INS2D_ERR_INTERPMETBACK1;
+
+    return INS2D_NOERR;
+  };
+
+  for(int ntry_len = 0; ntry_len < 10; ntry_len++){
+    INCVDEPTH(msh.param);
+    bar1 = (bar1_min + bar1_max) / 2;
+
+    ierro = placeInsertionPoint(bar1);
+    if(ierro != INS2D_NOERR) return ierro;
 
     //if(DOPRINTS3()){
     //  int ipnew = msh.newpoitopo(0);
@@ -284,6 +292,9 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
   //}
 
   if(!fnd_len) return INS2D_ERR_BISECLEN;
+
+  ierro = placeInsertionPoint(bar1_opt);
+  if(ierro != INS2D_NOERR) return ierro;
 
   CPRINTF1("-- END aux_bisecPointLen w/ bar1 = {}\n",bar1_opt);
   return 0;
