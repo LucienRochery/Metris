@@ -35,14 +35,12 @@ RUN /bin/sh /tmp/install_EGADS.sh
 
 # THESE MUST GO AFTER FROM
 ARG INSTALL_NLOPT=false
-ARG INSTALL_EIGEN3=false
 ARG INSTALL_LAPACK=false
 ARG INSTALL_FMT=false
 
 # Move args to env so they are available at runtime
 # e.g. in entrypoint.sh for _deps checks
 ENV INSTALL_NLOPT=${INSTALL_NLOPT}
-ENV INSTALL_EIGEN3=${INSTALL_EIGEN3}
 ENV INSTALL_LAPACK=${INSTALL_LAPACK}
 ENV INSTALL_FMT=${INSTALL_FMT}
 
@@ -54,7 +52,6 @@ RUN set -e; \
     . /tmp/optional_deps_helper.sh; \
     # Defined in optional_deps_helper.sh
     add_if_enabled ${INSTALL_NLOPT} "libnlopt-dev"; \
-    add_if_enabled ${INSTALL_EIGEN3} "libeigen3-dev"; \
     add_if_enabled ${INSTALL_LAPACK} "liblapack-dev"; \
     add_if_enabled ${INSTALL_FMT} "libfmt-dev"; \
     if [ -n "$OPTIONAL_DEPS" ]; then \
@@ -64,6 +61,23 @@ RUN set -e; \
     else \
       echo "No optional deps to install"; \
     fi; 
+
+# -- Install Eigen
+# Baked in rather than left to cmake's FetchContent: the pinned commit is a
+# 3.4.90 snapshot, newer than Ubuntu's libeigen3-dev (3.4.0), so the distro
+# package is not a substitute. Keep the commit in sync with
+# cmake/Dependencies.cmake; EIGEN_DIR makes the fetch there a no-op.
+ARG EIGEN3_COMMIT=bcce88c99ed687b756b7a537554cb7c1780b816e
+ARG EIGEN3_SHA256=8dc65837d855a1614564da892ebc0224fbd078f6540f19120f15493c0c9433b3
+RUN set -e; \
+    wget -q -O /tmp/eigen.tar.gz \
+      "https://gitlab.com/libeigen/eigen/-/archive/${EIGEN3_COMMIT}/eigen-${EIGEN3_COMMIT}.tar.gz"; \
+    echo "${EIGEN3_SHA256}  /tmp/eigen.tar.gz" | sha256sum -c -; \
+    mkdir -p /progs/eigen; \
+    tar xzf /tmp/eigen.tar.gz -C /progs/eigen --strip-components=1; \
+    rm /tmp/eigen.tar.gz
+ENV EIGEN_DIR=/progs/eigen
+
 
 # Copy entrypoint (sources ESPenv.sh) as it'll be used for all images
 # starting from this
