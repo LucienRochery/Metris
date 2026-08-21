@@ -41,7 +41,7 @@ void anamet2D_1([[maybe_unused]] const AnaMetCtx* ctx,
 // circle
 void anamet2D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   const double pi = 3.141592653589793238462643383279502884;
-  SANS::SurrealS<2,double> X[2];
+  Metris::SurrealS<2,double> X[2];
   X[0] = crd[0] - 0.5;
   //X[0] = crd[0] + 0.01;
   X[0].deriv(0) = 1;
@@ -56,13 +56,13 @@ void anamet2D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double h1 = scale*0.1;
   double h2 = scale*0.5;
 
-  SANS::SurrealS<2,double> eigval[2] = {1.0/(h1*h1), 1.0/(h2*h2)};
-  //SANS::SurrealS<2,double> eigval[2] = {h1, h2};
-  SANS::SurrealS<2,double> eigvec[4];
+  Metris::SurrealS<2,double> eigval[2] = {1.0/(h1*h1), 1.0/(h2*h2)};
+  //Metris::SurrealS<2,double> eigval[2] = {h1, h2};
+  Metris::SurrealS<2,double> eigvec[4];
 
-  SANS::SurrealS<2,double> r = sqrt(X[0]*X[0] + X[1]*X[1]) + 0.01;
-  SANS::SurrealS<2,double> y[2] = {X[0] / r, X[1] / r};
-  SANS::SurrealS<2,double> theta;
+  Metris::SurrealS<2,double> r = sqrt(X[0]*X[0] + X[1]*X[1]) + 0.01;
+  Metris::SurrealS<2,double> y[2] = {X[0] / r, X[1] / r};
+  Metris::SurrealS<2,double> theta;
   if(y[0].value() > 0){
     theta = atan(y[1]/y[0]);
   }else{
@@ -79,15 +79,15 @@ void anamet2D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   eigvec[2] = -sin(theta);
   eigvec[3] =  cos(theta);
 
-  SANS::SurrealS<2,double> metS[3];
-  eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
+  Metris::SurrealS<2,double> metS[3];
+  eig2met<2,Metris::SurrealS<2,double>>(eigval,eigvec,metS);
   getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 }
 
 // Boundary-layer along x centered at 0.5
 void anamet2D_3([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
-  SANS::SurrealS<2,double> X[2];
+  Metris::SurrealS<2,double> X[2];
   X[0] = std::abs(crd[0] - 0.5);
   X[0].deriv(0) = crd[0] >= 0.5 ? 1 : -1;
   X[0].deriv(1) = 0;
@@ -99,20 +99,20 @@ void anamet2D_3([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
   double hx_min = 0.001;
   double hx_max = 0.1;
-  SANS::SurrealS<2,double> hx = scale*(X[0]*(hx_max - hx_min) + hx_min);
+  Metris::SurrealS<2,double> hx = scale*(X[0]*(hx_max - hx_min) + hx_min);
   double hy = scale*0.1;
 
 
-  SANS::SurrealS<2,double> eigval[2] = {1.0/(hx*hx), 1.0/(hy*hy)};
-  SANS::SurrealS<2,double> eigvec[4];
+  Metris::SurrealS<2,double> eigval[2] = {1.0/(hx*hx), 1.0/(hy*hy)};
+  Metris::SurrealS<2,double> eigvec[4];
 
   eigvec[0] = 1.0;
   eigvec[1] = 0.0; 
   eigvec[2] = 0.0;
   eigvec[3] = 1.0;
 
-  SANS::SurrealS<2,double> metS[3];
-  eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
+  Metris::SurrealS<2,double> metS[3];
+  eig2met<2,Metris::SurrealS<2,double>>(eigval,eigvec,metS);
   getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 }
 
@@ -120,7 +120,7 @@ void anamet2D_3([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 // Boundary-layer mesh, slanted, wall = { x + y - 0.5 = 0 }
 void anamet2D_4([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
-  SANS::SurrealS<2,double> X;
+  Metris::SurrealS<2,double> X;
   X = crd[0] + crd[1] - 0.5;
   X.deriv(0) = 1;
   X.deriv(1) = 1;
@@ -133,19 +133,19 @@ void anamet2D_4([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double hy_min = 0.001;
   double hy_max = 0.1;
   double hx = scale*0.5;
-  SANS::SurrealS<2,double> hy = scale*(X*hy_max + (1 - X + 0.0)*hy_min);
+  Metris::SurrealS<2,double> hy = scale*(X*hy_max + (1 - X + 0.0)*hy_min);
 
 
-  SANS::SurrealS<2,double> eigval[2] = {1.0/(hx*hx), 1.0/(hy*hy)};
-  SANS::SurrealS<2,double> eigvec[4];
+  Metris::SurrealS<2,double> eigval[2] = {1.0/(hx*hx), 1.0/(hy*hy)};
+  Metris::SurrealS<2,double> eigvec[4];
 
   eigvec[0] = sqrt(2);
   eigvec[1] =-sqrt(2); 
   eigvec[2] = sqrt(2);
   eigvec[3] = sqrt(2);
 
-  SANS::SurrealS<2,double> metS[3];
-  eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
+  Metris::SurrealS<2,double> metS[3];
+  eig2met<2,Metris::SurrealS<2,double>>(eigval,eigvec,metS);
   getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 }
 
@@ -157,7 +157,7 @@ void anamet2D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double *met, double *dmet){
   const double pi = 3.141592653589793238462643383279502884;
   double x0 = 0.01;
-  SANS::SurrealS<2,double> X[2];
+  Metris::SurrealS<2,double> X[2];
   X[0] = crd[0] + x0;
   X[0].deriv(0) = 1;
   X[0].deriv(1) = 0;
@@ -168,19 +168,19 @@ void anamet2D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
   const double r0 = 0.5;
 
-  SANS::SurrealS<2,double> r = sqrt(X[0]*X[0] + X[1]*X[1]) - r0;
+  Metris::SurrealS<2,double> r = sqrt(X[0]*X[0] + X[1]*X[1]) - r0;
 
   double hy_min = 0.001;
   double hy_max = 0.1;
   double hx = scale*0.5;
-  SANS::SurrealS<2,double> hy = scale*(std::abs(r)*hy_max + (1 - std::abs(r))*hy_min);
+  Metris::SurrealS<2,double> hy = scale*(std::abs(r)*hy_max + (1 - std::abs(r))*hy_min);
 
 
-  SANS::SurrealS<2,double> eigval[2] = {1.0/(hy*hy), 1.0/(hx*hx)};
-  SANS::SurrealS<2,double> eigvec[4];
+  Metris::SurrealS<2,double> eigval[2] = {1.0/(hy*hy), 1.0/(hx*hx)};
+  Metris::SurrealS<2,double> eigvec[4];
 
-  SANS::SurrealS<2,double> y[2] = {X[0] / (std::abs(r) + 1.0e-6), X[1] / (std::abs(r) + 1.0e-6)};
-  SANS::SurrealS<2,double> theta;
+  Metris::SurrealS<2,double> y[2] = {X[0] / (std::abs(r) + 1.0e-6), X[1] / (std::abs(r) + 1.0e-6)};
+  Metris::SurrealS<2,double> theta;
   if(y[0].value() > 0){
     theta = atan(y[1]/y[0]);
   }else{
@@ -197,8 +197,8 @@ void anamet2D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   eigvec[2] = -sin(theta);
   eigvec[3] =  cos(theta);
 
-  SANS::SurrealS<2,double> metS[3];
-  eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
+  Metris::SurrealS<2,double> metS[3];
+  eig2met<2,Metris::SurrealS<2,double>>(eigval,eigvec,metS);
 
   getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 
@@ -228,7 +228,7 @@ void anamet2D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 // circle centered on 0 
 void anamet2D_6([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
   const double pi = 3.141592653589793238462643383279502884;
-  SANS::SurrealS<2,double> X[2];
+  Metris::SurrealS<2,double> X[2];
   X[0] = crd[0] + 0.01;
   X[0].deriv(0) = 1;
   X[0].deriv(1) = 0;
@@ -242,16 +242,16 @@ void anamet2D_6([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double h2_ = scale*0.5;
 
 
-  SANS::SurrealS<2,double> r = sqrt(X[0]*X[0] + X[1]*X[1]) + 0.01;
-  SANS::SurrealS<2,double> y[2] = {X[0] / r, X[1] / r};
+  Metris::SurrealS<2,double> r = sqrt(X[0]*X[0] + X[1]*X[1]) + 0.01;
+  Metris::SurrealS<2,double> y[2] = {X[0] / r, X[1] / r};
 
-  SANS::SurrealS<2,double> h2 = h2_*(1 + 10*r);
+  Metris::SurrealS<2,double> h2 = h2_*(1 + 10*r);
 
-  SANS::SurrealS<2,double> eigval[2] = {1.0/(h1*h1), 1.0/(h2*h2)};
-  //SANS::SurrealS<2,double> eigval[2] = {h1, h2};
-  SANS::SurrealS<2,double> eigvec[4];
+  Metris::SurrealS<2,double> eigval[2] = {1.0/(h1*h1), 1.0/(h2*h2)};
+  //Metris::SurrealS<2,double> eigval[2] = {h1, h2};
+  Metris::SurrealS<2,double> eigvec[4];
 
-  SANS::SurrealS<2,double> theta;
+  Metris::SurrealS<2,double> theta;
   if(y[0].value() > 0){
     theta = atan(y[1]/y[0]);
   }else{
@@ -268,8 +268,8 @@ void anamet2D_6([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   eigvec[2] = -sin(theta);
   eigvec[3] =  cos(theta);
 
-  SANS::SurrealS<2,double> metS[3];
-  eig2met<2,SANS::SurrealS<2,double>>(eigval,eigvec,metS);
+  Metris::SurrealS<2,double> metS[3];
+  eig2met<2,Metris::SurrealS<2,double>>(eigval,eigvec,metS);
 
   getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 }

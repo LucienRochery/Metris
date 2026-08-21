@@ -6,11 +6,11 @@
 #ifndef METRIS_DLA_MATRIXS_MATMUL_NATIVE_H
 #define METRIS_DLA_MATRIXS_MATMUL_NATIVE_H
 
-#include "tools/SANSnumerics.h"     // Real
-#include "tools/minmax.h"
+#include "../../../../tools/SANSnumerics.h"     // Metris::Real
+#include "../../../../tools/minmax.h"
 
-#include "tools/CacheLineSize.h"
-#include "LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
+#include "../../../../tools/CacheLineSize.h"
+#include "../MatrixS_Type.h"
 
 namespace Metris
 {
@@ -20,8 +20,8 @@ namespace DLA
 template<class TL, class TR, class S, class T>
 class MatrixS_MatMul_Native
 {
-  static const int CacheItemsL = MAX( 1, CACHE_LINE_SIZE / sizeof(TL) );
-  static const int CacheItemsR = MAX( 1, CACHE_LINE_SIZE / sizeof(TR) );
+  static const int CacheItemsL = METRIS_MAX( 1, METRIS_CACHE_LINE_SIZE / sizeof(TL) );
+  static const int CacheItemsR = METRIS_MAX( 1, METRIS_CACHE_LINE_SIZE / sizeof(TR) );
 
 public:
 //-----------------------------------------------------------------------------

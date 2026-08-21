@@ -97,9 +97,9 @@ void getexpmet_dsyevq(T* met){
   eig2met<ndim,T>(eigval,eigvec,met);
 }
 template void getexpmet_dsyevq<2,double>(double*);
-template void getexpmet_dsyevq<2,SANS::SurrealS<2,double>>(SANS::SurrealS<2,double>*);
+template void getexpmet_dsyevq<2,Metris::SurrealS<2,double>>(Metris::SurrealS<2,double>*);
 template void getexpmet_dsyevq<3,double>(double*);
-template void getexpmet_dsyevq<3,SANS::SurrealS<3,double>>(SANS::SurrealS<3,double>*);
+template void getexpmet_dsyevq<3,Metris::SurrealS<3,double>>(Metris::SurrealS<3,double>*);
 
 
 template <int ndim, typename T>
@@ -114,14 +114,14 @@ void getexpmet_inp(T* met){
 
 
 template void getlogmet_inp<2,double>(double*);
-template void getlogmet_inp<2,SANS::SurrealS<2,double>>(SANS::SurrealS<2,double>*);
+template void getlogmet_inp<2,Metris::SurrealS<2,double>>(Metris::SurrealS<2,double>*);
 template void getlogmet_inp<3,double>(double*);
-template void getlogmet_inp<3,SANS::SurrealS<3,double>>(SANS::SurrealS<3,double>*);
+template void getlogmet_inp<3,Metris::SurrealS<3,double>>(Metris::SurrealS<3,double>*);
 
 template void getexpmet_inp<2,double>(double*);
-template void getexpmet_inp<2,SANS::SurrealS<2,double>>(SANS::SurrealS<2,double>*);
+template void getexpmet_inp<2,Metris::SurrealS<2,double>>(Metris::SurrealS<2,double>*);
 template void getexpmet_inp<3,double>(double*);
-template void getexpmet_inp<3,SANS::SurrealS<3,double>>(SANS::SurrealS<3,double>*);
+template void getexpmet_inp<3,Metris::SurrealS<3,double>>(Metris::SurrealS<3,double>*);
 
 
 template<>

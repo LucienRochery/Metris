@@ -53,17 +53,17 @@ void anamet3D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double y0 = 0;
   double z0 = 0;
 
-  SANS::SurrealS<3,double> x = crd[0] - x0;
+  Metris::SurrealS<3,double> x = crd[0] - x0;
   x.deriv(0) = 1;
   x.deriv(1) = 0;
   x.deriv(2) = 0;
 
-  SANS::SurrealS<3,double> y = crd[1] - y0;
+  Metris::SurrealS<3,double> y = crd[1] - y0;
   y.deriv(0) = 0;
   y.deriv(1) = 1;
   y.deriv(2) = 0;
 
-  SANS::SurrealS<3,double> z = crd[2] - z0;
+  Metris::SurrealS<3,double> z = crd[2] - z0;
   z.deriv(0) = 0;
   z.deriv(1) = 0;
   z.deriv(2) = 1;
@@ -71,19 +71,19 @@ void anamet3D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
   double hmin = 0.1;
   double gamma = 2;
-  SANS::SurrealS<3,double> hh = hmin + gamma*std::abs(z);
+  Metris::SurrealS<3,double> hh = hmin + gamma*std::abs(z);
   hh *= scale;
 
-  SANS::SurrealS<3,double> eigval[3] = {1.0/(scale*scale), 1.0/(scale*scale), 1.0/(hh*hh)};
+  Metris::SurrealS<3,double> eigval[3] = {1.0/(scale*scale), 1.0/(scale*scale), 1.0/(hh*hh)};
 
-  SANS::SurrealS<3,double> eigvec[3][3];
+  Metris::SurrealS<3,double> eigvec[3][3];
 
   double pi = 3.141592653589793;
 
-//  SANS::SurrealS<3,double> phi[3] = {x, y, (10*z - cos(2*pi*x)*cos(2*pi*y))/(100.0 + 8.0*pi*pi)};
-  SANS::SurrealS<3,double> d1phi3 = 2*pi*sin(2*pi*x)*cos(2*pi*y)/(100.0 + 8.0*pi*pi);
-  SANS::SurrealS<3,double> d2phi3 = 2*pi*cos(2*pi*x)*sin(2*pi*y)/(100.0 + 8.0*pi*pi);
-  SANS::SurrealS<3,double> d3phi3 = 10.0/(100.0 + 8.0*pi*pi);
+//  Metris::SurrealS<3,double> phi[3] = {x, y, (10*z - cos(2*pi*x)*cos(2*pi*y))/(100.0 + 8.0*pi*pi)};
+  Metris::SurrealS<3,double> d1phi3 = 2*pi*sin(2*pi*x)*cos(2*pi*y)/(100.0 + 8.0*pi*pi);
+  Metris::SurrealS<3,double> d2phi3 = 2*pi*cos(2*pi*x)*sin(2*pi*y)/(100.0 + 8.0*pi*pi);
+  Metris::SurrealS<3,double> d3phi3 = 10.0/(100.0 + 8.0*pi*pi);
 
   eigvec[0][0] = 1;
   eigvec[0][1] = 0; 
@@ -93,7 +93,7 @@ void anamet3D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   eigvec[1][1] = 1; 
   eigvec[1][2] = 0; 
 
-  SANS::SurrealS<3,double> nrm = d1phi3*d1phi3
+  Metris::SurrealS<3,double> nrm = d1phi3*d1phi3
                                + d2phi3*d2phi3
                                + d3phi3*d3phi3;
   
@@ -120,8 +120,8 @@ void anamet3D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   //}
   //}
 
-  SANS::SurrealS<3,double> metS[6];
-  eig2met<3,SANS::SurrealS<3,double>>(eigval,eigvec[0],metS);
+  Metris::SurrealS<3,double> metS[6];
+  eig2met<3,Metris::SurrealS<3,double>>(eigval,eigvec[0],metS);
 
   getmet_SurS2dbl<3>(metS,met,idif1 > 0 ? dmet : NULL);
 
@@ -139,20 +139,20 @@ void anamet3D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
 
 
-//  SANS::SurrealS<3,double> r = sqrt( x*x + y*y + z*z );
+//  Metris::SurrealS<3,double> r = sqrt( x*x + y*y + z*z );
 //
-//  SANS::SurrealS<3,double> tmp = y / r;
+//  Metris::SurrealS<3,double> tmp = y / r;
 //
-//  SANS::SurrealS<3,double> theta = acos(tmp);
+//  Metris::SurrealS<3,double> theta = acos(tmp);
 //
 //  tmp = (crd[0] - x0) / sqrt( x*x + y*y );
-//  SANS::SurrealS<3,double> phi = atan(tmp);
+//  Metris::SurrealS<3,double> phi = atan(tmp);
 //  if(y.value() < 0) phi *= -1;
 //
 //  // For x = r sin theta cos phi
 //  //     y = r sin theta sin phi
 //  //     z = r cos theta
-//  SANS::SurrealS<3,double> rot[3][3];
+//  Metris::SurrealS<3,double> rot[3][3];
 //
 //  rot[0][0] = sin(theta)*cos(phi);
 //  rot[0][1] = sin(theta)*sin(phi);
@@ -166,10 +166,10 @@ void anamet3D_2([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 //  rot[2][1] = cos(phi);
 //  rot[2][2] = 0;
 // 
-//  SANS::SurrealS<3,double> eigval[3] = {1, 2, 3};
+//  Metris::SurrealS<3,double> eigval[3] = {1, 2, 3};
 //
-//  SANS::SurrealS<3,double> metS[6];
-//  eig2met<SANS::SurrealS<3,double>>(eigval,rot[0],metS);
+//  Metris::SurrealS<3,double> metS[6];
+//  eig2met<Metris::SurrealS<3,double>>(eigval,rot[0],metS);
 //
 //  for(int jj = 0; jj < 6; jj++){
 //    met[jj] = metS[jj].value();
@@ -197,25 +197,25 @@ void anamet3D_3([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double x0 = -0.6;
   double y0 = -0.6;
 
-  SANS::SurrealS<2,double> x = crd[0] - x0;
+  Metris::SurrealS<2,double> x = crd[0] - x0;
   x.deriv(0) = 1;
   x.deriv(1) = 0;
 
-  SANS::SurrealS<2,double> y = crd[1] - y0;
+  Metris::SurrealS<2,double> y = crd[1] - y0;
   y.deriv(0) = 0;
   y.deriv(1) = 1;
 
-  SANS::SurrealS<2,double> r = sqrt( x*x + y*y );
+  Metris::SurrealS<2,double> r = sqrt( x*x + y*y );
 
-  SANS::SurrealS<2,double> tmp = y / r;
+  Metris::SurrealS<2,double> tmp = y / r;
 
-  SANS::SurrealS<2,double> theta = 2*3.141592653589793238462643383279502884*acos(tmp);
+  Metris::SurrealS<2,double> theta = 2*3.141592653589793238462643383279502884*acos(tmp);
 
 
   // For x = r sin theta cos phi
   //     y = r sin theta sin phi
   //     z = r cos theta
-  SANS::SurrealS<2,double> rot[3][3];
+  Metris::SurrealS<2,double> rot[3][3];
 
   rot[0][0] = cos(theta);
   rot[0][1] = -sin(theta);
@@ -229,10 +229,10 @@ void anamet3D_3([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   rot[2][1] = 0;
   rot[2][2] = 1;
  
-  SANS::SurrealS<2,double> eigval[3] = {1.0/(scale*scale), 2/(scale*scale), 10/(scale*scale)};
+  Metris::SurrealS<2,double> eigval[3] = {1.0/(scale*scale), 2/(scale*scale), 10/(scale*scale)};
 
-  SANS::SurrealS<2,double> metS[6];
-  eig2met<3,SANS::SurrealS<2,double>>(eigval,rot[0],metS);
+  Metris::SurrealS<2,double> metS[6];
+  eig2met<3,Metris::SurrealS<2,double>>(eigval,rot[0],metS);
 
 
   getmet_SurS2dbl<3>(metS,met,idif1 > 0 ? dmet : NULL);
@@ -249,26 +249,26 @@ void anamet3D_4([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double y0 = 0;
   double z0 = 0;
 
-  SANS::SurrealS<3,double> x = crd[0] - x0;
+  Metris::SurrealS<3,double> x = crd[0] - x0;
   x.deriv(0) = 1;
   x.deriv(1) = 0;
   x.deriv(2) = 0;
 
-  SANS::SurrealS<3,double> y = crd[1] - y0;
+  Metris::SurrealS<3,double> y = crd[1] - y0;
   y.deriv(0) = 0;
   y.deriv(1) = 1;
   y.deriv(2) = 0;
 
-  SANS::SurrealS<3,double> z = crd[2] - z0;
+  Metris::SurrealS<3,double> z = crd[2] - z0;
   z.deriv(0) = 0;
   z.deriv(1) = 0;
   z.deriv(2) = 1;
 
-  SANS::SurrealS<3,double> r = 1 + x*x + y*y + z*z;
+  Metris::SurrealS<3,double> r = 1 + x*x + y*y + z*z;
   r *= scale*scale;
 
-  SANS::SurrealS<3,double> metS[6] = {1.0/r, 0, 1.0/r, 0, 0, 1.0/r};
-  // SANS::SurrealS<3,double> metS[6] = {1/(scal*scal), 0, 1/(scal*scal), 0, 0, 1/(scal*scal)};
+  Metris::SurrealS<3,double> metS[6] = {1.0/r, 0, 1.0/r, 0, 0, 1.0/r};
+  // Metris::SurrealS<3,double> metS[6] = {1/(scal*scal), 0, 1/(scal*scal), 0, 0, 1/(scal*scal)};
 
 
   getmet_SurS2dbl<3>(metS,met,idif1 > 0 ? dmet : NULL);
@@ -294,7 +294,7 @@ void anamet3D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
   const double h0 = 0.001;
 
-  SANS::SurrealS<3,double> z = crd[2] - h0;
+  Metris::SurrealS<3,double> z = crd[2] - h0;
   z.deriv(0) = 0;
   z.deriv(1) = 0;
   z.deriv(2) = 1;
@@ -303,7 +303,7 @@ void anamet3D_5([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double hy = 0.1*scale;
   double hz = 0.1*scale;
 
-  SANS::SurrealS<3,double> metS[6] = {1.0/(hx*hx), 0, 1.0/(hy*hy), 0, 0, 1.0/(hz*hz)};
+  Metris::SurrealS<3,double> metS[6] = {1.0/(hx*hx), 0, 1.0/(hy*hy), 0, 0, 1.0/(hz*hz)};
 
   getmet_SurS2dbl<3>(metS,met,idif1 > 0 ? dmet : NULL);
 
@@ -328,16 +328,16 @@ void anamet3D_6([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
   const double h0 = 0.001;
 
-  SANS::SurrealS<3,double> z = crd[2] - h0;
+  Metris::SurrealS<3,double> z = crd[2] - h0;
   z.deriv(0) = 0;
   z.deriv(1) = 0;
   z.deriv(2) = 1;
 
   double hx = 0.1*scale;
   double hy = 0.1*scale;
-  SANS::SurrealS<3,double> hz = (h0 + 2*(0.1-h0)*std::abs(z-0.5))*scale;
+  Metris::SurrealS<3,double> hz = (h0 + 2*(0.1-h0)*std::abs(z-0.5))*scale;
 
-  SANS::SurrealS<3,double> metS[6] = {1.0/(hx*hx), 0, 1.0/(hy*hy), 0, 0, 1.0/(hz*hz)};
+  Metris::SurrealS<3,double> metS[6] = {1.0/(hx*hx), 0, 1.0/(hy*hy), 0, 0, 1.0/(hz*hz)};
 
   getmet_SurS2dbl<3>(metS,met,idif1 > 0 ? dmet : NULL);
 
@@ -368,30 +368,30 @@ void anamet3D_7([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double dy = ctx == NULL ? 0 : ctx->dy;
   double dz = ctx == NULL ? 0 : ctx->dz;
 
-  SANS::SurrealS<3,double> x = std::abs(crd[0] + dx);
+  Metris::SurrealS<3,double> x = std::abs(crd[0] + dx);
   x.deriv(0) = crd[0] + dx > 0 ? 1 : -1;
   x.deriv(1) = 0;
   x.deriv(2) = 0;
 
-  SANS::SurrealS<3,double> y = std::abs(crd[1] + dy);
+  Metris::SurrealS<3,double> y = std::abs(crd[1] + dy);
   y.deriv(0) = 0;
   y.deriv(1) = crd[1] + dy > 0 ? 1 : -1;
   y.deriv(2) = 0;
 
-  SANS::SurrealS<3,double> z = std::abs(crd[2] + dz);
+  Metris::SurrealS<3,double> z = std::abs(crd[2] + dz);
   z.deriv(0) = 0;
   z.deriv(1) = 0;
   z.deriv(2) = crd[2] + dz > 0 ? 1 : -1;
 
-  SANS::SurrealS<3,double> r = sqrt(x*x + y*y);
-  SANS::SurrealS<3,double> t = atan2(y,x);
+  Metris::SurrealS<3,double> r = sqrt(x*x + y*y);
+  Metris::SurrealS<3,double> t = atan2(y,x);
 
   double hz = 0.1*scale;
   double ht = 0.1*scale;
   const double h0 = 0.001;
-  SANS::SurrealS<3,double> hr = (h0 + 2*(0.1-h0)*std::abs(r-0.5))*scale;
+  Metris::SurrealS<3,double> hr = (h0 + 2*(0.1-h0)*std::abs(r-0.5))*scale;
 
-  SANS::SurrealS<3,double> eigval[3], eigvec[3][3];
+  Metris::SurrealS<3,double> eigval[3], eigvec[3][3];
   eigval[0] = 1.0/(hr*hr);
   eigval[1] = 1.0/(ht*ht);
   eigval[2] = 1.0/(hz*hz);
@@ -409,8 +409,8 @@ void anamet3D_7([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   eigvec[2][1] = 0;
   eigvec[2][2] = 1;
 
-  SANS::SurrealS<3,double> metS[6];
-  eig2met<3,SANS::SurrealS<3,double>>(eigval, eigvec[0], metS);
+  Metris::SurrealS<3,double> metS[6];
+  eig2met<3,Metris::SurrealS<3,double>>(eigval, eigvec[0], metS);
 
   getmet_SurS2dbl<3>(metS,met,idif1 > 0 ? dmet : NULL);
 }
@@ -429,34 +429,34 @@ void anamet3D_8([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   double dy = ctx == NULL ? 0 : ctx->dy;
   double dz = ctx == NULL ? 0 : ctx->dz;
   
-  SANS::SurrealS<3,double> x = std::abs(crd[0] + dx);
+  Metris::SurrealS<3,double> x = std::abs(crd[0] + dx);
   x.deriv(0) = crd[0] + dx > 0 ? 1 : -1;
   x.deriv(1) = 0;
   x.deriv(2) = 0;
 
-  SANS::SurrealS<3,double> y = std::abs(crd[1] + dy);
+  Metris::SurrealS<3,double> y = std::abs(crd[1] + dy);
   y.deriv(0) = 0;
   y.deriv(1) = crd[1] + dy > 0 ? 1 : -1;
   y.deriv(2) = 0;
 
-  SANS::SurrealS<3,double> z = std::abs(crd[2] + dz);
+  Metris::SurrealS<3,double> z = std::abs(crd[2] + dz);
   z.deriv(0) = 0;
   z.deriv(1) = 0;
   z.deriv(2) = crd[2] + dz > 0 ? 1 : -1;
 
-  SANS::SurrealS<3,double> r = sqrt(x*x + y*y);
-  SANS::SurrealS<3,double> t = atan2(y,x);
+  Metris::SurrealS<3,double> r = sqrt(x*x + y*y);
+  Metris::SurrealS<3,double> t = atan2(y,x);
 
   double hz = 0.1*scale;
-  SANS::SurrealS<3,double> d = (0.6 - r)*10;
-  SANS::SurrealS<3,double> ht;
+  Metris::SurrealS<3,double> d = (0.6 - r)*10;
+  Metris::SurrealS<3,double> ht;
   if(d < 0) ht = 0.1;
   else      ht = d / 40 + (1 - d)*0.1;
   ht *= scale;
   const double h0 = 0.001;
-  SANS::SurrealS<3,double> hr = (h0 + 2*(0.1-h0)*std::abs(r-0.5))*scale;
+  Metris::SurrealS<3,double> hr = (h0 + 2*(0.1-h0)*std::abs(r-0.5))*scale;
 
-  SANS::SurrealS<3,double> eigval[3], eigvec[3][3];
+  Metris::SurrealS<3,double> eigval[3], eigvec[3][3];
   eigval[0] = 1.0/(hr*hr);
   eigval[1] = 1.0/(ht*ht);
   eigval[2] = 1.0/(hz*hz);
@@ -474,8 +474,8 @@ void anamet3D_8([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   eigvec[2][1] = 0;
   eigvec[2][2] = 1;
 
-  SANS::SurrealS<3,double> metS[6];
-  eig2met<3,SANS::SurrealS<3,double>>(eigval, eigvec[0], metS);
+  Metris::SurrealS<3,double> metS[6];
+  eig2met<3,Metris::SurrealS<3,double>>(eigval, eigvec[0], metS);
 
   getmet_SurS2dbl<3>(metS,met,idif1 > 0 ? dmet : NULL);
 }
@@ -484,7 +484,7 @@ void anamet3D_8([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 // Boundary-layer along x centered at 0
 void anamet3D_9([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
-  SANS::SurrealS<3,double> X[3];
+  Metris::SurrealS<3,double> X[3];
   const double x0 = 0.0;
   X[0] = std::abs(crd[0] - x0);
   X[0].deriv(0) = crd[0] >= x0 ? 1 : -1;
@@ -504,13 +504,13 @@ void anamet3D_9([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 
   double hx_min = 0.001;
   double hx_max = 0.1;
-  SANS::SurrealS<3,double> hx = scale*(X[0]*(hx_max - hx_min) + hx_min);
+  Metris::SurrealS<3,double> hx = scale*(X[0]*(hx_max - hx_min) + hx_min);
   double hy = scale*0.1;
   double hz = scale*0.1;
 
 
-  SANS::SurrealS<3,double> eigval[3] = {1.0/(hx*hx), 1.0/(hy*hy), 1.0/(hz*hz)};
-  SANS::SurrealS<3,double> eigvec[9];
+  Metris::SurrealS<3,double> eigval[3] = {1.0/(hx*hx), 1.0/(hy*hy), 1.0/(hz*hz)};
+  Metris::SurrealS<3,double> eigvec[9];
 
   eigvec[0] = 1.0;
   eigvec[1] = 0.0; 
@@ -524,8 +524,8 @@ void anamet3D_9([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   eigvec[7] = 0.0;
   eigvec[8] = 1.0;
 
-  SANS::SurrealS<3,double> metS[6];
-  eig2met<3,SANS::SurrealS<3,double>>(eigval,eigvec,metS);
+  Metris::SurrealS<3,double> metS[6];
+  eig2met<3,Metris::SurrealS<3,double>>(eigval,eigvec,metS);
   getmet_SurS2dbl<3>(metS,met,idif1 > 0 ? dmet : NULL);
 
 }
@@ -534,7 +534,7 @@ void anamet3D_9([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 // Merge with previous once (if) ctx is implemented.
 void anamet3D_10([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__ crd, double scale, int idif1, double *met, double *dmet){
 
-  SANS::SurrealS<3,double> X[3];
+  Metris::SurrealS<3,double> X[3];
   const double x0 = 0.5;
   X[0] = std::abs(crd[0] - x0);
   X[0].deriv(0) = crd[0] >= x0 ? 1 : -1;
@@ -554,13 +554,13 @@ void anamet3D_10([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict_
 
   double hx_min = 0.001;
   double hx_max = 0.1;
-  SANS::SurrealS<3,double> hx = scale*(X[0]*(hx_max - hx_min) + hx_min);
+  Metris::SurrealS<3,double> hx = scale*(X[0]*(hx_max - hx_min) + hx_min);
   double hy = scale*0.1;
   double hz = scale*0.1;
 
 
-  SANS::SurrealS<3,double> eigval[3] = {1.0/(hx*hx), 1.0/(hy*hy), 1.0/(hz*hz)};
-  SANS::SurrealS<3,double> eigvec[9];
+  Metris::SurrealS<3,double> eigval[3] = {1.0/(hx*hx), 1.0/(hy*hy), 1.0/(hz*hz)};
+  Metris::SurrealS<3,double> eigvec[9];
 
   eigvec[0] = 1.0;
   eigvec[1] = 0.0; 
@@ -574,8 +574,8 @@ void anamet3D_10([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict_
   eigvec[7] = 0.0;
   eigvec[8] = 1.0;
 
-  SANS::SurrealS<3,double> metS[6];
-  eig2met<3,SANS::SurrealS<3,double>>(eigval,eigvec,metS);
+  Metris::SurrealS<3,double> metS[6];
+  eig2met<3,Metris::SurrealS<3,double>>(eigval,eigvec,metS);
   getmet_SurS2dbl<3>(metS,met,idif1 > 0 ? dmet : NULL);
 
 }

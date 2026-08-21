@@ -15,12 +15,12 @@
 #include <iostream>
 #include <vector>
 
-#include "SANS/tools/SANSTraitsPOD.h"
-#include "SANS/tools/SANSException.h"
-#include "SANS/tools/SANSTraitsInitListAssign.h"
+#include "../../../tools/SANSTraitsPOD.h"
+#include "../../../tools/SANSException.h"
+#include "../../../tools/SANSTraitsInitListAssign.h"
 
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/VectorS_Mul.h"
+#include "MatrixS.h"
+#include "VectorS_Mul.h"
 
 #ifdef __INTEL_COMPILER
 namespace Metris
@@ -37,12 +37,12 @@ class VectorS;
 }
 
 //Create a specialization so to allow for the syntax
-//   VectorD< VectorS<2,Real> >
+//   VectorD< VectorS<2,Metris::Real> >
 //      v = { {3,3}, {3,2} };
 //
 // This is completely unnessary if the intel compiler could use templated initializer_list functions....
 //
-namespace SANS
+namespace Metris
 {
 template<int M, class T>
 struct initializer_list_assign< Metris::DLA::VectorS< M, T > >
@@ -82,11 +82,11 @@ public:
   VectorS& operator=(VectorS const&) = default;
   VectorS& operator=(VectorS &&) = default;
 
-  VectorS( const T& s );   // missing 'explicit' allows VectorS<M,Real> q = 0
+  VectorS( const T& s );   // missing 'explicit' allows VectorS<M,Metris::Real> q = 0
   VectorS( const T s[], int nsize );
   VectorS( const std::initializer_list<T>& s ) { operator=(s); }
   VectorS( const std::vector<T>& s ) { operator=(s); }
-  VectorS( const typename SANS::POD<T>::type& s );
+  VectorS( const typename Metris::POD<T>::type& s );
 
   //This allows a vector to be assigned an expression as it is constructed, i.e.
   //VectorS<M,T> C = A + B;
@@ -101,7 +101,7 @@ public:
 
   // assignment
   VectorS& operator=( const T& s );
-  VectorS& operator=( const typename SANS::POD<T>::type& s );
+  VectorS& operator=( const typename Metris::POD<T>::type& s );
   VectorS& operator=( const std::initializer_list<T>& s );
   VectorS& operator=( const std::vector<T>& s );
   template<class T2>
@@ -134,15 +134,15 @@ template <int M, class T>
 inline
 VectorS<M,T>::VectorS( const T s[], int nsize )
 {
-  SANS_ASSERT(nsize == M);
+  METRIS_SUPPORT_ASSERT(nsize == M);
   for (int n = 0; n < M; n++)
     data[n] = s[n];
 }
 
-// needed for VectorS<M, Surreal<M> >(Real)
+// needed for VectorS<M, Surreal<M> >(Metris::Real)
 template <int M, class T>
 inline
-VectorS<M,T>::VectorS( const typename SANS::POD<T>::type& s )
+VectorS<M,T>::VectorS( const typename Metris::POD<T>::type& s )
 {
   for (int i = 0; i < M; i++)
     data[i] = s;
@@ -162,7 +162,7 @@ VectorS<M,T>::operator=( const T& s )
 // needed for  VectorS<M, Surreal> q; q = 0;
 template <int M, class T>
 inline VectorS<M,T>&
-VectorS<M,T>::operator=( const typename SANS::POD<T>::type& s )
+VectorS<M,T>::operator=( const typename Metris::POD<T>::type& s )
 {
   for (int i = 0; i < M; i++)
     data[i] = s;
@@ -173,7 +173,7 @@ template <int M, class T>
 inline VectorS<M,T>&
 VectorS<M,T>::operator=( const std::initializer_list<T>& s )
 {
-  SANS_ASSERT_MSG(s.size() == (std::size_t)M, "s.size() = %d, M = %d", s.size(), M);
+  METRIS_SUPPORT_ASSERT_MSG(s.size() == (std::size_t)M, "s.size() = %d, M = %d", s.size(), M);
   int n = 0;
   auto row = s.begin();
   for (std::size_t i = 0; i < M; ++i, row++)
@@ -186,7 +186,7 @@ template <int M, class T>
 inline VectorS<M,T>&
 VectorS<M,T>::operator=( const std::vector<T>& s )
 {
-  SANS_ASSERT_MSG(s.size() == (std::size_t)M, "s.size() = %d, M = %d", s.size(), M);
+  METRIS_SUPPORT_ASSERT_MSG(s.size() == (std::size_t)M, "s.size() = %d, M = %d", s.size(), M);
   int n = 0;
   auto row = s.begin();
   for (std::size_t i = 0; i < M; ++i, row++)
@@ -200,7 +200,7 @@ template<class T2>
 inline VectorS<M,T>&
 VectorS<M,T>::operator=( const std::initializer_list<T2>& s )
 {
-  SANS_ASSERT_MSG(s.size() == (std::size_t)M, "s.size() = %d, M = %d", s.size(), M);
+  METRIS_SUPPORT_ASSERT_MSG(s.size() == (std::size_t)M, "s.size() = %d, M = %d", s.size(), M);
   int n = 0;
   auto row = s.begin();
   for (std::size_t i = 0; i < M; ++i, row++)
@@ -245,7 +245,7 @@ template <int M, class T>
 inline VectorS<M,T>&
 VectorS<M,T>::operator+=( const std::initializer_list<T>& s )
 {
-  SANS_ASSERT_MSG(s.size() == (std::size_t)M, "s.size() = %d, M = %d", s.size(), M);
+  METRIS_SUPPORT_ASSERT_MSG(s.size() == (std::size_t)M, "s.size() = %d, M = %d", s.size(), M);
   int n = 0;
   auto row = s.begin();
   for (std::size_t i = 0; i < M; ++i, row++)

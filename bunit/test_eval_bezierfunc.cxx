@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(test_eval_bezierfunc)
               double feva1 = eval_bezierfunc<ideg, tdim>(ordent[ideg][ifun], bar1, 0, NULL);
               double diff_disc = (feva1 - feval) / dx;
               double err0  = abs(diff_disc - dfun[ivar]);
-              minerr = MIN(minerr,err0);
+              minerr = METRIS_MIN(minerr,err0);
               //printf("debug dx = %e err %e fun ref %e new %e dref %e ddf %e\n",dx,err0,feval,feva1,
               //  dfun[ivar],diff_disc);
               errdiff[idx] = err0;

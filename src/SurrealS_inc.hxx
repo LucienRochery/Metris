@@ -9,8 +9,8 @@
 #include "SANS/Surreal/SurrealS.h"
 
 
-typedef SANS::SurrealS<2,double> SurrealS2;
-typedef SANS::SurrealS<3,double> SurrealS3;
+typedef Metris::SurrealS<2,double> SurrealS2;
+typedef Metris::SurrealS<3,double> SurrealS3;
 
 
 

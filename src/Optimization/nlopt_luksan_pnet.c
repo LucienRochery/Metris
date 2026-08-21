@@ -390,11 +390,11 @@ L11040:
     }
     rho1 = luksan_mxudot__(nf, &gn[1], &gn[1], &ix[1], &kbf);
     gnorm = sqrt(rho1);
-/* Computing MIN */
+/* Computing METRIS_MIN */
     d__1 = eps, d__2 = sqrt(gnorm);
     par = MIN2(d__1,d__2);
     if (par > .01) {
-/* Computing MIN */
+/* Computing METRIS_MIN */
 	d__1 = par, d__2 = 1. / (double) stat_1->nit;
 	par = MIN2(d__1,d__2);
     }
@@ -539,7 +539,7 @@ L12560:
 
 	    nred = 0;
 	    rmin = alf1 * gnorm / snorm;
-/* Computing MIN */
+/* Computing METRIS_MIN */
 	    d__1 = alf2 * gnorm / snorm, d__2 = *xmax / snorm;
 	    rmax = MIN2(d__1,d__2);
 	}
@@ -589,7 +589,7 @@ L11064:
 	    p, &po, &dmax__, &kbf, &kd, &ld, &iters);
     xstop = nlopt_stop_dx(stop, &xcur[1], &xo[1]);
     if (*mos2 > 1) {
-/* Computing MIN */
+/* Computing METRIS_MIN */
 	i__1 = mx + 1;
 	mx = MIN2(i__1,*mf);
 	luksan_mxdrsu__(nf, &mx, &xm[1], &gm[1], &u1[1]);

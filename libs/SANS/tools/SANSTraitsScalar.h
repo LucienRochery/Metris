@@ -3,14 +3,14 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef METRIS_SANSTRAITSSCALAR_H
-#define METRIS_SANSTRAITSSCALAR_H
+#ifndef METRIS_TRAITS_SCALAR_H
+#define METRIS_TRAITS_SCALAR_H
 
 #include "../LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
 //#include "types_scalar.hxx"
 
 
-namespace SANS
+namespace Metris
 {
 
 //Used to extract the scalar associated with a type. May not be POD, i.e. could be Surreal
@@ -25,6 +25,6 @@ struct Scalar { typedef T type; };
 //  std::is_same<T,float4>::value == true || std::is_same<T,float8>::value == true;
 //};
 
-}  // namespace SANS
+}  // namespace Metris
 
-#endif  // METRIS_SANSTRAITSSCALAR_H
+#endif  // METRIS_TRAITS_SCALAR_H

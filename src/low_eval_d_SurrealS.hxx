@@ -22,9 +22,9 @@ template <typename T, int szfld, int tdim, int ideg,  int nvar>
 void eval_d_SurrealS0(const T& __restrict__  rfld,   
                       FEBasis ibasis, DifVar idif1, DifVar idif2, 
                       const double * __restrict__  bary, 
-                      Metris::DLA::VectorS<     szfld,SANS::SurrealS<nvar,double>> *eval,
-                      Metris::DLA::MatrixS<tdim,szfld,SANS::SurrealS<nvar,double>> *jmat,
-                      Metris::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat){
+                      Metris::DLA::VectorS<     szfld,Metris::SurrealS<nvar,double>> *eval,
+                      Metris::DLA::MatrixS<tdim,szfld,Metris::SurrealS<nvar,double>> *jmat,
+                      Metris::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,Metris::SurrealS<nvar,double>> *hmat){
   if constexpr (ideg == 1){
     
     for(int icmp = 0; icmp < szfld; icmp++){
@@ -70,12 +70,12 @@ void eval_d_SurrealS0(const T& __restrict__  rfld,
 
 
 template <int szfld, int tdim, int ideg,  int nvar>
-void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,   
+void eval_d_SurrealS0_simple(MeshArray2D<Metris::SurrealS<nvar,double>> &rfld,
                              FEBasis ibasis, DifVar idif1, DifVar idif2, 
                              const double * __restrict__  bary, 
-                             Metris::DLA::VectorS<     szfld,SANS::SurrealS<nvar,double>> *eval,
-                             Metris::DLA::MatrixS<tdim,szfld,SANS::SurrealS<nvar,double>> *jmat,
-                             Metris::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat){
+                             Metris::DLA::VectorS<     szfld,Metris::SurrealS<nvar,double>> *eval,
+                             Metris::DLA::MatrixS<tdim,szfld,Metris::SurrealS<nvar,double>> *jmat,
+                             Metris::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,Metris::SurrealS<nvar,double>> *hmat){
   //printf("Debug surreal0 bary = {} {} {} {} field:\n",bary[0]
   //  ,bary[1],bary[2],bary[3]);
   //std::cout<<"0: "<<rfld[boost::hana::int_c<0>][0]<<" "<<rfld[boost::hana::int_c<0>][1]<<" "
@@ -147,9 +147,9 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
 
   if(ibasis == FEBasis::Bezier){
     if constexpr(tdim == 2){
-      eval2_d_bezier<MeshArray2D<SANS::SurrealS<nvar,double>>,szfld,ideg,nvar>(rfld, idif1, idif2, bary, eval, jmat, hmat);
+      eval2_d_bezier<MeshArray2D<Metris::SurrealS<nvar,double>>,szfld,ideg,nvar>(rfld, idif1, idif2, bary, eval, jmat, hmat);
     }else{
-      eval3_d_bezier<MeshArray2D<SANS::SurrealS<nvar,double>>,szfld,ideg,nvar>(rfld, idif1, idif2, bary, eval, jmat, hmat);
+      eval3_d_bezier<MeshArray2D<Metris::SurrealS<nvar,double>>,szfld,ideg,nvar>(rfld, idif1, idif2, bary, eval, jmat, hmat);
     }
   }else{
     METRIS_THROW_MSG("TODO: Implement eval3_d_LAGRANGE");
@@ -163,7 +163,7 @@ void eval_d_SurrealS0_simple(MeshArray2D<SANS::SurrealS<nvar,double>> &rfld,
 
 
 
-// SANS::SurrealS-based version can only handle Bézier for now. 
+// Metris::SurrealS-based version can only handle Bézier for now.
 // Slower in all cases except P2 + Jacobian. 
 template <int szfld, int tdim, int ideg, int ivar, int nvar = szfld>
 void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,  
@@ -189,11 +189,11 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
 
   auto rfld_0 = hana::replicate<hana::tuple_tag>((const double *) 1, hana::size_c<nrfld>);
 
-  auto rfld_1 = to_std_tuple(replace_at_c<ivar>(rfld_0,(SANS::SurrealS<nvar,double>*) 0));
+  auto rfld_1 = to_std_tuple(replace_at_c<ivar>(rfld_0,(Metris::SurrealS<nvar,double>*) 0));
   //// Store non-dof rfld entries
   //double rmem[szfld*(nrfld-1)];
-  // Store the dof as SANS::SurrealS
-  SANS::SurrealS<nvar,double> smem[szfld];
+  // Store the dof as Metris::SurrealS
+  Metris::SurrealS<nvar,double> smem[szfld];
 
   if(dfld == NULL){
     METRIS_ASSERT(nvar == szfld);
@@ -225,9 +225,9 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
   tuple_wrapper w_op(rfld_1);
 
   // Populate w_op tuple with appropriate types. 
-  // The idea is to get something like a tuple<double*, SANS::SurrealS*, double*, double*...>
-  // Storing, for the double*'s, the non-dof rfld entries and, for the one SANS::SurrealS*, 
-  // the DoF SANS::SurrealS array. 
+  // The idea is to get something like a tuple<double*, Metris::SurrealS*, double*, double*...>
+  // Storing, for the double*'s, the non-dof rfld entries and, for the one Metris::SurrealS*,
+  // the DoF Metris::SurrealS array.
   //imem = 0;
   hana::while_(hana::less.than(hana::int_c<nrfld>), boost::hana::int_c<0>, [&](auto i_c){
     constexpr int i = i_c;
@@ -239,14 +239,14 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
 //      imem++;
     }
   return i_c+boost::hana::int_c<1>;});  
-//  SANS::SurrealS<nvar,double> seval[szfld];
+//  Metris::SurrealS<nvar,double> seval[szfld];
   constexpr int nnsym = (tdim*(tdim+1))/2;
 
-  Metris::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>> seval;
-  Metris::DLA::MatrixS<tdim ,szfld,SANS::SurrealS<nvar,double>> sjmat;
-//  SANS::SurrealS<nvar,double> sjmat[tdim3*szfld];
-  Metris::DLA::MatrixS<nnsym,szfld,SANS::SurrealS<nvar,double>> shmat;
-//  SANS::SurrealS<nvar,double> shmat[sdim3*szfld];
+  Metris::DLA::VectorS<      szfld,Metris::SurrealS<nvar,double>> seval;
+  Metris::DLA::MatrixS<tdim ,szfld,Metris::SurrealS<nvar,double>> sjmat;
+//  Metris::SurrealS<nvar,double> sjmat[tdim3*szfld];
+  Metris::DLA::MatrixS<nnsym,szfld,Metris::SurrealS<nvar,double>> shmat;
+//  Metris::SurrealS<nvar,double> shmat[sdim3*szfld];
 
 
   //hana::while_(hana::less.than(hana::int_c<nrfld>), boost::hana::int_c<0>, [&](auto i_c){
@@ -293,7 +293,7 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
 
 
 
-// SANS::SurrealS-based version can only handle Bézier for now. 
+// Metris::SurrealS-based version can only handle Bézier for now.
 // Slower in all cases except P2 + Jacobian. 
 template <int szfld, int tdim, int ideg, int nvar>
 void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,  
@@ -301,9 +301,9 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
                      FEBasis ibasis, DifVar idif1, DifVar idif2, 
                      const double * __restrict__ bary,
                      int ivar_, 
-                     Metris::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>>* eval,
-                     Metris::DLA::MatrixS<tdim ,szfld,SANS::SurrealS<nvar,double>>* jmat,
-                     Metris::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>>* hmat,
+                     Metris::DLA::VectorS<      szfld,Metris::SurrealS<nvar,double>>* eval,
+                     Metris::DLA::MatrixS<tdim ,szfld,Metris::SurrealS<nvar,double>>* jmat,
+                     Metris::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,Metris::SurrealS<nvar,double>>* hmat,
                      const Metris::DLA::MatrixS<szfld,nvar,double>* dfld = NULL){
 
 
@@ -318,9 +318,9 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
 
   CT_FOR0_EXC(0, nrfld, ivar){if(ivar == ivar_){
 
-    auto rfld_1 = to_std_tuple(replace_at_c<ivar>(rfld_0,(SANS::SurrealS<nvar,double>*) 0));
-    // Store the dof as SANS::SurrealS
-    SANS::SurrealS<nvar,double> smem[szfld];
+    auto rfld_1 = to_std_tuple(replace_at_c<ivar>(rfld_0,(Metris::SurrealS<nvar,double>*) 0));
+    // Store the dof as Metris::SurrealS
+    Metris::SurrealS<nvar,double> smem[szfld];
 
     if(dfld == NULL){
       METRIS_ASSERT(nvar == szfld);
@@ -346,9 +346,9 @@ void eval_d_SurrealS(const dblAr2 & __restrict__ rfld,
     tuple_wrapper w_op(rfld_1);
 
     // Populate w_op tuple with appropriate types. 
-    // The idea is to get something like a tuple<double*, SANS::SurrealS*, double*, double*...>
-    // Storing, for the double*'s, the non-dof rfld entries and, for the one SANS::SurrealS*, 
-    // the DoF SANS::SurrealS array. 
+    // The idea is to get something like a tuple<double*, Metris::SurrealS*, double*, double*...>
+    // Storing, for the double*'s, the non-dof rfld entries and, for the one Metris::SurrealS*,
+    // the DoF Metris::SurrealS array.
     // Replace c_ii by ii in this loop to bathe in compiler errors
     CT_FOR0_EXC(0, nrfld, ii){
       if constexpr(ii == ivar){
@@ -393,11 +393,11 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
 
   auto rfld_0 = hana::replicate<hana::tuple_tag>((const double *) 1, hana::size_c<nrfld>);
 
-  auto rfld_1 = to_std_tuple(replace_at_c<ivar>(rfld_0,(SANS::SurrealS<nvar,double>*) 0));
+  auto rfld_1 = to_std_tuple(replace_at_c<ivar>(rfld_0,(Metris::SurrealS<nvar,double>*) 0));
   // Store non-dof rfld entries
 //  double rmem[szfld*(nrfld-1)];
-  // Store the dof as SANS::SurrealS
-  SANS::SurrealS<nvar,double> smem[szfld];
+  // Store the dof as Metris::SurrealS
+  Metris::SurrealS<nvar,double> smem[szfld];
 
   if(dfld == NULL){
     METRIS_ASSERT(nvar == 1);
@@ -427,9 +427,9 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
   tuple_wrapper w_op(rfld_1);
 
   // Populate w_op tuple with appropriate types. 
-  // The idea is to get something like a tuple<double*, SANS::SurrealS*, double*, double*...>
-  // Storing, for the double*'s, the non-dof rfld entries and, for the one SANS::SurrealS*, 
-  // the DoF SANS::SurrealS array. 
+  // The idea is to get something like a tuple<double*, Metris::SurrealS*, double*, double*...>
+  // Storing, for the double*'s, the non-dof rfld entries and, for the one Metris::SurrealS*,
+  // the DoF Metris::SurrealS array.
   //imem = 0;
   hana::while_(hana::less.than(hana::int_c<nrfld>), boost::hana::int_c<0>, [&](auto i_c){
     constexpr int i = i_c;
@@ -441,14 +441,14 @@ void eval_d_SurrealS_bcast(const dblAr2 & __restrict__ rfld,
 //      imem++;
     }
   return i_c+boost::hana::int_c<1>;});  
-//  SANS::SurrealS<nvar,double> seval[szfld];
+//  Metris::SurrealS<nvar,double> seval[szfld];
   constexpr int nnsym = (tdim*(tdim+1))/2;
 
-  Metris::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>> seval;
-  Metris::DLA::MatrixS<tdim ,szfld,SANS::SurrealS<nvar,double>> sjmat;
-//  SANS::SurrealS<nvar,double> sjmat[tdim3*szfld];
-  Metris::DLA::MatrixS<nnsym,szfld,SANS::SurrealS<nvar,double>> shmat;
-//  SANS::SurrealS<nvar,double> shmat[sdim3*szfld];
+  Metris::DLA::VectorS<      szfld,Metris::SurrealS<nvar,double>> seval;
+  Metris::DLA::MatrixS<tdim ,szfld,Metris::SurrealS<nvar,double>> sjmat;
+//  Metris::SurrealS<nvar,double> sjmat[tdim3*szfld];
+  Metris::DLA::MatrixS<nnsym,szfld,Metris::SurrealS<nvar,double>> shmat;
+//  Metris::SurrealS<nvar,double> shmat[sdim3*szfld];
 
 
   //hana::while_(hana::less.than(hana::int_c<nrfld>), boost::hana::int_c<0>, [&](auto i_c){
@@ -557,8 +557,8 @@ void eval_d_SurrealS_simple(const dblAr2 & __restrict__ rfld,
   // -
 
 
-  SANS::SurrealS<nvar,double> buffer[nrfld][szfld];
-  MeshArray2D<SANS::SurrealS<nvar,double>> rfllS(nrfld,szfld,buffer[0]);
+  Metris::SurrealS<nvar,double> buffer[nrfld][szfld];
+  MeshArray2D<Metris::SurrealS<nvar,double>> rfllS(nrfld,szfld,buffer[0]);
 
   if(dfld == NULL){
     METRIS_ASSERT(nvar == szfld);
@@ -586,9 +586,9 @@ void eval_d_SurrealS_simple(const dblAr2 & __restrict__ rfld,
 
   constexpr int nnsym = (tdim*(tdim+1))/2;
 
-  Metris::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>> seval;
-  Metris::DLA::MatrixS<tdim ,szfld,SANS::SurrealS<nvar,double>> sjmat;
-  Metris::DLA::MatrixS<nnsym,szfld,SANS::SurrealS<nvar,double>> shmat;
+  Metris::DLA::VectorS<      szfld,Metris::SurrealS<nvar,double>> seval;
+  Metris::DLA::MatrixS<tdim ,szfld,Metris::SurrealS<nvar,double>> sjmat;
+  Metris::DLA::MatrixS<nnsym,szfld,Metris::SurrealS<nvar,double>> shmat;
 
   eval_d_SurrealS0_simple<szfld,tdim,ideg>
                            (rfllS,ibasis,idif1,idif2,bary,&seval,&sjmat,&shmat);

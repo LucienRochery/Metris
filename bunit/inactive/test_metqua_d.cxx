@@ -301,9 +301,9 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
               errdx_abs_hess[idx] = (double)(err_abs_hess);
               if(err_abs < tol0) ismall_grad = true;
               if(err_abs_hess < tol0) ismall_hess = true;
-              minerr_rel = MIN(minerr_rel,errdx_rel[idx]);
-              minerr_abs = MIN(minerr_abs,errdx_abs[idx]);
-              minerr_abs_hess = MIN(minerr_abs_hess,errdx_abs_hess[idx]);
+              minerr_rel = METRIS_MIN(minerr_rel,errdx_rel[idx]);
+              minerr_abs = METRIS_MIN(minerr_abs,errdx_abs[idx]);
+              minerr_abs_hess = METRIS_MIN(minerr_abs_hess,errdx_abs_hess[idx]);
               idx++;
               //printf("Dbg dx = %15.7e error = %15.7e\n",dx,errdx[idx]);
               //printf("Debug dqua_disc = %f %f %f \n",dqua_disc[0],dqua_disc[1],dqua_disc[2]);
@@ -311,9 +311,9 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
               //printf("Debug diff      = %f %f %f \n",dqua_surr[0]-dqua_disc[0],dqua_surr[1]-dqua_disc[1],dqua_surr[2]-dqua_disc[2]);
             }
 
-            maxerr_diff_rel = MAX(maxerr_diff_rel,minerr_rel);
-            maxerr_diff_abs = MAX(maxerr_diff_abs,minerr_abs);
-            maxerr_diff_abs_hess = MAX(maxerr_diff_abs_hess,minerr_abs_hess);
+            maxerr_diff_rel = METRIS_MAX(maxerr_diff_rel,minerr_rel);
+            maxerr_diff_abs = METRIS_MAX(maxerr_diff_abs,minerr_abs);
+            maxerr_diff_abs_hess = METRIS_MAX(maxerr_diff_abs_hess,minerr_abs_hess);
             avgerr_diff_rel += minerr_rel;
             avgerr_diff_abs += minerr_abs;
             avgerr_diff_abs_hess += minerr_abs_hess;
@@ -480,11 +480,11 @@ BOOST_AUTO_TEST_CASE(test_metqua_d)
                 logdx[idx]     = (double)(dx);
                 errdx_abs[idx] = (double)(err_abs);
                 if(err_abs < tol0) ismall = true;
-                minerr_abs = MIN(minerr_abs,errdx_abs[idx]);
+                minerr_abs = METRIS_MIN(minerr_abs,errdx_abs[idx]);
                 idx++;
               } // for dx 
 
-              maxerr_diff_abs_Hess = MAX(maxerr_diff_abs_Hess,minerr_abs);
+              maxerr_diff_abs_Hess = METRIS_MAX(maxerr_diff_abs_Hess,minerr_abs);
               avgerr_diff_abs_Hess += minerr_abs;
               nerr_diff2++;
 

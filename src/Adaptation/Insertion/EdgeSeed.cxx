@@ -55,7 +55,7 @@ EdgeSeed::EdgeSeed(MeshBase& msh, MshCavity& cav_, int tdim_adp_, int tdim_ent, 
       // Collapse compatibility. If any of the boundary points is lower dimension than the edge,
       // then the points are either incompatible OR (if only one is boundary), we need to do this 
       // as a VERTEX collapse of the higher dimensional point.
-      if (shell_dim > MIN(pdim0, pdim1)) {
+      if (shell_dim > METRIS_MIN(pdim0, pdim1)) {
           ierro = INS2D_ERR_COLEDGDIM;
           return;
       }

@@ -161,7 +161,7 @@ double collapseShortEdges(Mesh<MFT> &msh, int tdim, double qmax_suf, int *ncoll,
 
         CPRINTF1(" - vertex {} height {} >=? h0 = {}\n",iver,height[iver],
                  height[iver] >= htmin);
-        minht = MIN(minht, height[iver]);
+        minht = METRIS_MIN(minht, height[iver]);
 
         if(height[iver] >= htmin) continue;
 
@@ -299,8 +299,8 @@ double collapseShortEdges(Mesh<MFT> &msh, int tdim, double qmax_suf, int *ncoll,
       }
     }
 
-    if(nedgt == 0) stat = MAX(stat, 0);
-    else           stat = MAX(stat, (double)(ncoll1 + ncoll2) / (double)nedgt);
+    if(nedgt == 0) stat = METRIS_MAX(stat, 0);
+    else           stat = METRIS_MAX(stat, (double)(ncoll1 + ncoll2) / (double)nedgt);
 
     *ncoll += ncoll1 + ncoll2;
 

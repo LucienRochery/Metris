@@ -49,7 +49,7 @@ namespace Metris{
 template<class MFT, int gdim, int ideg>
 double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int ithrd2){
   //if(tdim == 3){
-  //  printf("## DEBUG SET MAX PRINTS\n");
+  //  printf("## DEBUG SET METRIS_MAX PRINTS\n");
   //  wait();
   //  msh.param->iverb = 5;
   //  msh.param->ivdepth = 15;
@@ -157,7 +157,7 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
     int nlong = ledge.size();
     CPRINTF1(" - START ins loop {}/{} nlong = {}\n",niter+1,miter,nlong);
     //if(niter+1 == 2){
-    //  printf("## DEBUG SET MAX PRINTS\n");
+    //  printf("## DEBUG SET METRIS_MAX PRINTS\n");
     //  wait();
     //  msh.param->iverb = 3;
     //  msh.param->ivdepth = 15;
@@ -283,7 +283,7 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
             shell(msh,insertionSeed.ipedg[0],insertionSeed.ipedg[1],tdim,ientt,dum,dum,cav.lctet,&iopen);
             METRIS_ASSERT(cav.lctet.get_n() > 0);
 
-            //printf("## DEBUG SET MAX PRINTS\n");
+            //printf("## DEBUG SET METRIS_MAX PRINTS\n");
             //msh.param->iverb = 3;
             //msh.param->ivdepth = 15;
             

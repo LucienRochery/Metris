@@ -180,7 +180,7 @@ call_cavity:
     //  msh.param->iverb = 5;
     //  msh.param->ivdepth = 10;
     //  idbg = true;
-    //  printf("## DEBUG SET MAX PRINTS\n");
+    //  printf("## DEBUG SET METRIS_MAX PRINTS\n");
     //  writeMesh("debug_insert.meshb",msh);
     //}
     bool irej = rejcavnordev(msh,cav,ibins,ithrd1);

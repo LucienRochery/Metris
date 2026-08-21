@@ -96,7 +96,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
 
   //bool dowait = false;
   int ptag0 = msh.tag[ithread] + 1;
-  cav.maxtag = MAX(cav.maxtag,ptag0);
+  cav.maxtag = METRIS_MAX(cav.maxtag,ptag0);
   CT_FOR0_INC(1,2,tdimn){
     if (msh.isboundary_tdim(tdimn)){
     int nnode = msh.nnode(tdimn);
@@ -147,7 +147,7 @@ int update_cavity(Mesh<MFT> &msh, MshCavity &cav, [[maybe_unused]] const CavWrkA
   // new entity. Now, we need to clean up. This was necessary as not stacking any
   // new bpos might have made a point unlinked after old elt deletion. 
   ptag0++;
-  cav.maxtag = MAX(cav.maxtag,ptag0);
+  cav.maxtag = METRIS_MAX(cav.maxtag,ptag0);
   for(int tdim : {1,2}){
     // Edges are probably always boundary but still.
     if(!msh.isboundary_tdim(tdim)) continue;

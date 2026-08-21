@@ -1052,11 +1052,11 @@ template void sortupto8_dec<double>(double *tab,int * idx, int n);
 //template void sortupto8_dec<double,4>(double tab[4],int idx[4]);
 template void sortupto8_inc<double>(double *tab,int n);
 
-template void sortupto8_dec<SANS::SurrealS<2,double>>(SANS::SurrealS<2,double> *tab,int n);
-template void sortupto8_inc<SANS::SurrealS<2,double>>(SANS::SurrealS<2,double> *tab,int n);
+template void sortupto8_dec<Metris::SurrealS<2,double>>(Metris::SurrealS<2,double> *tab,int n);
+template void sortupto8_inc<Metris::SurrealS<2,double>>(Metris::SurrealS<2,double> *tab,int n);
 
-template void sortupto8_dec<SANS::SurrealS<3,double>>(SANS::SurrealS<3,double> *tab,int n);
-template void sortupto8_inc<SANS::SurrealS<3,double>>(SANS::SurrealS<3,double> *tab,int n);
+template void sortupto8_dec<Metris::SurrealS<3,double>>(Metris::SurrealS<3,double> *tab,int n);
+template void sortupto8_inc<Metris::SurrealS<3,double>>(Metris::SurrealS<3,double> *tab,int n);
 
 
 

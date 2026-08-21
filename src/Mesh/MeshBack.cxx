@@ -375,7 +375,7 @@ void MeshBack::initialize(MetrisAPI *data,
 
           double dev = 1 - abs(dtprd);
 
-          ent2dev[ientt] = MAX(ent2dev[ientt], dev);
+          ent2dev[ientt] = METRIS_MAX(ent2dev[ientt], dev);
 
           if(dev >= geodev[tdim-1]){
             imax[tdim-1] = ientt;

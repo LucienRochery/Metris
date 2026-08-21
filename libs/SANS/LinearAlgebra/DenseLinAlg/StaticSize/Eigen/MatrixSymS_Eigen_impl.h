@@ -3,10 +3,15 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
+#ifndef METRIS_DLA_MATRIXSYMS_EIGEN_IMPL_H
+#define METRIS_DLA_MATRIXSYMS_EIGEN_IMPL_H
+
 #include "../Eigen.h"
 
 #include "../MatrixSymS.h"
 #include "../VectorS.h"
+
+#include "../../../../tools/SANSException.h"
 
 #include <cmath> // sqrt
 #include <sstream>
@@ -132,8 +137,10 @@ EigenSystem_Jacobi(const MatrixSymS<M,T>& A, VectorS<M,T>& L, MatrixS<M,M,T>& E 
   ss << "Failing matrix: " << std::endl;
   ss << std::setprecision(16) << A << std::endl;
 
-  SANS_DEVELOPER_EXCEPTION(ss.str());
+  METRIS_SUPPORT_DEVELOPER_EXCEPTION(ss.str());
 }
 
 }
 }
+
+#endif // METRIS_DLA_MATRIXSYMS_EIGEN_IMPL_H

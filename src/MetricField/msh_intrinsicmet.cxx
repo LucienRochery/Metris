@@ -54,7 +54,7 @@ void getMetMesh(const MetrisParameters &param, MeshMetric<MetricFieldType> &msh)
       nthread = METRIS_MAXTAGS;
     }
   }
-  if(nproc > 0) nthread = MIN(nthread, nproc);
+  if(nproc > 0) nthread = METRIS_MIN(nthread, nproc);
   CPRINTF1(" - running intrinsic metric with nproc = {} \n",nthread);
 
 

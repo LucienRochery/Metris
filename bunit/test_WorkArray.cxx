@@ -37,7 +37,7 @@ void test_workArray1(MeshBase& msh){
 
   int maxsize_work = -1;
   for(auto& work : msh_work){
-    maxsize_work = MAX(maxsize_work, work.size());
+    maxsize_work = METRIS_MAX(maxsize_work, work.size());
   }
 
   BOOST_REQUIRE(nwork0 == 0 || maxsize_work > 0);

@@ -97,8 +97,8 @@ BOOST_AUTO_TEST_CASE(test_metqua_d2)
                                            ivar, msh.getBasis(), DifVar::None, 
                                            dquael, hquael);
                 double err = abs(qua - qua_d);
-                err_min = MIN(err_min, err);
-                err_max = MAX(err_max, err);
+                err_min = METRIS_MIN(err_min, err);
+                err_max = METRIS_MAX(err_max, err);
                 err_avg += err;
                 ntest += 1;
               }
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(test_metqua_d2)
           double ntest = 0;
           for(int ientt = 0; ientt < msh.nentt(tdim); ientt++){
             for(int isamp = 0; isamp < nsamp; isamp++){
-              SANS::SurrealS<nvar, ftype> tra, det;
+              Metris::SurrealS<nvar, ftype> tra, det;
               ftype tra0, det0;
 
               quafun(msh, asdeg.first, asdeg.second,

@@ -262,8 +262,8 @@ void adaptGeoLines(Mesh<MFT> &msh){
         avg_len += len;
         npavg++;
 
-        min_len = MIN(min_len, len);
-        max_len = MAX(max_len, len);
+        min_len = METRIS_MIN(min_len, len);
+        max_len = METRIS_MAX(max_len, len);
 
         if(ifin) break;
       }

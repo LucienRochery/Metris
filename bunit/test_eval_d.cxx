@@ -33,7 +33,7 @@ BOOST_AUTO_TEST_CASE(test_eval_d)
 //METRIS_MAX_DEG
 
 
-  constexpr int nbase = MAX((int)FEBasis::Bezier, (int)FEBasis::Lagrange) + 1;
+  constexpr int nbase = METRIS_MAX((int)FEBasis::Bezier, (int)FEBasis::Lagrange) + 1;
   std::string basname[nbase];
   basname[(int)FEBasis::Bezier]   = "Bez";
   basname[(int)FEBasis::Lagrange] = "Lag";

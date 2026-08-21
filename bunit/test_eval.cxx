@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(test_eval)
 
     const double tol   = 1.0e-11;
 
-    constexpr int nbase = MAX((int)FEBasis::Bezier, (int)FEBasis::Lagrange) + 1;
+    constexpr int nbase = METRIS_MAX((int)FEBasis::Bezier, (int)FEBasis::Lagrange) + 1;
     std::string basname[nbase];
     basname[(int)FEBasis::Bezier]   = "Bez";
     basname[(int)FEBasis::Lagrange] = "Lag";
@@ -183,8 +183,8 @@ BOOST_AUTO_TEST_CASE(test_eval)
                     }
                     double err3 = sqrt(geterrl2<idim*idim >(jmat3_disc[0],jmat3));
                     double err6 = sqrt(geterrl2<idim*nhess>(jmat6_disc[0],jmat6));
-                    err3dx[(int)ibasis][idx] = MAX(err3,1.0e-32);
-                    err6dx[(int)ibasis][idx] = MAX(err6,1.0e-32);
+                    err3dx[(int)ibasis][idx] = METRIS_MAX(err3,1.0e-32);
+                    err6dx[(int)ibasis][idx] = METRIS_MAX(err6,1.0e-32);
                     logdx[idx]  = log(dx);
                     idx++;
                   }
@@ -195,8 +195,8 @@ BOOST_AUTO_TEST_CASE(test_eval)
                     double minerr3 = 1.0e32;
                     double minerr6 = 1.0e32;
                     for(int idx = 0; idx < ndx; idx++){
-                      minerr3 = MIN(minerr3, err3dx[(int)ibasis][idx]);
-                      minerr6 = MIN(minerr6, err6dx[(int)ibasis][idx]);
+                      minerr3 = METRIS_MIN(minerr3, err3dx[(int)ibasis][idx]);
+                      minerr6 = METRIS_MIN(minerr6, err6dx[(int)ibasis][idx]);
                       err3dx[(int)ibasis][idx] = log(err3dx[(int)ibasis][idx]);
                       err6dx[(int)ibasis][idx] = log(err6dx[(int)ibasis][idx]);
                     }
@@ -267,8 +267,8 @@ BOOST_AUTO_TEST_CASE(test_eval)
                     }
                     double err3 = sqrt(geterrl2<idim*nhess  >(hmat3_disc[0],hmat3));
                     double err6 = sqrt(geterrl2<nhess*nhess >(hmat6_disc[0],hmat6));
-                    err3dx[(int)ibasis][idx] = MAX(err3,1.0e-32);
-                    err6dx[(int)ibasis][idx] = MAX(err6,1.0e-32);
+                    err3dx[(int)ibasis][idx] = METRIS_MAX(err3,1.0e-32);
+                    err6dx[(int)ibasis][idx] = METRIS_MAX(err6,1.0e-32);
                     logdx[idx]  = log(dx);
                     idx++;
 
@@ -308,8 +308,8 @@ BOOST_AUTO_TEST_CASE(test_eval)
                     double minerr3 = 1.0e32;
                     double minerr6 = 1.0e32;
                     for(int idx = 0; idx < ndx; idx++){
-                      minerr3 = MIN(minerr3, err3dx[(int)ibasis][idx]);
-                      minerr6 = MIN(minerr6, err6dx[(int)ibasis][idx]);
+                      minerr3 = METRIS_MIN(minerr3, err3dx[(int)ibasis][idx]);
+                      minerr6 = METRIS_MIN(minerr6, err6dx[(int)ibasis][idx]);
                       err3dx[(int)ibasis][idx] = log(err3dx[(int)ibasis][idx]);
                       err6dx[(int)ibasis][idx] = log(err6dx[(int)ibasis][idx]);
                     }

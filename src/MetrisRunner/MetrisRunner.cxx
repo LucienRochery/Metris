@@ -201,7 +201,7 @@ void MetrisRunner::degElevate0(){
             getsclccoef<idim,idim,ideg>(msh,ientt,NULL,ccoef,&iinva);
             lminc[ientt] = 1.0e30;
             for(int ii = 0; ii < ncoef; ii++){
-              lminc[ientt] = MIN(lminc[ientt], ccoef[ii]);
+              lminc[ientt] = METRIS_MIN(lminc[ientt], ccoef[ii]);
             }
           }}CT_FOR1(ideg);
         }}CT_FOR1(idim);

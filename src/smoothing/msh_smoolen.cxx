@@ -43,7 +43,7 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
     return 0;
   }
 
-  //printf("## DEBUG SET MAX prints\n");
+  //printf("## DEBUG SET METRIS_MAX prints\n");
   //msh.param->iverb = 3;
   //msh.param->ivdepth = 15;
   //wait();
@@ -128,8 +128,8 @@ double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
       double quaed = len < 1.0 ? 1.0 - len 
                                : 1.0 - 1.0 / len;
 
-      qmin = MIN(qmin, quaed);
-      qmax = MAX(qmax, quaed);
+      qmin = METRIS_MIN(qmin, quaed);
+      qmax = METRIS_MAX(qmax, quaed);
       qavg += quaed;
     }
 

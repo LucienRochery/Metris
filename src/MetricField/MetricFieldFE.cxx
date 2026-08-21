@@ -486,9 +486,9 @@ void MetricFieldFE::getMetBary0( DifVar idiff,  MetSpace tarspac,
     // Let's log that it happened.
     this->nspace_miss++;
 
-    SANS::SurrealS<gdim,double> metS[nnmet];
+    Metris::SurrealS<gdim,double> metS[nnmet];
     getmet_dbl2SurS<gdim,gdim>(metl,dmet,metS);
-    getspacmet_inp<gdim,SANS::SurrealS<gdim,double>>(metS, tarspac);
+    getspacmet_inp<gdim,Metris::SurrealS<gdim,double>>(metS, tarspac);
     getmet_SurS2dbl<gdim,gdim>(metS,metl,dmet);
   }
 

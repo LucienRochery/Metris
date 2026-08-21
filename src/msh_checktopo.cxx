@@ -1110,8 +1110,8 @@ void check_topo(MeshBase &msh,
               MPRINTF(" ## DEBUG < 1.0e-16 DISt = {} ipoi1 = {} ipoi2 = {}\n",dst,
                      ipoi1,ipoi2);
             }
-            rbpoi[ipoi1] = MIN(rbpoi[ipoi1], dst);
-            rbpoi[ipoi2] = MIN(rbpoi[ipoi2], dst);
+            rbpoi[ipoi1] = METRIS_MIN(rbpoi[ipoi1], dst);
+            rbpoi[ipoi2] = METRIS_MIN(rbpoi[ipoi2], dst);
           }
         }
       }

@@ -270,8 +270,8 @@ void DIBLOB(DIBLOB_args &args,
     int ilev = args.ent2pol(ielem,idim+1);
     METRIS_ASSERT(ilev >= 0);
     if(args.fuelt[ielem] <= args.rhull[ilev]){
-      if(args.lhull[ilev] < 0) minlv = MIN(minlv, ilev);
-      if(args.lhull[ilev] < 0) maxlv = MAX(maxlv, ilev);
+      if(args.lhull[ilev] < 0) minlv = METRIS_MIN(minlv, ilev);
+      if(args.lhull[ilev] < 0) maxlv = METRIS_MAX(maxlv, ilev);
       if(args.lhull[ilev] < 0) nhull++;
       args.rhull[ilev] = args.fuelt[ielem];
       args.lhull[ilev] = ielem;
@@ -284,7 +284,7 @@ void DIBLOB(DIBLOB_args &args,
   //METRIS_ASSERT_MSG(maxlv == args.niter - 1,"maxlv = "<<maxlv<<" args.niter = "<<args.niter);
 
   //// cull minlv
-  //minlv = MAX(minlv, maxlv-10);
+  //minlv = METRIS_MAX(minlv, maxlv-10);
 
 
   if(DOPRINTS2()){

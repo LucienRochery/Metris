@@ -59,7 +59,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   || msh.fac2poi(iface,2) == 2137 && msh.fac2poi(iface,0) == 2152 && msh.fac2poi(iface,1) == 2139
   || msh.fac2poi(iface,2) == 2137 && msh.fac2poi(iface,1) == 2152 && msh.fac2poi(iface,0) == 2139
      ){
-    printf("\n\n\n## DEBUG SET MAX PRINTS iface = {} vertices {} {} {}\n",iface,
+    printf("\n\n\n## DEBUG SET METRIS_MAX PRINTS iface = {} vertices {} {} {}\n",iface,
       msh.fac2poi(iface,0),msh.fac2poi(iface,1),msh.fac2poi(iface,2));
     msh.param->iverb = 5;
     msh.param->ivdepth = 5;
@@ -210,7 +210,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
         double dtpr1 = abs(getprdl2<3>(norfac, norCAD[ied]));
         double dtpr2 = abs(getprdl2<3>(norfa2, norCAD[ied]));
-        double qndev = 1 - MIN(dtpr1, dtpr2);
+        double qndev = 1 - METRIS_MIN(dtpr1, dtpr2);
 
         CPRINTF1(" - ied {} faces {} {} nordevs {} {} nordev qual = {}\n",ied,iface,ifac2,
                  1-dtpr1,1-dtpr2,qndev);
@@ -249,7 +249,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
     // Quality of previous configuration 
     if(spnorm == 0){
-      qnrm0 = MAX(quae1,quae2);
+      qnrm0 = METRIS_MAX(quae1,quae2);
     }else if (spnorm > 0){
       qnrm0 = pow(pow(quae1,spnorm) + pow(quae2,spnorm), 1.0/spnorm);
     }else{
@@ -340,7 +340,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
         }
 
         if(spnorm == 0){
-          qnrm1 = MAX(qunw[ifanw-nfac0], qnrm1);
+          qnrm1 = METRIS_MAX(qunw[ifanw-nfac0], qnrm1);
         }else{
           qnrm1 += pow(qunw[ifanw-nfac0], spnorm);
         }
@@ -377,7 +377,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
           }
           double dtprd = getprdl2<3>(norCAD[ied], norfa2);
           CPRINTF1(" - new face {} nordev quality = {} \n",ifanw-nfac0,1-dtprd);
-          qudev = MAX(qudev,1-dtprd);
+          qudev = METRIS_MAX(qudev,1-dtprd);
         }
         if(skipswap) goto cleanup;
         qnrm1 = qulen * msh.param->qua_surf_wt_quality

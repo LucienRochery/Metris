@@ -37,7 +37,7 @@ public:
   // int ianamet;
   // void (*anamet)(void* ctx, double *crd, int idif1, double *met, double *dmet);
   // //template<int ndimn>
-  // //void (*anametS)(void *ctx, double *crd, SANS::SurrealS<ndimn,double> metS);
+  // //void (*anametS)(void *ctx, double *crd, Metris::SurrealS<ndimn,double> metS);
   // dblAr2 met;
   MetricFieldType met;
 

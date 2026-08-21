@@ -6,17 +6,17 @@
 #ifndef METRIS_DLA_MATRIX_UTIL_H
 #define METRIS_DLA_MATRIX_UTIL_H
 
-#if defined( DLA_BLAS_ATLAS ) || \
-    defined(DLA_BLAS_GOTO) || \
-    defined(DLA_BLAS_MKL) || \
-    defined(DLA_BLAS_ACCELERATE) || \
-    defined(DLA_BLAS_GENERIC)
+#if defined(METRIS_DLA_BLAS_ATLAS) || \
+    defined(METRIS_DLA_BLAS_GOTO) || \
+    defined(METRIS_DLA_BLAS_MKL) || \
+    defined(METRIS_DLA_BLAS_ACCELERATE) || \
+    defined(METRIS_DLA_BLAS_GENERIC)
 
-#define DLA_BLAS
+#define METRIS_DLA_BLAS
 
 #endif
 
-#include "SANS/tools/SANSnumerics.h" //Real
+#include "../../../tools/SANSnumerics.h" // Metris::Real
 
 #include <cmath>   // abs
 #include <utility> // std::move
@@ -41,10 +41,10 @@ struct MatrixUtil_Native_Scal
 };
 
 template<class T>
-struct MatrixUtil_Native_Scal<T, Real>
+struct MatrixUtil_Native_Scal<T, Metris::Real>
 {
   //Scale an array
-  inline static void scal(T* __restrict x, const Real& a, const int size)
+  inline static void scal(T* __restrict x, const Metris::Real& a, const int size)
   {
     for (int i = 0; i < size; ++i)
       x[i] *= a;
@@ -97,7 +97,7 @@ struct MatrixUtil_Native : public MatrixUtil_Native_Scal<T, Ta>
 
 //=============================================================================
 // BLAS implementation
-#ifdef DLA_BLAS
+#ifdef METRIS_DLA_BLAS
 
 template<class T>
 struct MatrixUtil_BLAS;
@@ -131,7 +131,7 @@ struct MatrixUtil_BLAS<double>
 template<class T, class Ta>
 struct MatrixUtil : public MatrixUtil_Native<T,Ta> {};
 
-#ifdef DLA_BLAS
+#ifdef METRIS_DLA_BLAS
 
 template<>
 struct MatrixUtil<float, float> : public MatrixUtil_BLAS<float> {};

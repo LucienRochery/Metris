@@ -1050,8 +1050,8 @@ int iniMeshBdryPoints(MeshBase &msh, int *nbpo0, int ithread){
               METRIS_ASSERT_MSG(ibpoi >= 0, "How are we here with an eliminated rbpoi?");
               double dist = geterrl2<2>(msh.bpo2rbi[ibpoi], uvavg);
               if(dist < dstmin) irbpo = ii;
-              dstmin = MIN(dstmin, dist);
-              dstmax = MAX(dstmax, dist);
+              dstmin = METRIS_MIN(dstmin, dist);
+              dstmax = METRIS_MAX(dstmax, dist);
               CPRINTF2(" - lrbpo[{}] = {} (u,v) = {} {} dist = {}\n",
                  ii, ibpoi, msh.bpo2rbi(ibpoi,0), msh.bpo2rbi(ibpoi,1), dist);
             }

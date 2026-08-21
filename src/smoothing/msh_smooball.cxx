@@ -92,7 +92,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         nthread = METRIS_MAXTAGS;
       }
     }
-    if(nproc > 0) nthread = MIN(nthread, nproc);
+    if(nproc > 0) nthread = METRIS_MIN(nthread, nproc);
     int64_t LibIdx = InitParallel(nthread);
     int LP_elt = NewType(LibIdx, nentt);
     int LP_poi = NewType(LibIdx, msh.npoin);
@@ -170,7 +170,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
       double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ientt,difto);
 
       qnrm += quael;
-      qmin = MIN(qmin,quael);
+      qmin = METRIS_MIN(qmin,quael);
       if(qmax < quael){
         imax = ientt;
         qmax = quael;

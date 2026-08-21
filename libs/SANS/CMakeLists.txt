@@ -1,4 +1,4 @@
-add_library(libSANS_Metris STATIC 
+add_library(libSANS_Metris STATIC
               tools/SANSException.cpp
               tools/demangle.cpp
               tools/BackTraceException.cpp
@@ -8,10 +8,14 @@ add_library(libSANS_Metris STATIC
               LinearAlgebra/DenseLinAlg/StaticSize/MatMul/MatrixS_MatMul_Native_MatrixS_Instantiate.cpp
               )
 
-target_include_directories(libSANS_Metris PUBLIC  
+target_include_directories(libSANS_Metris PUBLIC
                             ${Boost_INCLUDE_DIRS}
                             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>
                             $<INSTALL_INTERFACE:include/libs>)
+
+if(USE_MULTIPRECISION)
+  target_compile_definitions(libSANS_Metris PUBLIC METRIS_USE_MULTIPRECISION)
+endif()
 
 if(USE_GMP)
   target_link_libraries(libSANS_Metris PUBLIC ${GMP_LIBRARIES})

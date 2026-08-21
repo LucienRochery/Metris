@@ -39,7 +39,7 @@ void getheightentP1_aniso(const Mesh<MFT> &msh, int ientt,
       //printf("Debug ied {}  x0 {} x1 {} xp {} tp {} ipoi1 {} ipoi2 {} ipoin {}\n",
       //  ied,x0,x1,getprdl2<gdim>(msh.coord[ipoin], tan),tp, ipoi1, ipoi2, ipoin);
 
-      tp = MAX(0.0,MIN(1.0,tp));
+      tp = METRIS_MAX(0.0,METRIS_MIN(1.0,tp));
       double dp[2];
       for(int ii = 0; ii < gdim; ii++) dp[ii] = (1.0 - tp) * msh.coord(ipoi1,ii)
                                               +        tp  * msh.coord(ipoi2,ii)

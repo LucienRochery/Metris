@@ -172,7 +172,7 @@ double bezGapsLP(MeshBase &msh, const intAr1 &idx_point,
             //double ctrlpt = 0;
             double ctrlpt = coord(ipoin,icoor);
 
-            dxmax[iwhich][icoor] = MAX(dxmax[iwhich][icoor],abs(opt_ctrlpt - ctrlpt));
+            dxmax[iwhich][icoor] = METRIS_MAX(dxmax[iwhich][icoor],abs(opt_ctrlpt - ctrlpt));
             dxavg[iwhich][icoor] += abs(opt_ctrlpt - ctrlpt);
 
             //printf("debug ipoin {} icst_1 = {} icst_2 = {} \n",ipoin,icst_1, icst_2);

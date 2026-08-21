@@ -3,8 +3,8 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef SANSEXCEPTION_H
-#define SANSEXCEPTION_H
+#ifndef METRIS_EXCEPTION_H
+#define METRIS_EXCEPTION_H
 
 #include <exception>
 #include <string>
@@ -14,16 +14,19 @@
 #include <boost/preprocessor/stringize.hpp>
 #include <boost/version.hpp>
 
-#ifndef unlikely
+#ifndef METRIS_SUPPORT_UNLIKELY
 #ifdef __GNUC__
-#define unlikely(x) __builtin_expect(!!(x), 0)
+#define METRIS_SUPPORT_UNLIKELY(x) __builtin_expect(!!(x), 0)
 #else
-#define unlikely(x) x
+#define METRIS_SUPPORT_UNLIKELY(x) x
 #endif
 #endif
 
+namespace Metris
+{
+
 //=============================================================================
-class SANSException : public boost::exception, public std::exception
+class MetrisException : public boost::exception, public std::exception
 {
 protected:
   //Derived classes fill the errString with the error message
@@ -36,18 +39,18 @@ private:
 public:
   virtual char const* what() const noexcept;
 
-  SANSException();
-  SANSException( const SANSException& e );
-  SANSException& operator=( const SANSException& ) = delete;
+  MetrisException();
+  MetrisException( const MetrisException& e );
+  MetrisException& operator=( const MetrisException& ) = delete;
 
-  virtual ~SANSException() noexcept;
+  virtual ~MetrisException() noexcept;
 };
 
 //=============================================================================
-struct BackTraceException : public SANSException
+struct BackTraceException : public MetrisException
 {
   BackTraceException();
-  BackTraceException( const BackTraceException& e) : SANSException(e) {}
+  BackTraceException( const BackTraceException& e) : MetrisException(e) {}
 
   virtual ~BackTraceException() noexcept;
 };
@@ -67,13 +70,13 @@ struct AssertionException : public BackTraceException
   virtual ~AssertionException() noexcept;
 };
 
-#define SANS_ASSERT( assertion ) \
-  if ( unlikely(!(assertion)) ) \
-     BOOST_THROW_EXCEPTION( AssertionException( BOOST_PP_STRINGIZE( assertion ) ) )
+#define METRIS_SUPPORT_ASSERT( assertion ) \
+  if ( METRIS_SUPPORT_UNLIKELY(!(assertion)) ) \
+     BOOST_THROW_EXCEPTION( ::Metris::AssertionException( BOOST_PP_STRINGIZE( assertion ) ) )
 
-#define SANS_ASSERT_MSG( assertion, fmt... ) \
-  if ( unlikely(!(assertion)) ) \
-    BOOST_THROW_EXCEPTION( AssertionException( BOOST_PP_STRINGIZE( assertion ), fmt ) )
+#define METRIS_SUPPORT_ASSERT_MSG( assertion, fmt... ) \
+  if ( METRIS_SUPPORT_UNLIKELY(!(assertion)) ) \
+    BOOST_THROW_EXCEPTION( ::Metris::AssertionException( BOOST_PP_STRINGIZE( assertion ), fmt ) )
 
 //=============================================================================
 //Exception for development errors
@@ -86,13 +89,13 @@ struct DeveloperException : public BackTraceException
   virtual ~DeveloperException() noexcept;
 };
 
-#define SANS_DEVELOPER_EXCEPTION( msg... ) \
-  BOOST_THROW_EXCEPTION( DeveloperException( msg ) )
+#define METRIS_SUPPORT_DEVELOPER_EXCEPTION( msg... ) \
+  BOOST_THROW_EXCEPTION( ::Metris::DeveloperException( msg ) )
 
 
 //=============================================================================
 //Exception for generic runtime errors that contain a simple message
-struct RuntimeException : public SANSException
+struct RuntimeException : public MetrisException
 {
   // cppcheck-suppress noExplicitConstructor
   RuntimeException( const std::string& message );
@@ -101,32 +104,34 @@ struct RuntimeException : public SANSException
   virtual ~RuntimeException() noexcept;
 };
 
-#define SANS_RUNTIME_EXCEPTION( msg... ) \
-  BOOST_THROW_EXCEPTION( RuntimeException( msg ) )
+} // namespace Metris
+
+#define METRIS_SUPPORT_RUNTIME_EXCEPTION( msg... ) \
+  BOOST_THROW_EXCEPTION( ::Metris::RuntimeException( msg ) )
 
 #if BOOST_VERSION >= 107300
-#define SANS_BOOST_EXCEPTION_EXTERN( E ) \
+#define METRIS_SUPPORT_BOOST_EXCEPTION_EXTERN( E ) \
   extern template void boost::throw_exception<E>(E const&, boost::source_location const &);
 
-#define SANS_BOOST_EXCEPTION_INSTANTIATE( E ) \
+#define METRIS_SUPPORT_BOOST_EXCEPTION_INSTANTIATE( E ) \
   template void boost::throw_exception<E>(E const&, boost::source_location const &);
 
 #else
 
-#define SANS_BOOST_EXCEPTION_EXTERN( E ) \
+#define METRIS_SUPPORT_BOOST_EXCEPTION_EXTERN( E ) \
 extern template class boost::exception_detail::clone_impl<E>; \
 extern template void boost::throw_exception<E>(E const&); \
 extern template void boost::exception_detail::throw_exception_<E>(E const&, char const*, char const*, int);
 
-#define SANS_BOOST_EXCEPTION_INSTANTIATE( E ) \
+#define METRIS_SUPPORT_BOOST_EXCEPTION_INSTANTIATE( E ) \
 template class boost::exception_detail::clone_impl<E>; \
 template void boost::throw_exception<E>(E const&); \
 template void boost::exception_detail::throw_exception_<E>(E const&, char const*, char const*, int);
 #endif
 
 // Reduce compile time by explicitly instantiating these
-SANS_BOOST_EXCEPTION_EXTERN(AssertionException)
-SANS_BOOST_EXCEPTION_EXTERN(DeveloperException)
-SANS_BOOST_EXCEPTION_EXTERN(RuntimeException)
+METRIS_SUPPORT_BOOST_EXCEPTION_EXTERN(Metris::AssertionException)
+METRIS_SUPPORT_BOOST_EXCEPTION_EXTERN(Metris::DeveloperException)
+METRIS_SUPPORT_BOOST_EXCEPTION_EXTERN(Metris::RuntimeException)
 
 #endif

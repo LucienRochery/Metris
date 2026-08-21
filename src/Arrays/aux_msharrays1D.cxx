@@ -173,7 +173,7 @@ bool MeshArray1D<T,INT1>::allocate(INT1 m){
 template<typename T,typename INT1>
 void MeshArray1D<T,INT1>::inc_n(){
   if(n1 >= m1){
-    INT1 m1_new = MAX(MAX(n1+1,n1 * Defaults::mem_growfac), 
+    INT1 m1_new = METRIS_MAX(METRIS_MAX(n1+1,n1 * Defaults::mem_growfac),
                       m1 * Defaults::mem_growfac); 
     this->allocate(m1_new);
   }
@@ -257,7 +257,7 @@ template<typename T,typename INT1>
 void MeshArray1D<T,INT1>::stack(T val){
   if(n1 >= m1){
     // allocate already copies from old to new
-    this->allocate(MAX(n1 + 1, m1*Defaults::mem_growfac)); 
+    this->allocate(METRIS_MAX(n1 + 1, m1*Defaults::mem_growfac));
   }
   array[n1] = val;
   n1++;

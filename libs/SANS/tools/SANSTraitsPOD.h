@@ -3,36 +3,36 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef SANSTRAITSPOD_H
-#define SANSTRAITSPOD_H
+#ifndef METRIS_TRAITS_POD_H
+#define METRIS_TRAITS_POD_H
 
-#include "SANSnumerics.h"   // Real
+#include "SANSnumerics.h"   // Metris::Real
 #include "SANSException.h"
 
-namespace SANS
+namespace Metris
 {
 
-// Traits class to allow templated classes to allow Real arguments in arithmetic
-// operations; examples of classes that use this are DenseMatrix<MatrixS<N,Real>>
+// Traits class to allow templated classes to allow Metris::Real arguments in arithmetic
+// operations; examples of classes that use this are DenseMatrix<MatrixS<N,Metris::Real>>
 // and VectorS<N, SurrealS<M>>
 
-struct SANSDummyType
+struct MetrisDummyType
 {
-  operator int() const { SANS_ASSERT(false); return 0; }
+  operator int() const { METRIS_SUPPORT_ASSERT(false); return 0; }
 };
 
 template< class T >
-struct POD { typedef Real type; };
+struct POD { typedef Metris::Real type; };
 
 template<>
-struct POD<Real> { typedef SANSDummyType type; };
+struct POD<Metris::Real> { typedef MetrisDummyType type; };
 
 template<>
-struct POD<int> { typedef SANSDummyType type; };
+struct POD<int> { typedef MetrisDummyType type; };
 
 template<>
-struct POD<unsigned int> { typedef SANSDummyType type; };
+struct POD<unsigned int> { typedef MetrisDummyType type; };
 
-}  // namespace SANS
+}  // namespace Metris
 
-#endif  // SANSTRAITSPOD_H
+#endif  // METRIS_TRAITS_POD_H

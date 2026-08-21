@@ -191,9 +191,9 @@ int dsyevq(const T* __restrict__ mat, T* __restrict__ eigvec, T* __restrict__  e
 
 template int dsyevq<2,double>(const double* __restrict__ A, double* __restrict__  Q, double* __restrict__  w);
 template int dsyevq<3,double>(const double* __restrict__ A, double* __restrict__  Q, double* __restrict__  w);
-template int dsyevq<2,SANS::SurrealS<2,double>>(const SANS::SurrealS<2,double>* __restrict__ A, SANS::SurrealS<2,double>* __restrict__  Q, SANS::SurrealS<2,double>* __restrict__  w);
-template int dsyevq<3,SANS::SurrealS<2,double>>(const SANS::SurrealS<2,double>* __restrict__ A, SANS::SurrealS<2,double>* __restrict__  Q, SANS::SurrealS<2,double>* __restrict__  w);
-template int dsyevq<3,SANS::SurrealS<3,double>>(const SANS::SurrealS<3,double>* __restrict__ A, SANS::SurrealS<3,double>* __restrict__  Q, SANS::SurrealS<3,double>* __restrict__  w);
+template int dsyevq<2,Metris::SurrealS<2,double>>(const Metris::SurrealS<2,double>* __restrict__ A, Metris::SurrealS<2,double>* __restrict__  Q, Metris::SurrealS<2,double>* __restrict__  w);
+template int dsyevq<3,Metris::SurrealS<2,double>>(const Metris::SurrealS<2,double>* __restrict__ A, Metris::SurrealS<2,double>* __restrict__  Q, Metris::SurrealS<2,double>* __restrict__  w);
+template int dsyevq<3,Metris::SurrealS<3,double>>(const Metris::SurrealS<3,double>* __restrict__ A, Metris::SurrealS<3,double>* __restrict__  Q, Metris::SurrealS<3,double>* __restrict__  w);
 
 #undef SQR
 

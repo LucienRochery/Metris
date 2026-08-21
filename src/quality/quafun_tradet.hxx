@@ -64,8 +64,8 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                               FEBasis dofbas, 
                               DifVar idifmet, 
                               const double*__restrict__ met_,
-                              SANS::SurrealS<nvar, double>&__restrict__ tra, 
-                              SANS::SurrealS<nvar, double>&__restrict__ det,
+                              Metris::SurrealS<nvar, double>&__restrict__ tra,
+                              Metris::SurrealS<nvar, double>&__restrict__ det,
                               const Metris::DLA::MatrixS<gdim,nvar,double> *dpoint);
 
 

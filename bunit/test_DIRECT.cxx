@@ -193,13 +193,13 @@ BOOST_AUTO_TEST_CASE(test_DIRECT)
               dblAr1(idim,bary[isamp]).print();
             }
 
-            max_neval_tot = MAX(max_neval_tot, neval_tot);
+            max_neval_tot = METRIS_MAX(max_neval_tot, neval_tot);
             avg_neval_tot += (double) neval_tot;
 
-            max_neval_tot1 = MAX(max_neval_tot1, neval_tot);
+            max_neval_tot1 = METRIS_MAX(max_neval_tot1, neval_tot);
             avg_neval_tot1 += (double) neval_tot;
 
-            max_neval_tot2 = MAX(max_neval_tot2, neval_tot);
+            max_neval_tot2 = METRIS_MAX(max_neval_tot2, neval_tot);
             avg_neval_tot2 += (double) neval_tot;
 
             double errf = abs(fmin);
@@ -207,20 +207,20 @@ BOOST_AUTO_TEST_CASE(test_DIRECT)
                                     : sqrt(geterrl2<3>(xmin,bary[isamp]));
             //BOOST_TEST(ifmin == ishell);
             //BOOST_TEST(errf < args.ftol);
-            max_errx = MAX(errx, max_errx);
-            max_errf = MAX(errf, max_errf);
+            max_errx = METRIS_MAX(errx, max_errx);
+            max_errf = METRIS_MAX(errf, max_errf);
             avg_errx += errx;
             avg_errf += errf;
             navg++;
 
-            max_errx1 = MAX(errx, max_errx1);
-            max_errf1 = MAX(errf, max_errf1);
+            max_errx1 = METRIS_MAX(errx, max_errx1);
+            max_errf1 = METRIS_MAX(errf, max_errf1);
             avg_errx1 += errx;
             avg_errf1 += errf;
             navg1++;
 
-            max_errx2 = MAX(errx, max_errx2);
-            max_errf2 = MAX(errf, max_errf2);
+            max_errx2 = METRIS_MAX(errx, max_errx2);
+            max_errf2 = METRIS_MAX(errf, max_errf2);
             avg_errx2 += errx;
             avg_errf2 += errf;
             navg2++;

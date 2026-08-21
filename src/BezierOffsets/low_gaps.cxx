@@ -146,7 +146,7 @@ void getBezOffsetsEdge(MeshMetric<MFT> &msh,
   #endif
 
 
-  typedef SANS::SurrealS<gdim,double> doubleS; 
+  typedef Metris::SurrealS<gdim,double> doubleS;
   doubleS metS[nnmet];
   getmet_dbl2SurS<gdim,gdim>(met,dmet,metS);
 

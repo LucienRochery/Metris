@@ -58,7 +58,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   *qmax0 = -1.0e30;
 
   // Optimization doesn't reinterpolate metric 
-  int miter1 = MAX(1,msh.param->iflag1);
+  int miter1 = METRIS_MAX(1,msh.param->iflag1);
 
   // Relative decrease tolerance 
   const double ftol = 1.0e-2;
@@ -168,7 +168,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
         if(nargs.niter == 1 && niter1 == 0){
           *qnrm0 += quael; 
-          *qmax0  = MAX(quael,*qmax0);
+          *qmax0  = METRIS_MAX(quael,*qmax0);
         }
       }// for iball
       if(DOPRINTS1()){
@@ -215,7 +215,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
                             ient2,1);
 
       *qnrm1 += quael; 
-      *qmax1  = MAX(quael,*qmax1);
+      *qmax1  = METRIS_MAX(quael,*qmax1);
     }
     CPRINTF1(" - Newton update initial quality avg {:15.7e} " 
                           "max {:15.7e} \n",*qnrm0,*qmax0);
@@ -385,7 +385,7 @@ double smooballdiff_fun([[maybe_unused]] unsigned int nvar,
 
     //if(!mydata->iqset){
     //  mydata->qnrm0 += quael; 
-    //  mydata->qmax0  = MAX(quael,mydata->qmax0);
+    //  mydata->qmax0  = METRIS_MAX(quael,mydata->qmax0);
     //}
   }
   
@@ -425,7 +425,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
   constexpr int tdim = idim;
   constexpr int nnmet = (idim*(idim+1))/2;
 
-  const int miter1 = MAX(msh.param->iflag1,1);
+  const int miter1 = METRIS_MAX(msh.param->iflag1,1);
   const nlopt_algorithm algo = NLOPT_LD_TNEWTON_PRECOND_RESTART;
 
 
@@ -471,7 +471,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
     double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ientt,1);
 
     *qnrm0 += quael; 
-    *qmax0  = MAX(quael,*qmax0);
+    *qmax0  = METRIS_MAX(quael,*qmax0);
   }
 
   double fpre = *qnrm0;
@@ -510,7 +510,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
       double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,ientt,1);
 
       *qnrm1 += quael; 
-      *qmax1  = MAX(quael,*qmax1);
+      *qmax1  = METRIS_MAX(quael,*qmax1);
     }
 
     if(*qnrm1 > *qnrm0){

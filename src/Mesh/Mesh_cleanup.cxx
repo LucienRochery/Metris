@@ -27,9 +27,9 @@ void Mesh<MetricFieldType>::cleanup(){
 
   if(this->param->dbgfull) check_topo(*this,0);
 
-  int nwork = MAX(this->nbpoi, this->nedge);
-  nwork = MAX(nwork, this->nface);
-  nwork = MAX(nwork, this->nelem);
+  int nwork = METRIS_MAX(this->nbpoi, this->nedge);
+  nwork = METRIS_MAX(nwork, this->nface);
+  nwork = METRIS_MAX(nwork, this->nelem);
   intWrkAr1 lentt = this->get_iwork(nwork);
 
   intAr1 lpoin(this->npoin);

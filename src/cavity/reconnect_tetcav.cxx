@@ -303,9 +303,9 @@ int reconnect_tetcav(Mesh<MFT> &msh,
           ielen,
           msh.tet2poi(ielen,0), msh.tet2poi(ielen,1), msh.tet2poi(ielen,2),
           msh.tet2poi(ielen,3) ,iele0,quael);
-        *qmax = MAX(quael, *qmax);
+        *qmax = METRIS_MAX(quael, *qmax);
         if(qpnorm == 0){
-          info.qcav3 = MAX(info.qcav3, quael);
+          info.qcav3 = METRIS_MAX(info.qcav3, quael);
         }else{
           info.qcav3 += pow(abs(quael), qpnorm);
         }
@@ -614,7 +614,7 @@ int aux_check_tetbdry(MeshBase &msh, MshCavity& cav, int ielen, int ifa0, int *c
   // tag[ithread] has been incremented for other uses already, and no
   // conflict with cfa2tag:
   (*cfatag)++;
-  cav.maxtag = MAX(cav.maxtag,*cfatag + 4);
+  cav.maxtag = METRIS_MAX(cav.maxtag,*cfatag + 4);
   for(int iver = 0; iver < 4; iver++){
     //INCVDEPTH(msh.param);
     int ipoin = msh.tet2poi(ielen, iver);

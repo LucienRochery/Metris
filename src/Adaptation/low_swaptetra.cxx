@@ -177,7 +177,7 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
     cav.qtetr[key] = quae2;
   }
 
-  qnrm0 = MAX(quae1,quae2);
+  qnrm0 = METRIS_MAX(quae1,quae2);
   opts.qmax_nec = qnrm0*0.99;
 
 
@@ -312,7 +312,7 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
       CPRINTF2(" - computed quality for shell tet {}: {}\n",ielem,quael);
       cav.qtetr[key] = quael;
     }
-    qnrm0 = MAX(qnrm0, quael);
+    qnrm0 = METRIS_MAX(qnrm0, quael);
   }
   opts.qmax_nec = qnrm0*0.99;
 

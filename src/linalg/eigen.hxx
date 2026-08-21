@@ -16,12 +16,12 @@ void geteigsym_LAPACK(const double* met,int nwork,double* rwork,double* eigval,d
 #endif
 
 
-// This function can take SANS::SurrealS as input.
+// This function can take Metris::SurrealS as input.
 // Returns UNSORTED eigenvalues, call sorteig if needed
 template<int ndim, typename T>
 void geteigsym(const T* __restrict__ met,T* __restrict__ eigval,T* __restrict__ eigvec);
 
-// This function can take SANS::SurrealS as input.
+// This function can take Metris::SurrealS as input.
 template<int ndim, typename T>
 int geteigsym_Eigen(const T* __restrict__ met,T* __restrict__ eigval,T* __restrict__ eigvec);
 

@@ -182,9 +182,9 @@ void MetricFieldAnalytical::
     //this->nspace_miss++;
 
     if(idiff != DifVar::None){
-      SANS::SurrealS<gdim,double> metS[nnmet];
+      Metris::SurrealS<gdim,double> metS[nnmet];
       getmet_dbl2SurS<gdim,gdim>(metl,dmet,metS);
-      getspacmet_inp<gdim,SANS::SurrealS<gdim,double>>(metS, tarspac);
+      getspacmet_inp<gdim,Metris::SurrealS<gdim,double>>(metS, tarspac);
       getmet_SurS2dbl<gdim,gdim>(metS,metl,dmet);
     }else{
       #ifndef NDEBUG

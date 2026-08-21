@@ -186,7 +186,7 @@ double maximizeCcoef(MeshBase &msh, OptDoF idofs, LPMethod method, LPLib lib){
       min_ccoef = min_ccoef_after;
 
       MPRINTF(" {} - {} : ccoef {} -> {}\n",niter,icoor,min_ccoef_before/vol0,min_ccoef_after/vol0);
-      mxdNm = MAX(mxdNm,abs(min_ccoef_after - min_ccoef_before));
+      mxdNm = METRIS_MAX(mxdNm,abs(min_ccoef_after - min_ccoef_before));
 
       if(min_ccoef_after > jtol && min_ccoef_before < jtol){
         MPRINTF(" - gone over threshold\n");
@@ -286,7 +286,7 @@ double getminccoef(MeshBase &msh){
     METRIS_ENFORCE_MSG(vol>0.0,"vol = {:e}",vol);
     getsclccoef<gdim,gdim,ideg>(msh,ielem,NULL,ccoef,&iflat);
     for(int ii = 0; ii < ncoef; ii++){
-      iret = MIN(iret,ccoef[ii]/vol/vol0);
+      iret = METRIS_MIN(iret,ccoef[ii]/vol/vol0);
     }
   }
   return iret;

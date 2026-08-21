@@ -29,7 +29,7 @@ class OpAddS : public MatrixSType< OpAddS<ExprL, ExprR, useRF, MatrixFull>, useR
 public:
   typedef typename ExprL::Ttype TL;
   typedef typename ExprR::Ttype TR;
-  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
+  typedef typename Metris::promote_Surreal<TL,TR>::type Ttype;
   BOOST_MPL_ASSERT_RELATION( ExprL::M, ==, ExprR::M );
   BOOST_MPL_ASSERT_RELATION( ExprL::N, ==, ExprR::N );
   static const int M = ExprL::M;
@@ -84,7 +84,7 @@ class OpSubS : public MatrixSType< OpSubS<ExprL, ExprR, useRF, MatrixFull>, useR
 public:
   typedef typename ExprL::Ttype TL;
   typedef typename ExprR::Ttype TR;
-  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
+  typedef typename Metris::promote_Surreal<TL,TR>::type Ttype;
   BOOST_MPL_ASSERT_RELATION( ExprL::M, ==, ExprR::M );
   BOOST_MPL_ASSERT_RELATION( ExprL::N, ==, ExprR::N );
   static const int M = ExprL::M;
@@ -168,7 +168,7 @@ class OpScalar : public MatrixSType< OpScalar<Expr> >
 public:
   typedef typename Expr::node_type node_type;
 
-  OpScalar(const Expr& e, const Real esgn, const Real s) : e(e), esgn(esgn), s(s) {}
+  OpScalar(const Expr& e, const Metris::Real esgn, const Metris::Real s) : e(e), esgn(esgn), s(s) {}
 
   template< class T >
   inline void value(const T& sgn, MatrixSView<T>& res) const
@@ -190,8 +190,8 @@ public:
   int size() const { return m()*n(); }
 private:
   const Expr& e;
-  const Real esgn;
-  const Real s;
+  const Metris::Real esgn;
+  const Metris::Real s;
 };
 
 }
@@ -200,28 +200,28 @@ private:
 
 template<class Expr>
 inline SurrealExp::OpScalar<Expr>
-operator+(const MatrixSType<Expr>& e, const Real& s)
+operator+(const MatrixSType<Expr>& e, const Metris::Real& s)
 {
   return SurrealExp::OpScalar<Expr>( e.cast(), 1, s );
 }
 
 template<class Expr>
 inline SurrealExp::OpScalar<Expr>
-operator+(const Real& s, const MatrixSType<Expr>& e)
+operator+(const Metris::Real& s, const MatrixSType<Expr>& e)
 {
   return SurrealExp::OpScalar<Expr>( e.cast(), 1, s );
 }
 
 template<class Expr>
 inline SurrealExp::OpScalar<Expr>
-operator-(const MatrixSType<Expr>& e, const Real& s)
+operator-(const MatrixSType<Expr>& e, const Metris::Real& s)
 {
   return SurrealExp::OpScalar<Expr>( e.cast(), 1, -s );
 }
 
 template<class Expr>
 inline SurrealExp::OpScalar<Expr>
-operator-(const Real& s, const MatrixSType<Expr>& e)
+operator-(const Metris::Real& s, const MatrixSType<Expr>& e)
 {
   return SurrealExp::OpScalar<Expr>( e.cast(), -1, s );
 }

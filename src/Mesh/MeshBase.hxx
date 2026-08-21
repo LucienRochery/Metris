@@ -526,7 +526,7 @@ public:
     }
 
   ~TagArray(){
-    itag = MAX(itag1, itag);
+    itag = METRIS_MAX(itag1, itag);
     msh.free_tag(ilock);
   }
 
@@ -544,14 +544,14 @@ public:
   // Set tag value of element
   void tag(int ientt, int value){
     array[ientt] = itag + value; 
-    itag1 = MAX(itag1, itag + value);
+    itag1 = METRIS_MAX(itag1, itag + value);
   }
 
   void tag(int ientt){ tag(ientt, 0); }
 
   // Get entity tag. Should not be used often. 
-  ALWAYS_INLINE int &operator[](const int &ii){ return array[ii]; }
-  ALWAYS_INLINE const int &operator[](const int &ii) const { return array[ii]; }
+  METRIS_ALWAYS_INLINE int &operator[](const int &ii){ return array[ii]; }
+  METRIS_ALWAYS_INLINE const int &operator[](const int &ii) const { return array[ii]; }
 
 private:
   int ilock;

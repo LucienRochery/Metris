@@ -9,7 +9,7 @@
 #include "../../../Surreal/PromoteSurreal.h"
 #include "../StaticSize/MatrixS_Type.h"
 
-namespace SANS
+namespace Metris
 {
 
 template<int M, int N, class T>
@@ -39,7 +39,7 @@ struct promote_Surreal< int, Metris::DLA::VectorS<M,T> > { typedef Metris::DLA::
 template<int M, int N, class T>
 struct promote_Surreal< int, Metris::DLA::MatrixS<M,N,T> > { typedef Metris::DLA::MatrixS<M,N,T> type; };
 
-#define APPLY_TO_REALTYPE(RealType)\
+#define METRIS_APPLY_TO_REALTYPE(RealType)\
 template<int M, class T>\
 struct promote_Surreal< RealType, Metris::DLA::VectorS<M,T> > { typedef Metris::DLA::VectorS<M,T> type; };\
 \
@@ -58,12 +58,12 @@ struct promote_Surreal< Metris::DLA::MatrixS<M,N,T>, RealType> { typedef Metris:
 template<int M, class T>\
 struct promote_Surreal< Metris::DLA::MatrixSymS<M,T>, RealType > { typedef Metris::DLA::MatrixSymS<M,T> type; };\
 
-APPLY_TO_REALTYPE(double)
-#ifdef USE_MULTIPRECISION
-APPLY_TO_REALTYPE(float4)
-APPLY_TO_REALTYPE(float8)
+METRIS_APPLY_TO_REALTYPE(double)
+#ifdef METRIS_USE_MULTIPRECISION
+METRIS_APPLY_TO_REALTYPE(float4)
+METRIS_APPLY_TO_REALTYPE(float8)
 #endif
-#undef APPLY_TO_REALTYPE
+#undef METRIS_APPLY_TO_REALTYPE
 
 
 template<int SN, int M, class T0, class T1>
@@ -102,6 +102,6 @@ struct promote_Surreal< Metris::DLA::MatrixS<M,N,T1>, Metris::DLA::MatrixS<N,K,T
   typedef Metris::DLA::MatrixS<N,K,T> type;
 };
 
-} //namespace SANS
+} //namespace Metris
 
 #endif // METRIS_DLA_PROMOTE_SURREAL_H

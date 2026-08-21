@@ -35,7 +35,7 @@ double luksan_mxvmax__(int *n, double *x)
     mxvmax = 0.;
     i__1 = *n;
     for (i__ = 1; i__ <= i__1; ++i__) {
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	d__2 = mxvmax, d__3 = (d__1 = x[i__], fabs(d__1));
 	mxvmax = MAX2(d__2,d__3);
 /* L1: */

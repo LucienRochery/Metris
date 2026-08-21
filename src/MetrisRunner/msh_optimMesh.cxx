@@ -126,7 +126,7 @@ double MetrisRunner::optimMesh0(){
   for(int niter = 1; niter <= miter && stat0 >= 0.01; niter++){
     stat0 = 0;
 
-    //qmax_suf = qavg * MAX(10 / (niter * 1.0), 1.0);
+    //qmax_suf = qavg * METRIS_MAX(10 / (niter * 1.0), 1.0);
     ////qmax_suf = 1.0 - (niter - 1) / (double) miter; 
 
     double stat;
@@ -135,7 +135,7 @@ double MetrisRunner::optimMesh0(){
     //if(msh.param->opt_unif){
     //  t0 = get_cpu_time();
     //  double stat = rebalanceMesh<MFT,gdim>(msh);
-    //  stat0 = MAX(stat, stat0); 
+    //  stat0 = METRIS_MAX(stat, stat0);
     //  t1 = get_cpu_time();
     //  if(DOPRINTS1()){
     //    if(DOPRINTS2()) writeMesh("debug_rebalance_glo"+ std::to_string(niter)+".meshb",msh);
@@ -152,7 +152,7 @@ double MetrisRunner::optimMesh0(){
     //// 4. Smoothing (heuristic) -> fast but bad; improve
     //t0 = get_cpu_time();
     //stat = smoothInterior_Ball<MFT>(msh,QuaFun::Unit);
-    //stat0 = MAX(stat, stat0); 
+    //stat0 = METRIS_MAX(stat, stat0);
     //t1 = get_cpu_time();
     //if(DOPRINTS1()){
     //  if(DOPRINTS2()) writeMesh("debug_unit_glo"+ std::to_string(niter)+".meshb",msh);
@@ -175,7 +175,7 @@ double MetrisRunner::optimMesh0(){
 
       t0 = get_cpu_time();
       stat = smoothInterior_Ball<MFT>(msh,QuaFun::Distortion, ithrd1, ithrd2);
-      stat0 = MAX(stat, stat0); 
+      stat0 = METRIS_MAX(stat, stat0);
       t1 = get_cpu_time();
       if(DOPRINTS1()){
         if(DOPRINTS2()) writeMesh("v2_smooth_opt"+ std::to_string(niter)+".meshb",msh);
@@ -204,7 +204,7 @@ double MetrisRunner::optimMesh0(){
     //smoothInterior_Full<MFT>(msh);
     //smoothInterior_Full_TAO<MFT>(msh); 
     smoothInterior_Full_custom<MFT>(msh,&stat);
-    stat0 = MAX(stat0,stat);
+    stat0 = METRIS_MAX(stat0,stat);
     t1 = get_cpu_time();
     if(DOPRINTS1()){
       if(DOPRINTS2()) writeMesh("debug_smooth_glo"+ std::to_string(niter)+".meshb",msh);
@@ -225,7 +225,7 @@ double MetrisRunner::optimMesh0(){
       t1 = get_cpu_time();
       msh.cleanup();
       stat  = noper / (double) msh.nface; 
-      stat0 = MAX(stat0, stat);
+      stat0 = METRIS_MAX(stat0, stat);
       if(DOPRINTS1()){
         if(DOPRINTS2() && noper >= 0) writeMesh("v2_flat_opt"+ std::to_string(niter)+".meshb",msh);
         if(DOPRINTS2() && noper >= 0) msh.met.writeMetricFile("v2_flat_opt"+ std::to_string(niter)+".solb");
@@ -247,7 +247,7 @@ double MetrisRunner::optimMesh0(){
     t0 = get_cpu_time();
     int nswap;
     stat  = swapMesh<MFT,gdim,ideg>(msh, swapOpt, &nswap, ithrd1, ithrd2, ithrd3);
-    stat0 = MAX(stat0,stat);
+    stat0 = METRIS_MAX(stat0,stat);
     t1 = get_cpu_time();
     if(msh.param->dbgfull) check_topo(msh,0);
     msh.cleanup();

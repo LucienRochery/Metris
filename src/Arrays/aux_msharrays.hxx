@@ -9,17 +9,17 @@
 #define __SRC_BASIC_TYPES__
 
 
-#ifndef ALWAYS_INLINE
+#ifndef METRIS_ALWAYS_INLINE
 
-// ALWAYS_INLINE is a macro to further encourage the compiler to inline a function
+// METRIS_ALWAYS_INLINE is a macro to further encourage the compiler to inline a function
 
 #if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__clang__)
-#define ALWAYS_INLINE inline __attribute__((always_inline))
+#define METRIS_ALWAYS_INLINE inline __attribute__((always_inline))
 #elif defined(_MSC_VER)
-#define ALWAYS_INLINE __forceinline
+#define METRIS_ALWAYS_INLINE __forceinline
 #else
 #warning Not forcing inline with this compiler... (Please add this compiler to tools/always_inline.h)
-#define ALWAYS_INLINE inline
+#define METRIS_ALWAYS_INLINE inline
 #endif
 
 #endif
@@ -174,7 +174,7 @@ public:
   }
   void inc_n();
 
-  ALWAYS_INLINE INT1 get_n() const {return n1;}
+  METRIS_ALWAYS_INLINE INT1 get_n() const {return n1;}
 
   void free();
 
@@ -200,13 +200,13 @@ public:
   inline INT1 size() const {return m1;}
   inline INT1 size1() const {return m1;}
 
-  ALWAYS_INLINE T &operator[](const INT1 &i){
+  METRIS_ALWAYS_INLINE T &operator[](const INT1 &i){
     METRIS_ASSERT_MSG(i >= 0 && i < n1, 
       "Array1D out of bounds (1) i = {} >= N = {} addr {} m1 = {}", 
       i, n1, (void*) array, m1);
     return array[i];
   }
-  ALWAYS_INLINE const T &operator[](const INT1 &i) const {
+  METRIS_ALWAYS_INLINE const T &operator[](const INT1 &i) const {
     METRIS_ASSERT_MSG(i >= 0 && i < n1, 
       "Array1D out of bounds (2) i = {} >= N = {} addr {} m1 = {}", 
       i, n1, (void*) array, m1);
@@ -304,7 +304,7 @@ public:
     this->allocate(n,stride);
     n1 = n;
   }
-  ALWAYS_INLINE int get_n() const {return n1;}
+  METRIS_ALWAYS_INLINE int get_n() const {return n1;}
   void inc_n();
 
 
@@ -325,21 +325,21 @@ public:
   MeshArray2D<T,INT1,INT2>& operator=(const MeshArray2D &cpy); 
   MeshArray2D<T,INT1,INT2>& operator=(MeshArray2D &&cpy); 
 
-  ALWAYS_INLINE T* operator[](INT1 i){
+  METRIS_ALWAYS_INLINE T* operator[](INT1 i){
     METRIS_ASSERT_MSG(i >= 0 && i < n1, "i out of bounds i = {} n = {} m = {}", i, n1, m1);
     return &array[i*stride];
   }
-  ALWAYS_INLINE const T* operator[](INT1 i) const{
+  METRIS_ALWAYS_INLINE const T* operator[](INT1 i) const{
     METRIS_ASSERT_MSG(i >= 0 && i < n1, "i out of bounds i = {} n = {}", i, n1);
     return &array_ro[i*stride];
   }
 
-  ALWAYS_INLINE T& operator()(INT1 i, INT2 j){
+  METRIS_ALWAYS_INLINE T& operator()(INT1 i, INT2 j){
     METRIS_ASSERT_MSG(i >= 0 && i < n1, "i = {} out of bounds n = {}", i, n1);
     METRIS_ASSERT_MSG(j >= 0 && j < stride, "j = {} out of bounds n = {}", j, stride);
     return array[i*stride + j];
   }
-  ALWAYS_INLINE const T& operator()(INT1 i, INT2 j) const{
+  METRIS_ALWAYS_INLINE const T& operator()(INT1 i, INT2 j) const{
     METRIS_ASSERT_MSG(i >= 0 && i < n1, "i = {} out of bounds n = {}", i, n1);
     METRIS_ASSERT_MSG(j >= 0 && j < stride, "j = {} out of bounds n = {}", j, stride);
     return array_ro[i*stride + j];
@@ -556,17 +556,16 @@ protected:
 };
 
 
-} // End namespace
-
-
 template<class T, class INT1>
-std::ostream& operator<<(std::ostream& _os, const Metris::MeshArray1D<T, INT1> &arr){
+std::ostream& operator<<(std::ostream& _os, const MeshArray1D<T, INT1> &arr){
   return arr.print(_os);
 }
 
 template<class T, class INT1, class INT2>
-std::ostream& operator<<(std::ostream& _os, const Metris::MeshArray2D<T, INT1, INT2> &arr){
+std::ostream& operator<<(std::ostream& _os, const MeshArray2D<T, INT1, INT2> &arr){
   return arr.print(_os);
 }
+
+} // End namespace
 
 #endif

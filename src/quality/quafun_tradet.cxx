@@ -515,8 +515,8 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
                               FEBasis dofbas, 
                               DifVar idifmet, 
                               const double*__restrict__ met_,
-                              SANS::SurrealS<nvar,double>&__restrict__ tra, 
-                              SANS::SurrealS<nvar,double>&__restrict__ det,
+                              Metris::SurrealS<nvar,double>&__restrict__ tra,
+                              Metris::SurrealS<nvar,double>&__restrict__ det,
                               const Metris::DLA::MatrixS<gdim,nvar,double> *dpoint){
 
   static_assert(gdim == 2 || gdim == 3);
@@ -530,7 +530,7 @@ void d_quafun_tradet_SurrealS(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   METRIS_ASSERT_MSG(!(dofbas == FEBasis::Bezier && idifmet != DifVar::None), 
     "Ctrl pt dof not implemented -> do lag2bez derivatives of metric")
 
-  typedef SANS::SurrealS<nvar,double> doubleS;
+  typedef Metris::SurrealS<nvar,double> doubleS;
 
   constexpr int nnmet = (gdim*(gdim+1))/2;
   //constexpr int nhess = nnmet;
@@ -638,8 +638,8 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 2, 2, 2>\
                    FEBasis dofbas,\
                    DifVar idifmet,\
                    const double*__restrict__ met_,\
-                   SANS::SurrealS<2>&__restrict__ tra,\
-                   SANS::SurrealS<2>&__restrict__ det,\
+                   Metris::SurrealS<2>&__restrict__ tra,\
+                   Metris::SurrealS<2>&__restrict__ det,\
                    const Metris::DLA::MatrixS<2,2,double> *dpoint);\
 template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 3, 3>\
                   (Mesh< MFT_VAL > &msh,\
@@ -650,8 +650,8 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 3, 3>\
                    FEBasis dofbas,\
                    DifVar idifmet,\
                    const double*__restrict__ met_,\
-                   SANS::SurrealS<3>&__restrict__ tra,\
-                   SANS::SurrealS<3>&__restrict__ det,\
+                   Metris::SurrealS<3>&__restrict__ tra,\
+                   Metris::SurrealS<3>&__restrict__ det,\
                    const Metris::DLA::MatrixS<3,3,double> *dpoint);\
 template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 2>\
                   (Mesh< MFT_VAL > &msh,\
@@ -662,8 +662,8 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 2>\
                    FEBasis dofbas,\
                    DifVar idifmet,\
                    const double*__restrict__ met_,\
-                   SANS::SurrealS<2>&__restrict__ tra,\
-                   SANS::SurrealS<2>&__restrict__ det,\
+                   Metris::SurrealS<2>&__restrict__ tra,\
+                   Metris::SurrealS<2>&__restrict__ det,\
                    const Metris::DLA::MatrixS<3,2,double> *dpoint);\
 template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 3>\
                   (Mesh< MFT_VAL > &msh,\
@@ -674,8 +674,8 @@ template void d_quafun_tradet_SurrealS< MFT_VAL , 3, 2, 3>\
                    FEBasis dofbas,\
                    DifVar idifmet,\
                    const double*__restrict__ met_,\
-                   SANS::SurrealS<3>&__restrict__ tra,\
-                   SANS::SurrealS<3>&__restrict__ det,\
+                   Metris::SurrealS<3>&__restrict__ tra,\
+                   Metris::SurrealS<3>&__restrict__ det,\
                    const Metris::DLA::MatrixS<3,3,double> *dpoint);
 INSTANTIATE(MetricFieldAnalytical)
 INSTANTIATE(MetricFieldFE)

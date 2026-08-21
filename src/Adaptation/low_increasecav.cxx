@@ -882,7 +882,7 @@ int increase_cavity(MeshMetric<MFT>& msh, MshCavity& cav,
       CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
         nordev = getnordev<ideg>(msh,iface,NULL);
       }}CT_FOR1(ideg);
-      ref2nordev(iref,0) = MAX(ref2nordev(iref,0) , nordev);
+      ref2nordev(iref,0) = METRIS_MAX(ref2nordev(iref,0) , nordev);
       CPRINTF1(" - iface {} nordev = {}\n",iface,nordev);
     }
 

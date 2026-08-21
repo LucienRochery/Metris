@@ -34,7 +34,7 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
     return 0;
   }
 
-  //printf("## DEBUG SET MAX PRINTS HERE \n");
+  //printf("## DEBUG SET METRIS_MAX PRINTS HERE \n");
   //wait();
   //msh.param->ivdepth = 5;
   //msh.param->iverb = 5;
@@ -174,8 +174,8 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
       double t11 = get_cpu_time();
 
       double stat0 =(double)nswap_niter / (double)msh.nentt(tdim);
-      if(ntry == 0) stat  = MAX(stat, 0);
-      else          stat  = MAX(stat, stat0);
+      if(ntry == 0) stat  = METRIS_MAX(stat, 0);
+      else          stat  = METRIS_MAX(stat, stat0);
 
       int ncallps_niter = 1000*(int)((nswap_niter / (t11-t01)) / 1000);
       CPRINTF2(" - swaps full iter {} ntry = {} nswap {} = {} /s; nerro {} stat {:.2e}",niter,

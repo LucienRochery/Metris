@@ -3,8 +3,8 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef PROMOTE_SURREAL_H
-#define PROMOTE_SURREAL_H
+#ifndef METRIS_PROMOTE_SURREAL_H
+#define METRIS_PROMOTE_SURREAL_H
 
 #include <cstddef> // std::size_t
 
@@ -12,11 +12,11 @@
 #include "SurrealS_fwd.h"
 
 
+namespace Metris
+{
+
 // Forward declare
 class SurrealD;
-
-namespace SANS
-{
 
 //=============================================================================
 // Allows to use promote Surreal for any number of template arguments
@@ -63,7 +63,7 @@ template<>
 struct promote_Surreal< SurrealD, SurrealD > { typedef SurrealD type; };
 
 
-#define APPLY_TO_REALTYPE(RealType)\
+#define METRIS_APPLY_TO_REALTYPE(RealType)\
 template<>\
 struct promote_Surreal<RealType, RealType> { typedef RealType type; };\
 \
@@ -85,12 +85,12 @@ struct promote_Surreal< RealType, SurrealD > { typedef SurrealD type; };\
 template<>\
 struct promote_Surreal< SurrealD, RealType > { typedef SurrealD type; };\
 
-APPLY_TO_REALTYPE(double)
-#ifdef USE_MULTIPRECISION
-  APPLY_TO_REALTYPE(float4)
-  APPLY_TO_REALTYPE(float8)
+METRIS_APPLY_TO_REALTYPE(double)
+#ifdef METRIS_USE_MULTIPRECISION
+  METRIS_APPLY_TO_REALTYPE(float4)
+  METRIS_APPLY_TO_REALTYPE(float8)
 #endif
-#undef APPLY_TO_REALTYPE
+#undef METRIS_APPLY_TO_REALTYPE
 
 template <>
 struct promote_Surreal<unsigned long, double> {
@@ -108,6 +108,6 @@ struct promote_Surreal<unsigned long, unsigned long> {
 };
 
 
-} // namespace SANS
+} // namespace Metris
 
-#endif //PROMOTE_SURREAL_H
+#endif //METRIS_PROMOTE_SURREAL_H
