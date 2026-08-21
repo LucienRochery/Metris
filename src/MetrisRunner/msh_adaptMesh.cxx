@@ -62,6 +62,8 @@ void MetrisRunner::adaptMesh(){
 
 
 void MetrisRunner::adaptMesh2(){
+  if(param->adp_niter == 0) return;
+
   CT_FOR0_INC(2,3,gdim){if(gdim == msh_g->idim){
     CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh_g->curdeg == ideg){
       #ifdef TESTQUALITYALGO
@@ -640,26 +642,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   handlerTopX.setCallbacks(
                             [&](int ientt){ return lquae[ientt]; },
                             [&](int ientt){ return isdeadent(ientt,ent2poi); });
-
-  #ifdef STEPDISTANCE
-  if(msh.param->step_distance_cavity_target_average){
-    handlerTopX.setBestWeightedObjectiveStorage(
-        &msh.param->step_distance_cavity_best_objective);
-    handlerTopX.setObjectiveWeightCallback([&](int ientt){
-      if(msh.idim == 2){
-        METRIS_ENFORCE(tdim == 2);
-        return step_distance_element_target_weight<MFT,2,2>(
-            msh,AsDeg::P1,ientt);
-      }
-      if(tdim == 2){
-        return step_distance_element_target_weight<MFT,3,2>(
-            msh,AsDeg::P1,ientt);
-      }
-      return step_distance_element_target_weight<MFT,3,3>(
-          msh,AsDeg::P1,ientt);
-    });
-  }
-  #endif
 
   // builds K and R
   handlerTopX.seedFromSortedIDs(sortedIDs);

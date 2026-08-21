@@ -105,7 +105,6 @@ namespace Metris
     }
     METRIS_ENFORCE(state.element_count > 0);
     state.target_weight = state.element_count;
-    state.best_objective = state.value();
     return state;
   }
 
@@ -184,11 +183,6 @@ namespace Metris
                            > 1.0e-9*abs(msh.param->qua_surf_wt_quality);
     constexpr auto ordelt = ORDELT(tdim);
     const int nnode = getnnode(tdim,ideg_eff);
-
-#ifdef TESTQUALITYALGO
-    // Assumptions for quality algo:
-    METRIS_ASSERT(ideg_eff == 1);
-#endif
 
     // Accumulate normal error at the nodes (depending on asdmsh)
     if (do_nordev)

@@ -16,7 +16,6 @@
 #include "nlohmann/json_fwd.hpp"
 #include <string>
 #include <cstdio>
-#include <limits>
 
 #include "../inc_hana.hxx"
 
@@ -113,8 +112,6 @@ depending on whether they should be serialized.
     FIELD(double, step_distance_regularization, 1.0e-12) \
     FIELD(bool, step_distance_shape_volume, false) \
     FIELD(bool, step_distance_cavity_target_average, false) \
-    FIELD(double, step_distance_cavity_global_tolerance, 1.0e-6) \
-    FIELD(double, step_distance_cavity_global_gain_fraction, 0.05) \
     FIELD(double, step_distance_barrier_rho0, 0.7) \
     FIELD(double, step_distance_barrier_beta, 0.0) \
     FIELD(int, opt_smoo_niter, 10) \
@@ -180,8 +177,6 @@ depending on whether they should be serialized.
     FIELD(bool, dbgfull, false) \
     FIELD(bool, interactive, false) \
     FIELD(bool, nocleanup, false) /* disable cleanup routines, easier index tracking */ \
-    /* Best cavity-target global objective for the current fixed target metric. */ \
-    FIELD(double, step_distance_cavity_best_objective, std::numeric_limits<double>::infinity()) \
     FIELD(FEBasis, outbasis, FEBasis::Lagrange) \
     FIELD(bool, refineConventionsInp, false) \
     FIELD(bool, refineConventionsOut, false) \

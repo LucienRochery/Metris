@@ -136,12 +136,6 @@ struct MetrisOptions{
                     "elemental StepDistance integrals. Cavity replacements "
                     "must strictly improve the mesh-wide mean. This path "
                     "does not use the collapse barrier.")
-      ("step-distance-cavity-global-tolerance", po::value<double>(),
-                    "Deprecated compatibility option; ignored by the strict "
-                    "global-improvement CavityTargetAverage criterion.")
-      ("step-distance-cavity-global-gain-fraction", po::value<double>(),
-                    "Deprecated compatibility option; ignored by the strict "
-                    "global-improvement CavityTargetAverage criterion.")
       ("step-distance-barrier-rho0", po::value<double>(),
                     "Metric-volume threshold rho0 for the StepDistance collapse barrier.")
       ("step-distance-barrier-beta", po::value<double>(),

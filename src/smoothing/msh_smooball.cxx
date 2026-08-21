@@ -32,6 +32,38 @@ Simplest possible approach.
 
 namespace Metris{
 
+void buildEdgeControlPointSmoothingRegion(
+    const MeshBase &msh,
+    int tdim,
+    int seed_entity,
+    int local_edge,
+    intAr1 &region){
+  METRIS_ENFORCE_MSG(tdim == 2 || tdim == 3,
+                     "Unsupported smoothing-region dimension {}",tdim);
+  METRIS_ENFORCE_MSG(seed_entity >= 0 && seed_entity < msh.nentt(tdim),
+                     "Invalid smoothing-region seed {}",seed_entity);
+
+  region.allocate(tdim == 2 ? 2 : 10);
+  region.set_n(0);
+  region.stack(seed_entity);
+
+  if(tdim == 2){
+    METRIS_ENFORCE_MSG(local_edge >= 0 && local_edge < 3,
+                       "Invalid triangle local edge {}",local_edge);
+    const int neighbor = msh.fac2fac(seed_entity,local_edge);
+    if(neighbor >= 0) region.stack(neighbor);
+    return;
+  }
+
+  METRIS_ENFORCE_MSG(local_edge >= 0 && local_edge < 6,
+                     "Invalid tetrahedron local edge {}",local_edge);
+  const int ip1 = msh.tet2poi(seed_entity,lnoed3[local_edge][0]);
+  const int ip2 = msh.tet2poi(seed_entity,lnoed3[local_edge][1]);
+  intAr1 boundary_faces;
+  int open_shell;
+  shell3(msh,ip1,ip2,seed_entity,region,boundary_faces,&open_shell);
+}
+
 template<class MFT>
 double smoothing_region_objective(const Mesh<MFT>& msh,
                                   QuaFun iquaf,
@@ -92,7 +124,6 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
 
   int nentt = msh.nentt(tdim);
   const intAr2 &ent2poi = msh.ent2poi(tdim);
-  const intAr2 &ent2ent = msh.ent2ent(tdim);
 
 
   #ifdef USE_LPLIB_SMOOTHINTERIOR
@@ -424,24 +455,8 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         // HO node
         int nppe = getnnod1(ideg) - 2;
         int ied = (iver - (tdim + 1)) / nppe;
-        if constexpr (tdim == 2){
-          lball.set_n(0);
-          lball.stack(ientt);
-          METRIS_ASSERT(ied < 4);
-
-          int ifnei = ent2ent(ientt,ied);
-          // nm not impl yet and bdry should never happen
-          METRIS_ASSERT(ifnei >= 0);
-
-          lball.stack(ifnei);
-        }else{
-          int ip1 = msh.tet2poi(ientt, lnoed3[ied][0]);
-          int ip2 = msh.tet2poi(ientt, lnoed3[ied][1]);
-          static intAr1 dum;
-          int iopen;
-          shell3(msh, ip1, ip2, ientt, lball, dum, &iopen);
-          // METRIS_ASSERT(iopen < 0);
-        }
+        buildEdgeControlPointSmoothingRegion(
+            msh,tdim,ientt,ied,lball);
 
       }
       METRIS_ASSERT(ierro == 0);
@@ -728,16 +743,9 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
       && msh.param->step_distance_cavity_target_average;
   StepDistanceObjectiveState globalStepDistance;
   if(useGlobalStepDistance){
-    globalStepDistance.cavity_global_relative_tolerance =
-        msh.param->step_distance_cavity_global_tolerance;
-    globalStepDistance.cavity_global_gain_fraction =
-        msh.param->step_distance_cavity_global_gain_fraction;
     globalStepDistance.element_count = handler.getQualityCount();
     globalStepDistance.numerator = handler.getQualitySum();
     globalStepDistance.target_weight = handler.getQualityCount();
-    globalStepDistance.best_objective = handler.getBestWeightedObjective();
-    globalStepDistance.best_objective_storage =
-        &msh.param->step_distance_cavity_best_objective;
   }
 
   double noper = 0;
@@ -929,14 +937,8 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
               qsum,navg,targetWeightSum,
               qsumNew,navg,targetWeightSumNew);
           improveGlobalObjective =
-              cavity_target_average_global_filter_accepts(
-                  objectiveSum,objectiveSumNew,
-                  globalObjective,globalObjectiveNew,
-                  globalStepDistance.best_objective,
-                  targetWeightSum,targetWeightSumNew,
-                  globalStepDistance.target_weight,
-                  msh.param->step_distance_cavity_global_tolerance,
-                  msh.param->step_distance_cavity_global_gain_fraction);
+              objective_strictly_improves(
+                  globalObjectiveNew,globalObjective);
         }
         bool improveQuaMax = true;
         #ifdef IMPROVEMAXQUAL

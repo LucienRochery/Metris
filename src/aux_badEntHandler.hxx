@@ -126,25 +126,12 @@ private:
   // placeholder for knowing if entt is dead
   std::function<bool(int)> is_dead;
 
-  // Optional additive weight used by normalized global objectives. When it is
-  // unset, every entity has unit weight and the weighted totals reduce to the
-  // ordinary quality sum and entity count.
-  std::function<double(int)> objective_weight_at;
-
 public:
 
   // to set the placeholders from the exterior of the struct
   void setCallbacks(std::function<double(int)> qua_atExt, std::function<bool(int)> is_deadExt){
     qua_at = std::move(qua_atExt);
     is_dead = std::move(is_deadExt);
-  }
-
-  void setObjectiveWeightCallback(std::function<double(int)> weight_atExt){
-    objective_weight_at = std::move(weight_atExt);
-  }
-
-  void setBestWeightedObjectiveStorage(double* storage){
-    bestWeightedObjectiveStorage = storage;
   }
 
   // construct K and R from sorted index list (worst quality first)
@@ -155,12 +142,8 @@ public:
     sizeK = std::max(1, (int)std::round(nentt * topX/100.));
     qualitySum = 0.;
     qualityCount = 0;
-    weightedQualitySum = 0.;
-    objectiveWeightSum = 0.;
     storedObjectiveQualities.clear();
     storedObjectiveQualities.reserve(nentt);
-    storedObjectiveWeights.clear();
-    storedObjectiveWeights.reserve(nentt);
 
     K.clear(); inK.clear(); inK.reserve(nentt);
     R.clear(); inR.clear(); inK.reserve(nentt);
@@ -175,13 +158,7 @@ public:
       EntQual entt{ientt, q};
       qualitySum += q;
       qualityCount++;
-      const double weight = objective_weight_at ? objective_weight_at(ientt)
-                                                : 1.0;
-      METRIS_ENFORCE(weight > 0.);
-      weightedQualitySum += weight*q;
-      objectiveWeightSum += weight;
       storedObjectiveQualities[ientt] = q;
-      storedObjectiveWeights[ientt] = weight;
 
       if (placedInK < sizeK){
 
@@ -202,20 +179,6 @@ public:
       }
     }
     METRIS_ENFORCE(qualityCount > 0);
-    METRIS_ENFORCE(objectiveWeightSum > 0.);
-    const double currentWeightedObjective =
-        weightedQualitySum/objectiveWeightSum;
-    if(bestWeightedObjectiveStorage != nullptr){
-      if(!std::isfinite(*bestWeightedObjectiveStorage)){
-        *bestWeightedObjectiveStorage = currentWeightedObjective;
-      }else{
-        *bestWeightedObjectiveStorage = std::min(
-            *bestWeightedObjectiveStorage,currentWeightedObjective);
-      }
-      bestWeightedObjective = *bestWeightedObjectiveStorage;
-    }else{
-      bestWeightedObjective = currentWeightedObjective;
-    }
     // create max-heap in R
     // std::make_heap(R.begin(), R.end(), CmpMaxQua{});
 
@@ -228,56 +191,26 @@ public:
 
     for(const int ientt : deadIDs){
       const auto qualityIt = storedObjectiveQualities.find(ientt);
-      if(qualityIt == storedObjectiveQualities.end()){
-        METRIS_ENFORCE(storedObjectiveWeights.find(ientt)
-                       == storedObjectiveWeights.end());
-        continue;
-      }
+      if(qualityIt == storedObjectiveQualities.end()) continue;
       qualityCount--;
-      const auto weightIt = storedObjectiveWeights.find(ientt);
-      METRIS_ENFORCE(weightIt != storedObjectiveWeights.end());
       qualitySum -= qualityIt->second;
-      weightedQualitySum -= weightIt->second*qualityIt->second;
-      objectiveWeightSum -= weightIt->second;
       storedObjectiveQualities.erase(qualityIt);
-      storedObjectiveWeights.erase(weightIt);
     }
 
     for(const auto& [ientt,newQuality] : affectedEnttsAlive){
       const auto qualityIt = storedObjectiveQualities.find(ientt);
       if(qualityIt != storedObjectiveQualities.end()){
-        const auto weightIt = storedObjectiveWeights.find(ientt);
-        METRIS_ENFORCE(weightIt != storedObjectiveWeights.end());
         qualitySum -= qualityIt->second;
-        weightedQualitySum -= weightIt->second*qualityIt->second;
-        objectiveWeightSum -= weightIt->second;
       }else{
-        METRIS_ENFORCE(storedObjectiveWeights.find(ientt)
-                       == storedObjectiveWeights.end());
         qualityCount++;
       }
       qualitySum += newQuality;
-      const double newWeight = objective_weight_at ? objective_weight_at(ientt)
-                                                   : 1.0;
-      METRIS_ENFORCE(newWeight > 0.);
-      weightedQualitySum += newWeight*newQuality;
-      objectiveWeightSum += newWeight;
       storedObjectiveQualities[ientt] = newQuality;
-      storedObjectiveWeights[ientt] = newWeight;
     }
 
     METRIS_ENFORCE(qualityCount > 0);
-    METRIS_ENFORCE(objectiveWeightSum > 0.);
     METRIS_ENFORCE(storedObjectiveQualities.size()
                    == static_cast<std::size_t>(qualityCount));
-    METRIS_ENFORCE(storedObjectiveWeights.size()
-                   == static_cast<std::size_t>(qualityCount));
-    bestWeightedObjective = std::min(
-        bestWeightedObjective,weightedQualitySum/objectiveWeightSum);
-    if(bestWeightedObjectiveStorage != nullptr){
-      *bestWeightedObjectiveStorage = std::min(
-          *bestWeightedObjectiveStorage,bestWeightedObjective);
-    }
 
     // std::cout << "Base number of alive entities = " << nentt << std::endl;
 
@@ -465,9 +398,6 @@ public:
 
   double getQualitySum() const { return qualitySum; }
   int getQualityCount() const { return qualityCount; }
-  double getWeightedQualitySum() const { return weightedQualitySum; }
-  double getObjectiveWeightSum() const { return objectiveWeightSum; }
-  double getBestWeightedObjective() const { return bestWeightedObjective; }
 
   bool checkSuccess(const double quaNew, const double quaOld) const {
 
@@ -515,12 +445,7 @@ private:
   int nentt;
   double qualitySum = 0.;
   int qualityCount = 0;
-  double weightedQualitySum = 0.;
-  double objectiveWeightSum = 0.;
-  double bestWeightedObjective = std::numeric_limits<double>::infinity();
-  double* bestWeightedObjectiveStorage = nullptr;
   std::unordered_map<int,double> storedObjectiveQualities;
-  std::unordered_map<int,double> storedObjectiveWeights;
 
 private:
 

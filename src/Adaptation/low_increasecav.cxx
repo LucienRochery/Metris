@@ -100,25 +100,15 @@ void cavity_replacement_objectives(
 }
 
 template<QuaFun iquaf, class MFT>
-bool cavity_replacement_global_filter_accepts(
+bool cavity_replacement_accepts(
     const Mesh<MFT>& msh,
     const BadEntHandler& handler,
-    double old_local_objective,
-    double new_local_objective,
     double old_global_objective,
-    double new_global_objective,
-    double old_target_weight_sum,
-    double new_target_weight_sum){
+    double new_global_objective){
   if constexpr(iquaf == QuaFun::StepDistance){
     if(msh.param->step_distance_cavity_target_average){
-      return cavity_target_average_global_filter_accepts(
-          old_local_objective,new_local_objective,
-          old_global_objective,new_global_objective,
-          handler.getBestWeightedObjective(),
-          old_target_weight_sum,new_target_weight_sum,
-          handler.getQualityCount(),
-          msh.param->step_distance_cavity_global_tolerance,
-          msh.param->step_distance_cavity_global_gain_fraction);
+      return objective_strictly_improves(
+          new_global_objective,old_global_objective);
     }
   }
   return handler.checkSuccess(new_global_objective,old_global_objective);
@@ -3670,9 +3660,8 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
            quaCav0,quaCav1,targetWeightCav0,targetWeightCav1,
            nQuaCav0,nQuaCav1);
   const bool improveEnttsSum =
-      cavity_replacement_global_filter_accepts<iquaf>(
-          msh,handler,objCav0,objCav1,objGlobal0,objGlobal1,
-          targetWeightCav0,targetWeightCav1);
+      cavity_replacement_accepts<iquaf>(
+          msh,handler,objGlobal0,objGlobal1);
   bool improveEnttsMax = true;
   #ifdef IMPROVEMAXQUAL
   improveEnttsMax = quaMax1 <= quaMax0;
@@ -4002,9 +3991,8 @@ int checkCavityQuality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   // mean; no separate local descent condition is imposed.
   (void)worsenPctg;
   const bool cavAccepted =
-      cavity_replacement_global_filter_accepts<iquaf>(
-          msh,handler,objCav0,objCav1,objGlobal0,objGlobal1,
-          targetWeightCav0,targetWeightCav1);
+      cavity_replacement_accepts<iquaf>(
+          msh,handler,objGlobal0,objGlobal1);
 
   bool improveEnttsMax = true;
   #ifdef IMPROVEMAXQUAL

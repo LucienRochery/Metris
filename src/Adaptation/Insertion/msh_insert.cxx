@@ -102,26 +102,6 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
                        [&](int ientt){
                          return isdeadent(ientt,msh.ent2poi(tdim));
                        });
-  #ifdef STEPDISTANCE
-  if(msh.param->step_distance_cavity_target_average){
-    handler.setBestWeightedObjectiveStorage(
-        &msh.param->step_distance_cavity_best_objective);
-    handler.setObjectiveWeightCallback([&](int ientt){
-      if constexpr(gdim == 2){
-        METRIS_ENFORCE(tdim == 2);
-        return step_distance_element_target_weight<MFT,2,2>(
-            msh,AsDeg::P1,ientt);
-      }else{
-        if(tdim == 2){
-          return step_distance_element_target_weight<MFT,3,2>(
-              msh,AsDeg::P1,ientt);
-        }
-        return step_distance_element_target_weight<MFT,3,3>(
-            msh,AsDeg::P1,ientt);
-      }
-    });
-  }
-  #endif
   std::vector<int> sorted_ids(msh.nentt(tdim));
   std::iota(sorted_ids.begin(),sorted_ids.end(),0);
   std::sort(sorted_ids.begin(),sorted_ids.end(),

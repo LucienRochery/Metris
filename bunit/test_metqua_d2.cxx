@@ -39,15 +39,12 @@ typedef std::pair<AsDeg,AsDeg> AsDegPair;
 BOOST_AUTO_TEST_CASE(test_bad_ent_handler_global_totals_include_seen_entities)
 {
   std::array<double,3> qualities = {3.0,2.0,1.0};
-  const std::array<double,3> weights = {2.0,3.0,5.0};
   std::array<bool,3> alive = {true,true,true};
 
   BadEntHandler handler(1,100.0,0.00001);
   handler.setCallbacks(
       [&](int ientt){ return qualities[ientt]; },
       [&](int ientt){ return !alive[ientt]; });
-  handler.setObjectiveWeightCallback(
-      [&](int ientt){ return weights[ientt]; });
   handler.seedFromSortedIDs({0,1,2});
 
   intAr2 ent2ent(3,2);
@@ -61,8 +58,6 @@ BOOST_AUTO_TEST_CASE(test_bad_ent_handler_global_totals_include_seen_entities)
 
   BOOST_CHECK_EQUAL(handler.getQualityCount(),3);
   BOOST_CHECK_CLOSE_FRACTION(handler.getQualitySum(),6.0,1.e-15);
-  BOOST_CHECK_CLOSE_FRACTION(handler.getObjectiveWeightSum(),10.0,1.e-15);
-  BOOST_CHECK_CLOSE_FRACTION(handler.getWeightedQualitySum(),17.0,1.e-15);
 
   // Processing entity 1 moves the worse entity 0 out of K and into
   // seenEntts. Its aggregate contribution must nevertheless stay tracked.
@@ -71,7 +66,6 @@ BOOST_AUTO_TEST_CASE(test_bad_ent_handler_global_totals_include_seen_entities)
   handler.updateK(1,ent2ent,ent2tag,1,0);
   BOOST_CHECK_EQUAL(handler.getQualityCount(),3);
   BOOST_CHECK_CLOSE_FRACTION(handler.getQualitySum(),5.5,1.e-15);
-  BOOST_CHECK_CLOSE_FRACTION(handler.getWeightedQualitySum(),15.5,1.e-15);
 
   // Updating an element that is already in seenEntts replaces its old global
   // contribution; it must not be counted as a newly created element.
@@ -80,8 +74,6 @@ BOOST_AUTO_TEST_CASE(test_bad_ent_handler_global_totals_include_seen_entities)
   handler.updateK(2,ent2ent,ent2tag,2,0);
   BOOST_CHECK_EQUAL(handler.getQualityCount(),3);
   BOOST_CHECK_CLOSE_FRACTION(handler.getQualitySum(),5.0,1.e-15);
-  BOOST_CHECK_CLOSE_FRACTION(handler.getObjectiveWeightSum(),10.0,1.e-15);
-  BOOST_CHECK_CLOSE_FRACTION(handler.getWeightedQualitySum(),14.5,1.e-15);
 
   // Deleting another seen element must remove its stored contribution.
   alive[1] = false;
@@ -91,8 +83,6 @@ BOOST_AUTO_TEST_CASE(test_bad_ent_handler_global_totals_include_seen_entities)
   handler.updateK(0,ent2ent,ent2tag,3,0);
   BOOST_CHECK_EQUAL(handler.getQualityCount(),2);
   BOOST_CHECK_CLOSE_FRACTION(handler.getQualitySum(),3.4,1.e-15);
-  BOOST_CHECK_CLOSE_FRACTION(handler.getObjectiveWeightSum(),7.0,1.e-15);
-  BOOST_CHECK_CLOSE_FRACTION(handler.getWeightedQualitySum(),9.8,1.e-15);
 }
 
 BOOST_AUTO_TEST_CASE(test_stepdistance_arbitrary_p_derivatives)
@@ -897,11 +887,6 @@ BOOST_AUTO_TEST_CASE(test_integrated_stepdistance_objective_derivatives)
   BOOST_CHECK(!cavity_average_state.accepts_replacement(
       old_cavity_sum,old_cavity_count,old_cavity_count,
       new_cavity_sum,new_cavity_count,new_cavity_count));
-
-  // The former tolerance/gain filter cannot admit even a tiny worsening.
-  BOOST_CHECK(!cavity_target_average_global_filter_accepts(
-      1.0,0.999999,0.5,0.5000001,0.5,
-      2.0,3.0,10.0,1.e-6,0.05));
 
   // Conversely, a locally worsening replacement is accepted when the global
   // element-count average improves.

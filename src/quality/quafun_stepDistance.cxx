@@ -84,28 +84,6 @@ bool objective_strictly_improves(double value_new,
   return value_new <= (1. - relative_improvement)*value_old;
 }
 
-bool cavity_target_average_global_filter_accepts(
-    double local_old,
-    double local_new,
-    double global_current,
-    double global_trial,
-    double global_best,
-    double old_region_unit_weight,
-    double new_region_unit_weight,
-    double global_unit_weight,
-    double global_relative_tolerance,
-    double global_gain_fraction){
-  (void)local_old;
-  (void)local_new;
-  (void)global_best;
-  (void)old_region_unit_weight;
-  (void)new_region_unit_weight;
-  (void)global_unit_weight;
-  (void)global_relative_tolerance;
-  (void)global_gain_fraction;
-  return objective_strictly_improves(global_trial,global_current);
-}
-
 double StepDistanceObjectiveState::value() const{
   return step_distance_region_objective(
       numerator,element_count,true);
@@ -163,10 +141,6 @@ void StepDistanceObjectiveState::replace(
   element_count += new_region_element_count - old_region_element_count;
   METRIS_ENFORCE(element_count > 0);
   target_weight = element_count;
-  best_objective = std::min(best_objective,value());
-  if(best_objective_storage != nullptr){
-    *best_objective_storage = std::min(*best_objective_storage,best_objective);
-  }
 }
 
 double step_distance_region_objective(double elemental_sum,

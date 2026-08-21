@@ -20,6 +20,17 @@ Low-level drivers:
 
 namespace Metris{
 
+// Build the element region affected by moving a high-order edge control point.
+// In 2D this is the seed triangle plus its across-edge neighbor when one
+// exists; a boundary edge therefore produces a one-triangle region. In 3D it
+// is the complete tetrahedral shell around the edge.
+void buildEdgeControlPointSmoothingRegion(
+    const MeshBase &msh,
+    int tdim,
+    int seed_entity,
+    int local_edge,
+    intAr1 &region);
+
 // Returns number of operations as double; this is because it may exceed element
 // count, something that cannot be anticipated easily by selecting integer
 // types.

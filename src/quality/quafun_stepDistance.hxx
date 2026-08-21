@@ -33,10 +33,6 @@ struct StepDistanceObjectiveState{
   // Compatibility mirror used by cavity/smoothing plumbing. Each element now
   // has unit objective weight, so target_weight == element_count.
   double target_weight = 0.;
-  double best_objective = std::numeric_limits<double>::infinity();
-  double* best_objective_storage = nullptr;
-  double cavity_global_relative_tolerance = 0.;
-  double cavity_global_gain_fraction = 0.;
 
   double value() const;
   double region_value(double region_numerator,
@@ -66,21 +62,6 @@ struct StepDistanceObjectiveState{
 bool objective_strictly_improves(double value_new,
                                  double value_old,
                                  double relative_improvement = 1.e-7);
-
-// Compatibility entry point for existing cavity/smoothing call sites. Local
-// values, best-so-far state, and the former tolerance budget are deliberately
-// ignored: acceptance is strict mesh-wide improvement only.
-bool cavity_target_average_global_filter_accepts(
-    double local_old,
-    double local_new,
-    double global_current,
-    double global_trial,
-    double global_best,
-    double old_region_unit_weight,
-    double new_region_unit_weight,
-    double global_unit_weight,
-    double global_relative_tolerance,
-    double global_gain_fraction);
 
 // Convert accumulated elemental StepDistance data to a regional objective.
 // For cavity_target_average, the objective is the arithmetic mean over the

@@ -81,11 +81,6 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   const int nnode = getnnode(tdim,ideg_eff);
 
 
-  #ifdef TESTQUALITYALGO
-  // Assumptions for quality algo:
-  METRIS_ASSERT(ideg_eff == 1);
-  #endif
-
   // Accumulate normal error at the nodes (depending on asdmsh)
   if(do_nordev){
     double result[18];

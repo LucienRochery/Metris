@@ -1,0 +1,331 @@
+// Metris: high-order metric-based non-manifold tetrahedral remesher
+// Copyright (C) 2023-2025, Massachusetts Institute of Technology
+// Licensed under The GNU Lesser General Public License, version 2.1
+// See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
+
+#define BOOST_TEST_MODULE test_high_order_classic_smoothing
+
+#include "common_setup.hxx"
+
+#include "Mesh/Mesh.hxx"
+#include "MetrisRunner/MetrisParameters.hxx"
+#include "MetrisRunner/MetrisRunner.hxx"
+#include "quality/low_metqua.hxx"
+#include "smoothing/msh_smooball.hxx"
+
+#include <cmath>
+#include <filesystem>
+#include <memory>
+
+using namespace Metris;
+
+namespace
+{
+
+std::unique_ptr<MetrisRunner> make_elevated_two_triangle_runner()
+{
+  MetrisParameters parameters;
+  parameters.setAnalyticalMetric(1);
+  parameters.setMeshIn(METRIS_ROOT_DIR "/examples/2D/misc/2tri2D.mesh");
+  parameters.usrTarDeg = 2;
+  parameters.adp_niter = 0;
+  parameters.opt_niter = 0;
+  parameters.iverb = 0;
+  parameters.outmPrefix
+      = (std::filesystem::temp_directory_path()
+         / "metris_high_order_classic_smoothing").string() + "/";
+
+  auto runner = std::make_unique<MetrisRunner>(
+      nullptr,nullptr,parameters);
+  BOOST_REQUIRE_EQUAL(runner->degElevate(),1);
+  return runner;
+}
+
+std::unique_ptr<MetrisRunner> make_elevated_square_cad_runner()
+{
+  MetrisParameters parameters;
+  parameters.setAnalyticalMetric(1);
+  parameters.setMeshIn(
+      METRIS_ROOT_DIR "/examples/2D/square/square.meshb");
+  parameters.setCAD(
+      METRIS_ROOT_DIR "/examples/2D/square/square.egads");
+  parameters.usrTarDeg = 2;
+  parameters.adp_niter = 0;
+  parameters.opt_niter = 0;
+  parameters.iverb = 0;
+  parameters.outmPrefix
+      = (std::filesystem::temp_directory_path()
+         / "metris_high_order_classic_smoothing_cad").string() + "/";
+
+  auto runner = std::make_unique<MetrisRunner>(
+      nullptr,nullptr,parameters);
+  BOOST_REQUIRE_EQUAL(runner->degElevate(),1);
+  return runner;
+}
+
+std::unique_ptr<MetrisRunner> make_elevated_cube_runner()
+{
+  MetrisParameters parameters;
+  parameters.setAnalyticalMetric(1);
+  parameters.setMeshIn(
+      METRIS_ROOT_DIR "/examples/3D/cube/cube.meshb");
+  parameters.usrTarDeg = 2;
+  parameters.adp_niter = 0;
+  parameters.opt_niter = 0;
+  parameters.iverb = 0;
+  parameters.outmPrefix
+      = (std::filesystem::temp_directory_path()
+         / "metris_high_order_classic_smoothing_3d").string() + "/";
+
+  auto runner = std::make_unique<MetrisRunner>(
+      nullptr,nullptr,parameters);
+  BOOST_REQUIRE_EQUAL(runner->degElevate(),1);
+  return runner;
+}
+
+bool region_contains(const intAr1 &region, int entity)
+{
+  for(const int candidate : region){
+    if(candidate == entity) return true;
+  }
+  return false;
+}
+
+} // namespace
+
+BOOST_AUTO_TEST_CASE(p2_edge_control_point_regions_in_two_triangles)
+{
+  auto runner = make_elevated_two_triangle_runner();
+  auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner->msh_g);
+  BOOST_REQUIRE_EQUAL(mesh.curdeg,2);
+  BOOST_REQUIRE_EQUAL(mesh.nface,2);
+
+  int boundary_edge = -1;
+  int interior_edge = -1;
+  for(int local_edge = 0; local_edge < 3; local_edge++){
+    if(mesh.fac2fac(0,local_edge) < 0){
+      if(boundary_edge < 0) boundary_edge = local_edge;
+    }else{
+      interior_edge = local_edge;
+    }
+  }
+  BOOST_REQUIRE_GE(boundary_edge,0);
+  BOOST_REQUIRE_GE(interior_edge,0);
+
+  intAr1 region(4);
+  buildEdgeControlPointSmoothingRegion(
+      mesh,2,0,boundary_edge,region);
+  BOOST_REQUIRE_EQUAL(region.get_n(),1);
+  BOOST_CHECK_EQUAL(region[0],0);
+
+  const int neighbor = mesh.fac2fac(0,interior_edge);
+  BOOST_REQUIRE_GE(neighbor,0);
+  buildEdgeControlPointSmoothingRegion(
+      mesh,2,0,interior_edge,region);
+  BOOST_REQUIRE_EQUAL(region.get_n(),2);
+  BOOST_CHECK(region_contains(region,0));
+  BOOST_CHECK(region_contains(region,neighbor));
+
+  const int boundary_control_point
+      = mesh.fac2poi(0,3 + boundary_edge);
+  const int interior_control_point
+      = mesh.fac2poi(0,3 + interior_edge);
+  BOOST_CHECK_GE(mesh.getverfac<2>(0,boundary_control_point),3);
+  BOOST_CHECK_GE(mesh.getverfac<2>(0,interior_control_point),3);
+  BOOST_CHECK_GE(
+      mesh.getverfac<2>(neighbor,interior_control_point),3);
+}
+
+BOOST_AUTO_TEST_CASE(classic_p2_interior_edge_control_point_is_smoothed)
+{
+  auto runner = make_elevated_two_triangle_runner();
+  auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner->msh_g);
+  mesh.met.setSpace(MetSpace::Exp);
+  mesh.setBasis(FEBasis::Lagrange);
+
+  int interior_edge = -1;
+  for(int local_edge = 0; local_edge < 3; local_edge++){
+    if(mesh.fac2fac(0,local_edge) >= 0){
+      interior_edge = local_edge;
+      break;
+    }
+  }
+  BOOST_REQUIRE_GE(interior_edge,0);
+  const int control_point = mesh.fac2poi(0,3 + interior_edge);
+  BOOST_REQUIRE_GE(control_point,0);
+
+  mesh.coord(control_point,0) += 0.12;
+  mesh.coord(control_point,1) += 0.12;
+  const double perturbed_coordinates[2]
+      = {mesh.coord(control_point,0),mesh.coord(control_point,1)};
+
+  const auto distortion
+      = get_quafun<MetricFieldAnalytical,2,2>(QuaFun::Distortion);
+  double objective_before = 0.0;
+  for(int iface = 0; iface < mesh.nface; iface++){
+    objective_before += distortion(
+        mesh,AsDeg::Pk,AsDeg::Pk,iface,1.0);
+  }
+
+  const int point_tag = mesh.tag[1] + 1;
+  for(int ipoin = 0; ipoin < mesh.npoin; ipoin++){
+    mesh.poi2tag(1,ipoin) = point_tag;
+  }
+  mesh.poi2tag(1,control_point) = mesh.tag[1];
+  runner->param->opt_smoo_niter = 1;
+
+  BOOST_REQUIRE_NO_THROW(
+      smoothInterior_Ball(
+          mesh,QuaFun::Distortion,1,2));
+
+  double objective_after = 0.0;
+  for(int iface = 0; iface < mesh.nface; iface++){
+    objective_after += distortion(
+        mesh,AsDeg::Pk,AsDeg::Pk,iface,1.0);
+  }
+  BOOST_CHECK_LE(objective_after,objective_before);
+  const double displacement
+      = std::hypot(
+            mesh.coord(control_point,0) - perturbed_coordinates[0],
+            mesh.coord(control_point,1) - perturbed_coordinates[1]);
+  BOOST_CHECK_GT(displacement,1.e-10);
+}
+
+BOOST_AUTO_TEST_CASE(classic_p2_boundary_control_point_uses_cad_edge)
+{
+  auto runner = make_elevated_square_cad_runner();
+  auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner->msh_g);
+  mesh.met.setSpace(MetSpace::Exp);
+  mesh.setBasis(FEBasis::Lagrange);
+
+  int seed_face = -1;
+  int boundary_edge = -1;
+  int control_point = -1;
+  for(int iface = 0; iface < mesh.nface && control_point < 0; iface++){
+    if(isdeadent(iface,mesh.fac2poi)) continue;
+    for(int local_edge = 0; local_edge < 3; local_edge++){
+      if(mesh.fac2fac(iface,local_edge) >= 0) continue;
+      const int candidate = mesh.fac2poi(iface,3 + local_edge);
+      const int boundary_record = mesh.poi2bpo[candidate];
+      if(boundary_record < 0) continue;
+      if(mesh.bpo2ibi(boundary_record,1) != 1) continue;
+      seed_face = iface;
+      boundary_edge = local_edge;
+      control_point = candidate;
+      break;
+    }
+  }
+  BOOST_REQUIRE_GE(seed_face,0);
+  BOOST_REQUIRE_GE(boundary_edge,0);
+  BOOST_REQUIRE_GE(control_point,0);
+
+  intAr1 region(2);
+  buildEdgeControlPointSmoothingRegion(
+      mesh,2,seed_face,boundary_edge,region);
+  BOOST_REQUIRE_EQUAL(region.get_n(),1);
+  BOOST_CHECK_EQUAL(region[0],seed_face);
+
+  const int point_tag = mesh.tag[1] + 1;
+  for(int ipoin = 0; ipoin < mesh.npoin; ipoin++){
+    mesh.poi2tag(1,ipoin) = point_tag;
+  }
+  mesh.poi2tag(1,control_point) = mesh.tag[1];
+  runner->param->opt_smoo_niter = 1;
+
+  BOOST_REQUIRE_NO_THROW(
+      smoothInterior_Ball(
+          mesh,QuaFun::Distortion,1,2));
+  BOOST_CHECK_EQUAL(mesh.poi2tag(1,control_point),mesh.tag[1]);
+
+  const int boundary_record = mesh.poi2bpo[control_point];
+  BOOST_REQUIRE_GE(boundary_record,0);
+  const int global_edge = mesh.bpo2ibi(boundary_record,2);
+  BOOST_REQUIRE_GE(global_edge,0);
+  const int reference = mesh.edg2ref[global_edge];
+  const ego cad_edge = mesh.CAD.cad2edg[reference];
+  const double parameter[2]
+      = {mesh.bpo2rbi(boundary_record,0),0.0};
+  double evaluation[18];
+  BOOST_REQUIRE_EQUAL(
+      EG_evaluate(cad_edge,parameter,evaluation),EGADS_SUCCESS);
+  BOOST_CHECK_SMALL(mesh.coord(control_point,0) - evaluation[0],1.e-12);
+  BOOST_CHECK_SMALL(mesh.coord(control_point,1) - evaluation[1],1.e-12);
+}
+
+BOOST_AUTO_TEST_CASE(classic_p2_complete_small_2d_mesh_smoothing)
+{
+  auto runner = make_elevated_square_cad_runner();
+  auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner->msh_g);
+  mesh.met.setSpace(MetSpace::Exp);
+  mesh.setBasis(FEBasis::Lagrange);
+  runner->param->opt_smoo_niter = 1;
+
+  BOOST_REQUIRE_NO_THROW(
+      smoothInterior_Ball(
+          mesh,QuaFun::Distortion,1,2));
+  BOOST_CHECK_EQUAL(mesh.curdeg,2);
+}
+
+BOOST_AUTO_TEST_CASE(classic_p2_interior_3d_edge_control_point_and_shell)
+{
+  auto runner = make_elevated_cube_runner();
+  auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner->msh_g);
+  mesh.met.setSpace(MetSpace::Exp);
+  mesh.setBasis(FEBasis::Lagrange);
+
+  int seed_tetrahedron = -1;
+  int local_edge = -1;
+  int control_point = -1;
+  intAr1 region(10);
+  for(int itetra = 0;
+      itetra < mesh.nelem && control_point < 0;
+      itetra++){
+    if(isdeadent(itetra,mesh.tet2poi)) continue;
+    for(int candidate_edge = 0; candidate_edge < 6; candidate_edge++){
+      const int candidate = mesh.tet2poi(itetra,4 + candidate_edge);
+      if(mesh.poi2bpo[candidate] >= 0) continue;
+      buildEdgeControlPointSmoothingRegion(
+          mesh,3,itetra,candidate_edge,region);
+      if(region.get_n() < 2) continue;
+      seed_tetrahedron = itetra;
+      local_edge = candidate_edge;
+      control_point = candidate;
+      break;
+    }
+  }
+  BOOST_REQUIRE_GE(seed_tetrahedron,0);
+  BOOST_REQUIRE_GE(local_edge,0);
+  BOOST_REQUIRE_GE(control_point,0);
+  BOOST_REQUIRE_GE(region.get_n(),2);
+  BOOST_CHECK(region_contains(region,seed_tetrahedron));
+
+  mesh.coord(control_point,0) += 0.025;
+  mesh.coord(control_point,1) += 0.020;
+  mesh.coord(control_point,2) -= 0.015;
+  const auto distortion
+      = get_quafun<MetricFieldAnalytical,3,3>(QuaFun::Distortion);
+  double objective_before = 0.0;
+  for(const int itetra : region){
+    objective_before += distortion(
+        mesh,AsDeg::Pk,AsDeg::Pk,itetra,1.0);
+  }
+
+  const int point_tag = mesh.tag[1] + 1;
+  for(int ipoin = 0; ipoin < mesh.npoin; ipoin++){
+    mesh.poi2tag(1,ipoin) = point_tag;
+  }
+  mesh.poi2tag(1,control_point) = mesh.tag[1];
+  runner->param->opt_smoo_niter = 1;
+
+  BOOST_REQUIRE_NO_THROW(
+      smoothInterior_Ball(
+          mesh,QuaFun::Distortion,1,2));
+
+  double objective_after = 0.0;
+  for(const int itetra : region){
+    objective_after += distortion(
+        mesh,AsDeg::Pk,AsDeg::Pk,itetra,1.0);
+  }
+  BOOST_CHECK_LE(objective_after,objective_before);
+  BOOST_CHECK_EQUAL(mesh.poi2tag(1,control_point),mesh.tag[1]);
+}

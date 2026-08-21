@@ -518,35 +518,6 @@ void setup_quality_mesh(Mesh<MFT>& msh){
   msh.setBasis(FEBasis::Lagrange);
 }
 
-template<class MFT, int gdim>
-void setup_handler_objective_weights(Mesh<MFT>& msh,
-                                     int tdim,
-                                     BadEntHandler& handler){
-#ifdef STEPDISTANCE
-  if(!msh.param->step_distance_cavity_target_average) return;
-  handler.setBestWeightedObjectiveStorage(
-      &msh.param->step_distance_cavity_best_objective);
-  handler.setObjectiveWeightCallback([&msh,tdim](int ientt){
-    if constexpr(gdim == 2){
-      METRIS_ENFORCE(tdim == 2);
-      return step_distance_element_target_weight<MFT,2,2>(
-          msh,AsDeg::P1,ientt);
-    }else{
-      if(tdim == 2){
-        return step_distance_element_target_weight<MFT,3,2>(
-            msh,AsDeg::P1,ientt);
-      }
-      return step_distance_element_target_weight<MFT,3,3>(
-          msh,AsDeg::P1,ientt);
-    }
-  });
-#else
-  (void)msh;
-  (void)tdim;
-  (void)handler;
-#endif
-}
-
 template<class MFT>
 void log_point_position(const std::string& label,
                         const Mesh<MFT>& msh,
@@ -1747,23 +1718,6 @@ BadEntHandler* build_handler_for_mesh(Mesh<MFT>& msh, int tdim, dblAr1*& lquae_s
   const intAr2& ent2poi = msh.ent2poi(tdim);
   handler->setCallbacks([&lquae](int ientt){ return lquae[ientt]; },
                         [&](int ientt){ return isdeadent(ientt,ent2poi); });
-  if(msh.param->step_distance_cavity_target_average){
-    handler->setBestWeightedObjectiveStorage(
-        &msh.param->step_distance_cavity_best_objective);
-    handler->setObjectiveWeightCallback([&msh,tdim](int ientt){
-      if(msh.idim == 2){
-        METRIS_ENFORCE(tdim == 2);
-        return step_distance_element_target_weight<MFT,2,2>(
-            msh,AsDeg::P1,ientt);
-      }
-      if(tdim == 2){
-        return step_distance_element_target_weight<MFT,3,2>(
-            msh,AsDeg::P1,ientt);
-      }
-      return step_distance_element_target_weight<MFT,3,3>(
-          msh,AsDeg::P1,ientt);
-    });
-  }
 
   std::vector<int> sorted_ids(msh.nentt(tdim));
   std::iota(sorted_ids.begin(), sorted_ids.end(), 0);
@@ -2103,9 +2057,6 @@ void trace_exact_case_impl(const std::string& cmd,
     const intAr2& ent2poi_insert = msh_insert.ent2poi(tdim);
     handler_insert.setCallbacks([&](int ientt_){ return lquae_insert[ientt_]; },
                                 [&](int ientt_){ return isdeadent(ientt_,ent2poi_insert); });
-    setup_handler_objective_weights<MFT,gdim>(
-        msh_insert,tdim,handler_insert);
-
     std::vector<int> sorted_ids(msh_insert.nentt(tdim));
     std::iota(sorted_ids.begin(), sorted_ids.end(), 0);
     std::sort(sorted_ids.begin(), sorted_ids.end(),
@@ -2868,8 +2819,6 @@ InsertAttemptResult attempt_insert(const std::string& cmd,
   const intAr2& ent2poi = msh.ent2poi(tdim);
   handler.setCallbacks([&](int ientt_){ return lquae[ientt_]; },
                        [&](int ientt_){ return isdeadent(ientt_,ent2poi); });
-  setup_handler_objective_weights<MFT,gdim>(msh,tdim,handler);
-
   std::vector<int> sorted_ids(msh.nentt(tdim));
   std::iota(sorted_ids.begin(), sorted_ids.end(), 0);
   std::sort(sorted_ids.begin(), sorted_ids.end(),
@@ -3455,8 +3404,6 @@ InsertAttemptResult attempt_quality_insert_with_smoothing(const std::string& cmd
   const intAr2& ent2poi = msh.ent2poi(tdim);
   handler.setCallbacks([&](int ientt_){ return lquae[ientt_]; },
                        [&](int ientt_){ return isdeadent(ientt_,ent2poi); });
-  setup_handler_objective_weights<MFT,gdim>(msh,tdim,handler);
-
   std::vector<int> sorted_ids(msh.nentt(tdim));
   std::iota(sorted_ids.begin(), sorted_ids.end(), 0);
   std::sort(sorted_ids.begin(), sorted_ids.end(),
@@ -3601,7 +3548,6 @@ DivergenceCase find_quality_insert_divergence(const std::string& cmd,
   const intAr2& ent2poi = msh.ent2poi(tdim);
   handler.setCallbacks([&](int ientt){ return lquae[ientt]; },
                        [&](int ientt){ return isdeadent(ientt,ent2poi); });
-  setup_handler_objective_weights<MFT,gdim>(msh,tdim,handler);
   handler.seedFromSortedIDs(sorted_ids);
 
   const double length_threshold = std::sqrt(2.0);
@@ -3763,7 +3709,6 @@ StatefulAdaptResult find_stateful_quality_adapt_divergence(const std::string& cm
         intAr2& ent2tag = msh.ent2tag(tdim);
   handler.setCallbacks([&](int ientt){ return lquae[ientt]; },
                        [&](int ientt){ return isdeadent(ientt,ent2poi); });
-  setup_handler_objective_weights<MFT,gdim>(msh,tdim,handler);
   handler.seedFromSortedIDs(sorted_ids);
 
   MshCavity cav(100,100,1);
@@ -3816,48 +3761,28 @@ StatefulAdaptResult find_stateful_quality_adapt_divergence(const std::string& cm
             &iinva,&qmin,&qmax,&qavg,&lquae);
         #endif
 
-        double exact_weighted_sum = 0.;
-        double exact_weight_sum = 0.;
+        double exact_sum = 0.;
         int exact_alive = 0;
         for(int ielem = 0; ielem < msh.nentt(tdim); ielem++){
           if(isdeadent(ielem,ent2poi)) continue;
-          double weight = 1.;
-          #ifdef STEPDISTANCE
-          if(msh.param->step_distance_cavity_target_average){
-            if constexpr(gdim == 2){
-              METRIS_ENFORCE(tdim == 2);
-              weight = step_distance_element_target_weight<MFT,2,2>(
-                  msh,AsDeg::P1,ielem);
-            }else if(tdim == 2){
-              weight = step_distance_element_target_weight<MFT,3,2>(
-                  msh,AsDeg::P1,ielem);
-            }else{
-              weight = step_distance_element_target_weight<MFT,3,3>(
-                  msh,AsDeg::P1,ielem);
-            }
-          }
-          #endif
-          exact_weighted_sum += weight*lquae[ielem];
-          exact_weight_sum += weight;
+          exact_sum += lquae[ielem];
           exact_alive++;
         }
 
         fmt::print(
             "TRACE iter={} npoin={} slots={} alive={} K={} "
             "ins={}/{} col={}/{} smoo={}/{} "
-            "handler_obj={:.16e} exact_obj={:.16e} best={:.16e} "
-            "handler_count={} handler_weight={:.16e} exact_weight={:.16e} "
-            "handler_num={:.16e} exact_num={:.16e} "
+            "handler_obj={:.16e} exact_obj={:.16e} "
+            "handler_count={} handler_num={:.16e} exact_num={:.16e} "
             "qworst={:.16e} ent={}\n",
             result.iter,msh.npoin,msh.nentt(tdim),exact_alive,handler.K.size(),
             result.nSuccessInsert,result.ntryInsert,
             result.nSuccessCollapse,result.ntryCollapse,
             result.nSuccessSmoothing,result.ntrySmoothing,
-            handler.getWeightedQualitySum()/handler.getObjectiveWeightSum(),
-            exact_weighted_sum/exact_weight_sum,
-            handler.getBestWeightedObjective(),handler.getQualityCount(),
-            handler.getObjectiveWeightSum(),exact_weight_sum,
-            handler.getWeightedQualitySum(),exact_weighted_sum,
+            handler.getQualitySum()/handler.getQualityCount(),
+            exact_sum/exact_alive,
+            handler.getQualityCount(),
+            handler.getQualitySum(),exact_sum,
             quaent,ientt);
       }
 

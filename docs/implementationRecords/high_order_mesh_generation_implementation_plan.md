@@ -368,7 +368,55 @@ would obstruct the first working path.
    the trustworthy Phase 1 floor; they do not yet claim that smoothing, CAD,
    or adaptation operations work at P2.
 
-7. **Next:** begin Phase 2 with the one-triangle boundary neighborhood repair
-   and focused control-point smoothing tests. The 2D boundary case is the
-   priority; the existing 3D tetrahedral edge-shell construction should be
-   covered in the same test series without delaying the 2D repair.
+7. **Done in the Phase 2 record below:** begin with the one-triangle boundary
+   neighborhood repair and focused control-point smoothing tests. The 2D
+   boundary case remains the primary acceptance case; the existing 3D
+   tetrahedral edge-shell construction is covered by the same test series.
+
+## Phase 2 Classic P2 smoothing execution record
+
+1. **Done (2026-08-20): made the edge-control-point smoothing region explicit.**
+   `buildEdgeControlPointSmoothingRegion` is now the common production and test
+   path. For a 2D interior edge it returns the seed and across-edge triangles;
+   for a 2D boundary edge it returns only the seed triangle. The 3D branch
+   retains the complete tetrahedral `shell3` traversal.
+
+2. **Done (2026-08-20): removed a stale debug-only P1 assertion from the
+   generic quality traversal.** With `TESTQUALITYALGO` enabled, both value and
+   derivative traversal asserted `ideg_eff == 1` even when Classic
+   `QuaFun::Distortion` was explicitly requested. This disabled the intended
+   Classic P2 path only in assertion-enabled builds. The generic assertions
+   were removed; the separate SizeShape and StepDistance restrictions remain
+   in their objective-specific branches and are still assigned to Phases 4
+   and 5.
+
+   Focused regression reruns also found that the objective-adaptation
+   dispatcher did not honor `adp_niter == 0`, unlike the Classic dispatcher.
+   The common `adaptMesh2` entry point now returns immediately in that case, so
+   Phase 1 and Phase 2 tests can reliably disable adaptation while isolating
+   degree elevation and smoothing.
+
+3. **Done (2026-08-20): added focused 2D edge-control-point tests.** On the
+   elevated two-triangle mesh, the shared interior P2 control point is
+   recognized by both triangles, receives the two-triangle region, and moves
+   under one Classic distortion smoothing pass without increasing the regional
+   objective. A boundary P2 control point receives exactly one triangle.
+
+4. **Done (2026-08-20): exercised the CAD-edge boundary optimizer.** A small
+   square CAD mesh is elevated to P2, all points except one boundary edge
+   control point are frozen, and the production Classic smoother completes on
+   the one-triangle region. The resulting CAD parameter and physical coordinate
+   are independently checked with `EG_evaluate`.
+
+5. **Done (2026-08-20): covered complete 2D and focused 3D behavior.** One
+   Classic pass completes on the full small square P2 mesh. On an elevated cube
+   mesh, a genuine interior P2 edge control point is found, its multi-tetrahedron
+   shell is built through the common region helper, and the production smoother
+   visits it without increasing the shell objective.
+
+6. **Qualification.** The five focused cases in
+   `test_high_order_classic_smoothing` pass in debug and release builds. They
+   establish the Classic P2 smoothing floor in 2D and retain immediate 3D shell
+   coverage. They do not enable the SizeShape or StepDistance P2 paths, and do
+   not broaden the CAD work beyond an existing 2D CAD edge. Phase 3 validity
+   consolidation is next.
