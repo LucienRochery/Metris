@@ -287,8 +287,8 @@ double maximizeMetCcoef(Mesh<MFT> &msh, OptDoF idofs, LPMethod method,
       min_ccoef = min_ccoef_after;
 
       CPRINTF1(" {} - {} : ccoef {} -> {}\n",niter,icoor,min_ccoef_before/vol0,min_ccoef_after/vol0);
-      // mxnrm = MAX(mxnrm,nrm);
-      // mxdNm = MAX(mxdNm,min_ccoef_after - min_ccoef_before);
+      // mxnrm = METRIS_MAX(mxnrm,nrm);
+      // mxdNm = METRIS_MAX(mxdNm,min_ccoef_after - min_ccoef_before);
       
       if ((obj_change < obj_change_tol)){
         CPRINTF1(" - gone over threshold\n");

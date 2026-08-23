@@ -16,10 +16,10 @@
 // not sure how to register them with std::is_arithmetic
 #include <boost/type_traits/is_arithmetic.hpp>
 
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_MatMul_Native.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/tools/PromoteSurreal.h"
-#include "SANS//Surreal/SurrealS_Type.h"
+#include "MatrixS_Type.h"
+#include "MatMul/MatrixS_MatMul_Native.h"
+#include "../tools/PromoteSurreal.h"
+#include "../../../Surreal/SurrealS_Type.h"
 
 namespace Metris
 {
@@ -89,25 +89,25 @@ public:
 #if 0
 //-----------------------------------------------------------------------------
 template<int M, int N>
-class OpMulS_impl<Real>
+class OpMulS_impl<Metris::Real>
 {
 public:
   template<int ML, int NL, int MR, int NR>
   static inline void value(const MatrixS<ML,NL,T>& ml, const MatrixS<MR,NR,T>& mr, const T& sgn, MatrixS<ML,NR,T>& res )
   {
     if (M*N > 1) //Could add a lower limit for the size to call BLAS here
-      MatMul_BLAS<Real>::value(ml, mr, sgn, res);
+      MatMul_BLAS<Metris::Real>::value(ml, mr, sgn, res);
     else
-      MatMul_Native<Real>::value(ml, mr, sgn, res);
+      MatMul_Native<Metris::Real>::value(ml, mr, sgn, res);
   }
 
   template<int ML, int NL, int MR, int NR>
   static inline void plus(const MatrixS<ML,NL,T>& ml, const MatrixS<MR,NR,T>& mr, const T& sgn, MatrixS<ML,NR,T>& res )
   {
     if (M*N > 1) //Could add a lower limit for the size to call BLAS here
-      MatMul_BLAS<Real>::plus(ml, mr, sgn, res);
+      MatMul_BLAS<Metris::Real>::plus(ml, mr, sgn, res);
     else
-      MatMul_Native<Real>::plus(ml, mr, sgn, res);
+      MatMul_Native<Metris::Real>::plus(ml, mr, sgn, res);
   }
 };
 #endif
@@ -126,7 +126,7 @@ class OpMulS : public MatrixSType< OpMulS<ExprL, ExprR>, true, true >
 public:
   typedef typename ExprL::Ttype TL;
   typedef typename ExprR::Ttype TR;
-  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
+  typedef typename Metris::promote_Surreal<TL,TR>::type Ttype;
 
   BOOST_MPL_ASSERT_RELATION( ExprL::N, ==, ExprR::M );
 
@@ -204,7 +204,7 @@ class OpMulS< MatrixS<M_,N_,TL>, Expr > : public MatrixSType< OpMulS< MatrixS<M_
 {
 public:
   typedef typename Expr::Ttype TR;
-  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
+  typedef typename Metris::promote_Surreal<TL,TR>::type Ttype;
 
   BOOST_MPL_ASSERT_RELATION( N_, ==, Expr::M );
 
@@ -276,7 +276,7 @@ class OpMulS< Expr, MatrixS<M_,N_,TR> > : public MatrixSType< OpMulS< Expr, Matr
 {
 public:
   typedef typename Expr::Ttype TL;
-  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
+  typedef typename Metris::promote_Surreal<TL,TR>::type Ttype;
 
   BOOST_MPL_ASSERT_RELATION( Expr::N, ==, M_ );
 
@@ -347,7 +347,7 @@ template<int ML, int NL, class TL, int MR, int NR, class TR>
 class OpMulS< MatrixS<ML,NL,TL>, MatrixS<MR,NR,TR> > : public MatrixSType< OpMulS< MatrixS<ML,NL,TL>, MatrixS<MR,NR,TR> >, true, true >
 {
 public:
-  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
+  typedef typename Metris::promote_Surreal<TL,TR>::type Ttype;
   BOOST_MPL_ASSERT_RELATION( NL, ==, MR );
 
   typedef MatrixS<ML,NL,TL> MatrixSL;
@@ -412,7 +412,7 @@ template<class TL, class TR>
 class OpMulS< MatrixSymS<1,TL>, MatrixSymS<1,TR> > : public MatrixSType< OpMulS< MatrixSymS<1,TL>, MatrixSymS<1,TR> >, true, true >
 {
 public:
-  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
+  typedef typename Metris::promote_Surreal<TL,TR>::type Ttype;
 
   static const int M = 1;
   static const int N = 1;
@@ -487,7 +487,7 @@ template<class Expr, class S, bool useRF, bool MatrixFull>
 class OpMulSScalar : public MatrixSType< OpMulSScalar<Expr, S, useRF, MatrixFull>, useRF, MatrixFull >
 {
 public:
-  typedef typename SANS::promote_Surreal< S, typename Expr::Ttype >::type Ttype;
+  typedef typename Metris::promote_Surreal< S, typename Expr::Ttype >::type Ttype;
   static const int M = Expr::M;
   static const int N = Expr::N;
 
@@ -534,7 +534,7 @@ public:
 
 
 template<class T> struct Real_or_T { typedef T type; };
-template<> struct Real_or_T<int> { typedef Real type; };
+template<> struct Real_or_T<int> { typedef Metris::Real type; };
 
 //=============================================================================
 // Overloaded operators to represent multiplication between a scalar and a matrix expression
@@ -556,25 +556,25 @@ template<class Expr, bool useRF, bool MatrixFull, typename T>
 inline typename std::enable_if< boost::is_arithmetic<T>::value, OpMulSScalar<Expr, typename Real_or_T<T>::type, useRF, MatrixFull > >::type
 operator/(const MatrixSType<Expr, useRF, MatrixFull>& e, const T& s)
 {
-  return OpMulSScalar<Expr, typename Real_or_T<T>::type, useRF, MatrixFull>( e.cast(), Real(1)/s );
+  return OpMulSScalar<Expr, typename Real_or_T<T>::type, useRF, MatrixFull>( e.cast(), Metris::Real(1)/s );
 }
 
-#ifdef SURREAL_LAZY
+#ifdef METRIS_SURREAL_LAZY
 
 //=============================================================================
-// Overloaded operators specific to working with SANS::SurrealS
+// Overloaded operators specific to working with Metris::SurrealS
 template<class ExprL, class ExprR, bool useRF, bool MatrixFull, typename T>
-inline OpMulSScalar<ExprL, SANS::SurrealS<ExprR::N,T>, useRF, MatrixFull >
-operator*(const MatrixSType<ExprL, useRF, MatrixFull>& e, const SANS::SurrealS<ExprR::N,T>& s)
+inline OpMulSScalar<ExprL, Metris::SurrealS<ExprR::N,T>, useRF, MatrixFull >
+operator*(const MatrixSType<ExprL, useRF, MatrixFull>& e, const Metris::SurrealS<ExprR::N,T>& s)
 {
-  return OpMulSScalar<ExprL, SANS::SurrealS<ExprR::N,T>, useRF, MatrixFull >( e.cast(), s );
+  return OpMulSScalar<ExprL, Metris::SurrealS<ExprR::N,T>, useRF, MatrixFull >( e.cast(), s );
 }
 
 template<class ExprL, class ExprR, bool useRF, bool MatrixFull, typename T>
-inline OpMulSScalar<ExprR, SANS::SurrealS<ExprL::N,T>, useRF, MatrixFull >
-operator*(const SANS::SurrealSType<ExprL, T>& s, const MatrixSType<ExprR, useRF, MatrixFull>& e)
+inline OpMulSScalar<ExprR, Metris::SurrealS<ExprL::N,T>, useRF, MatrixFull >
+operator*(const Metris::SurrealSType<ExprL, T>& s, const MatrixSType<ExprR, useRF, MatrixFull>& e)
 {
-  return OpMulSScalar<ExprR, SANS::SurrealS<ExprL::N,T>, useRF, MatrixFull>( e.cast(), s );
+  return OpMulSScalar<ExprR, Metris::SurrealS<ExprL::N,T>, useRF, MatrixFull>( e.cast(), s );
 }
 
 #endif

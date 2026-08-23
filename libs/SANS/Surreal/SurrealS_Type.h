@@ -3,8 +3,8 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef SURREALS_TYPE_H
-#define SURREALS_TYPE_H
+#ifndef METRIS_SURREALS_TYPE_H
+#define METRIS_SURREALS_TYPE_H
 
 #include  <type_traits>
 
@@ -13,7 +13,7 @@
 #include "SurrealS_fwd.h"
 
 
-namespace SANS
+namespace Metris
 {
 
 // Forward declaration of SurrealS types
@@ -24,10 +24,10 @@ template< class Derived, class T >
 struct SurrealSType : SurrealSTypeBase
 {
   //A convenient method for casting to the derived type
-  ALWAYS_INLINE const Derived& cast() const { return static_cast<const Derived&>(*this); }
+  METRIS_ALWAYS_INLINE const Derived& cast() const { return static_cast<const Derived&>(*this); }
 
   //A simple way to call value without having to case first
-  ALWAYS_INLINE T value() const { return cast().value(); }
+  METRIS_ALWAYS_INLINE T value() const { return cast().value(); }
 };
 
 template<class T>
@@ -40,6 +40,6 @@ struct is_arithmetic_not_SurrealS
    && !std::is_base_of<SurrealSTypeBase, T>::value;
 };
 
-} // namespace SANS
+} // namespace Metris
 
-#endif //SURREALS_TYPE_H
+#endif //METRIS_SURREALS_TYPE_H

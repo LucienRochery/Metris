@@ -60,7 +60,7 @@ int correct_cavity0(Mesh<MFT> &msh,
   //dblAr2 lmeas(2,mmeas,rwrk.allocate(2*mmeas));
   //dblAr2 &lmeas = work.lmeas;
   //lmeas.set_n(0); 
-  //int mmeas = MAX(msh.nelem - nele0, msh.nface - nfac0);
+  //int mmeas = METRIS_MAX(msh.nelem - nele0, msh.nface - nfac0);
   //lmeas.allocate(mmeas);
 
   double ccoef[getnnod3(gdim*(ideg-1))]; // Largest possible
@@ -128,7 +128,7 @@ int correct_cavity0(Mesh<MFT> &msh,
       METRIS_ASSERT(msh.getBasis() == FEBasis::Lagrange);
 
       ptag0++;
-      cav.maxtag = MAX(cav.maxtag, ptag0);
+      cav.maxtag = METRIS_MAX(cav.maxtag, ptag0);
       for(int tdim = 1; tdim <= 2; tdim++){
         if(tdim == 1 && !msh.isboundary_edges()) break; // Becasue we start with 1: 2 cannot be bdry then
         if(tdim == 2 && !msh.isboundary_faces()) break; // Because there's nothing after, but basically a continue
@@ -209,7 +209,7 @@ int correct_cavity0(Mesh<MFT> &msh,
 
     // Interpolate metric at new points 
     ptag0++;
-    cav.maxtag = MAX(cav.maxtag, ptag0);
+    cav.maxtag = METRIS_MAX(cav.maxtag, ptag0);
     for(int tdim = 1; tdim <= 3; tdim++){
       int nent0 = tdim == 1 ? nedg0 
                 : tdim == 2 ? nfac0 : nele0;

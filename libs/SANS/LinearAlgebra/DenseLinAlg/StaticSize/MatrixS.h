@@ -26,7 +26,7 @@
 #include "MatrixS_Mul.h"
 
 #include "../tools/Matrix_Util.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/tools/Identity.h"
+#include "../tools/Identity.h"
 
 #include "../../../tools/SANSTraitsPOD.h"
 #include "../../../tools/SANSException.h"
@@ -46,12 +46,12 @@ template< int M,  int N, class T > class MatrixS;
 }
 
 //Create a specialization so to allow for the syntax
-//   VectorD< VectorS<2,Real> >
+//   VectorD< VectorS<2,Metris::Real> >
 //      v = { {3,3}, {3,2} };
 //
 // This is completely unnessary if the intel compiler could use templated initializer_list functions....
 //
-namespace SANS
+namespace Metris
 {
 template<int M, int N, class T>
 struct initializer_list_assign< Metris::DLA::MatrixS< M, N, T > >
@@ -97,10 +97,10 @@ public:
   template<class Z>
   MatrixS( const MatrixSymS<M,Z>& m ) { operator=(m); }
   MatrixS( const Identity& I ) { (*this) = I; };
-  MatrixS( const T s );  // missing 'explicit' allows MatrixS<M,N,Real> q = 0
+  MatrixS( const T s );  // missing 'explicit' allows MatrixS<M,N,Metris::Real> q = 0
   MatrixS( const T s[], int n );
   MatrixS( const std::initializer_list< const std::initializer_list<T> >& s ) { operator=(s); }
-  MatrixS( const typename SANS::POD<T>::type& s );
+  MatrixS( const typename Metris::POD<T>::type& s );
 
 
   //Sub matrix
@@ -120,7 +120,7 @@ public:
   template<class Z>
   MatrixS& operator=( const MatrixSymS<M,Z>& m );
   MatrixS& operator=( const T& s );
-  MatrixS& operator=( const typename SANS::POD<T>::type& s );
+  MatrixS& operator=( const typename Metris::POD<T>::type& s );
   MatrixS& operator=( const Identity& I );
   MatrixS& operator=( const std::initializer_list< const std::initializer_list<T> >& s );
 
@@ -136,10 +136,10 @@ public:
   MatrixS& operator-=( const T& s );
   MatrixS& operator*=( const T& s );
   MatrixS& operator/=( const T& s );
-  MatrixS& operator+=( const typename SANS::POD<T>::type& s );
-  MatrixS& operator-=( const typename SANS::POD<T>::type& s );
-  MatrixS& operator*=( const typename SANS::POD<T>::type& s );
-  MatrixS& operator/=( const typename SANS::POD<T>::type& s );
+  MatrixS& operator+=( const typename Metris::POD<T>::type& s );
+  MatrixS& operator-=( const typename Metris::POD<T>::type& s );
+  MatrixS& operator*=( const typename Metris::POD<T>::type& s );
+  MatrixS& operator/=( const typename Metris::POD<T>::type& s );
 
   // Lazy expression with recursive functions assignment and binary accumulation
   template<class Expr, bool Full> MatrixS& operator= ( const MatrixSType<Expr, true, Full>& );
@@ -184,7 +184,7 @@ public:
   template<class Scalar, class Tres>
   inline void plus(const Scalar& sgn, MatrixS<M,N,Tres>& res) const
   {
-    SANS_ASSERT( ID() != res.ID() ); //The variable on the left of the assignment cannot also appear on the right
+    METRIS_SUPPORT_ASSERT( ID() != res.ID() ); //The variable on the left of the assignment cannot also appear on the right
 
     for (int i = 0; i < M; ++i)
       for (int j = 0; j < N; ++j)
@@ -206,7 +206,7 @@ template <int M, int N, class T>
 inline
 MatrixS<M,N,T>::MatrixS( const T s[], int n )
 {
-  SANS_ASSERT(n == M*N);
+  METRIS_SUPPORT_ASSERT(n == M*N);
   for (n = 0; n < M*N; n++)
     data[n] = s[n];
 }
@@ -219,10 +219,10 @@ MatrixS<M,N,T>::MatrixS( const T s )
     data[n] = s;
 }
 
-// needed for MatrixS<M,N, Surreal<Z>>(Real)
+// needed for MatrixS<M,N, Surreal<Z>>(Metris::Real)
 template <int M, int N, class T>
 inline
-MatrixS<M,N,T>::MatrixS( const typename SANS::POD<T>::type& s )
+MatrixS<M,N,T>::MatrixS( const typename Metris::POD<T>::type& s )
 {
   for (int n = 0; n < M*N; n++)
     data[n] = s;
@@ -278,7 +278,7 @@ MatrixS<M,N,T>::operator=( const T& s )
 // needed for  MatrixS<M,N, Surreal> q; q = 0;
 template <int M, int N, class T>
 inline MatrixS<M,N,T>&
-MatrixS<M,N,T>::operator=( const typename SANS::POD<T>::type& s )
+MatrixS<M,N,T>::operator=( const typename Metris::POD<T>::type& s )
 {
   for (int i = 0; i < M*N; i++)
     data[i] = s;
@@ -306,15 +306,15 @@ template <int M, int N, class T>
 inline MatrixS<M,N,T>&
 MatrixS<M,N,T>::operator=( const std::initializer_list< const std::initializer_list<T> >& s )
 {
-  SANS_ASSERT(s.size() == M);
+  METRIS_SUPPORT_ASSERT(s.size() == M);
   size_t n = 0;
   for (const auto& row: s)
   {
-    SANS_ASSERT(row.size() == N);
+    METRIS_SUPPORT_ASSERT(row.size() == N);
     for (const auto& col: row)
       data.at(n++) = col;
   }
-  SANS_ASSERT(n == data.size());
+  METRIS_SUPPORT_ASSERT(n == data.size());
   return *this;
 }
 
@@ -418,7 +418,7 @@ MatrixS<M,N,T>::operator/=( const T& s )
 
 template <int M, int N, class T>
 inline MatrixS<M,N,T>&
-MatrixS<M,N,T>::operator+=( const typename SANS::POD<T>::type& s )
+MatrixS<M,N,T>::operator+=( const typename Metris::POD<T>::type& s )
 {
   for (int i = 0; i < M*N; i++)
     data[i] += s;
@@ -427,7 +427,7 @@ MatrixS<M,N,T>::operator+=( const typename SANS::POD<T>::type& s )
 
 template <int M, int N, class T>
 inline MatrixS<M,N,T>&
-MatrixS<M,N,T>::operator-=( const typename SANS::POD<T>::type& s )
+MatrixS<M,N,T>::operator-=( const typename Metris::POD<T>::type& s )
 {
   for (int i = 0; i < M*N; i++)
     data[i] -= s;
@@ -436,7 +436,7 @@ MatrixS<M,N,T>::operator-=( const typename SANS::POD<T>::type& s )
 
 template <int M, int N, class T>
 inline MatrixS<M,N,T>&
-MatrixS<M,N,T>::operator*=( const typename SANS::POD<T>::type& s )
+MatrixS<M,N,T>::operator*=( const typename Metris::POD<T>::type& s )
 {
   for (int i = 0; i < M*N; i++)
     data[i] *= s;
@@ -445,7 +445,7 @@ MatrixS<M,N,T>::operator*=( const typename SANS::POD<T>::type& s )
 
 template <int M, int N, class T>
 inline MatrixS<M,N,T>&
-MatrixS<M,N,T>::operator/=( const typename SANS::POD<T>::type& s )
+MatrixS<M,N,T>::operator/=( const typename Metris::POD<T>::type& s )
 {
   for (int i = 0; i < M*N; i++)
     data[i] /= s;
@@ -466,7 +466,7 @@ struct cast_to_scalar
     Tree.value(1., A);
   }
 
-  static void plus(const Real sgn, const Expr& Tree, Matrix& A)
+  static void plus(const Metris::Real sgn, const Expr& Tree, Matrix& A)
   {
     BOOST_MPL_ASSERT_RELATION( Matrix::M, ==, Expr::M );
     BOOST_MPL_ASSERT_RELATION( Matrix::N, ==, Expr::N );
@@ -489,7 +489,7 @@ struct cast_to_scalar_mul
   }
 
   template<class Expr>
-  static void plus(const Real sgn, const Expr& Tree, Matrix& A)
+  static void plus(const Metris::Real sgn, const Expr& Tree, Matrix& A)
   {
     BOOST_MPL_ASSERT_RELATION( Matrix::M, ==, Expr::M );
     BOOST_MPL_ASSERT_RELATION( Matrix::N, ==, Expr::N );
@@ -509,7 +509,7 @@ struct cast_to_scalar_mul<1,1,MatrixS<M,N,T>,MatrixS<M,N,T>>
   }
 
   template<class Expr>
-  static void plus(const Real sgn, const Expr& Tree, MatrixS<M,N,T>& A)
+  static void plus(const Metris::Real sgn, const Expr& Tree, MatrixS<M,N,T>& A)
   {
     Tree.plus(sgn, A);
   }
@@ -525,7 +525,7 @@ struct cast_to_scalar_mul<1,1,VectorS<M,T>,MatrixS<M,1,T>>
   }
 
   template<class Expr>
-  static void plus(const Real sgn, const Expr& Tree, MatrixS<M,1,T>& A)
+  static void plus(const Metris::Real sgn, const Expr& Tree, MatrixS<M,1,T>& A)
   {
     Tree.plus(sgn, A);
   }
@@ -542,7 +542,7 @@ struct cast_to_scalar<OpMulS<ExprL,ExprR>, MatrixS<M,N,T>>
     cast_to_scalar_mul<Expr::M, Expr::N, typename Expr::Ttype, MatrixS<M,N,T>>::value(Tree,A);
   }
 
-  static void plus(const Real sgn, const Expr& Tree, MatrixS<M,N,T>& A)
+  static void plus(const Metris::Real sgn, const Expr& Tree, MatrixS<M,N,T>& A)
   {
     cast_to_scalar_mul<Expr::M, Expr::N, typename Expr::Ttype, MatrixS<M,N,T>>::plus(sgn, Tree,A);
   }
@@ -557,7 +557,7 @@ struct cast_to_scalar<OpMulSFactor<ExprL,ExprR,Full>, MatrixS<M,N,T>>
     cast_to_scalar_mul<Expr::M, Expr::N, typename Expr::Ttype, MatrixS<M,N,T>>::value(Tree,A);
   }
 
-  static void plus(const Real sgn, const Expr& Tree, MatrixS<M,N,T>& A)
+  static void plus(const Metris::Real sgn, const Expr& Tree, MatrixS<M,N,T>& A)
   {
     cast_to_scalar_mul<Expr::M, Expr::N, typename Expr::Ttype, MatrixS<M,N,T>>::plus(sgn, Tree, A);
   }
@@ -572,7 +572,7 @@ struct cast_to_scalar<OpMulSScalar<ExprS,S,useRF,Full>, MatrixS<M,N,T>>
     cast_to_scalar_mul<Expr::M, Expr::N, typename Expr::Ttype, MatrixS<M,N,T>>::value(Tree,A);
   }
 
-  static void plus(const Real sgn, const Expr& Tree, MatrixS<M,N,T>& A)
+  static void plus(const Metris::Real sgn, const Expr& Tree, MatrixS<M,N,T>& A)
   {
     cast_to_scalar_mul<Expr::M, Expr::N, typename Expr::Ttype, MatrixS<M,N,T>>::plus(sgn, Tree,A);
   }
@@ -779,10 +779,10 @@ MatrixS<M,N,T>::max_row_in_col(const int j, const int start) const
 //Unary negation
 
 template< class Expr, bool useRF, bool Full >
-inline const OpMulSScalar<Expr, Real, useRF, Full>
+inline const OpMulSScalar<Expr, Metris::Real, useRF, Full>
 operator-(MatrixSType<Expr, useRF, Full> const& e)
 {
-  return OpMulSScalar<Expr, Real, useRF, Full>( e.cast(), -1 );
+  return OpMulSScalar<Expr, Metris::Real, useRF, Full>( e.cast(), -1 );
 }
 
 // I/O
@@ -791,8 +791,8 @@ template <int M, int N, class T>
 std::ostream&
 operator<<( std::ostream& out, const MatrixS<M,N,T>& m )
 {
-//#define USE_MATHEMATICA_STYLE
-#ifdef USE_MATHEMATICA_STYLE
+//#define METRIS_USE_MATHEMATICA_STYLE
+#ifdef METRIS_USE_MATHEMATICA_STYLE
   out << "{";
   for (int i = 0; i < M; i++)
   {

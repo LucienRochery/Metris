@@ -15,10 +15,10 @@ namespace Metris{
 
 template<int gdim, int nvar>
 void getmet_dbl2SurS(const double*__restrict__ met, const double*__restrict__ dmet, 
-							       SANS::SurrealS<nvar,double>*__restrict__ metS);
+							       Metris::SurrealS<nvar,double>*__restrict__ metS);
 
 template<int gdim, int nvar>
-void getmet_SurS2dbl(const SANS::SurrealS<nvar,double>*__restrict__ metS,
+void getmet_SurS2dbl(const Metris::SurrealS<nvar,double>*__restrict__ metS,
 										 double*__restrict__ met, double*__restrict__ dmet);
 
 }// End namsepace

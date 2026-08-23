@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) )
         ccoef_eval<idim,idim,ideg>(msh.getBasis(),ent2poi,msh.coord,ielem,NULL,ccoef2);
         err2 += geterrl2<nnodj>(ccoef2,ccoef)/getnrml2<nnodj>(ccoef);
         for(int ii = 0; ii < nnodj; ii++){
-          erri = MAX(erri, abs(ccoef[ii] - ccoef2[ii])/ccoef[ii]);
+          erri = METRIS_MAX(erri, abs(ccoef[ii] - ccoef2[ii])/ccoef[ii]);
           //int idx1 = ordtet.s[jdeg][i][0];
           //int idx2 = ordtet.s[jdeg][i][1];
           //int idx3 = ordtet.s[jdeg][i][2];
@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) )
           evalj(ccoef_,lcoef,FEBasis::Bezier,DifVar::None,DifVar::None,
                 bary,&detc1,NULL,NULL);
           err2_ev1 += pow(detc1 - det,2) / pow(det,2);
-          erri_ev1 = MAX(erri_ev1, abs(det-detc1)/det);
+          erri_ev1 = METRIS_MAX(erri_ev1, abs(det-detc1)/det);
 
           double detc2; 
           //eval3<1,jdeg,ilag,0,0>(dblAr2(nnodj,1,ccoef2),lcoef,bary,&detc2,NULL,NULL);
@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(test_ccoeff, * utf::tolerance(double(1.0e-6)) )
           evalj(ccoef2_,lcoef,FEBasis::Bezier,DifVar::None,DifVar::None,
                 bary,&detc2,NULL,NULL);
           err2_ev2 += pow(detc2 - det,2) / pow(det,2);
-          erri_ev2 = MAX(erri_ev2, abs(det - detc2)/det);
+          erri_ev2 = METRIS_MAX(erri_ev2, abs(det - detc2)/det);
           //if(first && (abs(detc1-det) > tol || abs(detc2-det) > tol) )printf("(eval) %d (%d%d%d%d) detc2 = %12.5e err1 = %12.5e err2 = %12.5e bary = %f %f %f %f \n",irnk,
           //  idx1,idx2,idx3,idx4,detc2,abs(detc1-det),abs(detc2-det),bary[0],bary[1],bary[2],bary[3]);
         }

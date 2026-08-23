@@ -114,15 +114,15 @@ BOOST_AUTO_TEST_CASE(test_tContinuity)
         double nrmmdu_test = msh.idim == 2 ? sqrt(getnrml2<2>(mdutest)) 
                                            : sqrt(getnrml2<3>(mdutest));
 
-        max_err_mdu0   = MAX(max_err_mdu0,   sqrt(err));
-        max_err_nrmmdu0= MAX(max_err_nrmmdu0, abs(nrmmdu_test - nrmmdu_ref));
+        max_err_mdu0   = METRIS_MAX(max_err_mdu0,   sqrt(err));
+        max_err_nrmmdu0= METRIS_MAX(max_err_nrmmdu0, abs(nrmmdu_test - nrmmdu_ref));
 
         BOOST_CHECK_CLOSE(nrmmdu_test, nrmmdu_ref, 1.0e-12);
       }
       //wait();
       
-      max_err_mdu    = MAX(max_err_mdu,   max_err_mdu0);
-      max_err_nrmmdu = MAX(max_err_nrmmdu, max_err_nrmmdu0);
+      max_err_mdu    = METRIS_MAX(max_err_mdu,   max_err_mdu0);
+      max_err_nrmmdu = METRIS_MAX(max_err_nrmmdu, max_err_nrmmdu0);
 
     }
 

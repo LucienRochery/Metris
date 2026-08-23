@@ -14,13 +14,15 @@
 
 #include "demangle.h"
 
+namespace Metris
+{
+
 //#include <boost/stacktrace.hpp>
 
 //#include <backtrace-supported.h> libbacktrace leaks memory... can't use it until it doesn't leak
 
-#if BACKTRACE_SUPPORTED && defined(DEBUG_BACKTRACE) && !defined(__INTEL_COMPILER) && !defined(__clang__)
+#if defined(METRIS_BACKTRACE_SUPPORTED) && METRIS_BACKTRACE_SUPPORTED && defined(METRIS_DEBUG_BACKTRACE) && !defined(__INTEL_COMPILER) && !defined(__clang__)
 #include <backtrace.h>
-#define PRINT_BACKTRACE
 
 
 /* Passed to callbacks.  */
@@ -62,7 +64,7 @@ print_callback (void *data, uintptr_t pc, const char *filename, int lineno,
 
   if ( funcname )
   {
-    if ( "SANSException" != std::string(funcname) &&
+    if ( "MetrisException" != std::string(funcname) &&
          "DeveloperException" != std::string(funcname) &&
          "AssertionException" != std::string(funcname) )
     {
@@ -98,7 +100,6 @@ error_callback (void *data, const char *msg, int errnum)
 
 
 #elif !defined(__CYGWIN__) && !defined(__MINGW32__) && !defined(_MSC_VER)
-#define PRINT_BACKTRACE
 #include <execinfo.h>
 #endif
 
@@ -118,7 +119,7 @@ BackTraceException::BackTraceException()
   errString += "\n";
 #endif
 
-#if BACKTRACE_SUPPORTED && defined(DEBUG_BACKTRACE) && !defined(__INTEL_COMPILER) && !defined(__clang__)
+#if defined(METRIS_BACKTRACE_SUPPORTED) && METRIS_BACKTRACE_SUPPORTED && defined(METRIS_DEBUG_BACKTRACE) && !defined(__INTEL_COMPILER) && !defined(__clang__)
   errString += "Backtrace Information:\n";
 
   struct print_data data(btsymbols);
@@ -143,12 +144,12 @@ BackTraceException::BackTraceException()
 
   // stacktrace.h (c) 2008, Timo Bingmann from http://idlebox.net/
   // published under the WTFPL v2.0
-#define max_frames 30
+  constexpr int maxFrames = 30;
   // storage array for stack trace address data
-  void* addrlist[max_frames] = {NULL};
+  void* addrlist[maxFrames] = {NULL};
 
   // retrieve current stack addresses
-  int addrlen = backtrace(addrlist, max_frames);
+  int addrlen = backtrace(addrlist, maxFrames);
 
   if (addrlen == 0)
     return;
@@ -191,12 +192,12 @@ BackTraceException::BackTraceException()
       // mangled name is now in [begin_name, begin_offset) and caller
       // offset in [begin_offset, end_offset). now apply
       // __cxa_demangle():
-      std::string name = SANS::demangle(begin_name);
+      std::string name = Metris::demangle(begin_name);
 
       bool whiteSpacesOnly = std::all_of(name.begin(),name.end(),isspace);
       if (whiteSpacesOnly) continue;
 
-      if ( name.find("SANSException") == std::string::npos &&
+      if ( name.find("MetrisException") == std::string::npos &&
            name.find("BackTraceException") == std::string::npos &&
            name.find("DeveloperException") == std::string::npos &&
            name.find("AssertionException") == std::string::npos )
@@ -229,3 +230,5 @@ BackTraceException::BackTraceException()
 }
 
 BackTraceException::~BackTraceException() noexcept {}
+
+} // namespace Metris

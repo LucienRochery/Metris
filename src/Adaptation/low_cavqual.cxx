@@ -34,7 +34,7 @@ bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1){
   double nordev0_max = -1, nordev0_avg = 0;
   for(int iface : cav.lcfac){
     double nordev = getnordev<1>(msh, iface);
-    nordev0_max = MAX(nordev0_max, nordev);
+    nordev0_max = METRIS_MAX(nordev0_max, nordev);
     nordev0_avg += nordev;
     // Also tag faces for final dev computation
     msh.fac2tag(ithrd1,iface) = msh.tag[ithrd1];
@@ -59,7 +59,7 @@ bool rejcavnordev(MeshBase &msh, const MshCavity &cav, int ibins, int ithrd1){
       msh.fac2poi(nfac0,1) = msh.fac2poi(iface, lnoed2[ied][0]);
       msh.fac2poi(nfac0,2) = msh.fac2poi(iface, lnoed2[ied][1]);
       double nordev = getnordev<1>(msh, nfac0);
-      nordev1_max = MAX(nordev1_max, nordev);
+      nordev1_max = METRIS_MAX(nordev1_max, nordev);
       nordev1_avg += nordev;
       CPRINTF1(" - new face {} {} {} nordev = {}\n",msh.fac2poi(nfac0,0),msh.fac2poi(nfac0,1),msh.fac2poi(nfac0,2),nordev);
     }
@@ -194,7 +194,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
   //int tdim = cav.lctet.get_n() > 0 ? 3 
   //         : cav.lcfac.get_n() > 0 ? 2 
   //                                 : 1;
-  int tdim = MAX(1,msh.getpoitdim(cav.ipins));
+  int tdim = METRIS_MAX(1,msh.getpoitdim(cav.ipins));
   CPRINTF1("-- START collrejcav_lenqua filter long {} short {} grow {} tdim {}\n",
            filter_long,filter_short,grow_check,tdim);
   intAr1& lcent = cav.lcent(tdim);
@@ -293,7 +293,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
                ipoi1,ipoi2, len,quaed);
       //CPRINTF1(" met 1: {} {} {} met 2 : {} {} {}\n",msh.met(ipoi1,0),msh.met(ipoi1,1),msh.met(ipoi1,2)
       //  ,msh.met(ipoi2,0),msh.met(ipoi2,1),msh.met(ipoi2,2));
-      qua0 = MAX(qua0, quaed);
+      qua0 = METRIS_MAX(qua0, quaed);
 
       {
       #ifdef TRACY_ENABLE
@@ -365,7 +365,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
           }
         //CPRINTF1(" met 1: {} {} {} met 2 : {} {} {}\n",msh.met(edg2pol[0],0),msh.met(edg2pol[0],1),msh.met(edg2pol[0],2)
         //  ,msh.met(edg2pol[1],0),msh.met(edg2pol[1],1),msh.met(edg2pol[1],2));
-          qua1 = MAX(qua1, quaed);
+          qua1 = METRIS_MAX(qua1, quaed);
 
         }// for ipfa
 
@@ -379,7 +379,7 @@ int collrejcav_lenqua(Mesh<MFT>& msh, MshCavity &cav,
           if(ent2tag(ithrd1,ienei) < msh.tag[ithrd1]){
             lcent.stack(ienei);
             ent2tag(ithrd1,ienei) = ent2tag(ithrd1,ientt) + 1;
-            maxtag = MAX(maxtag, ent2tag(ithrd1, ienei));
+            maxtag = METRIS_MAX(maxtag, ent2tag(ithrd1, ienei));
             nadded++;
           }
         }

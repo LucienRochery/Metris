@@ -297,7 +297,7 @@ void gen_lag2bez(std::ostringstream &str){
     printf(" -- Degree %d took %f s\n",ideg,t1-t0);
   }CT_FOR1(ideg);
   //  str << "  }\n"; // close constructor
-  //  str << "  ALWAYS_INLINE double* operator[](int i)const {\n";
+  //  str << "  METRIS_ALWAYS_INLINE double* operator[](int i)const {\n";
   //  str << "    return arr[i];\n";
   //  str << "  }\n";
   ////  str << "  const double arr[getnnod3(ideg)][getnnod3(ideg)];";

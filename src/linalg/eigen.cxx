@@ -54,15 +54,15 @@ void geteigsym_LAPACK<3>(const double* met,int nwork,double* rwork,double* eigva
 #endif
 
 //template<>
-//void geteigsym(const SANS::SurrealS<3,double>* __restrict__ met,
-//             SANS::SurrealS<3,double>* __restrict__ eigval,
-//             SANS::SurrealS<3,double>* __restrict__ eigvec){
-//  int ierro = dsyevq3<SANS::SurrealS<3,double>>(met,eigvec,eigval);
+//void geteigsym(const Metris::SurrealS<3,double>* __restrict__ met,
+//             Metris::SurrealS<3,double>* __restrict__ eigval,
+//             Metris::SurrealS<3,double>* __restrict__ eigvec){
+//  int ierro = dsyevq3<Metris::SurrealS<3,double>>(met,eigvec,eigval);
 //  if(ierro != 0)METRIS_THROW_MSG(
 //   "dsyevq3 FAILED INFO = {}", ierro);
 //}
 
-// This function can take SANS::SurrealS as input.
+// This function can take Metris::SurrealS as input.
 template<int ndimn, typename T>
 void geteigsym(const T* __restrict__ met,
                      T* __restrict__ eigval,
@@ -88,15 +88,15 @@ template void geteigsym<3,double>(const double* __restrict__ met,
                                         double* __restrict__ eigval,
                                         double* __restrict__ eigvec);
 
-template void geteigsym<2,SANS::SurrealS<2,double>>(const SANS::SurrealS<2,double>* __restrict__ met,
-                                                          SANS::SurrealS<2,double>* __restrict__ eigval,
-                                                          SANS::SurrealS<2,double>* __restrict__ eigvec);
-template void geteigsym<3,SANS::SurrealS<3,double>>(const SANS::SurrealS<3,double>* __restrict__ met,
-                                                          SANS::SurrealS<3,double>* __restrict__ eigval,
-                                                          SANS::SurrealS<3,double>* __restrict__ eigvec);
+template void geteigsym<2,Metris::SurrealS<2,double>>(const Metris::SurrealS<2,double>* __restrict__ met,
+                                                          Metris::SurrealS<2,double>* __restrict__ eigval,
+                                                          Metris::SurrealS<2,double>* __restrict__ eigvec);
+template void geteigsym<3,Metris::SurrealS<3,double>>(const Metris::SurrealS<3,double>* __restrict__ met,
+                                                          Metris::SurrealS<3,double>* __restrict__ eigval,
+                                                          Metris::SurrealS<3,double>* __restrict__ eigvec);
 
 
-// This function can take SANS::SurrealS as input.
+// This function can take Metris::SurrealS as input.
 template<int ndim, typename T>
 int geteigsym_Eigen(const T* __restrict__ met,T* __restrict__ eigval,T* __restrict__ eigvec){
   typedef Eigen::Matrix<T,ndim,ndim> MatrixN;

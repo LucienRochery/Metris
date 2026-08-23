@@ -25,10 +25,10 @@ friend class MeshBase;
   WorkArray1D(MeshBase& msh_, int ilock_, MeshArray1D<T>& array_, MeshSize itype_, int iref_tracked_);
   ~WorkArray1D();
 
-  ALWAYS_INLINE T &operator[](const int &ii){
+  METRIS_ALWAYS_INLINE T &operator[](const int &ii){
     return array[ii];
   }
-  ALWAYS_INLINE const T &operator[](const int &ii) const {
+  METRIS_ALWAYS_INLINE const T &operator[](const int &ii) const {
     return array[ii];
   }
 

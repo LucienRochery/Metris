@@ -148,7 +148,7 @@ void CADInfo::setModel(size_t nbyte, char* stream){
 //  METRIS_THROW_MSG("TODO: Fix CAD stream\n");
   fmt::print("## DEBUG STREAM AS INT:\n");
   int *ptr = (int*)stream;
-  for(int ii = 0; ii < (int) MIN(10,nbyte / sizeof(int)); ii++){
+  for(int ii = 0; ii < (int) METRIS_MIN(10,nbyte / sizeof(int)); ii++){
     fmt::print("{} : {} \n",ii,*ptr);
     ptr++;
   }

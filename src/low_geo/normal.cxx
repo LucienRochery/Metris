@@ -667,7 +667,7 @@ double getnordev(const MeshBase&__restrict__ msh, const int*__restrict__ fac2pol
       "Normalized normals dotprod > ? tmp = {:e} (<0?)\n"
       "norelt = {}, norCAD = {}",tmp,dblAr1(3,norelt), dblAr1(3,norCAD));
     // Value can be slightly negative due to roundoff
-    tmp = MAX(tmp, 0.0);
+    tmp = METRIS_MAX(tmp, 0.0);
     nordev += abs(tmp);
     nsum++;
     CPRINTF1(" - face {} {} {} inode = {} ibpoi = {} local dev = {}\n",fac2pol[0],fac2pol[1],fac2pol[2],inode,ibpoi,tmp);

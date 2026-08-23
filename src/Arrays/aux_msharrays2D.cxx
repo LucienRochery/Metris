@@ -99,7 +99,7 @@ MeshArray2D<T,INT1,INT2>::MeshArray2D(MeshArray2D &&cpy){
 template<typename T, typename INT1, typename INT2>
 bool MeshArray2D<T,INT1,INT2>::allocate(INT1 m, INT2 s){
 
-  METRIS_ASSERT_MSG(MAX(m,m1) >= n1," Trying to allocate size {} < n1 = {}",m,n1); 
+  METRIS_ASSERT_MSG(METRIS_MAX(m,m1) >= n1," Trying to allocate size {} < n1 = {}",m,n1);
   METRIS_ASSERT(s >= 0); 
 
   // No need to reallocate nor copy if the stride hasn't changed and we have enough room.
@@ -161,7 +161,7 @@ void MeshArray2D<T,INT1,INT2>::free(){
 template<typename T, typename INT1, typename INT2>
 void MeshArray2D<T,INT1,INT2>::inc_n(){
   if(n1 >= m1){
-    INTL m1_new = MAX(MAX(n1+1,n1 * Defaults::mem_growfac), 
+    INTL m1_new = METRIS_MAX(METRIS_MAX(n1+1,n1 * Defaults::mem_growfac),
                       m1 * Defaults::mem_growfac); 
     this->allocate(m1_new,stride);
   }
@@ -297,8 +297,8 @@ template class MeshArray2D<int,int32_t,int64_t>;
 // Coordinates, metric, Lag2Bez work arrays : large n but small n
 template class MeshArray2D<double,int32_t,int32_t>;
 template class MeshArray2D<double,int64_t,int32_t>;
-template class MeshArray2D<SANS::SurrealS<2,double>,int32_t,int32_t>;
-template class MeshArray2D<SANS::SurrealS<3,double>,int32_t,int32_t>;
+template class MeshArray2D<Metris::SurrealS<2,double>,int32_t,int32_t>;
+template class MeshArray2D<Metris::SurrealS<3,double>,int32_t,int32_t>;
 
 #ifdef USE_MULTIPRECISION
 template class MeshArray2D<float8,int32_t,int32_t>;

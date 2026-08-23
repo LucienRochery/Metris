@@ -8,23 +8,26 @@
 #include <cstdarg>
 #include <cstdio>
 
+namespace Metris
+{
+
 //=============================================================================
-SANSException::SANSException() : errString(""), barrier("\n#=================================================#\n")
+MetrisException::MetrisException() : errString(""), barrier("\n#=================================================#\n")
 {
 }
 
 //=============================================================================
-SANSException::SANSException( const SANSException& e ) :
+MetrisException::MetrisException( const MetrisException& e ) :
   boost::exception(e), std::exception(e),
   errString(e.errString), barrier(e.barrier), outString(e.outString)
 {
 }
 
 //=============================================================================
-char const* SANSException::what() const noexcept
+char const* MetrisException::what() const noexcept
 {
   outString  = barrier;
-  outString += "#                   SANS ERROR                    #";
+  outString += "#                  METRIS ERROR                   #";
   outString += barrier;
   outString += "\n";
 
@@ -43,7 +46,7 @@ char const* SANSException::what() const noexcept
 }
 
 //=============================================================================
-SANSException::~SANSException() noexcept {}
+MetrisException::~MetrisException() noexcept {}
 
 //=============================================================================
 AssertionException::AssertionException(const std::string& assertion )
@@ -214,7 +217,9 @@ RuntimeException::RuntimeException(const char *fmt, ...)
 //=============================================================================
 RuntimeException::~RuntimeException() noexcept {}
 
+} // namespace Metris
+
 //=============================================================================
-SANS_BOOST_EXCEPTION_INSTANTIATE(AssertionException)
-SANS_BOOST_EXCEPTION_INSTANTIATE(DeveloperException)
-SANS_BOOST_EXCEPTION_INSTANTIATE(RuntimeException)
+METRIS_SUPPORT_BOOST_EXCEPTION_INSTANTIATE(Metris::AssertionException)
+METRIS_SUPPORT_BOOST_EXCEPTION_INSTANTIATE(Metris::DeveloperException)
+METRIS_SUPPORT_BOOST_EXCEPTION_INSTANTIATE(Metris::RuntimeException)

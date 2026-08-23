@@ -285,7 +285,7 @@ template HshTab_I3I& MeshBase::hshTab<2>();
 
 MeshBase& MeshBase::operator=(const MeshBase &inp){
 
-  strdeg = MAX(inp.strdeg,strdeg);
+  strdeg = METRIS_MAX(inp.strdeg,strdeg);
   curdeg = inp.curdeg;
   ibasis = inp.ibasis;
   idim   = inp.idim;
@@ -400,7 +400,7 @@ void MeshBase::set_nbpoi(int nbpoi){
   METRIS_ASSERT(Defaults::mem_growfac > 1); 
 
   nbpoi_ = nbpoi;
-  if(nbpoi > mbpoi_) mbpoi_ = MAX(nbpoi, mbpoi_*Defaults::mem_growfac);
+  if(nbpoi > mbpoi_) mbpoi_ = METRIS_MAX(nbpoi, mbpoi_*Defaults::mem_growfac);
 
   bpo2ibi.allocate(mbpoi, nibi);
   bpo2ibi.set_n(nbpoi);
@@ -431,7 +431,7 @@ void MeshBase::set_npoin(int npoin, bool skipallocf){
   METRIS_ASSERT(Defaults::mem_growfac > 1); 
 
   npoin_ = npoin;
-  if(npoin > mpoin_) mpoin_ = MAX(npoin, mpoin_*Defaults::mem_growfac);
+  if(npoin > mpoin_) mpoin_ = METRIS_MAX(npoin, mpoin_*Defaults::mem_growfac);
 
 
   poi2ent_.allocate(mpoin, 2);
@@ -475,7 +475,7 @@ void MeshBase::set_nedge(int nedge, bool skipallocf){
   METRIS_ASSERT(Defaults::mem_growfac > 1); 
 
   nedge_ = nedge;
-  if(nedge > medge_) medge_ = MAX(nedge, medge_*Defaults::mem_growfac);
+  if(nedge > medge_) medge_ = METRIS_MAX(nedge, medge_*Defaults::mem_growfac);
 
   edg2tag.allocate(METRIS_MAXTAGS, medge);
   edg2tag.set_n(METRIS_MAXTAGS);
@@ -518,7 +518,7 @@ void MeshBase::set_nface(int nface, bool skipallocf){
   METRIS_ASSERT(Defaults::mem_growfac > 1); 
 
   nface_ = nface;
-  if(nface > mface_) mface_ = MAX(nface, mface_*Defaults::mem_growfac);
+  if(nface > mface_) mface_ = METRIS_MAX(nface, mface_*Defaults::mem_growfac);
 
   fac2tag.allocate(METRIS_MAXTAGS, mface);
   fac2tag.set_n(METRIS_MAXTAGS); 
@@ -566,7 +566,7 @@ void MeshBase::set_nelem(int nelem, bool skipallocf){
   if(nelem <= 0) return;
 
   nelem_ = nelem;
-  if(nelem > melem_) melem_ = MAX(nelem, melem_*Defaults::mem_growfac);
+  if(nelem > melem_) melem_ = METRIS_MAX(nelem, melem_*Defaults::mem_growfac);
 
 
   update_tracked_work_arrays(MeshSize::Tetra, melem, nelem);

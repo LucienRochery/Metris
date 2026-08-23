@@ -91,13 +91,13 @@ void luksan_pcbs04__(int *nf, double *x, int *ix,
 	for (i__ = 1; i__ <= i__1; ++i__) {
 	    temp = 1.;
 	    ixi = (i__2 = ix[i__], iabs(i__2));
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	    d__2 = (d__1 = xl[i__], fabs(d__1));
 	    if ((ixi == 1 || ixi == 3 || ixi == 4) && x[i__] <= xl[i__] + *
 		    eps9 * MAX2(d__2,temp)) {
 		x[i__] = xl[i__];
 	    }
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	    d__2 = (d__1 = xu[i__], fabs(d__1));
 	    if ((ixi == 2 || ixi == 3 || ixi == 4) && x[i__] >= xu[i__] - *
 		    eps9 * MAX2(d__2,temp)) {
@@ -216,10 +216,10 @@ void luksan_pnint1__(double *rl, double *ru, double *fl,
 /*     EXTRAPOLATION ACCEPTED */
 
 	    *r__ = *rl + (*ru - *rl) / den;
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	    d__1 = *r__, d__2 = *ru * 1.1;
 	    *r__ = MAX2(d__1,d__2);
-/* Computing MIN */
+/* Computing METRIS_MIN */
 	    d__1 = *r__, d__2 = *ru * 1e3;
 	    *r__ = MIN2(d__1,d__2);
 	    return;
@@ -229,15 +229,15 @@ void luksan_pnint1__(double *rl, double *ru, double *fl,
 
 	    *r__ = *rl + (*ru - *rl) / den;
 	    if (*rl == 0.) {
-/* Computing MAX */
+/* Computing METRIS_MAX */
 		d__1 = *r__, d__2 = *rl + (*ru - *rl) * .01;
 		*r__ = MAX2(d__1,d__2);
 	    } else {
-/* Computing MAX */
+/* Computing METRIS_MAX */
 		d__1 = *r__, d__2 = *rl + (*ru - *rl) * .1;
 		*r__ = MAX2(d__1,d__2);
 	    }
-/* Computing MIN */
+/* Computing METRIS_MIN */
 	    d__1 = *r__, d__2 = *rl + (*ru - *rl) * .9;
 	    *r__ = MIN2(d__1,d__2);
 	    return;
@@ -372,7 +372,7 @@ void luksan_ps1l01__(double *r__, double *rp,
     } else if (*iest == 0) {
 	rtemp = *f - *fp;
     } else {
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	d__1 = *f - *fp, d__2 = *minf - *f;
 	rtemp = MAX2(d__1,d__2);
     }
@@ -384,11 +384,11 @@ void luksan_ps1l01__(double *r__, double *rp,
     } else if (init1 == 1 || (*inits >= 1 && *iest == 0)) {
 	*r__ = 1.;
     } else if (init1 == 2) {
-/* Computing MIN */
+/* Computing METRIS_MIN */
 	d__1 = 1., d__2 = rtemp * 4. / *po;
 	*r__ = MIN2(d__1,d__2);
     } else if (init1 == 3) {
-/* Computing MIN */
+/* Computing METRIS_MIN */
 	d__1 = 1., d__2 = rtemp * 2. / *po;
 	*r__ = MIN2(d__1,d__2);
     } else if (init1 == 4) {
@@ -601,24 +601,24 @@ void luksan_pulsp3__(int *n, int *m, int *mf,
     if (a > 0.) {
 	den = luksan_mxvdot__(n, &xo[1], &xo[1]);
 	if (*met3 <= 4) {
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	    d__1 = 0., d__2 = 1. - aa / a;
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	    d__3 = 0., d__4 = 1. - b * b / (den * ah);
 	    *sig = sqrt((MAX2(d__1,d__2))) / (sqrt((MAX2(d__3,d__4))) + 1.) *
 		    pom;
 	} else {
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	    d__1 = 0., d__2 = *sig * ah / a;
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	    d__3 = 0., d__4 = 1. - b * b / (den * ah);
 	    *sig = sqrt((MAX2(d__1,d__2))) / (sqrt((MAX2(d__3,d__4))) + 1.) *
 		    pom;
 	}
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	d__1 = *sig, d__2 = pom * .2;
 	*sig = MAX2(d__1,d__2);
-/* Computing MIN */
+/* Computing METRIS_MIN */
 	d__1 = *sig, d__2 = pom * .8;
 	*sig = MIN2(d__1,d__2);
     } else {
@@ -745,24 +745,24 @@ void luksan_pulvp3__(int *n, int *m, double *xm,
     if (a > 0.) {
 	den = luksan_mxvdot__(n, &xo[1], &xo[1]);
 	if (*met3 <= 4) {
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	    d__1 = 0., d__2 = 1. - aa / a;
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	    d__3 = 0., d__4 = 1. - b * b / (den * ah);
 	    *sig = sqrt((MAX2(d__1,d__2))) / (sqrt((MAX2(d__3,d__4))) + 1.) *
 		    pom;
 	} else {
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	    d__1 = 0., d__2 = *sig * ah / a;
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	    d__3 = 0., d__4 = 1. - b * b / (den * ah);
 	    *sig = sqrt((MAX2(d__1,d__2))) / (sqrt((MAX2(d__3,d__4))) + 1.) *
 		    pom;
 	}
-/* Computing MAX */
+/* Computing METRIS_MAX */
 	d__1 = *sig, d__2 = pom * .2;
 	*sig = MAX2(d__1,d__2);
-/* Computing MIN */
+/* Computing METRIS_MIN */
 	d__1 = *sig, d__2 = pom * .8;
 	*sig = MIN2(d__1,d__2);
     } else {
@@ -952,7 +952,7 @@ void luksan_pyfut1__(int *n, double *f, double *fo, double *umax,
 	goto L1;
     }
     if (*nit <= 0) {
-/* Computing MIN */
+/* Computing METRIS_MIN */
 	d__1 = sqrt((fabs(*f))), d__2 = fabs(*f) / 10.;
 	*fo = *f + MIN2(d__1,d__2);
     }
@@ -1058,7 +1058,7 @@ void luksan_pyrmc0__(int *nf, int *n, int *ix,
 		} else if ((ixi == -2 || ixi == -4) && g[i__] <= 0.) {
 		} else {
 		    ++(*iold);
-/* Computing MIN */
+/* Computing METRIS_MIN */
 		    i__3 = (i__2 = ix[i__], iabs(i__2));
 		    ix[i__] = MIN2(i__3,3);
 		    if (*rmax == 0.) {
@@ -1150,8 +1150,8 @@ void luksan_pytrcd__(int *nf, double *x, int *ix,
 		goto L1;
 	    }
 	}
-/* Computing MAX */
-/* Computing MAX */
+/* Computing METRIS_MAX */
+/* Computing METRIS_MAX */
 	d__5 = (d__2 = x[i__], fabs(d__2));
 	d__3 = *dmax__, d__4 = (d__1 = xo[i__], fabs(d__1)) / MAX2(d__5,1.);
 	*dmax__ = MAX2(d__3,d__4);
@@ -1206,7 +1206,7 @@ void luksan_pytrcg__(int *nf, int *n, int *ix,
 	for (i__ = 1; i__ <= i__1; ++i__) {
 	    temp = g[i__];
 	    if (ix[i__] >= 0) {
-/* Computing MAX */
+/* Computing METRIS_MAX */
 		d__1 = *gmax, d__2 = fabs(temp);
 		*gmax = MAX2(d__1,d__2);
 	    } else if (ix[i__] <= -5) {
@@ -1296,14 +1296,14 @@ void luksan_pytrcs__(int *nf, double *x, int *ix,
 	    } else {
 		if (ix[i__] == 1 || ix[i__] >= 3) {
 		    if (s[i__] < -1. / *eta9) {
-/* Computing MIN */
+/* Computing METRIS_MIN */
 			d__1 = *rmax, d__2 = (xl[i__] - x[i__]) / s[i__];
 			*rmax = MIN2(d__1,d__2);
 		    }
 		}
 		if (ix[i__] == 2 || ix[i__] >= 3) {
 		    if (s[i__] > 1. / *eta9) {
-/* Computing MIN */
+/* Computing METRIS_MIN */
 			d__1 = *rmax, d__2 = (xu[i__] - x[i__]) / s[i__];
 			*rmax = MIN2(d__1,d__2);
 		    }

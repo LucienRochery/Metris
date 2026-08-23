@@ -21,15 +21,15 @@ struct MetrisParameters;
 
 enum class FEBasis;
 
-#ifndef ALWAYS_INLINE
-	// ALWAYS_INLINE is a macro to further encourage the compiler to inline a function
+#ifndef METRIS_ALWAYS_INLINE
+	// METRIS_ALWAYS_INLINE is a macro to further encourage the compiler to inline a function
 	#if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__clang__)
-		#define ALWAYS_INLINE inline __attribute__((always_inline))
+		#define METRIS_ALWAYS_INLINE inline __attribute__((always_inline))
 	#elif defined(_MSC_VER)
-		#define ALWAYS_INLINE __forceinline
+		#define METRIS_ALWAYS_INLINE __forceinline
 	#else
 		#warning Not forcing inline with this compiler... (Please add this compiler to tools/always_inline.h)
-		#define ALWAYS_INLINE inline
+		#define METRIS_ALWAYS_INLINE inline
 	#endif
 #endif
 

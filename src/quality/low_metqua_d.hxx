@@ -79,7 +79,7 @@ get_d_quafun(QuaFun iquaf){
 //	metqua3_d(const Mesh<MetricFieldType> &msh, int ielem, int power,
 //						const double*  __restrict__ dmetvar, 
 //						const double*  __restrict__ dpoivar, 
-//						SANS::SurrealS<nvar,ftype> *qutet);
+//						Metris::SurrealS<nvar,ftype> *qutet);
 //};
 
 
@@ -90,7 +90,7 @@ get_d_quafun(QuaFun iquaf){
 //	                int* __restrict__ nshell, int* __restrict__ lshell,
 //	                const double* __restrict__ dmetvar, 
 //	                const double* __restrict__ dpoivar, 
-//	                SANS::SurrealS<nvar,double>*  qushe);
+//	                Metris::SurrealS<nvar,double>*  qushe);
 //};
 
 } // End namespace

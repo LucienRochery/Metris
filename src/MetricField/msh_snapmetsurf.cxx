@@ -94,7 +94,7 @@ void snapMetSurf(MeshMetric<MetricFieldType> &msh,
         for(int ii = 0; ii < gdim; ii++){
           double dtprd = gdim == 2 ? getprdl2<2>(&eigvec[gdim*ii], surfdir)
                                    : getprdl2<3>(&eigvec[gdim*ii], surfdir);
-          double err = MAX(1 - abs(dtprd),0);
+          double err = METRIS_MAX(1 - abs(dtprd),0);
           if(err < errmin){
             errmin = err;
             imin = ii;
@@ -102,11 +102,11 @@ void snapMetSurf(MeshMetric<MetricFieldType> &msh,
         }
 
         CPRINTF1(" - ipoin {} iref {} tdim {} errmin {}\n",ipoin,iref,tdim,errmin);
-        maxerrmin = MAX(maxerrmin, errmin);
-        minerrmin = MIN(minerrmin, errmin);
+        maxerrmin = METRIS_MAX(maxerrmin, errmin);
+        minerrmin = METRIS_MIN(minerrmin, errmin);
 
-        maxerrminref[iref] = MAX(maxerrminref[iref], errmin);
-        minerrminref[iref] = MIN(minerrminref[iref], errmin);
+        maxerrminref[iref] = METRIS_MAX(maxerrminref[iref], errmin);
+        minerrminref[iref] = METRIS_MIN(minerrminref[iref], errmin);
 
         if(errmin >= msh.param->met_snap_tol*2) continue;
 

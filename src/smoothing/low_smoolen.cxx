@@ -160,13 +160,13 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov,
     double len = msh.idim == 2 ? getlenedg_geosz<MFT,2,1>(msh,edg2pol,sz) 
                                : getlenedg_geosz<MFT,3,1>(msh,edg2pol,sz);
     avglen += len;
-    minlen = MIN(minlen, len);
-    maxlen = MAX(maxlen, len);
+    minlen = METRIS_MIN(minlen, len);
+    maxlen = METRIS_MAX(maxlen, len);
     // Lengths above 1 are weighted more strongly, such that ipins is drawn towards those points
     // Lengths below 1 are weighted weakly, to repel ipins
     double quaed = len < 1.0 ? 1.0 - len 
                              : 1.0 - 1.0 / len;
-    lenqua = MAX(quaed, lenqua);
+    lenqua = METRIS_MAX(quaed, lenqua);
     CPRINTF1(" - initial ipoin {} len {:.2f} qualen {:.2e}\n",ipoin,len,quaed);
   }
   avglen /= npoil;
@@ -192,15 +192,15 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov,
       double len = msh.idim == 2 ? getlenedg_geosz<MFT,2,1>(msh,edg2pol,sz) 
                                  : getlenedg_geosz<MFT,3,1>(msh,edg2pol,sz);
       avglen += len;
-      minlen = MIN(minlen, len);
-      maxlen = MAX(maxlen, len);
+      minlen = METRIS_MIN(minlen, len);
+      maxlen = METRIS_MAX(maxlen, len);
       // Lengths above 1 are weighted more strongly, such that ipins is drawn towards those points
       // Lengths below 1 are weighted weakly, to repel ipins
       rpoin[ii] = len < 1 ? idpow<4>(len) : idpow<4>(len); // was 8, 4
       wttot += rpoin[ii];
       double quaed = len < 1.0 ? 1.0 - len 
                                : 1.0 - 1.0 / len;
-      lenqua = MAX(quaed, lenqua);
+      lenqua = METRIS_MAX(quaed, lenqua);
       CPRINTF1(" - iter {} ipoin {} len {} weight {}\n",niter,ipoin,len,rpoin[ii]);
     }
     avglen /= npoil;

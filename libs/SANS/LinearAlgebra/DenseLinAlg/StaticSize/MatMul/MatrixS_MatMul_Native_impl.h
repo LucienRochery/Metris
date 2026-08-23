@@ -3,15 +3,18 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-// No include blocker here. This file should only be included once in a cpp file for explicit instantiation
+#ifndef METRIS_DLA_MATRIXS_MATMUL_NATIVE_IMPL_H
+#define METRIS_DLA_MATRIXS_MATMUL_NATIVE_IMPL_H
 
-#if !defined(MATRIXS_MATMUL_NATIVE_INSTANTIATE) && !defined(SANS_HEADERCOMPILE_CHECK)
+// This file is only for explicit instantiation.
+
+#if !defined(METRIS_MATRIXS_MATMUL_NATIVE_INSTANTIATE) && !defined(METRIS_HEADERCOMPILE_CHECK)
 #error "This file should only be included in a cpp file for explicit instantiations"
 #endif
 
 #include "MatrixS_MatMul_Native.h"
-#include "SANS/tools/SANSException.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS.h"
+#include "../../../../tools/SANSException.h"
+#include "../MatrixS.h"
 
 #include <boost/mpl/assert.hpp>
 
@@ -27,8 +30,8 @@ void MatrixS_MatMul_Native<TL,TR,S,T>::plus(const MatrixS<ML,NL,TL>& ml, const M
 {
   BOOST_MPL_ASSERT_RELATION(NL, ==, MR);
 
-  SANS_ASSERT(res.ID() != ml.ID());
-  SANS_ASSERT(res.ID() != mr.ID());
+  METRIS_SUPPORT_ASSERT(res.ID() != ml.ID());
+  METRIS_SUPPORT_ASSERT(res.ID() != mr.ID());
 
   static const int Rstride = NR;
 
@@ -99,8 +102,10 @@ void MatrixS_MatMul_Native<TL,TR,S,T>::plus(const MatrixS<ML,NL,TL>& ml, const M
 }
 
 } //namespace DLA
-} //namesapce SANS
+} // namespace Metris
 
-#define MATRIXS_MATMUL_NATIVE(ML, NL,  MR, NR,  TL, TR, S, T) \
+#define METRIS_MATRIXS_MATMUL_NATIVE(ML, NL,  MR, NR,  TL, TR, S, T) \
   template void MatrixS_MatMul_Native<TL, TR, S, T>::plus(const MatrixS< ML, NL, TL >& ml, const MatrixS< MR, NR, TR >& mr, \
                                                           const S& sgn, MatrixS< ML, NR, T >& res )
+
+#endif // METRIS_DLA_MATRIXS_MATMUL_NATIVE_IMPL_H

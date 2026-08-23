@@ -53,8 +53,8 @@ eval3_d_SurrealS0 is not designed to be called directly: call instead eval3_d.
 
 T designed to be a heterogeneous Boost::hana container such as a hana::tuple
 Each type in the tuple can be a szfld allocated array. 
-This tuple may hold SANS::SurrealS<szfld>* and no other n. 
-Ideally, it should also hold exactly 1 SANS::SurrealS<szfld>*, doing otherwise
+This tuple may hold Metris::SurrealS<szfld>* and no other n.
+Ideally, it should also hold exactly 1 Metris::SurrealS<szfld>*, doing otherwise
 would be wasteful. 
 
 This container can only be accessed by compile-time constants, which is why
@@ -78,8 +78,8 @@ It sets up the tuple, gathers the derivatives.
 - dhmat: idem, hmat (4D)
 
 The plan is to constitute a pack of types using a hana::tuple
-For instance hana::tuple<double, double, SANS::SurrealS, double>
-Now, we'd want to populate it with values from rfld, or from our allocated SANS::SurrealS types. 
+For instance hana::tuple<double, double, Metris::SurrealS, double>
+Now, we'd want to populate it with values from rfld, or from our allocated Metris::SurrealS types.
 But we can't, because a hana::tuple is a purely compile-time construct. 
 So we'll have to unpack its type template parameter into an std::tuple which can be 
 modified at runtime! 
@@ -87,7 +87,7 @@ This is what we'll pass to eval3_d_SurrealS0.
 
 - hana offers hana::replicate to build a "constexpr dynamically sized" tuple
 - we can "modify" types of this hana::tuple with the replace_at_c helper 
--> all to (double*) then ivar to (SANS::SurrealS<N,double>*)
+-> all to (double*) then ivar to (Metris::SurrealS<N,double>*)
 - Problem: hana::tuple is fully constexpr so the double* etc values cannot be set
 -> convert to std::tuple and pass that to the low-level routine
 - Problem: std::tuple does not offer [] so we'll have to use std::get... which is not 
@@ -148,9 +148,9 @@ void eval_d_direct(const dblAr2 & __restrict__ rfld,
 //void eval_d_SurrealS0(const       T& __restrict__  rfld,  
 //                      FEBasis ibasis, DifVar idif1, DifVar idif2, 
 //                      const double * __restrict__  bary, 
-//                      Metris::DLA::VectorS<                  szfld,SANS::SurrealS<nvar,double>> *eval,
-//                      Metris::DLA::MatrixS< tdim,            szfld,SANS::SurrealS<nvar,double>> *jmat,
-//                      Metris::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,SANS::SurrealS<nvar,double>> *hmat);
+//                      Metris::DLA::VectorS<                  szfld,Metris::SurrealS<nvar,double>> *eval,
+//                      Metris::DLA::MatrixS< tdim,            szfld,Metris::SurrealS<nvar,double>> *jmat,
+//                      Metris::DLA::MatrixS<(tdim*(tdim+1))/2,szfld,Metris::SurrealS<nvar,double>> *hmat);
 
 
 
@@ -163,7 +163,7 @@ void eval_d_direct(const dblAr2 & __restrict__ rfld,
 /*
 Main eval3_d routine. Calls either eval3_d_SurrealS or eval3_d_direct 
 depending on arguments. Direct version can handle both Bézier and Lagrange. 
-SANS::SurrealS can only handle Bézier (TODO: implement Lagrange evals with SANS::SurrealS)
+Metris::SurrealS can only handle Bézier (TODO: implement Lagrange evals with Metris::SurrealS)
 */
 /* --- dfld
 dfld of size (szfld,szfld) specifies the derivatives of the input field. 
@@ -194,11 +194,11 @@ void eval3_d(const dblAr2 & __restrict__ rfld,
   METRIS_ASSERT_MSG(!(dfld == NULL && nvar != szfld),
                      "If nvar != szfld, Jacobian matrix must be specified");
 
-  // Only case where SANS::SurrealS benchmarked faster than direct method
+  // Only case where Metris::SurrealS benchmarked faster than direct method
   // But also the only one with a Hessian implementation...
   if(idif2 == DifVar::Bary || (ideg == 2 && idif1 == DifVar::Bary && ibasis == FEBasis::Bezier)){
     METRIS_ASSERT_MSG(ibasis == FEBasis::Bezier,
-      "## EITHER IMPLEMENT HESSIAN IN DIRECT OR IMPLEMENT LAGRANGE IN SANS::SurrealS\n");
+      "## EITHER IMPLEMENT HESSIAN IN DIRECT OR IMPLEMENT LAGRANGE IN Metris::SurrealS\n");
     eval_d_SurrealS<szfld, 3, ideg,  ivar, nvar>
                  (rfld,lfld,ibasis, idif1, idif2,bary,eval,jmat,hmat,deval,djmat,dhmat, dfld);
   }else{
@@ -225,11 +225,11 @@ void eval2_d(const dblAr2 & __restrict__ rfld,
   METRIS_ASSERT_MSG(!(dfld == NULL && nvar != szfld),
                      "If nvar != szfld, Jacobian matrix must be specified");
 
-  // Only case where SANS::SurrealS benchmarked faster than direct method
+  // Only case where Metris::SurrealS benchmarked faster than direct method
   // But also the only one with a Hessian implementation...
   if(idif2 == DifVar::Bary || (ideg == 2 && idif1 == DifVar::Bary && ibasis == FEBasis::Bezier)){
     METRIS_ASSERT_MSG(ibasis == FEBasis::Bezier,
-      "## EITHER IMPLEMENT HESSIAN IN DIRECT OR IMPLEMENT LAGRANGE IN SANS::SurrealS\n");
+      "## EITHER IMPLEMENT HESSIAN IN DIRECT OR IMPLEMENT LAGRANGE IN Metris::SurrealS\n");
     eval_d_SurrealS<szfld,2,  ideg,  ivar, nvar>
                  (rfld,lfld,ibasis, idif1, idif2,bary,eval,jmat,hmat,deval,djmat,dhmat, dfld);
   }else{

@@ -143,7 +143,7 @@ void Mesh<MFT>::initializeCommon(MetrisAPI *data, MeshBack &bak,
   this->bak   = &bak;
 
   // The back mesh has curdeg = strdeg regardless of target degree 
-  this->strdeg = MAX(param.usrTarDeg,bak.curdeg);
+  this->strdeg = METRIS_MAX(param.usrTarDeg,bak.curdeg);
 
   if(data == NULL && !param.inpBack){
     // In this case, simply copy from back mesh 

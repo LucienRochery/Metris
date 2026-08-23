@@ -30,12 +30,12 @@
 #undef max
 #endif
 
-#ifndef MAX
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
+#ifndef METRIS_MAX
+#define METRIS_MAX(a,b) ((a) > (b) ? (a) : (b))
 #endif
 
-#ifndef MIN
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#ifndef METRIS_MIN
+#define METRIS_MIN(a,b) ((a) < (b) ? (a) : (b))
 #endif
 
 

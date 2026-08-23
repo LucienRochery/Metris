@@ -12,7 +12,7 @@ namespace Metris{
 
 template<int gdim, int nvar>
 void getmet_dbl2SurS(const double*__restrict__ met, const double*__restrict__ dmet, 
-									SANS::SurrealS<nvar,double>*__restrict__ metS){
+									Metris::SurrealS<nvar,double>*__restrict__ metS){
 	constexpr int nnmet = (gdim*(gdim+1))/2;
 	for(int ii = 0; ii < nnmet ;ii++){
 		metS[ii].value() = met[ii];
@@ -24,16 +24,16 @@ void getmet_dbl2SurS(const double*__restrict__ met, const double*__restrict__ dm
 }
 
 template void getmet_dbl2SurS<2,2>(const double*__restrict__ met, const double*__restrict__ dmet, 
-									SANS::SurrealS<2,double>*__restrict__ metS);
+									Metris::SurrealS<2,double>*__restrict__ metS);
 template void getmet_dbl2SurS<3,2>(const double*__restrict__ met, const double*__restrict__ dmet, 
-									SANS::SurrealS<2,double>*__restrict__ metS);
+									Metris::SurrealS<2,double>*__restrict__ metS);
 template void getmet_dbl2SurS<3,3>(const double*__restrict__ met, const double*__restrict__ dmet, 
-                  SANS::SurrealS<3,double>*__restrict__ metS);
+                  Metris::SurrealS<3,double>*__restrict__ metS);
 
 
 
 template<int gdim, int nvar>
-void getmet_SurS2dbl(const SANS::SurrealS<nvar,double>*__restrict__ metS,
+void getmet_SurS2dbl(const Metris::SurrealS<nvar,double>*__restrict__ metS,
 										 double*__restrict__ met, double*__restrict__ dmet ){
 	constexpr int nnmet = (gdim*(gdim+1))/2;
 	for(int ii = 0; ii < nnmet ;ii++){
@@ -45,10 +45,10 @@ void getmet_SurS2dbl(const SANS::SurrealS<nvar,double>*__restrict__ metS,
 	}
 }
 
-template void getmet_SurS2dbl<2,2>(const SANS::SurrealS<2,double>*__restrict__ metS,
+template void getmet_SurS2dbl<2,2>(const Metris::SurrealS<2,double>*__restrict__ metS,
 										 double*__restrict__ met, double*__restrict__ dmet);
-template void getmet_SurS2dbl<3,2>(const SANS::SurrealS<2,double>*__restrict__ metS,
+template void getmet_SurS2dbl<3,2>(const Metris::SurrealS<2,double>*__restrict__ metS,
 										 double*__restrict__ met, double*__restrict__ dmet);
-template void getmet_SurS2dbl<3,3>(const SANS::SurrealS<3,double>*__restrict__ metS,
+template void getmet_SurS2dbl<3,3>(const Metris::SurrealS<3,double>*__restrict__ metS,
                      double*__restrict__ met, double*__restrict__ dmet);
 }// End namsepace

@@ -247,8 +247,8 @@ BOOST_AUTO_TEST_CASE(test_interperr)
                   double minerrd1 = 1.0e30;
                   double minerrd2 = 1.0e30;
                   for(int ii = 0; ii < ndx; ii++){
-                    minerrd1 = MIN(minerrd1, exp(d1err[ii]));
-                    minerrd2 = MIN(minerrd2, exp(d2err[ii]));
+                    minerrd1 = METRIS_MIN(minerrd1, exp(d1err[ii]));
+                    minerrd2 = METRIS_MIN(minerrd2, exp(d2err[ii]));
                   }
                   //BOOST_CHECK_MESSAGE(minsl < slopd1 || minerrd1 < tol,
                   //  " d1 slope "<<slopd1<<" under minimum "<<minsl<<" min = "<<minerrd1<<"\n");
@@ -259,13 +259,13 @@ BOOST_AUTO_TEST_CASE(test_interperr)
                   //  wait();
                   //}
                   //if(minerrd1 >= tol) 
-                    min_slop1 = MIN(min_slop1, slopd1);
+                    min_slop1 = METRIS_MIN(min_slop1, slopd1);
                   //if(minerrd1 >= tol) 
-                    max_slop1 = MAX(max_slop1, slopd1);
+                    max_slop1 = METRIS_MAX(max_slop1, slopd1);
                   //if(minerrd2 >= tol) 
-                    min_slop2 = MIN(min_slop2, slopd2);
+                    min_slop2 = METRIS_MIN(min_slop2, slopd2);
                   //if(minerrd2 >= tol) 
-                    max_slop2 = MAX(max_slop2, slopd2);
+                    max_slop2 = METRIS_MAX(max_slop2, slopd2);
                 }// for inode
               }// for ientt
 

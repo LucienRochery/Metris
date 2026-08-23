@@ -13,7 +13,7 @@ Determinant computations using naive formulas are too numerically unstable in di
 # Eigen decomposition
 
 We begin by testing symmetric matrix eigendecomposition using:
-  - The Joachim Kopp implementation of dsyevq, see `src/linalg/dsyevq.(c|h)xx`  and `src/linalg/dsytrd.(c|h)xx`. We originally included this to plug in SANS::SurrealS (automatic differentiation). 
+  - The Joachim Kopp implementation of dsyevq, see `src/linalg/dsyevq.(c|h)xx`  and `src/linalg/dsytrd.(c|h)xx`. We originally included this to plug in Metris::SurrealS (automatic differentiation).
   - LAPACK dsyevq, using the LAPACK libraries installed by homebrew on MacOS. 
   - Eigen with `SelfAdjointEigenSolver`  
 
@@ -90,7 +90,7 @@ All three functions/libraries appear as competent in terms of numerical robustne
 DSYEVQ is the fastest by a factor 2x to Eigen, resp 8x to LAPACK in 2D, and a factor depending on conditioning in 3D (as high as 3.5x higher than LAPACK, about 1.5x than Eigen). 
 Hence, it would be preferable to keep this function as the eigenvalue decomposition solver, and LAPACK can be set aside for this task altogether. 
 
-In the future, it could be worthwhile to attempt using the Eigen solver with the auto differentiation type SANS::SurrealS typed matrices and compare robustness and speed to DSYEVQ (which supports SANS::SurrealS). 
+In the future, it could be worthwhile to attempt using the Eigen solver with the auto differentiation type Metris::SurrealS typed matrices and compare robustness and speed to DSYEVQ (which supports Metris::SurrealS).
 
 
 

@@ -41,7 +41,7 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
               const double* bary, 
               const double* __restrict__ dmetvar, 
               const double* __restrict__ dpoivar, 
-              SANS::SurrealS<nvar,ftype>* qutet){
+              Metris::SurrealS<nvar,ftype>* qutet){
 
 	METRIS_ENFORCE_MSG(msh.met.getSpace() == MetSpace::Log, "Set metric to log before d_quafun_distortion call");
 
@@ -69,7 +69,7 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
                              ddum,djmat[0],NULL,dpoivar);
   }
 
-  SANS::SurrealS<nvar,ftype> jmat_S[gdim*gdim];
+  Metris::SurrealS<nvar,ftype> jmat_S[gdim*gdim];
   // Could we instead consider returning a Surreal directly from eval3?
   for(int ii=0; ii<gdim*gdim ; ii++){
     jmat_S[ii].value()  =  (ftype) jmat[ii];
@@ -95,7 +95,7 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
     msh.anamet(NULL,coopr,1,met,dmet[0]);
   }
 
-  SANS::SurrealS<nvar,ftype> met_S[nnmet];
+  Metris::SurrealS<nvar,ftype> met_S[nnmet];
   for(int ii=0; ii<nnmet ; ii++){
     met_S[ii].value() = (ftype)met[ii];
     for(int idof = 0; idof < nvar; idof++)
@@ -127,34 +127,34 @@ d_quafun_distortion<MFT,ideg,idim,ivar,nvar,ftype>
   //}();
 
   // Get J_0^{-T} J_K^T
-  SANS::SurrealS<nvar,ftype> invtJ_0tJ_K[gdim*gdim];
+  Metris::SurrealS<nvar,ftype> invtJ_0tJ_K[gdim*gdim];
   matXmat<gdim                      ,
                               ftype ,
-          SANS::SurrealS<nvar,ftype>,
-          SANS::SurrealS<nvar,ftype>>(Constants::invtJ_0[hana::type_c<ftype>][gdim],jmat_S,invtJ_0tJ_K);
+          Metris::SurrealS<nvar,ftype>,
+          Metris::SurrealS<nvar,ftype>>(Constants::invtJ_0[hana::type_c<ftype>][gdim],jmat_S,invtJ_0tJ_K);
 
   // 2. Get whole product
-  //SANS::SurrealS<nvar,double> J0tJtMJJ0[6];
-  //matXsymXtmat<SANS::SurrealS<nvar,double>,
-  //     SANS::SurrealS<nvar,double>,
-  //     SANS::SurrealS<nvar,double>>(met_S, invtJ_0tJ_K, J0tJtMJJ0);
-  //SANS::SurrealS<nvar,double> tra = J0tJtMJJ0[0]
+  //Metris::SurrealS<nvar,double> J0tJtMJJ0[6];
+  //matXsymXtmat<Metris::SurrealS<nvar,double>,
+  //     Metris::SurrealS<nvar,double>,
+  //     Metris::SurrealS<nvar,double>>(met_S, invtJ_0tJ_K, J0tJtMJJ0);
+  //Metris::SurrealS<nvar,double> tra = J0tJtMJJ0[0]
   //                                + J0tJtMJJ0[2]
   //                                + J0tJtMJJ0[5];
-  SANS::SurrealS<nvar,ftype> J0tJtMJJ0_diag[gdim];
-  matXsymXtmat_diag<gdim,SANS::SurrealS<nvar,ftype>,
-             				   SANS::SurrealS<nvar,ftype>,
-             				   SANS::SurrealS<nvar,ftype>>(met_S, invtJ_0tJ_K, J0tJtMJJ0_diag);
+  Metris::SurrealS<nvar,ftype> J0tJtMJJ0_diag[gdim];
+  matXsymXtmat_diag<gdim,Metris::SurrealS<nvar,ftype>,
+                    Metris::SurrealS<nvar,ftype>,
+                    Metris::SurrealS<nvar,ftype>>(met_S, invtJ_0tJ_K, J0tJtMJJ0_diag);
 
-  SANS::SurrealS<nvar,ftype> tra = J0tJtMJJ0_diag[0]
+  Metris::SurrealS<nvar,ftype> tra = J0tJtMJJ0_diag[0]
                                  + J0tJtMJJ0_diag[1];
   if(gdim == 3) tra += J0tJtMJJ0_diag[2]; 
 
 
-  SANS::SurrealS<nvar,ftype> det1 = detmat<gdim>(invtJ_0tJ_K); // <SANS::SurrealS<nvar,ftype>>
-  SANS::SurrealS<nvar,ftype> det = det1*det1*detsym<gdim>(met_S); // <SANS::SurrealS<nvar,ftype>>
-  //SANS::SurrealS<nvar,double> det 
-  //  = detsym<3,SANS::SurrealS<nvar,double>>(J0tJtMJJ0);
+  Metris::SurrealS<nvar,ftype> det1 = detmat<gdim>(invtJ_0tJ_K); // <Metris::SurrealS<nvar,ftype>>
+  Metris::SurrealS<nvar,ftype> det = det1*det1*detsym<gdim>(met_S); // <Metris::SurrealS<nvar,ftype>>
+  //Metris::SurrealS<nvar,double> det
+  //  = detsym<3,Metris::SurrealS<nvar,double>>(J0tJtMJJ0);
 
   if(tra.value() < 1.0e-16) METRIS_THROW_MSG(
     "NEGATIVE J^TMJ trace "<<tra.value());
@@ -186,7 +186,7 @@ metqua_d<ideg,ilag,ivar,nvar,ftype>
 ::metqua_d(const Mesh & msh, int ielem, int power,
             const double* __restrict__ dmetvar, 
             const double* __restrict__  dpoivar, 
-            SANS::SurrealS<nvar,ftype> *qutet){
+            Metris::SurrealS<nvar,ftype> *qutet){
 
   //int* ent2poi = tdim == 2 ? msh.fac2poi[ielem] : msh.tet2poi[ielem];
   int *ent2poi = msh.tet2poi[ielem];
@@ -195,7 +195,7 @@ metqua_d<ideg,ilag,ivar,nvar,ftype>
     *qutet = 0; // This takes care of derivatives
   
   
-    SANS::SurrealS<nvar,ftype> qua0;
+    Metris::SurrealS<nvar,ftype> qua0;
     int nquad = getnnod3(ideg - 1);
     for(int iquad = 0; iquad < nquad; iquad++){
       bary[0] = ordtet.s[ideg-1][iquad][0]/((double) (ideg - 1));
@@ -232,7 +232,7 @@ metqua_shell_d<ideg,ilag,nvar>
                   int* __restrict__ nshell, int* __restrict__ lshell, 
                   const double* __restrict__ dmetvar, 
                   const double* __restrict__ dpoivar, 
-                  SANS::SurrealS<nvar,double>*  qushe){
+                  Metris::SurrealS<nvar,double>*  qushe){
 
   int ierro;
   if(*nshell <= 0){
@@ -263,7 +263,7 @@ metqua_shell_d<ideg,ilag,nvar>
       if(msh.tet2poi(ielem,ivar) == ipoin){
         ifnd = true;
 
-        SANS::SurrealS<3,double> qutet = 0;
+        Metris::SurrealS<3,double> qutet = 0;
         metqua_d<ideg,ilag,ivar,nvar>(msh,ielem,power,dmetvar,dpoivar,&qutet);
         if(qutet < 0) METRIS_THROW_MSG(
           "NEGATIVE ELEMENT QUALITY = "<<qutet<<" ielem = "<<ielem)

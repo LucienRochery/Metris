@@ -84,8 +84,8 @@ BOOST_AUTO_TEST_CASE(bench_ccoef, * utf::tolerance(double(1.0e-6)) )
         dum[0] += ccoef[0];
         double vol = getmeasentP1<idim>(ent2poi[ielem],msh.coord)*vol0;
         for(int i = 0; i < nnodj; i++){
-          jmin = MIN(ccoef[i] / vol, jmin);
-          jmax = MAX(ccoef[i] / vol, jmax);
+          jmin = METRIS_MIN(ccoef[i] / vol, jmin);
+          jmax = METRIS_MAX(ccoef[i] / vol, jmax);
         }
       }
       t1 = get_cpu_time();
@@ -107,8 +107,8 @@ BOOST_AUTO_TEST_CASE(bench_ccoef, * utf::tolerance(double(1.0e-6)) )
         dum[0] += ccoef[0];
         double vol = getmeasentP1<idim>(ent2poi[ielem],msh.coord)*vol0;
         for(int i = 0; i < nnodj; i++){
-          jmin = MIN(ccoef[i] / vol, jmin);
-          jmax = MAX(ccoef[i] / vol, jmax);
+          jmin = METRIS_MIN(ccoef[i] / vol, jmin);
+          jmax = METRIS_MAX(ccoef[i] / vol, jmax);
         }
       }
       t1 = get_cpu_time();

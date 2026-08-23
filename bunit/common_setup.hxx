@@ -118,12 +118,12 @@ MeshTestSetup{
 //  // usrMaxDeg is the very maximum the user is allowing for storage. It is hard bounded by the constant METRIS_MAX_DEG
 //  // usrMinDeg is the minimum degree the user wants. 
 //  if(usrMaxDeg > METRIS_MAX_DEG){
-//    std::cout<<"!! MAX DEG "<<usrMaxDeg<<" SET ABOVE HARD LIMIT OF "<<METRIS_MAX_DEG<<std::endl;
+//    std::cout<<"!! METRIS_MAX DEG "<<usrMaxDeg<<" SET ABOVE HARD LIMIT OF "<<METRIS_MAX_DEG<<std::endl;
 //    usrMaxDeg = METRIS_MAX_DEG;
 //  }
-//  if(usrMinDeg > METRIS_MAX_DEG) std::cout<<"!! TARGET MIN DEG "<<usrMinDeg<<" SET ABOVE HARD LIMIT OF "<<METRIS_MAX_DEG<<std::endl;
+//  if(usrMinDeg > METRIS_MAX_DEG) std::cout<<"!! TARGET METRIS_MIN DEG "<<usrMinDeg<<" SET ABOVE HARD LIMIT OF "<<METRIS_MAX_DEG<<std::endl;
 //  if(usrMinDeg > usrMaxDeg){
-//    std::cout<<"!! TARGET MIN DEG "<<usrMinDeg<<" ABOVE MAX ADMISSIBLE "<<usrMaxDeg<<std::endl;
+//    std::cout<<"!! TARGET METRIS_MIN DEG "<<usrMinDeg<<" ABOVE METRIS_MAX ADMISSIBLE "<<usrMaxDeg<<std::endl;
 //    usrMinDeg = usrMaxDeg;
 //  }
 //

@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(bernstein_prod)
         prod_bernstein<idim, idim, ideg, ideg>(coef1, coef1, coef2_2);
         double err = 0;
         for(int ii = 0; ii < nnod2; ii++){
-          err += abs(coef2(ii,0)-coef2_2(ii,0)) / MAX(abs(coef2(ii,0)),1.0);
+          err += abs(coef2(ii,0)-coef2_2(ii,0)) / METRIS_MAX(abs(coef2(ii,0)),1.0);
         }
         BOOST_REQUIRE(err < 1.0e-10);
 
@@ -91,15 +91,15 @@ BOOST_AUTO_TEST_CASE(bernstein_prod)
             eval_2d(coef2,&lfld[0], FEBasis::Bezier, DifVar::None, DifVar::None, bary[isamb], 
                    &f2, NULL, NULL);
 
-            BOOST_TEST(abs(f2-fsq) < 1.0e-10*MAX(f2,fsq));
+            BOOST_TEST(abs(f2-fsq) < 1.0e-10*METRIS_MAX(f2,fsq));
           }
         }else{
           // Just check the squared values are the squares
           for(int ii = 0; ii < idim + 1; ii++){
             fsq = coef1(ii,0) * coef1(ii,0);
             f2 = coef2(ii,0);
-            BOOST_TEST(abs(f2-fsq) < 1.0e-10*MAX(f2,fsq));
-            if(!(abs(f2-fsq) < 1.0e-10*MAX(f2,fsq))){
+            BOOST_TEST(abs(f2-fsq) < 1.0e-10*METRIS_MAX(f2,fsq));
+            if(!(abs(f2-fsq) < 1.0e-10*METRIS_MAX(f2,fsq))){
               printf("Error ii %d f2 = %f fsq = %f \n",ii,f2,fsq);
               printf("coef1 = \n");
               coef1.print();
@@ -150,7 +150,7 @@ BOOST_AUTO_TEST_CASE(bernstein_prod)
             eval_ds(coefs,&lfld[0], FEBasis::Bezier, DifVar::None, DifVar::None, bary[isamb], 
                     &fs, NULL, NULL);
 
-            BOOST_TEST(abs(fs-f1*f2) < 1.0e-10*MAX(abs(fs),abs(f1*f2)));
+            BOOST_TEST(abs(fs-f1*f2) < 1.0e-10*METRIS_MAX(abs(fs),abs(f1*f2)));
             //printf("Debug ideg1 %d ideg2 %d \n",ideg1, ideg2);
             //printf("coef1: \n");coef1.print();
             //printf("coef2: \n");coef2.print();

@@ -179,14 +179,14 @@ void MetrisRunner::adaptMesh0(int tdim){
     double tloop0 = get_cpu_time();
 
 
-    qmax_suf = qavg * MAX(10 / (niter * 1.0), 1.0);
+    qmax_suf = qavg * METRIS_MAX(10 / (niter * 1.0), 1.0);
     //qmax_suf = 1.0 - (niter - 1) / (double) miter; 
     //qmax_suf = 0;
     double stat;
     // 1. Collapse short edges
     t0 = get_cpu_time();
     stat  = collapseShortEdges<MFT,gdim,ideg>(msh, tdim, qmax_suf, &ncoll, ithrdfro, ithrd1, ithrd2, ithrd3);
-    stat0 = MAX(stat0,stat);
+    stat0 = METRIS_MAX(stat0,stat);
     t1 = get_cpu_time();
     tcollapse += t1-t0;
 
@@ -222,7 +222,7 @@ void MetrisRunner::adaptMesh0(int tdim){
     if(niter%2 == 0 || qmax_suf < 0.5){
       t0 = get_cpu_time();
       stat  = swapMesh<MFT,gdim,ideg>(msh, Defaults::swapOptAdapt, &nswap, ithrdfro, ithrd1, ithrd2);
-      stat0 = MAX(stat0,stat);
+      stat0 = METRIS_MAX(stat0,stat);
       t1 = get_cpu_time();
       tswap += t1-t0;
 
@@ -257,7 +257,7 @@ void MetrisRunner::adaptMesh0(int tdim){
 
     t0 = get_cpu_time();
     stat  = insertLongEdges<MFT,gdim,ideg>(msh, tdim, &ninser,ithrd1, ithrd2);
-    stat0 = MAX(stat0,stat);
+    stat0 = METRIS_MAX(stat0,stat);
     t1 = get_cpu_time();
     tinsert += t1-t0;
 
@@ -288,7 +288,7 @@ void MetrisRunner::adaptMesh0(int tdim){
       // 4. Smoothing (heuristic) -> fast but bad; improve
       t0 = get_cpu_time();
       double stat = smoothInterior_Ball<MFT>(msh,QuaFun::Unit,ithrd1,ithrd2);
-      stat0 = MAX(stat, stat0); 
+      stat0 = METRIS_MAX(stat, stat0);
       t1 = get_cpu_time();
       if(DOPRINTS2()) writeMesh("v2_unif_adp"+ std::to_string(niter)+".meshb",msh);
       if(DOPRINTS2()) msh.met.writeMetricFile("v2_unif_adp"+ std::to_string(niter)+".solb");    
@@ -338,7 +338,7 @@ void MetrisRunner::adaptMesh0(int tdim){
       t1 = get_cpu_time();
       msh.cleanup();
       stat  = noper / (double) msh.nface; 
-      stat0 = MAX(stat0, stat);
+      stat0 = METRIS_MAX(stat0, stat);
       if(DOPRINTS1()){
         if(DOPRINTS2() && noper >= 0) writeMesh("v2_flat_opt" + std::to_string(tdim) + "D" + std::to_string(niter)+".meshb",msh);
         if(DOPRINTS2() && noper >= 0) msh.met.writeMetricFile("v2_flat_opt" + std::to_string(tdim) + "D" + std::to_string(niter)+".solb");
@@ -378,7 +378,7 @@ void MetrisRunner::adaptMesh0(int tdim){
              niter,miter, tdim, tloop1 - tloop0, ninser,ncoll,nswap, 100*lenstat.prop_unit,stat0);
 
     //if(niter == 1){
-    //  printf("## DEBUG SET MAX PRINTS\n");
+    //  printf("## DEBUG SET METRIS_MAX PRINTS\n");
     //  wait();
     //  msh.param->iverb = 5;
     //  msh.param->ivdepth = 5;
@@ -405,7 +405,7 @@ void MetrisRunner::adaptMesh0(int tdim){
       // improves by unconstraining the points, but not the interior in 3D.
       // So, regardless of dimension, we unconstrain only dim <= 2 points.
       bool uncstr = false;
-      if(++irestart < MAX(2,msh.param->adp_opt_niter)){
+      if(++irestart < METRIS_MAX(2,msh.param->adp_opt_niter)){
         for(int ipoin = 0; ipoin < msh.npoin; ipoin++){
           if(msh.isdeadpoint(ipoin)) continue;
           if(msh.getpoitdim(ipoin) > 2) continue;

@@ -47,9 +47,9 @@ void d2unittensor(const Mesh<MetricFieldAnalytical> &msh, int ielem, double *ten
   scalrotJ0<3>(msh,ielem,srmet,&scale,tJ0tR);
 
 
-  SANS::SurrealS<3,double>  metS[6];
-  SANS::SurrealS<3,double>  eigvalS[3];
-  SANS::SurrealS<3,double>  eigvecS[9];
+  Metris::SurrealS<3,double>  metS[6];
+  Metris::SurrealS<3,double>  eigvalS[3];
+  Metris::SurrealS<3,double>  eigvecS[9];
   
   getmet_dbl2SurS<3,3>(metP1,dmetP1,metS);
 
@@ -113,7 +113,7 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
   METRIS_THROW_MSG("TODO: Read this over and consolidate with existing")
 
   double tJ0tR[9];
-  SANS::SurrealS<3,double> intmetS[6];
+  Metris::SurrealS<3,double> intmetS[6];
   double intmet[6];
 
   // --------------------------------------------------------
@@ -123,7 +123,7 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
   METRIS_ENFORCE(!getintmetxi<gdim,gdim,ideg>(msh.coord,msh.tet2poi[ielem],
                                               msh.getBasis(),bary,intmetS));
   CPRINTF1("1. print intmetS and derivatives:\n{}\n",
-           MeshArray1D<SANS::SurrealS<3,double>>(6,intmetS));
+           MeshArray1D<Metris::SurrealS<3,double>>(6,intmetS));
     // State is now intmetS = M
   // b) Get Jacobian to compute scale
 	double eval[3], jmat[9];
@@ -151,7 +151,7 @@ void d2unittensor2(const MeshBase &msh, int ielem, double *tens3sym_){
   // --------------------------------------------------------
   // 2. Compute M^{-1/2} and get physical derivatives
   // a) Compute M^{-1/2}
-  SANS::SurrealS<3,double> eigvalS[3], eigvecS[9];
+  Metris::SurrealS<3,double> eigvalS[3], eigvecS[9];
   geteigsym<3>(intmetS,eigvalS,eigvecS);
   for(int ii = 0; ii < 3; ii++) eigvalS[ii] = 1.0 / sqrt(eigvalS[ii]);
   eig2met<3>(eigvalS,eigvecS,intmetS);

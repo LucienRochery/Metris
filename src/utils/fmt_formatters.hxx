@@ -13,11 +13,15 @@
 #include "../MetrisRunner/MeshStat.hxx"
 #include "Surreal/SurrealS.h"
 
+namespace Metris {
+
 template<typename T1, typename T2>
 std::ostream& operator<<(std::ostream& _os, const std::pair<T1, T2>& _p) {
   _os << '(' << _p.first << ',' << _p.second << ')';
   return _os;
 }
+
+} // namespace Metris
 
 //std::ostream& operator<<(std::ostream& _os, const ego& _p) {
 //  _os << "egObject(mtype = " << _p->mtype << ", oclass = " << _p->oclass << ")";
@@ -26,6 +30,18 @@ std::ostream& operator<<(std::ostream& _os, const std::pair<T1, T2>& _p) {
 
 
 #include "fmt/ostream.h"
+
+template<typename T1, typename T2>
+struct fmt::formatter<std::pair<T1, T2>> {
+  constexpr auto parse(fmt::format_parse_context& ctx) {
+    return ctx.begin();
+  }
+
+  template<typename FormatContext>
+  auto format(const std::pair<T1, T2>& value, FormatContext& ctx) const {
+    return fmt::format_to(ctx.out(), "({},{})", value.first, value.second);
+  }
+};
 
 //template<>
 //struct fmt::formatter<ego> {
@@ -45,11 +61,8 @@ std::ostream& operator<<(std::ostream& _os, const std::pair<T1, T2>& _p) {
 
 //fmt::ostream_formatter was temporarily removed from version 8 to 9...
 #if FMT_VERSION < 80000 || FMT_VERSION >= 90000
-  template<typename T1, typename T2>
-  struct fmt::formatter<std::pair<T1, T2>> : fmt::ostream_formatter {};
-
   template<int N, typename T>
-  struct fmt::formatter<SANS::SurrealS<N, T>> : fmt::ostream_formatter {};
+  struct fmt::formatter<Metris::SurrealS<N, T>> : fmt::ostream_formatter {};
 
   template<typename T, typename INT1>
   struct fmt::formatter<Metris::MeshArray1D<T, INT1>> : fmt::ostream_formatter {};

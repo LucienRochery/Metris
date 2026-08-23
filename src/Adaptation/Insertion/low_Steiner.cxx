@@ -52,7 +52,7 @@ int insertSteiner(Mesh<MFT>& msh,
 
   if(msh.get_tdim() == tdimp) return 0;
 
-  //fmt::print("## DEBUG SET MAX PRINTS\n");
+  //fmt::print("## DEBUG SET METRIS_MAX PRINTS\n");
   //msh.param->iverb = 10;
   //msh.param->ivdepth = 15;
   //iverb__ = 10;

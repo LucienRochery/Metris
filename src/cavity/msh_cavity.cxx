@@ -144,7 +144,7 @@ int cavity_operator(Mesh<MFT> &msh ,
 
 
   // The minimum value we need to set to (note right ++ is fine as we need only >=)
-  cav.maxtag = MAX(cav.maxtag,++msh.tag[ithread]);
+  cav.maxtag = METRIS_MAX(cav.maxtag,++msh.tag[ithread]);
   
    /*  -------------- Generate final cavity -------------------- 
    		 For typent in (line|face|tetra) do 
@@ -258,7 +258,7 @@ int cavity_operator(Mesh<MFT> &msh ,
 	msh.set_nface(nfac0);
 	msh.set_nelem(nele0);
   
-  cav.maxtag = MAX(cav.maxtag, msh.tag[ithread]);
+  cav.maxtag = METRIS_MAX(cav.maxtag, msh.tag[ithread]);
 
 
   finish:

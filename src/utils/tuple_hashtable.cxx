@@ -30,7 +30,7 @@ TupleHashTable<n,T>::TupleHashTable(int nreserve_){
   METRIS_ASSERT(nreserve_ >= 1);
   nreserve = nreserve_;
 
-  nhead = MAX(nreserve / Defaults::TupleHashTable_ncoll, 1);
+  nhead = METRIS_MAX(nreserve / Defaults::TupleHashTable_ncoll, 1);
   uint32_t next_prime = nextPrime(nhead);
   nhead = (uint32_t) next_prime;
 
@@ -57,7 +57,7 @@ void TupleHashTable<n,T>::reserve(int nreserve_){
   lvals.allocate(nreserve);
 
   if(nhead == -1){
-    nhead = MAX(nreserve / Defaults::TupleHashTable_ncoll, 1);
+    nhead = METRIS_MAX(nreserve / Defaults::TupleHashTable_ncoll, 1);
     uint32_t next_prime = nextPrime(nhead);
     nhead = (uint32_t) next_prime;
 
@@ -161,8 +161,8 @@ void TupleHashTable<n,T>::stat(int* ncol_min, int* ncol_max, double* ncol_avg, i
       ncol++;
       ilist = lkeys(ilist, n);
     }
-    (*ncol_min) = MIN(*ncol_min, ncol);
-    (*ncol_max) = MAX(*ncol_max, ncol);
+    (*ncol_min) = METRIS_MIN(*ncol_min, ncol);
+    (*ncol_max) = METRIS_MAX(*ncol_max, ncol);
     (*ncol_avg) += ncol;
   }
   if(*nempty < nhead) (*ncol_avg) /= (nhead - *nempty);

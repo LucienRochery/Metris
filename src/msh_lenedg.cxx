@@ -156,15 +156,15 @@ void getLengthEdges(MeshMetric<MFT> &msh, int tdim, int iref,
       rlned.stack(len);
 
       if(len < 1.0){
-        stat.qua_short = MAX(stat.qua_short, 1 - len);
+        stat.qua_short = METRIS_MAX(stat.qua_short, 1 - len);
       }else{
-        stat.qua_long  = MAX(stat.qua_long, 1 - 1/len);
+        stat.qua_long  = METRIS_MAX(stat.qua_long, 1 - 1/len);
       }
     }
   }
 
   stat.prop_unit = ned_unit / (double) ned_totl;
-  stat.qua_glo = MAX(stat.qua_short, stat.qua_long);
+  stat.qua_glo = METRIS_MAX(stat.qua_short, stat.qua_long);
 }
 
 template void getLengthEdges<MetricFieldAnalytical>(MeshMetric<MetricFieldAnalytical> &msh, 

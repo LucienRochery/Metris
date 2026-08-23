@@ -75,7 +75,7 @@ int locMesh(MeshBase &msh, int *ientt,
        iref, ent2ref[*ientt], *ientt, tdim, pdim);
 
 
-  //double tolcur = MAX(1.0e-2,tol+1.0e-16);
+  //double tolcur = METRIS_MAX(1.0e-2,tol+1.0e-16);
   //if constexpr(ideg == 1) tolcur = tol;
   //// With fast Newton this does not matter, in fact probably faster
   const double tolcur = tol;
@@ -129,7 +129,7 @@ int locMesh(MeshBase &msh, int *ientt,
 
     ifnd = 0;
 	  msh.tag[ithrd]++;
-    maxtag = MAX(maxtag,msh.tag[ithrd]);
+    maxtag = METRIS_MAX(maxtag,msh.tag[ithrd]);
     int ntry = 0;
 	  while(!ifnd){
       INCVDEPTH(msh.param);
@@ -528,7 +528,7 @@ int locMesh(MeshBase &msh, int *ientt,
               int tag0 = msh.tag[ithrd];
               int ierr2 = locMesh<gdim, tdim-1, ideg>(msh, &ientf, coop, pdim, NULL,
                                    -1, NULL, coopf, barf, tol, ithrd, iexpensive);
-              maxtag = MAX(maxtag, msh.tag[ithrd]);
+              maxtag = METRIS_MAX(maxtag, msh.tag[ithrd]);
               msh.tag[ithrd] = tag0;
               if(ierr2 > 0 && ierr2 != LOC_ERR_ALLPOS) ierro = LOC_ERR_PROJ;
               CPRINTF1(" - lower dim projection done ierro = {} \n",ierr2);

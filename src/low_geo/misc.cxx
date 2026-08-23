@@ -292,7 +292,7 @@ int getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis ib
 //// This one computes physical derivatives of the metric as well (of \circ F_K^{-1}). 
 //template<int ndim, int ideg>
 //void getintmetxi(const dblAr2 &coord, const int* __restrict__ tet2pol, FEBasis ibasis, 
-//                 const double* bary, SANS::SurrealS<3,double>* __restrict__ metS){
+//                 const double* bary, Metris::SurrealS<3,double>* __restrict__ metS){
 //  static_assert(ndim == 3);
 //  double eval[3], jmat[9], hmat[18], djmat[27], invjmat[9];
 //
@@ -305,7 +305,7 @@ int getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis ib
 //  invmat(3,invjmat);
 //  mat3X1tens3sym3(hmat,invjmat,djmat);
 //
-//  SANS::SurrealS<3,double> jmatS[9];
+//  Metris::SurrealS<3,double> jmatS[9];
 //  for(int ii = 0; ii < 9; ii++){
 //    jmatS[ii].value() = jmat[ii];
 //  }
@@ -315,7 +315,7 @@ int getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis ib
 //    }
 //  }
 //  
-//  SANS::SurrealS<3,double> invmetS[6];
+//  Metris::SurrealS<3,double> invmetS[6];
 //
 //  invmetS[0] = 3*(jmatS[3*0+0]*jmatS[3*0+0] + jmatS[3*1+0]*jmatS[3*1+0] + jmatS[3*2+0]*jmatS[3*2+0])/2
 //             -    jmatS[3*0+0]*jmatS[3*1+0]
@@ -347,7 +347,7 @@ int getintmetxi(const dblAr2 &coord, const int* __restrict__ ent2pol, FEBasis ib
 //             -    jmatS[3*0+2]*jmatS[3*2+2]
 //             -    jmatS[3*1+2]*jmatS[3*2+2];
 //
-//  inv3sym<SANS::SurrealS<3,double>>(invmetS, metS);
+//  inv3sym<Metris::SurrealS<3,double>>(invmetS, metS);
 //
 //}
 

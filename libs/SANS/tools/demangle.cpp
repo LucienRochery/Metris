@@ -11,7 +11,7 @@
 #include <memory>
 #include <cxxabi.h>
 
-namespace SANS
+namespace Metris
 {
 
 std::string demangle(const char* name)
@@ -24,11 +24,11 @@ std::string demangle(const char* name)
   return (status==0) ? res.get() : name;
 }
 
-}// namespace SANS
+}// namespace Metris
 
 #else
 
-namespace SANS
+namespace Metris
 {
 
 // does nothing if not g++
@@ -37,6 +37,6 @@ std::string demangle(const char* name)
   return name;
 }
 
-}// namespace SANS
+}// namespace Metris
 
 #endif

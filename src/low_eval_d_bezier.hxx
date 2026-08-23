@@ -26,13 +26,13 @@ struct eval2_d_bezier{
   eval2_d_bezier(const T& __restrict__  rfld,  
                  DifVar idif1, DifVar idif2, 
                  const double  * __restrict__  bary,  
-                 Metris::DLA::VectorS<      szfld,SANS::SurrealS<nvar,double>> *eval,
-                 Metris::DLA::MatrixS<2,szfld,SANS::SurrealS<nvar,double>> *jmat,
-                 Metris::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *hmat){
+                 Metris::DLA::VectorS<      szfld,Metris::SurrealS<nvar,double>> *eval,
+                 Metris::DLA::MatrixS<2,szfld,Metris::SurrealS<nvar,double>> *jmat,
+                 Metris::DLA::MatrixS<3,szfld,Metris::SurrealS<nvar,double>> *hmat){
 
 
-    Metris::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> eva1, eva2, eva3;
-    Metris::DLA::MatrixS<2,szfld,SANS::SurrealS<nvar,double>> jmat1,jmat2,jmat3;
+    Metris::DLA::VectorS<  szfld,Metris::SurrealS<nvar,double>> eva1, eva2, eva3;
+    Metris::DLA::MatrixS<2,szfld,Metris::SurrealS<nvar,double>> jmat1,jmat2,jmat3;
 
     eval2_d_bezier<T,szfld,ideg-1,nvar,di+1,dj+0,dk+0>(rfld,idif2,DifVar::None,bary,&eva1,&jmat1,NULL);
     eval2_d_bezier<T,szfld,ideg-1,nvar,di+0,dj+1,dk+0>(rfld,idif2,DifVar::None,bary,&eva2,&jmat2,NULL);
@@ -71,9 +71,9 @@ struct eval2_d_bezier<T,szfld,1,nvar,di,dj,dk>{
   eval2_d_bezier(const T& __restrict__  rfld,  
                  DifVar idif1, DifVar idif2, 
                  const double  * __restrict__  bary,  
-                 Metris::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval,
-                 Metris::DLA::MatrixS<2,szfld,SANS::SurrealS<nvar,double>> *jmat,
-                 Metris::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *hmat){
+                 Metris::DLA::VectorS<  szfld,Metris::SurrealS<nvar,double>> *eval,
+                 Metris::DLA::MatrixS<2,szfld,Metris::SurrealS<nvar,double>> *jmat,
+                 Metris::DLA::MatrixS<3,szfld,Metris::SurrealS<nvar,double>> *hmat){
 
     //constexpr int ideg = 1 + di + dj + dk + dl; // The true degree. 
 
@@ -113,16 +113,16 @@ template <typename T, int szfld,int nvar, int di,int dj, int dk>
     eval2_d_bezier(const T& __restrict__  rfld,  
                    DifVar idif1, DifVar idif2, 
                    const double  * __restrict__  bary,  
-                   Metris::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval,
-                   Metris::DLA::MatrixS<2,szfld,SANS::SurrealS<nvar,double>> *jmat,
-                   Metris::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *hmat){
+                   Metris::DLA::VectorS<  szfld,Metris::SurrealS<nvar,double>> *eval,
+                   Metris::DLA::MatrixS<2,szfld,Metris::SurrealS<nvar,double>> *jmat,
+                   Metris::DLA::MatrixS<3,szfld,Metris::SurrealS<nvar,double>> *hmat){
 
     if (idif1 == DifVar::Bary){
       // The Jacobian is quicker to compute recursively as it only uses the previous degree
       // evals. 
 
-      Metris::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> eva1, eva2, eva3;
-      Metris::DLA::MatrixS<2,szfld,SANS::SurrealS<nvar,double>> jmat1,jmat2,jmat3;
+      Metris::DLA::VectorS<  szfld,Metris::SurrealS<nvar,double>> eva1, eva2, eva3;
+      Metris::DLA::MatrixS<2,szfld,Metris::SurrealS<nvar,double>> jmat1,jmat2,jmat3;
 
       eval2_d_bezier<T,szfld,1,nvar,di+1,dj+0,dk+0>(rfld,idif2,DifVar::None,bary,&eva1,&jmat1,NULL);
       eval2_d_bezier<T,szfld,1,nvar,di+0,dj+1,dk+0>(rfld,idif2,DifVar::None,bary,&eva2,&jmat2,NULL);
@@ -199,13 +199,13 @@ struct eval3_d_bezier{
   eval3_d_bezier(const T& __restrict__  rfld,  
                  DifVar idif1, DifVar idif2, 
                  const double  * __restrict__  bary,  
-                 Metris::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval,
-                 Metris::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *jmat,
-                 Metris::DLA::MatrixS<6,szfld,SANS::SurrealS<nvar,double>> *hmat){
+                 Metris::DLA::VectorS<  szfld,Metris::SurrealS<nvar,double>> *eval,
+                 Metris::DLA::MatrixS<3,szfld,Metris::SurrealS<nvar,double>> *jmat,
+                 Metris::DLA::MatrixS<6,szfld,Metris::SurrealS<nvar,double>> *hmat){
 
 
-    Metris::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> eva1, eva2, eva3, eva4;
-    Metris::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> jmat1,jmat2,jmat3,jmat4;
+    Metris::DLA::VectorS<  szfld,Metris::SurrealS<nvar,double>> eva1, eva2, eva3, eva4;
+    Metris::DLA::MatrixS<3,szfld,Metris::SurrealS<nvar,double>> jmat1,jmat2,jmat3,jmat4;
 
     eval3_d_bezier<T,szfld,ideg-1,nvar,di+1,dj+0,dk+0,dl+0>(rfld,idif2,DifVar::None,bary,&eva1,&jmat1,NULL);
     eval3_d_bezier<T,szfld,ideg-1,nvar,di+0,dj+1,dk+0,dl+0>(rfld,idif2,DifVar::None,bary,&eva2,&jmat2,NULL);
@@ -255,9 +255,9 @@ struct eval3_d_bezier<T,szfld,1,nvar,di,dj,dk,dl>{
   eval3_d_bezier(const T& __restrict__  rfld,  
                  DifVar idif1, DifVar idif2, 
                  const double  * __restrict__  bary,  
-                 Metris::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval,
-                 Metris::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *jmat,
-                 Metris::DLA::MatrixS<6,szfld,SANS::SurrealS<nvar,double>> *hmat){
+                 Metris::DLA::VectorS<  szfld,Metris::SurrealS<nvar,double>> *eval,
+                 Metris::DLA::MatrixS<3,szfld,Metris::SurrealS<nvar,double>> *jmat,
+                 Metris::DLA::MatrixS<6,szfld,Metris::SurrealS<nvar,double>> *hmat){
 
     //constexpr int ideg = 1 + di + dj + dk + dl; // The true degree. 
 
@@ -306,16 +306,16 @@ template <typename T, int szfld,int nvar, int di,int dj, int dk, int dl>
     eval3_d_bezier(const T& __restrict__  rfld,  
                    DifVar idif1, DifVar idif2, 
                    const double  * __restrict__  bary,  
-                   Metris::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> *eval,
-                   Metris::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> *jmat,
-                   Metris::DLA::MatrixS<6,szfld,SANS::SurrealS<nvar,double>> *hmat){
+                   Metris::DLA::VectorS<  szfld,Metris::SurrealS<nvar,double>> *eval,
+                   Metris::DLA::MatrixS<3,szfld,Metris::SurrealS<nvar,double>> *jmat,
+                   Metris::DLA::MatrixS<6,szfld,Metris::SurrealS<nvar,double>> *hmat){
 
     if (idif1 == DifVar::Bary){
       // The Jacobian is quicker to compute recursively as it only uses the previous degree
       // evals. 
 
-      Metris::DLA::VectorS<  szfld,SANS::SurrealS<nvar,double>> eva1, eva2, eva3, eva4;
-      Metris::DLA::MatrixS<3,szfld,SANS::SurrealS<nvar,double>> jmat1,jmat2,jmat3,jmat4;
+      Metris::DLA::VectorS<  szfld,Metris::SurrealS<nvar,double>> eva1, eva2, eva3, eva4;
+      Metris::DLA::MatrixS<3,szfld,Metris::SurrealS<nvar,double>> jmat1,jmat2,jmat3,jmat4;
 
       eval3_d_bezier<T,szfld,1,nvar,di+1,dj+0,dk+0,dl+0>(rfld,idif2,DifVar::None,bary,&eva1,&jmat1,NULL);
       eval3_d_bezier<T,szfld,1,nvar,di+0,dj+1,dk+0,dl+0>(rfld,idif2,DifVar::None,bary,&eva2,&jmat2,NULL);

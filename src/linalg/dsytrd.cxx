@@ -217,14 +217,14 @@ void dsytrd2(const T* __restrict__ A, T* __restrict__  Q, T* __restrict__  d, T*
 }
 
 template void dsytrd3<double>(const double* __restrict__ A, double* __restrict__  Q, double* __restrict__  d, double* __restrict__  e);
-template void dsytrd3<SANS::SurrealS<3,double>>(const SANS::SurrealS<3,double>* __restrict__ A, SANS::SurrealS<3,double>* __restrict__  Q, 
-                                                      SANS::SurrealS<3,double>* __restrict__  d, SANS::SurrealS<3,double>* __restrict__  e);
-template void dsytrd3<SANS::SurrealS<2,double>>(const SANS::SurrealS<2,double>* __restrict__ A, SANS::SurrealS<2,double>* __restrict__  Q, 
-                                                      SANS::SurrealS<2,double>* __restrict__  d, SANS::SurrealS<2,double>* __restrict__  e);
+template void dsytrd3<Metris::SurrealS<3,double>>(const Metris::SurrealS<3,double>* __restrict__ A, Metris::SurrealS<3,double>* __restrict__  Q,
+                                                      Metris::SurrealS<3,double>* __restrict__  d, Metris::SurrealS<3,double>* __restrict__  e);
+template void dsytrd3<Metris::SurrealS<2,double>>(const Metris::SurrealS<2,double>* __restrict__ A, Metris::SurrealS<2,double>* __restrict__  Q,
+                                                      Metris::SurrealS<2,double>* __restrict__  d, Metris::SurrealS<2,double>* __restrict__  e);
 
 template void dsytrd2<double>(const double* __restrict__ A, double* __restrict__  Q, double* __restrict__  d, double* __restrict__  e);
-template void dsytrd2<SANS::SurrealS<2,double>>(const SANS::SurrealS<2,double>* __restrict__ A, SANS::SurrealS<2,double>* __restrict__  Q, 
-                                                  SANS::SurrealS<2,double>* __restrict__  d, SANS::SurrealS<2,double>* __restrict__  e);
+template void dsytrd2<Metris::SurrealS<2,double>>(const Metris::SurrealS<2,double>* __restrict__ A, Metris::SurrealS<2,double>* __restrict__  Q,
+                                                  Metris::SurrealS<2,double>* __restrict__  d, Metris::SurrealS<2,double>* __restrict__  e);
 
 } // End namespace
 #undef SQR

@@ -134,7 +134,7 @@ void optim_newton_drivertype(const MetrisParameters &param,
       invspd<2>(hess);
       rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1]);
       rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1]);
-      gnorm = MAX(abs(rwork[2*nvar+3]),
+      gnorm = METRIS_MAX(abs(rwork[2*nvar+3]),
                   abs(rwork[2*nvar+4]));
     }else if(nvar == 3){
       if(isym > 0){
@@ -156,14 +156,14 @@ void optim_newton_drivertype(const MetrisParameters &param,
         rwork[2*nvar+4] = -rwork[2*nvar+4];
         rwork[2*nvar+5] = -rwork[2*nvar+5];
       }
-      gnorm = MAX(MAX(abs(rwork[2*nvar+3]),
+      gnorm = METRIS_MAX(METRIS_MAX(abs(rwork[2*nvar+3]),
                       abs(rwork[2*nvar+4])),
                       abs(rwork[2*nvar+5]));
     }
 
     if(*niter == 1){
       CPRINTF2(" First dir norm {} \n",gnorm);
-      rwork[10*nvar+4-1] = MAX(gnorm,1.0e-12);
+      rwork[10*nvar+4-1] = METRIS_MAX(gnorm,1.0e-12);
     }else if(gnorm  <  xtol*rwork[10*nvar+4-1]) {
       CPRINTF2(" debug gnorm termination \n");
       *iflag = 0;
@@ -183,7 +183,7 @@ void optim_newton_drivertype(const MetrisParameters &param,
     if(*niter == 1) {
       rwork[1] = alpha0;
     }else{
-      rwork[1] = MIN(rwork[1] / ratnew, alpha0);
+      rwork[1] = METRIS_MIN(rwork[1] / ratnew, alpha0);
     }
 
 
@@ -211,7 +211,7 @@ void optim_newton_drivertype(const MetrisParameters &param,
 
     flag200:        
     if(wc1  >  wc2) {
-      wc1 = MAX(wc1/2.0,wc2-1.0e-12);
+      wc1 = METRIS_MAX(wc1/2.0,wc2-1.0e-12);
       goto flag200;
     }
 
@@ -325,7 +325,7 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
   if(*iflag == 1){
     // Update (end line search or first call)
 
-    double fdec = (args.fpre - *fcur)/MAX(args.fpre, 1.0e-12);
+    double fdec = (args.fpre - *fcur)/METRIS_MAX(args.fpre, 1.0e-12);
     if(fdec < args.ftol && args.ftol > 0){
       CPRINTF1("-- END Newton decrease {} < tol {} \n",fdec,args.ftol);
       *iflag = 0;
@@ -347,7 +347,7 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
       if(ierro != 0) goto flag999;
       args.rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1]);
       args.rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1]);
-      gnorm = MAX(abs(args.rwork[2*nvar+3]),
+      gnorm = METRIS_MAX(abs(args.rwork[2*nvar+3]),
                   abs(args.rwork[2*nvar+4]));
     }else if(nvar == 3){
       if(args.isym > 0){
@@ -369,14 +369,14 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
         args.rwork[2*nvar+4] = -args.rwork[2*nvar+4];
         args.rwork[2*nvar+5] = -args.rwork[2*nvar+5];
       }
-      gnorm = MAX(MAX(abs(args.rwork[2*nvar+3]),
+      gnorm = METRIS_MAX(METRIS_MAX(abs(args.rwork[2*nvar+3]),
                       abs(args.rwork[2*nvar+4])),
                       abs(args.rwork[2*nvar+5]));
     }
 
     if(args.niter == 1){
       CPRINTF1(" First dir norm {} \n",gnorm);
-      args.rwork[10*nvar+4-1] = MAX(gnorm,1.0e-12);
+      args.rwork[10*nvar+4-1] = METRIS_MAX(gnorm,1.0e-12);
     }else if(gnorm < args.xtol*args.rwork[10*nvar+4-1]) {
       CPRINTF1(" debug gnorm termination \n");
       *iflag = 0;
@@ -397,7 +397,7 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
     if(args.niter == 1) {
       args.rwork[1] = alpha0;
     }else{
-      args.rwork[1] = MIN(args.rwork[1] / args.ratnew, alpha0);
+      args.rwork[1] = METRIS_MIN(args.rwork[1] / args.ratnew, alpha0);
     }
 
     //PRINTF("## DEBUG REMOVE THIS \n");
@@ -428,7 +428,7 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
 
     flag200:        
     if(wc1  >  wc2) {
-      wc1 = MAX(wc1/2.0,wc2-1.0e-12);
+      wc1 = METRIS_MAX(wc1/2.0,wc2-1.0e-12);
       goto flag200;
     }
 
@@ -574,17 +574,17 @@ int optim_newton_drivertype_TNCG(newton_drivertype_args<nvar> &args,
     if(nvar == 1){
       gnorm = abs(args.rwork[2*nvar+3]);
     }else if(nvar == 2) {
-      gnorm = MAX(abs(args.rwork[2*nvar+3]),
+      gnorm = METRIS_MAX(abs(args.rwork[2*nvar+3]),
                   abs(args.rwork[2*nvar+4]));
     }else if(nvar == 3){
-      gnorm = MAX(MAX(abs(args.rwork[2*nvar+3]),
+      gnorm = METRIS_MAX(METRIS_MAX(abs(args.rwork[2*nvar+3]),
                       abs(args.rwork[2*nvar+4])),
                       abs(args.rwork[2*nvar+5]));
     }
 
     if(args.niter == 1){
       CPRINTF1(" First dir norm {} \n",gnorm);
-      args.rwork[10*nvar+4-1] = MAX(gnorm,1.0e-12);
+      args.rwork[10*nvar+4-1] = METRIS_MAX(gnorm,1.0e-12);
     }else if(gnorm < args.xtol*args.rwork[10*nvar+4-1]) {
       CPRINTF1(" debug gnorm termination \n");
       *iflag = 0;
@@ -605,7 +605,7 @@ int optim_newton_drivertype_TNCG(newton_drivertype_args<nvar> &args,
     if(args.niter == 1) {
       args.rwork[1] = alpha0;
     }else{
-      args.rwork[1] = MIN(args.rwork[1] / args.ratnew, alpha0);
+      args.rwork[1] = METRIS_MIN(args.rwork[1] / args.ratnew, alpha0);
     }
 
     //PRINTF("## DEBUG REMOVE THIS \n");
@@ -636,7 +636,7 @@ int optim_newton_drivertype_TNCG(newton_drivertype_args<nvar> &args,
 
     flag200:        
     if(wc1  >  wc2) {
-      wc1 = MAX(wc1/2.0,wc2-1.0e-12);
+      wc1 = METRIS_MAX(wc1/2.0,wc2-1.0e-12);
       goto flag200;
     }
 
@@ -775,7 +775,7 @@ int truncated_newton_iteration(const MetrisParameters* param,
 
   // Values 1 < desired_order <= 2 ok
   const double desired_order = 2;
-  double eta = MIN(1.0 / (outer_iter + 1), pow(gnorm,desired_order-1));
+  double eta = METRIS_MIN(1.0 / (outer_iter + 1), pow(gnorm,desired_order-1));
   CPRINTF1("-- Start gnorm {:15.7e} eta {:15.7e} eps {:15.7e}\n",gnorm,eta,eps);
 
   bool cvged = false;
@@ -906,7 +906,7 @@ nlopt_result luksan_pnetS(nlopt_func f, void *f_data,
   int mf = maxit;
   // Assume mf = miter 
   // need: as double
-  //  ndim * 9 + MAX(ndim,ndim*stop->maxeval)*2 + MAX(ndim,stop->maxeval)*2
+  //  ndim * 9 + METRIS_MAX(ndim,ndim*stop->maxeval)*2 + METRIS_MAX(ndim,stop->maxeval)*2
   // We assume stop->maxeval always provided, hence:
   //  ndim * 9 + (ndim+1)*stop->maxeval*2 
   // int: ndim, just put on stack. 
@@ -927,21 +927,21 @@ nlopt_result luksan_pnetS(nlopt_func f, void *f_data,
   int ix[ndim];
 
   //if (mf <= 0) {
-  //  mf = MAX(MEMAVAIL/ndim, 10);
+  //  mf = METRIS_MAX(MEMAVAIL/ndim, 10);
   //  if (stop->maxeval && stop->maxeval <= mf)
-  //    mf = MAX(stop->maxeval, 1);
+  //    mf = METRIS_MAX(stop->maxeval, 1);
   //}
 
   //work = (double*) malloc(sizeof(double) * 
-  //  (ndim * 9 + MAX(ndim,ndim*stop->maxeval)*2 + MAX(ndim,stop->maxeval)*2));
+  //  (ndim * 9 + METRIS_MAX(ndim,ndim*stop->maxeval)*2 + METRIS_MAX(ndim,stop->maxeval)*2));
 
 
 
   xl = &lwork[0]; xu = xl + ndim;
   gf = xu + ndim; gn = gf + ndim; s = gn + ndim;
   xo = s + ndim; go = xo + ndim; xs = go + ndim; gs = xs + ndim;
-  xm = gs + ndim; gm = xm + MAX(ndim*mf,ndim);
-  u1 = gm + MAX(ndim*mf,ndim); u2 = u1 + MAX(ndim,mf);
+  xm = gs + ndim; gm = xm + METRIS_MAX(ndim*mf,ndim);
+  u1 = gm + METRIS_MAX(ndim*mf,ndim); u2 = u1 + METRIS_MAX(ndim,mf);
 
   for (i = 0; i < ndim; ++i) {
     int lbu = lb[i] <= -0.99 * HUGE_VAL; /* lb unbounded */
@@ -955,7 +955,7 @@ nlopt_result luksan_pnetS(nlopt_func f, void *f_data,
   original Fortran code, but it is used upon
   input to pnet if mf > 0 ... perhaps ALLOCATE initializes
   arrays to zero by default? */
-  memset(xo, 0, sizeof(double) * MAX(ndim,ndim*mf));
+  memset(xo, 0, sizeof(double) * METRIS_MAX(ndim,ndim*mf));
 
 
   int nvar = ndim;

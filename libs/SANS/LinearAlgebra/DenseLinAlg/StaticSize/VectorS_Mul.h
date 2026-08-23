@@ -16,8 +16,8 @@
 // not sure how to register them with std::is_arithmetic
 #include <boost/type_traits/is_arithmetic.hpp>
 
-#include "SANS/LinearAlgebra/DenseLinAlg/StaticSize/MatrixS_Type.h"
-#include "SANS/LinearAlgebra/DenseLinAlg/tools/PromoteSurreal.h"
+#include "MatrixS_Type.h"
+#include "../tools/PromoteSurreal.h"
 
 namespace Metris
 {
@@ -44,7 +44,7 @@ public:
   static const int MR = Expr::M;
   BOOST_MPL_ASSERT_RELATION( Expr::N, ==, 1 );
 
-  typedef typename SANS::promote_Surreal<TL,TR>::type Ttype;
+  typedef typename Metris::promote_Surreal<TL,TR>::type Ttype;
 
   typedef VectorS<ML,TL> VectorSL;
 

@@ -255,7 +255,7 @@ struct subref_constructor{
     ntet[0] = 1;
 
     
-    constexpr int mmhead = MAX(1,msubtet[METRIS_MAX_DEG_JACOBIAN]/3);
+    constexpr int mmhead = METRIS_MAX(1,msubtet[METRIS_MAX_DEG_JACOBIAN]/3);
     constexpr int mmlist = 4*msubtet[METRIS_MAX_DEG_JACOBIAN];
     int head[mmhead] = {0};
     int list[mmlist][4] = {0};
@@ -269,7 +269,7 @@ struct subref_constructor{
 
       ntet[ideg] = 0;
 
-      int mhead = MAX(1,msubtet[ideg]/3), mlist = 4*msubtet[ideg];
+      int mhead = METRIS_MAX(1,msubtet[ideg]/3), mlist = 4*msubtet[ideg];
       //printf("\n\n start ideg = {} mlist = {} mhead {} expect {} \n\n\n",ideg,mlist,mhead,msubtet[ideg]);
       int nlist = 0;
       // Store ORIENTED face idx then next in line

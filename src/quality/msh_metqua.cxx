@@ -68,8 +68,8 @@ double getmetquamesh(Mesh<MFT> &msh, int tdim, AsDeg asdmsh, AsDeg asdmet,
       //} // Ignore exceptions in this context. 
       if(lquae != NULL) (*lquae)[ientt] = quent;
       qtot += quent;
-      (*qmin) = MIN(*qmin,quent);
-      (*qmax) = MAX(*qmax,quent);
+      (*qmin) = METRIS_MIN(*qmin,quent);
+      (*qmax) = METRIS_MAX(*qmax,quent);
       CPRINTF3(" - getmetquamesh ientt {} dim {} qual = {}\n",ientt,tdim,quent);
     }
   }}CT_FOR1(tdim_c);

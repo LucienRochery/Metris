@@ -100,7 +100,7 @@ else()
 endif()
 
 
-add_compile_definitions(SURREAL_LAZY)
+add_compile_definitions(METRIS_SURREAL_LAZY)
 
 if(USE_TRACELIBS)
   message(FATAL_ERROR "-- Compiling with Boost stacktrace libraries")
@@ -399,14 +399,6 @@ if(METRIS_INSTALL)
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/src/
     FILES_MATCHING
       PATTERN "*.hxx"
-      PATTERN ".*" EXCLUDE
-  )
-
-  install(
-    DIRECTORY ${PROJECT_SOURCE_DIR}/SANS/
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/SANS/
-    FILES_MATCHING
-      PATTERN "*.h"
       PATTERN ".*" EXCLUDE
   )
 

@@ -170,7 +170,7 @@ double interpErr(const SolutionFieldAnalytical &sol, int ielem,
   constexpr int ideg_intp = pdeg;  // interpolate degree
   // The function is assumed of degree pdeg + 1. This would then guarantee exact:
   //constexpr int ideg_err  = (pdeg + 1)*ideg; // Pointwise error
-  constexpr int ideg_err  = !iexact ? MIN(pdeg+1,(pdeg + 1)*ideg)
+  constexpr int ideg_err  = !iexact ? METRIS_MIN(pdeg+1,(pdeg + 1)*ideg)
                                     : (pdeg + 1)*ideg; // Pointwise error
   // But we can also truncate at pdeg + 1: (and should in the future, to test)
   //constexpr int ideg_err  = (pdeg + 1); 

@@ -8,20 +8,19 @@
 #include "../MatrixSymS.h"
 #include "../VectorS.h"
 
-#include "Surreal/SurrealS.h"
+#include "../../../../Surreal/SurrealS.h"
 
-#include "tools/SANSnumerics.h"
+#include "../../../../tools/SANSnumerics.h"
 
 #include <cmath>  // sqrt
 
 namespace Metris
 {
-using SANS::SurrealS;
 
 namespace DLA
 {
 
-#define DELTA 1e-3
+#define METRIS_EIGEN_DELTA 1e-3
 
 template< int M, class T >
 void
@@ -31,8 +30,8 @@ EigenValues(const MatrixSymS<M,T>& A, VectorS<M,T>& L )
   const T& b = A(1,0); const T& c = A(1,1);
 
   // Check if the off diagonal is small enough to be considered zero
-  if ( DELTA*b + a == a &&
-       DELTA*b + c == c )
+  if ( METRIS_EIGEN_DELTA*b + a == a &&
+       METRIS_EIGEN_DELTA*b + c == c )
   {
     // A is diagonal.
     L[0] = a;
@@ -68,7 +67,7 @@ EigenValues(const MatrixSymS<M,T>& A, VectorS<M,T>& L )
     T u = a - c;
     T v = u*u + 4.0*b*b;
 
-    SANS_ASSERT( v >= 0 );
+    METRIS_SUPPORT_ASSERT( v >= 0 );
 
     T w = sqrt(v);
 
@@ -94,8 +93,8 @@ EigenSystem(const MatrixSymS<M,T>& A, VectorS<M,T>& L, MatrixS<M,M,T>& E )
   const T& b = A(1,0); const T& c = A(1,1);
 
   // Check if the off diagonal is small enough to be considered zero
-  if ( DELTA*b + a == a &&
-       DELTA*b + c == c )
+  if ( METRIS_EIGEN_DELTA*b + a == a &&
+       METRIS_EIGEN_DELTA*b + c == c )
   {
     // A is diagonal.
     L[0] = a;
@@ -179,7 +178,7 @@ EigenSystem(const MatrixSymS<M,T>& A, VectorS<M,T>& L, MatrixS<M,M,T>& E )
     T u = a - c;
     T v = u*u + 4.0*b*b;
 
-    SANS_ASSERT( v >= 0 );
+    METRIS_SUPPORT_ASSERT( v >= 0 );
 
     T w = sqrt(v);
 
@@ -219,17 +218,17 @@ EigenSystem(const MatrixSymS<M,T>& A, VectorS<M,T>& L, MatrixS<M,M,T>& E )
   }
 }
 
-#define INSTANTIATE_EIGEN(T) \
+#define METRIS_INSTANTIATE_EIGEN(T) \
 template void EigenValues<2,T>(const MatrixSymS<2,T>& A, VectorS<2,T>& L ); \
 template void EigenVectors<2,T>(const MatrixSymS<2,T>& A, MatrixS<2,2,T>& E ); \
 template void EigenSystem<2,T>(const MatrixSymS<2,T>& A, VectorS<2,T>& L, MatrixS<2,2,T>& E );
 
-INSTANTIATE_EIGEN(Real)
-INSTANTIATE_EIGEN(SurrealS<1>)
-INSTANTIATE_EIGEN(SurrealS<2>)
-INSTANTIATE_EIGEN(SurrealS<3>)
-INSTANTIATE_EIGEN(SurrealS<6>)
-INSTANTIATE_EIGEN(SurrealS<9>)
+METRIS_INSTANTIATE_EIGEN(Real)
+METRIS_INSTANTIATE_EIGEN(SurrealS<1>)
+METRIS_INSTANTIATE_EIGEN(SurrealS<2>)
+METRIS_INSTANTIATE_EIGEN(SurrealS<3>)
+METRIS_INSTANTIATE_EIGEN(SurrealS<6>)
+METRIS_INSTANTIATE_EIGEN(SurrealS<9>)
 
 }
 }

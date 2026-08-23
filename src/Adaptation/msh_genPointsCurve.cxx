@@ -32,7 +32,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
   ego CADed = msh.CAD.cad2edg[iref];
   int ierro;
 
-  int nnewp = MAX(round(crvlen) - 1, 2);
+  int nnewp = METRIS_MAX(round(crvlen) - 1, 2);
   double tarlen = crvlen / nnewp;
 
   CPRINTF1("-- START genPointsCurve ref {} cor0 {} range = ({},{}), length {}, creating {} points for tarlen {}\n",
@@ -279,7 +279,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
 
     }// while itsed
 
-    double adjusted_tarlen = lentes / (MAX(round(lentes) - 1,1));
+    double adjusted_tarlen = lentes / (METRIS_MAX(round(lentes) - 1,1));
     CPRINTF1(" - Phase 2 tess npoin = {} new length {} tarlen {} -> {} \n",
              tspoi.get_n(),lentes,tarlen,adjusted_tarlen);
     tarlen = adjusted_tarlen;
@@ -394,7 +394,7 @@ void genPointsCurve(Mesh<MFT>& msh, int iref, int icor0, double crvlen,
       // Otherwise, we just passed a threshold, create new point. 
       // theta st (1-theta)*lent0 + theta*lentot = tarlen
       double theta = (tarlen - lento0) / len;
-      theta = MAX(0,MIN(1,theta)); // for close to machine zero errors
+      theta = METRIS_MAX(0,METRIS_MIN(1,theta)); // for close to machine zero errors
       //METRIS_ASSERT_MSG(theta >= 0 && theta <= 1,"theta out of bounds: "
       //  <<theta<<" diff above 1 "<<theta - 1);
 

@@ -12,9 +12,9 @@ void reoderHilbert(MeshBase &msh){
 
   double t0,t1;
 
-//  int nthread = MAX(GetNumberOfCores(),4);
+//  int nthread = METRIS_MAX(GetNumberOfCores(),4);
   int nthread = GetNumberOfCores();
-  if(msh.nproc > 0) nthread = MIN(nthread,msh.nproc);
+  if(msh.nproc > 0) nthread = METRIS_MIN(nthread,msh.nproc);
   printf("Running Hilbert with {} threads\n",nthread);
   
   uint64_t LPlibIdx = InitParallel(nthread);
@@ -265,24 +265,24 @@ void reoderHilbert(MeshBase &msh){
   auto cmpe = [&](int i, int j) -> bool {
     assert(i>= 0 && i < msh.nedge);
     assert(j>= 0 && j < msh.nedge);
-    int ip1 = MIN(msh.edg2poi(i,0),msh.edg2poi(i,1));
-    int ip2 = MIN(msh.edg2poi(j,0),msh.edg2poi(j,1));
+    int ip1 = METRIS_MIN(msh.edg2poi(i,0),msh.edg2poi(i,1));
+    int ip2 = METRIS_MIN(msh.edg2poi(j,0),msh.edg2poi(j,1));
     if(ip1 > ip2) return false;
     else return true;
   };
   auto cmpf = [&](int i, int j) -> bool {
     assert(i>= 0 && i < msh.nface);
     assert(j>= 0 && j < msh.nface);
-    int ip1 = MIN(MIN(msh.fac2poi(i,0),msh.fac2poi(i,1)),msh.fac2poi(i,2));
-    int ip2 = MIN(MIN(msh.fac2poi(j,0),msh.fac2poi(j,1)),msh.fac2poi(j,2));
+    int ip1 = METRIS_MIN(METRIS_MIN(msh.fac2poi(i,0),msh.fac2poi(i,1)),msh.fac2poi(i,2));
+    int ip2 = METRIS_MIN(METRIS_MIN(msh.fac2poi(j,0),msh.fac2poi(j,1)),msh.fac2poi(j,2));
     if(ip1 > ip2) return false;
     else return true;
   };
   auto cmpt = [&](int i, int j) -> bool {
     assert(i>= 0 && i < msh.nelem);
     assert(j>= 0 && j < msh.nelem);
-    int ip1 = MIN(MIN(MIN(msh.tet2poi(i,0),msh.tet2poi(i,1)),msh.tet2poi(i,2)),msh.tet2poi(i,3));
-    int ip2 = MIN(MIN(MIN(msh.tet2poi(j,0),msh.tet2poi(j,1)),msh.tet2poi(j,2)),msh.tet2poi(j,3));
+    int ip1 = METRIS_MIN(METRIS_MIN(METRIS_MIN(msh.tet2poi(i,0),msh.tet2poi(i,1)),msh.tet2poi(i,2)),msh.tet2poi(i,3));
+    int ip2 = METRIS_MIN(METRIS_MIN(METRIS_MIN(msh.tet2poi(j,0),msh.tet2poi(j,1)),msh.tet2poi(j,2)),msh.tet2poi(j,3));
     if(ip1 > ip2) return false;
     else return true;
   };
@@ -293,7 +293,7 @@ void reoderHilbert(MeshBase &msh){
   //ParallelQsort(LPlibIdx, (void *)msh.tet2poi[0], msh.nelem, sztet, cmp);
   //ParallelQsort(LPlibIdx, (void *)msh.fac2poi[0], msh.nface, szfac, cmp);
   //ParallelQsort(LPlibIdx, (void *)msh.edg2poi[0], msh.nedge, szedg, cmp);
-  int nm = MAX(MAX(MAX(msh.nelem,msh.nface),msh.nedge),msh.npoin);
+  int nm = METRIS_MAX(METRIS_MAX(METRIS_MAX(msh.nelem,msh.nface),msh.nedge),msh.npoin);
   int *vbuf = (int*)lorder;
   std::vector<int, PreAllocator<int> > vect(nm, 0, PreAllocator<int>(vbuf, nm));
 

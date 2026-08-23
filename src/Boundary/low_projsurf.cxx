@@ -197,7 +197,7 @@ int projptfacP1(const double*__restrict__ coop,
   bary[2] = getprdl2<3>(nrmal1,nrmal) / nrm123;
 
   METRIS_ASSERT_MSG(abs(bary[0] + bary[1] + bary[2] - 1) 
-    < 1.0e-8*MAX(1,MAX(MAX(abs(bary[0]),abs(bary[1])),abs(bary[2]))),
+    < 1.0e-8*METRIS_MAX(1,METRIS_MAX(METRIS_MAX(abs(bary[0]),abs(bary[1])),abs(bary[2]))),
     "Triangle barycentrics dont sum to one: {} {} {} sum = {} dif to 1 {:e}",
     bary[0], bary[1], bary[2], bary[0] + bary[1] + bary[2],
     abs(bary[0] + bary[1] + bary[2] - 1));
@@ -247,7 +247,7 @@ int projptedg(MeshBase &msh, const double*__restrict__ coop,
           ||bary[1] < -Constants::baryTol || bary[1] > 1 + Constants::baryTol;
 
     // Truncate for projection
-    tp = MAX(0.0,MIN(1.0,tp));
+    tp = METRIS_MAX(0.0,METRIS_MIN(1.0,tp));
     for(int ii = 0; ii < gdim; ii++) coopr[ii] = (1.0 - tp) * msh.coord(ipoi1,ii)
                                                +        tp  * msh.coord(ipoi2,ii);
 

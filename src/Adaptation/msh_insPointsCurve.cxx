@@ -160,8 +160,8 @@ void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lc
   // Each t will create a cavity from the left to the right t coordinate
   // As points are inserted, these links are updated to avoid collapses.
   for(int ii = 0; ii < ninsp; ii++){
-    t2lnk(ii,0) = MAX(ii-mdseed,-1);    // -1    means range[0]
-    t2lnk(ii,1) = MIN(ii+mdseed,ninsp); // ninsp means range[1]
+    t2lnk(ii,0) = METRIS_MAX(ii-mdseed,-1);    // -1    means range[0]
+    t2lnk(ii,1) = METRIS_MIN(ii+mdseed,ninsp); // ninsp means range[1]
   }
 
 

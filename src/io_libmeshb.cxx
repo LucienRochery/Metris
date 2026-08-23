@@ -303,7 +303,7 @@ void writeMeshCavity(std::string meshName_, MeshBase &msh, const MshCavity& cav)
 
   // Only vertices can be corners
   int mcorn = 2 * ncedg * msh.isboundary_edges();
-  if(msh.isboundary_faces()) mcorn = MAX(mcorn, 3*ncfac);
+  if(msh.isboundary_faces()) mcorn = METRIS_MAX(mcorn, 3*ncfac);
   // But there can be no more than points, obviously. 
 
   mcorn++; // ipins
@@ -705,7 +705,7 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
 
 
       //int* dbgptr = (int*)stream;
-      //for(int ii = 0; ii < MIN(10,nbyte / sizeof(int)); ii++){
+      //for(int ii = 0; ii < METRIS_MIN(10,nbyte / sizeof(int)); ii++){
       //  printf(" DEBUG STREAM AS INT: {} = {} \n",ii,*dbgptr);
       //  dbgptr++;
       //}
@@ -1243,7 +1243,7 @@ void writeMeshVecs(std::string meshName, MeshBase &msh, const dblAr2 &poi2vec){
 
 
       //int* dbgptr = (int*)stream;
-      //for(int ii = 0; ii < MIN(10,nbyte / sizeof(int)); ii++){
+      //for(int ii = 0; ii < METRIS_MIN(10,nbyte / sizeof(int)); ii++){
       //  printf(" DEBUG STREAM AS INT: {} = {} \n",ii,*dbgptr);
       //  dbgptr++;
       //}

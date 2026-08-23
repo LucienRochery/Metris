@@ -55,8 +55,8 @@ void prod_bernstein(const dblAr2 &coef_inp1, const dblAr2 &coef_inp2, dblAr2 &co
 
   // Note symmetry w replacing ideg1 by ideg2
   constexpr int binom1 = ct_binom.get[ideg1+ideg2][ideg1];
-  METRIS_ENFORCE(binom1 == binom(MIN(ideg1,ideg2),ideg1+ideg2))
-  //int binom1 = binom(MIN(ideg1,ideg2),ideg1+ideg2); 
+  METRIS_ENFORCE(binom1 == binom(METRIS_MIN(ideg1,ideg2),ideg1+ideg2))
+  //int binom1 = binom(METRIS_MIN(ideg1,ideg2),ideg1+ideg2);
 
   constexpr auto ordent = ORDELT(tdim);
 

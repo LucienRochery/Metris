@@ -132,7 +132,7 @@ int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf
   }
   CPRINTF1(" - topo dims {} {} \n",tdimp[0],tdimp[1]);
 
-  tdimc = MAX(tdimp[0], tdimp[1]);
+  tdimc = METRIS_MAX(tdimp[0], tdimp[1]);
 
   for(int iver = 0; iver < 2; iver++){
     // Collapse this one 

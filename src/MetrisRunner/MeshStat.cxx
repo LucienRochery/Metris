@@ -26,7 +26,7 @@ void MeshStat::reset(){
 }
 
 void MeshStat::setLength(int tdim, const dblAr1& rlened){
-  tdim_max = MAX(tdim_max,tdim);
+  tdim_max = METRIS_MAX(tdim_max,tdim);
   len.set_n(tdim_max);
   pctunit.set_n(tdim_max);
 
@@ -39,7 +39,7 @@ void MeshStat::setLength(int tdim, const dblAr1& rlened){
 }
 
 void MeshStat::setQuality(int tdim, const dblAr1& rqualel, AsDeg asdeg){
-  tdim_max = MAX(tdim_max,tdim);
+  tdim_max = METRIS_MAX(tdim_max,tdim);
   MeshArray1D<MinMaxAvg>& qua = asdeg == AsDeg::P1 ? quaP1 : quaPk;
   qua.allocate(tdim_max);
   qua.set_n(tdim_max);

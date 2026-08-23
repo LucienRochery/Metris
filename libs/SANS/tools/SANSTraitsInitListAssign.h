@@ -3,16 +3,16 @@
 // Licensed under The GNU Lesser General Public License, version 2.1
 // See http://www.opensource.org/licenses/lgpl-2.1.php
 
-#ifndef SANSTRAITSINITLISTASSING_H
-#define SANSTRAITSINITLISTASSING_H
+#ifndef METRIS_TRAITS_INIT_LIST_ASSIGN_H
+#define METRIS_TRAITS_INIT_LIST_ASSIGN_H
 
 #ifdef __INTEL_COMPILER
 //Maybe someday the intel compiler will get fixed and we won't need any of this mess...
 
-#include "tools/SANSnumerics.h"   // Real
+#include "SANSnumerics.h"   // Metris::Real
 #include <initializer_list>
 
-namespace SANS
+namespace Metris
 {
 
 //Used to assign list initializer to special types that can take the list initalizer. Otherwise it does nothing
@@ -24,8 +24,8 @@ struct initializer_list_assign
   initializer_list_assign(T& val, const std::initializer_list<U>& s) {}
 };
 
-}  // namespace SANS
+}  // namespace Metris
 
 #endif
 
-#endif  // SANSTRAITSINITLISTASSING_H
+#endif  // METRIS_TRAITS_INIT_LIST_ASSIGN_H

@@ -25,7 +25,7 @@ void setLogMetMesh0(const MeshBase &msh, dblAr2 &metfld){
       GETVDEPTH(msh.param);
       MPRINTF("## EXCEPTION RAISED ON POINT {} COORD ",ipoin);
       dblAr1(msh.idim,msh.coord[ipoin]).print();
-      for(int ii = 0; ii < MIN(10,msh.npoin); ii++){
+      for(int ii = 0; ii < METRIS_MIN(10,msh.npoin); ii++){
         MPRINTF(" point {} met = ",ii);
         dblAr1((msh.idim*(msh.idim+1))/2,metfld[ii]).print();
       }
@@ -45,7 +45,7 @@ void setExpMetMesh0(const MeshBase &msh, dblAr2 &metfld){
       GETVDEPTH(msh.param);
       MPRINTF("## EXCEPTION RAISED ON POINT {} COORD ",ipoin);
       dblAr1(msh.idim,msh.coord[ipoin]).print();
-      for(int ii = 0; ii < MIN(10,msh.npoin); ii++){
+      for(int ii = 0; ii < METRIS_MIN(10,msh.npoin); ii++){
         MPRINTF(" point {} met = ",ii);
         dblAr1((msh.idim*(msh.idim+1))/2,metfld[ii]).print();
       }

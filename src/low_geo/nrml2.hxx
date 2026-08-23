@@ -30,7 +30,7 @@ template<> inline double geterrl2<1,double>(const double x[], const double y[]){
 #endif
 
 template<int n, int m, typename ftype = double>
-inline ftype geterrl2(const SANS::SurrealS<m,ftype> x[], const SANS::SurrealS<m,ftype> y[]){
+inline ftype geterrl2(const Metris::SurrealS<m,ftype> x[], const Metris::SurrealS<m,ftype> y[]){
   static_assert(n > 0);
   ftype ret = 0; 
   for(int i = 0; i < n ;i++){

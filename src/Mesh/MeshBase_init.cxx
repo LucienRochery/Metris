@@ -131,8 +131,8 @@ void MeshBase::initialize(MetrisAPI *data,
   for(int ielem = 0; ielem < nelem; ielem++){
     if(isdeadent(ielem,tet2poi)) continue;
     int iref = tet2ref[ielem];
-    ndomn = MAX(ndomn, iref);
-    minref= MIN(minref,iref);
+    ndomn = METRIS_MAX(ndomn, iref);
+    minref= METRIS_MIN(minref,iref);
   }
   if(minref < 0){
     // All tets are ref 0: correct
@@ -585,7 +585,7 @@ void MeshBase::readConstants(int64_t libIdx, int usrMinDeg){
 void MeshBase::readConstants(const MetrisAPI &data, int usrMinDeg){
   idim   = data.idim;
   curdeg = data.ideg;
-  strdeg = MAX(usrMinDeg, curdeg);
+  strdeg = METRIS_MAX(usrMinDeg, curdeg);
 
   nbpoi_ = 0;
   // Only skip allocs if curdeg != strdeg. 
@@ -1090,7 +1090,7 @@ void MeshBase::readMeshFile(int64_t libIdx, int ithread){
           edg2tag(0,iedge) = tag[0];
         }else{
           edg2tag(0, iedge)++;
-          maxtag = MAX(maxtag, edg2tag(0,iedge));
+          maxtag = METRIS_MAX(maxtag, edg2tag(0,iedge));
         }
         if(edg2tag(0, iedge) > 10){
           PRINTF("## EDGE {} = {} {} REFERENCED > 10 VerticesOnGeometricEdges\n",

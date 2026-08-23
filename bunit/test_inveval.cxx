@@ -370,7 +370,7 @@ BOOST_AUTO_TEST_CASE(test_inveval)
                 }else{
                   nerro++;
                 }
-                maxErr = MAX(err/eps,maxErr);
+                maxErr = METRIS_MAX(err/eps,maxErr);
                 //#if 0
                 if(err >= xtol*eps && ifun == 1 && msh.param->dbgfull){
                   msh.param->iverb = 10;
@@ -545,14 +545,14 @@ int inveval_badNewton0(const MeshBase &msh,
 
         if(bar0[ii] + dbar[ii] > 1.0 - Constants::baryTol){
           dofac = true;
-          fac = MIN(fac, abs( (1 - bar0[ii]) / dbar[ii] ) );
+          fac = METRIS_MIN(fac, abs( (1 - bar0[ii]) / dbar[ii] ) );
           if(iverb >= 3) printf("    - debug tmp 1 = %f before, after %f %f \n", 
               abs( (1 - bar0[ii]) / dbar[ii] ) , bar0[ii], bar0[ii] + dbar[ii]);
         }
 
         if(bar0[ii] + dbar[ii] < Constants::baryTol){
           dofac = true;
-          fac = MIN(fac, abs( -bar0[ii] / dbar[ii] ) );
+          fac = METRIS_MIN(fac, abs( -bar0[ii] / dbar[ii] ) );
           if(iverb >= 3) printf("    - debug tmp 2 = %f before, after %f %f w cor %f \n", 
               abs( -bar0[ii] / dbar[ii] ) , bar0[ii], bar0[ii] + dbar[ii]
               , bar0[ii] + abs( -bar0[ii] / dbar[ii] )*dbar[ii]);

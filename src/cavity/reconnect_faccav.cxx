@@ -140,7 +140,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
         if(msh.CAD()){
           getnorfacCAD(msh, ifacs, nrmal);
           double nordev = getnordev<1>(msh, ifacs, NULL);
-          lnordevcco[icoco] = MAX(lnordevcco[icoco], nordev);
+          lnordevcco[icoco] = METRIS_MAX(lnordevcco[icoco], nordev);
           CPRINTF2("   - face {} nordev = {}\n",ifacs,nordev);
         }else{
           getnorfacP1(msh.fac2poi[ifacs], msh.coord, nrmal);
@@ -371,7 +371,7 @@ int reconnect_faccav(Mesh<MetricFieldType> &msh, MshCavity& cav,
     }
   }  
 
-  cav.maxtag = MAX(cav.maxtag, msh.tag[ithread] + edtyp.get_n());
+  cav.maxtag = METRIS_MAX(cav.maxtag, msh.tag[ithread] + edtyp.get_n());
 
   if(DOPRINTS2()){
     CPRINTF2(" - nedex = {} :\n",edtyp.get_n());
@@ -787,10 +787,10 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
   // We want to keep new faces untagged. 
   msh.fac2tag(ithread,ifacn) = msh.tag[ithread] - icoco - 1;
 
-  double nordev_tol = MAX(work.lnordevcco[icoco], 1.0e-12);
+  double nordev_tol = METRIS_MAX(work.lnordevcco[icoco], 1.0e-12);
   static int nwarnprt1 = 0;
   if(nwarnprt1++ < 4) PRINTF("## PUT BACK NORDEV TOL\n");
-  nordev_tol = MAX(nordev_tol, 1.0e-1);
+  nordev_tol = METRIS_MAX(nordev_tol, 1.0e-1);
   //if(nordev_tol > 1.0e-11){
   //  printf("## DEBUG nordev_tol != 0 = {}\n",nordev_tol);
   //}

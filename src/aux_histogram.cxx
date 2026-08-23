@@ -104,15 +104,15 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
   vavgl = vavgl / nval;
 
   int maxbuckt = 0;
-  for(int nn : buckcnt) maxbuckt = MAX(maxbuckt, nn);
-  maxbuckt = MAX(nlow,maxbuckt);
-  maxbuckt = MAX(nhig,maxbuckt);
+  for(int nn : buckcnt) maxbuckt = METRIS_MAX(maxbuckt, nn);
+  maxbuckt = METRIS_MAX(nlow,maxbuckt);
+  maxbuckt = METRIS_MAX(nhig,maxbuckt);
 
 
   struct winsize w;
   ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
   const int mcol = 100;
-  w.ws_col = MIN(MAX(w.ws_col, 40),mcol);
+  w.ws_col = METRIS_MIN(METRIS_MAX(w.ws_col, 40),mcol);
 
   // Expected length to print {:8.2e} < symb < {:8.2e} w/ spaces
   int ibuf0  = symb.length() + 6 + 2*8 + 2; 
@@ -122,7 +122,7 @@ void print_histogram(const MeshBase &msh, dblAr1 &values, IntrpTyp iinter,
   // This determines the scaling factor 
   double scal = prtwdt / (double) maxbuckt; 
   
-  int ncol = MIN(mcol,MAX(w.ws_col, ibuf0 + 15));
+  int ncol = METRIS_MIN(mcol,METRIS_MAX(w.ws_col, ibuf0 + 15));
   char buffer[2+nbucket][mcol];
 
   for(int ii = 0; ii < nbucket; ii++){

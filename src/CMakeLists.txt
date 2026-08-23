@@ -16,7 +16,7 @@ if(REQ_CODEGEN)
   add_executable(gen_lageval ${PROJECT_SOURCE_DIR}/tools/gen_lageval.cxx ho_constants.hxx)
   setMetrisCXXFlags(gen_lageval PUBLIC)
   target_link_libraries(gen_lageval PUBLIC  Boost::headers 
-                                            libSANS_Metris 
+                                            libSANS_Metris
                                             )
   target_include_directories(gen_lageval PUBLIC ${PROJECT_SOURCE_DIR})
   add_custom_command(OUTPUT ${PROJECT_BINARY_DIR}/src/codegen_lagrange.hxx
