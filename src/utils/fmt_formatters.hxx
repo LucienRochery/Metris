@@ -31,6 +31,18 @@ std::ostream& operator<<(std::ostream& _os, const std::pair<T1, T2>& _p) {
 
 #include "fmt/ostream.h"
 
+template<typename T1, typename T2>
+struct fmt::formatter<std::pair<T1, T2>> {
+  constexpr auto parse(fmt::format_parse_context& ctx) {
+    return ctx.begin();
+  }
+
+  template<typename FormatContext>
+  auto format(const std::pair<T1, T2>& value, FormatContext& ctx) const {
+    return fmt::format_to(ctx.out(), "({},{})", value.first, value.second);
+  }
+};
+
 //template<>
 //struct fmt::formatter<ego> {
 //
@@ -49,18 +61,6 @@ std::ostream& operator<<(std::ostream& _os, const std::pair<T1, T2>& _p) {
 
 //fmt::ostream_formatter was temporarily removed from version 8 to 9...
 #if FMT_VERSION < 80000 || FMT_VERSION >= 90000
-  template<typename T1, typename T2>
-  struct fmt::formatter<std::pair<T1, T2>> {
-    constexpr auto parse(fmt::format_parse_context& ctx) {
-      return ctx.begin();
-    }
-
-    template<typename FormatContext>
-    auto format(const std::pair<T1, T2>& value, FormatContext& ctx) const {
-      return fmt::format_to(ctx.out(), "({},{})", value.first, value.second);
-    }
-  };
-
   template<int N, typename T>
   struct fmt::formatter<Metris::SurrealS<N, T>> : fmt::ostream_formatter {};
 
