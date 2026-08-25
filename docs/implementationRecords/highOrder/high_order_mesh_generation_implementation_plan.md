@@ -876,3 +876,38 @@ would obstruct the first working path.
    policy. Bernstein validity rejection and production smoothing behavior
    remain part of the later per-variant integration work. Phase 5 step 6 is
    the deliberately different CavityTargetAverage aggregation convention.
+
+6. **Done (2026-08-25): qualified P2 CavityTargetAverage as a distinct
+   reference-space and regional aggregation policy.** Each elemental value is
+   the unit-weight reference-simplex average of the basic StepDistance
+   integrand: objective quadrature remains configured by
+   `objective_quadrature_order`, but sample `theta` is exactly one. The
+   geometric or metric volume measure is therefore absent. The policy also
+   suppresses the separate collapse barrier and remains mutually exclusive
+   with ShapeVolume.
+
+   An independent dense Duffy oracle checks curved P2 triangles and
+   tetrahedra for FE and analytical metrics. The order-five errors are at most
+   approximately `5.70e-6` in 2D and `1.86e-8` in 3D. With both Lagrange and
+   Bezier active edge bases, the production analytic gradient agrees with AD
+   of the independently assembled frozen value to `2.55e-15`; the production
+   AD Hessian agrees with AD of the test-owned analytic gradient to
+   `3.55e-15`. The maximum centered-difference errors are approximately
+   `1.69e-10` for the gradient and `7.92e-10` for the Hessian. The test sets
+   the nominal collapse-barrier coefficient to `1e6`, so agreement with the
+   barrier-free oracle directly checks its suppression.
+
+   A separate disconnected two-element P2 mesh checks the second level of the
+   contract. `step_distance_global_objective_state`, regional contribution,
+   `getmetquamesh`, and count-changing replacement all reproduce the
+   arithmetic mean by live-element count; arbitrary legacy target weights are
+   ignored, and changing `opt_pnorm` from one to four leaves the result
+   unchanged. For fixed topology, the regional gradient and Hessian are the
+   elemental derivatives divided by the element count. Centered differences
+   on the two-element FE case agree to approximately `1.30e-10` and
+   `9.51e-10`, respectively.
+
+   This step qualifies the CavityTargetAverage value, frozen elemental
+   derivatives, and aggregation algebra. Per-variant Bernstein rejection and
+   production smoothing behavior remain in Phase 5 step 8; consistent with
+   the roadmap, they are not silently skipped here.

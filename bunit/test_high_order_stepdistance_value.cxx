@@ -16,6 +16,7 @@
 #include "low_eval.hxx"
 #include "quality/low_metqua.hxx"
 #include "quality/low_metqua_d.hxx"
+#include "quality/msh_metqua.hxx"
 #include "quality/objective_quadrature_derivatives.hxx"
 #include "quality/objective_quadrature_sample.hxx"
 #include "quality/pointwise_objective.hxx"
@@ -141,6 +142,65 @@ void initialize_curved_p2_stepdistance_element(
     evaluate_test_metric<gdim>(mesh.coord[ipoin],1.0,metric);
     for(int imetric = 0; imetric < metric_count; imetric++){
       mesh.met(ipoin,imetric) = metric[imetric];
+    }
+  }
+}
+
+template<class MFT, int gdim>
+void initialize_two_curved_p2_stepdistance_elements(
+    Mesh<MFT> &mesh,
+    MetrisParameters &parameters)
+{
+  constexpr int node_count = getnnode(gdim,2);
+  constexpr int metric_count = gdim*(gdim + 1)/2;
+  initialize_curved_p2_stepdistance_element<MFT,gdim>(mesh,parameters);
+
+  std::array<double,node_count*gdim> first_coordinates{};
+  for(int inode = 0; inode < node_count; inode++){
+    for(int component = 0; component < gdim; component++){
+      first_coordinates[inode*gdim + component]
+          = mesh.coord(inode,component);
+    }
+  }
+
+  mesh.set_npoin(2*node_count);
+  mesh.set_nentt(gdim,2);
+  intAr2 &element_to_point = mesh.ent2poi(gdim);
+  for(int ielement = 0; ielement < 2; ielement++){
+    for(int inode = 0; inode < node_count; inode++){
+      const int point = ielement*node_count + inode;
+      element_to_point(ielement,inode) = point;
+
+      const double *source
+          = first_coordinates.data() + inode*gdim;
+      if(ielement == 0){
+        for(int component = 0; component < gdim; component++){
+          mesh.coord(point,component) = source[component];
+        }
+      }else if constexpr(gdim == 2){
+        mesh.coord(point,0)
+            = 1.35 + 0.92*source[0] + 0.08*source[1];
+        mesh.coord(point,1)
+            = 0.24 - 0.04*source[0] + 1.10*source[1];
+      }else{
+        mesh.coord(point,0)
+            = 1.30 + 0.95*source[0] + 0.04*source[1]
+                   - 0.02*source[2];
+        mesh.coord(point,1)
+            = 0.22 - 0.03*source[0] + 1.08*source[1]
+                   + 0.02*source[2];
+        mesh.coord(point,2)
+            = 0.48 + 0.02*source[0] - 0.04*source[1]
+                   + 0.90*source[2];
+      }
+    }
+  }
+
+  for(int point = 0; point < 2*node_count; point++){
+    double metric[metric_count];
+    evaluate_test_metric<gdim>(mesh.coord[point],1.0,metric);
+    for(int imetric = 0; imetric < metric_count; imetric++){
+      mesh.met(point,imetric) = metric[imetric];
     }
   }
 }
@@ -382,12 +442,15 @@ double independent_p2_stepdistance_dense_reference(Mesh<MFT> &mesh)
 
     const double metric_determinant
         = independent_metric_determinant<gdim>(metric.data());
-    double theta = reference_measure
-                 * std::abs(determinant_from_rows<gdim>(
-                       jacobian_transpose));
-    #ifdef INTQUALINRIEMSPACE
-    theta *= std::sqrt(metric_determinant);
-    #endif
+    double theta = 1.0;
+    if(!mesh.param->step_distance_cavity_target_average){
+      theta = reference_measure
+            * std::abs(determinant_from_rows<gdim>(
+                  jacobian_transpose));
+      #ifdef INTQUALINRIEMSPACE
+      theta *= std::sqrt(metric_determinant);
+      #endif
+    }
     integral += normalized_weight*theta*psi;
   };
 
@@ -420,16 +483,19 @@ double independent_p2_stepdistance_dense_reference(Mesh<MFT> &mesh)
 
 template<class MFT, int gdim>
 void check_p2_stepdistance_against_dense_reference(
-    bool shape_volume = false)
+    bool shape_volume = false,
+    bool target_average = false)
 {
+  BOOST_REQUIRE(!(shape_volume && target_average));
   MetrisParameters parameters;
   parameters.iverb = 0;
   parameters.objective_p = 1.25;
   parameters.step_distance_regularization = 1.e-6;
   parameters.step_distance_shape_volume = shape_volume;
-  parameters.step_distance_cavity_target_average = false;
+  parameters.step_distance_cavity_target_average = target_average;
   parameters.step_distance_barrier_rho0 = 10.0;
-  parameters.step_distance_barrier_beta = shape_volume ? 1.e6 : 0.0;
+  parameters.step_distance_barrier_beta
+      = shape_volume || target_average ? 1.e6 : 0.0;
 
   Mesh<MFT> mesh;
   initialize_curved_p2_stepdistance_element<MFT,gdim>(mesh,parameters);
@@ -448,7 +514,9 @@ void check_p2_stepdistance_against_dense_reference(
 
   BOOST_TEST_MESSAGE(
       "P2 StepDistance "
-      << (shape_volume ? "ShapeVolume " : "basic ")
+      << (shape_volume ? "ShapeVolume "
+                       : target_average ? "CavityTargetAverage "
+                                        : "basic ")
       << "dense reference=" << reference
       << ", q2=" << values[0] << " (error " << errors[0] << ")"
       << ", q3=" << values[1] << " (error " << errors[1] << ")"
@@ -613,8 +681,6 @@ template<class MFT, int gdim>
 FrozenP2StepDistanceSamples<gdim>
 capture_frozen_p2_stepdistance_samples(Mesh<MFT> &mesh)
 {
-  BOOST_REQUIRE(!mesh.param->step_distance_cavity_target_average);
-
   FrozenP2StepDistanceSamples<gdim> samples;
   const int *nodes = mesh.ent2poi(gdim)[0];
   const SimplexQuadratureView<gdim> quadrature
@@ -955,17 +1021,20 @@ void evaluate_frozen_p2_stepdistance_hessian_by_gradient_ad(
 template<class MFT, int gdim>
 void check_stepdistance_edge_gradient(
     FEBasis geometry_basis,
-    bool shape_volume = false)
+    bool shape_volume = false,
+    bool target_average = false)
 {
+  BOOST_REQUIRE(!(shape_volume && target_average));
   MetrisParameters parameters;
   parameters.iverb = 0;
   parameters.objective_quadrature_order = 5;
   parameters.objective_p = 1.25;
   parameters.step_distance_regularization = 1.e-6;
   parameters.step_distance_shape_volume = shape_volume;
-  parameters.step_distance_cavity_target_average = false;
+  parameters.step_distance_cavity_target_average = target_average;
   parameters.step_distance_barrier_rho0 = 10.0;
-  parameters.step_distance_barrier_beta = shape_volume ? 1.e6 : 0.0;
+  parameters.step_distance_barrier_beta
+      = shape_volume || target_average ? 1.e6 : 0.0;
 
   Mesh<MFT> mesh;
   initialize_curved_p2_stepdistance_element<MFT,gdim>(mesh,parameters);
@@ -1028,7 +1097,9 @@ void check_stepdistance_edge_gradient(
   }
   BOOST_TEST_MESSAGE(
       "P2 frozen StepDistance "
-      << (shape_volume ? "ShapeVolume " : "basic ")
+      << (shape_volume ? "ShapeVolume "
+                       : target_average ? "CavityTargetAverage "
+                                        : "basic ")
       << "edge gradient: AD error="
       << maximum_automatic_gradient_error
       << ", finite-difference error="
@@ -1038,8 +1109,10 @@ void check_stepdistance_edge_gradient(
 template<class MFT, int gdim>
 void check_stepdistance_edge_hessian(
     FEBasis geometry_basis,
-    bool shape_volume = false)
+    bool shape_volume = false,
+    bool target_average = false)
 {
+  BOOST_REQUIRE(!(shape_volume && target_average));
   constexpr int hessian_count = gdim*(gdim + 1)/2;
   MetrisParameters parameters;
   parameters.iverb = 0;
@@ -1047,9 +1120,10 @@ void check_stepdistance_edge_hessian(
   parameters.objective_p = 1.25;
   parameters.step_distance_regularization = 1.e-6;
   parameters.step_distance_shape_volume = shape_volume;
-  parameters.step_distance_cavity_target_average = false;
+  parameters.step_distance_cavity_target_average = target_average;
   parameters.step_distance_barrier_rho0 = 10.0;
-  parameters.step_distance_barrier_beta = shape_volume ? 1.e6 : 0.0;
+  parameters.step_distance_barrier_beta
+      = shape_volume || target_average ? 1.e6 : 0.0;
 
   Mesh<MFT> mesh;
   initialize_curved_p2_stepdistance_element<MFT,gdim>(mesh,parameters);
@@ -1143,7 +1217,9 @@ void check_stepdistance_edge_hessian(
   }
   BOOST_TEST_MESSAGE(
       "P2 frozen StepDistance "
-      << (shape_volume ? "ShapeVolume " : "basic ")
+      << (shape_volume ? "ShapeVolume "
+                       : target_average ? "CavityTargetAverage "
+                                        : "basic ")
       << "edge Hessian: AD-of-gradient error="
       << maximum_automatic_hessian_error
       << ", finite-difference error="
@@ -1383,6 +1459,202 @@ void check_shape_volume_rejects_singular_p2_trial(FEBasis geometry_basis)
   }
 }
 
+template<class MFT, int gdim>
+void check_p2_cavity_target_average_aggregation()
+{
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_quadrature_order = 5;
+  parameters.objective_p = 1.25;
+  parameters.opt_pnorm = 1;
+  parameters.step_distance_regularization = 1.e-6;
+  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_cavity_target_average = true;
+  parameters.step_distance_barrier_rho0 = 10.0;
+  parameters.step_distance_barrier_beta = 1.e6;
+
+  Mesh<MFT> mesh;
+  initialize_two_curved_p2_stepdistance_elements<MFT,gdim>(
+      mesh,parameters);
+
+  std::array<double,2> element_values{};
+  for(int ielement = 0; ielement < 2; ielement++){
+    element_values[ielement]
+        = metqua<MFT,gdim,gdim,QuaFun::StepDistance,double>(
+              mesh,AsDeg::Pk,AsDeg::P1,ielement,1.0);
+    const double element_target_weight
+        = step_distance_element_target_weight<MFT,gdim,gdim>(
+              mesh,AsDeg::P1,ielement);
+    BOOST_CHECK_EQUAL(
+        element_target_weight,1.0);
+    BOOST_CHECK_EQUAL(
+        step_distance_region_contribution(
+            element_values[ielement],1234.0,true),
+        element_values[ielement]);
+  }
+  BOOST_TEST(std::abs(element_values[0] - element_values[1]) > 1.e-6);
+
+  const double element_sum = element_values[0] + element_values[1];
+  const double expected_mesh_value = element_sum/2.0;
+  const StepDistanceObjectiveState state
+      = step_distance_global_objective_state<MFT,gdim,gdim>(
+            mesh,AsDeg::Pk,AsDeg::P1);
+  BOOST_CHECK_CLOSE_FRACTION(state.numerator,element_sum,3.e-14);
+  BOOST_CHECK_EQUAL(state.element_count,2);
+  BOOST_CHECK_EQUAL(state.target_weight,2.0);
+  BOOST_CHECK_CLOSE_FRACTION(state.value(),expected_mesh_value,3.e-14);
+  BOOST_CHECK_CLOSE_FRACTION(
+      state.region_value(element_sum,2,9876.0),
+      expected_mesh_value,3.e-14);
+
+  const double old_region_sum = element_values[1];
+  const int old_region_count = 1;
+  const double new_region_sum
+      = 0.60*element_values[0] + 0.70*element_values[1];
+  const int new_region_count = 2;
+  const double expected_replaced_value
+      = (element_values[0] + new_region_sum)/3.0;
+  const double free_replaced_value
+      = step_distance_replaced_region_objective(
+            element_sum,old_region_sum,new_region_sum,
+            2,old_region_count,new_region_count);
+  BOOST_CHECK_CLOSE_FRACTION(
+      free_replaced_value,expected_replaced_value,3.e-14);
+  BOOST_CHECK_CLOSE_FRACTION(
+      state.replaced_value(
+          old_region_sum,old_region_count,111.0,
+          new_region_sum,new_region_count,222.0),
+      expected_replaced_value,3.e-14);
+  BOOST_CHECK_EQUAL(
+      state.accepts_replacement(
+          old_region_sum,old_region_count,111.0,
+          new_region_sum,new_region_count,222.0,0.0),
+      objective_strictly_improves(
+          expected_replaced_value,expected_mesh_value,0.0));
+
+  StepDistanceObjectiveState replaced_state = state;
+  replaced_state.replace(
+      old_region_sum,old_region_count,111.0,
+      new_region_sum,new_region_count,222.0);
+  BOOST_CHECK_CLOSE_FRACTION(
+      replaced_state.numerator,
+      element_values[0] + new_region_sum,3.e-14);
+  BOOST_CHECK_EQUAL(replaced_state.element_count,3);
+  BOOST_CHECK_EQUAL(replaced_state.target_weight,3.0);
+  BOOST_CHECK_CLOSE_FRACTION(
+      replaced_state.value(),expected_replaced_value,3.e-14);
+
+  bool invalid_mesh = false;
+  double mesh_minimum;
+  double mesh_maximum;
+  double mesh_average;
+  parameters.opt_pnorm = 1;
+  const double pnorm_one
+      = getmetquamesh<MFT,QuaFun::StepDistance>(
+            mesh,gdim,AsDeg::Pk,AsDeg::P1,
+            &invalid_mesh,&mesh_minimum,&mesh_maximum,
+            &mesh_average,NULL);
+  BOOST_CHECK(!invalid_mesh);
+  parameters.opt_pnorm = 4;
+  const double pnorm_four
+      = getmetquamesh<MFT,QuaFun::StepDistance>(
+            mesh,gdim,AsDeg::Pk,AsDeg::P1,
+            &invalid_mesh,&mesh_minimum,&mesh_maximum,
+            &mesh_average,NULL);
+  BOOST_CHECK(!invalid_mesh);
+  BOOST_CHECK_CLOSE_FRACTION(
+      pnorm_one,expected_mesh_value,3.e-14);
+  BOOST_CHECK_CLOSE_FRACTION(
+      pnorm_four,expected_mesh_value,3.e-14);
+  BOOST_CHECK_CLOSE_FRACTION(
+      mesh_average,expected_mesh_value,3.e-14);
+  BOOST_CHECK_CLOSE_FRACTION(
+      mesh_minimum,std::min(element_values[0],element_values[1]),3.e-14);
+  BOOST_CHECK_CLOSE_FRACTION(
+      mesh_maximum,std::max(element_values[0],element_values[1]),3.e-14);
+
+  double maximum_region_gradient_error = 0.0;
+  double maximum_region_hessian_error = 0.0;
+  if constexpr(std::is_same<MFT,MetricFieldFE>::value){
+    constexpr int active_edge_control_point = gdim + 1;
+    constexpr int hessian_count = gdim*(gdim + 1)/2;
+    constexpr double finite_difference_step = 1.e-6;
+    double element_gradient[gdim];
+    double element_hessian[hessian_count];
+    d_metqua<MFT,gdim,gdim,QuaFun::StepDistance,double>(
+        mesh,AsDeg::Pk,AsDeg::P1,0,
+        active_edge_control_point,FEBasis::Lagrange,DifVar::None,
+        element_gradient,element_hessian,1.0);
+
+    auto mesh_objective = [&](){
+      bool invalid = false;
+      double minimum;
+      double maximum;
+      double average;
+      return getmetquamesh<MFT,QuaFun::StepDistance>(
+          mesh,gdim,AsDeg::Pk,AsDeg::P1,
+          &invalid,&minimum,&maximum,&average,NULL);
+    };
+    for(int derivative = 0; derivative < gdim; derivative++){
+      const double coordinate
+          = mesh.coord(active_edge_control_point,derivative);
+      mesh.coord(active_edge_control_point,derivative)
+          = coordinate + finite_difference_step;
+      const double plus_value = mesh_objective();
+      double plus_element_gradient[gdim];
+      d_metqua<MFT,gdim,gdim,QuaFun::StepDistance,double>(
+          mesh,AsDeg::Pk,AsDeg::P1,0,
+          active_edge_control_point,FEBasis::Lagrange,DifVar::None,
+          plus_element_gradient,NULL,1.0);
+
+      mesh.coord(active_edge_control_point,derivative)
+          = coordinate - finite_difference_step;
+      const double minus_value = mesh_objective();
+      double minus_element_gradient[gdim];
+      d_metqua<MFT,gdim,gdim,QuaFun::StepDistance,double>(
+          mesh,AsDeg::Pk,AsDeg::P1,0,
+          active_edge_control_point,FEBasis::Lagrange,DifVar::None,
+          minus_element_gradient,NULL,1.0);
+      mesh.coord(active_edge_control_point,derivative) = coordinate;
+
+      const double finite_difference_gradient
+          = (plus_value - minus_value)/(2.0*finite_difference_step);
+      const double region_gradient = element_gradient[derivative]/2.0;
+      maximum_region_gradient_error = std::max(
+          maximum_region_gradient_error,
+          std::abs(region_gradient - finite_difference_gradient));
+      BOOST_CHECK_SMALL(
+          region_gradient - finite_difference_gradient,
+          1.e-7*(1.0 + std::abs(finite_difference_gradient)));
+
+      for(int component = 0; component <= derivative; component++){
+        const int entry = sym2idx(component,derivative);
+        const double finite_difference_hessian
+            = (plus_element_gradient[component]
+               - minus_element_gradient[component])
+             /(4.0*finite_difference_step);
+        const double region_hessian = element_hessian[entry]/2.0;
+        maximum_region_hessian_error = std::max(
+            maximum_region_hessian_error,
+            std::abs(region_hessian - finite_difference_hessian));
+        BOOST_CHECK_SMALL(
+            region_hessian - finite_difference_hessian,
+            1.e-7*(1.0 + std::abs(finite_difference_hessian)));
+      }
+    }
+  }
+
+  BOOST_TEST_MESSAGE(
+      "P2 StepDistance CavityTargetAverage " << gdim << "D: elements="
+      << element_values[0] << ", " << element_values[1]
+      << ", arithmetic mean=" << expected_mesh_value
+      << ", count-changing replacement=" << expected_replaced_value
+      << ", regional gradient FD error="
+      << maximum_region_gradient_error
+      << ", regional Hessian FD error="
+      << maximum_region_hessian_error);
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(p2_stepdistance_value_uses_degree_aware_geometry)
@@ -1475,6 +1747,50 @@ BOOST_AUTO_TEST_CASE(p2_stepdistance_shape_volume_rejects_singular_trials)
     check_shape_volume_rejects_singular_p2_trial<MetricFieldFE,3>(basis);
     check_shape_volume_rejects_singular_p2_trial<MetricFieldAnalytical,3>(basis);
   }
+}
+
+BOOST_AUTO_TEST_CASE(
+    p2_stepdistance_cavity_target_average_matches_dense_reference)
+{
+  check_p2_stepdistance_against_dense_reference<MetricFieldFE,2>(false,true);
+  check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,2>(
+      false,true);
+  check_p2_stepdistance_against_dense_reference<MetricFieldFE,3>(false,true);
+  check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,3>(
+      false,true);
+}
+
+BOOST_AUTO_TEST_CASE(
+    p2_edge_stepdistance_cavity_target_average_gradient_is_validated)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_stepdistance_edge_gradient<MetricFieldFE,2>(basis,false,true);
+    check_stepdistance_edge_gradient<MetricFieldAnalytical,2>(basis,false,true);
+    check_stepdistance_edge_gradient<MetricFieldFE,3>(basis,false,true);
+    check_stepdistance_edge_gradient<MetricFieldAnalytical,3>(
+        basis,false,true);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(
+    p2_edge_stepdistance_cavity_target_average_hessian_is_validated)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_stepdistance_edge_hessian<MetricFieldFE,2>(basis,false,true);
+    check_stepdistance_edge_hessian<MetricFieldAnalytical,2>(basis,false,true);
+    check_stepdistance_edge_hessian<MetricFieldFE,3>(basis,false,true);
+    check_stepdistance_edge_hessian<MetricFieldAnalytical,3>(
+        basis,false,true);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(
+    p2_stepdistance_cavity_target_average_uses_arithmetic_element_mean)
+{
+  check_p2_cavity_target_average_aggregation<MetricFieldFE,2>();
+  check_p2_cavity_target_average_aggregation<MetricFieldAnalytical,2>();
+  check_p2_cavity_target_average_aggregation<MetricFieldFE,3>();
+  check_p2_cavity_target_average_aggregation<MetricFieldAnalytical,3>();
 }
 
 } // namespace Metris
