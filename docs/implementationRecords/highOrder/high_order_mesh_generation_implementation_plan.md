@@ -233,8 +233,9 @@ the same way for SizeShape and every StepDistance variant.
    this item when embedded 2D meshes in 3D are brought into scope.
 4. **Done (2026-08-25): add small CAD-curve and CAD-surface regression
    meshes.** See the Phase 6 execution record below.
-5. Verify that CAD parameters, projected coordinates, and high-order validity
-   remain consistent after every accepted move.
+5. **Done (2026-08-25): verify that CAD parameters, projected coordinates, and
+   high-order validity remain consistent after every accepted move.** See the
+   Phase 6 execution record below.
 6. Add checks for curved-boundary self-intersection where local Jacobian
    positivity alone is insufficient.
 
@@ -1124,3 +1125,39 @@ would obstruct the first working path.
    and the surface mesh supplies a parameter record for every
    vertex--incident-face pair. Release and Debug builds pass all three curve
    cases and both surface cases.
+
+5. **Done (2026-08-25): made the accepted boundary-move invariant explicit in
+   production smoothing.** Both production ball-smoothing acceptance paths now
+   perform the same final audit after their objective policy accepts a move and
+   before the move is counted as successful. Every curve or surface parameter
+   in the moved point's complete boundary-record chain must be finite, and
+   evaluating its CAD entity must reproduce the stored physical coordinate to
+   the established `1e-10` geometric tolerance. Every affected
+   full-dimensional element must also pass the degree-aware validity policy:
+   the P1 orientation check for linear meshes and the conservative Bernstein
+   certificate for P2 and higher meshes.
+
+   For a curve-owned point in 3D, the primary `t` remains authoritative. Before
+   the final audit, each secondary incident-face record is synchronized with
+   `EG_getEdgeUV`, so its `(u,v)` evaluates to the same physical point. The
+   synchronization and audit are shared by complete interior-ball smoothing
+   and element-targeted smoothing rather than duplicated in the two acceptance
+   loops. The implementation is dimension- and degree-generic, covering the
+   planar P2 priority and the same full-dimensional 3D boundary path without a
+   separate policy.
+
+   Boundary parameters are snapshotted as a complete linked record chain before
+   each trial. Ordinary rejection restores coordinates, metric data, and all
+   parameters; an exception during synchronization or final verification does
+   the same before propagating the diagnostic. Thus a partially updated
+   secondary CAD record cannot survive a failed acceptance path.
+
+   The curved planar regression now includes the production
+   `smoothInterior_Ball` path, with every other point tagged out so that only
+   the perturbed P2 circular-arc node can move. It requires a nonzero accepted
+   parameter update, checks every resulting CAD record against the physical
+   coordinate, and re-certifies the P2 triangle. Release and Debug builds pass
+   all four curved-CAD cases, the nine-case classic/production smoothing suite,
+   and the eight-case P2 StepDistance smoothing and validity suite. Embedded
+   `tdim=2`, `gdim=3` production smoothing remains under the explicit deferred
+   scope recorded in items 3 and 4.

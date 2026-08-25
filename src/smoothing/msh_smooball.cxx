@@ -20,17 +20,199 @@ Simplest possible approach.
 #include "../low_topo.hxx"
 #include "../utils/mprintf.hxx"
 #include "../quality/low_metqua.hxx"
+#include "../low_geo/measure.hxx"
+#include "../low_geo/validity.hxx"
 #include "../io_libmeshb.hxx"
 
 #include "lplib3/lplib3.h"
 
+#include <array>
 #include <cmath>
 #include <limits>
+#include <vector>
 
 #undef USE_LPLIB_SMOOTHINTERIOR
 
 
 namespace Metris{
+
+namespace {
+
+struct BoundaryParameterSnapshot
+{
+  std::vector<int> records;
+  std::vector<std::array<double,2>> parameters;
+};
+
+BoundaryParameterSnapshot captureBoundaryParameters(
+    const MeshBase &msh,
+    int point)
+{
+  BoundaryParameterSnapshot snapshot;
+  int record = msh.poi2bpo[point];
+  int iteration = 0;
+  while(record >= 0 && msh.bpo2ibi(record,0) == point){
+    METRIS_ENFORCE_MSG(
+        iteration++ < METRIS_MAX_WHILE,
+        "Boundary-record cycle while capturing point {}",point);
+    snapshot.records.push_back(record);
+    snapshot.parameters.push_back({
+        msh.bpo2rbi(record,0),msh.bpo2rbi(record,1)});
+    record = msh.bpo2ibi(record,3);
+  }
+  return snapshot;
+}
+
+void restoreBoundaryParameters(
+    MeshBase &msh,
+    const BoundaryParameterSnapshot &snapshot)
+{
+  METRIS_ASSERT(snapshot.records.size() == snapshot.parameters.size());
+  for(std::size_t index = 0; index < snapshot.records.size(); index++){
+    const int record = snapshot.records[index];
+    msh.bpo2rbi(record,0) = snapshot.parameters[index][0];
+    msh.bpo2rbi(record,1) = snapshot.parameters[index][1];
+  }
+}
+
+// A curve-owned point can also carry one face record for each incident CAD
+// face. Keep those secondary (u,v) parameters synchronized with the primary
+// curve parameter before the move is counted as accepted.
+void synchronizeCurvePointFaceParameters(MeshBase &msh, int point)
+{
+  const int primaryRecord = msh.poi2bpo[point];
+  METRIS_ENFORCE_MSG(primaryRecord >= 0,
+                     "Missing boundary record for point {}",point);
+  METRIS_ENFORCE_MSG(msh.bpo2ibi(primaryRecord,1) == 1,
+                     "Point {} is not primarily curve-owned",point);
+
+  const int edge = msh.bpo2ibi(primaryRecord,2);
+  METRIS_ENFORCE_MSG(edge >= 0 && edge < msh.nedge,
+                     "Invalid owner edge {} for point {}",edge,point);
+  const int edgeReference = msh.edg2ref[edge];
+  METRIS_ENFORCE_MSG(
+      edgeReference >= 0 && edgeReference < msh.CAD.ncaded,
+      "Invalid CAD edge reference {} for mesh edge {}",
+      edgeReference,edge);
+  const ego cadEdge = msh.CAD.cad2edg[edgeReference];
+  const double parameter = msh.bpo2rbi(primaryRecord,0);
+
+  int record = primaryRecord;
+  int iteration = 0;
+  while(record >= 0 && msh.bpo2ibi(record,0) == point){
+    METRIS_ENFORCE_MSG(
+        iteration++ < METRIS_MAX_WHILE,
+        "Boundary-record cycle while synchronizing point {}",point);
+    if(msh.bpo2ibi(record,1) == 2){
+      const int face = msh.bpo2ibi(record,2);
+      METRIS_ENFORCE_MSG(face >= 0 && face < msh.nface,
+                         "Invalid incident face {} for point {}",face,point);
+      const int faceReference = msh.fac2ref[face];
+      METRIS_ENFORCE_MSG(
+          faceReference >= 0 && faceReference < msh.CAD.ncadfa,
+          "Invalid CAD face reference {} for mesh face {}",
+          faceReference,face);
+      const ego cadFace = msh.CAD.cad2fac[faceReference];
+      double parameters[2];
+      const int status
+          = EG_getEdgeUV(cadFace,cadEdge,0,parameter,parameters);
+      METRIS_ENFORCE_MSG(
+          status == EGADS_SUCCESS,"EG_getEdgeUV failed: {}",status);
+      msh.bpo2rbi(record,0) = parameters[0];
+      msh.bpo2rbi(record,1) = parameters[1];
+    }
+    record = msh.bpo2ibi(record,3);
+  }
+}
+
+template<class MFT, int idim, int ideg>
+void enforceAcceptedBoundarySmoothingInvariants(
+    const Mesh<MFT> &msh,
+    int point,
+    const intAr1 &region)
+{
+  constexpr double coordinateTolerance = 1.e-10;
+  const double squaredTolerance
+      = coordinateTolerance*coordinateTolerance;
+
+  int record = msh.poi2bpo[point];
+  METRIS_ENFORCE_MSG(record >= 0,
+                     "Accepted boundary point {} has no CAD record",point);
+  int iteration = 0;
+  while(record >= 0 && msh.bpo2ibi(record,0) == point){
+    METRIS_ENFORCE_MSG(
+        iteration++ < METRIS_MAX_WHILE,
+        "Boundary-record cycle while verifying point {}",point);
+    const int cadDimension = msh.bpo2ibi(record,1);
+    if(cadDimension == 1 || cadDimension == 2){
+      const int entity = msh.bpo2ibi(record,2);
+      ego cadEntity = nullptr;
+      if(cadDimension == 1){
+        METRIS_ENFORCE_MSG(entity >= 0 && entity < msh.nedge,
+                           "Invalid owner edge {} for point {}",entity,point);
+        const int reference = msh.edg2ref[entity];
+        METRIS_ENFORCE_MSG(
+            reference >= 0 && reference < msh.CAD.ncaded,
+            "Invalid CAD edge reference {} for mesh edge {}",
+            reference,entity);
+        cadEntity = msh.CAD.cad2edg[reference];
+        METRIS_ENFORCE_MSG(
+            std::isfinite(msh.bpo2rbi(record,0)),
+            "Non-finite CAD curve parameter for point {}",point);
+      }else{
+        METRIS_ENFORCE_MSG(entity >= 0 && entity < msh.nface,
+                           "Invalid owner face {} for point {}",entity,point);
+        const int reference = msh.fac2ref[entity];
+        METRIS_ENFORCE_MSG(
+            reference >= 0 && reference < msh.CAD.ncadfa,
+            "Invalid CAD face reference {} for mesh face {}",
+            reference,entity);
+        cadEntity = msh.CAD.cad2fac[reference];
+        METRIS_ENFORCE_MSG(
+            std::isfinite(msh.bpo2rbi(record,0))
+            && std::isfinite(msh.bpo2rbi(record,1)),
+            "Non-finite CAD surface parameters for point {}",point);
+      }
+
+      double evaluation[18];
+      const int status
+          = EG_evaluate(cadEntity,&msh.bpo2rbi(record,0),evaluation);
+      METRIS_ENFORCE_MSG(
+          status == EGADS_SUCCESS,
+          "EG_evaluate failed for accepted point {} record {}: {}",
+          point,record,status);
+      double squaredError = 0.;
+      for(int component = 0; component < idim; component++){
+        const double difference
+            = msh.coord(point,component) - evaluation[component];
+        squaredError += difference*difference;
+      }
+      METRIS_ENFORCE_MSG(
+          squaredError <= squaredTolerance,
+          "Accepted boundary point {} is inconsistent with CAD record {}: "
+          "distance {}",
+          point,record,std::sqrt(squaredError));
+    }
+    record = msh.bpo2ibi(record,3);
+  }
+
+  for(const int element : region){
+    if constexpr(ideg == 1){
+      METRIS_ENFORCE_MSG(
+          (isvalideltP1<idim,idim>(msh,element)),
+          "Accepted boundary move invalidated P1 element {}",element);
+    }else{
+      const ElementValidityResult validity
+          = classify_element_validity<idim,ideg>(msh,element);
+      METRIS_ENFORCE_MSG(
+          validity.accepted_conservatively(),
+          "Accepted boundary move left element {} uncertified or invalid",
+          element);
+    }
+  }
+}
+
+} // namespace
 
 void buildEdgeControlPointSmoothingRegion(
     const MeshBase &msh,
@@ -472,15 +654,8 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
       double met0[nnmet];
       for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
       for(int ii = 0; ii < nnmet; ii++) met0[ii] = msh.met(ipoin,ii);
-      double tparam0 = -1e30;
-      if (pointOnEdge) tparam0 = msh.bpo2rbi(ibpoin,0); // back up for t parameter
-      double uparam0 = -1e30;
-      double vparam0 = -1e30;
-      if (pointOnFace){
-        // backup u and v params
-        uparam0 = msh.bpo2rbi(ibpoin,0);
-        vparam0 = msh.bpo2rbi(ibpoin,1);
-      }
+      const BoundaryParameterSnapshot boundaryParameters0
+          = captureBoundaryParameters(msh,ipoin);
 
       // std::cout << "printing qualities of elements in ball BEFORE smoobaldiff" << std::endl;
 
@@ -533,11 +708,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
           CPRINTF1(" - reject move: configured StepDistance replacement objective did not improve\n");
           for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
           for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
-          if (pointOnEdge) msh.bpo2rbi(ibpoin,0) = tparam0;
-          if (pointOnFace){
-            msh.bpo2rbi(ibpoin,0) = uparam0;
-            msh.bpo2rbi(ibpoin,1) = vparam0;
-          }
+          restoreBoundaryParameters(msh,boundaryParameters0);
           ierro = 1;
         // Objective-driven paths have already applied their configured
         // regional or global acceptance contract. Do not layer the legacy
@@ -547,52 +718,14 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
                    qmax1, qmax);
           for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
           for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
-          if (pointOnEdge) msh.bpo2rbi(ibpoin,0) = tparam0;
-          if (pointOnFace){
-            msh.bpo2rbi(ibpoin,0) = uparam0;
-            msh.bpo2rbi(ibpoin,1) = vparam0;
-          }
+          restoreBoundaryParameters(msh,boundaryParameters0);
           ierro = 1;
-        }else if(pointOnEdge){
-
-          // important: as we moved the point along the edge, we also need to update the (u,v) parameters
-          // of the point as part of the faces incident to the edge
-          double topt = msh.bpo2rbi(ibpoin,0);
-
-          const int iedge = msh.bpo2ibi(ibpoin,2); // a mesh edge attached to the point
-          METRIS_ASSERT(iedge >= 0 && iedge < msh.nedge);
-
-          const int irefEdge = msh.edg2ref[iedge]; // get CAD edge reference
-          ego cadEdge = msh.CAD.cad2edg[irefEdge]; // get actual CAD edge object
-
-          int ibpoinRecord = ibpoin;
-          while (ibpoinRecord != -1 && msh.bpo2ibi(ibpoinRecord,0) == ipoin){
-
-            if (msh.bpo2ibi(ibpoinRecord,1) == 2){ // same point we moved but as living in a face
-
-              // first get the CAD face object
-
-              const int iface = msh.bpo2ibi(ibpoinRecord,2); // a mesh face attached to the point
-              METRIS_ASSERT(iface >= 0 && iface < msh.nface);
-
-              const int irefFace = msh.fac2ref[iface]; // get CAD face reference
-              ego cadFace = msh.CAD.cad2fac[irefFace]; // get actual CAD face object
-
-              // retrieve (u,v) of the point given the new topt location along edge
-              double uv[2];
-              int icode = EG_getEdgeUV(cadFace, cadEdge, 0, topt, uv);
-              METRIS_ENFORCE_MSG(icode == EGADS_SUCCESS, "EG_getEdgeUV failed: {}", icode);
-
-              msh.bpo2rbi(ibpoinRecord,0) = uv[0];
-              msh.bpo2rbi(ibpoinRecord,1) = uv[1];
-
-            } // finish updating (u,v) of a face incident to the edge
-
-            // move on to next boundary point record in the linked list
-            ibpoinRecord = msh.bpo2ibi(ibpoinRecord,3);
-
-          }
-
+        }else if(ierro == 0 && pointOnEdge){
+          synchronizeCurvePointFaceParameters(msh,ipoin);
+        }
+        if(ierro == 0 && (pointOnEdge || pointOnFace)){
+          enforceAcceptedBoundarySmoothingInvariants<MFT,idim,ideg>(
+              msh,ipoin,lball);
         }
       }catch(const MetrisExcept &e){
         PRINTF("## FAILED  smoothing\n");
@@ -601,6 +734,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         msh.met.writeMetricFile("smooth_error_metric.solb");
         for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
         for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
+        restoreBoundaryParameters(msh,boundaryParameters0);
         writeMesh("smooth_error_0.meshb",msh);
         msh.met.writeMetricFile("smooth_error_metric_0.solb");
         ierro = 1;
@@ -888,15 +1022,8 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
       double met0[nnmet];
       for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
       for(int ii = 0; ii < nnmet; ii++) met0[ii] = msh.met(ipoin,ii);
-      double tparam0 = -1e30;
-      double uparam0 = -1e30;
-      double vparam0 = -1e30;
-      if (pointOnEdge) tparam0 = msh.bpo2rbi(ibpoin,0); // back up for t parameter
-      if (pointOnFace){
-        // backup u and v params
-        uparam0 = msh.bpo2rbi(ibpoin,0);
-        vparam0 = msh.bpo2rbi(ibpoin,1);
-      }
+      const BoundaryParameterSnapshot boundaryParameters0
+          = captureBoundaryParameters(msh,ipoin);
       double qnrm0, qmax0, qnrm1, qmax1;
       double qsumNew = 0.;
       double targetWeightSumNew = 0.;
@@ -966,61 +1093,22 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
           }
           for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
           for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
-          #ifdef SMOOTHEDGES
-          if (pointOnEdge) msh.bpo2rbi(ibpoin,0) = tparam0;
-          #endif
-          #ifdef SMOOTHFACES
-          if (pointOnFace){
-            msh.bpo2rbi(ibpoin,0) = uparam0;
-            msh.bpo2rbi(ibpoin,1) = vparam0;
-          }
-          #endif
+          restoreBoundaryParameters(msh,boundaryParameters0);
 
           ierro = 1;
-        }else if(pointOnEdge){
-
-          // important: as we moved the point along the edge, we also need to update the (u,v) parameters
-          // of the point as part of the faces incident to the edge
-          double topt = msh.bpo2rbi(ibpoin,0);
-
-          const int iedge = msh.bpo2ibi(ibpoin,2); // a mesh edge attached to the point
-          METRIS_ASSERT(iedge >= 0 && iedge < msh.nedge);
-
-          const int irefEdge = msh.edg2ref[iedge]; // get CAD edge reference
-          ego cadEdge = msh.CAD.cad2edg[irefEdge]; // get actual CAD edge object
-
-          int ibpoinRecord = ibpoin;
-          while (ibpoinRecord != -1 && msh.bpo2ibi(ibpoinRecord,0) == ipoin){
-
-            if (msh.bpo2ibi(ibpoinRecord,1) == 2){ // same point we moved but as living in a face
-
-              // first get the CAD face object
-
-              const int iface = msh.bpo2ibi(ibpoinRecord,2); // a mesh face attached to the point
-              METRIS_ASSERT(iface >= 0 && iface < msh.nface);
-
-              const int irefFace = msh.fac2ref[iface]; // get CAD face reference
-              ego cadFace = msh.CAD.cad2fac[irefFace]; // get actual CAD face object
-
-              // retrieve (u,v) of the point given the new topt location along edge
-              double uv[2];
-              int icode = EG_getEdgeUV(cadFace, cadEdge, 0, topt, uv);
-              METRIS_ENFORCE_MSG(icode == EGADS_SUCCESS, "EG_getEdgeUV failed: {}", icode);
-
-              msh.bpo2rbi(ibpoinRecord,0) = uv[0];
-              msh.bpo2rbi(ibpoinRecord,1) = uv[1];
-
-            } // finish updating (u,v) of a face incident to the edge
-
-            // move on to next boundary point record in the linked list
-            ibpoinRecord = msh.bpo2ibi(ibpoinRecord,3);
-
-          }
-
+        }else if(ierro == 0 && pointOnEdge){
+          synchronizeCurvePointFaceParameters(msh,ipoin);
+        }
+        if(ierro == 0 && (pointOnEdge || pointOnFace)){
+          enforceAcceptedBoundarySmoothingInvariants<MFT,idim,ideg>(
+              msh,ipoin,lball);
         }
       }catch(const MetrisExcept &e){
         PRINTF("## FAILED  smooballdirect\n");
         writeMesh("smooth_error.meshb",msh);
+        for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
+        for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   = met0[ii];
+        restoreBoundaryParameters(msh,boundaryParameters0);
         throw(e);
       }
       if(ierro == 0){

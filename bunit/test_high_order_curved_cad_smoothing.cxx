@@ -257,6 +257,42 @@ void check_curved_curve_node_invariants(
           .accepted_conservatively()));
 }
 
+void check_boundary_records_match_coordinate(
+    const Mesh<MetricFieldAnalytical> &mesh,
+    int point)
+{
+  int record = mesh.poi2bpo[point];
+  BOOST_REQUIRE_GE(record,0);
+  int iteration = 0;
+  while(record >= 0 && mesh.bpo2ibi(record,0) == point){
+    BOOST_REQUIRE_LT(iteration++,METRIS_MAX_WHILE);
+    const int cadDimension = mesh.bpo2ibi(record,1);
+    ego cadEntity = nullptr;
+    if(cadDimension == 1){
+      const int edge = mesh.bpo2ibi(record,2);
+      cadEntity = mesh.CAD.cad2edg[mesh.edg2ref[edge]];
+      BOOST_CHECK(std::isfinite(mesh.bpo2rbi(record,0)));
+    }else if(cadDimension == 2){
+      const int face = mesh.bpo2ibi(record,2);
+      cadEntity = mesh.CAD.cad2fac[mesh.fac2ref[face]];
+      BOOST_CHECK(std::isfinite(mesh.bpo2rbi(record,0)));
+      BOOST_CHECK(std::isfinite(mesh.bpo2rbi(record,1)));
+    }
+    if(cadEntity != nullptr){
+      double evaluation[18];
+      require_egads_success(
+          EG_evaluate(cadEntity,&mesh.bpo2rbi(record,0),evaluation),
+          "EG_evaluate(boundary record)");
+      BOOST_CHECK_SMALL(
+          std::hypot(
+              mesh.coord(point,0) - evaluation[0],
+              mesh.coord(point,1) - evaluation[1]),
+          1.e-12);
+    }
+    record = mesh.bpo2ibi(record,3);
+  }
+}
+
 void check_curved_boundary_smoothing(QuaFun objective)
 {
   auto testCase = make_curved_planar_cad_case();
@@ -384,4 +420,53 @@ BOOST_AUTO_TEST_CASE(p2_curved_cad_curve_native_input_regression)
   check_curved_curve_node_invariants(nativeMesh);
   BOOST_REQUIRE_NO_THROW(testCase->runner->runMetris());
   check_curved_curve_node_invariants(nativeMesh);
+}
+
+BOOST_AUTO_TEST_CASE(
+    p2_curved_cad_production_acceptance_preserves_all_invariants)
+{
+  auto testCase = make_curved_planar_cad_case();
+  auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(
+      *testCase->runner->msh_g);
+  mesh.met.setSpace(MetSpace::Exp);
+  mesh.setBasis(FEBasis::Lagrange);
+
+  constexpr int curvedMeshEdge = 0;
+  constexpr int seedFace = 0;
+  const int controlPoint = mesh.edg2poi(curvedMeshEdge,2);
+  BOOST_REQUIRE_GE(controlPoint,0);
+  const int curveRecord
+      = mesh.poi2ebp(controlPoint,1,curvedMeshEdge,-1);
+  BOOST_REQUIRE_GE(curveRecord,0);
+
+  const ego cadEdge = mesh.CAD.cad2edg[mesh.edg2ref[curvedMeshEdge]];
+  const double perturbedParameter
+      = mesh.bpo2rbi(curveRecord,0) - 0.25;
+  double evaluation[18];
+  require_egads_success(
+      EG_evaluate(cadEdge,&perturbedParameter,evaluation),
+      "EG_evaluate(production perturbation)");
+  mesh.bpo2rbi(curveRecord,0) = perturbedParameter;
+  mesh.coord(controlPoint,0) = evaluation[0];
+  mesh.coord(controlPoint,1) = evaluation[1];
+  BOOST_REQUIRE((
+      classify_element_validity<2,2>(mesh,seedFace)
+          .accepted_conservatively()));
+
+  const int skippedTag = mesh.tag[1] + 1;
+  for(int point = 0; point < mesh.npoin; point++){
+    mesh.poi2tag(1,point) = skippedTag;
+  }
+  mesh.poi2tag(1,controlPoint) = mesh.tag[1];
+  testCase->runner->param->opt_smoo_niter = 1;
+  BOOST_REQUIRE_NO_THROW(
+      smoothInterior_Ball(mesh,QuaFun::StepDistance,1,2));
+
+  const double optimizedParameter = mesh.bpo2rbi(curveRecord,0);
+  BOOST_CHECK_GT(
+      std::abs(optimizedParameter - perturbedParameter),1.e-10);
+  check_boundary_records_match_coordinate(mesh,controlPoint);
+  BOOST_CHECK((
+      classify_element_validity<2,2>(mesh,seedFace)
+          .accepted_conservatively()));
 }
