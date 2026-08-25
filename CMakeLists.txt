@@ -378,6 +378,23 @@ foreach(test_file ${TEST_SOURCES})
                          FIXTURES_REQUIRED "unit_build_and_deploy"
                          LABELS "unit"
                          )
+    if(test_target STREQUAL "test_high_order_stepdistance_value")
+      foreach(stepdistance_dimension 2d 3d)
+        set(dimension_test_target
+            "${test_target}_${stepdistance_dimension}")
+        add_test(
+          NAME ${dimension_test_target}
+          COMMAND $<TARGET_FILE:${test_target_build}>
+                  --run_test=p2_stepdistance_${stepdistance_dimension}/*
+          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+        )
+        set_tests_properties(
+          ${dimension_test_target} PROPERTIES
+          FIXTURES_REQUIRED "unit_build_and_deploy"
+          LABELS "unit;high_order;stepdistance;${stepdistance_dimension}"
+        )
+      endforeach()
+    endif()
   elseif(test_target MATCHES "^reg_.*")
     list(APPEND METRIS_TARGET_REGRESSION_TESTS_BUILD ${test_target_build})
     add_test(NAME ${test_target}

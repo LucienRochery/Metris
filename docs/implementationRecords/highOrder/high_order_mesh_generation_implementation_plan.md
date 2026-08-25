@@ -911,3 +911,29 @@ would obstruct the first working path.
    derivatives, and aggregation algebra. Per-variant Bernstein rejection and
    production smoothing behavior remain in Phase 5 step 8; consistent with
    the roadmap, they are not silently skipped here.
+
+7. **Done (2026-08-25): made the planar qualification an explicit gate before
+   the matching 3D extension.** The focused executable is now organized into
+   `p2_stepdistance_2d` and `p2_stepdistance_3d` Boost suites. Each suite owns
+   the same 14 independently named cases: degree-aware value and derivative
+   dispatch; basic value, gradient, and Hessian; collapse-barrier
+   qualification; ShapeVolume value, gradient, Hessian, and numerical
+   singularity rejection; and CavityTargetAverage value, gradient, Hessian,
+   and arithmetic aggregation. Every case retains both FE and analytical
+   metric coverage where applicable, and every differentiated variant retains
+   both Lagrange and Bezier active edge bases.
+
+   The 2D suite was selected and run alone first, with the complete 3D suite
+   explicitly disabled; all 14 planar cases passed. The 3D suite was then
+   selected and run alone with the planar suite disabled; all 14 direct
+   extensions passed. CTest now registers
+   `test_high_order_stepdistance_value_2d` and
+   `test_high_order_stepdistance_value_3d` separately so CI can report the
+   dimensional gates independently. The original combined CTest entry remains
+   intact for compatibility and full-matrix regression coverage.
+
+   This step changes qualification structure only. It does not select a
+   StepDistance variant for production P2 smoothing, and it does not claim
+   Bernstein rejection coverage for basic, barrier, or CavityTargetAverage.
+   Those validity and smoothing integrations remain the explicit work of
+   Phase 5 step 8.

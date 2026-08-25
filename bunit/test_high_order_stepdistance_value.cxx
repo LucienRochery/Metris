@@ -1657,140 +1657,216 @@ void check_p2_cavity_target_average_aggregation()
 
 } // namespace
 
-BOOST_AUTO_TEST_CASE(p2_stepdistance_value_uses_degree_aware_geometry)
+BOOST_AUTO_TEST_SUITE(p2_stepdistance_2d)
+
+BOOST_AUTO_TEST_CASE(value_uses_degree_aware_geometry)
 {
   check_stepdistance_value_geometry_dispatch<MetricFieldFE,2>();
   check_stepdistance_value_geometry_dispatch<MetricFieldAnalytical,2>();
-  check_stepdistance_value_geometry_dispatch<MetricFieldFE,3>();
-  check_stepdistance_value_geometry_dispatch<MetricFieldAnalytical,3>();
 }
 
-BOOST_AUTO_TEST_CASE(p2_edge_stepdistance_derivative_uses_degree_aware_dispatch)
+BOOST_AUTO_TEST_CASE(edge_derivative_uses_degree_aware_dispatch)
 {
   check_stepdistance_edge_derivative_dispatch<MetricFieldFE,2>();
   check_stepdistance_edge_derivative_dispatch<MetricFieldAnalytical,2>();
-  check_stepdistance_edge_derivative_dispatch<MetricFieldFE,3>();
-  check_stepdistance_edge_derivative_dispatch<MetricFieldAnalytical,3>();
 }
 
-BOOST_AUTO_TEST_CASE(p2_stepdistance_matches_independent_dense_reference)
+BOOST_AUTO_TEST_CASE(basic_matches_independent_dense_reference)
 {
   check_p2_stepdistance_against_dense_reference<MetricFieldFE,2>();
   check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,2>();
-  check_p2_stepdistance_against_dense_reference<MetricFieldFE,3>();
-  check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,3>();
 }
 
-BOOST_AUTO_TEST_CASE(p2_edge_stepdistance_gradient_matches_frozen_value_oracles)
+BOOST_AUTO_TEST_CASE(basic_edge_gradient_matches_frozen_value_oracles)
 {
   for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
     check_stepdistance_edge_gradient<MetricFieldFE,2>(basis);
     check_stepdistance_edge_gradient<MetricFieldAnalytical,2>(basis);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(basic_edge_hessian_matches_frozen_gradient_oracles)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_stepdistance_edge_hessian<MetricFieldFE,2>(basis);
+    check_stepdistance_edge_hessian<MetricFieldAnalytical,2>(basis);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(collapse_barrier_is_degree_aware)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_stepdistance_collapse_barrier<MetricFieldFE,2>(basis);
+    check_stepdistance_collapse_barrier<MetricFieldAnalytical,2>(basis);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(shape_volume_matches_dense_reference)
+{
+  check_p2_stepdistance_against_dense_reference<MetricFieldFE,2>(true);
+  check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,2>(true);
+}
+
+BOOST_AUTO_TEST_CASE(shape_volume_edge_gradient_is_validated)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_stepdistance_edge_gradient<MetricFieldFE,2>(basis,true);
+    check_stepdistance_edge_gradient<MetricFieldAnalytical,2>(basis,true);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(shape_volume_edge_hessian_is_validated)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_stepdistance_edge_hessian<MetricFieldFE,2>(basis,true);
+    check_stepdistance_edge_hessian<MetricFieldAnalytical,2>(basis,true);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(shape_volume_rejects_singular_trials)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_shape_volume_rejects_singular_p2_trial<MetricFieldFE,2>(basis);
+    check_shape_volume_rejects_singular_p2_trial<MetricFieldAnalytical,2>(basis);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(cavity_target_average_matches_dense_reference)
+{
+  check_p2_stepdistance_against_dense_reference<MetricFieldFE,2>(false,true);
+  check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,2>(
+      false,true);
+}
+
+BOOST_AUTO_TEST_CASE(cavity_target_average_edge_gradient_is_validated)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_stepdistance_edge_gradient<MetricFieldFE,2>(basis,false,true);
+    check_stepdistance_edge_gradient<MetricFieldAnalytical,2>(basis,false,true);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(cavity_target_average_edge_hessian_is_validated)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_stepdistance_edge_hessian<MetricFieldFE,2>(basis,false,true);
+    check_stepdistance_edge_hessian<MetricFieldAnalytical,2>(basis,false,true);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(cavity_target_average_uses_arithmetic_element_mean)
+{
+  check_p2_cavity_target_average_aggregation<MetricFieldFE,2>();
+  check_p2_cavity_target_average_aggregation<MetricFieldAnalytical,2>();
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_AUTO_TEST_SUITE(p2_stepdistance_3d)
+
+BOOST_AUTO_TEST_CASE(value_uses_degree_aware_geometry)
+{
+  check_stepdistance_value_geometry_dispatch<MetricFieldFE,3>();
+  check_stepdistance_value_geometry_dispatch<MetricFieldAnalytical,3>();
+}
+
+BOOST_AUTO_TEST_CASE(edge_derivative_uses_degree_aware_dispatch)
+{
+  check_stepdistance_edge_derivative_dispatch<MetricFieldFE,3>();
+  check_stepdistance_edge_derivative_dispatch<MetricFieldAnalytical,3>();
+}
+
+BOOST_AUTO_TEST_CASE(basic_matches_independent_dense_reference)
+{
+  check_p2_stepdistance_against_dense_reference<MetricFieldFE,3>();
+  check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,3>();
+}
+
+BOOST_AUTO_TEST_CASE(basic_edge_gradient_matches_frozen_value_oracles)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
     check_stepdistance_edge_gradient<MetricFieldFE,3>(basis);
     check_stepdistance_edge_gradient<MetricFieldAnalytical,3>(basis);
   }
 }
 
-BOOST_AUTO_TEST_CASE(p2_edge_stepdistance_hessian_matches_frozen_gradient_oracles)
+BOOST_AUTO_TEST_CASE(basic_edge_hessian_matches_frozen_gradient_oracles)
 {
   for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
-    check_stepdistance_edge_hessian<MetricFieldFE,2>(basis);
-    check_stepdistance_edge_hessian<MetricFieldAnalytical,2>(basis);
     check_stepdistance_edge_hessian<MetricFieldFE,3>(basis);
     check_stepdistance_edge_hessian<MetricFieldAnalytical,3>(basis);
   }
 }
 
-BOOST_AUTO_TEST_CASE(p2_stepdistance_collapse_barrier_is_degree_aware)
+BOOST_AUTO_TEST_CASE(collapse_barrier_is_degree_aware)
 {
   for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
-    check_stepdistance_collapse_barrier<MetricFieldFE,2>(basis);
-    check_stepdistance_collapse_barrier<MetricFieldAnalytical,2>(basis);
     check_stepdistance_collapse_barrier<MetricFieldFE,3>(basis);
     check_stepdistance_collapse_barrier<MetricFieldAnalytical,3>(basis);
   }
 }
 
-BOOST_AUTO_TEST_CASE(p2_stepdistance_shape_volume_matches_dense_reference)
+BOOST_AUTO_TEST_CASE(shape_volume_matches_dense_reference)
 {
-  check_p2_stepdistance_against_dense_reference<MetricFieldFE,2>(true);
-  check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,2>(true);
   check_p2_stepdistance_against_dense_reference<MetricFieldFE,3>(true);
   check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,3>(true);
 }
 
-BOOST_AUTO_TEST_CASE(p2_edge_stepdistance_shape_volume_gradient_is_validated)
+BOOST_AUTO_TEST_CASE(shape_volume_edge_gradient_is_validated)
 {
   for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
-    check_stepdistance_edge_gradient<MetricFieldFE,2>(basis,true);
-    check_stepdistance_edge_gradient<MetricFieldAnalytical,2>(basis,true);
     check_stepdistance_edge_gradient<MetricFieldFE,3>(basis,true);
     check_stepdistance_edge_gradient<MetricFieldAnalytical,3>(basis,true);
   }
 }
 
-BOOST_AUTO_TEST_CASE(p2_edge_stepdistance_shape_volume_hessian_is_validated)
+BOOST_AUTO_TEST_CASE(shape_volume_edge_hessian_is_validated)
 {
   for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
-    check_stepdistance_edge_hessian<MetricFieldFE,2>(basis,true);
-    check_stepdistance_edge_hessian<MetricFieldAnalytical,2>(basis,true);
     check_stepdistance_edge_hessian<MetricFieldFE,3>(basis,true);
     check_stepdistance_edge_hessian<MetricFieldAnalytical,3>(basis,true);
   }
 }
 
-BOOST_AUTO_TEST_CASE(p2_stepdistance_shape_volume_rejects_singular_trials)
+BOOST_AUTO_TEST_CASE(shape_volume_rejects_singular_trials)
 {
   for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
-    check_shape_volume_rejects_singular_p2_trial<MetricFieldFE,2>(basis);
-    check_shape_volume_rejects_singular_p2_trial<MetricFieldAnalytical,2>(basis);
     check_shape_volume_rejects_singular_p2_trial<MetricFieldFE,3>(basis);
     check_shape_volume_rejects_singular_p2_trial<MetricFieldAnalytical,3>(basis);
   }
 }
 
-BOOST_AUTO_TEST_CASE(
-    p2_stepdistance_cavity_target_average_matches_dense_reference)
+BOOST_AUTO_TEST_CASE(cavity_target_average_matches_dense_reference)
 {
-  check_p2_stepdistance_against_dense_reference<MetricFieldFE,2>(false,true);
-  check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,2>(
-      false,true);
   check_p2_stepdistance_against_dense_reference<MetricFieldFE,3>(false,true);
   check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,3>(
       false,true);
 }
 
-BOOST_AUTO_TEST_CASE(
-    p2_edge_stepdistance_cavity_target_average_gradient_is_validated)
+BOOST_AUTO_TEST_CASE(cavity_target_average_edge_gradient_is_validated)
 {
   for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
-    check_stepdistance_edge_gradient<MetricFieldFE,2>(basis,false,true);
-    check_stepdistance_edge_gradient<MetricFieldAnalytical,2>(basis,false,true);
     check_stepdistance_edge_gradient<MetricFieldFE,3>(basis,false,true);
     check_stepdistance_edge_gradient<MetricFieldAnalytical,3>(
         basis,false,true);
   }
 }
 
-BOOST_AUTO_TEST_CASE(
-    p2_edge_stepdistance_cavity_target_average_hessian_is_validated)
+BOOST_AUTO_TEST_CASE(cavity_target_average_edge_hessian_is_validated)
 {
   for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
-    check_stepdistance_edge_hessian<MetricFieldFE,2>(basis,false,true);
-    check_stepdistance_edge_hessian<MetricFieldAnalytical,2>(basis,false,true);
     check_stepdistance_edge_hessian<MetricFieldFE,3>(basis,false,true);
     check_stepdistance_edge_hessian<MetricFieldAnalytical,3>(
         basis,false,true);
   }
 }
 
-BOOST_AUTO_TEST_CASE(
-    p2_stepdistance_cavity_target_average_uses_arithmetic_element_mean)
+BOOST_AUTO_TEST_CASE(cavity_target_average_uses_arithmetic_element_mean)
 {
-  check_p2_cavity_target_average_aggregation<MetricFieldFE,2>();
-  check_p2_cavity_target_average_aggregation<MetricFieldAnalytical,2>();
   check_p2_cavity_target_average_aggregation<MetricFieldFE,3>();
   check_p2_cavity_target_average_aggregation<MetricFieldAnalytical,3>();
 }
+
+BOOST_AUTO_TEST_SUITE_END()
 
 } // namespace Metris
