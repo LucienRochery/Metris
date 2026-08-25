@@ -585,3 +585,21 @@ would obstruct the first working path.
 
    This is a pointwise sample-contract test, not an independent integral.
    Dense-reference integration remains Phase 4 step 3.
+
+3. **Done (2026-08-25): compared P2 SizeShape values with an independent
+   dense reference integral.** The focused high-order value test now builds a
+   separate Duffy tensor-product Gauss reference with 64 points on the
+   triangle and 512 points on the tetrahedron. Its oracle explicitly evaluates
+   the P2 Lagrange basis and gradients, reconstructs the P1 FE or analytical
+   metric according to the established contract, forms the regular-simplex
+   Jacobian-metric matrix algebra, evaluates the complete SizeShape objective,
+   and accumulates the physical measure. It does not call the production
+   element evaluator, shared sample preparer, pointwise objective, or objective
+   quadrature traversal.
+
+   The test covers curved P2 triangles and tetrahedra with both FE and
+   analytical metric fields, using the non-integer objective exponent
+   `objective_p = 1.5`. Production orders two through five are reported against
+   the dense reference. Order five must improve on order two and agree within
+   `2e-5` in the test's absolute-or-relative scale. The observed order-five
+   errors are approximately `8e-6` in 2D and `1e-7` in 3D.

@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 #include <type_traits>
 
 namespace Metris
@@ -169,6 +170,250 @@ independent_p1_fe_metric(const Mesh<MetricFieldFE> &mesh,
   }
   getexpmet_inp<gdim,double>(expected_metric.data());
   return expected_metric;
+}
+
+template<class MFT, int gdim>
+void independent_p2_geometry(const Mesh<MFT> &mesh,
+                             const int *nodes,
+                             const double *barycentric_coordinates,
+                             double *physical_coordinates,
+                             double *jacobian_transpose)
+{
+  constexpr int node_count = getnnode(gdim,2);
+  constexpr auto ordering = ORDELT(gdim);
+  std::fill(physical_coordinates,physical_coordinates + gdim,0.0);
+  std::fill(jacobian_transpose,
+            jacobian_transpose + gdim*gdim,0.0);
+
+  for(int inode = 0; inode < node_count; inode++){
+    int first_barycentric_index = -1;
+    int second_barycentric_index = -1;
+    double basis_value = 0.0;
+    double basis_gradient[gdim] = {};
+
+    for(int ibary = 0; ibary < gdim + 1; ibary++){
+      if(ordering[2][inode][ibary] == 2){
+        first_barycentric_index = ibary;
+        second_barycentric_index = ibary;
+      }else if(ordering[2][inode][ibary] == 1){
+        if(first_barycentric_index < 0){
+          first_barycentric_index = ibary;
+        }else{
+          second_barycentric_index = ibary;
+        }
+      }
+    }
+    BOOST_REQUIRE(first_barycentric_index >= 0);
+    BOOST_REQUIRE(second_barycentric_index >= 0);
+
+    const auto barycentric_gradient = [](int ibary, int derivative){
+      if(ibary == 0) return -1.0;
+      return ibary == derivative + 1 ? 1.0 : 0.0;
+    };
+    if(first_barycentric_index == second_barycentric_index){
+      const double lambda
+          = barycentric_coordinates[first_barycentric_index];
+      basis_value = lambda*(2.0*lambda - 1.0);
+      for(int derivative = 0; derivative < gdim; derivative++){
+        basis_gradient[derivative]
+            = (4.0*lambda - 1.0)
+            * barycentric_gradient(first_barycentric_index,derivative);
+      }
+    }else{
+      const double first_lambda
+          = barycentric_coordinates[first_barycentric_index];
+      const double second_lambda
+          = barycentric_coordinates[second_barycentric_index];
+      basis_value = 4.0*first_lambda*second_lambda;
+      for(int derivative = 0; derivative < gdim; derivative++){
+        basis_gradient[derivative]
+            = 4.0*(second_lambda
+                    *barycentric_gradient(first_barycentric_index,derivative)
+                  + first_lambda
+                    *barycentric_gradient(second_barycentric_index,derivative));
+      }
+    }
+
+    for(int component = 0; component < gdim; component++){
+      physical_coordinates[component]
+          += basis_value*mesh.coord(nodes[inode],component);
+      for(int derivative = 0; derivative < gdim; derivative++){
+        jacobian_transpose[derivative*gdim + component]
+            += basis_gradient[derivative]
+             * mesh.coord(nodes[inode],component);
+      }
+    }
+  }
+}
+
+template<int gdim>
+double independent_metric_determinant(const double *metric)
+{
+  if constexpr(gdim == 2){
+    return metric[0]*metric[2] - metric[1]*metric[1];
+  }else{
+    return metric[0]*(metric[2]*metric[5] - metric[4]*metric[4])
+         - metric[1]*(metric[1]*metric[5] - metric[3]*metric[4])
+         + metric[3]*(metric[1]*metric[4] - metric[2]*metric[3]);
+  }
+}
+
+template<class MFT, int gdim>
+double independent_p2_sizeshape_dense_reference(Mesh<MFT> &mesh)
+{
+  constexpr int metric_count = gdim*(gdim + 1)/2;
+  constexpr int ngauss = 8;
+  constexpr double gauss_points[ngauss] = {
+      0.019855071751231884,0.10166676129318663,
+      0.23723379504183550,0.40828267875217510,
+      0.59171732124782490,0.76276620495816450,
+      0.89833323870681337,0.98014492824876812};
+  constexpr double gauss_weights[ngauss] = {
+      0.05061426814518813,0.11119051722668724,
+      0.15685332293894364,0.18134189168918099,
+      0.18134189168918099,0.15685332293894364,
+      0.11119051722668724,0.05061426814518813};
+  constexpr double reference_measure = gdim == 2 ? 0.5 : 1.0/6.0;
+  constexpr double quality_denominator = gdim == 2 ? 8.0 : 54.0;
+  const int *nodes = mesh.ent2poi(gdim)[0];
+  double integral = 0.0;
+
+  const auto accumulate_sample = [&](const double *barycentric_coordinates,
+                                     double normalized_weight){
+    // The reference oracle owns its P2 basis, matrix algebra, pointwise
+    // SizeShape formula, and quadrature loop. It intentionally does not call
+    // eval2/eval3, sample preparation, or the production objective policy.
+    double physical_coordinates[gdim];
+    double jacobian_transpose[gdim*gdim];
+    independent_p2_geometry<MFT,gdim>(
+        mesh,nodes,barycentric_coordinates,
+        physical_coordinates,jacobian_transpose);
+
+    std::array<double,metric_count> metric{};
+    if constexpr(std::is_same<MFT,MetricFieldAnalytical>::value){
+      evaluate_test_metric<gdim>(physical_coordinates,1.0,metric.data());
+    }else{
+      metric = independent_p1_fe_metric<gdim>(
+          mesh,nodes,barycentric_coordinates);
+    }
+
+    double regular_jacobian_transpose[gdim*gdim] = {};
+    for(int row = 0; row < gdim; row++){
+      for(int component = 0; component < gdim; component++){
+        for(int derivative = 0; derivative < gdim; derivative++){
+          regular_jacobian_transpose[row*gdim + component]
+              += Constants::invtJ_0[hana::type_c<double>][gdim]
+                    [row*gdim + derivative]
+               * jacobian_transpose[derivative*gdim + component];
+        }
+      }
+    }
+
+    const auto metric_entry = [&](int row, int column){
+      const int upper = std::max(row,column);
+      const int lower = std::min(row,column);
+      return metric[upper*(upper + 1)/2 + lower];
+    };
+    double trace = 0.0;
+    for(int row = 0; row < gdim; row++){
+      for(int first_component = 0;
+          first_component < gdim; first_component++){
+        for(int second_component = 0;
+            second_component < gdim; second_component++){
+          trace += regular_jacobian_transpose[row*gdim + first_component]
+                 * metric_entry(first_component,second_component)
+                 * regular_jacobian_transpose[row*gdim + second_component];
+        }
+      }
+    }
+    const double metric_determinant
+        = independent_metric_determinant<gdim>(metric.data());
+    const double regular_jacobian_determinant
+        = determinant_from_rows<gdim>(regular_jacobian_transpose);
+    const double transformed_determinant
+        = regular_jacobian_determinant*regular_jacobian_determinant
+        * metric_determinant;
+    const double size_shape_quality
+        = std::pow(trace,gdim)
+        * (1.0 + 1.0/(transformed_determinant*transformed_determinant))
+        / quality_denominator;
+    double size_shape_error = size_shape_quality - 1.0;
+    if(std::abs(size_shape_error)
+       <= 32.0*std::numeric_limits<double>::epsilon()){
+      size_shape_error = 0.0;
+    }
+    BOOST_REQUIRE_GE(size_shape_error,0.0);
+    const double psi = mesh.param->objective_p == 1.0
+                     ? size_shape_error
+                     : std::pow(size_shape_error,mesh.param->objective_p);
+
+    double theta = reference_measure
+                 * std::abs(determinant_from_rows<gdim>(
+                       jacobian_transpose));
+    #ifdef INTQUALINRIEMSPACE
+    theta *= std::sqrt(metric_determinant);
+    #endif
+    integral += normalized_weight*theta*psi;
+  };
+
+  for(int iu = 0; iu < ngauss; iu++){
+    const double u = gauss_points[iu];
+    for(int iv = 0; iv < ngauss; iv++){
+      const double v = gauss_points[iv];
+      if constexpr(gdim == 2){
+        const double barycentric_coordinates[3]
+            = {(1.0 - u)*(1.0 - v),u,(1.0 - u)*v};
+        const double normalized_weight
+            = 2.0*gauss_weights[iu]*gauss_weights[iv]*(1.0 - u);
+        accumulate_sample(barycentric_coordinates,normalized_weight);
+      }else{
+        for(int iw = 0; iw < ngauss; iw++){
+          const double w = gauss_points[iw];
+          const double barycentric_coordinates[4]
+              = {(1.0 - u)*(1.0 - v)*(1.0 - w),u,
+                 (1.0 - u)*v,(1.0 - u)*(1.0 - v)*w};
+          const double normalized_weight
+              = 6.0*gauss_weights[iu]*gauss_weights[iv]*gauss_weights[iw]
+              * (1.0 - u)*(1.0 - u)*(1.0 - v);
+          accumulate_sample(barycentric_coordinates,normalized_weight);
+        }
+      }
+    }
+  }
+  return integral;
+}
+
+template<class MFT, int gdim>
+void check_p2_sizeshape_against_dense_reference()
+{
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_p = 1.5;
+
+  Mesh<MFT> mesh;
+  initialize_curved_p2_element<MFT,gdim>(mesh,parameters);
+  const double reference
+      = independent_p2_sizeshape_dense_reference<MFT,gdim>(mesh);
+  double values[4];
+  double errors[4];
+  for(int order = 2; order <= 5; order++){
+    parameters.objective_quadrature_order = order;
+    values[order - 2]
+        = metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
+              mesh,AsDeg::Pk,AsDeg::P1,0,1.0);
+    errors[order - 2] = std::abs(values[order - 2] - reference);
+    BOOST_CHECK(std::isfinite(values[order - 2]));
+  }
+
+  BOOST_TEST_MESSAGE(
+      "P2 dense reference=" << reference
+      << ", q2=" << values[0] << " (error " << errors[0] << ")"
+      << ", q3=" << values[1] << " (error " << errors[1] << ")"
+      << ", q4=" << values[2] << " (error " << errors[2] << ")"
+      << ", q5=" << values[3] << " (error " << errors[3] << ")");
+  BOOST_CHECK_LE(errors[3],errors[0]);
+  BOOST_CHECK_LE(
+      errors[3],2.e-5*std::max(1.0,std::abs(reference)));
 }
 
 template<class MFT, int gdim>
@@ -346,6 +591,14 @@ BOOST_AUTO_TEST_CASE(p2_shared_samples_honor_geometry_and_metric_contract)
   check_p2_quadrature_samples<MetricFieldAnalytical,2>();
   check_p2_quadrature_samples<MetricFieldFE,3>();
   check_p2_quadrature_samples<MetricFieldAnalytical,3>();
+}
+
+BOOST_AUTO_TEST_CASE(p2_sizeshape_matches_independent_dense_reference)
+{
+  check_p2_sizeshape_against_dense_reference<MetricFieldFE,2>();
+  check_p2_sizeshape_against_dense_reference<MetricFieldAnalytical,2>();
+  check_p2_sizeshape_against_dense_reference<MetricFieldFE,3>();
+  check_p2_sizeshape_against_dense_reference<MetricFieldAnalytical,3>();
 }
 
 } // namespace Metris
