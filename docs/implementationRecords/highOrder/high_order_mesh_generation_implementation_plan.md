@@ -563,3 +563,25 @@ would obstruct the first working path.
    choices produce observably different values. This is deliberately a
    dispatch contract only. Independent verification of P2 geometry and metric
    sampling, followed by dense-reference integration, remains steps 2 and 3.
+
+2. **Done (2026-08-25): qualified P2 geometry and metric sampling at the
+   shared quadrature points.** `test_high_order_sizeshape_value` now visits
+   every point of the order-five objective quadrature rule for curved P2
+   triangles and tetrahedra, with both FE and analytical metric fields. It
+   independently reconstructs the physical point and canonical Jacobian from
+   the individual P2 Lagrange basis functions, then checks the common sample's
+   geometry and integration measure against those values.
+
+   The metric-degree contract is tested separately from the geometry degree.
+   For an FE field, the expected metric is independently formed by
+   log-Euclidean P1 interpolation of the corner metrics. Changing every P2
+   edge-node metric leaves the sample unchanged, while changing a corner
+   metric changes it. For an analytical field, the expected metric is the
+   prescribed spatially varying function evaluated at the reconstructed P2
+   physical point; changing all stored nodal metrics leaves the sample
+   unchanged. Thus this step explicitly preserves `AsDeg::P1` metric
+   interpolation on a P2 geometry instead of implicitly promoting the metric
+   to `AsDeg::Pk`.
+
+   This is a pointwise sample-contract test, not an independent integral.
+   Dense-reference integration remains Phase 4 step 3.
