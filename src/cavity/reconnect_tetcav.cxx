@@ -273,6 +273,9 @@ int reconnect_tetcav(Mesh<MFT> &msh,
                ielen,iele0,ifa0,msh.tet2poi(ielen,0),msh.tet2poi(ielen,1),
                msh.tet2poi(ielen,2),msh.tet2poi(ielen,3));
 
+      // High-order nodes are still unset here, so only the provisional P1
+      // skeleton can be checked. correct_cavity assigns those nodes and then
+      // applies the full-dimensional classifier to the completed tetrahedron.
       double meas0;
       if(!isvalideltP1<3,3>(msh, ielen,NULL,&meas0)){
         CPRINTF1(" - iflat ! return ip1 ip2 ip3 ip4 = {} {} {} {} meas = {:15.7e} \n",

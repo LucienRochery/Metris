@@ -20,6 +20,17 @@ enum class ElementValidityStatus {
   Uncertified
 };
 
+constexpr const char *element_validity_status_name(
+    ElementValidityStatus status) noexcept
+{
+  switch(status){
+  case ElementValidityStatus::Certified: return "Certified";
+  case ElementValidityStatus::Invalid: return "Invalid";
+  case ElementValidityStatus::Uncertified: return "Uncertified";
+  }
+  return "Unknown";
+}
+
 struct ElementValidityResult {
   ElementValidityStatus status = ElementValidityStatus::Uncertified;
 

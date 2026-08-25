@@ -6,8 +6,9 @@
 
 #include <boost/test/included/unit_test.hpp>
 
-#include "Mesh/MeshBase.hxx"
+#include "Mesh/Mesh.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
+#include "cavity/msh_cavity.hxx"
 #include "ho_constants.hxx"
 #include "low_geo/validity.hxx"
 
@@ -204,6 +205,36 @@ void check_degenerate_normalization()
   BOOST_CHECK_EQUAL(result.witness_sample_index,-1);
 }
 
+template<int gdim>
+void check_completed_cavity_policy(GeometryCase geometry_case,
+                                   bool expect_accepted)
+{
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.jtol = 1.e-6;
+  parameters.vtol = 1.e-12;
+
+  Mesh<MetricFieldAnalytical> mesh;
+  initialize_p2_element<gdim>(mesh,parameters,geometry_case);
+
+  MshCavity cavity(0,0,0);
+  cavity.ipins = 0;
+  CavOprOpt options;
+  CavWrkArrs work;
+  const int error = correct_cavity<MetricFieldAnalytical,2>(
+      mesh,cavity,options,mesh.npoin,mesh.nedge,0,0,
+      work.lbad,work,0);
+
+  BOOST_REQUIRE_EQUAL(error,0);
+  if(expect_accepted){
+    BOOST_CHECK_EQUAL(work.lbad.get_n(),0);
+  }else{
+    BOOST_REQUIRE_EQUAL(work.lbad.get_n(),1);
+    BOOST_CHECK_EQUAL(work.lbad(0,0),0);
+    BOOST_CHECK_EQUAL(work.lbad(0,1),gdim);
+  }
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(p2_triangle_validity_outcomes)
@@ -222,6 +253,17 @@ BOOST_AUTO_TEST_CASE(p2_tetrahedron_validity_outcomes)
   check_positive_uncertified_case<3>();
   check_p1_orientation_prerequisite<3>();
   check_degenerate_normalization<3>();
+}
+
+BOOST_AUTO_TEST_CASE(completed_p2_cavity_elements_use_conservative_policy)
+{
+  check_completed_cavity_policy<2>(GeometryCase::Certified,true);
+  check_completed_cavity_policy<2>(GeometryCase::HighOrderInvalid,false);
+  check_completed_cavity_policy<2>(GeometryCase::PositiveButUncertified,false);
+
+  check_completed_cavity_policy<3>(GeometryCase::Certified,true);
+  check_completed_cavity_policy<3>(GeometryCase::HighOrderInvalid,false);
+  check_completed_cavity_policy<3>(GeometryCase::PositiveButUncertified,false);
 }
 
 } // namespace Metris

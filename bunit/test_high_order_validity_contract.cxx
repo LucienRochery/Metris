@@ -41,4 +41,14 @@ BOOST_AUTO_TEST_CASE(explicit_status_and_conservative_policy)
   result.witness_sample_index = -1;
   BOOST_CHECK(result.is_uncertified());
   BOOST_CHECK(!result.accepted_conservatively());
+
+  BOOST_CHECK_EQUAL(
+      element_validity_status_name(ElementValidityStatus::Certified),
+      "Certified");
+  BOOST_CHECK_EQUAL(
+      element_validity_status_name(ElementValidityStatus::Invalid),
+      "Invalid");
+  BOOST_CHECK_EQUAL(
+      element_validity_status_name(ElementValidityStatus::Uncertified),
+      "Uncertified");
 }

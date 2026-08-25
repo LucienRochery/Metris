@@ -11,7 +11,7 @@
 #include "aux_topo.hxx"
 #include "low_geo/measure.hxx"
 #include "io_libmeshb.hxx"
-#include "low_geo/ccoef.hxx"
+#include "low_geo/validity.hxx"
 #include "low_geo/nrml2.hxx"
 #include "low_geo/normal.hxx"
 
@@ -42,10 +42,6 @@ void check_topo(MeshBase &msh,
 
     CPRINTF2("-- START check_topo\n");
 
-    const int jdeg = msh.idim * (msh.curdeg - 1);
-    dblAr1 ccoef(getnnode(msh.idim,jdeg));
-
-
     // 1 check not nan coords
     for(int ipoin = 0; ipoin < npoin; ipoin++){
       for(int ii = 0; ii < msh.idim; ii++){
@@ -66,16 +62,19 @@ void check_topo(MeshBase &msh,
       for(int ientt = 0; ientt < nentt; ientt++){
         if(isdeadent(ientt,ent2poi)) continue;
 
-        bool iflat = !isvalideltP1<gdim,tdim>(msh, ientt, NULL, NULL, -1 );
-        METRIS_ENFORCE_MSG(!iflat,"invalid element tdim {} ientt {}",tdim,ientt);
-        if(msh.curdeg > 1){
-          CT_FOR0_INC(2,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-            getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,&ccoef[0],&iflat);
-          }}CT_FOR1(ideg);
-          if(iflat){
-            writeMesh("inva"+std::to_string(ientt),msh);
-            METRIS_THROW_MSG("## NEGATIVE JACOBIAN {} \n ",ientt);
-          }
+        ElementValidityResult validity;
+        CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
+          validity = classify_element_validity<gdim,ideg>(msh,ientt);
+        }}CT_FOR1(ideg);
+        if(!validity.accepted_conservatively()){
+          writeMesh("inva"+std::to_string(ientt),msh);
+          METRIS_THROW_MSG(
+              "## ELEMENT VALIDITY {} tdim {} ientt {} lower bound {} "
+              "coefficient {} witness {} sample {}\n",
+              element_validity_status_name(validity.status),tdim,ientt,
+              validity.normalized_lower_bound,
+              validity.lower_bound_coefficient_index,
+              validity.normalized_witness,validity.witness_sample_index);
         }
       }
     //}}CT_FOR1(tdim);
@@ -1204,4 +1203,3 @@ void check_topo(MeshBase &msh,
 
 
 }// end namespace
-

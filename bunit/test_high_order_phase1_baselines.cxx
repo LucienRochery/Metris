@@ -11,6 +11,10 @@
 #include "Mesh/Mesh.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include "MetrisRunner/MetrisRunner.hxx"
+#include "cavity/msh_cavity.hxx"
+#include "ho_constants.hxx"
+#include "low_geo/validity.hxx"
+#include "msh_checktopo.hxx"
 #include "msh_metricCost.hxx"
 
 #include <cmath>
@@ -122,6 +126,80 @@ void run_baseline_case(const HighOrderBaselineCase &baseline_case)
   check_p2_mesh(native_mesh,baseline_case);
 }
 
+template<int gdim>
+void run_p2_cavity_insertion_case(
+    const HighOrderBaselineCase &baseline_case)
+{
+  MetrisParameters parameters
+      = baseline_parameters(baseline_case,"cavity");
+  parameters.setMeshIn(baseline_case.mesh_path);
+  MetrisRunner runner(nullptr,nullptr,parameters);
+  BOOST_REQUIRE_EQUAL(runner.degElevate(),1);
+
+  auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner.msh_g);
+  intAr2 &element_to_point = mesh.ent2poi(gdim);
+  const int seed_element = 0;
+  BOOST_REQUIRE(!isdeadent(seed_element,element_to_point));
+
+  const int inserted_point = mesh.npoin;
+  mesh.set_npoin(inserted_point + 1);
+  for(int coordinate = 0; coordinate < gdim; coordinate++){
+    mesh.coord(inserted_point,coordinate) = 0.0;
+    for(int vertex = 0; vertex < gdim + 1; vertex++){
+      mesh.coord(inserted_point,coordinate)
+          += mesh.coord(element_to_point(seed_element,vertex),coordinate)
+           /(gdim + 1.0);
+    }
+  }
+  constexpr int metric_entries = gdim*(gdim + 1)/2;
+  for(int entry = 0; entry < metric_entries; entry++){
+    mesh.met(inserted_point,entry) = 0.0;
+    for(int vertex = 0; vertex < gdim + 1; vertex++){
+      mesh.met(inserted_point,entry)
+          += mesh.met(element_to_point(seed_element,vertex),entry)
+           /(gdim + 1.0);
+    }
+  }
+  mesh.poi2bpo[inserted_point] = -1;
+  mesh.poi2bak[inserted_point] = -1;
+  mesh.set_poi2ent(Vertex{inserted_point},0,-1);
+
+  const int element_count_before = mesh.nentt(gdim);
+  MshCavity cavity(
+      gdim == 3 ? 10 : 0,
+      gdim == 2 ? 10 : 0,
+      0);
+  cavity.ipins = inserted_point;
+  cavity.inewp = 1;
+  cavity.lcent(gdim).stack(seed_element);
+
+  CavOprOpt options;
+  options.allow_topological_correction = false;
+  options.skip_topo_checks = false;
+  options.qmax_nec = -1;
+  options.qmax_suf = -1;
+  options.qmax_iff = -1;
+  CavWrkArrs work;
+  CavOprInfo info;
+
+  const int error = cavity_operator<MetricFieldAnalytical,2>(
+      mesh,cavity,options,work,info,0);
+  BOOST_REQUIRE_EQUAL(error,CAV_NOERR);
+  BOOST_REQUIRE(info.done);
+  BOOST_CHECK_EQUAL(work.lbad.get_n(),0);
+
+  int completed_elements = 0;
+  for(int element = element_count_before;
+      element < mesh.nentt(gdim); element++){
+    if(isdeadent(element,element_to_point)) continue;
+    completed_elements++;
+    const ElementValidityResult validity
+        = classify_element_validity<gdim,2>(mesh,element);
+    BOOST_CHECK(validity.is_certified());
+  }
+  BOOST_CHECK_EQUAL(completed_elements,gdim + 1);
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(high_order_phase1_four_baselines)
@@ -140,6 +218,22 @@ BOOST_AUTO_TEST_CASE(high_order_phase1_four_baselines)
       run_baseline_case(baseline_case);
     }
   }
+}
+
+BOOST_AUTO_TEST_CASE(completed_p2_cavity_insertions_are_certified)
+{
+  const HighOrderBaselineCase triangle_case = {
+      "triangle_p2_cavity",
+      METRIS_ROOT_DIR "/examples/2D/misc/2tri2D.mesh",
+      2,9,4,2,0};
+  const HighOrderBaselineCase tetrahedron_case = {
+      "tetrahedron_p2_cavity",
+      METRIS_ROOT_DIR
+      "/bunit/meshes/high_order_phase1/one_tetrahedron_p1.mesh",
+      3,10,6,4,1};
+
+  run_p2_cavity_insertion_case<2>(triangle_case);
+  run_p2_cavity_insertion_case<3>(tetrahedron_case);
 }
 
 BOOST_AUTO_TEST_CASE(high_order_phase1_final_validity_is_unconditional)
@@ -168,6 +262,45 @@ BOOST_AUTO_TEST_CASE(high_order_phase1_final_validity_is_unconditional)
       = baseline_parameters(baseline_case,"native");
   MetrisRunner native_runner(&invalid_p2_data,nullptr,native_parameters);
   BOOST_CHECK_THROW(native_runner.runMetris(),MetrisExcept);
+}
+
+BOOST_AUTO_TEST_CASE(high_order_final_topology_reports_uncertified)
+{
+  const HighOrderBaselineCase baseline_case = {
+      "triangle_uncertified_p2",
+      METRIS_ROOT_DIR "/examples/2D/misc/2tri2D.mesh",
+      2,9,4,2,0};
+
+  MetrisParameters parameters
+      = baseline_parameters(baseline_case,"elevated");
+  parameters.setMeshIn(baseline_case.mesh_path);
+  MetrisRunner runner(nullptr,nullptr,parameters);
+  BOOST_REQUIRE_EQUAL(runner.degElevate(),1);
+
+  auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner.msh_g);
+  constexpr auto ordering = ORDELT(2);
+  const double coupling = std::sqrt(0.75);
+  for(int local_node = 0; local_node < getnnod2(2); local_node++){
+    const int point = mesh.fac2poi(0,local_node);
+    const double u = ordering[2][local_node][1]/2.0;
+    const double v = ordering[2][local_node][2]/2.0;
+    mesh.coord(point,0) = u + coupling*v*v;
+    mesh.coord(point,1) = v + coupling*u*u;
+  }
+
+  const ElementValidityResult validity
+      = classify_element_validity<2,2>(mesh,0);
+  BOOST_REQUIRE(validity.is_uncertified());
+
+  bool threw_uncertified = false;
+  try{
+    check_topo(mesh,0);
+  }catch(const MetrisExcept &exception){
+    threw_uncertified
+        = std::string(exception.what()).find("Uncertified")
+          != std::string::npos;
+  }
+  BOOST_CHECK(threw_uncertified);
 }
 
 BOOST_AUTO_TEST_CASE(metric_cost_uses_objective_quadrature_order)

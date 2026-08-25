@@ -75,7 +75,8 @@ int cavity_operator(Mesh<MFT> &msh ,
                     CavOprInfo &info,
                     int ithread){
 
-  METRIS_ASSERT_MSG(cav.inewp == 0 || cav.inewp == 1, "Caller must set cav.inewp to 0 if new point, 1 otherwise.");
+  METRIS_ASSERT_MSG(cav.inewp == 0 || cav.inewp == 1,
+                    "Caller must set cav.inewp to 1 for a new point, 0 otherwise.");
 
   try{
   INCVDEPTH(msh.param);

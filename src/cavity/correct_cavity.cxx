@@ -10,6 +10,7 @@
 #include "../Mesh/Mesh.hxx"
 #include "../low_geo/measure.hxx"
 #include "../low_geo/normal.hxx"
+#include "../low_geo/validity.hxx"
 #include "../low_topo.hxx"
 #include "../low_geo/ccoef.hxx"
 #include "../aux_topo.hxx"
@@ -255,6 +256,7 @@ int correct_cavity0(Mesh<MFT> &msh,
       }
 
       bool iflat = false;
+      ElementValidityResult validity;
       if constexpr(ideg == 1){
         double meas = getmeasentP1<gdim,tdim>(msh, ientt, nrmal, &iflat);
         if(DOPRINTS1()){
@@ -266,12 +268,26 @@ int correct_cavity0(Mesh<MFT> &msh,
                      ientt-nent0,tdim,ientt,meas,iflat);
           }
         }
+      }else if constexpr(tdim == gdim){
+        validity = classify_element_validity<gdim,ideg>(msh,ientt);
+        iflat = !validity.accepted_conservatively();
       }else{
+        // Embedded surface elements require their own oriented polynomial
+        // certificate. Retain the historical compatibility check until that
+        // separate Phase 3 implementation is available.
         getsclccoef<gdim,tdim,ideg>(msh, ientt, nrmal, ccoef, &iflat);
       }
       if(iflat){
         CPRINTF1(" - tdim {} ientt {} invalid\n",tdim,ientt);
-        if constexpr(ideg > 1){
+        if constexpr(ideg > 1 && tdim == gdim){
+          CPRINTF1(" - validity status {} lower bound {} coefficient {} "
+                   "witness {} sample {}\n",
+                   element_validity_status_name(validity.status),
+                   validity.normalized_lower_bound,
+                   validity.lower_bound_coefficient_index,
+                   validity.normalized_witness,
+                   validity.witness_sample_index);
+        }else if constexpr(ideg > 1){
           constexpr int idegj = tdim*(ideg-1);
           constexpr int nnodj = getnnode(tdim,idegj);
           CPRINTF2(" - ccoef = {} \n",dblAr1(nnodj,ccoef));

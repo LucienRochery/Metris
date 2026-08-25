@@ -815,6 +815,9 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
       CPRINTF1(" - using nod2bpo[{}] = {} : {}\n", ii, nod2bpo[ii], intAr1(nibi, msh.bpo2ibi[nod2bpo[ii]]));
     }
   }
+  // Only the P1 skeleton exists here: high-order nodes are deliberately
+  // delayed until correct_cavity.  Keep this provisional orientation check;
+  // correct_cavity classifies the completed full-dimensional element.
   double meas;
   bool ivalid = msh.idim == 2 ? isvalideltP1<2,2>(msh, ifacn, NULL, &meas)
                               : isvalideltP1<3,2>(msh, ifacn, nod2bpo, NULL, &meas, nordev_tol);  // work.lnorcco[icoco]

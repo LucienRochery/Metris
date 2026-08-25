@@ -502,3 +502,37 @@ would obstruct the first working path.
    a deliberately non-certified final candidate returns failure without being
    accepted. The six cases pass in debug and release builds, together with the
    validity classifier and contract tests.
+
+5. **Done (2026-08-25): migrated completed cavity elements and final topology.**
+   The cavity lifecycle now makes the provisional/completed distinction
+   explicit. `reconnect_faccav` and `reconnect_tetcav` create only a P1
+   skeleton; their high-order entries are deliberately unset, so their
+   immediate orientation checks correctly remain `isvalideltP1`. After
+   `correct_cavity` assigns, projects, and metric-interpolates the high-order
+   nodes, every new full-dimensional P2 triangle or tetrahedron must be
+   `Certified` by `classify_element_validity`. Both `Invalid` and
+   `Uncertified` completed elements are added to `lbad` and cause the cavity
+   operation to be rejected or enlarged through its existing correction
+   policy.
+
+   `check_topo` now dispatches the same classifier at the mesh degree for every
+   live full-dimensional element, including P1. Its failure message reports
+   the named status, normalized lower bound and coefficient index, and any
+   direct witness and sample index. This replaces the separate P1 check plus
+   boolean `getsclccoef` check, so the unconditional final high-order audit now
+   uses the common three-state result type.
+
+   Embedded P2 surface triangles in 3D remain deliberately separate:
+   `correct_cavity` retains their historical compatibility check and does not
+   call the full-dimensional classifier. Their oriented polynomial certificate
+   is still Phase 6 work.
+
+   Focused tests exercise the completed-element policy directly for certified,
+   invalid, and positive-but-uncertified P2 triangles and tetrahedra. Two
+   end-to-end cavity insertions additionally split one P2 triangle into three
+   certified triangles and one P2 tetrahedron into four certified tetrahedra.
+   The final topology test constructs the known positive-but-uncertified P2
+   map and verifies that `check_topo` rejects it specifically as
+   `Uncertified`. While adding the end-to-end tests, a reversed diagnostic for
+   `cav.inewp` was corrected: `1` denotes a newly inserted point and `0` an
+   existing point.
