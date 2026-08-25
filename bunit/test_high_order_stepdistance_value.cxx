@@ -583,6 +583,7 @@ struct FrozenP2StepDistanceSamples
   std::vector<std::array<double,gdim*gdim>>
       regular_jacobian_transposes;
   std::vector<std::array<double,metric_count>> metrics;
+  std::vector<double> quadrature_weights;
   std::vector<double> objective_weights;
 };
 
@@ -604,6 +605,7 @@ capture_frozen_p2_stepdistance_samples(Mesh<MFT> &mesh)
   samples.barycentric_points.reserve(quadrature.size());
   samples.regular_jacobian_transposes.reserve(quadrature.size());
   samples.metrics.reserve(quadrature.size());
+  samples.quadrature_weights.reserve(quadrature.size());
   samples.objective_weights.reserve(quadrature.size());
 
   for(int iquad = 0; iquad < quadrature.size(); iquad++){
@@ -616,10 +618,174 @@ capture_frozen_p2_stepdistance_samples(Mesh<MFT> &mesh)
     samples.regular_jacobian_transposes.push_back(
         sample.regular_jacobian_transpose);
     samples.metrics.push_back(sample.metric);
+    samples.quadrature_weights.push_back(sample.quadrature_weight);
     samples.objective_weights.push_back(
         sample.quadrature_weight*sample.theta);
   }
   return samples;
+}
+
+template<int gdim>
+std::array<double,gdim> independent_p2_regular_basis_gradient(
+    FEBasis basis,
+    int local_control_point,
+    const double *barycentric_coordinates)
+{
+  constexpr auto ordering = ORDELT(gdim);
+  const int *multi_index = ordering[2][local_control_point];
+  int first_barycentric_index = -1;
+  int second_barycentric_index = -1;
+  for(int ibary = 0; ibary < gdim + 1; ibary++){
+    if(multi_index[ibary] == 2){
+      first_barycentric_index = ibary;
+      second_barycentric_index = ibary;
+    }else if(multi_index[ibary] == 1){
+      if(first_barycentric_index < 0){
+        first_barycentric_index = ibary;
+      }else{
+        second_barycentric_index = ibary;
+      }
+    }
+  }
+  BOOST_REQUIRE(first_barycentric_index >= 0);
+  BOOST_REQUIRE(second_barycentric_index >= 0);
+
+  const auto barycentric_gradient = [](int ibary, int derivative){
+    if(ibary == 0) return -1.0;
+    return ibary == derivative + 1 ? 1.0 : 0.0;
+  };
+  double canonical_gradient[gdim] = {};
+  if(first_barycentric_index == second_barycentric_index){
+    const double lambda
+        = barycentric_coordinates[first_barycentric_index];
+    const double scale = basis == FEBasis::Lagrange
+                       ? 4.0*lambda - 1.0
+                       : 2.0*lambda;
+    for(int derivative = 0; derivative < gdim; derivative++){
+      canonical_gradient[derivative]
+          = scale*barycentric_gradient(
+                first_barycentric_index,derivative);
+    }
+  }else{
+    const double first_lambda
+        = barycentric_coordinates[first_barycentric_index];
+    const double second_lambda
+        = barycentric_coordinates[second_barycentric_index];
+    const double scale = basis == FEBasis::Lagrange ? 4.0 : 2.0;
+    for(int derivative = 0; derivative < gdim; derivative++){
+      canonical_gradient[derivative]
+          = scale*(second_lambda
+                    *barycentric_gradient(
+                        first_barycentric_index,derivative)
+                  + first_lambda
+                    *barycentric_gradient(
+                        second_barycentric_index,derivative));
+    }
+  }
+
+  std::array<double,gdim> regular_gradient{};
+  for(int regular_component = 0;
+      regular_component < gdim; regular_component++){
+    for(int canonical_component = 0;
+        canonical_component < gdim; canonical_component++){
+      regular_gradient[regular_component]
+          += canonical_gradient[canonical_component]
+           * Constants::invtJ_0[hana::type_c<double>][gdim]
+                              [regular_component*gdim
+                               + canonical_component];
+    }
+  }
+  return regular_gradient;
+}
+
+template<int gdim>
+std::array<double,gdim> evaluate_frozen_p2_collapse_barrier_by_ad(
+    const FrozenP2StepDistanceSamples<gdim> &samples,
+    int active_control_point,
+    FEBasis basis,
+    double rho0,
+    double beta,
+    const double *displacement,
+    double *value)
+{
+  using S = SANS::SurrealS<gdim,double>;
+  S integrated_barrier = S(0.0);
+  for(std::size_t isample = 0;
+      isample < samples.quadrature_weights.size(); isample++){
+    const std::array<double,gdim> regular_basis_gradient
+        = independent_p2_regular_basis_gradient<gdim>(
+              basis,active_control_point,
+              samples.barycentric_points[isample].data());
+    std::array<double,gdim*gdim> current_jacobian
+        = samples.regular_jacobian_transposes[isample];
+    if(displacement != NULL){
+      for(int regular_component = 0;
+          regular_component < gdim; regular_component++){
+        for(int physical_component = 0;
+            physical_component < gdim; physical_component++){
+          current_jacobian[regular_component*gdim + physical_component]
+              += regular_basis_gradient[regular_component]
+               * displacement[physical_component];
+        }
+      }
+    }
+    integrated_barrier
+        += S(samples.quadrature_weights[isample])
+         * FrozenObjectiveValueAD::metric_volume_barrier_value<gdim>(
+               current_jacobian.data(),samples.metrics[isample].data(),
+               regular_basis_gradient.data(),rho0,beta);
+  }
+
+  std::array<double,gdim> gradient{};
+  *value = integrated_barrier.value();
+  for(int component = 0; component < gdim; component++){
+    gradient[component] = integrated_barrier.deriv(component);
+  }
+  return gradient;
+}
+
+template<int gdim>
+void evaluate_frozen_p2_collapse_barrier_hessian_by_gradient_ad(
+    const FrozenP2StepDistanceSamples<gdim> &samples,
+    int active_control_point,
+    FEBasis basis,
+    double rho0,
+    double beta,
+    double *gradient,
+    double *hessian)
+{
+  using S = SANS::SurrealS<gdim,double>;
+  S differentiated_gradient[gdim];
+  for(int component = 0; component < gdim; component++){
+    differentiated_gradient[component] = S(0.0);
+  }
+
+  for(std::size_t isample = 0;
+      isample < samples.quadrature_weights.size(); isample++){
+    const std::array<double,gdim> regular_basis_gradient
+        = independent_p2_regular_basis_gradient<gdim>(
+              basis,active_control_point,
+              samples.barycentric_points[isample].data());
+    S pointwise_gradient[gdim];
+    FrozenObjectiveValueAD::metric_volume_barrier_gradient<gdim>(
+        samples.regular_jacobian_transposes[isample].data(),
+        samples.metrics[isample].data(),regular_basis_gradient.data(),
+        rho0,beta,pointwise_gradient);
+    for(int component = 0; component < gdim; component++){
+      differentiated_gradient[component]
+          += S(samples.quadrature_weights[isample])
+           * pointwise_gradient[component];
+    }
+  }
+
+  for(int component = 0; component < gdim; component++){
+    gradient[component] = differentiated_gradient[component].value();
+    for(int derivative = component;
+        derivative < gdim; derivative++){
+      hessian[sym2idx(component,derivative)]
+          = differentiated_gradient[component].deriv(derivative);
+    }
+  }
 }
 
 template<class MFT, int gdim>
@@ -944,6 +1110,192 @@ void check_stepdistance_edge_hessian(FEBasis geometry_basis)
       << maximum_finite_difference_hessian_error);
 }
 
+template<class MFT, int gdim>
+void check_stepdistance_collapse_barrier(FEBasis geometry_basis)
+{
+  constexpr int hessian_count = gdim*(gdim + 1)/2;
+  constexpr int active_edge_control_point = gdim + 1;
+  constexpr double barrier_rho0 = 2.0;
+  constexpr double barrier_beta = 0.4;
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_quadrature_order = 5;
+  parameters.objective_p = 1.25;
+  parameters.step_distance_regularization = 1.e-6;
+  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_cavity_target_average = false;
+  parameters.step_distance_barrier_rho0 = barrier_rho0;
+  parameters.step_distance_barrier_beta = 0.0;
+
+  Mesh<MFT> mesh;
+  initialize_curved_p2_stepdistance_element<MFT,gdim>(mesh,parameters);
+  mesh.setBasis(geometry_basis);
+  const FrozenP2StepDistanceSamples<gdim> samples
+      = capture_frozen_p2_stepdistance_samples<MFT,gdim>(mesh);
+
+  // Qualify the degree-aware basis gradient independently of the production
+  // helper used by the shared differentiated traversal.
+  for(std::size_t isample = 0;
+      isample < samples.barycentric_points.size(); isample++){
+    const std::array<double,gdim> independent_gradient
+        = independent_p2_regular_basis_gradient<gdim>(
+              geometry_basis,active_edge_control_point,
+              samples.barycentric_points[isample].data());
+    const std::array<double,gdim> production_gradient
+        = objective_regular_basis_gradient<gdim,2>(
+              geometry_basis,active_edge_control_point,
+              samples.barycentric_points[isample].data());
+    for(int component = 0; component < gdim; component++){
+      BOOST_CHECK_SMALL(
+          production_gradient[component] - independent_gradient[component],
+          5.e-14*(1.0 + std::abs(independent_gradient[component])));
+    }
+  }
+
+  const auto evaluate_production = [&](double beta,
+                                       double *gradient,
+                                       double *hessian){
+    mesh.param->step_distance_barrier_beta = beta;
+    return d_metqua<MFT,gdim,gdim,QuaFun::StepDistance,double>(
+        mesh,AsDeg::Pk,AsDeg::P1,0,active_edge_control_point,
+        geometry_basis,DifVar::None,gradient,hessian,1.0);
+  };
+
+  double active_gradient[gdim];
+  double inactive_gradient[gdim];
+  double active_hessian[hessian_count];
+  double inactive_hessian[hessian_count];
+  const double active_value = evaluate_production(
+      barrier_beta,active_gradient,active_hessian);
+  const double inactive_value = evaluate_production(
+      0.0,inactive_gradient,inactive_hessian);
+  const double production_barrier_value = active_value - inactive_value;
+  BOOST_REQUIRE_GT(production_barrier_value,1.e-6);
+
+  mesh.param->step_distance_barrier_beta = barrier_beta;
+  const double active_value_only
+      = metqua<MFT,gdim,gdim,QuaFun::StepDistance,double>(
+            mesh,AsDeg::Pk,AsDeg::P1,0,1.0);
+  mesh.param->step_distance_barrier_beta = 0.0;
+  const double inactive_value_only
+      = metqua<MFT,gdim,gdim,QuaFun::StepDistance,double>(
+            mesh,AsDeg::Pk,AsDeg::P1,0,1.0);
+  BOOST_CHECK_SMALL(
+      (active_value_only - inactive_value_only)
+          - production_barrier_value,
+      5.e-14*(1.0 + std::abs(production_barrier_value)));
+
+  double automatic_value;
+  const std::array<double,gdim> automatic_gradient
+      = evaluate_frozen_p2_collapse_barrier_by_ad<gdim>(
+            samples,active_edge_control_point,geometry_basis,
+            barrier_rho0,barrier_beta,NULL,&automatic_value);
+  BOOST_CHECK_SMALL(
+      production_barrier_value - automatic_value,
+      5.e-14*(1.0 + std::abs(automatic_value)));
+
+  double automatic_gradient_from_formula[gdim];
+  double automatic_hessian[hessian_count];
+  evaluate_frozen_p2_collapse_barrier_hessian_by_gradient_ad<gdim>(
+      samples,active_edge_control_point,geometry_basis,
+      barrier_rho0,barrier_beta,
+      automatic_gradient_from_formula,automatic_hessian);
+
+  double maximum_automatic_gradient_error = 0.0;
+  double maximum_automatic_hessian_error = 0.0;
+  double production_barrier_gradient[gdim];
+  double production_barrier_hessian[hessian_count];
+  for(int component = 0; component < gdim; component++){
+    production_barrier_gradient[component]
+        = active_gradient[component] - inactive_gradient[component];
+    const double value_ad_error
+        = std::abs(production_barrier_gradient[component]
+                   - automatic_gradient[component]);
+    const double formula_ad_error
+        = std::abs(production_barrier_gradient[component]
+                   - automatic_gradient_from_formula[component]);
+    maximum_automatic_gradient_error = std::max(
+        maximum_automatic_gradient_error,
+        std::max(value_ad_error,formula_ad_error));
+    BOOST_CHECK_SMALL(
+        value_ad_error,
+        5.e-14*(1.0 + std::abs(automatic_gradient[component])));
+    BOOST_CHECK_SMALL(
+        formula_ad_error,
+        5.e-14*(1.0
+                + std::abs(automatic_gradient_from_formula[component])));
+  }
+  for(int entry = 0; entry < hessian_count; entry++){
+    production_barrier_hessian[entry]
+        = active_hessian[entry] - inactive_hessian[entry];
+    const double error
+        = std::abs(production_barrier_hessian[entry]
+                   - automatic_hessian[entry]);
+    maximum_automatic_hessian_error
+        = std::max(maximum_automatic_hessian_error,error);
+    BOOST_CHECK_SMALL(
+        error,5.e-14*(1.0 + std::abs(automatic_hessian[entry])));
+  }
+
+  constexpr double finite_difference_step = 2.e-6;
+  double maximum_finite_difference_gradient_error = 0.0;
+  double maximum_finite_difference_hessian_error = 0.0;
+  for(int derivative = 0; derivative < gdim; derivative++){
+    std::array<double,gdim> plus_displacement{};
+    std::array<double,gdim> minus_displacement{};
+    plus_displacement[derivative] = finite_difference_step;
+    minus_displacement[derivative] = -finite_difference_step;
+    double plus_value;
+    double minus_value;
+    const std::array<double,gdim> plus_gradient
+        = evaluate_frozen_p2_collapse_barrier_by_ad<gdim>(
+              samples,active_edge_control_point,geometry_basis,
+              barrier_rho0,barrier_beta,plus_displacement.data(),
+              &plus_value);
+    const std::array<double,gdim> minus_gradient
+        = evaluate_frozen_p2_collapse_barrier_by_ad<gdim>(
+              samples,active_edge_control_point,geometry_basis,
+              barrier_rho0,barrier_beta,minus_displacement.data(),
+              &minus_value);
+
+    const double finite_difference_gradient
+        = (plus_value - minus_value)/(2.0*finite_difference_step);
+    const double gradient_error
+        = std::abs(production_barrier_gradient[derivative]
+                   - finite_difference_gradient);
+    maximum_finite_difference_gradient_error = std::max(
+        maximum_finite_difference_gradient_error,gradient_error);
+    BOOST_CHECK_SMALL(
+        gradient_error,
+        1.e-7*(1.0 + std::abs(finite_difference_gradient)));
+
+    for(int component = 0; component <= derivative; component++){
+      const int entry = sym2idx(component,derivative);
+      const double finite_difference_hessian
+          = (plus_gradient[component] - minus_gradient[component])
+           /(2.0*finite_difference_step);
+      const double hessian_error
+          = std::abs(production_barrier_hessian[entry]
+                     - finite_difference_hessian);
+      maximum_finite_difference_hessian_error = std::max(
+          maximum_finite_difference_hessian_error,hessian_error);
+      BOOST_CHECK_SMALL(
+          hessian_error,
+          1.e-7*(1.0 + std::abs(finite_difference_hessian)));
+    }
+  }
+
+  BOOST_TEST_MESSAGE(
+      "P2 frozen StepDistance collapse barrier: gradient AD error="
+      << maximum_automatic_gradient_error
+      << ", Hessian AD-of-gradient error="
+      << maximum_automatic_hessian_error
+      << ", gradient finite-difference error="
+      << maximum_finite_difference_gradient_error
+      << ", Hessian finite-difference error="
+      << maximum_finite_difference_hessian_error);
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(p2_stepdistance_value_uses_degree_aware_geometry)
@@ -987,6 +1339,16 @@ BOOST_AUTO_TEST_CASE(p2_edge_stepdistance_hessian_matches_frozen_gradient_oracle
     check_stepdistance_edge_hessian<MetricFieldAnalytical,2>(basis);
     check_stepdistance_edge_hessian<MetricFieldFE,3>(basis);
     check_stepdistance_edge_hessian<MetricFieldAnalytical,3>(basis);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(p2_stepdistance_collapse_barrier_is_degree_aware)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_stepdistance_collapse_barrier<MetricFieldFE,2>(basis);
+    check_stepdistance_collapse_barrier<MetricFieldAnalytical,2>(basis);
+    check_stepdistance_collapse_barrier<MetricFieldFE,3>(basis);
+    check_stepdistance_collapse_barrier<MetricFieldAnalytical,3>(basis);
   }
 }
 

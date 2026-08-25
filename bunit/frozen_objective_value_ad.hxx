@@ -450,6 +450,69 @@ SANS::SurrealS<dimension,double> metric_volume_barrier_value(
                 *logarithmic_collapse_squared;
 }
 
+template<int dimension>
+void metric_volume_barrier_gradient(
+    const double *regular_jacobian_transpose,
+    const double *metric,
+    const double *regular_basis_gradient,
+    const double rho0,
+    const double beta,
+    SANS::SurrealS<dimension,double> *pointwise_gradient)
+{
+  using S = SANS::SurrealS<dimension,double>;
+  S jacobian[dimension*dimension];
+  S gram_matrix[dimension*dimension];
+  seed_regular_jacobian<dimension>(
+      regular_jacobian_transpose,regular_basis_gradient,jacobian);
+  form_metric_gram_matrix<dimension,S>(jacobian,metric,gram_matrix);
+
+  const S rho = sqrt(full_determinant<dimension,S>(gram_matrix));
+  for(int component = 0; component < dimension; component++){
+    pointwise_gradient[component] = S(0.0);
+  }
+  if(beta <= 0.0 || rho0 <= 0.0 || primal_value(rho) >= rho0) return;
+
+  S inverse_gram_matrix[dimension*dimension];
+  invert_full_matrix<dimension,S>(gram_matrix,inverse_gram_matrix);
+  S inverse_gram_times_basis_gradient[dimension];
+  for(int row = 0; row < dimension; row++){
+    inverse_gram_times_basis_gradient[row] = S(0.0);
+    for(int column = 0; column < dimension; column++){
+      inverse_gram_times_basis_gradient[row]
+          += inverse_gram_matrix[row*dimension + column]
+           * S(regular_basis_gradient[column]);
+    }
+  }
+
+  S jacobian_times_gradient[dimension];
+  for(int component = 0; component < dimension; component++){
+    jacobian_times_gradient[component] = S(0.0);
+    for(int regular_component = 0;
+        regular_component < dimension; regular_component++){
+      jacobian_times_gradient[component]
+          += jacobian[regular_component*dimension + component]
+           * inverse_gram_times_basis_gradient[regular_component];
+    }
+  }
+
+  const S logarithmic_collapse = log(S(rho0)/rho);
+  const S scale = S(-4.0*beta)
+                * logarithmic_collapse*logarithmic_collapse
+                * logarithmic_collapse;
+  for(int component = 0; component < dimension; component++){
+    S logarithmic_volume_gradient = S(0.0);
+    for(int physical_component = 0;
+        physical_component < dimension; physical_component++){
+      logarithmic_volume_gradient
+          += S(metric[packed_symmetric_index<dimension>(
+                   component,physical_component)])
+           * jacobian_times_gradient[physical_component];
+    }
+    pointwise_gradient[component]
+        = scale*logarithmic_volume_gradient;
+  }
+}
+
 } // namespace FrozenObjectiveValueAD
 
 } // namespace Metris

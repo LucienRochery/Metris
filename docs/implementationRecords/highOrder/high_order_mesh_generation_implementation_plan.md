@@ -813,3 +813,32 @@ would obstruct the first working path.
    barrier disabled and `ShapeVolume` and `CavityTargetAverage` false. Their
    separate Phase 5 steps remain pending, as do basic-variant validity
    rejection and production smoothing enablement.
+
+4. **Done (2026-08-25): qualified the P2 metric-volume collapse barrier.**
+   The barrier already entered through the shared objective-quadrature
+   policies after the degree-aware value and derivative dispatch work. This
+   step verifies that integration contract directly: the active-barrier
+   result is subtracted from the identical `beta = 0` basic StepDistance
+   result, isolating the additive barrier in both the value-only and
+   differentiated public entry points. The independent reconstruction weights
+   the barrier by the quadrature weight alone, without the geometric `theta`
+   factor, and freezes the metric exactly as required by the optimizer.
+
+   A test-owned explicit quadratic polynomial construction evaluates the
+   active edge basis gradient for both Lagrange and Bezier representations and
+   transforms it to the regular reference frame. It agrees with the shared
+   production degree-two helper at the `5e-14` scaled tolerance for every
+   order-five quadrature point in curved triangles and tetrahedra. The same
+   independent gradient drives an AD-of-barrier-value oracle and a separately
+   coded analytic barrier-gradient oracle. Differentiating the latter provides
+   the independent AD-of-gradient Hessian comparison; centered differences of
+   the frozen barrier value and gradient provide the numerical comparisons.
+
+   The matrix covers 2D and 3D, FE and analytical metrics, and Lagrange and
+   Bezier geometry. The largest isolated production-versus-AD gradient error
+   is approximately `4.44e-16`, and the largest production-versus-independent-
+   AD-of-gradient Hessian error is approximately `1.78e-15`. The largest
+   centered-difference errors are approximately `1.82e-10` for the gradient
+   and `3.98e-9` for the Hessian, within their `1e-7` scaled tolerances.
+
+   ShapeVolume remains disabled and is Phase 5 step 5.
