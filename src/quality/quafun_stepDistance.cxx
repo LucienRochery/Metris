@@ -5,6 +5,7 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 #include "quafun_stepDistance.hxx"
+#include "objective_basis.hxx"
 
 #include "../Mesh/Mesh.hxx"
 #include "../metris_constants.hxx"
@@ -73,6 +74,54 @@ bool shape_volume_matrix_is_numerically_admissible(
       determinant/std::pow(mean_eigenvalue,tdim);
   return std::isfinite(scaled_determinant)
       && scaled_determinant >= shape_volume_minimum_scaled_determinant;
+}
+
+template<class MFT, int gdim, int tdim>
+void evaluate_step_distance_geometry(
+    Mesh<MFT> &msh,
+    AsDeg asdmsh,
+    const int *ent2poi,
+    const double *barycentric_coordinates,
+    double *physical_coordinates,
+    double *canonical_jacobian_transpose)
+{
+  const int geometry_degree
+      = asdmsh == AsDeg::P1 ? 1 : msh.curdeg;
+  if(geometry_degree == 1){
+    if constexpr(tdim == 2){
+      eval2<gdim,1>(
+          msh.coord,ent2poi,msh.getBasis(),
+          DifVar::Bary,DifVar::None,barycentric_coordinates,
+          physical_coordinates,canonical_jacobian_transpose,NULL);
+    }else{
+      eval3<gdim,1>(
+          msh.coord,ent2poi,msh.getBasis(),
+          DifVar::Bary,DifVar::None,barycentric_coordinates,
+          physical_coordinates,canonical_jacobian_transpose,NULL);
+    }
+    return;
+  }
+
+  bool degree_was_dispatched = false;
+  CT_FOR0_INC(2,METRIS_MAX_DEG,compile_time_degree){
+    if(compile_time_degree == geometry_degree){
+      if constexpr(tdim == 2){
+        eval2<gdim,compile_time_degree>(
+            msh.coord,ent2poi,msh.getBasis(),
+            DifVar::Bary,DifVar::None,barycentric_coordinates,
+            physical_coordinates,canonical_jacobian_transpose,NULL);
+      }else{
+        eval3<gdim,compile_time_degree>(
+            msh.coord,ent2poi,msh.getBasis(),
+            DifVar::Bary,DifVar::None,barycentric_coordinates,
+            physical_coordinates,canonical_jacobian_transpose,NULL);
+      }
+      degree_was_dispatched = true;
+    }
+  }CT_FOR1(compile_time_degree);
+  METRIS_ENFORCE_MSG(
+      degree_was_dispatched,
+      "Unsupported StepDistance geometry degree {}",geometry_degree);
 }
 
 } // anonymous namespace
@@ -204,38 +253,8 @@ ftype quafun_stepDistance(Mesh<MFT> &msh,
   double coopr[gdim];
   double jmat[tdim*gdim];
 
-  if(asdmsh == AsDeg::P1 || msh.curdeg == 1){
-    if constexpr(tdim == 2){
-      eval2<gdim,1>(msh.coord, ent2pol, msh.getBasis(),
-                    DifVar::Bary, DifVar::None,
-                    bary, coopr, jmat, NULL);
-    }else{
-      eval3<gdim,1>(msh.coord, ent2pol, msh.getBasis(),
-                    DifVar::Bary, DifVar::None,
-                    bary, coopr, jmat, NULL);
-    }
-  }else{
-    bool degree_was_dispatched = false;
-    CT_FOR0_INC(2,METRIS_MAX_DEG,geometry_degree){
-      if(geometry_degree == msh.curdeg){
-        if constexpr(tdim == 2){
-          eval2<gdim,geometry_degree>(
-              msh.coord,ent2pol,msh.getBasis(),
-              DifVar::Bary,DifVar::None,
-              bary,coopr,jmat,NULL);
-        }else{
-          eval3<gdim,geometry_degree>(
-              msh.coord,ent2pol,msh.getBasis(),
-              DifVar::Bary,DifVar::None,
-              bary,coopr,jmat,NULL);
-        }
-        degree_was_dispatched = true;
-      }
-    }CT_FOR1(geometry_degree);
-    METRIS_ENFORCE_MSG(
-        degree_was_dispatched,
-        "Unsupported StepDistance geometry degree {}",msh.curdeg);
-  }
+  evaluate_step_distance_geometry<MFT,gdim,tdim>(
+      msh,asdmsh,ent2pol,bary,coopr,jmat);
 
   // ------------------------------------------------------------
   // Jreg_T = Jreg^T = J0^{-T} Jcanonical^T.
@@ -433,29 +452,6 @@ BOOST_PP_SEQ_FOR_EACH_PRODUCT(EXPAND_TEMPLATE,\
                               (MFT_SEQ)(QUA_FTYPE_SEQ))
 #undef INSTANTIATE
 #undef EXPAND_TEMPLATE
-
-// =======================================//
-// Some helpers for derivatives
-// =======================================//
-
-template<int gdim, int tdim>
-void get_gradN_P1_regular(int ivar, double* gradN){
-  for(int i = 0; i < tdim; i++) gradN[i] = 0.0;
-
-  if(ivar == 0){
-    for(int i = 0; i < tdim; i++){
-      for(int k = 0; k < tdim; k++){
-        gradN[i] -= Constants::invtJ_0[hana::type_c<double>][tdim][i*tdim+k];
-      }
-    }
-  }else{
-    const int column = ivar - 1;
-    for(int i = 0; i < tdim; i++){
-      gradN[i] =
-          Constants::invtJ_0[hana::type_c<double>][tdim][i*tdim+column];
-    }
-  }
-}
 
 template<int gdim, typename T>
 int symidx_met(int a, int b){
@@ -747,11 +743,12 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
   METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
 
   constexpr int nnmet = (gdim*(gdim+1))/2;
-  constexpr int nhess = (gdim*(gdim+1))/2;
-
-  // For now: P1 only.
-  METRIS_ASSERT(msh.curdeg == 1 || asdmsh == AsDeg::P1);
-  METRIS_ASSERT(ivar < 0 || (ivar >= 0 && ivar < tdim + 1));
+  const int geometry_degree
+      = asdmsh == AsDeg::P1 ? 1 : msh.curdeg;
+  METRIS_ENFORCE_MSG(
+      ivar < 0 || ivar < getnnode(tdim,geometry_degree),
+      "StepDistance derivative control point {} outside degree-{} element",
+      ivar,geometry_degree);
 
   // ------------------------------------------------------------
   // Geometry value: canonical-reference Jacobian.
@@ -760,15 +757,8 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
   double coopr[gdim];
   double jmat[tdim*gdim];
 
-  if constexpr(tdim == 2){
-    eval2<gdim,1>(msh.coord, ent2pol, msh.getBasis(),
-                  DifVar::Bary, DifVar::None,
-                  bary, coopr, jmat, NULL);
-  }else{
-    eval3<gdim,1>(msh.coord, ent2pol, msh.getBasis(),
-                  DifVar::Bary, DifVar::None,
-                  bary, coopr, jmat, NULL);
-  }
+  evaluate_step_distance_geometry<MFT,gdim,tdim>(
+      msh,asdmsh,ent2pol,bary,coopr,jmat);
 
   // ------------------------------------------------------------
   // Jreg_T = Jreg^T = J0^{-T} Jcanonical^T.
@@ -830,10 +820,29 @@ ftype d_quafun_stepDistance(Mesh<MFT> &msh,
   }
 
   // ------------------------------------------------------------
-  // P1 gradient of active shape function in regular reference.
+  // Gradient of the active shape function in the regular reference frame.
   // ------------------------------------------------------------
-  double gradN_d[tdim];
-  get_gradN_P1_regular<gdim,tdim>(ivar, gradN_d);
+  std::array<double,tdim> regular_basis_gradient{};
+  bool basis_degree_was_dispatched = false;
+  if(geometry_degree == 1){
+    regular_basis_gradient
+        = objective_regular_basis_gradient<tdim,1>(dofbas,ivar,bary);
+    basis_degree_was_dispatched = true;
+  }else{
+    CT_FOR0_INC(2,METRIS_MAX_DEG,compile_time_degree){
+      if(compile_time_degree == geometry_degree){
+        regular_basis_gradient
+            = objective_regular_basis_gradient<tdim,compile_time_degree>(
+                  dofbas,ivar,bary);
+        basis_degree_was_dispatched = true;
+      }
+    }CT_FOR1(compile_time_degree);
+  }
+  METRIS_ENFORCE_MSG(
+      basis_degree_was_dispatched,
+      "Unsupported differentiated StepDistance geometry degree {}",
+      geometry_degree);
+  const double *gradN_d = regular_basis_gradient.data();
 
   // ------------------------------------------------------------
   // First derivative: analytic expression with double/ftype.

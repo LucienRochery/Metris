@@ -752,3 +752,28 @@ would obstruct the first working path.
    Phase 5 step 2. The collapse barrier, ShapeVolume, and
    CavityTargetAverage variants are not qualified by this step and retain
    their separate roadmap entries.
+
+2. **Done (2026-08-25): removed the P1-vertex restriction from differentiated
+   StepDistance dispatch.** `d_metqua` now follows the same effective geometry
+   degree as the value path for both objective-driven policies. The pointwise
+   StepDistance derivative reconstructs the geometry at that degree and
+   accepts any local control-point index in the corresponding simplex. Its
+   active basis gradient is evaluated as either a Lagrange or Bezier basis
+   function and transformed into the regular reference frame.
+
+   The regular-reference basis-gradient helper previously owned only by the
+   shared quadrature traversal now lives in `objective_basis.hxx`. Both the
+   traversal's integration-level terms and the pointwise StepDistance
+   derivative use this same implementation, preventing the P2 objective and
+   collapse-barrier contributions from silently differentiating different
+   basis functions.
+
+   The focused StepDistance test activates the first Lagrange P2 edge control
+   point of a curved triangle or tetrahedron for FE and analytical metrics. It
+   checks exact agreement between the public `d_metqua` result and the selected
+   degree-two differentiated-integrator specialization, agreement of the
+   returned value with `metqua` to `3e-14`, and a finite, nonzero edge
+   gradient. This step qualifies differentiated dispatch and edge activation
+   only. Independent automatic-differentiation and centered-finite-difference
+   checks belong to the basic-variant validation in Phase 5 step 3; the later
+   StepDistance variants retain their separate roadmap entries.
