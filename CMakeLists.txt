@@ -114,6 +114,11 @@ else()
   add_compile_definitions(NO_BOOST_EXCEPT)
 endif()
 
+# CMAKE_INSTALL_LIBDIR/BINDIR/INCLUDEDIR are used throughout this file, in
+# cmake/Dependencies.cmake and in libs/CMakeLists.txt. Include the module that
+# defines them rather than relying on a fetched dependency to do it for us.
+include(GNUInstallDirs)
+
 set(CMAKE_MACOSX_RPATH 1)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
