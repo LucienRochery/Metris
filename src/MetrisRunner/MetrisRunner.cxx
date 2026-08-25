@@ -30,6 +30,43 @@
 
 namespace Metris{
 
+namespace
+{
+
+void placeElevatedCadEdgeNodes(MeshBase &msh)
+{
+  METRIS_ENFORCE(msh.getBasis() == FEBasis::Lagrange);
+  for(int iedge = 0; iedge < msh.nedge; iedge++){
+    if(isdeadent(iedge,msh.edg2poi)) continue;
+    const int reference = msh.edg2ref[iedge];
+    METRIS_ENFORCE_MSG(
+        reference >= 0 && reference < msh.CAD.ncaded,
+        "Invalid CAD-edge reference {} for mesh edge {}",
+        reference,iedge);
+    const ego cadEdge = msh.CAD.cad2edg[reference];
+    for(int localNode = 2; localNode < msh.nnode(1); localNode++){
+      const int point = msh.edg2poi(iedge,localNode);
+      const int boundaryRecord = msh.poi2ebp(point,1,iedge,-1);
+      METRIS_ENFORCE_MSG(
+          boundaryRecord >= 0,
+          "Missing CAD parameter for elevated edge {} node {}",
+          iedge,localNode);
+      double evaluation[18];
+      const int status = EG_evaluate(
+          cadEdge,&msh.bpo2rbi(boundaryRecord,0),evaluation);
+      METRIS_ENFORCE_MSG(
+          status == EGADS_SUCCESS,
+          "EG_evaluate failed for elevated edge {} node {}: {}",
+          iedge,localNode,status);
+      for(int component = 0; component < msh.idim; component++){
+        msh.coord(point,component) = evaluation[component];
+      }
+    }
+  }
+}
+
+} // namespace
+
 
 MetrisRunner::~MetrisRunner(){
 #ifdef OUTPUTTIMEANDUNITINFO
@@ -83,9 +120,14 @@ void MetrisRunner::degElevate0(){
 
   CPRINTF1("-- Back metric interpolation back deg = {}\n",bak.curdeg);
 
+  // The elevated CAD parameters are Lagrange data. Convert the polynomial
+  // geometry first, then make each edge-interior coordinate the exact image
+  // of its parameter on the classified CAD curve. This must precede metric
+  // localization so coordinates and parameters obey a single invariant.
+  msh.setBasis(FEBasis::Lagrange);
+  if(msh.CAD()) placeElevatedCadEdgeNodes(msh);
+
   CT_FOR0_INC(1,METRIS_MAX_DEG,bdeg){if(bak.curdeg == bdeg){
-    // It's Lagrange nodes that should be localized.
-    msh.setBasis(FEBasis::Lagrange);
     interpFrontBack<MFT,bdeg>(msh,bak,npoi0);
   }}CT_FOR1(bdeg);
   double t1_2 = get_cpu_time();

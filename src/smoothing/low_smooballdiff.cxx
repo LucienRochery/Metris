@@ -458,6 +458,17 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
 
     double t0 = msh.bpo2rbi(ibpoin,0); // initial t parameter for current point location
 
+    const int localNode
+        = msh.template getverent<ideg>(lball[0],idim,ipoin);
+    const bool highOrderCurveNode = localNode >= idim + 1;
+    if constexpr(ideg >= 2){
+      if(highOrderCurveNode){
+        METRIS_ENFORCE_MSG(
+            msh.getBasis() == FEBasis::Lagrange,
+            "CAD-constrained high-order smoothing requires Lagrange geometry");
+      }
+    }
+
     double coor0[idim], met0[nnmet];
     for(int ii=0; ii<idim;  ii++) coor0[ii] = msh.coord(ipoin,ii);
     for(int ii=0; ii<nnmet; ii++) met0[ii]  = msh.met(ipoin,ii);
@@ -483,6 +494,45 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
     nargs.ratnew= 0.5;
     nargs.maxit = 50;
     nargs.ftol  = ftol;
+    if constexpr(ideg >= 2){
+      if(highOrderCurveNode){
+        double endpointParameter[2];
+        for(int endpoint = 0; endpoint < 2; endpoint++){
+          const int endpointPoint = msh.edg2poi(iedge,endpoint);
+          const int endpointRecord
+              = msh.poi2ebp(endpointPoint,1,iedge,-1);
+          METRIS_ENFORCE_MSG(
+              endpointRecord >= 0,
+              "Missing CAD parameter for endpoint {} of mesh edge {}",
+              endpointPoint,iedge);
+          endpointParameter[endpoint]
+              = msh.bpo2rbi(endpointRecord,0);
+        }
+        const double lowerParameter
+            = MIN(endpointParameter[0],endpointParameter[1]);
+        const double upperParameter
+            = MAX(endpointParameter[0],endpointParameter[1]);
+        const double intervalLength = upperParameter - lowerParameter;
+        const double intervalTolerance
+            = 64.0*std::numeric_limits<double>::epsilon()
+             *MAX(1.0,MAX(abs(lowerParameter),abs(upperParameter)));
+        METRIS_ENFORCE_MSG(
+            t0 > lowerParameter + intervalTolerance
+            && t0 < upperParameter - intervalTolerance,
+            "High-order CAD parameter {} is outside edge interval [{},{}]",
+            t0,lowerParameter,upperParameter);
+        const double distanceToEndpoint
+            = MIN(t0 - lowerParameter,upperParameter - t0);
+        const bool objectiveDriven
+            = iquaf == QuaFun::SizeShape
+              || iquaf == QuaFun::StepDistance;
+        if(objectiveDriven){
+          nargs.non_descent_gradient_step = 0.1*intervalLength;
+        }
+        nargs.trust_radius = 0.99*distanceToEndpoint;
+        nargs.trust_center[0] = t0;
+      }
+    }
 
     int iflag = 0, ihess, ierro = 0;
     bool iinva = false;

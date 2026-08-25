@@ -223,7 +223,8 @@ the same way for SizeShape and every StepDistance variant.
 
 ## Phase 6: CAD and boundary support
 
-1. Complete 2D curved CAD-boundary control-point smoothing.
+1. **Done (2026-08-25): complete 2D curved CAD-boundary control-point
+   smoothing.** See the Phase 6 execution record below.
 2. Implement P2 triangular-face projection for 3D localization.
 3. Test the polynomial orientation certificate for P2 surface triangles.
 4. Add small CAD-curve and CAD-surface regression meshes.
@@ -1001,3 +1002,45 @@ would obstruct the first working path.
    failed independently while generating the 100k-square mesh, at the
    analytical-metric assertion `eigval[i] > 0`; the focused executables were
    therefore also run directly in both configurations.
+
+## Phase 6 CAD and boundary execution record
+
+1. **Done (2026-08-25): completed planar P2 curved-CAD-edge creation and
+   smoothing.** Degree elevation now converts the elevated polynomial geometry
+   to Lagrange form and then makes every topological edge-interior coordinate
+   the exact CAD image of its already elevated edge parameter, before metric
+   localization. This ordering is essential: Metris holds the incoming P1
+   geometry in Bezier form, so evaluating a CAD point before the
+   Bezier-to-Lagrange conversion would incorrectly treat that physical point
+   as a Bezier coefficient. The resulting invariant is explicit:
+   `coordinate = CAD_curve(parameter)`. The same creation path applies to
+   topological CAD-curve nodes in 3D without a separate implementation.
+
+   High-order curve-node smoothing continues to use the existing parameter-
+   space chain rule through the CAD tangent and curvature. It now additionally
+   requires Lagrange geometry and constrains the Newton trust region to remain
+   strictly between the two endpoint parameters of the classified mesh edge.
+   This prevents a high-order node from crossing a topological endpoint while
+   remaining on the untrimmed underlying curve. SizeShape and StepDistance
+   also opt into the already qualified bounded steepest-descent fallback when
+   their parameter-space Hessian is not positive definite; classic smoothing
+   receives the geometric interval constraint without changing its Hessian
+   policy.
+
+   The new regression constructs a genuinely curved planar EGADS boundary in
+   memory: a circular arc and two straight segments bound one triangle. It
+   verifies that P1-to-P2 elevation places the arc node at the CAD image of the
+   interpolated parameter rather than at the chord midpoint. After perturbing
+   the parameter, both SizeShape and StepDistance must produce a nonzero
+   parameter-space move, not increase their objective, keep the parameter in
+   the topological edge interval, restore the exact CAD coordinate, and leave
+   the P2 triangle Bernstein-certified. No external binary CAD or mesh test
+   data is needed.
+
+   Release and Debug builds pass both new curved-CAD cases, the nine-case
+   high-order classic/production smoothing executable, the eight-case P2
+   StepDistance smoothing/validity executable, and the five-case Phase 1
+   elevation/validity baseline. Phase 6 step 2 remains the distinct extension
+   for P2 nodes classified on triangular CAD faces in 3D; surface orientation,
+   broader CAD regression data, per-move invariant auditing, and curved-edge
+   self-intersection remain steps 3--6 and are not claimed here.
