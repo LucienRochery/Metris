@@ -128,12 +128,13 @@ certified by the current bound, not necessarily that it is inverted.
 
 2. Unit-test coefficient generation against direct Jacobian evaluation for P2
    triangles and tetrahedra. Retain the existing mesh-wide coefficient test,
-   but add deterministic single-element cases covering Lagrange and Bezier
-   storage, off-lattice evaluations, and all three validity outcomes.
+   but add deterministic affine and curved single-element cases covering
+   Lagrange and Bezier storage and off-lattice evaluations.
 3. Build one full-dimensional validity routine that owns the P1 orientation
    prerequisite, normalization, coefficient classification, invalidity
-   witnesses, and diagnostics. Keep this API degree-generic while qualifying
-   P2 first.
+   witnesses, and diagnostics. Add focused cases for all three validity
+   outcomes here, where the production classifier rather than test-only logic
+   can be exercised. Keep this API degree-generic while qualifying P2 first.
 4. Integrate the routine first into Classic P2 smoothing trials and accepted
    moves in 2D, followed by the existing 3D tetrahedral edge-shell path.
 5. Use the same validity routine in completed-element checks for:
@@ -444,3 +445,17 @@ would obstruct the first working path.
    generation and production call sites, which are addressed by the following
    Phase 3 steps. `test_high_order_validity_contract` fixes the default state,
    status predicates, diagnostic sentinels, and conservative acceptance policy.
+
+2. **Done (2026-08-25): added deterministic P2 Jacobian-coefficient tests.**
+   `test_high_order_p2_jacobian_coefficients` constructs one triangle and one
+   tetrahedron directly in memory, each in both affine and genuinely curved
+   form. It converts the P2 geometry from Lagrange to Bezier storage, compares
+   the generated coefficient formulas with `ccoef_eval` from both bases, and
+   evaluates the resulting degree-2 triangle and degree-3 tetrahedron
+   determinant polynomials at four and five off-lattice barycentric points,
+   respectively. At every point, the three coefficient routes reproduce the
+   determinant of the directly evaluated geometry Jacobian, and the Lagrange
+   and Bezier geometry values and Jacobians agree. The affine cases additionally
+   require a constant coefficient field; the curved cases require a positive,
+   nonconstant field. The three `Certified`/`Invalid`/`Uncertified` outcome
+   fixtures remain with the production classifier in the next step.
