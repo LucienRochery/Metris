@@ -132,7 +132,7 @@ std::unique_ptr<CurvedSurfaceCase> make_curved_surface_case()
   }
 
   MetrisAPI input(
-      3,1,4,8,4,4,true,4,2,0,
+      3,1,4,8,6,4,true,4,2,0,
       FEBasis::Lagrange,FEBasis::Lagrange,MetSpace::Exp);
   const double identityMetric[6] = {1.0,0.0,1.0,0.0,0.0,1.0};
   for(int point = 0; point < 4; point++){
@@ -216,17 +216,17 @@ std::unique_ptr<CurvedSurfaceCase> make_curved_surface_case()
   input.setElement(2,0,facePoints[0],faceReference);
   input.setElement(2,1,facePoints[1],faceReference);
 
-  const int geometricFacePoints[4][2]
-      = {{0,0},{1,0},{2,0},{3,1}};
-  double geometricFaceParameters[4][3];
-  for(int record = 0; record < 4; record++){
+  const int geometricFacePoints[6][2]
+      = {{0,0},{1,0},{2,0},{0,1},{2,1},{3,1}};
+  double geometricFaceParameters[6][3];
+  for(int record = 0; record < 6; record++){
     const int point = geometricFacePoints[record][0];
     geometricFaceParameters[record][0] = vertexParameters[point][0];
     geometricFaceParameters[record][1] = vertexParameters[point][1];
     geometricFaceParameters[record][2] = 0.0;
   }
   input.setVerticesOnGeometricTriangles(
-      0,4,&geometricFacePoints[0][0],
+      0,6,&geometricFacePoints[0][0],
       &geometricFaceParameters[0][0]);
   input.setCADModel(testCase->context,testCase->model);
 
@@ -245,13 +245,19 @@ std::unique_ptr<CurvedSurfaceCase> make_curved_surface_case()
   return testCase;
 }
 
-} // namespace
-
-BOOST_AUTO_TEST_CASE(p2_internal_surface_edge_node_uses_elevated_uv)
+std::string curved_surface_output_directory(const char *stage)
 {
-  auto testCase = make_curved_surface_case();
-  auto &mesh = static_cast<Mesh<MetricFieldFE>&>(
-      *testCase->runner->msh_g);
+  const std::filesystem::path directory
+      = std::filesystem::temp_directory_path()
+      / "metris_high_order_curved_cad_surface_projection"
+      / stage;
+  std::filesystem::create_directories(directory);
+  return directory.string() + "/";
+}
+
+void check_curved_surface_node_invariants(Mesh<MetricFieldFE> &mesh)
+{
+  mesh.setBasis(FEBasis::Lagrange);
   BOOST_REQUIRE_EQUAL(mesh.curdeg,2);
   BOOST_REQUIRE(mesh.getBasis() == FEBasis::Lagrange);
 
@@ -305,4 +311,41 @@ BOOST_AUTO_TEST_CASE(p2_internal_surface_edge_node_uses_elevated_uv)
     BOOST_CHECK_SMALL(
         mesh.coord(curvePoint,component) - evaluation[component],1.e-13);
   }
+}
+
+} // namespace
+
+BOOST_AUTO_TEST_CASE(p2_internal_surface_edge_node_uses_elevated_uv)
+{
+  auto testCase = make_curved_surface_case();
+  auto &mesh = static_cast<Mesh<MetricFieldFE>&>(
+      *testCase->runner->msh_g);
+  check_curved_surface_node_invariants(mesh);
+}
+
+BOOST_AUTO_TEST_CASE(p2_curved_cad_surface_native_input_regression)
+{
+  auto testCase = make_curved_surface_case();
+  auto &elevatedMesh = static_cast<Mesh<MetricFieldFE>&>(
+      *testCase->runner->msh_g);
+  check_curved_surface_node_invariants(elevatedMesh);
+
+  MetrisAPI nativeP2Data(*testCase->runner);
+  MetrisParameters parameters;
+  parameters.usrTarDeg = 2;
+  parameters.adp_niter = 0;
+  parameters.opt_niter = 0;
+  parameters.iverb = 0;
+  parameters.outmPrefix
+      = curved_surface_output_directory("native_p2");
+  testCase->runner
+      = std::make_unique<MetrisRunner>(&nativeP2Data,nullptr,parameters);
+
+  auto &nativeMesh = static_cast<Mesh<MetricFieldFE>&>(
+      *testCase->runner->msh_g);
+  // A complete runMetris() lifecycle for tdim=2, gdim=3 remains part of the
+  // deferred embedded-surface scope; native construction and localization are
+  // the contracts qualified here.
+  BOOST_CHECK_EQUAL(testCase->runner->degElevate(),0);
+  check_curved_surface_node_invariants(nativeMesh);
 }

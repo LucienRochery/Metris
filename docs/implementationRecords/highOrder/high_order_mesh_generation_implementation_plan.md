@@ -227,8 +227,12 @@ the same way for SizeShape and every StepDistance variant.
    smoothing.** See the Phase 6 execution record below.
 2. **Done (2026-08-25): implement P2 triangular-face projection for 3D
    localization.** See the Phase 6 execution record below.
-3. Test the polynomial orientation certificate for P2 surface triangles.
-4. Add small CAD-curve and CAD-surface regression meshes.
+3. **Deferred (2026-08-25): test the polynomial orientation certificate for
+   embedded P2 surface triangles.** Full-dimensional 3D meshes obtain local
+   boundary-face regularity from the incident tetrahedron certificate. Resume
+   this item when embedded 2D meshes in 3D are brought into scope.
+4. **Done (2026-08-25): add small CAD-curve and CAD-surface regression
+   meshes.** See the Phase 6 execution record below.
 5. Verify that CAD parameters, projected coordinates, and high-order validity
    remain consistent after every accepted move.
 6. Add checks for curved-boundary self-intersection where local Jacobian
@@ -1077,5 +1081,46 @@ would obstruct the first working path.
    Release and Debug builds pass the new spherical-surface regression, both
    curved-CAD-edge objective cases, the nine-case high-order classic and
    production smoothing executable, and the five-case Phase 1 baseline.
-   Phase 6 step 3, the polynomial orientation certificate for embedded P2
-   surface triangles, remains separate and is the next roadmap item.
+
+3. **Deferred (2026-08-25): embedded surface-triangle orientation
+   certification.** For a full-dimensional 3D mesh, a strictly positive
+   incident-tetrahedron Jacobian implies that its boundary-face restriction is
+   locally regular: the two restricted tangent vectors cannot become dependent
+   while the three-dimensional Jacobian remains nonsingular. A separate
+   surface certificate would therefore duplicate the current local validity
+   guard for volume meshes. It remains necessary for embedded 2D meshes in 3D,
+   where no incident tetrahedron exists, and will be implemented when that mesh
+   class enters scope. This does not replace the later global curved-boundary
+   self-intersection work in Phase 6 step 6.
+
+4. **Done (2026-08-25): established small reusable CAD-curve and CAD-surface
+   regression meshes.** The self-contained planar case consists of one
+   triangle bounded by a circular arc and two straight CAD segments. The
+   self-contained 3D surface case consists of two triangles covering a
+   spherical CAD patch, with a shared interior triangulation edge. Both are
+   constructed in memory so the regression has no external binary CAD or mesh
+   dependency.
+
+   The existing focused checks now share explicit invariant routines, and each
+   regression covers both P1-to-P2 elevation and native P2 re-ingestion through
+   `MetrisAPI`. After re-ingestion, the tests convert internal Bezier storage to
+   Lagrange form before checking the geometric-node contract. The planar curve
+   case also runs the complete zero-adaptation `runMetris()` lifecycle and
+   checks the invariants afterward; it verifies the elevated parameter, exact
+   `C(t)` coordinate, non-chord geometry, and full-dimensional P2 validity. The
+   surface case verifies that native P2 input requests no further elevation,
+   then checks the shared-edge `(u,v)`, exact `S(u,v)` coordinate, background
+   localization, and preservation of the lower-dimensional curve ownership.
+
+   A complete `runMetris()` lifecycle is intentionally not claimed for the
+   embedded surface case. Its final metric-cost report currently assumes that
+   a topological 2D mesh also has geometric dimension 2; supporting the
+   `tdim=2`, `gdim=3` dispatch belongs with the deferred embedded-mesh work, not
+   the planar-first Phase 6 scope.
+
+   Exercising the full topology audit also qualified the regression inputs
+   themselves. Straight EGADS lines use unit directions with physical-length
+   parameter ranges, endpoint parameters are obtained by inverse evaluation,
+   and the surface mesh supplies a parameter record for every
+   vertex--incident-face pair. Release and Debug builds pass all three curve
+   cases and both surface cases.

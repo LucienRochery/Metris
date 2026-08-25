@@ -94,19 +94,27 @@ std::unique_ptr<CurvedPlanarCadCase> make_curved_planar_cad_case()
   for(int iline = 0; iline < 2; iline++){
     const int first = lineEndpoints[iline][0];
     const int second = lineEndpoints[iline][1];
+    const double direction[3] = {
+        coordinates[second][0] - coordinates[first][0],
+        coordinates[second][1] - coordinates[first][1],
+        coordinates[second][2] - coordinates[first][2]};
+    const double length = std::sqrt(
+        direction[0]*direction[0]
+      + direction[1]*direction[1]
+      + direction[2]*direction[2]);
     double lineData[6] = {
         coordinates[first][0],
         coordinates[first][1],
         coordinates[first][2],
-        coordinates[second][0] - coordinates[first][0],
-        coordinates[second][1] - coordinates[first][1],
-        coordinates[second][2] - coordinates[first][2]};
+        direction[0]/length,
+        direction[1]/length,
+        direction[2]/length};
     ego line;
     require_egads_success(
         EG_makeGeometry(
             testCase->context,CURVE,LINE,nullptr,nullptr,lineData,&line),
         "EG_makeGeometry(LINE)");
-    double lineRange[2] = {0.0,1.0};
+    double lineRange[2] = {0.0,length};
     ego lineNodes[2] = {nodes[first],nodes[second]};
     require_egads_success(
         EG_makeTopology(
@@ -160,10 +168,24 @@ std::unique_ptr<CurvedPlanarCadCase> make_curved_planar_cad_case()
       {0,0},{1,0},
       {1,1},{2,1},
       {2,2},{0,2}};
-  const double geometricEdgeParameters[6][2] = {
-      {circle_start,0.0},{circle_end,0.0},
-      {0.0,0.0},{1.0,0.0},
-      {0.0,0.0},{1.0,0.0}};
+  double geometricEdgeParameters[6][2];
+  for(int record = 0; record < 6; record++){
+    const int point = geometricEdgePoints[record][0];
+    const int meshEdge = geometricEdgePoints[record][1];
+    double parameter[2] = {0.0,0.0};
+    double evaluation[18];
+    require_egads_success(
+        EG_invEvaluate(
+            edges[meshEdge],coordinates[point],parameter,evaluation),
+        "EG_invEvaluate(boundary vertex)");
+    BOOST_REQUIRE_SMALL(
+        std::hypot(
+            coordinates[point][0] - evaluation[0],
+            coordinates[point][1] - evaluation[1]),
+        1.e-13);
+    geometricEdgeParameters[record][0] = parameter[0];
+    geometricEdgeParameters[record][1] = 0.0;
+  }
   input.setVerticesOnGeometricEdges(
       0,6,&geometricEdgePoints[0][0],
       &geometricEdgeParameters[0][0]);
@@ -182,6 +204,57 @@ std::unique_ptr<CurvedPlanarCadCase> make_curved_planar_cad_case()
       &input,nullptr,parameters);
   BOOST_REQUIRE_EQUAL(testCase->runner->degElevate(),1);
   return testCase;
+}
+
+std::string curved_planar_output_directory(const char *stage)
+{
+  const std::filesystem::path directory
+      = std::filesystem::temp_directory_path()
+      / "metris_high_order_curved_cad_smoothing"
+      / stage;
+  std::filesystem::create_directories(directory);
+  return directory.string() + "/";
+}
+
+void check_curved_curve_node_invariants(
+    Mesh<MetricFieldAnalytical> &mesh)
+{
+  mesh.setBasis(FEBasis::Lagrange);
+  BOOST_REQUIRE_EQUAL(mesh.curdeg,2);
+  BOOST_REQUIRE(mesh.getBasis() == FEBasis::Lagrange);
+
+  constexpr int curvedMeshEdge = 0;
+  const int controlPoint = mesh.edg2poi(curvedMeshEdge,2);
+  BOOST_REQUIRE_GE(controlPoint,0);
+  const int boundaryRecord
+      = mesh.poi2ebp(controlPoint,1,curvedMeshEdge,-1);
+  BOOST_REQUIRE_GE(boundaryRecord,0);
+  BOOST_CHECK_EQUAL(mesh.bpo2ibi(boundaryRecord,1),1);
+
+  const double parameter = mesh.bpo2rbi(boundaryRecord,0);
+  BOOST_CHECK_SMALL(
+      parameter - 0.5*(circle_start + circle_end),1.e-14);
+  const ego cadEdge = mesh.CAD.cad2edg[mesh.edg2ref[curvedMeshEdge]];
+  double evaluation[18];
+  require_egads_success(
+      EG_evaluate(cadEdge,&parameter,evaluation),
+      "EG_evaluate(curve regression node)");
+  BOOST_CHECK_SMALL(mesh.coord(controlPoint,0) - evaluation[0],1.e-13);
+  BOOST_CHECK_SMALL(mesh.coord(controlPoint,1) - evaluation[1],1.e-13);
+
+  const int firstEndpoint = mesh.edg2poi(curvedMeshEdge,0);
+  const int secondEndpoint = mesh.edg2poi(curvedMeshEdge,1);
+  const double chordMidpoint[2] = {
+      0.5*(mesh.coord(firstEndpoint,0) + mesh.coord(secondEndpoint,0)),
+      0.5*(mesh.coord(firstEndpoint,1) + mesh.coord(secondEndpoint,1))};
+  BOOST_CHECK_GT(
+      std::hypot(
+          mesh.coord(controlPoint,0) - chordMidpoint[0],
+          mesh.coord(controlPoint,1) - chordMidpoint[1]),
+      0.25);
+  BOOST_CHECK((
+      classify_element_validity<2,2>(mesh,0)
+          .accepted_conservatively()));
 }
 
 void check_curved_boundary_smoothing(QuaFun objective)
@@ -285,4 +358,30 @@ BOOST_AUTO_TEST_CASE(p2_curved_cad_edge_sizeshape_smoothing)
 BOOST_AUTO_TEST_CASE(p2_curved_cad_edge_stepdistance_smoothing)
 {
   check_curved_boundary_smoothing(QuaFun::StepDistance);
+}
+
+BOOST_AUTO_TEST_CASE(p2_curved_cad_curve_native_input_regression)
+{
+  auto testCase = make_curved_planar_cad_case();
+  auto &elevatedMesh = static_cast<Mesh<MetricFieldAnalytical>&>(
+      *testCase->runner->msh_g);
+  check_curved_curve_node_invariants(elevatedMesh);
+
+  MetrisAPI nativeP2Data(*testCase->runner);
+  MetrisParameters parameters;
+  parameters.setAnalyticalMetric(1);
+  parameters.usrTarDeg = 2;
+  parameters.adp_niter = 0;
+  parameters.opt_niter = 0;
+  parameters.iverb = 0;
+  parameters.outmPrefix
+      = curved_planar_output_directory("native_p2");
+  testCase->runner
+      = std::make_unique<MetrisRunner>(&nativeP2Data,nullptr,parameters);
+
+  auto &nativeMesh = static_cast<Mesh<MetricFieldAnalytical>&>(
+      *testCase->runner->msh_g);
+  check_curved_curve_node_invariants(nativeMesh);
+  BOOST_REQUIRE_NO_THROW(testCase->runner->runMetris());
+  check_curved_curve_node_invariants(nativeMesh);
 }
