@@ -338,6 +338,93 @@ SANS::SurrealS<dimension,double> step_distance_pointwise_value(
 }
 
 template<int dimension>
+void step_distance_pointwise_gradient(
+    const double *regular_jacobian_transpose,
+    const double *metric,
+    const double *regular_basis_gradient,
+    const double objective_power,
+    const double regularization,
+    SANS::SurrealS<dimension,double> *pointwise_gradient)
+{
+  using S = SANS::SurrealS<dimension,double>;
+  constexpr int packed_count = dimension*(dimension + 1)/2;
+  S jacobian[dimension*dimension];
+  S gram_matrix[dimension*dimension];
+  S packed_gram_matrix[packed_count];
+  seed_regular_jacobian<dimension>(
+      regular_jacobian_transpose,regular_basis_gradient,jacobian);
+  form_metric_gram_matrix<dimension,S>(jacobian,metric,gram_matrix);
+  pack_symmetric_matrix<dimension,S>(gram_matrix,packed_gram_matrix);
+
+  S eigenvalues[dimension];
+  S eigenvectors[dimension*dimension];
+  geteigsym<dimension,S>(
+      packed_gram_matrix,eigenvalues,eigenvectors);
+
+  S squared_distance = S(0.0);
+  S inverse_logarithms[dimension];
+  for(int eigenvalue = 0; eigenvalue < dimension; eigenvalue++){
+    const S logarithm = log(eigenvalues[eigenvalue]);
+    squared_distance += logarithm*logarithm;
+    inverse_logarithms[eigenvalue]
+        = logarithm/eigenvalues[eigenvalue];
+  }
+
+  // B = A^{-1} log(A), reconstructed independently from the eigensystem.
+  S inverse_log_gram[dimension*dimension];
+  for(int entry = 0; entry < dimension*dimension; entry++){
+    inverse_log_gram[entry] = S(0.0);
+  }
+  for(int eigenvalue = 0; eigenvalue < dimension; eigenvalue++){
+    for(int row = 0; row < dimension; row++){
+      for(int column = 0; column < dimension; column++){
+        inverse_log_gram[row*dimension + column]
+            += inverse_logarithms[eigenvalue]
+             * eigenvectors[eigenvalue*dimension + row]
+             * eigenvectors[eigenvalue*dimension + column];
+      }
+    }
+  }
+
+  S inverse_log_times_gradient[dimension];
+  for(int row = 0; row < dimension; row++){
+    inverse_log_times_gradient[row] = S(0.0);
+    for(int column = 0; column < dimension; column++){
+      inverse_log_times_gradient[row]
+          += inverse_log_gram[row*dimension + column]
+           * S(regular_basis_gradient[column]);
+    }
+  }
+
+  S jacobian_times_gradient[dimension];
+  for(int component = 0; component < dimension; component++){
+    jacobian_times_gradient[component] = S(0.0);
+    for(int regular_component = 0;
+        regular_component < dimension; regular_component++){
+      jacobian_times_gradient[component]
+          += jacobian[regular_component*dimension + component]
+           * inverse_log_times_gradient[regular_component];
+    }
+  }
+
+  const S scale
+      = S(2.0*objective_power)
+       *pow(squared_distance + S(regularization*regularization),
+            objective_power/2.0 - 1.0);
+  for(int component = 0; component < dimension; component++){
+    pointwise_gradient[component] = S(0.0);
+    for(int physical_component = 0;
+        physical_component < dimension; physical_component++){
+      pointwise_gradient[component]
+          += S(metric[packed_symmetric_index<dimension>(
+                   component,physical_component)])
+           * jacobian_times_gradient[physical_component];
+    }
+    pointwise_gradient[component] *= scale;
+  }
+}
+
+template<int dimension>
 SANS::SurrealS<dimension,double> metric_volume_barrier_value(
     const double *regular_jacobian_transpose,
     const double *metric,

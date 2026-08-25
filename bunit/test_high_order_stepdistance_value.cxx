@@ -6,20 +6,29 @@
 
 #include <boost/test/included/unit_test.hpp>
 
+#include "frozen_objective_value_ad.hxx"
 #include "Mesh/Mesh.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include "ho_constants.hxx"
+#include "linalg/det.hxx"
+#include "linalg/explogmet.hxx"
+#include "linalg/symidx.hxx"
+#include "low_eval.hxx"
 #include "quality/low_metqua.hxx"
 #include "quality/low_metqua_d.hxx"
 #include "quality/objective_quadrature_derivatives.hxx"
+#include "quality/objective_quadrature_sample.hxx"
 #include "quality/pointwise_objective.hxx"
 #include "quality/objective_quadrature_value.hxx"
+#include "quality/quafun_stepDistance.hxx"
 #include "quality/simplex_quadrature.hxx"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <limits>
 #include <type_traits>
+#include <vector>
 
 namespace Metris
 {
@@ -28,15 +37,31 @@ namespace
 {
 
 template<int gdim>
-void identity_analytical_metric(
-    const AnaMetCtx *, const double *, double scale,
+void evaluate_test_metric(const double *coordinate,
+                          double scale,
+                          double *metric)
+{
+  if constexpr(gdim == 2){
+    metric[0] = scale*(1.40 + 0.20*coordinate[0]);
+    metric[1] = scale*(0.05 + 0.02*coordinate[1]);
+    metric[2] = scale*(0.90 + 0.15*coordinate[1]);
+  }else{
+    metric[0] = scale*(1.45 + 0.12*coordinate[0]);
+    metric[1] = scale*(0.04 + 0.01*coordinate[1]);
+    metric[2] = scale*(1.10 + 0.10*coordinate[1]);
+    metric[3] = scale*(-0.02 + 0.01*coordinate[2]);
+    metric[4] = scale*(0.03 + 0.01*coordinate[0]);
+    metric[5] = scale*(0.88 + 0.09*coordinate[2]);
+  }
+}
+
+template<int gdim>
+void varying_analytical_metric(
+    const AnaMetCtx *, const double *coordinate, double scale,
     int derivative_order, double *metric, double *metric_derivative)
 {
   constexpr int metric_count = gdim*(gdim + 1)/2;
-  std::fill(metric,metric + metric_count,0.0);
-  for(int component = 0; component < gdim; component++){
-    metric[component*(component + 1)/2 + component] = scale;
-  }
+  evaluate_test_metric<gdim>(coordinate,scale,metric);
   if(derivative_order == 0) return;
   std::fill(metric_derivative,
             metric_derivative + gdim*metric_count,0.0);
@@ -103,22 +128,313 @@ void initialize_curved_p2_stepdistance_element(
   if constexpr(std::is_same<MFT,MetricFieldAnalytical>::value){
     if constexpr(gdim == 2){
       parameters.setAnalyticalMetric(
-          AnaMetFun(identity_analytical_metric<2>));
+          AnaMetFun(varying_analytical_metric<2>));
     }else{
       parameters.setAnalyticalMetric(
-          AnaMetFun(identity_analytical_metric<3>));
+          AnaMetFun(varying_analytical_metric<3>));
     }
     mesh.met.setAnalyticalMetric(parameters);
   }
 
   for(int ipoin = 0; ipoin < node_count; ipoin++){
+    double metric[metric_count];
+    evaluate_test_metric<gdim>(mesh.coord[ipoin],1.0,metric);
     for(int imetric = 0; imetric < metric_count; imetric++){
-      mesh.met(ipoin,imetric) = 0.0;
-    }
-    for(int component = 0; component < gdim; component++){
-      mesh.met(ipoin,component*(component + 1)/2 + component) = 1.0;
+      mesh.met(ipoin,imetric) = metric[imetric];
     }
   }
+}
+
+template<int gdim>
+double determinant_from_rows(const double *matrix)
+{
+  if constexpr(gdim == 2){
+    return matrix[0]*matrix[3] - matrix[1]*matrix[2];
+  }else{
+    return matrix[0]*(matrix[4]*matrix[8] - matrix[5]*matrix[7])
+         - matrix[1]*(matrix[3]*matrix[8] - matrix[5]*matrix[6])
+         + matrix[2]*(matrix[3]*matrix[7] - matrix[4]*matrix[6]);
+  }
+}
+
+template<int gdim>
+std::array<double,gdim*(gdim + 1)/2>
+independent_p1_fe_metric(const Mesh<MetricFieldFE> &mesh,
+                         const int *nodes,
+                         const double *barycentric_coordinates)
+{
+  constexpr int metric_count = gdim*(gdim + 1)/2;
+  std::array<double,metric_count> metric{};
+  for(int vertex = 0; vertex < gdim + 1; vertex++){
+    std::array<double,metric_count> logarithmic_metric{};
+    for(int imetric = 0; imetric < metric_count; imetric++){
+      logarithmic_metric[imetric] = mesh.met(nodes[vertex],imetric);
+    }
+    getlogmet_inp<gdim,double>(logarithmic_metric.data());
+    for(int imetric = 0; imetric < metric_count; imetric++){
+      metric[imetric]
+          += barycentric_coordinates[vertex]*logarithmic_metric[imetric];
+    }
+  }
+  getexpmet_inp<gdim,double>(metric.data());
+  return metric;
+}
+
+template<class MFT, int gdim>
+void independent_p2_geometry(const Mesh<MFT> &mesh,
+                             const int *nodes,
+                             const double *barycentric_coordinates,
+                             double *physical_coordinates,
+                             double *jacobian_transpose)
+{
+  constexpr int node_count = getnnode(gdim,2);
+  constexpr auto ordering = ORDELT(gdim);
+  std::fill(physical_coordinates,physical_coordinates + gdim,0.0);
+  std::fill(jacobian_transpose,
+            jacobian_transpose + gdim*gdim,0.0);
+
+  for(int inode = 0; inode < node_count; inode++){
+    int first_barycentric_index = -1;
+    int second_barycentric_index = -1;
+    for(int ibary = 0; ibary < gdim + 1; ibary++){
+      if(ordering[2][inode][ibary] == 2){
+        first_barycentric_index = ibary;
+        second_barycentric_index = ibary;
+      }else if(ordering[2][inode][ibary] == 1){
+        if(first_barycentric_index < 0){
+          first_barycentric_index = ibary;
+        }else{
+          second_barycentric_index = ibary;
+        }
+      }
+    }
+    BOOST_REQUIRE(first_barycentric_index >= 0);
+    BOOST_REQUIRE(second_barycentric_index >= 0);
+
+    const auto barycentric_gradient = [](int ibary, int derivative){
+      if(ibary == 0) return -1.0;
+      return ibary == derivative + 1 ? 1.0 : 0.0;
+    };
+    double basis_value;
+    double basis_gradient[gdim] = {};
+    if(first_barycentric_index == second_barycentric_index){
+      const double lambda
+          = barycentric_coordinates[first_barycentric_index];
+      basis_value = lambda*(2.0*lambda - 1.0);
+      for(int derivative = 0; derivative < gdim; derivative++){
+        basis_gradient[derivative]
+            = (4.0*lambda - 1.0)
+            * barycentric_gradient(first_barycentric_index,derivative);
+      }
+    }else{
+      const double first_lambda
+          = barycentric_coordinates[first_barycentric_index];
+      const double second_lambda
+          = barycentric_coordinates[second_barycentric_index];
+      basis_value = 4.0*first_lambda*second_lambda;
+      for(int derivative = 0; derivative < gdim; derivative++){
+        basis_gradient[derivative]
+            = 4.0*(second_lambda
+                    *barycentric_gradient(first_barycentric_index,derivative)
+                  + first_lambda
+                    *barycentric_gradient(second_barycentric_index,derivative));
+      }
+    }
+
+    for(int component = 0; component < gdim; component++){
+      physical_coordinates[component]
+          += basis_value*mesh.coord(nodes[inode],component);
+      for(int derivative = 0; derivative < gdim; derivative++){
+        jacobian_transpose[derivative*gdim + component]
+            += basis_gradient[derivative]
+             * mesh.coord(nodes[inode],component);
+      }
+    }
+  }
+}
+
+template<int gdim>
+double independent_metric_determinant(const double *metric)
+{
+  if constexpr(gdim == 2){
+    return metric[0]*metric[2] - metric[1]*metric[1];
+  }else{
+    return metric[0]*(metric[2]*metric[5] - metric[4]*metric[4])
+         - metric[1]*(metric[1]*metric[5] - metric[3]*metric[4])
+         + metric[3]*(metric[1]*metric[4] - metric[2]*metric[3]);
+  }
+}
+
+template<class MFT, int gdim>
+double independent_p2_stepdistance_dense_reference(Mesh<MFT> &mesh)
+{
+  constexpr int metric_count = gdim*(gdim + 1)/2;
+  constexpr int ngauss = 8;
+  constexpr double gauss_points[ngauss] = {
+      0.019855071751231884,0.10166676129318663,
+      0.23723379504183550,0.40828267875217510,
+      0.59171732124782490,0.76276620495816450,
+      0.89833323870681337,0.98014492824876812};
+  constexpr double gauss_weights[ngauss] = {
+      0.05061426814518813,0.11119051722668724,
+      0.15685332293894364,0.18134189168918099,
+      0.18134189168918099,0.15685332293894364,
+      0.11119051722668724,0.05061426814518813};
+  constexpr double reference_measure = gdim == 2 ? 0.5 : 1.0/6.0;
+  const int *nodes = mesh.ent2poi(gdim)[0];
+  double integral = 0.0;
+
+  const auto accumulate_sample = [&](const double *barycentric_coordinates,
+                                     double normalized_weight){
+    // This oracle owns the P2 basis, geometry, metric interpolation, matrix
+    // assembly, StepDistance formula, and quadrature loop. It deliberately
+    // bypasses the production objective integration and sample preparation.
+    double physical_coordinates[gdim];
+    double jacobian_transpose[gdim*gdim];
+    independent_p2_geometry<MFT,gdim>(
+        mesh,nodes,barycentric_coordinates,
+        physical_coordinates,jacobian_transpose);
+
+    std::array<double,metric_count> metric{};
+    if constexpr(std::is_same<MFT,MetricFieldAnalytical>::value){
+      evaluate_test_metric<gdim>(physical_coordinates,1.0,metric.data());
+    }else{
+      metric = independent_p1_fe_metric<gdim>(
+          mesh,nodes,barycentric_coordinates);
+    }
+
+    double regular_jacobian_transpose[gdim*gdim] = {};
+    for(int row = 0; row < gdim; row++){
+      for(int component = 0; component < gdim; component++){
+        for(int derivative = 0; derivative < gdim; derivative++){
+          regular_jacobian_transpose[row*gdim + component]
+              += Constants::invtJ_0[hana::type_c<double>][gdim]
+                    [row*gdim + derivative]
+               * jacobian_transpose[derivative*gdim + component];
+        }
+      }
+    }
+
+    const auto metric_entry = [&](int row, int column){
+      const int upper = std::max(row,column);
+      const int lower = std::min(row,column);
+      return metric[upper*(upper + 1)/2 + lower];
+    };
+    double gram_matrix[gdim*gdim] = {};
+    for(int row = 0; row < gdim; row++){
+      for(int column = 0; column < gdim; column++){
+        for(int first_component = 0;
+            first_component < gdim; first_component++){
+          for(int second_component = 0;
+              second_component < gdim; second_component++){
+            gram_matrix[row*gdim + column]
+                += regular_jacobian_transpose[row*gdim + first_component]
+                 * metric_entry(first_component,second_component)
+                 * regular_jacobian_transpose[
+                       column*gdim + second_component];
+          }
+        }
+      }
+    }
+    double packed_gram_matrix[metric_count];
+    packed_gram_matrix[0] = gram_matrix[0];
+    packed_gram_matrix[1] = gram_matrix[1];
+    packed_gram_matrix[2] = gram_matrix[gdim + 1];
+    if constexpr(gdim == 3){
+      packed_gram_matrix[3] = gram_matrix[2];
+      packed_gram_matrix[4] = gram_matrix[5];
+      packed_gram_matrix[5] = gram_matrix[8];
+    }
+    double eigenvalues[gdim];
+    double eigenvectors[gdim*gdim];
+    geteigsym<gdim,double>(
+        packed_gram_matrix,eigenvalues,eigenvectors);
+    double squared_distance = 0.0;
+    for(int eigenvalue = 0; eigenvalue < gdim; eigenvalue++){
+      BOOST_REQUIRE_GT(eigenvalues[eigenvalue],0.0);
+      const double logarithm = std::log(eigenvalues[eigenvalue]);
+      squared_distance += logarithm*logarithm;
+    }
+    const double regularization
+        = mesh.param->step_distance_regularization;
+    const double psi
+        = std::pow(squared_distance + regularization*regularization,
+                   mesh.param->objective_p/2.0)
+        - std::pow(regularization,mesh.param->objective_p);
+
+    const double metric_determinant
+        = independent_metric_determinant<gdim>(metric.data());
+    double theta = reference_measure
+                 * std::abs(determinant_from_rows<gdim>(
+                       jacobian_transpose));
+    #ifdef INTQUALINRIEMSPACE
+    theta *= std::sqrt(metric_determinant);
+    #endif
+    integral += normalized_weight*theta*psi;
+  };
+
+  for(int iu = 0; iu < ngauss; iu++){
+    const double u = gauss_points[iu];
+    for(int iv = 0; iv < ngauss; iv++){
+      const double v = gauss_points[iv];
+      if constexpr(gdim == 2){
+        const double barycentric_coordinates[3]
+            = {(1.0 - u)*(1.0 - v),u,(1.0 - u)*v};
+        const double normalized_weight
+            = 2.0*gauss_weights[iu]*gauss_weights[iv]*(1.0 - u);
+        accumulate_sample(barycentric_coordinates,normalized_weight);
+      }else{
+        for(int iw = 0; iw < ngauss; iw++){
+          const double w = gauss_points[iw];
+          const double barycentric_coordinates[4]
+              = {(1.0 - u)*(1.0 - v)*(1.0 - w),u,
+                 (1.0 - u)*v,(1.0 - u)*(1.0 - v)*w};
+          const double normalized_weight
+              = 6.0*gauss_weights[iu]*gauss_weights[iv]*gauss_weights[iw]
+              * (1.0 - u)*(1.0 - u)*(1.0 - v);
+          accumulate_sample(barycentric_coordinates,normalized_weight);
+        }
+      }
+    }
+  }
+  return integral;
+}
+
+template<class MFT, int gdim>
+void check_p2_stepdistance_against_dense_reference()
+{
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_p = 1.25;
+  parameters.step_distance_regularization = 1.e-6;
+  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_cavity_target_average = false;
+  parameters.step_distance_barrier_beta = 0.0;
+
+  Mesh<MFT> mesh;
+  initialize_curved_p2_stepdistance_element<MFT,gdim>(mesh,parameters);
+  const double reference
+      = independent_p2_stepdistance_dense_reference<MFT,gdim>(mesh);
+  double values[4];
+  double errors[4];
+  for(int order = 2; order <= 5; order++){
+    parameters.objective_quadrature_order = order;
+    values[order - 2]
+        = metqua<MFT,gdim,gdim,QuaFun::StepDistance,double>(
+              mesh,AsDeg::Pk,AsDeg::P1,0,1.0);
+    errors[order - 2] = std::abs(values[order - 2] - reference);
+    BOOST_CHECK(std::isfinite(values[order - 2]));
+  }
+
+  BOOST_TEST_MESSAGE(
+      "P2 StepDistance dense reference=" << reference
+      << ", q2=" << values[0] << " (error " << errors[0] << ")"
+      << ", q3=" << values[1] << " (error " << errors[1] << ")"
+      << ", q4=" << values[2] << " (error " << errors[2] << ")"
+      << ", q5=" << values[3] << " (error " << errors[3] << ")");
+  BOOST_CHECK_LE(errors[3],errors[0]);
+  BOOST_CHECK_LE(
+      errors[3],2.e-5*std::max(1.0,std::abs(reference)));
 }
 
 template<class MFT, int gdim>
@@ -259,6 +575,375 @@ void check_stepdistance_edge_derivative_dispatch()
   BOOST_CHECK_GT(gradient_norm_squared,1.e-8);
 }
 
+template<int gdim>
+struct FrozenP2StepDistanceSamples
+{
+  static constexpr int metric_count = gdim*(gdim + 1)/2;
+  std::vector<std::array<double,gdim + 1>> barycentric_points;
+  std::vector<std::array<double,gdim*gdim>>
+      regular_jacobian_transposes;
+  std::vector<std::array<double,metric_count>> metrics;
+  std::vector<double> objective_weights;
+};
+
+template<class MFT, int gdim>
+FrozenP2StepDistanceSamples<gdim>
+capture_frozen_p2_stepdistance_samples(Mesh<MFT> &mesh)
+{
+  BOOST_REQUIRE(!mesh.param->step_distance_shape_volume);
+  BOOST_REQUIRE(!mesh.param->step_distance_cavity_target_average);
+  BOOST_REQUIRE_EQUAL(mesh.param->step_distance_barrier_beta,0.0);
+
+  FrozenP2StepDistanceSamples<gdim> samples;
+  const int *nodes = mesh.ent2poi(gdim)[0];
+  const SimplexQuadratureView<gdim> quadrature
+      = get_objective_quadrature<gdim>(
+            mesh.param->objective_quadrature_order);
+  const ObjectiveQuadratureTheta theta_mode
+      = objective_quadrature_theta_mode<QuaFun::StepDistance>(mesh);
+  samples.barycentric_points.reserve(quadrature.size());
+  samples.regular_jacobian_transposes.reserve(quadrature.size());
+  samples.metrics.reserve(quadrature.size());
+  samples.objective_weights.reserve(quadrature.size());
+
+  for(int iquad = 0; iquad < quadrature.size(); iquad++){
+    const ObjectiveQuadratureSample<gdim,gdim,2> sample
+        = prepare_objective_quadrature_sample<MFT,gdim,gdim,2>(
+              mesh,AsDeg::P1,nodes,quadrature[iquad],theta_mode);
+    BOOST_REQUIRE(sample.theta_is_valid);
+    samples.barycentric_points.push_back(
+        sample.barycentric_coordinates);
+    samples.regular_jacobian_transposes.push_back(
+        sample.regular_jacobian_transpose);
+    samples.metrics.push_back(sample.metric);
+    samples.objective_weights.push_back(
+        sample.quadrature_weight*sample.theta);
+  }
+  return samples;
+}
+
+template<class MFT, int gdim>
+double evaluate_frozen_p2_stepdistance_value(
+    Mesh<MFT> &mesh,
+    const FrozenP2StepDistanceSamples<gdim> &samples)
+{
+  const int *nodes = mesh.ent2poi(gdim)[0];
+  double value = 0.0;
+  for(std::size_t isample = 0;
+      isample < samples.objective_weights.size(); isample++){
+    value += samples.objective_weights[isample]
+           * quafun_stepDistance<MFT,gdim,gdim,double>(
+                 mesh,AsDeg::Pk,AsDeg::P1,nodes,
+                 samples.barycentric_points[isample].data(),
+                 samples.metrics[isample].data());
+  }
+  return value;
+}
+
+template<class MFT, int gdim>
+std::array<double,gdim> evaluate_frozen_p2_stepdistance_gradient_by_ad(
+    Mesh<MFT> &mesh,
+    const FrozenP2StepDistanceSamples<gdim> &samples,
+    const int active_control_point,
+    double *primal_value)
+{
+  using S = SANS::SurrealS<gdim,double>;
+  S value = S(0.0);
+  for(std::size_t isample = 0;
+      isample < samples.objective_weights.size(); isample++){
+    const std::array<double,gdim> regular_basis_gradient
+        = objective_regular_basis_gradient<gdim,2>(
+              mesh.getBasis(),active_control_point,
+              samples.barycentric_points[isample].data());
+    value += S(samples.objective_weights[isample])
+           * FrozenObjectiveValueAD::step_distance_pointwise_value<gdim>(
+                 samples.regular_jacobian_transposes[isample].data(),
+                 samples.metrics[isample].data(),
+                 regular_basis_gradient.data(),
+                 mesh.param->objective_p,
+                 mesh.param->step_distance_regularization,false);
+  }
+
+  std::array<double,gdim> gradient{};
+  *primal_value = value.value();
+  for(int component = 0; component < gdim; component++){
+    gradient[component] = value.deriv(component);
+  }
+  return gradient;
+}
+
+template<class MFT, int gdim>
+double evaluate_frozen_p2_stepdistance_derivatives(
+    Mesh<MFT> &mesh,
+    const FrozenP2StepDistanceSamples<gdim> &samples,
+    const int active_control_point,
+    double *gradient,
+    double *hessian)
+{
+  constexpr int hessian_count = gdim*(gdim + 1)/2;
+  std::fill(gradient,gradient + gdim,0.0);
+  if(hessian != NULL){
+    std::fill(hessian,hessian + hessian_count,0.0);
+  }
+
+  const int *nodes = mesh.ent2poi(gdim)[0];
+  double value = 0.0;
+  for(std::size_t isample = 0;
+      isample < samples.objective_weights.size(); isample++){
+    double pointwise_gradient[gdim];
+    double pointwise_hessian[hessian_count];
+    value += samples.objective_weights[isample]
+           * d_quafun_stepDistance<MFT,gdim,gdim,double>(
+                 mesh,AsDeg::Pk,AsDeg::P1,nodes,
+                 samples.barycentric_points[isample].data(),
+                 samples.metrics[isample].data(),active_control_point,
+                 mesh.getBasis(),DifVar::None,pointwise_gradient,
+                 hessian == NULL ? NULL : pointwise_hessian);
+    for(int component = 0; component < gdim; component++){
+      gradient[component] += samples.objective_weights[isample]
+                           * pointwise_gradient[component];
+    }
+    if(hessian != NULL){
+      for(int entry = 0; entry < hessian_count; entry++){
+        hessian[entry] += samples.objective_weights[isample]
+                        * pointwise_hessian[entry];
+      }
+    }
+  }
+  return value;
+}
+
+template<int gdim>
+void evaluate_frozen_p2_stepdistance_hessian_by_gradient_ad(
+    const FrozenP2StepDistanceSamples<gdim> &samples,
+    const int active_control_point,
+    FEBasis basis,
+    double objective_power,
+    double regularization,
+    double *gradient,
+    double *hessian)
+{
+  using S = SANS::SurrealS<gdim,double>;
+  S differentiated_gradient[gdim];
+  for(int component = 0; component < gdim; component++){
+    differentiated_gradient[component] = S(0.0);
+  }
+
+  for(std::size_t isample = 0;
+      isample < samples.objective_weights.size(); isample++){
+    const std::array<double,gdim> regular_basis_gradient
+        = objective_regular_basis_gradient<gdim,2>(
+              basis,active_control_point,
+              samples.barycentric_points[isample].data());
+    S pointwise_gradient[gdim];
+    FrozenObjectiveValueAD::step_distance_pointwise_gradient<gdim>(
+        samples.regular_jacobian_transposes[isample].data(),
+        samples.metrics[isample].data(),regular_basis_gradient.data(),
+        objective_power,regularization,pointwise_gradient);
+    for(int component = 0; component < gdim; component++){
+      differentiated_gradient[component]
+          += S(samples.objective_weights[isample])
+           * pointwise_gradient[component];
+    }
+  }
+
+  for(int component = 0; component < gdim; component++){
+    gradient[component] = differentiated_gradient[component].value();
+    for(int derivative = component;
+        derivative < gdim; derivative++){
+      hessian[sym2idx(component,derivative)]
+          = differentiated_gradient[component].deriv(derivative);
+    }
+  }
+}
+
+template<class MFT, int gdim>
+void check_stepdistance_edge_gradient(FEBasis geometry_basis)
+{
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_quadrature_order = 5;
+  parameters.objective_p = 1.25;
+  parameters.step_distance_regularization = 1.e-6;
+  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_cavity_target_average = false;
+  parameters.step_distance_barrier_beta = 0.0;
+
+  Mesh<MFT> mesh;
+  initialize_curved_p2_stepdistance_element<MFT,gdim>(mesh,parameters);
+  mesh.setBasis(geometry_basis);
+  constexpr int active_edge_control_point = gdim + 1;
+  const int active_point
+      = mesh.ent2poi(gdim)(0,active_edge_control_point);
+  const FrozenP2StepDistanceSamples<gdim> samples
+      = capture_frozen_p2_stepdistance_samples<MFT,gdim>(mesh);
+
+  double gradient[gdim];
+  const double differentiated_value
+      = d_metqua<MFT,gdim,gdim,QuaFun::StepDistance,double>(
+            mesh,AsDeg::Pk,AsDeg::P1,0,
+            active_edge_control_point,geometry_basis,DifVar::None,
+            gradient,NULL,1.0);
+  const double frozen_value
+      = evaluate_frozen_p2_stepdistance_value<MFT,gdim>(mesh,samples);
+  BOOST_CHECK_CLOSE_FRACTION(
+      differentiated_value,frozen_value,3.e-14);
+
+  double automatic_value;
+  const std::array<double,gdim> automatic_gradient
+      = evaluate_frozen_p2_stepdistance_gradient_by_ad<MFT,gdim>(
+            mesh,samples,active_edge_control_point,&automatic_value);
+  BOOST_CHECK_CLOSE_FRACTION(
+      automatic_value,frozen_value,3.e-14);
+  double maximum_automatic_gradient_error = 0.0;
+  for(int component = 0; component < gdim; component++){
+    const double error
+        = std::abs(gradient[component] - automatic_gradient[component]);
+    maximum_automatic_gradient_error
+        = std::max(maximum_automatic_gradient_error,error);
+    BOOST_CHECK_SMALL(
+        error,5.e-14*(1.0 + std::abs(automatic_gradient[component])));
+  }
+
+  constexpr double finite_difference_step = 2.e-6;
+  double maximum_finite_difference_gradient_error = 0.0;
+  for(int component = 0; component < gdim; component++){
+    const double coordinate = mesh.coord(active_point,component);
+    mesh.coord(active_point,component)
+        = coordinate + finite_difference_step;
+    const double plus_value
+        = evaluate_frozen_p2_stepdistance_value<MFT,gdim>(mesh,samples);
+    mesh.coord(active_point,component)
+        = coordinate - finite_difference_step;
+    const double minus_value
+        = evaluate_frozen_p2_stepdistance_value<MFT,gdim>(mesh,samples);
+    mesh.coord(active_point,component) = coordinate;
+
+    const double finite_difference_gradient
+        = (plus_value - minus_value)/(2.0*finite_difference_step);
+    const double error
+        = std::abs(gradient[component] - finite_difference_gradient);
+    maximum_finite_difference_gradient_error
+        = std::max(maximum_finite_difference_gradient_error,error);
+    BOOST_CHECK_SMALL(
+        error,1.e-7*(1.0 + std::abs(finite_difference_gradient)));
+  }
+  BOOST_TEST_MESSAGE(
+      "P2 frozen StepDistance edge gradient: AD error="
+      << maximum_automatic_gradient_error
+      << ", finite-difference error="
+      << maximum_finite_difference_gradient_error);
+}
+
+template<class MFT, int gdim>
+void check_stepdistance_edge_hessian(FEBasis geometry_basis)
+{
+  constexpr int hessian_count = gdim*(gdim + 1)/2;
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_quadrature_order = 5;
+  parameters.objective_p = 1.25;
+  parameters.step_distance_regularization = 1.e-6;
+  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_cavity_target_average = false;
+  parameters.step_distance_barrier_beta = 0.0;
+
+  Mesh<MFT> mesh;
+  initialize_curved_p2_stepdistance_element<MFT,gdim>(mesh,parameters);
+  mesh.setBasis(geometry_basis);
+  constexpr int active_edge_control_point = gdim + 1;
+  const int active_point
+      = mesh.ent2poi(gdim)(0,active_edge_control_point);
+  const FrozenP2StepDistanceSamples<gdim> samples
+      = capture_frozen_p2_stepdistance_samples<MFT,gdim>(mesh);
+
+  double production_gradient[gdim];
+  double production_hessian[hessian_count];
+  const double production_value
+      = d_metqua<MFT,gdim,gdim,QuaFun::StepDistance,double>(
+            mesh,AsDeg::Pk,AsDeg::P1,0,
+            active_edge_control_point,geometry_basis,DifVar::None,
+            production_gradient,production_hessian,1.0);
+
+  double reconstructed_gradient[gdim];
+  double reconstructed_hessian[hessian_count];
+  const double reconstructed_value
+      = evaluate_frozen_p2_stepdistance_derivatives<MFT,gdim>(
+            mesh,samples,active_edge_control_point,
+            reconstructed_gradient,reconstructed_hessian);
+  BOOST_CHECK_CLOSE_FRACTION(
+      production_value,reconstructed_value,3.e-14);
+  for(int component = 0; component < gdim; component++){
+    BOOST_CHECK_SMALL(
+        production_gradient[component] - reconstructed_gradient[component],
+        5.e-14*(1.0 + std::abs(reconstructed_gradient[component])));
+  }
+  for(int entry = 0; entry < hessian_count; entry++){
+    BOOST_CHECK_SMALL(
+        production_hessian[entry] - reconstructed_hessian[entry],
+        5.e-14*(1.0 + std::abs(reconstructed_hessian[entry])));
+  }
+
+  double automatic_gradient[gdim];
+  double automatic_hessian[hessian_count];
+  evaluate_frozen_p2_stepdistance_hessian_by_gradient_ad<gdim>(
+      samples,active_edge_control_point,mesh.getBasis(),
+      parameters.objective_p,parameters.step_distance_regularization,
+      automatic_gradient,automatic_hessian);
+
+  double maximum_automatic_hessian_error = 0.0;
+  for(int component = 0; component < gdim; component++){
+    BOOST_CHECK_SMALL(
+        production_gradient[component] - automatic_gradient[component],
+        5.e-14*(1.0 + std::abs(automatic_gradient[component])));
+  }
+  for(int entry = 0; entry < hessian_count; entry++){
+    const double error
+        = std::abs(production_hessian[entry] - automatic_hessian[entry]);
+    maximum_automatic_hessian_error
+        = std::max(maximum_automatic_hessian_error,error);
+    BOOST_CHECK_SMALL(
+        error,5.e-14*(1.0 + std::abs(automatic_hessian[entry])));
+  }
+
+  constexpr double finite_difference_step = 2.e-6;
+  double maximum_finite_difference_hessian_error = 0.0;
+  for(int derivative = 0; derivative < gdim; derivative++){
+    const double coordinate = mesh.coord(active_point,derivative);
+    double plus_gradient[gdim];
+    double minus_gradient[gdim];
+
+    mesh.coord(active_point,derivative)
+        = coordinate + finite_difference_step;
+    evaluate_frozen_p2_stepdistance_derivatives<MFT,gdim>(
+        mesh,samples,active_edge_control_point,plus_gradient,NULL);
+    mesh.coord(active_point,derivative)
+        = coordinate - finite_difference_step;
+    evaluate_frozen_p2_stepdistance_derivatives<MFT,gdim>(
+        mesh,samples,active_edge_control_point,minus_gradient,NULL);
+    mesh.coord(active_point,derivative) = coordinate;
+
+    for(int component = 0; component <= derivative; component++){
+      const int entry = sym2idx(component,derivative);
+      const double finite_difference_hessian
+          = (plus_gradient[component] - minus_gradient[component])
+           /(2.0*finite_difference_step);
+      const double error
+          = std::abs(production_hessian[entry]
+                     - finite_difference_hessian);
+      maximum_finite_difference_hessian_error
+          = std::max(maximum_finite_difference_hessian_error,error);
+      BOOST_CHECK_SMALL(
+          error,1.e-7*(1.0 + std::abs(finite_difference_hessian)));
+    }
+  }
+  BOOST_TEST_MESSAGE(
+      "P2 frozen StepDistance edge Hessian: AD error="
+      << maximum_automatic_hessian_error
+      << ", finite-difference error="
+      << maximum_finite_difference_hessian_error);
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(p2_stepdistance_value_uses_degree_aware_geometry)
@@ -275,6 +960,34 @@ BOOST_AUTO_TEST_CASE(p2_edge_stepdistance_derivative_uses_degree_aware_dispatch)
   check_stepdistance_edge_derivative_dispatch<MetricFieldAnalytical,2>();
   check_stepdistance_edge_derivative_dispatch<MetricFieldFE,3>();
   check_stepdistance_edge_derivative_dispatch<MetricFieldAnalytical,3>();
+}
+
+BOOST_AUTO_TEST_CASE(p2_stepdistance_matches_independent_dense_reference)
+{
+  check_p2_stepdistance_against_dense_reference<MetricFieldFE,2>();
+  check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,2>();
+  check_p2_stepdistance_against_dense_reference<MetricFieldFE,3>();
+  check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,3>();
+}
+
+BOOST_AUTO_TEST_CASE(p2_edge_stepdistance_gradient_matches_frozen_value_oracles)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_stepdistance_edge_gradient<MetricFieldFE,2>(basis);
+    check_stepdistance_edge_gradient<MetricFieldAnalytical,2>(basis);
+    check_stepdistance_edge_gradient<MetricFieldFE,3>(basis);
+    check_stepdistance_edge_gradient<MetricFieldAnalytical,3>(basis);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(p2_edge_stepdistance_hessian_matches_frozen_gradient_oracles)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_stepdistance_edge_hessian<MetricFieldFE,2>(basis);
+    check_stepdistance_edge_hessian<MetricFieldAnalytical,2>(basis);
+    check_stepdistance_edge_hessian<MetricFieldFE,3>(basis);
+    check_stepdistance_edge_hessian<MetricFieldAnalytical,3>(basis);
+  }
 }
 
 } // namespace Metris

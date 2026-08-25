@@ -777,3 +777,39 @@ would obstruct the first working path.
    only. Independent automatic-differentiation and centered-finite-difference
    checks belong to the basic-variant validation in Phase 5 step 3; the later
    StepDistance variants retain their separate roadmap entries.
+
+3. **Done (2026-08-25): implemented and independently validated the basic P2
+   StepDistance variant.** The focused test now uses a spatially varying
+   positive-definite metric and curved P2 triangles and tetrahedra. For both
+   FE and analytical metric fields, an independent eight-point-per-coordinate
+   Duffy quadrature reconstructs the explicit P2 Lagrange geometry, the
+   regular Jacobian, the spectral StepDistance value, and the geometric
+   integration weight without calling the production sample preparation or
+   objective integration. The FE oracle explicitly retains log-Euclidean P1
+   corner-metric interpolation. Configured objective quadrature orders two
+   through five are compared with this dense reference; order five improves
+   on order two in every case and remains within the `2e-5` scaled tolerance.
+
+   The differentiated checks capture order-five samples and freeze their
+   metric, quadrature point, and complete quadrature-times-theta weight. For
+   the first P2 edge control point, in both Lagrange and Bezier bases, the
+   production analytic gradient is compared with automatic differentiation
+   of an independently assembled scalar StepDistance value and with centered
+   differences of the frozen value. The analytic-versus-AD tolerance is
+   `5e-14 * (1 + abs(gradient))`; the largest observed absolute discrepancy is
+   approximately `1.33e-15`. The largest centered-difference gradient error is
+   approximately `5.86e-11`.
+
+   A separate scalar-generic oracle reconstructs the analytic spectral
+   gradient through `A^{-1} log(A)` and differentiates it automatically. This
+   checks the production Hessian independently of its AD-of-production-
+   gradient implementation. Centered differences of the frozen analytic
+   gradient provide the second Hessian oracle. The largest production-versus-
+   AD Hessian discrepancy is approximately `1.78e-15`, under the same `5e-14`
+   scaled tolerance, and the largest centered-difference Hessian error is
+   approximately `3.67e-10`, under the `1e-7` scaled tolerance.
+
+   This qualification covers the basic formula only, with the collapse
+   barrier disabled and `ShapeVolume` and `CavityTargetAverage` false. Their
+   separate Phase 5 steps remain pending, as do basic-variant validity
+   rejection and production smoothing enablement.
