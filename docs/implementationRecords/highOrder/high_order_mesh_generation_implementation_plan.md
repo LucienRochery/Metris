@@ -696,3 +696,30 @@ would obstruct the first working path.
    pass without production changes. Phase 4 step 8, enabling SizeShape P2
    smoothing after the completed value, derivative, and validity
    qualifications, is next. StepDistance remains P1-only until Phase 5.
+
+8. **Done (2026-08-25): enabled SizeShape for production planar P2
+   smoothing.** The production smoothing-objective policy now preserves the
+   configured default objective for P1 meshes but selects SizeShape for degree
+   two in geometric dimension two. With the current StepDistance build this is
+   an explicit planar P2 fallback: StepDistance continues to own the P1 path
+   and remains unelevated until its Phase 5 value, derivative, validity, and
+   smoothing qualification is complete.
+
+   The surrounding legacy optimizer diagnostics and topology-changing
+   operations retain their existing objective contracts; this step changes
+   only the ball-smoothing objective. The end-to-end high-order smoothing suite
+   was migrated from classical Distortion to the production SizeShape
+   selection. It checks an active interior P2 edge control point and a complete
+   small mesh in 2D, the public production optimizer on an already elevated
+   planar P2 mesh, CAD-constrained boundary smoothing, an interior edge shell
+   in 3D, and conservative rejection of a noncertified final candidate. All
+   accepted regions remain Bernstein-certified after smoothing.
+
+   The isolated 3D SizeShape edge-shell test remains enabled and passes, but a
+   full generated 3D optimizer case exposed a later interaction with legacy
+   swap/cavity operations that can reach a singular configuration after the
+   new smoothing pass. Consequently the 3D production selector deliberately
+   retains its previous objective. This follows the planar-first scope: Phase 4
+   is complete for production 2D, while 3D production integration is recorded
+   as follow-up work rather than being enabled on the strength of an isolated
+   test alone. Phase 5 is the separate StepDistance P2 generalization.

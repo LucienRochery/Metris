@@ -20,6 +20,28 @@ Low-level drivers:
 
 namespace Metris{
 
+// Production keeps its configured objective at P1.  Planar P2 smoothing uses
+// the qualified SizeShape value and derivative path until StepDistance
+// receives its separate high-order qualification in Phase 5.  The isolated
+// 3D path is qualified too, but its full optimizer integration remains
+// separate from the planar-first production enablement.
+inline constexpr QuaFun productionSmoothingObjective(
+    int geometricDimension,
+    int geometryDegree) noexcept
+{
+#ifdef TESTQUALITYALGO
+  #ifdef STEPDISTANCE
+  return geometricDimension == 2 && geometryDegree == 2
+             ? QuaFun::SizeShape
+             : QuaFun::StepDistance;
+  #else
+  return QuaFun::SizeShape;
+  #endif
+#else
+  return QuaFun::Distortion;
+#endif
+}
+
 // Build the element region affected by moving a high-order edge control point.
 // In 2D this is the seed triangle plus its across-edge neighbor when one
 // exists; a boundary edge therefore produces a one-triangle region. In 3D it

@@ -151,7 +151,17 @@ BOOST_AUTO_TEST_CASE(p2_edge_control_point_regions_in_two_triangles)
       mesh.getverfac<2>(neighbor,interior_control_point),3);
 }
 
-BOOST_AUTO_TEST_CASE(classic_p2_interior_edge_control_point_is_smoothed)
+BOOST_AUTO_TEST_CASE(production_smoothing_objective_is_sizeshape_for_planar_p2)
+{
+  BOOST_CHECK(
+      productionSmoothingObjective(2,1) == DefaultQualityFunction);
+  BOOST_CHECK(
+      productionSmoothingObjective(2,2) == QuaFun::SizeShape);
+  BOOST_CHECK(
+      productionSmoothingObjective(3,2) == DefaultQualityFunction);
+}
+
+BOOST_AUTO_TEST_CASE(sizeshape_p2_interior_edge_control_point_is_smoothed)
 {
   auto runner = make_elevated_two_triangle_runner();
   auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner->msh_g);
@@ -174,11 +184,11 @@ BOOST_AUTO_TEST_CASE(classic_p2_interior_edge_control_point_is_smoothed)
   const double perturbed_coordinates[2]
       = {mesh.coord(control_point,0),mesh.coord(control_point,1)};
 
-  const auto distortion
-      = get_quafun<MetricFieldAnalytical,2,2>(QuaFun::Distortion);
+  const auto sizeshape
+      = get_quafun<MetricFieldAnalytical,2,2>(QuaFun::SizeShape);
   double objective_before = 0.0;
   for(int iface = 0; iface < mesh.nface; iface++){
-    objective_before += distortion(
+    objective_before += sizeshape(
         mesh,AsDeg::Pk,AsDeg::Pk,iface,1.0);
   }
 
@@ -191,11 +201,11 @@ BOOST_AUTO_TEST_CASE(classic_p2_interior_edge_control_point_is_smoothed)
 
   BOOST_REQUIRE_NO_THROW(
       smoothInterior_Ball(
-          mesh,QuaFun::Distortion,1,2));
+          mesh,productionSmoothingObjective(mesh.idim,mesh.curdeg),1,2));
 
   double objective_after = 0.0;
   for(int iface = 0; iface < mesh.nface; iface++){
-    objective_after += distortion(
+    objective_after += sizeshape(
         mesh,AsDeg::Pk,AsDeg::Pk,iface,1.0);
   }
   BOOST_CHECK_LE(objective_after,objective_before);
@@ -211,7 +221,7 @@ BOOST_AUTO_TEST_CASE(classic_p2_interior_edge_control_point_is_smoothed)
   check_p2_region_is_certified<2>(mesh,region);
 }
 
-BOOST_AUTO_TEST_CASE(classic_p2_rejects_noncertified_final_candidate)
+BOOST_AUTO_TEST_CASE(sizeshape_p2_rejects_noncertified_final_candidate)
 {
   auto runner = make_elevated_two_triangle_runner();
   auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner->msh_g);
@@ -258,14 +268,14 @@ BOOST_AUTO_TEST_CASE(classic_p2_rejects_noncertified_final_candidate)
   double qmax1 = 0.0;
   const int status = smooballdiff<MetricFieldAnalytical,2,2>(
       mesh,control_point,region,&qavg0,&qmax0,&qavg1,&qmax1,
-      QuaFun::Distortion);
+      QuaFun::SizeShape);
 
   BOOST_CHECK_NE(status,0);
   BOOST_CHECK_EQUAL(mesh.coord(control_point,0),rejected_coordinates[0]);
   BOOST_CHECK_EQUAL(mesh.coord(control_point,1),rejected_coordinates[1]);
 }
 
-BOOST_AUTO_TEST_CASE(classic_p2_boundary_control_point_uses_cad_edge)
+BOOST_AUTO_TEST_CASE(sizeshape_p2_boundary_control_point_uses_cad_edge)
 {
   auto runner = make_elevated_square_cad_runner();
   auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner->msh_g);
@@ -308,7 +318,7 @@ BOOST_AUTO_TEST_CASE(classic_p2_boundary_control_point_uses_cad_edge)
 
   BOOST_REQUIRE_NO_THROW(
       smoothInterior_Ball(
-          mesh,QuaFun::Distortion,1,2));
+          mesh,productionSmoothingObjective(mesh.idim,mesh.curdeg),1,2));
   BOOST_CHECK_EQUAL(mesh.poi2tag(1,control_point),mesh.tag[1]);
 
   const int boundary_record = mesh.poi2bpo[control_point];
@@ -327,7 +337,7 @@ BOOST_AUTO_TEST_CASE(classic_p2_boundary_control_point_uses_cad_edge)
   check_p2_region_is_certified<2>(mesh,region);
 }
 
-BOOST_AUTO_TEST_CASE(classic_p2_complete_small_2d_mesh_smoothing)
+BOOST_AUTO_TEST_CASE(sizeshape_p2_complete_small_2d_mesh_smoothing)
 {
   auto runner = make_elevated_square_cad_runner();
   auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner->msh_g);
@@ -337,7 +347,7 @@ BOOST_AUTO_TEST_CASE(classic_p2_complete_small_2d_mesh_smoothing)
 
   BOOST_REQUIRE_NO_THROW(
       smoothInterior_Ball(
-          mesh,QuaFun::Distortion,1,2));
+          mesh,productionSmoothingObjective(mesh.idim,mesh.curdeg),1,2));
   BOOST_CHECK_EQUAL(mesh.curdeg,2);
 
   intAr1 all_faces(mesh.nface);
@@ -347,7 +357,41 @@ BOOST_AUTO_TEST_CASE(classic_p2_complete_small_2d_mesh_smoothing)
   check_p2_region_is_certified<2>(mesh,all_faces);
 }
 
-BOOST_AUTO_TEST_CASE(classic_p2_interior_3d_edge_control_point_and_shell)
+BOOST_AUTO_TEST_CASE(production_planar_p2_optimizer_runs_sizeshape_smoothing)
+{
+  auto runner = make_elevated_square_cad_runner();
+  auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner->msh_g);
+  mesh.met.setSpace(MetSpace::Exp);
+  mesh.setBasis(FEBasis::Lagrange);
+
+  int control_point = -1;
+  for(int iface = 0; iface < mesh.nface && control_point < 0; iface++){
+    if(isdeadent(iface,mesh.fac2poi)) continue;
+    for(int local_edge = 0; local_edge < 3; local_edge++){
+      if(mesh.fac2fac(iface,local_edge) < 0) continue;
+      const int candidate = mesh.fac2poi(iface,3 + local_edge);
+      if(mesh.poi2bpo[candidate] >= 0) continue;
+      control_point = candidate;
+      break;
+    }
+  }
+  BOOST_REQUIRE_GE(control_point,0);
+  mesh.coord(control_point,0) += 0.01;
+  mesh.coord(control_point,1) += 0.01;
+
+  runner->param->opt_niter = 1;
+  runner->param->opt_smoo_niter = 1;
+  BOOST_REQUIRE_NO_THROW(runner->optimMesh());
+  BOOST_CHECK_EQUAL(mesh.curdeg,2);
+
+  intAr1 all_faces(mesh.nface);
+  for(int iface = 0; iface < mesh.nface; iface++){
+    if(!isdeadent(iface,mesh.fac2poi)) all_faces.stack(iface);
+  }
+  check_p2_region_is_certified<2>(mesh,all_faces);
+}
+
+BOOST_AUTO_TEST_CASE(sizeshape_p2_interior_3d_edge_control_point_and_shell)
 {
   auto runner = make_elevated_cube_runner();
   auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner->msh_g);
@@ -387,11 +431,11 @@ BOOST_AUTO_TEST_CASE(classic_p2_interior_3d_edge_control_point_and_shell)
       = {mesh.coord(control_point,0),mesh.coord(control_point,1),
          mesh.coord(control_point,2)};
   check_p2_region_is_certified<3>(mesh,region);
-  const auto distortion
-      = get_quafun<MetricFieldAnalytical,3,3>(QuaFun::Distortion);
+  const auto sizeshape
+      = get_quafun<MetricFieldAnalytical,3,3>(QuaFun::SizeShape);
   double objective_before = 0.0;
   for(const int itetra : region){
-    objective_before += distortion(
+    objective_before += sizeshape(
         mesh,AsDeg::Pk,AsDeg::Pk,itetra,1.0);
   }
 
@@ -404,11 +448,11 @@ BOOST_AUTO_TEST_CASE(classic_p2_interior_3d_edge_control_point_and_shell)
 
   BOOST_REQUIRE_NO_THROW(
       smoothInterior_Ball(
-          mesh,QuaFun::Distortion,1,2));
+          mesh,QuaFun::SizeShape,1,2));
 
   double objective_after = 0.0;
   for(const int itetra : region){
-    objective_after += distortion(
+    objective_after += sizeshape(
         mesh,AsDeg::Pk,AsDeg::Pk,itetra,1.0);
   }
   BOOST_CHECK_LE(objective_after,objective_before);

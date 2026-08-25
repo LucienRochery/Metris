@@ -72,6 +72,8 @@ double MetrisRunner::optimMesh0(){
   const int ithrd1 = 0;
   const int ithrd2 = 1;
   const int ithrd3 = 2;
+  constexpr QuaFun smoothingObjective
+      = productionSmoothingObjective(gdim,ideg);
 
   // the higher this is, the more permissive
   //const int qpower = -1;
@@ -184,15 +186,8 @@ double MetrisRunner::optimMesh0(){
     if(msh.idim == msh.get_tdim()){
 
       t0 = get_cpu_time();
-      #ifdef TESTQUALITYALGO
-      #ifdef STEPDISTANCE
-      stat = smoothInterior_Ball<MFT>(msh,QuaFun::StepDistance, ithrd1, ithrd2);
-      #else
-      stat = smoothInterior_Ball<MFT>(msh,QuaFun::SizeShape, ithrd1, ithrd2);
-      #endif
-      #else
-      stat = smoothInterior_Ball<MFT>(msh,QuaFun::Distortion, ithrd1, ithrd2);
-      #endif
+      stat = smoothInterior_Ball<MFT>(
+          msh,smoothingObjective,ithrd1,ithrd2);
       stat0 = MAX(stat, stat0);
       t1 = get_cpu_time();
       if(DOPRINTS1()){
