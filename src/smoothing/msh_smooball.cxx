@@ -539,7 +539,10 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
             msh.bpo2rbi(ibpoin,1) = vparam0;
           }
           ierro = 1;
-        }else if(qmax1 > qmax){
+        // Objective-driven paths have already applied their configured
+        // regional or global acceptance contract. Do not layer the legacy
+        // worst-element veto on top of that decision.
+        }else if(!isObjectiveDrivenSmoothing(iquaf) && qmax1 > qmax){
           CPRINTF1(" - reject move, worst above last worst {:15.7e} > {:15.7e}\n",
                    qmax1, qmax);
           for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
@@ -942,7 +945,9 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
         }
         bool improveQuaMax = true;
         #ifdef IMPROVEMAXQUAL
-          improveQuaMax = qmaxNew < qmax;
+          if(!isObjectiveDrivenSmoothing(iquaf)){
+            improveQuaMax = qmaxNew < qmax;
+          }
         #endif
         const double edgeObjectiveNew = incidentEdgeLengthObjective();
         const double edgeTolerance =
@@ -1200,7 +1205,9 @@ double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, Qua
         bool improveCavSum = handler.checkSuccess(objectiveCav1,objectiveCav0);
         bool improveCavMax = true;
         #ifdef IMPROVEMAXQUAL
-        improveCavMax = quaMaxCav1 <= quaMaxCav0;
+        if(!isObjectiveDrivenSmoothing(iquaf)){
+          improveCavMax = quaMaxCav1 <= quaMaxCav0;
+        }
         #endif
         if(!improveCavSum || !improveCavMax){
           CPRINTF1(" - reject move, quality error increased ({:15.7e} > {:15.7e}) or max error increased ({:15.7e} > {:15.7e})\n",

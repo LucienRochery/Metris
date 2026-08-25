@@ -18,6 +18,9 @@ struct newton_drivertype_args{
   double xtol, stpmin, wlfc1, wlfc2, ratnew, ftol;
   // Optional spherical trust region. A non-positive radius disables it.
   double trust_radius, trust_center[nvar];
+  // Optional bounded steepest-descent fallback when the supplied Hessian does
+  // not yield a descent direction. A non-positive step disables it.
+  double non_descent_gradient_step;
   int niter, maxit, isym;
   int iwork[3];
   double rwork[4 + nvar*10];
@@ -37,6 +40,7 @@ struct newton_drivertype_args{
     ratnew = 0.5;
     ftol   = -1;
     trust_radius = -1.;
+    non_descent_gradient_step = -1.;
     for(int ii = 0; ii < nvar; ii++) trust_center[ii] = 0.;
 
     niter = 0;

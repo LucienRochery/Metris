@@ -151,14 +151,22 @@ BOOST_AUTO_TEST_CASE(p2_edge_control_point_regions_in_two_triangles)
       mesh.getverfac<2>(neighbor,interior_control_point),3);
 }
 
-BOOST_AUTO_TEST_CASE(production_smoothing_objective_is_sizeshape_for_planar_p2)
+BOOST_AUTO_TEST_CASE(production_smoothing_objective_is_stepdistance_for_p2)
 {
   BOOST_CHECK(
       productionSmoothingObjective(2,1) == DefaultQualityFunction);
   BOOST_CHECK(
-      productionSmoothingObjective(2,2) == QuaFun::SizeShape);
+      productionSmoothingObjective(2,2) == QuaFun::StepDistance);
   BOOST_CHECK(
       productionSmoothingObjective(3,2) == DefaultQualityFunction);
+}
+
+BOOST_AUTO_TEST_CASE(legacy_worst_element_guard_excludes_objective_paths)
+{
+  BOOST_CHECK(!isObjectiveDrivenSmoothing(QuaFun::Distortion));
+  BOOST_CHECK(!isObjectiveDrivenSmoothing(QuaFun::Unit));
+  BOOST_CHECK(isObjectiveDrivenSmoothing(QuaFun::SizeShape));
+  BOOST_CHECK(isObjectiveDrivenSmoothing(QuaFun::StepDistance));
 }
 
 BOOST_AUTO_TEST_CASE(sizeshape_p2_interior_edge_control_point_is_smoothed)
@@ -201,7 +209,7 @@ BOOST_AUTO_TEST_CASE(sizeshape_p2_interior_edge_control_point_is_smoothed)
 
   BOOST_REQUIRE_NO_THROW(
       smoothInterior_Ball(
-          mesh,productionSmoothingObjective(mesh.idim,mesh.curdeg),1,2));
+          mesh,QuaFun::SizeShape,1,2));
 
   double objective_after = 0.0;
   for(int iface = 0; iface < mesh.nface; iface++){
@@ -318,7 +326,7 @@ BOOST_AUTO_TEST_CASE(sizeshape_p2_boundary_control_point_uses_cad_edge)
 
   BOOST_REQUIRE_NO_THROW(
       smoothInterior_Ball(
-          mesh,productionSmoothingObjective(mesh.idim,mesh.curdeg),1,2));
+          mesh,QuaFun::SizeShape,1,2));
   BOOST_CHECK_EQUAL(mesh.poi2tag(1,control_point),mesh.tag[1]);
 
   const int boundary_record = mesh.poi2bpo[control_point];
@@ -347,7 +355,7 @@ BOOST_AUTO_TEST_CASE(sizeshape_p2_complete_small_2d_mesh_smoothing)
 
   BOOST_REQUIRE_NO_THROW(
       smoothInterior_Ball(
-          mesh,productionSmoothingObjective(mesh.idim,mesh.curdeg),1,2));
+          mesh,QuaFun::SizeShape,1,2));
   BOOST_CHECK_EQUAL(mesh.curdeg,2);
 
   intAr1 all_faces(mesh.nface);
@@ -357,7 +365,7 @@ BOOST_AUTO_TEST_CASE(sizeshape_p2_complete_small_2d_mesh_smoothing)
   check_p2_region_is_certified<2>(mesh,all_faces);
 }
 
-BOOST_AUTO_TEST_CASE(production_planar_p2_optimizer_runs_sizeshape_smoothing)
+BOOST_AUTO_TEST_CASE(production_planar_p2_optimizer_runs_stepdistance_smoothing)
 {
   auto runner = make_elevated_square_cad_runner();
   auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner->msh_g);

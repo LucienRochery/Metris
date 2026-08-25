@@ -378,7 +378,7 @@ foreach(test_file ${TEST_SOURCES})
                          FIXTURES_REQUIRED "unit_build_and_deploy"
                          LABELS "unit"
                          )
-    if(test_target STREQUAL "test_high_order_stepdistance_value")
+    if(test_target MATCHES "^test_high_order_stepdistance_(value|smoothing)$")
       foreach(stepdistance_dimension 2d 3d)
         set(dimension_test_target
             "${test_target}_${stepdistance_dimension}")

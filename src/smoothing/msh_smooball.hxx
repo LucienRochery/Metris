@@ -20,26 +20,31 @@ Low-level drivers:
 
 namespace Metris{
 
-// Production keeps its configured objective at P1.  Planar P2 smoothing uses
-// the qualified SizeShape value and derivative path until StepDistance
-// receives its separate high-order qualification in Phase 5.  The isolated
-// 3D path is qualified too, but its full optimizer integration remains
-// separate from the planar-first production enablement.
+// Production uses its configured objective at every supported geometry
+// degree. The geometric arguments remain explicit so future policies can make
+// a dimension- or degree-specific choice without changing callers.
 inline constexpr QuaFun productionSmoothingObjective(
-    int geometricDimension,
-    int geometryDegree) noexcept
+    [[maybe_unused]] int geometricDimension,
+    [[maybe_unused]] int geometryDegree) noexcept
 {
 #ifdef TESTQUALITYALGO
   #ifdef STEPDISTANCE
-  return geometricDimension == 2 && geometryDegree == 2
-             ? QuaFun::SizeShape
-             : QuaFun::StepDistance;
+  return QuaFun::StepDistance;
   #else
   return QuaFun::SizeShape;
   #endif
 #else
   return QuaFun::Distortion;
 #endif
+}
+
+// Objective-driven smoothing owns its acceptance policy through the complete
+// regional or global objective. The legacy worst-element veto is a separate
+// non-objective policy and must not be layered on top of these objectives.
+inline constexpr bool isObjectiveDrivenSmoothing(QuaFun objective) noexcept
+{
+  return objective == QuaFun::SizeShape
+      || objective == QuaFun::StepDistance;
 }
 
 // Build the element region affected by moving a high-order edge control point.

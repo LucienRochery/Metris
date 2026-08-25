@@ -92,7 +92,6 @@ void optim_newton_drivertype(const MetrisParameters &param,
 
   int sg = 1;
 
-
   if(*iflag == 0){
     METRIS_ASSERT_MSG(nrwrk >= 10*nvar+4,"Increase nrwrk");
     METRIS_ASSERT_MSG(niwrk >= 3        ,"Increase niwrk");
@@ -297,6 +296,20 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
 
   int sg = 1;
 
+  const auto use_bounded_gradient_direction = [&](){
+    double gradientNorm = 0.;
+    for(int ii = 0; ii < nvar; ii++){
+      gradientNorm = MAX(gradientNorm,abs(gcur[ii]));
+    }
+    if(args.non_descent_gradient_step <= 0.
+       || gradientNorm <= epsilon) return false;
+    const double scale = args.non_descent_gradient_step/gradientNorm;
+    for(int ii = 0; ii < nvar; ii++){
+      args.rwork[2*nvar+3+ii] = -scale*gcur[ii];
+    }
+    return true;
+  };
+
 
   if(*iflag == 0){
     args.niter = 0;
@@ -335,8 +348,12 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
 
     //--- COMPUTE DESCENT DIRECTION
     if(nvar == 1){
-      if(abs(hess[0]) > epsilon*(abs(gcur[0]))) {
+      if(hess[0] > epsilon*(abs(gcur[0]))
+         || (args.non_descent_gradient_step <= 0.
+             && abs(hess[0]) > epsilon*(abs(gcur[0])))) {
         args.rwork[2*nvar+3]  = - gcur[0]/hess[0];
+      }else if(use_bounded_gradient_direction()){
+        ierro = 0;
       }else{
         ierro = 1;
         goto flag999;
@@ -345,18 +362,26 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
     }else if(nvar == 2) {
       if constexpr (inBoundary == true) ierro = invmat<2>(hess);
       else                              ierro = invspd<2>(hess);
-      if(ierro != 0) goto flag999;
-      args.rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1]);
-      args.rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1]);
+      if(ierro != 0){
+        if(!use_bounded_gradient_direction()) goto flag999;
+        ierro = 0;
+      }else{
+        args.rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1]);
+        args.rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1]);
+      }
       gnorm = MAX(abs(args.rwork[2*nvar+3]),
                   abs(args.rwork[2*nvar+4]));
     }else if(nvar == 3){
       if(args.isym > 0){
         ierro = invspd<3>(hess);
-        if(ierro != 0) goto flag999;
-        args.rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1] + hess[3]*gcur[2]);
-        args.rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1] + hess[4]*gcur[2]);
-        args.rwork[2*nvar+5] = -(hess[3]*gcur[0] + hess[4]*gcur[1] + hess[5]*gcur[2]);
+        if(ierro != 0){
+          if(!use_bounded_gradient_direction()) goto flag999;
+          ierro = 0;
+        }else{
+          args.rwork[2*nvar+3] = -(hess[0]*gcur[0] + hess[1]*gcur[1] + hess[3]*gcur[2]);
+          args.rwork[2*nvar+4] = -(hess[1]*gcur[0] + hess[2]*gcur[1] + hess[4]*gcur[2]);
+          args.rwork[2*nvar+5] = -(hess[3]*gcur[0] + hess[4]*gcur[1] + hess[5]*gcur[2]);
+        }
       }else{
         // Actually a Jacobian, so not symmetric
         ierro = invmat<3>(hess);
@@ -373,6 +398,20 @@ int optim_newton_drivertype(newton_drivertype_args<nvar> &args,
       gnorm = MAX(MAX(abs(args.rwork[2*nvar+3]),
                       abs(args.rwork[2*nvar+4])),
                       abs(args.rwork[2*nvar+5]));
+    }
+
+    double directionalDerivative = 0.;
+    for(int ii = 0; ii < nvar; ii++){
+      directionalDerivative
+          += gcur[ii]*args.rwork[2*nvar+3+ii];
+    }
+    if(directionalDerivative >= 0.
+       && args.non_descent_gradient_step > 0.){
+      METRIS_ENFORCE(use_bounded_gradient_direction());
+      gnorm = 0.;
+      for(int ii = 0; ii < nvar; ii++){
+        gnorm = MAX(gnorm,abs(args.rwork[2*nvar+3+ii]));
+      }
     }
 
     // Restrict the full Newton trial to the optional spherical trust region.

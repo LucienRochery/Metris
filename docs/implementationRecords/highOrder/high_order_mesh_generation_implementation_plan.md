@@ -937,3 +937,67 @@ would obstruct the first working path.
    Bernstein rejection coverage for basic, barrier, or CavityTargetAverage.
    Those validity and smoothing integrations remain the explicit work of
    Phase 5 step 8.
+
+8. **Done (2026-08-25): qualified every P2 StepDistance variant for
+   conservative smoothing and enabled the production objective.** The new
+   `test_high_order_stepdistance_smoothing` executable perturbs an interior P2
+   edge control point, first in the two-triangle planar mesh and then in a
+   complete tetrahedral edge shell. For Basic, CollapseBarrier, ShapeVolume,
+   and CavityTargetAverage it requires a nonzero production ball-smoothing
+   move, a nonincreasing configured mesh objective, and a Bernstein-certified
+   result for every affected element. It then constructs a noncertified
+   position for the same control point and verifies that the low-level
+   smoother rejects it, returns a nonzero status, and restores the candidate
+   coordinates exactly. The matching `p2_stepdistance_2d` and
+   `p2_stepdistance_3d` suites are registered as independent CTest entries.
+
+   This completes the per-variant matrix together with the value, analytic
+   gradient, and AD/finite-difference Hessian evidence from steps 3--7. During
+   the smoothing qualification, the exact Basic, CollapseBarrier, and
+   CavityTargetAverage regional Hessians were observed not to be positive
+   definite at otherwise valid P2 configurations. The objective derivatives
+   are not modified. Instead, the Newton driver now has an opt-in bounded
+   steepest-descent fallback when Cholesky fails or the computed direction is
+   not a descent direction. Only high-order StepDistance ball smoothing
+   enables it. Its fallback step and spherical trust radius are both one
+   tenth of the shortest P1 corner-edge length in the affected region. The
+   existing Newton behavior is unchanged when the option is disabled. This
+   qualification scope is not a convexity claim: neither StepDistance nor
+   SizeShape has a general positive-definite-Hessian guarantee with respect to
+   a moving control point, at P1 or P2. P2 StepDistance is where an indefinite
+   regional Hessian was exposed by the production smoothing regressions;
+   extending the fallback to other objectives or degrees requires its own
+   optimizer qualification rather than an assumption that their Hessians are
+   always positive definite.
+
+   CavityTargetAverage revealed a second integration conflict: its global
+   arithmetic mean accepted a move while the legacy local worst-element guard
+   rejected it. The subsequent acceptance-policy audit showed that the same
+   guard was also being layered on top of SizeShape and the regional
+   StepDistance variants. All objective-driven smoothers now rely exclusively
+   on their configured regional or global objective plus conservative
+   validity; the legacy worst-element veto is retained only for the
+   non-objective-driven Distortion and Unit paths. This separation is
+   centralized in
+   `isObjectiveDrivenSmoothing` and also covers the dormant
+   `IMPROVEMAXQUAL` element and cavity checks if they are re-enabled.
+   Conservative Bernstein rejection remains mandatory for all four
+   StepDistance variants.
+
+   The temporary production exception that selected SizeShape for planar P2
+   has consequently been removed. In a StepDistance build,
+   `productionSmoothingObjective` now returns StepDistance at P1 and P2 in
+   both 2D and 3D. The Phase 4 SizeShape regressions request SizeShape
+   explicitly and remain active, while the public planar P2 optimizer test now
+   exercises the production StepDistance selection. Phase 5 is complete;
+   CAD-boundary specialization remains the explicit subject of Phase 6.
+
+   Release and Debug builds both pass the complete 28-case StepDistance value,
+   gradient, and Hessian executable, the new eight-case StepDistance
+   smoothing/validity executable, and the nine-case high-order smoothing
+   regression containing the public production optimizer. The dimension-
+   specific CTest registrations are present. A full fixture-driven CTest
+   attempt did not reach them because the pre-test `deploy_cases` fixture
+   failed independently while generating the 100k-square mesh, at the
+   analytical-metric assertion `eigval[i] > 0`; the focused executables were
+   therefore also run directly in both configurations.

@@ -52,6 +52,30 @@ bool smoothing_region_is_conservatively_valid(const MeshBase &msh,
   return true;
 }
 
+template<int idim>
+double smoothing_region_shortest_corner_edge(const MeshBase &msh,
+                                             const intAr1 &region)
+{
+  const intAr2 &ent2poi = msh.ent2poi(idim);
+  double shortestSquared = std::numeric_limits<double>::infinity();
+  for(const int element : region){
+    for(int first = 0; first < idim + 1; first++){
+      for(int second = first + 1; second < idim + 1; second++){
+        double lengthSquared = 0.;
+        for(int component = 0; component < idim; component++){
+          const double difference
+              = msh.coord(ent2poi(element,first),component)
+                - msh.coord(ent2poi(element,second),component);
+          lengthSquared += difference*difference;
+        }
+        shortestSquared = MIN(shortestSquared,lengthSquared);
+      }
+    }
+  }
+  METRIS_ENFORCE(shortestSquared > 0.);
+  return std::sqrt(shortestSquared);
+}
+
 } // namespace
 
 // inorm <= infi norm , p > 0 L^p norm (over ball)
@@ -101,6 +125,20 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   nargs.ratnew= 0.5;
   nargs.maxit = 50;
   nargs.ftol  = ftol;
+  // Phase 5 qualifies this globalization specifically for high-order
+  // StepDistance. This scope records test coverage, not a claim that P1 or
+  // SizeShape Hessians are mathematically guaranteed to be positive definite.
+  if constexpr(ideg >= 2){
+    if(iquaf == QuaFun::StepDistance){
+      const double localStep
+          = 0.1*smoothing_region_shortest_corner_edge<idim>(msh,lball);
+      nargs.non_descent_gradient_step = localStep;
+      nargs.trust_radius = localStep;
+      for(int component = 0; component < idim; component++){
+        nargs.trust_center[component] = msh.coord(ipoin,component);
+      }
+    }
+  }
 
   int iflag = 0, ihess, ierro = 0;
   double  xcur[idim], coor0[idim], met0[nnmet], fcur;
