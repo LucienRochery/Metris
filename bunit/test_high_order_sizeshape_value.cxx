@@ -12,6 +12,7 @@
 #include "ho_constants.hxx"
 #include "linalg/det.hxx"
 #include "linalg/explogmet.hxx"
+#include "linalg/symidx.hxx"
 #include "low_eval.hxx"
 #include "quality/low_metqua.hxx"
 #include "quality/low_metqua_d.hxx"
@@ -723,6 +724,94 @@ std::array<double,gdim> evaluate_frozen_p2_sizeshape_gradient_by_ad(
 }
 
 template<class MFT, int gdim>
+double evaluate_frozen_p2_sizeshape_derivatives(
+    Mesh<MFT> &mesh,
+    const FrozenP2SizeShapeSamples<gdim> &samples,
+    const int active_control_point,
+    double *gradient,
+    double *hessian)
+{
+  constexpr int hessian_count = gdim*(gdim + 1)/2;
+  for(int component = 0; component < gdim; component++){
+    gradient[component] = 0.0;
+  }
+  if(hessian != NULL){
+    for(int entry = 0; entry < hessian_count; entry++){
+      hessian[entry] = 0.0;
+    }
+  }
+
+  const int *nodes = mesh.ent2poi(gdim)[0];
+  double value = 0.0;
+  for(std::size_t isample = 0;
+      isample < samples.objective_weights.size(); isample++){
+    double pointwise_gradient[gdim];
+    double pointwise_hessian[hessian_count];
+    value += samples.objective_weights[isample]
+           * d_quafun_sizeshape<MFT,gdim,gdim,double>(
+                 mesh,AsDeg::Pk,AsDeg::P1,nodes,
+                 samples.barycentric_points[isample].data(),
+                 samples.metrics[isample].data(),active_control_point,
+                 mesh.getBasis(),DifVar::None,pointwise_gradient,
+                 hessian == NULL ? NULL : pointwise_hessian);
+    for(int component = 0; component < gdim; component++){
+      gradient[component] += samples.objective_weights[isample]
+                           * pointwise_gradient[component];
+    }
+    if(hessian != NULL){
+      for(int entry = 0; entry < hessian_count; entry++){
+        hessian[entry] += samples.objective_weights[isample]
+                        * pointwise_hessian[entry];
+      }
+    }
+  }
+  return value;
+}
+
+template<int gdim>
+void evaluate_frozen_p2_sizeshape_hessian_by_gradient_ad(
+    const FrozenP2SizeShapeSamples<gdim> &samples,
+    const int active_control_point,
+    FEBasis basis,
+    double objective_power,
+    double *gradient,
+    double *hessian)
+{
+  using S = SANS::SurrealS<gdim,double>;
+  S differentiated_gradient[gdim];
+  for(int component = 0; component < gdim; component++){
+    differentiated_gradient[component] = S(0.0);
+  }
+
+  for(std::size_t isample = 0;
+      isample < samples.objective_weights.size(); isample++){
+    const std::array<double,gdim> regular_basis_gradient
+        = objective_regular_basis_gradient<gdim,2>(
+              basis,active_control_point,
+              samples.barycentric_points[isample].data());
+    S pointwise_gradient[gdim];
+    FrozenObjectiveValueAD::sizeshape_pointwise_gradient<gdim>(
+        samples.regular_jacobian_transposes[isample].data(),
+        samples.metrics[isample].data(),regular_basis_gradient.data(),
+        objective_power,pointwise_gradient);
+    for(int component = 0; component < gdim; component++){
+      differentiated_gradient[component]
+          += S(samples.objective_weights[isample])
+           * pointwise_gradient[component];
+    }
+  }
+
+  for(int component = 0; component < gdim; component++){
+    gradient[component] = differentiated_gradient[component].value();
+    for(int derivative = component;
+        derivative < gdim; derivative++){
+      hessian[sym2idx(component,derivative)]
+          = differentiated_gradient[component].deriv(derivative);
+    }
+  }
+}
+
+template<class MFT, int gdim>
 void check_sizeshape_edge_gradient()
 {
   MetrisParameters parameters;
@@ -789,6 +878,110 @@ void check_sizeshape_edge_gradient()
   }
 }
 
+template<class MFT, int gdim>
+void check_sizeshape_edge_hessian()
+{
+  constexpr int hessian_count = gdim*(gdim + 1)/2;
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_quadrature_order = 5;
+  parameters.objective_p = 1.5;
+
+  Mesh<MFT> mesh;
+  initialize_curved_p2_element<MFT,gdim>(mesh,parameters);
+  constexpr int active_edge_control_point = gdim + 1;
+  const int active_point
+      = mesh.ent2poi(gdim)(0,active_edge_control_point);
+  const FrozenP2SizeShapeSamples<gdim> samples
+      = capture_frozen_p2_sizeshape_samples<MFT,gdim>(mesh);
+
+  double production_gradient[gdim];
+  double production_hessian[hessian_count];
+  const double production_value
+      = d_metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
+            mesh,AsDeg::Pk,AsDeg::P1,0,
+            active_edge_control_point,FEBasis::Lagrange,DifVar::None,
+            production_gradient,production_hessian,1.0);
+
+  double reconstructed_gradient[gdim];
+  double reconstructed_hessian[hessian_count];
+  const double reconstructed_value
+      = evaluate_frozen_p2_sizeshape_derivatives<MFT,gdim>(
+            mesh,samples,active_edge_control_point,
+            reconstructed_gradient,reconstructed_hessian);
+  BOOST_CHECK_CLOSE_FRACTION(
+      production_value,reconstructed_value,3.e-14);
+  for(int component = 0; component < gdim; component++){
+    BOOST_CHECK_SMALL(
+        production_gradient[component] - reconstructed_gradient[component],
+        5.e-14*(1.0 + std::abs(reconstructed_gradient[component])));
+  }
+  for(int entry = 0; entry < hessian_count; entry++){
+    BOOST_CHECK_SMALL(
+        production_hessian[entry] - reconstructed_hessian[entry],
+        5.e-14*(1.0 + std::abs(reconstructed_hessian[entry])));
+  }
+
+  double automatic_gradient[gdim];
+  double automatic_hessian[hessian_count];
+  evaluate_frozen_p2_sizeshape_hessian_by_gradient_ad<gdim>(
+      samples,active_edge_control_point,mesh.getBasis(),
+      parameters.objective_p,automatic_gradient,automatic_hessian);
+
+  double maximum_automatic_hessian_error = 0.0;
+  for(int component = 0; component < gdim; component++){
+    BOOST_CHECK_SMALL(
+        production_gradient[component] - automatic_gradient[component],
+        5.e-14*(1.0 + std::abs(automatic_gradient[component])));
+  }
+  for(int entry = 0; entry < hessian_count; entry++){
+    const double error
+        = std::abs(production_hessian[entry] - automatic_hessian[entry]);
+    maximum_automatic_hessian_error
+        = std::max(maximum_automatic_hessian_error,error);
+    BOOST_CHECK_SMALL(
+        error,5.e-14*(1.0 + std::abs(automatic_hessian[entry])));
+  }
+
+  constexpr double finite_difference_step = 2.e-6;
+  double maximum_finite_difference_hessian_error = 0.0;
+  for(int derivative = 0; derivative < gdim; derivative++){
+    const double coordinate = mesh.coord(active_point,derivative);
+    double plus_gradient[gdim];
+    double minus_gradient[gdim];
+
+    mesh.coord(active_point,derivative)
+        = coordinate + finite_difference_step;
+    evaluate_frozen_p2_sizeshape_derivatives<MFT,gdim>(
+        mesh,samples,active_edge_control_point,plus_gradient,NULL);
+    mesh.coord(active_point,derivative)
+        = coordinate - finite_difference_step;
+    evaluate_frozen_p2_sizeshape_derivatives<MFT,gdim>(
+        mesh,samples,active_edge_control_point,minus_gradient,NULL);
+    mesh.coord(active_point,derivative) = coordinate;
+
+    for(int component = 0; component <= derivative; component++){
+      const int entry = sym2idx(component,derivative);
+      const double finite_difference_hessian
+          = (plus_gradient[component] - minus_gradient[component])
+           /(2.0*finite_difference_step);
+      const double error
+          = std::abs(production_hessian[entry]
+                     - finite_difference_hessian);
+      maximum_finite_difference_hessian_error
+          = std::max(maximum_finite_difference_hessian_error,error);
+      BOOST_CHECK_SMALL(
+          error,1.e-7*(1.0 + std::abs(finite_difference_hessian)));
+    }
+  }
+
+  BOOST_TEST_MESSAGE(
+      "P2 frozen edge Hessian: AD error="
+      << maximum_automatic_hessian_error
+      << ", finite-difference error="
+      << maximum_finite_difference_hessian_error);
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(p2_sizeshape_value_uses_degree_aware_dispatch)
@@ -829,6 +1022,14 @@ BOOST_AUTO_TEST_CASE(p2_edge_sizeshape_gradient_matches_frozen_value_oracles)
   check_sizeshape_edge_gradient<MetricFieldAnalytical,2>();
   check_sizeshape_edge_gradient<MetricFieldFE,3>();
   check_sizeshape_edge_gradient<MetricFieldAnalytical,3>();
+}
+
+BOOST_AUTO_TEST_CASE(p2_edge_sizeshape_hessian_matches_frozen_gradient_oracles)
+{
+  check_sizeshape_edge_hessian<MetricFieldFE,2>();
+  check_sizeshape_edge_hessian<MetricFieldAnalytical,2>();
+  check_sizeshape_edge_hessian<MetricFieldFE,3>();
+  check_sizeshape_edge_hessian<MetricFieldAnalytical,3>();
 }
 
 } // namespace Metris

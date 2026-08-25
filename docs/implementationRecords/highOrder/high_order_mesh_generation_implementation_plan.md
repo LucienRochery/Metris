@@ -648,3 +648,28 @@ would obstruct the first working path.
    variants. StepDistance remains P1-only here; its P2 extension is Phase 5.
    No production change was required for this qualification step. Independent
    Hessian verification remains Phase 4 step 6.
+
+6. **Done (2026-08-25): verified the active P2 edge Hessian by automatic
+   differentiation and centered finite differences of the frozen analytic
+   gradient.** A test-only, scalar-generic implementation reconstructs the
+   SizeShape gradient from the regular Jacobian, the frozen metric, and the P2
+   regular-reference basis gradient. Seeding the active edge control point in
+   `SurrealS` and differentiating that gradient produces an independent
+   Hessian without invoking the production Hessian formula. Its primal
+   gradient is also checked against the already qualified production gradient.
+
+   The production integrated Hessian is separately reconstructed from the
+   pointwise differentiated SizeShape routine at the captured order-five
+   samples, confirming the common traversal and weighting. Centered differences
+   then perturb each physical coordinate of the active edge point by `2e-6`
+   and reevaluate the frozen analytic gradient. The metric, theta, quadrature
+   coordinates, and weights remain fixed throughout both oracles.
+
+   Curved triangles and tetrahedra are covered with FE and analytical metric
+   fields at `objective_p = 1.5`. Analytic-versus-AD Hessian entries use the
+   scale `5e-14 * (1 + abs(H_AD))`; the largest observed absolute discrepancy
+   is approximately `1.6e-14`. Analytic-versus-finite-difference entries use
+   `1e-7 * (1 + abs(H_FD))`; the largest observed absolute discrepancies are
+   approximately `3.1e-8` in 2D and `5.9e-10` in 3D. No production change was
+   required. Phase 4 step 7, Lagrange and Bezier representation coverage, is
+   next; StepDistance remains P1-only until Phase 5.

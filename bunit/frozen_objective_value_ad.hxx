@@ -142,6 +142,134 @@ SANS::SurrealS<dimension,double> sizeshape_pointwise_value(
 }
 
 template<int dimension, typename T>
+void invert_full_matrix(const T *matrix, T *inverse)
+{
+  static_assert(dimension == 2 || dimension == 3);
+  const T determinant = full_determinant<dimension,T>(matrix);
+  if constexpr(dimension == 2){
+    inverse[0] =  matrix[3]/determinant;
+    inverse[1] = -matrix[1]/determinant;
+    inverse[2] = -matrix[2]/determinant;
+    inverse[3] =  matrix[0]/determinant;
+  }else{
+    inverse[0] =  (matrix[4]*matrix[8] - matrix[5]*matrix[7])
+                /determinant;
+    inverse[1] = -(matrix[1]*matrix[8] - matrix[2]*matrix[7])
+                /determinant;
+    inverse[2] =  (matrix[1]*matrix[5] - matrix[2]*matrix[4])
+                /determinant;
+    inverse[3] = -(matrix[3]*matrix[8] - matrix[5]*matrix[6])
+                /determinant;
+    inverse[4] =  (matrix[0]*matrix[8] - matrix[2]*matrix[6])
+                /determinant;
+    inverse[5] = -(matrix[0]*matrix[5] - matrix[2]*matrix[3])
+                /determinant;
+    inverse[6] =  (matrix[3]*matrix[7] - matrix[4]*matrix[6])
+                /determinant;
+    inverse[7] = -(matrix[0]*matrix[7] - matrix[1]*matrix[6])
+                /determinant;
+    inverse[8] =  (matrix[0]*matrix[4] - matrix[1]*matrix[3])
+                /determinant;
+  }
+}
+
+template<int dimension>
+void sizeshape_pointwise_gradient(
+    const double *regular_jacobian_transpose,
+    const double *metric,
+    const double *regular_basis_gradient,
+    const double objective_power,
+    SANS::SurrealS<dimension,double> *pointwise_gradient)
+{
+  using S = SANS::SurrealS<dimension,double>;
+  S jacobian[dimension*dimension];
+  S gram_matrix[dimension*dimension];
+  S inverse_gram_matrix[dimension*dimension];
+  seed_regular_jacobian<dimension>(
+      regular_jacobian_transpose,regular_basis_gradient,jacobian);
+  form_metric_gram_matrix<dimension,S>(jacobian,metric,gram_matrix);
+  invert_full_matrix<dimension,S>(gram_matrix,inverse_gram_matrix);
+
+  S trace = S(0.0);
+  for(int diagonal = 0; diagonal < dimension; diagonal++){
+    trace += gram_matrix[diagonal*dimension + diagonal];
+  }
+  const S determinant = full_determinant<dimension,S>(gram_matrix);
+
+  S trace_power_dimension_minus_one;
+  S trace_power_dimension;
+  if constexpr(dimension == 2){
+    trace_power_dimension_minus_one = trace;
+    trace_power_dimension = trace*trace;
+  }else{
+    trace_power_dimension_minus_one = trace*trace;
+    trace_power_dimension = trace*trace*trace;
+  }
+
+  S trace_derivative[dimension];
+  S inverse_gram_times_basis_gradient[dimension];
+  for(int row = 0; row < dimension; row++){
+    inverse_gram_times_basis_gradient[row] = S(0.0);
+    for(int column = 0; column < dimension; column++){
+      inverse_gram_times_basis_gradient[row]
+          += inverse_gram_matrix[row*dimension + column]
+           * S(regular_basis_gradient[column]);
+    }
+  }
+
+  S metric_jacobian_inverse_gram_gradient[dimension];
+  for(int component = 0; component < dimension; component++){
+    trace_derivative[component] = S(0.0);
+    metric_jacobian_inverse_gram_gradient[component] = S(0.0);
+    for(int physical_component = 0;
+        physical_component < dimension; physical_component++){
+      S jacobian_times_inverse_gram_gradient = S(0.0);
+      for(int regular_component = 0;
+          regular_component < dimension; regular_component++){
+        trace_derivative[component]
+            += S(2.0*regular_basis_gradient[regular_component]
+                 * metric[packed_symmetric_index<dimension>(
+                       component,physical_component)])
+             * jacobian[regular_component*dimension + physical_component];
+        jacobian_times_inverse_gram_gradient
+            += jacobian[regular_component*dimension + physical_component]
+             * inverse_gram_times_basis_gradient[regular_component];
+      }
+      metric_jacobian_inverse_gram_gradient[component]
+          += S(metric[packed_symmetric_index<dimension>(
+                   component,physical_component)])
+           * jacobian_times_inverse_gram_gradient;
+    }
+  }
+
+  const double dimension_power = dimension == 2 ? 4.0 : 27.0;
+  const S size_shape_error
+      = trace_power_dimension
+       *(S(1.0) + S(1.0)/(determinant*determinant))
+       /S(2.0*dimension_power) - S(1.0);
+  const S objective_gradient_scale
+      = objective_power == 1.0
+      ? S(1.0)
+      : S(objective_power)
+       *pow(size_shape_error,objective_power - 1.0);
+
+  for(int component = 0; component < dimension; component++){
+    const S determinant_derivative
+        = S(2.0)*determinant
+         *metric_jacobian_inverse_gram_gradient[component];
+    const S size_shape_gradient
+        = (S(dimension)*trace_power_dimension_minus_one
+             *trace_derivative[component]
+             *(S(1.0) + S(1.0)/(determinant*determinant))
+           - S(2.0)*trace_power_dimension*determinant_derivative
+             /(determinant*determinant*determinant))
+         /S(2.0*dimension_power);
+    pointwise_gradient[component]
+        = objective_gradient_scale*size_shape_gradient;
+  }
+}
+
+template<int dimension, typename T>
 void pack_symmetric_matrix(const T *matrix, T *packed_matrix)
 {
   packed_matrix[0] = matrix[0];
