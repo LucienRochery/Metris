@@ -9,6 +9,8 @@
 
 namespace Metris {
 
+class MeshBase;
+
 // A failed Bernstein lower bound is not, by itself, proof that an element is
 // invalid.  Keep the proof outcome separate from the conservative acceptance
 // policy used by optimization and adaptation.
@@ -60,6 +62,14 @@ struct ElementValidityResult {
     return is_certified();
   }
 };
+
+// Classify one full-dimensional element against the configured normalized
+// Jacobian threshold. The P1 corner orientation is a prerequisite for a
+// certificate. A failed prerequisite or coefficient bound is Uncertified
+// unless a direct high-order Jacobian sample witnesses invalidity.
+template<int gdim, int ideg>
+ElementValidityResult classify_element_validity(const MeshBase &msh,
+                                                 int element);
 
 } // namespace Metris
 

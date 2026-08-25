@@ -167,6 +167,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/Arrays/aux_msharrays2D.cxx
 
     ${PROJECT_SOURCE_DIR}/src/low_geo/ccoef.cxx
+    ${PROJECT_SOURCE_DIR}/src/low_geo/validity.cxx
     ${PROJECT_SOURCE_DIR}/src/low_geo/measure.cxx
     ${PROJECT_SOURCE_DIR}/src/low_geo/height.cxx
     ${PROJECT_SOURCE_DIR}/src/low_geo/normal.cxx
@@ -336,4 +337,3 @@ target_include_directories(metrisPrepro PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT
 if(REQ_CODEGEN)
   add_dependencies(libMetris codegen1 codegen2)
 endif()
-

@@ -457,5 +457,21 @@ would obstruct the first working path.
    determinant of the directly evaluated geometry Jacobian, and the Lagrange
    and Bezier geometry values and Jacobians agree. The affine cases additionally
    require a constant coefficient field; the curved cases require a positive,
-   nonconstant field. The three `Certified`/`Invalid`/`Uncertified` outcome
-   fixtures remain with the production classifier in the next step.
+   nonconstant field.
+
+3. **Done (2026-08-25): added the full-dimensional validity classifier.**
+   `classify_element_validity<gdim,ideg>` owns the P1 corner-orientation
+   prerequisite, normalization by the absolute P1 corner determinant,
+   coefficient generation and lower-bound diagnostics, and deterministic
+   direct-Jacobian witnesses. It certifies only when the P1 prerequisite passes
+   and the finite normalized coefficient minimum is at least `jtol`. Otherwise
+   it evaluates the Jacobian at the degree-`gdim*(ideg-1)` simplex lattice and
+   reports `Invalid` when a finite normalized value is below `jtol`; without
+   such a witness it reports `Uncertified`. A zero or nonfinite P1 normalization
+   is also `Uncertified`, with unavailable diagnostics left at their sentinels.
+   `test_high_order_validity_classifier` qualifies this routine for P2
+   triangles and tetrahedra in both Lagrange and Bezier storage. It covers an
+   affine certificate, a curved inversion with a valid P1 skeleton, a positive
+   determinant whose whole-element Bernstein bound is inconclusive, explicit
+   P1-orientation gating, and degenerate P1 normalization. Production call-site
+   migration remains the next Phase 3 step.
