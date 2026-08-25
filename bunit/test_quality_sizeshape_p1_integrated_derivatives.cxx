@@ -7,6 +7,7 @@
 
 #include <boost/test/included/unit_test.hpp>
 
+#include "frozen_objective_value_ad.hxx"
 #include "Mesh/Mesh.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include "linalg/det.hxx"
@@ -1064,6 +1065,66 @@ double evaluate_frozen_objective_derivatives(
 }
 
 template<class MFT, int gdim, QuaFun iquaf>
+std::array<double,gdim> evaluate_frozen_objective_gradient_by_ad(
+    Mesh<MFT> &msh,
+    const FrozenObjectiveRuleSamples<gdim> &frozen,
+    const int ivar,
+    double *value)
+{
+  using S = SANS::SurrealS<gdim,double>;
+  S integral = S(0.0);
+  for(int iquad = 0; iquad < frozen.nquad; iquad++){
+    const ObjectiveQuadratureSample<gdim,gdim,1> &sample
+        = frozen.samples[iquad];
+    const std::array<double,gdim> regular_basis_gradient
+        = objective_regular_basis_gradient<gdim,1>(
+              msh.getBasis(),ivar,
+              sample.barycentric_coordinates.data());
+
+    S pointwise_value;
+    if constexpr(iquaf == QuaFun::SizeShape){
+      pointwise_value
+          = FrozenObjectiveValueAD::sizeshape_pointwise_value<gdim>(
+                sample.regular_jacobian_transpose.data(),
+                sample.metric.data(),regular_basis_gradient.data(),
+                msh.param->objective_p);
+    }else{
+      pointwise_value
+          = FrozenObjectiveValueAD::step_distance_pointwise_value<gdim>(
+                sample.regular_jacobian_transpose.data(),
+                sample.metric.data(),regular_basis_gradient.data(),
+                msh.param->objective_p,
+                msh.param->step_distance_regularization,
+                msh.param->step_distance_shape_volume);
+    }
+
+    S additive_value = S(0.0);
+    if constexpr(iquaf == QuaFun::StepDistance){
+      if(!msh.param->step_distance_cavity_target_average){
+        const double barrier_beta
+            = msh.param->step_distance_shape_volume
+            ? 0.0
+            : msh.param->step_distance_barrier_beta;
+        additive_value
+            = FrozenObjectiveValueAD::metric_volume_barrier_value<gdim>(
+                  sample.regular_jacobian_transpose.data(),
+                  sample.metric.data(),regular_basis_gradient.data(),
+                  msh.param->step_distance_barrier_rho0,barrier_beta);
+      }
+    }
+    integral += S(sample.quadrature_weight)
+              *(S(sample.theta)*pointwise_value + additive_value);
+  }
+
+  std::array<double,gdim> gradient{};
+  *value = integral.value();
+  for(int component = 0; component < gdim; component++){
+    gradient[component] = integral.deriv(component);
+  }
+  return gradient;
+}
+
+template<class MFT, int gdim, QuaFun iquaf>
 void check_objective_rule_value_gradient_hessian(
     Mesh<MFT> &msh,
     const int order)
@@ -1116,6 +1177,19 @@ void check_objective_rule_value_gradient_hessian(
               - reconstructed_gradient[icomponent],
           reconstruction_tolerance
               *(1.0 + std::abs(reconstructed_gradient[icomponent])));
+    }
+    double automatic_value;
+    const std::array<double,gdim> automatic_gradient
+        = evaluate_frozen_objective_gradient_by_ad<MFT,gdim,iquaf>(
+              msh,frozen,ivar,&automatic_value);
+    BOOST_CHECK_SMALL(
+        automatic_value - integrated_value,
+        reconstruction_tolerance*(1.0 + std::abs(integrated_value)));
+    for(int icomponent = 0; icomponent < gdim; icomponent++){
+      BOOST_CHECK_SMALL(
+          integrated_gradient[icomponent]
+              - automatic_gradient[icomponent],
+          5.0e-14*(1.0 + std::abs(automatic_gradient[icomponent])));
     }
     for (int ihessian = 0; ihessian < nhessian; ihessian++)
     {

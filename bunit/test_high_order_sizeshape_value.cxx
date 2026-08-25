@@ -6,6 +6,7 @@
 
 #include <boost/test/included/unit_test.hpp>
 
+#include "frozen_objective_value_ad.hxx"
 #include "Mesh/Mesh.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include "ho_constants.hxx"
@@ -17,6 +18,7 @@
 #include "quality/objective_quadrature_derivatives.hxx"
 #include "quality/objective_quadrature_sample.hxx"
 #include "quality/objective_quadrature_value.hxx"
+#include "quality/quafun_sizeshape.hxx"
 #include "quality/simplex_quadrature.hxx"
 
 #include <algorithm>
@@ -24,6 +26,7 @@
 #include <cmath>
 #include <limits>
 #include <type_traits>
+#include <vector>
 
 namespace Metris
 {
@@ -627,6 +630,165 @@ void check_sizeshape_edge_derivative_dispatch()
   BOOST_CHECK_GT(gradient_norm_squared,1.e-8);
 }
 
+template<int gdim>
+struct FrozenP2SizeShapeSamples
+{
+  static constexpr int metric_count = gdim*(gdim + 1)/2;
+  std::vector<std::array<double,gdim + 1>> barycentric_points;
+  std::vector<std::array<double,gdim*gdim>>
+      regular_jacobian_transposes;
+  std::vector<std::array<double,metric_count>> metrics;
+  std::vector<double> objective_weights;
+};
+
+template<class MFT, int gdim>
+FrozenP2SizeShapeSamples<gdim>
+capture_frozen_p2_sizeshape_samples(Mesh<MFT> &mesh)
+{
+  FrozenP2SizeShapeSamples<gdim> samples;
+  const int *nodes = mesh.ent2poi(gdim)[0];
+  const SimplexQuadratureView<gdim> quadrature
+      = get_objective_quadrature<gdim>(
+            mesh.param->objective_quadrature_order);
+  const ObjectiveQuadratureTheta theta_mode
+      = objective_quadrature_theta_mode<QuaFun::SizeShape>(mesh);
+  samples.barycentric_points.reserve(quadrature.size());
+  samples.regular_jacobian_transposes.reserve(quadrature.size());
+  samples.metrics.reserve(quadrature.size());
+  samples.objective_weights.reserve(quadrature.size());
+
+  for(int iquad = 0; iquad < quadrature.size(); iquad++){
+    const ObjectiveQuadratureSample<gdim,gdim,2> sample
+        = prepare_objective_quadrature_sample<MFT,gdim,gdim,2>(
+              mesh,AsDeg::P1,nodes,quadrature[iquad],theta_mode);
+    BOOST_REQUIRE(sample.theta_is_valid);
+    samples.barycentric_points.push_back(
+        sample.barycentric_coordinates);
+    samples.regular_jacobian_transposes.push_back(
+        sample.regular_jacobian_transpose);
+    samples.metrics.push_back(sample.metric);
+    samples.objective_weights.push_back(
+        sample.quadrature_weight*sample.theta);
+  }
+  return samples;
+}
+
+template<class MFT, int gdim>
+double evaluate_frozen_p2_sizeshape_value(
+    Mesh<MFT> &mesh,
+    const FrozenP2SizeShapeSamples<gdim> &samples)
+{
+  const int *nodes = mesh.ent2poi(gdim)[0];
+  double value = 0.0;
+  for(std::size_t isample = 0;
+      isample < samples.objective_weights.size(); isample++){
+    value += samples.objective_weights[isample]
+           * quafun_sizeshape<MFT,gdim,gdim,double>(
+                 mesh,AsDeg::Pk,AsDeg::P1,nodes,
+                 samples.barycentric_points[isample].data(),
+                 samples.metrics[isample].data());
+  }
+  return value;
+}
+
+template<class MFT, int gdim>
+std::array<double,gdim> evaluate_frozen_p2_sizeshape_gradient_by_ad(
+    Mesh<MFT> &mesh,
+    const FrozenP2SizeShapeSamples<gdim> &samples,
+    const int active_control_point,
+    double *primal_value)
+{
+  using S = SANS::SurrealS<gdim,double>;
+  S value = S(0.0);
+  for(std::size_t isample = 0;
+      isample < samples.objective_weights.size(); isample++){
+    const std::array<double,gdim> regular_basis_gradient
+        = objective_regular_basis_gradient<gdim,2>(
+              mesh.getBasis(),active_control_point,
+              samples.barycentric_points[isample].data());
+    value += S(samples.objective_weights[isample])
+           * FrozenObjectiveValueAD::sizeshape_pointwise_value<gdim>(
+                 samples.regular_jacobian_transposes[isample].data(),
+                 samples.metrics[isample].data(),
+                 regular_basis_gradient.data(),
+                 mesh.param->objective_p);
+  }
+
+  std::array<double,gdim> gradient{};
+  *primal_value = value.value();
+  for(int component = 0; component < gdim; component++){
+    gradient[component] = value.deriv(component);
+  }
+  return gradient;
+}
+
+template<class MFT, int gdim>
+void check_sizeshape_edge_gradient()
+{
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_quadrature_order = 5;
+  parameters.objective_p = 1.5;
+
+  Mesh<MFT> mesh;
+  initialize_curved_p2_element<MFT,gdim>(mesh,parameters);
+  constexpr int active_edge_control_point = gdim + 1;
+  const int active_point
+      = mesh.ent2poi(gdim)(0,active_edge_control_point);
+  const FrozenP2SizeShapeSamples<gdim> samples
+      = capture_frozen_p2_sizeshape_samples<MFT,gdim>(mesh);
+
+  double gradient[gdim];
+  const double differentiated_value
+      = d_metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
+            mesh,AsDeg::Pk,AsDeg::P1,0,
+            active_edge_control_point,FEBasis::Lagrange,DifVar::None,
+            gradient,NULL,1.0);
+  const double frozen_value
+      = evaluate_frozen_p2_sizeshape_value<MFT,gdim>(mesh,samples);
+  BOOST_CHECK_CLOSE_FRACTION(
+      differentiated_value,frozen_value,3.e-14);
+
+  double automatic_value;
+  const std::array<double,gdim> automatic_gradient
+      = evaluate_frozen_p2_sizeshape_gradient_by_ad<MFT,gdim>(
+            mesh,samples,active_edge_control_point,&automatic_value);
+  BOOST_CHECK_CLOSE_FRACTION(
+      automatic_value,frozen_value,3.e-14);
+  for(int component = 0; component < gdim; component++){
+    BOOST_CHECK_SMALL(
+        gradient[component] - automatic_gradient[component],
+        5.e-14*(1.0 + std::abs(automatic_gradient[component])));
+  }
+
+  constexpr double finite_difference_step = 2.e-6;
+  for(int component = 0; component < gdim; component++){
+    const double coordinate = mesh.coord(active_point,component);
+    mesh.coord(active_point,component)
+        = coordinate + finite_difference_step;
+    const double plus_value
+        = evaluate_frozen_p2_sizeshape_value<MFT,gdim>(mesh,samples);
+    mesh.coord(active_point,component)
+        = coordinate - finite_difference_step;
+    const double minus_value
+        = evaluate_frozen_p2_sizeshape_value<MFT,gdim>(mesh,samples);
+    mesh.coord(active_point,component) = coordinate;
+
+    const double finite_difference_gradient
+        = (plus_value - minus_value)/(2.0*finite_difference_step);
+    const double gradient_error
+        = std::abs(gradient[component] - finite_difference_gradient);
+    BOOST_TEST_MESSAGE(
+        "P2 frozen edge gradient component " << component
+        << ": analytical=" << gradient[component]
+        << ", finite difference=" << finite_difference_gradient
+        << ", error=" << gradient_error);
+    BOOST_CHECK_SMALL(
+        gradient_error,
+        1.e-7*(1.0 + std::abs(finite_difference_gradient)));
+  }
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(p2_sizeshape_value_uses_degree_aware_dispatch)
@@ -659,6 +821,14 @@ BOOST_AUTO_TEST_CASE(p2_edge_sizeshape_derivative_uses_degree_aware_dispatch)
   check_sizeshape_edge_derivative_dispatch<MetricFieldAnalytical,2>();
   check_sizeshape_edge_derivative_dispatch<MetricFieldFE,3>();
   check_sizeshape_edge_derivative_dispatch<MetricFieldAnalytical,3>();
+}
+
+BOOST_AUTO_TEST_CASE(p2_edge_sizeshape_gradient_matches_frozen_value_oracles)
+{
+  check_sizeshape_edge_gradient<MetricFieldFE,2>();
+  check_sizeshape_edge_gradient<MetricFieldAnalytical,2>();
+  check_sizeshape_edge_gradient<MetricFieldFE,3>();
+  check_sizeshape_edge_gradient<MetricFieldAnalytical,3>();
 }
 
 } // namespace Metris

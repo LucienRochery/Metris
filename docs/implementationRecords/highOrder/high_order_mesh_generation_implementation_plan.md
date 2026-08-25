@@ -192,9 +192,10 @@ normal on each subpatch.
    implicitly as part of geometry generalization.
 3. Compare element values with an independent dense reference sampler.
 4. Generalize differentiated evaluation for an active P2 edge control point.
-5. Check gradients with centered finite differences of the same frozen-sample
-   functional used by the production derivative contract.
-6. Check Hessians independently.
+5. Check gradients against both automatic differentiation of the frozen-sample
+   value and centered finite differences of that same functional.
+6. Check Hessians against automatic differentiation of the validated gradient
+   and centered finite differences of the gradient.
 7. Cover Lagrange and Bezier geometry representations where both are supported.
 8. Enable SizeShape P2 smoothing only after value, gradient, Hessian, and
    validity tests pass.
@@ -621,3 +622,29 @@ would obstruct the first working path.
    step qualifies dispatch and edge activation only; centered finite-difference
    verification of that frozen-sample gradient remains step 5, and independent
    Hessian verification remains step 6.
+
+5. **Done (2026-08-25): verified the active P2 edge gradient with automatic
+   differentiation and centered finite differences of the frozen-sample
+   functional.** At the unperturbed
+   curved element, the test captures every order-five quadrature point, its
+   P1 FE or analytical metric tensor, and its complete weight
+   `quadrature_weight * theta`. It then perturbs one coordinate of the first P2
+   Lagrange edge control point at a time and reevaluates only the pointwise P2
+   SizeShape objective with those samples held fixed. This excludes metric and
+   physical-measure motion exactly as required by the production derivative
+   contract. A separate first-order `SurrealS` evaluation seeds the active
+   control point's contribution to the regular Jacobian and automatically
+   differentiates the independently assembled SizeShape value. Its result is
+   checked directly against the production analytic gradient.
+
+   Centered differences use a step of `2e-6` and are checked in every physical
+   coordinate for curved triangles and tetrahedra with both FE and analytical
+   metrics at `objective_p = 1.5`. The error limit is
+   `1e-7 * (1 + abs(finite_difference_gradient))`. The largest observed errors
+   are approximately `8.1e-10` in 2D and `4.2e-11` in 3D. The automatic
+   gradient comparison uses the tighter scale `5e-14 * (1 + abs(gradient))`.
+   The same AD-of-frozen-value check was backfilled into the legacy P1
+   objective matrix for both SizeShape and all currently covered StepDistance
+   variants. StepDistance remains P1-only here; its P2 extension is Phase 5.
+   No production change was required for this qualification step. Independent
+   Hessian verification remains Phase 4 step 6.
