@@ -225,7 +225,8 @@ the same way for SizeShape and every StepDistance variant.
 
 1. **Done (2026-08-25): complete 2D curved CAD-boundary control-point
    smoothing.** See the Phase 6 execution record below.
-2. Implement P2 triangular-face projection for 3D localization.
+2. **Done (2026-08-25): implement P2 triangular-face projection for 3D
+   localization.** See the Phase 6 execution record below.
 3. Test the polynomial orientation certificate for P2 surface triangles.
 4. Add small CAD-curve and CAD-surface regression meshes.
 5. Verify that CAD parameters, projected coordinates, and high-order validity
@@ -1044,3 +1045,37 @@ would obstruct the first working path.
    for P2 nodes classified on triangular CAD faces in 3D; surface orientation,
    broader CAD regression data, per-move invariant auditing, and curved-edge
    self-intersection remain steps 3--6 and are not claimed here.
+
+2. **Done (2026-08-25): implemented exact P2 CAD-surface placement before
+   3D background localization.** During degree elevation, the existing face
+   path treats the P1 vertex parameters as two scalar Lagrange fields and
+   evaluates them at every target face node. Thus, for a P1-to-P2 interior
+   triangulation edge with endpoint parameters `(u0,v0)` and `(u1,v1)`, the
+   new face-classified node receives their parameter-space midpoint. After the
+   elevated polynomial geometry is converted from Bezier to Lagrange form,
+   the runner now sets its physical coordinate to the exact CAD image
+   `S(u,v)` before FE metric localization.
+
+   The placement pass follows the lowest-dimensional ownership rule. A node
+   whose primary boundary classification is a CAD curve is deliberately
+   skipped by the surface pass and remains at `C(t)`, even though it also has
+   an associated face record. Only nodes whose primary classification is a
+   CAD face are placed with `S(u,v)`. The loop naturally includes the edge
+   nodes needed by P2 and is also ready to place true face-interior Lagrange
+   nodes once P3 is enabled.
+
+   The new self-contained FE regression constructs a spherical EGADS patch,
+   triangulates its rectangular parameter domain with two P1 triangles, and
+   elevates them to P2. The control point on the shared diagonal is not on a
+   topological CAD curve and is therefore the required face-classified case.
+   The test verifies its exact interpolated `(u,v)`, proves that its physical
+   coordinate is `S(u,v)` rather than the spatial chord midpoint, and checks
+   that background localization assigns it a valid `poi2bak` seed. A boundary
+   P2 node is checked in the same model to prove that the subsequent surface
+   pass does not overwrite the stricter curve constraint.
+
+   Release and Debug builds pass the new spherical-surface regression, both
+   curved-CAD-edge objective cases, the nine-case high-order classic and
+   production smoothing executable, and the five-case Phase 1 baseline.
+   Phase 6 step 3, the polynomial orientation certificate for embedded P2
+   surface triangles, remains separate and is the next roadmap item.

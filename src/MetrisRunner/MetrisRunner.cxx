@@ -65,6 +65,50 @@ void placeElevatedCadEdgeNodes(MeshBase &msh)
   }
 }
 
+void placeElevatedCadFaceNodes(MeshBase &msh)
+{
+  METRIS_ENFORCE(msh.getBasis() == FEBasis::Lagrange);
+  if(msh.idim != 3) return;
+
+  for(int iface = 0; iface < msh.nface; iface++){
+    if(isdeadent(iface,msh.fac2poi)) continue;
+    const int reference = msh.fac2ref[iface];
+    METRIS_ENFORCE_MSG(
+        reference >= 0 && reference < msh.CAD.ncadfa,
+        "Invalid CAD-face reference {} for mesh face {}",
+        reference,iface);
+    const ego cadFace = msh.CAD.cad2fac[reference];
+    for(int localNode = 3; localNode < msh.nnode(2); localNode++){
+      const int point = msh.fac2poi(iface,localNode);
+      const int primaryRecord = msh.poi2bpo[point];
+      METRIS_ENFORCE_MSG(
+          primaryRecord >= 0,
+          "Missing CAD classification for elevated face {} node {}",
+          iface,localNode);
+
+      // CAD-curve nodes also carry a face record, but their physical position
+      // is governed by the lower-dimensional curve constraint C(t).
+      if(msh.bpo2ibi(primaryRecord,1) != 2) continue;
+
+      const int boundaryRecord = msh.poi2ebp(point,2,iface,-1);
+      METRIS_ENFORCE_MSG(
+          boundaryRecord >= 0,
+          "Missing CAD parameters for elevated face {} node {}",
+          iface,localNode);
+      double evaluation[18];
+      const int status = EG_evaluate(
+          cadFace,&msh.bpo2rbi(boundaryRecord,0),evaluation);
+      METRIS_ENFORCE_MSG(
+          status == EGADS_SUCCESS,
+          "EG_evaluate failed for elevated face {} node {}: {}",
+          iface,localNode,status);
+      for(int component = 0; component < msh.idim; component++){
+        msh.coord(point,component) = evaluation[component];
+      }
+    }
+  }
+}
+
 } // namespace
 
 
@@ -121,11 +165,15 @@ void MetrisRunner::degElevate0(){
   CPRINTF1("-- Back metric interpolation back deg = {}\n",bak.curdeg);
 
   // The elevated CAD parameters are Lagrange data. Convert the polynomial
-  // geometry first, then make each edge-interior coordinate the exact image
-  // of its parameter on the classified CAD curve. This must precede metric
-  // localization so coordinates and parameters obey a single invariant.
+  // geometry first, then make each high-order boundary coordinate the exact
+  // image of its parameters on the lowest-dimensional CAD entity that owns
+  // it. This must precede metric localization so coordinates and parameters
+  // obey a single invariant.
   msh.setBasis(FEBasis::Lagrange);
-  if(msh.CAD()) placeElevatedCadEdgeNodes(msh);
+  if(msh.CAD()){
+    placeElevatedCadEdgeNodes(msh);
+    placeElevatedCadFaceNodes(msh);
+  }
 
   CT_FOR0_INC(1,METRIS_MAX_DEG,bdeg){if(bak.curdeg == bdeg){
     interpFrontBack<MFT,bdeg>(msh,bak,npoi0);
