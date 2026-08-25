@@ -204,14 +204,37 @@ ftype quafun_stepDistance(Mesh<MFT> &msh,
   double coopr[gdim];
   double jmat[tdim*gdim];
 
-  if constexpr(tdim == 2){
-    eval2<gdim,1>(msh.coord, ent2pol, msh.getBasis(),
-                  DifVar::Bary, DifVar::None,
-                  bary, coopr, jmat, NULL);
+  if(asdmsh == AsDeg::P1 || msh.curdeg == 1){
+    if constexpr(tdim == 2){
+      eval2<gdim,1>(msh.coord, ent2pol, msh.getBasis(),
+                    DifVar::Bary, DifVar::None,
+                    bary, coopr, jmat, NULL);
+    }else{
+      eval3<gdim,1>(msh.coord, ent2pol, msh.getBasis(),
+                    DifVar::Bary, DifVar::None,
+                    bary, coopr, jmat, NULL);
+    }
   }else{
-    eval3<gdim,1>(msh.coord, ent2pol, msh.getBasis(),
-                  DifVar::Bary, DifVar::None,
-                  bary, coopr, jmat, NULL);
+    bool degree_was_dispatched = false;
+    CT_FOR0_INC(2,METRIS_MAX_DEG,geometry_degree){
+      if(geometry_degree == msh.curdeg){
+        if constexpr(tdim == 2){
+          eval2<gdim,geometry_degree>(
+              msh.coord,ent2pol,msh.getBasis(),
+              DifVar::Bary,DifVar::None,
+              bary,coopr,jmat,NULL);
+        }else{
+          eval3<gdim,geometry_degree>(
+              msh.coord,ent2pol,msh.getBasis(),
+              DifVar::Bary,DifVar::None,
+              bary,coopr,jmat,NULL);
+        }
+        degree_was_dispatched = true;
+      }
+    }CT_FOR1(geometry_degree);
+    METRIS_ENFORCE_MSG(
+        degree_was_dispatched,
+        "Unsupported StepDistance geometry degree {}",msh.curdeg);
   }
 
   // ------------------------------------------------------------

@@ -723,3 +723,32 @@ would obstruct the first working path.
    is complete for production 2D, while 3D production integration is recorded
    as follow-up work rather than being enabled on the strength of an isolated
    test alone. Phase 5 is the separate StepDistance P2 generalization.
+
+## Phase 5 StepDistance execution record
+
+1. **Done (2026-08-25): replaced the degree-one geometry assumptions in the
+   StepDistance value path.** `metqua` now dispatches both objective-driven
+   value integrals at the effective geometry degree. `AsDeg::P1` continues to
+   select the corner map, while `AsDeg::Pk` selects the complete mesh degree;
+   metric interpolation remains the independent `asdmet` choice and therefore
+   retains the established P1 FE-metric compatibility contract on P2
+   geometry. The StepDistance pointwise value routine now makes the same
+   degree-aware choice when it reconstructs the physical point and Jacobian,
+   removing its internal `eval2<...,1>` and `eval3<...,1>` assumptions.
+
+   `test_high_order_stepdistance_value` constructs curved Lagrange P2
+   triangles and tetrahedra for both FE and analytical metric fields. For the
+   basic StepDistance variant, it checks exact agreement between the public
+   `metqua` entry point and the selected degree-two shared-integrator
+   specialization, retains the equivalent P1 compatibility check, and
+   requires the P1 and P2 geometry choices to produce observably different
+   integrals. A separate frozen-metric pointwise probe perturbs only a P2 edge
+   node and verifies that the P2 StepDistance value changes while the P1 value
+   is exactly invariant. This specifically guards the pointwise geometry
+   dispatch rather than testing only the outer integrator.
+
+   Differentiated StepDistance evaluation remains explicitly P1-only. Removing
+   its P1-vertex assumption and qualifying an active P2 edge control point is
+   Phase 5 step 2. The collapse barrier, ShapeVolume, and
+   CavityTargetAverage variants are not qualified by this step and retain
+   their separate roadmap entries.
