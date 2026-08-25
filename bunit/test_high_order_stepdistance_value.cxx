@@ -349,11 +349,29 @@ double independent_p2_stepdistance_dense_reference(Mesh<MFT> &mesh)
     double eigenvectors[gdim*gdim];
     geteigsym<gdim,double>(
         packed_gram_matrix,eigenvalues,eigenvectors);
-    double squared_distance = 0.0;
+    double determinant = 1.0;
+    double mean_logarithm = 0.0;
+    double logarithms[gdim];
     for(int eigenvalue = 0; eigenvalue < gdim; eigenvalue++){
       BOOST_REQUIRE_GT(eigenvalues[eigenvalue],0.0);
-      const double logarithm = std::log(eigenvalues[eigenvalue]);
-      squared_distance += logarithm*logarithm;
+      determinant *= eigenvalues[eigenvalue];
+      logarithms[eigenvalue] = std::log(eigenvalues[eigenvalue]);
+      mean_logarithm += logarithms[eigenvalue]/gdim;
+    }
+    double squared_distance = 0.0;
+    if(mesh.param->step_distance_shape_volume){
+      for(int eigenvalue = 0; eigenvalue < gdim; eigenvalue++){
+        const double centered_logarithm
+            = logarithms[eigenvalue] - mean_logarithm;
+        squared_distance += centered_logarithm*centered_logarithm;
+      }
+      const double volume_coordinate
+          = determinant - 1.0/determinant;
+      squared_distance += volume_coordinate*volume_coordinate/(4.0*gdim);
+    }else{
+      for(int eigenvalue = 0; eigenvalue < gdim; eigenvalue++){
+        squared_distance += logarithms[eigenvalue]*logarithms[eigenvalue];
+      }
     }
     const double regularization
         = mesh.param->step_distance_regularization;
@@ -401,15 +419,17 @@ double independent_p2_stepdistance_dense_reference(Mesh<MFT> &mesh)
 }
 
 template<class MFT, int gdim>
-void check_p2_stepdistance_against_dense_reference()
+void check_p2_stepdistance_against_dense_reference(
+    bool shape_volume = false)
 {
   MetrisParameters parameters;
   parameters.iverb = 0;
   parameters.objective_p = 1.25;
   parameters.step_distance_regularization = 1.e-6;
-  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_shape_volume = shape_volume;
   parameters.step_distance_cavity_target_average = false;
-  parameters.step_distance_barrier_beta = 0.0;
+  parameters.step_distance_barrier_rho0 = 10.0;
+  parameters.step_distance_barrier_beta = shape_volume ? 1.e6 : 0.0;
 
   Mesh<MFT> mesh;
   initialize_curved_p2_stepdistance_element<MFT,gdim>(mesh,parameters);
@@ -427,7 +447,9 @@ void check_p2_stepdistance_against_dense_reference()
   }
 
   BOOST_TEST_MESSAGE(
-      "P2 StepDistance dense reference=" << reference
+      "P2 StepDistance "
+      << (shape_volume ? "ShapeVolume " : "basic ")
+      << "dense reference=" << reference
       << ", q2=" << values[0] << " (error " << errors[0] << ")"
       << ", q3=" << values[1] << " (error " << errors[1] << ")"
       << ", q4=" << values[2] << " (error " << errors[2] << ")"
@@ -591,9 +613,7 @@ template<class MFT, int gdim>
 FrozenP2StepDistanceSamples<gdim>
 capture_frozen_p2_stepdistance_samples(Mesh<MFT> &mesh)
 {
-  BOOST_REQUIRE(!mesh.param->step_distance_shape_volume);
   BOOST_REQUIRE(!mesh.param->step_distance_cavity_target_average);
-  BOOST_REQUIRE_EQUAL(mesh.param->step_distance_barrier_beta,0.0);
 
   FrozenP2StepDistanceSamples<gdim> samples;
   const int *nodes = mesh.ent2poi(gdim)[0];
@@ -827,7 +847,8 @@ std::array<double,gdim> evaluate_frozen_p2_stepdistance_gradient_by_ad(
                  samples.metrics[isample].data(),
                  regular_basis_gradient.data(),
                  mesh.param->objective_p,
-                 mesh.param->step_distance_regularization,false);
+                 mesh.param->step_distance_regularization,
+                 mesh.param->step_distance_shape_volume);
   }
 
   std::array<double,gdim> gradient{};
@@ -886,6 +907,7 @@ void evaluate_frozen_p2_stepdistance_hessian_by_gradient_ad(
     FEBasis basis,
     double objective_power,
     double regularization,
+    bool shape_volume,
     double *gradient,
     double *hessian)
 {
@@ -902,10 +924,17 @@ void evaluate_frozen_p2_stepdistance_hessian_by_gradient_ad(
               basis,active_control_point,
               samples.barycentric_points[isample].data());
     S pointwise_gradient[gdim];
-    FrozenObjectiveValueAD::step_distance_pointwise_gradient<gdim>(
-        samples.regular_jacobian_transposes[isample].data(),
-        samples.metrics[isample].data(),regular_basis_gradient.data(),
-        objective_power,regularization,pointwise_gradient);
+    if(shape_volume){
+      FrozenObjectiveValueAD::shape_volume_pointwise_gradient<gdim>(
+          samples.regular_jacobian_transposes[isample].data(),
+          samples.metrics[isample].data(),regular_basis_gradient.data(),
+          objective_power,regularization,pointwise_gradient);
+    }else{
+      FrozenObjectiveValueAD::step_distance_pointwise_gradient<gdim>(
+          samples.regular_jacobian_transposes[isample].data(),
+          samples.metrics[isample].data(),regular_basis_gradient.data(),
+          objective_power,regularization,pointwise_gradient);
+    }
     for(int component = 0; component < gdim; component++){
       differentiated_gradient[component]
           += S(samples.objective_weights[isample])
@@ -924,16 +953,19 @@ void evaluate_frozen_p2_stepdistance_hessian_by_gradient_ad(
 }
 
 template<class MFT, int gdim>
-void check_stepdistance_edge_gradient(FEBasis geometry_basis)
+void check_stepdistance_edge_gradient(
+    FEBasis geometry_basis,
+    bool shape_volume = false)
 {
   MetrisParameters parameters;
   parameters.iverb = 0;
   parameters.objective_quadrature_order = 5;
   parameters.objective_p = 1.25;
   parameters.step_distance_regularization = 1.e-6;
-  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_shape_volume = shape_volume;
   parameters.step_distance_cavity_target_average = false;
-  parameters.step_distance_barrier_beta = 0.0;
+  parameters.step_distance_barrier_rho0 = 10.0;
+  parameters.step_distance_barrier_beta = shape_volume ? 1.e6 : 0.0;
 
   Mesh<MFT> mesh;
   initialize_curved_p2_stepdistance_element<MFT,gdim>(mesh,parameters);
@@ -995,14 +1027,18 @@ void check_stepdistance_edge_gradient(FEBasis geometry_basis)
         error,1.e-7*(1.0 + std::abs(finite_difference_gradient)));
   }
   BOOST_TEST_MESSAGE(
-      "P2 frozen StepDistance edge gradient: AD error="
+      "P2 frozen StepDistance "
+      << (shape_volume ? "ShapeVolume " : "basic ")
+      << "edge gradient: AD error="
       << maximum_automatic_gradient_error
       << ", finite-difference error="
       << maximum_finite_difference_gradient_error);
 }
 
 template<class MFT, int gdim>
-void check_stepdistance_edge_hessian(FEBasis geometry_basis)
+void check_stepdistance_edge_hessian(
+    FEBasis geometry_basis,
+    bool shape_volume = false)
 {
   constexpr int hessian_count = gdim*(gdim + 1)/2;
   MetrisParameters parameters;
@@ -1010,9 +1046,10 @@ void check_stepdistance_edge_hessian(FEBasis geometry_basis)
   parameters.objective_quadrature_order = 5;
   parameters.objective_p = 1.25;
   parameters.step_distance_regularization = 1.e-6;
-  parameters.step_distance_shape_volume = false;
+  parameters.step_distance_shape_volume = shape_volume;
   parameters.step_distance_cavity_target_average = false;
-  parameters.step_distance_barrier_beta = 0.0;
+  parameters.step_distance_barrier_rho0 = 10.0;
+  parameters.step_distance_barrier_beta = shape_volume ? 1.e6 : 0.0;
 
   Mesh<MFT> mesh;
   initialize_curved_p2_stepdistance_element<MFT,gdim>(mesh,parameters);
@@ -1055,6 +1092,7 @@ void check_stepdistance_edge_hessian(FEBasis geometry_basis)
   evaluate_frozen_p2_stepdistance_hessian_by_gradient_ad<gdim>(
       samples,active_edge_control_point,mesh.getBasis(),
       parameters.objective_p,parameters.step_distance_regularization,
+      shape_volume,
       automatic_gradient,automatic_hessian);
 
   double maximum_automatic_hessian_error = 0.0;
@@ -1104,7 +1142,9 @@ void check_stepdistance_edge_hessian(FEBasis geometry_basis)
     }
   }
   BOOST_TEST_MESSAGE(
-      "P2 frozen StepDistance edge Hessian: AD error="
+      "P2 frozen StepDistance "
+      << (shape_volume ? "ShapeVolume " : "basic ")
+      << "edge Hessian: AD-of-gradient error="
       << maximum_automatic_hessian_error
       << ", finite-difference error="
       << maximum_finite_difference_hessian_error);
@@ -1296,6 +1336,53 @@ void check_stepdistance_collapse_barrier(FEBasis geometry_basis)
       << maximum_finite_difference_hessian_error);
 }
 
+template<class MFT, int gdim>
+void check_shape_volume_rejects_singular_p2_trial(FEBasis geometry_basis)
+{
+  constexpr int hessian_count = gdim*(gdim + 1)/2;
+  constexpr int node_count = getnnode(gdim,2);
+  constexpr int active_edge_control_point = gdim + 1;
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_quadrature_order = 5;
+  parameters.objective_p = 1.25;
+  parameters.step_distance_regularization = 1.e-6;
+  parameters.step_distance_shape_volume = true;
+  parameters.step_distance_cavity_target_average = false;
+  parameters.step_distance_barrier_rho0 = 10.0;
+  parameters.step_distance_barrier_beta = 1.e6;
+
+  Mesh<MFT> mesh;
+  initialize_curved_p2_stepdistance_element<MFT,gdim>(mesh,parameters);
+  mesh.setBasis(geometry_basis);
+  for(int point = 0; point < node_count; point++){
+    for(int component = 0; component < gdim; component++){
+      mesh.coord(point,component) *= 1.e-4;
+    }
+  }
+
+  const double value
+      = metqua<MFT,gdim,gdim,QuaFun::StepDistance,double>(
+            mesh,AsDeg::Pk,AsDeg::P1,0,1.0);
+  BOOST_CHECK_EQUAL(
+      value,step_distance_shape_volume_rejection_quality);
+
+  double gradient[gdim];
+  double hessian[hessian_count];
+  const double differentiated_value
+      = d_metqua<MFT,gdim,gdim,QuaFun::StepDistance,double>(
+            mesh,AsDeg::Pk,AsDeg::P1,0,
+            active_edge_control_point,geometry_basis,DifVar::None,
+            gradient,hessian,1.0);
+  BOOST_CHECK_EQUAL(differentiated_value,value);
+  for(int component = 0; component < gdim; component++){
+    BOOST_CHECK_EQUAL(gradient[component],0.0);
+  }
+  for(int entry = 0; entry < hessian_count; entry++){
+    BOOST_CHECK_EQUAL(hessian[entry],0.0);
+  }
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(p2_stepdistance_value_uses_degree_aware_geometry)
@@ -1349,6 +1436,44 @@ BOOST_AUTO_TEST_CASE(p2_stepdistance_collapse_barrier_is_degree_aware)
     check_stepdistance_collapse_barrier<MetricFieldAnalytical,2>(basis);
     check_stepdistance_collapse_barrier<MetricFieldFE,3>(basis);
     check_stepdistance_collapse_barrier<MetricFieldAnalytical,3>(basis);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(p2_stepdistance_shape_volume_matches_dense_reference)
+{
+  check_p2_stepdistance_against_dense_reference<MetricFieldFE,2>(true);
+  check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,2>(true);
+  check_p2_stepdistance_against_dense_reference<MetricFieldFE,3>(true);
+  check_p2_stepdistance_against_dense_reference<MetricFieldAnalytical,3>(true);
+}
+
+BOOST_AUTO_TEST_CASE(p2_edge_stepdistance_shape_volume_gradient_is_validated)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_stepdistance_edge_gradient<MetricFieldFE,2>(basis,true);
+    check_stepdistance_edge_gradient<MetricFieldAnalytical,2>(basis,true);
+    check_stepdistance_edge_gradient<MetricFieldFE,3>(basis,true);
+    check_stepdistance_edge_gradient<MetricFieldAnalytical,3>(basis,true);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(p2_edge_stepdistance_shape_volume_hessian_is_validated)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_stepdistance_edge_hessian<MetricFieldFE,2>(basis,true);
+    check_stepdistance_edge_hessian<MetricFieldAnalytical,2>(basis,true);
+    check_stepdistance_edge_hessian<MetricFieldFE,3>(basis,true);
+    check_stepdistance_edge_hessian<MetricFieldAnalytical,3>(basis,true);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(p2_stepdistance_shape_volume_rejects_singular_trials)
+{
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_shape_volume_rejects_singular_p2_trial<MetricFieldFE,2>(basis);
+    check_shape_volume_rejects_singular_p2_trial<MetricFieldAnalytical,2>(basis);
+    check_shape_volume_rejects_singular_p2_trial<MetricFieldFE,3>(basis);
+    check_shape_volume_rejects_singular_p2_trial<MetricFieldAnalytical,3>(basis);
   }
 }
 

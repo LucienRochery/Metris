@@ -842,3 +842,37 @@ would obstruct the first working path.
    and `3.98e-9` for the Hessian, within their `1e-7` scaled tolerances.
 
    ShapeVolume remains disabled and is Phase 5 step 5.
+
+5. **Done (2026-08-25): implemented and independently validated P2
+   ShapeVolume.** The dense Duffy oracle now evaluates the complete
+   ShapeVolume embedding independently: centered log-eigenvalues represent
+   shape, while `det(A) - 1/det(A)` supplies the injective volume coordinate.
+   Curved P2 triangles and tetrahedra are checked for FE and analytical metric
+   fields at objective quadrature orders two through five. Order five improves
+   on order two in every case and differs from the eight-point-per-coordinate
+   reference by at most approximately `4.40e-6` in 2D and `3.70e-9` in 3D.
+
+   Frozen order-five samples then validate the first P2 edge control point in
+   both Lagrange and Bezier bases. The production analytic gradient agrees
+   with AD of an independently assembled ShapeVolume value to a maximum
+   absolute discrepancy of approximately `1.55e-15`, under the `5e-14`
+   scaled tolerance. A separately coded scalar-generic ShapeVolume gradient
+   is differentiated to obtain the independent AD-of-gradient Hessian oracle;
+   its maximum discrepancy from the production AD Hessian is approximately
+   `8.88e-16`. Centered differences of the frozen value and analytic gradient
+   have maximum errors of approximately `3.56e-11` and `1.25e-9`,
+   respectively, within their `1e-7` scaled tolerances.
+
+   The ShapeVolume matrix deliberately sets the ordinary collapse-barrier
+   coefficient to `1e6`. Agreement with the oracle, which contains no
+   additive barrier, verifies that this separate barrier is disabled by the
+   ShapeVolume policy. Numerically singular P2 maps are also exercised in 2D
+   and 3D for both metric-field and geometry-basis choices. Both public value
+   and derivative entry points return the finite ShapeVolume rejection
+   sentinel, with zero gradient and Hessian, before invalid geometric weights
+   can enter the integral.
+
+   This sentinel test qualifies ShapeVolume's numerical SPD-boundary rejection
+   policy. Bernstein validity rejection and production smoothing behavior
+   remain part of the later per-variant integration work. Phase 5 step 6 is
+   the deliberately different CavityTargetAverage aggregation convention.
