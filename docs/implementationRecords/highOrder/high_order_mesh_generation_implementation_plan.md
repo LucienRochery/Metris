@@ -475,3 +475,30 @@ would obstruct the first working path.
    determinant whose whole-element Bernstein bound is inconclusive, explicit
    P1-orientation gating, and degenerate P1 normalization. Production call-site
    migration remains the next Phase 3 step.
+
+4. **Done (2026-08-25): integrated the classifier into Classic smoothing.**
+   The interior-coordinate, CAD-edge, and CAD-face branches of
+   `smooballdiff` now share one degree-aware region predicate. P1 meshes retain
+   `isvalideltP1`; for P2 and higher, every element in the smoothing region
+   must return `Certified` from `classify_element_validity`. Consequently,
+   both `Invalid` and `Uncertified` Newton trials are rejected under the
+   conservative policy.
+
+   The optimizer's stored final candidate is classified again after its
+   coordinates and interpolated metric have been installed. This check is
+   unconditional: a non-certified candidate returns failure and restores the
+   original coordinates, metric, and, for boundary moves, CAD parameters. It
+   replaces the previous final P1-only assertion and debug-only legacy
+   coefficient check. The same implementation covers P2 triangles in 2D and
+   the existing complete tetrahedral edge-shell region in 3D. This step is
+   intentionally confined to the Classic (`iflag2 == 0`) smoother; the Luksan
+   alternative and cavity smoothing remain later migrations.
+
+   `test_high_order_classic_smoothing` now contains six focused cases. In
+   addition to the Phase 2 neighborhood and CAD checks, every successful 2D
+   smoothing case independently classifies its affected triangles, the 3D
+   case starts and ends with a certified multi-tetrahedron shell and verifies
+   actual control-point movement, and a direct low-level 2D case verifies that
+   a deliberately non-certified final candidate returns failure without being
+   accepted. The six cases pass in debug and release builds, together with the
+   validity classifier and contract tests.

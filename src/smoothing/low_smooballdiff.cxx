@@ -22,6 +22,7 @@ Simplest possible approach.
 #include "../quality/low_metqua_d.hxx"
 #include "../low_geo/ccoef.hxx"
 #include "../low_geo/measure.hxx"
+#include "../low_geo/validity.hxx"
 
 #include "../utils/aux_timer.hxx"
 #include "../utils/mprintf.hxx"
@@ -32,6 +33,26 @@ Simplest possible approach.
 #include <limits>
 
 namespace Metris{
+
+namespace {
+
+template<int idim, int ideg>
+bool smoothing_region_is_conservatively_valid(const MeshBase &msh,
+                                              const intAr1 &region)
+{
+  for(const int element : region){
+    if constexpr(ideg == 1){
+      if(!isvalideltP1<idim,idim>(msh,element)) return false;
+    }else{
+      const ElementValidityResult validity
+          = classify_element_validity<idim,ideg>(msh,element);
+      if(!validity.accepted_conservatively()) return false;
+    }
+  }
+  return true;
+}
+
+} // namespace
 
 // inorm <= infi norm , p > 0 L^p norm (over ball)
 template<class MFT, int idim, int ideg>
@@ -128,22 +149,8 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
       for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = xcur[ii];
 
-      iinva = false;
-      if constexpr (ideg == 1){
-        for(int ientt : lball){
-          iinva = !isvalideltP1<gdim,tdim>(msh,ientt);
-          if(iinva) break;
-        }
-      }else{
-        constexpr int jdeg = tdim*(ideg - 1);
-        constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
-                                        : getnnod3(jdeg);
-        double ccoef[ncoef];
-        for(int ientt : lball){
-          getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva);
-          if(iinva) break;
-        }
-      }
+      iinva = !smoothing_region_is_conservatively_valid<idim,ideg>(
+          msh,lball);
 
       if(iinva){
         fcur = 1.0e10;
@@ -255,11 +262,10 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
       goto cleanup;
     }
 
-
-    for(int iball = 0; iball < nball; iball++){
-      int ient2 = lball[iball];
-      bool iflat = !isvalideltP1<idim,idim>(msh,ient2);
-      METRIS_ASSERT_MSG(!iflat,"Flat iball {} elt {}", iball, ient2);
+    if(!smoothing_region_is_conservatively_valid<idim,ideg>(msh,lball)){
+      ierro = 3;
+      CPRINTF1(" # Local smoo reject: final candidate is not certified\n");
+      goto cleanup;
     }
 
     *qnrm1 = 0;
@@ -298,23 +304,6 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
     CPRINTF1(" # Local smoo reject: quality norm increase "
                "{} -> {} \n", *qnrm0, *qnrm1);
     goto cleanup;
-  }
-
-  if(msh.param->dbgfull){
-    for(int ientt : lball){
-      if constexpr (ideg == 1){
-        METRIS_ENFORCE((isvalideltP1<idim,idim>(msh,ientt)));
-      }else{
-        constexpr int jdeg = tdim*(ideg - 1);
-        constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
-                                        : getnnod3(jdeg);
-        double ccoef[ncoef];
-        for(int ientt : lball){
-          getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva);
-          METRIS_ENFORCE(!iinva);
-        }
-      }
-    }
   }
 
   return 0;
@@ -517,22 +506,8 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
         Xt[0]  = evalResult[3];  Xt[1]  = evalResult[4];  Xt[2]  = (idim==3 ? evalResult[5] : 0.0);
         Xtt[0] = evalResult[6];  Xtt[1] = evalResult[7];  Xtt[2] = (idim==3 ? evalResult[8] : 0.0);
 
-        iinva = false;
-        if constexpr (ideg == 1){
-          for(int ientt : lball){
-            iinva = !isvalideltP1<gdim,tdim>(msh,ientt);
-            if(iinva) break;
-          }
-        }else{
-          constexpr int jdeg = tdim*(ideg - 1);
-          constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
-                                          : getnnod3(jdeg);
-          double ccoef[ncoef];
-          for(int ientt : lball){
-            getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva);
-            if(iinva) break;
-          }
-        }
+        iinva = !smoothing_region_is_conservatively_valid<idim,ideg>(
+            msh,lball);
 
         if(iinva){
           fcur = 1.0e10;
@@ -693,11 +668,10 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
         goto cleanupdim1;
       }
 
-
-      for(int iball = 0; iball < nball; iball++){
-        int ient2 = lball[iball];
-        bool iflat = !isvalideltP1<idim,idim>(msh,ient2);
-        METRIS_ASSERT_MSG(!iflat,"Flat iball {} elt {}", iball, ient2);
+      if(!smoothing_region_is_conservatively_valid<idim,ideg>(msh,lball)){
+        ierro = 3;
+        CPRINTF1(" # Local boundary smoo reject: final candidate is not certified\n");
+        goto cleanupdim1;
       }
 
       *qnrm1 = 0;
@@ -736,23 +710,6 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
       CPRINTF1(" # Local smoo reject: quality norm increase "
                 "{} -> {} \n", *qnrm0, *qnrm1);
       goto cleanupdim1;
-    }
-
-    if(msh.param->dbgfull){
-      for(int ientt : lball){
-        if constexpr (ideg == 1){
-          METRIS_ENFORCE((isvalideltP1<idim,idim>(msh,ientt)));
-        }else{
-          constexpr int jdeg = tdim*(ideg - 1);
-          constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
-                                          : getnnod3(jdeg);
-          double ccoef[ncoef];
-          for(int ientt : lball){
-            getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva);
-            METRIS_ENFORCE(!iinva);
-          }
-        }
-      }
     }
 
     return 0;
@@ -908,22 +865,8 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
         Xvv[0] = evalResult[15];  Xvv[1] = evalResult[16];  Xvv[2] = (idim==3 ? evalResult[17] : 0.0);
 
 
-        iinva = false;
-        if constexpr (ideg == 1){
-          for(int ientt : lball){
-            iinva = !isvalideltP1<gdim,tdim>(msh,ientt);
-            if(iinva) break;
-          }
-        }else{
-          constexpr int jdeg = tdim*(ideg - 1);
-          constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
-                                          : getnnod3(jdeg);
-          double ccoef[ncoef];
-          for(int ientt : lball){
-            getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva);
-            if(iinva) break;
-          }
-        }
+        iinva = !smoothing_region_is_conservatively_valid<idim,ideg>(
+            msh,lball);
 
         if(iinva){
           fcur = 1.0e10;
@@ -1107,10 +1050,10 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
         goto cleanupdim2;
       }
 
-      for(int iball = 0; iball < nball; iball++){
-        int ient2 = lball[iball];
-        bool iflat = !isvalideltP1<idim,idim>(msh,ient2);
-        METRIS_ASSERT_MSG(!iflat,"Flat iball {} elt {}", iball, ient2);
+      if(!smoothing_region_is_conservatively_valid<idim,ideg>(msh,lball)){
+        ierro = 3;
+        CPRINTF1(" # Local boundary smoo reject: final candidate is not certified\n");
+        goto cleanupdim2;
       }
 
       *qnrm1 = 0;
@@ -1149,23 +1092,6 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
       CPRINTF1(" # Local smoo reject: quality norm increase "
                 "{} -> {} \n", *qnrm0, *qnrm1);
       goto cleanupdim2;
-    }
-
-    if(msh.param->dbgfull){
-      for(int ientt : lball){
-        if constexpr (ideg == 1){
-          METRIS_ENFORCE((isvalideltP1<idim,idim>(msh,ientt)));
-        }else{
-          constexpr int jdeg = tdim*(ideg - 1);
-          constexpr int ncoef = tdim == 2 ? getnnod2(jdeg)
-                                          : getnnod3(jdeg);
-          double ccoef[ncoef];
-          for(int ientt : lball){
-            getsclccoef<gdim,tdim,ideg>(msh,ientt,NULL,ccoef,&iinva);
-            METRIS_ENFORCE(!iinva);
-          }
-        }
-      }
     }
 
     return 0;

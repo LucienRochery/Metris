@@ -10,7 +10,9 @@
 #include "Mesh/Mesh.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include "MetrisRunner/MetrisRunner.hxx"
+#include "low_geo/validity.hxx"
 #include "quality/low_metqua.hxx"
+#include "smoothing/low_smooballdiff.hxx"
 #include "smoothing/msh_smooball.hxx"
 
 #include <cmath>
@@ -89,6 +91,19 @@ bool region_contains(const intAr1 &region, int entity)
     if(candidate == entity) return true;
   }
   return false;
+}
+
+template<int gdim>
+void check_p2_region_is_certified(const MeshBase &mesh,
+                                  const intAr1 &region)
+{
+  for(const int element : region){
+    const ElementValidityResult validity
+        = classify_element_validity<gdim,2>(mesh,element);
+    BOOST_CHECK_MESSAGE(
+        validity.is_certified(),
+        "element " << element << " was not certified after smoothing");
+  }
 }
 
 } // namespace
@@ -189,6 +204,65 @@ BOOST_AUTO_TEST_CASE(classic_p2_interior_edge_control_point_is_smoothed)
             mesh.coord(control_point,0) - perturbed_coordinates[0],
             mesh.coord(control_point,1) - perturbed_coordinates[1]);
   BOOST_CHECK_GT(displacement,1.e-10);
+
+  intAr1 region(2);
+  buildEdgeControlPointSmoothingRegion(
+      mesh,2,0,interior_edge,region);
+  check_p2_region_is_certified<2>(mesh,region);
+}
+
+BOOST_AUTO_TEST_CASE(classic_p2_rejects_noncertified_final_candidate)
+{
+  auto runner = make_elevated_two_triangle_runner();
+  auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner->msh_g);
+  mesh.met.setSpace(MetSpace::Exp);
+  mesh.setBasis(FEBasis::Lagrange);
+
+  int interior_edge = -1;
+  for(int local_edge = 0; local_edge < 3; local_edge++){
+    if(mesh.fac2fac(0,local_edge) >= 0){
+      interior_edge = local_edge;
+      break;
+    }
+  }
+  BOOST_REQUIRE_GE(interior_edge,0);
+  const int control_point = mesh.fac2poi(0,3 + interior_edge);
+
+  intAr1 region(2);
+  buildEdgeControlPointSmoothingRegion(
+      mesh,2,0,interior_edge,region);
+  BOOST_REQUIRE_EQUAL(region.get_n(),2);
+
+  const double initial_coordinates[2]
+      = {mesh.coord(control_point,0),mesh.coord(control_point,1)};
+  bool found_noncertified_position = false;
+  for(const double displacement : {0.5,1.0,2.0,4.0}){
+    mesh.coord(control_point,0) = initial_coordinates[0] + displacement;
+    mesh.coord(control_point,1) = initial_coordinates[1] + displacement;
+    for(const int element : region){
+      if(!classify_element_validity<2,2>(mesh,element)
+              .accepted_conservatively()){
+        found_noncertified_position = true;
+        break;
+      }
+    }
+    if(found_noncertified_position) break;
+  }
+  BOOST_REQUIRE(found_noncertified_position);
+
+  const double rejected_coordinates[2]
+      = {mesh.coord(control_point,0),mesh.coord(control_point,1)};
+  double qavg0 = 0.0;
+  double qmax0 = 0.0;
+  double qavg1 = 0.0;
+  double qmax1 = 0.0;
+  const int status = smooballdiff<MetricFieldAnalytical,2,2>(
+      mesh,control_point,region,&qavg0,&qmax0,&qavg1,&qmax1,
+      QuaFun::Distortion);
+
+  BOOST_CHECK_NE(status,0);
+  BOOST_CHECK_EQUAL(mesh.coord(control_point,0),rejected_coordinates[0]);
+  BOOST_CHECK_EQUAL(mesh.coord(control_point,1),rejected_coordinates[1]);
 }
 
 BOOST_AUTO_TEST_CASE(classic_p2_boundary_control_point_uses_cad_edge)
@@ -250,6 +324,7 @@ BOOST_AUTO_TEST_CASE(classic_p2_boundary_control_point_uses_cad_edge)
       EG_evaluate(cad_edge,parameter,evaluation),EGADS_SUCCESS);
   BOOST_CHECK_SMALL(mesh.coord(control_point,0) - evaluation[0],1.e-12);
   BOOST_CHECK_SMALL(mesh.coord(control_point,1) - evaluation[1],1.e-12);
+  check_p2_region_is_certified<2>(mesh,region);
 }
 
 BOOST_AUTO_TEST_CASE(classic_p2_complete_small_2d_mesh_smoothing)
@@ -264,6 +339,12 @@ BOOST_AUTO_TEST_CASE(classic_p2_complete_small_2d_mesh_smoothing)
       smoothInterior_Ball(
           mesh,QuaFun::Distortion,1,2));
   BOOST_CHECK_EQUAL(mesh.curdeg,2);
+
+  intAr1 all_faces(mesh.nface);
+  for(int iface = 0; iface < mesh.nface; iface++){
+    if(!isdeadent(iface,mesh.fac2poi)) all_faces.stack(iface);
+  }
+  check_p2_region_is_certified<2>(mesh,all_faces);
 }
 
 BOOST_AUTO_TEST_CASE(classic_p2_interior_3d_edge_control_point_and_shell)
@@ -299,9 +380,13 @@ BOOST_AUTO_TEST_CASE(classic_p2_interior_3d_edge_control_point_and_shell)
   BOOST_REQUIRE_GE(region.get_n(),2);
   BOOST_CHECK(region_contains(region,seed_tetrahedron));
 
-  mesh.coord(control_point,0) += 0.025;
-  mesh.coord(control_point,1) += 0.020;
-  mesh.coord(control_point,2) -= 0.015;
+  mesh.coord(control_point,0) += 0.005;
+  mesh.coord(control_point,1) += 0.004;
+  mesh.coord(control_point,2) -= 0.003;
+  const double perturbed_coordinates[3]
+      = {mesh.coord(control_point,0),mesh.coord(control_point,1),
+         mesh.coord(control_point,2)};
+  check_p2_region_is_certified<3>(mesh,region);
   const auto distortion
       = get_quafun<MetricFieldAnalytical,3,3>(QuaFun::Distortion);
   double objective_before = 0.0;
@@ -327,5 +412,10 @@ BOOST_AUTO_TEST_CASE(classic_p2_interior_3d_edge_control_point_and_shell)
         mesh,AsDeg::Pk,AsDeg::Pk,itetra,1.0);
   }
   BOOST_CHECK_LE(objective_after,objective_before);
-  BOOST_CHECK_EQUAL(mesh.poi2tag(1,control_point),mesh.tag[1]);
+  const double displacement = std::sqrt(
+      std::pow(mesh.coord(control_point,0) - perturbed_coordinates[0],2)
+    + std::pow(mesh.coord(control_point,1) - perturbed_coordinates[1],2)
+    + std::pow(mesh.coord(control_point,2) - perturbed_coordinates[2],2));
+  BOOST_CHECK_GT(displacement,1.e-10);
+  check_p2_region_is_certified<3>(mesh,region);
 }
