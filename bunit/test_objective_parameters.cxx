@@ -72,6 +72,10 @@ BOOST_AUTO_TEST_CASE(test_objective_power_default_and_command_line_names)
   degree_four_parameters.objective_quadrature_order = 4;
   BOOST_CHECK_NO_THROW(degree_four_parameters.checkParameters());
 
+  MetrisParameters degree_one_parameters;
+  degree_one_parameters.objective_quadrature_order = 1;
+  BOOST_CHECK_NO_THROW(degree_one_parameters.checkParameters());
+
   cargHandler compatibility_arguments(
       "--step-distance-p 1.75 --out objective_parameter_test.meshb --verb 0");
   MetrisOptions compatibility_options(compatibility_arguments.c,
@@ -101,10 +105,6 @@ BOOST_AUTO_TEST_CASE(test_objective_power_rejects_invalid_or_conflicting_values)
       negative_quadrature_order.checkParameters(),MetrisExcept);
 
   MetrisParameters unsupported_quadrature_order;
-  unsupported_quadrature_order.objective_quadrature_order = 1;
-  BOOST_CHECK_THROW(
-      unsupported_quadrature_order.checkParameters(),MetrisExcept);
-
   unsupported_quadrature_order.objective_quadrature_order = 6;
   BOOST_CHECK_THROW(
       unsupported_quadrature_order.checkParameters(),MetrisExcept);

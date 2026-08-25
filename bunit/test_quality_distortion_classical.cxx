@@ -8,8 +8,12 @@
 #include <boost/test/included/unit_test.hpp>
 
 #include "Mesh/Mesh.hxx"
+#include "MetrisRunner/MetrisParameters.hxx"
 #include "linalg/symidx.hxx"
+#include "low_geo/measure.hxx"
 #include "metris_options.hxx"
+#include "quality/low_metqua.hxx"
+#include "quality/low_metqua_d.hxx"
 #include "quality/quafun_distortion.hxx"
 
 #include <algorithm>
@@ -129,6 +133,102 @@ BOOST_AUTO_TEST_CASE(test_classical_distortion_both_power_signs)
   check_classical_distortion_derivatives(msh,-1,inverse_value);
 
   BOOST_CHECK_CLOSE_FRACTION(direct_value*inverse_value,1.0,2.e-15);
+}
+
+BOOST_AUTO_TEST_CASE(test_classical_integrated_distortion_uses_log_metric)
+{
+  constexpr int gdim = 2;
+  constexpr int tdim = 2;
+  constexpr int nmetric = 3;
+
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.opt_power = 1;
+  parameters.opt_pnorm = 1;
+
+  Mesh<MetricFieldFE> msh;
+  msh.idim = gdim;
+  msh.curdeg = 1;
+  msh.strdeg = 1;
+  msh.forceBasisFlag(FEBasis::Lagrange);
+  msh.param = &parameters;
+  msh.set_npoin(3);
+  msh.set_nface(1);
+  msh.met.forceBasisFlag(FEBasis::Lagrange);
+  msh.met.forceSpaceFlag(MetSpace::Exp);
+
+  msh.coord(0,0) = 0.0; msh.coord(0,1) = 0.0;
+  msh.coord(1,0) = 1.2; msh.coord(1,1) = 0.1;
+  msh.coord(2,0) = 0.2; msh.coord(2,1) = 0.7;
+  for(int inode = 0; inode < 3; inode++) msh.fac2poi(0,inode) = inode;
+
+  const double nodal_metrics[3][nmetric] = {
+      {1.0,0.0,1.0},
+      {64.0,0.0,1.0},
+      {1.0,0.0,4.0}};
+  for(int inode = 0; inode < 3; inode++){
+    for(int imetric = 0; imetric < nmetric; imetric++){
+      msh.met(inode,imetric) = nodal_metrics[inode][imetric];
+    }
+  }
+
+  const double barycenter[3] = {1.0/3.0,1.0/3.0,1.0/3.0};
+  double log_interpolated_metric[nmetric];
+  msh.met.getMetBary(AsDeg::P1,DifVar::None,MetSpace::Exp,
+                     msh.fac2poi[0],tdim,barycenter,
+                     log_interpolated_metric,NULL);
+  BOOST_CHECK_CLOSE_FRACTION(log_interpolated_metric[0],4.0,2.e-14);
+  BOOST_CHECK_SMALL(log_interpolated_metric[1],2.e-14);
+  BOOST_CHECK_CLOSE_FRACTION(
+      log_interpolated_metric[2],std::pow(4.0,1.0/3.0),2.e-14);
+
+  double expected
+      = std::abs(
+          quafun_distortion<MetricFieldFE,gdim,tdim,double>(
+              msh,AsDeg::P1,AsDeg::P1,msh.fac2poi[0],barycenter,
+              log_interpolated_metric)
+          - 1.0);
+#ifdef TESTQUALITYALGO
+  double measure;
+  isvalideltP1<gdim,tdim>(msh,0,NULL,&measure);
+  expected *= measure;
+#ifdef INTQUALINRIEMSPACE
+  expected *= std::sqrt(
+      log_interpolated_metric[0]*log_interpolated_metric[2]
+      - log_interpolated_metric[1]*log_interpolated_metric[1]);
+#endif
+#endif
+
+  const double value
+      = metqua<MetricFieldFE,gdim,tdim,QuaFun::Distortion,double>(
+          msh,AsDeg::P1,AsDeg::P1,0,1.0);
+  const double differentiated_value
+      = d_metqua<MetricFieldFE,gdim,tdim,QuaFun::Distortion,double>(
+          msh,AsDeg::P1,AsDeg::P1,0,-1,msh.getBasis(),DifVar::None,
+          NULL,NULL,1.0);
+  BOOST_CHECK_CLOSE_FRACTION(value,expected,2.e-13);
+  BOOST_CHECK_CLOSE_FRACTION(differentiated_value,expected,2.e-13);
+
+  const double arithmetic_metric[nmetric] = {22.0,0.0,2.0};
+  double arithmetic_expected
+      = std::abs(
+          quafun_distortion<MetricFieldFE,gdim,tdim,double>(
+              msh,AsDeg::P1,AsDeg::P1,msh.fac2poi[0],barycenter,
+              arithmetic_metric)
+          - 1.0);
+#ifdef TESTQUALITYALGO
+  double arithmetic_measure;
+  isvalideltP1<gdim,tdim>(msh,0,NULL,&arithmetic_measure);
+  arithmetic_expected *= arithmetic_measure;
+#ifdef INTQUALINRIEMSPACE
+  arithmetic_expected *= std::sqrt(
+      arithmetic_metric[0]*arithmetic_metric[2]
+      - arithmetic_metric[1]*arithmetic_metric[1]);
+#endif
+#endif
+  BOOST_CHECK_GT(
+      std::abs(expected - arithmetic_expected),
+      1.e-3*(1.0 + std::abs(expected)));
 }
 
 } // namespace Metris

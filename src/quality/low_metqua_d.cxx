@@ -209,19 +209,15 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
     }// for iquad
   }else{
 
-    // Historical Classical P1 sampling: evaluate once at the barycenter
-    // using the arithmetic mean of the vertex metrics.
+    // Classical P1 sampling: evaluate once at the barycenter. FE metric
+    // fields interpolate there log-Euclideanly; analytical fields evaluate
+    // the metric function directly at the mapped physical point.
     METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
     constexpr int nnmet = (gdim*(gdim+1))/2;
     double met[nnmet];
     for(int ii = 0; ii < tdim + 1; ii++) bary[ii] = 1.0 / (tdim  + 1);
-    for(int jj = 0; jj < nnmet; jj++) met[jj] = 0;
-    for(int ii = 0; ii < tdim + 1; ii++){
-      int ipoin = ent2poi(ientt,ii);
-      for(int jj = 0; jj < nnmet; jj++){
-        met[jj] += msh.met(ipoin,jj) / (tdim + 1);
-      }
-    }
+    msh.met.getMetBary(asdmet,DifVar::None,MetSpace::Exp,
+                       ent2poi[ientt],tdim,bary,met,NULL);
     qutet = d_quafun_xi(msh,asdmsh,asdmet,
                         ent2poi[ientt],bary,met,
                         ivar,dofbas,idifmet,

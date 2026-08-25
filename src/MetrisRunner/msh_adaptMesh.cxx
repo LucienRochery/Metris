@@ -90,7 +90,12 @@ void MetrisRunner::adaptMesh2(){
         adaptMeshQuality0<MetricFieldAnalytical,gdim,ideg>(msh_g->get_tdim());
       }
       #else
-      for(int tdim = 1; tdim <= msh_g->get_tdim(); tdim++){
+      // For a 2D or 3D mesh, the tdim == 1 stage is the optional
+      // line-adaptation pass. Pure 1D meshes must still be adapted.
+      const bool skip_line_pass =
+          msh_g->get_tdim() > 1 && !param->adp_line_adapt;
+      const int first_tdim = skip_line_pass ? 2 : 1;
+      for(int tdim = first_tdim; tdim <= msh_g->get_tdim(); tdim++){
         GETVDEPTH(this->param);
         if(this->metricFE){
           adaptMesh0<MetricFieldFE        ,gdim,ideg>(tdim);

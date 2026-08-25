@@ -25,6 +25,8 @@
 
 #include "../Localization/msh_localization.hxx"
 
+#include <array>
+
 
 namespace Metris{
 
@@ -416,9 +418,11 @@ void MetricFieldFE::getMetBary0( DifVar idiff,  MetSpace tarspac,
                                       double*__restrict__ metl,
                                       double*__restrict__ dmet) {
   constexpr int nnmet = (gdim*(gdim+1))/2;
+  constexpr int max_nnode = getnnode(gdim,ideg);
 
-  // METRIS_ASSERT_MSG(this->ispace == MetSpace::Log,
-  //                   "Do not call getMetBary on an Exp met field");
+  METRIS_ENFORCE(tarspac == MetSpace::Log || tarspac == MetSpace::Exp);
+  METRIS_ENFORCE(this->ispace == MetSpace::Log
+                 || this->ispace == MetSpace::Exp);
 
   double *dmet0 = dmet;
   RoutineWorkMemory<double> tmp(this->rwrkmem);
@@ -428,21 +432,50 @@ void MetricFieldFE::getMetBary0( DifVar idiff,  MetSpace tarspac,
     idife = DifVar::Bary;
   }
 
-  // Get M(xi) and dM / dxi at bary
-  if(tdimn == 1){
-    eval1<nnmet,ideg>(rfld,ent2pol,this->ibasis,idife,DifVar::None,bary,metl,dmet0,NULL);
-  }else if(tdimn == 2){
-    eval2<nnmet,ideg>(rfld,ent2pol,this->ibasis,idife,DifVar::None,bary,metl,dmet0,NULL);
-  }else{
-    eval3<nnmet,ideg>(rfld,ent2pol,this->ibasis,idife,DifVar::None,bary,metl,dmet0,NULL);
-  }
-
   if(tdimn > gdim) METRIS_THROW_MSG( "getMetBary0 topo dim > gdim");
+
+  const auto evaluate_log_metric = [&](const auto &field,
+                                       const int *field_nodes){
+    if(tdimn == 1){
+      eval1<nnmet,ideg>(field,field_nodes,this->ibasis,idife,
+                        DifVar::None,bary,metl,dmet0,NULL);
+    }else if(tdimn == 2){
+      eval2<nnmet,ideg>(field,field_nodes,this->ibasis,idife,
+                        DifVar::None,bary,metl,dmet0,NULL);
+    }else{
+      eval3<nnmet,ideg>(field,field_nodes,this->ibasis,idife,
+                        DifVar::None,bary,metl,dmet0,NULL);
+    }
+  };
+
+  // Metric interpolation is always log-Euclidean. If the field happens to be
+  // stored in exponential (SPD) space, convert each local FE coefficient to
+  // log space before applying the basis functions. Converting only the final
+  // interpolated matrix would instead compute log(sum_i phi_i M_i), which is
+  // not log-Euclidean interpolation.
+  if(this->ispace == MetSpace::Log){
+    evaluate_log_metric(rfld,ent2pol);
+  }else{
+    const int nnode = getnnode(tdimn,ideg);
+    std::array<double,max_nnode*nnmet> log_coefficients;
+    std::array<int,max_nnode> local_nodes;
+    for(int inode = 0; inode < nnode; inode++){
+      local_nodes[inode] = inode;
+      for(int imet = 0; imet < nnmet; imet++){
+        log_coefficients[inode*nnmet + imet]
+            = rfld(ent2pol[inode],imet);
+      }
+      getlogmet_inp<gdim,double>(
+          &log_coefficients[inode*nnmet]);
+    }
+    const dblAr2 log_field(nnode,nnmet,log_coefficients.data());
+    evaluate_log_metric(log_field,local_nodes.data());
+  }
 
 
   if(idiff == DifVar::None){
     // If not returning now, we'll do this with SurrealS expmet
-    if(tarspac != this->ispace) getspacmet_inp<gdim,double>(metl,tarspac);
+    if(tarspac == MetSpace::Exp) getexpmet_inp<gdim,double>(metl);
     return;
   }
 
@@ -481,14 +514,10 @@ void MetricFieldFE::getMetBary0( DifVar idiff,  MetSpace tarspac,
     }
   }
 
-  if(tarspac != this->ispace){
-    // This is undesireable but we rather prepare for it.
-    // Let's log that it happened.
-    this->nspace_miss++;
-
+  if(tarspac == MetSpace::Exp){
     SANS::SurrealS<gdim,double> metS[nnmet];
     getmet_dbl2SurS<gdim,gdim>(metl,dmet,metS);
-    getspacmet_inp<gdim,SANS::SurrealS<gdim,double>>(metS, tarspac);
+    getexpmet_inp<gdim,SANS::SurrealS<gdim,double>>(metS);
     getmet_SurS2dbl<gdim,gdim>(metS,metl,dmet);
   }
 

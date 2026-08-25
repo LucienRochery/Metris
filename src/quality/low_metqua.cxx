@@ -258,23 +258,16 @@ namespace Metris
     else
     {
 
-      // Historical Classical P1 sampling: evaluate once at the barycenter
-      // using the arithmetic mean of the vertex metrics.
+      // Classical P1 sampling: evaluate once at the barycenter. FE metric
+      // fields interpolate there log-Euclideanly; analytical fields evaluate
+      // the metric function directly at the mapped physical point.
 
       METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
       double met[nnmet];
       for (int ii = 0; ii < tdim + 1; ii++)
         bary[ii] = 1.0 / (tdim + 1);
-      for (int jj = 0; jj < nnmet; jj++)
-        met[jj] = 0;
-      for (int ii = 0; ii < tdim + 1; ii++)
-      {
-        int ipoin = ent2poi(ientt, ii);
-        for (int jj = 0; jj < nnmet; jj++)
-        {
-          met[jj] += msh.met(ipoin, jj) / (tdim + 1);
-        }
-      }
+      msh.met.getMetBary(asdmet,DifVar::None,MetSpace::Exp,
+                         ent2poi[ientt],tdim,bary,met,NULL);
       qutet = quafun_xi(msh, AsDeg::P1, asdmet, ent2poi[ientt], bary, met);
       // You'd think this wouldn't be a bottleneck but it eats up 20% of optimization
       // time to run pow() here even if pnorm = 2 or 1.

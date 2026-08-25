@@ -637,7 +637,7 @@ void check_metric_sampling_contracts(Mesh<MFT> &msh,
     for(int imetric = 0; imetric < nmetric; imetric++){
       BOOST_CHECK_CLOSE_FRACTION(
           constant_samples.metrics[iquad][imetric],
-          constant_samples.metrics[0][imetric],2.0e-15);
+          constant_samples.metrics[0][imetric],4.0e-15);
     }
   }
 
@@ -875,6 +875,10 @@ SimplexQuadratureView<gdim> explicit_objective_quadrature(const int order)
   if (order == 0)
   {
     return get_vertex_barycenter_quadrature<gdim>();
+  }
+  if (order == 1)
+  {
+    return get_barycenter_quadrature<gdim>();
   }
   if (order == 2)
   {
@@ -1171,8 +1175,8 @@ void check_objective_rule_value_gradient_hessian(
 template<class MFT, int gdim, QuaFun iquaf>
 void check_objective_all_quadrature_orders(Mesh<MFT> &msh)
 {
-  const int orders[5] = {0,2,3,4,5};
-  for (int iorder = 0; iorder < 5; iorder++)
+  const int orders[6] = {0,1,2,3,4,5};
+  for (int iorder = 0; iorder < 6; iorder++)
   {
     const int order = orders[iorder];
     BOOST_TEST_CONTEXT("quadrature order = " << order)

@@ -64,6 +64,27 @@ namespace detail
 template <int tdim>
 struct VertexBarycenterQuadratureStorage;
 
+template <int tdim>
+struct BarycenterQuadratureStorage;
+
+template <>
+struct BarycenterQuadratureStorage<2>
+{
+  static constexpr int nquad = 1;
+  inline static constexpr double bary[3] = {
+      1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0};
+  inline static constexpr double weights[nquad] = {1.0};
+};
+
+template <>
+struct BarycenterQuadratureStorage<3>
+{
+  static constexpr int nquad = 1;
+  inline static constexpr double bary[4] = {
+      1.0 / 4.0, 1.0 / 4.0, 1.0 / 4.0, 1.0 / 4.0};
+  inline static constexpr double weights[nquad] = {1.0};
+};
+
 template <>
 struct VertexBarycenterQuadratureStorage<2>
 {
@@ -315,6 +336,17 @@ get_vertex_barycenter_quadrature() noexcept
           detail::VertexBarycenterQuadratureStorage<tdim>::weights};
 }
 
+// One-point barycenter rule. Metric evaluation at this point still follows
+// MetricFieldFE's log-Euclidean interpolation rule.
+template <int tdim>
+constexpr SimplexQuadratureView<tdim>
+get_barycenter_quadrature() noexcept
+{
+  return {detail::BarycenterQuadratureStorage<tdim>::nquad,
+          detail::BarycenterQuadratureStorage<tdim>::bary,
+          detail::BarycenterQuadratureStorage<tdim>::weights};
+}
+
 // Compile-time access to the positive rules.
 template <int tdim, int order>
 constexpr SimplexQuadratureView<tdim>
@@ -333,9 +365,9 @@ template <int tdim>
 SimplexQuadratureView<tdim> get_objective_quadrature(int order)
 {
   METRIS_ENFORCE_MSG(
-      order == -1 || order == 0 || (order >= 2 && order <= 5),
+      order >= -1 && order <= 5,
       "Unsupported objective quadrature order {}: available orders are "
-      "-1 (automatic), 0, 2, 3, 4, and 5",
+      "-1 (automatic), 0, 1, 2, 3, 4, and 5",
       order);
   if (order == -1)
   {
@@ -352,6 +384,10 @@ SimplexQuadratureView<tdim> get_objective_quadrature(int order)
   if (order == 0)
   {
     return get_vertex_barycenter_quadrature<tdim>();
+  }
+  if (order == 1)
+  {
+    return get_barycenter_quadrature<tdim>();
   }
   if (order == 2)
   {

@@ -5,7 +5,10 @@
 
 
 #include "../MetricField/MetricField.hxx"
+#include "../MetricField/msh_explogmet.hxx"
 #include "../Mesh/MeshBase.hxx"
+
+#include <array>
 
 
 namespace Metris{
@@ -35,14 +38,37 @@ void MetricFieldFE::getMetNodes(int ientt, double *metnod) const{
                                       : msh.tet2poi);
 
   double bary[tdim+1];
+  constexpr int nnode = getnnode(tdim,mshdeg);
+  std::array<double,nnode*nnmet> log_coefficients;
+  std::array<int,nnode> local_nodes;
+
+  // Degree-elevation sampling obeys the same invariant as getMetBary:
+  // interpolate FE metric coefficients in log space regardless of storage.
+  for(int inode = 0; inode < nnode; inode++){
+    local_nodes[inode] = inode;
+    for(int imet = 0; imet < nnmet; imet++){
+      log_coefficients[inode*nnmet + imet]
+          = rfld(ent2poi(ientt,inode),imet);
+    }
+    if(this->ispace == MetSpace::Exp){
+      getlogmet_inp<gdim,double>(
+          &log_coefficients[inode*nnmet]);
+    }
+  }
+  const dblAr2 log_field(nnode,nnmet,log_coefficients.data());
+
   //if(this->ibasis == FEBasis::Lagrange){
   for(int irnk = 0; irnk < npptar; irnk++){
     for(int ii = 0; ii < tdim+1 ;ii++) {
       bary[ii] = ordent[tardeg][irnk][ii] / (1.0*tardeg);
     }
-    if constexpr(tdim == 1) eval1<nnmet,mshdeg>(rfld,ent2poi[ientt],this->ibasis,DifVar::None,DifVar::None,bary,&metnod[nnmet*irnk],NULL,NULL);
-    else if     (tdim == 2) eval2<nnmet,mshdeg>(rfld,ent2poi[ientt],this->ibasis,DifVar::None,DifVar::None,bary,&metnod[nnmet*irnk],NULL,NULL);
-    else                    eval3<nnmet,mshdeg>(rfld,ent2poi[ientt],this->ibasis,DifVar::None,DifVar::None,bary,&metnod[nnmet*irnk],NULL,NULL);
+    if constexpr(tdim == 1) eval1<nnmet,mshdeg>(log_field,local_nodes.data(),this->ibasis,DifVar::None,DifVar::None,bary,&metnod[nnmet*irnk],NULL,NULL);
+    else if     (tdim == 2) eval2<nnmet,mshdeg>(log_field,local_nodes.data(),this->ibasis,DifVar::None,DifVar::None,bary,&metnod[nnmet*irnk],NULL,NULL);
+    else                    eval3<nnmet,mshdeg>(log_field,local_nodes.data(),this->ibasis,DifVar::None,DifVar::None,bary,&metnod[nnmet*irnk],NULL,NULL);
+
+    if(this->ispace == MetSpace::Exp){
+      getexpmet_inp<gdim,double>(&metnod[nnmet*irnk]);
+    }
 
     #ifndef NDEBUG
       double nrm0 = 0;
