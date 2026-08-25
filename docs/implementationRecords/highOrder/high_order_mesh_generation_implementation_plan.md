@@ -236,8 +236,11 @@ the same way for SizeShape and every StepDistance variant.
 5. **Done (2026-08-25): verify that CAD parameters, projected coordinates, and
    high-order validity remain consistent after every accepted move.** See the
    Phase 6 execution record below.
-6. Add checks for curved-boundary self-intersection where local Jacobian
-   positivity alone is insufficient.
+6. **Done (2026-08-25): reject planar P2 curved-boundary intersections that
+   local Jacobian positivity cannot detect.** See the Phase 6 execution record
+   below. Phase 6 is complete for the agreed planar-P2 priority and the 3D
+   extensions that followed naturally; embedded surfaces, global 3D surface
+   intersection, and higher-degree checks remain explicit future work.
 
 ## Phase 7: Generalize adaptation operations
 
@@ -1161,3 +1164,39 @@ would obstruct the first working path.
    and the eight-case P2 StepDistance smoothing and validity suite. Embedded
    `tdim=2`, `gdim=3` production smoothing remains under the explicit deferred
    scope recorded in items 3 and 4.
+
+6. **Done (2026-08-25): added a global planar P2 boundary-intersection guard to
+   both production smoothing acceptance paths.** After a candidate boundary
+   move has passed its objective and local element-validity checks, every
+   topological boundary edge containing the moved point is compared with every
+   other live boundary edge. Only contact at a common topological endpoint is
+   legal. Any crossing, overlap, or other contact rejects the candidate as an
+   ordinary smoothing failure and restores its coordinate, metric, and complete
+   CAD-parameter snapshot before the move is counted.
+
+   The check operates on the actual quadratic polynomial edge, not on its
+   endpoint chord. For the current Lagrange representation, the physical
+   midpoint sample `L1` is converted to the equivalent quadratic Bezier control
+   point `B1 = 2 L1 - (B0 + B2)/2`. Recursive de Casteljau subdivision then
+   supplies convex-hull bounding boxes for separation and reduces possible
+   contacts to tolerance-aware straight-segment proximity tests once both
+   subcurves are sufficiently flat. Because only edges incident to the moved
+   point can have changed, the local set is compared globally without repeating
+   an unrelated all-pairs boundary audit after every move.
+
+   The focused regression elevates two disjoint planar triangles to P2, verifies
+   their initially straight boundary is intersection-free, and then bows one
+   edge into the other component. Both P2 triangles retain positive Bernstein
+   Jacobian certificates, proving that the existing local validity policy alone
+   cannot detect the global contact; the new polynomial-edge check rejects it.
+   Restoring the straight edge is accepted again, which also exercises legal
+   shared endpoints between adjacent edges.
+
+   Release and Debug builds pass the new one-case intersection regression, all
+   four curved-CAD smoothing cases, both curved-CAD surface-projection cases,
+   the nine-case classic/production P2 smoothing suite, and the eight-case P2
+   StepDistance smoothing and validity suite. This completes Phase 6 for the
+   agreed priority: full-dimensional planar P2, together with the
+   full-dimensional 3D CAD support that extended naturally in earlier steps.
+   Global self-intersection of embedded surfaces, general curved surfaces in
+   3D, and P3-or-higher boundary curves remain separate future extensions.

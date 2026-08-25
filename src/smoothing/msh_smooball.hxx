@@ -58,6 +58,15 @@ void buildEdgeControlPointSmoothingRegion(
     int local_edge,
     intAr1 &region);
 
+// Check the quadratic polynomial boundary edges affected by moving one point
+// in a full-dimensional planar P2 mesh. Intersections at a shared topological
+// endpoint are allowed; every other contact with another boundary edge is
+// rejected. The mesh must use Lagrange geometry so its edge-interior node is
+// the physical midpoint sample of the quadratic map.
+bool planarP2BoundaryIsIntersectionFreeAroundPoint(
+    const MeshBase &msh,
+    int moved_point);
+
 // Returns number of operations as double; this is because it may exceed element
 // count, something that cannot be anticipated easily by selecting integer
 // types.

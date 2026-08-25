@@ -26,6 +26,7 @@ Simplest possible approach.
 
 #include "lplib3/lplib3.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <limits>
@@ -212,7 +213,348 @@ void enforceAcceptedBoundarySmoothingInvariants(
   }
 }
 
+using Point2 = std::array<double,2>;
+
+struct QuadraticBezierSegment
+{
+  std::array<Point2,3> control;
+  double parameter0 = 0.;
+  double parameter1 = 1.;
+};
+
+struct Box2
+{
+  Point2 minimum;
+  Point2 maximum;
+};
+
+struct SegmentProximity
+{
+  double squaredDistance = std::numeric_limits<double>::infinity();
+  double firstParameter = 0.;
+  double secondParameter = 0.;
+};
+
+double dot2(const Point2 &first, const Point2 &second)
+{
+  return first[0]*second[0] + first[1]*second[1];
+}
+
+double cross2(const Point2 &first, const Point2 &second)
+{
+  return first[0]*second[1] - first[1]*second[0];
+}
+
+Point2 difference2(const Point2 &first, const Point2 &second)
+{
+  return {first[0] - second[0],first[1] - second[1]};
+}
+
+Point2 midpoint2(const Point2 &first, const Point2 &second)
+{
+  return {0.5*(first[0] + second[0]),
+          0.5*(first[1] + second[1])};
+}
+
+Box2 quadraticBezierBox(const QuadraticBezierSegment &segment)
+{
+  Box2 box{segment.control[0],segment.control[0]};
+  for(int control = 1; control < 3; control++){
+    for(int component = 0; component < 2; component++){
+      box.minimum[component]
+          = std::min(box.minimum[component],segment.control[control][component]);
+      box.maximum[component]
+          = std::max(box.maximum[component],segment.control[control][component]);
+    }
+  }
+  return box;
+}
+
+bool boxesAreSeparated(const Box2 &first,
+                       const Box2 &second,
+                       double tolerance)
+{
+  for(int component = 0; component < 2; component++){
+    if(first.maximum[component] < second.minimum[component] - tolerance
+       || second.maximum[component]
+              < first.minimum[component] - tolerance){
+      return true;
+    }
+  }
+  return false;
+}
+
+double pointSegmentSquaredDistance(const Point2 &point,
+                                   const Point2 &first,
+                                   const Point2 &second,
+                                   double &parameter)
+{
+  const Point2 direction = difference2(second,first);
+  const double squaredLength = dot2(direction,direction);
+  if(squaredLength <= std::numeric_limits<double>::min()){
+    parameter = 0.;
+    const Point2 offset = difference2(point,first);
+    return dot2(offset,offset);
+  }
+  parameter = dot2(difference2(point,first),direction)/squaredLength;
+  parameter = std::max(0.,std::min(1.,parameter));
+  const Point2 projection = {
+      first[0] + parameter*direction[0],
+      first[1] + parameter*direction[1]};
+  const Point2 offset = difference2(point,projection);
+  return dot2(offset,offset);
+}
+
+SegmentProximity segmentProximity(const Point2 &first0,
+                                  const Point2 &first1,
+                                  const Point2 &second0,
+                                  const Point2 &second1)
+{
+  SegmentProximity proximity;
+  const Point2 firstDirection = difference2(first1,first0);
+  const Point2 secondDirection = difference2(second1,second0);
+  const Point2 origins = difference2(second0,first0);
+  const double denominator = cross2(firstDirection,secondDirection);
+  const double denominatorScale
+      = std::sqrt(dot2(firstDirection,firstDirection)
+                  *dot2(secondDirection,secondDirection));
+  const double parallelTolerance
+      = 32.*std::numeric_limits<double>::epsilon()
+       *std::max(1.,denominatorScale);
+  if(std::abs(denominator) > parallelTolerance){
+    const double firstParameter
+        = cross2(origins,secondDirection)/denominator;
+    const double secondParameter
+        = cross2(origins,firstDirection)/denominator;
+    if(firstParameter >= 0. && firstParameter <= 1.
+       && secondParameter >= 0. && secondParameter <= 1.){
+      proximity.squaredDistance = 0.;
+      proximity.firstParameter = firstParameter;
+      proximity.secondParameter = secondParameter;
+      return proximity;
+    }
+  }
+
+  double parameter = 0.;
+  double distance = pointSegmentSquaredDistance(
+      first0,second0,second1,parameter);
+  proximity = {distance,0.,parameter};
+  distance = pointSegmentSquaredDistance(
+      first1,second0,second1,parameter);
+  if(distance < proximity.squaredDistance){
+    proximity = {distance,1.,parameter};
+  }
+  distance = pointSegmentSquaredDistance(
+      second0,first0,first1,parameter);
+  if(distance < proximity.squaredDistance){
+    proximity = {distance,parameter,0.};
+  }
+  distance = pointSegmentSquaredDistance(
+      second1,first0,first1,parameter);
+  if(distance < proximity.squaredDistance){
+    proximity = {distance,parameter,1.};
+  }
+  return proximity;
+}
+
+double quadraticBezierFlatness(const QuadraticBezierSegment &segment)
+{
+  double parameter = 0.;
+  return std::sqrt(pointSegmentSquaredDistance(
+      segment.control[1],segment.control[0],segment.control[2],parameter));
+}
+
+std::array<QuadraticBezierSegment,2> subdivideQuadraticBezier(
+    const QuadraticBezierSegment &segment)
+{
+  const Point2 firstMidpoint
+      = midpoint2(segment.control[0],segment.control[1]);
+  const Point2 secondMidpoint
+      = midpoint2(segment.control[1],segment.control[2]);
+  const Point2 curveMidpoint = midpoint2(firstMidpoint,secondMidpoint);
+  const double parameterMidpoint
+      = 0.5*(segment.parameter0 + segment.parameter1);
+  return {{
+      {{{segment.control[0],firstMidpoint,curveMidpoint}},
+       segment.parameter0,parameterMidpoint},
+      {{{curveMidpoint,secondMidpoint,segment.control[2]}},
+       parameterMidpoint,segment.parameter1}}};
+}
+
+bool isAllowedSharedEndpointContact(
+    const std::array<int,2> &firstEndpoints,
+    const std::array<int,2> &secondEndpoints,
+    double firstParameter,
+    double secondParameter)
+{
+  constexpr double parameterTolerance = 1.e-8;
+  for(int firstEndpoint = 0; firstEndpoint < 2; firstEndpoint++){
+    for(int secondEndpoint = 0; secondEndpoint < 2; secondEndpoint++){
+      if(firstEndpoints[firstEndpoint] != secondEndpoints[secondEndpoint]){
+        continue;
+      }
+      if(std::abs(firstParameter - firstEndpoint) <= parameterTolerance
+         && std::abs(secondParameter - secondEndpoint)
+                <= parameterTolerance){
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool quadraticBezierSegmentsIntersect(
+    const QuadraticBezierSegment &first,
+    const QuadraticBezierSegment &second,
+    const std::array<int,2> &firstEndpoints,
+    const std::array<int,2> &secondEndpoints,
+    double tolerance,
+    int depth)
+{
+  if(boxesAreSeparated(
+         quadraticBezierBox(first),quadraticBezierBox(second),tolerance)){
+    return false;
+  }
+
+  const double firstFlatness = quadraticBezierFlatness(first);
+  const double secondFlatness = quadraticBezierFlatness(second);
+  constexpr int maximumDepth = 30;
+  if(depth >= maximumDepth
+     || (firstFlatness <= tolerance && secondFlatness <= tolerance)){
+    const SegmentProximity proximity = segmentProximity(
+        first.control[0],first.control[2],
+        second.control[0],second.control[2]);
+    if(proximity.squaredDistance > 16.*tolerance*tolerance) return false;
+    const double firstParameter
+        = first.parameter0
+        + proximity.firstParameter*(first.parameter1 - first.parameter0);
+    const double secondParameter
+        = second.parameter0
+        + proximity.secondParameter*(second.parameter1 - second.parameter0);
+    return !isAllowedSharedEndpointContact(
+        firstEndpoints,secondEndpoints,firstParameter,secondParameter);
+  }
+
+  if(firstFlatness >= secondFlatness){
+    const auto halves = subdivideQuadraticBezier(first);
+    return quadraticBezierSegmentsIntersect(
+               halves[0],second,firstEndpoints,secondEndpoints,
+               tolerance,depth + 1)
+        || quadraticBezierSegmentsIntersect(
+               halves[1],second,firstEndpoints,secondEndpoints,
+               tolerance,depth + 1);
+  }
+  const auto halves = subdivideQuadraticBezier(second);
+  return quadraticBezierSegmentsIntersect(
+             first,halves[0],firstEndpoints,secondEndpoints,
+             tolerance,depth + 1)
+      || quadraticBezierSegmentsIntersect(
+             first,halves[1],firstEndpoints,secondEndpoints,
+             tolerance,depth + 1);
+}
+
+QuadraticBezierSegment getPlanarP2BoundaryBezier(
+    const MeshBase &msh,
+    int edge)
+{
+  const int firstPoint = msh.edg2poi(edge,0);
+  const int secondPoint = msh.edg2poi(edge,1);
+  const int midpoint = msh.edg2poi(edge,2);
+  QuadraticBezierSegment segment;
+  for(int component = 0; component < 2; component++){
+    segment.control[0][component] = msh.coord(firstPoint,component);
+    segment.control[2][component] = msh.coord(secondPoint,component);
+    segment.control[1][component]
+        = 2.*msh.coord(midpoint,component)
+        - 0.5*(msh.coord(firstPoint,component)
+               + msh.coord(secondPoint,component));
+  }
+  return segment;
+}
+
+bool edgeContainsP2Point(const MeshBase &msh, int edge, int point)
+{
+  for(int localNode = 0; localNode < 3; localNode++){
+    if(msh.edg2poi(edge,localNode) == point) return true;
+  }
+  return false;
+}
+
 } // namespace
+
+bool planarP2BoundaryIsIntersectionFreeAroundPoint(
+    const MeshBase &msh,
+    int movedPoint)
+{
+  METRIS_ENFORCE_MSG(msh.idim == 2 && msh.get_tdim() == 2,
+                     "Planar boundary intersection check requires a 2D mesh");
+  METRIS_ENFORCE_MSG(msh.curdeg == 2,
+                     "Planar P2 boundary check received degree {}",msh.curdeg);
+  METRIS_ENFORCE_MSG(
+      msh.getBasis() == FEBasis::Lagrange,
+      "Planar P2 boundary check requires Lagrange geometry");
+  METRIS_ENFORCE_MSG(movedPoint >= 0 && movedPoint < msh.npoin,
+                     "Invalid moved boundary point {}",movedPoint);
+
+  for(int firstEdge = 0; firstEdge < msh.nedge; firstEdge++){
+    if(isdeadent(firstEdge,msh.edg2poi)
+       || !edgeContainsP2Point(msh,firstEdge,movedPoint)) continue;
+    const QuadraticBezierSegment first
+        = getPlanarP2BoundaryBezier(msh,firstEdge);
+    const std::array<int,2> firstEndpoints
+        = {msh.edg2poi(firstEdge,0),msh.edg2poi(firstEdge,1)};
+
+    for(int secondEdge = 0; secondEdge < msh.nedge; secondEdge++){
+      if(secondEdge == firstEdge || isdeadent(secondEdge,msh.edg2poi)){
+        continue;
+      }
+      if(edgeContainsP2Point(msh,secondEdge,movedPoint)
+         && secondEdge < firstEdge) continue;
+
+      const QuadraticBezierSegment second
+          = getPlanarP2BoundaryBezier(msh,secondEdge);
+      const std::array<int,2> secondEndpoints
+          = {msh.edg2poi(secondEdge,0),msh.edg2poi(secondEdge,1)};
+      Point2 coordinateMinimum = first.control[0];
+      Point2 coordinateMaximum = first.control[0];
+      double coordinateMagnitude = 1.;
+      for(const Point2 &control : first.control){
+        for(int component = 0; component < 2; component++){
+          coordinateMinimum[component] = std::min(
+              coordinateMinimum[component],control[component]);
+          coordinateMaximum[component] = std::max(
+              coordinateMaximum[component],control[component]);
+        }
+        coordinateMagnitude = std::max(
+            coordinateMagnitude,
+            std::max(std::abs(control[0]),std::abs(control[1])));
+      }
+      for(const Point2 &control : second.control){
+        for(int component = 0; component < 2; component++){
+          coordinateMinimum[component] = std::min(
+              coordinateMinimum[component],control[component]);
+          coordinateMaximum[component] = std::max(
+              coordinateMaximum[component],control[component]);
+        }
+        coordinateMagnitude = std::max(
+            coordinateMagnitude,
+            std::max(std::abs(control[0]),std::abs(control[1])));
+      }
+      const double geometricScale = std::max(
+          coordinateMaximum[0] - coordinateMinimum[0],
+          coordinateMaximum[1] - coordinateMinimum[1]);
+      const double tolerance
+          = 1.e-10*std::max(1.,geometricScale)
+          + 64.*std::numeric_limits<double>::epsilon()
+               *coordinateMagnitude;
+      if(quadraticBezierSegmentsIntersect(
+             first,second,firstEndpoints,secondEndpoints,tolerance,0)){
+        return false;
+      }
+    }
+  }
+  return true;
+}
 
 void buildEdgeControlPointSmoothingRegion(
     const MeshBase &msh,
@@ -724,8 +1066,26 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
           synchronizeCurvePointFaceParameters(msh,ipoin);
         }
         if(ierro == 0 && (pointOnEdge || pointOnFace)){
-          enforceAcceptedBoundarySmoothingInvariants<MFT,idim,ideg>(
-              msh,ipoin,lball);
+          bool intersectionFree = true;
+          if constexpr(idim == 2 && ideg == 2){
+            intersectionFree
+                = planarP2BoundaryIsIntersectionFreeAroundPoint(msh,ipoin);
+          }
+          if(!intersectionFree){
+            CPRINTF1(
+                " - reject move: curved planar boundary intersection\n");
+            for(int ii = 0; ii < idim; ii++){
+              msh.coord(ipoin,ii) = coor0[ii];
+            }
+            for(int ii = 0; ii < nnmet; ii++){
+              msh.met(ipoin,ii) = met0[ii];
+            }
+            restoreBoundaryParameters(msh,boundaryParameters0);
+            ierro = 4;
+          }else{
+            enforceAcceptedBoundarySmoothingInvariants<MFT,idim,ideg>(
+                msh,ipoin,lball);
+          }
         }
       }catch(const MetrisExcept &e){
         PRINTF("## FAILED  smoothing\n");
@@ -1100,8 +1460,26 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
           synchronizeCurvePointFaceParameters(msh,ipoin);
         }
         if(ierro == 0 && (pointOnEdge || pointOnFace)){
-          enforceAcceptedBoundarySmoothingInvariants<MFT,idim,ideg>(
-              msh,ipoin,lball);
+          bool intersectionFree = true;
+          if constexpr(idim == 2 && ideg == 2){
+            intersectionFree
+                = planarP2BoundaryIsIntersectionFreeAroundPoint(msh,ipoin);
+          }
+          if(!intersectionFree){
+            CPRINTF1(
+                " - reject move: curved planar boundary intersection\n");
+            for(int ii = 0; ii < idim; ii++){
+              msh.coord(ipoin,ii) = coor0[ii];
+            }
+            for(int ii = 0; ii < nnmet; ii++){
+              msh.met(ipoin,ii) = met0[ii];
+            }
+            restoreBoundaryParameters(msh,boundaryParameters0);
+            ierro = 4;
+          }else{
+            enforceAcceptedBoundarySmoothingInvariants<MFT,idim,ideg>(
+                msh,ipoin,lball);
+          }
         }
       }catch(const MetrisExcept &e){
         PRINTF("## FAILED  smooballdirect\n");
