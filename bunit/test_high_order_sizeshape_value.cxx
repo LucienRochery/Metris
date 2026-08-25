@@ -812,7 +812,7 @@ void evaluate_frozen_p2_sizeshape_hessian_by_gradient_ad(
 }
 
 template<class MFT, int gdim>
-void check_sizeshape_edge_gradient()
+void check_sizeshape_edge_gradient(FEBasis geometry_basis)
 {
   MetrisParameters parameters;
   parameters.iverb = 0;
@@ -821,6 +821,7 @@ void check_sizeshape_edge_gradient()
 
   Mesh<MFT> mesh;
   initialize_curved_p2_element<MFT,gdim>(mesh,parameters);
+  mesh.setBasis(geometry_basis);
   constexpr int active_edge_control_point = gdim + 1;
   const int active_point
       = mesh.ent2poi(gdim)(0,active_edge_control_point);
@@ -831,7 +832,7 @@ void check_sizeshape_edge_gradient()
   const double differentiated_value
       = d_metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
             mesh,AsDeg::Pk,AsDeg::P1,0,
-            active_edge_control_point,FEBasis::Lagrange,DifVar::None,
+            active_edge_control_point,geometry_basis,DifVar::None,
             gradient,NULL,1.0);
   const double frozen_value
       = evaluate_frozen_p2_sizeshape_value<MFT,gdim>(mesh,samples);
@@ -879,7 +880,7 @@ void check_sizeshape_edge_gradient()
 }
 
 template<class MFT, int gdim>
-void check_sizeshape_edge_hessian()
+void check_sizeshape_edge_hessian(FEBasis geometry_basis)
 {
   constexpr int hessian_count = gdim*(gdim + 1)/2;
   MetrisParameters parameters;
@@ -889,6 +890,7 @@ void check_sizeshape_edge_hessian()
 
   Mesh<MFT> mesh;
   initialize_curved_p2_element<MFT,gdim>(mesh,parameters);
+  mesh.setBasis(geometry_basis);
   constexpr int active_edge_control_point = gdim + 1;
   const int active_point
       = mesh.ent2poi(gdim)(0,active_edge_control_point);
@@ -900,7 +902,7 @@ void check_sizeshape_edge_hessian()
   const double production_value
       = d_metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
             mesh,AsDeg::Pk,AsDeg::P1,0,
-            active_edge_control_point,FEBasis::Lagrange,DifVar::None,
+            active_edge_control_point,geometry_basis,DifVar::None,
             production_gradient,production_hessian,1.0);
 
   double reconstructed_gradient[gdim];
@@ -982,6 +984,124 @@ void check_sizeshape_edge_hessian()
       << maximum_finite_difference_hessian_error);
 }
 
+template<class MFT, int gdim>
+void check_sizeshape_lagrange_bezier_equivalence()
+{
+  constexpr int hessian_count = gdim*(gdim + 1)/2;
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_quadrature_order = 5;
+  parameters.objective_p = 1.5;
+
+  Mesh<MFT> mesh;
+  initialize_curved_p2_element<MFT,gdim>(mesh,parameters);
+  constexpr int active_edge_control_point = gdim + 1;
+
+  const FrozenP2SizeShapeSamples<gdim> lagrange_samples
+      = capture_frozen_p2_sizeshape_samples<MFT,gdim>(mesh);
+  const double lagrange_value
+      = metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
+            mesh,AsDeg::Pk,AsDeg::P1,0,1.0);
+  double lagrange_gradient[gdim];
+  double lagrange_hessian[hessian_count];
+  const double lagrange_differentiated_value
+      = d_metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
+            mesh,AsDeg::Pk,AsDeg::P1,0,active_edge_control_point,
+            FEBasis::Lagrange,DifVar::None,
+            lagrange_gradient,lagrange_hessian,1.0);
+
+  mesh.setBasis(FEBasis::Bezier);
+  const FrozenP2SizeShapeSamples<gdim> bezier_samples
+      = capture_frozen_p2_sizeshape_samples<MFT,gdim>(mesh);
+  const double bezier_value
+      = metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
+            mesh,AsDeg::Pk,AsDeg::P1,0,1.0);
+  double bezier_gradient[gdim];
+  double bezier_hessian[hessian_count];
+  const double bezier_differentiated_value
+      = d_metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
+            mesh,AsDeg::Pk,AsDeg::P1,0,active_edge_control_point,
+            FEBasis::Bezier,DifVar::None,
+            bezier_gradient,bezier_hessian,1.0);
+
+  double maximum_value_error = std::max(
+      std::abs(lagrange_value - bezier_value),
+      std::abs(lagrange_differentiated_value
+               - bezier_differentiated_value));
+  double maximum_sample_error = 0.0;
+  double maximum_gradient_transform_error = 0.0;
+  double maximum_hessian_transform_error = 0.0;
+  BOOST_CHECK_CLOSE_FRACTION(lagrange_value,bezier_value,5.e-14);
+  BOOST_CHECK_CLOSE_FRACTION(
+      lagrange_differentiated_value,bezier_differentiated_value,5.e-14);
+  BOOST_REQUIRE_EQUAL(
+      lagrange_samples.objective_weights.size(),
+      bezier_samples.objective_weights.size());
+  for(std::size_t isample = 0;
+      isample < lagrange_samples.objective_weights.size(); isample++){
+    for(int entry = 0; entry < gdim*gdim; entry++){
+      maximum_sample_error = std::max(
+          maximum_sample_error,
+          std::abs(
+              lagrange_samples.regular_jacobian_transposes[isample][entry]
+              - bezier_samples.regular_jacobian_transposes[isample][entry]));
+      BOOST_CHECK_SMALL(
+          lagrange_samples.regular_jacobian_transposes[isample][entry]
+              - bezier_samples.regular_jacobian_transposes[isample][entry],
+          5.e-14*(1.0 + std::abs(
+              lagrange_samples.regular_jacobian_transposes[isample][entry])));
+    }
+    for(int entry = 0;
+        entry < FrozenP2SizeShapeSamples<gdim>::metric_count; entry++){
+      maximum_sample_error = std::max(
+          maximum_sample_error,
+          std::abs(lagrange_samples.metrics[isample][entry]
+                   - bezier_samples.metrics[isample][entry]));
+      BOOST_CHECK_SMALL(
+          lagrange_samples.metrics[isample][entry]
+              - bezier_samples.metrics[isample][entry],
+          5.e-14*(1.0 + std::abs(
+              lagrange_samples.metrics[isample][entry])));
+    }
+    maximum_sample_error = std::max(
+        maximum_sample_error,
+        std::abs(lagrange_samples.objective_weights[isample]
+                 - bezier_samples.objective_weights[isample]));
+    BOOST_CHECK_SMALL(
+        lagrange_samples.objective_weights[isample]
+            - bezier_samples.objective_weights[isample],
+        5.e-14*(1.0 + std::abs(
+            lagrange_samples.objective_weights[isample])));
+  }
+
+  for(int component = 0; component < gdim; component++){
+    maximum_gradient_transform_error = std::max(
+        maximum_gradient_transform_error,
+        std::abs(lagrange_gradient[component]
+                 - 2.0*bezier_gradient[component]));
+    BOOST_CHECK_SMALL(
+        lagrange_gradient[component] - 2.0*bezier_gradient[component],
+        5.e-14*(1.0 + std::abs(lagrange_gradient[component])));
+  }
+  for(int entry = 0; entry < hessian_count; entry++){
+    maximum_hessian_transform_error = std::max(
+        maximum_hessian_transform_error,
+        std::abs(lagrange_hessian[entry]
+                 - 4.0*bezier_hessian[entry]));
+    BOOST_CHECK_SMALL(
+        lagrange_hessian[entry] - 4.0*bezier_hessian[entry],
+        5.e-14*(1.0 + std::abs(lagrange_hessian[entry])));
+  }
+  BOOST_TEST_MESSAGE(
+      "P2 Lagrange-Bezier equivalence: value error="
+      << maximum_value_error
+      << ", sample error=" << maximum_sample_error
+      << ", gradient-transform error="
+      << maximum_gradient_transform_error
+      << ", Hessian-transform error="
+      << maximum_hessian_transform_error);
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(p2_sizeshape_value_uses_degree_aware_dispatch)
@@ -1018,18 +1138,30 @@ BOOST_AUTO_TEST_CASE(p2_edge_sizeshape_derivative_uses_degree_aware_dispatch)
 
 BOOST_AUTO_TEST_CASE(p2_edge_sizeshape_gradient_matches_frozen_value_oracles)
 {
-  check_sizeshape_edge_gradient<MetricFieldFE,2>();
-  check_sizeshape_edge_gradient<MetricFieldAnalytical,2>();
-  check_sizeshape_edge_gradient<MetricFieldFE,3>();
-  check_sizeshape_edge_gradient<MetricFieldAnalytical,3>();
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_sizeshape_edge_gradient<MetricFieldFE,2>(basis);
+    check_sizeshape_edge_gradient<MetricFieldAnalytical,2>(basis);
+    check_sizeshape_edge_gradient<MetricFieldFE,3>(basis);
+    check_sizeshape_edge_gradient<MetricFieldAnalytical,3>(basis);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(p2_edge_sizeshape_hessian_matches_frozen_gradient_oracles)
 {
-  check_sizeshape_edge_hessian<MetricFieldFE,2>();
-  check_sizeshape_edge_hessian<MetricFieldAnalytical,2>();
-  check_sizeshape_edge_hessian<MetricFieldFE,3>();
-  check_sizeshape_edge_hessian<MetricFieldAnalytical,3>();
+  for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+    check_sizeshape_edge_hessian<MetricFieldFE,2>(basis);
+    check_sizeshape_edge_hessian<MetricFieldAnalytical,2>(basis);
+    check_sizeshape_edge_hessian<MetricFieldFE,3>(basis);
+    check_sizeshape_edge_hessian<MetricFieldAnalytical,3>(basis);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(p2_sizeshape_lagrange_and_bezier_are_equivalent)
+{
+  check_sizeshape_lagrange_bezier_equivalence<MetricFieldFE,2>();
+  check_sizeshape_lagrange_bezier_equivalence<MetricFieldAnalytical,2>();
+  check_sizeshape_lagrange_bezier_equivalence<MetricFieldFE,3>();
+  check_sizeshape_lagrange_bezier_equivalence<MetricFieldAnalytical,3>();
 }
 
 } // namespace Metris

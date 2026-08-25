@@ -673,3 +673,26 @@ would obstruct the first working path.
    approximately `3.1e-8` in 2D and `5.9e-10` in 3D. No production change was
    required. Phase 4 step 7, Lagrange and Bezier representation coverage, is
    next; StepDistance remains P1-only until Phase 5.
+
+7. **Done (2026-08-25): qualified equivalent P2 Lagrange and Bezier geometry
+   representations.** The focused SizeShape test converts each curved P2
+   triangle or tetrahedron from its Lagrange nodal coordinates to Bezier
+   control coefficients through the production basis conversion. At every
+   order-five sample it verifies invariant regular Jacobians, frozen P1 FE or
+   analytical metrics, and complete objective weights. The integrated value
+   and differentiated entry-point value are invariant as well.
+
+   For the first quadratic edge degree of freedom, the conversion satisfies
+   `B_edge = 2*L_edge - (L_vertex_0 + L_vertex_1)/2`. The test therefore checks
+   the exact derivative transformation laws `g_L = 2*g_B` and
+   `H_L = 4*H_B`. Across the 2D/3D FE/analytical matrix, the largest absolute
+   sample discrepancy is approximately `3.3e-16`, the largest gradient-law
+   discrepancy is `2.2e-15`, and the largest Hessian-law discrepancy is
+   `2.9e-14`.
+
+   The Phase 4 gradient and Hessian tests now also execute their independent
+   AD and centered-finite-difference oracles with a Bezier active edge control
+   point, rather than relying only on cross-representation scaling. All checks
+   pass without production changes. Phase 4 step 8, enabling SizeShape P2
+   smoothing after the completed value, derivative, and validity
+   qualifications, is next. StepDistance remains P1-only until Phase 5.
