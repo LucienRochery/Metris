@@ -154,6 +154,13 @@ certified by the current bound, not necessarily that it is inverted.
 8. Add Bernstein subdivision later to refine inconclusive bounds and reduce
    conservative false rejections.
 
+**Scope decision (2026-08-25).** With the full-dimensional P2 triangle and
+tetrahedron path qualified, items 7 and 8 are deliberately deferred. The
+immediate priority is the planar 2D high-order path, retaining 3D coverage when
+the extension is straightforward. Embedded surface certification and
+Bernstein subdivision will be resumed later rather than treated as gates for
+Phase 4.
+
 ### Embedded surface elements
 
 The magnitude of a surface Jacobian contains a square root and is not a
@@ -525,7 +532,7 @@ would obstruct the first working path.
    Embedded P2 surface triangles in 3D remain deliberately separate:
    `correct_cavity` retains their historical compatibility check and does not
    call the full-dimensional classifier. Their oriented polynomial certificate
-   is still Phase 6 work.
+   is explicitly deferred under the scope decision above.
 
    Focused tests exercise the completed-element policy directly for certified,
    invalid, and positive-but-uncertified P2 triangles and tetrahedra. Two
@@ -536,3 +543,23 @@ would obstruct the first working path.
    `Uncertified`. While adding the end-to-end tests, a reversed diagnostic for
    `cav.inewp` was corrected: `1` denotes a newly inserted point and `0` an
    existing point.
+
+## Phase 4 SizeShape execution record
+
+1. **Done (2026-08-25): removed the P1 restriction from value dispatch.**
+   `metqua` now sends `SizeShape` value evaluation through the shared objective
+   quadrature traversal at the effective geometry degree: `AsDeg::P1` retains
+   the corner map, while `AsDeg::Pk` selects the complete mesh degree. The
+   runtime dispatch is degree-generic and is qualified first for P2 triangles
+   and tetrahedra. `StepDistance` remains explicitly restricted to P1 for its
+   separate Phase 5 work, and differentiated `SizeShape` evaluation is
+   unchanged.
+
+   `test_high_order_sizeshape_value` constructs curved Lagrange P2 elements
+   directly in 2D and 3D for both FE and analytical metric field types. It
+   verifies that the public `metqua` entry point exactly matches the selected
+   degree-2 shared-integrator specialization, that the P1 compatibility call
+   still matches the degree-1 specialization, and that the two geometry
+   choices produce observably different values. This is deliberately a
+   dispatch contract only. Independent verification of P2 geometry and metric
+   sampling, followed by dense-reference integration, remains steps 2 and 3.
