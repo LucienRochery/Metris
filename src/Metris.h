@@ -44,6 +44,7 @@
 #include "low_geo/measure.hxx"
 #include "low_geo/normal.hxx"
 #include "low_geo/ccoef_d.hxx"
+#include "low_geo/validity.hxx"
 
 #include "utils/CT_loop.hxx"
 #include "utils/aux_MinMaxAvg.hxx"

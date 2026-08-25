@@ -120,26 +120,37 @@ certified by the current bound, not necessarily that it is inverted.
 
 ### Incremental validity work
 
-1. Unit-test coefficient generation against direct Jacobian evaluation for P2
-   triangles and tetrahedra.
-2. Give the validity result explicit semantics:
+1. Give the validity result explicit semantics:
 
    - `certified`;
    - `invalid`; and
    - `uncertified`.
 
-3. Conservatively reject uncertified trial moves initially.
-4. Use the same validity routine in:
+2. Unit-test coefficient generation against direct Jacobian evaluation for P2
+   triangles and tetrahedra. Retain the existing mesh-wide coefficient test,
+   but add deterministic single-element cases covering Lagrange and Bezier
+   storage, off-lattice evaluations, and all three validity outcomes.
+3. Build one full-dimensional validity routine that owns the P1 orientation
+   prerequisite, normalization, coefficient classification, invalidity
+   witnesses, and diagnostics. Keep this API degree-generic while qualifying
+   P2 first.
+4. Integrate the routine first into Classic P2 smoothing trials and accepted
+   moves in 2D, followed by the existing 3D tetrahedral edge-shell path.
+5. Use the same validity routine in completed-element checks for:
 
-   - line-search trials;
-   - accepted-move checks;
    - cavity construction and correction;
    - reconnection; and
    - final topology and validity checks.
 
-5. Make the final high-order validity check unconditional rather than dependent
-   on `dbgfull`.
-6. Add Bernstein subdivision later to refine inconclusive bounds and reduce
+   Provisional elements that have only their P1 skeleton retain their P1 check;
+   certification is required once all high-order nodes have been assigned.
+6. Keep the final high-order validity check unconditional rather than dependent
+   on `dbgfull`. This was completed in Phase 1 and will be migrated to the new
+   result type rather than reintroduced conditionally.
+7. Treat embedded P2 surface triangles separately. Do not claim a polynomial
+   certificate from samples of the surface-Jacobian magnitude; use the oriented
+   polynomial described below when surface certification is implemented.
+8. Add Bernstein subdivision later to refine inconclusive bounds and reduce
    conservative false rejections.
 
 ### Embedded surface elements
@@ -420,3 +431,16 @@ would obstruct the first working path.
    coverage. They do not enable the SizeShape or StepDistance P2 paths, and do
    not broaden the CAD work beyond an existing 2D CAD edge. Phase 3 validity
    consolidation is next.
+
+## Phase 3 high-order validity execution record
+
+1. **Done (2026-08-25): defined the explicit validity-result contract.**
+   `ElementValidityStatus` distinguishes `Certified`, `Invalid`, and
+   `Uncertified`. `ElementValidityResult` carries the normalized Bernstein lower
+   bound and coefficient index, plus an optional direct normalized-Jacobian
+   witness and sample index. Its initial conservative policy accepts only
+   `Certified`; both a witnessed invalid element and an inconclusive bound are
+   rejected. The contract is intentionally independent of coefficient
+   generation and production call sites, which are addressed by the following
+   Phase 3 steps. `test_high_order_validity_contract` fixes the default state,
+   status predicates, diagnostic sentinels, and conservative acceptance policy.
