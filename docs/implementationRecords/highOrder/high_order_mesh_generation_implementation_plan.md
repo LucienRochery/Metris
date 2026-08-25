@@ -603,3 +603,21 @@ would obstruct the first working path.
    the dense reference. Order five must improve on order two and agree within
    `2e-5` in the test's absolute-or-relative scale. The observed order-five
    errors are approximately `8e-6` in 2D and `1e-7` in 3D.
+
+4. **Done (2026-08-25): generalized differentiated SizeShape dispatch for an
+   active P2 edge control point.** `d_metqua` now mirrors the value path's
+   effective-geometry-degree dispatch and sends P2 SizeShape calls through the
+   shared differentiated objective traversal. The call remains degree-generic
+   at runtime, while StepDistance remains explicitly restricted to its P1 path
+   for Phase 5.
+
+   The focused high-order SizeShape test activates the first Lagrange P2 edge
+   control point of a curved triangle or tetrahedron for both FE and analytical
+   metric fields. It verifies exact agreement between the public `d_metqua`
+   result and the selected degree-two differentiated-integrator specialization,
+   agreement of the returned value with `metqua` to `3e-14`, and a finite,
+   nonzero edge gradient. The established derivative contract keeps the metric
+   and physical integration measure frozen at each quadrature sample. This
+   step qualifies dispatch and edge activation only; centered finite-difference
+   verification of that frozen-sample gradient remains step 5, and independent
+   Hessian verification remains step 6.

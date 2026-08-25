@@ -45,14 +45,10 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
   constexpr bool objective_driven
       = iquaf == QuaFun::SizeShape || iquaf == QuaFun::StepDistance;
   if constexpr(objective_driven){
-    // SizeShape retains its historical high-order compatibility path for
-    // now. StepDistance has always required this P1 objective path.
-    const bool use_p1_objective_path
-        = ideg_eff == 1 || iquaf == QuaFun::StepDistance;
-    if(use_p1_objective_path){
+    if constexpr(iquaf == QuaFun::StepDistance){
+      // StepDistance remains P1 until its separate high-order phase.
       METRIS_ASSERT(ideg_eff == 1);
       METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
-
       const SimplexQuadratureView<tdim> quadrature
           = get_objective_quadrature<tdim>(
                 msh.param->objective_quadrature_order);
@@ -60,6 +56,36 @@ ftype d_metqua(Mesh<MFT> &msh, AsDeg asdmsh, AsDeg asdmet,
           MFT,gdim,tdim,1,iquaf,ftype>(
               msh,asdmsh,asdmet,ent2poi[ientt],quadrature,
               ivar,dofbas,dquael,hquael);
+    }else{
+      // SizeShape differentiated evaluation follows the effective geometry
+      // degree just like its value path. Metric and physical-measure samples
+      // remain frozen by the established derivative contract.
+      METRIS_ASSERT(msh.met.getSpace() == MetSpace::Exp);
+      const SimplexQuadratureView<tdim> quadrature
+          = get_objective_quadrature<tdim>(
+                msh.param->objective_quadrature_order);
+      if(ideg_eff == 1){
+        return integrate_objective_quadrature_derivatives<
+            MFT,gdim,tdim,1,iquaf,ftype>(
+                msh,asdmsh,asdmet,ent2poi[ientt],quadrature,
+                ivar,dofbas,dquael,hquael);
+      }
+      ftype objective_value = ftype(0);
+      bool degree_was_dispatched = false;
+      CT_FOR0_INC(2,METRIS_MAX_DEG,geometry_degree){
+        if(geometry_degree == ideg_eff){
+          objective_value = integrate_objective_quadrature_derivatives<
+              MFT,gdim,tdim,geometry_degree,iquaf,ftype>(
+                  msh,asdmsh,asdmet,ent2poi[ientt],quadrature,
+                  ivar,dofbas,dquael,hquael);
+          degree_was_dispatched = true;
+        }
+      }CT_FOR1(geometry_degree);
+      METRIS_ENFORCE_MSG(
+          degree_was_dispatched,
+          "Unsupported differentiated SizeShape geometry degree {}",
+          ideg_eff);
+      return objective_value;
     }
   }
 

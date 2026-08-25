@@ -13,6 +13,8 @@
 #include "linalg/explogmet.hxx"
 #include "low_eval.hxx"
 #include "quality/low_metqua.hxx"
+#include "quality/low_metqua_d.hxx"
+#include "quality/objective_quadrature_derivatives.hxx"
 #include "quality/objective_quadrature_sample.hxx"
 #include "quality/objective_quadrature_value.hxx"
 #include "quality/simplex_quadrature.hxx"
@@ -575,6 +577,56 @@ void check_sizeshape_geometry_dispatch()
       1.e-5*std::max(1.0,std::abs(dispatched_p2)));
 }
 
+template<class MFT, int gdim>
+void check_sizeshape_edge_derivative_dispatch()
+{
+  MetrisParameters parameters;
+  parameters.iverb = 0;
+  parameters.objective_quadrature_order = 5;
+  parameters.objective_p = 1.5;
+
+  Mesh<MFT> mesh;
+  initialize_curved_p2_element<MFT,gdim>(mesh,parameters);
+  const int *nodes = mesh.ent2poi(gdim)[0];
+  const SimplexQuadratureView<gdim> quadrature
+      = get_objective_quadrature<gdim>(
+            parameters.objective_quadrature_order);
+  constexpr int active_edge_control_point = gdim + 1;
+
+  double expected_gradient[gdim];
+  const double expected_value
+      = integrate_objective_quadrature_derivatives<
+            MFT,gdim,gdim,2,QuaFun::SizeShape,double>(
+                mesh,AsDeg::Pk,AsDeg::P1,nodes,quadrature,
+                active_edge_control_point,FEBasis::Lagrange,
+                expected_gradient,NULL);
+
+  double dispatched_gradient[gdim];
+  const double dispatched_value
+      = d_metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
+            mesh,AsDeg::Pk,AsDeg::P1,0,
+            active_edge_control_point,FEBasis::Lagrange,DifVar::None,
+            dispatched_gradient,NULL,1.0);
+  BOOST_CHECK_EQUAL(dispatched_value,expected_value);
+  for(int component = 0; component < gdim; component++){
+    BOOST_CHECK_EQUAL(dispatched_gradient[component],
+                      expected_gradient[component]);
+    BOOST_CHECK(std::isfinite(dispatched_gradient[component]));
+  }
+
+  const double value_only
+      = metqua<MFT,gdim,gdim,QuaFun::SizeShape,double>(
+            mesh,AsDeg::Pk,AsDeg::P1,0,1.0);
+  BOOST_CHECK_CLOSE_FRACTION(dispatched_value,value_only,3.e-14);
+
+  double gradient_norm_squared = 0.0;
+  for(int component = 0; component < gdim; component++){
+    gradient_norm_squared
+        += dispatched_gradient[component]*dispatched_gradient[component];
+  }
+  BOOST_CHECK_GT(gradient_norm_squared,1.e-8);
+}
+
 } // namespace
 
 BOOST_AUTO_TEST_CASE(p2_sizeshape_value_uses_degree_aware_dispatch)
@@ -599,6 +651,14 @@ BOOST_AUTO_TEST_CASE(p2_sizeshape_matches_independent_dense_reference)
   check_p2_sizeshape_against_dense_reference<MetricFieldAnalytical,2>();
   check_p2_sizeshape_against_dense_reference<MetricFieldFE,3>();
   check_p2_sizeshape_against_dense_reference<MetricFieldAnalytical,3>();
+}
+
+BOOST_AUTO_TEST_CASE(p2_edge_sizeshape_derivative_uses_degree_aware_dispatch)
+{
+  check_sizeshape_edge_derivative_dispatch<MetricFieldFE,2>();
+  check_sizeshape_edge_derivative_dispatch<MetricFieldAnalytical,2>();
+  check_sizeshape_edge_derivative_dispatch<MetricFieldFE,3>();
+  check_sizeshape_edge_derivative_dispatch<MetricFieldAnalytical,3>();
 }
 
 } // namespace Metris
