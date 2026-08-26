@@ -5,6 +5,7 @@
 
 
 #include "low_swap.hxx"
+#include "low_swap_objective.hxx"
 #include "msh_swap.hxx" // for swapOptions
 
 #include "../Mesh/Mesh.hxx"
@@ -82,6 +83,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   double &qnrm1 = *qnrm1_;
   #ifdef TESTQUALITYALGO
   const int spnorm = 0;
+  (void)opt;
   #else
   const int spnorm = opt.swap_norm; // swap norm -> < 0 is length, >= 0 is Lp over the 2
   #endif
@@ -91,6 +93,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
 
   constexpr int tdim = 2;
   constexpr AsDeg asdmet = AsDeg::P1;
+  constexpr AsDeg objective_geometry = ideg == 1 ? AsDeg::P1 : AsDeg::Pk;
 
   if(isdeadent(iface,msh.fac2poi)) return 0;
 
@@ -122,7 +125,8 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   if(spnorm >= 0){
     #ifdef TESTQUALITYALGO
     if (msh.get_tdim() == 2){
-      quae1 = metqua<MFT,gdim,tdim,iquaf>(msh,AsDeg::P1,asdmet,iface,1.0);
+      quae1 = metqua<MFT,gdim,tdim,iquaf>(
+          msh,objective_geometry,asdmet,iface,1.0);
     }
     else{
       quae1 = 1e30;
@@ -174,7 +178,8 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     if(spnorm >= 0){
       #ifdef TESTQUALITYALGO
       if (msh.get_tdim() == 2){
-        quaol[ied] = metqua<MFT,gdim,tdim,iquaf>(msh,AsDeg::P1,asdmet,ifac2,1.0);
+        quaol[ied] = metqua<MFT,gdim,tdim,iquaf>(
+            msh,objective_geometry,asdmet,ifac2,1.0);
       }
       else{
         quaol[ied] = 1e30;
@@ -256,8 +261,9 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
   int idx[3] = {0,1,2};
   sortupto8_dec<double>(quaol,idx,3);
 
-  // Simulate swaps as P1
-  // Improve when curvature added to cavity
+  // Construct each candidate P1 skeleton. For a high-order objective-driven
+  // swap this is only an orientation prerequisite; the completed callback
+  // below owns the objective decision after curvature has been reconstructed.
   //intAr2 fac2pol(2,3);
   int edg2pol[2]; // only for length based
   //fac2pol.set_n(2);
@@ -283,7 +289,6 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     // Quality of previous configuration
     #ifdef TESTQUALITYALGO
     const double qsum0 = quae1 + quae2; // current config
-    const double qmax0 = MAX(quae1,quae2);
     #endif
     if(spnorm == 0){
       qnrm0 = MAX(quae1,quae2);
@@ -400,50 +405,52 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
       }
 
       #ifdef TESTQUALITYALGO
-      if(msh.get_tdim() == 2){
-        acceptedOldNumerator = qsum0;
-        acceptedNewNumerator = qsum1;
-        acceptedOldCount = 2;
-        acceptedNewCount = 2;
-        if constexpr(iquaf == QuaFun::StepDistance){
-          if(msh.param->step_distance_cavity_target_average){
-            const double weightOld0 =
-                step_distance_element_target_weight<MFT,gdim,tdim>(
-                    msh,asdmet,iface);
-            const double weightOld1 =
-                step_distance_element_target_weight<MFT,gdim,tdim>(
-                    msh,asdmet,ifac2);
-            const double weightNew0 =
-                step_distance_element_target_weight<MFT,gdim,tdim>(
-                    msh,asdmet,nfac0);
-            const double weightNew1 =
-                step_distance_element_target_weight<MFT,gdim,tdim>(
-                    msh,asdmet,nfac0+1);
-            acceptedOldNumerator = weightOld0*quae1 + weightOld1*quae2;
-            acceptedNewNumerator = weightNew0*qunw[0] + weightNew1*qunw[1];
-            acceptedOldTargetWeight = weightOld0 + weightOld1;
-            acceptedNewTargetWeight = weightNew0 + weightNew1;
+      if constexpr(ideg == 1){
+        if(msh.get_tdim() == 2){
+          acceptedOldNumerator = qsum0;
+          acceptedNewNumerator = qsum1;
+          acceptedOldCount = 2;
+          acceptedNewCount = 2;
+          if constexpr(iquaf == QuaFun::StepDistance){
+            if(msh.param->step_distance_cavity_target_average){
+              const double weightOld0 =
+                  step_distance_element_target_weight<MFT,gdim,tdim>(
+                      msh,asdmet,iface);
+              const double weightOld1 =
+                  step_distance_element_target_weight<MFT,gdim,tdim>(
+                      msh,asdmet,ifac2);
+              const double weightNew0 =
+                  step_distance_element_target_weight<MFT,gdim,tdim>(
+                      msh,asdmet,nfac0);
+              const double weightNew1 =
+                  step_distance_element_target_weight<MFT,gdim,tdim>(
+                      msh,asdmet,nfac0+1);
+              acceptedOldNumerator = weightOld0*quae1 + weightOld1*quae2;
+              acceptedNewNumerator = weightNew0*qunw[0] + weightNew1*qunw[1];
+              acceptedOldTargetWeight = weightOld0 + weightOld1;
+              acceptedNewTargetWeight = weightNew0 + weightNew1;
+            }
           }
-        }
-        const double objectiveOld = step_distance_region_objective(
-            acceptedOldNumerator,acceptedOldTargetWeight,
-            iquaf == QuaFun::StepDistance
-                && msh.param->step_distance_cavity_target_average);
-        const double objectiveNew = step_distance_region_objective(
-            acceptedNewNumerator,acceptedNewTargetWeight,
-            iquaf == QuaFun::StepDistance
-                && msh.param->step_distance_cavity_target_average);
-        if(globalObjective == nullptr
-           && !objective_strictly_improves(objectiveNew,objectiveOld)){
-          skipswap = true;
-        }
-        if(!skipswap && globalObjective != nullptr
-           && !globalObjective->accepts_replacement(
-                acceptedOldNumerator,acceptedOldCount,
-                acceptedOldTargetWeight,
-                acceptedNewNumerator,acceptedNewCount,
-                acceptedNewTargetWeight)){
-          skipswap = true;
+          const double objectiveOld = step_distance_region_objective(
+              acceptedOldNumerator,acceptedOldTargetWeight,
+              iquaf == QuaFun::StepDistance
+                  && msh.param->step_distance_cavity_target_average);
+          const double objectiveNew = step_distance_region_objective(
+              acceptedNewNumerator,acceptedNewTargetWeight,
+              iquaf == QuaFun::StepDistance
+                  && msh.param->step_distance_cavity_target_average);
+          if(globalObjective == nullptr
+             && !objective_strictly_improves(objectiveNew,objectiveOld)){
+            skipswap = true;
+          }
+          if(!skipswap && globalObjective != nullptr
+             && !globalObjective->accepts_replacement(
+                  acceptedOldNumerator,acceptedOldCount,
+                  acceptedOldTargetWeight,
+                  acceptedNewNumerator,acceptedNewCount,
+                  acceptedNewTargetWeight)){
+            skipswap = true;
+          }
         }
       }
       #endif
@@ -648,15 +655,17 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
               msh.param->step_distance_cavity_target_average);
         }
       }
-      if(globalObjective == nullptr
-         && !objective_strictly_improves(qtetsum1,qtetsum0)) skipswap = true;
-      if(!skipswap && globalObjective != nullptr
-         && !globalObjective->accepts_replacement(
-              acceptedOldNumerator,acceptedOldCount,
-              acceptedOldTargetWeight,
-              acceptedNewNumerator,acceptedNewCount,
-              acceptedNewTargetWeight)){
-        skipswap = true;
+      if constexpr(ideg == 1){
+        if(globalObjective == nullptr
+           && !objective_strictly_improves(qtetsum1,qtetsum0)) skipswap = true;
+        if(!skipswap && globalObjective != nullptr
+           && !globalObjective->accepts_replacement(
+                acceptedOldNumerator,acceptedOldCount,
+                acceptedOldTargetWeight,
+                acceptedNewNumerator,acceptedNewCount,
+                acceptedNewTargetWeight)){
+          skipswap = true;
+        }
       }
 
       // std::cout << "tet related qual info: " << std::endl;
@@ -683,7 +692,27 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     // std::cout << "call cavity_operator " << std::endl;
     // #endif
 
-    int ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithread);
+    #ifdef TESTQUALITYALGO
+    CompletedSwapObjectiveReplacement completed_replacement;
+    if constexpr(ideg > 1){
+      if(msh.get_tdim() == 2){
+        configure_completed_swap_acceptance<MFT,gdim,2,iquaf>(
+            msh,cav.lcfac,globalObjective,opts,completed_replacement);
+      }else{
+        if constexpr(gdim == 3){
+          configure_completed_swap_acceptance<MFT,3,3,iquaf>(
+              msh,cav.lctet,globalObjective,opts,completed_replacement);
+        }
+      }
+    }
+    #endif
+
+    int ierro = cavity_operator<MFT,ideg>(
+        msh,cav,opts,work,info,ithread);
+
+    #ifdef TESTQUALITYALGO
+    if constexpr(ideg > 1) opts.accept_completed_elements = {};
+    #endif
 
     // #ifdef TESTQUALITYALGO
     // std::cout << "ierro = " << ierro << std::endl;
@@ -703,13 +732,18 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
     }
     #endif
     if(info.done && ierro == 0){
-      if(globalObjective != nullptr){
+      #ifdef TESTQUALITYALGO
+      if constexpr(ideg > 1){
+        commit_completed_swap_objective<iquaf>(
+            completed_replacement,globalObjective);
+      }else if(globalObjective != nullptr){
         globalObjective->replace(
             acceptedOldNumerator,acceptedOldCount,
             acceptedOldTargetWeight,
             acceptedNewNumerator,acceptedNewCount,
             acceptedNewTargetWeight);
       }
+      #endif
       CPRINTF1("-- END swapface did {} - {} -> {} - {} \n",iface,
                                                  ifac2,msh.nface-2,msh.nface-1);
       return -1; // Return did op

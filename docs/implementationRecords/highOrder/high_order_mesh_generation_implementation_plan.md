@@ -251,7 +251,8 @@ new P2 test.
    objective and P2 validity.** See the Phase 7 execution record below.
 2. **Done (2026-08-26): apply the completed-P2 validity and objective contract
    to collapse.** See the Phase 7 execution record below.
-3. Generalize face and edge swaps.
+3. **Done (2026-08-26): generalize face and edge swaps to completed-P2
+   validity, geometry, and objective acceptance.** See the execution record.
 4. Implement P2 length smoothing or disable it explicitly; it must not silently
    return while appearing to be supported.
 5. Generalize cavity-targeted smoothing to high-order variables.
@@ -407,6 +408,39 @@ new P2 test.
    With these additions, all thirteen high-order Phase 1/7 baseline cases pass
    in Debug and Release, the seven-case legacy cavity suite passes in Release,
    and the broader quality-insertion diagnostic target compiles successfully.
+
+3. **Done (2026-08-26): objective-driven completed-P2 swaps.** Swap topology
+   is still proposed from the P1 skeleton, and P1 orientation remains a
+   prerequisite. For a high-order mesh, however, the temporary P1 objective
+   is no longer allowed to accept or reject a candidate. The common cavity
+   operator first reconstructs the complete high-order replacement, reuses
+   every surviving boundary coefficient, creates genuinely new non-CAD edges
+   as affine P2 edges, applies CAD ownership where present, and runs the common
+   conservative validity classifier. A swap-specific final callback then
+   evaluates the configured SizeShape or StepDistance objective with
+   `AsDeg::Pk` geometry, frozen `AsDeg::P1` metric interpolation, and configured
+   quadrature. Only an improving completed replacement is committed.
+
+   This contract covers planar edge flips, tetrahedral face-to-edge swaps, and
+   tetrahedral edge-to-face swaps through one completed-swap acceptance helper.
+   Because a swap removes its old diagonal, face, or edge rather than splitting
+   it, there is no parent-child restriction provenance. Existing edges on the
+   cavity boundary retain their exact stored P2 coefficients; a new planar
+   diagonal or other genuinely new non-CAD edge is affine P2. The mesh-wide
+   CavityTargetAverage state is initialized with P2 geometry and is updated
+   only after a successful topology commit. Rejected completed candidates roll
+   back without modifying that state.
+
+   The planar regression flips an edge in a short-edge patch and checks the
+   configured completed-P2 objective decrease, agreement between the updated
+   and independently recomputed mesh-wide StepDistance state when applicable,
+   certification of both new triangles, exact reuse of every inherited edge
+   coefficient, and affine placement of the new diagonal coefficient. A paired
+   P1 flip protects the historical path. A full-dimensional 3D regression
+   reconstructs a valid completed-P2 three-to-two tetrahedral edge swap whose
+   configured objective is worse; it verifies objective rejection, complete
+   rollback, and preservation of all three original certified tetrahedra. The
+   high-order baseline suite now contains sixteen cases.
 
 ## Phase 8: End-to-end qualification
 

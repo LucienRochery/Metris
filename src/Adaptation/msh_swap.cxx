@@ -75,15 +75,17 @@ double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int
   StepDistanceObjectiveState *globalStepDistancePtr = nullptr;
   #ifdef STEPDISTANCE
   if(msh.param->step_distance_cavity_target_average){
+    constexpr AsDeg objective_geometry =
+        ideg == 1 ? AsDeg::P1 : AsDeg::Pk;
     if(msh.get_tdim() == 2){
       globalStepDistance =
           step_distance_global_objective_state<MFT,gdim,2>(
-              msh,AsDeg::P1,AsDeg::P1);
+              msh,objective_geometry,AsDeg::P1);
     }else{
       if constexpr(gdim == 3){
         globalStepDistance =
             step_distance_global_objective_state<MFT,3,3>(
-                msh,AsDeg::P1,AsDeg::P1);
+                msh,objective_geometry,AsDeg::P1);
       }
     }
     globalStepDistancePtr = &globalStepDistance;

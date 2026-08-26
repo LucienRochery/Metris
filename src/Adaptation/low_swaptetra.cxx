@@ -5,6 +5,7 @@
 
 
 #include "low_swap.hxx"
+#include "low_swap_objective.hxx"
 #include "msh_swap.hxx" // for swapOptions
 
 #include "../Mesh/Mesh.hxx"
@@ -24,7 +25,7 @@
 
 namespace Metris{
 
-template<class MFT>
+template<class MFT, int ideg>
 void accumulate_tet_objective(Mesh<MFT>& msh,
                               const intAr1& region,
                               double& numerator,
@@ -40,8 +41,9 @@ void accumulate_tet_objective(Mesh<MFT>& msh,
   targetWeight = 0.;
   for(const int itet : region){
     if(isdeadent(itet,msh.tet2poi)) continue;
+    constexpr AsDeg objective_geometry = ideg == 1 ? AsDeg::P1 : AsDeg::Pk;
     const double quality = metqua<MFT,3,3,iquaf>(
-        msh,AsDeg::P1,AsDeg::P1,itet,1.0);
+        msh,objective_geometry,AsDeg::P1,itet,1.0);
     #ifdef STEPDISTANCE
     if(msh.param->step_distance_cavity_target_average){
       const double weight = step_distance_element_target_weight<MFT,3,3>(
@@ -70,6 +72,32 @@ int attempt_tet_objective_reconnection(
     StepDistanceObjectiveState *globalObjective,
     double& qnrm1,
     int ithread){
+  #ifdef STEPDISTANCE
+  constexpr QuaFun iquaf = QuaFun::StepDistance;
+  #else
+  constexpr QuaFun iquaf = QuaFun::SizeShape;
+  #endif
+  #ifdef TESTQUALITYALGO
+  if constexpr(ideg > 1){
+    CompletedSwapObjectiveReplacement completed_replacement;
+    configure_completed_swap_acceptance<MFT,3,3,iquaf>(
+        msh,cav.lctet,globalObjective,opts,completed_replacement);
+    opts.dryrun = false;
+    CavOprInfo commitInfo;
+    int ierro = cavity_operator<MFT,ideg>(
+        msh,cav,opts,work,commitInfo,ithread);
+    opts.accept_completed_elements = {};
+    opts.dryrun = true;
+    qnrm1 = completed_replacement.new_numerator;
+    if(!commitInfo.done){
+      return ierro == CAV_ERR_OBJECTIVE ? 0 : ierro;
+    }
+    commit_completed_swap_objective<iquaf>(
+        completed_replacement,globalObjective);
+    return -1;
+  }
+  #endif
+
   opts.dryrun = true;
   opts.qmax_nec = std::numeric_limits<double>::max();
   CavOprInfo probeInfo;
@@ -304,7 +332,7 @@ int aux_swaptetface(Mesh<MFT>& msh, swapOptions opt, int itetr, int ifacl, doubl
 
   double oldNumerator,oldTargetWeight;
   int oldCount;
-  accumulate_tet_objective(
+  accumulate_tet_objective<MFT,ideg>(
       msh,cav.lctet,oldNumerator,oldCount,oldTargetWeight);
   const int ierro = attempt_tet_objective_reconnection<MFT,ideg>(
       msh,cav,opts,work,
@@ -425,7 +453,7 @@ int aux_swaptetedge(Mesh<MFT>& msh, swapOptions opt, int itetr, int iedgl, doubl
   }
   double oldNumerator,oldTargetWeight;
   int oldCount;
-  accumulate_tet_objective(
+  accumulate_tet_objective<MFT,ideg>(
       msh,cav.lctet,oldNumerator,oldCount,oldTargetWeight);
 
   // A shell to face(s) (= n -> 2(n-2) ) swap can be made in as many ways as

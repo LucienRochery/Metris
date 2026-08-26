@@ -15,6 +15,8 @@
 #include "Adaptation/Insertion/aux_insert.hxx"
 #include "Adaptation/low_collapse.hxx"
 #include "Adaptation/low_increasecav.hxx"
+#include "Adaptation/low_swap.hxx"
+#include "Adaptation/msh_swap.hxx"
 #include "aux_badEntHandler.hxx"
 #include "cavity/msh_cavity.hxx"
 #include "cavity/reconnect_geometry.hxx"
@@ -29,6 +31,7 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <limits>
 #include <numeric>
 #include <string>
 #include <vector>
@@ -37,6 +40,12 @@ using namespace Metris;
 
 namespace
 {
+
+#ifdef STEPDISTANCE
+constexpr QuaFun configured_swap_objective = QuaFun::StepDistance;
+#else
+constexpr QuaFun configured_swap_objective = QuaFun::SizeShape;
+#endif
 
 struct HighOrderBaselineCase
 {
@@ -296,6 +305,18 @@ double live_planar_objective_sum(Mesh<MetricFieldAnalytical>& mesh,
     if(isdeadent(face,mesh.fac2poi)) continue;
     sum += metqua<MetricFieldAnalytical,2,2,objective>(
         mesh,geometry_degree,AsDeg::P1,face,1.0);
+  }
+  return sum;
+}
+
+template<QuaFun objective>
+double live_volume_objective_sum(Mesh<MetricFieldAnalytical>& mesh,
+                                 AsDeg geometry_degree){
+  double sum = 0.;
+  for(int tetrahedron = 0; tetrahedron < mesh.nelem; tetrahedron++){
+    if(isdeadent(tetrahedron,mesh.tet2poi)) continue;
+    sum += metqua<MetricFieldAnalytical,3,3,objective>(
+        mesh,geometry_degree,AsDeg::P1,tetrahedron,1.0);
   }
   return sum;
 }
@@ -1092,6 +1113,262 @@ BOOST_AUTO_TEST_CASE(p1_collapse_compatibility_is_retained)
   const double objective_after =
       live_planar_objective_sum<QuaFun::SizeShape>(mesh,AsDeg::P1);
   BOOST_CHECK(objective_after < objective_before);
+}
+
+BOOST_AUTO_TEST_CASE(p2_swap_uses_completed_geometry_and_affine_new_diagonal)
+{
+  const HighOrderBaselineCase baseline_case = {
+      "p2_completed_swap",
+      METRIS_ROOT_DIR
+      "/bunit/meshes/high_order_phase1/interior_short_edge_p1.mesh",
+      2,35,23,12,0};
+  MetrisParameters parameters = baseline_parameters(baseline_case,"swap");
+  parameters.setMeshIn(baseline_case.mesh_path);
+  MetrisRunner runner(nullptr,nullptr,parameters);
+  BOOST_REQUIRE_EQUAL(runner.degElevate(),1);
+  auto& mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner.msh_g);
+  mesh.met.setSpace(MetSpace::Exp);
+
+  constexpr int seed_face = 3;
+  constexpr int old_endpoint0 = 5;
+  constexpr int old_endpoint1 = 6;
+  int old_diagonal_edge = -1;
+  for(int edge = 0; edge < 3; edge++){
+    const int endpoint0 = mesh.fac2poi(seed_face,lnoed2[edge][0]);
+    const int endpoint1 = mesh.fac2poi(seed_face,lnoed2[edge][1]);
+    if((endpoint0 == old_endpoint0 && endpoint1 == old_endpoint1)
+    || (endpoint0 == old_endpoint1 && endpoint1 == old_endpoint0)){
+      old_diagonal_edge = edge;
+      break;
+    }
+  }
+  BOOST_REQUIRE(old_diagonal_edge >= 0);
+  const int neighbor_face = mesh.fac2fac(seed_face,old_diagonal_edge);
+  BOOST_REQUIRE(neighbor_face >= 0);
+  const int old_diagonal_control =
+      mesh.fac2poi(seed_face,3 + old_diagonal_edge);
+  mesh.coord(old_diagonal_control,1) += 0.002;
+  for(int face = 0; face < mesh.nface; face++){
+    BOOST_REQUIRE((classify_element_validity<2,2>(mesh,face).is_certified()));
+  }
+
+  struct BoundaryCoefficient{
+    int endpoint0;
+    int endpoint1;
+    double coordinate[2];
+  };
+  std::vector<BoundaryCoefficient> boundary_coefficients;
+  for(int face = 0; face < mesh.nface; face++){
+    for(int edge = 0; edge < 3; edge++){
+      int endpoint0 = mesh.fac2poi(face,lnoed2[edge][0]);
+      int endpoint1 = mesh.fac2poi(face,lnoed2[edge][1]);
+      if(endpoint1 < endpoint0) std::swap(endpoint0,endpoint1);
+      bool already_stored = false;
+      for(const BoundaryCoefficient& coefficient : boundary_coefficients){
+        already_stored = already_stored
+                      || (endpoint0 == coefficient.endpoint0
+                       && endpoint1 == coefficient.endpoint1);
+      }
+      if(already_stored) continue;
+      const int control = mesh.fac2poi(face,3 + edge);
+      boundary_coefficients.push_back({
+          endpoint0,endpoint1,
+          {mesh.coord(control,0),mesh.coord(control,1)}});
+    }
+  }
+  BOOST_REQUIRE_EQUAL(boundary_coefficients.size(),23);
+
+  const double objective_before =
+      live_planar_objective_sum<configured_swap_objective>(mesh,AsDeg::Pk);
+  const int first_new_face = mesh.nface;
+  MshCavity cavity(0,10,0);
+  CavWrkArrs work;
+  double objective_old = -1.;
+  double objective_new = -1.;
+  StepDistanceObjectiveState global_objective;
+  StepDistanceObjectiveState* global_objective_pointer = nullptr;
+  #ifdef STEPDISTANCE
+  if(mesh.param->step_distance_cavity_target_average){
+    global_objective = step_distance_global_objective_state<
+        MetricFieldAnalytical,2,2>(mesh,AsDeg::Pk,AsDeg::P1);
+    global_objective_pointer = &global_objective;
+  }
+  #endif
+  const swapOptions options(1,0,0.);
+  const int result = swapface<MetricFieldAnalytical,2,2>(
+      mesh,seed_face,options,cavity,work,
+      &objective_old,&objective_new,global_objective_pointer,0);
+  BOOST_REQUIRE_EQUAL(result,-1);
+
+  const double objective_after =
+      live_planar_objective_sum<configured_swap_objective>(mesh,AsDeg::Pk);
+  BOOST_CHECK(objective_after < objective_before);
+  #ifdef STEPDISTANCE
+  if(global_objective_pointer != nullptr){
+    const StepDistanceObjectiveState recomputed =
+        step_distance_global_objective_state<MetricFieldAnalytical,2,2>(
+            mesh,AsDeg::Pk,AsDeg::P1);
+    BOOST_CHECK_CLOSE(
+        global_objective.value(),recomputed.value(),1.e-12);
+  }
+  #endif
+  for(int face = first_new_face; face < mesh.nface; face++){
+    if(isdeadent(face,mesh.fac2poi)) continue;
+    BOOST_CHECK((classify_element_validity<2,2>(mesh,face).is_certified()));
+  }
+
+  int new_diagonal_occurrences = 0;
+  for(int face = 0; face < mesh.nface; face++){
+    if(isdeadent(face,mesh.fac2poi)) continue;
+    for(int edge = 0; edge < 3; edge++){
+      int endpoint0 = mesh.fac2poi(face,lnoed2[edge][0]);
+      int endpoint1 = mesh.fac2poi(face,lnoed2[edge][1]);
+      if(endpoint1 < endpoint0) std::swap(endpoint0,endpoint1);
+      const int control = mesh.fac2poi(face,3 + edge);
+      bool inherited_edge = false;
+      for(const BoundaryCoefficient& expected : boundary_coefficients){
+        if(endpoint0 != expected.endpoint0
+        || endpoint1 != expected.endpoint1) continue;
+        inherited_edge = true;
+        BOOST_CHECK_SMALL(
+            mesh.coord(control,0) - expected.coordinate[0],5.e-14);
+        BOOST_CHECK_SMALL(
+            mesh.coord(control,1) - expected.coordinate[1],5.e-14);
+      }
+      if(!inherited_edge){
+        BOOST_CHECK_SMALL(
+            mesh.coord(control,0)
+            - 0.5*(mesh.coord(endpoint0,0) + mesh.coord(endpoint1,0)),
+            5.e-14);
+        BOOST_CHECK_SMALL(
+            mesh.coord(control,1)
+            - 0.5*(mesh.coord(endpoint0,1) + mesh.coord(endpoint1,1)),
+            5.e-14);
+        new_diagonal_occurrences++;
+      }
+    }
+  }
+  BOOST_CHECK_EQUAL(new_diagonal_occurrences,2);
+}
+
+BOOST_AUTO_TEST_CASE(p1_swap_compatibility_is_retained)
+{
+  const HighOrderBaselineCase baseline_case = {
+      "p1_swap_compatibility",
+      METRIS_ROOT_DIR
+      "/bunit/meshes/high_order_phase1/interior_short_edge_p1.mesh",
+      2,12,10,12,0};
+  MetrisParameters parameters = baseline_parameters(baseline_case,"swap");
+  parameters.usrTarDeg = 1;
+  parameters.setMeshIn(baseline_case.mesh_path);
+  MetrisRunner runner(nullptr,nullptr,parameters);
+  auto& mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner.msh_g);
+  mesh.met.setSpace(MetSpace::Exp);
+
+  const double objective_before =
+      live_planar_objective_sum<configured_swap_objective>(mesh,AsDeg::P1);
+  MshCavity cavity(0,10,0);
+  CavWrkArrs work;
+  double objective_old = -1.;
+  double objective_new = -1.;
+  const swapOptions options(1,0,0.);
+  const int result = swapface<MetricFieldAnalytical,2,1>(
+      mesh,3,options,cavity,work,
+      &objective_old,&objective_new,nullptr,0);
+  BOOST_REQUIRE_EQUAL(result,-1);
+  const double objective_after =
+      live_planar_objective_sum<configured_swap_objective>(mesh,AsDeg::P1);
+  BOOST_CHECK(objective_after < objective_before);
+  for(int face = 0; face < mesh.nface; face++){
+    if(isdeadent(face,mesh.fac2poi)) continue;
+    BOOST_CHECK((isvalideltP1<2,2>(mesh,face)));
+  }
+}
+
+BOOST_AUTO_TEST_CASE(
+    p2_tetrahedral_edge_swap_rejects_worse_completed_objective)
+{
+  const HighOrderBaselineCase baseline_case = {
+      "p2_completed_tetrahedral_edge_swap",
+      METRIS_ROOT_DIR
+      "/bunit/meshes/high_order_phase1/"
+      "three_tetrahedra_around_edge_p1.mesh",
+      3,15,9,6,3};
+  MetrisParameters parameters = baseline_parameters(baseline_case,"swap");
+  parameters.setMeshIn(baseline_case.mesh_path);
+  MetrisRunner runner(nullptr,nullptr,parameters);
+  BOOST_REQUIRE_EQUAL(runner.degElevate(),1);
+  auto& mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner.msh_g);
+  mesh.met.setSpace(MetSpace::Exp);
+
+  constexpr int endpoint0 = 3;
+  constexpr int endpoint1 = 4;
+  int local_edge = -1;
+  for(int edge = 0; edge < 6; edge++){
+    const int point0 = mesh.tet2poi(0,lnoed3[edge][0]);
+    const int point1 = mesh.tet2poi(0,lnoed3[edge][1]);
+    if((point0 == endpoint0 && point1 == endpoint1)
+    || (point0 == endpoint1 && point1 == endpoint0)){
+      local_edge = edge;
+      break;
+    }
+  }
+  BOOST_REQUIRE(local_edge >= 0);
+  const int edge_control = mesh.tet2poi(0,4 + local_edge);
+  mesh.coord(edge_control,0) += 0.01;
+  for(int tetrahedron = 0; tetrahedron < mesh.nelem; tetrahedron++){
+    BOOST_REQUIRE((
+        classify_element_validity<3,2>(mesh,tetrahedron).is_certified()));
+  }
+
+  const double objective_before =
+      live_volume_objective_sum<configured_swap_objective>(
+          mesh,AsDeg::Pk);
+  const int tetrahedron_count_before = mesh.nelem;
+  MshCavity cavity(0,10,10);
+  CavWrkArrs work;
+  CavOprOpt cavity_options;
+  cavity_options.allow_topological_correction = false;
+  cavity_options.skip_topo_checks = true;
+  cavity_options.allow_remove_points = false;
+  cavity_options.allow_remove_points_superdim = false;
+  cavity_options.cache_tetra_quality = true;
+  cavity_options.dryrun = true;
+  cavity_options.qmax_nec = std::numeric_limits<double>::max();
+  double objective_old = -1.;
+  double objective_new = -1.;
+  const double seed_objective = metqua<MetricFieldAnalytical,3,3,
+      configured_swap_objective>(mesh,AsDeg::Pk,AsDeg::P1,0,1.0);
+  StepDistanceObjectiveState global_objective;
+  StepDistanceObjectiveState* global_objective_pointer = nullptr;
+  #ifdef STEPDISTANCE
+  if(mesh.param->step_distance_cavity_target_average){
+    global_objective = step_distance_global_objective_state<
+        MetricFieldAnalytical,3,3>(mesh,AsDeg::Pk,AsDeg::P1);
+    global_objective_pointer = &global_objective;
+  }
+  #endif
+  const swapOptions options(1,0,0.);
+  const int result = aux_swaptetedge<MetricFieldAnalytical,2>(
+      mesh,options,0,local_edge,seed_objective,
+      cavity,cavity_options,work,&objective_old,&objective_new,
+      global_objective_pointer,0,1);
+  BOOST_REQUIRE_EQUAL(result,0);
+  BOOST_CHECK(objective_new > objective_before);
+  BOOST_CHECK_EQUAL(mesh.nelem,tetrahedron_count_before);
+
+  int live_tetrahedra = 0;
+  for(int tetrahedron = 0; tetrahedron < mesh.nelem; tetrahedron++){
+    if(isdeadent(tetrahedron,mesh.tet2poi)) continue;
+    live_tetrahedra++;
+    BOOST_CHECK((
+        classify_element_validity<3,2>(mesh,tetrahedron).is_certified()));
+  }
+  BOOST_CHECK_EQUAL(live_tetrahedra,3);
+  const double objective_after =
+      live_volume_objective_sum<configured_swap_objective>(
+          mesh,AsDeg::Pk);
+  BOOST_CHECK_CLOSE(objective_after,objective_before,1.e-12);
 }
 
 BOOST_AUTO_TEST_CASE(p1_insertion_compatibility_keeps_optional_final_hook_empty)
