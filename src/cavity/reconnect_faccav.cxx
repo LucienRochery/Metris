@@ -5,6 +5,7 @@
 
 
 #include "../cavity/msh_cavity.hxx"
+#include "../cavity/reconnect_geometry.hxx"
 
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -1024,8 +1025,23 @@ int crenewfa(Mesh<MetricFieldType> &msh, MshCavity& cav,
         int ipnew = msh.newpoitopo(PointType::CtrlPt,2,ifacn);
 
 
-        for(int jj = 0; jj < msh.idim; jj++){
-          msh.coord(ipnew,jj) = u1*msh.coord(jp1,jj) + u2*msh.coord(jp2,jj);
+        bool restricted_parent_curve = false;
+        if constexpr(ideg == 2){
+          if(msh.idim == 2){
+            restricted_parent_curve
+                = initialize_quadratic_split_child_coefficient<MetricFieldType,2>(
+                    msh,cav,jp1,jp2,msh.coord[ipnew]);
+          }else{
+            restricted_parent_curve
+                = initialize_quadratic_split_child_coefficient<MetricFieldType,3>(
+                    msh,cav,jp1,jp2,msh.coord[ipnew]);
+          }
+        }
+        if(!restricted_parent_curve){
+          for(int jj = 0; jj < msh.idim; jj++){
+            msh.coord(ipnew,jj) = u1*msh.coord(jp1,jj)
+                                + u2*msh.coord(jp2,jj);
+          }
         }
         if(msh.isboundary_faces()){
           int ibnew = msh.newbpotopo(CtrlPt{ipnew},2,ifacn);

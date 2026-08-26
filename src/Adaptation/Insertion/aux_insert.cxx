@@ -114,6 +114,7 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
                       bool icollapse,
                       MshCavity &cav){
   GETVDEPTH(msh.param);
+  cav.clear_split_edge_geometry();
   const auto lnoed = insertionSeed.tdimp == 1 ? lnoed1 :
                      insertionSeed.tdimp == 2 ? lnoed2 : lnoed3;
   const intAr2 &ent2poi = msh.ent2poi(insertionSeed.tdimp);
@@ -301,6 +302,19 @@ int aux_bisecPointLen(Mesh<MFT> &msh,
   // after the loop, the mesh state corresponds to the last tried bar1.
   if (abs(bar1 - bar1_opt) > 1e-12) place_ipins(bar1_opt);
 
+  // Retain the split-edge provenance for every P2 insertion. Non-CAD children
+  // use it for exact polynomial restriction; CAD children use the endpoint
+  // identity and split parameter while CAD evaluation remains authoritative.
+  if(!icollapse && msh.curdeg == 2){
+    cav.split_edge_points.set_n(nnod1);
+    for(int inode = 0; inode < nnod1; inode++){
+      cav.split_edge_points[inode] = edg2pol[inode];
+    }
+    cav.split_edge_barycentric[0] = bar1_opt;
+    cav.split_edge_barycentric[1] = 1. - bar1_opt;
+    cav.preserve_split_edge_geometry = !(ibins >= 0 && msh.CAD());
+  }
+
   if (ibins >=0 ){
     // if point is on CAD edge, we have set its t parameter so far.
     // go ahead and retrieve (u,v) for the incident CAD faces. we MIGHT need this if we want the CAD normal at the insertion point. For now, not used anyways
@@ -359,6 +373,9 @@ template<class MFT>
 int aux_movePointCav(Mesh<MFT>& msh, MshCavity &cav,
                      int tdimp, int iseed, int iref, double *algnd){
   GETVDEPTH(msh.param);
+  // A relocated insertion point is no longer a subdivision point of the
+  // original seed edge, so its incident edges revert to affine construction.
+  cav.clear_split_edge_geometry();
   int ierro = 0;
 
   // Interior and non-surface case, most straightforward

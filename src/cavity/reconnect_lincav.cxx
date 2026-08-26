@@ -5,6 +5,7 @@
 
 
 #include "../cavity/msh_cavity.hxx"
+#include "../cavity/reconnect_geometry.hxx"
 
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -388,10 +389,24 @@ int reconnect_lincav(Mesh<MetricFieldType> &msh, MshCavity& cav, CavOprOpt &opts
         msh.edg2poi(iedgn,2+j) = ipnew;
         msh.set_poi2ent(CtrlPt{ipnew}, 1, iedgn);
         msh.poi2bpo[ipnew] = -1;
-        double t = (1.0 + j)/ideg; 
-        for(int k = 0; k < msh.idim; k++){
-          msh.coord(ipnew,k) = (1.0-t)*msh.coord(cav.ipins,k)
-                             +      t *msh.coord(ipseed   ,k);
+        double t = (1.0 + j)/ideg;
+        bool restricted_parent_curve = false;
+        if constexpr(ideg == 2){
+          if(msh.idim == 2){
+            restricted_parent_curve
+                = initialize_quadratic_split_child_coefficient<MetricFieldType,2>(
+                    msh,cav,cav.ipins,ipseed,msh.coord[ipnew]);
+          }else{
+            restricted_parent_curve
+                = initialize_quadratic_split_child_coefficient<MetricFieldType,3>(
+                    msh,cav,cav.ipins,ipseed,msh.coord[ipnew]);
+          }
+        }
+        if(!restricted_parent_curve){
+          for(int k = 0; k < msh.idim; k++){
+            msh.coord(ipnew,k) = (1.0-t)*msh.coord(cav.ipins,k)
+                               +      t *msh.coord(ipseed,k);
+          }
         }
 
         if(msh.isboundary_edges()){
@@ -430,4 +445,3 @@ template int reconnect_lincav<MetricFieldFE        , n >(Mesh<MetricFieldFE     
 
 
 }// End namespace
-

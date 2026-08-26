@@ -29,6 +29,18 @@ class MshCavity;
 struct CavOprOpt;
 struct EdgeSeed;
 
+// Build one full-dimensional P2 cone element exactly as cavity reconnection
+// would, then evaluate it without committing topology. source_element owns the
+// inherited facet geometry; vertices contains ipins followed by that facet in
+// the requested orientation.
+template<class MFT, int gdim, QuaFun iquaf>
+double evaluate_completed_p2_cavity_cone(
+    Mesh<MFT>& msh,
+    const MshCavity& cav,
+    int source_element,
+    const int* vertices,
+    bool* valid = nullptr);
+
 
 template<class MFT>
 int setCavityInsertion(Mesh<MFT>& msh, MshCavity &cav, const CavOprOpt &opts,

@@ -95,7 +95,7 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
   bool iinva = false;
   double qmin = 0., qmax = 0., qavg = 0.;
   dblAr1 lquae(msh.nentt(tdim));
-  getmetquamesh<MFT,DefaultQualityFunction>(msh,tdim,AsDeg::P1,AsDeg::P1,
+  getmetquamesh<MFT,DefaultQualityFunction>(msh,tdim,AsDeg::Pk,AsDeg::P1,
                                             &iinva,&qmin,&qmax,&qavg,&lquae);
   BadEntHandler handler(tdim,100.,0.00001);
   handler.setCallbacks([&](int ientt){ return lquae[ientt]; },

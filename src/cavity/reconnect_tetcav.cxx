@@ -4,6 +4,7 @@
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
 #include "../cavity/msh_cavity.hxx"
+#include "../cavity/reconnect_geometry.hxx"
 
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -483,9 +484,17 @@ int reconnect_tetcav(Mesh<MFT> &msh,
               int inode = mul2nod(3,idx);
               int ipnew = msh.newpoitopo(PointType::CtrlPt, 3, ielen);
               CPRINTF3(" - new tet {} edge {} ctrl pt inode {} : {}\n",ielen,ied,inode,ipnew);
-              for(int kk = 0; kk < msh.idim; kk++){
-                msh.coord(ipnew,kk) = ci*msh.coord(ipoi1,kk)
-                                    + cj*msh.coord(ipoi2,kk);
+              bool restricted_parent_curve = false;
+              if constexpr(ideg == 2){
+                restricted_parent_curve
+                    = initialize_quadratic_split_child_coefficient<MFT,3>(
+                        msh,cav,ipoi1,ipoi2,msh.coord[ipnew]);
+              }
+              if(!restricted_parent_curve){
+                for(int kk = 0; kk < msh.idim; kk++){
+                  msh.coord(ipnew,kk) = ci*msh.coord(ipoi1,kk)
+                                      + cj*msh.coord(ipoi2,kk);
+                }
               }
               msh.tet2poi(ielen,inode) = ipnew;
             }

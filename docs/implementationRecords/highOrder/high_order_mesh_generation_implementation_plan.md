@@ -247,7 +247,8 @@ the same way for SizeShape and every StepDistance variant.
 Proceed one operation at a time, retaining a P1 compatibility test beside each
 new P2 test.
 
-1. Make insertion acceptance use both the P2 objective and P2 validity.
+1. **Done (2026-08-26): make insertion acceptance use both the completed P2
+   objective and P2 validity.** See the Phase 7 execution record below.
 2. Do the same for collapse.
 3. Generalize face and edge swaps.
 4. Implement P2 length smoothing or disable it explicitly; it must not silently
@@ -257,6 +258,121 @@ new P2 test.
    reactivated after a successful move.
 7. Confirm that newly created cavity elements share P2 edge control points
    correctly and pass the common validity certificate.
+
+### Phase 7 execution record
+
+1. **Done (2026-08-26): completed-geometry P2 insertion acceptance.** The
+   provisional P1 skeleton remains useful for topology construction and as an
+   orientation prerequisite, but every full-dimensional validity-growth and
+   objective-growth decision is now made on the corresponding completed P2
+   local reconnection. A final cavity callback also runs after
+   `correct_cavity` has created every
+   high-order coefficient, projected CAD-owned nodes, interpolated their
+   metrics, and applied the common conservative P2 validity classifier. Only
+   after that callback accepts does `update_cavity` commit the topology; a
+   rejection returns `CAV_ERR_OBJECTIVE`, rolls all cavity-appended entities
+   and control points back, and lets the insertion caller discard the proposed
+   vertex through its ordinary failure cleanup.
+
+   Concisely, relative to the **legacy Classic P2 insertion** (not merely to
+   the objective-driven path), the completed implementation changes the
+   following contract:
+
+   | Concern | Legacy Classic P2 insertion | Completed Phase 7.1 insertion |
+   | --- | --- | --- |
+   | Early cavity decisions | P1 reconstruction, orientation, length, and quality checks drove the operation. | P1 topology and orientation remain prerequisites. Initial validity growth and later objective growth both construct the completed P2 local reconnection before deciding. |
+   | Existing cavity-boundary edges | Their stored high-order coefficients were already reused. | This behavior is retained explicitly, so the old cavity boundary is unchanged. |
+   | Children of a split curved edge | Newly generated non-CAD child coefficients followed the generic affine/chord initialization; CAD correction could subsequently place CAD-owned nodes on the CAD model. | Non-CAD children are exact polynomial restrictions of the parent; CAD-owned children are evaluated from interpolated CAD parameters. |
+   | Genuinely new edges | Constructed as straight edges. | Still straight, but explicitly represented consistently as affine P2 edges. |
+   | Final acceptance | `correct_cavity` completed the high-order mesh and applied its high-order checks, but Classic acceptance had no completed-P2 objective comparison. | The common conservative P2 validity result is followed by a completed-P2 SizeShape or StepDistance comparison before topology commit. |
+   | Failure and quality state | No distinct post-completion objective rejection existed; quality bookkeeping could retain the earlier P1 geometry contract. | Callback rejection rolls the cavity back with `CAV_ERR_OBJECTIVE`, and objective/handler state consistently uses P2 geometry with frozen P1 metric interpolation. |
+
+   Thus the new path does not discard the useful legacy P2 reconstruction: it
+   preserves inherited coefficients and CAD correction, while making split
+   geometry exact and adding a transactional completed-geometry validity and
+   objective gate.
+
+   Initial validity growth now establishes the invariant needed by the later
+   objective-growth loop. Starting from the edge shell, each boundary cone is
+   completed at P2 and passed through the common conservative classifier; a
+   merely `Uncertified` cone is rejected just like an `Invalid` cone, so its
+   outside neighbor is absorbed through the existing growth mechanism. The
+   P1 cone check is retained only for P1 meshes and for the explicitly deferred
+   embedded-surface compatibility path. Consequently, once objective growth
+   starts, the current reconnected full-dimensional cavity is P2-valid by
+   construction.
+
+   Each subsequent neighbor decision is strictly local. Let the candidate
+   outside neighbor be `N`, and let `I(N)` be only the current cavity elements
+   incident to it. Configuration A keeps `N` unchanged and reconnects
+   `I(N)`; configuration B absorbs `N` and reconnects the enlarged local patch
+   `I(N) union {N}`. Both reconnections use completed P2 elements, but no
+   unaffected element elsewhere in the cavity is rebuilt or integrated.
+   Configuration A is asserted valid by the preceding invariant. If B is not
+   conservatively certified, the neighbor is left outside; otherwise the two
+   local objectives are compared. For additive SizeShape this is the direct
+   local comparison. For mesh-average StepDistance the same local numerator
+   and element-count replacement is applied to the maintained global state,
+   avoiding a full-cavity recomputation while remaining algebraically exact.
+
+   The scratch completion used by both growth stages follows the same edge
+   geometry contract as final reconnection: inherited edges copy their stored
+   coefficient; a child of the insertion edge is the exact restriction of the
+   parent polynomial; a CAD-owned new coefficient is evaluated on its common
+   curve or surface from interpolated CAD parameters; and a genuinely new
+   non-CAD edge is affine but still represented as P2. Geometry is evaluated
+   with `AsDeg::Pk`, the frozen FE metric contract remains `AsDeg::P1`, and
+   the configured objective quadrature is used.
+
+   The final objective uses `AsDeg::Pk` for geometry and retains the established
+   frozen P1 FE-metric interpolation contract (`AsDeg::P1`). SizeShape compares
+   the additive old and new cavity integrals through the configured
+   `BadEntHandler` improvement threshold. StepDistance uses the same local
+   completed-P2 values and, for CavityTargetAverage, replaces the old regional
+   numerator and element count in an exact mesh-wide P2 objective state before
+   deciding. The handler is now seeded and updated with that same P2-geometry,
+   P1-metric contract, so later operations do not inherit stale P1 qualities.
+
+   Reconnection now also satisfies the geometric prerequisite needed for a
+   meaningful comparison. Existing cavity-boundary edges reuse their original
+   high-order coefficients. When a non-CAD P2 edge is split, the insertion
+   records the parent edge and split barycentric coordinate; both child-edge
+   coefficients are then the exact polynomial restrictions of the parent. In
+   Lagrange form they are evaluations at the child midpoint images, while in
+   Bezier form they are obtained by the corresponding de Casteljau step.
+   Genuinely new edges remain straight but are represented as P2. CAD-owned
+   children deliberately override discrete restriction: their interpolated
+   curve/surface parameters are evaluated by `correct_cavity`, so every new
+   geometric node lies exactly on its owning CAD entity.
+
+   The insertion-specific sharing checks above are a prerequisite of this
+   step, not an early completion of Phase 7 item 7. Item 7 remains the later
+   cross-operation audit after collapse and swap reconnection have also been
+   generalized. Likewise, `CAVSMOOTHING` is now explicitly bypassed for P2
+   during cavity growth; its P1 behavior is unchanged and its high-order
+   implementation remains Phase 7 item 5.
+
+   The self-contained regression verifies that the final callback observes
+   completed and certified P2 candidates for both a planar triangle and a
+   tetrahedron, and that callback rejection restores the pre-cavity counts and
+   topology. A curved two-triangle planar case verifies both exact child
+   restrictions, reuse of all four inherited outer-edge coefficients, affine
+   P2 construction of the two genuinely new spokes, and certification of all
+   four children. A paired P1 cavity insertion verifies the unchanged optional-
+   hook path. A direct Bezier-basis regression independently verifies that both
+   restricted child coefficients are the expected first-level de Casteljau
+   points. Two additional strip regressions qualify the growth stages
+   themselves. One independently reconstructs both local configurations,
+   proves that the reported objectives contain exactly the unchanged neighbor
+   plus the single incident cavity cone, and verifies that the completed-P2
+   values differ from their P1 surrogates. The other constructs a boundary
+   cone whose P1 map is valid while its inherited curved P2 edge makes the
+   completed element non-certified, and verifies that initial validity growth
+   absorbs precisely that neighbor and leaves every final boundary cone
+   certified. Release and Debug builds pass all eleven Phase 1/7 cases; the
+   seven-case legacy cavity suite also passes in Release. The older general
+   cavity executable retains unrelated Debug-only mesh-construction assertions
+   and is therefore claimed here only in Release.
 
 ## Phase 8: End-to-end qualification
 

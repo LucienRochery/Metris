@@ -657,6 +657,7 @@ const char* cavity_error_name(int ierro){
   case CAV_ERR_BDRYTET: return "CAV_ERR_BDRYTET";
   case CAV_ERR_BDRYTET2: return "CAV_ERR_BDRYTET2";
   case CAV_ERR_CORRECTCAV: return "CAV_ERR_CORRECTCAV";
+  case CAV_ERR_OBJECTIVE: return "CAV_ERR_OBJECTIVE";
   default: return "CAV_ERR_UNKNOWN";
   }
 }

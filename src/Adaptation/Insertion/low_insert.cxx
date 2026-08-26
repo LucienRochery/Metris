@@ -24,10 +24,95 @@
 #include "../../io_libmeshb.hxx"
 #include "../../linalg/det.hxx"
 #include "../../low_geo/lenedg.hxx"
+#include "../../quality/low_metqua.hxx"
 
 #include "../../msh_checktopo.hxx"
 
+#include <cmath>
+
 namespace Metris{
+
+#ifdef TESTQUALITYALGO
+template<class MFT, QuaFun iquaf>
+double completed_p2_element_objective(Mesh<MFT>& msh,
+                                      int tdim,
+                                      int element){
+  METRIS_ASSERT(tdim == 2 || tdim == 3);
+  return tdim == 2
+      ? metqua<MFT,2,2,iquaf>(msh,AsDeg::Pk,AsDeg::P1,element,1.)
+      : metqua<MFT,3,3,iquaf>(msh,AsDeg::Pk,AsDeg::P1,element,1.);
+}
+
+template<class MFT, QuaFun iquaf>
+void configure_completed_p2_insertion_acceptance(
+    Mesh<MFT>& msh,
+    const MshCavity& cav,
+    int tdim,
+    const BadEntHandler& handler,
+    CavOprOpt& opts){
+  double old_numerator = 0.;
+  int old_element_count = 0;
+  const intAr2& element_to_point = msh.ent2poi(tdim);
+  for(int element : cav.lcent(tdim)){
+    if(isdeadent(element,element_to_point)) continue;
+    old_numerator += completed_p2_element_objective<MFT,iquaf>(
+        msh,tdim,element);
+    old_element_count++;
+  }
+
+  METRIS_ENFORCE(old_element_count > 0);
+  if constexpr(iquaf == QuaFun::StepDistance){
+    if(msh.param->step_distance_cavity_target_average){
+      const StepDistanceObjectiveState global_objective = tdim == 2
+          ? step_distance_global_objective_state<MFT,2,2>(
+                msh,AsDeg::Pk,AsDeg::P1)
+          : step_distance_global_objective_state<MFT,3,3>(
+                msh,AsDeg::Pk,AsDeg::P1);
+      opts.accept_completed_elements =
+          [&msh,tdim,old_numerator,old_element_count,global_objective]
+          (int candidate_tdim, int first_new, int end_new){
+            if(candidate_tdim != tdim) return false;
+            double new_numerator = 0.;
+            int new_element_count = 0;
+            const intAr2& candidate_to_point = msh.ent2poi(tdim);
+            for(int element = first_new; element < end_new; element++){
+              if(isdeadent(element,candidate_to_point)) continue;
+              const double value
+                  = completed_p2_element_objective<MFT,iquaf>(
+                        msh,tdim,element);
+              if(!std::isfinite(value)) return false;
+              new_numerator += value;
+              new_element_count++;
+            }
+            return new_element_count > 0
+                && global_objective.accepts_replacement(
+                       old_numerator,old_element_count,old_element_count,
+                       new_numerator,new_element_count,new_element_count);
+          };
+      return;
+    }
+  }
+
+  opts.accept_completed_elements =
+      [&msh,&handler,tdim,old_numerator]
+      (int candidate_tdim, int first_new, int end_new){
+        if(candidate_tdim != tdim) return false;
+        double new_numerator = 0.;
+        int new_element_count = 0;
+        const intAr2& candidate_to_point = msh.ent2poi(tdim);
+        for(int element = first_new; element < end_new; element++){
+          if(isdeadent(element,candidate_to_point)) continue;
+          const double value = completed_p2_element_objective<MFT,iquaf>(
+              msh,tdim,element);
+          if(!std::isfinite(value)) return false;
+          new_numerator += value;
+          new_element_count++;
+        }
+        return new_element_count > 0
+            && handler.checkSuccess(new_numerator,old_numerator);
+      };
+}
+#endif
 
 // Return 0 if done nothing, 1 if error, -1 if done swap
 template<class MFT, QuaFun iquaf>
@@ -244,7 +329,14 @@ restart_cavity:
   ierro = 0;
   if(!irestart_cav) irestart_cav = true;
 
-
+  #ifdef TESTQUALITYALGO
+  if(!icollapse && msh.curdeg == 2){
+    configure_completed_p2_insertion_acceptance<MFT,iquaf>(
+        msh,cav,insertionSeed.tdim_adp,handler,opts);
+  }else{
+    opts.accept_completed_elements = {};
+  }
+  #endif
 
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
     ierro = cavity_operator<MFT,ideg>(msh,cav,opts,work,info,ithrd1);
@@ -320,16 +412,15 @@ restart_cavity:
 
     // new entities with their qualities
     const int nenttNew = msh.nentt(tdim_adp);
-    intAr2& ent2poi = msh.ent2poi(tdim_adp);
     double difto = 1.;
     for (int ienttNew = nentt0; ienttNew < nenttNew; ienttNew++) {
 
       double quael;
       if (tdim_adp == 2){
-        quael = metqua<MFT,2,2,iquaf>(msh,AsDeg::Pk,AsDeg::Pk,ienttNew,difto);
+        quael = metqua<MFT,2,2,iquaf>(msh,AsDeg::Pk,AsDeg::P1,ienttNew,difto);
       }
       else {
-        quael = metqua<MFT,3,3,iquaf>(msh,AsDeg::Pk,AsDeg::Pk,ienttNew,difto);
+        quael = metqua<MFT,3,3,iquaf>(msh,AsDeg::Pk,AsDeg::P1,ienttNew,difto);
       }
       handler.affectedEnttsAlive[ienttNew] = quael;
     }

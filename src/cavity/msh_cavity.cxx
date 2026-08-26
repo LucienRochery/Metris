@@ -200,6 +200,20 @@ int cavity_operator(Mesh<MFT> &msh ,
     goto cleanup;
   }
 
+  if(opts.accept_completed_elements){
+    const int topological_dimension = msh.get_tdim();
+    const int first_new_element = topological_dimension == 1 ? nedg0
+                                : topological_dimension == 2 ? nfac0
+                                                             : nele0;
+    if(!opts.accept_completed_elements(
+           topological_dimension,first_new_element,
+           msh.nentt(topological_dimension))){
+      CPRINTF1(" # completed high-order objective rejects cavity\n");
+      ierro = CAV_ERR_OBJECTIVE;
+      goto cleanup;
+    }
+  }
+
 
 	ierro = update_cavity<MFT,ideg>(msh, cav, work, npoi0, nedg0, nfac0, nele0, ithread);
 	if(ierro > 0) goto cleanup;

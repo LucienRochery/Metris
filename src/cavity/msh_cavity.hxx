@@ -11,8 +11,25 @@
 #include "../Mesh/MeshFwd.hxx"
 #include "../types.hxx"
 
+#include <functional>
+#include <limits>
+
 
 namespace Metris{
+
+struct CavityGrowthProbeInfo{
+  int topological_dimension = 0;
+  int geometry_degree = 1;
+  int outside_element = -1;
+  int current_cavity_element_count = 0;
+  int incident_cavity_element_count = 0;
+  int current_local_element_count = 0;
+  int enlarged_local_element_count = 0;
+  bool current_configuration_valid = false;
+  bool enlarged_configuration_valid = false;
+  double current_objective = std::numeric_limits<double>::quiet_NaN();
+  double enlarged_objective = std::numeric_limits<double>::quiet_NaN();
+};
 
 
 enum Cavity_Errors {CAV_NOERR = 0,
@@ -45,7 +62,8 @@ enum Cavity_Errors {CAV_NOERR = 0,
                     CAV_ERR_BDRYTET = 27,
                     CAV_ERR_BDRYTET2 = 28,
                     CAV_ERR_CORRECTCAV = 29,
-                    CAV_ERR_NERROR = 30
+                    CAV_ERR_OBJECTIVE = 30,
+                    CAV_ERR_NERROR = 31
                     };
 
 
@@ -63,6 +81,7 @@ public:
       lcfac.set_n(0);
       lcedg.set_n(0);
       inewp = -1;
+      split_edge_points.set_n(0);
       ipins_facrefs.set_n(0);
       ipins_facuv.set_n(0);
       ipins_facuv.set_stride(2);
@@ -77,10 +96,18 @@ public:
     lcfac.set_n(0);
     lctet.set_n(0);
     qtetr.clear();
+    clear_split_edge_geometry();
     ipins_facrefs.set_n(0);
     ipins_facuv.set_n(0);
     ipins_facuv.set_stride(2);
 	}
+
+  void clear_split_edge_geometry(){
+    split_edge_points.set_n(0);
+    split_edge_barycentric[0] = 0.;
+    split_edge_barycentric[1] = 0.;
+    preserve_split_edge_geometry = false;
+  }
 
   intAr1& lcent(int tdimn){
     METRIS_ASSERT(tdimn >= 1 && tdimn <= 3);
@@ -166,6 +193,22 @@ public:
   intAr1 ipins_facrefs;
   dblAr2 ipins_facuv;
 
+  // Optional insertion provenance. The point ordering and barycentric
+  // coordinates use the one-dimensional parent-edge convention. For a
+  // non-CAD polynomial split, preserve_split_edge_geometry requests exact
+  // restriction of the parent map. CAD-classified splits retain the same
+  // endpoint provenance but leave that flag false because CAD parameter-space
+  // evaluation is authoritative.
+  intAr1 split_edge_points;
+  double split_edge_barycentric[2] = {0.,0.};
+  bool preserve_split_edge_geometry = false;
+
+  // Optional read-only diagnostic hook for one-neighbor objective-growth
+  // probes. Both objective values cover only the outside neighbor and the
+  // current-cavity elements incident to it; unaffected cavity elements are
+  // deliberately excluded from the local replacement.
+  std::function<void(const CavityGrowthProbeInfo&)> inspect_growth_probe;
+
 };
 
 
@@ -233,6 +276,12 @@ struct CavOprOpt{
   // Store any computed tetrahedron qualities in the provided hashtable qtetr.
   // Off by default (only useful in swaps)
   bool cache_tetra_quality;
+
+  // Optional final acceptance hook. It is called only after all high-order
+  // nodes have been created, CAD-projected, metric-interpolated, and accepted
+  // by the common validity classifier. Returning false rolls the cavity back
+  // before update_cavity commits the topology.
+  std::function<bool(int,int,int)> accept_completed_elements;
 
 
 	CavOprOpt():allow_topological_correction(true)
