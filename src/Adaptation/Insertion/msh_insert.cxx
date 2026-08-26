@@ -219,7 +219,7 @@ double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int it
       ierro = insertEdge(msh,insertionSeed,lenqua_short_max,false,
                          cav,work,lcaverr,
                          #ifdef TESTQUALITYALGO
-                         handler,true,0.,
+                         handler,
                          #endif
                          ithrd1,ithrd2);
       //if(ierro > 0 && iSteiner == 1){

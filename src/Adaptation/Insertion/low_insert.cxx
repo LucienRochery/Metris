@@ -124,8 +124,6 @@ int insertEdge(Mesh<MFT>& msh,
                intAr1 &lerro,
                #ifdef TESTQUALITYALGO
                BadEntHandler& handler,
-               const bool lengthBased,
-               const double worsenPctg,
                #endif
                int ithrd1, int ithrd2){
 
@@ -287,15 +285,9 @@ int insertEdge(Mesh<MFT>& msh,
   // -- This section only if !icollapse
 
   #ifdef TESTQUALITYALGO
-  if (lengthBased){
-    ierro = setCavityInsertion3(msh,cav,opts,insertionSeed,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);
-    if (ierro != 0) goto cleanup;
-    ierro = checkCavityQuality(msh,cav,insertionSeed.tdim_adp,5,handler,worsenPctg,ithrd1);
-    if (ierro != 0) ierro = INS2D_ERR_NOQUALIMPROV;
-  }
-  else{
-    ierro = setCavityInsertionQuality<MFT,iquaf>(msh,cav,opts,insertionSeed,mgrow,handler,lenqua_short_max,nocomp,ithrd1,ithrd2);
-  }
+  ierro = setCavityInsertionQuality<MFT,iquaf>(
+      msh,cav,opts,insertionSeed,mgrow,handler,
+      lenqua_short_max,nocomp,ithrd1,ithrd2);
   #else
   ierro = setCavityInsertion3(msh,cav,opts,insertionSeed,mgrow,lenqua_short_max,nocomp,ithrd1,ithrd2);
   #endif
@@ -472,7 +464,6 @@ template int insertEdge<MFT_VAL,QUAFUN_VAL>(Mesh<MFT_VAL>& msh, \
                          double lenqua_short_max, bool icollapse, \
                          MshCavity &cav, CavWrkArrs &work, \
                          intAr1 &lerro, BadEntHandler& handler, \
-                         const bool lengthBased, const double worsenPctg, \
                          int ithrd1, int ithrd2);
 #else
 #define INSTANTIATE_INSERT_EDGE(MFT_VAL, QUAFUN_VAL) \

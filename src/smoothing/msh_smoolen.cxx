@@ -38,6 +38,15 @@ template<class MFT>
 double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
   GETVDEPTH(msh.param);
 
+  // This heuristic moves only topological vertices and does not update the
+  // adjacent high-order coefficients. Keep it as a Classic P1 operation; an
+  // explicitly requested P2 pass is an intentional no-op.
+  if(msh.curdeg > 1){
+    MPRINTF(" # Classic length smoothing is disabled for geometry degree {}\n",
+            msh.curdeg);
+    return 0;
+  }
+
   if(tdim == 1){
     CPRINTF1(" # smoothMeshLength tdim = 1 not implemented as it requires nordev to ensure validity\n");
     return 0;

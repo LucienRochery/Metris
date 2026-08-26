@@ -28,6 +28,19 @@ int movePointCavLen(Mesh<MFT>& msh, const MshCavity &cav,
 
   GETVDEPTH(msh.param);
 
+  // Classic cavity placement may use this heuristic for P1. Moving only the
+  // insertion vertex is not a valid high-order smoothing operation, so P2+
+  // cavity construction deliberately retains its existing insertion point.
+  if(msh.curdeg > 1){
+    static bool reported_disabled_policy = false;
+    if(!reported_disabled_policy){
+      MPRINTF(" # Classic cavity length relocation is disabled for geometry "
+              "degree {}\n",msh.curdeg);
+      reported_disabled_policy = true;
+    }
+    return 0;
+  }
+
   const int tdim = msh.getpoitdim(cav.ipins);
   if(tdim == 0) return 0;
 
@@ -56,6 +69,7 @@ int movePointBallLen(Mesh<MFT>& msh, int ipmov,
                     int miter, double *qlen0, double *qlen1, int ithrd1){
 
   GETVDEPTH(msh.param);
+  METRIS_ASSERT(msh.curdeg == 1);
   const int tdim = msh.getpoitdim(ipmov);
   if(tdim == 0) return 0;
 
@@ -103,11 +117,7 @@ int smoopoilen(Mesh<MFT>& msh, int ipmov,
   
   const double damp = 0.1;
   const double nordev = -1; // improve in the future by getting initial ball nordev?
-  if(msh.curdeg > 1){
-    static int nwarnprt = 5;
-    if(nwarnprt --> 0) fmt::print("## TODO: smoopoilen HO. Need to update (move) adjacent HO nodes\n");
-    return 0;
-  }
+  METRIS_ASSERT(msh.curdeg == 1);
   GETVDEPTH(msh.param);
 
   const int tdimp = msh.getpoitdim(ipmov);

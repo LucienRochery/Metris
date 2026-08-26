@@ -48,8 +48,6 @@ void MetrisRunner::runMetris(){
                     << std::setw(30) << "nSuccSmoo"
                     << std::setw(30) << "nTryIns"
                     << std::setw(30) << "nSuccIns"
-                    << std::setw(30) << "nTryInsLen"
-                    << std::setw(30) << "nSuccInsLen"
                     << std::setw(30) << "nTryCol"
                     << std::setw(30) << "nSuccCol"
                     << std::endl;

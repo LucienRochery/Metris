@@ -671,11 +671,6 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
   int ntrySmoothing = 0; int nSuccessSmoothing = 0;
   int ntryInsert = 0; int nSuccessInsert = 0;
-  // Retain the legacy statistics columns for compatibility with existing
-  // MOESS post-processing.  The experimental length fallback is no longer
-  // part of the quality-adaptation algorithm, so these remain zero.
-  const int ntryInsertLength = 0;
-  const int nSuccessInsertLength = 0;
   int ntryCollapse = 0; int nSuccessCollapse = 0;
 
   int iter = 0;
@@ -828,7 +823,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
           EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, ied);
           int ierro = insertEdge(msh, insertionSeed, lenqua_short_max, false,
-                                cav, work, lcaverr, handlerTopX,false,0,
+                                cav, work, lcaverr, handlerTopX,
                                 ithrd1, ithrd2);
 
           if (ierro <= 0) {
@@ -924,15 +919,12 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   std::cout << "-- END adaptMeshQuality tdim = " << tdim << std::endl;
   std::cout << "-- ntrySmoothing = " << ntrySmoothing << ",  nSuccessSmoothing = " << nSuccessSmoothing << std::endl;
   std::cout << "-- ntryInsert = " << ntryInsert << ",  nSuccessInsert = " << nSuccessInsert << std::endl;
-  std::cout << "-- ntryInsertLength = " << ntryInsertLength << ",  nSuccessInsertLength = " << nSuccessInsertLength << std::endl;
   std::cout << "-- ntryCollapse = " << ntryCollapse << ",  nSuccessCollapse = " << nSuccessCollapse << std::endl;
 
   foutputAdaptStats << std::setw(30) << ntrySmoothing
                     << std::setw(30) << nSuccessSmoothing
                     << std::setw(30) << ntryInsert
                     << std::setw(30) << nSuccessInsert
-                    << std::setw(30) << ntryInsertLength
-                    << std::setw(30) << nSuccessInsertLength
                     << std::setw(30) << ntryCollapse
                     << std::setw(30) << nSuccessCollapse
                     << std::endl;

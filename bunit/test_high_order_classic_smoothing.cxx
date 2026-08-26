@@ -14,6 +14,7 @@
 #include "quality/low_metqua.hxx"
 #include "smoothing/low_smooballdiff.hxx"
 #include "smoothing/msh_smooball.hxx"
+#include "smoothing/msh_smoolen.hxx"
 
 #include <cmath>
 #include <filesystem>
@@ -23,6 +24,23 @@ using namespace Metris;
 
 namespace
 {
+
+std::unique_ptr<MetrisRunner> make_linear_two_triangle_runner()
+{
+  MetrisParameters parameters;
+  parameters.setAnalyticalMetric(1);
+  parameters.setMeshIn(METRIS_ROOT_DIR "/examples/2D/misc/2tri2D.mesh");
+  parameters.adp_niter = 0;
+  parameters.opt_niter = 0;
+  parameters.opt_smoo_niter = 1;
+  parameters.opt_power = -1;
+  parameters.iverb = 0;
+  parameters.outmPrefix
+      = (std::filesystem::temp_directory_path()
+         / "metris_linear_classic_length_smoothing").string() + "/";
+
+  return std::make_unique<MetrisRunner>(nullptr,nullptr,parameters);
+}
 
 std::unique_ptr<MetrisRunner> make_elevated_two_triangle_runner()
 {
@@ -107,6 +125,37 @@ void check_p2_region_is_certified(const MeshBase &mesh,
 }
 
 } // namespace
+
+BOOST_AUTO_TEST_CASE(classic_length_smoothing_remains_p1_only)
+{
+  auto linear_runner = make_linear_two_triangle_runner();
+  auto &linear_mesh
+      = static_cast<Mesh<MetricFieldAnalytical>&>(*linear_runner->msh_g);
+  BOOST_REQUIRE_EQUAL(linear_mesh.curdeg,1);
+  const double linear_stat = smoothMeshLength(linear_mesh,2,1,2);
+  BOOST_CHECK(std::isfinite(linear_stat));
+  BOOST_CHECK_GE(linear_stat,0.0);
+
+  auto quadratic_runner = make_elevated_two_triangle_runner();
+  auto &quadratic_mesh
+      = static_cast<Mesh<MetricFieldAnalytical>&>(*quadratic_runner->msh_g);
+  BOOST_REQUIRE_EQUAL(quadratic_mesh.curdeg,2);
+
+  dblAr2 coordinates_before(quadratic_mesh.npoin,quadratic_mesh.idim);
+  for(int ipoin = 0; ipoin < quadratic_mesh.npoin; ipoin++){
+    for(int idim = 0; idim < quadratic_mesh.idim; idim++){
+      coordinates_before(ipoin,idim) = quadratic_mesh.coord(ipoin,idim);
+    }
+  }
+
+  BOOST_CHECK_EQUAL(smoothMeshLength(quadratic_mesh,2,1,2),0.0);
+  for(int ipoin = 0; ipoin < quadratic_mesh.npoin; ipoin++){
+    for(int idim = 0; idim < quadratic_mesh.idim; idim++){
+      BOOST_CHECK_EQUAL(
+          quadratic_mesh.coord(ipoin,idim),coordinates_before(ipoin,idim));
+    }
+  }
+}
 
 BOOST_AUTO_TEST_CASE(p2_edge_control_point_regions_in_two_triangles)
 {

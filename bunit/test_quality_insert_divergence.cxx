@@ -3,7 +3,7 @@
 //Licensed under The GNU Lesser General Public License, version 2.1
 //See /License.txt or http://www.opensource.org/licenses/lgpl-2.1.php
 
-#define BOOST_TEST_MODULE test_quality_insert_divergence
+#define BOOST_TEST_MODULE test_objective_insertion_diagnostics
 
 #include "common_setup.hxx"
 
@@ -11,7 +11,6 @@
 #include "Adaptation/Insertion/aux_insert.hxx"
 #include "Adaptation/Insertion/insert_errors.hxx"
 #include "Adaptation/Insertion/low_insert.hxx"
-#include "Adaptation/low_collapse.hxx"
 #include "Adaptation/low_cavqual.hxx"
 #include "Adaptation/low_increasecav.hxx"
 #include "Adaptation/msh_lineadapt.hxx"
@@ -27,7 +26,6 @@
 #include "ho_constants.hxx"
 #include "linalg/eigen.hxx"
 #include "low_eval.hxx"
-#include "smoothing/low_smoolen.hxx"
 #include "smoothing/msh_smooball.hxx"
 #include "utils/CT_loop.hxx"
 
@@ -79,7 +77,6 @@ struct ObjectiveInsertComparison{
   ObjectiveInsertCandidate candidate;
   InsertAttemptResult size_shape;
   InsertAttemptResult step_distance;
-  InsertAttemptResult step_distance_length;
   std::string category;
 };
 
@@ -91,10 +88,8 @@ struct ObjectiveInsertSummary{
   int n_neither = 0;
   int n_size_shape_noop = 0;
   int n_step_distance_noop = 0;
-  int n_step_distance_length_success = 0;
   std::map<int,int> size_shape_errors;
   std::map<int,int> step_distance_errors;
-  std::map<int,int> step_distance_length_errors;
   std::vector<ObjectiveInsertComparison> comparisons;
 };
 
@@ -158,50 +153,6 @@ struct CommonPScanSummary{
   int n_step_p1_rescues_step_p2 = 0;
   int n_step_p2_only_vs_step_p1 = 0;
   std::vector<CommonPScanRow> rows;
-};
-
-struct DivergenceCase{
-  bool found = false;
-  int tdim = -1;
-  int ientt = -1;
-  int ied = -1;
-  int ip1 = -1;
-  int ip2 = -1;
-  double qentt = -1;
-  double len = -1;
-  int ierro_quality = 0;
-  int ierro_length = 0;
-  InsertAttemptResult quality;
-  InsertAttemptResult length;
-};
-
-struct StatefulAdaptResult{
-  bool found = false;
-  int iter = 0;
-  int ntrySmoothing = 0;
-  int nSuccessSmoothing = 0;
-  int ntryInsert = 0;
-  int nSuccessInsert = 0;
-  int ntryInsertLength = 0;
-  int nSuccessInsertLength = 0;
-  int nSuccessInsertLengthInterior = 0;
-  int nSuccessInsertLengthBoundary = 0;
-  int ntryCollapse = 0;
-  int nSuccessCollapse = 0;
-  int ientt = -1;
-  int ied = -1;
-  int ip1 = -1;
-  int ip2 = -1;
-  double qentt = -1;
-  double len = -1;
-  int ierro_quality = 0;
-  int ierro_length = 0;
-  int ipins = -1;
-  int ncedg = 0;
-  int ncfac = 0;
-  int nctet = 0;
-  std::string pre_mesh;
-  std::string pre_met;
 };
 
 struct CavityQualityStats{
@@ -2074,7 +2025,7 @@ void trace_exact_case_impl(const std::string& cmd,
 
     int ierro_insert = insertEdge(msh_insert, seed_insert, lenqua_short_max,
                                   false, cav_insert, work_insert, lcaverr,
-                                  handler_insert, false, 0., ithrd1, ithrd2);
+                                  handler_insert, ithrd1, ithrd2);
 
     log << "quality_insert_actual insertEdge ierro " << ierro_insert
         << " ipins " << cav_insert.ipins
@@ -2544,94 +2495,10 @@ void trace_exact_case_impl(const std::string& cmd,
                              seed_quality_sizeshape, handler_quality_sizeshape,
                              lquae_quality_sizeshape);
 
-  MetrisRunner* run_length = nullptr;
-  Mesh<MFT>* msh_length = nullptr;
-  MshCavity* cav_length = nullptr;
-  EdgeSeed* seed_length = nullptr;
-  BadEntHandler* handler_length = nullptr;
-  dblAr1* lquae_length = nullptr;
-  initialize_insertion_cavity<MFT,gdim,ideg>(cmd, tdim, ientt, ied,
-                                             run_length, msh_length,
-                                             cav_length, seed_length,
-                                             handler_length, lquae_length,
-                                             log, trace_dir(),
-                                             "length");
-
-  CavOprOpt opts = diagnostic_cavity_options();
-  std::unordered_set<std::tuple<int,int>,tup2_hash::hash> nocomp;
-
-  int ierro = movePointCavLen<MFT>(*msh_length, *cav_length, 5, ithrd1);
-  log << "length movePointCavLen ierro " << ierro << "\n";
-  write_cavity_trace(trace_dir(), "length_03_after_movePointCavLen",
-                     *msh_length, *cav_length, log);
-  BOOST_REQUIRE(ierro <= 0);
-
-  ierro = increase_cavity_Delaunay(*msh_length, *cav_length, tdim, 5, ithrd1);
-  log << "length increase_cavity_Delaunay ierro " << ierro << "\n";
-  write_cavity_trace(trace_dir(), "length_04_after_delaunay",
-                     *msh_length, *cav_length, log);
-  BOOST_REQUIRE(ierro <= 0);
-
-  ierro = increase_cavity_validity(*msh_length, *cav_length, ithrd1);
-  log << "length increase_cavity_validity ierro " << ierro << "\n";
-  write_cavity_trace(trace_dir(), "length_05_after_validity",
-                     *msh_length, *cav_length, log);
-  BOOST_REQUIRE(ierro <= 0);
-
-  intWrkAr1 lrempoi = msh_length->get_iwork(10);
-  check_cavity_rempoint(*msh_length, *cav_length, opts,
-                        lrempoi.get_array(), true, ithrd1);
-  log << "length check_cavity_rempoint nrempoi " << lrempoi.get_n()
-      << " lrempoi " << lrempoi.get_array() << "\n";
-
-  ierro = collrejcav_lenqua(*msh_length, *cav_length,
-                            true, false, true, lenqua_short_max,
-                            nocomp, ithrd2);
-  log << "length collrejcav_lenqua ierro " << ierro << "\n";
-  write_cavity_trace(trace_dir(), "length_06_after_lenqua_check",
-                     *msh_length, *cav_length, log);
-  BOOST_REQUIRE_EQUAL(ierro, 0);
-
-  #ifdef STEPDISTANCE
-  write_cavity_quality_2d<MFT,QuaFun::StepDistance>(*msh_length, *cav_length,
-                                                    ithrd1,
-                                                    "length final cavity quality before checkCavityQuality",
-                                                    log);
-  #else
-  write_cavity_quality_2d<MFT,QuaFun::SizeShape>(*msh_length, *cav_length,
-                                                 ithrd1,
-                                                 "length final cavity quality before checkCavityQuality",
-                                                 log);
-  #endif
-
-  ierro = checkCavityQuality(*msh_length, *cav_length, tdim, 5,
-                             *handler_length, 0., ithrd1);
-  log << "length checkCavityQuality worsenPctg=0 ierro " << ierro << "\n";
-  write_cavity_trace(trace_dir(), "length_07_after_quality_check",
-                     *msh_length, *cav_length, log);
-  write_painted_point_meshes(vizir_dir(), "length_final",
-                             *msh_length, *cav_length, log);
-  write_painted_cavity_context(vizir_dir(), "length_final",
-                               *msh_length, *cav_length, log);
-  trace_linfac_candidates(*msh_length, *cav_length,
-                          "length_final",
-                          log, ithrd1);
-  trace_raw_cavity_operator<MFT,ideg>(*msh_length, *cav_length,
-                                      "length_final",
-                                      log, ithrd1);
-
+  log << "length-based insertion fallback retired; no comparison trace generated\n";
   log << "trace_dir " << trace_dir() << "\n";
   log << "vizir_dir " << vizir_dir() << "\n";
   log.flush();
-
-  // The trace has already written every artifact by this point. Keeping the
-  // length-side runner alive avoids teardown noise from the diagnostic path.
-  (void)run_length;
-  (void)msh_length;
-  (void)cav_length;
-  (void)seed_length;
-  (void)handler_length;
-  (void)lquae_length;
 }
 
 template<class MFT>
@@ -2798,8 +2665,6 @@ InsertAttemptResult attempt_insert(const std::string& cmd,
                                    int tdim,
                                    int ientt,
                                    int ied,
-                                   bool length_based,
-                                   double worsen_pctg,
                                    double lenqua_short_max){
   cargHandler arg(cmd);
   MetrisRunner run(arg.c, arg.v);
@@ -2835,7 +2700,6 @@ InsertAttemptResult attempt_insert(const std::string& cmd,
   result.ierro = insertEdge<MFT,iquaf>(msh, insertion_seed,
                                       lenqua_short_max, false,
                                       cav, work, lcaverr, handler,
-                                      length_based, worsen_pctg,
                                       ithrd1, ithrd2);
   result.ipins = cav.ipins;
   result.ncedg = cav.lcedg.get_n();
@@ -2957,15 +2821,11 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
     comparison.size_shape =
       attempt_insert<MFT,gdim,ideg,QuaFun::SizeShape>(
           cmd,tdim,candidate.ientt,candidate.ied,
-          false,0.,lenqua_short_max);
+          lenqua_short_max);
     comparison.step_distance =
       attempt_insert<MFT,gdim,ideg,QuaFun::StepDistance>(
           cmd,tdim,candidate.ientt,candidate.ied,
-          false,0.,lenqua_short_max);
-    comparison.step_distance_length =
-      attempt_insert<MFT,gdim,ideg,QuaFun::StepDistance>(
-          cmd,tdim,candidate.ientt,candidate.ied,
-          true,0.,lenqua_short_max);
+          lenqua_short_max);
 
     const bool size_success = comparison.size_shape.ierro < 0;
     const bool step_success = comparison.step_distance.ierro < 0;
@@ -2984,12 +2844,6 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
     }
     if(comparison.size_shape.ierro == 0) summary.n_size_shape_noop++;
     if(comparison.step_distance.ierro == 0) summary.n_step_distance_noop++;
-    if(comparison.step_distance_length.ierro < 0){
-      summary.n_step_distance_length_success++;
-    }else{
-      summary.step_distance_length_errors[
-          comparison.step_distance_length.ierro]++;
-    }
     if(!size_success) summary.size_shape_errors[comparison.size_shape.ierro]++;
     if(!step_success) summary.step_distance_errors[comparison.step_distance.ierro]++;
     summary.comparisons.push_back(comparison);
@@ -3006,10 +2860,9 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
   std::ofstream fout(csv);
   BOOST_REQUIRE_MESSAGE(fout.good(),"Could not open comparison CSV: " + csv.string());
   fout << "ientt,ied,ip1,ip2,length,size_shape_quality,step_distance_quality,"
-          "size_shape_ierro,step_distance_ierro,step_distance_length_ierro,"
-          "category,size_shape_ipins,step_distance_ipins,"
-          "step_distance_length_ipins,size_shape_nface,step_distance_nface,"
-          "step_distance_length_nface\n";
+          "size_shape_ierro,step_distance_ierro,category,"
+          "size_shape_ipins,step_distance_ipins,size_shape_nface,"
+          "step_distance_nface\n";
   fout.precision(17);
   for(const ObjectiveInsertComparison& comparison : summary.comparisons){
     const auto& c = comparison.candidate;
@@ -3018,14 +2871,11 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
          << c.step_distance_quality << ','
          << comparison.size_shape.ierro << ','
          << comparison.step_distance.ierro << ','
-         << comparison.step_distance_length.ierro << ','
          << comparison.category << ','
          << comparison.size_shape.ipins << ','
          << comparison.step_distance.ipins << ','
-         << comparison.step_distance_length.ipins << ','
          << comparison.size_shape.ncfac << ','
-         << comparison.step_distance.ncfac << ','
-         << comparison.step_distance_length.ncfac << '\n';
+         << comparison.step_distance.ncfac << '\n';
   }
 
   fmt::print("\n-- Initial insertion comparison summary\n");
@@ -3035,8 +2885,6 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
   fmt::print("   neither succeeds   : {}\n",summary.n_neither);
   fmt::print("   SizeShape no-op    : {}\n",summary.n_size_shape_noop);
   fmt::print("   StepDistance no-op : {}\n",summary.n_step_distance_noop);
-  fmt::print("   StepDistance length fallback succeeds: {}\n",
-             summary.n_step_distance_length_success);
   fmt::print("   CSV                 : {}\n",csv.string());
   fmt::print("   SizeShape non-success return codes:");
   for(const auto& [ierro,count] : summary.size_shape_errors){
@@ -3044,10 +2892,6 @@ ObjectiveInsertSummary compare_objective_insertions(const std::string& cmd){
   }
   fmt::print("\n   StepDistance non-success return codes:");
   for(const auto& [ierro,count] : summary.step_distance_errors){
-    fmt::print(" {} ({}):{}",ierro,insertion_error_name(ierro),count);
-  }
-  fmt::print("\n   StepDistance length non-success return codes:");
-  for(const auto& [ierro,count] : summary.step_distance_length_errors){
     fmt::print(" {} ({}):{}",ierro,insertion_error_name(ierro),count);
   }
   fmt::print("\n");
@@ -3501,481 +3345,6 @@ InsertAttemptResult attempt_quality_insert_with_smoothing(const std::string& cmd
   return result;
 }
 
-template<class MFT, int gdim, int ideg>
-DivergenceCase find_quality_insert_divergence(const std::string& cmd,
-                                              bool smooth_quality,
-                                              double length_worsen_pctg){
-  cargHandler arg(cmd);
-  MetrisRunner run(arg.c, arg.v);
-  Mesh<MFT>& msh = static_cast<Mesh<MFT>&>(*run.msh_g);
-  setup_quality_mesh<MFT,gdim,ideg>(msh);
-
-  const int tdim = msh.get_tdim();
-  BOOST_REQUIRE(tdim == 2 || tdim == 3);
-
-  // Match MetrisRunner::adaptMesh2: the dimension-ordered variant adapts
-  // CAD edges immediately before entering the first 2D quality pass.
-  if constexpr(gdim == 2){
-    if(tdim == 2 && msh.CAD() && msh.param->adp_line_adapt){
-      adaptGeoLines<MFT>(msh);
-    }
-  }
-
-  bool iinva = false;
-  double qmin = 0, qmax = 0, qavg = 0;
-  dblAr1 lquae(msh.nentt(tdim));
-
-  #ifdef STEPDISTANCE
-  getmetquamesh<MFT, QuaFun::StepDistance>(msh,tdim,AsDeg::P1,AsDeg::P1,
-                                           &iinva,&qmin,&qmax,&qavg,&lquae);
-  #else
-  getmetquamesh<MFT, QuaFun::SizeShape>(msh,tdim,AsDeg::P1,AsDeg::P1,
-                                        &iinva,&qmin,&qmax,&qavg,&lquae);
-  #endif
-
-  lenStat lenstat0;
-  intAr2 ilned;
-  dblAr1 rlned;
-  getLengthEdges<MFT>(msh,tdim,-1,ilned,rlned,lenstat0);
-  const double lenqua_short_max = (lenstat0.qua_short + lenstat0.qua_long) / 2;
-  const bool smooth_initial = scan_smooth_initial_cavity();
-
-  std::vector<int> sorted_ids(msh.nentt(tdim));
-  std::iota(sorted_ids.begin(), sorted_ids.end(), 0);
-  std::sort(sorted_ids.begin(), sorted_ids.end(),
-            [&](int a, int b){ return lquae[a] > lquae[b]; });
-
-  BadEntHandler handler( tdim, 100., 0.00001 );
-  const intAr2& ent2poi = msh.ent2poi(tdim);
-  handler.setCallbacks([&](int ientt){ return lquae[ientt]; },
-                       [&](int ientt){ return isdeadent(ientt,ent2poi); });
-  handler.seedFromSortedIDs(sorted_ids);
-
-  const double length_threshold = std::sqrt(2.0);
-  const double len_upper_bound = length_threshold;
-  const int nedgl = tdim * (tdim + 1) / 2;
-  const intAr2 lnoed(nedgl, 2,
-                     tdim == 1 ? lnoed1[0] :
-                     tdim == 2 ? lnoed2[0] :
-                                 lnoed3[0]);
-
-  for(const auto& ent_qual : handler.K){
-    const int ientt = ent_qual.ientt;
-    if(isdeadent(ientt, ent2poi)) continue;
-
-    std::vector<EdgeOpCandidate> candidates;
-    candidates.reserve(nedgl);
-
-    for(int ied = 0; ied < nedgl; ied++){
-      double sz[2];
-      double elen = getlenedg_geosz<MFT,gdim,ideg>(msh, ientt, tdim, ied, sz);
-      if(elen > len_upper_bound){
-        candidates.push_back({ientt, ied, ent_qual.qentt, elen, std::log(elen)});
-      }
-    }
-
-    std::sort(candidates.begin(), candidates.end(),
-              [](const EdgeOpCandidate& a, const EdgeOpCandidate& b){
-                return a.dev > b.dev;
-              });
-
-    for(const EdgeOpCandidate& cand : candidates){
-      InsertAttemptResult quality;
-      if(smooth_quality){
-        #if defined(CAVSMOOTHING)
-        if(!smooth_initial){
-        quality =
-          attempt_insert<MFT,gdim,ideg>(cmd, tdim, cand.ientt, cand.ied,
-                                        false, 0., lenqua_short_max);
-        }else
-        #endif
-        {
-          #ifdef STEPDISTANCE
-          quality =
-            attempt_quality_insert_with_smoothing<MFT,gdim,ideg,QuaFun::StepDistance>(
-              cmd, tdim, cand.ientt, cand.ied, smooth_initial);
-          #else
-          quality =
-            attempt_quality_insert_with_smoothing<MFT,gdim,ideg,QuaFun::SizeShape>(
-              cmd, tdim, cand.ientt, cand.ied, smooth_initial);
-          #endif
-        }
-      }else{
-        quality =
-          attempt_insert<MFT,gdim,ideg>(cmd, tdim, cand.ientt, cand.ied,
-                                        false, 0., lenqua_short_max);
-      }
-      if(quality.ierro <= 0) continue;
-
-      InsertAttemptResult length =
-        attempt_insert<MFT,gdim,ideg>(cmd, tdim, cand.ientt, cand.ied,
-                                      true, length_worsen_pctg,
-                                      lenqua_short_max);
-      if(length.ierro <= 0){
-        DivergenceCase found;
-        found.found = true;
-        found.tdim = tdim;
-        found.ientt = cand.ientt;
-        found.ied = cand.ied;
-        found.ip1 = ent2poi(cand.ientt, lnoed(cand.ied,0));
-        found.ip2 = ent2poi(cand.ientt, lnoed(cand.ied,1));
-        found.qentt = cand.qentt;
-        found.len = cand.len;
-        found.ierro_quality = quality.ierro;
-        found.ierro_length = length.ierro;
-        found.quality = quality;
-        found.length = length;
-        return found;
-      }
-    }
-  }
-
-  return DivergenceCase{};
-}
-
-template<class MFT>
-DivergenceCase dispatch_find_case(const std::string& cmd,
-                                  bool smooth_quality = false,
-                                  double length_worsen_pctg = 0.){
-  cargHandler arg(cmd);
-  MetrisRunner run(arg.c, arg.v);
-  MeshBase& msh = *run.msh_g;
-
-  DivergenceCase found;
-  CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
-    CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-      found = find_quality_insert_divergence<MFT,gdim,ideg>(
-        cmd, smooth_quality, length_worsen_pctg);
-    }}CT_FOR1(ideg);
-  }}CT_FOR1(gdim);
-
-  return found;
-}
-
-template<class MFT, int gdim, int ideg>
-StatefulAdaptResult find_stateful_quality_adapt_divergence(const std::string& cmd,
-                                                           bool save_pre_state = false){
-  cargHandler arg(cmd);
-  MetrisRunner run(arg.c, arg.v);
-  Mesh<MFT>& msh = static_cast<Mesh<MFT>&>(*run.msh_g);
-  setup_quality_mesh<MFT,gdim,ideg>(msh);
-
-  const int tdim = msh.get_tdim();
-  BOOST_REQUIRE(tdim == 2 || tdim == 3);
-
-  // Match MetrisRunner::adaptMesh2: the dimension-ordered variant adapts
-  // CAD edges immediately before entering the first 2D quality pass.
-  if constexpr(gdim == 2){
-    if(tdim == 2 && msh.CAD() && msh.param->adp_line_adapt){
-      adaptGeoLines<MFT>(msh);
-    }
-  }
-
-  const int ithrd1 = 1;
-  const int ithrd2 = 2;
-  const int ithrd3 = 3;
-  const int ithrdfro = 0;
-  msh.tag[ithrdfro]++;
-
-  const double alpha = 0.00001;
-  const double badX = 100;
-  const double lengthThreshold = std::sqrt(2.0);
-
-  bool iinva = false;
-  double qmin = 0, qmax = 0, qavg = 0;
-  dblAr1 lquae(msh.nentt(tdim));
-
-  #ifdef STEPDISTANCE
-  getmetquamesh<MFT, QuaFun::StepDistance>(msh,tdim,AsDeg::P1,AsDeg::P1,
-                                           &iinva,&qmin,&qmax,&qavg,&lquae);
-  #else
-  getmetquamesh<MFT, QuaFun::SizeShape>(msh,tdim,AsDeg::P1,AsDeg::P1,
-                                        &iinva,&qmin,&qmax,&qavg,&lquae);
-  #endif
-
-  lenStat lenstat0;
-  intAr2 ilned;
-  dblAr1 rlned;
-  getLengthEdges<MFT>(msh,tdim,-1,ilned,rlned,lenstat0);
-  const double lenqua_short_max = (lenstat0.qua_short + lenstat0.qua_long) / 2;
-
-  std::vector<int> sorted_ids(msh.nentt(tdim));
-  std::iota(sorted_ids.begin(), sorted_ids.end(), 0);
-  std::sort(sorted_ids.begin(), sorted_ids.end(),
-            [&](int a, int b){ return lquae[a] > lquae[b]; });
-
-  BadEntHandler handler(tdim, badX, alpha);
-  const intAr2& ent2poi = msh.ent2poi(tdim);
-  const intAr2& ent2ent = msh.ent2ent(tdim);
-        intAr2& ent2tag = msh.ent2tag(tdim);
-  handler.setCallbacks([&](int ientt){ return lquae[ientt]; },
-                       [&](int ientt){ return isdeadent(ientt,ent2poi); });
-  handler.seedFromSortedIDs(sorted_ids);
-
-  MshCavity cav(100,100,1);
-  CavWrkArrs work;
-  intAr1 lcaverr(CAV_ERR_NERROR);
-
-  StatefulAdaptResult result;
-  const int max_iter = stateful_adapt_max_iter();
-  const int trace_interval = stateful_adapt_trace_interval();
-  const int trace_start = stateful_adapt_trace_start();
-  const int save_iteration = stateful_adapt_save_iteration();
-  const bool require_boundary =
-      stateful_adapt_require_boundary_divergence();
-
-  while(true){
-
-    bool didOperation = false;
-
-    for(auto itK = handler.K.begin(); itK != handler.K.end(); itK++){
-
-      int ientt = itK->ientt;
-
-      const double quaent = itK->qentt;
-      result.iter++;
-      if(result.iter > max_iter) return result;
-
-      if(save_iteration > 0 && result.iter == save_iteration){
-        const std::string save_dir = stateful_adapt_save_dir();
-        BOOST_REQUIRE(!save_dir.empty());
-        std::filesystem::create_directories(save_dir);
-        writeMesh(save_dir + "/mesh_MOESS_initial_a1.meshb",msh);
-        msh.met.writeMetricFile(save_dir + "/met_MOESS_initial_a1.solb");
-        fmt::print("Saved stateful adaptation state at iteration {} to {}\n",
-                   result.iter,save_dir);
-        return result;
-      }
-
-      const bool trace_iteration = trace_interval > 0
-                                && result.iter >= trace_start
-                                && result.iter % trace_interval == 0;
-      if(trace_iteration){
-        lquae.set_n(msh.nentt(tdim));
-        #ifdef STEPDISTANCE
-        getmetquamesh<MFT, QuaFun::StepDistance>(
-            msh,tdim,AsDeg::P1,AsDeg::P1,
-            &iinva,&qmin,&qmax,&qavg,&lquae);
-        #else
-        getmetquamesh<MFT, QuaFun::SizeShape>(
-            msh,tdim,AsDeg::P1,AsDeg::P1,
-            &iinva,&qmin,&qmax,&qavg,&lquae);
-        #endif
-
-        double exact_sum = 0.;
-        int exact_alive = 0;
-        for(int ielem = 0; ielem < msh.nentt(tdim); ielem++){
-          if(isdeadent(ielem,ent2poi)) continue;
-          exact_sum += lquae[ielem];
-          exact_alive++;
-        }
-
-        fmt::print(
-            "TRACE iter={} npoin={} slots={} alive={} K={} "
-            "ins={}/{} col={}/{} smoo={}/{} "
-            "handler_obj={:.16e} exact_obj={:.16e} "
-            "handler_count={} handler_num={:.16e} exact_num={:.16e} "
-            "qworst={:.16e} ent={}\n",
-            result.iter,msh.npoin,msh.nentt(tdim),exact_alive,handler.K.size(),
-            result.nSuccessInsert,result.ntryInsert,
-            result.nSuccessCollapse,result.ntryCollapse,
-            result.nSuccessSmoothing,result.ntrySmoothing,
-            handler.getQualitySum()/handler.getQualityCount(),
-            exact_sum/exact_alive,
-            handler.getQualityCount(),
-            handler.getQualitySum(),exact_sum,
-            quaent,ientt);
-      }
-
-      const int nedgl = tdim * (tdim + 1) / 2;
-      const intAr2 lnoed(nedgl, 2,
-                         tdim == 1 ? lnoed1[0] :
-                         tdim == 2 ? lnoed2[0] :
-                                     lnoed3[0]);
-
-      struct LocalEdgeOpCandidate{
-        int ied;
-        double len;
-        double dev;
-        bool doInsert;
-      };
-
-      std::vector<LocalEdgeOpCandidate> candidates;
-      candidates.reserve(nedgl);
-
-      const double lenLowerBound = 1.0 / lengthThreshold;
-      const double lenUpperBound = lengthThreshold;
-
-      for(int ied = 0; ied < nedgl; ied++){
-        double sz[2];
-        double elen = getlenedg_geosz<MFT,gdim,ideg>(msh, ientt, tdim, ied, sz);
-
-        if(elen > lenUpperBound){
-          candidates.push_back({ied, elen, std::log(elen), true});
-        }else if(elen < lenLowerBound){
-          candidates.push_back({ied, elen, std::log(1.0 / elen), false});
-        }
-      }
-
-      std::sort(candidates.begin(), candidates.end(),
-                [](const LocalEdgeOpCandidate& a, const LocalEdgeOpCandidate& b){
-                  return a.dev > b.dev;
-                });
-
-      if(trace_iteration){
-        fmt::print("TRACE candidates={}",candidates.size());
-        for(const LocalEdgeOpCandidate& cand : candidates){
-          const int ip1 = ent2poi(ientt,lnoed(cand.ied,0));
-          const int ip2 = ent2poi(ientt,lnoed(cand.ied,1));
-          fmt::print(" [{} edge=({}, {}) len={:.16e}]",
-                     cand.doInsert ? "insert" : "collapse",
-                     ip1,ip2,cand.len);
-        }
-        fmt::print("\n");
-      }
-
-      for(const LocalEdgeOpCandidate& cand : candidates){
-
-        const int ied = cand.ied;
-
-        if(cand.doInsert){
-
-          INCVDEPTH(msh.param);
-
-          result.ntryInsert++;
-
-          EdgeSeed insertionSeed(msh, cav, tdim, tdim, ientt, ied);
-          int ierro = insertEdge(msh, insertionSeed, lenqua_short_max, false,
-                                 cav, work, lcaverr, handler, false, 0.,
-                                 ithrd1, ithrd2);
-
-          if(ierro <= 0){
-            didOperation = true;
-            result.nSuccessInsert++;
-            msh.poicstr[cav.ipins] = false;
-            break;
-          }
-
-          result.ntryInsertLength++;
-          int ierro_quality = ierro;
-
-          std::filesystem::path pre_base;
-          if(save_pre_state){
-            std::filesystem::create_directories(trace_dir());
-            pre_base = trace_dir() / "stateful_pre_length_success";
-            writeMesh(pre_base.string() + ".meshb", msh);
-            msh.met.writeMetricFile(pre_base.string() + ".solb");
-          }
-
-          ierro = insertEdge(msh, insertionSeed, lenqua_short_max, false,
-                             cav, work, lcaverr, handler, true, 0.,
-                             ithrd1, ithrd2);
-
-          if(ierro <= 0){
-            result.nSuccessInsertLength++;
-            msh.poicstr[cav.ipins] = false;
-            const bool touches_boundary = cav.lcedg.get_n() > 0;
-            if(touches_boundary) result.nSuccessInsertLengthBoundary++;
-            else                 result.nSuccessInsertLengthInterior++;
-            if(!require_boundary || touches_boundary){
-              result.found = true;
-              result.ientt = ientt;
-              result.ied = ied;
-              result.ip1 = ent2poi(ientt, lnoed(ied,0));
-              result.ip2 = ent2poi(ientt, lnoed(ied,1));
-              result.qentt = quaent;
-              result.len = cand.len;
-              result.ierro_quality = ierro_quality;
-              result.ierro_length = ierro;
-              result.ipins = cav.ipins;
-              result.ncedg = cav.lcedg.get_n();
-              result.ncfac = cav.lcfac.get_n();
-              result.nctet = cav.lctet.get_n();
-              if(save_pre_state){
-                result.pre_mesh = pre_base.string() + ".meshb";
-                result.pre_met = pre_base.string() + ".solb";
-              }
-              return result;
-            }
-            didOperation = true;
-            break;
-          }
-
-        }else{
-
-          INCVDEPTH(msh.param);
-
-          result.ntryCollapse++;
-
-          int ierro = collapseEdge<MFT>(msh, tdim, ientt, ied, 0,
-                                        cav, work, lcaverr, handler,
-                                        ithrd1, ithrd2, ithrd3);
-
-          if(ierro == 0){
-            didOperation = true;
-            result.nSuccessCollapse++;
-            break;
-          }
-        }
-      }
-
-      if(didOperation){
-        handler.updateK(ientt, ent2ent, ent2tag,
-                        msh.tag[ithrd1] + 1, ithrd1);
-        break;
-      }
-
-      // Keep this replay synchronized with adaptMeshQuality0.
-      const double quaTryThreshold = 0.01;
-      if(msh.param->adp_quality_smoothing
-          && quaent < quaTryThreshold){
-
-        result.ntrySmoothing++;
-
-        #ifdef STEPDISTANCE
-        double statSmoothing = smoothElement_Ball<MFT>(msh,ientt,handler,
-                                                       QuaFun::StepDistance,
-                                                       ithrd1,ithrd2);
-        #else
-        double statSmoothing = smoothElement_Ball<MFT>(msh,ientt,handler,
-                                                       QuaFun::SizeShape,
-                                                       ithrd1,ithrd2);
-        #endif
-
-        if(statSmoothing > 0){
-          result.nSuccessSmoothing++;
-          didOperation = true;
-          handler.updateK(ientt,ent2ent,ent2tag,
-                          msh.tag[ithrd1]+1,ithrd1);
-          break;
-        }
-      }
-    }
-
-    if(!didOperation) break;
-  }
-
-  return result;
-}
-
-template<class MFT>
-StatefulAdaptResult dispatch_find_stateful_case(const std::string& cmd,
-                                                bool save_pre_state = false){
-  cargHandler arg(cmd);
-  MetrisRunner run(arg.c, arg.v);
-  MeshBase& msh = *run.msh_g;
-
-  StatefulAdaptResult found;
-  CT_FOR0_INC(2,3,gdim){if(gdim == msh.idim){
-    CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(ideg == msh.curdeg){
-      found = find_stateful_quality_adapt_divergence<MFT,gdim,ideg>(
-        cmd, save_pre_state);
-    }}CT_FOR1(ideg);
-  }}CT_FOR1(gdim);
-
-  return found;
-}
-
 } // namespace
 
 BOOST_AUTO_TEST_CASE(test_exact_case_common_integration_schemes)
@@ -4050,155 +3419,6 @@ BOOST_AUTO_TEST_CASE(test_stepdistance_p1_full_initial_scan)
 #endif
 }
 
-BOOST_AUTO_TEST_CASE(test_quality_insert_divergence)
-{
-#ifndef TESTQUALITYALGO
-  BOOST_FAIL("test_quality_insert_divergence requires TESTQUALITYALGO");
-#else
-  const std::string cmd = input_command();
-
-  cargHandler arg(cmd);
-  MetrisRunner run(arg.c, arg.v);
-
-  DivergenceCase found;
-  if(run.metricFE){
-    found = dispatch_find_case<MetricFieldFE>(cmd);
-  }else{
-    found = dispatch_find_case<MetricFieldAnalytical>(cmd);
-  }
-
-  if(found.found){
-    fmt::print("\n-- Found quality/length insertion divergence\n");
-    fmt::print("   case dir        : {}\n", case_dir());
-    fmt::print("   tdim            : {}\n", found.tdim);
-    fmt::print("   ientt           : {}\n", found.ientt);
-    fmt::print("   ied             : {}\n", found.ied);
-    fmt::print("   endpoints       : {} {}\n", found.ip1, found.ip2);
-    fmt::print("   entity quality  : {:.16e}\n", found.qentt);
-    fmt::print("   edge length     : {:.16e}\n", found.len);
-    fmt::print("   quality ierro   : {}\n", found.ierro_quality);
-    fmt::print("   length ierro    : {}\n", found.ierro_length);
-    fmt::print("   quality cavity  : ipins={} nedge={} nface={} ntet={}\n",
-               found.quality.ipins, found.quality.ncedg,
-               found.quality.ncfac, found.quality.nctet);
-    fmt::print("   length cavity   : ipins={} nedge={} nface={} ntet={}\n",
-               found.length.ipins, found.length.ncedg,
-               found.length.ncfac, found.length.nctet);
-  }
-
-  #ifdef CAVSMOOTHING
-  if(!found.found){
-    fmt::print("\n-- No case found where compiled smoothed quality insertion fails "
-               "and length insertion succeeds with worsenPctg = 0\n");
-    fmt::print("   case dir: {}\n", case_dir());
-  }
-  BOOST_TEST(true);
-  #else
-  BOOST_REQUIRE_MESSAGE(found.found,
-                        "No long-edge case found where quality insertion fails "
-                        "and length insertion succeeds with worsenPctg = 0");
-  #endif
-#endif
-}
-
-BOOST_AUTO_TEST_CASE(test_quality_smoothed_insert_divergence)
-{
-#ifndef TESTQUALITYALGO
-  BOOST_FAIL("test_quality_smoothed_insert_divergence requires TESTQUALITYALGO");
-#else
-  const std::string cmd = input_command();
-
-  cargHandler arg(cmd);
-  MetrisRunner run(arg.c, arg.v);
-
-  DivergenceCase found;
-  if(run.metricFE){
-    found = dispatch_find_case<MetricFieldFE>(cmd, true, 0.);
-  }else{
-    found = dispatch_find_case<MetricFieldAnalytical>(cmd, true, 0.);
-  }
-
-  if(found.found){
-    fmt::print("\n-- Found smoothed-quality/length insertion divergence\n");
-    fmt::print("   case dir        : {}\n", case_dir());
-    fmt::print("   tdim            : {}\n", found.tdim);
-    fmt::print("   ientt           : {}\n", found.ientt);
-    fmt::print("   ied             : {}\n", found.ied);
-    fmt::print("   endpoints       : {} {}\n", found.ip1, found.ip2);
-    fmt::print("   entity quality  : {:.16e}\n", found.qentt);
-    fmt::print("   edge length     : {:.16e}\n", found.len);
-    fmt::print("   smoothed quality ierro : {}\n", found.ierro_quality);
-    fmt::print("   length ierro           : {}\n", found.ierro_length);
-    fmt::print("   length worsenPctg      : 0\n");
-    fmt::print("   smoothed quality cavity: ipins={} nedge={} nface={} ntet={}\n",
-               found.quality.ipins, found.quality.ncedg,
-               found.quality.ncfac, found.quality.nctet);
-    fmt::print("   length cavity          : ipins={} nedge={} nface={} ntet={}\n",
-               found.length.ipins, found.length.ncedg,
-               found.length.ncfac, found.length.nctet);
-  }else{
-    fmt::print("\n-- No case found where smoothed quality insertion fails "
-               "and length insertion succeeds with worsenPctg = 0\n");
-    fmt::print("   case dir: {}\n", case_dir());
-  }
-
-  BOOST_TEST(true);
-#endif
-}
-
-BOOST_AUTO_TEST_CASE(test_stateful_quality_adapt_divergence)
-{
-#ifndef TESTQUALITYALGO
-  BOOST_FAIL("test_stateful_quality_adapt_divergence requires TESTQUALITYALGO");
-#else
-  const std::string cmd = input_command();
-
-  cargHandler arg(cmd);
-  MetrisRunner run(arg.c, arg.v);
-
-  StatefulAdaptResult found;
-  if(run.metricFE){
-    found = dispatch_find_stateful_case<MetricFieldFE>(cmd);
-  }else{
-    found = dispatch_find_stateful_case<MetricFieldAnalytical>(cmd);
-  }
-
-  fmt::print("\n-- Stateful quality adapt diagnostic\n");
-  fmt::print("   case dir              : {}\n", case_dir());
-  fmt::print("   iter                  : {}\n", found.iter);
-  fmt::print("   ntrySmoothing         : {}\n", found.ntrySmoothing);
-  fmt::print("   nSuccessSmoothing     : {}\n", found.nSuccessSmoothing);
-  fmt::print("   ntryInsert            : {}\n", found.ntryInsert);
-  fmt::print("   nSuccessInsert        : {}\n", found.nSuccessInsert);
-  fmt::print("   ntryInsertLength      : {}\n", found.ntryInsertLength);
-  fmt::print("   nSuccessInsertLength  : {}\n", found.nSuccessInsertLength);
-  fmt::print("     interior            : {}\n",
-             found.nSuccessInsertLengthInterior);
-  fmt::print("     boundary            : {}\n",
-             found.nSuccessInsertLengthBoundary);
-  fmt::print("   ntryCollapse          : {}\n", found.ntryCollapse);
-  fmt::print("   nSuccessCollapse      : {}\n", found.nSuccessCollapse);
-
-  if(found.found){
-    fmt::print("\n-- Found stateful quality/length insertion divergence\n");
-    fmt::print("   ientt                 : {}\n", found.ientt);
-    fmt::print("   ied                   : {}\n", found.ied);
-    fmt::print("   endpoints             : {} {}\n", found.ip1, found.ip2);
-    fmt::print("   entity quality        : {:.16e}\n", found.qentt);
-    fmt::print("   edge length           : {:.16e}\n", found.len);
-    fmt::print("   quality ierro         : {}\n", found.ierro_quality);
-    fmt::print("   length ierro          : {}\n", found.ierro_length);
-    fmt::print("   length cavity         : ipins={} nedge={} nface={} ntet={}\n",
-               found.ipins, found.ncedg, found.ncfac, found.nctet);
-  }else{
-    fmt::print("\n-- No stateful case found before termination/max_iter\n");
-    fmt::print("   max_iter              : {}\n", stateful_adapt_max_iter());
-  }
-
-  BOOST_TEST(true);
-#endif
-}
-
 BOOST_AUTO_TEST_CASE(test_production_quality_adapt_stats)
 {
 #ifndef TESTQUALITYALGO
@@ -4245,55 +3465,10 @@ BOOST_AUTO_TEST_CASE(test_production_runmetris_stats)
 #endif
 }
 
-BOOST_AUTO_TEST_CASE(trace_stateful_quality_adapt_divergence_case)
+BOOST_AUTO_TEST_CASE(trace_objective_insert_case)
 {
 #ifndef TESTQUALITYALGO
-  BOOST_FAIL("trace_stateful_quality_adapt_divergence_case requires TESTQUALITYALGO");
-#else
-  const std::string cmd = input_command();
-
-  cargHandler arg(cmd);
-  MetrisRunner run(arg.c, arg.v);
-
-  StatefulAdaptResult found;
-  if(run.metricFE){
-    found = dispatch_find_stateful_case<MetricFieldFE>(cmd, true);
-  }else{
-    found = dispatch_find_stateful_case<MetricFieldAnalytical>(cmd, true);
-  }
-
-  if(!found.found){
-    fmt::print("\n-- No stateful quality/length divergence found\n");
-    BOOST_TEST(true);
-    return;
-  }
-
-  const std::string cad = cad_file(case_dir());
-  const std::string replay_cmd =
-    input_command_from_files(found.pre_mesh, found.pre_met, cad);
-
-  if(run.metricFE){
-    dispatch_trace_exact_case<MetricFieldFE>(replay_cmd, found.ientt, found.ied);
-  }else{
-    dispatch_trace_exact_case<MetricFieldAnalytical>(replay_cmd,
-                                                    found.ientt,
-                                                    found.ied);
-  }
-
-  fmt::print("\n-- Traced stateful quality/length insertion divergence\n");
-  fmt::print("   evolved mesh   : {}\n", found.pre_mesh);
-  fmt::print("   evolved metric : {}\n", found.pre_met);
-  fmt::print("   ientt          : {}\n", found.ientt);
-  fmt::print("   ied            : {}\n", found.ied);
-  fmt::print("   trace dir      : {}\n", trace_dir().string());
-  fmt::print("   vizir dir      : {}\n", vizir_dir().string());
-#endif
-}
-
-BOOST_AUTO_TEST_CASE(trace_quality_insert_divergence_case)
-{
-#ifndef TESTQUALITYALGO
-  BOOST_FAIL("trace_quality_insert_divergence_case requires TESTQUALITYALGO");
+  BOOST_FAIL("trace_objective_insert_case requires TESTQUALITYALGO");
 #else
   const std::string cmd = input_command();
 

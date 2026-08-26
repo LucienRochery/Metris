@@ -253,8 +253,9 @@ new P2 test.
    to collapse.** See the Phase 7 execution record below.
 3. **Done (2026-08-26): generalize face and edge swaps to completed-P2
    validity, geometry, and objective acceptance.** See the execution record.
-4. Implement P2 length smoothing or disable it explicitly; it must not silently
-   return while appearing to be supported.
+4. **Done (2026-08-26): retain length smoothing as an explicitly Classic-P1-only
+   heuristic and remove it completely from objective-driven insertion.** See the
+   execution record below.
 5. Generalize cavity-targeted smoothing to high-order variables.
 6. Ensure all neighboring high-order control points and affected elements are
    reactivated after a successful move.
@@ -442,6 +443,41 @@ new P2 test.
    rollback, and preservation of all three original certified tetrahedra. The
    high-order baseline suite now contains sixteen cases.
 
+4. **Done (2026-08-26): explicit Classic-P1-only length-smoothing policy.** Two
+   distinct smoothing families are kept separate. `smoothMeshLength` and
+   `movePointCavLen` are legacy metric-length heuristics: they move a
+   topological vertex toward a damped, length-weighted average of its neighbors
+   and use P1 edge lengths and P1 validity. They remain available without
+   behavioral changes in Classic P1 adaptation. They are not a substitute for
+   SizeShape or StepDistance optimization.
+
+   A P2 implementation would have to choose and update the adjacent edge-,
+   face-, and volume-interior geometry variables consistently. Moving only the
+   topological vertex changes every incident polynomial trace while leaving its
+   other coefficients fixed, so the legacy update is not a defined P2
+   smoothing policy. Consequently, an explicitly requested global P2 length
+   pass now exits at `smoothMeshLength` with a clear diagnostic before scanning
+   points, and Classic P2 cavity construction skips `movePointCavLen` while
+   retaining its existing insertion point and reports that policy once. The
+   defensive low-level routines assert P1 rather than silently pretending to
+   support high order.
+
+   Objective-driven adaptation now has exactly one insertion contract. The
+   `lengthBased` and `worsenPctg` insertion arguments, their alternate
+   `setCavityInsertion3` plus `checkCavityQuality` branch, the obsolete final P1
+   quality helper, and the always-zero `nTryInsLen`/`nSuccInsLen` statistics
+   columns have been removed. A failed objective insertion proceeds to the
+   remaining objective-driven operations; it is never retried with Classic
+   length acceptance. This also closes the dormant route through
+   `insertLongEdges` that could previously select the fallback in a
+   `TESTQUALITYALGO` build.
+
+   This decision does **not** disable ordinary SizeShape/StepDistance ball
+   smoothing or `CAVSMOOTHING`. The latter is objective-based cavity-targeted
+   smoothing and remains Phase 7 item 5. A paired regression confirms that the
+   Classic P1 length stage remains callable while the same global stage on an
+   elevated P2 mesh returns zero without changing any coordinate.
+
 ## Phase 8: End-to-end qualification
 
 The final qualification matrix should cover:
@@ -507,9 +543,10 @@ would obstruct the first working path.
      paths evaluate `AsDeg::P1`, call `isvalideltP1`, or both. Cavity correction
      does contain degree-aware Bernstein-coefficient checks, but the acceptance
      system is not yet consolidated. This remains Phase 3 and Phase 7 work.
-   - **Still present:** high-order length smoothing reports that adjacent
-     high-order nodes are not updated. It must eventually be implemented or
-     explicitly disabled as described in Phase 7.
+   - **Resolved in Phase 7.4:** legacy metric-length smoothing is explicitly
+     Classic-P1-only. P2 exits before point traversal, and objective-driven
+     insertion no longer contains a length-based fallback or compatibility
+     statistics.
    - **Changed since the original audit:** the regression manager records a
      caught `MetrisExcept` and later compares that state with the baseline.
      It was strengthened in step 2 below so an exception fails immediately,
