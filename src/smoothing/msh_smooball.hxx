@@ -58,6 +58,16 @@ void buildEdgeControlPointSmoothingRegion(
     int local_edge,
     intAr1 &region);
 
+// Make every geometric degree of freedom belonging to an affected element
+// eligible for another smoothing visit. P1 reactivates only vertices; P2 also
+// reactivates the shared edge-interior control points.
+void reactivateSmoothingRegionGeometry(
+    MeshBase &msh,
+    int tdim,
+    int geometry_degree,
+    const intAr1 &region,
+    int ithread);
+
 // Check the quadratic polynomial boundary edges affected by moving one point
 // in a full-dimensional planar P2 mesh. Intersections at a shared topological
 // endpoint are allowed; every other contact with another boundary edge is

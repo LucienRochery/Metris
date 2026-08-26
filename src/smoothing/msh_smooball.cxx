@@ -588,6 +588,35 @@ void buildEdgeControlPointSmoothingRegion(
   shell3(msh,ip1,ip2,seed_entity,region,boundary_faces,&open_shell);
 }
 
+void reactivateSmoothingRegionGeometry(
+    MeshBase &msh,
+    int tdim,
+    int geometry_degree,
+    const intAr1 &region,
+    int ithread)
+{
+  METRIS_ENFORCE_MSG(tdim == 2 || tdim == 3,
+                     "Unsupported smoothing dimension {}",tdim);
+  METRIS_ENFORCE_MSG(geometry_degree >= 1,
+                     "Invalid smoothing geometry degree {}",geometry_degree);
+  METRIS_ENFORCE_MSG(ithread >= 0 && ithread < METRIS_MAXTAGS,
+                     "Invalid smoothing tag thread {}",ithread);
+
+  const int nodes_per_element = getnnode(tdim,geometry_degree);
+  const int reactivated_tag = msh.tag[ithread] - 1;
+  const intAr2 &element_points = msh.ent2poi(tdim);
+  for(const int element : region){
+    if(element < 0 || element >= msh.nentt(tdim)
+       || isdeadent(element,element_points)) continue;
+    for(int local_node = 0; local_node < nodes_per_element; local_node++){
+      const int point = element_points(element,local_node);
+      METRIS_ASSERT(point >= 0 && point < msh.npoin);
+      if(msh.isdeadpoint(point)) continue;
+      msh.poi2tag(ithread,point) = reactivated_tag;
+    }
+  }
+}
+
 template<class MFT>
 double smoothing_region_objective(const Mesh<MFT>& msh,
                                   QuaFun iquaf,
@@ -882,12 +911,8 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
                 qnrm0,qnrm1,qmax0,qmax1,tolavg,tolmax);
             if(imov){
               (*nmovthr)[ithread]++;
-              for(int iele2 : lball){
-                for(int ii = 0; ii < idim+1; ii++){
-                  int ipoi2 = ent2poi(iele2,ii);
-                  msh->poi2tag(itag_shared,ipoin) = msh->tag[itag_shared] - 1; // reactivate
-                }
-              }
+              reactivateSmoothingRegionGeometry(
+                  *msh,idim,ideg,lball,itag_shared);
             }else{
               msh->poi2tag(itag_shared,ipoin) = msh->tag[itag_shared]; // deactivate
             }
@@ -932,6 +957,12 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
       bool pointOnFace = false;
       if (ibpoin >= 0){
         METRIS_ASSERT(msh.bpo2ibi(ibpoin,0) == ipoin);
+
+        // A topological boundary record without a CAD model provides no
+        // parameter space in which the point can be moved. Keep that boundary
+        // geometry fixed; in particular, reactivating a neighboring P2 control
+        // point must not turn it into an unconstrained physical-space variable.
+        if(!msh.CAD()) continue;
 
         #if !defined(SMOOTHEDGES) && !defined(SMOOTFACES)
         continue;
@@ -1117,12 +1148,8 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
             qnrm0,qnrm1,qmax0,qmax1,tolavg,tolmax);
         if(imov){
           nmov ++;
-          for(int iele2 : lball){
-            for(int ii = 0; ii < idim+1; ii++){
-              int ipoi2 = ent2poi(iele2,ii);
-              msh.poi2tag(ithrd1,ipoi2) = msh.tag[ithrd1] - 1; // reactivate
-            }
-          }
+          reactivateSmoothingRegionGeometry(
+              msh,tdim,ideg,lball,ithrd1);
         }else{
           msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1]; // deactivate
         }
@@ -1259,8 +1286,12 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
     int nsucc = 0;
     int nmov  = 0;
 
-    // loop over entity vertices
-    for (int ii = 0; ii < tdim+1; ii++){
+    // P2 edge control points are production smoothing variables too. Higher
+    // degrees retain the historical vertex-only targeted pass until their
+    // face- and volume-interior variable policies are qualified.
+    constexpr int candidateNodeCount
+        = ideg == 2 ? getnnode(tdim,ideg) : tdim + 1;
+    for(int ii = 0; ii < candidateNodeCount; ii++){
 
       const int ipoin = ent2poi(ientt, ii);
 
@@ -1275,6 +1306,11 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
       bool pointOnFace = false;
       if (ibpoin >= 0){
         METRIS_ASSERT(msh.bpo2ibi(ibpoin,0) == ipoin);
+
+        // Boundary points can only be smoothed through their CAD parameters.
+        // Without CAD, reactivation means "reconsider affected geometry", not
+        // permission to release a boundary control point into physical space.
+        if(!msh.CAD()) continue;
 
         #if !defined(SMOOTHEDGES) && !defined(SMOOTFACES)
         continue;
@@ -1299,14 +1335,27 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
       CPRINTF1(" - smoo pt {} seed elt {} \n", ipoin,ientt);
       int ierro = 0;
 
-      int iopen;
-      if constexpr (idim == 2){
-        intAr1 dum;
-        bool imani = false;
-        ierro = ball2(msh,ipoin,ientt,lball,dum,&iopen,&imani,ithrd2);
-        METRIS_ASSERT(imani == true);
+      if(ii < tdim + 1){
+        int iopen;
+        if constexpr(idim == 2){
+          intAr1 dum;
+          bool imani = false;
+          ierro = ball2(
+              msh,ipoin,ientt,lball,dum,&iopen,&imani,ithrd2);
+          METRIS_ASSERT(imani == true);
+        }else{
+          ierro = ball3(msh,ipoin,ientt,lball,&iopen,ithrd2);
+        }
       }else{
-        ierro = ball3(msh,ipoin,ientt,lball,&iopen,ithrd2);
+        if constexpr(ideg == 2){
+          constexpr int edgeNodesPerEdge = getnnod1(ideg) - 2;
+          const int localEdge = (ii - (tdim + 1))/edgeNodesPerEdge;
+          buildEdgeControlPointSmoothingRegion(
+              msh,tdim,ientt,localEdge,lball);
+        }else{
+          METRIS_THROW_MSG(
+              "Only P2 targeted high-order smoothing is qualified");
+        }
       }
       #ifndef NDEBUG
       // if (!pointOnEdge)  METRIS_ASSERT(iopen == 0);
@@ -1500,12 +1549,9 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
                  "max {:10.6e} -> {:10.6e}\n",ipoin,qnrm0,qnrm1,qmax0,qmax1);
 
         nmov++;
+        reactivateSmoothingRegionGeometry(
+            msh,tdim,ideg,lball,ithrd1);
         for(int ient2 : lball){
-          for(int ii = 0; ii < idim+1; ii++){
-            int ipoi2 = ent2poi(ient2,ii);
-            msh.poi2tag(ithrd1,ipoi2) = msh.tag[ithrd1] - 1; // reactivate
-          }
-
           // inform affected entities: id and new quality
           handler.affectedEnttsAlive[ient2] = quafun(msh,AsDeg::Pk,AsDeg::Pk,ient2,difto);
         }

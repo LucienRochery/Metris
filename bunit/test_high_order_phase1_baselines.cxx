@@ -32,6 +32,7 @@
 #include <cmath>
 #include <filesystem>
 #include <limits>
+#include <map>
 #include <numeric>
 #include <string>
 #include <vector>
@@ -57,6 +58,87 @@ struct HighOrderBaselineCase
   int expected_faces;
   int expected_tetrahedra;
 };
+
+struct CompletedP2EdgeAudit
+{
+  bool all_control_points_are_live = true;
+  bool equal_edges_share_control_point = true;
+  bool distinct_edges_use_distinct_control_points = true;
+  bool all_new_elements_are_certified = true;
+  int new_element_count = 0;
+  int distinct_edge_count = 0;
+  int repeated_edge_occurrences = 0;
+};
+
+template<int gdim>
+CompletedP2EdgeAudit audit_completed_p2_edge_sharing(
+    const MeshBase& mesh,
+    int first_new_element)
+{
+  static_assert(gdim == 2 || gdim == 3);
+  constexpr int edge_count = gdim == 2 ? 3 : 6;
+  const intAr2& element_to_point = mesh.ent2poi(gdim);
+  std::map<std::pair<int,int>,int> edge_to_control;
+  std::map<int,std::pair<int,int>> control_to_edge;
+  CompletedP2EdgeAudit audit;
+
+  for(int element = 0; element < mesh.nentt(gdim); element++){
+    if(isdeadent(element,element_to_point)) continue;
+    if(element >= first_new_element){
+      audit.new_element_count++;
+      audit.all_new_elements_are_certified
+          = audit.all_new_elements_are_certified
+         && classify_element_validity<gdim,2>(mesh,element).is_certified();
+    }
+
+    for(int edge = 0; edge < edge_count; edge++){
+      int endpoint0
+          = element_to_point(element,lnoed[gdim - 1][edge][0]);
+      int endpoint1
+          = element_to_point(element,lnoed[gdim - 1][edge][1]);
+      if(endpoint1 < endpoint0) std::swap(endpoint0,endpoint1);
+      const std::pair<int,int> edge_key = {endpoint0,endpoint1};
+      const int control_point
+          = element_to_point(element,gdim + 1 + edge);
+      audit.all_control_points_are_live
+          = audit.all_control_points_are_live
+         && control_point >= 0 && control_point < mesh.npoin
+         && !mesh.isdeadpoint(control_point);
+
+      const auto [edge_position,edge_inserted]
+          = edge_to_control.emplace(edge_key,control_point);
+      if(!edge_inserted){
+        audit.repeated_edge_occurrences++;
+        audit.equal_edges_share_control_point
+            = audit.equal_edges_share_control_point
+           && edge_position->second == control_point;
+      }
+
+      const auto [control_position,control_inserted]
+          = control_to_edge.emplace(control_point,edge_key);
+      if(!control_inserted){
+        audit.distinct_edges_use_distinct_control_points
+            = audit.distinct_edges_use_distinct_control_points
+           && control_position->second == edge_key;
+      }
+    }
+  }
+  audit.distinct_edge_count = edge_to_control.size();
+  return audit;
+}
+
+void check_completed_p2_edge_audit(
+    const CompletedP2EdgeAudit& audit,
+    int expected_new_elements)
+{
+  BOOST_CHECK(audit.all_control_points_are_live);
+  BOOST_CHECK(audit.equal_edges_share_control_point);
+  BOOST_CHECK(audit.distinct_edges_use_distinct_control_points);
+  BOOST_CHECK(audit.all_new_elements_are_certified);
+  BOOST_CHECK_EQUAL(audit.new_element_count,expected_new_elements);
+  BOOST_CHECK_GT(audit.distinct_edge_count,0);
+  BOOST_CHECK_GT(audit.repeated_edge_occurrences,0);
+}
 
 void metric_cost_quadrature_metric_2d(
     const AnaMetCtx *,
@@ -215,6 +297,9 @@ void run_p2_cavity_insertion_case(
               classify_element_validity<gdim,2>(mesh,element).is_certified()));
         }
         BOOST_CHECK_EQUAL(candidate_count,gdim + 1);
+        const CompletedP2EdgeAudit audit
+            = audit_completed_p2_edge_sharing<gdim>(mesh,first_new);
+        check_completed_p2_edge_audit(audit,gdim + 1);
         return true;
       };
 
@@ -235,6 +320,10 @@ void run_p2_cavity_insertion_case(
     BOOST_CHECK(validity.is_certified());
   }
   BOOST_CHECK_EQUAL(completed_elements,gdim + 1);
+  const CompletedP2EdgeAudit committed_audit
+      = audit_completed_p2_edge_sharing<gdim>(
+            mesh,element_count_before);
+  check_completed_p2_edge_audit(committed_audit,gdim + 1);
 }
 
 void initialize_inserted_point_2d(Mesh<MetricFieldAnalytical>& mesh,
@@ -341,7 +430,8 @@ BOOST_AUTO_TEST_CASE(high_order_phase1_four_baselines)
   }
 }
 
-BOOST_AUTO_TEST_CASE(completed_p2_cavity_insertions_are_certified)
+BOOST_AUTO_TEST_CASE(
+    completed_p2_cavity_insertions_are_conforming_and_certified)
 {
   const HighOrderBaselineCase triangle_case = {
       "triangle_p2_cavity",
@@ -1058,6 +1148,9 @@ BOOST_AUTO_TEST_CASE(p2_collapse_uses_completed_geometry_without_split_children)
   }
   BOOST_CHECK(new_live_faces > 0);
   BOOST_CHECK(affine_spokes > 0);
+  const CompletedP2EdgeAudit collapse_audit
+      = audit_completed_p2_edge_sharing<2>(mesh,first_new_face);
+  check_completed_p2_edge_audit(collapse_audit,new_live_faces);
 
   const double objective_after =
       live_planar_objective_sum<QuaFun::SizeShape>(mesh,AsDeg::Pk);
@@ -1251,10 +1344,16 @@ BOOST_AUTO_TEST_CASE(p2_swap_uses_completed_geometry_and_affine_new_diagonal)
         global_objective.value(),recomputed.value(),1.e-12);
   }
   #endif
+  int new_live_faces = 0;
   for(int face = first_new_face; face < mesh.nface; face++){
     if(isdeadent(face,mesh.fac2poi)) continue;
+    new_live_faces++;
     BOOST_CHECK((classify_element_validity<2,2>(mesh,face).is_certified()));
   }
+  BOOST_REQUIRE_GT(new_live_faces,0);
+  const CompletedP2EdgeAudit swap_audit
+      = audit_completed_p2_edge_sharing<2>(mesh,first_new_face);
+  check_completed_p2_edge_audit(swap_audit,new_live_faces);
 
   int new_diagonal_occurrences = 0;
   for(int face = 0; face < mesh.nface; face++){

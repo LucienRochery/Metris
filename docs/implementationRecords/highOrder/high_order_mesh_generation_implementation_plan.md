@@ -259,10 +259,12 @@ new P2 test.
 5. **Done (2026-08-26): generalize cavity-targeted smoothing to completed P2
    geometry using the released-affine-spoke policy.** See the execution record
    below.
-6. Ensure all neighboring high-order control points and affected elements are
-   reactivated after a successful move.
-7. Confirm that newly created cavity elements share P2 edge control points
-   correctly and pass the common validity certificate.
+6. **Done (2026-08-26): reactivate every geometric node and refresh every
+   affected element after a successful smoothing move.** See the execution
+   record below.
+7. **Done (2026-08-26): confirm that newly created cavity elements share one
+   global P2 control point per topological edge and pass the common validity
+   certificate.** See the execution record below. Phase 7 is complete.
 
 ### Phase 7 execution record
 
@@ -542,6 +544,81 @@ new P2 test.
    growth, collapse, and swap suite was updated to reconstruct its local P2
    objective at callback time, because cavity smoothing can now legitimately
    move the apex before objective growth.
+
+6. **Done (2026-08-26): degree-aware smoothing dependency reactivation.** Let
+   `N_p(K)` denote the complete degree-`p` geometric-node set of element `K`.
+   After a substantive accepted move on smoothing region `R`, the active set is
+   now the union `A_p(R) = union_{K in R} N_p(K)`. Thus P1 retains its exact
+   vertex-only contract, while a P2 triangle or tetrahedron reactivates its
+   vertices and every shared edge-interior control point. Shared global point
+   identifiers provide the required deduplication across incident elements.
+   The same helper is used by the serial mesh-wide pass, its dormant parallel
+   implementation, and targeted bad-element smoothing; this also repairs the
+   dormant parallel loop's historical assignment to the moved point instead of
+   the neighboring point.
+
+   Targeted smoothing now scans the complete P2 node set of its seed element.
+   A vertex receives its ordinary ball, and an edge-interior control point
+   receives the shell of its owning edge. Higher-degree face- and
+   volume-interior candidate policies are deliberately not inferred here. On a
+   targeted success, every live element in the affected ball or shell is
+   inserted into `BadEntHandler::affectedEnttsAlive` with a freshly recomputed
+   configured objective value using `AsDeg::Pk` geometry. The handler can
+   therefore replace stale qualities and priority-queue entries for the whole
+   dependency region, rather than only the seed element.
+
+   Reactivation does not relax boundary ownership. A boundary point with CAD
+   ownership remains movable only in its CAD parameter space. A topological
+   boundary record in a mesh without a CAD model supplies no such parameter
+   space and is consequently kept fixed when neighboring geometry reactivates
+   it; it is never treated as an unconstrained physical-space variable.
+   Rejected or numerically null moves continue to deactivate only the attempted
+   point and do not propagate reactivation.
+
+   `test_high_order_smoothing_reactivation` contains four regressions: exact
+   P1 corner-only tags, complete six-node P2 triangle tags with an unaffected
+   point, complete ten-node P2 tetrahedron tags, and an accepted targeted P2
+   edge-control move. The end-to-end case verifies movement, reactivation of
+   every node in both incident triangles, exact preservation of a reactivated
+   no-CAD boundary control point, conservative validity, and exact agreement
+   (to `5e-14`) between every handler entry and an independent full-P2
+   SizeShape evaluation. The classic, StepDistance, cavity-smoothing, and
+   sixteen-case topology baseline suites remain green.
+
+7. **Done (2026-08-26): identity-level P2 cavity conformity qualification.**
+   The reconnection implementation already had the required ownership
+   mechanisms, so this step did not introduce a second construction path. In
+   planar cavities, the first occurrence of a new apex edge creates its P2
+   control point and records the edge in the cavity edge table; every later
+   triangle with the same endpoints copies that global point identifier.
+   In tetrahedral cavities, the external-edge hash preserves old boundary-edge
+   identifiers, the apex-edge hash shares newly created spoke identifiers even
+   between tetrahedra reached through different boundary faces, and the face
+   hash copies the complete shared face. For P2 there are no face-interior or
+   volume-interior geometry nodes, so shared vertices plus shared edge-control
+   identifiers are the complete conformity condition.
+
+   The qualification oracle is deliberately independent of those construction
+   tables. It scans every live full-dimensional element, reduces each local
+   edge to the sorted endpoint key `{min(i,j),max(i,j)}`, and builds both maps
+   `edge -> control point` and `control point -> edge`. It requires every
+   occurrence of one edge to reference the same live global control point and
+   requires distinct edges not to alias one control point. At the same time,
+   every newly completed element is passed through
+   `classify_element_validity<d,2>` and must be `Certified`. Conformity and
+   validity are therefore checked together but remain logically independent:
+   positive Jacobians do not prove a continuous trace, and shared traces do not
+   prove positive Jacobians.
+
+   The centroid-insertion regression applies this audit inside the completed-
+   element acceptance callback, before topology commit, and repeats it on the
+   committed mesh. The planar case creates three triangles and the direct
+   full-dimensional 3D case creates four tetrahedra. The accepted planar
+   collapse and face-swap regressions repeat the same audit over their final
+   live meshes, covering the other completed-cavity clients without duplicating
+   reconnection logic. The adjacent P1 insertion, collapse, and swap tests
+   remain unchanged and green. This strengthens the existing sixteen-case
+   topology baseline suite without adding another test case.
 
 ## Phase 8: End-to-end qualification
 
