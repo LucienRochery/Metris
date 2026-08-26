@@ -44,7 +44,7 @@ double completed_p2_element_objective(Mesh<MFT>& msh,
 }
 
 template<class MFT, QuaFun iquaf>
-void configure_completed_p2_insertion_acceptance(
+void configure_completed_p2_cavity_acceptance(
     Mesh<MFT>& msh,
     const MshCavity& cav,
     int tdim,
@@ -212,6 +212,13 @@ int insertEdge(Mesh<MFT>& msh,
     CPRINTF1(" # Failed aux_bisecPointLen ierro = {}\n",ierro);
     goto cleanup;
   }
+  if(icollapse){
+    // The seed edge disappears together with both endpoint balls. Unlike an
+    // insertion, a collapse therefore has no parent trace whose child edges
+    // should be restricted: every new non-CAD spoke is affine P2.
+    METRIS_ASSERT(cav.split_edge_points.get_n() == 0);
+    METRIS_ASSERT(!cav.preserve_split_edge_geometry);
+  }
 
   // Seed the cavity properly
   #ifndef NDEBUG
@@ -330,8 +337,12 @@ restart_cavity:
   if(!irestart_cav) irestart_cav = true;
 
   #ifdef TESTQUALITYALGO
-  if(!icollapse && msh.curdeg == 2){
-    configure_completed_p2_insertion_acceptance<MFT,iquaf>(
+  if(msh.curdeg == 2){
+    // Both insertion and collapse are completed-P2 cavity replacements at
+    // this stage. Collapse differs only in its geometry provenance: the seed
+    // edge disappears, so aux_bisecPointLen deliberately retained no split
+    // parent and the reconstructed spokes remain affine (or CAD-owned).
+    configure_completed_p2_cavity_acceptance<MFT,iquaf>(
         msh,cav,insertionSeed.tdim_adp,handler,opts);
   }else{
     opts.accept_completed_elements = {};

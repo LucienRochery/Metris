@@ -249,7 +249,8 @@ new P2 test.
 
 1. **Done (2026-08-26): make insertion acceptance use both the completed P2
    objective and P2 validity.** See the Phase 7 execution record below.
-2. Do the same for collapse.
+2. **Done (2026-08-26): apply the completed-P2 validity and objective contract
+   to collapse.** See the Phase 7 execution record below.
 3. Generalize face and edge swaps.
 4. Implement P2 length smoothing or disable it explicitly; it must not silently
    return while appearing to be supported.
@@ -369,10 +370,43 @@ new P2 test.
    cone whose P1 map is valid while its inherited curved P2 edge makes the
    completed element non-certified, and verifies that initial validity growth
    absorbs precisely that neighbor and leaves every final boundary cone
-   certified. Release and Debug builds pass all eleven Phase 1/7 cases; the
-   seven-case legacy cavity suite also passes in Release. The older general
-   cavity executable retains unrelated Debug-only mesh-construction assertions
-   and is therefore claimed here only in Release.
+   certified. Release and Debug builds pass all eleven insertion-oriented
+   Phase 1/7 cases; the seven-case legacy cavity suite also passes in Release.
+   The older general cavity executable retains unrelated Debug-only
+   mesh-construction assertions and is therefore claimed here only in Release.
+
+2. **Done (2026-08-26): completed-geometry P2 collapse.** Collapse already
+   enters the insertion cavity machinery as a special replacement: the seed
+   starts with the shell of the selected edge, then appends the complete balls
+   of both endpoints. The P2 validity-growth and local objective-growth work
+   from item 1 therefore applies without a separate algorithm. The remaining
+   insertion-only restriction was the final objective callback; it is now a
+   completed-P2 cavity-replacement callback and is installed for collapse as
+   well as insertion. Thus SizeShape and StepDistance both evaluate the final
+   post-`correct_cavity` elements with `AsDeg::Pk` geometry, frozen
+   `AsDeg::P1` metric interpolation, and configured objective quadrature before
+   topology commit.
+
+   The geometry provenance is intentionally simpler than insertion. The
+   collapsed seed edge and both original endpoints lie inside the removed
+   cavity, so no child trace survives. `aux_bisecPointLen` therefore clears and
+   leaves empty the split-edge provenance for collapse. Existing edges on the
+   boundary of the union of endpoint balls retain their stored P2 coefficient;
+   every new non-CAD edge from the replacement point to that boundary is an
+   affine P2 spoke. CAD-owned new coefficients continue to be evaluated on the
+   owning CAD entity. Assertions at the collapse setup make it impossible to
+   accidentally reuse insertion's exact-child restriction path.
+
+   A self-contained planar regression uses a very short, genuinely curved P2
+   interior edge. It verifies that the endpoint balls are replaced
+   successfully, both original vertices disappear, split provenance remains
+   empty, every new replacement-point spoke has its coefficient at the affine
+   midpoint, all new triangles are conservatively certified, and the global
+   completed-P2 SizeShape sum decreases. A paired P1 case performs the same
+   collapse without high-order coefficients and protects the historical path.
+   With these additions, all thirteen high-order Phase 1/7 baseline cases pass
+   in Debug and Release, the seven-case legacy cavity suite passes in Release,
+   and the broader quality-insertion diagnostic target compiles successfully.
 
 ## Phase 8: End-to-end qualification
 

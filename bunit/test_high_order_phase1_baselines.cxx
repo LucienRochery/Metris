@@ -13,6 +13,7 @@
 #include "MetrisRunner/MetrisRunner.hxx"
 #include "Adaptation/Insertion/EdgeSeed.hxx"
 #include "Adaptation/Insertion/aux_insert.hxx"
+#include "Adaptation/low_collapse.hxx"
 #include "Adaptation/low_increasecav.hxx"
 #include "aux_badEntHandler.hxx"
 #include "cavity/msh_cavity.hxx"
@@ -285,6 +286,18 @@ double p1_triangle_objective(Mesh<MetricFieldAnalytical>& mesh,
       QuaFun::SizeShape>(mesh,AsDeg::P1,AsDeg::P1,face_count,1.0);
   mesh.set_nface(face_count);
   return objective;
+}
+
+template<QuaFun objective>
+double live_planar_objective_sum(Mesh<MetricFieldAnalytical>& mesh,
+                                 AsDeg geometry_degree){
+  double sum = 0.;
+  for(int face = 0; face < mesh.nface; face++){
+    if(isdeadent(face,mesh.fac2poi)) continue;
+    sum += metqua<MetricFieldAnalytical,2,2,objective>(
+        mesh,geometry_degree,AsDeg::P1,face,1.0);
+  }
+  return sum;
 }
 
 } // namespace
@@ -871,6 +884,214 @@ BOOST_AUTO_TEST_CASE(initial_validity_growth_uses_completed_p2_geometry)
       BOOST_CHECK(completed_valid);
     }
   }
+}
+
+BOOST_AUTO_TEST_CASE(p2_collapse_uses_completed_geometry_without_split_children)
+{
+  const HighOrderBaselineCase baseline_case = {
+      "p2_completed_collapse",
+      METRIS_ROOT_DIR
+      "/bunit/meshes/high_order_phase1/interior_short_edge_p1.mesh",
+      2,35,23,12,0};
+  MetrisParameters parameters = baseline_parameters(baseline_case,"collapse");
+  parameters.setMeshIn(baseline_case.mesh_path);
+  MetrisRunner runner(nullptr,nullptr,parameters);
+  BOOST_REQUIRE_EQUAL(runner.degElevate(),1);
+  auto& mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner.msh_g);
+  mesh.met.setSpace(MetSpace::Exp);
+  for(int point = 0; point < mesh.npoin; point++){
+    for(int component = 0; component < 2; component++){
+      mesh.coord(point,component) *= 0.05;
+    }
+  }
+  for(int point = 0; point < mesh.bak->npoin; point++){
+    for(int component = 0; component < 2; component++){
+      mesh.bak->coord(point,component) *= 0.05;
+    }
+  }
+
+  const int endpoint0 = 5;
+  const int endpoint1 = 6;
+  int seed_face = -1;
+  int seed_edge = -1;
+  for(int face = 0; face < mesh.nface && seed_face < 0; face++){
+    for(int edge = 0; edge < 3; edge++){
+      const int point0 = mesh.fac2poi(face,lnoed2[edge][0]);
+      const int point1 = mesh.fac2poi(face,lnoed2[edge][1]);
+      if((point0 == endpoint0 && point1 == endpoint1)
+      || (point0 == endpoint1 && point1 == endpoint0)){
+        seed_face = face;
+        seed_edge = edge;
+        break;
+      }
+    }
+  }
+  BOOST_REQUIRE(seed_face >= 0);
+  BOOST_REQUIRE(seed_edge >= 0);
+  BOOST_REQUIRE_EQUAL(mesh.getpoitdim(endpoint0),2);
+  BOOST_REQUIRE_EQUAL(mesh.getpoitdim(endpoint1),2);
+
+  // Make the disappearing edge truly curved. Its midpoint still determines
+  // the replacement vertex, but no child of this trace may survive collapse.
+  const int disappearing_control = mesh.fac2poi(seed_face,3 + seed_edge);
+  mesh.coord(disappearing_control,1) += 0.00025;
+  for(int face = 0; face < mesh.nface; face++){
+    BOOST_REQUIRE((classify_element_validity<2,2>(mesh,face).is_certified()));
+  }
+
+  const double objective_before =
+      live_planar_objective_sum<QuaFun::SizeShape>(mesh,AsDeg::Pk);
+  std::vector<double> qualities(mesh.nface);
+  std::vector<int> sorted_faces(mesh.nface);
+  std::iota(sorted_faces.begin(),sorted_faces.end(),0);
+  for(int face = 0; face < mesh.nface; face++){
+    qualities[face] = metqua<MetricFieldAnalytical,2,2,
+        QuaFun::SizeShape>(mesh,AsDeg::Pk,AsDeg::P1,face,1.0);
+  }
+  std::sort(sorted_faces.begin(),sorted_faces.end(),
+      [&](int left, int right){ return qualities[left] > qualities[right]; });
+  BadEntHandler handler(2,100.,0.00001);
+  handler.setCallbacks(
+      [&](int face){ return qualities[face]; },
+      [&](int face){ return isdeadent(face,mesh.fac2poi); });
+  handler.seedFromSortedIDs(sorted_faces);
+
+  MshCavity cavity(0,100,20);
+  CavWrkArrs work;
+  intAr1 cavity_errors(CAV_ERR_NERROR);
+  cavity_errors.set_n(CAV_ERR_NERROR);
+  for(int error = 0; error < CAV_ERR_NERROR; error++){
+    cavity_errors[error] = 0;
+  }
+  const int first_new_face = mesh.nface;
+  const int result = collapseEdge<MetricFieldAnalytical>(
+      mesh,2,seed_face,seed_edge,0.,cavity,work,cavity_errors,
+      handler,0,1,2);
+  BOOST_REQUIRE_EQUAL(result,0);
+  BOOST_CHECK_EQUAL(cavity.split_edge_points.get_n(),0);
+  BOOST_CHECK(!cavity.preserve_split_edge_geometry);
+  BOOST_CHECK(mesh.isdeadpoint(endpoint0));
+  BOOST_CHECK(mesh.isdeadpoint(endpoint1));
+  BOOST_REQUIRE(cavity.ipins >= 0);
+  BOOST_CHECK(!mesh.isdeadpoint(cavity.ipins));
+
+  int new_live_faces = 0;
+  int affine_spokes = 0;
+  for(int face = first_new_face; face < mesh.nface; face++){
+    if(isdeadent(face,mesh.fac2poi)) continue;
+    new_live_faces++;
+    BOOST_CHECK((classify_element_validity<2,2>(mesh,face).is_certified()));
+    for(int edge = 0; edge < 3; edge++){
+      const int point0 = mesh.fac2poi(face,lnoed2[edge][0]);
+      const int point1 = mesh.fac2poi(face,lnoed2[edge][1]);
+      if(point0 != cavity.ipins && point1 != cavity.ipins) continue;
+      const int control = mesh.fac2poi(face,3 + edge);
+      for(int component = 0; component < 2; component++){
+        BOOST_CHECK_SMALL(
+            mesh.coord(control,component)
+            - 0.5*(mesh.coord(point0,component)
+                 + mesh.coord(point1,component)),
+            5.e-14);
+      }
+      affine_spokes++;
+    }
+  }
+  BOOST_CHECK(new_live_faces > 0);
+  BOOST_CHECK(affine_spokes > 0);
+
+  const double objective_after =
+      live_planar_objective_sum<QuaFun::SizeShape>(mesh,AsDeg::Pk);
+  BOOST_CHECK(objective_after < objective_before);
+}
+
+BOOST_AUTO_TEST_CASE(p1_collapse_compatibility_is_retained)
+{
+  const HighOrderBaselineCase baseline_case = {
+      "p1_collapse_compatibility",
+      METRIS_ROOT_DIR
+      "/bunit/meshes/high_order_phase1/interior_short_edge_p1.mesh",
+      2,12,10,12,0};
+  MetrisParameters parameters = baseline_parameters(baseline_case,"collapse");
+  parameters.usrTarDeg = 1;
+  parameters.setMeshIn(baseline_case.mesh_path);
+  MetrisRunner runner(nullptr,nullptr,parameters);
+  auto& mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner.msh_g);
+  BOOST_REQUIRE_EQUAL(mesh.curdeg,1);
+  mesh.met.setSpace(MetSpace::Exp);
+  for(int point = 0; point < mesh.npoin; point++){
+    for(int component = 0; component < 2; component++){
+      mesh.coord(point,component) *= 0.05;
+    }
+  }
+  for(int point = 0; point < mesh.bak->npoin; point++){
+    for(int component = 0; component < 2; component++){
+      mesh.bak->coord(point,component) *= 0.05;
+    }
+  }
+
+  const int endpoint0 = 5;
+  const int endpoint1 = 6;
+  int seed_face = -1;
+  int seed_edge = -1;
+  for(int face = 0; face < mesh.nface && seed_face < 0; face++){
+    for(int edge = 0; edge < 3; edge++){
+      const int point0 = mesh.fac2poi(face,lnoed2[edge][0]);
+      const int point1 = mesh.fac2poi(face,lnoed2[edge][1]);
+      if((point0 == endpoint0 && point1 == endpoint1)
+      || (point0 == endpoint1 && point1 == endpoint0)){
+        seed_face = face;
+        seed_edge = edge;
+        break;
+      }
+    }
+  }
+  BOOST_REQUIRE(seed_face >= 0);
+  BOOST_REQUIRE(seed_edge >= 0);
+
+  const double objective_before =
+      live_planar_objective_sum<QuaFun::SizeShape>(mesh,AsDeg::P1);
+  std::vector<double> qualities(mesh.nface);
+  std::vector<int> sorted_faces(mesh.nface);
+  std::iota(sorted_faces.begin(),sorted_faces.end(),0);
+  for(int face = 0; face < mesh.nface; face++){
+    qualities[face] = metqua<MetricFieldAnalytical,2,2,
+        QuaFun::SizeShape>(mesh,AsDeg::P1,AsDeg::P1,face,1.0);
+  }
+  std::sort(sorted_faces.begin(),sorted_faces.end(),
+      [&](int left, int right){ return qualities[left] > qualities[right]; });
+  BadEntHandler handler(2,100.,0.00001);
+  handler.setCallbacks(
+      [&](int face){ return qualities[face]; },
+      [&](int face){ return isdeadent(face,mesh.fac2poi); });
+  handler.seedFromSortedIDs(sorted_faces);
+
+  MshCavity cavity(0,100,20);
+  CavWrkArrs work;
+  intAr1 cavity_errors(CAV_ERR_NERROR);
+  cavity_errors.set_n(CAV_ERR_NERROR);
+  for(int error = 0; error < CAV_ERR_NERROR; error++){
+    cavity_errors[error] = 0;
+  }
+  const int first_new_face = mesh.nface;
+  const int result = collapseEdge<MetricFieldAnalytical>(
+      mesh,2,seed_face,seed_edge,0.,cavity,work,cavity_errors,
+      handler,0,1,2);
+  BOOST_REQUIRE_EQUAL(result,0);
+  BOOST_CHECK_EQUAL(cavity.split_edge_points.get_n(),0);
+  BOOST_CHECK(!cavity.preserve_split_edge_geometry);
+  BOOST_CHECK(mesh.isdeadpoint(endpoint0));
+  BOOST_CHECK(mesh.isdeadpoint(endpoint1));
+
+  int new_live_faces = 0;
+  for(int face = first_new_face; face < mesh.nface; face++){
+    if(isdeadent(face,mesh.fac2poi)) continue;
+    new_live_faces++;
+    BOOST_CHECK((isvalideltP1<2,2>(mesh,face)));
+  }
+  BOOST_CHECK(new_live_faces > 0);
+  const double objective_after =
+      live_planar_objective_sum<QuaFun::SizeShape>(mesh,AsDeg::P1);
+  BOOST_CHECK(objective_after < objective_before);
 }
 
 BOOST_AUTO_TEST_CASE(p1_insertion_compatibility_keeps_optional_final_hook_empty)
