@@ -766,6 +766,45 @@ BOOST_AUTO_TEST_CASE(p2_growth_probe_is_local_and_uses_completed_geometry)
   cavity.inspect_growth_probe = [&](const CavityGrowthProbeInfo& probe){
     if(probe.outside_element != outside) return;
     matching_probes++;
+    // Cavity smoothing may relocate ipins and release split provenance before
+    // the first growth probe. Reconstruct the same callback-time local patch
+    // rather than comparing against the pre-smoothing coordinates cached
+    // above.
+    double expectedCurrent = metqua<MetricFieldAnalytical,2,2,
+        QuaFun::SizeShape>(mesh,AsDeg::Pk,AsDeg::P1,outside,1.0);
+    double expectedEnlarged = 0.;
+    for(int edge = 0; edge < 3; edge++){
+      const int neighbor = mesh.fac2fac(outside,edge);
+      if(neighbor >= 0 && in_cavity[neighbor]){
+        int insideEdge = -1;
+        for(int candidateEdge = 0; candidateEdge < 3; candidateEdge++){
+          if(mesh.fac2fac(neighbor,candidateEdge) == outside){
+            insideEdge = candidateEdge;
+            break;
+          }
+        }
+        BOOST_REQUIRE(insideEdge >= 0);
+        const int vertices[3] = {
+            cavity.ipins,
+            mesh.fac2poi(neighbor,lnoed2[insideEdge][0]),
+            mesh.fac2poi(neighbor,lnoed2[insideEdge][1])};
+        bool valid = false;
+        expectedCurrent += evaluate_completed_p2_cavity_cone<
+            MetricFieldAnalytical,2,QuaFun::SizeShape>(
+                mesh,cavity,neighbor,vertices,&valid);
+        BOOST_REQUIRE(valid);
+      }else{
+        const int vertices[3] = {
+            cavity.ipins,
+            mesh.fac2poi(outside,lnoed2[edge][0]),
+            mesh.fac2poi(outside,lnoed2[edge][1])};
+        bool valid = false;
+        expectedEnlarged += evaluate_completed_p2_cavity_cone<
+            MetricFieldAnalytical,2,QuaFun::SizeShape>(
+                mesh,cavity,outside,vertices,&valid);
+        BOOST_REQUIRE(valid);
+      }
+    }
     BOOST_CHECK_EQUAL(probe.topological_dimension,2);
     BOOST_CHECK_EQUAL(probe.geometry_degree,2);
     BOOST_CHECK_EQUAL(probe.current_cavity_element_count,2);
@@ -774,8 +813,8 @@ BOOST_AUTO_TEST_CASE(p2_growth_probe_is_local_and_uses_completed_geometry)
     BOOST_CHECK_EQUAL(probe.enlarged_local_element_count,enlarged_count);
     BOOST_CHECK(probe.current_configuration_valid);
     BOOST_CHECK(probe.enlarged_configuration_valid);
-    BOOST_CHECK_CLOSE(probe.current_objective,current_p2,2.e-10);
-    BOOST_CHECK_CLOSE(probe.enlarged_objective,enlarged_p2,2.e-10);
+    BOOST_CHECK_CLOSE(probe.current_objective,expectedCurrent,2.e-10);
+    BOOST_CHECK_CLOSE(probe.enlarged_objective,expectedEnlarged,2.e-10);
   };
   const int growth_result = increase_cavity_quality<
       MetricFieldAnalytical,QuaFun::SizeShape>(

@@ -20,14 +20,18 @@ Simplest possible approach.
 
 #include "../Optimization/opt_generic.hxx"
 #include "../quality/low_metqua_d.hxx"
+#include "../cavity/reconnect_geometry.hxx"
 #include "../low_geo/ccoef.hxx"
 #include "../low_geo/measure.hxx"
 #include "../low_geo/validity.hxx"
+#include "../linalg/symidx.hxx"
 
 #include "../utils/aux_timer.hxx"
 #include "../utils/mprintf.hxx"
 #include "../utils/fmt_formatters.hxx"
 
+#include <array>
+#include <cmath>
 #include <cstdlib>
 #include <fstream>
 #include <limits>
@@ -76,7 +80,437 @@ double smoothing_region_shortest_corner_edge(const MeshBase &msh,
   return std::sqrt(shortestSquared);
 }
 
+template<int idim>
+struct ReleasedQuadraticCavityEvaluation
+{
+  static constexpr int nhessian = idim*(idim + 1)/2;
+  bool valid = true;
+  int element_count = 0;
+  double numerator = 0.;
+  double maximum = -1.0e30;
+  double target_weight = 0.;
+  std::array<double,idim> gradient{};
+  std::array<double,nhessian> hessian{};
+};
+
+// Evaluate the completed P2 cone at the current insertion-point coordinate.
+// All non-CAD spokes are rebuilt as affine P2 edges. Consequently each
+// incident midpoint coefficient C_0j=(X_0+X_j)/2 contributes one half of its
+// control-point gradient to the derivative with respect to X_0.
+template<class MFT, int idim>
+ReleasedQuadraticCavityEvaluation<idim>
+evaluate_released_quadratic_cavity(
+    Mesh<MFT>& msh,
+    MshCavity& cav,
+    QuaFun iquaf,
+    int ithread,
+    bool differentiate)
+{
+  constexpr int tdim = idim;
+  ReleasedQuadraticCavityEvaluation<idim> result;
+  const intAr1& cavity_elements = cav.lcent(tdim);
+  const intAr2& element_neighbors = msh.ent2ent(tdim);
+  intAr2& element_points = msh.ent2poi(tdim);
+  intAr2& element_tags = msh.ent2tag(tdim);
+  const int temporary_element = msh.nentt(tdim) - 1;
+
+  METRIS_ASSERT(msh.curdeg == 2);
+  METRIS_ASSERT(msh.poi2bpo[cav.ipins] < 0);
+  const auto value_function = get_quafun<MFT,idim,tdim>(iquaf);
+  const auto derivative_function = get_d_quafun<MFT,idim,tdim>(iquaf);
+
+  msh.tag[ithread]++;
+  for(const int element : cavity_elements){
+    element_tags(ithread,element) = msh.tag[ithread];
+  }
+
+  for(const int source_element : cavity_elements){
+    for(int opposite = 0; opposite < tdim + 1; opposite++){
+      const int neighbor = element_neighbors(source_element,opposite);
+      if(neighbor >= 0
+         && element_tags(ithread,neighbor) >= msh.tag[ithread]) continue;
+
+      element_points(temporary_element,0) = cav.ipins;
+      if constexpr(tdim == 2){
+        element_points(temporary_element,lnoed2[0][0])
+            = element_points(source_element,lnoed2[opposite][0]);
+        element_points(temporary_element,lnoed2[0][1])
+            = element_points(source_element,lnoed2[opposite][1]);
+        if(element_points(temporary_element,1) == cav.ipins
+           || element_points(temporary_element,2) == cav.ipins) continue;
+      }else{
+        element_points(temporary_element,lnofa3[0][0])
+            = element_points(source_element,lnofa3[opposite][0]);
+        element_points(temporary_element,lnofa3[0][1])
+            = element_points(source_element,lnofa3[opposite][1]);
+        element_points(temporary_element,lnofa3[0][2])
+            = element_points(source_element,lnofa3[opposite][2]);
+        if(element_points(temporary_element,1) == cav.ipins
+           || element_points(temporary_element,2) == cav.ipins
+           || element_points(temporary_element,3) == cav.ipins) continue;
+      }
+
+      complete_quadratic_cone_element<MFT,idim,tdim>(
+          msh,cav,source_element,temporary_element,
+          QuadraticConeSpokePolicy::ReleasedAffine);
+      if(!classify_element_validity<idim,2>(msh,temporary_element)
+              .accepted_conservatively()){
+        result.valid = false;
+        return result;
+      }
+
+      double element_value;
+      std::array<double,idim> element_gradient{};
+      if(differentiate){
+        const int apex_local
+            = msh.template getverent<2>(temporary_element,tdim,cav.ipins);
+        METRIS_ASSERT(apex_local >= 0 && apex_local < tdim + 1);
+        element_value = derivative_function(
+            msh,AsDeg::Pk,AsDeg::P1,temporary_element,apex_local,
+            msh.getBasis(),DifVar::None,
+            element_gradient.data(),nullptr,1.0);
+
+        for(int edge = 0;
+            edge < quadratic_simplex_edge_count<tdim>(); edge++){
+          const int local0 = quadratic_simplex_edge_vertex<tdim>(edge,0);
+          const int local1 = quadratic_simplex_edge_vertex<tdim>(edge,1);
+          if(local0 != apex_local && local1 != apex_local) continue;
+          const int midpoint_local = quadratic_simplex_edge_node<tdim>(edge);
+          std::array<double,idim> midpoint_gradient{};
+          (void)derivative_function(
+              msh,AsDeg::Pk,AsDeg::P1,temporary_element,midpoint_local,
+              msh.getBasis(),DifVar::None,
+              midpoint_gradient.data(),nullptr,1.0);
+          for(int component = 0; component < idim; component++){
+            element_gradient[component]
+                += 0.5*midpoint_gradient[component];
+          }
+        }
+      }else{
+        element_value = value_function(
+            msh,AsDeg::Pk,AsDeg::P1,temporary_element,1.0);
+      }
+
+      double weight = 1.;
+      if(iquaf == QuaFun::StepDistance
+         && msh.param->step_distance_cavity_target_average){
+        weight = step_distance_element_target_weight<MFT,idim,tdim>(
+            msh,AsDeg::P1,temporary_element);
+      }
+      result.numerator += weight*element_value;
+      result.target_weight += weight;
+      result.maximum = MAX(result.maximum,element_value);
+      result.element_count++;
+      if(differentiate){
+        for(int component = 0; component < idim; component++){
+          result.gradient[component] += weight*element_gradient[component];
+        }
+      }
+    }
+  }
+
+  result.valid = result.element_count > 0;
+  return result;
+}
+
+template<class MFT, int idim>
+bool add_released_quadratic_cavity_hessian(
+    Mesh<MFT>& msh,
+    MshCavity& cav,
+    QuaFun iquaf,
+    int ithread,
+    ReleasedQuadraticCavityEvaluation<idim>& evaluation)
+{
+  const int ipins = cav.ipins;
+  double columns[idim][idim]{};
+
+  for(int variable = 0; variable < idim; variable++){
+    const double original = msh.coord(ipins,variable);
+    double step = std::cbrt(std::numeric_limits<double>::epsilon())
+                * MAX(1.0,std::abs(original));
+    bool obtained = false;
+    ReleasedQuadraticCavityEvaluation<idim> minus;
+    ReleasedQuadraticCavityEvaluation<idim> plus;
+    for(int attempt = 0; attempt < 8 && !obtained; attempt++){
+      msh.coord(ipins,variable) = original - step;
+      minus = evaluate_released_quadratic_cavity<MFT,idim>(
+          msh,cav,iquaf,ithread,true);
+      msh.coord(ipins,variable) = original + step;
+      plus = evaluate_released_quadratic_cavity<MFT,idim>(
+          msh,cav,iquaf,ithread,true);
+      msh.coord(ipins,variable) = original;
+      obtained = minus.valid && plus.valid;
+      if(!obtained) step *= 0.5;
+    }
+    if(!obtained){
+      msh.coord(ipins,variable) = original;
+      return false;
+    }
+
+    for(int component = 0; component < idim; component++){
+      columns[variable][component]
+          = (plus.gradient[component] - minus.gradient[component])
+           /(2.*step);
+    }
+  }
+
+  for(int first = 0; first < idim; first++){
+    for(int second = first; second < idim; second++){
+      evaluation.hessian[sym2idx(first,second)]
+          = 0.5*(columns[first][second] + columns[second][first]);
+    }
+  }
+  return true;
+}
+
+struct ReleasedQuadraticCurveCavityEvaluation
+{
+  bool valid = true;
+  int element_count = 0;
+  double numerator = 0.;
+  double maximum = -1.0e30;
+  double target_weight = 0.;
+  double derivative = 0.;
+  double hessian = 0.;
+};
+
+// Curve-constrained counterpart of the physical-coordinate evaluator above.
+// The apex follows X(t). A CAD child midpoint follows
+// X((t+t_j)/2), whereas a non-CAD affine-spoke midpoint follows
+// (X(t)+X_j)/2. The scalar derivative applies those two chain rules to the
+// per-control-point physical gradients.
+template<class MFT>
+ReleasedQuadraticCurveCavityEvaluation
+evaluate_released_quadratic_curve_cavity(
+    Mesh<MFT>& msh,
+    MshCavity& cav,
+    QuaFun iquaf,
+    int ithread,
+    ego cad_edge,
+    int cad_reference,
+    bool differentiate)
+{
+  constexpr int idim = 2;
+  constexpr int tdim = 2;
+  ReleasedQuadraticCurveCavityEvaluation result;
+  const intAr1& cavity_elements = cav.lcent(tdim);
+  const intAr2& element_neighbors = msh.ent2ent(tdim);
+  intAr2& element_points = msh.ent2poi(tdim);
+  intAr2& element_tags = msh.ent2tag(tdim);
+  const int temporary_element = msh.nentt(tdim) - 1;
+  const int insertion_record = msh.poi2bpo[cav.ipins];
+  const double insertion_parameter = msh.bpo2rbi(insertion_record,0);
+  double insertion_evaluation[18];
+  double parameter[2] = {insertion_parameter,0.};
+  METRIS_ENFORCE(EG_evaluate(
+      cad_edge,parameter,insertion_evaluation) == EGADS_SUCCESS);
+  const double insertion_tangent[2] = {
+      insertion_evaluation[3],insertion_evaluation[4]};
+
+  const auto value_function = get_quafun<MFT,idim,tdim>(iquaf);
+  const auto derivative_function = get_d_quafun<MFT,idim,tdim>(iquaf);
+  msh.tag[ithread]++;
+  for(const int element : cavity_elements){
+    element_tags(ithread,element) = msh.tag[ithread];
+  }
+
+  for(const int source_element : cavity_elements){
+    for(int opposite = 0; opposite < 3; opposite++){
+      const int neighbor = element_neighbors(source_element,opposite);
+      if(neighbor >= 0
+         && element_tags(ithread,neighbor) >= msh.tag[ithread]) continue;
+      const int boundary_edge = msh.fac2edg(source_element,opposite);
+      if(boundary_edge >= 0
+         && msh.edg2ref[boundary_edge] == cad_reference) continue;
+
+      element_points(temporary_element,0) = cav.ipins;
+      element_points(temporary_element,lnoed2[0][0])
+          = element_points(source_element,lnoed2[opposite][0]);
+      element_points(temporary_element,lnoed2[0][1])
+          = element_points(source_element,lnoed2[opposite][1]);
+      if(element_points(temporary_element,1) == cav.ipins
+         || element_points(temporary_element,2) == cav.ipins) continue;
+
+      complete_quadratic_cone_element<MFT,idim,tdim>(
+          msh,cav,source_element,temporary_element,
+          QuadraticConeSpokePolicy::ReleasedAffine);
+      if(!classify_element_validity<idim,2>(msh,temporary_element)
+              .accepted_conservatively()){
+        result.valid = false;
+        return result;
+      }
+
+      double element_value;
+      double element_derivative = 0.;
+      if(differentiate){
+        const int apex_local
+            = msh.template getverent<2>(temporary_element,tdim,cav.ipins);
+        std::array<double,idim> control_gradient{};
+        element_value = derivative_function(
+            msh,AsDeg::Pk,AsDeg::P1,temporary_element,apex_local,
+            msh.getBasis(),DifVar::None,
+            control_gradient.data(),nullptr,1.0);
+        for(int component = 0; component < idim; component++){
+          element_derivative
+              += control_gradient[component]*insertion_tangent[component];
+        }
+
+        for(int edge = 0; edge < 3; edge++){
+          const int local0 = quadratic_simplex_edge_vertex<tdim>(edge,0);
+          const int local1 = quadratic_simplex_edge_vertex<tdim>(edge,1);
+          if(local0 != apex_local && local1 != apex_local) continue;
+          const int other_local = local0 == apex_local ? local1 : local0;
+          const int other_point
+              = element_points(temporary_element,other_local);
+          const int midpoint_local = quadratic_simplex_edge_node<tdim>(edge);
+          std::array<double,idim> midpoint_gradient{};
+          (void)derivative_function(
+              msh,AsDeg::Pk,AsDeg::P1,temporary_element,midpoint_local,
+              msh.getBasis(),DifVar::None,
+              midpoint_gradient.data(),nullptr,1.0);
+
+          double midpoint_direction[2] = {
+              0.5*insertion_tangent[0],
+              0.5*insertion_tangent[1]};
+          const bool is_parent_endpoint
+              = cav.split_edge_points.get_n() >= 2
+             && (other_point == cav.split_edge_points[0]
+              || other_point == cav.split_edge_points[1]);
+          if(is_parent_endpoint){
+            const int endpoint_record = msh.poi2ebp(
+                other_point,1,-1,cad_reference);
+            METRIS_ENFORCE_MSG(endpoint_record >= 0,
+                "Missing CAD parameter for split-edge endpoint {}",
+                other_point);
+            parameter[0] = 0.5*(insertion_parameter
+                               + msh.bpo2rbi(endpoint_record,0));
+            double midpoint_evaluation[18];
+            METRIS_ENFORCE(EG_evaluate(
+                cad_edge,parameter,midpoint_evaluation) == EGADS_SUCCESS);
+            midpoint_direction[0] = 0.5*midpoint_evaluation[3];
+            midpoint_direction[1] = 0.5*midpoint_evaluation[4];
+          }
+          for(int component = 0; component < idim; component++){
+            element_derivative
+                += midpoint_gradient[component]
+                 * midpoint_direction[component];
+          }
+        }
+      }else{
+        element_value = value_function(
+            msh,AsDeg::Pk,AsDeg::P1,temporary_element,1.0);
+      }
+
+      double weight = 1.;
+      if(iquaf == QuaFun::StepDistance
+         && msh.param->step_distance_cavity_target_average){
+        weight = step_distance_element_target_weight<MFT,idim,tdim>(
+            msh,AsDeg::P1,temporary_element);
+      }
+      result.numerator += weight*element_value;
+      result.target_weight += weight;
+      result.maximum = MAX(result.maximum,element_value);
+      result.derivative += weight*element_derivative;
+      result.element_count++;
+    }
+  }
+  result.valid = result.element_count > 0;
+  return result;
+}
+
+template<class MFT>
+bool add_released_quadratic_curve_cavity_hessian(
+    Mesh<MFT>& msh,
+    MshCavity& cav,
+    QuaFun iquaf,
+    int ithread,
+    ego cad_edge,
+    int cad_reference,
+    double lower_parameter,
+    double upper_parameter,
+    ReleasedQuadraticCurveCavityEvaluation& evaluation)
+{
+  const int ipins = cav.ipins;
+  const int boundary_point = msh.poi2bpo[ipins];
+  const double original_parameter = msh.bpo2rbi(boundary_point,0);
+  double original_coordinate[2] = {
+      msh.coord(ipins,0),msh.coord(ipins,1)};
+  double step = std::cbrt(std::numeric_limits<double>::epsilon())
+              * MAX(1.0,std::abs(original_parameter));
+  step = MIN(step,0.25*MIN(original_parameter - lower_parameter,
+                           upper_parameter - original_parameter));
+  double parameter[2] = {original_parameter,0.};
+  double cad_evaluation[18];
+  ReleasedQuadraticCurveCavityEvaluation minus;
+  ReleasedQuadraticCurveCavityEvaluation plus;
+  bool obtained = false;
+  for(int attempt = 0; attempt < 8 && !obtained; attempt++){
+    parameter[0] = original_parameter - step;
+    METRIS_ENFORCE(EG_evaluate(
+        cad_edge,parameter,cad_evaluation) == EGADS_SUCCESS);
+    msh.bpo2rbi(boundary_point,0) = parameter[0];
+    msh.coord(ipins,0) = cad_evaluation[0];
+    msh.coord(ipins,1) = cad_evaluation[1];
+    minus = evaluate_released_quadratic_curve_cavity<MFT>(
+        msh,cav,iquaf,ithread,cad_edge,cad_reference,true);
+
+    parameter[0] = original_parameter + step;
+    METRIS_ENFORCE(EG_evaluate(
+        cad_edge,parameter,cad_evaluation) == EGADS_SUCCESS);
+    msh.bpo2rbi(boundary_point,0) = parameter[0];
+    msh.coord(ipins,0) = cad_evaluation[0];
+    msh.coord(ipins,1) = cad_evaluation[1];
+    plus = evaluate_released_quadratic_curve_cavity<MFT>(
+        msh,cav,iquaf,ithread,cad_edge,cad_reference,true);
+    obtained = minus.valid && plus.valid;
+    if(!obtained) step *= 0.5;
+  }
+
+  msh.bpo2rbi(boundary_point,0) = original_parameter;
+  msh.coord(ipins,0) = original_coordinate[0];
+  msh.coord(ipins,1) = original_coordinate[1];
+  if(!obtained || !(step > 0.)) return false;
+
+  evaluation.hessian
+      = (plus.derivative - minus.derivative)/(2.*step);
+  return true;
+}
+
 } // namespace
+
+template<class MFT, int idim>
+bool evaluate_released_p2_cavity_objective(
+    Mesh<MFT>& msh,
+    MshCavity& cav,
+    QuaFun iquaf,
+    int ithread,
+    double& numerator,
+    double* gradient,
+    double* hessian)
+{
+  ReleasedQuadraticCavityEvaluation<idim> evaluation
+      = evaluate_released_quadratic_cavity<MFT,idim>(
+          msh,cav,iquaf,ithread,gradient != nullptr);
+  if(!evaluation.valid) return false;
+  if(hessian != nullptr){
+    METRIS_ENFORCE(gradient != nullptr);
+    if(!add_released_quadratic_cavity_hessian<MFT,idim>(
+           msh,cav,iquaf,ithread,evaluation)) return false;
+  }
+  numerator = evaluation.numerator;
+  if(gradient != nullptr){
+    for(int component = 0; component < idim; component++){
+      gradient[component] = evaluation.gradient[component];
+    }
+  }
+  if(hessian != nullptr){
+    constexpr int nhessian = idim*(idim + 1)/2;
+    for(int entry = 0; entry < nhessian; entry++){
+      hessian[entry] = evaluation.hessian[entry];
+    }
+  }
+  return true;
+}
 
 // inorm <= infi norm , p > 0 L^p norm (over ball)
 template<class MFT, int idim, int ideg>
@@ -405,6 +839,18 @@ template int smooballdiff<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical>
                    QuaFun iquaf);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
+
+#define INSTANTIATE_RELEASED_P2_CAVITY(MFT_VALUE,DIMENSION) \
+template bool evaluate_released_p2_cavity_objective< \
+    MFT_VALUE,DIMENSION>( \
+        Mesh<MFT_VALUE>&,MshCavity&,QuaFun,int,double&,double*,double*);
+
+INSTANTIATE_RELEASED_P2_CAVITY(MetricFieldAnalytical,2)
+INSTANTIATE_RELEASED_P2_CAVITY(MetricFieldAnalytical,3)
+INSTANTIATE_RELEASED_P2_CAVITY(MetricFieldFE,2)
+INSTANTIATE_RELEASED_P2_CAVITY(MetricFieldFE,3)
+
+#undef INSTANTIATE_RELEASED_P2_CAVITY
 
 // =============================================================================================== //
 // =============================================================================================== //
@@ -1363,10 +1809,21 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
       }
     }
   }
-  if(kernelRadius < std::numeric_limits<double>::max() && kernelRadius > 0.){
+  const bool hasKernelTrust
+      = kernelRadius < std::numeric_limits<double>::max()
+     && kernelRadius > 0.;
+  if(hasKernelTrust){
     nargs.trust_radius = 0.9*kernelRadius;
     for(int ii = 0; ii < idim; ii++) nargs.trust_center[ii] = coor0[ii];
     CPRINTF2(" - cavity smoothing trust radius = {}\n",nargs.trust_radius);
+  }
+  if constexpr(ideg == 2){
+    const double gradientStep
+        = 0.1*smoothing_region_shortest_corner_edge<idim>(msh,lcent);
+    nargs.non_descent_gradient_step
+        = hasKernelTrust
+        ? MIN(gradientStep,0.5*nargs.trust_radius)
+        : gradientStep;
   }
 
   for(int niter1 = 0; niter1 < miter1; niter1++){
@@ -1538,8 +1995,32 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
           } // for jj (bnd facets of ienttCav)
           if (iinva) break;
         } // for ienttCav
+      }else if constexpr(ideg == 2){
+        ReleasedQuadraticCavityEvaluation<idim> evaluation
+            = evaluate_released_quadratic_cavity<MFT,idim>(
+                msh,cav,iquaf,ithread,true);
+        if(!evaluation.valid){
+          iinva = true;
+        }else{
+          fcur = evaluation.numerator;
+          quaMaxCav1 = evaluation.maximum;
+          targetWeightCurrent = evaluation.target_weight;
+          for(int component = 0; component < idim; component++){
+            d1qua[component] = evaluation.gradient[component];
+          }
+          if(ihess){
+            if(!add_released_quadratic_cavity_hessian<MFT,idim>(
+                   msh,cav,iquaf,ithread,evaluation)){
+              iinva = true;
+            }else{
+              for(int entry = 0; entry < nhess; entry++){
+                d2qua[entry] = evaluation.hessian[entry];
+              }
+            }
+          }
+        }
       }else{
-        METRIS_THROW_MSG("Implement cavity smoothing for ideg > 1");
+        METRIS_THROW_MSG("Implement cavity smoothing for ideg > 2");
       }
 
       if(!iinva && iquaf == QuaFun::StepDistance
@@ -1594,66 +2075,80 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
       goto cleanup;
     }
 
-    // Recompute after restoring xopt.
+    // Recompute after restoring xopt. P2 uses exactly the same released-spoke
+    // family as every Newton trial; P1 retains its historical cone assembly.
     quaCav1 = 0;
     quaMaxCav1 = -1.0e30;
     double targetWeightFinal = 0.;
     iinva = false;
-    for(const int ienttCav : lcent){
-      int ent2pol[4];
-      for(int jj = 0; jj < tdim + 1; jj++){
-        const int ienei = ent2ent(ienttCav,jj);
-        if(ienei >= 0 && ent2tag(ithread,ienei) >= msh.tag[ithread]) continue;
-
-        if constexpr (tdim == 2){
-          ent2pol[0] = ipins;
-          ent2pol[lnoed2[0][0]] = ent2poi(ienttCav,lnoed2[jj][0]);
-          ent2pol[lnoed2[0][1]] = ent2poi(ienttCav,lnoed2[jj][1]);
-
-          if(ent2pol[1] == ipins || ent2pol[2] == ipins) continue;
-
-          ent2poi(tmpEntt,0) = ent2pol[0];
-          ent2poi(tmpEntt,1) = ent2pol[1];
-          ent2poi(tmpEntt,2) = ent2pol[2];
-
-          double meas;
-          if(!isvalideltP1<2,2>(msh, tmpEntt, NULL, &meas)){
-            iinva = true;
-            break;
-          }
-        }else{
-          ent2pol[0] = ipins;
-          ent2pol[lnofa3[0][0]] = ent2poi(ienttCav, lnofa3[jj][0]);
-          ent2pol[lnofa3[0][1]] = ent2poi(ienttCav, lnofa3[jj][1]);
-          ent2pol[lnofa3[0][2]] = ent2poi(ienttCav, lnofa3[jj][2]);
-
-          if(ent2pol[1] == ipins || ent2pol[2] == ipins || ent2pol[3] == ipins) continue;
-
-          ent2poi(tmpEntt,0) = ent2pol[0];
-          ent2poi(tmpEntt,1) = ent2pol[1];
-          ent2poi(tmpEntt,2) = ent2pol[2];
-          ent2poi(tmpEntt,3) = ent2pol[3];
-
-          double meas;
-          if(!isvalideltP1<3,3>(msh, tmpEntt, NULL, &meas)){
-            iinva = true;
-            break;
-          }
-        }
-
-        double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,tmpEntt,1.);
-        double regionWeight = 1.;
-        if(iquaf == QuaFun::StepDistance
-           && msh.param->step_distance_cavity_target_average){
-          regionWeight =
-              step_distance_element_target_weight<MFT,idim,idim>(
-                  msh,AsDeg::Pk,tmpEntt);
-          targetWeightFinal += regionWeight;
-        }
-        quaCav1 += regionWeight*quael;
-        quaMaxCav1 = MAX(quaMaxCav1, quael);
+    if constexpr(ideg == 2){
+      const ReleasedQuadraticCavityEvaluation<idim> evaluation
+          = evaluate_released_quadratic_cavity<MFT,idim>(
+              msh,cav,iquaf,ithread,false);
+      iinva = !evaluation.valid;
+      if(!iinva){
+        quaCav1 = evaluation.numerator;
+        quaMaxCav1 = evaluation.maximum;
+        targetWeightFinal = evaluation.target_weight;
       }
-      if(iinva) break;
+    }else{
+      for(const int ienttCav : lcent){
+        int ent2pol[4];
+        for(int jj = 0; jj < tdim + 1; jj++){
+          const int ienei = ent2ent(ienttCav,jj);
+          if(ienei >= 0
+             && ent2tag(ithread,ienei) >= msh.tag[ithread]) continue;
+
+          if constexpr(tdim == 2){
+            ent2pol[0] = ipins;
+            ent2pol[lnoed2[0][0]]
+                = ent2poi(ienttCav,lnoed2[jj][0]);
+            ent2pol[lnoed2[0][1]]
+                = ent2poi(ienttCav,lnoed2[jj][1]);
+            if(ent2pol[1] == ipins || ent2pol[2] == ipins) continue;
+            ent2poi(tmpEntt,0) = ent2pol[0];
+            ent2poi(tmpEntt,1) = ent2pol[1];
+            ent2poi(tmpEntt,2) = ent2pol[2];
+            double measure;
+            if(!isvalideltP1<2,2>(msh,tmpEntt,nullptr,&measure)){
+              iinva = true;
+              break;
+            }
+          }else{
+            ent2pol[0] = ipins;
+            ent2pol[lnofa3[0][0]]
+                = ent2poi(ienttCav,lnofa3[jj][0]);
+            ent2pol[lnofa3[0][1]]
+                = ent2poi(ienttCav,lnofa3[jj][1]);
+            ent2pol[lnofa3[0][2]]
+                = ent2poi(ienttCav,lnofa3[jj][2]);
+            if(ent2pol[1] == ipins || ent2pol[2] == ipins
+               || ent2pol[3] == ipins) continue;
+            ent2poi(tmpEntt,0) = ent2pol[0];
+            ent2poi(tmpEntt,1) = ent2pol[1];
+            ent2poi(tmpEntt,2) = ent2pol[2];
+            ent2poi(tmpEntt,3) = ent2pol[3];
+            double measure;
+            if(!isvalideltP1<3,3>(msh,tmpEntt,nullptr,&measure)){
+              iinva = true;
+              break;
+            }
+          }
+
+          const double element_value = quafun(
+              msh,AsDeg::Pk,AsDeg::Pk,tmpEntt,1.);
+          double weight = 1.;
+          if(iquaf == QuaFun::StepDistance
+             && msh.param->step_distance_cavity_target_average){
+            weight = step_distance_element_target_weight<MFT,idim,idim>(
+                msh,AsDeg::Pk,tmpEntt);
+            targetWeightFinal += weight;
+          }
+          quaCav1 += weight*element_value;
+          quaMaxCav1 = MAX(quaMaxCav1,element_value);
+        }
+        if(iinva) break;
+      }
     }
     if(iinva){
       CPRINTF1(" # smoocavdiff final xopt quality recompute invalid\n");
@@ -2011,6 +2506,7 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
       double dqelt[idim], hqelt[nhess];
       for(int ii = 0; ii < idim; ii++) gradX[ii] = 0;
       for(int ii = 0; ii < nhess;ii++) hessX[ii] = 0;
+      bool scalarDerivativeReady = false;
 
       if constexpr (ideg == 1){
         for (const int ienttCav : lcent){
@@ -2081,20 +2577,47 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
           }
           if (iinva) break;
         }
+      }else if constexpr(ideg == 2){
+        ReleasedQuadraticCurveCavityEvaluation evaluation
+            = evaluate_released_quadratic_curve_cavity<MFT>(
+                msh,cav,iquaf,ithread,cadEdge,irefins,true);
+        if(!evaluation.valid){
+          iinva = true;
+        }else{
+          fcur = evaluation.numerator;
+          quaMaxCav1 = evaluation.maximum;
+          targetWeightCurrent = evaluation.target_weight;
+          d1t[0] = evaluation.derivative;
+          if(ihess){
+            if(!add_released_quadratic_curve_cavity_hessian<MFT>(
+                   msh,cav,iquaf,ithread,cadEdge,irefins,
+                   range[0],range[1],evaluation)){
+              iinva = true;
+            }else{
+              d2t[0] = evaluation.hessian;
+            }
+          }
+          scalarDerivativeReady = true;
+        }
       }else{
-        METRIS_THROW_MSG("Implement cavity smoothing for ideg > 1");
+        METRIS_THROW_MSG("Implement cavity smoothing for ideg > 2");
       }
 
       if(!iinva && iquaf == QuaFun::StepDistance
          && msh.param->step_distance_cavity_target_average){
         METRIS_ENFORCE(targetWeightCurrent > 0.);
         fcur /= targetWeightCurrent;
-        for(int ii = 0; ii < idim; ii++){
-          gradX[ii] /= targetWeightCurrent;
-        }
-        if(ihess){
-          for(int ii = 0; ii < nhess; ii++){
-            hessX[ii] /= targetWeightCurrent;
+        if(scalarDerivativeReady){
+          d1t[0] /= targetWeightCurrent;
+          if(ihess) d2t[0] /= targetWeightCurrent;
+        }else{
+          for(int ii = 0; ii < idim; ii++){
+            gradX[ii] /= targetWeightCurrent;
+          }
+          if(ihess){
+            for(int ii = 0; ii < nhess; ii++){
+              hessX[ii] /= targetWeightCurrent;
+            }
           }
         }
       }
@@ -2114,31 +2637,35 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
         continue;
       }
 
-      double dfdt = 0.;
-      for(int ii = 0; ii < idim; ii++) dfdt += gradX[ii] * Xt[ii];
+      if(!scalarDerivativeReady){
+        double dfdt = 0.;
+        for(int ii = 0; ii < idim; ii++) dfdt += gradX[ii] * Xt[ii];
 
-      double XtHXt = 0.;
-      if(ihess){
-        auto H = [&](int i, int j) -> double {
-          if(i == j) return hessX[i];
-          if constexpr (idim == 2){
-            return hessX[2];
-          }else{
-            if((i == 0 && j == 1) || (i == 1 && j == 0)) return hessX[3];
-            if((i == 0 && j == 2) || (i == 2 && j == 0)) return hessX[4];
-            return hessX[5];
-          }
-        };
-        for(int ii = 0; ii < idim; ii++)
-          for(int jj = 0; jj < idim; jj++)
-            XtHXt += Xt[ii] * H(ii,jj) * Xt[jj];
+        double XtHXt = 0.;
+        if(ihess){
+          auto H = [&](int i, int j) -> double {
+            if(i == j) return hessX[i];
+            if constexpr (idim == 2){
+              return hessX[2];
+            }else{
+              if((i == 0 && j == 1) || (i == 1 && j == 0)) return hessX[3];
+              if((i == 0 && j == 2) || (i == 2 && j == 0)) return hessX[4];
+              return hessX[5];
+            }
+          };
+          for(int ii = 0; ii < idim; ii++)
+            for(int jj = 0; jj < idim; jj++)
+              XtHXt += Xt[ii] * H(ii,jj) * Xt[jj];
+        }
+
+        double gradXdotXtt = 0.;
+        for(int ii = 0; ii < idim; ii++){
+          gradXdotXtt += gradX[ii] * Xtt[ii];
+        }
+
+        d1t[0] = dfdt;
+        if(ihess) d2t[0] = XtHXt + gradXdotXtt;
       }
-
-      double gradXdotXtt = 0.;
-      for(int ii = 0; ii < idim; ii++) gradXdotXtt += gradX[ii] * Xtt[ii];
-
-      d1t[0] = dfdt;
-      if(ihess) d2t[0] = XtHXt + gradXdotXtt;
 
       bool useGrad = false;
       double dtmaxGrad = 0.;
@@ -2222,48 +2749,60 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
     quaMaxCav1 = -1.0e30;
     double targetWeightFinal = 0.;
     iinva = false;
-    for(const int ienttCav : lcent){
-      int ent2pol[4];
-      for(int jj = 0; jj < tdim + 1; jj++){
-        const int ienei = ent2ent(ienttCav,jj);
-        if(ienei >= 0 && ent2tag(ithread,ienei) >= msh.tag[ithread]) continue;
-
-        if constexpr (tdim == 2){
-          int iedgeGlobal = msh.fac2edg(ienttCav,jj);
-          if(iedgeGlobal >= 0 && msh.edg2ref[iedgeGlobal] == irefins) continue;
-
-          ent2pol[0] = ipins;
-          ent2pol[lnoed2[0][0]] = ent2poi(ienttCav,lnoed2[jj][0]);
-          ent2pol[lnoed2[0][1]] = ent2poi(ienttCav,lnoed2[jj][1]);
-
-          if(ent2pol[1] == ipins || ent2pol[2] == ipins) continue;
-
-          ent2poi(tmpEntt,0) = ent2pol[0];
-          ent2poi(tmpEntt,1) = ent2pol[1];
-          ent2poi(tmpEntt,2) = ent2pol[2];
-
-          double meas;
-          if(!isvalideltP1<2,2>(msh, tmpEntt, NULL, &meas)){
-            iinva = true;
-            break;
-          }
-        }else{
-          METRIS_THROW_MSG("Implement CAD edge cavity smoothing in 3D");
-        }
-
-        double quael = quafun(msh,AsDeg::Pk,AsDeg::Pk,tmpEntt,1.);
-        double regionWeight = 1.;
-        if(iquaf == QuaFun::StepDistance
-           && msh.param->step_distance_cavity_target_average){
-          regionWeight =
-              step_distance_element_target_weight<MFT,idim,idim>(
-                  msh,AsDeg::Pk,tmpEntt);
-          targetWeightFinal += regionWeight;
-        }
-        quaCav1 += regionWeight*quael;
-        quaMaxCav1 = MAX(quaMaxCav1, quael);
+    if constexpr(ideg == 2){
+      const ReleasedQuadraticCurveCavityEvaluation evaluation
+          = evaluate_released_quadratic_curve_cavity<MFT>(
+              msh,cav,iquaf,ithread,cadEdge,irefins,false);
+      iinva = !evaluation.valid;
+      if(!iinva){
+        quaCav1 = evaluation.numerator;
+        quaMaxCav1 = evaluation.maximum;
+        targetWeightFinal = evaluation.target_weight;
       }
-      if(iinva) break;
+    }else{
+      for(const int ienttCav : lcent){
+        int ent2pol[4];
+        for(int jj = 0; jj < tdim + 1; jj++){
+          const int ienei = ent2ent(ienttCav,jj);
+          if(ienei >= 0
+             && ent2tag(ithread,ienei) >= msh.tag[ithread]) continue;
+
+          if constexpr(tdim == 2){
+            const int global_edge = msh.fac2edg(ienttCav,jj);
+            if(global_edge >= 0
+               && msh.edg2ref[global_edge] == irefins) continue;
+            ent2pol[0] = ipins;
+            ent2pol[lnoed2[0][0]]
+                = ent2poi(ienttCav,lnoed2[jj][0]);
+            ent2pol[lnoed2[0][1]]
+                = ent2poi(ienttCav,lnoed2[jj][1]);
+            if(ent2pol[1] == ipins || ent2pol[2] == ipins) continue;
+            ent2poi(tmpEntt,0) = ent2pol[0];
+            ent2poi(tmpEntt,1) = ent2pol[1];
+            ent2poi(tmpEntt,2) = ent2pol[2];
+            double measure;
+            if(!isvalideltP1<2,2>(msh,tmpEntt,nullptr,&measure)){
+              iinva = true;
+              break;
+            }
+          }else{
+            METRIS_THROW_MSG("Implement CAD edge cavity smoothing in 3D");
+          }
+
+          const double element_value = quafun(
+              msh,AsDeg::Pk,AsDeg::Pk,tmpEntt,1.);
+          double weight = 1.;
+          if(iquaf == QuaFun::StepDistance
+             && msh.param->step_distance_cavity_target_average){
+            weight = step_distance_element_target_weight<MFT,idim,idim>(
+                msh,AsDeg::Pk,tmpEntt);
+            targetWeightFinal += weight;
+          }
+          quaCav1 += weight*element_value;
+          quaMaxCav1 = MAX(quaMaxCav1,element_value);
+        }
+        if(iinva) break;
+      }
     }
     if(iinva){
       CPRINTF1(" # smoocavdiff_boundary final xopt quality recompute invalid\n");

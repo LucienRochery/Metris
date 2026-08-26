@@ -1670,12 +1670,30 @@ double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, Qua
             msh,iquaf,quaCav1,targetWeightCav1);
         bool improveCavSum = handler.checkSuccess(objectiveCav1,objectiveCav0);
         bool improveCavMax = true;
+        bool pointMoved = true;
+        if constexpr(ideg == 2){
+          double displacementSquared = 0.;
+          double coordinateScale = 1.;
+          for(int component = 0; component < idim; component++){
+            const double displacement
+                = msh.coord(ipins,component) - coor0[component];
+            displacementSquared += displacement*displacement;
+            coordinateScale = MAX(
+                coordinateScale,
+                MAX(std::abs(msh.coord(ipins,component)),
+                    std::abs(coor0[component])));
+          }
+          const double movementTolerance
+              = 128.*std::numeric_limits<double>::epsilon()*coordinateScale;
+          pointMoved
+              = displacementSquared > movementTolerance*movementTolerance;
+        }
         #ifdef IMPROVEMAXQUAL
         if(!isObjectiveDrivenSmoothing(iquaf)){
           improveCavMax = quaMaxCav1 <= quaMaxCav0;
         }
         #endif
-        if(!improveCavSum || !improveCavMax){
+        if(!improveCavSum || !improveCavMax || !pointMoved){
           CPRINTF1(" - reject move, quality error increased ({:15.7e} > {:15.7e}) or max error increased ({:15.7e} > {:15.7e})\n",
                     quaCav1, quaCav0, quaMaxCav1, quaMaxCav0);
           for(int ii = 0; ii < idim; ii++) msh.coord(ipins,ii) = coor0[ii];
@@ -1686,6 +1704,13 @@ double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, Qua
           quaMaxCav1 = quaMaxCav0;
           targetWeightCav1 = targetWeightCav0;
           ierro = 1;
+        }else if constexpr(ideg == 2){
+          // A successful interior relocation is no longer a subdivision point
+          // of the original edge. Future growth and final reconstruction must
+          // therefore use the same released affine-spoke family optimized
+          // above. CAD-constrained points retain endpoint provenance because
+          // their child geometry remains CAD-owned.
+          if(ibpoin < 0) cav.clear_split_edge_geometry();
         }
       }
       else{

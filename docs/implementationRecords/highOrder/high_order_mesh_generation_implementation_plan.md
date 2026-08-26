@@ -256,7 +256,9 @@ new P2 test.
 4. **Done (2026-08-26): retain length smoothing as an explicitly Classic-P1-only
    heuristic and remove it completely from objective-driven insertion.** See the
    execution record below.
-5. Generalize cavity-targeted smoothing to high-order variables.
+5. **Done (2026-08-26): generalize cavity-targeted smoothing to completed P2
+   geometry using the released-affine-spoke policy.** See the execution record
+   below.
 6. Ensure all neighboring high-order control points and affected elements are
    reactivated after a successful move.
 7. Confirm that newly created cavity elements share P2 edge control points
@@ -351,9 +353,9 @@ new P2 test.
    The insertion-specific sharing checks above are a prerequisite of this
    step, not an early completion of Phase 7 item 7. Item 7 remains the later
    cross-operation audit after collapse and swap reconnection have also been
-   generalized. Likewise, `CAVSMOOTHING` is now explicitly bypassed for P2
-   during cavity growth; its P1 behavior is unchanged and its high-order
-   implementation remains Phase 7 item 5.
+   generalized. At the completion of insertion item 1, `CAVSMOOTHING` was
+   therefore still bypassed for P2. Phase 7 item 5 below removes that temporary
+   bypass using the released-affine-spoke completed-P2 policy.
 
    The self-contained regression verifies that the final callback observes
    completed and certified P2 candidates for both a planar triangle and a
@@ -474,9 +476,72 @@ new P2 test.
 
    This decision does **not** disable ordinary SizeShape/StepDistance ball
    smoothing or `CAVSMOOTHING`. The latter is objective-based cavity-targeted
-   smoothing and remains Phase 7 item 5. A paired regression confirms that the
-   Classic P1 length stage remains callable while the same global stage on an
-   elevated P2 mesh returns zero without changing any coordinate.
+   smoothing and is completed separately in Phase 7 item 5 below. A paired
+   regression confirms that the Classic P1 length stage remains callable while
+   the same global stage on an elevated P2 mesh returns zero without changing
+   any coordinate.
+
+5. **Done (2026-08-26): released-affine P2 cavity-targeted smoothing.** This
+   operation has a different geometric family from ordinary ball smoothing.
+   Ordinary smoothing activates one stored mesh control point and freezes the
+   others. Cavity smoothing instead moves the provisional reconnection apex.
+   Under the selected option-b policy, every trial rebuilds each non-CAD P2
+   spoke incident to that apex as an affine high-order edge. Thus, if an
+   insertion originally split a curved non-CAD edge into exact polynomial
+   children, that split provenance is used for the unsmoothed candidate but is
+   released as soon as an actual smoothing move is accepted. Collapse has no
+   split-child provenance and enters the same released family directly.
+
+   Existing edges on the boundary of the cavity are not incident to the moving
+   apex and retain their stored P2 coefficients exactly. CAD ownership has
+   higher authority than the affine-spoke rule: a CAD-curve apex is evaluated
+   at its trial curve parameter, and a CAD-owned child coefficient is evaluated
+   on that curve at the interpolated child parameter. Consequently every
+   accepted CAD node remains exactly on its CAD entity. The implementation
+   covers planar interior and CAD-curve cavities and extends directly to
+   full-dimensional interior tetrahedral cavities. The pre-existing unsupported
+   3D CAD-boundary cavity modes remain outside this step; ordinary CAD-surface
+   ball smoothing is unaffected.
+
+   The geometry dependence is included in the objective derivatives. For an
+   apex coordinate `x` and fixed opposite vertex `X_j`, an affine P2 spoke has
+   midpoint coefficient `C_0j(x) = (x + X_j)/2`. Therefore the exact frozen-
+   metric, frozen-measure objective gradient is
+   `dF/dx = partial F/partial x + (1/2) sum_j partial F/partial C_0j`.
+   Equivalently, the completed P2 map varies as
+   `delta X_h(lambda) = lambda_0 delta x`, which is the affine-reproduction
+   identity for the quadratic basis. On a CAD curve `x = C(t)`, the chain rule
+   uses `C'(t)` for the apex, one half of `C'(t)` for affine non-CAD spokes, and
+   `C'((t+t_j)/2)/2` for CAD child coefficients. The optimizer forms a centered,
+   validity-aware finite difference of this exact chain gradient for its
+   Hessian and symmetrizes the result; no analytic StepDistance Hessian is
+   claimed. SizeShape and StepDistance both use configured objective
+   quadrature, complete P2 geometry, the established frozen P1 metric and
+   quadrature-measure derivative contract, and conservative P2 validity at
+   every trial. StepDistance target-average normalization is applied once,
+   after assembling the cavity numerator derivatives.
+
+   Acceptance is transactional. The released family is optimized from the
+   current apex, but the resulting completed-P2 objective is compared with the
+   preserved pre-smoothing cavity. A P2 success requires an actual coordinate
+   or CAD-parameter displacement, conservative certification, and the existing
+   objective-improvement rule. Rejection restores the point, metric, CAD
+   parameter, and split provenance exactly. An accepted interior move clears
+   non-CAD split provenance; an accepted CAD move retains its endpoint
+   provenance so subsequent CAD child construction keeps the correct parameter
+   interval. Near-miss cavity growth similarly snapshots and restores this
+   state when a smoothed enlarged local candidate is later rejected.
+
+   `test_high_order_cavity_smoothing` qualifies the released completion and
+   chain rule in planar triangles and tetrahedra, checks frozen-sample analytic
+   gradients against centered differences, exercises both SizeShape and
+   StepDistance evaluation, and verifies accepted release versus exact rollback
+   on rejection. The curved-CAD regression moves a planar boundary insertion
+   in curve-parameter space and independently confirms the apex and both child
+   coefficients against CAD evaluations. The existing sixteen-case insertion,
+   growth, collapse, and swap suite was updated to reconstruct its local P2
+   objective at callback time, because cavity smoothing can now legitimately
+   move the apex before objective growth.
 
 ## Phase 8: End-to-end qualification
 

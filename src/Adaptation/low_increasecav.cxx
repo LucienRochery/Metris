@@ -37,143 +37,6 @@ namespace Metris{
 
 namespace {
 
-template<int tdim>
-constexpr int simplex_edge_count(){
-  static_assert(tdim == 2 || tdim == 3);
-  return tdim == 2 ? 3 : 6;
-}
-
-template<int tdim>
-int simplex_edge_vertex(int edge, int endpoint){
-  static_assert(tdim == 2 || tdim == 3);
-  if constexpr(tdim == 2) return lnoed2[edge][endpoint];
-  return lnoed3[edge][endpoint];
-}
-
-template<int tdim>
-int quadratic_edge_node(int edge){
-  int index[tdim + 1] = {};
-  index[simplex_edge_vertex<tdim>(edge,0)] = 1;
-  index[simplex_edge_vertex<tdim>(edge,1)] = 1;
-  return mul2nod(tdim,index);
-}
-
-template<class MFT>
-bool evaluate_common_cad_midpoint(const MeshMetric<MFT>& msh,
-                                  int point0,
-                                  int point1,
-                                  int minimum_owner_dimension,
-                                  double* coefficient){
-  if(!msh.CAD() || msh.getBasis() != FEBasis::Lagrange) return false;
-
-  for(int owner_dimension = minimum_owner_dimension;
-      owner_dimension <= 2 && owner_dimension < msh.idim;
-      owner_dimension++){
-    for(int boundary_point = msh.poi2bpo[point0]; boundary_point >= 0;
-        boundary_point = msh.bpo2ibi(boundary_point,3)){
-      if(msh.bpo2ibi(boundary_point,1) != owner_dimension) continue;
-      const int owner_entity = msh.bpo2ibi(boundary_point,2);
-      if(owner_entity < 0 || owner_entity >= msh.nentt(owner_dimension)){
-        continue;
-      }
-      const int owner_reference = msh.ent2ref(owner_dimension)[owner_entity];
-      const int other_boundary_point = msh.poi2ebp(
-          point1,owner_dimension,-1,owner_reference);
-      if(other_boundary_point < 0) continue;
-
-      double parameter[2] = {0.,0.};
-      for(int component = 0; component < owner_dimension; component++){
-        parameter[component]
-            = 0.5*(msh.bpo2rbi(boundary_point,component)
-                  + msh.bpo2rbi(other_boundary_point,component));
-      }
-      const ego owner = owner_dimension == 1
-          ? msh.CAD.cad2edg[owner_reference]
-          : msh.CAD.cad2fac[owner_reference];
-      double result[18];
-      const int error = EG_evaluate(owner,parameter,result);
-      METRIS_ENFORCE_MSG(error == 0,
-          "EG_evaluate failed with error {} for local P2 cavity probe",
-          error);
-      for(int component = 0; component < msh.idim; component++){
-        coefficient[component] = result[component];
-      }
-      return true;
-    }
-  }
-  return false;
-}
-
-template<class MFT, int gdim, int tdim>
-void complete_quadratic_cone_element(MeshMetric<MFT>& msh,
-                                     const MshCavity& cav,
-                                     int source_element,
-                                     int candidate_element){
-  static_assert(gdim == tdim);
-  METRIS_ASSERT(msh.curdeg == 2);
-  intAr2& element_to_point = msh.ent2poi(tdim);
-
-  for(int candidate_edge = 0;
-      candidate_edge < simplex_edge_count<tdim>(); candidate_edge++){
-    const int local0 = simplex_edge_vertex<tdim>(candidate_edge,0);
-    const int local1 = simplex_edge_vertex<tdim>(candidate_edge,1);
-    const int point0 = element_to_point(candidate_element,local0);
-    const int point1 = element_to_point(candidate_element,local1);
-    const int coefficient_point
-        = element_to_point(candidate_element,
-                           quadratic_edge_node<tdim>(candidate_edge));
-
-    bool copied_existing_edge = false;
-    if(point0 != cav.ipins && point1 != cav.ipins){
-      for(int source_edge = 0;
-          source_edge < simplex_edge_count<tdim>(); source_edge++){
-        const int source0 = element_to_point(
-            source_element,simplex_edge_vertex<tdim>(source_edge,0));
-        const int source1 = element_to_point(
-            source_element,simplex_edge_vertex<tdim>(source_edge,1));
-        if(!((source0 == point0 && source1 == point1)
-          || (source0 == point1 && source1 == point0))) continue;
-        const int source_coefficient = element_to_point(
-            source_element,quadratic_edge_node<tdim>(source_edge));
-        for(int component = 0; component < gdim; component++){
-          msh.coord(coefficient_point,component)
-              = msh.coord(source_coefficient,component);
-        }
-        copied_existing_edge = true;
-        break;
-      }
-      METRIS_ENFORCE_MSG(copied_existing_edge,
-          "Local P2 cavity probe could not find inherited edge {} {} "
-          "in source element {}",point0,point1,source_element);
-      continue;
-    }
-
-    const int other_point = point0 == cav.ipins ? point1 : point0;
-    const bool is_parent_endpoint
-        = cav.split_edge_points.get_n() >= 2
-       && (other_point == cav.split_edge_points[0]
-        || other_point == cav.split_edge_points[1]);
-
-    // A CAD curve is authoritative only for a true child of the split edge.
-    // A common CAD surface also owns newly created boundary spokes.
-    const int minimum_cad_dimension = is_parent_endpoint ? 1 : 2;
-    bool initialized = evaluate_common_cad_midpoint(
-        msh,cav.ipins,other_point,minimum_cad_dimension,
-        msh.coord[coefficient_point]);
-    if(!initialized){
-      initialized = initialize_quadratic_split_child_coefficient<MFT,gdim>(
-          msh,cav,point0,point1,msh.coord[coefficient_point]);
-    }
-    if(!initialized){
-      for(int component = 0; component < gdim; component++){
-        msh.coord(coefficient_point,component)
-            = 0.5*(msh.coord(point0,component)
-                  + msh.coord(point1,component));
-      }
-    }
-  }
-}
-
 template<class MFT, int gdim, int tdim>
 class TemporaryCompletedP2Cone {
 public:
@@ -189,9 +52,9 @@ public:
     for(int local = 0; local < tdim + 1; local++){
       msh.ent2poi(tdim)(element,local) = vertices[local];
     }
-    for(int edge = 0; edge < simplex_edge_count<tdim>(); edge++){
+    for(int edge = 0; edge < quadratic_simplex_edge_count<tdim>(); edge++){
       const int point = msh.newpoitopo(PointType::CtrlPt,tdim,element);
-      msh.ent2poi(tdim)(element,quadratic_edge_node<tdim>(edge)) = point;
+      msh.ent2poi(tdim)(element,quadratic_simplex_edge_node<tdim>(edge)) = point;
     }
     complete_quadratic_cone_element<MFT,gdim,tdim>(
         msh,cavity,source_element,element);
@@ -2547,12 +2410,13 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   const int npoiProbe0 = msh.npoin;
   if(msh.curdeg == 2){
     const int number_of_edges = tdim == 2
-        ? simplex_edge_count<2>() : simplex_edge_count<3>();
+        ? quadratic_simplex_edge_count<2>()
+        : quadratic_simplex_edge_count<3>();
     for(int edge = 0; edge < number_of_edges; edge++){
       const int point = msh.newpoitopo(PointType::CtrlPt,tdim,tmpEntt);
       const int node = tdim == 2
-          ? quadratic_edge_node<2>(edge)
-          : quadratic_edge_node<3>(edge);
+          ? quadratic_simplex_edge_node<2>(edge)
+          : quadratic_simplex_edge_node<3>(edge);
       msh.ent2poi(tdim)(tmpEntt,node) = point;
     }
   }
@@ -2643,6 +2507,14 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
     for(int iface : cav.lcfac) msh.fac2tag(ithread,iface) = msh.tag[ithread];
     for(int iedge : cav.lcedg) msh.edg2tag(ithread,iedge) = msh.tag[ithread];
   };
+
+  const bool cavitySmoothingSupported = [&](){
+    if(msh.curdeg == 1) return true;
+    if(msh.curdeg != 2) return false;
+    const int boundary_point = msh.poi2bpo[ipins];
+    if(boundary_point < 0) return true;
+    return tdim == 2 && msh.bpo2ibi(boundary_point,1) == 1;
+  }();
 
   auto stackCavityBoundaryEdges = [&]([[maybe_unused]] int iface){
     if(tdim != 2) return;
@@ -2841,9 +2713,7 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   }
 
   #ifdef CAVSMOOTHING
-  // High-order cavity-targeted smoothing is Phase 7 step 5. Keep the P1
-  // behavior unchanged, but do not enter its P1-only variable path on P2.
-  if(msh.curdeg == 1){
+  if(cavitySmoothingSupported){
     double quaCav1AfterInitialSmoo;
     double quaMax1AfterInitialSmoo;
     double targetWeightAfterInitialSmoo;
@@ -3121,7 +2991,7 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
           bool acceptCandidate = improveGrowthSum && improveLocalMax;
 
           #ifdef CAVSMOOTHING
-          if (msh.curdeg == 1
+          if (cavitySmoothingSupported
           && !acceptCandidate && nearMissGrowthSum && improveLocalMax){
 
             double coor0[3] = {};
@@ -3145,6 +3015,16 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
             int ncent0 = lcent.get_n();
             int nsub0  = lcsub.get_n();
+            const int splitPointCount0 = cav.split_edge_points.get_n();
+            int splitPoints0[3] = {-1,-1,-1};
+            for(int ii = 0; ii < splitPointCount0; ii++){
+              splitPoints0[ii] = cav.split_edge_points[ii];
+            }
+            const double splitBarycentric0[2] = {
+                cav.split_edge_barycentric[0],
+                cav.split_edge_barycentric[1]};
+            const bool preserveSplitGeometry0
+                = cav.preserve_split_edge_geometry;
 
             lcent.stack(ieneijj);
             ent2tag(ithread,ieneijj) = msh.tag[ithread];
@@ -3237,6 +3117,13 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
 
             if(!acceptCandidate){
               restoreIpins(coor0,met0,lbpoi0,rbpoi0);
+              cav.split_edge_points.set_n(splitPointCount0);
+              for(int ii = 0; ii < splitPointCount0; ii++){
+                cav.split_edge_points[ii] = splitPoints0[ii];
+              }
+              cav.split_edge_barycentric[0] = splitBarycentric0[0];
+              cav.split_edge_barycentric[1] = splitBarycentric0[1];
+              cav.preserve_split_edge_geometry = preserveSplitGeometry0;
 
               for(int ii = nsub0; ii < lcsub.get_n(); ii++){
                 int isub = lcsub[ii];
@@ -3895,7 +3782,7 @@ int increase_cavity_quality(Mesh<MFT> &msh, MshCavity &cav, int tdim,
   #endif
 
   #ifdef CAVSMOOTHING
-  if(msh.curdeg == 1){
+  if(cavitySmoothingSupported){
     double quaCav1AfterSmoo;
     double quaMax1AfterSmoo;
     double targetWeightCav1AfterSmoo;

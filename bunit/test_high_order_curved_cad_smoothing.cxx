@@ -7,10 +7,18 @@
 #include "common_setup.hxx"
 
 #include "API/MetrisAPI.hxx"
+#include "Adaptation/Insertion/EdgeSeed.hxx"
+#include "Adaptation/Insertion/aux_insert.hxx"
+#include "Adaptation/low_increasecav.hxx"
 #include "Mesh/Mesh.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include "MetrisRunner/MetrisRunner.hxx"
+#include "aux_badEntHandler.hxx"
+#include "cavity/msh_cavity.hxx"
+#include "cavity/reconnect_geometry.hxx"
+#include "ho_constants.hxx"
 #include "low_geo/validity.hxx"
+#include "quality/low_metqua.hxx"
 #include "smoothing/low_smooballdiff.hxx"
 #include "smoothing/msh_smooball.hxx"
 
@@ -394,6 +402,139 @@ BOOST_AUTO_TEST_CASE(p2_curved_cad_edge_sizeshape_smoothing)
 BOOST_AUTO_TEST_CASE(p2_curved_cad_edge_stepdistance_smoothing)
 {
   check_curved_boundary_smoothing(QuaFun::StepDistance);
+}
+
+BOOST_AUTO_TEST_CASE(
+    p2_curved_cad_cavity_smoothing_keeps_children_on_curve)
+{
+  auto testCase = make_curved_planar_cad_case();
+  auto& mesh = static_cast<Mesh<MetricFieldAnalytical>&>(
+      *testCase->runner->msh_g);
+  mesh.met.setSpace(MetSpace::Exp);
+  mesh.setBasis(FEBasis::Lagrange);
+
+  constexpr int curvedMeshEdge = 0;
+  MshCavity cavity;
+  EdgeSeed seed(mesh,cavity,2,1,curvedMeshEdge,0);
+  BOOST_REQUIRE_EQUAL(seed.tdimp,1);
+  cavity.ipins = mesh.newpoint(PointType::Vertex,1,curvedMeshEdge);
+  cavity.inewp = 1;
+  BOOST_REQUIRE_EQUAL(aux_bisecPointLen(
+      mesh,seed,mesh.poi2bpo[cavity.ipins],false,cavity),0);
+  BOOST_REQUIRE_EQUAL(cavity.lcfac.get_n(),1);
+  BOOST_REQUIRE_EQUAL(cavity.split_edge_points.get_n(),3);
+  BOOST_CHECK(!cavity.preserve_split_edge_geometry);
+
+  const int insertionRecord = mesh.poi2bpo[cavity.ipins];
+  BOOST_REQUIRE_GE(insertionRecord,0);
+  const ego cadEdge = mesh.CAD.cad2edg[mesh.edg2ref[curvedMeshEdge]];
+  const double initialParameter = circle_start
+                                + 0.28*(circle_end - circle_start);
+  double evaluation[18];
+  require_egads_success(
+      EG_evaluate(cadEdge,&initialParameter,evaluation),
+      "EG_evaluate(cavity insertion perturbation)");
+  mesh.bpo2rbi(insertionRecord,0) = initialParameter;
+  mesh.coord(cavity.ipins,0) = evaluation[0];
+  mesh.coord(cavity.ipins,1) = evaluation[1];
+  BOOST_REQUIRE_EQUAL(mesh.interpMetBack(cavity.ipins),0);
+
+  double initialObjective = 0.;
+  double initialMaximum = -1.0e30;
+  int candidateCount = 0;
+  const int sourceFace = cavity.lcfac[0];
+  for(int opposite = 0; opposite < 3; opposite++){
+    const int baseEdge = mesh.fac2edg(sourceFace,opposite);
+    if(baseEdge >= 0
+       && mesh.edg2ref[baseEdge] == mesh.edg2ref[curvedMeshEdge]) continue;
+    const int vertices[3] = {
+        cavity.ipins,
+        mesh.fac2poi(sourceFace,lnoed2[opposite][0]),
+        mesh.fac2poi(sourceFace,lnoed2[opposite][1])};
+    bool valid = false;
+    const double objective = evaluate_completed_p2_cavity_cone<
+        MetricFieldAnalytical,2,QuaFun::SizeShape>(
+            mesh,cavity,sourceFace,vertices,&valid);
+    BOOST_REQUIRE(valid);
+    initialObjective += objective;
+    initialMaximum = MAX(initialMaximum,objective);
+    candidateCount++;
+  }
+  BOOST_REQUIRE_EQUAL(candidateCount,2);
+
+  const int faceCount = mesh.nface;
+  const int pointCount = mesh.npoin;
+  mesh.set_nface(faceCount + 1);
+  const int temporaryFace = faceCount;
+  for(int edge = 0; edge < 3; edge++){
+    const int point = mesh.newpoitopo(PointType::CtrlPt,2,temporaryFace);
+    mesh.fac2poi(temporaryFace,quadratic_simplex_edge_node<2>(edge)) = point;
+  }
+
+  BadEntHandler handler(2,100.,0.0);
+  double finalObjective;
+  double finalMaximum;
+  double finalTargetWeight;
+  const double smoothingCount = smoothCavity(
+      mesh,cavity,handler,QuaFun::SizeShape,
+      initialObjective,initialMaximum,candidateCount,
+      finalObjective,finalMaximum,finalTargetWeight,0,1);
+  BOOST_REQUIRE(smoothingCount > 0.);
+  BOOST_CHECK(finalObjective <= initialObjective);
+  BOOST_CHECK_EQUAL(cavity.split_edge_points.get_n(),3);
+  BOOST_CHECK(!cavity.preserve_split_edge_geometry);
+
+  const double optimizedParameter = mesh.bpo2rbi(insertionRecord,0);
+  BOOST_CHECK_GT(std::abs(optimizedParameter - initialParameter),1.e-10);
+  require_egads_success(
+      EG_evaluate(cadEdge,&optimizedParameter,evaluation),
+      "EG_evaluate(cavity optimized point)");
+  BOOST_CHECK_SMALL(mesh.coord(cavity.ipins,0) - evaluation[0],1.e-12);
+  BOOST_CHECK_SMALL(mesh.coord(cavity.ipins,1) - evaluation[1],1.e-12);
+
+  int cadChildren = 0;
+  for(int opposite = 0; opposite < 3; opposite++){
+    const int baseEdge = mesh.fac2edg(sourceFace,opposite);
+    if(baseEdge >= 0
+       && mesh.edg2ref[baseEdge] == mesh.edg2ref[curvedMeshEdge]) continue;
+    mesh.fac2poi(temporaryFace,0) = cavity.ipins;
+    mesh.fac2poi(temporaryFace,lnoed2[0][0])
+        = mesh.fac2poi(sourceFace,lnoed2[opposite][0]);
+    mesh.fac2poi(temporaryFace,lnoed2[0][1])
+        = mesh.fac2poi(sourceFace,lnoed2[opposite][1]);
+    complete_quadratic_cone_element<MetricFieldAnalytical,2,2>(
+        mesh,cavity,sourceFace,temporaryFace,
+        QuadraticConeSpokePolicy::ReleasedAffine);
+    BOOST_CHECK((classify_element_validity<2,2>(
+        mesh,temporaryFace).is_certified()));
+    for(int edge = 0; edge < 3; edge++){
+      const int local0 = quadratic_simplex_edge_vertex<2>(edge,0);
+      const int local1 = quadratic_simplex_edge_vertex<2>(edge,1);
+      if(local0 != 0 && local1 != 0) continue;
+      const int otherLocal = local0 == 0 ? local1 : local0;
+      const int otherPoint = mesh.fac2poi(temporaryFace,otherLocal);
+      if(otherPoint != seed.ipedg[0] && otherPoint != seed.ipedg[1]){
+        continue;
+      }
+      const int midpoint
+          = mesh.fac2poi(temporaryFace,quadratic_simplex_edge_node<2>(edge));
+      const int endpointRecord = mesh.poi2ebp(
+          otherPoint,1,-1,mesh.edg2ref[curvedMeshEdge]);
+      BOOST_REQUIRE_GE(endpointRecord,0);
+      const double midpointParameter
+          = 0.5*(optimizedParameter + mesh.bpo2rbi(endpointRecord,0));
+      require_egads_success(
+          EG_evaluate(cadEdge,&midpointParameter,evaluation),
+          "EG_evaluate(cavity CAD child midpoint)");
+      BOOST_CHECK_SMALL(mesh.coord(midpoint,0) - evaluation[0],1.e-12);
+      BOOST_CHECK_SMALL(mesh.coord(midpoint,1) - evaluation[1],1.e-12);
+      cadChildren++;
+    }
+  }
+  BOOST_CHECK_EQUAL(cadChildren,2);
+
+  mesh.set_nface(faceCount);
+  mesh.set_npoin(pointCount);
 }
 
 BOOST_AUTO_TEST_CASE(p2_curved_cad_curve_native_input_regression)

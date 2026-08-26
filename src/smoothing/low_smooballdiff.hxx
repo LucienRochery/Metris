@@ -78,6 +78,21 @@ int smoocavdiff(Mesh<MetricFieldType>& msh, MshCavity& cav,
                    double& targetWeightCav1,
                    QuaFun iquaf, int ithread);
 
+// Raw completed-P2 released-spoke objective and derivatives used by cavity
+// smoothing. The surrounding cavity-growth workspace must have reserved its
+// temporary cone element as the last full-dimensional entity. Derivatives are
+// with respect to the physical insertion-point coordinate and include every
+// affine midpoint dependence.
+template<class MetricFieldType, int idim>
+bool evaluate_released_p2_cavity_objective(
+    Mesh<MetricFieldType>& msh,
+    MshCavity& cav,
+    QuaFun iquaf,
+    int ithread,
+    double& numerator,
+    double* gradient,
+    double* hessian = nullptr);
+
 // boundary variant of smoocavdiff
 template<class MetricFieldType, int idim, int ideg>
 int smoocavdiff_boundary(Mesh<MetricFieldType>& msh, MshCavity& cav,
