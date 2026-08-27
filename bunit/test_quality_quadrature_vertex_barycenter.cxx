@@ -156,19 +156,6 @@ void check_same_rule(const SimplexQuadratureView<tdim> selected_rule,
 template <int tdim>
 void check_objective_quadrature_selection()
 {
-  if constexpr(tdim == 2)
-  {
-    check_same_rule(
-        get_objective_quadrature<tdim>(-1),
-        get_positive_simplex_quadrature<tdim, 4>());
-  }
-  else
-  {
-    static_assert(tdim == 3);
-    check_same_rule(
-        get_objective_quadrature<tdim>(-1),
-        get_positive_simplex_quadrature<tdim, 3>());
-  }
   check_same_rule(
       get_objective_quadrature<tdim>(0),
       get_vertex_barycenter_quadrature<tdim>());
@@ -343,7 +330,7 @@ BOOST_AUTO_TEST_CASE(objective_quadrature_order_selection)
   check_objective_quadrature_selection<2>();
   check_objective_quadrature_selection<3>();
   BOOST_CHECK_THROW(
-      get_objective_quadrature<2>(-2),Metris::MetrisExcept);
+      get_objective_quadrature<2>(-1),Metris::MetrisExcept);
   BOOST_CHECK_THROW(
       get_objective_quadrature<2>(6),Metris::MetrisExcept);
 }

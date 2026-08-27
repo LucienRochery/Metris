@@ -157,6 +157,41 @@ BOOST_AUTO_TEST_CASE(classic_length_smoothing_remains_p1_only)
   }
 }
 
+BOOST_AUTO_TEST_CASE(scaled_analytical_metric_remains_exact_after_degree_elevation)
+{
+  MetrisParameters parameters;
+  parameters.setAnalyticalMetric(2);
+  parameters.setMetricScale(0.164973429592);
+  parameters.setMeshIn(
+      METRIS_ROOT_DIR "/examples/2D/square/square.meshb");
+  parameters.setCAD(
+      METRIS_ROOT_DIR "/examples/2D/square/square.egads");
+  parameters.usrTarDeg = 2;
+  parameters.adp_niter = 0;
+  parameters.opt_niter = 0;
+  parameters.iverb = 0;
+  parameters.outmPrefix
+      = (std::filesystem::temp_directory_path()
+         / "metris_scaled_analytical_degree_elevation").string() + "/";
+
+  MetrisRunner runner(nullptr,nullptr,parameters);
+  BOOST_REQUIRE_EQUAL(runner.degElevate(),1);
+  auto &mesh = static_cast<Mesh<MetricFieldAnalytical>&>(*runner.msh_g);
+
+  constexpr int metric_components = 3;
+  for(int point = 0; point < mesh.npoin; point++){
+    if(mesh.isdeadpoint(point)) continue;
+    double expected[metric_components];
+    mesh.met.getMetPhys(DifVar::None,mesh.met.getSpace(),
+                        mesh.coord[point],expected,nullptr);
+    for(int component = 0; component < metric_components; component++){
+      BOOST_CHECK_SMALL(
+          mesh.met(point,component)-expected[component],
+          2.e-13*std::max(1.0,std::abs(expected[component])));
+    }
+  }
+}
+
 BOOST_AUTO_TEST_CASE(p2_edge_control_point_regions_in_two_triangles)
 {
   auto runner = make_elevated_two_triangle_runner();

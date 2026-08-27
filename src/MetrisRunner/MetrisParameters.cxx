@@ -473,9 +473,9 @@ void MetrisParameters::checkParameters(){
   METRIS_ENFORCE_MSG(objective_p >= 1.0,
                      "objective_p must be greater than or equal to 1");
   METRIS_ENFORCE_MSG(
-      objective_quadrature_order >= -1
+      objective_quadrature_order >= 0
           && objective_quadrature_order <= 5,
-      "objective-quadrature-order must be between -1 (automatic) and 5");
+      "objective-quadrature-order must be between 0 and 5");
   METRIS_ENFORCE_MSG(step_distance_regularization > 0.0,
                      "step_distance_regularization must be positive");
   METRIS_ENFORCE_MSG(

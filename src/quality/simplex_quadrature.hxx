@@ -359,28 +359,15 @@ get_positive_simplex_quadrature() noexcept
 }
 
 // Runtime selection entry point shared by every objective-driven consumer.
-// Order -1 selects the balanced dimension-dependent default. Unsupported
-// requests must never fall back silently.
+// Unsupported requests must never fall back silently.
 template <int tdim>
 SimplexQuadratureView<tdim> get_objective_quadrature(int order)
 {
   METRIS_ENFORCE_MSG(
-      order >= -1 && order <= 5,
+      order >= 0 && order <= 5,
       "Unsupported objective quadrature order {}: available orders are "
-      "-1 (automatic), 0, 1, 2, 3, 4, and 5",
+      "0, 1, 2, 3, 4, and 5",
       order);
-  if (order == -1)
-  {
-    if constexpr(tdim == 2)
-    {
-      return get_positive_simplex_quadrature<2, 4>();
-    }
-    else
-    {
-      static_assert(tdim == 3);
-      return get_positive_simplex_quadrature<3, 3>();
-    }
-  }
   if (order == 0)
   {
     return get_vertex_barycenter_quadrature<tdim>();

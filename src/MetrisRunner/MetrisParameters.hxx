@@ -105,9 +105,8 @@ depending on whether they should be serialized.
     FIELD(int, opt_power, 1) \
     /* Pointwise objective exponent, fixed for a run. */ \
     FIELD(double, objective_p, 1.0) \
-    /* -1 selects the dimension-dependent default; 0 selects the historical */ \
-    /* vertex-barycenter objective rule. */ \
-    FIELD(int, objective_quadrature_order, -1) \
+    /* 0 selects the default historical vertex-barycenter objective rule. */ \
+    FIELD(int, objective_quadrature_order, 0) \
     /* StepDistance regularization, aggregation, and collapse barrier. */ \
     FIELD(double, step_distance_regularization, 1.0e-12) \
     FIELD(bool, step_distance_shape_volume, false) \

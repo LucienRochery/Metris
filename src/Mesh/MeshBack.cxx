@@ -114,6 +114,10 @@ void MeshBack::initialize(MetrisAPI *data,
 
   met.forceBasisFlag(FEBasis::Undefined);
 
+  // Analytical metrics receive metScale directly when they are evaluated.
+  // Other metric sources are normalized after loading below.
+  bool metricScaleAppliedDuringLoad = false;
+
 
   // If no input file:
   if(  (!param.inpMet && data == NULL)
@@ -138,6 +142,7 @@ void MeshBack::initialize(MetrisAPI *data,
       for(int ipoin = 0; ipoin < npoin; ipoin++){
         anamet(NULL, coord[ipoin], param.metScale, 0, met[ipoin], NULL);
       }
+      metricScaleAppliedDuringLoad = true;
 
       if(DOPRINTS2()) met.writeMetricFile("backmet.solb");
       met.setSpace(MetSpace::Log, true);
@@ -196,7 +201,7 @@ void MeshBack::initialize(MetrisAPI *data,
 
   if(param.scaleMet){
     CPRINTF1("-- Back scaling metric by {:15.7e}\n", param.metScale);
-    met.normalize(param.metScale);
+    if(!metricScaleAppliedDuringLoad) met.normalize(param.metScale);
   }
 
 
