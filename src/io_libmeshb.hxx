@@ -17,7 +17,7 @@ namespace Metris{
 
 class MshCavity;
 // For writeField 
-enum class SolTyp{P0Elt,CG};
+enum class SolTyp{P0Elt,CG,DG};
 
 void test_read();
 
@@ -58,7 +58,8 @@ void writeMesh(std::string meshName, int ideg, int ilag,
 void writeMeshVecs(std::string meshName, MeshBase &msh, const dblAr2 &poi2vec);
 #endif
 
-void writeField(std::string outname, const MeshBase &msh, SolTyp stype, dblAr1 &rfld, int ndim = 1);
+void writeField(std::string outname, const MeshBase &msh, SolTyp stype,
+                dblAr1 &rfld, int ndim = 1, int field_degree = 0);
 
 void writeEdgesLengths(const MeshBase &msh, std::string outnroot, 
                        intAr2 &edg2poi, const dblAr1 &rlened);

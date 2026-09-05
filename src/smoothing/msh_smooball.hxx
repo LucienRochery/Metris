@@ -77,6 +77,21 @@ bool planarP2BoundaryIsIntersectionFreeAroundPoint(
     const MeshBase &msh,
     int moved_point);
 
+// Optimize exactly one edge-associated control point of a planar quadratic
+// mesh. Corner vertices and every other P2 control point remain fixed during
+// the call. The candidate is accepted only when the complete SizeShape (or
+// StepDistance) objective over the affected one- or two-triangle region
+// strictly decreases and all geometry/CAD validity checks pass.
+template<class MetricFieldType>
+bool smoothSingleQuadraticEdgeControlPoint(
+    Mesh<MetricFieldType> &msh,
+    int point,
+    int seed_triangle,
+    int local_edge,
+    QuaFun objective,
+    double *regional_objective_before = nullptr,
+    double *regional_objective_after = nullptr);
+
 // Returns number of operations as double; this is because it may exceed element
 // count, something that cannot be anticipated easily by selecting integer
 // types.

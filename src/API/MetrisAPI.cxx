@@ -331,17 +331,16 @@ void MetrisAPI::setDegree(int tardeg){
         lpoin.set_n(npoin);
         lpoin.fill(-2);
       }
-      // Points into same memory region but lets us access with diff stride
-      intAr2 ent2pon(nentt, tdim + 1, ent2poi[0]);
-      ent2pon.set_n(nentt);
-      // We can skip first because they won't move 
-      for(int ientt = 1; ientt < nentt; ientt++){
+      // Mark the vertices that survive degree reduction while the connectivity
+      // still has its original stride. set_stride() performs the actual
+      // in-place compaction; copying into a packed alias here would compact the
+      // connectivity twice.
+      for(int ientt = 0; ientt < nentt; ientt++){
         if(isdeadent(ientt, ent2poi)){
           ndead[tdim-1]++;
         }
         for(int ii = 0; ii < tdim + 1; ii++){
           int ipoin = ent2poi(ientt,ii);
-          ent2pon(ientt,ii) = ipoin;
           lpoin[ipoin] = -1;
         }
       }// for ientt

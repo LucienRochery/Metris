@@ -852,8 +852,13 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
       }
 
       if (didOperation) {
+        // updateK uses ent2tag as scratch storage to deduplicate the affected
+        // patch.  Consume a fresh tag now rather than writing tag + 1: the
+        // next cavity operation also advances the tag counter, and would
+        // otherwise mistake these handler marks for cavity membership.
+        msh.tag[ithrd1]++;
         handlerTopX.updateK(ientt, ent2ent, ent2tag,
-                            msh.tag[ithrd1] + 1, ithrd1);
+                            msh.tag[ithrd1], ithrd1);
         break;
       }
 
@@ -875,7 +880,11 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
           nSuccessSmoothing++;
           didOperation = true;
           // std::cout << "Successful smoothing in ientt = " << ientt << std::endl;
-          handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1]+1,ithrd1);
+          // Keep handler scratch marks behind the tag value that the next
+          // cavity operation will consume; see the operation-success path
+          // above for the corresponding insertion/collapse case.
+          msh.tag[ithrd1]++;
+          handlerTopX.updateK(ientt,ent2ent,ent2tag,msh.tag[ithrd1],ithrd1);
           #ifdef DIAGNOSIS_QUALALGO
           statusSmoo = 1;
           statusIns = 0;

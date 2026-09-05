@@ -618,6 +618,114 @@ void reactivateSmoothingRegionGeometry(
 }
 
 template<class MFT>
+bool smoothSingleQuadraticEdgeControlPoint(
+    Mesh<MFT> &msh,
+    int point,
+    int seed_triangle,
+    int local_edge,
+    QuaFun objective,
+    double *regional_objective_before,
+    double *regional_objective_after)
+{
+  constexpr int idim = 2;
+  constexpr int ideg = 2;
+  constexpr int nnmet = 3;
+
+  METRIS_ENFORCE_MSG(
+      msh.idim == idim && msh.get_tdim() == idim && msh.curdeg == ideg,
+      "Single quadratic-node smoothing requires a planar P2 mesh");
+  METRIS_ENFORCE_MSG(
+      msh.getBasis() == FEBasis::Lagrange,
+      "Single quadratic-node smoothing requires Lagrange geometry");
+  METRIS_ENFORCE_MSG(
+      objective == QuaFun::SizeShape || objective == QuaFun::StepDistance,
+      "Single quadratic-node smoothing requires an objective-driven metric");
+  METRIS_ENFORCE_MSG(
+      seed_triangle >= 0 && seed_triangle < msh.nface,
+      "Invalid seed triangle {}",seed_triangle);
+  METRIS_ENFORCE_MSG(
+      local_edge >= 0 && local_edge < 3,
+      "Invalid local triangle edge {}",local_edge);
+  METRIS_ENFORCE_MSG(
+      msh.fac2poi(seed_triangle,3 + local_edge) == point,
+      "Point {} is not the P2 node on local edge {} of triangle {}",
+      point,local_edge,seed_triangle);
+
+  intAr1 region;
+  buildEdgeControlPointSmoothingRegion(
+      msh,idim,seed_triangle,local_edge,region);
+
+  double coordinate0[idim];
+  double metric0[nnmet];
+  for(int component = 0; component < idim; component++){
+    coordinate0[component] = msh.coord(point,component);
+  }
+  for(int entry = 0; entry < nnmet; entry++){
+    metric0[entry] = msh.met(point,entry);
+  }
+  const BoundaryParameterSnapshot boundary0
+      = captureBoundaryParameters(msh,point);
+
+  double objective0 = 0.;
+  double maximum0 = 0.;
+  double objective1 = 0.;
+  double maximum1 = 0.;
+  int error = 0;
+  const int boundaryRecord = msh.poi2bpo[point];
+  if(boundaryRecord < 0){
+    error = smooballdiff<MFT,idim,ideg>(
+        msh,point,region,&objective0,&maximum0,
+        &objective1,&maximum1,objective);
+  }else{
+    METRIS_ENFORCE_MSG(
+        msh.bpo2ibi(boundaryRecord,0) == point,
+        "Invalid boundary record for point {}",point);
+    const int cadDimension = msh.bpo2ibi(boundaryRecord,1);
+    METRIS_ENFORCE_MSG(
+        cadDimension == 1,
+        "Quadratic boundary point {} is not CAD-curve owned",point);
+    error = smooballdiff_boundary<MFT,idim,ideg>(
+        msh,point,cadDimension,region,&objective0,&maximum0,
+        &objective1,&maximum1,objective);
+  }
+
+  bool accepted = error == 0
+               && objective_strictly_improves(objective1,objective0);
+  if(accepted && boundaryRecord >= 0){
+    synchronizeCurvePointFaceParameters(msh,point);
+    accepted = planarP2BoundaryIsIntersectionFreeAroundPoint(msh,point);
+    if(accepted){
+      enforceAcceptedBoundarySmoothingInvariants<MFT,idim,ideg>(
+          msh,point,region);
+    }
+  }
+
+  if(!accepted){
+    for(int component = 0; component < idim; component++){
+      msh.coord(point,component) = coordinate0[component];
+    }
+    for(int entry = 0; entry < nnmet; entry++){
+      msh.met(point,entry) = metric0[entry];
+    }
+    restoreBoundaryParameters(msh,boundary0);
+    objective1 = objective0;
+  }
+
+  if(regional_objective_before != nullptr){
+    *regional_objective_before = objective0;
+  }
+  if(regional_objective_after != nullptr){
+    *regional_objective_after = objective1;
+  }
+  return accepted;
+}
+
+template bool smoothSingleQuadraticEdgeControlPoint<MetricFieldAnalytical>(
+    Mesh<MetricFieldAnalytical>&,int,int,int,QuaFun,double*,double*);
+template bool smoothSingleQuadraticEdgeControlPoint<MetricFieldFE>(
+    Mesh<MetricFieldFE>&,int,int,int,QuaFun,double*,double*);
+
+template<class MFT>
 double smoothing_region_objective(const Mesh<MFT>& msh,
                                   QuaFun iquaf,
                                   double numerator,

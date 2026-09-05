@@ -827,11 +827,19 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix,
 
 
 
-void writeField(std::string outname, const MeshBase &msh, SolTyp stype, dblAr1 &rfld, int ndim){
+void writeField(std::string outname, const MeshBase &msh, SolTyp stype,
+                dblAr1 &rfld, int ndim, int field_degree){
   GETVDEPTH(msh.param);
 
-  if(stype != SolTyp::P0Elt && stype != SolTyp::CG) 
+  if(stype != SolTyp::P0Elt && stype != SolTyp::CG
+     && stype != SolTyp::DG)
     METRIS_THROW_MSG("TODO: Implement other SolTyps in writeField");
+  if(stype == SolTyp::DG){
+    METRIS_ENFORCE_MSG(field_degree > 0,
+                       "DG field degree must be positive");
+    METRIS_ENFORCE_MSG(field_degree <= METRIS_MAX_DEG_ORDERING,
+                       "DG field degree exceeds the available node ordering");
+  }
 
   int tdimn = msh.get_tdim();
   METRIS_ENFORCE(tdimn == 1 || tdimn == 2 || tdimn == 3);
@@ -848,13 +856,16 @@ void writeField(std::string outname, const MeshBase &msh, SolTyp stype, dblAr1 &
     szfld = GmfVec;
   }
 
+  const int field_nodes = stype == SolTyp::DG
+                        ? getnnode(tdimn,field_degree) : 1;
   int ndof = -1;
-  if(stype == SolTyp::CG)         ndof = msh.npoin;
-  else if(stype == SolTyp::P0Elt) ndof = msh.nentt(msh.get_tdim());
+  if(stype == SolTyp::CG) ndof = msh.npoin;
+  else if(stype == SolTyp::P0Elt || stype == SolTyp::DG)
+    ndof = msh.nentt(msh.get_tdim());
   else METRIS_THROW_MSG("TODO: Sol typ not implemented ndof")
-  if(rfld.get_n() / ndim != ndof){
-    CPRINTF1("## WARNING rfld.get_n / ndim = {} ndof {} \n",
-             rfld.get_n() / ndim, ndof);
+  if(rfld.get_n() != ndof*ndim*field_nodes){
+    CPRINTF1("## WARNING rfld.get_n / (ndim*field_nodes) = {} ndof {} \n",
+             rfld.get_n() / (ndim*field_nodes), ndof);
     return;
   }
 
@@ -869,38 +880,79 @@ void writeField(std::string outname, const MeshBase &msh, SolTyp stype, dblAr1 &
 
   int solKwd = 0;
   bool iHO = false;
-  if(stype == SolTyp::P0Elt){
+  if(stype == SolTyp::P0Elt || stype == SolTyp::DG){
     int solPosKwd;
-    if(msh.curdeg == 1){
+    if(msh.curdeg == 1 && stype == SolTyp::P0Elt){
       solKwd = tdimn == 1 ? GmfSolAtEdges :
                tdimn == 2 ? GmfSolAtTriangles : GmfSolAtTetrahedra;
-    }else if(msh.curdeg == 2){
-      iHO = true;
-      solKwd = tdimn == 1 ? GmfHOSolAtEdgesP2 :
-               tdimn == 2 ? GmfHOSolAtTrianglesP2 : GmfHOSolAtTetrahedraP2;
-      solPosKwd = tdimn == 1 ? GmfHOSolAtEdgesP2NodesPositions :
-                  tdimn == 2 ? GmfHOSolAtTrianglesP2NodesPositions : 
-                               GmfHOSolAtTetrahedraP2NodesPositions;
-      GmfSetKwd(libIdx, solPosKwd, 1);
-      if(tdimn == 1){
-        GmfSetLin(libIdx, solPosKwd, 0.5, 0.5);
-      }else if(tdimn == 2){
-        GmfSetLin(libIdx, solPosKwd, 0.5, 0.5, 0.5);
-      }else{
-        GmfSetLin(libIdx, solPosKwd, 0.5, 0.5, 0.5, 0.5);
-      }
     }else{
-      METRIS_THROW_MSG("TODO: SoltAtElt kwd deg > 2 not implemented");
+      iHO = true;
+      if(msh.curdeg == 1){
+        solKwd = tdimn == 1 ? GmfHOSolAtEdgesP1 :
+                 tdimn == 2 ? GmfHOSolAtTrianglesP1
+                            : GmfHOSolAtTetrahedraP1;
+        solPosKwd = tdimn == 1 ? GmfHOSolAtEdgesP1NodesPositions :
+                    tdimn == 2 ? GmfHOSolAtTrianglesP1NodesPositions
+                               : GmfHOSolAtTetrahedraP1NodesPositions;
+      }else if(msh.curdeg == 2){
+        solKwd = tdimn == 1 ? GmfHOSolAtEdgesP2 :
+                 tdimn == 2 ? GmfHOSolAtTrianglesP2
+                            : GmfHOSolAtTetrahedraP2;
+        solPosKwd = tdimn == 1 ? GmfHOSolAtEdgesP2NodesPositions :
+                    tdimn == 2 ? GmfHOSolAtTrianglesP2NodesPositions
+                               : GmfHOSolAtTetrahedraP2NodesPositions;
+      }else{
+        METRIS_THROW_MSG(
+            "DG fields currently support P1/P2 geometry");
+      }
+      GmfSetKwd(libIdx, solPosKwd, field_nodes);
+      if(stype == SolTyp::P0Elt){
+        const double barycenter = 1.0/(tdimn + 1.0);
+        if(tdimn == 1){
+          GmfSetLin(libIdx, solPosKwd, barycenter, barycenter);
+        }else if(tdimn == 2){
+          GmfSetLin(
+              libIdx, solPosKwd, barycenter, barycenter, barycenter);
+        }else{
+          GmfSetLin(libIdx, solPosKwd, barycenter, barycenter,
+                    barycenter, barycenter);
+        }
+      }else{
+        for(int inode = 0; inode < field_nodes; inode++){
+          if(tdimn == 1){
+            GmfSetLin(
+                libIdx,solPosKwd,
+                ordedg.s[field_degree][inode][0]/(double)field_degree,
+                ordedg.s[field_degree][inode][1]/(double)field_degree);
+          }else if(tdimn == 2){
+            GmfSetLin(
+                libIdx,solPosKwd,
+                ordfac.s[field_degree][inode][0]/(double)field_degree,
+                ordfac.s[field_degree][inode][1]/(double)field_degree,
+                ordfac.s[field_degree][inode][2]/(double)field_degree);
+          }else{
+            GmfSetLin(
+                libIdx,solPosKwd,
+                ordtet.s[field_degree][inode][0]/(double)field_degree,
+                ordtet.s[field_degree][inode][1]/(double)field_degree,
+                ordtet.s[field_degree][inode][2]/(double)field_degree,
+                ordtet.s[field_degree][inode][3]/(double)field_degree);
+          }
+        }
+      }
     }
   }else if(stype == SolTyp::CG){
     solKwd = GmfSolAtVertices;
   }
 
   if(!iHO) GmfSetKwd(libIdx, solKwd, ndof, 1, &szfld);
-  else     GmfSetKwd(libIdx, solKwd, ndof, 1, &szfld, 0, 1);
+  else     GmfSetKwd(libIdx, solKwd, ndof, 1, &szfld,
+                     stype == SolTyp::DG ? field_degree : 0,
+                     field_nodes);
 
   GmfSetBlock(libIdx, solKwd, 1, ndof, 0, NULL, NULL,
-    GmfDoubleVec, ndim, &rfld[0], &rfld[ndim*(ndof-1)]);
+    GmfDoubleVec, ndim*field_nodes,
+    &rfld[0], &rfld[ndim*field_nodes*(ndof-1)]);
 
   //for(int ipoin = 0; ipoin < nfld; ipoin++){
   //  if(ndim == 1){
@@ -1561,4 +1613,3 @@ void writeMesh(std::string meshName, int ideg, int ilag,
 
 
 } // End namespace
-

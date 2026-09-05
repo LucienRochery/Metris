@@ -349,4 +349,51 @@ void anamet2D_8([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 }
 
+// Flat nonconstant metric compatible with Metris's equilateral ideal triangle.
+//
+// Let
+//
+//   Psi(xi,eta) = (xi + a*xi*(1-xi), eta),
+//   C = J0^T*J0 = [1,1/2;1/2,1],
+//
+// where J0 maps the canonical right triangle to Metris's unit equilateral
+// triangle.  The target is
+//
+//   M = (1/scale^2) DPsi^{-T} C DPsi^{-1}.
+//
+// A scale-by-scale Cartesian grid in (xi,eta), with every square split along
+// its lower-right-to-upper-left diagonal, is therefore an exact unit mesh for
+// this metric after applying Psi.  Its Q2 geometry also makes the matching
+// scalar function u = Psi^{-1}_1 exactly P1 on every element.
+//
+// With n subdivisions per coordinate direction,
+//
+//   scale = 1/n,
+//   N_vertex = (n+1)^2 = 1/scale^2 + 2/scale + 1.
+void anamet2D_9([[maybe_unused]] const AnaMetCtx* ctx,
+                const double*__restrict__ crd, double scale, int idif1,
+                double *met, double *dmet){
+
+  constexpr double a = 0.5;
+
+  const double inv_scale2 = 1.0/(scale*scale);
+  const double Da = (1.0 + a)*(1.0 + a) - 4.0*a*crd[0];
+  METRIS_ASSERT_MSG(Da > 0.0,
+    "anamet2D_9 is defined for coordinates satisfying D_a(x) > 0; x = {} D_a = {}",
+    crd[0], Da);
+
+  const double sqrt_Da = std::sqrt(Da);
+  met[0] = inv_scale2/Da;
+  met[1] = 0.5*inv_scale2/sqrt_Da;
+  met[2] = inv_scale2;
+
+  if(idif1 > 0){
+    for(int ii = 0; ii < 6; ii++) dmet[ii] = 0.0;
+
+    // dmet[3*i + j] = partial_i M_j, M = (M11,M12,M22).
+    dmet[0] = 4.0*a*inv_scale2/(Da*Da);
+    dmet[1] = a*inv_scale2/(Da*sqrt_Da);
+  }
+}
+
 } // End namespace
