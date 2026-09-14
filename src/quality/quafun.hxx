@@ -11,6 +11,7 @@
 #include "quafun_unit.hxx"
 #include "quafun_sizeshape.hxx"
 #include "quafun_stepDistance.hxx"
+#include "quafun_connection.hxx"
 
 #include "../metris_constants.hxx"
 #include "../aux_exceptions.hxx"
@@ -24,7 +25,7 @@ namespace Metris{
   // Distortion has additionally a normal deviation penalization term.
   // Weights are given by
 
-  enum class QuaFun{Distortion,Unit,SizeShape,StepDistance};
+  enum class QuaFun{Distortion,Unit,SizeShape,StepDistance,Connection};
 
   #ifdef STEPDISTANCE
   inline constexpr QuaFun DefaultQualityFunction = QuaFun::StepDistance;

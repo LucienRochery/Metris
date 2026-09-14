@@ -34,7 +34,7 @@ template<int n> inline double idpow(double x);
  - bary: tdim+1 barycentric coordinates
  - eval: array of size szfld, the evaluation at bary
  - jmat: array of size tdim*szfld. 1D but (C convention)  jmat[i][j] = d_i eval[j]
- - hmat: array of size [(tdim+1)*(tdim+2)/2]*szfld. 1D but (C convention)  hmat[i][j] = s_i eval[j] 
+ - hmat: array of size [tdim*(tdim+1)/2]*szfld. 1D but (C convention)  hmat[i][j] = s_i eval[j]
  where s_i designates some d_jd_k ordered the same as other symmetric mats (e.g. metrics):
     1: d_11
     2: d_12

@@ -415,20 +415,20 @@ std::filesystem::path objective_compare_output_dir(){
       std::getenv("METRIS_OBJECTIVE_COMPARE_OUTPUT_DIR")){
     return output;
   }
-  return std::filesystem::current_path() / "build" / "codex_diagnostic"
+  return std::filesystem::path(METRIS_BUILD_DIR)
                                       / "objective_insert_comparison";
 }
 
 std::filesystem::path trace_dir(){
-  return std::filesystem::current_path() / "build" / "codex_diagnostic" / "quality_insert_divergence_trace";
+  return std::filesystem::path(METRIS_BUILD_DIR) / "quality_insert_divergence_trace";
 }
 
 std::filesystem::path vizir_dir(){
-  return std::filesystem::current_path() / "build" / "codex_diagnostic" / "quality_insert_divergence_vizir";
+  return std::filesystem::path(METRIS_BUILD_DIR) / "quality_insert_divergence_vizir";
 }
 
 std::filesystem::path runmetris_dir(){
-  return std::filesystem::current_path() / "build" / "codex_diagnostic"
+  return std::filesystem::path(METRIS_BUILD_DIR)
                                       / "quality_insert_runmetris";
 }
 
@@ -2542,7 +2542,7 @@ CavityIntegrationValues compare_exact_case_integration_schemes_impl(
   constexpr int ithrd1 = 1;
 
   const std::filesystem::path dir =
-      std::filesystem::current_path() / "build" / "codex_diagnostic"
+      std::filesystem::path(METRIS_BUILD_DIR)
                                       / "integration_method_comparison";
   std::filesystem::create_directories(dir);
   std::ofstream log(dir / "a6_face214_edge0.log");

@@ -638,7 +638,7 @@ bool smoothSingleQuadraticEdgeControlPoint(
       msh.getBasis() == FEBasis::Lagrange,
       "Single quadratic-node smoothing requires Lagrange geometry");
   METRIS_ENFORCE_MSG(
-      objective == QuaFun::SizeShape || objective == QuaFun::StepDistance,
+      isObjectiveDrivenSmoothing(objective),
       "Single quadratic-node smoothing requires an objective-driven metric");
   METRIS_ENFORCE_MSG(
       seed_triangle >= 0 && seed_triangle < msh.nface,

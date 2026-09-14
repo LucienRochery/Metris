@@ -349,7 +349,10 @@ void anamet2D_8([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
   getmet_SurS2dbl<2>(metS,met,idif1 > 0 ? dmet : NULL);
 }
 
-// Flat nonconstant metric compatible with Metris's equilateral ideal triangle.
+// Globally smooth physical mesh-implied metric obtained from a regular
+// computational square mesh with descending diagonals (upper left to lower
+// right), pushed forward by the quadratic diffeomorphism Psi below.
+// It is flat and nonconstant, with a unit equilateral ideal triangle.
 //
 // Let
 //
@@ -362,8 +365,9 @@ void anamet2D_8([[maybe_unused]] const AnaMetCtx* ctx, const double*__restrict__
 //   M = (1/scale^2) DPsi^{-T} C DPsi^{-1}.
 //
 // A scale-by-scale Cartesian grid in (xi,eta), with every square split along
-// its lower-right-to-upper-left diagonal, is therefore an exact unit mesh for
-// this metric after applying Psi.  Its Q2 geometry also makes the matching
+// its descending diagonal, has the same constant implied metric C/scale^2
+// on every triangle. Applying Psi therefore gives this globally smooth metric
+// and an exact unit Q2 mesh. Its geometry also makes the matching
 // scalar function u = Psi^{-1}_1 exactly P1 on every element.
 //
 // With n subdivisions per coordinate direction,

@@ -16,6 +16,7 @@
 #include "../Mesh/MeshFwd.hxx"
 
 #include <functional>
+#include <type_traits>
 
 
 namespace Metris{
@@ -42,8 +43,8 @@ template <class MetricFieldType, int gdim,
 double metqua1_length(Mesh<MetricFieldType> &msh,
                       const int *edg2pol);
 
-// Unit aggregation weight for the historical CavityTargetAverage plumbing.
-// The restored formulation is averaged by element count, not target volume.
+// Unit aggregation weight for CavityTargetAverage plumbing.
+// The formulation is averaged by element count, not target volume.
 template <class MetricFieldType, int gdim, int tdim>
 double step_distance_element_target_weight(Mesh<MetricFieldType> &msh,
                                            AsDeg asdmet,
@@ -55,8 +56,6 @@ StepDistanceObjectiveState step_distance_global_objective_state(
     Mesh<MetricFieldType> &msh,
     AsDeg asdmsh,
     AsDeg asdmet);
-
-
 
 /* ----------------------------------------------
  Convenience: return f pointers selecting depending on iquaf
@@ -72,6 +71,10 @@ get_quafun(QuaFun iquaf){
     return metqua<MFT,gdim,tdim,QuaFun::SizeShape,ftype>;
   }else if(iquaf == QuaFun::StepDistance){
     return metqua<MFT,gdim,tdim,QuaFun::StepDistance,ftype>;
+  }else if(iquaf == QuaFun::Connection){
+    if constexpr(gdim == tdim && std::is_same_v<ftype,double>)
+      return metqua_connection<MFT,gdim>;
+    else METRIS_THROW_MSG("Connection smoothing requires full-dimensional double precision");
   }
   else{
     METRIS_THROW_MSG("TODO: cf quafun_")

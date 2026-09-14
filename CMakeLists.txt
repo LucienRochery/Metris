@@ -228,38 +228,15 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/manufactureQ2MetricCoordinate.cxx)
   setMetrisCXXFlags(manufactureQ2MetricCoordinate PUBLIC)
 endif()
 
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/smoothQ2NodesOnly.cxx)
-  add_executable(smoothQ2NodesOnly EXCLUDE_FROM_ALL
-                 "progs/smoothQ2NodesOnly.cxx")
-  target_link_libraries(smoothQ2NodesOnly PUBLIC libMetris
-                                              Boost::headers
-                                              ${Boost_LIBRARIES})
-  target_include_directories(smoothQ2NodesOnly PRIVATE "."
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/smoothQ2AllNodes.cxx)
+  add_executable(smoothQ2AllNodes EXCLUDE_FROM_ALL
+                 "progs/smoothQ2AllNodes.cxx")
+  target_link_libraries(smoothQ2AllNodes PUBLIC libMetris
+                                             Boost::headers
+                                             ${Boost_LIBRARIES})
+  target_include_directories(smoothQ2AllNodes PRIVATE "."
                              ${ESP_ROOT}/include)
-  setMetrisCXXFlags(smoothQ2NodesOnly PUBLIC)
-endif()
-
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/smoothQ2AllNodesOnly.cxx)
-  add_executable(smoothQ2AllNodesOnly EXCLUDE_FROM_ALL
-                 "progs/smoothQ2AllNodesOnly.cxx")
-  target_link_libraries(smoothQ2AllNodesOnly PUBLIC libMetris
-                                                 Boost::headers
-                                                 ${Boost_LIBRARIES})
-  target_include_directories(smoothQ2AllNodesOnly PRIVATE "."
-                             ${ESP_ROOT}/include)
-  setMetrisCXXFlags(smoothQ2AllNodesOnly PUBLIC)
-endif()
-
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/smoothQ2GlobalNodes.cxx)
-  add_executable(smoothQ2GlobalNodes EXCLUDE_FROM_ALL
-                 "progs/smoothQ2GlobalNodes.cxx")
-  target_link_libraries(smoothQ2GlobalNodes PUBLIC libMetris
-                                                 NLopt::nlopt
-                                                 Boost::headers
-                                                 ${Boost_LIBRARIES})
-  target_include_directories(smoothQ2GlobalNodes PRIVATE "."
-                             ${ESP_ROOT}/include)
-  setMetrisCXXFlags(smoothQ2GlobalNodes PUBLIC)
+  setMetrisCXXFlags(smoothQ2AllNodes PUBLIC)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/genBackMetAndMesh.cxx)
@@ -388,6 +365,7 @@ foreach(test_file ${TEST_SOURCES})
   setMetrisCXXFlags(${test_target_build} PUBLIC)
   target_compile_definitions(${test_target_build} PUBLIC METRIS_CASES_DIR="${METRIS_CASES_DIR}"
                                                          METRIS_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+                                                         METRIS_BUILD_DIR="${CMAKE_CURRENT_BINARY_DIR}"
                                                          )
                                                         # METRIS_REGRESSION_DIR="${METRIS_REGRESSION_DIR}"
 

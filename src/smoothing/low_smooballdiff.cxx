@@ -563,7 +563,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   // StepDistance. This scope records test coverage, not a claim that P1 or
   // SizeShape Hessians are mathematically guaranteed to be positive definite.
   if constexpr(ideg >= 2){
-    if(iquaf == QuaFun::StepDistance){
+    if(iquaf == QuaFun::StepDistance || iquaf == QuaFun::Connection){
       const double localStep
           = 0.1*smoothing_region_shortest_corner_edge<idim>(msh,lball);
       nargs.non_descent_gradient_step = localStep;
@@ -971,7 +971,8 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
             = MIN(t0 - lowerParameter,upperParameter - t0);
         const bool objectiveDriven
             = iquaf == QuaFun::SizeShape
-              || iquaf == QuaFun::StepDistance;
+              || iquaf == QuaFun::StepDistance
+              || iquaf == QuaFun::Connection;
         if(objectiveDriven){
           nargs.non_descent_gradient_step = 0.1*intervalLength;
         }
@@ -1139,6 +1140,9 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
         if (ihess){
 
           auto H = [&](int i, int j) -> double {
+            // The connection evaluator explicitly uses sym2idx packing.
+            // Keep legacy objective packing behavior unchanged here.
+            if(iquaf == QuaFun::Connection) return hessX[sym2idx(i,j)];
             if(i==j){
               return hessX[i]; // 0->H00, 1->H11, 2->H22 (when idim==3)
             }
@@ -1501,6 +1505,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
         if (ihess){
 
           auto H = [&](int i, int j) -> double {
+            if(iquaf == QuaFun::Connection) return hessX[sym2idx(i,j)];
             if(i==j){
               return hessX[i]; // 0->H00, 1->H11, 2->H22 (when idim==3)
             }

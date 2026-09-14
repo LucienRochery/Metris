@@ -156,6 +156,33 @@ BOOST_AUTO_TEST_CASE(p2_reactivation_includes_every_edge_control_point)
   BOOST_CHECK_EQUAL(mesh.poi2tag(tag_thread,unaffected),current_tag);
 }
 
+BOOST_AUTO_TEST_CASE(connection_smoothing_moves_only_the_selected_control_point)
+{
+  auto runner=make_two_triangle_runner(2,"connection_single_node");
+  auto& mesh=static_cast<Mesh<MetricFieldAnalytical>&>(*runner->msh_g);
+  mesh.met.setSpace(MetSpace::Exp);
+  mesh.setBasis(FEBasis::Lagrange);
+  runner->param->objective_quadrature_order=5;
+  int edge=-1;
+  for(int i=0;i<3;i++) if(mesh.fac2fac(0,i)>=0) edge=i;
+  BOOST_REQUIRE_GE(edge,0);
+  const int point=mesh.fac2poi(0,3+edge);
+  mesh.coord(point,0)+=.05;
+  mesh.coord(point,1)+=.04;
+  std::vector<double> before(2*mesh.npoin);
+  for(int i=0;i<mesh.npoin;i++) for(int k=0;k<2;k++) before[2*i+k]=mesh.coord(i,k);
+  double initial,final;
+  BOOST_REQUIRE(smoothSingleQuadraticEdgeControlPoint(
+      mesh,point,0,edge,QuaFun::Connection,&initial,&final));
+  BOOST_CHECK_LT(final,initial);
+  BOOST_CHECK_GT(std::hypot(mesh.coord(point,0)-before[2*point],
+                            mesh.coord(point,1)-before[2*point+1]),1.e-10);
+  for(int i=0;i<mesh.npoin;i++) if(i!=point)
+    for(int k=0;k<2;k++) BOOST_CHECK_EQUAL(mesh.coord(i,k),before[2*i+k]);
+  for(int face=0;face<mesh.nface;face++)
+    BOOST_CHECK((classify_element_validity<2,2>(mesh,face).is_certified()));
+}
+
 BOOST_AUTO_TEST_CASE(p2_tetrahedral_reactivation_includes_all_geometry_nodes)
 {
   auto runner = make_cube_runner("p2_tetrahedral_tags");

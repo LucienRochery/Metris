@@ -65,7 +65,7 @@ std::array<int,2> selectGridDimensions(int targetVertexCount)
 {
   // The compatible metric uses one square computational grid.  Equal numbers
   // of intervals in both directions and one fixed diagonal make the triangles
-  // equilateral after applying Metris's J0 transformation.
+  // equilateral after applying J0 transformation.
   const int pointCount = std::max(
       2,static_cast<int>(std::llround(std::sqrt(targetVertexCount))));
   return {{pointCount,pointCount}};
@@ -150,7 +150,7 @@ void manufacture(int targetVertexCount,
 
       // By default use the lower-right-to-upper-left diagonal.  Under the
       // computational metric C = J0^T J0, both triangles are exact copies of
-      // Metris's equilateral ideal triangle.  Alternating diagonals would
+      // the equilateral ideal triangle.  Alternating diagonals would
       // destroy that property in every other cell.
       if (diagonal == "descending")
       {
@@ -170,7 +170,7 @@ void manufacture(int targetVertexCount,
   boundaryEdges.reserve(2*nxCell + 2*nyCell);
   // Match examples/2D/square/square.egads:
   //   1 = left, 2 = bottom, 3 = right, 4 = top.
-  // Keeping these references consistent lets Metris recover the CAD edge
+  // Keeping these references consistent lets us recover the CAD edge
   // parameters from the physical boundary coordinates when --cad is given.
   for (int ix = 0; ix < nxCell; ++ix)
     boundaryEdges.push_back(

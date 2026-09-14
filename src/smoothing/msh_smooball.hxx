@@ -44,7 +44,8 @@ inline constexpr QuaFun productionSmoothingObjective(
 inline constexpr bool isObjectiveDrivenSmoothing(QuaFun objective) noexcept
 {
   return objective == QuaFun::SizeShape
-      || objective == QuaFun::StepDistance;
+      || objective == QuaFun::StepDistance
+      || objective == QuaFun::Connection;
 }
 
 // Build the element region affected by moving a high-order edge control point.

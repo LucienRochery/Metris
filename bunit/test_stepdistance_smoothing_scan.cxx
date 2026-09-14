@@ -145,7 +145,7 @@ std::filesystem::path output_dir(){
   if(const char* value = std::getenv("METRIS_SMOOTHING_OUTPUT_DIR")){
     return value;
   }
-  return std::filesystem::path(METRIS_ROOT_DIR) / "build" / "codex_diagnostic"
+  return std::filesystem::path(METRIS_BUILD_DIR)
        / "stepdistance_smoothing_scan";
 }
 

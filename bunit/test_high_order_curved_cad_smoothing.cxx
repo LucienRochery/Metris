@@ -404,6 +404,11 @@ BOOST_AUTO_TEST_CASE(p2_curved_cad_edge_stepdistance_smoothing)
   check_curved_boundary_smoothing(QuaFun::StepDistance);
 }
 
+BOOST_AUTO_TEST_CASE(p2_curved_cad_edge_connection_smoothing)
+{
+  check_curved_boundary_smoothing(QuaFun::Connection);
+}
+
 BOOST_AUTO_TEST_CASE(
     p2_curved_cad_cavity_smoothing_keeps_children_on_curve)
 {

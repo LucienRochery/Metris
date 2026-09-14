@@ -11,6 +11,7 @@
 #include "../Mesh/MeshFwd.hxx"
 
 #include <functional>
+#include <type_traits>
 
 
 namespace Metris{
@@ -70,33 +71,15 @@ get_d_quafun(QuaFun iquaf){
     return d_metqua<MFT,gdim,tdim,QuaFun::SizeShape,ftype>;
   }else if(iquaf == QuaFun::StepDistance){
     return d_metqua<MFT,gdim,tdim,QuaFun::StepDistance,ftype>;
+  }else if(iquaf == QuaFun::Connection){
+    if constexpr(gdim == tdim && std::is_same_v<ftype,double>)
+      return d_metqua_connection<MFT,gdim>;
+    else METRIS_THROW_MSG("Connection smoothing requires full-dimensional double precision");
   }
   else{
     METRIS_THROW_MSG("TODO: cf quafun_")
   }
 }
-
-
-
-//template <class MetricFieldType, int ideg, int ivar, typename ftype = double>
-//struct metqua3_d{
-//	metqua3_d() = delete;
-//	metqua3_d(const Mesh<MetricFieldType> &msh, int ielem, int power,
-//						const double*  __restrict__ dmetvar,
-//						const double*  __restrict__ dpoivar,
-//						SANS::SurrealS<nvar,ftype> *qutet);
-//};
-
-
-//template <class MetricFieldType, int ideg>
-//struct metqua3_shell_d{
-//	metqua3_shell_d() = delete;
-//	metqua3_shell_d(const Mesh<MetricFieldType> &msh, int ipoin, int iele0, int power, int mshell,
-//	                int* __restrict__ nshell, int* __restrict__ lshell,
-//	                const double* __restrict__ dmetvar,
-//	                const double* __restrict__ dpoivar,
-//	                SANS::SurrealS<nvar,double>*  qushe);
-//};
 
 } // End namespace
 
