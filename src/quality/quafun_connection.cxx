@@ -168,18 +168,21 @@ void evaluate_reference_polynomial(
 }
 
 // Evaluate the SPD target metric M and its first physical derivatives at
-// point = F(bary). Analytical targets use point; FE targets use nodes/bary.
+// point = F(bary). Analytical targets use point; FE targets use the owning
+// entity when supplied.
 // met[sym2idx(i,j)] = M_ij; dmet[r*nm+sym2idx(i,j)] = partial_r M_ij.
 template<class MFT, int gdim>
 void evaluate_target_metric_and_derivatives(
     Mesh<MFT> &msh, const int *nodes, const double *bary, const double *point,
-    double *met, double *dmet){
+    double *met, double *dmet, int ientt){
   constexpr int nm = gdim*(gdim+1)/2;
   for(int i = 0; i < nm; i++) met[i] = std::numeric_limits<double>::quiet_NaN();
   for(int i = 0; i < gdim*nm; i++) dmet[i] = std::numeric_limits<double>::quiet_NaN();
   if constexpr(std::is_same_v<MFT,MetricFieldAnalytical>){
     msh.met.getMetFullinfo(AsDeg::Pk,DifVar::Phys,MetSpace::Exp,
                            nodes,gdim,bary,point,met,dmet);
+  }else if(ientt >= 0){
+    msh.met.getMetOnEntity(ientt,DifVar::Phys,bary,met,dmet);
   }else{
     // With L = log M, partial_r M = Dexp_L[partial_r L]. Evaluate this
     // Frechet derivative using exponential divided differences, including
@@ -194,8 +197,8 @@ void evaluate_target_metric_and_derivatives(
 } // namespace
 
 template<class MFT, int gdim>
-double quafun_connection(Mesh<MFT> &msh, const int *ent2poi,
-                         const double *bary){
+static double quafun_connection_impl(Mesh<MFT> &msh, const int *ent2poi,
+                                      const double *bary, int ientt){
   static_assert(gdim == 2 || gdim == 3);
   METRIS_ENFORCE_MSG(msh.idim == gdim,
                     "Connection objective requires full-dimensional elements");
@@ -212,8 +215,20 @@ double quafun_connection(Mesh<MFT> &msh, const int *ent2poi,
     }
   }CT_FOR1(ideg);
   double metric[nmet], dmetric[gdim*nmet];
-  evaluate_target_metric_and_derivatives<MFT,gdim>(msh,ent2poi,bary,point,metric,dmetric);
+  evaluate_target_metric_and_derivatives<MFT,gdim>(msh,ent2poi,bary,point,metric,dmetric,ientt);
   return connection_difference_norm2<gdim>(jac,hess,metric,dmetric);
+}
+
+template<class MFT, int gdim>
+double quafun_connection(Mesh<MFT> &msh, const int *ent2poi, const double *bary){
+  return quafun_connection_impl<MFT,gdim>(msh,ent2poi,bary,-1);
+}
+
+template<class MFT, int gdim>
+double quafun_connection(Mesh<MFT> &msh, int ientt, const double *bary){
+  METRIS_ENFORCE(ientt >= 0 && ientt < msh.nentt(gdim));
+  METRIS_ENFORCE(msh.ent2poi(gdim)(ientt,0) >= 0);
+  return quafun_connection_impl<MFT,gdim>(msh,msh.ent2poi(gdim)[ientt],bary,ientt);
 }
 
 template<int gdim>
@@ -321,9 +336,9 @@ double d_connection_difference_norm2(
 }
 
 template<class MFT, int gdim>
-double d_quafun_connection(Mesh<MFT> &msh, const int *ent2poi,
+static double d_quafun_connection_impl(Mesh<MFT> &msh, const int *ent2poi,
                            const double *bary, int ivar, FEBasis dofbas,
-                           double *gradient){
+                           double *gradient, int ientt){
   static_assert(gdim == 2 || gdim == 3);
   static_assert(std::is_same_v<MFT,MetricFieldFE>
                  || std::is_same_v<MFT,MetricFieldAnalytical>);
@@ -352,7 +367,7 @@ double d_quafun_connection(Mesh<MFT> &msh, const int *ent2poi,
     }
   }CT_FOR1(ideg);
   double met[nm], dm[gdim*nm];
-  evaluate_target_metric_and_derivatives<MFT,gdim>(msh,ent2poi,bary,point,met,dm);
+  evaluate_target_metric_and_derivatives<MFT,gdim>(msh,ent2poi,bary,point,met,dm,ientt);
   double d_jac[gdim*gdim*gdim] = {}, d_hess[gdim*nm*gdim] = {};
   for(int v = 0; v < gdim; v++){
     for(int a = 0; a < gdim; a++) d_jac[v*gdim*gdim+a*gdim+v] = dphi[a];
@@ -360,6 +375,23 @@ double d_quafun_connection(Mesh<MFT> &msh, const int *ent2poi,
   }
   return d_connection_difference_norm2<gdim>(jac,hess,met,dm,
                                              d_jac,d_hess,gradient);
+}
+
+template<class MFT, int gdim>
+double d_quafun_connection(Mesh<MFT> &msh, const int *ent2poi,
+                           const double *bary, int ivar, FEBasis dofbas,
+                           double *gradient){
+  return d_quafun_connection_impl<MFT,gdim>(msh,ent2poi,bary,ivar,dofbas,gradient,-1);
+}
+
+template<class MFT, int gdim>
+double d_quafun_connection(Mesh<MFT> &msh, int ientt,
+                           const double *bary, int ivar, FEBasis dofbas,
+                           double *gradient){
+  METRIS_ENFORCE(ientt >= 0 && ientt < msh.nentt(gdim));
+  METRIS_ENFORCE(msh.ent2poi(gdim)(ientt,0) >= 0);
+  return d_quafun_connection_impl<MFT,gdim>(msh,msh.ent2poi(gdim)[ientt],
+                                           bary,ivar,dofbas,gradient,ientt);
 }
 
 template<int dim>
@@ -437,7 +469,7 @@ double d2_connection_difference_norm2_frozen(
 
 template<class MFT, int dim>
 double d_metqua_connection(Mesh<MFT>& msh, AsDeg asdmsh, AsDeg asdmet,
-                           int element, int ivar, FEBasis dofbas, DifVar idifmet,
+                           int ientt, int ivar, FEBasis dofbas, DifVar idifmet,
                            double *gradient, double *hessian, double){
   METRIS_ENFORCE(asdmsh==AsDeg::Pk && asdmet==AsDeg::Pk && idifmet==DifVar::None);
   METRIS_ENFORCE(msh.idim==dim && msh.get_tdim()==dim);
@@ -450,14 +482,16 @@ double d_metqua_connection(Mesh<MFT>& msh, AsDeg asdmsh, AsDeg asdmet,
     std::fill(gradient,gradient+dim,0.);
   }
   if(hessian) std::fill(hessian,hessian+nm,0.);
-  const int *nodes=msh.ent2poi(dim)[element];
+  METRIS_ENFORCE(ientt >= 0 && ientt < msh.nentt(dim));
+  METRIS_ENFORCE(msh.ent2poi(dim)(ientt,0) >= 0);
+  const int *nodes=msh.ent2poi(dim)[ientt];
   const auto rule=get_objective_quadrature<dim>(msh.param->objective_quadrature_order);
   double integral=0.;
   CT_FOR0_INC(1,METRIS_MAX_DEG,degree){
     if(msh.curdeg==degree){
       for(int q=0;q<rule.size();q++){
         const auto sample=prepare_objective_quadrature_sample<MFT,dim,dim,degree>(
-            msh,AsDeg::Pk,nodes,rule[q],standard_objective_quadrature_theta_mode());
+            msh,AsDeg::Pk,ientt,rule[q],standard_objective_quadrature_theta_mode());
         METRIS_ENFORCE(sample.theta_is_valid);
         double value, g[dim], h[nm];
         if(hessian){
@@ -471,11 +505,11 @@ double d_metqua_connection(Mesh<MFT>& msh, AsDeg asdmsh, AsDeg asdmet,
           const dblAr2 shapeCoefficients(nn,1,coeff.data());
           evaluate_reference_polynomial<1,dim,degree>(shapeCoefficients,local.data(),dofbas,rule[q].bary,&phi,dphi,hphi);
           double M[nm], dM[dim*nm];
-          evaluate_target_metric_and_derivatives<MFT,dim>(msh,nodes,rule[q].bary,point,M,dM);
+          evaluate_target_metric_and_derivatives<MFT,dim>(msh,nodes,rule[q].bary,point,M,dM,ientt);
           value=d2_connection_difference_norm2_frozen<dim>(J,H,M,dM,dphi,hphi,g,h);
         }else if(gradient){
-          value=d_quafun_connection<MFT,dim>(msh,nodes,rule[q].bary,ivar,dofbas,g);
-        }else value=quafun_connection<MFT,dim>(msh,nodes,rule[q].bary);
+          value=d_quafun_connection<MFT,dim>(msh,ientt,rule[q].bary,ivar,dofbas,g);
+        }else value=quafun_connection<MFT,dim>(msh,ientt,rule[q].bary);
         const double weight=rule[q].weight*sample.theta;
         integral+=weight*value;
         if(gradient) for(int i=0;i<dim;i++) gradient[i]+=weight*g[i];
@@ -489,8 +523,8 @@ double d_metqua_connection(Mesh<MFT>& msh, AsDeg asdmsh, AsDeg asdmet,
 
 template<class MFT, int dim>
 double metqua_connection(Mesh<MFT>& msh, AsDeg asdmsh, AsDeg asdmet,
-                         int element, double difto){
-  return d_metqua_connection<MFT,dim>(msh,asdmsh,asdmet,element,-1,
+                         int ientt, double difto){
+  return d_metqua_connection<MFT,dim>(msh,asdmsh,asdmet,ientt,-1,
       msh.getBasis(),DifVar::None,nullptr,nullptr,difto);
 }
 
@@ -502,6 +536,15 @@ INSTANTIATE_CONNECTION_INTEGRAL(MetricFieldAnalytical,3)
 INSTANTIATE_CONNECTION_INTEGRAL(MetricFieldFE,2)
 INSTANTIATE_CONNECTION_INTEGRAL(MetricFieldFE,3)
 #undef INSTANTIATE_CONNECTION_INTEGRAL
+
+#define INSTANTIATE_CONNECTION_ENTITY(MFT,dim) \
+template double quafun_connection<MFT,dim>(Mesh<MFT>&,int,const double*); \
+template double d_quafun_connection<MFT,dim>(Mesh<MFT>&,int,const double*,int,FEBasis,double*);
+INSTANTIATE_CONNECTION_ENTITY(MetricFieldFE,2)
+INSTANTIATE_CONNECTION_ENTITY(MetricFieldFE,3)
+INSTANTIATE_CONNECTION_ENTITY(MetricFieldAnalytical,2)
+INSTANTIATE_CONNECTION_ENTITY(MetricFieldAnalytical,3)
+#undef INSTANTIATE_CONNECTION_ENTITY
 template double d2_connection_difference_norm2_frozen<2>(const double*,const double*,const double*,const double*,const double*,const double*,double*,double*);
 template double d2_connection_difference_norm2_frozen<3>(const double*,const double*,const double*,const double*,const double*,const double*,double*,double*);
 

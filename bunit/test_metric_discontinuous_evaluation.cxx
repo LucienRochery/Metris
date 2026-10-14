@@ -8,9 +8,12 @@
 #include "Mesh/Mesh.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
 #include "codegen_lag2bez.hxx"
+#include "quality/objective_quadrature_sample.hxx"
+#include "quality/quafun_connection.hxx"
 
 #include <cmath>
 #include <limits>
+#include <vector>
 
 namespace Metris{
 namespace{
@@ -62,6 +65,11 @@ struct CurvedTriangles{
         mesh.met.elementCoefficient(ientt,node)[k]
             = offsets[ientt][k] + dx[ientt][k]*points[point][0] + dy[ientt][k]*points[point][1];
     }
+  }
+
+  void poisonInactivePointBuffer(){
+    for(int point = 0; point < mesh.npoin; point++) for(int k = 0; k < 3; k++)
+      mesh.met.rfld(point,k) = std::numeric_limits<double>::quiet_NaN();
   }
 
   void useBezierGeometry(){
@@ -330,6 +338,143 @@ BOOST_FIXTURE_TEST_CASE(dg_failed_space_conversion_preserves_all_coefficients,Cu
   for(int ientt = 0; ientt < 2; ientt++) for(int node = 0; node < 3; node++)
     for(int k = 0; k < 3; k++)
       BOOST_CHECK_EQUAL(mesh.met.elementCoefficient(ientt,node)[k],saved.elementCoefficient(ientt,node)[k]);
+}
+
+BOOST_FIXTURE_TEST_CASE(dg_connection_samples_use_local_traces_in_spd_space,CurvedTriangles){
+  initializeDG();
+  poisonInactivePointBuffer();
+  const double samples[2][3][3] = {
+    {{0.,1.,0.},{0.,0.4,0.6},{0.2,0.3,0.5}},
+    {{1.,0.,0.},{0.4,0.,0.6},{0.2,0.3,0.5}}
+  };
+  for(int basis = 0; basis < 2; basis++){
+    if(basis == 1) useBezierGeometry();
+    for(MetSpace space : {MetSpace::Log,MetSpace::Exp}){
+      mesh.met.setSpace(space);
+      for(int ientt = 0; ientt < 2; ientt++) for(const auto &bary : samples[ientt]){
+        double xi, eta, expected[3];
+        computationalPoint(ientt,bary,xi,eta);
+        exactMetric(ientt,xi,eta,expected);
+        const auto sample = prepare_objective_quadrature_sample<MetricFieldFE,2,2,2>(
+            mesh,AsDeg::Pk,ientt,{bary,1.},ObjectiveQuadratureTheta::PhysicalMetricMeasure);
+        BOOST_CHECK(sample.theta_is_valid);
+        for(int k = 0; k < 3; k++) BOOST_CHECK_SMALL(sample.metric[k]-expected[k],5.e-13);
+        const double measure = 0.5*(1.+2.*a*xi-b*c);
+        BOOST_CHECK_SMALL(sample.theta-measure*std::sqrt(expected[0]*expected[2]-expected[1]*expected[1]),5.e-13);
+
+        // Independent geometry derivatives and physical finite differences of M.
+        double J[4] = {1.+2.*a*xi,c,b,1.};
+        double H[6] = {2.*a,0.,0.,0.,0.,0.}, dM[6];
+        if(ientt == 1){
+          J[0] = b; J[1] = 1.; J[2] = b-1.-2.*a*xi; J[3] = 1.-c;
+          H[0] = 0.; H[4] = 2.*a;
+        }
+        const double x = xi+a*xi*xi+b*eta, y = eta+c*xi;
+        for(int r = 0; r < 2; r++){
+          constexpr double h = 1.e-6;
+          double shifted[3], plus[3], minus[3], sx, sy;
+          inverseMap(ientt,x+(r==0?h:0.),y+(r==1?h:0.),shifted);
+          computationalPoint(ientt,shifted,sx,sy);
+          exactMetric(ientt,sx,sy,plus);
+          inverseMap(ientt,x-(r==0?h:0.),y-(r==1?h:0.),shifted);
+          computationalPoint(ientt,shifted,sx,sy);
+          exactMetric(ientt,sx,sy,minus);
+          for(int k = 0; k < 3; k++) dM[3*r+k] = (plus[k]-minus[k])/(2.*h);
+        }
+        const double expectedValue = connection_difference_norm2<2>(J,H,expected,dM);
+        const double value = quafun_connection<MetricFieldFE,2>(mesh,ientt,bary);
+        BOOST_CHECK_SMALL(value-expectedValue,2.e-8*(1.+expectedValue));
+        double gradient[2];
+        const double differentiated = d_quafun_connection<MetricFieldFE,2>(
+            mesh,ientt,bary,4,mesh.getBasis(),gradient);
+        BOOST_CHECK_SMALL(differentiated-value,2.e-13*(1.+value));
+      }
+    }
+  }
+}
+
+BOOST_FIXTURE_TEST_CASE(dg_integrated_connection_matches_frozen_target_differences,CurvedTriangles){
+  initializeDG();
+  poisonInactivePointBuffer();
+  useBezierGeometry();
+  parameters.objective_quadrature_order = 5;
+  const auto rule = get_objective_quadrature<2>(5);
+  for(MetSpace space : {MetSpace::Log,MetSpace::Exp}){
+    mesh.met.setSpace(space);
+    for(int ientt = 0; ientt < 2; ientt++) for(int node : {0,4}){
+      struct FrozenSample { double metric[3], derivative[6], weight; };
+      std::vector<FrozenSample> frozen(rule.size());
+      for(int q = 0; q < rule.size(); q++){
+        auto &sample = frozen[q];
+        mesh.met.getMetOnEntity(ientt,DifVar::Phys,rule[q].bary,sample.metric,sample.derivative);
+        double xi, eta, expected[3];
+        computationalPoint(ientt,rule[q].bary,xi,eta);
+        exactMetric(ientt,xi,eta,expected);
+        sample.weight = rule[q].weight*0.5*(1.+2.*a*xi-b*c);
+        if(standard_objective_quadrature_theta_mode() == ObjectiveQuadratureTheta::PhysicalMetricMeasure)
+          sample.weight *= std::sqrt(expected[0]*expected[2]-expected[1]*expected[1]);
+      }
+      const int point = mesh.fac2poi(ientt,node);
+      const double original[2] = {mesh.coord(point,0),mesh.coord(point,1)};
+      const auto frozenValue = [&](double shiftX, double shiftY){
+        mesh.coord(point,0) = original[0]+shiftX;
+        mesh.coord(point,1) = original[1]+shiftY;
+        double result = 0.;
+        for(int q = 0; q < rule.size(); q++){
+          double position[2], J[4], H[6];
+          eval2<2,2>(mesh.coord,mesh.fac2poi[ientt],FEBasis::Bezier,
+                     DifVar::Bary,DifVar::Bary,rule[q].bary,position,J,H);
+          result += frozen[q].weight*connection_difference_norm2<2>(
+              J,H,frozen[q].metric,frozen[q].derivative);
+        }
+        mesh.coord(point,0) = original[0];
+        mesh.coord(point,1) = original[1];
+        return result;
+      };
+      double gradient[2], hessian[3], gradientOnly[2];
+      const double value = metqua_connection<MetricFieldFE,2>(mesh,AsDeg::Pk,AsDeg::Pk,ientt);
+      const double differentiated = d_metqua_connection<MetricFieldFE,2>(
+          mesh,AsDeg::Pk,AsDeg::Pk,ientt,node,FEBasis::Bezier,DifVar::None,gradient,hessian);
+      const double firstOrder = d_metqua_connection<MetricFieldFE,2>(
+          mesh,AsDeg::Pk,AsDeg::Pk,ientt,node,FEBasis::Bezier,DifVar::None,gradientOnly,nullptr);
+      BOOST_CHECK_SMALL(value-frozenValue(0.,0.),2.e-12*(1.+value));
+      BOOST_CHECK_SMALL(differentiated-value,2.e-13*(1.+value));
+      BOOST_CHECK_SMALL(firstOrder-value,2.e-13*(1.+value));
+      for(int r = 0; r < 2; r++){
+        BOOST_CHECK_SMALL(gradient[r]-gradientOnly[r],2.e-11*(1.+std::abs(gradient[r])));
+        constexpr double h = 1.e-5;
+        const double plus = frozenValue(r==0?h:0.,r==1?h:0.);
+        const double minus = frozenValue(r==0?-h:0.,r==1?-h:0.);
+        BOOST_CHECK_SMALL(gradient[r]-(plus-minus)/(2.*h),2.e-7*(1.+std::abs(gradient[r])));
+        BOOST_CHECK_SMALL(hessian[2*r]-(plus-2.*value+minus)/(h*h),5.e-5*(1.+std::abs(hessian[2*r])));
+      }
+      constexpr double h = 1.e-5;
+      const double mixed = (frozenValue(h,h)-frozenValue(h,-h)
+                          -frozenValue(-h,h)+frozenValue(-h,-h))/(4.*h*h);
+      BOOST_CHECK_SMALL(hessian[1]-mixed,5.e-5*(1.+std::abs(hessian[1])));
+    }
+  }
+}
+
+BOOST_FIXTURE_TEST_CASE(dg_connection_rejects_owner_free_and_invalid_calls,CurvedTriangles){
+  initializeDG();
+  const double samples[2][3] = {{1.,0.,0.},{0.2,0.3,0.5}};
+  double gradient[2];
+  for(const auto &bary : samples){
+    BOOST_CHECK_THROW((quafun_connection<MetricFieldFE,2>(mesh,mesh.fac2poi[0],bary)),MetrisExcept);
+    BOOST_CHECK_THROW((d_quafun_connection<MetricFieldFE,2>(
+        mesh,mesh.fac2poi[0],bary,0,FEBasis::Lagrange,gradient)),MetrisExcept);
+    BOOST_CHECK_THROW((prepare_objective_quadrature_sample<MetricFieldFE,2,2,2>(
+        mesh,AsDeg::Pk,mesh.fac2poi[0],{bary,1.},ObjectiveQuadratureTheta::PhysicalMetricMeasure)),MetrisExcept);
+    for(int ientt : {-1,2}){
+      BOOST_CHECK_THROW((quafun_connection<MetricFieldFE,2>(mesh,ientt,bary)),MetrisExcept);
+      BOOST_CHECK_THROW((d_quafun_connection<MetricFieldFE,2>(
+          mesh,ientt,bary,0,FEBasis::Lagrange,gradient)),MetrisExcept);
+      BOOST_CHECK_THROW((metqua_connection<MetricFieldFE,2>(mesh,AsDeg::Pk,AsDeg::Pk,ientt)),MetrisExcept);
+      BOOST_CHECK_THROW((prepare_objective_quadrature_sample<MetricFieldFE,2,2,2>(
+          mesh,AsDeg::Pk,ientt,{bary,1.},ObjectiveQuadratureTheta::PhysicalMetricMeasure)),MetrisExcept);
+    }
+  }
 }
 
 } // namespace Metris

@@ -134,10 +134,12 @@ bool objective_jacobian_measure(
 
 } // namespace detail
 
-// Prepare one frozen objective sample for a degree-mshdeg element map. Metric
+// Prepare one frozen objective sample for a degree-mshdeg entity map. Metric
 // derivatives are deliberately disabled. Exact reference vertices retain the
 // historical direct nodal metric sampling; every other FE sample is evaluated
 // barycentrically and every other analytical sample at its physical point.
+// An explicit owner selects entity-aware sampling in SPD space, including at
+// vertices. Owner-free calls retain the historical continuous-field behavior.
 template<class MFT, int gdim, int tdim, int mshdeg>
 ObjectiveQuadratureSample<gdim,tdim,mshdeg>
 prepare_objective_quadrature_sample(
@@ -145,8 +147,20 @@ prepare_objective_quadrature_sample(
     AsDeg asdmet,
     const int *ent2poi,
     const SimplexQuadraturePointView<tdim> quadrature_point,
-    ObjectiveQuadratureTheta theta_mode)
+    ObjectiveQuadratureTheta theta_mode,
+    int ientt = -1)
 {
+  METRIS_ENFORCE(ientt >= -1);
+  if(ientt >= 0){
+    METRIS_ENFORCE(gdim == tdim && msh.idim == gdim && msh.get_tdim() == tdim);
+    METRIS_ENFORCE(msh.curdeg == mshdeg && asdmet == AsDeg::Pk);
+    METRIS_ENFORCE(ientt < msh.nentt(tdim) && msh.ent2poi(tdim)(ientt,0) >= 0);
+    for(int node = 0; node < getnnode(tdim,mshdeg); node++)
+      METRIS_ENFORCE(ent2poi[node] == msh.ent2poi(tdim)(ientt,node));
+  }else if constexpr(std::is_same_v<MFT,MetricFieldFE>){
+    METRIS_ENFORCE_MSG(msh.met.getLayout() == MetricFieldLayout::Continuous,
+                      "DG objective quadrature requires an owning entity");
+  }
   ObjectiveQuadratureSample<gdim,tdim,mshdeg> sample;
   for(int ibary = 0; ibary < tdim + 1; ibary++){
     sample.barycentric_coordinates[ibary] = quadrature_point.bary[ibary];
@@ -182,7 +196,15 @@ prepare_objective_quadrature_sample(
 
   const int reference_vertex = detail::objective_quadrature_vertex<tdim>(
       sample.barycentric_coordinates.data());
-  if(reference_vertex >= 0){
+  if(ientt >= 0){
+    if constexpr(std::is_same_v<MFT,MetricFieldAnalytical>){
+      msh.met.getMetPhys(DifVar::None,MetSpace::Exp,
+          sample.physical_coordinates.data(),sample.metric.data(),nullptr);
+    }else{
+      msh.met.getMetOnEntity(ientt,DifVar::None,
+          sample.barycentric_coordinates.data(),sample.metric.data(),nullptr);
+    }
+  }else if(reference_vertex >= 0){
     const int ipoin = ent2poi[reference_vertex];
     for(int imetric = 0; imetric < sample.nmetric; imetric++){
       sample.metric[imetric] = msh.met(ipoin,imetric);
@@ -238,6 +260,20 @@ prepare_objective_quadrature_sample(
   }
   sample.theta *= std::sqrt(metric_determinant);
   return sample;
+}
+
+// Entity-aware objective samples always contain an SPD metric. The shared
+// point buffer is not used to select a trace or determine the metric measure.
+template<class MFT, int gdim, int tdim, int mshdeg>
+ObjectiveQuadratureSample<gdim,tdim,mshdeg>
+prepare_objective_quadrature_sample(
+    Mesh<MFT> &msh, AsDeg asdmet, int ientt,
+    const SimplexQuadraturePointView<tdim> quadrature_point,
+    ObjectiveQuadratureTheta theta_mode)
+{
+  METRIS_ENFORCE(ientt >= 0 && ientt < msh.nentt(tdim));
+  return prepare_objective_quadrature_sample<MFT,gdim,tdim,mshdeg>(
+      msh,asdmet,msh.ent2poi(tdim)[ientt],quadrature_point,theta_mode,ientt);
 }
 
 } // namespace Metris
