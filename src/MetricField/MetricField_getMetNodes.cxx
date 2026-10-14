@@ -16,6 +16,7 @@ namespace Metris{
 
 template<int gdim, int tdim, int mshdeg, int tardeg>
 void MetricFieldFE::getMetNodes(int ientt, double *metnod) const{
+  requireContinuous("Geometry-node-indexed metric sampling");
   METRIS_ENFORCE_MSG(ibasis != FEBasis::Undefined, "Metric was not initialized.");
 
   static_assert((tdim <= 3 && "## gen_nodes_degelev TOPO DIM > 3 NOT IMPLEMENTED \n"));

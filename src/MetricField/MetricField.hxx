@@ -22,6 +22,7 @@ class MeshBase;
 struct MetrisParameters;
 
 enum class MetricClass{None, MetricFieldFE, MetricFieldAnalytical};
+enum class MetricFieldLayout{Continuous, Discontinuous};
 
 
 class MetricFieldFE{
@@ -41,12 +42,31 @@ public:
 
 	void allocate();
 
-	inline const double *operator[](int i) const {return rfld[i];}
-	inline double *operator[](int i){return rfld[i];}
+  MetricFieldLayout getLayout() const { return layout; }
+  int getDegree() const;
+  int getCoefficientCount() const;
+
+  // Initialize independent P1 Lagrange log-metric coefficients to zero (M = I).
+  // This replaces the metric representation without changing mesh connectivity.
+  void initializeDiscontinuous(int degree = 1);
+  int getElementCoefficientIndex(int element, int localNode) const;
+  const double *elementCoefficient(int element, int localNode) const;
+  double *elementCoefficient(int element, int localNode);
+
+	inline const double *operator[](int i) const {
+    requireContinuous("Point-indexed metric access"); return rfld[i];
+  }
+	inline double *operator[](int i){
+    requireContinuous("Point-indexed metric access"); return rfld[i];
+  }
 
 
-  inline const double& operator()(int i, int j) const {return rfld(i,j);}
-  inline double& operator()(int i, int j){return rfld(i,j);}
+  inline const double& operator()(int i, int j) const {
+    requireContinuous("Point-indexed metric access"); return rfld(i,j);
+  }
+  inline double& operator()(int i, int j){
+    requireContinuous("Point-indexed metric access"); return rfld(i,j);
+  }
 
 
 	MetricFieldFE &operator=(const MetricFieldFE& inp);
@@ -55,17 +75,22 @@ public:
   // Never set iforce to true
 	void setSpace(MetSpace ispacn, bool iforce = false);
 	
-  void forceSpaceFlag(MetSpace newsp){ispace = newsp;}
+  void forceSpaceFlag(MetSpace newsp){
+    if(newsp != ispace) requireContinuous("Changing the metric space flag");
+    ispace = newsp;
+  }
 	
   FEBasis getBasis()const{return ibasis;}
 
 	void killBasis(){
+    requireContinuous("Clearing the metric basis");
 		std::cout<<"## Warning killBasis() called\n";
 		ibasis = FEBasis::Undefined;
 	}
 
 	void setBasis(FEBasis ibasn){
     if(ibasn == getBasis()) return;
+    requireContinuous("Metric basis conversion");
     METRIS_ASSERT(ibasn == FEBasis::Lagrange || ibasn == FEBasis::Bezier);
 
     MetSpace ispac0 = getSpace();
@@ -78,7 +103,10 @@ public:
 	}
 
   // To be used in initialization
-  void forceBasisFlag(FEBasis ibasn){ibasis = ibasn;}
+  void forceBasisFlag(FEBasis ibasn){
+    if(ibasn != ibasis) requireContinuous("Changing the metric basis flag");
+    ibasis = ibasn;
+  }
 
 	void readMetricFile(std::string outname);
 	void writeMetricFile(std::string outname, bool iprefix = true);
@@ -132,9 +160,14 @@ public:
 	//	                double*__restrict__ bary, double*__restrict__ metl, double*__restrict__ dmet);
 
 public: 
+	// Point-indexed storage for the continuous layout; inactive in the DG layout.
 	dblAr2 rfld;
 
 protected:
+  void requireContinuous(const char *operation) const {
+    METRIS_ENFORCE_MSG(layout == MetricFieldLayout::Continuous,
+                      "{} requires a continuous metric layout", operation);
+  }
 	MetSpace ispace;
 	FEBasis ibasis;
 	//int ideg;
@@ -155,6 +188,11 @@ protected:
   int nspace_miss;
 
 private:
+  MetricFieldLayout layout = MetricFieldLayout::Continuous;
+  int metricDegree = 0;
+  intAr2 elementToCoefficient;
+  dblAr2 localCoefficients;
+
 	//template<int gdim, int metdeg>
 	//void getMetFullinfo0(const MeshBase &msh, int ientt, int tdimn, DifVar idiff, 
 	//										double*__restrict__ bary, double*__restrict__ coop, double*__restrict__ metl, double*__restrict__ dmet);

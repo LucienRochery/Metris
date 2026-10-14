@@ -39,6 +39,10 @@ MetricFieldFE::MetricFieldFE(MeshBase &msh_) : msh(msh_){
 
 
 void MetricFieldFE::setSpace(MetSpace ispacn, bool iforce){
+  if(layout == MetricFieldLayout::Discontinuous){
+    if(ispacn != ispace) requireContinuous("Metric space conversion");
+    return;
+  }
   #ifndef NDEBUG
   if(msh.meshClass() == MeshClass::MeshBack && !iforce && ispacn != this->ispace){
     METRIS_THROW_MSG("setSpace called on back mesh! Should not be done.")
@@ -54,6 +58,7 @@ int MetricFieldFE::getnnmet()const{
 }
 
 void MetricFieldFE::allocate(){
+  requireContinuous("Point-indexed metric allocation");
   int mpoin = msh.mpoin;
   METRIS_ASSERT(mpoin > 0);
   int idim = msh.idim;
@@ -63,17 +68,104 @@ void MetricFieldFE::allocate(){
 }
 
 MetricFieldFE &MetricFieldFE::operator=(const MetricFieldFE& inp){
+  if(this == &inp) return *this;
+  if(inp.layout == MetricFieldLayout::Discontinuous){
+    METRIS_ENFORCE_MSG(metricClass() == MetricClass::MetricFieldFE,
+                      "An analytical metric cannot use discontinuous FE storage");
+    METRIS_ENFORCE_MSG(msh.idim == inp.msh.idim && msh.nface == inp.msh.nface
+                      && msh.curdeg == inp.msh.curdeg && msh.npoin == inp.msh.npoin,
+                      "DG metric assignment requires matching mesh layouts");
+    for(int face = 0; face < msh.nface; face++){
+      const bool dead = msh.fac2poi(face,0) < 0;
+      METRIS_ENFORCE_MSG(dead == (inp.msh.fac2poi(face,0) < 0),
+                        "DG metric assignment requires matching live elements");
+      if(dead) continue;
+      for(int node = 0; node < getnnode(2,msh.curdeg); node++){
+        METRIS_ENFORCE_MSG(msh.fac2poi(face,node) == inp.msh.fac2poi(face,node),
+                          "DG metric assignment requires matching element ordering");
+      }
+    }
+    inp.elementToCoefficient.copyTo(elementToCoefficient);
+    inp.localCoefficients.copyTo(localCoefficients);
+    layout = inp.layout;
+    metricDegree = inp.metricDegree;
+    ispace = inp.ispace;
+    ibasis = inp.ibasis;
+    return *this;
+  }
   METRIS_ASSERT(inp.msh.npoin == msh.npoin);
   METRIS_ASSERT(inp.msh.idim == msh.idim);
   METRIS_ASSERT(msh.idim == 2 || msh.idim == 3);
   this->ispace = inp.ispace;
   this->ibasis = inp.ibasis;
+  layout = MetricFieldLayout::Continuous;
+  metricDegree = 0;
+  elementToCoefficient.free();
+  localCoefficients.free();
   //this->npoin  = inp.npoin;
   //this->nnmet  = inp.nnmet;
   allocate();
 
   inp.rfld.copyTo(rfld,msh.npoin);
   return *this;
+}
+
+int MetricFieldFE::getDegree() const{
+  return layout == MetricFieldLayout::Continuous ? msh.curdeg : metricDegree;
+}
+
+int MetricFieldFE::getCoefficientCount() const{
+  return layout == MetricFieldLayout::Continuous ? msh.npoin : localCoefficients.get_n();
+}
+
+void MetricFieldFE::initializeDiscontinuous(int degree){
+  requireContinuous("Discontinuous metric initialization");
+  METRIS_ENFORCE_MSG(metricClass() == MetricClass::MetricFieldFE,
+                    "Discontinuous storage requires an FE metric");
+  METRIS_ENFORCE_MSG(msh.idim == 2 && msh.get_tdim() == 2 && msh.curdeg == 2,
+                    "Discontinuous metric storage requires planar Q2 triangles");
+  METRIS_ENFORCE_MSG(degree == 1, "Discontinuous metric degree must be one");
+  int count = 0;
+  elementToCoefficient.allocate(msh.nface,3);
+  elementToCoefficient.set_n(msh.nface);
+  elementToCoefficient.fill(-1);
+  for(int face = 0; face < msh.nface; face++){
+    if(msh.fac2poi(face,0) < 0) continue;
+    for(int node = 0; node < 3; node++) elementToCoefficient(face,node) = count++;
+  }
+  METRIS_ENFORCE_MSG(count > 0, "Discontinuous metric requires live triangles");
+  localCoefficients.allocate(count,getnnmet());
+  localCoefficients.set_n(count);
+  localCoefficients.fill(0.);
+  metricDegree = degree;
+  ibasis = FEBasis::Lagrange;
+  ispace = MetSpace::Log;
+  layout = MetricFieldLayout::Discontinuous;
+}
+
+int MetricFieldFE::getElementCoefficientIndex(int element, int localNode) const{
+  const int dim = msh.get_tdim();
+  METRIS_ENFORCE(dim == 2 || dim == 3);
+  METRIS_ENFORCE(element >= 0 && element < msh.nentt(dim));
+  METRIS_ENFORCE(msh.ent2poi(dim)(element,0) >= 0);
+  METRIS_ENFORCE(localNode >= 0 && localNode < getnnode(dim,getDegree()));
+  if(layout == MetricFieldLayout::Continuous) return msh.ent2poi(dim)(element,localNode);
+  METRIS_ENFORCE_MSG(msh.idim == 2 && dim == 2 && msh.curdeg == 2
+                    && msh.nface == elementToCoefficient.get_n(),
+                    "Mesh layout does not match DG metric storage");
+  const int coefficient = elementToCoefficient(element,localNode);
+  METRIS_ENFORCE(coefficient >= 0 && coefficient < localCoefficients.get_n());
+  return coefficient;
+}
+
+const double *MetricFieldFE::elementCoefficient(int element, int localNode) const{
+  const int index = getElementCoefficientIndex(element,localNode);
+  return layout == MetricFieldLayout::Continuous ? rfld[index] : localCoefficients[index];
+}
+
+double *MetricFieldFE::elementCoefficient(int element, int localNode){
+  const int index = getElementCoefficientIndex(element,localNode);
+  return layout == MetricFieldLayout::Continuous ? rfld[index] : localCoefficients[index];
 }
 
 
@@ -159,6 +251,7 @@ void MetricFieldFE::setBezier(){
 
 
 void MetricFieldFE::readMetricFile(std::string inpname){
+  requireContinuous("Vertex metric file input");
 
   int metdim;
   int64_t libIdx = MetrisOpenMeshFile<GmfRead>(inpname.c_str(), &metdim);
@@ -219,6 +312,7 @@ void MetricFieldFE::readMetricFile(std::string inpname){
 }
 
 void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
+  requireContinuous("Vertex metric file output");
 
   GETVDEPTH(msh.param);
 
@@ -292,6 +386,7 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
 
 // coeff is size multiplier
 void MetricFieldFE::normalize(double coeff){
+  requireContinuous("Metric normalization");
   METRIS_ASSERT(coeff > 0.0);
   double size = 1/coeff/coeff;
   int nnmet = getnnmet();
@@ -318,6 +413,7 @@ void MetricFieldFE::normalize(double coeff){
 
 
 void MetricFieldFE::correctMetric(){
+  requireContinuous("Metric correction");
   //const MetrisParameters *param = msh.param;
 
   double eigval[3], eigvec[9];
@@ -352,6 +448,7 @@ void MetricFieldFE::getMetBary(AsDeg asdmet,
                                const double*__restrict__  bary,
                                double*__restrict__ metl,
                                double*__restrict__ dmet) {
+  requireContinuous("Geometry-node-indexed metric evaluation");
   METRIS_ENFORCE_MSG(ibasis != FEBasis::Undefined, "Metric was not initialized.");
 
   // barycentric is defined but not physical. Probably a mistake either way
