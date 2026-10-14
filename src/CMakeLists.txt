@@ -229,6 +229,7 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshBack.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/MeshMetric.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh_interpMetBack.cxx
+    ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh_sampleMetBack.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh_cleanup.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/Mesh.cxx
     ${PROJECT_SOURCE_DIR}/src/Mesh/WorkArray.cxx

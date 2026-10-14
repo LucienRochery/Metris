@@ -18,6 +18,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <sstream>
 
 namespace Metris{
@@ -237,6 +238,163 @@ BOOST_AUTO_TEST_CASE(runner_copies_dg_background_without_interpolation){
   }
   mesh.met.elementCoefficient(0,1)[0] += 1.;
   BOOST_CHECK_EQUAL(run.bak.met.elementCoefficient(0,1)[0],values[0][1][0]);
+}
+
+BOOST_AUTO_TEST_CASE(background_samples_preserve_entity_specific_interface_traces){
+  for(MetSpace space : {MetSpace::Log,MetSpace::Exp}){
+    MetrisParameters param; param.iverb = 0; param.usrTarDeg = 2;
+    param.setMeshIn(fixture+".mesh"); param.dgMetFileName = fixture+".dgmet";
+    MetrisRunner run(nullptr,nullptr,param);
+    auto &mesh = static_cast<Mesh<MetricFieldFE>&>(*run.msh_g);
+    mesh.met.setSpace(space);
+    std::array<double,18> originalCoefficients;
+    for(int ientt = 0; ientt < 2; ientt++) for(int node = 0; node < 3; node++)
+      for(int k = 0; k < 3; k++)
+        originalCoefficients[9*ientt+3*node+k] = mesh.met.elementCoefficient(ientt,node)[k];
+    for(int ipoin = 0; ipoin < mesh.npoin; ipoin++) for(int k = 0; k < 3; k++){
+      mesh.met.rfld(ipoin,k) = std::numeric_limits<double>::quiet_NaN();
+      run.bak.met.rfld(ipoin,k) = std::numeric_limits<double>::quiet_NaN();
+    }
+    const int oldSeed = mesh.poi2bak[4];
+    const double bary[2][3] = {{0,.5,.5},{.5,0,.5}};
+    BackgroundMetricSample traces[2];
+    for(int ientt = 0; ientt < 2; ientt++){
+      double expected[3];
+      if(space == MetSpace::Log) run.bak.met.getLogMetOnEntity(ientt,DifVar::None,bary[ientt],expected,nullptr);
+      else run.bak.met.getMetOnEntity(ientt,DifVar::None,bary[ientt],expected,nullptr);
+      BOOST_REQUIRE_EQUAL(mesh.sampleMetBackOnEntity(4,ientt,traces[ientt]),0);
+      BOOST_CHECK_EQUAL(traces[ientt].location.ientt,ientt);
+      BOOST_CHECK_EQUAL(traces[ientt].ienttMet,ientt);
+      BOOST_CHECK(traces[ientt].space == space);
+      BackgroundMetricSample automatic;
+      BOOST_REQUIRE_EQUAL(mesh.sampleMetBack(4,automatic,ientt),0);
+      for(int k = 0; k < 3; k++){
+        BOOST_CHECK_SMALL(traces[ientt].met[k]-expected[k],2e-13);
+        BOOST_CHECK_EQUAL(automatic.met[k],traces[ientt].met[k]);
+      }
+    }
+    for(int ipoin : {1,2}) for(int ientt = 0; ientt < 2; ientt++){
+      const int node = ipoin == 1 ? (ientt == 0 ? 1 : 0) : 2;
+      double vertexBary[3] = {}; vertexBary[node] = 1.;
+      double expected[3];
+      if(space == MetSpace::Log) run.bak.met.getLogMetOnEntity(ientt,DifVar::None,vertexBary,expected,nullptr);
+      else run.bak.met.getMetOnEntity(ientt,DifVar::None,vertexBary,expected,nullptr);
+      BackgroundMetricSample vertex;
+      const int seed = mesh.poi2bak[ipoin];
+      BOOST_REQUIRE_EQUAL(mesh.sampleMetBackOnEntity(ipoin,ientt,vertex),0);
+      BOOST_CHECK_EQUAL(vertex.ienttMet,ientt);
+      for(int k = 0; k < 3; k++) BOOST_CHECK_SMALL(vertex.met[k]-expected[k],2e-13);
+      BOOST_CHECK_EQUAL(mesh.poi2bak[ipoin],seed);
+    }
+    BOOST_CHECK_GT(std::abs(traces[0].met[2]-traces[1].met[2]),.1);
+    BOOST_CHECK_EQUAL(mesh.poi2bak[4],oldSeed);
+    BOOST_CHECK_THROW(mesh.sampleMetBack(4,traces[0]),MetrisExcept);
+    BOOST_CHECK_THROW(mesh.interpMetBack(4),MetrisExcept);
+    const double bottomBary[3] = {.5,.5,0};
+    double expected[3];
+    if(space == MetSpace::Log) run.bak.met.getLogMetOnEntity(0,DifVar::None,bottomBary,expected,nullptr);
+    else run.bak.met.getMetOnEntity(0,DifVar::None,bottomBary,expected,nullptr);
+    BackgroundMetricSample boundary;
+    const int oldBoundarySeed = mesh.poi2bak[6];
+    BOOST_REQUIRE_EQUAL(mesh.sampleMetBack(6,boundary,0),0);
+    BOOST_CHECK_EQUAL(boundary.location.tdim,1);
+    BOOST_CHECK_EQUAL(boundary.tdimMet,2);
+    BOOST_CHECK_EQUAL(boundary.ienttMet,0);
+    for(int k = 0; k < 3; k++) BOOST_CHECK_SMALL(boundary.met[k]-expected[k],2e-13);
+    const auto oldBoundary = boundary;
+    BOOST_CHECK_NE(mesh.sampleMetBack(6,boundary,1),0);
+    BOOST_CHECK(boundary.met == oldBoundary.met);
+    BOOST_CHECK_EQUAL(mesh.poi2bak[6],oldBoundarySeed);
+    for(int ientt = 0; ientt < 2; ientt++) for(int node = 0; node < 3; node++)
+      for(int k = 0; k < 3; k++){
+        BOOST_CHECK_EQUAL(mesh.met.elementCoefficient(ientt,node)[k],originalCoefficients[9*ientt+3*node+k]);
+        BOOST_CHECK_EQUAL(run.bak.met.elementCoefficient(ientt,node)[k],values[ientt][node][k]);
+      }
+    for(int ipoin = 0; ipoin < mesh.npoin; ipoin++) for(int dim = 0; dim < 2; dim++){
+      BOOST_CHECK_EQUAL(mesh.coord(ipoin,dim),points[ipoin][dim]);
+      BOOST_CHECK_EQUAL(run.bak.coord(ipoin,dim),points[ipoin][dim]);
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE(background_sample_localizes_moved_points_and_curved_maps_transactionally){
+  MetrisParameters param; param.iverb = 0; param.usrTarDeg = 2;
+  param.setMeshIn(fixture+".mesh"); param.dgMetFileName = fixture+".dgmet";
+  MetrisRunner run(nullptr,nullptr,param);
+  auto &mesh = static_cast<Mesh<MetricFieldFE>&>(*run.msh_g);
+  const int oldSeed = mesh.poi2bak[4];
+  mesh.coord(4,0) = .8; mesh.coord(4,1) = .7;
+  BackgroundMetricSample sample;
+  BOOST_REQUIRE_EQUAL(mesh.sampleMetBackOnEntity(4,0,sample),0);
+  BOOST_CHECK_EQUAL(sample.ienttMet,1);
+  const double crossedBary[3] = {.3,.5,.2};
+  double expected[3]; run.bak.met.getLogMetOnEntity(1,DifVar::None,crossedBary,expected,nullptr);
+  for(int k = 0; k < 3; k++) BOOST_CHECK_SMALL(sample.met[k]-expected[k],2e-13);
+  run.bak.setBasis(FEBasis::Lagrange);
+  run.bak.coord(4,0) += .1; run.bak.coord(4,1) -= .07;
+  run.bak.setBasis(FEBasis::Bezier);
+  const double curvedBary[3] = {.2,.3,.5};
+  double point[2];
+  eval2<2,2>(run.bak.coord,run.bak.fac2poi[0],run.bak.getBasis(),DifVar::None,DifVar::None,
+             curvedBary,point,nullptr,nullptr);
+  std::copy(point,point+2,mesh.coord[4]);
+  BOOST_REQUIRE_EQUAL(mesh.sampleMetBackOnEntity(4,0,sample),0);
+  BOOST_CHECK_EQUAL(sample.ienttMet,0);
+  run.bak.met.getLogMetOnEntity(0,DifVar::None,curvedBary,expected,nullptr);
+  for(int k = 0; k < 3; k++){
+    BOOST_CHECK_SMALL(sample.met[k]-expected[k],2e-6);
+    BOOST_CHECK_SMALL(sample.baryMet[k]-curvedBary[k],2e-6);
+  }
+  const auto previous = sample;
+  mesh.coord(4,0) = 20.; mesh.coord(4,1) = 20.;
+  BOOST_CHECK_NE(mesh.sampleMetBackOnEntity(4,0,sample),0);
+  BOOST_CHECK(sample.met == previous.met);
+  for(int k = 0; k < 3; k++) BOOST_CHECK_EQUAL(sample.baryMet[k],previous.baryMet[k]);
+  BOOST_CHECK_EQUAL(sample.ienttMet,previous.ienttMet);
+  BOOST_CHECK_EQUAL(mesh.poi2bak[4],oldSeed);
+  for(int ientt = 0; ientt < 2; ientt++) for(int node = 0; node < 3; node++)
+    for(int k = 0; k < 3; k++){
+      BOOST_CHECK_EQUAL(mesh.met.elementCoefficient(ientt,node)[k],values[ientt][node][k]);
+      BOOST_CHECK_EQUAL(run.bak.met.elementCoefficient(ientt,node)[k],values[ientt][node][k]);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(continuous_sampling_matches_legacy_interpolation_without_committing){
+  for(MetSpace space : {MetSpace::Log,MetSpace::Exp}){
+    MetrisParameters param; param.iverb = 0; param.usrTarDeg = 2;
+    param.setMeshIn(fixture+".mesh");
+    MetrisRunner run(nullptr,nullptr,param);
+    auto &mesh = static_cast<Mesh<MetricFieldFE>&>(*run.msh_g);
+    run.bak.setBasis(FEBasis::Lagrange);
+    run.bak.met.setBasis(FEBasis::Lagrange); run.bak.met.setSpace(MetSpace::Log);
+    for(int ipoin = 0; ipoin < run.bak.npoin; ipoin++){
+      run.bak.met(ipoin,0) = .2+run.bak.coord(ipoin,0);
+      run.bak.met(ipoin,1) = .1*run.bak.coord(ipoin,1);
+      run.bak.met(ipoin,2) = -.3+run.bak.coord(ipoin,1);
+    }
+    mesh.met.setSpace(space);
+    mesh.coord(4,0) = .2; mesh.coord(4,1) = .3;
+    const int oldSeed = mesh.poi2bak[4];
+    const std::array<double,3> oldMet = {{mesh.met(4,0),mesh.met(4,1),mesh.met(4,2)}};
+    BackgroundMetricSample sample;
+    BOOST_REQUIRE_EQUAL(mesh.sampleMetBack(4,sample),0);
+    BOOST_CHECK_EQUAL(mesh.poi2bak[4],oldSeed);
+    for(int k = 0; k < 3; k++) BOOST_CHECK_EQUAL(mesh.met(4,k),oldMet[k]);
+    double expected[3] = {.4,.03,0.};
+    if(space == MetSpace::Exp) getexpmet_inp<2,double>(expected);
+    for(int k = 0; k < 3; k++) BOOST_CHECK_SMALL(sample.met[k]-expected[k],2e-13);
+    BOOST_REQUIRE_EQUAL(mesh.interpMetBack(4),0);
+    for(int k = 0; k < 3; k++) BOOST_CHECK_EQUAL(mesh.met(4,k),sample.met[k]);
+    BOOST_CHECK_EQUAL(mesh.poi2bak[4],sample.location.ientt);
+    const auto accepted = sample;
+    const int acceptedSeed = mesh.poi2bak[4];
+    mesh.coord(4,0) = mesh.coord(4,1) = 20.;
+    BOOST_CHECK_NE(mesh.sampleMetBack(4,sample),0);
+    BOOST_CHECK(sample.met == accepted.met);
+    BOOST_CHECK_NE(mesh.interpMetBack(4),0);
+    BOOST_CHECK_EQUAL(mesh.poi2bak[4],acceptedSeed);
+    for(int k = 0; k < 3; k++) BOOST_CHECK_EQUAL(mesh.met(4,k),accepted.met[k]);
+  }
 }
 
 BOOST_AUTO_TEST_CASE(dgmet_command_line_loads_the_paired_input){

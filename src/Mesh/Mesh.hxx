@@ -12,10 +12,25 @@
 #include "../MetricField/MetricField.hxx"
 #include "MeshMetric.hxx"
 #include "MeshBack.hxx"
+#include <array>
 
 
 //template<class MetricFieldType> class MetrisRunner<MetricFieldType>;
 namespace Metris{
+
+struct BackgroundLocation{
+  int tdim = 0, ientt = -1, status = -1;
+  std::array<double,4> bary{};
+  std::array<double,3> projected{};
+};
+
+struct BackgroundMetricSample{
+  BackgroundLocation location;
+  int ienttMet = -1, tdimMet = 0;
+  std::array<double,4> baryMet{};
+  MetSpace space = MetSpace::Undefined;
+  std::array<double,6> met{};
+};
 
 
 template<class MetricFieldType>
@@ -53,11 +68,26 @@ public:
   int interpMetBack00(int ipoi0, int tdim, int iref, int ipseed,
                       const double*__restrict__ algnd);
 
+  // Sampling leaves metric coefficients and poi2bak unchanged.
+  // DG callers supply their own background triangle as ienttBack.
+  int sampleMetBack(int ipoin, BackgroundMetricSample &sample, int ienttBack = -1);
+  int sampleMetBack(int ipoin, int tdim, int iseed, int iref, const double *algnd,
+                    BackgroundMetricSample &sample, int ienttBack = -1);
+  int sampleMetBack00(int ipoin, int tdim, int iref, int ipseed, const double *algnd,
+                      BackgroundMetricSample &sample, int ienttBack = -1);
+  int sampleMetBackOnEntity(int ipoin, int ienttBack, BackgroundMetricSample &sample);
+  int locateMetBack(int ipoin, int tdim, int ientt, int iref, const double *algnd,
+                    BackgroundLocation &location);
+
 private:
-  int interpMetBack0(int ipoi0, 
+  int interpMetBack0(int ipoi0,
                      int tdim, int iseed, 
                      int iref, 
                      const double*__restrict__ algnd);
+  int sampleMetBack0(int ipoin, int tdim, int iseed, int iref, const double *algnd,
+                     BackgroundMetricSample &sample, int ienttBack);
+  int evaluateMetBackLocation(int ipoin, const BackgroundLocation &location,
+                              BackgroundMetricSample &sample, int ienttBack);
 
 
 
