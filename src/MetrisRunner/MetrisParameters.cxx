@@ -256,6 +256,7 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("met")){
     setMetricFile(opt.m["met"].template as<std::string>());
   }
+  if(opt.count("dgmet")) dgMetFileName = opt.m["dgmet"].template as<std::string>();
 
   if(opt.count("anamet")){
     setAnalyticalMetric(opt.m["anamet"].template as<int>());

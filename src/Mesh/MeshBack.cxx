@@ -105,6 +105,16 @@ void MeshBack::set_nface(int nface, bool skip_allocf){
 
 void MeshBack::initialize(MetrisAPI *data,
   MetrisParameters &param){
+  if(!param.dgMetFileName.empty()){
+    METRIS_ENFORCE_MSG(data == nullptr && !param.inpBack && !param.inpMet && !param.anaMet
+                      && param.anamet_ptr == nullptr && param.ianamet < 1 && !param.scaleMet
+                      && param.usrTarDeg == 2,
+                      "DG input requires one Q2 geometry file and no other metric or scaling source");
+    MeshBase::initialize(data,param);
+    met.readDiscontinuousMetricFile(param.dgMetFileName);
+    setBasis(FEBasis::Bezier);
+    return;
+  }
   MeshBase::initialize(data,param);
   setBasis(FEBasis::Bezier);
 

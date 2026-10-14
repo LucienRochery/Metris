@@ -14,6 +14,7 @@
 #include "../msh_anamet.hxx"
 
 #include <boost/pool/pool_alloc.hpp>
+#include <vector>
 
 
 namespace Metris{
@@ -135,6 +136,11 @@ public:
   }
 
 	void readMetricFile(std::string outname);
+  // Optional map: source point ID minus one -> current zero-based point ID.
+  void readDiscontinuousMetricFile(const std::string &filename,
+                                   const std::vector<int> &sourceToPoint = {});
+  void writeDiscontinuousMetricFiles(const std::string &meshFilename,
+                                     const std::string &metFilename) const;
 	void writeMetricFile(std::string outname, bool iprefix = true);
 
 	template<int gdim, int tdim, int mshdeg, int tardeg>

@@ -92,8 +92,11 @@ void Mesh<MetricFieldAnalytical>::initialize(MetrisAPI *data, MeshBack &bak,
 
 
 template<>
-void Mesh<MetricFieldFE>::initialize(MetrisAPI *data, MeshBack &bak, 
+void Mesh<MetricFieldFE>::initialize(MetrisAPI *data, MeshBack &bak,
   MetrisParameters &param){
+  if(bak.met.getLayout() == MetricFieldLayout::Discontinuous)
+    METRIS_ENFORCE_MSG(data == nullptr && !param.inpBack,
+                      "DG initialization requires an exact copy of the background geometry");
   this->initializeCommon(data,bak,param);
 
   poi2bak.fill(-1);

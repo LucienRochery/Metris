@@ -6,6 +6,7 @@
 
 
 #include "../MetrisRunner/MetrisRunner.hxx"
+#include <type_traits>
 
 #include "../Mesh/Mesh.hxx"
 
@@ -544,8 +545,19 @@ void MetrisRunner::writeOutputs0(){
       effMeshFileName = param_.outmFileName;
       effMetFileName = baseOutName + ".solb";
     }
-    writeMesh(effMeshFileName, msh, param->main_in_prefix);
-    msh.met.writeMetricFile(effMetFileName, param->main_in_prefix);
+    bool dgOutput = false;
+    if constexpr(std::is_same_v<MFT,MetricFieldFE>){
+      if(msh.met.getLayout() == MetricFieldLayout::Discontinuous){
+        const std::string prefix = param->main_in_prefix ? param->outmPrefix : "";
+        writeDGConnectionCheckpoint(msh,prefix+effMeshFileName,prefix+baseOutName+".dgmet",
+                                    prefix+baseOutName+".connection.json");
+        dgOutput = true;
+      }
+    }
+    if(!dgOutput){
+      writeMesh(effMeshFileName, msh, param->main_in_prefix);
+      msh.met.writeMetricFile(effMetFileName, param->main_in_prefix);
+    }
 
     if(param->anaSol){
       SolutionFieldAnalytical sol(msh);

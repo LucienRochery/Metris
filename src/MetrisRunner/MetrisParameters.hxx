@@ -54,6 +54,7 @@ depending on whether they should be serialized.
 
 // Add to this:
 #define METRIS_PARAMETER_OTHERFIELDS_JSON \
+    FIELD(std::string, dgMetFileName, "") \
     /* number of threads -nproc */ \
     FIELD(int, nproc, -1) \
     /* Scaled ccoef lower bound */ \

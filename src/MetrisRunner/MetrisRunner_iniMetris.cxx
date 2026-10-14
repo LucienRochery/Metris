@@ -186,7 +186,7 @@ void MetrisRunner::iniMetris(MetrisAPI *data_front, MetrisAPI *data_back){
 
   msh.initialize(data_front, bak, param_);
   msh.setBasis(FEBasis::Bezier);
-  msh.met.setSpace(MetSpace::Exp);
+  if(msh.met.getLayout() == MetricFieldLayout::Continuous) msh.met.setSpace(MetSpace::Exp);
   msh.met.setBasis(FEBasis::Lagrange);
 
   if(param_.dbgfull) check_topo(msh,0);
@@ -211,7 +211,6 @@ template void MetrisRunner::set_array_debugids<MetricFieldFE>();
 template void MetrisRunner::set_array_debugids<MetricFieldAnalytical>();
 
 } // end namespace
-
 
 
 

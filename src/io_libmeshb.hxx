@@ -43,6 +43,11 @@ void writeMesh(std::string meshName, const MeshBase &msh, bool iprefix = true,
                int iedg0 = 0, int ifac0 = 0, int iele0 = 0,
                int iedg1 = -1, int ifac1 = -1, int iele1 = -1);
 
+// Save the evolving DG field with its geometry and connection integral settings.
+double writeDGConnectionCheckpoint(Mesh<MetricFieldFE> &msh,
+    const std::string &meshFilename, const std::string &metFilename,
+    const std::string &objectiveFilename);
+
 template<class MFT>
 void writeBackLinks(std::string solName, Mesh<MFT>& msh);
 

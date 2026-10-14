@@ -31,6 +31,7 @@ struct MetrisOptions{
       ("in"     , po::value<std::string>(), "Input mesh file "     )
       ("cad"    , po::value<std::string>(), "Input CAD file "      )
       ("met"    , po::value<std::string>(), "Input metric file "   )
+      ("dgmet"  , po::value<std::string>(), "Input entity-local DG metric sidecar")
       ("back"   , po::value<std::string>(), "Input back mesh file ")
       ("out"    , po::value<std::string>(), "Output mesh file "    )
       ("prefix" , po::value<std::string>(), "Output prefix, default ./"    )

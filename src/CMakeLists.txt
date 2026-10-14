@@ -234,6 +234,8 @@ set(SRC_SOURCES
     ${PROJECT_SOURCE_DIR}/src/Mesh/WorkArray.cxx
 
     ${PROJECT_SOURCE_DIR}/src/MetricField/MetricFieldFE.cxx
+    ${PROJECT_SOURCE_DIR}/src/MetricField/MetricFieldDG_read.cxx
+    ${PROJECT_SOURCE_DIR}/src/MetricField/MetricFieldDG_write.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/MetricFieldAnalytical.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/MetricField_getMetNodes.cxx
     ${PROJECT_SOURCE_DIR}/src/MetricField/msh_explogmet.cxx
