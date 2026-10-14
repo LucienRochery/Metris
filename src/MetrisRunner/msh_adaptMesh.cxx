@@ -49,6 +49,7 @@ namespace Metris{
 
 
 void MetrisRunner::adaptMesh(){
+  requireContinuousMetrics("Mesh adaptation");
   CT_FOR0_INC(2,3,gdim){if(gdim == msh_g->idim){
     CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh_g->curdeg == ideg){
       if(this->metricFE){
@@ -62,6 +63,7 @@ void MetrisRunner::adaptMesh(){
 
 
 void MetrisRunner::adaptMesh2(){
+  requireContinuousMetrics("Mesh adaptation");
   if(param->adp_niter == 0) return;
 
   CT_FOR0_INC(2,3,gdim){if(gdim == msh_g->idim){

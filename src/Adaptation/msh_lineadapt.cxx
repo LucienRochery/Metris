@@ -31,6 +31,7 @@ namespace Metris{
 // Adapt lines "frontally" using CAD
 template<class MFT>
 void adaptGeoLines(Mesh<MFT> &msh){
+  msh.met.requireContinuous("Boundary line adaptation");
   GETVDEPTH(msh.param);
   if(!msh.CAD()) return;
 

@@ -35,6 +35,7 @@ template<class MFT>
 void insPointsCurve(Mesh<MFT>& msh, int iref, const double* range, const int* lcorn,
                     const dblAr1 &lnewt, const intWrkAr1 &ledge, 
                     int ithrd1, int ithrd2, int ithrd3){
+  msh.met.requireContinuous("Boundary point insertion");
 
   GETVDEPTH(msh.param);
 

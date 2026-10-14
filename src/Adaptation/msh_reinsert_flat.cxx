@@ -25,6 +25,7 @@ namespace Metris{
 // Reinsert vertices that create almost flat elements next to the boundary. 
 template<class MFT, int idim, int ideg>
 int reinsertFlat(Mesh<MFT> &msh){
+  msh.met.requireContinuous("Flat entity reinsertion");
   GETVDEPTH(msh.param);
   constexpr int gdim = idim;
   constexpr int tdim = idim; 

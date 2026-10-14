@@ -23,6 +23,7 @@
 namespace Metris{
 
 void MetrisRunner::runMetris(){
+  requireContinuousMetrics("Combined production driver");
 
   std::string outputAdaptStats = param->outmPrefix;
   if (param->MOESS_adapt_it >= 0){
@@ -269,6 +270,7 @@ void MetrisRunner::runMetris(){
 
 template <class MFT>
 void MetrisRunner::runMetrisProgressive(){
+  requireContinuousMetrics("Progressive production driver");
 
   GETVDEPTH(param);
 

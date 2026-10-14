@@ -48,6 +48,13 @@ public:
   int getDegree() const;
   int getCoefficientCount() const;
 
+  // Validate the supported DG representation against its supporting mesh.
+  void validateDiscontinuous() const;
+  void requireContinuous(const char *operation) const {
+    METRIS_ENFORCE_MSG(layout == MetricFieldLayout::Continuous,
+                      "{} requires a continuous metric layout", operation);
+  }
+
   // Initialize independent P1 Lagrange log-metric coefficients to zero (M = I).
   // This replaces the metric representation without changing mesh connectivity.
   void initializeDiscontinuous(int degree = 1);
@@ -101,10 +108,11 @@ public:
 	}
 
 	void setBasis(FEBasis ibasn){
+    validateDiscontinuous();
     if(ibasn == getBasis()) return;
     if(layout == MetricFieldLayout::Discontinuous){
-      METRIS_ENFORCE(metricDegree == 1);
-      METRIS_ENFORCE(ibasn == FEBasis::Lagrange || ibasn == FEBasis::Bezier);
+      METRIS_ENFORCE_MSG(ibasn == FEBasis::Lagrange || ibasn == FEBasis::Bezier,
+                        "DG metrics support only P1 Lagrange or Bernstein basis");
       // P1 Lagrange and Bernstein coefficients coincide.
       ibasis = ibasn;
       return;
@@ -182,10 +190,6 @@ public:
 	dblAr2 rfld;
 
 protected:
-  void requireContinuous(const char *operation) const {
-    METRIS_ENFORCE_MSG(layout == MetricFieldLayout::Continuous,
-                      "{} requires a continuous metric layout", operation);
-  }
 	MetSpace ispace;
 	FEBasis ibasis;
 	//int ideg;

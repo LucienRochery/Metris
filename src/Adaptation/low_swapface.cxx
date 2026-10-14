@@ -41,6 +41,7 @@ int swapface(Mesh<MFT>& msh, int iface, swapOptions opt,
              double *qnrm0_, double *qnrm1_,
              StepDistanceObjectiveState *globalObjective,
              int ithread){
+  msh.met.requireContinuous("Face swapping");
 
   #ifdef STEPDISTANCE
   constexpr QuaFun iquaf = QuaFun::StepDistance;

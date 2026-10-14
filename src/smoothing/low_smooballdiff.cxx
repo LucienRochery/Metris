@@ -11,6 +11,7 @@ Simplest possible approach.
 
 
 #include "../smoothing/low_smooballdiff.hxx"
+#include "msh_smooball.hxx"
 
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -519,6 +520,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
                    double*__restrict__ qnrm0, double*__restrict__ qmax0,
                    double*__restrict__ qnrm1, double*__restrict__ qmax1,
                    QuaFun iquaf){
+  validateSmoothingMetric(msh,msh.met,iquaf);
 
   GETVDEPTH(msh.param);
 
@@ -861,6 +863,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
                           double*__restrict__ qnrm0, double*__restrict__ qmax0,
                           double*__restrict__ qnrm1, double*__restrict__ qmax1,
                           QuaFun iquaf){
+  validateSmoothingMetric(msh,msh.met,iquaf);
 
   GETVDEPTH(msh.param);
 
@@ -1708,6 +1711,7 @@ int smoocavdiff(Mesh<MFT>& msh, MshCavity& cav,
                    double& quaCav1, double& quaMaxCav1,
                    double& targetWeightCav1,
                    QuaFun iquaf, int ithread){
+  msh.met.requireContinuous("Cavity or legacy Luksan smoothing");
 
   GETVDEPTH(msh.param);
 
@@ -2264,6 +2268,7 @@ int smoocavdiff_boundary(Mesh<MFT>& msh, MshCavity& cav, const int cadDim,
                          double& quaCav1, double& quaMaxCav1,
                          double& targetWeightCav1,
                          QuaFun iquaf, int ithread){
+  msh.met.requireContinuous("Cavity or legacy Luksan smoothing");
 
   GETVDEPTH(msh.param);
 
@@ -2981,6 +2986,7 @@ int smooballdiff_luksan(Mesh<MFT>& msh, int ipoin,
                         double*__restrict__ qnrm1, double*__restrict__ qmax1,
                         dblAr1 &work,
                         QuaFun iquaf){
+  msh.met.requireContinuous("Cavity or legacy Luksan smoothing");
 
   GETVDEPTH(msh.param);
   constexpr int gdim = idim;

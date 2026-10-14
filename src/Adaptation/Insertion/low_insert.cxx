@@ -126,6 +126,7 @@ int insertEdge(Mesh<MFT>& msh,
                BadEntHandler& handler,
                #endif
                int ithrd1, int ithrd2){
+  msh.met.requireContinuous("Edge insertion");
 
   int iverb0   = msh.param->iverb;
   int ivdepth0 = msh.param->ivdepth;

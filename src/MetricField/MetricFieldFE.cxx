@@ -49,6 +49,7 @@ MetricFieldFE::MetricFieldFE(const MetricFieldFE &inp) : msh(inp.msh), nspace_mi
 }
 
 void MetricFieldFE::setSpace(MetSpace ispacn, bool iforce){
+  validateDiscontinuous();
   #ifndef NDEBUG
   if(msh.meshClass() == MeshClass::MeshBack && !iforce && ispacn != this->ispace){
     METRIS_THROW_MSG("setSpace called on back mesh! Should not be done.")
@@ -91,11 +92,15 @@ void MetricFieldFE::allocate(){
 MetricFieldFE &MetricFieldFE::operator=(const MetricFieldFE& inp){
   if(this == &inp) return *this;
   if(inp.layout == MetricFieldLayout::Discontinuous){
+    inp.validateDiscontinuous();
     METRIS_ENFORCE_MSG(metricClass() == MetricClass::MetricFieldFE,
                       "An analytical metric cannot use discontinuous FE storage");
     METRIS_ENFORCE_MSG(msh.idim == inp.msh.idim && msh.nface == inp.msh.nface
+                      && msh.get_tdim() == inp.msh.get_tdim()
                       && msh.curdeg == inp.msh.curdeg && msh.npoin == inp.msh.npoin,
                       "DG metric assignment requires matching mesh layouts");
+    METRIS_ENFORCE_MSG(msh.getBasis() == FEBasis::Lagrange || msh.getBasis() == FEBasis::Bezier,
+                      "DG metric assignment requires Lagrange or Bernstein geometry basis");
     for(int ientt = 0; ientt < msh.nface; ientt++){
       const bool dead = msh.fac2poi(ientt,0) < 0;
       METRIS_ENFORCE_MSG(dead == (inp.msh.fac2poi(ientt,0) < 0),
@@ -139,6 +144,21 @@ int MetricFieldFE::getCoefficientCount() const{
   return layout == MetricFieldLayout::Continuous ? msh.npoin : localCoefficients.get_n();
 }
 
+void MetricFieldFE::validateDiscontinuous() const{
+  if(layout != MetricFieldLayout::Discontinuous) return;
+  METRIS_ENFORCE_MSG(msh.idim == 2 && msh.get_tdim() == 2 && msh.curdeg == 2,
+                    "DG metrics require planar Q2 triangles");
+  METRIS_ENFORCE_MSG(metricDegree == 1, "DG metric degree must be one");
+  METRIS_ENFORCE_MSG(msh.getBasis() == FEBasis::Lagrange || msh.getBasis() == FEBasis::Bezier,
+                    "DG metrics require Lagrange or Bernstein geometry basis");
+  METRIS_ENFORCE_MSG(ibasis == FEBasis::Lagrange || ibasis == FEBasis::Bezier,
+                    "DG metrics support only P1 Lagrange or Bernstein basis");
+  METRIS_ENFORCE_MSG(ispace == MetSpace::Log || ispace == MetSpace::Exp,
+                    "DG metric storage must be log or SPD");
+  METRIS_ENFORCE_MSG(msh.nface == elementToCoefficient.get_n(),
+                    "Entity count does not match DG metric storage");
+}
+
 void MetricFieldFE::initializeDiscontinuous(int degree){
   requireContinuous("Discontinuous metric initialization");
   METRIS_ENFORCE_MSG(metricClass() == MetricClass::MetricFieldFE,
@@ -146,6 +166,8 @@ void MetricFieldFE::initializeDiscontinuous(int degree){
   METRIS_ENFORCE_MSG(msh.idim == 2 && msh.get_tdim() == 2 && msh.curdeg == 2,
                     "Discontinuous metric storage requires planar Q2 triangles");
   METRIS_ENFORCE_MSG(degree == 1, "Discontinuous metric degree must be one");
+  METRIS_ENFORCE_MSG(msh.getBasis() == FEBasis::Lagrange || msh.getBasis() == FEBasis::Bezier,
+                    "DG metrics require Lagrange or Bernstein geometry basis");
   int count = 0;
   elementToCoefficient.allocate(msh.nface,3);
   elementToCoefficient.set_n(msh.nface);
@@ -165,6 +187,7 @@ void MetricFieldFE::initializeDiscontinuous(int degree){
 }
 
 int MetricFieldFE::getElementCoefficientIndex(int ientt, int localNode) const{
+  validateDiscontinuous();
   const int dim = msh.get_tdim();
   METRIS_ENFORCE(dim == 2 || dim == 3);
   METRIS_ENFORCE(ientt >= 0 && ientt < msh.nentt(dim));
@@ -407,6 +430,7 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
 
 // coeff is size multiplier
 void MetricFieldFE::normalize(double coeff){
+  validateDiscontinuous();
   if(layout == MetricFieldLayout::Discontinuous){
     METRIS_ENFORCE(std::isfinite(coeff) && coeff > 0.);
     const double shift = -2.*std::log(coeff);
@@ -532,6 +556,7 @@ void MetricFieldFE::getLogMetOnEntity0(int ientt, DifVar idiff,
 void MetricFieldFE::getLogMetOnEntity(int ientt, DifVar idiff,
                                      const double *bary, double *logm,
                                      double *dlogm) const{
+  validateDiscontinuous();
   METRIS_ENFORCE_MSG(metricClass() == MetricClass::MetricFieldFE,
                     "Entity-local log-metric evaluation requires an FE metric");
   METRIS_ENFORCE(msh.idim == msh.get_tdim());

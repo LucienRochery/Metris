@@ -21,6 +21,7 @@
 namespace Metris{
 
 void MetrisRunner::curveMesh(){
+  requireContinuousMetrics("Mesh curving");
   if(this->metricFE){
     curveMesh0<MetricFieldFE>();
   }else{

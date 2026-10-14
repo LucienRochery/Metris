@@ -74,6 +74,7 @@ int cavity_operator(Mesh<MFT> &msh ,
                     CavWrkArrs &work,
                     CavOprInfo &info,
                     int ithread){
+  msh.met.requireContinuous("Cavity reconnection");
 
   METRIS_ASSERT_MSG(cav.inewp == 0 || cav.inewp == 1,
                     "Caller must set cav.inewp to 1 for a new point, 0 otherwise.");

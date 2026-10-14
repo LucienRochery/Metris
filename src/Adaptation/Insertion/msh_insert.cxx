@@ -52,6 +52,7 @@ namespace Metris{
 // insertLongEdges is called.
 template<class MFT, int gdim, int ideg>
 double insertLongEdges(Mesh<MFT> &msh, int tdim, int *ninser, int ithrd1, int ithrd2){
+  msh.met.requireContinuous("Edge insertion");
   //if(tdim == 3){
   //  printf("## DEBUG SET MAX PRINTS\n");
   //  wait();

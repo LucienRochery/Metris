@@ -31,6 +31,7 @@ namespace Metris{
 // them in bulk. 
 template<class MFT>
 void adaptGeoLines2(Mesh<MFT> &msh){
+  msh.met.requireContinuous("Boundary line adaptation");
   GETVDEPTH(msh.param);
   int ithrd1 = 0;
   int ithrd2 = 1;

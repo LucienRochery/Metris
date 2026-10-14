@@ -20,6 +20,10 @@ Low-level drivers:
 
 namespace Metris{
 
+// DG smoothing uses planar Q2 Lagrange geometry and the connection objective.
+void validateSmoothingMetric(const MeshBase &msh, const MetricFieldFE &met,
+                             QuaFun objective);
+
 // Production uses its configured objective at every supported geometry
 // degree. The geometric arguments remain explicit so future policies can make
 // a dimension- or degree-specific choice without changing callers.

@@ -40,6 +40,7 @@ int collapseEdge(Mesh<MFT>& msh, int tdim, int ientt, int iedl, [[maybe_unused]]
                  BadEntHandler& handler,
                  #endif
                 int ithrd1, int ithrd2, [[maybe_unused]] int ithrd3){
+  msh.met.requireContinuous("Edge collapse");
 
   const auto lnoed = tdim == 1 ? lnoed1 :
                      tdim == 2 ? lnoed2 : lnoed3;
@@ -106,6 +107,7 @@ template<class MFT>
 int collapseEdge2(Mesh<MFT>& msh, int tdim, int ientt, int iedl, double qmax_suf,
                   MshCavity &cav, CavWrkArrs &work,
                   intAr1 &lerro, int ithrd1, int ithrd2, [[maybe_unused]] int ithrd3){
+  msh.met.requireContinuous("Edge collapse");
   METRIS_ASSERT(ientt >= 0);
   GETVDEPTH(msh.param);
 
@@ -313,6 +315,7 @@ template<class MFT>
 int collapseVertex(Mesh<MFT>& msh, int ipcol, double qmax_suf,
                    MshCavity &cav, CavWrkArrs &work,
                    intAr1 &lerro, int ithrd1, int ithrd2){
+  msh.met.requireContinuous("Vertex collapse");
   GETVDEPTH(msh.param);
 
   METRIS_ASSERT(ithrd1 >= 0 && ithrd1 < METRIS_MAXTAGS);

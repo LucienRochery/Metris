@@ -34,6 +34,7 @@ namespace Metris{
 template<class MFT, int gdim, int ideg>
 double collapseShortEdges(Mesh<MFT> &msh, int tdim, double qmax_suf, int *ncoll,
                           int ithrd1, int ithrd2, int ithrd3, int ithrd4){
+  msh.met.requireContinuous("Edge collapse");
 
   GETVDEPTH(msh.param);
 

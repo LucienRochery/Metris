@@ -36,6 +36,7 @@ namespace Metris{
 
 template<class MFT>
 double smoothMeshLength(Mesh<MFT> &msh, int tdim, int ithrd1, int ithrd2){
+  msh.met.requireContinuous("Length smoothing");
   GETVDEPTH(msh.param);
 
   // This heuristic moves only topological vertices and does not update the

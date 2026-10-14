@@ -27,6 +27,7 @@ namespace Metris{
 
 template<class MFT>
 int Mesh<MFT>::newpoitopo(PointType ptype, int tdimn, int ientt){
+  this->met.requireContinuous("Topological point creation");
   int ipoin = MeshBase::newpoitopo(ptype, tdimn, ientt);
 
   // No need to add guesses here, that'll be done when calling interpMetBack

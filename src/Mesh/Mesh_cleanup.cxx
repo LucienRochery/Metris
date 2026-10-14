@@ -16,6 +16,7 @@ namespace Metris{
 
 template<class MetricFieldType>
 void Mesh<MetricFieldType>::cleanup(){
+  this->met.requireContinuous("Mesh cleanup and reordering");
 
 
   GETVDEPTH(this->param);

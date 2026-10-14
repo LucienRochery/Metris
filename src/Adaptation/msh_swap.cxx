@@ -28,6 +28,7 @@ namespace Metris{
 // Greedy swaps: if a swap improves, do it
 template<class MFT, int gdim, int ideg>
 double swapMesh(Mesh<MFT> &msh, swapOptions swapOpt, int *nswap, int ithrd1, int ithrd2, int ithrd3, int ient0){
+  msh.met.requireContinuous("Mesh swapping");
   GETVDEPTH(msh.param);
 
   if(msh.param->opt_swap_niter <= 0){

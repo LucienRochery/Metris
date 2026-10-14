@@ -37,6 +37,16 @@ Simplest possible approach.
 
 namespace Metris{
 
+void validateSmoothingMetric(const MeshBase &msh, const MetricFieldFE &met,
+                             QuaFun objective){
+  if(met.getLayout() != MetricFieldLayout::Discontinuous) return;
+  met.validateDiscontinuous();
+  METRIS_ENFORCE_MSG(objective == QuaFun::Connection,
+                    "DG smoothing requires the connection objective");
+  METRIS_ENFORCE_MSG(msh.getBasis() == FEBasis::Lagrange,
+                    "DG smoothing requires Lagrange geometry");
+}
+
 namespace {
 
 struct BoundaryParameterSnapshot
@@ -627,6 +637,7 @@ bool smoothSingleQuadraticEdgeControlPoint(
     double *regional_objective_before,
     double *regional_objective_after)
 {
+  validateSmoothingMetric(msh,msh.met,objective);
   constexpr int idim = 2;
   constexpr int ideg = 2;
   constexpr int nnmet = 3;
@@ -741,6 +752,7 @@ double smoothing_region_objective(const Mesh<MFT>& msh,
 
 template<class MFT>
 double smoothInterior_Ball(Mesh<MFT> &msh, QuaFun iquaf, int ithrd1, int ithrd2, bool freezeVertices){
+  validateSmoothingMetric(msh,msh.met,iquaf);
 
   int tdimn = msh.get_tdim();
 
@@ -773,6 +785,7 @@ template double smoothInterior_Ball<MetricFieldFE        >(Mesh<MetricFieldFE   
 template<class MFT, int idim, int ideg>
 double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
                             int ithrd1, int ithrd2, bool freezeVertices){
+  validateSmoothingMetric(msh,msh.met,iquaf);
   GETVDEPTH(msh.param);
 
   constexpr int tdim = idim;
@@ -1299,6 +1312,7 @@ template double smoothInterior_Ball0<MetricFieldFE        ,3,n>(Mesh<MetricField
 
 template<class MFT>
 double smoothElement_Ball(Mesh<MFT> &msh, const int ientt, BadEntHandler& handler, QuaFun iquaf, int ithrd1, int ithrd2){
+  validateSmoothingMetric(msh,msh.met,iquaf);
 
   int tdimn = msh.get_tdim();
 
@@ -1331,6 +1345,7 @@ template double smoothElement_Ball<MetricFieldFE        >(Mesh<MetricFieldFE    
 template<class MFT, int idim, int ideg>
 double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handler, QuaFun iquaf,
                            int ithrd1, int ithrd2){
+  validateSmoothingMetric(msh,msh.met,iquaf);
   // TODO: for now just vertex smoothing. Add HO nodes in the future
   GETVDEPTH(msh.param);
 
@@ -1703,6 +1718,7 @@ double smoothCavity(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, QuaF
                     double& quaCav1, double& quaMaxCav1,
                     double& targetWeightCav1,
                     int ithrd1, int ithrd2){
+  msh.met.requireContinuous("Cavity smoothing");
 
   int tdimn = msh.get_tdim();
 
@@ -1747,6 +1763,7 @@ template double smoothCavity<MetricFieldFE        >(Mesh<MetricFieldFE        > 
 template<class MFT, int idim, int ideg>
 double smoothCavity0(Mesh<MFT> &msh, MshCavity& cav, BadEntHandler& handler, QuaFun iquaf, const double quaCav0, const double quaMaxCav0, const double targetWeightCav0, double& quaCav1, double& quaMaxCav1, double& targetWeightCav1,
                            int ithrd1, int ithrd2){
+  msh.met.requireContinuous("Cavity smoothing");
   // TODO: for now just vertex smoothing. Add HO nodes in the future
   GETVDEPTH(msh.param);
 

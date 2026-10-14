@@ -24,6 +24,7 @@ This implements topological and (u,v) guess init of boundary points.
 */
 template<class MFT, int mshdeg, int tardeg>
 void deg_elevate(Mesh<MFT> &msh){
+  msh.met.requireContinuous("Geometry degree elevation");
   if(msh.idim != 2 && msh.idim != 3) 
     METRIS_THROW_MSG("TODO: Implement dim {} degelev.",msh.idim);
 

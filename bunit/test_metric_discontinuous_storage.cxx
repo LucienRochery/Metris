@@ -7,6 +7,12 @@
 
 #include "Mesh/Mesh.hxx"
 #include "MetrisRunner/MetrisParameters.hxx"
+#include "Adaptation/Insertion/msh_insert.hxx"
+#include "Adaptation/msh_collapse.hxx"
+#include "Adaptation/msh_swap.hxx"
+#include "msh_degelev.hxx"
+#include "smoothing/msh_smooball.hxx"
+#include "smoothing/msh_smoolen.hxx"
 
 #include <utility>
 
@@ -80,15 +86,15 @@ BOOST_FIXTURE_TEST_CASE(discontinuous_coefficients_have_independent_vertex_owner
   BOOST_CHECK_NE(mesh.met.getElementCoefficientIndex(0,1),mesh.met.getElementCoefficientIndex(1,0));
   mesh.met.elementCoefficient(0,1)[0] = 0.7;
   mesh.met.elementCoefficient(1,0)[0] = -0.3;
-  const MetricFieldFE &metric = mesh.met;
-  BOOST_CHECK_EQUAL(metric.elementCoefficient(0,1)[0],0.7);
-  BOOST_CHECK_EQUAL(metric.elementCoefficient(1,0)[0],-0.3);
+  const MetricFieldFE &met = mesh.met;
+  BOOST_CHECK_EQUAL(met.elementCoefficient(0,1)[0],0.7);
+  BOOST_CHECK_EQUAL(met.elementCoefficient(1,0)[0],-0.3);
   // Geometry point storage can grow without resizing or aliasing DG coefficients.
   mesh.set_npoin(12);
-  BOOST_CHECK_EQUAL(metric.getCoefficientCount(),6);
-  BOOST_CHECK_EQUAL(metric.elementCoefficient(0,1)[0],0.7);
-  BOOST_CHECK_EQUAL(metric.elementCoefficient(1,0)[0],-0.3);
-  BOOST_CHECK_THROW(metric.elementCoefficient(0,3),MetrisExcept);
+  BOOST_CHECK_EQUAL(met.getCoefficientCount(),6);
+  BOOST_CHECK_EQUAL(met.elementCoefficient(0,1)[0],0.7);
+  BOOST_CHECK_EQUAL(met.elementCoefficient(1,0)[0],-0.3);
+  BOOST_CHECK_THROW(met.elementCoefficient(0,3),MetrisExcept);
 }
 
 BOOST_FIXTURE_TEST_CASE(discontinuous_assignment_preserves_layout_and_owns_coefficients,TwoTriangles){
@@ -146,9 +152,9 @@ BOOST_FIXTURE_TEST_CASE(discontinuous_storage_rejects_ambiguous_legacy_operation
   BOOST_CHECK_THROW(mesh.met.forceBasisFlag(FEBasis::Bezier),MetrisExcept);
   BOOST_CHECK_THROW(mesh.met.normalize(0.),MetrisExcept);
   const double bary[3] = {0.2,0.3,0.5};
-  double metric[3];
+  double met[3];
   BOOST_CHECK_THROW(mesh.met.getMetBary(AsDeg::Pk,DifVar::None,MetSpace::Log,
-                                      mesh.fac2poi[0],2,bary,metric,nullptr),MetrisExcept);
+                                      mesh.fac2poi[0],2,bary,met,nullptr),MetrisExcept);
 }
 
 BOOST_AUTO_TEST_CASE(copying_an_empty_metric_preserves_its_state){
@@ -157,6 +163,94 @@ BOOST_AUTO_TEST_CASE(copying_an_empty_metric_preserves_its_state){
   BOOST_CHECK(copy.getLayout() == MetricFieldLayout::Continuous);
   BOOST_CHECK_EQUAL(copy.getCoefficientCount(),0);
   BOOST_CHECK(copy.getBasis() == FEBasis::Undefined);
+}
+
+BOOST_FIXTURE_TEST_CASE(dg_rejects_unsupported_support_before_modifying_coefficients,TwoTriangles){
+  for(int degree : {1,3}){
+    mesh.curdeg = degree;
+    BOOST_CHECK_THROW(mesh.met.initializeDiscontinuous(),MetrisExcept);
+    BOOST_CHECK(mesh.met.getLayout() == MetricFieldLayout::Continuous);
+  }
+  mesh.curdeg = 2;
+  mesh.idim = 3;
+  BOOST_CHECK_THROW(mesh.met.initializeDiscontinuous(),MetrisExcept);
+  mesh.idim = 2;
+  mesh.forceBasisFlag(FEBasis::Undefined);
+  BOOST_CHECK_THROW(mesh.met.initializeDiscontinuous(),MetrisExcept);
+  mesh.forceBasisFlag(FEBasis::Lagrange);
+  mesh.met.initializeDiscontinuous();
+  mesh.met.elementCoefficient(0,0)[0] = 0.7;
+  for(int degree : {1,3}){
+    mesh.curdeg = degree;
+    BOOST_CHECK_THROW(mesh.met.setSpace(MetSpace::Exp),MetrisExcept);
+    BOOST_CHECK_THROW(mesh.met.normalize(2.),MetrisExcept);
+    BOOST_CHECK_THROW(mesh.met.setBasis(FEBasis::Bezier),MetrisExcept);
+    BOOST_CHECK_THROW(mesh.met.elementCoefficient(0,0),MetrisExcept);
+  }
+  mesh.curdeg = 2;
+  mesh.idim = 3;
+  BOOST_CHECK_THROW(mesh.met.validateDiscontinuous(),MetrisExcept);
+  mesh.idim = 2;
+  mesh.set_nentt(2,0);
+  BOOST_CHECK_THROW(mesh.met.validateDiscontinuous(),MetrisExcept);
+  mesh.set_nentt(2,2);
+  BOOST_CHECK_EQUAL(mesh.met.elementCoefficient(0,0)[0],0.7);
+  BOOST_CHECK(mesh.met.getSpace() == MetSpace::Log);
+  BOOST_CHECK(mesh.met.getBasis() == FEBasis::Lagrange);
+}
+
+BOOST_FIXTURE_TEST_CASE(dg_smoothing_rejects_wrong_objectives_and_geometry_basis,TwoTriangles){
+  // Continuous fields retain their existing smoothing choices.
+  BOOST_CHECK_NO_THROW(validateSmoothingMetric(mesh,mesh.met,QuaFun::StepDistance));
+  mesh.met.initializeDiscontinuous();
+  for(MetSpace space : {MetSpace::Log,MetSpace::Exp}){
+    mesh.met.setSpace(space);
+    for(FEBasis basis : {FEBasis::Lagrange,FEBasis::Bezier}){
+      mesh.met.setBasis(basis);
+      BOOST_CHECK_NO_THROW(validateSmoothingMetric(mesh,mesh.met,QuaFun::Connection));
+    }
+  }
+  const auto wrongObjective = [](const MetrisExcept &error){
+    return std::string(error.what()).find("DG smoothing requires the connection objective") != std::string::npos;
+  };
+  for(QuaFun objective : {QuaFun::StepDistance,QuaFun::SizeShape,QuaFun::Distortion}){
+    BOOST_CHECK_EXCEPTION(smoothInterior_Ball(mesh,objective,0,1),MetrisExcept,wrongObjective);
+    BOOST_CHECK_EXCEPTION((smoothInterior_Ball0<MetricFieldFE,2,2>(mesh,objective,0,1)),MetrisExcept,wrongObjective);
+  }
+  mesh.forceBasisFlag(FEBasis::Bezier);
+  BOOST_CHECK_NO_THROW(mesh.met.validateDiscontinuous());
+  BOOST_CHECK_THROW(smoothInterior_Ball(mesh,QuaFun::Connection,0,1),MetrisExcept);
+  mesh.forceBasisFlag(FEBasis::Lagrange);
+  BOOST_CHECK_EQUAL(mesh.coord(4,0),0.5);
+  BOOST_CHECK_EQUAL(mesh.coord(4,1),0.5);
+}
+
+BOOST_FIXTURE_TEST_CASE(dg_topology_operations_reject_before_mutating_mesh,TwoTriangles){
+  mesh.met.initializeDiscontinuous();
+  mesh.met.elementCoefficient(0,1)[0] = 0.7;
+  int count = 17;
+  const int tag = mesh.tag[0];
+  const int stride = mesh.fac2poi.get_stride();
+  const auto requiresContinuous = [](const MetrisExcept &error){
+    return std::string(error.what()).find("requires a continuous metric layout") != std::string::npos;
+  };
+  BOOST_CHECK_EXCEPTION((insertLongEdges<MetricFieldFE,2,2>(mesh,2,&count,0,1)),MetrisExcept,requiresContinuous);
+  BOOST_CHECK_EXCEPTION((collapseShortEdges<MetricFieldFE,2,2>(mesh,2,1.,&count,0,1,2,3)),MetrisExcept,requiresContinuous);
+  BOOST_CHECK_EXCEPTION((swapMesh<MetricFieldFE,2,2>(mesh,swapOptions(parameters),&count,0,1,2)),MetrisExcept,requiresContinuous);
+  BOOST_CHECK_EXCEPTION(mesh.cleanup(),MetrisExcept,requiresContinuous);
+  BOOST_CHECK_EXCEPTION(mesh.newpoitopo(PointType::Vertex,2,0),MetrisExcept,requiresContinuous);
+  BOOST_CHECK_EXCEPTION((deg_elevate<MetricFieldFE,1,2>(mesh)),MetrisExcept,requiresContinuous);
+  BOOST_CHECK_EXCEPTION(smoothMeshLength(mesh,2,0,1),MetrisExcept,requiresContinuous);
+  BOOST_CHECK_EQUAL(count,17);
+  BOOST_CHECK_EQUAL(mesh.tag[0],tag);
+  BOOST_CHECK_EQUAL(mesh.fac2poi.get_stride(),stride);
+  BOOST_CHECK_EQUAL(mesh.nface,2);
+  BOOST_CHECK_EQUAL(mesh.npoin,9);
+  BOOST_CHECK_EQUAL(mesh.met.elementCoefficient(0,1)[0],0.7);
+  BOOST_CHECK(mesh.met.getSpace() == MetSpace::Log);
+  const int expected[2][6] = {{0,1,2,4,5,6},{1,3,2,7,4,8}};
+  for(int ientt = 0; ientt < 2; ientt++) for(int node = 0; node < 6; node++)
+    BOOST_CHECK_EQUAL(mesh.fac2poi(ientt,node),expected[ientt][node]);
 }
 
 } // namespace Metris

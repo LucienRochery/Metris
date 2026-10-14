@@ -94,6 +94,8 @@ public:
 private:
   friend class MetrisAPI;
 
+  void requireContinuousMetrics(const char *operation) const;
+
   template<class MetricFieldType>
   void iniMetris(MetrisAPI *data_front,MetrisAPI *data_back);
 

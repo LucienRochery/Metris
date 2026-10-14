@@ -112,6 +112,11 @@ void placeElevatedCadFaceNodes(MeshBase &msh)
 } // namespace
 
 
+void MetrisRunner::requireContinuousMetrics(const char *operation) const{
+  if(metricFE) static_cast<const Mesh<MetricFieldFE>&>(*msh_g).met.requireContinuous(operation);
+  bak.met.requireContinuous(operation);
+}
+
 MetrisRunner::~MetrisRunner(){
 #ifdef OUTPUTTIMEANDUNITINFO
   foutputTimeUnit.close();
@@ -120,6 +125,7 @@ MetrisRunner::~MetrisRunner(){
 }
 
 int MetrisRunner::degElevate(){
+  requireContinuousMetrics("Geometry degree elevation");
   if(param_.usrTarDeg <= msh_g->curdeg) return 0;
   if(this->metricFE){
     degElevate0<MetricFieldFE>();

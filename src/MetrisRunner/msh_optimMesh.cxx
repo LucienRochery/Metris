@@ -24,6 +24,7 @@ namespace Metris{
 
 
 double MetrisRunner::optimMesh(){
+  requireContinuousMetrics("Production mesh optimization");
   double stat = 0;
   CT_FOR0_INC(2,3,gdim){if(gdim == msh_g->idim){
     CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh_g->curdeg == ideg){
