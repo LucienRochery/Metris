@@ -114,6 +114,7 @@ depending on whether they should be serialized.
     FIELD(double, step_distance_barrier_rho0, 0.7) \
     FIELD(double, step_distance_barrier_beta, 0.0) \
     FIELD(int, opt_smoo_niter, 10) \
+    FIELD(bool, opt_smoo_vertices_only, false) \
     /* Relative local-objective reduction needed to revisit neighboring points. */ \
     FIELD(double, opt_smoo_tol, 0.005)  \
     /* Surface qualities weight the main term by qua_surf_w_quality */ \

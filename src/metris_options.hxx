@@ -141,6 +141,8 @@ struct MetrisOptions{
                     "Nonnegative StepDistance collapse-barrier coefficient beta.")
       ("opt-smoo-niter", po::value<int>(),
                     "Inner optimization loop global smoothing iterations")
+      ("opt-smoo-vertices-only",
+                    "Restrict global and local quality smoothing to topological vertices")
       ("opt-smoo-tol", po::value<double>(),
                     "Relative local-objective reduction needed to revisit "
                     "neighboring vertices during quality smoothing. Default 0.005")

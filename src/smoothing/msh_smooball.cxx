@@ -740,7 +740,7 @@ double smoothing_region_objective(const Mesh<MFT>& msh,
 }
 
 template<class MFT>
-double smoothInterior_Ball(Mesh<MFT> &msh, QuaFun iquaf, int ithrd1, int ithrd2){
+double smoothInterior_Ball(Mesh<MFT> &msh, QuaFun iquaf, int ithrd1, int ithrd2, bool freezeVertices){
 
   int tdimn = msh.get_tdim();
 
@@ -751,9 +751,9 @@ double smoothInterior_Ball(Mesh<MFT> &msh, QuaFun iquaf, int ithrd1, int ithrd2)
   double noper;
   CT_FOR0_INC(1,METRIS_MAX_DEG,ideg){if(msh.curdeg == ideg){
     if(tdimn == 2){
-      noper = smoothInterior_Ball0<MFT,2,ideg>(msh,iquaf,ithrd1,ithrd2);
+      noper = smoothInterior_Ball0<MFT,2,ideg>(msh,iquaf,ithrd1,ithrd2,freezeVertices);
     }else{
-      noper = smoothInterior_Ball0<MFT,3,ideg>(msh,iquaf,ithrd1,ithrd2);
+      noper = smoothInterior_Ball0<MFT,3,ideg>(msh,iquaf,ithrd1,ithrd2,freezeVertices);
     }
   }}CT_FOR1(ideg);
 
@@ -761,9 +761,9 @@ double smoothInterior_Ball(Mesh<MFT> &msh, QuaFun iquaf, int ithrd1, int ithrd2)
 }
 
 template double smoothInterior_Ball<MetricFieldAnalytical>(Mesh<MetricFieldAnalytical> &msh,
-                                             QuaFun iquaf, int ithrd1, int ithrd2);
+                                             QuaFun iquaf, int ithrd1, int ithrd2, bool freezeVertices);
 template double smoothInterior_Ball<MetricFieldFE        >(Mesh<MetricFieldFE        > &msh,
-                                             QuaFun iquaf, int ithrd1, int ithrd2);
+                                             QuaFun iquaf, int ithrd1, int ithrd2, bool freezeVertices);
 
 
 // =============================================================================================== //
@@ -772,7 +772,7 @@ template double smoothInterior_Ball<MetricFieldFE        >(Mesh<MetricFieldFE   
 // idim: gdim = tdim
 template<class MFT, int idim, int ideg>
 double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
-                            int ithrd1, int ithrd2){
+                            int ithrd1, int ithrd2, bool freezeVertices){
   GETVDEPTH(msh.param);
 
   constexpr int tdim = idim;
@@ -1097,6 +1097,8 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
                            : msh.template getvertet<ideg>(ientt, ipoin);
 
       METRIS_ASSERT(iver >= 0);
+      if(freezeVertices && iver < tdim + 1) continue;
+      if(msh.param->opt_smoo_vertices_only && iver >= tdim + 1) continue;
 
 
       CPRINTF1(" - smoo pt {} seed elt {} \n", ipoin,ientt);
@@ -1282,13 +1284,13 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
 
 #define BOOST_PP_LOCAL_MACRO(n)\
 template double smoothInterior_Ball0<MetricFieldAnalytical,2,n>(Mesh<MetricFieldAnalytical> &msh,\
-                                        QuaFun iquaf, int ithrd1, int ithrd2);\
+                                        QuaFun iquaf, int ithrd1, int ithrd2, bool freezeVertices);\
 template double smoothInterior_Ball0<MetricFieldFE        ,2,n>(Mesh<MetricFieldFE        > &msh,\
-                                        QuaFun iquaf, int ithrd1, int ithrd2);\
+                                        QuaFun iquaf, int ithrd1, int ithrd2, bool freezeVertices);\
 template double smoothInterior_Ball0<MetricFieldAnalytical,3,n>(Mesh<MetricFieldAnalytical> &msh,\
-                                        QuaFun iquaf, int ithrd1, int ithrd2);\
+                                        QuaFun iquaf, int ithrd1, int ithrd2, bool freezeVertices);\
 template double smoothInterior_Ball0<MetricFieldFE        ,3,n>(Mesh<MetricFieldFE        > &msh,\
-                                        QuaFun iquaf, int ithrd1, int ithrd2);
+                                        QuaFun iquaf, int ithrd1, int ithrd2, bool freezeVertices);
 #define BOOST_PP_LOCAL_LIMITS     (1, METRIS_MAX_DEG)
 #include BOOST_PP_LOCAL_ITERATE()
 
@@ -1400,6 +1402,7 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
     constexpr int candidateNodeCount
         = ideg == 2 ? getnnode(tdim,ideg) : tdim + 1;
     for(int ii = 0; ii < candidateNodeCount; ii++){
+      if(msh.param->opt_smoo_vertices_only && ii >= tdim + 1) continue;
 
       const int ipoin = ent2poi(ientt, ii);
 

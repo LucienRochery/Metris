@@ -418,6 +418,9 @@ MetrisParameters::MetrisParameters(MetrisOptions &opt) : MetrisParameters(){
   if(opt.count("opt-smoo-niter")){
     opt_smoo_niter = opt.m["opt-smoo-niter"].as<int>();
   }
+  if(opt.count("opt-smoo-vertices-only")){
+    opt_smoo_vertices_only = true;
+  }
   if(opt.count("opt-smoo-tol")){
     opt_smoo_tol = opt.m["opt-smoo-tol"].as<double>();
   }

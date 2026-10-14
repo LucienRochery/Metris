@@ -30,6 +30,7 @@ struct CustomOptions
   std::filesystem::path historyOutput;
   int maximumSweeps = 50;
   bool untilStalled = false;
+  bool freezeVertices = false;
   QuaFun objective = QuaFun::SizeShape;
   std::string objectiveName = "SizeShape";
   std::vector<char*> metrisArgv;
@@ -42,6 +43,10 @@ CustomOptions extractCustomOptions(int argc, char** argv)
   for(int argument = 1; argument < argc; argument++)
   {
     const std::string name(argv[argument]);
+    if(name == "--edge-interior-only"){
+      options.freezeVertices = true;
+      continue;
+    }
     if(name == "--until-stalled"){
       options.untilStalled = true;
       continue;
@@ -139,7 +144,7 @@ int main(int argc, char** argv)
              "--tardeg 2 --out final.meshb "
              "--elevated-output elevated.meshb --history-output history.csv "
              "[--maximum-sweeps 50] "
-             "[--until-stalled] "
+             "[--until-stalled] [--edge-interior-only] "
              "[--smoothing-objective sizeshape|step-distance-sv|connection|distortion] "
              "[Metris options]\n";
       return 2;
@@ -181,7 +186,7 @@ int main(int argc, char** argv)
     if(mesh.curdeg != 2 || mesh.nface != originalTriangleCount)
       throw std::runtime_error("Degree elevation changed the mesh topology");
 
-    writeMesh(options.elevatedOutput.string(),mesh);
+    writeMesh(options.elevatedOutput.string(),mesh,false);
     const int geometryPointCount=mesh.npoin;
     std::vector<int> connectivity;
     for(int face=0;face<mesh.nface;face++)
@@ -214,7 +219,12 @@ int main(int argc, char** argv)
         coordinateScale=std::max(coordinateScale,std::abs(mesh.coord(point,k)));
       }
       const double operationRatio =
-          smoothInterior_Ball(mesh,options.objective,0,1);
+          smoothInterior_Ball(mesh,options.objective,0,1,options.freezeVertices);
+      if(options.freezeVertices)
+        for(int point=0;point<static_cast<int>(vertices.size());point++)
+          if(vertices[point]) for(int k=0;k<2;k++)
+            if(mesh.coord(point,k) != coordinatesBefore[2*point+k])
+              throw std::runtime_error("Edge-interior smoothing moved a vertex");
       energy = objectiveEnergy(mesh,options.objective);
       if(energy > energyBefore
          + 1.e-12*std::max(1.,std::abs(energyBefore)))

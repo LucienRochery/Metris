@@ -93,18 +93,20 @@ bool smoothSingleQuadraticEdgeControlPoint(
     double *regional_objective_before = nullptr,
     double *regional_objective_after = nullptr);
 
+// freezeVertices excludes all element vertices from every sweep, including
+// after active-set reactivation; high-order edge nodes remain eligible.
 // Returns number of operations as double; this is because it may exceed element
 // count, something that cannot be anticipated easily by selecting integer
 // types.
 template<class MetricFieldType>
 double smoothInterior_Ball(Mesh<MetricFieldType> &msh,
-             QuaFun iquaf, int ithrd1, int ithrd);
+             QuaFun iquaf, int ithrd1, int ithrd, bool freezeVertices = false);
 
 
 // idim: gdim = tdim
 template<class MetricFieldType, int idim, int ideg>
 double smoothInterior_Ball0(Mesh<MetricFieldType> &msh,
-             QuaFun iquaf, int ithrd1, int ithrd);
+             QuaFun iquaf, int ithrd1, int ithrd, bool freezeVertices = false);
 
 
 template<class MetricFieldType>
