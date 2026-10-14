@@ -228,6 +228,11 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/manufactureQ2MetricCoordinate.cxx)
   setMetrisCXXFlags(manufactureQ2MetricCoordinate PUBLIC)
 endif()
 
+add_executable(generateQ2Connection EXCLUDE_FROM_ALL "progs/generateQ2Connection.cxx")
+target_link_libraries(generateQ2Connection PUBLIC libMetris Boost::headers ${Boost_LIBRARIES})
+target_include_directories(generateQ2Connection PRIVATE "." ${ESP_ROOT}/include)
+setMetrisCXXFlags(generateQ2Connection PUBLIC)
+
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/progs/smoothQ2AllNodes.cxx)
   add_executable(smoothQ2AllNodes EXCLUDE_FROM_ALL
                  "progs/smoothQ2AllNodes.cxx")
