@@ -400,4 +400,52 @@ void anamet2D_9([[maybe_unused]] const AnaMetCtx* ctx,
   }
 }
 
+// Globally smooth physical mesh-implied metric obtained from a regular
+// computational square mesh with descending diagonals (upper left to lower
+// right), pushed forward by the cubic diffeomorphism
+//
+//   Psi(xi,eta) = (phi(xi),eta),  phi(s) = 1.5*s - 0.25*s^2 - 0.25*s^3.
+//
+// As in metric 9, C = [1,1/2;1/2,1] is the constant computational metric
+// before scaling. With s = phi^-1(x) and d = phi'(s), the target is
+//
+//   M = scale^-2 DPsi^-T C DPsi^-1 = scale^-2 [d^-2,1/(2*d);1/(2*d),1].
+//
+// On [0,1], phi maps the endpoints to themselves and phi' >= 1/4. A regular
+// computational grid of spacing scale therefore gives an exact unit Q3 mesh
+// after applying Psi; u(x,y) = s(x) is exactly linear in computational space.
+// The inverse below uses the increasing branch, including its smooth
+// extension beyond [0,1], where |(28+54*x)/(19*sqrt(19))| < 1.
+void anamet2D_10([[maybe_unused]] const AnaMetCtx* ctx,
+                 const double*__restrict__ crd, double scale, int idif1,
+                 double *met, double *dmet){
+  METRIS_ENFORCE_MSG(std::isfinite(scale) && scale > 0.,
+                    "anamet2D_10 requires a finite positive scale");
+  const double sqrt19 = std::sqrt(19.);
+  const double inverseArgument = (28. + 54.*crd[0])/(19.*sqrt19);
+  METRIS_ENFORCE_MSG(std::isfinite(inverseArgument) && std::abs(inverseArgument) < 1.,
+                    "anamet2D_10 is outside the increasing cubic branch: x = {}",
+                    crd[0]);
+
+  // Solving phi(s)=x gives s^3+s^2-6*s+4*x=0. Substitute
+  // s+1/3 = (2*sqrt(19)/3)*sin(theta) and use the triple-angle identity.
+  const double s = (2.*sqrt19*std::sin(std::asin(inverseArgument)/3.) - 1.)/3.;
+  const double d = 1.5 - 0.5*s - 0.75*s*s;
+  const double inverseD = 1./d;
+  const double inv_scale2 = 1./(scale*scale);
+  met[0] = inv_scale2*inverseD*inverseD;
+  met[1] = 0.5*inv_scale2*inverseD;
+  met[2] = inv_scale2;
+
+  if(idif1 > 0){
+    for(int i = 0; i < 6; i++) dmet[i] = 0.;
+    // ds/dx = 1/d and phi''(s) = -0.5-1.5*s, hence
+    // partial_x M00 = -2*scale^-2*phi''/d^4,
+    // partial_x M01 = -(1/2)*scale^-2*phi''/d^3. All y derivatives vanish.
+    const double minusSecondDerivative = 0.5 + 1.5*s;
+    dmet[0] = 2.*met[0]*minusSecondDerivative*inverseD*inverseD;
+    dmet[1] = met[1]*minusSecondDerivative*inverseD*inverseD;
+  }
+}
+
 } // End namespace
