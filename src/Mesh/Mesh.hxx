@@ -13,6 +13,7 @@
 #include "MeshMetric.hxx"
 #include "MeshBack.hxx"
 #include <array>
+#include <vector>
 
 
 //template<class MetricFieldType> class MetrisRunner<MetricFieldType>;
@@ -33,6 +34,11 @@ struct BackgroundMetricSample{
 };
 
 
+struct DGVertexMetCoefficient{
+  int ientt = -1, node = -1, ienttBack = -1;
+  std::array<double,3> met{};
+};
+
 template<class MetricFieldType>
 class Mesh : public MeshMetric<MetricFieldType>{
 public:
@@ -46,6 +52,7 @@ public:
   // if the point is corner, the "element" is a corner in the back mesh.
 	intAr1 poi2bak;
   MeshBack *bak;
+  intAr1 met2bak;
 
   /* ----- Back mesh interpolation ----- 
   Compute metric at mesh vertex ipoin and update met, poi2bak
@@ -76,6 +83,9 @@ public:
   int sampleMetBack00(int ipoin, int tdim, int iref, int ipseed, const double *algnd,
                       BackgroundMetricSample &sample, int ienttBack = -1);
   int sampleMetBackOnEntity(int ipoin, int ienttBack, BackgroundMetricSample &sample);
+  std::vector<DGVertexMetCoefficient> captureDGMetAtVertex(int ipoin) const;
+  void restoreDGMetAtVertex(const std::vector<DGVertexMetCoefficient> &coefficients);
+  int refreshDGMetAtVertex(int ipoin);
   int locateMetBack(int ipoin, int tdim, int ientt, int iref, const double *algnd,
                     BackgroundLocation &location);
 

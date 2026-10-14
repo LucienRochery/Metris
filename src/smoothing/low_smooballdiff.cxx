@@ -12,6 +12,7 @@ Simplest possible approach.
 
 #include "../smoothing/low_smooballdiff.hxx"
 #include "msh_smooball.hxx"
+#include "NodeSmoothingState.hxx"
 
 #include "../Mesh/Mesh.hxx"
 #include "../MetrisRunner/MetrisParameters.hxx"
@@ -40,6 +41,43 @@ Simplest possible approach.
 namespace Metris{
 
 namespace {
+
+template<class MFT>
+int refresh_candidate_met(Mesh<MFT> &msh,int ipoin,double *coorMet,bool dgVertex){
+  if(msh.met.getLayout() == MetricFieldLayout::Continuous) return msh.interpMetBack(ipoin);
+  if(!dgVertex) return 0;
+  bool moved = false;
+  for(int dim = 0; dim < msh.idim; dim++) moved |= msh.coord(ipoin,dim) != coorMet[dim];
+  if(!moved) return 0;
+  const int status = msh.refreshDGMetAtVertex(ipoin);
+  if(status == 0) std::copy(msh.coord[ipoin],msh.coord[ipoin]+msh.idim,coorMet);
+  return status;
+}
+
+template<class MFT,int idim>
+void initial_region_objective(Mesh<MFT> &msh,const intAr1 &region,QuaFun objective,
+                              double *value,double *maximum){
+  const auto quafun = get_quafun<MFT,idim,idim>(objective);
+  double numerator = 0., targetWeight = 0.;
+  *maximum = -std::numeric_limits<double>::infinity();
+  for(int ientt : region){
+    const double contribution = quafun(msh,AsDeg::Pk,AsDeg::Pk,ientt,1.);
+    METRIS_ENFORCE(std::isfinite(contribution));
+    double weight = 1.;
+    if(objective == QuaFun::StepDistance && msh.param->step_distance_cavity_target_average){
+      weight = step_distance_element_target_weight<MFT,idim,idim>(msh,AsDeg::Pk,ientt);
+      targetWeight += weight;
+    }
+    numerator += weight*contribution;
+    *maximum = std::max(*maximum,contribution);
+  }
+  if(objective == QuaFun::StepDistance && msh.param->step_distance_cavity_target_average){
+    METRIS_ENFORCE(targetWeight > 0. && std::isfinite(targetWeight));
+    numerator /= targetWeight;
+  }
+  METRIS_ENFORCE(std::isfinite(numerator));
+  *value = numerator;
+}
 
 template<int idim, int ideg>
 bool smoothing_region_is_conservatively_valid(const MeshBase &msh,
@@ -539,8 +577,9 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
   int nball = lball.get_n();
 
-  *qnrm0 = 0;
-  *qmax0 = -1.0e30;
+  NodeSmoothingState<MFT> state(msh,ipoin,lball);
+  initial_region_objective<MFT,idim>(msh,lball,iquaf,qnrm0,qmax0);
+  *qnrm1 = *qnrm0; *qmax1 = *qmax0;
 
   // Optimization doesn't reinterpolate metric
   int miter1 = MAX(1,msh.param->iflag1);
@@ -577,13 +616,14 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   }
 
   int iflag = 0, ihess, ierro = 0;
-  double  xcur[idim], coor0[idim], met0[nnmet], fcur;
+  double xcur[idim], fcur;
   bool iinva;
   double d1qua[idim], d2qua[nhess];
 
-  for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
   for(int ii = 0; ii < idim; ii++) nargs.xopt[ii] = msh.coord(ipoin,ii); // a backup in case no updates
-  for(int ii = 0; ii < nnmet;ii++) met0[ii]  = msh.met(ipoin,ii);
+  const bool dg = msh.met.getLayout() == MetricFieldLayout::Discontinuous;
+  const bool dgVertex = dg && msh.template getverent<ideg>(lball[0],idim,ipoin) < idim+1;
+  double coorMet[idim]; std::copy(msh.coord[ipoin],msh.coord[ipoin]+idim,coorMet);
 
   for(int niter1 = 0; niter1 < miter1; niter1++){
 
@@ -686,10 +726,6 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
             d2qua[ii] += regionWeight*hqelt[ii];
           }
 
-        if(nargs.niter == 1 && niter1 == 0){
-          *qnrm0 += regionWeight*quael;
-          *qmax0  = MAX(quael,*qmax0);
-        }
       }// for iball
       if(iquaf == QuaFun::StepDistance
          && msh.param->step_distance_cavity_target_average){
@@ -703,9 +739,11 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
             d2qua[ii] /= targetWeightCurrent;
           }
         }
-        if(nargs.niter == 1 && niter1 == 0){
-          *qnrm0 /= targetWeightCurrent;
-        }
+      }
+      if(dg && fcur == 0.){
+        nargs.fopt = 0.;
+        std::copy(xcur,xcur+idim,nargs.xopt);
+        break;
       }
       if(DOPRINTS1()){
         CPRINTF1(" - Newton iter {} fcur = {} xcur = {} {}",nargs.niter,fcur,xcur[0],xcur[1]);
@@ -730,7 +768,7 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
 
     if(DOPRINTS2()) writeMesh("debug_smooth0.meshb",msh);
 
-    ierro = msh.interpMetBack(ipoin);
+    ierro = refresh_candidate_met(msh,ipoin,coorMet,dgVertex);
     if(ierro > 0){
       CPRINTF1(" # smooballdiff interpMetBack failure ierro = {} \n",ierro);
       goto cleanup;
@@ -773,18 +811,18 @@ int smooballdiff(Mesh<MFT>& msh, int ipoin,
   }
 
 
-  if(*qnrm1 > *qnrm0){
+  if(!std::isfinite(*qnrm1) || !std::isfinite(*qmax1) || *qnrm1 > *qnrm0){
     ierro = 2;
     CPRINTF1(" # Local smoo reject: quality norm increase "
                "{} -> {} \n", *qnrm0, *qnrm1);
     goto cleanup;
   }
 
+  state.commit();
   return 0;
 
   cleanup:
-  for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
-  for(int ii = 0; ii < nnmet; ii++) msh.met(ipoin,ii) = met0[ii];
+  state.rollback();
   *qnrm1 = *qnrm0;
   *qmax1 = *qmax0;
 
@@ -882,8 +920,9 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
 
   int nball = lball.get_n();
 
-  *qnrm0 = 0;
-  *qmax0 = -1.0e30;
+  NodeSmoothingState<MFT> state(msh,ipoin,lball);
+  initial_region_objective<MFT,idim>(msh,lball,iquaf,qnrm0,qmax0);
+  *qnrm1 = *qnrm0; *qmax1 = *qmax0;
 
   const int ibpoin = msh.poi2bpo[ipoin];
 
@@ -918,9 +957,9 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
       }
     }
 
-    double coor0[idim], met0[nnmet];
-    for(int ii=0; ii<idim;  ii++) coor0[ii] = msh.coord(ipoin,ii);
-    for(int ii=0; ii<nnmet; ii++) met0[ii]  = msh.met(ipoin,ii);
+    const bool dg = msh.met.getLayout() == MetricFieldLayout::Discontinuous;
+    const bool dgVertex = dg && !highOrderCurveNode;
+    double coorMet[idim]; std::copy(msh.coord[ipoin],msh.coord[ipoin]+idim,coorMet);
 
     // Optimization doesn't reinterpolate metric
     int miter1 = MAX(1,msh.param->iflag1);
@@ -1108,10 +1147,6 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
               hessX[ii] += regionWeight*hqelt[ii];
             }
 
-          if(nargs.niter == 1 && niter1 == 0){
-            *qnrm0 += regionWeight*quael;
-            *qmax0  = MAX(quael,*qmax0);
-          }
         }// for iball
 
         if(iquaf == QuaFun::StepDistance
@@ -1121,9 +1156,6 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
           for(int ii = 0; ii < idim; ii++) gradX[ii] /= targetWeightCurrent;
           if(ihess){
             for(int ii = 0; ii < nhess; ii++) hessX[ii] /= targetWeightCurrent;
-          }
-          if(nargs.niter == 1 && niter1 == 0){
-            *qnrm0 /= targetWeightCurrent;
           }
         }
 
@@ -1177,6 +1209,10 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
         if(ihess) d2t[0] = d2fdt2;
 
 
+        if(dg && fcur == 0.){
+          nargs.fopt = 0.; nargs.xopt[0] = tcur[0];
+          break;
+        }
         if(DOPRINTS1()){
           CPRINTF1(" - Smoothing on edge: Newton iter {} fcur = {} tcur = {}",nargs.niter,fcur,tcur[0]);
           CPRINTF2(" - dquadt = {}\n",d1t[0]);
@@ -1203,7 +1239,7 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
 
       if(DOPRINTS2()) writeMesh("debug_smooth0.meshb",msh);
 
-      ierro = msh.interpMetBack(ipoin);
+      ierro = refresh_candidate_met(msh,ipoin,coorMet,dgVertex);
       if(ierro > 0){
         CPRINTF1(" # smooballdiff interpMetBack failure ierro = {} \n",ierro);
         goto cleanupdim1;
@@ -1246,19 +1282,18 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
     }
 
 
-    if(*qnrm1 > *qnrm0){
+    if(!std::isfinite(*qnrm1) || !std::isfinite(*qmax1) || *qnrm1 > *qnrm0){
       ierro = 2;
       CPRINTF1(" # Local smoo reject: quality norm increase "
                 "{} -> {} \n", *qnrm0, *qnrm1);
       goto cleanupdim1;
     }
 
+    state.commit();
     return 0;
 
     cleanupdim1:
-    for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
-    for(int ii = 0; ii < nnmet; ii++) msh.met(ipoin,ii) = met0[ii];
-    msh.bpo2rbi(ibpoin,0) = t0;
+    state.rollback();
 
     *qnrm1 = *qnrm0;
     *qmax1 = *qmax0;
@@ -1300,9 +1335,6 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
     double u0 = msh.bpo2rbi(ibpoin,0); // initial u parameter for current point location
     double v0 = msh.bpo2rbi(ibpoin,1); // initial v parameter for current point location
 
-    double coor0[idim], met0[nnmet];
-    for(int ii=0; ii<idim;  ii++) coor0[ii] = msh.coord(ipoin,ii);
-    for(int ii=0; ii<nnmet; ii++) met0[ii]  = msh.met(ipoin,ii);
 
     // Optimization doesn't reinterpolate metric
     int miter1 = MAX(1,msh.param->iflag1);
@@ -1464,10 +1496,6 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
               hessX[ii] += regionWeight*hqelt[ii];
             }
 
-          if(nargs.niter == 1 && niter1 == 0){
-            *qnrm0 += regionWeight*quael;
-            *qmax0  = MAX(quael,*qmax0);
-          }
         }// for iball
 
         if(iquaf == QuaFun::StepDistance
@@ -1477,9 +1505,6 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
           for(int ii = 0; ii < idim; ii++) gradX[ii] /= targetWeightCurrent;
           if(ihess){
             for(int ii = 0; ii < nhess; ii++) hessX[ii] /= targetWeightCurrent;
-          }
-          if(nargs.niter == 1 && niter1 == 0){
-            *qnrm0 /= targetWeightCurrent;
           }
         }
 
@@ -1629,20 +1654,18 @@ int smooballdiff_boundary(Mesh<MFT>& msh, int ipoin, const int cadDim,
     }
 
 
-    if(*qnrm1 > *qnrm0){
+    if(!std::isfinite(*qnrm1) || !std::isfinite(*qmax1) || *qnrm1 > *qnrm0){
       ierro = 2;
       CPRINTF1(" # Local smoo reject: quality norm increase "
                 "{} -> {} \n", *qnrm0, *qnrm1);
       goto cleanupdim2;
     }
 
+    state.commit();
     return 0;
 
     cleanupdim2:
-    for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
-    for(int ii = 0; ii < nnmet; ii++) msh.met(ipoin,ii) = met0[ii];
-    msh.bpo2rbi(ibpoin,0) = u0;
-    msh.bpo2rbi(ibpoin,1) = v0;
+    state.rollback();
 
     *qnrm1 = *qnrm0;
     *qmax1 = *qmax0;

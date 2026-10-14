@@ -25,6 +25,7 @@
 #include <cmath>
 #include <filesystem>
 #include <memory>
+#include <limits>
 
 using namespace Metris;
 
@@ -407,6 +408,81 @@ BOOST_AUTO_TEST_CASE(p2_curved_cad_edge_stepdistance_smoothing)
 BOOST_AUTO_TEST_CASE(p2_curved_cad_edge_connection_smoothing)
 {
   check_curved_boundary_smoothing(QuaFun::Connection);
+}
+
+BOOST_AUTO_TEST_CASE(p2_curved_cad_dg_edge_motion_retains_local_metric_coefficients)
+{
+  auto testCase = make_curved_planar_cad_case();
+  auto &source = static_cast<Mesh<MetricFieldAnalytical>&>(*testCase->runner->msh_g);
+  source.setBasis(FEBasis::Lagrange);
+  Mesh<MetricFieldFE> mesh;
+  static_cast<MeshBase&>(mesh) = static_cast<const MeshBase&>(source);
+  mesh.param = testCase->runner->param;
+  mesh.param->objective_quadrature_order = 5;
+  mesh.met.initializeDiscontinuous();
+  mesh.poi2bak.fill(-1);
+  for(int node = 0; node < 3; node++){
+    mesh.met.elementCoefficient(0,node)[0] = .1+.02*node;
+    mesh.met.elementCoefficient(0,node)[1] = .01*node;
+    mesh.met.elementCoefficient(0,node)[2] = -.1+.03*node;
+  }
+  double coefficients[3][3];
+  for(int node = 0; node < 3; node++) for(int k = 0; k < 3; k++)
+    coefficients[node][k] = mesh.met.elementCoefficient(0,node)[k];
+  for(int ipoin = 0; ipoin < mesh.npoin; ipoin++) for(int k = 0; k < 3; k++)
+    mesh.met.rfld(ipoin,k) = std::numeric_limits<double>::quiet_NaN();
+  const int ienttEdge = 0, ientt = 0;
+  const int ipoin = mesh.edg2poi(ienttEdge,2);
+  const int record = mesh.poi2ebp(ipoin,1,ienttEdge,-1);
+  const ego cadEdge = mesh.CAD.cad2edg[mesh.edg2ref[ienttEdge]];
+  const double initialParameter = mesh.bpo2rbi(record,0)-.25;
+  double point[18];
+  require_egads_success(EG_evaluate(cadEdge,&initialParameter,point),"EG_evaluate(DG edge perturbation)");
+  mesh.bpo2rbi(record,0) = initialParameter;
+  mesh.coord(ipoin,0) = point[0]; mesh.coord(ipoin,1) = point[1];
+  int localEdge = -1;
+  for(int edge = 0; edge < 3; edge++) if(mesh.fac2poi(ientt,3+edge) == ipoin) localEdge = edge;
+  BOOST_REQUIRE_GE(localEdge,0);
+  double before, after;
+  BOOST_REQUIRE((smoothSingleQuadraticEdgeControlPoint<MetricFieldFE>(mesh,ipoin,ientt,localEdge,QuaFun::Connection,&before,&after)));
+  BOOST_CHECK_LT(after,before);
+  const double parameter = mesh.bpo2rbi(record,0);
+  BOOST_CHECK_GT(std::abs(parameter-initialParameter),1e-8);
+  require_egads_success(EG_evaluate(cadEdge,&parameter,point),"EG_evaluate(DG optimized edge)");
+  BOOST_CHECK_SMALL(mesh.coord(ipoin,0)-point[0],1e-12);
+  BOOST_CHECK_SMALL(mesh.coord(ipoin,1)-point[1],1e-12);
+  BOOST_CHECK((classify_element_validity<2,2>(mesh,ientt).accepted_conservatively()));
+  for(int node = 0; node < 3; node++) for(int k = 0; k < 3; k++)
+    BOOST_CHECK_EQUAL(mesh.met.elementCoefficient(ientt,node)[k],coefficients[node][k]);
+  int faceRecord = mesh.poi2ebp(ipoin,2,ientt,-1);
+  if(faceRecord < 0){
+    faceRecord = mesh.nbpoi;
+    mesh.set_nbpoi(mesh.nbpoi+1);
+    mesh.bpo2ibi(faceRecord,0) = ipoin; mesh.bpo2ibi(faceRecord,1) = 2;
+    mesh.bpo2ibi(faceRecord,2) = ientt; mesh.bpo2ibi(faceRecord,3) = -1;
+    int tail = mesh.poi2bpo[ipoin];
+    while(mesh.bpo2ibi(tail,3) >= 0) tail = mesh.bpo2ibi(tail,3);
+    mesh.bpo2ibi(tail,3) = faceRecord;
+  }
+  mesh.bpo2rbi(faceRecord,0) = .123; mesh.bpo2rbi(faceRecord,1) = .456;
+  mesh.bpo2rbi(record,0) = initialParameter;
+  require_egads_success(EG_evaluate(cadEdge,&initialParameter,point),"EG_evaluate(DG rollback input)");
+  mesh.coord(ipoin,0) = point[0]; mesh.coord(ipoin,1) = point[1];
+  const std::array<double,2> inputPosition = {{point[0],point[1]}};
+  const int oldRef = mesh.fac2ref[ientt];
+  mesh.fac2ref[ientt] = mesh.CAD.ncadfa;
+  BOOST_CHECK_EXCEPTION((smoothSingleQuadraticEdgeControlPoint<MetricFieldFE>(
+      mesh,ipoin,ientt,localEdge,QuaFun::Connection,&before,&after)),MetrisExcept,
+      [](const MetrisExcept &error){return std::string(error.what()).find("Invalid CAD face reference") != std::string::npos;});
+  mesh.fac2ref[ientt] = oldRef;
+  BOOST_CHECK_EQUAL(mesh.coord(ipoin,0),inputPosition[0]);
+  BOOST_CHECK_EQUAL(mesh.coord(ipoin,1),inputPosition[1]);
+  BOOST_CHECK_EQUAL(mesh.bpo2rbi(record,0),initialParameter);
+  BOOST_CHECK_EQUAL(mesh.bpo2rbi(faceRecord,0),.123);
+  BOOST_CHECK_EQUAL(mesh.bpo2rbi(faceRecord,1),.456);
+  BOOST_CHECK_EQUAL(mesh.poi2bak[ipoin],-1);
+  for(int node = 0; node < 3; node++) for(int k = 0; k < 3; k++)
+    BOOST_CHECK_EQUAL(mesh.met.elementCoefficient(ientt,node)[k],coefficients[node][k]);
 }
 
 BOOST_AUTO_TEST_CASE(

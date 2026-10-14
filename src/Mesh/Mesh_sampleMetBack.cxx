@@ -18,6 +18,103 @@
 
 namespace Metris{
 namespace{
+bool liveTriangle(const MeshBack &bak,int ientt,int iref = -1){
+  return ientt >= 0 && ientt < bak.nface && bak.fac2poi(ientt,0) >= 0
+      && (iref < 0 || bak.fac2ref[ientt] == iref);
+}
+
+bool containsDGPoint(MeshBack &bak,int ientt,const double *point,int iref,
+                     BackgroundLocation &location){
+  if(!liveTriangle(bak,ientt,iref)) return false;
+  BackgroundLocation result;
+  result.tdim = 2; result.ientt = ientt;
+  if(inveval<2,2>(bak,ientt,point,result.projected.data(),result.bary.data(),1e-12) != 0)
+    return false;
+  for(int dim = 0; dim < 2; dim++) if(!std::isfinite(result.projected[dim])) return false;
+  for(int node = 0; node < 3; node++) if(!std::isfinite(result.bary[node])) return false;
+  result.status = 0; location = result;
+  return true;
+}
+
+int locateDGPoint(MeshBack &bak,const double *point,int ienttBack,int iref,
+                  BackgroundLocation &location){
+  BackgroundLocation result;
+  result.tdim = 2; result.status = LOC_ERR_OUTBB;
+  if(locMeshQuick<2>(bak,point)){ location = result; return result.status; }
+  if(containsDGPoint(bak,ienttBack,point,iref,result)){
+    location = result; return 0;
+  }
+  int ienttSeed = ienttBack;
+  if(!liveTriangle(bak,ienttSeed,iref)){
+    for(ienttSeed = 0; ienttSeed < bak.nface; ienttSeed++)
+      if(liveTriangle(bak,ienttSeed,iref)) break;
+    if(ienttSeed == bak.nface) return LOC_ERR_FAILP1;
+  }
+  result.ientt = ienttSeed;
+  result.bary.fill(std::numeric_limits<double>::quiet_NaN());
+  result.projected.fill(std::numeric_limits<double>::quiet_NaN());
+  result.status = locMesh<2,2,2>(bak,&result.ientt,point,2,nullptr,iref,nullptr,
+                               result.projected.data(),result.bary.data());
+  BackgroundLocation refined;
+  if(containsDGPoint(bak,result.ientt,point,iref,refined)){
+    result = refined;
+    if(*std::min_element(result.bary.begin(),result.bary.begin()+3) > Constants::baryTol){
+      location = result; return 0;
+    }
+  }
+  // Without a valid prior owner, interfaces use the lowest containing entity ID.
+  for(int ientt = 0; ientt < bak.nface; ientt++){
+    if(containsDGPoint(bak,ientt,point,iref,refined)){
+      location = refined; return 0;
+    }
+  }
+  location = result;
+  return result.status;
+}
+
+bool edgeTrace(const MeshBack &bak,int ientt,int ienttEdge,const double *baryEdge,
+               BackgroundLocation &location){
+  if(!liveTriangle(bak,ientt)) return false;
+  const int *triangle = bak.fac2poi[ientt], *edge = bak.edg2poi[ienttEdge];
+  BackgroundLocation result;
+  result.tdim = 2; result.ientt = ientt; result.status = 0;
+  int local[2];
+  for(int node = 0; node < 2; node++){
+    local[node] = int(std::find(triangle,triangle+3,edge[node])-triangle);
+    if(local[node] == 3) return false;
+    result.bary[local[node]] = baryEdge[node];
+  }
+  const int opposite = 3-local[0]-local[1];
+  if(triangle[3+opposite] != edge[2]) return false;
+  location = result; return true;
+}
+
+bool boundaryTrace(const MeshBack &bak,const BackgroundLocation &boundary,int ientt,
+                   BackgroundLocation &location){
+  if(edgeTrace(bak,ientt,boundary.ientt,boundary.bary.data(),location)) return true;
+  if(!liveTriangle(bak,ientt)) return false;
+  // At a boundary vertex, each incident triangle keeps its own trace.
+  for(int node = 0; node < 2; node++){
+    if(std::abs(boundary.bary[node]-1.) > Constants::baryTol) continue;
+    const int ipoin = bak.edg2poi(boundary.ientt,node);
+    const int *triangle = bak.fac2poi[ientt];
+    const int local = int(std::find(triangle,triangle+3,ipoin)-triangle);
+    if(local == 3) continue;
+    BackgroundLocation result;
+    result.tdim = 2; result.ientt = ientt; result.status = 0;
+    result.bary[local] = 1.; location = result; return true;
+  }
+  return false;
+}
+
+int selectDGBoundaryTrace(const MeshBack &bak,const BackgroundLocation &boundary,
+                          int ienttBack,BackgroundLocation &location){
+  if(boundaryTrace(bak,boundary,ienttBack,location)) return 0;
+  for(int ientt = 0; ientt < bak.nface; ientt++)
+    if(boundaryTrace(bak,boundary,ientt,location)) return 0;
+  return 6;
+}
+
 template<class MFT>
 int analyticalSample(Mesh<MFT> &msh,int ipoin,BackgroundMetricSample &sample){
   if constexpr(std::is_same_v<MFT,MetricFieldAnalytical>){
@@ -42,6 +139,8 @@ int Mesh<MFT>::locateMetBack(int ipoin,int tdim,int ientt,int iref,const double 
   METRIS_ENFORCE(this->idim == bak->idim && (this->idim == 2 || this->idim == 3));
   if(bak->met.getLayout() == MetricFieldLayout::Discontinuous) bak->met.validateDiscontinuous();
   METRIS_ENFORCE(tdim >= 1 && tdim <= bak->get_tdim());
+  if(bak->met.getLayout() == MetricFieldLayout::Discontinuous && tdim == 2)
+    return locateDGPoint(*bak,this->coord[ipoin],ientt,iref,location);
   METRIS_ENFORCE(ientt >= 0 && ientt < bak->nentt(tdim) && bak->ent2poi(tdim)(ientt,0) >= 0);
   if(iref >= 0 && bak->ent2ref(tdim)[ientt] != iref) return 4;
   BackgroundLocation result;
@@ -56,17 +155,6 @@ int Mesh<MFT>::locateMetBack(int ipoin,int tdim,int ientt,int iref,const double 
     if(this->bpo2ibi(ibpoi,1) == 0) ibpoi = this->bpo2ibi(ibpoi,3);
     METRIS_ENFORCE(ibpoi >= 0);
     uvsrf = this->bpo2rbi[ibpoi];
-  }
-  // Preserve a supplied DG owner whenever its full-dimensional map contains the point.
-  if(bak->met.getLayout() == MetricFieldLayout::Discontinuous && tdim == bak->get_tdim()){
-    if(locMeshQuick<2>(*bak,this->coord[ipoin])){
-      result.status = LOC_ERR_OUTBB; location = result; return result.status;
-    }
-    if(inveval<2,2>(*bak,ientt,this->coord[ipoin],result.projected.data(),result.bary.data(),1e-6) == 0){
-      result.status = 0; location = result; return 0;
-    }
-    result.bary.fill(std::numeric_limits<double>::quiet_NaN());
-    result.projected.fill(std::numeric_limits<double>::quiet_NaN());
   }
   result.status = LOC_ERR_FAILP1;
   CT_FOR0_INC(1,METRIS_MAX_DEG,bdeg){if(bak->curdeg == bdeg){
@@ -101,20 +189,11 @@ int Mesh<MFT>::evaluateMetBackLocation(int ipoin,const BackgroundLocation &locat
     if(location.tdim == 2){
       std::copy(location.bary.begin(),location.bary.begin()+3,bary);
     }else{
-      METRIS_ENFORCE_MSG(ienttBack >= 0 && ienttBack < bak->nface && bak->fac2poi(ienttBack,0) >= 0,
-                        "DG boundary sampling requires an explicit owning triangle");
-      result.ienttMet = ienttBack;
-      const int *triangle = bak->fac2poi[ienttBack];
-      const int *edge = bak->edg2poi[location.ientt];
-      for(int node = 0; node < 2; node++){
-        const int local = int(std::find(triangle,triangle+3,edge[node])-triangle);
-        if(local == 3) return 6;
-        bary[local] = location.bary[node];
-      }
-      // Match the Q2 edge node as well as its endpoints.
-      int oppositeNode = 0;
-      while(oppositeNode < 3 && (triangle[oppositeNode] == edge[0] || triangle[oppositeNode] == edge[1])) oppositeNode++;
-      if(oppositeNode == 3 || bak->fac2poi(ienttBack,3+oppositeNode) != edge[2]) return 6;
+      BackgroundLocation trace;
+      const int status = selectDGBoundaryTrace(*bak,location,ienttBack,trace);
+      if(status != 0) return status;
+      result.ienttMet = trace.ientt;
+      std::copy(trace.bary.begin(),trace.bary.begin()+3,bary);
     }
     if(result.space == MetSpace::Log)
       bak->met.getLogMetOnEntity(result.ienttMet,DifVar::None,bary,result.met.data(),nullptr);
@@ -218,8 +297,7 @@ int Mesh<MFT>::sampleMetBack00(int ipoin,int tdim,int iref,int ipseed,const doub
   METRIS_ENFORCE(tdim >= 1 && tdim <= bak->get_tdim());
   GETVDEPTH(this->param);
   if(bak->met.getLayout() == MetricFieldLayout::Discontinuous){
-    METRIS_ENFORCE_MSG(ienttBack >= 0 && ienttBack < bak->nface && bak->fac2poi(ienttBack,0) >= 0,
-                      "DG sampling requires an entity-specific background owner");
+    METRIS_ENFORCE_MSG(ienttBack >= 0,"DG sampling requires an entity-specific background owner");
     if(tdim == bak->get_tdim()){
       BackgroundLocation location;
       const int status = locateMetBack(ipoin,tdim,ienttBack,iref,algnd,location);
@@ -321,7 +399,62 @@ ientt_initialized:
   return evaluateMetBackLocation(ipoin,location,sample,ienttBack);
 }
 
+template<class MFT>
+std::vector<DGVertexMetCoefficient> Mesh<MFT>::captureDGMetAtVertex(int ipoin) const{
+  METRIS_ENFORCE(ipoin >= 0 && ipoin < this->npoin);
+  METRIS_ENFORCE(this->met.getLayout() == MetricFieldLayout::Discontinuous);
+  this->met.validateDiscontinuous();
+  METRIS_ENFORCE(met2bak.get_n() == this->met.getCoefficientCount());
+  std::vector<DGVertexMetCoefficient> coefficients;
+  for(int ientt = 0; ientt < this->nface; ientt++){
+    if(this->fac2poi(ientt,0) < 0) continue;
+    for(int node = 0; node < 3; node++){
+      if(this->fac2poi(ientt,node) != ipoin) continue;
+      DGVertexMetCoefficient coefficient;
+      coefficient.ientt = ientt; coefficient.node = node;
+      coefficient.ienttBack = met2bak[this->met.getElementCoefficientIndex(ientt,node)];
+      std::copy(this->met.elementCoefficient(ientt,node),this->met.elementCoefficient(ientt,node)+3,
+                coefficient.met.begin());
+      coefficients.push_back(coefficient);
+    }
+  }
+  METRIS_ENFORCE_MSG(!coefficients.empty(),"DG metric refresh requires a topological vertex");
+  return coefficients;
+}
+
+template<class MFT>
+void Mesh<MFT>::restoreDGMetAtVertex(const std::vector<DGVertexMetCoefficient> &coefficients){
+  METRIS_ENFORCE(this->met.getLayout() == MetricFieldLayout::Discontinuous);
+  for(const auto &coefficient : coefficients){
+    std::copy(coefficient.met.begin(),coefficient.met.end(),
+              this->met.elementCoefficient(coefficient.ientt,coefficient.node));
+    met2bak[this->met.getElementCoefficientIndex(coefficient.ientt,coefficient.node)] = coefficient.ienttBack;
+  }
+}
+
+template<class MFT>
+int Mesh<MFT>::refreshDGMetAtVertex(int ipoin){
+  METRIS_ENFORCE(bak != nullptr && bak->met.getLayout() == MetricFieldLayout::Discontinuous);
+  auto coefficients = captureDGMetAtVertex(ipoin);
+  for(auto &coefficient : coefficients){
+    BackgroundMetricSample sample;
+    int status;
+    if(this->getpoitdim(ipoin) == 0)
+      status = sampleMetBackOnEntity(ipoin,coefficient.ienttBack,sample);
+    else status = sampleMetBack(ipoin,sample,coefficient.ienttBack < 0 ? bak->nface : coefficient.ienttBack);
+    if(status != 0) return status;
+    METRIS_ENFORCE(sample.space == this->met.getSpace());
+    coefficient.ienttBack = sample.ienttMet;
+    std::copy(sample.met.begin(),sample.met.begin()+3,coefficient.met.begin());
+  }
+  restoreDGMetAtVertex(coefficients);
+  return 0;
+}
+
 #define INSTANTIATE(MFT) \
+template std::vector<DGVertexMetCoefficient> Mesh<MFT>::captureDGMetAtVertex(int) const; \
+template void Mesh<MFT>::restoreDGMetAtVertex(const std::vector<DGVertexMetCoefficient>&); \
+template int Mesh<MFT>::refreshDGMetAtVertex(int); \
 template int Mesh<MFT>::locateMetBack(int,int,int,int,const double*,BackgroundLocation&); \
 template int Mesh<MFT>::evaluateMetBackLocation(int,const BackgroundLocation&,BackgroundMetricSample&,int); \
 template int Mesh<MFT>::sampleMetBackOnEntity(int,int,BackgroundMetricSample&); \

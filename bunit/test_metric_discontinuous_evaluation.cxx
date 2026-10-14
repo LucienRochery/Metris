@@ -174,6 +174,41 @@ BOOST_FIXTURE_TEST_CASE(dg_constant_local_fields_keep_jumps_and_zero_derivatives
   }
 }
 
+BOOST_FIXTURE_TEST_CASE(dg_edge_motion_changes_physical_derivatives_only_through_the_geometry,CurvedTriangles){
+  initializeDG(); poisonInactivePointBuffer();
+  const double bary[3] = {.2,.3,.5}, delta[2] = {.04,-.025};
+  double before[2][3], beforeDeriv[2][6];
+  for(int ientt = 0; ientt < 2; ientt++)
+    mesh.met.getLogMetOnEntity(ientt,DifVar::Phys,bary,before[ientt],beforeDeriv[ientt]);
+  mesh.coord(4,0) += delta[0]; mesh.coord(4,1) += delta[1];
+  for(int ientt = 0; ientt < 2; ientt++){
+    double xi, eta; computationalPoint(ientt,bary,xi,eta);
+    const double dshapeXi = ientt == 0 ? 4.*eta : -4.*(1.-eta);
+    const double dshapeEta = ientt == 0 ? 4.*xi : -4.*(1.-xi);
+    const double j00 = 1.+2.*a*xi+delta[0]*dshapeXi;
+    const double j01 = b+delta[0]*dshapeEta;
+    const double j10 = c+delta[1]*dshapeXi;
+    const double j11 = 1.+delta[1]*dshapeEta;
+    const double determinant = j00*j11-j01*j10;
+    double met[3], deriv[6], reference[6];
+    mesh.met.getLogMetOnEntity(ientt,DifVar::Phys,bary,met,deriv);
+    mesh.met.getLogMetOnEntity(ientt,DifVar::Bary,bary,met,reference);
+    double change = 0.;
+    for(int k = 0; k < 3; k++){
+      BOOST_CHECK_EQUAL(met[k],before[ientt][k]);
+      BOOST_CHECK_SMALL(deriv[k]-(j11*dx[ientt][k]-j10*dy[ientt][k])/determinant,2e-13);
+      BOOST_CHECK_SMALL(deriv[3+k]-(-j01*dx[ientt][k]+j00*dy[ientt][k])/determinant,2e-13);
+      change += std::abs(deriv[k]-beforeDeriv[ientt][k])+std::abs(deriv[3+k]-beforeDeriv[ientt][3+k]);
+    }
+    BOOST_CHECK_GT(change,1e-3);
+    for(int node = 0; node < 3; node++){
+      const int ipoin = mesh.fac2poi(ientt,node);
+      for(int k = 0; k < 3; k++) BOOST_CHECK_EQUAL(mesh.met.elementCoefficient(ientt,node)[k],
+          offsets[ientt][k]+dx[ientt][k]*points[ipoin][0]+dy[ientt][k]*points[ipoin][1]);
+    }
+  }
+}
+
 BOOST_FIXTURE_TEST_CASE(entity_evaluation_matches_continuous_metric_path,CurvedTriangles){
   const double bary[3] = {0.2,0.3,0.5};
   for(MetSpace space : {MetSpace::Log,MetSpace::Exp}){

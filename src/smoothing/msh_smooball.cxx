@@ -13,6 +13,7 @@ Simplest possible approach.
 
 #include "../smoothing/msh_smooball.hxx"
 #include "../smoothing/low_smooballdiff.hxx"
+#include "NodeSmoothingState.hxx"
 #include "../smoothing/smoothing_progress.hxx"
 
 #include "../aux_topo.hxx"
@@ -640,7 +641,6 @@ bool smoothSingleQuadraticEdgeControlPoint(
   validateSmoothingMetric(msh,msh.met,objective);
   constexpr int idim = 2;
   constexpr int ideg = 2;
-  constexpr int nnmet = 3;
 
   METRIS_ENFORCE_MSG(
       msh.idim == idim && msh.get_tdim() == idim && msh.curdeg == ideg,
@@ -666,16 +666,7 @@ bool smoothSingleQuadraticEdgeControlPoint(
   buildEdgeControlPointSmoothingRegion(
       msh,idim,seed_triangle,local_edge,region);
 
-  double coordinate0[idim];
-  double metric0[nnmet];
-  for(int component = 0; component < idim; component++){
-    coordinate0[component] = msh.coord(point,component);
-  }
-  for(int entry = 0; entry < nnmet; entry++){
-    metric0[entry] = msh.met(point,entry);
-  }
-  const BoundaryParameterSnapshot boundary0
-      = captureBoundaryParameters(msh,point);
+  NodeSmoothingState<MFT> state(msh,point,region);
 
   double objective0 = 0.;
   double maximum0 = 0.;
@@ -711,14 +702,9 @@ bool smoothSingleQuadraticEdgeControlPoint(
     }
   }
 
-  if(!accepted){
-    for(int component = 0; component < idim; component++){
-      msh.coord(point,component) = coordinate0[component];
-    }
-    for(int entry = 0; entry < nnmet; entry++){
-      msh.met(point,entry) = metric0[entry];
-    }
-    restoreBoundaryParameters(msh,boundary0);
+  if(accepted) state.commit();
+  else{
+    state.rollback();
     objective1 = objective0;
   }
 
@@ -1146,12 +1132,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
           lball,oldObjectiveNumerator,oldObjectiveCount,
           oldObjectiveTargetWeight);
 
-      double coor0[idim];
-      double met0[nnmet];
-      for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
-      for(int ii = 0; ii < nnmet; ii++) met0[ii] = msh.met(ipoin,ii);
-      const BoundaryParameterSnapshot boundaryParameters0
-          = captureBoundaryParameters(msh,ipoin);
+      NodeSmoothingState<MFT> state(msh,ipoin,lball);
 
       // std::cout << "printing qualities of elements in ball BEFORE smoobaldiff" << std::endl;
 
@@ -1202,9 +1183,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         }
         if(!objectiveReplacementAccepted){
           CPRINTF1(" - reject move: configured StepDistance replacement objective did not improve\n");
-          for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
-          for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
-          restoreBoundaryParameters(msh,boundaryParameters0);
+          state.rollback();
           ierro = 1;
         // Objective-driven paths have already applied their configured
         // regional or global acceptance contract. Do not layer the legacy
@@ -1212,9 +1191,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         }else if(!isObjectiveDrivenSmoothing(iquaf) && qmax1 > qmax){
           CPRINTF1(" - reject move, worst above last worst {:15.7e} > {:15.7e}\n",
                    qmax1, qmax);
-          for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
-          for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
-          restoreBoundaryParameters(msh,boundaryParameters0);
+          state.rollback();
           ierro = 1;
         }else if(ierro == 0 && pointOnEdge){
           synchronizeCurvePointFaceParameters(msh,ipoin);
@@ -1228,13 +1205,7 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
           if(!intersectionFree){
             CPRINTF1(
                 " - reject move: curved planar boundary intersection\n");
-            for(int ii = 0; ii < idim; ii++){
-              msh.coord(ipoin,ii) = coor0[ii];
-            }
-            for(int ii = 0; ii < nnmet; ii++){
-              msh.met(ipoin,ii) = met0[ii];
-            }
-            restoreBoundaryParameters(msh,boundaryParameters0);
+            state.rollback();
             ierro = 4;
           }else{
             enforceAcceptedBoundarySmoothingInvariants<MFT,idim,ideg>(
@@ -1245,12 +1216,12 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         PRINTF("## FAILED  smoothing\n");
         MPRINTF("ipoin = {}", ipoin);
         writeMesh("smooth_error.meshb",msh);
-        msh.met.writeMetricFile("smooth_error_metric.solb");
-        for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
-        for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
-        restoreBoundaryParameters(msh,boundaryParameters0);
+        if(msh.met.getLayout() == MetricFieldLayout::Continuous)
+          msh.met.writeMetricFile("smooth_error_metric.solb");
+        state.rollback();
         writeMesh("smooth_error_0.meshb",msh);
-        msh.met.writeMetricFile("smooth_error_metric_0.solb");
+        if(msh.met.getLayout() == MetricFieldLayout::Continuous)
+          msh.met.writeMetricFile("smooth_error_metric_0.solb");
         ierro = 1;
         throw(e);
       }
@@ -1276,7 +1247,9 @@ double smoothInterior_Ball0(Mesh<MFT> &msh, QuaFun iquaf,
         }else{
           msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1]; // deactivate
         }
+        state.commit();
       }else{
+        state.rollback();
         msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1]; // deactivate
       }
 
@@ -1553,12 +1526,7 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
       };
       const double edgeObjectiveOld = incidentEdgeLengthObjective();
 
-      double coor0[idim];
-      double met0[nnmet];
-      for(int ii = 0; ii < idim; ii++) coor0[ii] = msh.coord(ipoin,ii);
-      for(int ii = 0; ii < nnmet; ii++) met0[ii] = msh.met(ipoin,ii);
-      const BoundaryParameterSnapshot boundaryParameters0
-          = captureBoundaryParameters(msh,ipoin);
+      NodeSmoothingState<MFT> state(msh,ipoin,lball);
       double qnrm0, qmax0, qnrm1, qmax1;
       double qsumNew = 0.;
       double targetWeightSumNew = 0.;
@@ -1626,9 +1594,7 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
                      "{:15.7e} > {:15.7e}\n",
                      edgeObjectiveNew,edgeObjectiveOld);
           }
-          for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
-          for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   =  met0[ii];
-          restoreBoundaryParameters(msh,boundaryParameters0);
+          state.rollback();
 
           ierro = 1;
         }else if(ierro == 0 && pointOnEdge){
@@ -1643,13 +1609,7 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
           if(!intersectionFree){
             CPRINTF1(
                 " - reject move: curved planar boundary intersection\n");
-            for(int ii = 0; ii < idim; ii++){
-              msh.coord(ipoin,ii) = coor0[ii];
-            }
-            for(int ii = 0; ii < nnmet; ii++){
-              msh.met(ipoin,ii) = met0[ii];
-            }
-            restoreBoundaryParameters(msh,boundaryParameters0);
+            state.rollback();
             ierro = 4;
           }else{
             enforceAcceptedBoundarySmoothingInvariants<MFT,idim,ideg>(
@@ -1659,9 +1619,7 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
       }catch(const MetrisExcept &e){
         PRINTF("## FAILED  smooballdirect\n");
         writeMesh("smooth_error.meshb",msh);
-        for(int ii = 0; ii < idim; ii++) msh.coord(ipoin,ii) = coor0[ii];
-        for(int ii = 0; ii < nnmet;ii++) msh.met(ipoin,ii)   = met0[ii];
-        restoreBoundaryParameters(msh,boundaryParameters0);
+        state.rollback();
         throw(e);
       }
       if(ierro == 0){
@@ -1681,7 +1639,9 @@ double smoothElement_Ball0(Mesh<MFT> &msh, const int ientt, BadEntHandler& handl
           // inform affected entities: id and new quality
           handler.affectedEnttsAlive[ient2] = quafun(msh,AsDeg::Pk,AsDeg::Pk,ient2,difto);
         }
+        state.commit();
       }else{
+        state.rollback();
         msh.poi2tag(ithrd1,ipoin) = msh.tag[ithrd1]; // deactivate
       }
 

@@ -104,6 +104,17 @@ void Mesh<MetricFieldFE>::initialize(MetrisAPI *data, MeshBack &bak,
   if(data == NULL && !param.inpBack){ // Copy case
 
     met = bak.met;
+    if(met.getLayout() == MetricFieldLayout::Discontinuous){
+      met2bak.allocate(met.getCoefficientCount());
+      met2bak.set_n(met.getCoefficientCount());
+      met2bak.fill(-1);
+      for(int ientt = 0; ientt < nface; ientt++){
+        if(fac2poi(ientt,0) < 0) continue;
+        for(int node = 0; node < 3; node++)
+          met2bak[met.getElementCoefficientIndex(ientt,node)] = ientt;
+      }
+    }
+
 
     for(int tdim = 1; tdim <= get_tdim(); tdim++){
       int nentt = this->nentt(tdim); 
