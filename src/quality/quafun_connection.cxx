@@ -187,39 +187,7 @@ void evaluate_target_metric_and_derivatives(
     double logm[nm], dlogm[gdim*nm];
     msh.met.getMetFullinfo(AsDeg::Pk,DifVar::Phys,MetSpace::Log,
                            nodes,gdim,bary,point,logm,dlogm);
-    using Matrix = Eigen::Matrix<double,gdim,gdim>;
-    Matrix L;
-    for(int i = 0; i < gdim; i++){
-      for(int j = 0; j < gdim; j++) L(i,j) = logm[sym2idx(i,j)];
-    }
-    METRIS_ENFORCE_MSG(L.allFinite(), "Nonfinite log metric in connection objective");
-    const Eigen::SelfAdjointEigenSolver<Matrix> eigen(L);
-    METRIS_ENFORCE(eigen.info() == Eigen::Success);
-    const Matrix Q = eigen.eigenvectors();
-    const auto lambda = eigen.eigenvalues();
-    Matrix divided_difference;
-    for(int i = 0; i < gdim; i++){
-      for(int j = 0; j < gdim; j++){
-        const double gap = std::abs(lambda[i]-lambda[j]);
-        divided_difference(i,j) = std::exp(std::max(lambda[i],lambda[j]))
-            *(gap == 0. ? 1. : -std::expm1(-gap)/gap);
-      }
-    }
-    const Matrix M = Q*lambda.array().exp().matrix().asDiagonal()*Q.transpose();
-    for(int i = 0; i < gdim; i++){
-      for(int j = 0; j <= i; j++) met[sym2idx(i,j)] = M(i,j);
-    }
-    for(int r = 0; r < gdim; r++){
-      Matrix derivative;
-      for(int i = 0; i < gdim; i++){
-        for(int j = 0; j < gdim; j++) derivative(i,j) = dlogm[r*nm+sym2idx(i,j)];
-      }
-      const Matrix rotated = Q.transpose()*derivative*Q;
-      const Matrix DM = Q*divided_difference.cwiseProduct(rotated)*Q.transpose();
-      for(int i = 0; i < gdim; i++){
-        for(int j = 0; j <= i; j++) dmet[r*nm+sym2idx(i,j)] = DM(i,j);
-      }
-    }
+    getexpmet_frechet<gdim>(logm,dlogm,gdim,met,dmet);
   }
 }
 

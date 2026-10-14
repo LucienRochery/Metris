@@ -32,6 +32,8 @@ public:
   virtual MetricClass metricClass() const { return MetricClass::MetricFieldFE; }
 	MetricFieldFE() = delete;
 	MetricFieldFE(MeshBase &msh_);
+  // Copies retain the supporting mesh and own their coefficient storage.
+  MetricFieldFE(const MetricFieldFE &inp);
   virtual ~MetricFieldFE() = default;
 
 
@@ -49,9 +51,19 @@ public:
   // Initialize independent P1 Lagrange log-metric coefficients to zero (M = I).
   // This replaces the metric representation without changing mesh connectivity.
   void initializeDiscontinuous(int degree = 1);
-  int getElementCoefficientIndex(int element, int localNode) const;
-  const double *elementCoefficient(int element, int localNode) const;
-  double *elementCoefficient(int element, int localNode);
+  int getElementCoefficientIndex(int ientt, int localNode) const;
+  const double *elementCoefficient(int ientt, int localNode) const;
+  double *elementCoefficient(int ientt, int localNode);
+
+  // Evaluate L = log(M) on a full-dimensional owning entity. Bary derivatives
+  // use xi_i = bary[i+1]; Phys derivatives use physical Cartesian coordinates.
+  // dlogm[direction*getnnmet()+component] stores the requested first derivatives.
+  void getLogMetOnEntity(int ientt, DifVar idiff, const double *bary,
+                         double *logm, double *dlogm) const;
+
+  // Evaluate M and derivatives in the same coordinates as getLogMetOnEntity.
+  void getMetOnEntity(int ientt, DifVar idiff, const double *bary,
+                     double *met, double *dmet) const;
 
 	inline const double *operator[](int i) const {
     requireContinuous("Point-indexed metric access"); return rfld[i];
@@ -90,7 +102,13 @@ public:
 
 	void setBasis(FEBasis ibasn){
     if(ibasn == getBasis()) return;
-    requireContinuous("Metric basis conversion");
+    if(layout == MetricFieldLayout::Discontinuous){
+      METRIS_ENFORCE(metricDegree == 1);
+      METRIS_ENFORCE(ibasn == FEBasis::Lagrange || ibasn == FEBasis::Bezier);
+      // P1 Lagrange and Bernstein coefficients coincide.
+      ibasis = ibasn;
+      return;
+    }
     METRIS_ASSERT(ibasn == FEBasis::Lagrange || ibasn == FEBasis::Bezier);
 
     MetSpace ispac0 = getSpace();
@@ -192,6 +210,10 @@ private:
   int metricDegree = 0;
   intAr2 elementToCoefficient;
   dblAr2 localCoefficients;
+
+  template<int gdim, int metdeg, int geomdeg>
+  void getLogMetOnEntity0(int ientt, DifVar idiff, const double *bary,
+                          double *logm, double *dlogm) const;
 
 	//template<int gdim, int metdeg>
 	//void getMetFullinfo0(const MeshBase &msh, int ientt, int tdimn, DifVar idiff, 

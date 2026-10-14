@@ -17,11 +17,59 @@
 #include "../utils/fmt_formatters.hxx"
 
 #include <cmath>
+#include <algorithm>
 #include <unsupported/Eigen/MatrixFunctions>
 #include <Eigen/Dense>
 #include "fmt/format.h"
 
 namespace Metris{
+
+template<int ndim>
+void getexpmet_frechet(const double *logm, const double *dlogm, int nderiv,
+                      double *met, double *dmet){
+  static_assert(ndim == 2 || ndim == 3);
+  constexpr int nm = ndim*(ndim+1)/2;
+  METRIS_ENFORCE(logm != nullptr && met != nullptr && nderiv >= 0);
+  METRIS_ENFORCE(nderiv == 0 || (dlogm != nullptr && dmet != nullptr));
+  using Matrix = Eigen::Matrix<double,ndim,ndim>;
+  Matrix L;
+  for(int i = 0; i < ndim; i++) for(int j = 0; j < ndim; j++)
+    L(i,j) = logm[sym2idx(i,j)];
+  METRIS_ENFORCE_MSG(L.allFinite(), "Nonfinite log metric in matrix exponential");
+  const Eigen::SelfAdjointEigenSolver<Matrix> eigen(L);
+  METRIS_ENFORCE(eigen.info() == Eigen::Success);
+  const Matrix Q = eigen.eigenvectors();
+  const auto lambda = eigen.eigenvalues();
+  const auto expLambda = lambda.array().exp().eval();
+  METRIS_ENFORCE_MSG(expLambda.allFinite() && (expLambda > 0.).all(),
+                    "Metric exponential is outside the finite SPD range");
+  const Matrix M = Q*expLambda.matrix().asDiagonal()*Q.transpose();
+  for(int i = 0; i < ndim; i++) for(int j = 0; j <= i; j++)
+    met[sym2idx(i,j)] = M(i,j);
+  if(nderiv == 0) return;
+
+  // Divided differences use their continuous limit at repeated eigenvalues.
+  Matrix dividedDifference;
+  for(int i = 0; i < ndim; i++) for(int j = 0; j < ndim; j++){
+    const double gap = std::abs(lambda[i]-lambda[j]);
+    dividedDifference(i,j) = std::exp(std::max(lambda[i],lambda[j]))
+        *(gap == 0. ? 1. : -std::expm1(-gap)/gap);
+  }
+  for(int r = 0; r < nderiv; r++){
+    Matrix derivative;
+    for(int i = 0; i < ndim; i++) for(int j = 0; j < ndim; j++)
+      derivative(i,j) = dlogm[r*nm+sym2idx(i,j)];
+    METRIS_ENFORCE(derivative.allFinite());
+    const Matrix rotated = Q.transpose()*derivative*Q;
+    const Matrix DM = Q*dividedDifference.cwiseProduct(rotated)*Q.transpose();
+    METRIS_ENFORCE(DM.allFinite());
+    for(int i = 0; i < ndim; i++) for(int j = 0; j <= i; j++)
+      dmet[r*nm+sym2idx(i,j)] = DM(i,j);
+  }
+}
+
+template void getexpmet_frechet<2>(const double*, const double*, int, double*, double*);
+template void getexpmet_frechet<3>(const double*, const double*, int, double*, double*);
 
 // -----------------------------------------------------------------------------
 template<int ndim, typename T>
@@ -137,4 +185,3 @@ void getexpmet_cpy<3>(const double* met ,double*  __restrict__ expm){
 
 
 } // End namespace
-

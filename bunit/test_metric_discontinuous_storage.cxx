@@ -54,6 +54,9 @@ BOOST_FIXTURE_TEST_CASE(continuous_layout_preserves_shared_geometry_indexing,Two
   }
   BOOST_CHECK(mesh.met.elementCoefficient(0,1) == mesh.met.elementCoefficient(1,0));
   BOOST_CHECK(mesh.met.elementCoefficient(0,3) == mesh.met.elementCoefficient(1,4));
+  MetricFieldFE copy(mesh.met);
+  copy(1,0) = 42.;
+  BOOST_CHECK_EQUAL(mesh.met(1,0),3.);
   // Continuous metric degree follows the existing geometry-degree convention.
   mesh.curdeg = 1;
   BOOST_CHECK_EQUAL(mesh.met.getDegree(),1);
@@ -137,15 +140,23 @@ BOOST_FIXTURE_TEST_CASE(discontinuous_storage_rejects_ambiguous_legacy_operation
   BOOST_CHECK_THROW(mesh.met.initializeDiscontinuous(),MetrisExcept);
   BOOST_CHECK_THROW(mesh.met[1],MetrisExcept);
   BOOST_CHECK_THROW(mesh.met(1,0),MetrisExcept);
-  BOOST_CHECK_THROW(mesh.met.setSpace(MetSpace::Exp),MetrisExcept);
-  BOOST_CHECK_THROW(mesh.met.setBasis(FEBasis::Bezier),MetrisExcept);
+  BOOST_CHECK_THROW(mesh.met.setSpace(MetSpace::Undefined),MetrisExcept);
+  BOOST_CHECK_THROW(mesh.met.setBasis(FEBasis::Undefined),MetrisExcept);
   BOOST_CHECK_THROW(mesh.met.forceSpaceFlag(MetSpace::Exp),MetrisExcept);
   BOOST_CHECK_THROW(mesh.met.forceBasisFlag(FEBasis::Bezier),MetrisExcept);
-  BOOST_CHECK_THROW(mesh.met.normalize(2.),MetrisExcept);
+  BOOST_CHECK_THROW(mesh.met.normalize(0.),MetrisExcept);
   const double bary[3] = {0.2,0.3,0.5};
   double metric[3];
   BOOST_CHECK_THROW(mesh.met.getMetBary(AsDeg::Pk,DifVar::None,MetSpace::Log,
                                       mesh.fac2poi[0],2,bary,metric,nullptr),MetrisExcept);
+}
+
+BOOST_AUTO_TEST_CASE(copying_an_empty_metric_preserves_its_state){
+  Mesh<MetricFieldFE> mesh;
+  const MetricFieldFE copy(mesh.met);
+  BOOST_CHECK(copy.getLayout() == MetricFieldLayout::Continuous);
+  BOOST_CHECK_EQUAL(copy.getCoefficientCount(),0);
+  BOOST_CHECK(copy.getBasis() == FEBasis::Undefined);
 }
 
 } // namespace Metris

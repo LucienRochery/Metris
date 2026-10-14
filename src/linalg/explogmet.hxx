@@ -22,6 +22,12 @@ void getlogmet_inp(T *met);
 template <int ndim, typename T>
 void getexpmet_inp(T* met);
 
+// Symmetric matrix exponential and Frechet derivatives. Derivative arrays
+// contain nderiv consecutive packed symmetric tensors; nderiv may be zero.
+template<int ndim>
+void getexpmet_frechet(const double *logm, const double *dlogm, int nderiv,
+                      double *met, double *dmet);
+
 template <int gdim, typename T>
 void getspacmet_inp(T* met, MetSpace tarspac){
   if(tarspac == MetSpace::Log) getlogmet_inp<gdim,T>(met);

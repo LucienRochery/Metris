@@ -26,6 +26,7 @@
 #include "../Localization/msh_localization.hxx"
 
 #include <array>
+#include <utility>
 
 
 namespace Metris{
@@ -37,17 +38,37 @@ MetricFieldFE::MetricFieldFE(MeshBase &msh_) : msh(msh_){
   rfld.set_n(msh.npoin);
 }
 
+MetricFieldFE::MetricFieldFE(const MetricFieldFE &inp) : msh(inp.msh), nspace_miss(0){
+  inp.rfld.copyTo(rfld);
+  inp.elementToCoefficient.copyTo(elementToCoefficient);
+  inp.localCoefficients.copyTo(localCoefficients);
+  layout = inp.layout;
+  metricDegree = inp.metricDegree;
+  ispace = inp.ispace;
+  ibasis = inp.ibasis;
+}
 
 void MetricFieldFE::setSpace(MetSpace ispacn, bool iforce){
-  if(layout == MetricFieldLayout::Discontinuous){
-    if(ispacn != ispace) requireContinuous("Metric space conversion");
-    return;
-  }
   #ifndef NDEBUG
   if(msh.meshClass() == MeshClass::MeshBack && !iforce && ispacn != this->ispace){
     METRIS_THROW_MSG("setSpace called on back mesh! Should not be done.")
   }
   #endif
+  if(layout == MetricFieldLayout::Discontinuous){
+    METRIS_ENFORCE(ispacn == MetSpace::Log || ispacn == MetSpace::Exp);
+    if(ispacn == ispace) return;
+    // Commit only after every coefficient has been converted successfully.
+    dblAr2 converted;
+    localCoefficients.copyTo(converted);
+    for(int icoeff = 0; icoeff < converted.get_n(); icoeff++){
+      if(ispacn == MetSpace::Log) getlogmet_inp<2,double>(converted[icoeff]);
+      else getexpmet_frechet<2>(converted[icoeff],nullptr,0,converted[icoeff],nullptr);
+      for(int k = 0; k < 3; k++) METRIS_ENFORCE(std::isfinite(converted(icoeff,k)));
+    }
+    localCoefficients = std::move(converted);
+    ispace = ispacn;
+    return;
+  }
   METRIS_ASSERT(ispacn != MetSpace::Undefined);
   if(ispacn == MetSpace::Log) setLog();
   else                        setExp();
@@ -75,14 +96,14 @@ MetricFieldFE &MetricFieldFE::operator=(const MetricFieldFE& inp){
     METRIS_ENFORCE_MSG(msh.idim == inp.msh.idim && msh.nface == inp.msh.nface
                       && msh.curdeg == inp.msh.curdeg && msh.npoin == inp.msh.npoin,
                       "DG metric assignment requires matching mesh layouts");
-    for(int face = 0; face < msh.nface; face++){
-      const bool dead = msh.fac2poi(face,0) < 0;
-      METRIS_ENFORCE_MSG(dead == (inp.msh.fac2poi(face,0) < 0),
-                        "DG metric assignment requires matching live elements");
+    for(int ientt = 0; ientt < msh.nface; ientt++){
+      const bool dead = msh.fac2poi(ientt,0) < 0;
+      METRIS_ENFORCE_MSG(dead == (inp.msh.fac2poi(ientt,0) < 0),
+                        "DG metric assignment requires matching live entities");
       if(dead) continue;
       for(int node = 0; node < getnnode(2,msh.curdeg); node++){
-        METRIS_ENFORCE_MSG(msh.fac2poi(face,node) == inp.msh.fac2poi(face,node),
-                          "DG metric assignment requires matching element ordering");
+        METRIS_ENFORCE_MSG(msh.fac2poi(ientt,node) == inp.msh.fac2poi(ientt,node),
+                          "DG metric assignment requires matching entity ordering");
       }
     }
     inp.elementToCoefficient.copyTo(elementToCoefficient);
@@ -129,9 +150,9 @@ void MetricFieldFE::initializeDiscontinuous(int degree){
   elementToCoefficient.allocate(msh.nface,3);
   elementToCoefficient.set_n(msh.nface);
   elementToCoefficient.fill(-1);
-  for(int face = 0; face < msh.nface; face++){
-    if(msh.fac2poi(face,0) < 0) continue;
-    for(int node = 0; node < 3; node++) elementToCoefficient(face,node) = count++;
+  for(int ientt = 0; ientt < msh.nface; ientt++){
+    if(msh.fac2poi(ientt,0) < 0) continue;
+    for(int node = 0; node < 3; node++) elementToCoefficient(ientt,node) = count++;
   }
   METRIS_ENFORCE_MSG(count > 0, "Discontinuous metric requires live triangles");
   localCoefficients.allocate(count,getnnmet());
@@ -143,28 +164,28 @@ void MetricFieldFE::initializeDiscontinuous(int degree){
   layout = MetricFieldLayout::Discontinuous;
 }
 
-int MetricFieldFE::getElementCoefficientIndex(int element, int localNode) const{
+int MetricFieldFE::getElementCoefficientIndex(int ientt, int localNode) const{
   const int dim = msh.get_tdim();
   METRIS_ENFORCE(dim == 2 || dim == 3);
-  METRIS_ENFORCE(element >= 0 && element < msh.nentt(dim));
-  METRIS_ENFORCE(msh.ent2poi(dim)(element,0) >= 0);
+  METRIS_ENFORCE(ientt >= 0 && ientt < msh.nentt(dim));
+  METRIS_ENFORCE(msh.ent2poi(dim)(ientt,0) >= 0);
   METRIS_ENFORCE(localNode >= 0 && localNode < getnnode(dim,getDegree()));
-  if(layout == MetricFieldLayout::Continuous) return msh.ent2poi(dim)(element,localNode);
+  if(layout == MetricFieldLayout::Continuous) return msh.ent2poi(dim)(ientt,localNode);
   METRIS_ENFORCE_MSG(msh.idim == 2 && dim == 2 && msh.curdeg == 2
                     && msh.nface == elementToCoefficient.get_n(),
                     "Mesh layout does not match DG metric storage");
-  const int coefficient = elementToCoefficient(element,localNode);
+  const int coefficient = elementToCoefficient(ientt,localNode);
   METRIS_ENFORCE(coefficient >= 0 && coefficient < localCoefficients.get_n());
   return coefficient;
 }
 
-const double *MetricFieldFE::elementCoefficient(int element, int localNode) const{
-  const int index = getElementCoefficientIndex(element,localNode);
+const double *MetricFieldFE::elementCoefficient(int ientt, int localNode) const{
+  const int index = getElementCoefficientIndex(ientt,localNode);
   return layout == MetricFieldLayout::Continuous ? rfld[index] : localCoefficients[index];
 }
 
-double *MetricFieldFE::elementCoefficient(int element, int localNode){
-  const int index = getElementCoefficientIndex(element,localNode);
+double *MetricFieldFE::elementCoefficient(int ientt, int localNode){
+  const int index = getElementCoefficientIndex(ientt,localNode);
   return layout == MetricFieldLayout::Continuous ? rfld[index] : localCoefficients[index];
 }
 
@@ -386,7 +407,25 @@ void MetricFieldFE::writeMetricFile(std::string outname, bool iprefix){
 
 // coeff is size multiplier
 void MetricFieldFE::normalize(double coeff){
-  requireContinuous("Metric normalization");
+  if(layout == MetricFieldLayout::Discontinuous){
+    METRIS_ENFORCE(std::isfinite(coeff) && coeff > 0.);
+    const double shift = -2.*std::log(coeff);
+    const double factor = std::exp(shift);
+    METRIS_ENFORCE(ispace == MetSpace::Log || ispace == MetSpace::Exp);
+    if(ispace == MetSpace::Exp) METRIS_ENFORCE(std::isfinite(factor) && factor > 0.);
+    dblAr2 normalized;
+    localCoefficients.copyTo(normalized);
+    for(int icoeff = 0; icoeff < normalized.get_n(); icoeff++){
+      if(ispace == MetSpace::Log){
+        for(int k = 0; k < 2; k++) normalized(icoeff,sym2idx(k,k)) += shift;
+      }else{
+        for(int k = 0; k < 3; k++) normalized(icoeff,k) *= factor;
+      }
+      for(int k = 0; k < 3; k++) METRIS_ENFORCE(std::isfinite(normalized(icoeff,k)));
+    }
+    localCoefficients = std::move(normalized);
+    return;
+  }
   METRIS_ASSERT(coeff > 0.0);
   double size = 1/coeff/coeff;
   int nnmet = getnnmet();
@@ -440,6 +479,93 @@ void MetricFieldFE::correctMetric(){
 }
 
 
+
+template<int gdim, int metdeg, int geomdeg>
+void MetricFieldFE::getLogMetOnEntity0(int ientt, DifVar idiff,
+                                      const double *bary, double *logm,
+                                      double *dlogm) const{
+  constexpr int nnmet = gdim*(gdim+1)/2;
+  constexpr int nnode = getnnode(gdim,metdeg);
+  std::array<double,nnode*nnmet> coefficients;
+  std::array<int,nnode> nodes;
+  for(int node = 0; node < nnode; node++){
+    nodes[node] = node;
+    const double *value = elementCoefficient(ientt,node);
+    for(int k = 0; k < nnmet; k++) coefficients[node*nnmet+k] = value[k];
+    if(ispace == MetSpace::Exp)
+      getlogmet_inp<gdim,double>(&coefficients[node*nnmet]);
+  }
+  const dblAr2 field(nnode,nnmet,coefficients.data());
+  double referenceDerivatives[gdim*nnmet];
+  const DifVar referenceDiff = idiff == DifVar::None ? DifVar::None : DifVar::Bary;
+  if constexpr(gdim == 2)
+    eval2<nnmet,metdeg>(field,nodes.data(),ibasis,referenceDiff,DifVar::None,
+                       bary,logm,referenceDerivatives,nullptr);
+  else
+    eval3<nnmet,metdeg>(field,nodes.data(),ibasis,referenceDiff,DifVar::None,
+                       bary,logm,referenceDerivatives,nullptr);
+  if(idiff == DifVar::None) return;
+  if(idiff == DifVar::Bary){
+    for(int k = 0; k < gdim*nnmet; k++) dlogm[k] = referenceDerivatives[k];
+    return;
+  }
+
+  // eval stores J^T: row r contains derivatives with respect to xi_r.
+  // Its inverse therefore maps reference gradients to physical gradients.
+  double point[gdim], inverseTranspose[gdim*gdim];
+  const int *geometryNodes = msh.ent2poi(gdim)[ientt];
+  if constexpr(gdim == 2)
+    eval2<gdim,geomdeg>(msh.coord,geometryNodes,msh.getBasis(),DifVar::Bary,
+                      DifVar::None,bary,point,inverseTranspose,nullptr);
+  else
+    eval3<gdim,geomdeg>(msh.coord,geometryNodes,msh.getBasis(),DifVar::Bary,
+                      DifVar::None,bary,point,inverseTranspose,nullptr);
+  METRIS_ENFORCE_MSG(!invmat<gdim>(inverseTranspose),
+                    "Singular geometry Jacobian in entity metric evaluation");
+  for(int r = 0; r < gdim; r++) for(int k = 0; k < nnmet; k++){
+    dlogm[r*nnmet+k] = 0.;
+    for(int s = 0; s < gdim; s++)
+      dlogm[r*nnmet+k] += inverseTranspose[r*gdim+s]*referenceDerivatives[s*nnmet+k];
+  }
+}
+
+void MetricFieldFE::getLogMetOnEntity(int ientt, DifVar idiff,
+                                     const double *bary, double *logm,
+                                     double *dlogm) const{
+  METRIS_ENFORCE_MSG(metricClass() == MetricClass::MetricFieldFE,
+                    "Entity-local log-metric evaluation requires an FE metric");
+  METRIS_ENFORCE(msh.idim == msh.get_tdim());
+  METRIS_ENFORCE(msh.idim == 2 || msh.idim == 3);
+  METRIS_ENFORCE(msh.curdeg >= 1 && msh.curdeg <= METRIS_MAX_DEG);
+  METRIS_ENFORCE(ibasis == FEBasis::Lagrange || ibasis == FEBasis::Bezier);
+  METRIS_ENFORCE(ispace == MetSpace::Log || ispace == MetSpace::Exp);
+  METRIS_ENFORCE(idiff == DifVar::None || idiff == DifVar::Bary || idiff == DifVar::Phys);
+  METRIS_ENFORCE(bary != nullptr && logm != nullptr);
+  METRIS_ENFORCE(idiff == DifVar::None || dlogm != nullptr);
+  getElementCoefficientIndex(ientt,0);
+  if(layout == MetricFieldLayout::Discontinuous){
+    METRIS_ENFORCE(metricDegree == 1);
+    getLogMetOnEntity0<2,1,2>(ientt,idiff,bary,logm,dlogm);
+    return;
+  }
+  CT_FOR0_INC(1,METRIS_MAX_DEG,degree){if(msh.curdeg == degree){
+    if(msh.idim == 2)
+      getLogMetOnEntity0<2,degree,degree>(ientt,idiff,bary,logm,dlogm);
+    else
+      getLogMetOnEntity0<3,degree,degree>(ientt,idiff,bary,logm,dlogm);
+  }}CT_FOR1(degree);
+}
+
+void MetricFieldFE::getMetOnEntity(int ientt, DifVar idiff, const double *bary,
+                                 double *met, double *dmet) const{
+  METRIS_ENFORCE(met != nullptr);
+  METRIS_ENFORCE(idiff == DifVar::None || dmet != nullptr);
+  double logm[6], dlogm[18];
+  getLogMetOnEntity(ientt,idiff,bary,logm,dlogm);
+  const int nderiv = idiff == DifVar::None ? 0 : msh.idim;
+  if(msh.idim == 2) getexpmet_frechet<2>(logm,dlogm,nderiv,met,dmet);
+  else getexpmet_frechet<3>(logm,dlogm,nderiv,met,dmet);
+}
 
 // ----
 void MetricFieldFE::getMetBary(AsDeg asdmet,
