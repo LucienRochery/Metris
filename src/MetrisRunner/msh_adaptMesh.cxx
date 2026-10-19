@@ -676,7 +676,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
   int ntryCollapse = 0; int nSuccessCollapse = 0;
 
   int iter = 0;
-  writeMesh("meshSTART.meshb",msh);
+  if(DOPRINTS2()) writeMesh("meshSTART.meshb",msh);
 
   while (true){
 
@@ -942,7 +942,7 @@ void MetrisRunner::adaptMeshQuality0(int tdim){
 
   msh.cleanup();
 
-  writeMesh("meshBeforeOptLoop.meshb",msh);
+  if(DOPRINTS2()) writeMesh("meshBeforeOptLoop.meshb",msh);
 
   #ifdef DIAGNOSIS_QUALALGO
   foutput.close();

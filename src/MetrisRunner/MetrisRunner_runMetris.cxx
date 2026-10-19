@@ -252,15 +252,6 @@ void MetrisRunner::runMetris(){
   std::cout << std::setprecision(16) << "Integrated target cost = " << integratedCost << std::endl;
   std::cout << std::setprecision(16) << "Actual cost = " << actualCost << std::endl;
 
-  if (param->MOESS_adapt_it >= 0){
-    std::string meshName = "mesh_MOESS_final_a" + std::to_string(param->MOESS_adapt_it) + ".meshb";
-    std::string metName  = "met_MOESS_final_a"  + std::to_string(param->MOESS_adapt_it) + ".solb";
-
-    writeMesh(meshName,*msh_g);
-    Mesh<MetricFieldFE> &msh = (Mesh<MetricFieldFE> &)(*msh_g);
-    msh.met.writeMetricFile(metName);
-  }
-
   foutputAdaptStats.close();
 
   t1 = get_cpu_time();
