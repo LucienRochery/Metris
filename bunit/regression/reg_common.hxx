@@ -69,8 +69,8 @@ double get_baseline_CPU(nlohmann::json baseline_json){
   }
   cpu_avg /= ncpu;
 
-  // Start at 1.5x and gradually go down to 1x
-  if(ncpu < 5) return cpu_avg * 1.5 - 0.1*cpu_avg;
+  // Fewer than 5 samples: 1.4x the average
+  if(ncpu < 5) return 1.4*cpu_avg;
 
   // Otherwise, use 2.5 sigma, which is a little under 99% confidence
   // interval (assuming normal distribution)
@@ -113,7 +113,7 @@ bool isCloseMeshStat(const MeshStat& baseline, const MeshStat& current,
     return false;
    }
 
-  bool iHO = baseline.quaPk.get_n() > 0 || baseline.quaPk.get_n() > 0;
+  bool iHO = baseline.quaPk.get_n() > 0 || current.quaPk.get_n() > 0;
   if(iHO && (baseline.quaPk.get_n() != tdim 
           || current.quaPk.get_n() != tdim)){
     fmt::print(stderr,"## ERROR in isCloseMeshStat, inconsistent tdim (HO)\n");
@@ -161,7 +161,7 @@ void printUnmatchedMeshStat(const MeshStat& baseline, const MeshStat& current,
     return;
    }
 
-  bool iHO = baseline.quaPk.get_n() > 0 || baseline.quaPk.get_n() > 0;
+  bool iHO = baseline.quaPk.get_n() > 0 || current.quaPk.get_n() > 0;
   if(iHO && (baseline.quaPk.get_n() != tdim 
           || current.quaPk.get_n() != tdim)){
     fmt::print(stderr,"## ERROR in isCloseMeshStat, inconsistent tdim (HO)\n");
@@ -175,7 +175,7 @@ void printUnmatchedMeshStat(const MeshStat& baseline, const MeshStat& current,
         ii+1,baseline.pctunit[ii], current.pctunit[ii]);
     if(!iclose_avgquaP1[ii]) fmt::print(stderr," - {}D avg quality P1 differ: baseline {} vs current {}\n",
         ii+1,baseline.quaP1[ii].avg(), current.quaP1[ii].avg());
-    if(!iclose_avgquaPk[ii]) fmt::print(stderr," - {}D avg quality Pk differ: baseline {} vs current {}\n",
+    if(iHO && !iclose_avgquaPk[ii]) fmt::print(stderr," - {}D avg quality Pk differ: baseline {} vs current {}\n",
         ii+1,baseline.quaPk[ii].avg(), current.quaPk[ii].avg());
   }
 }
@@ -498,12 +498,12 @@ public:
       double current_time  = json_current_run["CPU_time"];
       bool iclose_time = current_time <= baseline_time;
       BOOST_CHECK_MESSAGE(iclose_time, 
-                          "CPU time for test " << test_name << " increased > 1.2x, from " 
-                          << baseline_time << " s to " << current_time << " s");
+                          "CPU time for test " << test_name << " is " << current_time
+                          << " s, over the baseline bound " << baseline_time << " s");
       if(iclose_time)
         fmt::print("Current test time {:.2f}s <= {:.2f}s baseline bound\n", current_time, baseline_time);
       else{
-        fmt::print(stderr, "CPU time {:.2f}s > {:.2f}s baseline bound\n", baseline_time, current_time);
+        fmt::print(stderr, "CPU time {:.2f}s > {:.2f}s baseline bound\n", current_time, baseline_time);
         test_passes = false;
       }
 
@@ -536,7 +536,7 @@ public:
 
     if(updates_done){
       fmt::print("-- Updates done, overwriting baseline file {}\n",baseline_json_fname);
-      std::fstream jfile(baseline_json_fname);
+      std::ofstream jfile(baseline_json_fname);
       jfile << json_baseline_allhwid.dump(2);
     }
 
