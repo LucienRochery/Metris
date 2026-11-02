@@ -25,29 +25,38 @@ jobs:
           echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
           echo "${ESP_ROOT}/bin" >> "$GITHUB_PATH"
 
+      # Baselines (one file per hwid and case, see bunit/regression/reg_common.hxx)
+      # live in this artifact, re-uploaded each night. The -v2 name starts it
+      # fresh: the old regression-baselines artifact holds the old format.
       - name: Download previous baselines
         uses: dawidd6/action-download-artifact@v6
         with:
-          name: regression-baselines
-          path: bunit/regression/
+          name: regression-baselines-v2
+          path: regression-baselines/
           workflow: nightly.yml
           if_no_artifact_found: warn
 
       - name: CMake configure
-        run: cmake -B build/release_clang -DMETRIS_BUILD_CORES=4
+        run: cmake -B build/release_clang -DCMAKE_BUILD_TYPE=Release -DMETRIS_BUILD_CORES=4
 
       - name: Run regression tests
         env:
           METRIS_CASES_DIR: ${{ github.workspace }}/examples/
           METRIS_CI_HWID: GitHub_Actions_ubuntu_latest
+          METRIS_REG_OUT: ${{ github.workspace }}/regression-out
+          METRIS_REG_BASELINE: ${{ github.workspace }}/regression-baselines
+          # Runs that pass (or are new) update their baseline.
+          METRIS_UPDATE_BASELINE: "1"
+          # Shared VMs: CPU time is too noisy to check; still recorded.
+          METRIS_REG_SKIP_TIME: "1"
         run: ctest --test-dir build/release_clang --output-on-failure -V -L regression
 
       - name: Upload baselines
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: regression-baselines
-          path: bunit/regression/**/*.baseline.json
+          name: regression-baselines-v2
+          path: regression-baselines/
           retention-days: 90
           overwrite: true
 
@@ -56,5 +65,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: regression-runs-${{ github.sha }}
-          path: bunit/regression/**/runs.json
+          path: regression-out/*.json
           retention-days: 90
