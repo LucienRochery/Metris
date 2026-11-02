@@ -13,7 +13,7 @@ using namespace Metris;
 BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q1toQ1) 
 {
 
-  RegressionTestManager manager("3D/cube", "reg_anamet_Q1toQ1", "3D_cube_anamet_Q1toQ1");
+  RegressionTestManager manager("3D/cube");
 
   std::vector<int> l_adp_opt_niter  = {5, 1, 0 };
   std::vector<std::pair<int,double>> l_ianamet = { {1,1.0}, {2,0.05} };
@@ -48,6 +48,7 @@ BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q1toQ1)
 
   }
 
+  manager.finish();
 }
 
 
@@ -55,7 +56,7 @@ BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q1toQ1)
 BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q1toQ2) 
 {
 
-  RegressionTestManager manager("3D/cube", "reg_anamet_Q1toQ2", "3D_cube_anamet_Q1toQ2");
+  RegressionTestManager manager("3D/cube");
 
   std::vector<int> l_adp_opt_niter  = {5, 1, 0 };
   std::vector<std::pair<int,double>> l_ianamet = { {1,1.0}, {2,0.05} };
@@ -90,13 +91,14 @@ BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q1toQ2)
 
   }
 
+  manager.finish();
 }
 
 
 BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q2toQ2) 
 {
 
-  RegressionTestManager manager("3D/cube", "reg_anamet_Q2toQ2", "3D_cube_anamet_Q2toQ2");
+  RegressionTestManager manager("3D/cube");
   std::vector<int> l_adp_opt_niter  = {5, 1, 0 };
   std::vector<std::pair<int,double>> l_ianamet = { {1,1.0}, {2,0.05} };
 
@@ -142,4 +144,5 @@ BOOST_AUTO_TEST_CASE(reg_3D_cube_anamet_Q2toQ2)
 
   }
 
+  manager.finish();
 }

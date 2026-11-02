@@ -287,6 +287,26 @@ set(TEST_SOURCES ${TEST_SOURCES} ${TEST_REG_SOURCES})
 #                           ${METRIS_CASES_DIR}/gen_cases.sh)
 #add_custom_target(deploy_cases DEPENDS ${METRIS_UNIT_TEST_MESHES})
 
+# Regression cases are registered in Release only. In other builds, one test
+# labelled regression fails, so `ctest -L regression` cannot pass empty.
+string(TOUPPER "${CMAKE_BUILD_TYPE}" METRIS_REG_BUILD_TYPE)
+if(METRIS_REG_BUILD_TYPE STREQUAL "RELEASE")
+  set(METRIS_REG_BUILD_TYPE "Release")
+else()
+  set(METRIS_REG_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
+  # add_test takes one COMMAND: print the reason, fail on it.
+  add_test(NAME regression_needs_release
+           COMMAND ${CMAKE_COMMAND} -E echo
+                   "Regression cases are only registered when CMAKE_BUILD_TYPE=Release (here: '${CMAKE_BUILD_TYPE}').")
+  set_tests_properties(regression_needs_release PROPERTIES
+                       LABELS "regression"
+                       FAIL_REGULAR_EXPRESSION "only registered when")
+endif()
+
+# Regression cases that take several minutes or more get the label "long".
+set(METRIS_REG_LONG_CASES "^reg_3D_cube_anamet_" CACHE STRING
+    "Regex of regression case names labelled long")
+
 set(METRIS_TARGET_UNIT_TESTS_BUILD "")
 set(METRIS_TARGET_REGRESSION_TESTS_BUILD "")
 
@@ -351,15 +371,39 @@ foreach(test_file ${TEST_SOURCES})
                          LABELS "unit"
                          )
   elseif(test_target MATCHES "^reg_.*")
+    target_compile_definitions(${test_target_build} PUBLIC
+                               METRIS_REG_DEFAULT_OUT="${CMAKE_BINARY_DIR}/regression/out"
+                               METRIS_BUILD_TYPE="${METRIS_REG_BUILD_TYPE}")
+    # Regression results are only meaningful in Release (see below for others).
+    if(NOT METRIS_REG_BUILD_TYPE STREQUAL "Release")
+      continue()
+    endif()
     list(APPEND METRIS_TARGET_REGRESSION_TESTS_BUILD ${test_target_build})
-    add_test(NAME ${test_target}
-             COMMAND $<TARGET_FILE:${test_target_build}>
-             WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-            )
-    set_tests_properties(${test_target} PROPERTIES
-                         FIXTURES_REQUIRED "regression_build_and_deploy"
-                         LABELS "regression"
-                         )
+    # One ctest entry per BOOST_AUTO_TEST_CASE, of the same name: these names
+    # are the case names in the result files and in tools that select cases.
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${test_file})
+    file(STRINGS ${test_file} reg_case_lines REGEX "^[ \t]*BOOST_AUTO_TEST_CASE[ \t]*\\(")
+    if(test_file MATCHES "/regression/2D/")
+      set(reg_dim_label "reg2D")
+    else()
+      set(reg_dim_label "reg3D")
+    endif()
+    foreach(reg_case_line ${reg_case_lines})
+      string(REGEX REPLACE "^[ \t]*BOOST_AUTO_TEST_CASE[ \t]*\\([ \t]*([A-Za-z0-9_]+).*$" "\\1"
+             reg_case "${reg_case_line}")
+      set(reg_labels "regression;${reg_dim_label}")
+      if(NOT METRIS_REG_LONG_CASES STREQUAL "" AND reg_case MATCHES "${METRIS_REG_LONG_CASES}")
+        list(APPEND reg_labels "long")
+      endif()
+      add_test(NAME ${reg_case}
+               COMMAND $<TARGET_FILE:${test_target_build}> --run_test=${reg_case}
+               WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+              )
+      set_tests_properties(${reg_case} PROPERTIES
+                           FIXTURES_REQUIRED "regression_build_and_deploy"
+                           LABELS "${reg_labels}"
+                           )
+    endforeach()
   endif()
 
   ## Ensure that foo_build is built before foo

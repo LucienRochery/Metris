@@ -13,7 +13,7 @@ using namespace Metris;
 BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2_Q1toQ1) 
 {
 
-  RegressionTestManager manager("2D/OAT15A", "reg_x2_Q1toQ1", "2D_OAT15A_x2_Q1toQ1");
+  RegressionTestManager manager("2D/OAT15A");
 
   std::vector<int> l_adp_opt_niter  = {0, 1, 5, -1};
 
@@ -42,13 +42,14 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2_Q1toQ1)
 
   }
 
+  manager.finish();
 }
 
 
 BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2_Q1toQ2) 
 {
 
-  RegressionTestManager manager("2D/OAT15A", "reg_x2_Q1toQ2", "2D_OAT15A_x2_Q1toQ2");
+  RegressionTestManager manager("2D/OAT15A");
 
   std::vector<int> l_adp_opt_niter  = {0, 1, 5, -1};
 
@@ -78,6 +79,7 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2_Q1toQ2)
 
   }
 
+  manager.finish();
 }
 
 
@@ -85,7 +87,7 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2_Q1toQ2)
 BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2_Q2toQ2) 
 {
 
-  RegressionTestManager manager("2D/OAT15A", "reg_x2_Q2toQ2", "2D_OAT15A_x2_Q2toQ2");
+  RegressionTestManager manager("2D/OAT15A");
 
   std::vector<int> l_adp_opt_niter  = {0, 1, 5, -1};
 
@@ -133,5 +135,6 @@ BOOST_AUTO_TEST_CASE(reg_2D_OAT15A_x2_Q2toQ2)
 
   }
 
+  manager.finish();
 }
 

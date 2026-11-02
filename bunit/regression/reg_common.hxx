@@ -6,296 +6,293 @@
 #ifndef __METRIS_REG_COMMON__
 #define __METRIS_REG_COMMON__
 
+// Regression test manager.
+//
+// One BOOST_AUTO_TEST_CASE = one regression case = one ctest entry of the same
+// name (see CMakeLists.txt). A case runs several variants ("runs"). Each case
+// writes its results to <out>/<case>.json, and its meshes and logs to
+// <out>/<case>/, where <out> is $METRIS_REG_OUT, else <build>/regression/out.
+//
+// Environment:
+//  - METRIS_REG_OUT=<dir>        where results go (see above). Absolute path.
+//  - METRIS_REG_BASELINE=<dir>   compare against <dir>/<hwid>/<case>.json.
+//                                Absolute path. Unset: record only, the case
+//                                fails only if a run throws. Set and no
+//                                baseline for this hwid/case: the case fails.
+//  - METRIS_UPDATE_BASELINE=1    compare, then write the baseline: runs that
+//                                pass, are new or whose parameters changed
+//                                replace theirs; runs that fail or throw keep
+//                                the old one. In $METRIS_REG_BASELINE, else in
+//                                bunit/regression/baselines (compared against
+//                                as if METRIS_REG_BASELINE named it).
+//    METRIS_UPDATE_BASELINE=all  same, but failed runs are replaced too, CPU
+//                                samples restarted.
+//    Unset, empty or 0: no write. Any other value is an error.
+//  - METRIS_REG_SKIP_TIME=1      no CPU time check (CPU time still recorded).
+//                                Unset, empty or 0: checked. Other: error.
+//  - METRIS_CI_HWID=<name>       overrides the hardware ID (empty: ignored).
+//
+// Comparison (one-sided: improvements pass) happens in finish(), which every
+// case must call last. reg_compare.py compares two result sets (base, head)
+// with the same stat rules and tolerances; keep them in sync. It differs where
+// it must: it judges head against base only, so a run that throws in both or
+// a case new in head is not "worse" there, and it never fails on CPU time.
+
 #include "../common_setup.hxx"
 #include "reg_hwid.hxx"
 
 #include "nlohmann/json.hpp"
 
 #include <filesystem>
-#include <chrono>
+#include <fstream>
 #include <string>
 #include <vector>
+#include <cstdlib>
+#include <cstdio>
+#include <algorithm>
+#include <cmath>
+#include <exception>
+#include <map>
+#include <set>
+#include <memory>
+
+#ifdef __linux__
+#include <linux/perf_event.h>
+#include <sys/ioctl.h>
+#include <sys/syscall.h>
+#include <unistd.h>
+#endif
+
+#ifndef METRIS_REG_DEFAULT_OUT
+  #error "METRIS_REG_DEFAULT_OUT not defined, should be in CMakeLists.txt"
+#endif
+#ifndef METRIS_BUILD_TYPE
+  #error "METRIS_BUILD_TYPE not defined, should be in CMakeLists.txt"
+#endif
 
 namespace Metris{
 
+// Result file format version. Bump on incompatible changes, and in reg_compare.py.
+constexpr int REG_SCHEMA = 1;
 
+// One-sided tolerances: current may be at most this much worse than baseline
+// (see regStatChecked for which way is better).
+constexpr double REG_TOL_PCTUNIT = 1.0;     // % unit edges, in points
+constexpr double REG_TOL_QUALITY = 1.0e-2;  // average quality, in (0,1)
 
-// Initialize a field json_baseline_allhwid[hwid] passed in as json_baseline
-void initialize_baseline_hwid(const std::vector<std::string>& test_names,
-                              std::string str_hwid,
-                                    nlohmann::json& json_baseline_allhwid, 
-                              const nlohmann::json& json_current){
+// Number of CPU time samples kept per run in a baseline.
+constexpr int REG_MAX_CPU_SAMPLES = 20;
 
-  json_baseline_allhwid[str_hwid] = json_current;
-  nlohmann::json metadata = json_current["metadata"];
-
-  json_baseline_allhwid[str_hwid].erase("metadata");
-
-  // Remove CPU_time and log into CPU_times.
-  // Skip tests that raised exceptions — they have no CPU_time to baseline.
-  for(const std::string& test_name : test_names){
-    if(!json_baseline_allhwid[str_hwid]["runs"].contains(test_name)) continue;
-    nlohmann::json& json_run = json_baseline_allhwid[str_hwid]["runs"][test_name];
-    if(json_run.contains("except")){
-      json_baseline_allhwid[str_hwid]["runs"].erase(test_name);
-      continue;
-    }
-    double cpu_time = json_run["CPU_time"];
-    json_run.erase("CPU_time");
-    json_run["CPU_times"] = nlohmann::json::array();
-    json_run["CPU_times"].push_back(cpu_time);
-    // metadata stored per run on the baseline, as each case
-    // might be updated at a different time.
-    json_run["metadata"] = metadata;
-  }
-  
+// Parameters set by the manager itself or irrelevant to results: not compared.
+inline bool regParamIgnored(const std::string& key){
+  return key == "iverb" || key == "ivdepth";
 }
 
 
-// Returns an upper bound on CPU time
-double get_baseline_CPU(nlohmann::json baseline_json){
-  METRIS_ENFORCE(baseline_json.contains("CPU_times"));
+inline std::string regGetEnv(const char* name){
+  const char* val = std::getenv(name);
+  return val ? std::string(val) : std::string();
+}
 
-  int ncpu = baseline_json["CPU_times"].size();
-  METRIS_ENFORCE(ncpu > 0);
-
-  dblAr1 cpu_times(ncpu);
-
-  double cpu_avg = 0.0;
-  int ii = 0;
-  for(double cpu_time : baseline_json["CPU_times"]){
-    cpu_times[ii++] = cpu_time;
-    cpu_avg += cpu_time;
-  }
-  cpu_avg /= ncpu;
-
-  // Start at 1.5x and gradually go down to 1x
-  if(ncpu < 5) return cpu_avg * 1.5 - 0.1*cpu_avg;
-
-  // Otherwise, use 2.5 sigma, which is a little under 99% confidence
-  // interval (assuming normal distribution)
-  double cpu_stdev = 0.0;
-  for(double cpu_time : cpu_times){
-    cpu_stdev += (cpu_time - cpu_avg) * (cpu_time - cpu_avg);
-  }
-  cpu_stdev = sqrt(cpu_stdev / ncpu);
-  return cpu_avg + 2.5*cpu_stdev;
+// Output of a shell command, trailing newline removed. ok = false on failure.
+inline std::string regShell(const std::string& cmd, bool& ok){
+  ok = false;
+  FILE* pipe = popen(cmd.c_str(), "r");
+  if(!pipe) return "";
+  std::string out;
+  char buf[256];
+  while(fgets(buf, sizeof(buf), pipe)) out += buf;
+  ok = (pclose(pipe) == 0);
+  while(!out.empty() && (out.back() == '\n' || out.back() == '\r')) out.pop_back();
+  return out;
 }
 
 
-// Return if untracked changes excluding untracked files
-// and the whole bunit/ directory. 
-bool isGitDirty() {
-  FILE* pipe = popen("git status --porcelain --untracked-files=no 2>/dev/null | grep -v 'bunit/'", "r");
-  if (!pipe) return true;
-  
-  int c = fgetc(pipe);
-  pclose(pipe);
-  
-  return (c != EOF);
+// Instructions retired in user space by this process and the threads it
+// starts after start(). Linux only; elsewhere, or when perf_event_open is not
+// allowed (perf_event_paranoid > 2, most CI VMs), available() is false.
+class RegInstructionCounter{
+public:
+  RegInstructionCounter(){
+#ifdef __linux__
+    perf_event_attr attr{};
+    attr.type = PERF_TYPE_HARDWARE;
+    attr.size = sizeof(attr);
+    attr.config = PERF_COUNT_HW_INSTRUCTIONS;
+    attr.disabled = 1;
+    attr.exclude_kernel = 1;
+    attr.exclude_hv = 1;
+    attr.inherit = 1;
+    fd = syscall(SYS_perf_event_open, &attr, 0, -1, -1, 0);
+#endif
+  }
+  ~RegInstructionCounter(){
+#ifdef __linux__
+    if(fd >= 0) close(fd);
+#endif
+  }
+  RegInstructionCounter(const RegInstructionCounter&) = delete;
+  RegInstructionCounter& operator=(const RegInstructionCounter&) = delete;
+
+  bool available() const { return fd >= 0; }
+
+  void start(){
+#ifdef __linux__
+    if(fd < 0) return;
+    ioctl(fd, PERF_EVENT_IOC_RESET, 0);
+    ioctl(fd, PERF_EVENT_IOC_ENABLE, 0);
+#endif
+  }
+  // Returns the count since start(), or -1 if not available.
+  long long stop(){
+#ifdef __linux__
+    if(fd < 0) return -1;
+    ioctl(fd, PERF_EVENT_IOC_DISABLE, 0);
+    long long count = 0;
+    if(read(fd, &count, sizeof(count)) != sizeof(count)) return -1;
+    return count;
+#else
+    return -1;
+#endif
+  }
+private:
+  int fd = -1;
+};
+
+
+// Upper bound on CPU time from a baseline's samples.
+inline double regCPUBound(const nlohmann::json& samples){
+  int n = samples.size();
+  double avg = 0.0;
+  for(double t : samples) avg += t;
+  avg /= n;
+  // Fewer than 5 samples: 1.4x the average.
+  if(n < 5) return 1.4*avg;
+  // Otherwise 2.5 sigma, a little under 99% if normally distributed. CPU
+  // times are skewed and samples often close together, so never under 1.2x
+  // the average, and 0.05 s of slack for very short runs.
+  double var = 0.0;
+  for(double t : samples) var += (t - avg)*(t - avg);
+  return std::max(avg + 2.5*std::sqrt(var/n), 1.2*avg) + 0.05;
 }
 
 
-
-bool isCloseMeshStat(const MeshStat& baseline, const MeshStat& current,
-                     bolAr1 &iclose_pctunit, 
-                     bolAr1 &iclose_avgquaP1,
-                     bolAr1 &iclose_avgquaPk){
-  int tdim = baseline.pctunit.get_n();
-  // We can't throw here as this'll be called in the destructor 
-  // of RegressionTestManager
-  if( tdim != baseline.quaP1.get_n()
-   || tdim != current.len.get_n()
-   || tdim != current.quaP1.get_n()){
-    fmt::print(stderr,"## ERROR in isCloseMeshStat, inconsistent tdim\n");
-    baseline.print("baseline",stderr);
-    current.print("current",stderr);
-    return false;
-   }
-
-  bool iHO = baseline.quaPk.get_n() > 0 || baseline.quaPk.get_n() > 0;
-  if(iHO && (baseline.quaPk.get_n() != tdim 
-          || current.quaPk.get_n() != tdim)){
-    fmt::print(stderr,"## ERROR in isCloseMeshStat, inconsistent tdim (HO)\n");
-    baseline.print("baseline",stderr);
-    current.print("current",stderr);
-    return false;
+// The checked statistics. sign = +1: higher is better (% unit edges);
+// -1: lower is better (quality: the stats hold the conformity error |q - 1|,
+// see getmetquamesh, so 0 is ideal).
+inline bool regStatChecked(const std::string& key, double& tol, int& sign){
+  if(key.rfind("pctunit", 0) == 0){ tol = REG_TOL_PCTUNIT; sign = 1; return true; }
+  if(key.rfind("avgquaP1_", 0) == 0 || key.rfind("avgquaPk_", 0) == 0){
+    tol = REG_TOL_QUALITY; sign = -1; return true;
   }
-
-  iclose_pctunit.set_n(tdim);
-  iclose_avgquaP1.set_n(tdim);
-  if(iHO) iclose_avgquaPk.set_n(tdim);
-  else    iclose_avgquaPk.set_n(0);
-
-  bool iret = true;
-  for(int ii = 0; ii < tdim; ii++){
-    // Set pct unit close to 1%
-    iret = iret && 
-      (iclose_pctunit[ii]  = abs(baseline.pctunit[ii] - current.pctunit[ii]) < 1.0);
-    // Quality (0,1) differs by 0.01
-    iret = iret && 
-      (iclose_avgquaP1[ii] = abs(baseline.quaP1[ii].avg() - current.quaP1[ii].avg()) < 1.0e-2);
-
-    if(!iHO) continue;
-    // Quality (0,1) differs by 0.01
-    iret = iret && 
-      (iclose_avgquaPk[ii] = abs(baseline.quaPk[ii].avg() - current.quaPk[ii].avg()) < 1.0e-2);
-  }
-
-  return iret;
+  return false;
 }
-
-void printUnmatchedMeshStat(const MeshStat& baseline, const MeshStat& current,
-                            bolAr1 &iclose_pctunit, 
-                            bolAr1 &iclose_avgquaP1,
-                            bolAr1 &iclose_avgquaPk){
-  int tdim = baseline.pctunit.get_n();
-  // We can't throw here as this'll be called in the destructor 
-  // of RegressionTestManager
-  if( tdim != baseline.quaP1.get_n()
-   || tdim != current.len.get_n()
-   || tdim != current.quaP1.get_n()){
-    fmt::print(stderr,"## ERROR in isCloseMeshStat, inconsistent tdim\n");
-    baseline.print("baseline",stderr);
-    current.print("current",stderr);
-    return;
-   }
-
-  bool iHO = baseline.quaPk.get_n() > 0 || baseline.quaPk.get_n() > 0;
-  if(iHO && (baseline.quaPk.get_n() != tdim 
-          || current.quaPk.get_n() != tdim)){
-    fmt::print(stderr,"## ERROR in isCloseMeshStat, inconsistent tdim (HO)\n");
-    baseline.print("baseline",stderr);
-    current.print("current",stderr);
-    return;
-  }
-
-  for(int ii = 0; ii < tdim; ii++){
-    if(!iclose_pctunit[ii]) fmt::print(stderr," - {}D % unit edges differ: baseline {} vs current {}\n",
-        ii+1,baseline.pctunit[ii], current.pctunit[ii]);
-    if(!iclose_avgquaP1[ii]) fmt::print(stderr," - {}D avg quality P1 differ: baseline {} vs current {}\n",
-        ii+1,baseline.quaP1[ii].avg(), current.quaP1[ii].avg());
-    if(!iclose_avgquaPk[ii]) fmt::print(stderr," - {}D avg quality Pk differ: baseline {} vs current {}\n",
-        ii+1,baseline.quaPk[ii].avg(), current.quaPk[ii].avg());
-  }
-}
-
-
-
-
 
 
 /* --------------------------------------------------------------- */
 class RegressionTestManager{
 public:
   RegressionTestManager() = delete;
+  RegressionTestManager(const RegressionTestManager&) = delete;
+  RegressionTestManager& operator=(const RegressionTestManager&) = delete;
 
-  // case_subdir example "2D/OAT15A"
-  // out_subdir example "reg_x2" (subdir of 2D/OAT15A)
-  RegressionTestManager(std::string case_subdir, std::string out_subdir, std::string baseline_name_base){
-  
-    #ifndef METRIS_ROOT_DIR
-      #error "METRIS_ROOT_DIR not defined, should be in CMakeLists.txt"
-    #endif
-
+  // case_subdir: where the inputs are, relative to bunit/regression/, e.g. "2D/OAT15A".
+  // The case name is the Boost test case's.
+  explicit RegressionTestManager(std::string case_subdir){
     if(std::string(METRIS_ROOT_DIR).empty()){
       METRIS_THROW_MSG("METRIS_ROOT_DIR not defined, should be in CMakeLists.txt");
     }
 
-    std::string metris_regression_dir = METRIS_ROOT_DIR "/bunit/regression/";
+    case_name = boost::unit_test::framework::current_test_case().p_name;
 
-    t0_all = get_cpu_time();
+    t0_all  = get_cpu_time();
     t0w_all = get_wall_time();
 
-    update_baseline = !isGitDirty();
+    in_dir = std::string(METRIS_ROOT_DIR) + "/bunit/regression/" + case_subdir + "/";
 
-    if(update_baseline) fmt::print("-- Clean git working tree, will update baseline.\n");
-    else                fmt::print("## Uncommitted changes: will not update baseline.\n");
-    
-    time_stamp = time2str();
-    
-    case_dir = METRIS_ROOT_DIR "/bunit/regression/" + case_subdir + "/";
-    out_dir  = case_dir + out_subdir + "/" + time_stamp + "/";
-    tmp_dir  = case_dir + out_subdir + "/tmp/";
-
+    // ctest runs cases in the build dir: a relative path would not mean
+    // what it does in the caller's shell.
+    std::string out_root = regGetEnv("METRIS_REG_OUT");
+    if(out_root.empty()) out_root = METRIS_REG_DEFAULT_OUT;
+    if(!std::filesystem::path(out_root).is_absolute())
+      throw std::runtime_error("METRIS_REG_OUT must be an absolute path: " + out_root);
+    out_root += "/";
+    result_fname = out_root + case_name + ".json";
+    out_dir = out_root + case_name + "/";
+    tmp_dir = out_dir + "tmp/";
+    // Results of an earlier run of this case must not mix with this one's.
+    std::filesystem::remove_all(out_dir);
+    std::filesystem::remove(result_fname);
     std::filesystem::create_directories(tmp_dir);
-    std::filesystem::create_directories(out_dir);
-    
-    fmt::print("-- Writing results to {}\n", out_dir);
 
-    json_current["metadata"]["time_stamp"] = time_stamp;
-    json_current["metadata"]["git_repo"] = "https://github.com/LucienRochery/Metris";
-    json_current["metadata"]["git_hash"] = METRIS_GIT_COMMIT_HASH;
-    json_current["runs"] = nlohmann::json::object();
+    std::string upd = regGetEnv("METRIS_UPDATE_BASELINE");
+    if(upd != "" && upd != "0" && upd != "1" && upd != "all")
+      throw std::runtime_error("METRIS_UPDATE_BASELINE must be 0, 1 or all, not " + upd);
+    update_baseline = (upd == "1" || upd == "all");
+    update_all      = (upd == "all");
+    std::string skt = regGetEnv("METRIS_REG_SKIP_TIME");
+    if(skt != "" && skt != "0" && skt != "1")
+      throw std::runtime_error("METRIS_REG_SKIP_TIME must be 0 or 1, not " + skt);
+    skip_time = (skt == "1");
 
-    fmt::print("-- Running on {} \n", hwid.to_string());
+    baseline_root = regGetEnv("METRIS_REG_BASELINE");
+    if(!baseline_root.empty() && !std::filesystem::path(baseline_root).is_absolute())
+      throw std::runtime_error("METRIS_REG_BASELINE must be an absolute path: " + baseline_root);
+    // Updating always compares first, against the directory it writes to.
+    if(baseline_root.empty() && update_baseline)
+      baseline_root = std::string(METRIS_ROOT_DIR) + "/bunit/regression/baselines";
 
+    json_current["schema"]     = REG_SCHEMA;
+    json_current["case"]       = case_name;
+    json_current["hwid"]       = hwid.to_string();
+    json_current["build_type"] = METRIS_BUILD_TYPE;
+    setGitInfo();
+    json_current["time_stamp"] = time2str();
+    json_current["runs"]       = nlohmann::json::object();
 
-    baseline_json_fname = metris_regression_dir + case_subdir + "/"
-                        + baseline_name_base + ".baseline.json";
-
-    fmt::print("-- Baseline file: {}\n", baseline_json_fname);
+    fmt::print("-- Case {} on {} ({}), commit {}{}\n", case_name, hwid.to_string(),
+               METRIS_BUILD_TYPE, json_current["commit"].get<std::string>(),
+               json_current["dirty"].get<bool>() ? " (dirty)" : "");
+    fmt::print("-- Results: {}\n", result_fname);
+    if(!counter.available())
+      fmt::print("-- Instruction counts not available (perf_event_open).\n");
   }
 
   std::string getMeshIn(const std::string &msh_base_name) const {
-    return case_dir + msh_base_name;
+    return in_dir + msh_base_name;
   }
   std::string getMetricIn(const std::string &met_base_name) const {
     if(met_base_name.empty()) return "";
-    return case_dir + met_base_name;
+    return in_dir + met_base_name;
   }
   std::string getCADIn(const std::string &CAD_base_name) const {
     if(CAD_base_name.empty()) return "";
-    return case_dir + CAD_base_name;
+    return in_dir + CAD_base_name;
   }
   std::string getOutDir() const {
     return out_dir;
   }
 
-  // Call this to run from files
-  // CAD_base_name and met_base_name can be ""
-  void runTest(MetrisParameters& param, 
+  // Run from files. CAD_base_name and met_base_name can be "".
+  void runTest(MetrisParameters& param,
                std::string test_name,
                std::string mesh_base_name,
                std::string CAD_base_name,
                std::string met_base_name){
-    
-    std::string outfile = out_dir + test_name;
-    
-    param.iverb = 2;
-    param.ivdepth = 1;
     param.setMeshIn(getMeshIn(mesh_base_name));
     if(!CAD_base_name.empty()) param.setCAD(getCADIn(CAD_base_name));
     if(!met_base_name.empty()) param.setMetricFile(getMetricIn(met_base_name));
-    param.outmPrefix = tmp_dir;
-    param.setLogFile(outfile + ".log");
-    param.setMeshOut(outfile);
-
-    MetrisRunner run(NULL, param);
-
-    runTest(test_name, run);
+    runGuarded(test_name, param, [&](){ return std::make_unique<MetrisRunner>(nullptr, param); });
   }
 
-  // Call this to run from existing MetrisAPI data
-  // (e.g. if some preprocessing was done)
-  // Example reg_2D_OAT15A_x2.cxx test reg_2D_OAT15A_x2_Q2toQ2
-  // Note we could also have passed a preprocessing function handle,
-  // but its type is likely to change with time, requiring more maintenance.
-  // This approach is more flexible, if a little more cumbersome. 
-  void runTest(MetrisParameters& param, 
+  // Run from existing MetrisAPI data (e.g. after some preprocessing).
+  // Example: reg_2D_OAT15A_x2.cxx, reg_2D_OAT15A_x2_Q2toQ2.
+  void runTest(MetrisParameters& param,
                std::string test_name,
                MetrisAPI *data_front,
                MetrisAPI *data_back,
                std::string CAD_base_name,
                std::string met_base_name){
-
-    param.iverb = 2;
-    param.ivdepth = 1;
-    std::string outfile = out_dir + test_name;
-    param.outmPrefix = tmp_dir;
-    param.setLogFile(outfile + ".log");
-    param.setMeshOut(outfile);
-
     if(!CAD_base_name.empty()) param.setCAD(getCADIn(CAD_base_name));
     // Don't set metric file when data_front already carries a metric: the
     // constructor promotes data_front to data_back when data_back is NULL,
@@ -308,257 +305,376 @@ public:
     };
     if(!met_base_name.empty() && !hasmet(data_front) && !hasmet(data_back))
       param.setMetricFile(getMetricIn(met_base_name));
+    runGuarded(test_name, param, [&](){
+      return std::make_unique<MetrisRunner>(data_front, data_back, param); });
+  }
 
-    MetrisRunner run(data_front, data_back, param);
-    runTest(test_name, run);
+  // Writes the result file, then compares against the baseline if asked and
+  // writes the baseline if asked. Call last in every case.
+  void finish(){
+    if(finished) return;
+    finished = true;
+
+    double t1_all = get_cpu_time(), t1w_all = get_wall_time();
+    fmt::print("\n========================================\n");
+    fmt::print("-- Case {} done: wall = {:.2f}s, cpu = {:.2f}s\n",
+               case_name, t1w_all - t0w_all, t1_all - t0_all);
+
+    writeResult();
+
+    for(auto& [name, run] : json_current["runs"].items()){
+      if(run["status"] != "ok"){
+        BOOST_ERROR("Run " << name << " raised an exception: "
+                    << run["error"].get<std::string>());
+      }
+    }
+
+    nlohmann::json json_baseline;
+    bool have_baseline = false;
+    std::string why;
+    if(!baseline_root.empty()){
+      std::string fname = baselineFile(baseline_root);
+      if(!std::filesystem::exists(fname)){
+        BOOST_ERROR("No baseline " << fname << " for hwid " << hwid.to_string()
+                    << ": nothing to compare against");
+      }else if(!readJSON(fname, json_baseline, why) || !validBaseline(json_baseline, why)){
+        BOOST_ERROR("Baseline " << fname << " is unreadable or malformed (" << why << ")");
+      }else{
+        have_baseline = true;
+        fmt::print("-- Comparing against baseline {}\n", fname);
+        compare(json_baseline);
+      }
+    }else{
+      fmt::print("-- METRIS_REG_BASELINE not set: results recorded, not compared.\n");
+    }
+
+    if(update_baseline) writeBaseline(have_baseline ? json_baseline : nlohmann::json());
+  }
+
+  ~RegressionTestManager(){
+    // Comparing here is not an option: a failed BOOST_REQUIRE throws, and
+    // throwing from a destructor terminates. Only make sure the results are
+    // on disk and flag the missing finish().
+    if(finished) return;
+    try{
+      writeResult();
+      if(!std::uncaught_exceptions())
+        BOOST_ERROR("RegressionTestManager::finish() was not called for case " << case_name);
+    }catch(...){}
   }
 
 private:
-  void runTest(std::string test_name,
-               MetrisRunner& run){
-
-    
-    fmt::print("\n========================================\n");
-    fmt::print("Running case {}\n",test_name);
-    
-    test_names.push_back(test_name);
-
-
-    double t1_case, t0_case = get_cpu_time();
-    double t1w_case,t0w_case = get_wall_time();
-  
-    std::string except_message;
-    nlohmann::json json_entry;
-    json_entry["params"] = *run.param;
-    try{
-      run.runMetris();
-      t1_case = get_cpu_time();
-      t1w_case = get_wall_time();
-      fmt::print("Total time: wall = {:.2f}s, user = {:.2f}s\n", t1w_case - t0w_case, t1_case - t0_case);
-      
-      MeshStat stat;
-      run.statMesh(0, &stat);
-      stat.print();
-      json_entry["result"] = stat;
-      json_entry["CPU_time"] = t1_case - t0_case;
-    }catch(const MetrisExcept& e){
-      except_message = e.what();
-      fmt::print(stderr,"## Test {} raised exception:\n{}\n", test_name, except_message);
-      json_entry["except"] = except_message;
-    }
- 
-    json_entry["logfile"]  = run.param->logFileName;
-    json_current["runs"][test_name] = json_entry;
-
-  }
-public:
-
-  ~RegressionTestManager(){
-
-    t1_all = get_cpu_time();
-    t1w_all = get_wall_time();
-
-    fmt::print("\n========================================\n");
-    fmt::print("-- All tests done.\n");
-    fmt::print("-- Total time: wall = {:.2f}s, user = {:.2f}s\n", t1w_all - t0w_all, t1_all - t0_all);
-    fmt::print("-- Results written to {}\n", out_dir);
-    fmt::print("\n========================================\n");
-
-    std::ofstream json_file(out_dir + "runs.json");
-    json_file << json_current.dump(2);  // Pretty print with 2-space indent
-
-    // Now look for the baseline json file and compare.
-
-    nlohmann::json json_baseline_allhwid;
-    if(std::filesystem::exists(baseline_json_fname)){
-      fmt::print("-- Baseline file {} found.\n",baseline_json_fname);
-      std::ifstream jfile(baseline_json_fname);
-      jfile >> json_baseline_allhwid;
-    }else if(update_baseline){
-      fmt::print("## No baseline file {} found, creating.\n",baseline_json_fname);   
-    }
-
-    // True both if file didn't exist before (empty object)
-    // or if it did but HWID didn't. 
-    if(!json_baseline_allhwid.contains(hwid.to_string())){
-      if(update_baseline){
-        fmt::print("-- Baseline doesn't contain data for HWID {}, initializing.\n", hwid.to_string());
-
-        json_baseline_allhwid[hwid.to_string()] = nlohmann::json::object();
-
-        initialize_baseline_hwid(test_names, hwid.to_string(), json_baseline_allhwid, json_current);
-
-        std::ofstream baseline_json_file(baseline_json_fname);
-        baseline_json_file << json_baseline_allhwid.dump(2);  // Pretty print with 2-space indent
-
-        // Initializing is not a free pass. initialize_baseline_hwid leaves out
-        // the runs that raised an exception, so without this a first run on a
-        // new machine reports success however many cases threw, and every run
-        // after it compares against their absence instead. This is how the
-        // refine convention cases went unnoticed for a year.
-        for(const std::string& test_name : test_names){
-          if(!json_current["runs"].contains(test_name)) continue;
-          if(!json_current["runs"][test_name].contains("except")) continue;
-          fmt::print(stderr,"## ERROR: test {} raised an exception, left out of the "
-                            "initialized baseline\n", test_name);
-          BOOST_TEST(false);
-        }
-      }else{
-        fmt::print("## Baseline doesn't exist or doesn't contain data for HWID, and should not be updated (uncommitted changes)\n");
-        BOOST_FAIL("No baseline data to compare against and dirty Git tree.");
-      }
+  void setGitInfo(){
+    bool ok;
+    std::string root = METRIS_ROOT_DIR;
+    std::string commit = regShell("git --no-optional-locks -C '" + root + "' rev-parse HEAD 2>/dev/null", ok);
+    if(ok && !commit.empty()){
+      std::string st = regShell("git --no-optional-locks -C '" + root + "' status --porcelain "
+                                "--untracked-files=no 2>/dev/null", ok);
+      json_current["commit"] = commit;
+      // Unknown status counts as dirty: such a run is never logged as clean.
+      json_current["dirty"]  = !ok || !st.empty();
       return;
     }
-    
+    // No git (e.g. CI container checkout without .git).
+    std::string sha = regGetEnv("GITHUB_SHA");
+    json_current["commit"] = !sha.empty() ? sha : std::string(METRIS_GIT_COMMIT_HASH);
+    json_current["dirty"]  = sha.empty();
+  }
 
-    bool updates_done = false;
-    nlohmann::json& json_baseline = json_baseline_allhwid[hwid.to_string()];
-    for(const std::string& test_name : test_names){
+  void setOutputs(MetrisParameters& param, const std::string& test_name){
+    std::string outfile = out_dir + test_name;
+    param.iverb = 2;
+    param.ivdepth = 1;
+    param.outmPrefix = tmp_dir;
+    param.setLogFile(outfile + ".log");
+    param.setMeshOut(outfile);
+  }
+
+  // Non-default parameters, file names reduced to their base name.
+  static nlohmann::json paramsNonDefault(const MetrisParameters& param){
+    nlohmann::json cur = param;
+    MetrisParameters defparam;
+    nlohmann::json def = defparam;
+    nlohmann::json out = nlohmann::json::object();
+    for(auto& [key, val] : cur.items()){
+      if(regParamIgnored(key)) continue;
+      nlohmann::json v = val;
+      if(v.is_string()){
+        std::string s = v.get<std::string>();
+        v = s.substr(s.find_last_of("/\\") + 1);
+      }
+      if(def.contains(key) && def[key] == val) continue;
+      out[key] = v;
+    }
+    return out;
+  }
+
+  template<typename MAKE_RUNNER>
+  void runGuarded(const std::string& test_name, MetrisParameters& param, MAKE_RUNNER make_runner){
+    fmt::print("\n========================================\n");
+    fmt::print("Running {}/{}\n", case_name, test_name);
+
+    if(json_current["runs"].contains(test_name)){
+      // Running it would overwrite the first run's log, mesh and entry.
+      BOOST_ERROR("Run name " << test_name << " used twice in case " << case_name << ": skipped");
+      return;
+    }
+
+    nlohmann::json entry;
+    entry["status"]            = "ok";
+    entry["error"]             = nullptr;
+    entry["cpu_s"]             = nullptr;
+    entry["wall_s"]            = nullptr;
+    entry["instructions"]      = nullptr;
+    entry["params_nondefault"] = nullptr;
+    entry["stats"]             = nullptr;
+
+    // Everything that can throw is inside: a run that cannot even be set up
+    // is recorded as an exception, and the case goes on with the next run.
+    try{
+      setOutputs(param, test_name);
+      entry["params_nondefault"] = paramsNonDefault(param);
+      double t0 = get_cpu_time(), t0w = get_wall_time();
+      counter.start();
+      auto run = make_runner();
+      run->runMetris();
+      long long ninstr = counter.stop();
+      double t1 = get_cpu_time(), t1w = get_wall_time();
+      fmt::print("Total time: wall = {:.2f}s, cpu = {:.2f}s\n", t1w - t0w, t1 - t0);
+      entry["cpu_s"]  = t1 - t0;
+      entry["wall_s"] = t1w - t0w;
+      if(ninstr >= 0) entry["instructions"] = ninstr;
+      MeshStat stat;
+      run->statMesh(0, &stat);
+      stat.print();
+      entry["stats"] = stat;
+    }catch(const std::exception& e){
+      counter.stop();
+      entry["status"] = "exception";
+      entry["error"]  = std::string(e.what());
+      fmt::print(stderr, "## Run {} raised exception:\n{}\n", test_name, e.what());
+    }
+    json_current["runs"][test_name] = entry;
+  }
+
+  // Serializes first, then writes a temporary file and renames it, so a
+  // failure never leaves a truncated or empty file behind. Invalid UTF-8
+  // (e.g. in an exception message) is replaced rather than thrown on.
+  static void writeJSONFile(const std::string& fname, const nlohmann::json& jj){
+    std::string text = jj.dump(2, ' ', false, nlohmann::json::error_handler_t::replace) + "\n";
+    std::string tmp = fname + ".tmp";
+    try{
+      std::ofstream ff(tmp);
+      ff << text;
+      ff.close();
+      if(!ff) throw std::runtime_error("Could not write " + tmp);
+      std::filesystem::rename(tmp, fname);
+    }catch(...){
+      std::error_code ec;
+      std::filesystem::remove(tmp, ec);
+      throw;
+    }
+  }
+
+  void writeResult() const {
+    writeJSONFile(result_fname, json_current);
+    fmt::print("-- Results written to {}\n", result_fname);
+  }
+
+  // Structure checks before any field is read: nlohmann's const operator[]
+  // on a missing key is undefined behaviour in Release.
+  bool validBaseline(const nlohmann::json& jj, std::string& why) const {
+    why.clear();
+    if(!jj.is_object())                                   why = "not an object";
+    else if(!jj.contains("schema") || jj["schema"] != REG_SCHEMA)
+      why = "schema is not " + std::to_string(REG_SCHEMA);
+    else if(!jj.contains("case") || jj["case"] != case_name) why = "case is not " + case_name;
+    else if(!jj.contains("hwid") || jj["hwid"] != hwid.to_string())
+      why = "hwid is not " + hwid.to_string();
+    else if(!jj.contains("runs") || !jj["runs"].is_object()) why = "no runs object";
+    else for(auto& [name, run] : jj["runs"].items()){
+      if(!run.is_object() || !run.contains("status") || !run["status"].is_string()){
+        why = "run " + name + ": no status"; break;
+      }
+      if(run["status"] != "ok") continue;
+      if(!run.contains("params_nondefault") || !run["params_nondefault"].is_object()
+      || !run.contains("stats") || !run["stats"].is_object()){
+        why = "run " + name + ": no params_nondefault or stats object"; break;
+      }
+      for(auto& [key, v] : run["stats"].items()){
+        if(!v.is_number() && !v.is_null()){ why = "run " + name + ": stat " + key + " not a number"; break; }
+      }
+      if(!why.empty()) break;
+      if(run.contains("cpu_s_samples")){
+        bool okk = run["cpu_s_samples"].is_array();
+        if(okk) for(auto& t : run["cpu_s_samples"]) okk = okk && t.is_number();
+        if(!okk){ why = "run " + name + ": cpu_s_samples not an array of numbers"; break; }
+      }
+    }
+    return why.empty();
+  }
+
+  std::string baselineFile(const std::string& root) const {
+    return root + "/" + hwid.to_string() + "/" + case_name + ".json";
+  }
+
+  static bool readJSON(const std::string& fname, nlohmann::json& jj, std::string& why){
+    try{
+      std::ifstream ff(fname);
+      if(!ff){ why = "cannot open"; return false; }
+      ff >> jj;
+      return true;
+    }catch(const std::exception& e){
+      why = e.what();
+      return false;
+    }
+  }
+
+  // Compares runs against the baseline; records which runs passed in run_passed.
+  void compare(const nlohmann::json& json_baseline){
+    // Structure already checked by validBaseline.
+    const nlohmann::json& base_runs = json_baseline["runs"];
+
+    for(auto& [name, base] : base_runs.items()){
+      if(!json_current["runs"].contains(name)){
+        BOOST_ERROR("Run " << name << " is in the baseline but was not run");
+      }
+    }
+
+    for(auto& [name, cur] : json_current["runs"].items()){
       fmt::print("========================================\n");
-      fmt::print("Comparing case {}\n",test_name);
+      fmt::print("Comparing {}\n", name);
+      run_passed[name] = false;
+      if(cur["status"] != "ok") continue; // already reported
+      if(!base_runs.contains(name)){
+        fmt::print("-- {} not in the baseline (new run): not compared.\n", name);
+        run_passed[name] = true;
+        continue;
+      }
+      const nlohmann::json& base = base_runs[name];
+      if(base["status"] != "ok"){
+        // Only possible in a hand-made baseline: this code never stores one.
+        fmt::print("-- {} threw in the baseline, runs now: not compared.\n", name);
+        run_passed[name] = true;
+        continue;
+      }
+      bool pass = true;
 
-      if(!json_baseline["runs"].contains(test_name)){
-        bool current_has_except = json_current["runs"].contains(test_name) &&
-                                   json_current["runs"][test_name].contains("except");
-        if(current_has_except){
-          // Test crashed and was previously excluded from baseline. Soft failure.
-          fmt::print(stderr, "## ERROR: Baseline missing test {} (exception raised)\n", test_name);
-          BOOST_TEST(false);
+      if(base["params_nondefault"] != cur["params_nondefault"]){
+        fmt::print(stderr, "## {}: non-default parameters differ from baseline\n"
+                           "   baseline {}\n   current  {}\n", name,
+                   base["params_nondefault"].dump(), cur["params_nondefault"].dump());
+        BOOST_ERROR("Run " << name << ": parameters differ from baseline");
+        params_changed.insert(name);
+        continue;
+      }
+
+      for(auto& [key, bval] : base["stats"].items()){
+        double tol;
+        int sign;
+        if(!regStatChecked(key, tol, sign)) continue;
+        if(!cur["stats"].contains(key)){
+          BOOST_ERROR("Run " << name << ": stat " << key << " missing");
+          pass = false;
           continue;
-        } else if(update_baseline && json_current["runs"].contains(test_name)){
-          // Test was previously excluded (crashed), now passes. Add to baseline.
-          fmt::print("-- Test {} not in baseline, adding from current run.\n", test_name);
-          nlohmann::json new_entry = json_current["runs"][test_name];
-          double cpu_time = new_entry["CPU_time"];
-          new_entry.erase("CPU_time");
-          new_entry["CPU_times"] = nlohmann::json::array();
-          new_entry["CPU_times"].push_back(cpu_time);
-          new_entry["metadata"] = json_current["metadata"];
-          json_baseline["runs"][test_name] = new_entry;
-          updates_done = true;
-          fmt::print("-- Test {} added to baseline.\n", test_name);
+        }
+        if(!bval.is_number()){
+          // NaN in the baseline (written as null): nothing to compare against.
+          fmt::print(" - {}: baseline {} is not a number, not compared\n", name, key);
           continue;
-        } else {
-          fmt::print(stderr, "## ERROR: Baseline missing test {}\n", test_name);
+        }
+        double b = bval, c = cur["stats"][key];
+        if(!std::isfinite(c)){
+          fmt::print(stderr, " - {}: {} is {}\n", name, key, c);
+          BOOST_ERROR("Run " << name << ": " << key << " is not finite");
+          pass = false;
+          continue;
+        }
+        if(sign*(c - b) < -tol){
+          fmt::print(stderr, " - {}: {} worse: baseline {:.4g}, current {:.4g} (tol {})\n",
+                     name, key, b, c, tol);
+          BOOST_ERROR("Run " << name << ": " << key << " " << c
+                      << " worse than baseline " << b);
+          pass = false;
         }
       }
-      BOOST_REQUIRE(json_baseline["runs"].contains(test_name));
-      if(!json_current["runs"].contains(test_name)){
-        fmt::print(stderr, "## ERROR: Current missing test {}\n", test_name);
-      }
-      BOOST_REQUIRE(json_current["runs"].contains(test_name));
 
-      bool test_passes = true;
-
-      nlohmann::json& json_baseline_run = json_baseline["runs"][test_name];
-      nlohmann::json& json_current_run  = json_current["runs"][test_name];
-
-      BOOST_REQUIRE(!json_baseline_run.contains("except"));
-
-      BOOST_TEST(!json_current_run.contains("except"));
-      if(json_current_run.contains("except")){
-        std::string except_message = json_current_run["except"];
-        fmt::print("Test {} raised exception:\n{}\nSkipping comparison.\n", 
-                    test_name, except_message);
-        continue;
+      if(!skip_time && base.contains("cpu_s_samples") && !base["cpu_s_samples"].empty()){
+        double bound = regCPUBound(base["cpu_s_samples"]);
+        double tt = cur["cpu_s"];
+        if(tt > bound){
+          fmt::print(stderr, " - {}: CPU time {:.2f}s > {:.2f}s baseline bound\n", name, tt, bound);
+          BOOST_ERROR("Run " << name << ": CPU time " << tt
+                      << " s over the baseline bound " << bound << " s");
+          pass = false;
+        }else{
+          fmt::print("-- {}: CPU time {:.2f}s <= {:.2f}s baseline bound\n", name, tt, bound);
+        }
       }
 
-      // An error that can innocently occur if the baseline name 
-      // matches another test suite's, e.g. OAT15A_x2 vs OAT15A_x0.5
-      // if one is built by copy-pasting another and modifying...
-      MetrisParameters baseline_param = json_baseline_run["params"];
-      MetrisParameters current_param  = json_current_run["params"];
-      //fmt::print(stderr, "## WARNING DISABLED CHECK FOR PARAM\n");
-      if(!(baseline_param == current_param)){
-        fmt::print(stderr,"## ERROR: Parameters for test {} differ from baseline\n",test_name);
-        baseline_param.printDifference(current_param,"baseline");
-      }
-      BOOST_REQUIRE(baseline_param == current_param);
-
-      MeshStat baseline_stat = json_baseline_run["result"];
-      MeshStat current_stat = json_current_run["result"];
-
-      bolAr1 iclose_pctunit, iclose_avgquaP1, iclose_avgquaPk;
-      bool icloseStat = isCloseMeshStat(baseline_stat, current_stat,
-          iclose_pctunit, iclose_avgquaP1, iclose_avgquaPk);
-
-      if(!icloseStat){
-        fmt::print(stderr, "Mesh stats diverge for test {}:\n",test_name);
-        printUnmatchedMeshStat(baseline_stat, current_stat, 
-                               iclose_pctunit, iclose_avgquaP1, iclose_avgquaPk);
-        baseline_stat.print("baseline",stderr);
-        current_stat.print("current",stderr);
-        test_passes = false;
-      }
-      BOOST_CHECK_MESSAGE(icloseStat, "MeshStat for test " << test_name << " differ from baseline");
-      if(icloseStat)
-        fmt::print("Current test statistics better or equal as baseline\n");
-
-      double baseline_time = get_baseline_CPU(json_baseline_run);
-      double current_time  = json_current_run["CPU_time"];
-      bool iclose_time = current_time <= baseline_time;
-      BOOST_CHECK_MESSAGE(iclose_time, 
-                          "CPU time for test " << test_name << " increased > 1.2x, from " 
-                          << baseline_time << " s to " << current_time << " s");
-      if(iclose_time)
-        fmt::print("Current test time {:.2f}s <= {:.2f}s baseline bound\n", current_time, baseline_time);
-      else{
-        fmt::print(stderr, "CPU time {:.2f}s > {:.2f}s baseline bound\n", baseline_time, current_time);
-        test_passes = false;
-      }
-
-      if(!test_passes) fmt::print(stderr, "## Test {} failed.\n",test_name);
-      else             fmt::print("-- Test {} passed.\n",test_name);
-
-      if(!test_passes || !update_baseline) continue;
-
-      updates_done = true;
-
-      fmt::print("-- Updating baseline for test {}\n",test_name);
-
-      // Update the baseline CPU and stats
-      json_baseline_run["CPU_times"].push_back(current_time);
-      // Update stat and metadata if this case improved.
-      int tdim = current_stat.pctunit.get_n();
-      if(tdim != baseline_stat.pctunit.get_n()){
-        fmt::print(stderr,"## ERROR in updating baseline, inconsistent tdim\n");
-        baseline_stat.print("baseline",stderr);
-        current_stat.print("current",stderr);
-        continue;
-      }
-      if(current_stat.pctunit[tdim-1] > baseline_stat.pctunit[tdim-1]){
-        json_baseline_run["result"] = current_stat;
-        // metadata is stored per run on the baseline, as each case 
-        // might be updated at a different time.
-        json_baseline_run["metadata"] = json_current["metadata"]; 
-      }
+      run_passed[name] = pass;
+      fmt::print("-- {} {}\n", name, pass ? "passed" : "FAILED");
     }
-
-    if(updates_done){
-      fmt::print("-- Updates done, overwriting baseline file {}\n",baseline_json_fname);
-      std::fstream jfile(baseline_json_fname);
-      jfile << json_baseline_allhwid.dump(2);
-    }
-
   }
-  
-public:
-// Provided
-  std::string case_dir, out_dir, tmp_dir, baseline_json_fname;
 
-// Internal
+  void writeBaseline(nlohmann::json json_baseline){
+    std::string fname = baselineFile(baseline_root);
+    std::string why;
+    if(!validBaseline(json_baseline, why)){
+      json_baseline = nlohmann::json::object();
+      json_baseline["runs"] = nlohmann::json::object();
+    }
+    nlohmann::json runs = json_baseline["runs"];
+    json_baseline = json_current;
+    json_baseline.erase("time_stamp");
+    json_baseline["runs"] = nlohmann::json::object();
+
+    for(auto& [name, cur] : json_current["runs"].items()){
+      bool has_old = runs.contains(name);
+      bool passed  = !run_passed.count(name) || run_passed[name];
+      // Changed parameters mean the case itself was changed: take the new run.
+      bool replace = passed || update_all || params_changed.count(name);
+      if(cur["status"] != "ok" || (has_old && !replace)){
+        if(has_old) json_baseline["runs"][name] = runs[name];
+        fmt::print("-- Baseline for {} {}\n", name, has_old ? "kept" : "not written");
+        continue;
+      }
+      nlohmann::json samples = nlohmann::json::array();
+      // Samples only carry over while the parameters are the same, and not
+      // for a failed run forced in with =all (it may have failed on time).
+      if(has_old && passed && runs[name].contains("cpu_s_samples")
+         && runs[name]["params_nondefault"] == cur["params_nondefault"])
+        samples = runs[name]["cpu_s_samples"];
+      samples.push_back(cur["cpu_s"]);
+      while((int)samples.size() > REG_MAX_CPU_SAMPLES) samples.erase(samples.begin());
+      nlohmann::json entry = cur;
+      entry["cpu_s_samples"] = samples;
+      entry["commit"] = json_current["commit"];
+      json_baseline["runs"][name] = entry;
+      fmt::print("-- Baseline for {} updated\n", name);
+    }
+    // Runs that are in the old baseline but no longer run are dropped.
+
+    std::filesystem::create_directories(std::filesystem::path(fname).parent_path());
+    writeJSONFile(fname, json_baseline);
+    fmt::print("-- Baseline written to {}\n", fname);
+  }
+
+public:
+  std::string case_name, in_dir, out_dir, tmp_dir, result_fname, baseline_root;
+
+private:
   HardwareID hwid;
-  // Timings (process and wall) for full lifetime
-  double t0_all, t0w_all, t1_all, t1w_all;
-  bool update_baseline;
-  std::string time_stamp;
-  std::vector<std::string> test_names;
+  RegInstructionCounter counter;
+  double t0_all, t0w_all;
+  bool update_baseline, update_all, skip_time;
+  bool finished = false;
   nlohmann::json json_current;
+  std::map<std::string, bool> run_passed;
+  std::set<std::string> params_changed;
 };
 
 } // namespace Metris
 
 #endif
-
-
-

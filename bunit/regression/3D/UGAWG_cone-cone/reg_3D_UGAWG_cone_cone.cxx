@@ -14,7 +14,7 @@ using namespace Metris;
 BOOST_AUTO_TEST_CASE(reg_3D_UGAWG_cone_cone_uniform)
 {
 
-  RegressionTestManager manager("3D/UGAWG_cone-cone", "reg_uniform", "3D_cone_cone_uniform");
+  RegressionTestManager manager("3D/UGAWG_cone-cone");
 
   int ianamet = 6;
   std::string metname = "uniform";
@@ -45,5 +45,5 @@ BOOST_AUTO_TEST_CASE(reg_3D_UGAWG_cone_cone_uniform)
     }
   }
 
-
+  manager.finish();
 }

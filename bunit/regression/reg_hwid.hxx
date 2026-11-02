@@ -80,8 +80,13 @@ struct HardwareID {
   }
   
   std::string to_string() const {
+    // Used as a directory name: empty means unset, '/' is replaced.
     const char* ci_hwid = std::getenv("METRIS_CI_HWID");
-    if(ci_hwid) return std::string(ci_hwid);
+    if(ci_hwid && *ci_hwid){
+      std::string hw(ci_hwid);
+      std::replace(hw.begin(), hw.end(), '/', '_');
+      return hw;
+    }
     return fmt::format("{}_{}_{}c_{}",
                        cpu_model, cpu_architecture, num_cores, os_name);
   }
