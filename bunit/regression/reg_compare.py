@@ -11,7 +11,9 @@ per (case, run, metric) and a verdict: better, same, worse, new, missing,
 failed, fixed, params. A new run that throws is "failed".
 
 Correctness (quality stats, run status, parameters) is one-sided: improvements
-pass. Same tolerances as reg_common.hxx. Performance rows (--perf: cpu_s,
+pass. Same tolerances and stat rules as reg_common.hxx. It judges head against
+base only: a run that throws in both is "same" (ctest fails it on its own), a
+case new in head is "new", and CPU time is never part of the exit code. Performance rows (--perf: cpu_s,
 instructions) are reported, never part of the exit code.
 
 Exit: 0 no correctness got worse, 1 correctness got worse, 2 bad input
@@ -120,6 +122,19 @@ def set_info(cases):
             "dirty": any(c.get("dirty") for c in cases.values())}
 
 
+def canon(v):
+    """Comparable form of a JSON value with nlohmann::json's equality."""
+    if isinstance(v, bool):
+        return ("bool", v)
+    if isinstance(v, (int, float)):
+        return ("num", float(v))
+    if isinstance(v, dict):
+        return ("obj", tuple(sorted((k, canon(x)) for k, x in v.items())))
+    if isinstance(v, list):
+        return ("arr", tuple(canon(x) for x in v))
+    return ("other", v)
+
+
 def compare(base, head, perf):
     rows = []
 
@@ -155,9 +170,10 @@ def compare(base, head, perf):
                 row(case, run, "status", b["status"], h["status"], verdict)
                 continue
             bp, hp = b["params_nondefault"], h["params_nondefault"]
-            # Typed comparison, as nlohmann::json's (true != 1 there, not in Python).
+            # As nlohmann::json's ==: numbers compare by value whatever their
+            # type (20 == 20.0), but a bool is never equal to a number.
             def same(x, y):
-                return json.dumps(x, sort_keys=True) == json.dumps(y, sort_keys=True)
+                return canon(x) == canon(y)
             if not same(bp, hp):
                 diff = sorted(k for k in set(bp) | set(hp) if k not in bp or k not in hp or not same(bp[k], hp[k]))
                 row(case, run, "params", {k: bp.get(k) for k in diff},
@@ -171,8 +187,10 @@ def compare(base, head, perf):
                 tol, sign = check
                 bv, hv = bstats[key], hstats.get(key)
                 # null = NaN on the C++ side (e.g. % unit edges with no edges).
-                if hv is None:
-                    verdict = "same" if bv is None and key in hstats else "missing"
+                if key not in hstats:
+                    verdict = "missing"
+                elif hv is None:
+                    verdict = "same" if bv is None else "worse"
                 elif bv is None:
                     verdict = "new"
                 else:
