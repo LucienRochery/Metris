@@ -14,23 +14,29 @@
 // <out>/<case>/, where <out> is $METRIS_REG_OUT, else <build>/regression/out.
 //
 // Environment:
-//  - METRIS_REG_OUT=<dir>        where results go (see above).
+//  - METRIS_REG_OUT=<dir>        where results go (see above). Absolute path.
 //  - METRIS_REG_BASELINE=<dir>   compare against <dir>/<hwid>/<case>.json.
-//                                Unset: record only, the case fails only if a
-//                                run throws. Set and no baseline for this
-//                                hwid/case: the case fails.
-//  - METRIS_UPDATE_BASELINE=1    write the baseline: runs that pass, are new or
-//                                whose parameters changed replace theirs; runs
-//                                that fail or throw keep the old one.
-//                                Into $METRIS_REG_BASELINE, else into
-//                                bunit/regression/baselines.
-//    METRIS_UPDATE_BASELINE=all  same, but failed runs are replaced too.
+//                                Absolute path. Unset: record only, the case
+//                                fails only if a run throws. Set and no
+//                                baseline for this hwid/case: the case fails.
+//  - METRIS_UPDATE_BASELINE=1    compare, then write the baseline: runs that
+//                                pass, are new or whose parameters changed
+//                                replace theirs; runs that fail or throw keep
+//                                the old one. In $METRIS_REG_BASELINE, else in
+//                                bunit/regression/baselines (compared against
+//                                as if METRIS_REG_BASELINE named it).
+//    METRIS_UPDATE_BASELINE=all  same, but failed runs are replaced too, CPU
+//                                samples restarted.
+//    Unset, empty or 0: no write. Any other value is an error.
 //  - METRIS_REG_SKIP_TIME=1      no CPU time check (CPU time still recorded).
-//  - METRIS_CI_HWID=<name>       overrides the hardware ID.
+//                                Unset, empty or 0: checked. Other: error.
+//  - METRIS_CI_HWID=<name>       overrides the hardware ID (empty: ignored).
 //
 // Comparison (one-sided: improvements pass) happens in finish(), which every
-// case must call last. The same rules are in reg_compare.py, used by tools
-// that compare two result sets; keep the tolerances in sync.
+// case must call last. reg_compare.py compares two result sets (base, head)
+// with the same stat rules and tolerances; keep them in sync. It differs where
+// it must: it judges head against base only, so a run that throws in both or
+// a case new in head is not "worse" there, and it never fails on CPU time.
 
 #include "../common_setup.hxx"
 #include "reg_hwid.hxx"
@@ -43,6 +49,7 @@
 #include <vector>
 #include <cstdlib>
 #include <cstdio>
+#include <algorithm>
 #include <cmath>
 #include <exception>
 #include <map>
@@ -161,10 +168,12 @@ inline double regCPUBound(const nlohmann::json& samples){
   avg /= n;
   // Fewer than 5 samples: 1.4x the average.
   if(n < 5) return 1.4*avg;
-  // Otherwise 2.5 sigma, a little under 99% if normally distributed.
+  // Otherwise 2.5 sigma, a little under 99% if normally distributed. CPU
+  // times are skewed and samples often close together, so never under 1.2x
+  // the average, and 0.05 s of slack for very short runs.
   double var = 0.0;
   for(double t : samples) var += (t - avg)*(t - avg);
-  return avg + 2.5*std::sqrt(var/n);
+  return std::max(avg + 2.5*std::sqrt(var/n), 1.2*avg) + 0.05;
 }
 
 
@@ -201,8 +210,12 @@ public:
 
     in_dir = std::string(METRIS_ROOT_DIR) + "/bunit/regression/" + case_subdir + "/";
 
+    // ctest runs cases in the build dir: a relative path would not mean
+    // what it does in the caller's shell.
     std::string out_root = regGetEnv("METRIS_REG_OUT");
     if(out_root.empty()) out_root = METRIS_REG_DEFAULT_OUT;
+    if(!std::filesystem::path(out_root).is_absolute())
+      throw std::runtime_error("METRIS_REG_OUT must be an absolute path: " + out_root);
     out_root += "/";
     result_fname = out_root + case_name + ".json";
     out_dir = out_root + case_name + "/";
@@ -212,12 +225,22 @@ public:
     std::filesystem::remove(result_fname);
     std::filesystem::create_directories(tmp_dir);
 
-    baseline_root = regGetEnv("METRIS_REG_BASELINE");
     std::string upd = regGetEnv("METRIS_UPDATE_BASELINE");
-    update_baseline = !upd.empty() && upd != "0";
+    if(upd != "" && upd != "0" && upd != "1" && upd != "all")
+      throw std::runtime_error("METRIS_UPDATE_BASELINE must be 0, 1 or all, not " + upd);
+    update_baseline = (upd == "1" || upd == "all");
     update_all      = (upd == "all");
-    skip_time       = !regGetEnv("METRIS_REG_SKIP_TIME").empty()
-                   &&  regGetEnv("METRIS_REG_SKIP_TIME") != "0";
+    std::string skt = regGetEnv("METRIS_REG_SKIP_TIME");
+    if(skt != "" && skt != "0" && skt != "1")
+      throw std::runtime_error("METRIS_REG_SKIP_TIME must be 0 or 1, not " + skt);
+    skip_time = (skt == "1");
+
+    baseline_root = regGetEnv("METRIS_REG_BASELINE");
+    if(!baseline_root.empty() && !std::filesystem::path(baseline_root).is_absolute())
+      throw std::runtime_error("METRIS_REG_BASELINE must be an absolute path: " + baseline_root);
+    // Updating always compares first, against the directory it writes to.
+    if(baseline_root.empty() && update_baseline)
+      baseline_root = std::string(METRIS_ROOT_DIR) + "/bunit/regression/baselines";
 
     json_current["schema"]     = REG_SCHEMA;
     json_current["case"]       = case_name;
@@ -259,7 +282,6 @@ public:
     param.setMeshIn(getMeshIn(mesh_base_name));
     if(!CAD_base_name.empty()) param.setCAD(getCADIn(CAD_base_name));
     if(!met_base_name.empty()) param.setMetricFile(getMetricIn(met_base_name));
-    setOutputs(param, test_name);
     runGuarded(test_name, param, [&](){ return std::make_unique<MetrisRunner>(nullptr, param); });
   }
 
@@ -283,7 +305,6 @@ public:
     };
     if(!met_base_name.empty() && !hasmet(data_front) && !hasmet(data_back))
       param.setMetricFile(getMetricIn(met_base_name));
-    setOutputs(param, test_name);
     runGuarded(test_name, param, [&](){
       return std::make_unique<MetrisRunner>(data_front, data_back, param); });
   }
@@ -313,27 +334,18 @@ public:
     std::string why;
     if(!baseline_root.empty()){
       std::string fname = baselineFile(baseline_root);
-      have_baseline = readJSON(fname, json_baseline);
-      if(have_baseline && !validBaseline(json_baseline, why)){
-        BOOST_ERROR("Baseline " << fname << " is malformed (" << why << ")");
-        have_baseline = false;
-      }else if(have_baseline){
-        fmt::print("-- Comparing against baseline {}\n", fname);
-        compare(json_baseline);
-      }else{
+      if(!std::filesystem::exists(fname)){
         BOOST_ERROR("No baseline " << fname << " for hwid " << hwid.to_string()
                     << ": nothing to compare against");
+      }else if(!readJSON(fname, json_baseline, why) || !validBaseline(json_baseline, why)){
+        BOOST_ERROR("Baseline " << fname << " is unreadable or malformed (" << why << ")");
+      }else{
+        have_baseline = true;
+        fmt::print("-- Comparing against baseline {}\n", fname);
+        compare(json_baseline);
       }
     }else{
       fmt::print("-- METRIS_REG_BASELINE not set: results recorded, not compared.\n");
-      // Updating without comparing: still start from the existing baseline,
-      // so CPU samples and the runs that threw this time are kept.
-      if(update_baseline){
-        std::string fname = baselineFile(baselineWriteRoot());
-        have_baseline = readJSON(fname, json_baseline) && validBaseline(json_baseline, why);
-        if(!have_baseline && std::filesystem::exists(fname))
-          fmt::print(stderr, "## Existing baseline {} unreadable ({}): replaced\n", fname, why);
-      }
     }
 
     if(update_baseline) writeBaseline(have_baseline ? json_baseline : nlohmann::json());
@@ -404,7 +416,9 @@ private:
     fmt::print("Running {}/{}\n", case_name, test_name);
 
     if(json_current["runs"].contains(test_name)){
-      BOOST_ERROR("Run name " << test_name << " used twice in case " << case_name);
+      // Running it would overwrite the first run's log, mesh and entry.
+      BOOST_ERROR("Run name " << test_name << " used twice in case " << case_name << ": skipped");
+      return;
     }
 
     nlohmann::json entry;
@@ -413,12 +427,16 @@ private:
     entry["cpu_s"]             = nullptr;
     entry["wall_s"]            = nullptr;
     entry["instructions"]      = nullptr;
-    entry["params_nondefault"] = paramsNonDefault(param);
+    entry["params_nondefault"] = nullptr;
     entry["stats"]             = nullptr;
 
-    double t0 = get_cpu_time(), t0w = get_wall_time();
-    counter.start();
+    // Everything that can throw is inside: a run that cannot even be set up
+    // is recorded as an exception, and the case goes on with the next run.
     try{
+      setOutputs(param, test_name);
+      entry["params_nondefault"] = paramsNonDefault(param);
+      double t0 = get_cpu_time(), t0w = get_wall_time();
+      counter.start();
       auto run = make_runner();
       run->runMetris();
       long long ninstr = counter.stop();
@@ -446,12 +464,17 @@ private:
   static void writeJSONFile(const std::string& fname, const nlohmann::json& jj){
     std::string text = jj.dump(2, ' ', false, nlohmann::json::error_handler_t::replace) + "\n";
     std::string tmp = fname + ".tmp";
-    {
+    try{
       std::ofstream ff(tmp);
       ff << text;
+      ff.close();
       if(!ff) throw std::runtime_error("Could not write " + tmp);
+      std::filesystem::rename(tmp, fname);
+    }catch(...){
+      std::error_code ec;
+      std::filesystem::remove(tmp, ec);
+      throw;
     }
-    std::filesystem::rename(tmp, fname);
   }
 
   void writeResult() const {
@@ -459,19 +482,16 @@ private:
     fmt::print("-- Results written to {}\n", result_fname);
   }
 
-  std::string baselineWriteRoot() const {
-    return baseline_root.empty()
-         ? std::string(METRIS_ROOT_DIR) + "/bunit/regression/baselines"
-         : baseline_root;
-  }
-
   // Structure checks before any field is read: nlohmann's const operator[]
   // on a missing key is undefined behaviour in Release.
-  static bool validBaseline(const nlohmann::json& jj, std::string& why){
+  bool validBaseline(const nlohmann::json& jj, std::string& why) const {
     why.clear();
     if(!jj.is_object())                                   why = "not an object";
     else if(!jj.contains("schema") || jj["schema"] != REG_SCHEMA)
       why = "schema is not " + std::to_string(REG_SCHEMA);
+    else if(!jj.contains("case") || jj["case"] != case_name) why = "case is not " + case_name;
+    else if(!jj.contains("hwid") || jj["hwid"] != hwid.to_string())
+      why = "hwid is not " + hwid.to_string();
     else if(!jj.contains("runs") || !jj["runs"].is_object()) why = "no runs object";
     else for(auto& [name, run] : jj["runs"].items()){
       if(!run.is_object() || !run.contains("status") || !run["status"].is_string()){
@@ -482,6 +502,10 @@ private:
       || !run.contains("stats") || !run["stats"].is_object()){
         why = "run " + name + ": no params_nondefault or stats object"; break;
       }
+      for(auto& [key, v] : run["stats"].items()){
+        if(!v.is_number() && !v.is_null()){ why = "run " + name + ": stat " + key + " not a number"; break; }
+      }
+      if(!why.empty()) break;
       if(run.contains("cpu_s_samples")){
         bool okk = run["cpu_s_samples"].is_array();
         if(okk) for(auto& t : run["cpu_s_samples"]) okk = okk && t.is_number();
@@ -495,14 +519,14 @@ private:
     return root + "/" + hwid.to_string() + "/" + case_name + ".json";
   }
 
-  static bool readJSON(const std::string& fname, nlohmann::json& jj){
-    if(!std::filesystem::exists(fname)) return false;
+  static bool readJSON(const std::string& fname, nlohmann::json& jj, std::string& why){
     try{
       std::ifstream ff(fname);
+      if(!ff){ why = "cannot open"; return false; }
       ff >> jj;
       return true;
     }catch(const std::exception& e){
-      fmt::print(stderr, "## Could not read {}: {}\n", fname, e.what());
+      why = e.what();
       return false;
     }
   }
@@ -529,6 +553,12 @@ private:
         continue;
       }
       const nlohmann::json& base = base_runs[name];
+      if(base["status"] != "ok"){
+        // Only possible in a hand-made baseline: this code never stores one.
+        fmt::print("-- {} threw in the baseline, runs now: not compared.\n", name);
+        run_passed[name] = true;
+        continue;
+      }
       bool pass = true;
 
       if(base["params_nondefault"] != cur["params_nondefault"]){
@@ -589,7 +619,7 @@ private:
   }
 
   void writeBaseline(nlohmann::json json_baseline){
-    std::string fname = baselineFile(baselineWriteRoot());
+    std::string fname = baselineFile(baseline_root);
     std::string why;
     if(!validBaseline(json_baseline, why)){
       json_baseline = nlohmann::json::object();
@@ -597,7 +627,6 @@ private:
     }
     nlohmann::json runs = json_baseline["runs"];
     json_baseline = json_current;
-    json_baseline.erase("dirty");
     json_baseline.erase("time_stamp");
     json_baseline["runs"] = nlohmann::json::object();
 
@@ -612,8 +641,9 @@ private:
         continue;
       }
       nlohmann::json samples = nlohmann::json::array();
-      // Samples only carry over while the parameters are the same.
-      if(has_old && runs[name].contains("cpu_s_samples")
+      // Samples only carry over while the parameters are the same, and not
+      // for a failed run forced in with =all (it may have failed on time).
+      if(has_old && passed && runs[name].contains("cpu_s_samples")
          && runs[name]["params_nondefault"] == cur["params_nondefault"])
         samples = runs[name]["cpu_s_samples"];
       samples.push_back(cur["cpu_s"]);
