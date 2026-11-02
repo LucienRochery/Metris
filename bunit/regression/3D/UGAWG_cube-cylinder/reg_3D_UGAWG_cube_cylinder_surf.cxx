@@ -14,7 +14,7 @@ using namespace Metris;
 BOOST_AUTO_TEST_CASE(reg_3D_UGAWG_cube_cylinder_surf_linear)
 {
 
-  RegressionTestManager manager("3D/UGAWG_cube-cylinder", "reg_surf_linear", "3D_cube_cylinder_surf_linear");
+  RegressionTestManager manager("3D/UGAWG_cube-cylinder");
 
   int ianamet = 6;
   std::string metname = "linear";
@@ -44,14 +44,14 @@ BOOST_AUTO_TEST_CASE(reg_3D_UGAWG_cube_cylinder_surf_linear)
     }
   }
 
-
+  manager.finish();
 }
 
 
 BOOST_AUTO_TEST_CASE(reg_3D_UGAWG_cube_cylinder_surf_polar_1)
 {
 
-  RegressionTestManager manager("3D/UGAWG_cube-cylinder", "reg_surf_polar_1", "3D_cube_cylinder_surf_polar_1");
+  RegressionTestManager manager("3D/UGAWG_cube-cylinder");
 
   int ianamet = 7;
   std::string metname = "polar_1";
@@ -81,13 +81,13 @@ BOOST_AUTO_TEST_CASE(reg_3D_UGAWG_cube_cylinder_surf_polar_1)
     }
   }
 
-
+  manager.finish();
 }
 
 BOOST_AUTO_TEST_CASE(reg_3D_UGAWG_cube_cylinder_surf_polar_2)
 {
 
-  RegressionTestManager manager("3D/UGAWG_cube-cylinder", "reg_surf_polar_2", "3D_cube_cylinder_surf_polar_2");
+  RegressionTestManager manager("3D/UGAWG_cube-cylinder");
 
   int ianamet = 8;
   std::string metname = "polar_2";
@@ -117,5 +117,5 @@ BOOST_AUTO_TEST_CASE(reg_3D_UGAWG_cube_cylinder_surf_polar_2)
     }
   }
 
-
+  manager.finish();
 }
