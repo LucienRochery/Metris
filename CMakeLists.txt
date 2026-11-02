@@ -287,6 +287,20 @@ set(TEST_SOURCES ${TEST_SOURCES} ${TEST_REG_SOURCES})
 #                           ${METRIS_CASES_DIR}/gen_cases.sh)
 #add_custom_target(deploy_cases DEPENDS ${METRIS_UNIT_TEST_MESHES})
 
+# Regression cases are registered in Release only. In other builds, one test
+# labelled regression fails, so `ctest -L regression` cannot pass empty.
+string(TOUPPER "${CMAKE_BUILD_TYPE}" METRIS_REG_BUILD_TYPE)
+if(METRIS_REG_BUILD_TYPE STREQUAL "RELEASE")
+  set(METRIS_REG_BUILD_TYPE "Release")
+else()
+  set(METRIS_REG_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
+  add_test(NAME regression_needs_release
+           COMMAND ${CMAKE_COMMAND} -E echo
+                   "Regression cases are only registered when CMAKE_BUILD_TYPE=Release (here: '${CMAKE_BUILD_TYPE}')."
+           COMMAND ${CMAKE_COMMAND} -E false)
+  set_tests_properties(regression_needs_release PROPERTIES LABELS "regression")
+endif()
+
 # Regression cases that take several minutes or more get the label "long".
 set(METRIS_REG_LONG_CASES "^reg_3D_cube_anamet_" CACHE STRING
     "Regex of regression case names labelled long")
@@ -357,9 +371,9 @@ foreach(test_file ${TEST_SOURCES})
   elseif(test_target MATCHES "^reg_.*")
     target_compile_definitions(${test_target_build} PUBLIC
                                METRIS_REG_DEFAULT_OUT="${CMAKE_BINARY_DIR}/regression/out"
-                               METRIS_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
-    # Regression results are only meaningful in Release.
-    if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+                               METRIS_BUILD_TYPE="${METRIS_REG_BUILD_TYPE}")
+    # Regression results are only meaningful in Release (see below for others).
+    if(NOT METRIS_REG_BUILD_TYPE STREQUAL "Release")
       continue()
     endif()
     list(APPEND METRIS_TARGET_REGRESSION_TESTS_BUILD ${test_target_build})
@@ -376,7 +390,7 @@ foreach(test_file ${TEST_SOURCES})
       string(REGEX REPLACE "^[ \t]*BOOST_AUTO_TEST_CASE[ \t]*\\([ \t]*([A-Za-z0-9_]+).*$" "\\1"
              reg_case "${reg_case_line}")
       set(reg_labels "regression;${reg_dim_label}")
-      if(reg_case MATCHES "${METRIS_REG_LONG_CASES}")
+      if(NOT METRIS_REG_LONG_CASES STREQUAL "" AND reg_case MATCHES "${METRIS_REG_LONG_CASES}")
         list(APPEND reg_labels "long")
       endif()
       add_test(NAME ${reg_case}

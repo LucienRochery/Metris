@@ -34,6 +34,12 @@ jobs:
           name: regression-baselines-v2
           path: regression-baselines/
           workflow: nightly.yml
+          branch: main
+          # Take the latest run that uploaded baselines, failed or not: the
+          # default (last successful run only) would never pick up the first
+          # night's baselines, since that night fails for want of a baseline.
+          workflow_conclusion: ""
+          search_artifacts: true
           if_no_artifact_found: warn
 
       - name: CMake configure
@@ -65,5 +71,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: regression-runs-${{ github.sha }}
-          path: regression-out/*.json
+          path: |
+            regression-out/*.json
+            regression-out/**/*.log
           retention-days: 90
