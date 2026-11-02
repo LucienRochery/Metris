@@ -19,8 +19,9 @@
 //                                Unset: record only, the case fails only if a
 //                                run throws. Set and no baseline for this
 //                                hwid/case: the case fails.
-//  - METRIS_UPDATE_BASELINE=1    write the baseline: runs that pass (or are new)
-//                                replace theirs; failed runs keep the old one.
+//  - METRIS_UPDATE_BASELINE=1    write the baseline: runs that pass, are new or
+//                                whose parameters changed replace theirs; runs
+//                                that fail or throw keep the old one.
 //                                Into $METRIS_REG_BASELINE, else into
 //                                bunit/regression/baselines.
 //    METRIS_UPDATE_BASELINE=all  same, but failed runs are replaced too.
@@ -45,6 +46,7 @@
 #include <cmath>
 #include <exception>
 #include <map>
+#include <set>
 #include <memory>
 
 #ifdef __linux__
@@ -308,10 +310,14 @@ public:
 
     nlohmann::json json_baseline;
     bool have_baseline = false;
+    std::string why;
     if(!baseline_root.empty()){
       std::string fname = baselineFile(baseline_root);
       have_baseline = readJSON(fname, json_baseline);
-      if(have_baseline){
+      if(have_baseline && !validBaseline(json_baseline, why)){
+        BOOST_ERROR("Baseline " << fname << " is malformed (" << why << ")");
+        have_baseline = false;
+      }else if(have_baseline){
         fmt::print("-- Comparing against baseline {}\n", fname);
         compare(json_baseline);
       }else{
@@ -320,6 +326,14 @@ public:
       }
     }else{
       fmt::print("-- METRIS_REG_BASELINE not set: results recorded, not compared.\n");
+      // Updating without comparing: still start from the existing baseline,
+      // so CPU samples and the runs that threw this time are kept.
+      if(update_baseline){
+        std::string fname = baselineFile(baselineWriteRoot());
+        have_baseline = readJSON(fname, json_baseline) && validBaseline(json_baseline, why);
+        if(!have_baseline && std::filesystem::exists(fname))
+          fmt::print(stderr, "## Existing baseline {} unreadable ({}): replaced\n", fname, why);
+      }
     }
 
     if(update_baseline) writeBaseline(have_baseline ? json_baseline : nlohmann::json());
@@ -341,9 +355,9 @@ private:
   void setGitInfo(){
     bool ok;
     std::string root = METRIS_ROOT_DIR;
-    std::string commit = regShell("git -C '" + root + "' rev-parse HEAD 2>/dev/null", ok);
+    std::string commit = regShell("git --no-optional-locks -C '" + root + "' rev-parse HEAD 2>/dev/null", ok);
     if(ok && !commit.empty()){
-      std::string st = regShell("git -C '" + root + "' status --porcelain "
+      std::string st = regShell("git --no-optional-locks -C '" + root + "' status --porcelain "
                                 "--untracked-files=no 2>/dev/null", ok);
       json_current["commit"] = commit;
       // Unknown status counts as dirty: such a run is never logged as clean.
@@ -426,10 +440,55 @@ private:
     json_current["runs"][test_name] = entry;
   }
 
+  // Serializes first, then writes a temporary file and renames it, so a
+  // failure never leaves a truncated or empty file behind. Invalid UTF-8
+  // (e.g. in an exception message) is replaced rather than thrown on.
+  static void writeJSONFile(const std::string& fname, const nlohmann::json& jj){
+    std::string text = jj.dump(2, ' ', false, nlohmann::json::error_handler_t::replace) + "\n";
+    std::string tmp = fname + ".tmp";
+    {
+      std::ofstream ff(tmp);
+      ff << text;
+      if(!ff) throw std::runtime_error("Could not write " + tmp);
+    }
+    std::filesystem::rename(tmp, fname);
+  }
+
   void writeResult() const {
-    std::ofstream ff(result_fname);
-    ff << json_current.dump(2) << "\n";
+    writeJSONFile(result_fname, json_current);
     fmt::print("-- Results written to {}\n", result_fname);
+  }
+
+  std::string baselineWriteRoot() const {
+    return baseline_root.empty()
+         ? std::string(METRIS_ROOT_DIR) + "/bunit/regression/baselines"
+         : baseline_root;
+  }
+
+  // Structure checks before any field is read: nlohmann's const operator[]
+  // on a missing key is undefined behaviour in Release.
+  static bool validBaseline(const nlohmann::json& jj, std::string& why){
+    why.clear();
+    if(!jj.is_object())                                   why = "not an object";
+    else if(!jj.contains("schema") || jj["schema"] != REG_SCHEMA)
+      why = "schema is not " + std::to_string(REG_SCHEMA);
+    else if(!jj.contains("runs") || !jj["runs"].is_object()) why = "no runs object";
+    else for(auto& [name, run] : jj["runs"].items()){
+      if(!run.is_object() || !run.contains("status") || !run["status"].is_string()){
+        why = "run " + name + ": no status"; break;
+      }
+      if(run["status"] != "ok") continue;
+      if(!run.contains("params_nondefault") || !run["params_nondefault"].is_object()
+      || !run.contains("stats") || !run["stats"].is_object()){
+        why = "run " + name + ": no params_nondefault or stats object"; break;
+      }
+      if(run.contains("cpu_s_samples")){
+        bool okk = run["cpu_s_samples"].is_array();
+        if(okk) for(auto& t : run["cpu_s_samples"]) okk = okk && t.is_number();
+        if(!okk){ why = "run " + name + ": cpu_s_samples not an array of numbers"; break; }
+      }
+    }
+    return why.empty();
   }
 
   std::string baselineFile(const std::string& root) const {
@@ -450,11 +509,7 @@ private:
 
   // Compares runs against the baseline; records which runs passed in run_passed.
   void compare(const nlohmann::json& json_baseline){
-    if(json_baseline.value("schema", 0) != REG_SCHEMA){
-      BOOST_ERROR("Baseline schema " << json_baseline.value("schema", 0)
-                  << " != " << REG_SCHEMA);
-      return;
-    }
+    // Structure already checked by validBaseline.
     const nlohmann::json& base_runs = json_baseline["runs"];
 
     for(auto& [name, base] : base_runs.items()){
@@ -481,6 +536,7 @@ private:
                            "   baseline {}\n   current  {}\n", name,
                    base["params_nondefault"].dump(), cur["params_nondefault"].dump());
         BOOST_ERROR("Run " << name << ": parameters differ from baseline");
+        params_changed.insert(name);
         continue;
       }
 
@@ -493,7 +549,18 @@ private:
           pass = false;
           continue;
         }
+        if(!bval.is_number()){
+          // NaN in the baseline (written as null): nothing to compare against.
+          fmt::print(" - {}: baseline {} is not a number, not compared\n", name, key);
+          continue;
+        }
         double b = bval, c = cur["stats"][key];
+        if(!std::isfinite(c)){
+          fmt::print(stderr, " - {}: {} is {}\n", name, key, c);
+          BOOST_ERROR("Run " << name << ": " << key << " is not finite");
+          pass = false;
+          continue;
+        }
         if(sign*(c - b) < -tol){
           fmt::print(stderr, " - {}: {} worse: baseline {:.4g}, current {:.4g} (tol {})\n",
                      name, key, b, c, tol);
@@ -522,11 +589,9 @@ private:
   }
 
   void writeBaseline(nlohmann::json json_baseline){
-    std::string root = baseline_root.empty()
-                     ? std::string(METRIS_ROOT_DIR) + "/bunit/regression/baselines"
-                     : baseline_root;
-    std::string fname = baselineFile(root);
-    if(json_baseline.is_null() || json_baseline.value("schema", 0) != REG_SCHEMA){
+    std::string fname = baselineFile(baselineWriteRoot());
+    std::string why;
+    if(!validBaseline(json_baseline, why)){
       json_baseline = nlohmann::json::object();
       json_baseline["runs"] = nlohmann::json::object();
     }
@@ -539,7 +604,9 @@ private:
     for(auto& [name, cur] : json_current["runs"].items()){
       bool has_old = runs.contains(name);
       bool passed  = !run_passed.count(name) || run_passed[name];
-      if(cur["status"] != "ok" || (has_old && !passed && !update_all)){
+      // Changed parameters mean the case itself was changed: take the new run.
+      bool replace = passed || update_all || params_changed.count(name);
+      if(cur["status"] != "ok" || (has_old && !replace)){
         if(has_old) json_baseline["runs"][name] = runs[name];
         fmt::print("-- Baseline for {} {}\n", name, has_old ? "kept" : "not written");
         continue;
@@ -560,8 +627,7 @@ private:
     // Runs that are in the old baseline but no longer run are dropped.
 
     std::filesystem::create_directories(std::filesystem::path(fname).parent_path());
-    std::ofstream ff(fname);
-    ff << json_baseline.dump(2) << "\n";
+    writeJSONFile(fname, json_baseline);
     fmt::print("-- Baseline written to {}\n", fname);
   }
 
@@ -576,6 +642,7 @@ private:
   bool finished = false;
   nlohmann::json json_current;
   std::map<std::string, bool> run_passed;
+  std::set<std::string> params_changed;
 };
 
 } // namespace Metris
