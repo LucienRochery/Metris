@@ -294,11 +294,13 @@ if(METRIS_REG_BUILD_TYPE STREQUAL "RELEASE")
   set(METRIS_REG_BUILD_TYPE "Release")
 else()
   set(METRIS_REG_BUILD_TYPE "${CMAKE_BUILD_TYPE}")
+  # add_test takes one COMMAND: print the reason, fail on it.
   add_test(NAME regression_needs_release
            COMMAND ${CMAKE_COMMAND} -E echo
-                   "Regression cases are only registered when CMAKE_BUILD_TYPE=Release (here: '${CMAKE_BUILD_TYPE}')."
-           COMMAND ${CMAKE_COMMAND} -E false)
-  set_tests_properties(regression_needs_release PROPERTIES LABELS "regression")
+                   "Regression cases are only registered when CMAKE_BUILD_TYPE=Release (here: '${CMAKE_BUILD_TYPE}').")
+  set_tests_properties(regression_needs_release PROPERTIES
+                       LABELS "regression"
+                       FAIL_REGULAR_EXPRESSION "only registered when")
 endif()
 
 # Regression cases that take several minutes or more get the label "long".
