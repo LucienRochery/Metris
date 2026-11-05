@@ -7,6 +7,7 @@
 #include "common_setup.hxx"
 
 #include "API/MetrisAPI.hxx"
+#include "Boundary/msh_inisurf.hxx"
 #include "Adaptation/Insertion/EdgeSeed.hxx"
 #include "Adaptation/Insertion/aux_insert.hxx"
 #include "Adaptation/low_increasecav.hxx"
@@ -691,4 +692,62 @@ BOOST_AUTO_TEST_CASE(
   BOOST_CHECK((
       classify_element_validity<2,2>(mesh,seedFace)
           .accepted_conservatively()));
+}
+
+// We observed in the OAT15A airfoil case that a boundary walk could reach an approximate corner parameter,
+// fail to find a strictly forward edge, and then access edge -1 in release mode.
+BOOST_AUTO_TEST_CASE(cad_corner_edge_parameters_use_exact_topological_endpoints)
+{
+  for(bool suppliedParameters : {true, false}){
+    auto testCase = make_curved_planar_cad_case();
+    auto &mesh = *testCase->runner->msh_g;
+    struct Endpoint { int record; double parameter; };
+    std::vector<Endpoint> endpoints;
+    for(int ib = 0; ib < mesh.nbpoi; ib++){
+      if(mesh.bpo2ibi(ib,1) != 1) continue;
+      const int ip = mesh.bpo2ibi(ib,0);
+      if(mesh.getpoitdim(ip) != 0) continue;
+      const int edge = mesh.bpo2ibi(ib,2);
+      double range[2];
+      int periodic;
+      BOOST_REQUIRE_EQUAL(EG_getRange(mesh.CAD.cad2edg[mesh.edg2ref[edge]],
+                                     range,&periodic),EGADS_SUCCESS);
+      const double oldParameter = mesh.bpo2rbi(ib,0);
+      const int end = std::abs(oldParameter-range[0])
+                    < std::abs(oldParameter-range[1]) ? 0 : 1;
+      endpoints.push_back({ib,range[end]});
+      // A geometrically small error must not move a CAD corner into the
+      // interior of its edge's parameter interval.
+      mesh.bpo2rbi(ib,0) = range[end]
+                         + (end == 0 ? 1 : -1)*4.e-7*(range[1]-range[0]);
+    }
+    BOOST_REQUIRE_EQUAL(endpoints.size(),6);
+    // Exercise both links supplied by the caller and newly created links.
+    prjMeshPoints(mesh,suppliedParameters ? mesh.nbpoi : 0);
+    for(const auto &endpoint : endpoints)
+      BOOST_CHECK_EQUAL(mesh.bpo2rbi(endpoint.record,0),endpoint.parameter);
+    check_topo(mesh,0);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(planar_corner_projection_does_not_read_next_points_x_as_z)
+{
+  auto testCase = make_curved_planar_cad_case();
+  auto &mesh = *testCase->runner->msh_g;
+  mesh.setBasis(FEBasis::Lagrange);
+  const int point = mesh.edg2poi(0,0);
+  const int corner = mesh.poi2bpo[point];
+  const int record = mesh.poi2ebp(point,1,0,-1);
+  BOOST_REQUIRE_EQUAL(mesh.bpo2ibi(corner,1),0);
+  BOOST_REQUIRE_LT(point+1,mesh.npoin);
+  // A mesh corner without a CAD-node association must use inverse projection.
+  // This exercises that path independently of exact CAD-endpoint handling.
+  mesh.bpo2ibi(corner,2) = -1;
+  const double parameter = circle_start + 0.05;
+  mesh.coord(point,0) = std::cos(parameter);
+  mesh.coord(point,1) = std::sin(parameter);
+  // Adjacent storage must not contribute a third coordinate to this point.
+  mesh.coord(point+1,0) = -1.e12;
+  prjMeshPoints(mesh,0);
+  BOOST_CHECK_SMALL(mesh.bpo2rbi(record,0)-parameter,1.e-8);
 }

@@ -771,7 +771,9 @@ void adaptGeoLines(Mesh<MFT> &msh){
             CPRINTF1("edg2 poi = {}\n",intAr1(2,msh.edg2poi[iedge]));
             if(DOPRINTS2()) writeMesh("debug_iedg0", msh);
           }
-          METRIS_ASSERT(iedg0 >= 0);
+          METRIS_ENFORCE_MSG(iedg0 >= 0,
+            "Boundary walk has no forward edge: CAD reference {}, point {}, "
+            "parameter {:.17g}", iref, ipoi0, msh.bpo2rbi(ibpo0,0));
 
 
           continue;

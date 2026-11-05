@@ -23,6 +23,40 @@
 
 namespace Metris{
 
+namespace {
+
+// An open CAD edge identifies its endpoint parameters exactly. Inverse
+// projection can stop within the CAD tolerance and return a nearby interior
+// parameter, which is not sufficient for an ordered boundary walk.
+bool setCornerEdgeParameter(MeshBase &msh, int ibpoi){
+  if(msh.bpo2ibi(ibpoi,1) != 1) return false;
+  const int ipoin = msh.bpo2ibi(ibpoi,0);
+  const int ibcor = msh.poi2bpo[ipoin];
+  if(ibcor < 0 || msh.bpo2ibi(ibcor,1) != 0) return false;
+  const int inode = msh.bpo2ibi(ibcor,2);
+  if(inode < 0 || inode >= msh.CAD.ncadno) return false;
+  const int iedge = msh.bpo2ibi(ibpoi,2);
+  const int iref = msh.edg2ref[iedge];
+  ego geometry, *nodes;
+  int oclass, mtype, nnode, *senses;
+  double range[4];
+  const int status = EG_getTopology(msh.CAD.cad2edg[iref], &geometry,
+      &oclass, &mtype, range, &nnode, &nodes, &senses);
+  METRIS_ENFORCE_MSG(status == EGADS_SUCCESS,
+                    "Cannot get CAD edge {} endpoints: {}", iref, status);
+  // A closed edge has two parameter values at one CAD node. Keep the
+  // existing branch/neighbor-guess handling for that ambiguous case.
+  if(nnode != 2 || nodes[0] == nodes[1]) return false;
+  for(int end = 0; end < 2; end++){
+    if(nodes[end] != msh.CAD.cad2nod[inode]) continue;
+    msh.bpo2rbi(ibpoi,0) = range[end];
+    return true;
+  }
+  return false;
+}
+
+} // namespace
+
 int getNumCorners(const MeshBase &msh){
   int ret = 0;
   for(int ibpoi = 0; ibpoi < msh.nbpoi; ibpoi++){
@@ -97,6 +131,7 @@ void prjMeshPoints(MeshBase &msh, int nbpo0, bool onlyproj, bool updtX){
     }
 		METRIS_ASSERT(obj!=NULL);
 
+    setCornerEdgeParameter(msh, ibpoi);
 		if(EG_evaluate(obj, msh.bpo2rbi[ibpoi], result) != 0){
 			nerr[bdim]++;
 			continue;
@@ -172,8 +207,9 @@ doproj:
       CPRINTF3(" - try project point {} ibpoi {} ibpo0 {} bdim {}\n",
               ipoin,ibpoi,ibpo0,bdim);
 
+      const bool exactEndpoint = setCornerEdgeParameter(msh, ibpoi);
       // In this case, we produce a guess to the t or (u,v)
-      if(pdim < bdim){
+      if(pdim < bdim && !exactEndpoint){
         const int nnode = msh.nnode(bdim);
         const intAr2& ent2poi = msh.ent2poi(bdim);
 
@@ -229,10 +265,16 @@ doproj:
 
 			obj = bdim == 1 ? msh.CAD.cad2edg[iref] : msh.CAD.cad2fac[iref];
 
-      if(pdim == bdim){
-        ierro = EG_invEvaluate(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
+      // EGADS always reads three physical coordinates. Mesh rows have only
+      // idim entries, so passing a 2D row directly reads the next point's x as z.
+      double xyz[3] = {msh.coord(ipoin,0), msh.coord(ipoin,1),
+                       msh.idim == 3 ? msh.coord(ipoin,2) : 0.0};
+      if(exactEndpoint){
+        ierro = EG_evaluate(obj, msh.bpo2rbi[ibpoi], result);
+      }else if(pdim == bdim){
+        ierro = EG_invEvaluate(obj, xyz, msh.bpo2rbi[ibpoi], result);
       }else{
-        ierro = EG_invEvaluateGuess(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
+        ierro = EG_invEvaluateGuess(obj, xyz, msh.bpo2rbi[ibpoi], result);
       }
 
       CPRINTF3(" - proj ipoin {} pdim {} bdim {} iref {} ibpoi {} ierro {} coord (u,v)/t = {} {}\n",
@@ -335,7 +377,9 @@ doproj:
           for(int ii = 0; ii < nrbi; ii++)
             msh.bpo2rbi(ibpoi,ii) = msh.bpo2rbi(ibpo2,ii);
 
-          ierro = EG_invEvaluateGuess(obj, msh.coord[ipoin], msh.bpo2rbi[ibpoi], result);
+          double xyz[3] = {msh.coord(ipoin,0), msh.coord(ipoin,1),
+                           msh.idim == 3 ? msh.coord(ipoin,2) : 0.0};
+          ierro = EG_invEvaluateGuess(obj, xyz, msh.bpo2rbi[ibpoi], result);
 
           if(ierro == 0){
             solvedpt = true;
